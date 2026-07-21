@@ -18,21 +18,12 @@ from __future__ import annotations
 
 import logging
 import os
-import sys
 from typing import cast, Iterable, Optional
+from wsgiref.types import StartResponse, WSGIApplication, WSGIEnvironment
 
 from alembic.config import Config
 from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
-
-if sys.version_info >= (3, 11):
-    from wsgiref.types import StartResponse, WSGIApplication, WSGIEnvironment
-else:
-    from typing import TYPE_CHECKING
-
-    if TYPE_CHECKING:
-        from _typeshed.wsgi import StartResponse, WSGIApplication, WSGIEnvironment
-
 from flask import Flask, Response
 from werkzeug.exceptions import NotFound
 

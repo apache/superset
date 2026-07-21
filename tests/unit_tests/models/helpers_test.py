@@ -29,10 +29,11 @@ from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
 from sqlalchemy.orm.session import Session
 from sqlalchemy.pool import StaticPool
-from sqlalchemy.sql.elements import ColumnElement
+from sqlalchemy.sql.elements import Cast, ColumnElement
+from sqlalchemy.sql.visitors import iterate
 
 from superset.superset_typing import AdhocColumn, AdhocMetric, OrderBy
-from superset.utils.core import GenericDataType
+from superset.utils.core import FilterOperator, GenericDataType
 from tests.unit_tests.conftest import with_feature_flags
 
 if TYPE_CHECKING:
@@ -2726,7 +2727,12 @@ def _normalize_df_datasource(column: object) -> MagicMock:
     datasource.enforce_numerical_metrics = False
     datasource.columns = [column]
     datasource.get_column = lambda name: {"ts": column}.get(name)
-    for method in ("_python_date_format", "_collect_dttm_labels", "normalize_df"):
+    for method in (
+        "_python_date_format",
+        "_collect_dttm_labels",
+        "_offset_only_dttm_cols",
+        "normalize_df",
+    ):
         setattr(datasource, method, getattr(ExploreMixin, method).__get__(datasource))
     return datasource
 
@@ -2850,7 +2856,12 @@ def test_normalize_df_without_get_column_is_a_noop() -> None:
         columns: list[object] = []
 
     datasource = _NoGetColumnDatasource()
-    for method in ("_python_date_format", "_collect_dttm_labels", "normalize_df"):
+    for method in (
+        "_python_date_format",
+        "_collect_dttm_labels",
+        "_offset_only_dttm_cols",
+        "normalize_df",
+    ):
         setattr(datasource, method, getattr(ExploreMixin, method).__get__(datasource))
 
     df = pd.DataFrame({"ts": [1577836800, 1609459200]})
@@ -2947,6 +2958,149 @@ def test_normalize_df_normalizes_legacy_time_column() -> None:
 
     assert is_datetime64_any_dtype(result[DTTM_ALIAS])
     assert result[DTTM_ALIAS][0].strftime("%Y-%m-%d") == "2020-01-01"
+
+
+def test_normalize_df_applies_offset_to_all_temporal_columns() -> None:
+    """Regression test for issue #23167: the dataset HOURS OFFSET must be applied
+    to every temporal column a query returns, not only the selected time column.
+    Two native-datetime temporal columns (neither declaring a
+    ``python_date_format``) must both be shifted by the dataset offset."""
+    import pandas as pd
+
+    from superset.models.helpers import ExploreMixin
+
+    created = MagicMock(
+        column_name="created",
+        is_dttm=True,
+        python_date_format=None,
+        datetime_format=None,
+    )
+    expired = MagicMock(
+        column_name="expired",
+        is_dttm=True,
+        python_date_format=None,
+        datetime_format=None,
+    )
+    columns = {"created": created, "expired": expired}
+
+    datasource = MagicMock()
+    datasource.offset = 4
+    datasource.enforce_numerical_metrics = False
+    datasource.columns = list(columns.values())
+    datasource.get_column = lambda name: columns.get(name)
+    for method in (
+        "_python_date_format",
+        "_collect_dttm_labels",
+        "_offset_only_dttm_cols",
+        "normalize_df",
+    ):
+        setattr(datasource, method, getattr(ExploreMixin, method).__get__(datasource))
+
+    query_object = MagicMock()
+    query_object.columns = ["created", "expired"]
+    query_object.granularity = None
+    query_object.time_shift = None
+
+    df = pd.DataFrame(
+        {
+            "created": pd.to_datetime(["2020-01-01 00:00:00", "2020-01-02 00:00:00"]),
+            "expired": pd.to_datetime(["2020-06-01 12:00:00", "2020-06-02 12:00:00"]),
+        }
+    )
+
+    result = datasource.normalize_df(df, query_object)
+
+    assert (
+        result["created"].tolist()
+        == pd.to_datetime(["2020-01-01 04:00:00", "2020-01-02 04:00:00"]).tolist()
+    )
+    assert (
+        result["expired"].tolist()
+        == pd.to_datetime(["2020-06-01 16:00:00", "2020-06-02 16:00:00"]).tolist()
+    )
+
+
+def test_normalize_df_offset_skips_unconfigured_integer_temporal_columns() -> None:
+    """The offset extension for native-datetime temporal columns must not touch a
+    temporal column whose values arrive as plain integers with no declared
+    format: such a column cannot be safely interpreted as a datetime, so it is
+    left untouched rather than reinterpreted as nanoseconds (see issue #23167)."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    from superset.models.helpers import ExploreMixin
+
+    int_col = MagicMock(
+        column_name="ts",
+        is_dttm=True,
+        python_date_format=None,
+        datetime_format=None,
+    )
+    datasource = MagicMock()
+    datasource.offset = 4
+    datasource.enforce_numerical_metrics = False
+    datasource.columns = [int_col]
+    datasource.get_column = lambda name: {"ts": int_col}.get(name)
+    for method in (
+        "_python_date_format",
+        "_collect_dttm_labels",
+        "_offset_only_dttm_cols",
+        "normalize_df",
+    ):
+        setattr(datasource, method, getattr(ExploreMixin, method).__get__(datasource))
+
+    query_object = MagicMock()
+    query_object.columns = ["ts"]
+    query_object.granularity = None
+    query_object.time_shift = None
+
+    df = pd.DataFrame({"ts": [1577836800, 1609459200, 1640995200]})
+
+    result = datasource.normalize_df(df, query_object)
+
+    assert not is_datetime64_any_dtype(result["ts"])
+    assert result["ts"].tolist() == [1577836800, 1609459200, 1640995200]
+
+
+def test_normalize_df_offset_applied_once_for_already_collected_column() -> None:
+    """A column already handled by ``_collect_dttm_labels`` (here, the
+    granularity column, which also declares a ``python_date_format`` and
+    arrives as a native datetime in the dataframe) must not be re-added by
+    ``_offset_only_dttm_cols``: the dataset HOURS OFFSET must shift it by
+    exactly one offset, not two (see issue #23167)."""
+    import pandas as pd
+
+    ts_col = MagicMock(
+        column_name="ts",
+        is_dttm=True,
+        python_date_format="epoch_s",
+        datetime_format=None,
+    )
+    datasource = _normalize_df_datasource(ts_col)
+    datasource.offset = 4
+
+    query_object = MagicMock()
+    query_object.columns = []
+    query_object.granularity = "ts"
+    query_object.time_shift = None
+
+    df = pd.DataFrame(
+        {"ts": pd.to_datetime(["2020-01-01 00:00:00", "2020-01-02 00:00:00"])}
+    )
+
+    # The granularity column is already collected, so the raw/offset-only
+    # pass must be a no-op for it.
+    already_collected = {
+        label for label, _ in datasource._collect_dttm_labels(query_object)
+    }
+    assert datasource._offset_only_dttm_cols(df, query_object, already_collected) == []
+
+    result = datasource.normalize_df(df, query_object)
+
+    assert (
+        result["ts"].tolist()
+        == pd.to_datetime(["2020-01-01 04:00:00", "2020-01-02 04:00:00"]).tolist()
+    )
 
 
 def test_adhoc_column_to_sqla_returns_type_from_column_metadata(
@@ -3410,3 +3564,392 @@ def test_get_sqla_query_dotted_struct_column_bigquery(
     # ```forecasts.original`.`total_cost``` (the regression), so this negative
     # assertion catches the actual failure mode, not just an exact-string match.
     assert "`forecasts.original`" not in sql
+
+
+def test_temporal_epoch_string_filter_is_coerced_for_bigquery() -> None:
+    """
+    Drill-to-detail can send JavaScript timestamp strings for temporal values.
+    BigQuery DATE filters must receive a DATE literal instead of the raw string.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    value = ExploreMixin.filter_values_handler(
+        values="1778630400000",
+        operator=FilterOperator.EQUALS,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type="DATE",
+        db_engine_spec=BigQueryEngineSpec,
+    )
+
+    assert isinstance(value, ColumnElement)
+    assert str(value) == "CAST('2026-05-13' AS DATE)"
+
+
+def test_temporal_negative_epoch_string_filter_is_coerced_for_bigquery() -> None:
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    value = ExploreMixin.filter_values_handler(
+        values="-1778630400000",
+        operator=FilterOperator.EQUALS,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type="DATE",
+        db_engine_spec=BigQueryEngineSpec,
+    )
+
+    assert isinstance(value, ColumnElement)
+    assert str(value) == "CAST('1913-08-22' AS DATE)"
+
+
+@pytest.mark.parametrize("value", [1778630400000, 1778630400000.0])
+def test_temporal_numeric_filter_is_coerced_for_bigquery(
+    value: int | float,
+) -> None:
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    result = ExploreMixin.filter_values_handler(
+        values=value,
+        operator=FilterOperator.EQUALS,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type="DATE",
+        db_engine_spec=BigQueryEngineSpec,
+    )
+
+    assert isinstance(result, ColumnElement)
+    assert str(result) == "CAST('2026-05-13' AS DATE)"
+
+
+def test_temporal_overflow_epoch_filter_is_not_coerced() -> None:
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    value = "999999999999999999999999999999999999999"
+
+    result = ExploreMixin.filter_values_handler(
+        values=value,
+        operator=FilterOperator.EQUALS,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type="DATE",
+        db_engine_spec=BigQueryEngineSpec,
+    )
+
+    assert result == value
+
+
+def test_temporal_epoch_filter_is_not_coerced_without_engine_literal() -> None:
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    result = ExploreMixin.filter_values_handler(
+        values="1778630400000",
+        operator=FilterOperator.EQUALS,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type="UNKNOWN_TYPE",
+        db_engine_spec=BaseEngineSpec,
+    )
+
+    assert result == "1778630400000"
+
+
+@pytest.mark.parametrize(
+    "operator",
+    [FilterOperator.IN, FilterOperator.NOT_IN],
+)
+def test_temporal_epoch_string_filter_list_is_coerced_for_bigquery(
+    operator: FilterOperator,
+) -> None:
+    """
+    Cross-filtering can send JavaScript timestamp strings inside IN lists.
+    BigQuery DATE filters must receive DATE literals instead of raw strings.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    values = ExploreMixin.filter_values_handler(
+        values=["1777248000000"],
+        operator=operator,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type="DATE",
+        is_list_target=True,
+        db_engine_spec=BigQueryEngineSpec,
+    )
+
+    assert isinstance(values, list)
+    assert len(values) == 1
+    assert isinstance(values[0], ColumnElement)
+    assert str(values[0]) == "CAST('2026-04-27' AS DATE)"
+
+
+def test_temporal_epoch_string_filter_list_is_coerced_for_clickhouse() -> None:
+    from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    values = ExploreMixin.filter_values_handler(
+        values=["1777248000000"],
+        operator=FilterOperator.IN,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type="Date",
+        is_list_target=True,
+        db_engine_spec=ClickHouseEngineSpec,
+    )
+
+    assert isinstance(values, list)
+    assert len(values) == 1
+    assert isinstance(values[0], ColumnElement)
+    assert str(values[0]) == "toDate('2026-04-27')"
+
+
+@pytest.mark.parametrize(
+    "target_type,expected",
+    [
+        ("DATE", "TO_DATE('2026-05-13', 'YYYY-MM-DD')"),
+        (
+            "TIMESTAMP",
+            "TO_TIMESTAMP('2026-05-13 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
+        ),
+    ],
+)
+def test_temporal_epoch_string_filter_is_coerced_for_postgres(
+    target_type: str,
+    expected: str,
+) -> None:
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    value = ExploreMixin.filter_values_handler(
+        values="1778630400000",
+        operator=FilterOperator.EQUALS,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type=target_type,
+        db_engine_spec=PostgresEngineSpec,
+    )
+
+    assert isinstance(value, ColumnElement)
+    assert str(value) == expected
+
+
+def test_temporal_epoch_string_filter_list_is_coerced_for_postgres() -> None:
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    values = ExploreMixin.filter_values_handler(
+        values=["1777248000000"],
+        operator=FilterOperator.IN,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type="DATE",
+        is_list_target=True,
+        db_engine_spec=PostgresEngineSpec,
+    )
+
+    assert isinstance(values, list)
+    assert len(values) == 1
+    assert isinstance(values[0], ColumnElement)
+    assert str(values[0]) == "TO_DATE('2026-04-27', 'YYYY-MM-DD')"
+
+
+def test_non_temporal_numeric_string_filter_is_not_coerced() -> None:
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    value = ExploreMixin.filter_values_handler(
+        values="1778630400000",
+        operator=FilterOperator.EQUALS,
+        target_generic_type=GenericDataType.STRING,
+        target_native_type="DATE",
+        db_engine_spec=BigQueryEngineSpec,
+    )
+
+    assert value == "1778630400000"
+
+
+def test_temporal_range_filter_value_is_not_coerced() -> None:
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    value = ExploreMixin.filter_values_handler(
+        values="No filter",
+        operator=FilterOperator.TEMPORAL_RANGE,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type="DATE",
+        db_engine_spec=BigQueryEngineSpec,
+    )
+
+    assert value == "No filter"
+
+
+@pytest.mark.parametrize(
+    "target_type,expected",
+    [
+        (
+            "DATETIME",
+            "CAST('2026-05-13T14:30:00.123000' AS DATETIME)",
+        ),
+        (
+            "TIMESTAMP",
+            "CAST('2026-05-13T14:30:00.123000' AS TIMESTAMP)",
+        ),
+    ],
+)
+def test_temporal_epoch_string_filter_is_coerced_for_datetime_bigquery(
+    target_type: str,
+    expected: str,
+) -> None:
+    """Sub-second epoch precision survives DATETIME / TIMESTAMP coercion."""
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    value = ExploreMixin.filter_values_handler(
+        values="1778682600123",
+        operator=FilterOperator.EQUALS,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type=target_type,
+        db_engine_spec=BigQueryEngineSpec,
+    )
+
+    assert isinstance(value, ColumnElement)
+    assert str(value) == expected
+
+
+def test_temporal_non_numeric_string_filter_is_not_coerced() -> None:
+    """Non-integer temporal strings pass through without epoch coercion."""
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    value = ExploreMixin.filter_values_handler(
+        values="2025-12-20",
+        operator=FilterOperator.EQUALS,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type="DATE",
+        db_engine_spec=BigQueryEngineSpec,
+    )
+
+    assert value == "2025-12-20"
+
+
+def test_simple_metric_quotes_column_requiring_quoting(database: Database) -> None:
+    """
+    Regression for #30637: a SIMPLE adhoc metric that aggregates a column whose
+    name requires identifier quoting (e.g. it contains a space) must render the
+    column with the dialect's quote characters, otherwise the emitted SQL is
+    invalid for dialects that need quoting.
+
+    This exercises the metric compilation path named in the issue
+    (``adhoc_metric_to_sqla`` -> ``TableColumn.get_sqla_col`` -> ``column()``),
+    asserting the identifier is quoted rather than emitted bare.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    column_name = "Amount HT"
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="test_table",
+        columns=[TableColumn(column_name=column_name, type="INTEGER")],
+    )
+    columns_by_name = {col.column_name: col for col in table.columns}
+
+    metric: AdhocMetric = {
+        "expressionType": "SIMPLE",
+        "aggregate": "SUM",
+        "column": {"column_name": column_name},
+        "label": "total",
+    }
+
+    sqla_metric = table.adhoc_metric_to_sqla(metric, columns_by_name)
+
+    with database.get_sqla_engine() as engine:
+        dialect = engine.dialect
+
+    rendered = str(
+        sqla_metric.compile(dialect=dialect, compile_kwargs={"literal_binds": True})
+    )
+
+    # The spaced identifier must be quoted (double quotes for the SQLite/ANSI
+    # dialect used here) and must never appear bare.
+    assert f'"{column_name}"' in rendered, (
+        f"Expected quoted identifier in rendered metric SQL, got: {rendered}"
+    )
+    assert f"SUM({column_name})" not in rendered, (
+        f"Column requiring quoting was emitted unquoted: {rendered}"
+    )
+
+
+@pytest.mark.parametrize(
+    "native_type",
+    [
+        "UUID",
+        "uuid",
+        "Nullable(UUID)",
+        "uniqueidentifier",
+        "LowCardinality(UUID)",
+        "LowCardinality(Nullable(UUID))",
+    ],
+)
+@pytest.mark.parametrize(
+    "op",
+    ["LIKE", "ILIKE", "NOT LIKE", "NOT ILIKE"],
+)
+def test_like_filter_on_uuid_column_casts_to_string(
+    database: Database, native_type: str, op: str
+) -> None:
+    """
+    LIKE-family filters on native UUID columns must cast the column to string.
+
+    UUID columns map to ``GenericDataType.STRING``, so the generic-type guard
+    alone skips the string cast — but engines such as PostgreSQL and ClickHouse
+    reject LIKE/ILIKE against a raw UUID column (issue #41795: table chart
+    server-pagination search fails with e.g. "Illegal type UUID of argument of
+    function ilike"). The native column type must force the cast.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="event_id", type=native_type)],
+    )
+
+    result = table.get_sqla_query(
+        columns=["event_id"],
+        metrics=[],
+        extras={},
+        filter=[{"col": "event_id", "op": op, "val": "abc%"}],
+        granularity=None,
+        is_timeseries=False,
+        orderby=[],
+    )
+    whereclause: ColumnElement = result.sqla_query.whereclause
+    assert any(isinstance(node, Cast) for node in iterate(whereclause)), (
+        f"Expected a Cast node in the filter expression: {whereclause}"
+    )
+
+
+def test_like_filter_on_string_column_does_not_cast(database: Database) -> None:
+    """
+    LIKE-family filters on plain string columns must not add a redundant cast.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="b", type="TEXT")],
+    )
+
+    result = table.get_sqla_query(
+        columns=["b"],
+        metrics=[],
+        extras={},
+        filter=[{"col": "b", "op": "ILIKE", "val": "abc%"}],
+        granularity=None,
+        is_timeseries=False,
+        orderby=[],
+    )
+    whereclause: ColumnElement = result.sqla_query.whereclause
+    assert not any(isinstance(node, Cast) for node in iterate(whereclause)), (
+        f"Unexpected Cast node in the filter expression: {whereclause}"
+    )

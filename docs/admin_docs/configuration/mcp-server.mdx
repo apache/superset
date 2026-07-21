@@ -99,7 +99,7 @@ See [Connecting AI Clients](#connecting-ai-clients) for Claude Code, Claude Web,
 ## Prerequisites
 
 - Apache Superset 5.0+ running and accessible
-- Python 3.10+
+- Python 3.11+
 - The `fastmcp` package (`pip install fastmcp`)
 
 ---
@@ -529,6 +529,7 @@ MCP_RESPONSE_SIZE_CONFIG = {
     "enabled": True,
     "token_limit": 25000,
     "warn_threshold_pct": 80,
+    "max_list_items": 100,
     "excluded_tools": [
         "health_check",
         "get_chart_preview",
@@ -543,6 +544,7 @@ MCP_RESPONSE_SIZE_CONFIG = {
 | `enabled` | `True` | Enable response size checking |
 | `token_limit` | `25000` | Maximum estimated token count per response |
 | `warn_threshold_pct` | `80` | Warn when response exceeds this percentage of the limit |
+| `max_list_items` | `100` | Cap on list-field length (e.g. `charts`, `native_filters`) applied to the `get_*_info` tools before falling back to more aggressive truncation. Raised from a hardcoded 30 in earlier versions; the higher default only keeps more data before the same token-budget fallback kicks in, so it's not a breaking change, but tenants that tuned workflows around the old 30-item cap should lower this value explicitly. |
 | `excluded_tools` | See above | Tools exempt from size checking (e.g., tools that return URLs, not data) |
 
 ### Caching

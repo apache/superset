@@ -59,9 +59,15 @@ from markupsafe import escape, Markup
 from pandas import DateOffset
 from sqlalchemy import and_, Column, or_, UniqueConstraint
 from sqlalchemy.exc import MultipleResultsFound
-from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import Mapped, Mapper, Session, validates, with_loader_criteria
+from sqlalchemy.orm import (
+    declared_attr,
+    Mapped,
+    Mapper,
+    Session,
+    validates,
+    with_loader_criteria,
+)
 from sqlalchemy.orm.session import ORMExecuteState
 from sqlalchemy.sql.elements import ColumnElement, Grouping, literal_column, TextClause
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom
@@ -134,6 +140,8 @@ from superset.utils.core import (
 )
 from superset.utils.date_parser import (
     get_past_or_future,
+    is_constant_human_timedelta,
+    is_parseable_human_timedelta,
     normalize_time_delta,
     TimeDeltaAmbiguousError,
 )
@@ -164,6 +172,16 @@ OFFSET_JOIN_COLUMN_SUFFIX = "__offset_join_column_"
 
 # Right suffix used for joining offset results
 R_SUFFIX = "__right_suffix"
+
+
+def _as_wall_clock(series: pd.Series) -> pd.Series:
+    """
+    Return a datetime series as local wall-clock readings, dropping any
+    timezone. Series of other dtypes are returned unchanged.
+    """
+    if isinstance(series.dtype, pd.DatetimeTZDtype):
+        return series.dt.tz_localize(None)
+    return series
 
 
 class CachedTimeOffset(TypedDict):
@@ -248,6 +266,28 @@ def json_to_dict(json_str: str) -> dict[Any, Any]:
         return json.loads(val)
 
     return {}
+
+
+UUID_NATIVE_TYPE_RE: re.Pattern[str] = re.compile(
+    r"\b(uuid|uniqueidentifier)\b", re.IGNORECASE
+)
+
+
+def is_uuid_native_type(native_type: Optional[str]) -> bool:
+    """
+    Return True if a native column type represents a UUID.
+
+    Engines such as PostgreSQL and ClickHouse expose native UUID column types
+    (e.g. ``UUID``, ``Nullable(UUID)``) that map to ``GenericDataType.STRING``
+    yet reject LIKE/ILIKE against the raw column, so these columns need an
+    explicit cast to string before pattern matching. SQL Server's equivalent
+    native type is ``uniqueidentifier``, which is matched too. The match is
+    on whole words so unrelated types that merely contain one of these as a
+    substring (e.g. a hypothetical ``uuidish`` type) aren't misclassified.
+    """
+    return native_type is not None and bool(
+        UUID_NATIVE_TYPE_RE.search(native_type.strip())
+    )
 
 
 def convert_uuids(obj: Any) -> Any:
@@ -1718,6 +1758,56 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 seen.add(label)
         return tuple(labels)
 
+    def _offset_only_dttm_cols(
+        self,
+        df: pd.DataFrame,
+        query_object: QueryObject,
+        already_collected: set[str],
+    ) -> list[DateColumn]:
+        """``DateColumn`` entries that only need the dataset HOURS OFFSET (and any
+        time shift) applied, for temporal columns the database already returns as
+        native datetimes.
+
+        The dataset offset must apply to *every* temporal column a query returns,
+        not just the selected time column. ``_collect_dttm_labels`` only covers
+        columns that need parsing (a declared ``python_date_format``) or the
+        base-axis / granularity column; a second temporal column returned as a
+        native datetime would otherwise keep its raw, un-offset value. Columns
+        arriving as plain integers/strings without a declared format are skipped,
+        since they cannot be safely interpreted as datetimes.
+        See https://github.com/apache/superset/issues/23167.
+        """
+        if not (self.offset or query_object.time_shift) or not hasattr(
+            self, "get_column"
+        ):
+            return []
+
+        extra: list[DateColumn] = []
+        for label in df.columns:
+            if label in already_collected or label == DTTM_ALIAS:
+                continue
+            if not pd.api.types.is_datetime64_any_dtype(df[label]):
+                continue
+            column_obj = self.get_column(label)
+            if not column_obj:
+                continue
+            is_dttm = (
+                column_obj.get("is_dttm")
+                if isinstance(column_obj, dict)
+                else getattr(column_obj, "is_dttm", False)
+            )
+            if is_dttm:
+                extra.append(
+                    DateColumn(
+                        timestamp_format=None,
+                        offset=self.offset,
+                        time_shift=query_object.time_shift,
+                        col_label=label,
+                    )
+                )
+                already_collected.add(label)
+        return extra
+
     def normalize_df(self, df: pd.DataFrame, query_object: QueryObject) -> pd.DataFrame:
         """
         Normalize the dataframe by converting datetime columns and ensuring
@@ -1747,6 +1837,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     time_shift=query_object.time_shift,
                 )
             )
+
+        dttm_cols.extend(
+            self._offset_only_dttm_cols(
+                df, query_object, {col.col_label for col in dttm_cols}
+            )
+        )
 
         # Build format map from detected datetime formats stored in dataset columns
         format_map: dict[str, str] = {}
@@ -1905,6 +2001,22 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             offset,
                             outer_from_dttm,
                             outer_to_dttm,
+                        )
+                    elif not is_parseable_human_timedelta(offset):
+                        # get_past_or_future silently returns the source time
+                        # for offsets it cannot parse; querying with an
+                        # unshifted window would present the current period's
+                        # data as the comparison series. The parse flag (not
+                        # a zero delta) is the unparseability signal, so
+                        # legitimate zero-shift offsets like "0 days ago"
+                        # pass through.
+                        raise QueryObjectValidationError(
+                            _(
+                                "Unable to interpret the time offset: "
+                                "%(offset)s. Use a relative time such as "
+                                '"1 month ago".',
+                                offset=offset,
+                            )
                         )
                     query_object_clone.from_dttm = get_past_or_future(
                         offset,
@@ -2112,6 +2224,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 time_grain,
                 join_keys,
                 full_range=getattr(query_object, "time_compare_full_range", False),
+                x_axis_label=get_x_axis_label(query_object.columns),
             )
 
         return CachedTimeOffset(df=df, queries=queries, cache_keys=cache_keys)
@@ -2166,8 +2279,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         :returns: The time offset.
         """
         if offset == "inherit":
-            # return the difference in days between the from and the to dttm formatted as a string with the " days ago" suffix  # noqa: E501
-            return f"{(outer_to_dttm - outer_from_dttm).days} days ago"
+            # Shift back by the full length of the range, so the comparison
+            # covers the period immediately preceding it. The duration is
+            # expressed in seconds rather than days because ``timedelta.days``
+            # truncates: a 12-hour range would yield "0 days ago" and compare
+            # the range against itself, and a 36-hour range would shift by a
+            # single day and overlap it. Whole-day ranges resolve to the same
+            # instant either way.
+            duration = outer_to_dttm - outer_from_dttm
+            return f"{int(duration.total_seconds())} seconds ago"
         if self.is_valid_date(offset):
             # return the offset as the difference in days between the outer from dttm and the offset date (which is a YYYY-MM-DD string) formatted as a string with the " days ago" suffix  # noqa: E501
             offset_date = datetime.strptime(offset, "%Y-%m-%d")
@@ -2262,7 +2382,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
         else:
             df.drop(
-                list(df.filter(regex=f"{R_SUFFIX}")),
+                list(df.filter(regex=f"{OFFSET_JOIN_COLUMN_SUFFIX}|{R_SUFFIX}")),
                 axis=1,
                 inplace=True,
             )
@@ -2278,6 +2398,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         join_keys: list[str],
         is_date_range_offset: bool,
         join_column_producer: Any,
+        x_axis_label: str | None = None,
     ) -> tuple[pd.DataFrame, list[str]]:
         """Determine appropriate join keys and modify DataFrames if needed."""
         if time_grain and not is_date_range_offset:
@@ -2306,7 +2427,109 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             return self._process_date_range_offset(offset_df, join_keys)
 
         else:
+            return self._align_offset_without_time_grain(
+                df, offset_df, offset, join_keys, x_axis_label
+            )
+
+    def _align_offset_without_time_grain(
+        self,
+        df: pd.DataFrame,
+        offset_df: pd.DataFrame,
+        offset: str,
+        join_keys: list[str],
+        x_axis_label: str | None = None,
+    ) -> tuple[pd.DataFrame, list[str]]:
+        """
+        Determine join keys for a relative offset when no time grain is set.
+
+        Without a time grain there is no truncated join column, but the two
+        series can still be aligned exactly: shifting the main series'
+        timestamps by the offset delta lands them on the offset series' raw
+        timestamps (normalize_time_delta returns a negative delta for "... ago"
+        offsets). Timestamps without an exact counterpart in the offset series
+        produce nulls, mirroring the grain-based join, and null timestamps in
+        the two series join to each other (both stringify to "NaT"). When
+        there is no temporal join key the original join keys are used as-is.
+
+        The shift is computed on wall-clock time, with any timezone dropped for
+        the duration of the alignment. The offset query's own time range was
+        shifted the same way -- ``get_past_or_future`` reads naive timestamps
+        -- so the rows it returns carry the source wall clock, and matching on
+        it is what aligns the two series. Re-localizing the result would only
+        reintroduce the DST edge cases that wall-clock arithmetic sidesteps:
+        shifting onto a skipped or repeated local hour raises out of pandas.
+        Both sides are normalized identically, so the two readings of a
+        repeated hour still align with each other.
+
+        Month, quarter, and year offsets shift via ``DateOffset``, which clamps
+        to a valid calendar day (e.g. Mar 29, 30, and 31 all shift back one
+        month to Feb 28), so on daily/irregular data several end-of-month rows
+        can align to the same offset timestamp. This mirrors the inherent
+        ambiguity of "the same day N months ago" without a time grain to
+        truncate against.
+        """
+        # Prefer the query's temporal x-axis when it is a join key; otherwise
+        # use the first datetime join key.
+        candidate_keys = sorted(join_keys, key=lambda key: key != x_axis_label)
+        temporal_join_key = next(
+            (
+                key
+                for key in candidate_keys
+                if key in df.columns
+                and key in offset_df.columns
+                and pd.api.types.is_datetime64_any_dtype(df[key])
+            ),
+            None,
+        )
+        if not temporal_join_key:
             return offset_df, join_keys
+
+        source = _as_wall_clock(df[temporal_join_key])
+
+        try:
+            delta: DateOffset | None = DateOffset(**normalize_time_delta(offset))
+        except (ValueError, TimeDeltaAmbiguousError):
+            delta = None
+
+        column_name = OFFSET_JOIN_COLUMN_SUFFIX + offset
+        if delta is not None:
+            # DateOffset addition is vectorized over the datetime column; NaT
+            # rows shift to NaT (they join to the offset series' NaT rows).
+            shifted = source + delta
+        else:
+            # Free-form offsets (e.g. "one year ago") don't match the
+            # normalize_time_delta grammar; shift with the same parser that
+            # shifted the offset query's time range. parsedatetime resolves
+            # second resolution only, so compute each row's delta from a
+            # truncated copy and apply it to the original value, preserving
+            # sub-second precision.
+            if not is_constant_human_timedelta(offset):
+                # Anchors such as "yesterday" resolve every source time within
+                # a day onto one timestamp rather than shifting each by a
+                # fixed amount, so they cannot align two series row by row:
+                # distinct timestamps would collapse onto a single join key.
+                # A time grain gives the join a truncated column to match on
+                # instead of a shifted one.
+                raise QueryObjectValidationError(
+                    _("Time Grain must be specified when using Time Comparison.")
+                )
+
+            def shift(value: pd.Timestamp) -> pd.Timestamp:
+                if pd.isna(value):
+                    return value
+                truncated = value.floor("s").to_pydatetime()
+                return value + (get_past_or_future(offset, truncated) - truncated)
+
+            shifted = source.map(shift)
+
+        # Join on string values so that mismatched key dtypes (e.g. an empty
+        # offset series materializes its join keys as NaN floats) cannot break
+        # the merge.
+        df[column_name] = shifted.map(str)
+        offset_df[column_name] = _as_wall_clock(offset_df[temporal_join_key]).map(str)
+
+        remaining_keys = [key for key in join_keys if key != temporal_join_key]
+        return offset_df, [column_name, *remaining_keys]
 
     def _perform_join(
         self,
@@ -2351,6 +2574,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         time_grain: str | None,
         join_keys: list[str],
         full_range: bool = False,
+        x_axis_label: str | None = None,
     ) -> pd.DataFrame:
         """
         Join offset DataFrames with the main DataFrame.
@@ -2363,31 +2587,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             time range instead of being truncated to the main series' range. This
             uses an outer join so offset-only rows (e.g. the rest of a prior day when
             the current day is still in progress) are preserved.
+        :param x_axis_label: The query's temporal x-axis label, used to pick the
+            temporal join key when no time grain is set.
         """
         join_column_producer = app.config["TIME_GRAIN_JOIN_COLUMN_PRODUCERS"].get(
             time_grain
         )
-
-        if not time_grain:
-            has_temporal_join_key = any(
-                pd.api.types.is_datetime64_any_dtype(df[key])
-                for key in join_keys
-                if key in df.columns
-            )
-            if has_temporal_join_key:
-                has_relative_offset = any(
-                    not (
-                        self.is_valid_date_range(offset)
-                        and feature_flag_manager.is_feature_enabled(
-                            "DATE_RANGE_TIMESHIFTS_ENABLED"
-                        )
-                    )
-                    for offset in offset_dfs
-                )
-                if has_relative_offset:
-                    raise QueryObjectValidationError(
-                        _("Time Grain must be specified when using Time Comparison.")
-                    )
+        original_columns = list(df.columns)
 
         for offset, offset_df in offset_dfs.items():
             is_date_range_offset = self.is_valid_date_range(
@@ -2404,6 +2610,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 join_keys,
                 is_date_range_offset,
                 join_column_producer,
+                x_axis_label,
             )
 
             # The full-range option is only meaningful for relative offsets aligned
@@ -2425,6 +2632,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             df = self._apply_cleanup_logic(
                 df, offset, time_grain, join_keys, is_date_range_offset
             )
+
+            if not time_grain and not is_date_range_offset:
+                # The grain-less join indexes on the synthetic key plus the
+                # non-temporal join keys, which reset_index moves to the front;
+                # restore the original column order.
+                df = df[
+                    [col for col in original_columns if col in df.columns]
+                    + [col for col in df.columns if col not in original_columns]
+                ]
 
         return df
 
@@ -2710,21 +2926,50 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if values is None:
             return None
 
+        temporal_comparison_operators: set[utils.FilterOperator] = {
+            utils.FilterOperator.EQUALS,
+            utils.FilterOperator.NOT_EQUALS,
+            utils.FilterOperator.IN,
+            utils.FilterOperator.NOT_IN,
+            utils.FilterOperator.GREATER_THAN,
+            utils.FilterOperator.LESS_THAN,
+            utils.FilterOperator.GREATER_THAN_OR_EQUALS,
+            utils.FilterOperator.LESS_THAN_OR_EQUALS,
+        }
+
+        def handle_temporal_value(value: FilterValue) -> FilterValue | ColumnElement:
+            if (
+                operator not in temporal_comparison_operators
+                or target_generic_type != utils.GenericDataType.TEMPORAL
+                or target_native_type is None
+                or db_engine_spec is None
+            ):
+                return value
+
+            if isinstance(value, (float, int)) and not isinstance(value, bool):
+                epoch_ms: float = value
+            elif isinstance(value, str) and re.fullmatch(r"[+-]?\d+", value):
+                epoch_ms = int(value)
+            else:
+                return value
+
+            try:
+                dttm = datetime.fromtimestamp(epoch_ms / 1000, tz=timezone.utc).replace(
+                    tzinfo=None
+                )
+            except (OverflowError, OSError, ValueError):
+                return value
+
+            temporal_sql = db_engine_spec.convert_dttm(
+                target_type=target_native_type,
+                dttm=dttm,
+                db_extra=db_extra,
+            )
+            return literal_column(temporal_sql) if temporal_sql is not None else value
+
         def handle_single_value(value: Optional[FilterValue]) -> Optional[FilterValue]:
             if operator == utils.FilterOperator.TEMPORAL_RANGE:
                 return value
-            if (
-                isinstance(value, (float, int))
-                and target_generic_type == utils.GenericDataType.TEMPORAL
-                and target_native_type is not None
-                and db_engine_spec is not None
-            ):
-                value = db_engine_spec.convert_dttm(
-                    target_type=target_native_type,
-                    dttm=datetime.utcfromtimestamp(value / 1000),
-                    db_extra=db_extra,
-                )
-                value = literal_column(value)
             if isinstance(value, str):
                 value = value.strip("\t\n")
 
@@ -2745,6 +2990,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     return None
                 if value == EMPTY_STRING:
                     return ""
+                value = handle_temporal_value(value)
+            elif value is not None:
+                value = handle_temporal_value(value)
             if target_generic_type == utils.GenericDataType.BOOLEAN:
                 return utils.cast_to_boolean(value)
             return value
@@ -3404,9 +3652,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     )
                 if utils.is_adhoc_metric(col):
                     # add adhoc sort by column to columns_by_name if not exists
+                    # Pass the template processor so a SIMPLE adhoc metric that
+                    # references a calculated column has that column's Jinja
+                    # expression rendered, matching SELECT/WHERE/GROUP BY. This
+                    # is a no-op for the SQL expression type, whose
+                    # `sqlExpression` was already rendered above; `processed`
+                    # only guards that branch.
                     col = self.adhoc_metric_to_sqla(
                         col,
                         columns_by_name,
+                        template_processor=template_processor,
                         processed=True,
                     )
                     # use the existing instance, if possible
@@ -3735,6 +3990,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     target_native_type=col_type,
                     is_list_target=is_list_target,
                     db_engine_spec=db_engine_spec,
+                    db_extra=self.db_extra,
                 )
 
                 # Get ADVANCED_DATA_TYPES from config when needed
@@ -3829,22 +4085,23 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     elif op in {
                         utils.FilterOperator.ILIKE,
                         utils.FilterOperator.LIKE,
+                        utils.FilterOperator.NOT_LIKE,
+                        utils.FilterOperator.NOT_ILIKE,
                     }:
-                        if target_generic_type != GenericDataType.STRING:
+                        # Native UUID columns report GenericDataType.STRING but
+                        # reject LIKE/ILIKE without a cast (see issue #41795)
+                        needs_string_cast_for_like: bool = (
+                            target_generic_type != GenericDataType.STRING
+                            or is_uuid_native_type(col_type)
+                        )
+                        if needs_string_cast_for_like:
                             sqla_col = sa.cast(sqla_col, sa.String)
 
                         if op == utils.FilterOperator.LIKE:
                             target_clause_list.append(sqla_col.like(eq))
-                        else:
+                        elif op == utils.FilterOperator.ILIKE:
                             target_clause_list.append(sqla_col.ilike(eq))
-                    elif op in {
-                        utils.FilterOperator.NOT_LIKE,
-                        utils.FilterOperator.NOT_ILIKE,
-                    }:
-                        if target_generic_type != GenericDataType.STRING:
-                            sqla_col = sa.cast(sqla_col, sa.String)
-
-                        if op == utils.FilterOperator.NOT_LIKE:
+                        elif op == utils.FilterOperator.NOT_LIKE:
                             target_clause_list.append(sqla_col.not_like(eq))
                         else:
                             target_clause_list.append(sqla_col.not_ilike(eq))

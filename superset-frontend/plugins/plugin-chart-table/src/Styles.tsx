@@ -99,7 +99,7 @@ export default styled.div`
       background-color: ${theme.colorBgLayout};
     }
 
-    .dt-select-page-size .ant-select .ant-select-arrow {
+    .dt-select-page-size .ant-select .ant-select-suffix {
       color: ${theme.colorTextQuaternary};
       z-index: 11;
     }

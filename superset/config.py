@@ -25,6 +25,7 @@ at the end of this file.
 # pylint: disable=too-many-lines
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import logging
@@ -468,6 +469,13 @@ LOGO_RIGHT_TEXT: Callable[[], str] | str = ""
 FAB_API_SWAGGER_UI = utils.cast_to_boolean(
     os.environ.get("SUPERSET_ENABLE_SWAGGER_UI", False)
 )
+
+# Enables an APPLICATION_ROOT-aware Swagger UI and OpenAPI spec, for Superset
+# deployments served behind a URL prefix (reverse proxy). When True, the spec
+# is exposed at ``/api/<version>/_openapi`` and the Swagger UI resolves it
+# through APPLICATION_ROOT. Defaults to False (standard FAB Swagger UI).
+# ex: http://localhost:8080/<prefix>/swagger/v1
+FAB_API_SWAGGER_UI_SUPERSET_APP_ROOT = False
 
 # ----------------------------------------------------
 # AUTHENTICATION CONFIG
@@ -2250,6 +2258,9 @@ def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument  # noqa: 
 # An example use case is if data has role based access controls, and you want to apply
 # a SET ROLE statement alongside every user query. Changing this variable maintains
 # functionality for both the SQL_Lab and Charts.
+# This applies consistently in SQL Lab: with MUTATE_AFTER_SPLIT = True the mutator runs
+# on each individual statement, and with MUTATE_AFTER_SPLIT = False it runs once on the
+# un-split query block.
 MUTATE_AFTER_SPLIT = False
 
 
@@ -2378,6 +2389,11 @@ SLACK_PROXY = None
 # ignored for workspace-level tokens, so leaving it as None preserves the default
 # single-workspace behavior.
 SLACK_TEAM_ID: Callable[[], str] | str | None = None
+# How long the fetched channel list is cached. The Alerts & Reports recipient
+# picker serves channels from this cache, so on very large workspaces (tens of
+# thousands of channels) schedule the ``slack.cache_channels`` Celery task to
+# warm the cache ahead of the TTL — enumerating that many channels inside a
+# single interactive request will otherwise hit Slack rate limits and time out.
 SLACK_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
 
 # Maximum number of retries when Slack API returns rate limit errors
@@ -3065,20 +3081,50 @@ TASKS_ABORT_CHANNEL_PREFIX = "gtf:abort:"
 # -------------------------------------------------------------------
 # Don't add config values below this line since local configs won't be
 # able to override them.
+
+
+def _config_fingerprint(source: bytes | None) -> str:
+    """
+    A short digest of the config file's bytes, as read at import time.
+
+    Auto-reloaders (e.g. werkzeug's) re-import this module when the config
+    file changes, and on some filesystems (notably macOS Docker mounts) the
+    re-read can race the write and observe stale content while still
+    "loading successfully". Logging the digest of the exact bytes that were
+    executed (rather than reopening the file afterward, which can observe
+    different bytes than the ones that were actually loaded) makes that skew
+    diagnosable: compare it against ``md5 <path>`` on the host.
+    """
+    if source is None:
+        return "unreadable"
+    return hashlib.md5(source).hexdigest()[:12]  # noqa: S324
+
+
 if CONFIG_PATH_ENV_VAR in os.environ:
     # Explicitly import config module that is not necessarily in pythonpath; useful
     # for case where app is being executed via pex.
     cfg_path = os.environ[CONFIG_PATH_ENV_VAR]
     try:
         module = sys.modules[__name__]
+        with open(cfg_path, "rb") as fh:
+            config_source = fh.read()
         spec = importlib.util.spec_from_file_location("superset_config", cfg_path)
         override_conf = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(override_conf)
+        # Execute the exact bytes that were just read, rather than letting the
+        # loader re-read the file, so the fingerprint below always matches
+        # what was actually loaded into `override_conf`.
+        exec(  # noqa: S102
+            compile(config_source, cfg_path, "exec"), override_conf.__dict__
+        )
         for key in dir(override_conf):
             if key.isupper():
                 setattr(module, key, getattr(override_conf, key))
 
-        click.secho(f"Loaded your LOCAL configuration at [{cfg_path}]", fg="cyan")
+        click.secho(
+            f"Loaded your LOCAL configuration at [{cfg_path}] "
+            f"(md5:{_config_fingerprint(config_source)})",
+            fg="cyan",
+        )
     except Exception:
         logger.exception(
             "Failed to import config for %s=%s", CONFIG_PATH_ENV_VAR, cfg_path
@@ -3090,8 +3136,15 @@ elif importlib.util.find_spec("superset_config"):
         import superset_config
         from superset_config import *  # noqa: F403, F401
 
+        try:
+            with open(superset_config.__file__, "rb") as fh:
+                config_source = fh.read()
+        except OSError:
+            config_source = None
+
         click.secho(
-            f"Loaded your LOCAL configuration at [{superset_config.__file__}]",
+            f"Loaded your LOCAL configuration at [{superset_config.__file__}] "
+            f"(md5:{_config_fingerprint(config_source)})",
             fg="cyan",
         )
     except Exception:

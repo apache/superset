@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -41,9 +41,9 @@ class AsyncPruneReportScheduleLogCommand(BaseCommand):
 
         for report_schedule in db.session.query(ReportSchedule).all():
             if report_schedule.log_retention is not None:
-                from_date = datetime.utcnow() - timedelta(
-                    days=report_schedule.log_retention
-                )
+                from_date: datetime = datetime.now(timezone.utc).replace(
+                    tzinfo=None
+                ) - timedelta(days=report_schedule.log_retention)
                 try:
                     row_count = ReportScheduleDAO.bulk_delete_logs(
                         report_schedule,

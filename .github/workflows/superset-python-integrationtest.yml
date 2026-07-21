@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   changes:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -41,7 +41,7 @@ jobs:
   test-mysql:
     needs: changes
     if: needs.changes.outputs.python == 'true'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 45
     permissions:
       id-token: write
@@ -127,7 +127,7 @@ jobs:
   test-postgres:
     needs: changes
     if: needs.changes.outputs.python == 'true'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 45
     permissions:
       id-token: write
@@ -135,7 +135,7 @@ jobs:
       matrix:
         # Full version spread on push (master/release) + nightly; current only
         # on PRs to cut runner cost (cross-version breaks are caught at merge).
-        python-version: ${{ github.event_name == 'pull_request' && fromJSON('["current"]') || fromJSON('["current", "previous", "next"]') }}
+        python-version: ${{ github.event_name == 'pull_request' && fromJSON('["current"]') || fromJSON('["current", "next"]') }}
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -188,7 +188,7 @@ jobs:
   test-sqlite:
     needs: changes
     if: needs.changes.outputs.python == 'true'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 45
     permissions:
       id-token: write
@@ -243,7 +243,7 @@ jobs:
   test-postgres-required:
     needs: [changes, test-postgres]
     if: always()
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     steps:
       - name: Check test-postgres result

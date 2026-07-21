@@ -29,7 +29,7 @@ import { css, useTheme } from '@apache-superset/core/theme';
 import { Flex, Layout, Loading } from '@superset-ui/core/components';
 import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { ErrorBoundary } from 'src/components';
-import Menu from 'src/features/home/Menu';
+import MenuWrapper from 'src/features/home/Menu';
 import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import setupApp from 'src/setup/setupApp';
@@ -205,7 +205,7 @@ const AppContent = () => {
 
   return (
     <Flex vertical css={isPanelOpen ? lockedShellCss : pageScrollShellCss}>
-      <Menu
+      <MenuWrapper
         data={bootstrapData.common.menu_data}
         isFrontendRoute={isFrontendRoute}
       />
