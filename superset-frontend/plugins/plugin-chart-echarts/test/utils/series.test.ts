@@ -1646,3 +1646,20 @@ test('extractTooltipKeys with non-rich tooltip', () => {
   const result = extractTooltipKeys(forecastValue, 1, false, false);
   expect(result).toEqual(['foo']);
 });
+
+// Regression (H3/sc-114915): an item tooltip firing with no series data passed
+// an empty params array, and `forecastValue[0][TOOLTIP_SERIES_KEY]` threw
+// "Cannot read properties of undefined". It should return an empty list.
+test('extractTooltipKeys with non-rich tooltip and empty params', () => {
+  expect(() => extractTooltipKeys([], 1, false, false)).not.toThrow();
+  expect(extractTooltipKeys([], 1, false, false)).toEqual([]);
+});
+
+// Sorting must tolerate series whose `data` is missing (all-null series).
+test('extractTooltipKeys sorts by metric even when some data is missing', () => {
+  const withMissing = [
+    { seriesId: 'foo' },
+    { data: [0, 2], seriesId: 'bar' },
+  ] as any[];
+  expect(() => extractTooltipKeys(withMissing, 1, true, true)).not.toThrow();
+});

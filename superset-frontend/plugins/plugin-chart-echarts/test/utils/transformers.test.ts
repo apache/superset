@@ -31,8 +31,9 @@ import {
   TimeseriesDataRecord,
 } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
-import { OrientationType } from '../../src';
+import { EchartsTimeseriesSeriesType, OrientationType } from '../../src';
 import {
+  getBaselineSeriesForStream,
   transformEventAnnotation,
   transformFormulaAnnotation,
   transformIntervalAnnotation,
@@ -421,5 +422,71 @@ describe('transformTimeseriesAnnotation', () => {
         [20, 15],
       ],
     ]);
+  });
+
+  // Regression: #34709 replaced the `Array.isArray(result)` guard with an
+  // unguarded `const { records } = result`, so a shown Timeseries annotation
+  // layer whose backing data is missing crashed the entire chart render with
+  // "Cannot read properties of undefined (reading 'records')" (sc-114915).
+  test('does not throw and returns no series when annotation data is missing', () => {
+    let series;
+    expect(() => {
+      series = transformTimeseriesAnnotation(
+        mockTimeseriesAnnotationLayer,
+        1,
+        mockData,
+        {}, // annotationData has no entry for this shown layer
+        CategoricalColorNamespace.getScale(''),
+      );
+    }).not.toThrow();
+    expect(series).toEqual([]);
+  });
+
+  test('does not throw when annotation result exists but has no records', () => {
+    let series;
+    expect(() => {
+      series = transformTimeseriesAnnotation(
+        mockTimeseriesAnnotationLayer,
+        1,
+        mockData,
+        { 'Timeseries annotation layer': {} } as AnnotationData,
+        CategoricalColorNamespace.getScale(''),
+      );
+    }).not.toThrow();
+    expect(series).toEqual([]);
+  });
+});
+
+describe('getBaselineSeriesForStream', () => {
+  // Regression (H4/sc-114915): ragged or empty series data drove numeric
+  // indexing into a null/undefined array (e.g. `series[j][i][1]`), throwing
+  // "Cannot read properties of null (reading '<n>')" during stream-stack render.
+  test('does not throw when series data is empty', () => {
+    expect(() =>
+      getBaselineSeriesForStream([], EchartsTimeseriesSeriesType.Line),
+    ).not.toThrow();
+  });
+
+  test('does not throw when series have ragged/missing rows', () => {
+    const ragged = [
+      [
+        [0, 1],
+        [1, 2],
+        [2, 3],
+      ],
+      [[0, 5]], // shorter series: missing later rows
+    ] as [string | number, number][][];
+    let baseline;
+    expect(() => {
+      baseline = getBaselineSeriesForStream(
+        ragged,
+        EchartsTimeseriesSeriesType.Line,
+      );
+    }).not.toThrow();
+    expect((baseline as any).data).toHaveLength(3);
+    // No NaN leaks into the baseline coordinates fed to ECharts.
+    (baseline as any).data.forEach((point: [string | number, number]) => {
+      expect(Number.isNaN(point[1])).toBe(false);
+    });
   });
 });

@@ -267,6 +267,30 @@ test('extractForecastValuesFromTooltipParams should extract valid values', () =>
   });
 });
 
+// Regression (H3/sc-114915): all-null or empty series can hand the tooltip a
+// bare null/undefined `value` instead of a [x, y] tuple. Indexing it threw
+// "Cannot read properties of null (reading '1')" and killed the render.
+test('extractForecastValuesFromTooltipParams tolerates null/undefined values', () => {
+  expect(() =>
+    extractForecastValuesFromTooltipParams([
+      { marker: '<img>', seriesId: 'nullish', value: null },
+      { marker: '<img>', seriesId: 'undef', value: undefined },
+      { marker: '<img>', seriesId: 'ok', value: [0, 10] },
+    ]),
+  ).not.toThrow();
+  expect(
+    extractForecastValuesFromTooltipParams([
+      { marker: '<img>', seriesId: 'nullish', value: null },
+      { marker: '<img>', seriesId: 'ok', value: [0, 10] },
+    ]),
+  ).toEqual({
+    ok: {
+      marker: '<img>',
+      observation: 10,
+    },
+  });
+});
+
 const formatter = getNumberFormatter(NumberFormats.INTEGER);
 
 test('formatForecastTooltipSeries should apply format to value', () => {

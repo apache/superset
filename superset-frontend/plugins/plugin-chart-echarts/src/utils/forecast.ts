@@ -62,7 +62,13 @@ export const extractForecastValuesFromTooltipParams = (
   params.forEach(param => {
     const { marker, seriesId, value, color } = param;
     const context = extractForecastSeriesContext(seriesId);
-    const numericValue = isHorizontal ? value[0] : value[1];
+    // `value` may be a bare null/undefined for empty or all-null series;
+    // guard before indexing so the tooltip doesn't throw.
+    const numericValue = Array.isArray(value)
+      ? isHorizontal
+        ? value[0]
+        : value[1]
+      : undefined;
     if (typeof numericValue === 'number') {
       if (!(context.name in values))
         values[context.name] = {

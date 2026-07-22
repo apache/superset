@@ -75,31 +75,38 @@ export const getBaselineSeriesForStream = (
   series: [string | number, number][][],
   seriesType: EchartsTimeseriesSeriesType,
 ) => {
-  const seriesLength = series[0].length;
+  // Series data can be empty or ragged (unequal lengths, null rows) when a
+  // metric column is missing or a series is all-null; index defensively so a
+  // stream-stacked chart doesn't crash while computing the baseline.
+  const seriesLength = series[0]?.length ?? 0;
   const baselineSeriesDelta: [string | number, number][] = Array.from(
     { length: seriesLength },
     () => [0, 0],
   );
-  const getVal = (value: number | null) => value ?? 0;
+  const getVal = (value: number | null | undefined) => value ?? 0;
   for (let i = 0; i < seriesLength; i += 1) {
     let seriesSum = 0;
     let weightedSeriesSum = 0;
     for (let j = 0; j < series.length; j += 1) {
       const delta =
         i > 0
-          ? getVal(series[j][i][1]) - getVal(series[j][i - 1][1])
-          : getVal(series[j][i][1]);
+          ? getVal(series[j]?.[i]?.[1]) - getVal(series[j]?.[i - 1]?.[1])
+          : getVal(series[j]?.[i]?.[1]);
       let deltaPrev = 0;
       for (let k = 1; k < j - 1; k += 1) {
         deltaPrev +=
           i > 0
-            ? getVal(series[k][i][1]) - getVal(series[k][i - 1][1])
-            : getVal(series[k][i][1]);
+            ? getVal(series[k]?.[i]?.[1]) - getVal(series[k]?.[i - 1]?.[1])
+            : getVal(series[k]?.[i]?.[1]);
       }
-      weightedSeriesSum += (0.5 * delta + deltaPrev) * getVal(series[j][i][1]);
-      seriesSum += getVal(series[j][i][1]);
+      weightedSeriesSum +=
+        (0.5 * delta + deltaPrev) * getVal(series[j]?.[i]?.[1]);
+      seriesSum += getVal(series[j]?.[i]?.[1]);
     }
-    baselineSeriesDelta[i] = [series[0][i][0], -weightedSeriesSum / seriesSum];
+    baselineSeriesDelta[i] = [
+      series[0][i][0],
+      seriesSum === 0 ? 0 : -weightedSeriesSum / seriesSum,
+    ];
   }
   const baselineSeries = baselineSeriesDelta.reduce<
     [string | number, number][]
@@ -430,6 +437,11 @@ export function transformSeries(
           return '';
         }
         const { value, dataIndex, seriesIndex, seriesName } = params;
+        // A rendered point can be a bare null/undefined (empty or all-null
+        // series) rather than a [x, y] tuple; bail out instead of indexing it.
+        if (!Array.isArray(value)) {
+          return '';
+        }
         const numericValue = isHorizontal ? value[0] : value[1];
         const isSelectedLegend = !legendState || legendState[seriesName];
         const isAreaExpand = stack === StackControlsValue.Expand;
@@ -687,7 +699,12 @@ export function transformTimeseriesAnnotation(
   const { hideLine, name, opacity, showMarkers, style, width, color } = layer;
   const result = annotationData[name];
   const isHorizontal = orientation === OrientationType.Horizontal;
-  const { records } = result;
+  // `result` can be undefined when a Timeseries annotation layer is shown but
+  // its backing data is missing (source deleted/renamed, filtered to empty, or
+  // the annotation query returned nothing). Guard against it rather than
+  // destructuring directly, mirroring `extractRecordAnnotations`, so the whole
+  // chart doesn't fail to render. (regression from #34709)
+  const records = result?.records;
   if (records) {
     const data = records.map(record => {
       const keys = Object.keys(record);

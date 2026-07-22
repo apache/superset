@@ -1053,13 +1053,15 @@ export function extractTooltipKeys(
   if (richTooltip && tooltipSortByMetric) {
     return forecastValue
       .slice()
-      .sort((a, b) => b.data[yIndex] - a.data[yIndex])
+      .sort((a, b) => (b.data?.[yIndex] ?? 0) - (a.data?.[yIndex] ?? 0))
       .map(value => value[TOOLTIP_SERIES_KEY]);
   }
   if (richTooltip) {
     return forecastValue.map(s => s[TOOLTIP_SERIES_KEY]);
   }
-  return [forecastValue[0][TOOLTIP_SERIES_KEY]];
+  // Non-rich (item) tooltips can fire with an empty params array when the
+  // hovered point has no series data; avoid indexing into an empty array.
+  return forecastValue.length ? [forecastValue[0][TOOLTIP_SERIES_KEY]] : [];
 }
 
 export function groupData(data: DataRecord[], by?: string | null) {

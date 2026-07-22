@@ -525,9 +525,10 @@ export default function transformProps(
         // bug in Echarts - `stackStrategy: 'all'` doesn't work with nulls, so we cast them to 0
         series.push({
           ...transformedSeries,
-          data: (transformedSeries.data as any).map(
-            (row: [string | number, number]) => [row[0], row[1] ?? 0],
-          ),
+          data: (Array.isArray(transformedSeries.data)
+            ? transformedSeries.data
+            : []
+          ).map((row: [string | number, number]) => [row[0], row[1] ?? 0]),
         });
       } else {
         series.push(transformedSeries);
@@ -1040,10 +1041,10 @@ export default function transformProps(
         // For axis tooltips, prefer axisValue/axisValueLabel which contains the full label
         // even when the axis label is visually truncated
         const xValue: number = richTooltip
-          ? (params[0].axisValue ??
-            params[0].axisValueLabel ??
-            params[0].value[xIndex])
-          : params.value[xIndex];
+          ? (params[0]?.axisValue ??
+            params[0]?.axisValueLabel ??
+            params[0]?.value?.[xIndex])
+          : params.value?.[xIndex];
         const forecastValue: CallbackDataParams[] = richTooltip
           ? params
           : [params];
