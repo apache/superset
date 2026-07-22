@@ -173,10 +173,12 @@ export class DashboardPage {
    */
   async forceRefresh(): Promise<void> {
     await this.openHeaderActionsMenu();
-    await this.page
-      .locator(DashboardPage.SELECTORS.HEADER_ACTIONS_MENU)
-      .getByRole('menuitem', { name: 'Refresh dashboard' })
-      .click();
+
+    const menu = new Menu(
+      this.page,
+      DashboardPage.SELECTORS.HEADER_ACTIONS_MENU,
+    );
+    await menu.selectItem('Refresh dashboard');
   }
 
   /**

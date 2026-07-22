@@ -45,6 +45,7 @@ import { getDatasetByName } from '../../helpers/api/dataset';
 import { extractIdFromResponse } from '../../helpers/api/assertions';
 import { TIMEOUT } from '../../utils/constants';
 import { DashboardPage } from '../../pages/DashboardPage';
+import { sliceIdFromChartDataUrl } from './dashboard-test-helpers';
 
 const DATASET_NAME = 'birth_names';
 const ECHARTS_SERIES_COLOR: [number, number, number] = [31, 168, 201];
@@ -199,10 +200,8 @@ testWithAssets(
     }
 
     // Record the real chart-data round-trips the dashboard makes on load,
-    // keyed by the chart each one queried for. The chart-data POST carries its
-    // slice id in the encoded `form_data={"slice_id":<id>}` query param (see
-    // chartAction.ts), so parsing it lets us prove every chart queried — not
-    // just that some chart did.
+    // keyed by the chart each one queried for, so we can prove every chart
+    // queried — not just that some chart did.
     const chartDataStatusBySliceId = new Map<number, number>();
     page.on('response', response => {
       const request = response.request();
@@ -212,17 +211,9 @@ testWithAssets(
       ) {
         return;
       }
-      const formData = new URL(response.url()).searchParams.get('form_data');
-      if (!formData) {
-        return;
-      }
-      try {
-        const sliceId = JSON.parse(formData).slice_id;
-        if (typeof sliceId === 'number') {
-          chartDataStatusBySliceId.set(sliceId, response.status());
-        }
-      } catch {
-        // Not a slice-id form_data payload; ignore.
+      const sliceId = sliceIdFromChartDataUrl(response.url());
+      if (sliceId !== undefined) {
+        chartDataStatusBySliceId.set(sliceId, response.status());
       }
     });
 

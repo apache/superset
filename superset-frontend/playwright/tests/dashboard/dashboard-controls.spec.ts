@@ -36,11 +36,17 @@
  * CI red   => force refresh did not bypass the cache or did not re-query charts.
  */
 import { testWithAssets, expect } from '../../helpers/fixtures';
-import { apiPost, apiPut } from '../../helpers/api/requests';
-import { apiPostDashboard } from '../../helpers/api/dashboard';
+import { apiPostChart, apiPutChart } from '../../helpers/api/chart';
+import {
+  apiPostDashboard,
+  buildSingleRowDashboardLayout,
+  type DashboardLayoutChart,
+} from '../../helpers/api/dashboard';
 import { getDatasetByName } from '../../helpers/api/dataset';
+import { extractIdFromResponse } from '../../helpers/api/assertions';
 import { TIMEOUT } from '../../utils/constants';
 import { DashboardPage } from '../../pages/DashboardPage';
+import { sliceIdFromChartDataUrl } from './dashboard-test-helpers';
 
 const DATASET_NAME = 'birth_names';
 
@@ -68,69 +74,41 @@ testWithAssets(
       },
     ];
 
-    const chartIds: number[] = [];
+    // Parallel-safe suffix so chart/dashboard names never collide across workers.
+    const uniqueSuffix = `${Date.now()}_${testWithAssets.info().parallelIndex}`;
+
+    const charts: DashboardLayoutChart[] = [];
     for (const params of chartSpecs) {
-      const resp = await apiPost(page, 'api/v1/chart/', {
-        slice_name: `controls_${params.viz_type}_${Date.now()}`,
+      const sliceName = `controls_${params.viz_type}_${uniqueSuffix}`;
+      const resp = await apiPostChart(page, {
+        slice_name: sliceName,
         viz_type: params.viz_type,
         datasource_id: datasetId,
         datasource_type: 'table',
         params: JSON.stringify(params),
       });
       expect(resp.ok()).toBe(true);
-      const body = await resp.json();
-      const chartId: number = body.id ?? body.result?.id;
+      const chartId = await extractIdFromResponse(resp);
       testAssets.trackChart(chartId);
-      chartIds.push(chartId);
+      charts.push({ id: chartId, sliceName });
     }
+    const chartIds = charts.map(chart => chart.id);
 
-    const chartKeys = chartIds.map(id => `CHART-${id}`);
-    const positionJson: Record<string, unknown> = {
-      DASHBOARD_VERSION_KEY: 'v2',
-      ROOT_ID: { type: 'ROOT', id: 'ROOT_ID', children: ['GRID_ID'] },
-      GRID_ID: {
-        type: 'GRID',
-        id: 'GRID_ID',
-        children: ['ROW-1'],
-        parents: ['ROOT_ID'],
-      },
-      'ROW-1': {
-        type: 'ROW',
-        id: 'ROW-1',
-        children: chartKeys,
-        parents: ['ROOT_ID', 'GRID_ID'],
-        meta: { background: 'BACKGROUND_TRANSPARENT' },
-      },
-    };
-    chartIds.forEach((chartId, index) => {
-      positionJson[chartKeys[index]] = {
-        type: 'CHART',
-        id: chartKeys[index],
-        children: [],
-        parents: ['ROOT_ID', 'GRID_ID', 'ROW-1'],
-        meta: {
-          chartId,
-          width: 6,
-          height: 50,
-          sliceName: `controls_${index}`,
-        },
-      };
-    });
+    // Lay all charts out in a single row.
+    const positionJson = buildSingleRowDashboardLayout(charts);
 
     const dashResp = await apiPostDashboard(page, {
-      dashboard_title: `controls_force_refresh_${Date.now()}`,
+      dashboard_title: `controls_force_refresh_${uniqueSuffix}`,
       published: true,
       position_json: JSON.stringify(positionJson),
     });
     expect(dashResp.ok()).toBe(true);
-    const dashBody = await dashResp.json();
-    const dashboardId: number = dashBody.result?.id ?? dashBody.id;
+    const dashboardId = await extractIdFromResponse(dashResp);
     testAssets.trackDashboard(dashboardId);
 
+    // Associate every chart with the dashboard so they actually render.
     for (const chartId of chartIds) {
-      await apiPut(page, `api/v1/chart/${chartId}`, {
-        dashboards: [dashboardId],
-      });
+      await apiPutChart(page, chartId, { dashboards: [dashboardId] });
     }
 
     const dashboard = new DashboardPage(page);
@@ -139,19 +117,10 @@ testWithAssets(
     // Initial load warms the cache; the force refresh must then bypass it.
     await dashboard.waitForChartsToLoad();
 
-    // Capture the force-refresh chart-data round-trips. The chart id is carried
-    // in the request URL's form_data param (`{"slice_id":N}`), so we can tie
-    // each forced request back to a specific chart and assert that every chart
-    // — not just "enough requests" — was re-queried.
-    const sliceIdFromForceUrl = (url: string): number | undefined => {
-      const formData = new URL(url).searchParams.get('form_data');
-      if (!formData) return undefined;
-      try {
-        return JSON.parse(formData).slice_id as number;
-      } catch {
-        return undefined;
-      }
-    };
+    // Capture the force-refresh chart-data round-trips, keyed by the chart each
+    // one queried for. A `page.on('response')` listener rather than the
+    // `waitForPost` helper: those resolve on a single response, and this needs
+    // to collect every chart's request and correlate them by slice id.
     const forcedSliceIds = new Set<number>();
     const forceResponses: Promise<{
       sliceId: number | undefined;
@@ -165,7 +134,7 @@ testWithAssets(
         response.url().includes('/api/v1/chart/data') &&
         response.url().includes('force=true')
       ) {
-        const sliceId = sliceIdFromForceUrl(response.url());
+        const sliceId = sliceIdFromChartDataUrl(response.url());
         if (sliceId !== undefined) forcedSliceIds.add(sliceId);
         forceResponses.push(
           (async () => {
@@ -210,6 +179,7 @@ testWithAssets(
 
     // The set of refreshed charts matches exactly the charts on the dashboard:
     // none skipped, none foreign.
-    expect([...forcedSliceIds].sort()).toEqual([...chartIds].sort());
+    const byId = (a: number, b: number) => a - b;
+    expect([...forcedSliceIds].sort(byId)).toEqual([...chartIds].sort(byId));
   },
 );

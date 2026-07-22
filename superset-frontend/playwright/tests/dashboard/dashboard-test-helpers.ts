@@ -21,6 +21,32 @@ import type { Page, TestInfo } from '@playwright/test';
 import type { TestAssets } from '../../helpers/fixtures';
 import { apiPostDashboard } from '../../helpers/api/dashboard';
 
+/**
+ * Extracts the chart id that a `/api/v1/chart/data` request was issued for.
+ *
+ * The chart-data POST carries its slice id in the encoded
+ * `form_data={"slice_id":<id>}` query param (see `chartAction.ts`). Parsing it
+ * lets a test tie each request back to a specific chart and assert that every
+ * chart queried — rather than only counting requests, which cannot distinguish
+ * "all charts queried once" from "one chart queried twice, another skipped".
+ *
+ * @param url - The chart-data request or response URL
+ * @returns The slice id, or undefined if the URL carries no parsable one
+ */
+export function sliceIdFromChartDataUrl(url: string): number | undefined {
+  const formData = new URL(url).searchParams.get('form_data');
+  if (!formData) {
+    return undefined;
+  }
+  try {
+    const sliceId = JSON.parse(formData).slice_id;
+    return typeof sliceId === 'number' ? sliceId : undefined;
+  } catch {
+    // Not a slice-id form_data payload.
+    return undefined;
+  }
+}
+
 interface TestDashboardResult {
   id: number;
   name: string;
