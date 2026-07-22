@@ -45,14 +45,29 @@ jest.mock('src/utils/getBootstrapData', () => ({
   })),
 }));
 
+// Captures the AsyncSelect `options` loader (SaveModal's loadDashboards) so
+// tests can invoke it directly and assert on the request it issues.
+let mockLoadDashboards:
+  | ((search: string, page: number, pageSize: number) => Promise<unknown>)
+  | undefined;
+
 jest.mock('@superset-ui/core/components/Select', () => ({
   ...jest.requireActual('@superset-ui/core/components/Select/AsyncSelect'),
-  AsyncSelect: ({ onChange }: { onChange: (val: any) => void }) => (
-    <input
-      data-test="mock-async-select"
-      onChange={({ target: { value } }) => onChange({ label: value, value })}
-    />
-  ),
+  AsyncSelect: ({
+    onChange,
+    options,
+  }: {
+    onChange: (val: any) => void;
+    options?: (search: string, page: number, pageSize: number) => Promise<any>;
+  }) => {
+    mockLoadDashboards = options;
+    return (
+      <input
+        data-test="mock-async-select"
+        onChange={({ target: { value } }) => onChange({ label: value, value })}
+      />
+    );
+  },
 }));
 
 jest.mock('@superset-ui/core/components/TreeSelect', () => ({
@@ -133,14 +148,24 @@ const queryStore = mockStore({
 const fetchChartEndpoint = `glob:*/api/v1/chart/${1}*`;
 const fetchDashboardEndpoint = `glob:*/api/v1/dashboard/*`;
 
-beforeAll(() => {
+const registerDefaultRoutes = () => {
   fetchMock.get(fetchChartEndpoint, { id: 1, dashboards: [1] });
   fetchMock.get(fetchDashboardEndpoint, {
     result: [{ id: 'id', dashboard_title: 'dashboard title' }],
   });
+};
+
+beforeEach(() => {
+  registerDefaultRoutes();
 });
 
-afterAll(() => fetchMock.clearHistory());
+// Guaranteed teardown so per-test route overrides can never leak into later
+// tests, even if an assertion fails before any inline cleanup would run.
+afterEach(() => {
+  fetchMock.removeRoutes();
+  fetchMock.clearHistory();
+  mockLoadDashboards = undefined;
+});
 
 const setup = (
   props: Record<string, any> = defaultProps,
@@ -266,6 +291,75 @@ test('renders a message when saving as with new dashboard', () => {
   expect(getByRole('alert')).toHaveTextContent(
     'A new chart and dashboard will be created.',
   );
+});
+
+test('does not preselect an externally managed dashboard on mount', async () => {
+  const dashboardId = 1;
+  fetchMock.removeRoutes();
+  fetchMock.get(fetchChartEndpoint, { id: 1, dashboards: [1] });
+  fetchMock.get(`glob:*/api/v1/dashboard/${dashboardId}`, {
+    result: {
+      id: dashboardId,
+      dashboard_title: 'Managed Dashboard',
+      owners: [{ id: 1 }],
+      is_managed_externally: true,
+    },
+  });
+
+  const store = mockStore({
+    ...initialState,
+    explore: {
+      ...initialState.explore,
+      slice: {
+        ...initialState.explore.slice,
+        dashboards: [dashboardId],
+      },
+    },
+  });
+
+  const { queryByTestId } = setup(
+    {
+      ...defaultProps,
+      dashboardId,
+    },
+    store,
+  );
+
+  await waitFor(() => {
+    expect(
+      fetchMock.callHistory.calls(`glob:*/api/v1/dashboard/${dashboardId}`),
+    ).toHaveLength(1);
+  });
+
+  const selectInput = queryByTestId('mock-async-select') as HTMLInputElement;
+  expect(selectInput).toBeInTheDocument();
+  expect(
+    fetchMock.callHistory.calls(`glob:*/api/v1/dashboard/${dashboardId}/tabs`),
+  ).toHaveLength(0);
+});
+
+test('loadDashboards includes is_managed_externally filter', async () => {
+  const dashboardListEndpoint = `glob:*/api/v1/dashboard/?q=*`;
+
+  fetchMock.removeRoutes();
+  fetchMock.clearHistory();
+  fetchMock.get(fetchChartEndpoint, { id: 1, dashboards: [1] });
+  fetchMock.get(dashboardListEndpoint, {
+    result: [{ id: 1, dashboard_title: 'Test' }],
+    count: 1,
+  });
+  fetchMock.get(fetchDashboardEndpoint, {
+    result: [{ id: 'id', dashboard_title: 'dashboard title' }],
+  });
+
+  setup();
+
+  await waitFor(() => expect(mockLoadDashboards).toBeDefined());
+  await mockLoadDashboards!('test', 0, 25);
+
+  const calls = fetchMock.callHistory.calls(dashboardListEndpoint);
+  const lastCall = calls[calls.length - 1];
+  expect(lastCall.url).toContain('is_managed_externally');
 });
 
 test('disables overwrite option for new slice', () => {
