@@ -1009,9 +1009,8 @@ test('getLegendLayoutResult honors user-selected plain type for many horizontal 
   });
 
   expect(layout.effectiveType).toBe(LegendType.Plain);
-  expect(layout.effectiveMargin).toBeGreaterThanOrEqual(
-    defaultLegendPadding[LegendOrientation.Top],
-  );
+  // One row of items fits, so only the base top padding is reserved.
+  expect(layout.effectiveMargin).toBe(20);
 });
 
 test('getLegendLayoutResult keeps user-selected plain type for bottom-oriented legends when space allows', () => {
@@ -1090,11 +1089,9 @@ test('getLegendLayoutResult keeps plain when horizontal plain legends exceed two
   });
 
   expect(layout.effectiveType).toBe(LegendType.Plain);
-  expect(layout.effectiveMargin).toEqual(expect.any(Number));
-  expect(Number.isFinite(layout.effectiveMargin)).toBe(true);
-  expect(layout.effectiveMargin).toBeGreaterThanOrEqual(
-    defaultLegendPadding[LegendOrientation.Top],
-  );
+  // Each label is wider than the available width, so the row estimate
+  // overflows and falls back to one row per label: 20 + 2 * 24.
+  expect(layout.effectiveMargin).toBe(68);
 });
 
 test('getLegendLayoutResult bounds reserved margin for overflowing horizontal legends so the plot is not collapsed', () => {
@@ -1149,11 +1146,8 @@ test('getLegendLayoutResult keeps plain when a single horizontal plain legend it
   });
 
   expect(layout.effectiveType).toBe(LegendType.Plain);
-  expect(layout.effectiveMargin).toEqual(expect.any(Number));
-  expect(Number.isFinite(layout.effectiveMargin)).toBe(true);
-  expect(layout.effectiveMargin).toBeGreaterThanOrEqual(
-    defaultLegendPadding[LegendOrientation.Top],
-  );
+  // Overflow fallback with a single label reserves no extra row: 20 + 0 * 24.
+  expect(layout.effectiveMargin).toBe(20);
 });
 
 test('getLegendLayoutResult keeps plain when reserved horizontal width reduces plain legend capacity', () => {
@@ -1177,11 +1171,8 @@ test('getLegendLayoutResult keeps plain when reserved horizontal width reduces p
   });
 
   expect(layout.effectiveType).toBe(LegendType.Plain);
-  expect(layout.effectiveMargin).toEqual(expect.any(Number));
-  expect(Number.isFinite(layout.effectiveMargin)).toBe(true);
-  expect(layout.effectiveMargin).toBeGreaterThanOrEqual(
-    defaultLegendPadding[LegendOrientation.Top],
-  );
+  // 190px of available width wraps the three items onto three rows: 20 + 2 * 24.
+  expect(layout.effectiveMargin).toBe(68);
 });
 
 test('getLegendLayoutResult keeps plain when horizontal legend selectors alone exceed available width', () => {
@@ -1197,11 +1188,8 @@ test('getLegendLayoutResult keeps plain when horizontal legend selectors alone e
   });
 
   expect(layout.effectiveType).toBe(LegendType.Plain);
-  expect(layout.effectiveMargin).toEqual(expect.any(Number));
-  expect(Number.isFinite(layout.effectiveMargin)).toBe(true);
-  expect(layout.effectiveMargin).toBeGreaterThanOrEqual(
-    defaultLegendPadding[LegendOrientation.Top],
-  );
+  // The selector alone overflows, so the fallback reserves one row: 20 + 0 * 24.
+  expect(layout.effectiveMargin).toBe(20);
 });
 
 test('getLegendLayoutResult keeps plain vertical legends when they fit within a single column', () => {
@@ -1255,11 +1243,9 @@ test('getLegendLayoutResult keeps plain when vertical plain legends exceed one c
   });
 
   expect(layout.effectiveType).toBe(LegendType.Plain);
-  expect(layout.effectiveMargin).toEqual(expect.any(Number));
-  expect(Number.isFinite(layout.effectiveMargin)).toBe(true);
-  expect(layout.effectiveMargin).toBeGreaterThanOrEqual(
-    defaultLegendPadding[LegendOrientation.Left],
-  );
+  // The widest label needs 128px, under the 170px base left padding, so the
+  // base padding wins.
+  expect(layout.effectiveMargin).toBe(170);
 });
 
 test('getLegendLayoutResult keeps plain when vertical plain legend selectors exceed available width', () => {
@@ -1275,11 +1261,9 @@ test('getLegendLayoutResult keeps plain when vertical plain legend selectors exc
   });
 
   expect(layout.effectiveType).toBe(LegendType.Plain);
-  expect(layout.effectiveMargin).toEqual(expect.any(Number));
-  expect(Number.isFinite(layout.effectiveMargin)).toBe(true);
-  expect(layout.effectiveMargin).toBeGreaterThanOrEqual(
-    defaultLegendPadding[LegendOrientation.Left],
-  );
+  // The 128px selector requirement is clamped to 120px (40% of the 300px
+  // width) and both stay under the 170px base left padding.
+  expect(layout.effectiveMargin).toBe(170);
 });
 
 test('getLegendLayoutResult honors an explicit List selection with many series', () => {
@@ -1324,11 +1308,9 @@ test('getLegendLayoutResult counts empty-string legend labels when estimating la
   });
 
   expect(layout.effectiveType).toBe(LegendType.Plain);
-  expect(layout.effectiveMargin).toEqual(expect.any(Number));
-  expect(Number.isFinite(layout.effectiveMargin)).toBe(true);
-  expect(layout.effectiveMargin).toBeGreaterThanOrEqual(
-    defaultLegendPadding[LegendOrientation.Top],
-  );
+  // The empty label still occupies a slot, wrapping five items onto three
+  // rows: 20 + 2 * 24.
+  expect(layout.effectiveMargin).toBe(68);
 });
 
 test('resolveLegendLayout returns both raw and effective legend layout values', () => {
