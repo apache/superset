@@ -147,6 +147,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
 
     supports_dynamic_schema = True
     supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
+    supports_grouping_sets = True
 
     metadata = {
         "description": "Snowflake is a cloud-native data warehouse.",

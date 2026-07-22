@@ -25,7 +25,6 @@ from datetime import datetime
 from functools import lru_cache, partial
 from typing import Any, Callable, cast, TYPE_CHECKING, TypedDict, Union
 
-import dateutil
 from flask import current_app, g, has_request_context, request
 from flask_babel import gettext as _
 from jinja2 import DebugUndefined, Environment, TemplateSyntaxError, UndefinedError
@@ -887,19 +886,6 @@ class BaseTemplateProcessor:
 
 
 class JinjaTemplateProcessor(BaseTemplateProcessor):
-    def _parse_datetime(self, dttm: str) -> datetime | None:
-        """
-        Try to parse a datetime and default to None in the worst case.
-
-        Since this may have been rendered by different engines, the datetime may
-        vary slightly in format. We try to make it consistent, and if all else
-        fails, just return None.
-        """
-        try:
-            return dateutil.parser.parse(dttm)
-        except dateutil.parser.ParserError:
-            return None
-
     def set_context(self, **kwargs: Any) -> None:
         super().set_context(**kwargs)
         extra_cache = ExtraCache(
@@ -910,23 +896,6 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
             dialect=self._database.get_dialect(),
             table=self._table,
             query_context_filters=self._context.get("filter") or [],
-        )
-
-        from_dttm = (
-            self._parse_datetime(dttm)
-            if (dttm := self._context.get("from_dttm"))
-            else None
-        )
-        to_dttm = (
-            self._parse_datetime(dttm)
-            if (dttm := self._context.get("to_dttm"))
-            else None
-        )
-
-        dataset_macro_with_context = partial(
-            dataset_macro,
-            from_dttm=from_dttm,
-            to_dttm=to_dttm,
         )
 
         self._context.update(
@@ -946,7 +915,7 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
                 "cache_key_wrapper": partial(safe_proxy, extra_cache.cache_key_wrapper),
                 "filter_values": partial(safe_proxy, extra_cache.filter_values),
                 "get_filters": partial(safe_proxy, extra_cache.get_filters),
-                "dataset": partial(safe_proxy, dataset_macro_with_context),
+                "dataset": partial(safe_proxy, dataset_macro),
                 "get_time_filter": partial(safe_proxy, extra_cache.get_time_filter),
             }
         )
@@ -1104,18 +1073,12 @@ def dataset_macro(
     dataset_id: int,
     include_metrics: bool = False,
     columns: list[str] | None = None,
-    from_dttm: datetime | None = None,
-    to_dttm: datetime | None = None,
 ) -> str:
     """
     Given a dataset ID, return the SQL that represents it.
 
     The generated SQL includes all columns (including computed) by default. Optionally
     the user can also request metrics to be included, and columns to group by.
-
-    The from_dttm and to_dttm parameters are filled in from filter values in explore
-    views, and we take them to make those properties available to jinja templates in
-    the underlying dataset.
     """
     # pylint: disable=import-outside-toplevel
     from superset.daos.dataset import DatasetDAO
@@ -1131,8 +1094,8 @@ def dataset_macro(
         "filter": [],
         "metrics": metrics if include_metrics else None,
         "columns": cast(list[Column], columns),
-        "from_dttm": from_dttm,
-        "to_dttm": to_dttm,
+        "from_dttm": None,
+        "to_dttm": None,
     }
     sqla_query = dataset.get_query_str_extended(query_obj, mutate=False)
     sql = sqla_query.sql

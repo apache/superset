@@ -531,3 +531,15 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         if schema:
             uri = uri.set(database=parse.quote(schema, safe=""))
         return uri, connect_args
+
+    @classmethod
+    def get_column_description_retry_sql(cls, sql: str) -> str | None:
+        # clickhouse-connect's cursor only backfills `cursor.description` for
+        # a zero-row result -- e.g. the `WHERE false` probe used to detect an
+        # adhoc column's type without scanning any rows -- when the operation
+        # string starts with SELECT/WITH after stripping whitespace. Leading
+        # SQL comments inserted by SQL_QUERY_MUTATOR (e.g. query attribution)
+        # defeat that check, so wrap the untouched, already-mutated SQL in a
+        # bare outer SELECT to satisfy it without altering or dropping any of
+        # the mutator's comments.
+        return f"SELECT * FROM (\n{sql}\n) AS __superset_type_probe LIMIT 0"  # noqa: S608

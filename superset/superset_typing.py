@@ -225,6 +225,7 @@ class QueryObjectDict(TypedDict, total=False):
     series_limit: int
     series_limit_metric: Metric | None
     group_others_when_limit_reached: bool
+    grouping_sets: list[list[str]]
     to_dttm: datetime | None
     time_shift: str | None
     time_compare_full_range: bool
@@ -344,6 +345,7 @@ class ExplorableData(TypedDict, total=False):
     extra: str | None
     always_filter_main_dttm: bool
     normalize_columns: bool
+    rls_filters: list[dict[str, Any]]
 
 
 VizData: TypeAlias = list[Any] | dict[Any, Any] | None
