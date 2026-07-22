@@ -22,18 +22,28 @@
  * (dashboard/controls.test.ts).
  *
  * The genuine end-to-end behaviour is the dashboard-level force refresh: every
- * chart must re-query the backend with `force=true` (bypassing the cache), and
- * each response must report `is_cached: false`. This can only be verified
- * against a real backend, so it is migrated here.
+ * chart on the dashboard must re-query the backend with `force=true`. This can
+ * only be verified against a real backend, so it is migrated here.
+ *
+ * Scope note on cache bypass: the original Cypress test ran against the
+ * pre-seeded World Health dashboard, whose charts were already warm, so it could
+ * assert `is_cached === false` and thereby prove force-refresh busted a
+ * populated cache. This test deliberately creates fresh, isolated charts per run
+ * for parallel safety — which are never cached — so it cannot make that claim.
+ * Reproducing it would require warming the cache and re-reading it mid-test,
+ * racing the 30s DATA_CACHE TTL and reintroducing the flakiness this migration
+ * exists to remove. The load-bearing assertion here is therefore that every
+ * distinct chart issues a `force=true` request and gets a 200; `is_cached` is
+ * checked only as a falsy smoke signal (expected `null` for these fresh charts).
  *
  * The other case ("should allow chart level refresh") only asserted the menu
  * item's `ant-dropdown-menu-item-disabled` class — a DOM/state assertion with no
  * backend round-trip, and one the original itself flagged as flaky. It belongs
  * in component/RTL coverage and is intentionally not migrated.
  *
- * CI green => force refresh re-queries every chart with force=true and the
- *             backend serves fresh (uncached) results.
- * CI red   => force refresh did not bypass the cache or did not re-query charts.
+ * CI green => force refresh re-queries every distinct chart with force=true and
+ *             each request returns 200.
+ * CI red   => force refresh did not re-query every chart, or a request failed.
  */
 import { testWithAssets, expect } from '../../helpers/fixtures';
 import { apiPostChart, apiPutChart } from '../../helpers/api/chart';
@@ -123,7 +133,7 @@ testWithAssets(
     // to collect every chart's request and correlate them by slice id.
     const forcedSliceIds = new Set<number>();
     const forceResponses: Promise<{
-      sliceId: number | undefined;
+      sliceId: number;
       status: number;
       isCached: unknown;
     }>[] = [];
@@ -135,7 +145,12 @@ testWithAssets(
         response.url().includes('force=true')
       ) {
         const sliceId = sliceIdFromChartDataUrl(response.url());
-        if (sliceId !== undefined) forcedSliceIds.add(sliceId);
+        // Only track requests we can tie back to a chart, and keep both
+        // collections in agreement: an unparsable slice id would otherwise land
+        // in forceResponses as `undefined` and fail the `chartIds.toContain`
+        // check below with a confusing message.
+        if (sliceId === undefined) return;
+        forcedSliceIds.add(sliceId);
         forceResponses.push(
           (async () => {
             const body = await response.json();
@@ -166,11 +181,12 @@ testWithAssets(
     for (const { sliceId, status, isCached } of resolved) {
       // Each forced request targeted one of this dashboard's charts...
       expect(chartIds).toContain(sliceId);
-      // ...and the backend served a real result...
+      // ...and the backend served a real result.
       expect(status).toBe(200);
-      // ...that was freshly computed, not served from cache. The backend reports
-      // an uncached result as a falsy is_cached (null or false depending on
-      // version); a cached result would report true.
+      // Smoke check only: these freshly-created charts are never cached, so
+      // is_cached is expected to be falsy (`null`). This does NOT prove the
+      // force-refresh busted a warm cache — see the scope note in the file
+      // header for why that guarantee is out of reach here.
       expect(
         isCached,
         `force-refreshed result should not be cached, got is_cached=${isCached}`,
