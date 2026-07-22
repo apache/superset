@@ -16,7 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  ReactNode,
+  Dispatch,
+  SetStateAction,
+} from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import Split from 'react-split';
 import { t } from '@apache-superset/core/translation';
@@ -34,7 +42,9 @@ import {
 } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
+import { Button, Dropdown, Icons } from '@superset-ui/core/components';
 import ChartContainer from 'src/components/Chart/ChartContainer';
+import { StreamingExportModal } from 'src/components/StreamingExportModal';
 import { updateExploreChartState } from 'src/explore/actions/exploreActions';
 import {
   convertChartStateToOwnState,
@@ -52,16 +62,19 @@ import { getChartRequiredFieldsMissingMessage } from 'src/utils/getChartRequired
 import type { ChartState, Datasource } from 'src/explore/types';
 import type { ExploreState } from 'src/explore/reducers/exploreReducer';
 import type { Slice } from 'src/types/Chart';
+import type { ReportObject } from 'src/features/reports/types';
 import LastQueriedLabel from 'src/components/LastQueriedLabel';
 import { DataTablesPane } from '../DataTablesPane';
 import { ChartPills } from '../ChartPills';
 import { ExploreAlert } from '../ExploreAlert';
+import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
 import useResizeDetectorByObserver from './useResizeDetectorByObserver';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DefaultHeader: React.FC<{ children?: React.ReactNode }> = ({
   children,
 }) => <>{children}</>;
+const STANDALONE_CHART_EXPORT_SELECTOR = '#app .chart-container';
 
 export interface ExploreChartPanelProps {
   actions: {
@@ -92,6 +105,7 @@ export interface ExploreChartPanelProps {
   form_data: QueryFormData;
   ownState?: JsonObject;
   standalone?: boolean;
+  showDownload?: boolean;
   force?: boolean;
   timeout?: number;
   chartIsStale?: boolean;
@@ -158,6 +172,83 @@ const createOwnStateWithChartState = (
   };
 };
 
+interface StandaloneDownloadControlProps {
+  latestQueryFormData: ChartState['latestQueryFormData'];
+  canDownload: boolean;
+  slice?: Slice;
+  ownState?: JsonObject;
+}
+
+const StandaloneDownloadControl = ({
+  latestQueryFormData,
+  canDownload,
+  slice,
+  ownState,
+}: StandaloneDownloadControlProps) => {
+  const theme = useTheme();
+  const noop = useCallback(() => {}, []);
+  const noopSetCurrentReportDeleting = useCallback<
+    Dispatch<SetStateAction<ReportObject | null>>
+  >(() => {}, []);
+  const [
+    standaloneDownloadMenu,
+    isStandaloneDownloadVisible,
+    setIsStandaloneDownloadVisible,
+    standaloneStreamingExportState,
+  ] = useExploreAdditionalActionsMenu(
+    latestQueryFormData,
+    canDownload,
+    slice,
+    noop,
+    noop,
+    ownState,
+    undefined,
+    noop,
+    noopSetCurrentReportDeleting,
+    {
+      showDataExportOnly: true,
+      chartExportSelector: STANDALONE_CHART_EXPORT_SELECTOR,
+    },
+  );
+
+  return (
+    <>
+      <div
+        data-test="standalone-download-control"
+        css={css`
+          position: absolute;
+          top: ${theme.sizeUnit * 2}px;
+          right: ${theme.sizeUnit * 2}px;
+          z-index: 1;
+        `}
+      >
+        <Dropdown
+          popupRender={() => standaloneDownloadMenu}
+          trigger={['click']}
+          open={isStandaloneDownloadVisible}
+          onOpenChange={setIsStandaloneDownloadVisible}
+        >
+          <Button
+            aria-label={t('Download chart data')}
+            data-test="standalone-download-button"
+            color="default"
+            variant="outlined"
+            showMarginRight={false}
+            icon={<Icons.DownloadOutlined />}
+          />
+        </Dropdown>
+      </div>
+      <StreamingExportModal
+        visible={standaloneStreamingExportState.isVisible}
+        onCancel={standaloneStreamingExportState.onCancel}
+        onRetry={standaloneStreamingExportState.onRetry}
+        onDownload={standaloneStreamingExportState.onDownload}
+        progress={standaloneStreamingExportState.progress}
+      />
+    </>
+  );
+};
+
 const ExploreChartPanel = ({
   chart,
   slice,
@@ -172,6 +263,7 @@ const ExploreChartPanel = ({
   actions,
   timeout,
   standalone,
+  showDownload,
   chartIsStale,
   chartAlert,
   can_download: canDownload,
@@ -540,8 +632,24 @@ const ExploreChartPanel = ({
     if (!bodyClasses.includes(standaloneClass)) {
       document.body.className += ` ${standaloneClass}`;
     }
+    const showStandaloneDownload = showDownload && canDownload;
     return (
-      <div id="app" data-test="standalone-app">
+      <div
+        id="app"
+        data-test="standalone-app"
+        css={css`
+          position: relative;
+          height: 100%;
+        `}
+      >
+        {showStandaloneDownload && (
+          <StandaloneDownloadControl
+            latestQueryFormData={chart.latestQueryFormData}
+            canDownload={canDownload}
+            slice={slice}
+            ownState={mergedOwnState}
+          />
+        )}
         {standaloneChartBody}
       </div>
     );

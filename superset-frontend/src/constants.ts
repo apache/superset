@@ -27,6 +27,10 @@ export const URL_PARAMS = {
     name: 'standalone',
     type: 'number',
   },
+  showDownload: {
+    name: 'show_download',
+    type: 'boolean',
+  },
   uiConfig: {
     name: 'uiConfig',
     type: 'number',
@@ -115,6 +119,7 @@ export const RESERVED_CHART_URL_PARAMS: string[] = [
   URL_PARAMS.datasourceId.name,
   URL_PARAMS.datasourceType.name,
   URL_PARAMS.datasetId.name,
+  URL_PARAMS.showDownload.name,
 ];
 export const RESERVED_DASHBOARD_URL_PARAMS: string[] = [
   URL_PARAMS.nativeFilters.name,
