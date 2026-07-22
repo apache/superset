@@ -186,7 +186,10 @@ test('tooltip is restored when user selects a menu item', async () => {
 
 test('drill by modal uses the scope selected in the submenu over the raw context filters', async () => {
   setup({
-    drillBy: { filters: [{ col: 'raw_scope' }], groupbyFieldName: 'groupby' },
+    drillBy: {
+      filters: [{ col: 'raw_scope', op: '==', val: 'raw' }],
+      groupbyFieldName: 'groupby',
+    },
   });
 
   userEvent.click(screen.getByTestId('open-context-menu'));
