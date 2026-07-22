@@ -50,6 +50,7 @@ from tests.unit_tests.db_engine_specs.utils import assert_column_spec
         ("char(10)", types.CHAR, None, GenericDataType.STRING, False),
         ("varchar(65533)", types.VARCHAR, None, GenericDataType.STRING, False),
         ("binary", types.String, None, GenericDataType.STRING, False),
+        ("var_string", types.VARCHAR, None, GenericDataType.STRING, False),
         # Complex type
         ("array<varchar(65533)>", ARRAY, None, GenericDataType.STRING, False),
         ("map<string,int>", MAP, None, GenericDataType.STRING, False),
@@ -230,8 +231,8 @@ def test_get_catalog_names(mocker: MockerFixture) -> None:
     # StarRocks returns rows with keys: ['Catalog', 'Type', 'Comment']
     mock_row_1 = mocker.MagicMock()
     mock_row_1.keys.return_value = ["Catalog", "Type", "Comment"]
-    mock_row_1.__getitem__ = lambda self, key: (
-        "default_catalog" if key == "Catalog" else None
+    mock_row_1.__getitem__ = (
+        lambda self, key: "default_catalog" if key == "Catalog" else None
     )
 
     mock_row_2 = mocker.MagicMock()
@@ -242,7 +243,11 @@ def test_get_catalog_names(mocker: MockerFixture) -> None:
     mock_row_3.keys.return_value = ["Catalog", "Type", "Comment"]
     mock_row_3.__getitem__ = lambda self, key: "iceberg" if key == "Catalog" else None
 
-    inspector.bind.execute.return_value = [mock_row_1, mock_row_2, mock_row_3]
+    inspector.engine.connect().__enter__().execute.return_value = [
+        mock_row_1,
+        mock_row_2,
+        mock_row_3,
+    ]
 
     catalogs = StarRocksEngineSpec.get_catalog_names(database, inspector)
     assert catalogs == {"default_catalog", "hive", "iceberg"}

@@ -19,7 +19,7 @@
 import { useState, useEffect } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
-import { debounce } from 'lodash';
+import { debounce } from 'lodash-es';
 import {
   Badge,
   InfoTooltip,

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { snakeCase, cloneDeep } from 'lodash';
+import { snakeCase, cloneDeep } from 'lodash-es';
 import {
   useCallback,
   useEffect,
@@ -183,7 +183,6 @@ function ChartRendererComponent({
   onFilterMenuClose = () => BLANK,
   initialValues = BLANK,
   setControlValue = () => {},
-  triggerRender = false,
   ...restProps
 }: ChartRendererProps): JSX.Element | null {
   const {

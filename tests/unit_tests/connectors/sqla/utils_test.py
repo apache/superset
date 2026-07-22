@@ -15,6 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import sqlite3
+from contextlib import closing
+from pathlib import Path
+
 import pytest
 from pytest_mock import MockerFixture
 
@@ -23,6 +27,7 @@ from superset.connectors.sqla.utils import (
     get_virtual_table_metadata,
 )
 from superset.exceptions import SupersetSecurityException
+from superset.models.core import Database
 
 
 # Returns column descriptions when given valid database, catalog, schema, and query
@@ -97,6 +102,75 @@ def test_returns_column_descriptions(mocker: MockerFixture) -> None:
     ]
 
 
+def _create_zero_row_database(tmp_path: Path) -> tuple[Database, str]:
+    """
+    Create a real SQLite-backed ``Database`` and a query that matches zero rows.
+
+    The table itself contains data, but the ``WHERE`` clause filters everything
+    out — mirroring the repro steps in issue #37609 (a virtual dataset whose
+    date filter matches no rows).
+    """
+    db_path = tmp_path / "zero_rows.db"
+    with closing(sqlite3.connect(db_path)) as conn:
+        conn.execute("CREATE TABLE events (id INTEGER, name TEXT, event_date TEXT)")
+        conn.execute("INSERT INTO events VALUES (1, 'a', '2026-01-01')")
+        conn.commit()
+
+    database = Database(
+        id=1,
+        database_name="zero_rows_db",
+        sqlalchemy_uri=f"sqlite:///{db_path}",
+    )
+    query = "SELECT id, name, event_date FROM events WHERE event_date = '2026-02-01'"
+    return database, query
+
+
+def test_get_columns_description_zero_row_query(tmp_path: Path) -> None:
+    """
+    Column metadata must be derived from the cursor description even when the
+    query returns zero rows.
+
+    Executes a real query against a real (SQLite) database instead of mocking
+    the cursor, so this covers the full path used when a virtual dataset's
+    columns are synced: ``get_columns_description`` -> raw connection ->
+    ``SupersetResultSet.columns``.
+
+    Regression test for https://github.com/apache/superset/issues/37609
+    """
+    database, query = _create_zero_row_database(tmp_path)
+
+    columns = get_columns_description(database, None, None, query)
+
+    assert [col["column_name"] for col in columns] == ["id", "name", "event_date"]
+    assert all(col["name"] for col in columns)
+
+
+def test_get_virtual_table_metadata_zero_row_query(
+    mocker: MockerFixture, tmp_path: Path
+) -> None:
+    """
+    ``get_virtual_table_metadata`` (the entry point used by "Sync columns from
+    source" / dataset metadata refresh) must return the column metadata for a
+    virtual dataset whose query returns zero rows.
+
+    Regression test for https://github.com/apache/superset/issues/37609
+    """
+    database, query = _create_zero_row_database(tmp_path)
+
+    dataset = mocker.MagicMock(
+        sql=query,
+        catalog=None,
+        schema=None,
+        database=database,
+        template_params_dict={},
+    )
+    dataset.get_template_processor().process_template.return_value = query
+
+    columns = get_virtual_table_metadata(dataset=dataset)
+
+    assert [col["column_name"] for col in columns] == ["id", "name", "event_date"]
+
+
 def test_get_virtual_table_metadata(mocker: MockerFixture) -> None:
     """
     Test the `get_virtual_table_metadata` function.
@@ -145,15 +219,15 @@ def test_get_virtual_table_metadata_renders_jinja(mocker: MockerFixture) -> None
     be rendered via the template processor before SQL parsing. Otherwise the
     raw Jinja tokens reach sqlglot and the parser rejects them as a syntax
     error (the user-visible symptom is "Invalid SQL" when clicking
-    "SYNC COLUMNS FROM SOURCE" on a dataset that uses {{ from_dttm }} etc.).
+    "SYNC COLUMNS FROM SOURCE" on a dataset that uses Jinja macros).
     """
     mock_get_columns_description = mocker.patch(
         "superset.connectors.sqla.utils.get_columns_description",
         return_value=[{"name": "rendered_col", "type": "INTEGER"}],
     )
 
-    raw_sql = "SELECT * FROM tbl WHERE ts > '{{ from_dttm }}'"
-    rendered_sql = "SELECT * FROM tbl WHERE ts > '2024-01-01 00:00:00'"
+    raw_sql = "SELECT * FROM tbl WHERE user_id = {{ current_user_id() }}"
+    rendered_sql = "SELECT * FROM tbl WHERE user_id = 42"
 
     dataset = mocker.MagicMock(sql=raw_sql)
     dataset.database.db_engine_spec.engine = "postgresql"

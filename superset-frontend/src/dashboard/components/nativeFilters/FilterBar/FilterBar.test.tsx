@@ -23,6 +23,7 @@ import {
   render,
   screen,
   userEvent,
+  waitFor,
 } from 'spec/helpers/testing-library';
 import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
 import { testWithId } from 'src/utils/testUtils';
@@ -1035,6 +1036,115 @@ test('FilterBar with orientation=Horizontal and no filters shows empty state alo
   );
   expect(screen.getByRole('img', { name: 'setting' })).toBeInTheDocument();
   expect(screen.getByTestId('filterbar-action-buttons')).toBeInTheDocument();
+});
+
+test('required filter with a default value auto-applies on load without touching other filters', async () => {
+  // Regression proof for #34617: a dashboard with a required filter that has
+  // a default value used to leave the default un-applied (and Apply blocked
+  // by a stale validateStatus) until the user touched every filter. Since the
+  // auto-apply logic introduced by #36927, FilterBar dispatches the derived
+  // dataMask itself as soon as the filter control finishes loading — the user
+  // never has to touch the other filters, or the filter bar at all.
+  const requiredId = 'NATIVE_FILTER-required-with-default';
+  const untouchedId = 'NATIVE_FILTER-untouched';
+  const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+
+  fetchMock.post(
+    'glob:*/api/v1/chart/data',
+    {
+      result: [
+        {
+          data: [{ region: 'East' }, { region: 'West' }],
+          colnames: ['region'],
+          coltypes: [1],
+          applied_filters: [],
+        },
+      ],
+    },
+    { name: 'chart-data-issue-34617' },
+  );
+
+  const requiredFilter = createFilter({
+    id: requiredId,
+    name: 'Required Region',
+    filterType: 'filter_select',
+    targets: [{ datasetId: 7, column: { name: 'region' } }],
+    controlValues: { enableEmptyFilter: true },
+    defaultDataMask: { filterState: { value: ['East'] }, extraFormData: {} },
+    chartsInScope: [18],
+  });
+  const untouchedFilter = createFilter({
+    id: untouchedId,
+    name: 'Untouched Color',
+    filterType: 'filter_select',
+    targets: [{ datasetId: 7, column: { name: 'color' } }],
+    chartsInScope: [18],
+  });
+
+  const state = {
+    ...stateWithoutNativeFilters,
+    dashboardInfo: {
+      id: 1,
+      dash_edit_perm: true,
+      filterBarOrientation: FilterBarOrientation.Vertical,
+      metadata: {
+        native_filter_configuration: [requiredFilter, untouchedFilter],
+        chart_configuration: {},
+      },
+    },
+    dashboardState: {
+      ...stateWithoutNativeFilters.dashboardState,
+      activeTabs: ['ROOT_ID'],
+    },
+    // The default value has been hydrated into the applied dataMask, but its
+    // extraFormData has not been derived yet — the state right after a
+    // dashboard with default filter values loads.
+    dataMask: {
+      [requiredId]: createDataMask(requiredId, ['East'], {}),
+    },
+    nativeFilters: {
+      filters: {
+        [requiredId]: requiredFilter,
+        [untouchedId]: untouchedFilter,
+      },
+      filtersState: {},
+    },
+  };
+
+  const props = createOpenedBarProps();
+  renderFilterBar(props, state);
+
+  // Flush the filter control's data fetch and the plugin's initialization
+  // effects (same timer pattern as the other tests in this file).
+  await act(async () => {
+    jest.advanceTimersByTime(1000);
+  });
+
+  // Once the filter control loads its values and emits the dataMask derived
+  // from the default value, FilterBar auto-applies it to Redux instead of
+  // holding it hostage behind a disabled Apply button.
+  await waitFor(() => {
+    expect(updateDataMaskSpy).toHaveBeenCalledWith(
+      requiredId,
+      expect.objectContaining({
+        extraFormData: {
+          filters: [{ col: 'region', op: 'IN', val: ['East'] }],
+        },
+        filterState: expect.objectContaining({ value: ['East'] }),
+      }),
+    );
+  });
+
+  // The other filter was never touched, and no dispatch was needed for it.
+  expect(updateDataMaskSpy.mock.calls.every(([id]) => id === requiredId)).toBe(
+    true,
+  );
+
+  // Nothing is left pending: the default value is already applied, so the
+  // Apply button is not blocking on untouched filters.
+  expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
+
+  updateDataMaskSpy.mockRestore();
 });
 
 test('FilterBar with orientation=Vertical renders Vertical layout (sanity counterpart to the horizontal routing test)', () => {

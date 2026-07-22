@@ -108,9 +108,13 @@ def boxplot(  # noqa: C901
         below = series[series < whisker_low(series)]
         return above.tolist() + below.tolist()
 
-    operators: dict[str, Callable[[Any], Any]] = {
-        "mean": np.mean,
-        "median": np.median,
+    # "mean"/"median" are passed as strings rather than np.mean/np.median: the
+    # callables trigger a pandas FutureWarning in GroupBy.agg (see
+    # _PANDAS_STRING_AGGREGATORS in pandas_postprocessing/utils.py) and the
+    # string form resolves to the exact same aggregation.
+    operators: dict[str, Union[str, Callable[[Any], Any]]] = {
+        "mean": "mean",
+        "median": "median",
         "max": whisker_high,
         "min": whisker_low,
         "q1": quartile1,

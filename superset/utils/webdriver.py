@@ -203,10 +203,17 @@ class WebDriverProxy(ABC):
 
     @abstractmethod
     def get_screenshot(
-        self, url: str, element_name: str, user: User | None = None
+        self,
+        url: str,
+        element_name: str,
+        user: User | None = None,
+        log_context: str | None = None,
     ) -> bytes | None:
         """
         Run webdriver and return a screenshot
+
+        :param log_context: Optional identifier (e.g. report execution id, or
+            a cache key for thumbnails) included in log lines for tracing.
         """
 
 
@@ -269,7 +276,11 @@ class WebDriverPlaywright(WebDriverProxy):
             return element.screenshot()
 
     def get_screenshot(  # pylint: disable=too-many-locals, too-many-statements  # noqa: C901
-        self, url: str, element_name: str, user: User | None = None
+        self,
+        url: str,
+        element_name: str,
+        user: User | None = None,
+        log_context: str | None = None,
     ) -> bytes | None:
         if not PLAYWRIGHT_AVAILABLE:
             logger.info(
@@ -342,15 +353,6 @@ class WebDriverPlaywright(WebDriverProxy):
                 selenium_animation_wait = app.config[
                     "SCREENSHOT_SELENIUM_ANIMATION_WAIT"
                 ]
-                logger.debug(
-                    "Wait %i seconds for chart animation", selenium_animation_wait
-                )
-                page.wait_for_timeout(selenium_animation_wait * 1000)
-                logger.debug(
-                    "Taking a PNG screenshot of url %s as user %s",
-                    url,
-                    user.username if user else "None",
-                )
                 if app.config["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"]:
                     unexpected_errors = WebDriverPlaywright.find_unexpected_errors(page)
                     if unexpected_errors:
@@ -414,22 +416,40 @@ class WebDriverPlaywright(WebDriverProxy):
                             tile_height,
                             load_wait=self._screenshot_load_wait,
                             animation_wait=selenium_animation_wait,
+                            log_context=log_context,
                         )
-                        if img is None:
-                            logger.error(
-                                "Tiled screenshot failed at url %s; "
-                                "not falling back to avoid sending a blank PDF",
-                                url,
+                        if not img:
+                            logger.warning(
+                                (
+                                    "Tiled screenshot failed, "
+                                    "falling back to standard screenshot"
+                                )
                             )
-                            return None
+                            img = WebDriverPlaywright._get_screenshot(
+                                page, element, element_name
+                            )
+                        logger.debug(
+                            "Tiled screenshot result: %d bytes for url: %s",
+                            len(img) if img else 0,
+                            url,
+                        )
                     else:
+                        logger.debug(
+                            "Dashboard below tiling threshold "
+                            "(%s charts, %spx height); using standard screenshot "
+                            "for url: %s",
+                            chart_count,
+                            dashboard_height,
+                            url,
+                        )
                         # Standard screenshot captures the full element including
                         # below-the-fold content, so wait for all spinners globally.
                         try:
                             logger.debug(
-                                "Wait for loading element of charts to be gone"
-                                " at url: %s",
+                                "Waiting for all spinners to clear at url: %s "
+                                "(SCREENSHOT_LOAD_WAIT=%ss)",
                                 url,
+                                self._screenshot_load_wait,
                             )
                             page.wait_for_function(
                                 "() => document.querySelectorAll("
@@ -444,16 +464,40 @@ class WebDriverPlaywright(WebDriverProxy):
                                 self._screenshot_load_wait,
                             )
                             raise
+                        logger.debug("All spinners cleared for url: %s", url)
+                        if selenium_animation_wait > 0:
+                            logger.debug(
+                                "Wait %i seconds for chart animation",
+                                selenium_animation_wait,
+                            )
+                            page.wait_for_timeout(selenium_animation_wait * 1000)
+                        logger.debug(
+                            "Taking screenshot of url %s as user %s",
+                            url,
+                            user.username if user else "None",
+                        )
                         img = WebDriverPlaywright._get_screenshot(
                             page, element, element_name
                         )
+                        logger.debug(
+                            "Screenshot result: %d bytes for url: %s",
+                            len(img) if img else 0,
+                            url,
+                        )
                 else:
+                    logger.debug(
+                        "Tiled screenshots disabled; using standard screenshot "
+                        "for url: %s",
+                        url,
+                    )
                     # Standard screenshot captures the full element including
                     # below-the-fold content, so wait for all spinners globally.
                     try:
                         logger.debug(
-                            "Wait for loading element of charts to be gone at url: %s",
+                            "Waiting for all spinners to clear at url: %s "
+                            "(SCREENSHOT_LOAD_WAIT=%ss)",
                             url,
+                            self._screenshot_load_wait,
                         )
                         page.wait_for_function(
                             "() => document.querySelectorAll('.loading').length === 0",
@@ -467,8 +511,25 @@ class WebDriverPlaywright(WebDriverProxy):
                             self._screenshot_load_wait,
                         )
                         raise
+                    logger.debug("All spinners cleared for url: %s", url)
+                    if selenium_animation_wait > 0:
+                        logger.debug(
+                            "Wait %i seconds for chart animation",
+                            selenium_animation_wait,
+                        )
+                        page.wait_for_timeout(selenium_animation_wait * 1000)
+                    logger.debug(
+                        "Taking screenshot of url %s as user %s",
+                        url,
+                        user.username if user else "None",
+                    )
                     img = WebDriverPlaywright._get_screenshot(
                         page, element, element_name
+                    )
+                    logger.debug(
+                        "Screenshot result: %d bytes for url: %s",
+                        len(img) if img else 0,
+                        url,
                     )
 
             except PlaywrightTimeout:
@@ -735,7 +796,11 @@ class WebDriverSelenium(WebDriverProxy):
         return error_messages
 
     def get_screenshot(  # noqa: C901
-        self, url: str, element_name: str, user: User | None = None
+        self,
+        url: str,
+        element_name: str,
+        user: User | None = None,
+        log_context: str | None = None,
     ) -> bytes | None:
         # If a user is passed explicitly and differs from the stored user,
         # update and re-authenticate

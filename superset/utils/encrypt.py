@@ -49,6 +49,15 @@ ENCRYPTION_ENGINES: dict[str, type[EncryptionDecryptionBaseEngine]] = {
 # The historical fallback engine when the config does not name one.
 DEFAULT_ENCRYPTION_ENGINE_NAME = "aes"
 
+# Tables that store encrypted data in a plain column gated by a boolean flag
+# rather than using EncryptedType directly.  Each entry is a 3-tuple of
+# (table_name, value_column, is_encrypted_flag_column).  SecretsMigrator.run()
+# handles these via a second pass that SELECTs only flagged rows and re-encrypts
+# them with the same logic used for declared EncryptedType columns.
+CONDITIONAL_ENCRYPTED_TABLES: list[tuple[str, str, str]] = [
+    ("extension_storage", "value", "is_encrypted"),
+]
+
 # Engines whose ciphertext is authenticated: a successful decrypt is
 # cryptographic proof the value is genuinely in that form. AES-GCM carries an
 # authentication tag; AES-CBC does not, so a CBC "success" can be coincidental.
@@ -430,7 +439,7 @@ class SecretsMigrator:
         re_encrypted_columns = {}
 
         for column_name, encrypted_type in columns.items():
-            raw_value = self._read_bytes(column_name, row[column_name])
+            raw_value = self._read_bytes(column_name, row._mapping[column_name])
 
             # NULL values aren't encrypted; there is nothing to migrate.
             if raw_value is None:
@@ -508,14 +517,86 @@ class SecretsMigrator:
 
         set_cols = ",".join(f"{name} = :{name}" for name in re_encrypted_columns)
         where_clause = " AND ".join(f"{pk} = :_pk_{pk}" for pk in pk_columns)
-        pk_bind = {f"_pk_{pk}": row[pk] for pk in pk_columns}
+        pk_bind = {f"_pk_{pk}": row._mapping[pk] for pk in pk_columns}
         conn.execute(
             text(
                 f"UPDATE {table_name} SET {set_cols} WHERE {where_clause}"  # noqa: S608
             ),
-            **pk_bind,
-            **re_encrypted_columns,
+            {**pk_bind, **re_encrypted_columns},
         )
+
+    def _re_encrypt_conditional_table(
+        self,
+        conn: Connection,
+        table_name: str,
+        value_col: str,
+        flag_col: str,
+        stats: ReEncryptStats,
+    ) -> None:
+        """Re-encrypt rows in a conditionally-encrypted table.
+
+        Unlike declared EncryptedType columns, these tables store encrypted and
+        plaintext values in the same column, gated by a boolean flag.
+        Only rows where the flag is TRUE are selected and processed; plaintext
+        rows are never touched.
+
+        The value column type is read from table metadata, so the same
+        source-decryptor waterfall and idempotency logic from _re_encrypt_row
+        applies.
+        """
+        from flask_appbuilder import (  # pylint: disable=import-outside-toplevel
+            Model as FABModel,
+        )
+
+        tables: dict[str, Any] = dict(FABModel.metadata.tables)
+        for tname, tobj in self._db.metadata.tables.items():
+            tables.setdefault(tname, tobj)
+
+        table = tables.get(table_name)
+        if table is None:
+            logger.warning(
+                "Conditional-encrypted table %s not found in metadata; skipping",
+                table_name,
+            )
+            return
+
+        pk_columns = [c.name for c in table.primary_key.columns]
+        if not pk_columns:
+            logger.warning(
+                "Skipping %s: no primary key, cannot target rows for update",
+                table_name,
+            )
+            return
+
+        # Build a synthetic EncryptedType reflecting how data is currently
+        # stored (current engine + current key).  _re_encrypt_row's
+        # _target_type / _source_decryptors machinery then handles key rotation
+        # and engine migration identically to any declared EncryptedType column.
+        engine_name = current_app.config.get(
+            "SQLALCHEMY_ENCRYPTED_FIELD_ENGINE", DEFAULT_ENCRYPTION_ENGINE_NAME
+        )
+        current_engine = resolve_encryption_engine(engine_name)
+        enc_type = EncryptedType(
+            table.columns[value_col].type,
+            key=self._secret_key,
+            engine=current_engine,
+        )
+
+        cols = ", ".join(pk_columns + [value_col])
+        rows = conn.execute(
+            text(
+                f"SELECT {cols} FROM {table_name} WHERE {flag_col} = true"  # noqa: S608
+            )
+        )
+        for row in rows:
+            self._re_encrypt_row(
+                conn,
+                row,
+                table_name,
+                {value_col: enc_type},
+                pk_columns,
+                stats,
+            )
 
     def run(self) -> ReEncryptStats:
         """
@@ -550,6 +631,11 @@ class SecretsMigrator:
                     self._re_encrypt_row(
                         conn, row, table_name, columns, pk_columns, stats
                     )
+
+            for table_name, value_col, flag_col in CONDITIONAL_ENCRYPTED_TABLES:
+                self._re_encrypt_conditional_table(
+                    conn, table_name, value_col, flag_col, stats
+                )
 
             logger.info(
                 "Re-encryption summary: %d re-encrypted, %d skipped,"
