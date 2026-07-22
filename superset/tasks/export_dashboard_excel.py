@@ -123,8 +123,13 @@ def _has_empty_query_context(raw: Any) -> bool:
 
 
 def _rebuild_viz_types() -> set[str]:
-    """Viz types eligible for form-data query-context rebuild (config or default)."""
-    return current_app.config.get("EXCEL_EXPORT_REBUILD_VIZ_TYPES") or REBUILD_VIZ_TYPES
+    """Viz types eligible for form-data query-context rebuild (config or default).
+
+    Only ``None`` falls back to the default; an explicitly configured empty set is
+    honored so operators can disable the rebuild entirely.
+    """
+    configured = current_app.config.get("EXCEL_EXPORT_REBUILD_VIZ_TYPES")
+    return REBUILD_VIZ_TYPES if configured is None else configured
 
 
 def _resolve_query_context(chart: Any) -> dict[str, Any] | None:

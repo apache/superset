@@ -77,7 +77,10 @@ def columns_from_form_data(form_data: dict[str, Any]) -> list[Any]:
 
     groupby_columns: list[Any] = form_data.get("groupby") or []
     raw_columns: list[Any] = form_data.get("columns") or []
-    columns = raw_columns.copy() if "columns" in form_data else groupby_columns.copy()
+    # Prefer explicit raw columns only when they are actually present; a stale
+    # empty ``columns: []`` key must not shadow the group-by dimensions (which
+    # would silently drop the grouping and change the aggregation).
+    columns = raw_columns.copy() if raw_columns else groupby_columns.copy()
 
     x_axis = form_data.get("x_axis")
     if isinstance(x_axis, str) and x_axis and x_axis not in columns:
@@ -112,11 +115,19 @@ def build_query_context_from_form_data(
     if not columns and form_data.get("granularity_sqla"):
         columns = [form_data["granularity_sqla"]]
 
+    filters = adhoc_filters_to_query_filters(form_data.get("adhoc_filters", []))
+    # Legacy charts may also carry simple filters directly under ``filters``,
+    # already in the QueryObject ``{col, op, val}`` shape; keep them so the export
+    # applies the same filtering the chart does.
+    for flt in form_data.get("filters") or []:
+        if isinstance(flt, dict) and flt.get("col") is not None:
+            filters.append(flt)
+
     query: dict[str, Any] = {
         "columns": columns,
         "metrics": metrics,
         "orderby": form_data.get("orderby") or [],
-        "filters": adhoc_filters_to_query_filters(form_data.get("adhoc_filters", [])),
+        "filters": filters,
         "time_range": form_data.get("time_range", "No filter"),
     }
     if form_data.get("row_limit"):
