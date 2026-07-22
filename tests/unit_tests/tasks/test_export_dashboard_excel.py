@@ -262,6 +262,39 @@ def test_empty_query_context_ineligible_viz_is_skipped(
     mocks["ChartDataCommand"].return_value.run.assert_called_once()
 
 
+@pytest.mark.parametrize(
+    ("params", "datasource_id"),
+    [
+        ("not valid json", 5),  # params don't parse → cannot rebuild
+        ("null", 5),  # params parse to a non-object → cannot rebuild
+        ('{"groupby": ["x"]}', None),  # no datasource to point the query at
+    ],
+)
+def test_eligible_viz_skipped_when_form_data_unusable(
+    mocks: dict[str, Any], params: str, datasource_id: int | None
+) -> None:
+    # Even for an allowlisted viz type, a rebuild is only attempted when the form
+    # data is a usable object and a datasource is known; otherwise the chart is
+    # skipped rather than raising.
+    good = _chart(10, "Good")
+    bad = _chart(20, "Bad", viz_type="table")
+    bad.query_context = None
+    bad.params = params
+    bad.datasource_id = datasource_id
+    bad.datasource_type = "table"
+    mocks["get_charts_in_layout_order"].return_value = [good, bad]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    _run()
+
+    _, kwargs = mocks["email"].build_success_email.call_args
+    assert kwargs["errored"] == {mocks["email"].ERROR_NO_QUERY_CONTEXT: ["20 - Bad"]}
+    # Only the good chart ran a query; the unusable one never reached execution.
+    mocks["ChartDataCommand"].return_value.run.assert_called_once()
+
+
 def test_chart_query_error_grouped_as_general_export_continues(
     mocks: dict[str, Any],
 ) -> None:

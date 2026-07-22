@@ -49,6 +49,21 @@ def test_columns_raw_mode_uses_all_columns() -> None:
     assert columns_from_form_data(form_data) == ["a", "b"]
 
 
+def test_columns_x_axis_as_adhoc_dict() -> None:
+    # An x_axis stored as an adhoc column dict contributes its column_name,
+    # prepended ahead of the groupby dimensions.
+    form_data = {"groupby": ["region"], "x_axis": {"column_name": "ds"}}
+    assert columns_from_form_data(form_data) == ["ds", "region"]
+
+
+def test_columns_x_axis_dict_without_column_name_is_ignored() -> None:
+    form_data = {
+        "groupby": ["region"],
+        "x_axis": {"label": "custom", "sqlExpression": "a+b"},
+    }
+    assert columns_from_form_data(form_data) == ["region"]
+
+
 def test_build_context_maps_groupby_metrics_and_filters() -> None:
     form_data = {
         "groupby": ["country"],
@@ -87,3 +102,14 @@ def test_build_context_big_number_singular_metric_and_default_time_range() -> No
     assert query["time_range"] == "No filter"
     # No row_limit in form data → not forced into the query.
     assert "row_limit" not in query
+
+
+def test_build_context_falls_back_to_granularity_sqla_column() -> None:
+    # A Big Number with a trendline has no groupby/columns; its time column
+    # (granularity_sqla) becomes the query's sole column.
+    form_data = {"metric": "count", "granularity_sqla": "order_date"}
+
+    query = build_query_context_from_form_data(form_data, DATASOURCE)["queries"][0]
+
+    assert query["columns"] == ["order_date"]
+    assert query["metrics"] == ["count"]
