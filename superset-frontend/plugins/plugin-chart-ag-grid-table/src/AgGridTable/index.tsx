@@ -79,7 +79,6 @@ export type AgGridChartStateWithMetadata = Partial<AgGridChartState> & {
 export interface AgGridTableProps {
   gridTheme?: string;
   isDarkMode?: boolean;
-  gridHeight?: number;
   updateInterval?: number;
   data?: any[];
   onGridReady?: (params: GridReadyEvent) => void;
@@ -123,7 +122,6 @@ const isSearchFocused = new Map<string, boolean>();
 
 const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
   ({
-    gridHeight,
     data = [],
     colDefsFromProps,
     includeSearch,
@@ -162,6 +160,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     const rowData = useMemo(() => data, [data]);
     const containerRef = useRef<HTMLDivElement>(null);
     const lastCapturedStateRef = useRef<string | null>(null);
+    const hasCapturedInitialGridStateRef = useRef(false);
     const filterOperationVersionRef = useRef(0);
 
     const searchId = `search-${id}`;
@@ -195,13 +194,26 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       [],
     );
 
-    // Memoize container style
+    // Fills the full height allotted by the chart container (StyledChartContainer);
+    // the search/time-comparison controls and pagination bar take their natural
+    // height and the grid flexes into whatever space remains (see gridFlexStyles),
+    // instead of a hardcoded pixel height that drifts from the actual chrome height.
     const containerStyles = useMemo(
       () => ({
-        height: gridHeight,
+        height: '100%',
         width,
+        display: 'flex',
+        flexDirection: 'column' as const,
       }),
-      [gridHeight, width],
+      [width],
+    );
+
+    const gridFlexStyles = useMemo(
+      () => ({
+        flex: '1 1 auto',
+        minHeight: 0,
+      }),
+      [],
     );
 
     const [quickFilterText, setQuickFilterText] = useState<string>();
@@ -359,6 +371,21 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
               filterModel,
             );
 
+            // AG Grid fires onStateUpdated once as it applies the initial
+            // column/sort/filter state on mount, before any user
+            // interaction. That first event just reflects the state the grid
+            // was initialized with (chartState/gridInitialState) - not a
+            // user-driven change - so it's skipped rather than compared
+            // against `lastCapturedStateRef`, which is always null right
+            // after mount. Persisting it anyway would write a chart-state
+            // change on every mount, which can cascade into a
+            // remount/onStateUpdated loop.
+            if (!hasCapturedInitialGridStateRef.current) {
+              hasCapturedInitialGridStateRef.current = true;
+              lastCapturedStateRef.current = stateHash;
+              return;
+            }
+
             if (stateHash !== lastCapturedStateRef.current) {
               lastCapturedStateRef.current = stateHash;
 
@@ -438,6 +465,15 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     // snapshot can't represent the full filtered/sorted result and export
     // falls back to a fresh backend query instead (see useExploreAdditionalActionsMenu).
     const lastClientViewSignatureRef = useRef<string | null>(null);
+    // AG Grid fires onModelUpdated once as it applies the initial row data on
+    // mount, before any user interaction. That first event reflects data the
+    // chart already has - not a view change worth persisting - so it's
+    // skipped rather than compared against `lastClientViewSignatureRef`,
+    // which is always null right after mount. Persisting it anyway would
+    // write an ownState change on every mount, which (if the dashboard
+    // decides that warrants a requery) unmounts/remounts this component and
+    // re-fires onModelUpdated, looping forever.
+    const hasCapturedInitialModelRef = useRef(false);
     // Debounced (like handleGridStateChange below) because the full
     // filtered+sorted traversal is O(n) and onModelUpdated can fire rapidly
     // in succession (e.g. while typing into a quick filter); only the
@@ -471,6 +507,13 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
         // both value changes (e.g. a refresh with the same row count) and
         // order changes (e.g. a pure sort), not just count/column changes.
         const signature = `${JSON.stringify(rows)}|${columns.map(c => c.key).join(',')}`;
+
+        if (!hasCapturedInitialModelRef.current) {
+          hasCapturedInitialModelRef.current = true;
+          lastClientViewSignatureRef.current = signature;
+          return;
+        }
+
         if (signature === lastClientViewSignatureRef.current) {
           return;
         }
@@ -584,128 +627,130 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
           )}
         </div>
 
-        <ThemedAgGridReact
-          ref={gridRef}
-          onGridReady={onGridReady}
-          className="ag-container"
-          rowData={rowData}
-          headerHeight={36}
-          rowHeight={30}
-          columnDefs={colDefsFromProps}
-          defaultColDef={defaultColDef}
-          onColumnGroupOpened={params => params.api.sizeColumnsToFit()}
-          rowSelection="multiple"
-          animateRows
-          onCellClicked={handleCellClicked}
-          onCellContextMenu={handleCellContextMenu}
-          onCellKeyDown={handleCellKeyDown}
-          onSelectionChanged={handleSelectionChanged}
-          onFilterChanged={handleFilterChanged}
-          onModelUpdated={handleModelUpdated}
-          onStateUpdated={handleGridStateChange}
-          initialState={gridInitialState}
-          maintainColumnOrder
-          suppressAggFuncInHeader
-          // Clicking a cell should select (focus) the cell rather than select
-          // its text content (#106389). enableCellTextSelection forces browser
-          // text selection on click, which suppresses the cell-focus behavior.
-          // Because the Enterprise clipboard module isn't registered, native
-          // text selection was the only way to copy a value, so onCellKeyDown
-          // (above) restores Ctrl/Cmd+C copy for the focused cell. Full
-          // multi-cell range selection still requires AG Grid Enterprise, which
-          // is not available in the Community build used here.
-          enableCellTextSelection={false}
-          quickFilterText={serverPagination ? '' : quickFilterText}
-          suppressMovableColumns={!allowRearrangeColumns}
-          pagination={pagination}
-          paginationPageSize={pageSize}
-          paginationPageSizeSelector={PAGE_SIZE_OPTIONS}
-          suppressDragLeaveHidesColumns
-          pinnedBottomRowData={showTotals ? [cleanedTotals] : undefined}
-          tooltipShowDelay={500}
-          localeText={{
-            // Pagination controls
-            next: t('Next'),
-            previous: t('Previous'),
-            page: t('Page'),
-            more: t('More'),
-            to: t('to'),
-            of: t('of'),
-            first: t('First'),
-            last: t('Last'),
-            loadingOoo: t('Loading...'),
-            // Set Filter
-            selectAll: t('Select All'),
-            searchOoo: t('Search...'),
-            blanks: t('Blanks'),
-            // Filter operations
-            filterOoo: t('Filter'),
-            applyFilter: t('Apply Filter'),
-            equals: t('Equals'),
-            notEqual: t('Not Equal'),
-            lessThan: t('Less Than'),
-            greaterThan: t('Greater Than'),
-            lessThanOrEqual: t('Less Than or Equal'),
-            greaterThanOrEqual: t('Greater Than or Equal'),
-            inRange: t('In Range'),
-            contains: t('Contains'),
-            notContains: t('Not Contains'),
-            startsWith: t('Starts With'),
-            endsWith: t('Ends With'),
-            // Logical conditions
-            andCondition: t('AND'),
-            orCondition: t('OR'),
-            // Panel and group labels
-            group: t('Group'),
-            columns: t('Columns'),
-            filters: t('Filters'),
-            valueColumns: t('Value Columns'),
-            pivotMode: t('Pivot Mode'),
-            groups: t('Groups'),
-            values: t('Values'),
-            pivots: t('Pivots'),
-            toolPanelButton: t('Tool Panel'),
-            // Enterprise menu items
-            pinColumn: t('Pin Column'),
-            valueAggregation: t('Value Aggregation'),
-            autosizeThiscolumn: t('Autosize This Column'),
-            autosizeAllColumns: t('Autosize All Columns'),
-            groupBy: t('Group By'),
-            ungroupBy: t('Ungroup By'),
-            resetColumns: t('Reset Columns'),
-            expandAll: t('Expand All'),
-            collapseAll: t('Collapse All'),
-            toolPanel: t('Tool Panel'),
-            export: t('Export'),
-            csvExport: t('CSV Export'),
-            excelExport: t('Excel Export'),
-            excelXmlExport: t('Excel XML Export'),
-            // Aggregation functions
-            sum: t('Sum'),
-            min: t('Min'),
-            max: t('Max'),
-            none: t('None'),
-            count: t('Count'),
-            average: t('Average'),
-            // Standard menu items
-            copy: t('Copy'),
-            copyWithHeaders: t('Copy with Headers'),
-            paste: t('Paste'),
-            // Column menu and sorting
-            sortAscending: t('Sort Ascending'),
-            sortDescending: t('Sort Descending'),
-            sortUnSort: t('Clear Sort'),
-          }}
-          context={{
-            onColumnHeaderClicked: handleColumnHeaderClick,
-            initialSortState: getInitialSortState(
-              serverPaginationData?.sortBy || [],
-            ),
-            lastFilteredColumn: serverPaginationData?.lastFilteredColumn,
-            lastFilteredInputPosition:
-              serverPaginationData?.lastFilteredInputPosition,
-          }}
-        />
+        <div style={gridFlexStyles}>
+          <ThemedAgGridReact
+            ref={gridRef}
+            onGridReady={onGridReady}
+            className="ag-container"
+            rowData={rowData}
+            headerHeight={36}
+            rowHeight={30}
+            columnDefs={colDefsFromProps}
+            defaultColDef={defaultColDef}
+            onColumnGroupOpened={params => params.api.sizeColumnsToFit()}
+            rowSelection="multiple"
+            animateRows
+            onCellClicked={handleCellClicked}
+            onCellContextMenu={handleCellContextMenu}
+            onCellKeyDown={handleCellKeyDown}
+            onSelectionChanged={handleSelectionChanged}
+            onFilterChanged={handleFilterChanged}
+            onModelUpdated={handleModelUpdated}
+            onStateUpdated={handleGridStateChange}
+            initialState={gridInitialState}
+            maintainColumnOrder
+            suppressAggFuncInHeader
+            // Clicking a cell should select (focus) the cell rather than select
+            // its text content (#106389). enableCellTextSelection forces browser
+            // text selection on click, which suppresses the cell-focus behavior.
+            // Because the Enterprise clipboard module isn't registered, native
+            // text selection was the only way to copy a value, so onCellKeyDown
+            // (above) restores Ctrl/Cmd+C copy for the focused cell. Full
+            // multi-cell range selection still requires AG Grid Enterprise, which
+            // is not available in the Community build used here.
+            enableCellTextSelection={false}
+            quickFilterText={serverPagination ? '' : quickFilterText}
+            suppressMovableColumns={!allowRearrangeColumns}
+            pagination={pagination}
+            paginationPageSize={pageSize}
+            paginationPageSizeSelector={PAGE_SIZE_OPTIONS}
+            suppressDragLeaveHidesColumns
+            pinnedBottomRowData={showTotals ? [cleanedTotals] : undefined}
+            tooltipShowDelay={500}
+            localeText={{
+              // Pagination controls
+              next: t('Next'),
+              previous: t('Previous'),
+              page: t('Page'),
+              more: t('More'),
+              to: t('to'),
+              of: t('of'),
+              first: t('First'),
+              last: t('Last'),
+              loadingOoo: t('Loading...'),
+              // Set Filter
+              selectAll: t('Select All'),
+              searchOoo: t('Search...'),
+              blanks: t('Blanks'),
+              // Filter operations
+              filterOoo: t('Filter'),
+              applyFilter: t('Apply Filter'),
+              equals: t('Equals'),
+              notEqual: t('Not Equal'),
+              lessThan: t('Less Than'),
+              greaterThan: t('Greater Than'),
+              lessThanOrEqual: t('Less Than or Equal'),
+              greaterThanOrEqual: t('Greater Than or Equal'),
+              inRange: t('In Range'),
+              contains: t('Contains'),
+              notContains: t('Not Contains'),
+              startsWith: t('Starts With'),
+              endsWith: t('Ends With'),
+              // Logical conditions
+              andCondition: t('AND'),
+              orCondition: t('OR'),
+              // Panel and group labels
+              group: t('Group'),
+              columns: t('Columns'),
+              filters: t('Filters'),
+              valueColumns: t('Value Columns'),
+              pivotMode: t('Pivot Mode'),
+              groups: t('Groups'),
+              values: t('Values'),
+              pivots: t('Pivots'),
+              toolPanelButton: t('Tool Panel'),
+              // Enterprise menu items
+              pinColumn: t('Pin Column'),
+              valueAggregation: t('Value Aggregation'),
+              autosizeThiscolumn: t('Autosize This Column'),
+              autosizeAllColumns: t('Autosize All Columns'),
+              groupBy: t('Group By'),
+              ungroupBy: t('Ungroup By'),
+              resetColumns: t('Reset Columns'),
+              expandAll: t('Expand All'),
+              collapseAll: t('Collapse All'),
+              toolPanel: t('Tool Panel'),
+              export: t('Export'),
+              csvExport: t('CSV Export'),
+              excelExport: t('Excel Export'),
+              excelXmlExport: t('Excel XML Export'),
+              // Aggregation functions
+              sum: t('Sum'),
+              min: t('Min'),
+              max: t('Max'),
+              none: t('None'),
+              count: t('Count'),
+              average: t('Average'),
+              // Standard menu items
+              copy: t('Copy'),
+              copyWithHeaders: t('Copy with Headers'),
+              paste: t('Paste'),
+              // Column menu and sorting
+              sortAscending: t('Sort Ascending'),
+              sortDescending: t('Sort Descending'),
+              sortUnSort: t('Clear Sort'),
+            }}
+            context={{
+              onColumnHeaderClicked: handleColumnHeaderClick,
+              initialSortState: getInitialSortState(
+                serverPaginationData?.sortBy || [],
+              ),
+              lastFilteredColumn: serverPaginationData?.lastFilteredColumn,
+              lastFilteredInputPosition:
+                serverPaginationData?.lastFilteredInputPosition,
+            }}
+          />
+        </div>
         {serverPagination && (
           <Pagination
             currentPage={serverPaginationData?.currentPage || 0}

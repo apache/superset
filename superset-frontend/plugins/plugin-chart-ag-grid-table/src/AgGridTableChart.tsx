@@ -53,14 +53,6 @@ import DateWithFormatter from './utils/DateWithFormatter';
 import { formatColumnValue } from './utils/formatValue';
 import getTimeRangeFromGranularity from './utils/getTimeRangeFromGranularity';
 
-const getGridHeight = (height: number, includeSearch: boolean | undefined) => {
-  let calculatedGridHeight = height;
-  if (includeSearch) {
-    calculatedGridHeight -= 16;
-  }
-  return calculatedGridHeight - 80;
-};
-
 export default function TableChart<D extends DataRecord = DataRecord>(
   props: AgGridTableChartTransformedProps<D> & {},
 ) {
@@ -306,8 +298,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     alignPositiveNegative,
     slice_id,
   });
-
-  const gridHeight = getGridHeight(height, includeSearch);
 
   const isActiveFilterValue = useCallback(
     function isActiveFilterValue(key: string, val: DataRecordValue) {
@@ -609,9 +599,22 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     .join('|');
 
   return (
-    <StyledChartContainer height={height}>
+    <StyledChartContainer
+      height={height}
+      onContextMenu={event => {
+        // Safety net: AG Grid only calls handleContextMenu (which calls
+        // preventDefault) when it resolves the native contextmenu event to
+        // a cell. If that per-cell resolution ever misses - e.g. a second,
+        // near-duplicate contextmenu event dispatched in quick succession by
+        // some mice's right-button switches - the event still bubbles
+        // through this container, so the browser's native menu is
+        // suppressed here regardless of whether AG Grid's own handler ran.
+        if (!isRawRecords) {
+          event.preventDefault();
+        }
+      }}
+    >
       <AgGridDataTable
-        gridHeight={gridHeight}
         key={descriptionsKey}
         data={data || []}
         colDefsFromProps={colDefs}
