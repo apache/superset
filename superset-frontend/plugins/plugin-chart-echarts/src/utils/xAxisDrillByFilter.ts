@@ -27,9 +27,14 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 /**
  * Format a Date as a naive ISO datetime string (UTC, no timezone suffix),
  * the format Superset's time range parser expects, e.g. "2021-01-01T00:00:00".
+ * Sub-second precision is preserved when present (e.g.
+ * "2021-01-01T00:00:00.123") so exact-match filters on high-frequency
+ * timestamps don't get truncated to the containing second.
  */
-export const formatNaiveDateTime = (date: Date): string =>
-  date.toISOString().slice(0, 19);
+export const formatNaiveDateTime = (date: Date): string => {
+  const iso = date.toISOString();
+  return date.getUTCMilliseconds() === 0 ? iso.slice(0, 19) : iso.slice(0, 23);
+};
 
 /**
  * Given the start (label) of a time bucket and its time grain, return the
