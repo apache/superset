@@ -31,6 +31,7 @@ import yaml
 from freezegun import freeze_time
 from sqlalchemy import and_
 from superset import db, security_manager  # noqa: F401
+from superset.exceptions import LockAlreadyHeldException
 from superset.models.dashboard import Dashboard
 from superset.models.core import FavStar, FavStarClassName
 from superset.reports.models import ReportSchedule, ReportScheduleType
@@ -42,6 +43,7 @@ from superset.utils.core import backend, override_user
 from superset.utils.screenshots import ScreenshotCachePayload
 from superset.utils import json
 
+from tests.conftest import with_config
 from tests.integration_tests.base_api_tests import ApiEditorsTestCaseMixin
 from tests.integration_tests.base_tests import (
     subjects_from_users,
@@ -3261,6 +3263,173 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
         assert response["count"] > 0
+
+    def test_export_xlsx_501_when_bucket_unset(self):
+        """Dashboard API: export_xlsx returns 501 when the S3 bucket is unset."""
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard("xlsx-501", None, [admin.id])
+        self.login(ADMIN_USERNAME)
+        try:
+            rv = self.client.post(f"api/v1/dashboard/{dashboard.id}/export_xlsx/")
+            assert rv.status_code == 501
+        finally:
+            db.session.delete(dashboard)
+            db.session.commit()
+
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @patch("superset.dashboards.api.export_dashboard_excel")
+    def test_export_xlsx_404_for_missing_dashboard(self, mock_task):
+        """Dashboard API: export_xlsx returns 404 for an unknown dashboard."""
+        self.login(ADMIN_USERNAME)
+        rv = self.client.post("api/v1/dashboard/99999999/export_xlsx/")
+        assert rv.status_code == 404
+        mock_task.apply_async.assert_not_called()
+
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @patch("superset.dashboards.api.export_dashboard_excel")
+    def test_export_xlsx_400_for_empty_dashboard(self, mock_task):
+        """Dashboard API: export_xlsx returns 400 for a dashboard with no charts."""
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard("xlsx-empty", None, [admin.id])
+        self.login(ADMIN_USERNAME)
+        try:
+            rv = self.client.post(f"api/v1/dashboard/{dashboard.id}/export_xlsx/")
+            assert rv.status_code == 400
+            mock_task.apply_async.assert_not_called()
+        finally:
+            db.session.delete(dashboard)
+            db.session.commit()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @patch("superset.dashboards.api.AcquireDistributedLock")
+    @patch("superset.dashboards.api.export_dashboard_excel")
+    def test_export_xlsx_202_enqueues_task(self, mock_task, mock_acquire):
+        """Dashboard API: export_xlsx enqueues the task and returns 202 + job_id."""
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}},
+        )
+        assert rv.status_code == 202
+        body = json.loads(rv.data.decode("utf-8"))
+        job_id = body["job_id"]
+        assert job_id
+        # The in-flight lock is acquired before the task is enqueued.
+        mock_acquire.return_value.run.assert_called_once()
+        mock_task.apply_async.assert_called_once()
+        _, kwargs = mock_task.apply_async.call_args
+        assert kwargs["task_id"] == job_id
+        assert kwargs["kwargs"]["dashboard_id"] == dashboard.id
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @patch("superset.dashboards.api.AcquireDistributedLock")
+    @patch("superset.dashboards.api.export_dashboard_excel")
+    def test_export_xlsx_202_when_export_already_in_progress(
+        self, mock_task, mock_acquire
+    ):
+        """Dashboard API: export_xlsx does not enqueue a second concurrent export."""
+        # An in-flight lock is already held for this user+dashboard.
+        mock_acquire.return_value.run.side_effect = LockAlreadyHeldException("held")
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}},
+        )
+        assert rv.status_code == 202
+        assert "already in progress" in rv.data.decode("utf-8")
+        mock_task.apply_async.assert_not_called()
+
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @patch("superset.dashboards.api.export_dashboard_excel")
+    def test_export_xlsx_404_for_inaccessible_dashboard(self, mock_task):
+        """Dashboard API: export_xlsx returns 404 for a dashboard the user can't see."""
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "xlsx-private", None, [admin.id], published=False
+        )
+        self.login(GAMMA_USERNAME)
+        try:
+            rv = self.client.post(f"api/v1/dashboard/{dashboard.id}/export_xlsx/")
+            assert rv.status_code == 404
+            mock_task.apply_async.assert_not_called()
+        finally:
+            db.session.delete(dashboard)
+            db.session.commit()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @patch("superset.dashboards.api.AcquireDistributedLock")
+    @patch("superset.dashboards.api.export_dashboard_excel")
+    @patch("superset.dashboards.api.security_manager.raise_for_access")
+    def test_export_xlsx_admitted_with_can_export_only(
+        self, mock_raise, mock_task, mock_acquire
+    ):
+        """Dashboard API: export_xlsx is gated on ``can_export``, not a distinct
+        ``can_export_xlsx``. Gamma holds dashboard ``can_export`` by default (and
+        the frontend shows the menu item on that basis), so a Gamma user must be
+        admitted (202) rather than rejected by ``@protect()`` (403)."""
+        gamma_user = security_manager.find_user(username=GAMMA_USERNAME)
+        slice_ = db.session.query(Slice).first()
+        # Clone Gamma (so the login password is valid); Gamma already carries
+        # dashboard ``can_export``.
+        with self.temporary_user(gamma_user, login=True) as user:
+            dashboard = self.insert_dashboard(
+                "xlsx-can-export", None, [user.id], slices=[slice_], published=True
+            )
+            try:
+                rv = self.client.post(
+                    f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+                    json={"active_data_mask": {}},
+                )
+                assert rv.status_code == 202
+                mock_task.apply_async.assert_called_once()
+            finally:
+                db.session.delete(dashboard)
+                db.session.commit()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @patch("superset.dashboards.api.export_dashboard_excel")
+    def test_export_xlsx_images_404_when_screenshot_flags_off(self, mock_task):
+        """Dashboard API: ``mode=images`` is rejected with 404 when the webdriver
+        screenshot flags are disabled (the same signal the UI gates the option on),
+        and no task is enqueued."""
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}, "mode": "images"},
+        )
+        assert rv.status_code == 404
+        mock_task.apply_async.assert_not_called()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @with_feature_flags(
+        ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True,
+        ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT=True,
+    )
+    @patch("superset.dashboards.api.AcquireDistributedLock")
+    @patch("superset.dashboards.api.export_dashboard_excel")
+    def test_export_xlsx_images_202_when_screenshot_flags_on(
+        self, mock_task, mock_acquire
+    ):
+        """Dashboard API: ``mode=images`` is accepted (202) when both webdriver
+        screenshot flags are enabled."""
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}, "mode": "images"},
+        )
+        assert rv.status_code == 202
+        mock_task.apply_async.assert_called_once()
+        _, kwargs = mock_task.apply_async.call_args
+        assert kwargs["kwargs"]["mode"] == "images"
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_embedded_dashboards(self):

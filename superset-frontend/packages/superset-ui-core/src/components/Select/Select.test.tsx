@@ -390,6 +390,93 @@ test('removes duplicated values', async () => {
   expect(values[3]).toHaveTextContent('d');
 });
 
+test('typing an unquoted comma splits the value into a chip', async () => {
+  render(<Select {...defaultProps} mode="multiple" allowNewOptions />);
+  await type('Australia');
+  expect(await findSelectOption('Australia')).toBeInTheDocument();
+  await type(',', undefined, false);
+  const values = await findAllSelectValues();
+  expect(values.length).toBe(1);
+  expect(values[0]).toHaveTextContent('Australia');
+});
+
+test('closing quote and separator arriving in a single input event still create the chip', async () => {
+  render(<Select {...defaultProps} mode="multiple" allowNewOptions />);
+  await open();
+  await type('"Australia, U');
+  // dead-key keyboard layouts deliver the closing quote together with the
+  // next character in one input event
+  fireEvent.change(getSelect(), { target: { value: '"Australia, US",' } });
+  await waitFor(() =>
+    expect(getElementsByClassName('.ant-select-selection-item')).toHaveLength(
+      1,
+    ),
+  );
+  expect(getElementByClassName('.ant-select-selection-item')).toHaveTextContent(
+    'Australia, US',
+  );
+});
+
+test('an options prop update mid-typing keeps the created option tokenizable', async () => {
+  const { rerender } = render(
+    <Select {...defaultProps} mode="multiple" allowNewOptions />,
+  );
+  await type('"Australia, US"');
+  expect(await findSelectOption('Australia, US')).toBeInTheDocument();
+  rerender(
+    <Select
+      {...defaultProps}
+      options={[...OPTIONS]}
+      mode="multiple"
+      allowNewOptions
+    />,
+  );
+  await type(',', undefined, false);
+  await waitFor(() =>
+    expect(getElementsByClassName('.ant-select-selection-item')).toHaveLength(
+      1,
+    ),
+  );
+  expect(getElementByClassName('.ant-select-selection-item')).toHaveTextContent(
+    'Australia, US',
+  );
+});
+
+test('typing a comma inside double quotes keeps the value as a single chip', async () => {
+  render(<Select {...defaultProps} mode="multiple" allowNewOptions />);
+  await type('"Australia, US"');
+  expect(await findSelectOption('Australia, US')).toBeInTheDocument();
+  await type(',', undefined, false);
+  const values = await findAllSelectValues();
+  expect(values.length).toBe(1);
+  expect(values[0]).toHaveTextContent('Australia, US');
+});
+
+test('prevents the default paste action when pasted values are consumed', async () => {
+  render(<Select {...defaultProps} mode="multiple" allowNewOptions />);
+  const input = getElementByClassName('.ant-select-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => `${OPTIONS[0].label},${OPTIONS[1].label}`,
+    },
+  });
+  fireEvent(input, paste);
+  await findAllSelectValues();
+  expect(paste.defaultPrevented).toBe(true);
+});
+
+test('allows the default paste action when nothing is consumable', async () => {
+  render(<Select {...defaultProps} mode="multiple" />);
+  const input = getElementByClassName('.ant-select-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => 'zzz,yyy',
+    },
+  });
+  fireEvent(input, paste);
+  expect(paste.defaultPrevented).toBe(false);
+});
+
 test('trims whitespace from pasted comma-separated values', async () => {
   render(<Select {...defaultProps} mode="multiple" allowNewOptions />);
   const input = getElementByClassName('.ant-select-input');
@@ -1442,6 +1529,26 @@ describe('grouped options search', () => {
   });
 });
 
+test('cancels pending debounce on unmount', async () => {
+  const mockOnSearch = jest.fn();
+  const { unmount } = render(
+    <Select
+      {...defaultProps}
+      allowNewOptions
+      mode="multiple"
+      onSearch={mockOnSearch}
+    />,
+  );
+
+  await type('test');
+  await new Promise(resolve => setTimeout(resolve, 300));
+  expect(mockOnSearch).toHaveBeenCalledWith('test');
+  mockOnSearch.mockClear();
+  await type('unmounted');
+  unmount();
+  await new Promise(resolve => setTimeout(resolve, 400));
+  expect(mockOnSearch).not.toHaveBeenCalled();
+});
 /*
  TODO: Add tests that require scroll interaction. Needs further investigation.
  - Fetches more data when scrolling and more data is available

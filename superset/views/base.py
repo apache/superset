@@ -35,7 +35,7 @@ from flask import (
 )
 from flask_appbuilder import BaseView, Model, ModelView
 from flask_appbuilder.actions import action
-from flask_appbuilder.const import AUTH_OAUTH, AUTH_SAML
+from flask_appbuilder.const import AUTH_LDAP, AUTH_OAUTH, AUTH_SAML
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.security.sqla.models import User
@@ -80,7 +80,6 @@ FRONTEND_CONF_KEYS = (
     "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT",
     "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE",
     "SUPERSET_DASHBOARD_MANUAL_REFRESH_STAGGER_MS",
-    "ENABLE_JAVASCRIPT_CONTROLS",
     "DEFAULT_SQLLAB_LIMIT",
     "DEFAULT_VIZ_TYPE",
     "SQL_MAX_ROW",
@@ -193,7 +192,7 @@ def deprecated(
                     eol_version,
                 ]
                 if new_target:
-                    message += " . Use the following API endpoint instead: %s"
+                    message += ". Use the following API endpoint instead: %s"
                     logger_args.append(new_target)
                 logger.warning(message, *logger_args)
             return f(self, *args, **kwargs)
@@ -547,7 +546,7 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     auth_user_registration = app.config["AUTH_USER_REGISTRATION"]
     frontend_config["AUTH_USER_REGISTRATION"] = auth_user_registration
     should_show_recaptcha = auth_user_registration and (
-        auth_type not in (AUTH_OAUTH, AUTH_SAML)
+        auth_type not in (AUTH_LDAP, AUTH_OAUTH, AUTH_SAML)
     )
 
     if auth_user_registration:

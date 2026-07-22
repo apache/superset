@@ -19,7 +19,9 @@
 
 from __future__ import annotations
 
+import contextlib
 import copy
+import re
 from contextlib import contextmanager
 from typing import Any, cast, TYPE_CHECKING
 from unittest.mock import MagicMock, patch
@@ -2158,6 +2160,248 @@ def test_adhoc_metric_to_sqla_invalid_sql_expression_raises_validation_error(
         table.adhoc_metric_to_sqla(metric, {})
 
 
+def test_get_sqla_query_raises_for_nonaggregate_custom_sql_metric_with_columns(
+    database: Database,
+) -> None:
+    """
+    A grouped query (e.g. a Deck.gl Screen Grid's spatial ``columns``) with a
+    non-aggregate Custom SQL metric must raise a clear validation error
+    instead of letting an invalid ``GROUP BY`` reach the database (#38913).
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="lon"),
+            TableColumn(column_name="lat"),
+            TableColumn(column_name="confirmed"),
+            TableColumn(column_name="predicted"),
+        ],
+    )
+    metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": "GREATEST(confirmed, predicted)",
+        "label": "weight",
+    }
+
+    with pytest.raises(QueryObjectValidationError, match="not an aggregate"):
+        table.get_sqla_query(
+            columns=["lon", "lat"],
+            metrics=[metric],
+            extras={},
+            filter=[],
+            granularity=None,
+            is_timeseries=False,
+        )
+
+
+def test_get_sqla_query_allows_aggregate_wrapped_custom_sql_metric_with_columns(
+    database: Database,
+) -> None:
+    """
+    Wrapping the Custom SQL metric in an aggregate (the fix's guidance) must
+    let the grouped query build normally.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="lon"),
+            TableColumn(column_name="lat"),
+            TableColumn(column_name="confirmed"),
+            TableColumn(column_name="predicted"),
+        ],
+    )
+    metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": "MAX(GREATEST(confirmed, predicted))",
+        "label": "weight",
+    }
+
+    result = table.get_sqla_query(
+        columns=["lon", "lat"],
+        metrics=[metric],
+        extras={},
+        filter=[],
+        granularity=None,
+        is_timeseries=False,
+    )
+    assert result is not None
+
+
+def test_get_sqla_query_allows_nonaggregate_custom_sql_metric_without_dimensions(
+    database: Database,
+) -> None:
+    """
+    A dimensionless query (e.g. Big Number) built from a non-aggregate Custom
+    SQL metric alone is valid SQL and must not be blocked: there is no
+    ``GROUP BY`` for the expression to conflict with.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="confirmed"),
+            TableColumn(column_name="predicted"),
+        ],
+    )
+    metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": "GREATEST(confirmed, predicted)",
+        "label": "weight",
+    }
+
+    result = table.get_sqla_query(
+        metrics=[metric],
+        extras={},
+        filter=[],
+        granularity=None,
+        is_timeseries=False,
+    )
+    assert result is not None
+
+
+def test_get_sqla_query_raises_for_nonaggregate_custom_sql_metric_with_groupby(
+    database: Database,
+) -> None:
+    """
+    A ``groupby``-driven grouped query (e.g. a Deck.gl Screen Grid, which sends
+    its spatial dimensions via ``query_obj["groupby"]`` -- see
+    ``BaseDeckGLViz.query_obj`` in ``superset/viz.py``) with a non-aggregate
+    Custom SQL metric must raise the same clear validation error as the
+    ``columns``-driven case (#38913).
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="longitude"),
+            TableColumn(column_name="latitude"),
+            TableColumn(column_name="confirmed"),
+            TableColumn(column_name="predicted"),
+        ],
+    )
+    metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": "GREATEST(confirmed, predicted)",
+        "label": "weight",
+    }
+
+    with pytest.raises(QueryObjectValidationError, match="not an aggregate"):
+        table.get_sqla_query(
+            groupby=["longitude", "latitude"],
+            metrics=[metric],
+            extras={},
+            filter=[],
+            granularity=None,
+            is_timeseries=False,
+        )
+
+
+def test_get_sqla_query_raises_for_nonaggregate_custom_sql_metric_with_timeseries(
+    database: Database,
+) -> None:
+    """
+    A timeseries query's time bucket (from ``granularity``/``is_timeseries``)
+    also produces a ``GROUP BY``, even with no ``columns``/``groupby``
+    dimensions. A non-aggregate Custom SQL metric must be rejected here too
+    (#38913).
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="ts", type="TIMESTAMP", is_dttm=True),
+            TableColumn(column_name="confirmed"),
+            TableColumn(column_name="predicted"),
+        ],
+    )
+    metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": "GREATEST(confirmed, predicted)",
+        "label": "weight",
+    }
+
+    with pytest.raises(QueryObjectValidationError, match="not an aggregate"):
+        table.get_sqla_query(
+            columns=[],
+            metrics=[metric],
+            extras={"time_grain_sqla": "P1D"},
+            filter=[],
+            granularity="ts",
+            is_timeseries=True,
+        )
+
+
+def test_get_sqla_query_allows_jinja_templated_custom_sql_metric_with_columns(
+    database: Database,
+) -> None:
+    """
+    A Jinja-templated Custom SQL metric may render to an aggregate at runtime
+    and can't be judged statically, so the guard must skip it and let the
+    grouped query build normally (#38913).
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="lon"),
+            TableColumn(column_name="lat"),
+            TableColumn(column_name="confirmed"),
+            TableColumn(column_name="predicted"),
+        ],
+    )
+    metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": "{{ 'SUM(confirmed)' }}",
+        "label": "weight",
+    }
+
+    result = table.get_sqla_query(
+        columns=["lon", "lat"],
+        metrics=[metric],
+        extras={},
+        filter=[],
+        granularity=None,
+        is_timeseries=False,
+    )
+    assert result is not None
+
+    # Confirm the Jinja templating actually rendered to an aggregate (as
+    # opposed to the guard's skip merely letting raw, unrendered Jinja
+    # through unchecked).
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            result.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+    assert "SUM(confirmed)" in sql
+    assert "{{" not in sql
+
+
 def test_extras_where_is_parenthesized(
     database: Database,
 ) -> None:
@@ -2717,6 +2961,220 @@ def test_adhoc_column_to_sqla_skips_probe_when_not_forced(
     assert generic_type is None
 
 
+class _FakeClickHouseConnectCursor:
+    """
+    Mimics clickhouse-connect 0.14.1's ``cursor.py``: the empty-result
+    metadata fallback -- which backfills ``cursor.description`` for a
+    legitimate zero-row result -- only runs when the executed operation
+    string starts with ``SELECT``/``WITH`` after stripping whitespace. A
+    leading SQL comment (e.g. from SQL_QUERY_MUTATOR) defeats that check.
+    """
+
+    def __init__(self, real_description: list[tuple[object, ...]]) -> None:
+        self._real_description = real_description
+        self.description: list[tuple[object, ...]] | None = None
+        self.arraysize = 0
+        self.executed: list[str] = []
+
+    def execute(self, operation: str, *args: object, **kwargs: object) -> None:
+        self.executed.append(operation)
+        if operation.strip().upper().startswith(("SELECT", "WITH")):
+            self.description = self._real_description
+        else:
+            self.description = []
+
+    def fetchall(self) -> list[tuple[object, ...]]:
+        return []
+
+
+def _mutate_with_attribution_comments(sql_: str, is_split: bool = False) -> str:
+    """
+    Mirrors a typical SQL_QUERY_MUTATOR: leading query-hash/workspace
+    attribution comments plus a trailing query-hash comment.
+    """
+    return (
+        "-- query hash: abc123\n"
+        "-- workspace_slug: acme-corp\n"
+        f"{sql_}\n"
+        "-- query hash: abc123"
+    )
+
+
+def _run_probe_with_real_cursor(
+    database: Database,
+    adhoc_col: AdhocColumn,
+    mocker: MockerFixture,
+    *,
+    with_comment_safe_retry: bool,
+) -> _FakeClickHouseConnectCursor:
+    """
+    Exercise the real ``get_columns_description`` (not mocked out, unlike
+    ``_run_probe``) against a fake cursor that reproduces clickhouse-connect
+    0.14.1's comment-sensitive empty-result metadata fallback, with a mutator
+    that adds leading and trailing SQL comments like Preset's
+    SQL_QUERY_MUTATOR does.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a", type="INTEGER")],
+    )
+
+    real_description: list[tuple[object, ...]] = [
+        ("Duration", "Float64", None, None, None, None, None)
+    ]
+    cursor = _FakeClickHouseConnectCursor(real_description)
+
+    @contextmanager
+    def mock_get_raw_connection(catalog=None, schema=None, **kwargs):
+        connection = MagicMock()
+        connection.cursor.return_value = cursor
+        yield connection
+
+    spec_cls = database.db_engine_spec
+    mocker.patch.object(database, "get_raw_connection", new=mock_get_raw_connection)
+    mocker.patch.object(
+        database,
+        "mutate_sql_based_on_config",
+        new=_mutate_with_attribution_comments,
+    )
+
+    patches: list[Any] = [
+        patch.object(spec_cls, "type_probe_needs_row", False),
+    ]
+    if with_comment_safe_retry:
+        patches.append(
+            patch.object(
+                spec_cls,
+                "get_column_description_retry_sql",
+                new=classmethod(
+                    lambda cls, sql: (
+                        ClickHouseConnectEngineSpec.get_column_description_retry_sql(
+                            sql
+                        )
+                    )
+                ),
+            )
+        )
+
+    with contextlib.ExitStack() as stack:
+        for p in patches:
+            stack.enter_context(p)
+        table.adhoc_column_to_sqla(adhoc_col)
+
+    return cursor
+
+
+@pytest.mark.parametrize(
+    "adhoc_col",
+    [
+        pytest.param(
+            {
+                "sqlExpression": "round(a / 50) * 50 / 1000",
+                "label": "Duration",
+                "columnType": "BASE_AXIS",
+                "timeGrain": "P1D",
+            },
+            id="simple_expression",
+        ),
+        pytest.param(
+            {
+                "sqlExpression": "arrayElement(splitByChar(',', 'a,b,c'), 1)",
+                "label": "Duration",
+                "columnType": "BASE_AXIS",
+                "timeGrain": "P1D",
+            },
+            id="array_syntax_expression",
+        ),
+    ],
+)
+def test_adhoc_column_type_probe_survives_query_mutator_comments_on_clickhouse(
+    database: Database,
+    mocker: MockerFixture,
+    adhoc_col: AdhocColumn,
+) -> None:
+    """
+    Regression test for SC-114843.
+
+    clickhouse-connect 0.14.1 only backfills ``cursor.description`` for a
+    zero-row result when the executed operation string starts with
+    SELECT/WITH after stripping whitespace. SQL_QUERY_MUTATOR prepends
+    query-attribution comments (query hash, workspace_slug) ahead of the
+    SELECT keyword and appends a trailing query-hash comment, which used to
+    make adhoc_column_to_sqla's WHERE FALSE type probe come back with an
+    empty cursor.description and raise ColumnNotFoundException at
+    superset/connectors/sqla/models.py:~1705 -- even though the underlying
+    expression is completely valid and zero rows are read.
+
+    The fix (ClickHouseConnectEngineSpec.get_column_description_retry_sql)
+    must resolve this WITHOUT falling back to a real-row probe, which would
+    reintroduce ClickHouse's max_rows_to_read failures on huge tables.
+    """
+    cursor = _run_probe_with_real_cursor(
+        database, adhoc_col, mocker, with_comment_safe_retry=True
+    )
+
+    # One or more comment-prefixed attempts (which the fake driver -- like
+    # the real one -- can't read metadata from), followed by the
+    # comment-safe wrapped retry as the last execution.
+    assert len(cursor.executed) >= 2
+    *earlier_attempts, retry = cursor.executed
+
+    for attempt in earlier_attempts:
+        assert "query hash" in attempt, "mutator comments must be applied"
+        assert not attempt.strip().upper().startswith(("SELECT", "WITH")), (
+            "prior attempts should still be comment-prefixed, reproducing the bug"
+        )
+
+    assert retry.strip().upper().startswith("SELECT"), (
+        "retry must start with a bare SELECT so clickhouse-connect's "
+        "empty-result fallback triggers"
+    )
+    assert "-- query hash: abc123" in retry, (
+        "retry must preserve the mutator's comments verbatim -- no security/"
+        "audit information should be dropped"
+    )
+    assert "-- workspace_slug: acme-corp" in retry
+    # apply_limit_to_sql reformats the query (via sqlglot), so WHERE and its
+    # condition can land on separate lines -- match loosely on whitespace.
+    always_false_pattern = re.compile(r"where\s+(false|0\s*=\s*1)", re.IGNORECASE)
+    assert always_false_pattern.search(retry), (
+        f"retry must still be a zero-row probe (WHERE false), got: {retry}"
+    )
+    assert retry.strip().lower().endswith("limit 0"), (
+        f"outer wrapper must also guarantee zero rows, got: {retry}"
+    )
+
+
+def test_adhoc_column_type_probe_raises_without_comment_safe_retry_hook(
+    database: Database,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Companion negative-control for SC-114843: confirms the failure mode this
+    fix addresses. Without an engine-spec hook to retry with a comment-safe
+    query, a comment-mutated zero-row probe against a clickhouse-connect-like
+    driver raises ColumnNotFoundException, exactly as it did before this fix.
+    """
+    from superset.exceptions import ColumnNotFoundException
+
+    adhoc_col: AdhocColumn = {
+        "sqlExpression": "round(a / 50) * 50 / 1000",
+        "label": "Duration",
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1D",
+    }
+
+    with pytest.raises(ColumnNotFoundException):
+        _run_probe_with_real_cursor(
+            database, adhoc_col, mocker, with_comment_safe_retry=False
+        )
+
+
 def _normalize_df_datasource(column: object) -> MagicMock:
     """Bind ``ExploreMixin.normalize_df`` to a minimal datasource exposing a
     single temporal ``column`` via ``get_column``."""
@@ -2727,7 +3185,12 @@ def _normalize_df_datasource(column: object) -> MagicMock:
     datasource.enforce_numerical_metrics = False
     datasource.columns = [column]
     datasource.get_column = lambda name: {"ts": column}.get(name)
-    for method in ("_python_date_format", "_collect_dttm_labels", "normalize_df"):
+    for method in (
+        "_python_date_format",
+        "_collect_dttm_labels",
+        "_offset_only_dttm_cols",
+        "normalize_df",
+    ):
         setattr(datasource, method, getattr(ExploreMixin, method).__get__(datasource))
     return datasource
 
@@ -2851,7 +3314,12 @@ def test_normalize_df_without_get_column_is_a_noop() -> None:
         columns: list[object] = []
 
     datasource = _NoGetColumnDatasource()
-    for method in ("_python_date_format", "_collect_dttm_labels", "normalize_df"):
+    for method in (
+        "_python_date_format",
+        "_collect_dttm_labels",
+        "_offset_only_dttm_cols",
+        "normalize_df",
+    ):
         setattr(datasource, method, getattr(ExploreMixin, method).__get__(datasource))
 
     df = pd.DataFrame({"ts": [1577836800, 1609459200]})
@@ -2948,6 +3416,149 @@ def test_normalize_df_normalizes_legacy_time_column() -> None:
 
     assert is_datetime64_any_dtype(result[DTTM_ALIAS])
     assert result[DTTM_ALIAS][0].strftime("%Y-%m-%d") == "2020-01-01"
+
+
+def test_normalize_df_applies_offset_to_all_temporal_columns() -> None:
+    """Regression test for issue #23167: the dataset HOURS OFFSET must be applied
+    to every temporal column a query returns, not only the selected time column.
+    Two native-datetime temporal columns (neither declaring a
+    ``python_date_format``) must both be shifted by the dataset offset."""
+    import pandas as pd
+
+    from superset.models.helpers import ExploreMixin
+
+    created = MagicMock(
+        column_name="created",
+        is_dttm=True,
+        python_date_format=None,
+        datetime_format=None,
+    )
+    expired = MagicMock(
+        column_name="expired",
+        is_dttm=True,
+        python_date_format=None,
+        datetime_format=None,
+    )
+    columns = {"created": created, "expired": expired}
+
+    datasource = MagicMock()
+    datasource.offset = 4
+    datasource.enforce_numerical_metrics = False
+    datasource.columns = list(columns.values())
+    datasource.get_column = lambda name: columns.get(name)
+    for method in (
+        "_python_date_format",
+        "_collect_dttm_labels",
+        "_offset_only_dttm_cols",
+        "normalize_df",
+    ):
+        setattr(datasource, method, getattr(ExploreMixin, method).__get__(datasource))
+
+    query_object = MagicMock()
+    query_object.columns = ["created", "expired"]
+    query_object.granularity = None
+    query_object.time_shift = None
+
+    df = pd.DataFrame(
+        {
+            "created": pd.to_datetime(["2020-01-01 00:00:00", "2020-01-02 00:00:00"]),
+            "expired": pd.to_datetime(["2020-06-01 12:00:00", "2020-06-02 12:00:00"]),
+        }
+    )
+
+    result = datasource.normalize_df(df, query_object)
+
+    assert (
+        result["created"].tolist()
+        == pd.to_datetime(["2020-01-01 04:00:00", "2020-01-02 04:00:00"]).tolist()
+    )
+    assert (
+        result["expired"].tolist()
+        == pd.to_datetime(["2020-06-01 16:00:00", "2020-06-02 16:00:00"]).tolist()
+    )
+
+
+def test_normalize_df_offset_skips_unconfigured_integer_temporal_columns() -> None:
+    """The offset extension for native-datetime temporal columns must not touch a
+    temporal column whose values arrive as plain integers with no declared
+    format: such a column cannot be safely interpreted as a datetime, so it is
+    left untouched rather than reinterpreted as nanoseconds (see issue #23167)."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    from superset.models.helpers import ExploreMixin
+
+    int_col = MagicMock(
+        column_name="ts",
+        is_dttm=True,
+        python_date_format=None,
+        datetime_format=None,
+    )
+    datasource = MagicMock()
+    datasource.offset = 4
+    datasource.enforce_numerical_metrics = False
+    datasource.columns = [int_col]
+    datasource.get_column = lambda name: {"ts": int_col}.get(name)
+    for method in (
+        "_python_date_format",
+        "_collect_dttm_labels",
+        "_offset_only_dttm_cols",
+        "normalize_df",
+    ):
+        setattr(datasource, method, getattr(ExploreMixin, method).__get__(datasource))
+
+    query_object = MagicMock()
+    query_object.columns = ["ts"]
+    query_object.granularity = None
+    query_object.time_shift = None
+
+    df = pd.DataFrame({"ts": [1577836800, 1609459200, 1640995200]})
+
+    result = datasource.normalize_df(df, query_object)
+
+    assert not is_datetime64_any_dtype(result["ts"])
+    assert result["ts"].tolist() == [1577836800, 1609459200, 1640995200]
+
+
+def test_normalize_df_offset_applied_once_for_already_collected_column() -> None:
+    """A column already handled by ``_collect_dttm_labels`` (here, the
+    granularity column, which also declares a ``python_date_format`` and
+    arrives as a native datetime in the dataframe) must not be re-added by
+    ``_offset_only_dttm_cols``: the dataset HOURS OFFSET must shift it by
+    exactly one offset, not two (see issue #23167)."""
+    import pandas as pd
+
+    ts_col = MagicMock(
+        column_name="ts",
+        is_dttm=True,
+        python_date_format="epoch_s",
+        datetime_format=None,
+    )
+    datasource = _normalize_df_datasource(ts_col)
+    datasource.offset = 4
+
+    query_object = MagicMock()
+    query_object.columns = []
+    query_object.granularity = "ts"
+    query_object.time_shift = None
+
+    df = pd.DataFrame(
+        {"ts": pd.to_datetime(["2020-01-01 00:00:00", "2020-01-02 00:00:00"])}
+    )
+
+    # The granularity column is already collected, so the raw/offset-only
+    # pass must be a no-op for it.
+    already_collected = {
+        label for label, _ in datasource._collect_dttm_labels(query_object)
+    }
+    assert datasource._offset_only_dttm_cols(df, query_object, already_collected) == []
+
+    result = datasource.normalize_df(df, query_object)
+
+    assert (
+        result["ts"].tolist()
+        == pd.to_datetime(["2020-01-01 04:00:00", "2020-01-02 04:00:00"]).tolist()
+    )
 
 
 def test_adhoc_column_to_sqla_returns_type_from_column_metadata(
@@ -3800,3 +4411,54 @@ def test_like_filter_on_string_column_does_not_cast(database: Database) -> None:
     assert not any(isinstance(node, Cast) for node in iterate(whereclause)), (
         f"Unexpected Cast node in the filter expression: {whereclause}"
     )
+
+
+def test_get_sqla_query_calculated_column_inlined_in_raw_records(
+    database: Database,
+) -> None:
+    """Regression test for #34784: a calculated column selected as an adhoc
+    column in a raw-records query (no groupby/metrics) must have its stored
+    SQL expression inlined, not emitted as a bare column reference."""
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.helpers import SqlaQuery
+
+    table: SqlaTable = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(column_name="b", type="TEXT"),
+            TableColumn(
+                column_name="name_test",
+                type="TEXT",
+                expression="CASE WHEN a > 0 THEN 'positive' ELSE 'non-positive' END",
+            ),
+        ],
+    )
+
+    # No metrics/groupby => the ``elif columns:`` branch runs.
+    adhoc_col: AdhocColumn = {
+        "sqlExpression": "name_test",
+        "label": "name_test",
+        "isColumnReference": True,
+    }
+    sqlaq: SqlaQuery = table.get_sqla_query(
+        columns=[adhoc_col],
+        is_timeseries=False,
+        row_limit=10,
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql: str = str(
+            sqlaq.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    # The stored expression must be inlined rather than emitted as a bare
+    # ``name_test`` reference.
+    assert "CASE WHEN a > 0" in sql
+    assert "'positive'" in sql
+    assert "'non-positive'" in sql

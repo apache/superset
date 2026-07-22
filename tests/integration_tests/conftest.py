@@ -289,15 +289,19 @@ def virtual_dataset():
         ),
         database=get_example_database(),
     )
-    TableColumn(column_name="col1", type="INTEGER", table=dataset)
-    TableColumn(column_name="col2", type="VARCHAR(255)", table=dataset)
-    TableColumn(column_name="col3", type="DECIMAL(4,2)", table=dataset)
-    TableColumn(column_name="col4", type="VARCHAR(255)", table=dataset)
-    # Different database dialect datetime type is not consistent, so temporarily use varchar  # noqa: E501
-    TableColumn(column_name="col5", type="VARCHAR(255)", table=dataset)
-    TableColumn(column_name="col6", type="INTEGER", table=dataset)
+    columns = [
+        TableColumn(column_name="col1", type="INTEGER", table=dataset),
+        TableColumn(column_name="col2", type="VARCHAR(255)", table=dataset),
+        TableColumn(column_name="col3", type="DECIMAL(4,2)", table=dataset),
+        TableColumn(column_name="col4", type="VARCHAR(255)", table=dataset),
+        # Different database dialect datetime type is not consistent, so temporarily use varchar  # noqa: E501
+        TableColumn(column_name="col5", type="VARCHAR(255)", table=dataset),
+        TableColumn(column_name="col6", type="INTEGER", table=dataset),
+    ]
 
-    SqlMetric(metric_name="count", expression="count(*)", table=dataset)
+    metric = SqlMetric(metric_name="count", expression="count(*)", table=dataset)
+    db.session.add(metric)
+    db.session.add_all(columns)
     db.session.add(dataset)
     db.session.commit()
 
@@ -329,16 +333,20 @@ def virtual_dataset_with_comments():
         ),
         database=get_example_database(),
     )
-    TableColumn(column_name="col1", type="INTEGER", table=dataset)
-    TableColumn(column_name="col2", type="VARCHAR(255)", table=dataset)
-    TableColumn(column_name="col3", type="DECIMAL(4,2)", table=dataset)
-    TableColumn(column_name="col4", type="VARCHAR(255)", table=dataset)
-    # Different database dialect datetime type is not consistent, so temporarily use varchar  # noqa: E501
-    TableColumn(column_name="col5", type="VARCHAR(255)", table=dataset)
-    TableColumn(column_name="col6", type="INTEGER", table=dataset)
+    columns = [
+        TableColumn(column_name="col1", type="INTEGER", table=dataset),
+        TableColumn(column_name="col2", type="VARCHAR(255)", table=dataset),
+        TableColumn(column_name="col3", type="DECIMAL(4,2)", table=dataset),
+        TableColumn(column_name="col4", type="VARCHAR(255)", table=dataset),
+        # Different database dialect datetime type is not consistent, so temporarily use varchar  # noqa: E501
+        TableColumn(column_name="col5", type="VARCHAR(255)", table=dataset),
+        TableColumn(column_name="col6", type="INTEGER", table=dataset),
+    ]
 
-    SqlMetric(metric_name="count", expression="count(*)", table=dataset)
+    metric = SqlMetric(metric_name="count", expression="count(*)", table=dataset)
+    db.session.add(metric)
     db.session.add(dataset)
+    db.session.add_all(columns)
     db.session.commit()
 
     yield dataset
@@ -391,20 +399,24 @@ def physical_dataset():
         table_name="physical_dataset",
         database=example_database,
     )
-    TableColumn(column_name="col1", type="INTEGER", table=dataset)
-    TableColumn(column_name="col2", type="VARCHAR(255)", table=dataset)
-    TableColumn(column_name="col3", type="DECIMAL(4,2)", table=dataset)
-    TableColumn(column_name="col4", type="VARCHAR(255)", table=dataset)
-    TableColumn(column_name="col5", type="TIMESTAMP", is_dttm=True, table=dataset)
-    TableColumn(column_name="col6", type="TIMESTAMP", is_dttm=True, table=dataset)
-    TableColumn(
-        column_name="time column with spaces",
-        type="TIMESTAMP",
-        is_dttm=True,
-        table=dataset,
-    )
-    SqlMetric(metric_name="count", expression="count(*)", table=dataset)
+    columns = [
+        TableColumn(column_name="col1", type="INTEGER", table=dataset),
+        TableColumn(column_name="col2", type="VARCHAR(255)", table=dataset),
+        TableColumn(column_name="col3", type="DECIMAL(4,2)", table=dataset),
+        TableColumn(column_name="col4", type="VARCHAR(255)", table=dataset),
+        TableColumn(column_name="col5", type="TIMESTAMP", is_dttm=True, table=dataset),
+        TableColumn(column_name="col6", type="TIMESTAMP", is_dttm=True, table=dataset),
+        TableColumn(
+            column_name="time column with spaces",
+            type="TIMESTAMP",
+            is_dttm=True,
+            table=dataset,
+        ),
+    ]
+    metric = SqlMetric(metric_name="count", expression="count(*)", table=dataset)
+    db.session.add(metric)
     db.session.add(dataset)
+    db.session.add_all(columns)
     db.session.commit()
 
     yield dataset
@@ -433,11 +445,15 @@ def virtual_dataset_comma_in_column_value():
         ),
         database=get_example_database(),
     )
-    TableColumn(column_name="col1", type="VARCHAR(255)", table=dataset)
-    TableColumn(column_name="col2", type="VARCHAR(255)", table=dataset)
+    columns = [
+        TableColumn(column_name="col1", type="VARCHAR(255)", table=dataset),
+        TableColumn(column_name="col2", type="VARCHAR(255)", table=dataset),
+    ]
 
-    SqlMetric(metric_name="count", expression="count(*)", table=dataset)
+    metric = SqlMetric(metric_name="count", expression="count(*)", table=dataset)
+    db.session.add(metric)
     db.session.add(dataset)
+    db.session.add_all(columns)
     db.session.commit()
 
     yield dataset
