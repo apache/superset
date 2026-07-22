@@ -1383,6 +1383,78 @@ test('should not apply axis bounds calculation when seriesType is not Bar for ho
   expect(xAxisRaw.max).toBeUndefined();
 });
 
+test('clamps series values to the yAxis max instead of dropping out-of-range points (#27449)', () => {
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData(
+        [
+          { 'Series A': 1 },
+          { 'Series A': 2 },
+          { 'Series A': 3 },
+          { 'Series A': 4 },
+          { 'Series A': 1000 },
+          { 'Series A': 4 },
+          { 'Series A': 2 },
+        ],
+        { intervalMs: 300000000 },
+      ),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...formData,
+      groupby: [],
+      seriesType: EchartsTimeseriesSeriesType.Line,
+      truncateYAxis: true,
+      yAxisBounds: [0, 10],
+    },
+    queriesData,
+  });
+
+  const transformedProps = transformProps(chartProps);
+  const series = transformedProps.echartOptions.series as SeriesOption[];
+  const seriesA = series.find(s => s.name === 'Series A');
+  expect(seriesA).toBeDefined();
+  const data = seriesA!.data as [number, number][];
+
+  // The point that was 1000 should be present (not dropped) and clamped to
+  // the configured yAxis max of 10, rather than disappearing entirely.
+  expect(data).toHaveLength(7);
+  expect(data[4][1]).toBe(10);
+});
+
+test('clamps series values to the yAxis min when a value falls below it', () => {
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData(
+        [{ 'Series A': -1000 }, { 'Series A': 2 }, { 'Series A': 3 }],
+        { intervalMs: 300000000 },
+      ),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...formData,
+      groupby: [],
+      seriesType: EchartsTimeseriesSeriesType.Line,
+      truncateYAxis: true,
+      yAxisBounds: [0, 10],
+    },
+    queriesData,
+  });
+
+  const transformedProps = transformProps(chartProps);
+  const series = transformedProps.echartOptions.series as SeriesOption[];
+  const seriesA = series.find(s => s.name === 'Series A');
+  expect(seriesA).toBeDefined();
+  const data = seriesA!.data as [number, number][];
+
+  expect(data).toHaveLength(3);
+  expect(data[0][1]).toBe(0);
+});
+
 test('legend is visible on tall charts when enabled by the user', () => {
   const chartProps = createTestChartProps({
     height: 400,
