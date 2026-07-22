@@ -32,9 +32,9 @@ jest.mock('src/utils/getBootstrapData', () => ({
   })),
 }));
 
-const mockMakeUrl = jest.fn((path: string) => path);
+const mockEnsureAppRoot = jest.fn((...args: string[]) => args[0]);
 jest.mock('src/utils/pathUtils', () => ({
-  makeUrl: (...args: string[]) => mockMakeUrl(...args),
+  ensureAppRoot: (...args: string[]) => mockEnsureAppRoot(...args),
 }));
 
 jest.mock('react-google-recaptcha', () => ({
@@ -42,7 +42,7 @@ jest.mock('react-google-recaptcha', () => ({
   default: () => <div data-test="captcha-input" />,
 }));
 
-const mockGetBootstrapData = jest.mocked(getBootstrapData);
+const mockGetBootstrapData = getBootstrapData as jest.Mock;
 
 beforeEach(() => {
   mockGetBootstrapData.mockReturnValue({
@@ -51,9 +51,9 @@ beforeEach(() => {
         RECAPTCHA_PUBLIC_KEY: '',
       },
     },
-  } as ReturnType<typeof getBootstrapData>);
-  mockMakeUrl.mockClear();
-  mockMakeUrl.mockImplementation((path: string) => path);
+  });
+  mockEnsureAppRoot.mockClear();
+  mockEnsureAppRoot.mockImplementation((path: string) => path);
 });
 
 const renderRegister = () =>
@@ -126,7 +126,7 @@ test('should render captcha when RECAPTCHA_PUBLIC_KEY is set', () => {
         RECAPTCHA_PUBLIC_KEY: 'test-key-123',
       },
     },
-  } as ReturnType<typeof getBootstrapData>);
+  });
   renderRegister();
   expect(screen.getByTestId('captcha-input')).toBeInTheDocument();
 });
@@ -150,15 +150,15 @@ test('should not render registration form on activation page', () => {
   expect(screen.queryByTestId('register-button')).not.toBeInTheDocument();
 });
 
-test('should call makeUrl for login link on activation page', () => {
+test('should call ensureAppRoot for login link on activation page', () => {
   renderActivated();
-  expect(mockMakeUrl).toHaveBeenCalledWith('/login/');
+  expect(mockEnsureAppRoot).toHaveBeenCalledWith('/login/');
 });
 
-// --- makeUrl / SUPERSET_APP_ROOT tests ---
+// --- ensureAppRoot / SUPERSET_APP_ROOT tests ---
 
 test('should prefix login link with application root on activation page', () => {
-  mockMakeUrl.mockImplementation(
+  mockEnsureAppRoot.mockImplementation(
     (path: string) => `/superset${path.startsWith('/') ? path : `/${path}`}`,
   );
   renderActivated();
@@ -169,7 +169,7 @@ test('should prefix login link with application root on activation page', () => 
 });
 
 test('should prefix login link with deep application root on activation page', () => {
-  mockMakeUrl.mockImplementation(
+  mockEnsureAppRoot.mockImplementation(
     (path: string) =>
       `/my-org/superset${path.startsWith('/') ? path : `/${path}`}`,
   );

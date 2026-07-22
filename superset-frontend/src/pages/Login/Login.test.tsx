@@ -36,7 +36,7 @@ jest.mock('src/utils/getBootstrapData', () => ({
   default: jest.fn(() => defaultBootstrapData),
 }));
 
-const mockEnsureAppRoot = jest.fn((path: string) => path);
+const mockEnsureAppRoot = jest.fn((...args: string[]) => args[0]);
 jest.mock('src/utils/pathUtils', () => ({
   ensureAppRoot: (...args: string[]) => mockEnsureAppRoot(...args),
 }));
