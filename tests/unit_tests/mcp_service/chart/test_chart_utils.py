@@ -1594,7 +1594,7 @@ class TestIsColumnTrulyTemporal:
             is_dttm=True,
             python_date_format="%Y-%m-%d",
         )
-        mock_dao.find_by_id.return_value = mock_dataset
+        mock_dao.find_by_id_or_uuid.return_value = mock_dataset
 
         result = is_column_truly_temporal("ds", 123)
         assert result is True
@@ -1610,7 +1610,7 @@ class TestIsColumnTrulyTemporal:
         mock_dataset = self._create_mock_dataset(
             "ds", "VARCHAR", GenericDataType.STRING, is_dttm=True
         )
-        mock_dao.find_by_id.return_value = mock_dataset
+        mock_dao.find_by_id_or_uuid.return_value = mock_dataset
 
         result = is_column_truly_temporal("ds", 123)
         assert result is True
@@ -1621,7 +1621,7 @@ class TestIsColumnTrulyTemporal:
         mock_dataset = self._create_mock_dataset(
             "description", "VARCHAR", GenericDataType.STRING, is_dttm=False
         )
-        mock_dao.find_by_id.return_value = mock_dataset
+        mock_dao.find_by_id_or_uuid.return_value = mock_dataset
 
         result = is_column_truly_temporal("description", 123)
         assert result is False
@@ -1636,7 +1636,7 @@ class TestIsColumnTrulyTemporal:
         mock_dataset = self._create_mock_dataset(
             "year", "BIGINT", GenericDataType.NUMERIC, is_dttm=True
         )
-        mock_dao.find_by_id.return_value = mock_dataset
+        mock_dao.find_by_id_or_uuid.return_value = mock_dataset
 
         result = is_column_truly_temporal("year", 123)
         assert result is False
@@ -1654,7 +1654,7 @@ class TestIsColumnTrulyTemporal:
             is_dttm=True,
             python_date_format="epoch_s",
         )
-        mock_dao.find_by_id.return_value = mock_dataset
+        mock_dao.find_by_id_or_uuid.return_value = mock_dataset
 
         result = is_column_truly_temporal("created_epoch", 123)
         assert result is True
