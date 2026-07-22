@@ -46,35 +46,6 @@ import HoverMenu from '../../menu/HoverMenu';
 import DragHandle from '../../dnd/DragHandle';
 import DeleteComponentButton from '../../DeleteComponentButton';
 
-const isInteractiveElement = (element: HTMLElement | null): boolean => {
-  if (!element) return false;
-  const tagName = element.tagName.toUpperCase();
-  if (
-    tagName === 'INPUT' ||
-    tagName === 'TEXTAREA' ||
-    element.isContentEditable
-  ) {
-    return true;
-  }
-  return isInteractiveElement(element.parentElement);
-};
-
-PointerSensor.activators = [
-  {
-    eventName: 'onPointerDown' as const,
-    handler: ({ nativeEvent: event }, { onActivation }) => {
-      if (
-        event.button !== 0 ||
-        isInteractiveElement(event.target as HTMLElement)
-      ) {
-        return false;
-      }
-      onActivation?.({ event });
-      return true;
-    },
-  },
-];
-
 const StyledTabsContainer = styled.div<{ isDragging?: boolean }>`
   width: 100%;
   background-color: ${({ theme }) => theme.colorBgContainer};
@@ -101,10 +72,16 @@ const StyledTabsContainer = styled.div<{ isDragging?: boolean }>`
     }
   }
 
-  /* Hide ink-bar during drag */
   ${({ isDragging }) =>
     isDragging &&
     `
+    /* Show the drag indicator during drag, over the tab title textarea too */
+    &&,
+    && .editable-title * {
+      cursor: move;
+    }
+
+    /* Hide ink-bar during drag */
     .ant-tabs-card > .ant-tabs-nav .ant-tabs-ink-bar,
     .ant-tabs > .ant-tabs-nav .ant-tabs-ink-bar {
       display: none !important;
@@ -262,6 +239,7 @@ const TabsRenderer = memo<TabsRendererProps>(
           type={editMode ? 'editable-card' : 'card'}
           items={tabItems}
           tabBarStyle={{ paddingLeft: tabBarPaddingLeft }}
+          fullHeight
           {...(editMode && {
             renderTabBar: (tabBarProps, DefaultTabBar) => (
               <DndContext

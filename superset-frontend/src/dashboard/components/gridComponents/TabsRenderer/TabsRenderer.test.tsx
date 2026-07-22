@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { PointerEvent } from 'react';
+import { PointerSensor } from '@dnd-kit/core';
 import { fireEvent, render, screen } from 'spec/helpers/testing-library';
 import TabsRenderer, { TabItem, TabsRendererProps } from './TabsRenderer';
 
@@ -198,5 +200,25 @@ describe('TabsRenderer', () => {
 
     expect(screen.getByText('Tab 1 Content')).toBeInTheDocument();
     expect(screen.queryByText('Tab 2 Content')).not.toBeInTheDocument(); // Not active
+  });
+
+  test('activates dragging when the pointer starts on a tab title input', () => {
+    // Tab titles render a textarea that covers most of the tab in edit mode
+    const textarea = document.createElement('textarea');
+    document.body.appendChild(textarea);
+    const nativeEvent = new MouseEvent('pointerdown', { button: 0 });
+    Object.defineProperty(nativeEvent, 'isPrimary', { value: true });
+    textarea.dispatchEvent(nativeEvent);
+
+    const [activator] = PointerSensor.activators;
+    const onActivation = jest.fn();
+    const activated = activator.handler(
+      { nativeEvent } as unknown as PointerEvent<HTMLElement>,
+      { onActivation },
+    );
+
+    expect(nativeEvent.target).toBe(textarea);
+    expect(activated).toBe(true);
+    expect(onActivation).toHaveBeenCalled();
   });
 });
