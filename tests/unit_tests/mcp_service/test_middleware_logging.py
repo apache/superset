@@ -804,6 +804,41 @@ class TestOnCallToolStatsMetrics:
             "mcp.tool.list_datasets.success"
         )
 
+    @patch("superset.mcp_service.middleware.stats_logger_manager")
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_metrics_failure_does_not_mask_tool_result(
+        self, mock_get_user_id, mock_event_logger, mock_stats
+    ) -> None:
+        """A failing stats backend must not turn a successful tool call
+        into an error — metrics are a side effect only."""
+        mock_stats.instance.incr.side_effect = RuntimeError("metrics backend down")
+        middleware = LoggingMiddleware()
+        ctx = _make_context(name="list_charts")
+        call_next = AsyncMock(return_value="ok")
+
+        result = await middleware.on_call_tool(ctx, call_next)
+
+        assert result == "ok"
+
+    @patch("superset.mcp_service.middleware.stats_logger_manager")
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_metrics_failure_does_not_mask_tool_exception(
+        self, mock_get_user_id, mock_event_logger, mock_stats
+    ) -> None:
+        """A failing stats backend must not replace the tool's real
+        exception with its own error in the finally block."""
+        mock_stats.instance.incr.side_effect = RuntimeError("metrics backend down")
+        middleware = LoggingMiddleware()
+        ctx = _make_context(name="execute_sql")
+        call_next = AsyncMock(side_effect=ValueError("boom"))
+
+        with pytest.raises(ValueError, match="boom"):
+            await middleware.on_call_tool(ctx, call_next)
+
 
 class TestResolveMetricToolName:
     """Tests for the StatsD metric-key validation in

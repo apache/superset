@@ -506,14 +506,19 @@ class LoggingMiddleware(Middleware):
                 mcp_call_id,
                 extra,
             )
-            await self._emit_call_metrics(
-                context,
-                tool_name,
-                mcp_tool,
-                success=success,
-                raised_is_user_error=raised_is_user_error,
-                duration_ms=duration_ms,
-            )
+            try:
+                await self._emit_call_metrics(
+                    context,
+                    tool_name,
+                    mcp_tool,
+                    success=success,
+                    raised_is_user_error=raised_is_user_error,
+                    duration_ms=duration_ms,
+                )
+            except Exception as metrics_error:  # noqa: BLE001
+                # A failing stats backend must never mask the tool's real
+                # result or exception — metrics are a side effect only.
+                logger.warning("Failed to emit MCP tool metrics: %s", metrics_error)
 
     async def on_message(
         self,
