@@ -265,6 +265,24 @@ test('uses description from column even when verboseMap renames the column', () 
   expect(columnMeta!.description).toBe('Original column description');
 });
 
+test('does not crash when datasource omits metrics/columns (drill-to-detail datasource)', () => {
+  const props = createMockChartProps({
+    queriesData: [
+      {
+        data: [{ col_x: 10 }],
+        colnames: ['col_x'],
+        coltypes: [GenericDataType.Numeric],
+        rowcount: 1,
+        applied_filters: [],
+        rejected_filters: [],
+      },
+    ] as unknown as TableChartProps['queriesData'],
+    datasource: {} as unknown as TableChartProps['datasource'],
+  });
+
+  expect(() => transformProps(props)).not.toThrow();
+});
+
 test('does not mistake the all_records percent-metric query for the totals query', () => {
   // buildQuery.ts appends both an "all records" percent-metric denominator
   // query and a totals query as independent extraQueries when percent

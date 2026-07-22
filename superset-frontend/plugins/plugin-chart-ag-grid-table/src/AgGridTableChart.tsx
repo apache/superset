@@ -365,7 +365,17 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const handleSelectionChanged = useCallback(
     (event: SelectionChangedEvent) => {
-      if (!emitCrossFilters || !activeColumnRef.current) return;
+      // Selection changes triggered by the highlight-sync effect (source
+      // 'api') reflect a filter that was already applied elsewhere (context
+      // menu, dashboard filter, etc.), so re-deriving and re-dispatching a
+      // mask from them here would use a stale activeColumnRef and could
+      // clobber that filter with the wrong column.
+      if (
+        !emitCrossFilters ||
+        !activeColumnRef.current ||
+        event.source === 'api'
+      )
+        return;
 
       const key = activeColumnRef.current;
       const selectedRows = event.api.getSelectedRows();
@@ -638,6 +648,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         handleCellContextMenu={handleContextMenu}
         handleSelectionChanged={handleSelectionChanged}
         filters={filters}
+        isActiveFilterValue={isActiveFilterValue}
         percentMetrics={percentMetrics}
         serverPageLength={serverPageLength}
         hasServerPageLengthChanged={hasServerPageLengthChanged}

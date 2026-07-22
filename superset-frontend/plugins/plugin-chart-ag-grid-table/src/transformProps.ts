@@ -836,12 +836,12 @@ const transformProps = (
 
   // Map saved metric/calculated column labels to their SQL expressions for filter resolution
   const metricSqlExpressions: Record<string, string> = {};
-  chartProps.datasource.metrics.forEach(metric => {
+  (chartProps.datasource?.metrics ?? []).forEach(metric => {
     if (metric.metric_name && metric.expression) {
       metricSqlExpressions[metric.metric_name] = metric.expression;
     }
   });
-  chartProps.datasource.columns.forEach(col => {
+  (chartProps.datasource?.columns ?? []).forEach(col => {
     if (col.column_name && col.expression) {
       metricSqlExpressions[col.column_name] = col.expression;
       if (col.verbose_name && col.verbose_name !== col.column_name) {
@@ -854,7 +854,7 @@ const transformProps = (
   // backed by a dataset (physical or calculated) column can be summed
   // server-side; free-form SQL expression columns are excluded.
   const datasetColumnNames = new Set(
-    chartProps.datasource.columns
+    (chartProps.datasource?.columns ?? [])
       .map(col => col.column_name)
       .filter((name): name is string => Boolean(name)),
   );

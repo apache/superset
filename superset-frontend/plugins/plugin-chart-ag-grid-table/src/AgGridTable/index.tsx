@@ -104,6 +104,7 @@ export interface AgGridTableProps {
   handleCellContextMenu?: (event: CellContextMenuEvent) => void;
   handleSelectionChanged: (event: SelectionChangedEvent) => void;
   filters?: Record<string, DataRecordValue[]> | null;
+  isActiveFilterValue?: (key: string, val: DataRecordValue) => boolean;
   renderTimeComparisonDropdown: () => JSX.Element | null;
   cleanedTotals: DataRecord;
   showTotals: boolean;
@@ -145,6 +146,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     handleCellContextMenu,
     handleSelectionChanged,
     filters,
+    isActiveFilterValue,
     renderTimeComparisonDropdown,
     cleanedTotals,
     showTotals,
@@ -552,14 +554,32 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       }
     }, [width]);
 
+    // Row highlighting must reflect the active cross filter regardless of how
+    // it was applied (cell click, context menu, or an external dashboard
+    // filter), so it survives re-renders and server-side re-queries rather
+    // than only reflecting whichever handler last called setSelected.
     useEffect(() => {
-      if (
-        (!filters || Object.keys(filters).length === 0) &&
-        gridRef.current?.api?.getSelectedRows().length
-      ) {
-        gridRef.current.api.deselectAll();
+      const api = gridRef.current?.api;
+      if (!api) return;
+
+      if (!filters || Object.keys(filters).length === 0) {
+        if (api.getSelectedRows().length) {
+          api.deselectAll();
+        }
+        return;
       }
-    }, [filters]);
+
+      if (!isActiveFilterValue) return;
+
+      api.forEachNode(node => {
+        const matches = Object.keys(filters).some(key =>
+          isActiveFilterValue(key, node.data?.[key] as DataRecordValue),
+        );
+        if (node.isSelected() !== matches) {
+          node.setSelected(matches, false, 'api');
+        }
+      });
+    }, [filters, isActiveFilterValue, rowData]);
 
     const onGridReady = (params: GridReadyEvent) => {
       // This will make columns fill the grid width
