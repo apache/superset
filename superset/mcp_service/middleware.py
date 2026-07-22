@@ -1382,7 +1382,14 @@ class ResponseSizeGuardMiddleware(Middleware):
                 size_fn=size_fn,
             )
         except Exception as trunc_error:  # noqa: BLE001
-            logger.warning(
+            # Deliberately broad: any failure here must fail safe into the
+            # hard size-limit error below rather than ship a broken
+            # truncation, so this stays a catch-all rather than narrowing to
+            # specific exception types. Logged with a full traceback (unlike
+            # the plain warning above) so a genuine bug (e.g. a KeyError from
+            # an unexpected response shape) is still visible instead of
+            # looking like routine size-limit enforcement.
+            logger.exception(
                 "Query result truncation failed for %s due to %s: %s",
                 tool_name,
                 type(trunc_error).__name__,

@@ -698,8 +698,9 @@ def truncate_oversized_response(
     return data, was_truncated, notes
 
 
-def _linked_statement_row_lists(data: Dict[str, Any]) -> list[list[Any]]:
-    """Find per-statement row lists duplicated from an ``execute_sql`` response.
+def _linked_statement_entries(data: Dict[str, Any]) -> list[Dict[str, Any]]:
+    """Find per-statement dicts with row data duplicated from an
+    ``execute_sql`` response's top-level ``rows`` field.
 
     ``ExecuteSqlResponse.rows`` is a copy of the last data-bearing
     statement's ``data.rows`` (see ``_convert_to_response`` in
@@ -707,8 +708,11 @@ def _linked_statement_row_lists(data: Dict[str, Any]) -> list[list[Any]]:
     rows are additionally serialised under ``statements[*].data.rows``. If
     only the top-level ``rows`` field is bisected, these nested copies keep
     the full untruncated payload, which can leave the response oversized
-    even after "truncation". Returns the mutable row lists (if any) so the
-    caller can shrink them in lockstep with the top-level field.
+    even after "truncation". Returns the statement dicts themselves (not
+    just their row lists) so the caller can shrink ``data.rows`` in
+    lockstep with the top-level field *and* keep each statement's
+    ``row_count`` in sync, rather than leaving it pointing at the
+    pre-truncation count.
     """
     statements = data.get("statements")
     if not isinstance(statements, list):
@@ -722,7 +726,7 @@ def _linked_statement_row_lists(data: Dict[str, Any]) -> list[list[Any]]:
         if isinstance(statement_data, dict) and isinstance(
             statement_data.get("rows"), list
         ):
-            linked.append(statement_data["rows"])
+            linked.append(statement)
     return linked
 
 
@@ -741,23 +745,27 @@ def _bisect_row_limit(
 
     When ``data`` is an ``execute_sql`` response, per-statement row lists
     under ``statements[*].data.rows`` duplicate ``data[row_field]`` (see
-    ``_linked_statement_row_lists``) and are shrunk to the same length at
-    each step, so the size measured during the search — and the response
-    ultimately returned — reflects the truncated nested data too, not just
-    the top-level field.
+    ``_linked_statement_entries``) and are shrunk to the same length at
+    each step — along with each statement's ``row_count``, so it doesn't
+    keep reporting the pre-truncation count — so the size measured during
+    the search, and the response ultimately returned, reflects the
+    truncated nested data too, not just the top-level field.
 
     ``size_fn`` measures each candidate; pass a function that re-wraps the
     payload (e.g. back into a ToolResult) before measuring so the search
     converges on a prefix that still fits the limit after re-wrapping.
     """
-    linked_rows = [list(rows) for rows in _linked_statement_row_lists(data)]
+    linked_statements = _linked_statement_entries(data)
+    linked_rows = [list(stmt["data"]["rows"]) for stmt in linked_statements]
 
     def _apply(count: int) -> None:
         data[row_field] = original_rows[:count]
-        for original_linked, mutable_linked in zip(
-            linked_rows, _linked_statement_row_lists(data), strict=False
+        for original_linked, statement in zip(
+            linked_rows, linked_statements, strict=False
         ):
-            mutable_linked[:] = original_linked[: min(count, len(original_linked))]
+            kept_linked = original_linked[: min(count, len(original_linked))]
+            statement["data"]["rows"] = kept_linked
+            statement["row_count"] = len(kept_linked)
 
     lo, hi = 0, len(original_rows)
     while lo < hi:
@@ -973,9 +981,10 @@ def truncate_query_result(
     rely on ``_truncation_notes`` and the true ``total_rows`` to catch this.
 
     For ``execute_sql``, per-statement row lists under
-    ``statements[*].data.rows`` are shrunk alongside the top-level field
-    (see ``_linked_statement_row_lists``) so a duplicate, untruncated copy
-    of the same rows can't leave the response oversized after "truncation".
+    ``statements[*].data.rows`` (and their ``row_count``) are shrunk
+    alongside the top-level field (see ``_linked_statement_entries``) so a
+    duplicate, untruncated copy of the same rows can't leave the response
+    oversized, or its metadata inconsistent, after "truncation".
 
     Args:
         response: The tool response containing tabular row data.

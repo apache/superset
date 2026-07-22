@@ -934,6 +934,65 @@ class TestTruncateQueryResult:
         assert len(result["statements"][0]["data"]["rows"]) == len(result["rows"])
         assert notes
 
+    def test_execute_sql_statements_row_count_stays_in_sync(self) -> None:
+        """Each statement's ``row_count`` must track its trimmed ``data.rows``.
+
+        Regression test: bisection already shrinks the nested
+        ``statements[*].data.rows`` list in lockstep with the top-level
+        field (see the sibling ``..._rows_truncated_alongside_top_level``
+        test), but the per-statement ``row_count`` field is a separate
+        value copied at response-build time and must be updated too, or a
+        client would see a statement whose declared row count doesn't match
+        the row list actually returned.
+        """
+        row = {f"col_{i}": f"value_{i}" for i in range(10)}
+        rows = [row] * 200
+        response: dict[str, Any] = {
+            "success": True,
+            "rows": rows,
+            "row_count": 200,
+            "statements": [
+                {
+                    "original_sql": "SELECT * FROM t",
+                    "executed_sql": "SELECT * FROM t",
+                    "row_count": 200,
+                    "data": {
+                        "rows": rows,
+                        "columns": [
+                            {"name": f"col_{i}", "type": "TEXT"} for i in range(10)
+                        ],
+                    },
+                }
+            ],
+        }
+        result, was_truncated, _ = truncate_query_result(
+            response, 500, tool_name="execute_sql"
+        )
+        assert was_truncated is True
+        statement = result["statements"][0]
+        assert statement["row_count"] == len(statement["data"]["rows"])
+        assert statement["row_count"] < 200
+
+    def test_falls_back_to_generic_truncation_when_no_row_field(self) -> None:
+        """Responses without a recognised row/data field truncate generically.
+
+        A DML-final ``execute_sql`` response (or any data-query response
+        with no ``rows``/``data`` list) has no row field to bisect on, so
+        ``truncate_query_result`` delegates to the generic
+        ``truncate_oversized_response`` field-truncation phases instead of
+        raising or returning the payload untouched.
+        """
+        response: dict[str, Any] = {
+            "success": True,
+            "affected_rows": 5,
+            "multi_statement_warning": "x" * 5000,
+        }
+        result, was_truncated, notes = truncate_query_result(response, 200)
+        assert was_truncated is True
+        assert notes
+        assert len(result["multi_statement_warning"]) < 5000
+        assert result["affected_rows"] == 5
+
     def test_execute_sql_multiple_statements_each_capped(self) -> None:
         """Every statement's rows are capped, not just the last (top-level) one."""
         row = {f"col_{i}": f"value_{i}" for i in range(10)}

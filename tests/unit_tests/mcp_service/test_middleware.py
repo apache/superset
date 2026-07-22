@@ -583,6 +583,78 @@ class TestResponseSizeGuardMiddleware:
         assert len(result["csv_data"]) < len(large_response["csv_data"])
 
     @pytest.mark.asyncio
+    async def test_data_query_truncation_preserves_total_rows(self) -> None:
+        """``total_rows`` (the true pre-truncation count) must survive.
+
+        ``row_count`` is overwritten to reflect the truncated row list, but
+        ``total_rows`` is the signal callers rely on to detect that a
+        response is partial — it must keep describing the original,
+        untruncated dataset.
+        """
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "query_dataset"
+        context.message.params = {}
+
+        row = {f"col_{i}": f"value_{i}" for i in range(10)}
+        large_response = {
+            "dataset_id": 1,
+            "dataset_name": "test",
+            "data": [row] * 200,
+            "row_count": 200,
+            "total_rows": 5000,
+            "summary": "",
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert result["_response_truncated"] is True
+        assert result["row_count"] == len(result["data"])
+        assert result["row_count"] < 200
+        assert result["total_rows"] == 5000
+
+    @pytest.mark.asyncio
+    async def test_get_chart_data_excel_export_raises_tool_error(self) -> None:
+        """Oversized excel exports must hard-fail, not ship a corrupt file.
+
+        ``excel_data`` is base64-encoded binary and is deliberately left
+        untouched by truncation (cutting it would produce an unreadable
+        file), and there are no other truncatable fields (``data=[]``), so
+        ``truncate_query_result`` reports ``was_truncated=False`` and the
+        response must fall through to the hard size-limit error.
+        """
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "get_chart_data"
+        context.message.params = {}
+
+        large_response: dict[str, Any] = {
+            "chart_id": 1,
+            "chart_name": "test chart",
+            "chart_type": "table",
+            "data": [],
+            "row_count": 200,
+            "summary": "",
+            "excel_data": "QUJDREVGRw==" * 5000,
+            "format": "excel",
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            pytest.raises(ToolError),
+        ):
+            await middleware.on_call_tool(context, call_next)
+
+    @pytest.mark.asyncio
     async def test_data_query_blocks_when_single_row_still_exceeds_limit(self) -> None:
         """Should raise ToolError, not ship an over-budget response.
 
