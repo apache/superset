@@ -1514,10 +1514,6 @@ export function persistEditorHeight(
   };
 }
 
-function handlePopError(dispatch: AppDispatch, errorMessage: string) {
-  dispatch(addDangerToast(errorMessage));
-}
-
 export function popPermalink(key: string): SqlLabThunkAction<Promise<unknown>> {
   return function (dispatch: AppDispatch) {
     return SupersetClient.get({ endpoint: `/api/v1/sqllab/permalink/${key}` })
@@ -1534,7 +1530,7 @@ export function popPermalink(key: string): SqlLabThunkAction<Promise<unknown>> {
           }),
         ),
       )
-      .catch(() => handlePopError(dispatch, ERR_MSG_CANT_LOAD_QUERY));
+      .catch(() => dispatch(addDangerToast(ERR_MSG_CANT_LOAD_QUERY)));
   };
 }
 
@@ -1558,7 +1554,7 @@ export function popStoredQuery(
           }),
         ),
       )
-      .catch(() => handlePopError(dispatch, ERR_MSG_CANT_LOAD_QUERY));
+      .catch(() => dispatch(addDangerToast(ERR_MSG_CANT_LOAD_QUERY)));
   };
 }
 export function popSavedQuery(
@@ -1586,7 +1582,7 @@ export function popSavedQuery(
         };
         return dispatch(addQueryEditor(tmpAdaptedProps));
       })
-      .catch(() => handlePopError(dispatch, ERR_MSG_CANT_LOAD_QUERY));
+      .catch(() => dispatch(addDangerToast(ERR_MSG_CANT_LOAD_QUERY)));
   };
 }
 export function popQuery(queryId: string): SqlLabThunkAction<Promise<unknown>> {
@@ -1606,7 +1602,7 @@ export function popQuery(queryId: string): SqlLabThunkAction<Promise<unknown>> {
         };
         return dispatch(addQueryEditor(queryEditorProps));
       })
-      .catch(() => handlePopError(dispatch, ERR_MSG_CANT_LOAD_QUERY));
+      .catch(() => dispatch(addDangerToast(ERR_MSG_CANT_LOAD_QUERY)));
   };
 }
 export function popDatasourceQuery(
@@ -1637,7 +1633,7 @@ export function popDatasourceQuery(
         ),
       )
       .catch(() =>
-        handlePopError(dispatch, t("The datasource couldn't be loaded")),
+        dispatch(addDangerToast(t("The datasource couldn't be loaded"))),
       );
   };
 }
