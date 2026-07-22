@@ -176,6 +176,22 @@ test('getTemporalXAxisDrillByFilter falls back to exact match without a grain', 
   });
 });
 
+test('getTemporalXAxisDrillByFilter preserves sub-second precision in the exact-match fallback', () => {
+  expect(
+    getTemporalXAxisDrillByFilter(
+      'ds',
+      new Date('2021-01-01T12:34:56.123Z').getTime(),
+      undefined,
+      '2021-01-01 12:34:56.123',
+    ),
+  ).toEqual({
+    col: 'ds',
+    op: '==',
+    val: '2021-01-01T12:34:56.123',
+    formattedVal: '2021-01-01 12:34:56.123',
+  });
+});
+
 test('getTemporalXAxisDrillByFilter falls back to exact match for unknown grains', () => {
   expect(
     getTemporalXAxisDrillByFilter(
