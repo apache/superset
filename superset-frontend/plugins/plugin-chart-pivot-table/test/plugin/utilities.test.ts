@@ -449,3 +449,18 @@ test('splitGroupingSetsResult splits by markers and strips them', () => {
     ),
   );
 });
+
+test('splitGroupingSetsResult attributes marker-less rows to the leaf level', () => {
+  const rows = [
+    { region: 'US', topic: 'a', v: 10 },
+    { region: 'US', topic: 'b', v: 20 },
+  ];
+  const [leaf, sub, grand] = splitGroupingSetsResult(
+    rows,
+    [['region', 'topic'], ['region'], []],
+    ['region', 'topic'],
+  );
+  expect(leaf).toEqual(rows);
+  expect(sub).toEqual([]);
+  expect(grand).toEqual([]);
+});
