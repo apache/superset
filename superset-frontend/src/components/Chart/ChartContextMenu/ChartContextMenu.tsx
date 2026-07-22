@@ -55,6 +55,7 @@ import { getMenuAdjustedY } from '../utils';
 import { DrillBySubmenu } from '../DrillBy/DrillBySubmenu';
 import DrillDetailModal from '../DrillDetail/DrillDetailModal';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
+import { Dataset } from '../types';
 
 export enum ContextMenuItem {
   CrossFilter,
@@ -155,6 +156,10 @@ const ChartContextMenu = (
 
   const [drillModalIsOpen, setDrillModalIsOpen] = useState(false);
   const [drillByColumn, setDrillByColumn] = useState<Column>();
+  // Drill by config as selected in the submenu (e.g. with the chosen
+  // x-axis/series filter scope applied), used over the raw context filters
+  const [selectedDrillByConfig, setSelectedDrillByConfig] =
+    useState<ContextMenuFilters['drillBy']>();
   const [showDrillByModal, setShowDrillByModal] = useState(false);
 
   const closeContextMenu = useCallback(() => {
@@ -162,10 +167,18 @@ const ChartContextMenu = (
     onClose();
   }, [onClose]);
 
-  const handleDrillBy = useCallback((column: Column) => {
-    setDrillByColumn(column);
-    setShowDrillByModal(true);
-  }, []);
+  const handleDrillBy = useCallback(
+    (
+      column: Column,
+      dataset: Dataset,
+      drillByConfig?: ContextMenuFilters['drillBy'],
+    ) => {
+      setDrillByColumn(column);
+      setSelectedDrillByConfig(drillByConfig);
+      setShowDrillByModal(true);
+    },
+    [],
+  );
 
   const loadDrillByOptionsExtension = getExtensionsRegistry().get(
     'load.drillby.options',
@@ -174,6 +187,8 @@ const ChartContextMenu = (
   const handleCloseDrillByModal = useCallback(() => {
     setShowDrillByModal(false);
   }, []);
+
+  const drillByModalConfig = selectedDrillByConfig ?? enhancedFilters?.drillBy;
 
   const menuItems: MenuItem[] = [];
 
@@ -459,10 +474,10 @@ const ChartContextMenu = (
       {showDrillByModal &&
         drillByColumn &&
         filteredDataset &&
-        enhancedFilters?.drillBy && (
+        drillByModalConfig && (
           <DrillByModal
             column={drillByColumn}
-            drillByConfig={enhancedFilters?.drillBy}
+            drillByConfig={drillByModalConfig}
             formData={formData}
             onHideModal={handleCloseDrillByModal}
             dataset={filteredDataset}

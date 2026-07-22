@@ -28,6 +28,7 @@ import {
   ensureIsArray,
 } from '@superset-ui/core';
 import { useTheme } from '@apache-superset/core/theme';
+import { GenericDataType } from '@apache-superset/core/common';
 import type {
   ECElementEvent,
   ViewRootGroup,
@@ -43,6 +44,7 @@ import {
 } from './percentChange';
 import { OrientationType, TimeseriesChartTransformedProps } from './types';
 import { formatSeriesName } from '../utils/series';
+import { getTemporalXAxisDrillByFilter } from '../utils/xAxisDrillByFilter';
 import { ExtraControls } from '../components/ExtraControls';
 
 const TIMER_DURATION = 300;
@@ -507,6 +509,55 @@ export default function EchartsTimeseries({
           });
         });
 
+        // Filters for the clicked x-axis value, so Drill By can subset the
+        // drilled data to the clicked bar/point rather than only the series
+        const xAxisFilters: BinaryQueryObjectFilterClause[] = [];
+        const xAxisCol =
+          // if the xAxis is '__timestamp', granularity_sqla will be the column of filter
+          xAxis.label === DTTM_ALIAS ? formData.granularitySqla : xAxis.label;
+        if (data && xAxis.type === AxisType.Time && xAxisCol) {
+          // For horizontal orientation the [x, value] pair is swapped
+          const xValue = Array.isArray(data)
+            ? data[categoryAxisValueIndex]
+            : data;
+          const xAxisFilter = getTemporalXAxisDrillByFilter(
+            xAxisCol,
+            xValue,
+            formData.timeGrainSqla,
+            String(xValueFormatter(xValue as number)),
+          );
+          if (xAxisFilter) {
+            xAxisFilters.push(xAxisFilter);
+          }
+        } else if (xAxis.type === AxisType.Category && xAxisCol) {
+          const categoryAxisValue = getCategoryAxisValue(
+            data,
+            eventParams.name,
+          );
+          if (categoryAxisValue !== undefined) {
+            // A category axis can still sit on a temporal column when the
+            // axis is forced categorical; filter by time bucket in that case
+            const xAxisFilter =
+              coltypeMapping?.[getColumnLabel(xAxis.label)] ===
+              GenericDataType.Temporal
+                ? getTemporalXAxisDrillByFilter(
+                    xAxisCol,
+                    categoryAxisValue,
+                    formData.timeGrainSqla,
+                    String(eventParams.name ?? categoryAxisValue),
+                  )
+                : {
+                    col: xAxisCol,
+                    op: '==' as const,
+                    val: categoryAxisValue,
+                    formattedVal: String(categoryAxisValue),
+                  };
+            if (xAxisFilter) {
+              xAxisFilters.push(xAxisFilter);
+            }
+          }
+        }
+
         // Provide cross-filter for dimensions OR categorical X-axis (issue #25334)
         let crossFilter;
         if (hasDimensions) {
@@ -526,7 +577,11 @@ export default function EchartsTimeseries({
 
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
           drillToDetail: drillToDetailFilters,
-          drillBy: { filters: drillByFilters, groupbyFieldName: 'groupby' },
+          drillBy: {
+            filters: drillByFilters,
+            groupbyFieldName: 'groupby',
+            ...(xAxisFilters.length > 0 && { xAxisFilters }),
+          },
           crossFilter,
         });
       }
