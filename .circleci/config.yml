@@ -1,0 +1,244 @@
+# CircleCI for the HiMamaInc/superset fork.
+#
+# release   — build the Lillio Superset image from `lillio-master`,
+#             publish it to ECR, deploy it to ECS, and verify production.
+#             Triggered by vX.Y.Z-N (for example v6.0.1-1), where X.Y.Z records
+#             the Superset base and N is the independent Lillio release revision.
+#
+# lillio-ci — on every branch push except the upstream `master` mirror, run the
+#             focused downstream regression tests and build the production image
+#             without pushing it.
+
+version: 2.1
+
+orbs:
+  aws-cli: circleci/aws-cli@5.2.0
+  hivemama: himama/hivemama@0.0.9
+
+executors:
+  arm-machine:
+    machine:
+      image: ubuntu-2404:current
+    resource_class: arm.medium
+
+commands:
+  assume-lillio-role:
+    description: Assume hm-infrastructure-cicd-role in the Lillio application account
+    steps:
+      - run:
+          name: Assume role (default profile)
+          command: |
+            ASSUME_ROLE_ARN=arn:aws:iam::${LILLIO_APPLICATION_ACCOUNT_ID}:role/hm-infrastructure-cicd-role
+            CREDENTIALS="$(AWS_ACCESS_KEY_ID=$ASSUME_ROLE_AWS_ACCESS_KEY_ID \
+              AWS_SECRET_ACCESS_KEY=$ASSUME_ROLE_AWS_SECRET_ACCESS_KEY \
+              aws sts assume-role \
+                --role-arn "$ASSUME_ROLE_ARN" \
+                --role-session-name build-$CIRCLE_PROJECT_REPONAME-$CIRCLE_BUILD_NUM \
+              | jq '.Credentials')"
+            aws configure set aws_access_key_id "$(echo "$CREDENTIALS" | jq -r .AccessKeyId)" --profile default
+            aws configure set aws_secret_access_key "$(echo "$CREDENTIALS" | jq -r .SecretAccessKey)" --profile default
+            aws configure set aws_session_token "$(echo "$CREDENTIALS" | jq -r .SessionToken)" --profile default
+
+jobs:
+  build-and-publish:
+    executor: arm-machine
+    environment:
+      AWS_REGION: us-east-1
+      ECR_REPO: lillio-production-superset
+      ECS_CLUSTER: lillio-production-superset-ecs-cluster
+      ECS_SERVICE: lillio-production-superset-ecs-service
+      SUPERSET_HEALTH_URL: https://bitool.lillio.com/health
+      DOCKER_BUILDKIT: "1"
+    steps:
+      - checkout
+      - run:
+          name: Verify release tag belongs to lillio-master
+          command: |
+            git fetch origin lillio-master
+            git merge-base --is-ancestor "$CIRCLE_SHA1" origin/lillio-master
+      - hivemama/notify:
+          when: "always"
+          event: "production-deploy-started"
+          endpoint: "production-deploy"
+      - aws-cli/install
+      - assume-lillio-role
+      - run:
+          name: Log in to ECR
+          command: |
+            export AWS_PROFILE=default
+            REGISTRY="${LILLIO_APPLICATION_ACCOUNT_ID}.dkr.ecr.$AWS_REGION.amazonaws.com"
+            aws ecr get-login-password --region "$AWS_REGION" \
+              | docker login --username AWS --password-stdin "$REGISTRY"
+      - run:
+          name: Build Lillio Superset image (arm64)
+          no_output_timeout: 60m
+          command: |
+            IMG_TAG="$CIRCLE_TAG"
+            LATEST_TAG="latest"
+            SOURCE_CACHE_TAG="source-cache"
+            REPO_URI="${LILLIO_APPLICATION_ACCOUNT_ID}.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO"
+            echo "export IMG_TAG=$IMG_TAG LATEST_TAG=$LATEST_TAG SOURCE_CACHE_TAG=$SOURCE_CACHE_TAG REPO_URI=$REPO_URI" >> "$BASH_ENV"
+
+            docker pull "$REPO_URI:$SOURCE_CACHE_TAG" \
+              || echo "No source cache found; building it from scratch"
+            docker pull "$REPO_URI:$LATEST_TAG" \
+              || echo "No previous release image found; building it from scratch"
+
+            docker build \
+              --cache-from "$REPO_URI:$SOURCE_CACHE_TAG" \
+              --build-arg BUILDKIT_INLINE_CACHE=1 \
+              --build-arg INCLUDE_CHROMIUM=true \
+              --target lean \
+              -t superset-src:"$IMG_TAG" \
+              .
+            docker tag superset-src:"$IMG_TAG" "$REPO_URI:$SOURCE_CACHE_TAG"
+
+            docker build \
+              --cache-from "$REPO_URI:$LATEST_TAG" \
+              --build-arg BUILDKIT_INLINE_CACHE=1 \
+              --build-arg BASE_IMAGE=superset-src:"$IMG_TAG" \
+              -f docker/lillio/Dockerfile \
+              -t "$REPO_URI:$IMG_TAG" \
+              docker/lillio
+            docker tag "$REPO_URI:$IMG_TAG" "$REPO_URI:$LATEST_TAG"
+      - run:
+          name: Push image (immutable revision + moving latest)
+          command: |
+            export AWS_PROFILE=default
+            docker push "$REPO_URI:$SOURCE_CACHE_TAG"
+            docker push "$REPO_URI:$IMG_TAG"
+            docker push "$REPO_URI:$LATEST_TAG"
+            echo "Published $REPO_URI:$IMG_TAG, $REPO_URI:$LATEST_TAG, and build cache"
+      - run:
+          name: Deploy to ECS and verify production
+          no_output_timeout: 20m
+          command: |
+            export AWS_PROFILE=default
+
+            IMMUTABLE_DIGEST="$(aws ecr describe-images \
+              --region "$AWS_REGION" \
+              --repository-name "$ECR_REPO" \
+              --image-ids imageTag="$IMG_TAG" \
+              --query 'imageDetails[0].imageDigest' \
+              --output text)"
+            LATEST_DIGEST="$(aws ecr describe-images \
+              --region "$AWS_REGION" \
+              --repository-name "$ECR_REPO" \
+              --image-ids imageTag="$LATEST_TAG" \
+              --query 'imageDetails[0].imageDigest' \
+              --output text)"
+
+            test -n "$IMMUTABLE_DIGEST"
+            test "$IMMUTABLE_DIGEST" = "$LATEST_DIGEST"
+
+            ECS_SERVICES=(
+              "$ECS_SERVICE"
+              "lillio-production-superset-worker"
+              "lillio-production-superset-beat"
+            )
+
+            for service in "${ECS_SERVICES[@]}"; do
+              aws ecs update-service \
+                --region "$AWS_REGION" \
+                --cluster "$ECS_CLUSTER" \
+                --service "$service" \
+                --force-new-deployment \
+                --no-cli-pager
+            done
+
+            aws ecs wait services-stable \
+              --region "$AWS_REGION" \
+              --cluster "$ECS_CLUSTER" \
+              --services "${ECS_SERVICES[@]}"
+
+            RUNNING_COUNT="$(aws ecs describe-services \
+              --region "$AWS_REGION" \
+              --cluster "$ECS_CLUSTER" \
+              --services "$ECS_SERVICE" \
+              --query 'services[0].runningCount' \
+              --output text)"
+            test "$RUNNING_COUNT" -ge 2
+
+            curl --fail --silent --show-error \
+              --retry 12 \
+              --retry-all-errors \
+              --retry-delay 10 \
+              --max-time 15 \
+              "$SUPERSET_HEALTH_URL"
+      - hivemama/notify:
+          when: "on_fail"
+          event: "failed"
+          endpoint: "production-deploy"
+      - hivemama/notify:
+          when: "on_success"
+          event: "success"
+          endpoint: "production-deploy"
+
+  build-check:
+    executor: arm-machine
+    environment:
+      DOCKER_BUILDKIT: "1"
+    steps:
+      - checkout
+      - run:
+          name: Run Lillio regression tests and build image (no push)
+          no_output_timeout: 60m
+          command: |
+            docker build \
+              --build-arg INCLUDE_CHROMIUM=true \
+              --target dev \
+              -t superset-python-tests:pr \
+              .
+            docker run --rm \
+              --mount type=bind,source="$PWD/tests",target=/app/tests,readonly \
+              --mount type=bind,source="$PWD/docker/lillio",target=/app/docker/lillio,readonly \
+              superset-python-tests:pr \
+              pytest -q -p no:cacheprovider \
+                tests/unit_tests/lillio/test_production_config.py \
+                tests/unit_tests/lillio/test_embedding_regressions.py
+
+            docker build \
+              --target superset-node-ci \
+              -t superset-frontend-tests:pr \
+              .
+            docker run --rm superset-frontend-tests:pr \
+              npm test -- \
+                src/features/roles/utils.test.ts \
+                src/dashboard/components/nativeFilters/FilterBar/FilterBarSettings/FilterBarSettings.test.tsx
+
+            docker build \
+              --build-arg INCLUDE_CHROMIUM=true \
+              --target lean \
+              -t superset-src:pr \
+              .
+            docker build \
+              --build-arg BASE_IMAGE=superset-src:pr \
+              -f docker/lillio/Dockerfile \
+              -t lillio-superset:pr \
+              docker/lillio
+      - hivemama/notify:
+          when: "on_fail"
+          event: "failed"
+          endpoint: "circleci-complete"
+
+workflows:
+  release:
+    jobs:
+      - build-and-publish:
+          context:
+            - lillio-bot-key
+            - hm-infrastructure-deploy-production
+          filters:
+            tags:
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+-[0-9]+$/
+            branches:
+              ignore: /.*/
+
+  lillio-ci:
+    jobs:
+      - build-check:
+          filters:
+            branches:
+              ignore: master
+            tags:
+              ignore: /.*/
