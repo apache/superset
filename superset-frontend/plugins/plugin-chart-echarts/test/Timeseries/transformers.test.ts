@@ -309,15 +309,15 @@ test('should configure time axis labels to show max label for last month visibil
   );
 });
 
-test('x-axis dates do not overlap and last label stays visible at 0° rotation', () => {
+test('#39899 - x-axis dates do not overlap and last label stays visible at 0° rotation', () => {
   const result = transformProps(buildTimeseriesChartProps());
   const { axisLabel } = result.echartOptions.xAxis as Record<string, any>;
 
-  expect(axisLabel.hideOverlap).toBe(true);
-  // showMaxLabel forces the last data point label to render even
-  // when hideOverlap is active, preventing the #37181 regression.
+  // showMaxLabel forces the last data point label to render
   expect(axisLabel.showMaxLabel).toBe(true);
   expect(axisLabel.alignMaxLabel).toBe('right');
+  // hideOverlap must be OFF so ECharts cannot suppress the forced max label
+  expect(axisLabel.hideOverlap).toBe(false);
 });
 
 test('last x-axis date is visible and not cut off when rotated -45°', () => {
