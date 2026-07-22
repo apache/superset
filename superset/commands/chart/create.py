@@ -84,7 +84,7 @@ class CreateChartCommand(CreateMixin, BaseCommand):
         if len(dashboards) != len(dashboard_ids):
             exceptions.append(DashboardsNotFoundValidationError())
         for dash in dashboards:
-            if not security_manager.is_editor(dash):
+            if dash.is_managed_externally or not security_manager.is_editor(dash):
                 raise DashboardsForbiddenError()
         self._properties["dashboards"] = dashboards
 
