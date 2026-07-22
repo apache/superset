@@ -149,6 +149,7 @@ testWithAssets(
           datasource,
           viz_type: 'echarts_timeseries_line',
           x_axis: 'ds',
+          xAxisForceCategorical: true,
           time_grain_sqla: 'P1Y',
           metrics: ['count'],
           groupby: [],
