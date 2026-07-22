@@ -3922,52 +3922,52 @@ msgid "Configuration"
 msgstr "Configuración"
 
 #, fuzzy, python-format
-msgid "Configura %s"
+msgid "Configure %s"
 msgstr "Confirmar guardado"
 
-msgid "Configura Advanced Time Range "
+msgid "Configure Advanced Time Range "
 msgstr "Configurar rango de tiempo avanzado"
 
-msgid "Configura Time Range: Current..."
+msgid "Configure Time Range: Current..."
 msgstr "Configurar rango de tiempo: Actual..."
 
-msgid "Configura Time Range: Last..."
+msgid "Configure Time Range: Last..."
 msgstr "Configurar rango de tiempo: Último..."
 
-msgid "Configura Time Range: Previous..."
+msgid "Configure Time Range: Previous..."
 msgstr "Configurar rango de tiempo: Anterior..."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
 #, fuzzy
-msgid "Configura automatic dashboard refresh"
+msgid "Configure automatic dashboard refresh"
 msgstr "Configurar la actualización automática del panel"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
 #, fuzzy
-msgid "Configura caching and performance settings"
+msgid "Configure caching and performance settings"
 msgstr "Configurar los ajustes de caché y rendimiento"
 
-msgid "Configura custom time range"
+msgid "Configure custom time range"
 msgstr "Configurar rango de tiempo personalizado"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
 #, fuzzy
-msgid "Configura dashboard appearance, colors, and custom CSS"
+msgid "Configure dashboard appearance, colors, and custom CSS"
 msgstr "Configurar la apariencia del panel, los colores y el CSS personalizado"
 
-msgid "Configura filter scopes"
+msgid "Configure filter scopes"
 msgstr "Configurar alcances del filtro"
 
-msgid "Configura the basics of your Annotation Layer."
+msgid "Configure the basics of your Annotation Layer."
 msgstr "Configurar los aspectos básicos de su capa de anotación."
 
-msgid "Configura the chart size for each zoom level"
+msgid "Configure the chart size for each zoom level"
 msgstr "Configurar el tamaño del gráfico para cada nivel de «zoom»"
 
-msgid "Configura this dashboard to embed it into an external web application."
+msgid "Configure this dashboard to embed it into an external web application."
 msgstr "Configura este panel de control para incrustarlo en una aplicación web externa."
 
-msgid "Configura your how you overlay is displayed here."
+msgid "Configure your how you overlay is displayed here."
 msgstr "Configura cómo se muestra su superposición aquí."
 
 #, fuzzy
@@ -9768,7 +9768,7 @@ msgstr "No es un archivo ZIP válido"
 msgid "Not added to any dashboard"
 msgstr "No añadido a ningún panel de control"
 
-msgid "Not all required fields are completa. Please provide the following:"
+msgid "Not all required fields are complete. Please provide the following:"
 msgstr ""
 "No todos los campos obligatorios están completos. Por favor, proporciona "
 "lo siguiente:"
