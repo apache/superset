@@ -43,6 +43,7 @@ import {
 import {
   hasOption,
   propertyComparator,
+  stripSurroundingQuotes,
 } from '@superset-ui/core/components/Select/utils';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
@@ -330,14 +331,15 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   }, [data, datatype, col, labelFormatter, creatable, filterState.value]);
 
   const options = useMemo(() => {
+    const unquotedSearch = stripSurroundingQuotes(search);
     if (
-      search &&
+      unquotedSearch &&
       !searchAllOptions &&
       creatable !== false &&
-      !hasOption(search, uniqueOptions, true)
+      !hasOption(unquotedSearch, uniqueOptions, true)
     ) {
       return [
-        { label: search, value: search, isNewOption: true },
+        { label: unquotedSearch, value: unquotedSearch, isNewOption: true },
         ...uniqueOptions,
       ];
     }

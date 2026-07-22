@@ -344,18 +344,15 @@ def test_resolve_deck_gl_columns_geojson():
     assert resolve_deck_gl_columns(form_data) == ["geom_col"]
 
 
-def test_resolve_deck_gl_columns_with_dimension_and_js_columns():
+def test_resolve_deck_gl_columns_with_dimension():
     form_data = {
         "spatial": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
         "dimension": "category",
-        "js_columns": ["name", "value"],
     }
     cols = resolve_deck_gl_columns(form_data)
     assert "lon" in cols
     assert "lat" in cols
     assert "category" in cols
-    assert "name" in cols
-    assert "value" in cols
 
 
 def test_resolve_deck_gl_columns_deduplicates():
@@ -369,13 +366,6 @@ def test_resolve_deck_gl_columns_deduplicates():
 
 def test_resolve_deck_gl_columns_empty():
     assert resolve_deck_gl_columns({}) == []
-
-
-def test_resolve_deck_gl_columns_ignores_non_string_js_columns():
-    form_data = {
-        "js_columns": [42, None, "valid_col"],
-    }
-    assert resolve_deck_gl_columns(form_data) == ["valid_col"]
 
 
 # ---------------------------------------------------------------------------

@@ -500,6 +500,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     allows_sql_comments = True
     allows_escaped_colons = True
 
+    # Whether the engine supports OFFSET in SQL queries. Defaults to True;
+    # engines like Elasticsearch SQL that do not support OFFSET set this to
+    # False and are expected to implement `fetch_data_with_cursor` for
+    # pagination via another mechanism (e.g. Elasticsearch's cursor API).
+    supports_offset = True
+
     # Whether ORDER BY clause can use aliases created in SELECT
     # that are the same as a source column
     allows_alias_to_source_column = True
@@ -1247,6 +1253,26 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             return data
         except Exception as ex:
             raise cls.get_dbapi_mapped_exception(ex) from ex
+
+    @classmethod
+    def fetch_data_with_cursor(
+        cls,
+        database: Database,
+        sql: str,
+        page_index: int,
+        page_size: int,
+    ) -> tuple[list[list[Any]], list[str]]:
+        """
+        Fetch a single page of results via engine-native cursor pagination.
+
+        Only called when ``cls.supports_offset`` is False and a non-first
+        page is requested (see ``superset/views/datasource/utils.py``).
+        Engines that set ``supports_offset = False`` must override this.
+        """
+        raise NotImplementedError(
+            f"{cls.__name__} sets supports_offset=False but does not "
+            "implement fetch_data_with_cursor()"
+        )
 
     @classmethod
     def expand_data(
@@ -2327,6 +2353,36 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         return 1
 
+    @classmethod
+    def get_column_description_retry_sql(cls, sql: str) -> str | None:
+        """
+        Build a comment-safe fallback query for ``get_columns_description`` to
+        retry with when a zero-row metadata probe unexpectedly comes back with
+        an empty ``cursor.description``.
+
+        Some DB-API drivers only run their own "empty result" metadata
+        fallback -- used to populate ``cursor.description`` when a query
+        legitimately returns zero rows -- when the executed SQL text starts
+        with ``SELECT``/``WITH``. ``SQL_QUERY_MUTATOR`` can prepend comments
+        (e.g. query attribution) ahead of the ``SELECT`` keyword, which
+        defeats that startswith check on those drivers even though the query
+        itself is valid.
+
+        Engine specs affected by this can override this hook to wrap the
+        already-mutated SQL passed in so that the outer statement always
+        starts with a bare ``SELECT``. The original SQL -- including any
+        comments added by ``SQL_QUERY_MUTATOR`` -- is preserved verbatim, so
+        no mutation/audit behavior is lost, and the wrapped query still
+        returns zero rows.
+
+        Returning ``None`` (the default) means the engine doesn't support or
+        need this retry.
+
+        :param sql: The already limited and mutated SQL that was executed
+        :return: A comment-safe SQL string to retry with, or ``None``
+        """
+        return None
+
     @staticmethod
     def pyodbc_rows_to_tuples(data: list[Any]) -> list[tuple[Any, ...]]:
         """
@@ -2596,6 +2652,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "supports_dynamic_catalog": cls.supports_dynamic_catalog,
             "supports_oauth2": cls.supports_oauth2,
             "supports_schemas": cls.supports_schemas,
+            "supports_offset": cls.supports_offset,
         }
 
     @classmethod

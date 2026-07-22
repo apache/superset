@@ -106,7 +106,7 @@ from superset.exceptions import (
 )
 from superset.extensions import feature_flag_manager
 from superset.jinja_context import BaseTemplateProcessor
-from superset.sql.parse import sanitize_clause, SQLScript, SQLStatement
+from superset.sql.parse import has_aggregate, sanitize_clause, SQLScript, SQLStatement
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
@@ -1758,6 +1758,56 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 seen.add(label)
         return tuple(labels)
 
+    def _offset_only_dttm_cols(
+        self,
+        df: pd.DataFrame,
+        query_object: QueryObject,
+        already_collected: set[str],
+    ) -> list[DateColumn]:
+        """``DateColumn`` entries that only need the dataset HOURS OFFSET (and any
+        time shift) applied, for temporal columns the database already returns as
+        native datetimes.
+
+        The dataset offset must apply to *every* temporal column a query returns,
+        not just the selected time column. ``_collect_dttm_labels`` only covers
+        columns that need parsing (a declared ``python_date_format``) or the
+        base-axis / granularity column; a second temporal column returned as a
+        native datetime would otherwise keep its raw, un-offset value. Columns
+        arriving as plain integers/strings without a declared format are skipped,
+        since they cannot be safely interpreted as datetimes.
+        See https://github.com/apache/superset/issues/23167.
+        """
+        if not (self.offset or query_object.time_shift) or not hasattr(
+            self, "get_column"
+        ):
+            return []
+
+        extra: list[DateColumn] = []
+        for label in df.columns:
+            if label in already_collected or label == DTTM_ALIAS:
+                continue
+            if not pd.api.types.is_datetime64_any_dtype(df[label]):
+                continue
+            column_obj = self.get_column(label)
+            if not column_obj:
+                continue
+            is_dttm = (
+                column_obj.get("is_dttm")
+                if isinstance(column_obj, dict)
+                else getattr(column_obj, "is_dttm", False)
+            )
+            if is_dttm:
+                extra.append(
+                    DateColumn(
+                        timestamp_format=None,
+                        offset=self.offset,
+                        time_shift=query_object.time_shift,
+                        col_label=label,
+                    )
+                )
+                already_collected.add(label)
+        return extra
+
     def normalize_df(self, df: pd.DataFrame, query_object: QueryObject) -> pd.DataFrame:
         """
         Normalize the dataframe by converting datetime columns and ensuring
@@ -1787,6 +1837,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     time_shift=query_object.time_shift,
                 )
             )
+
+        dttm_cols.extend(
+            self._offset_only_dttm_cols(
+                df, query_object, {col.col_label for col in dttm_cols}
+            )
+        )
 
         # Build format map from detected datetime formats stored in dataset columns
         format_map: dict[str, str] = {}
@@ -3474,14 +3530,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         template_kwargs = {
             "columns": columns,
-            "from_dttm": from_dttm.isoformat() if from_dttm else None,
             "groupby": groupby,
             "metrics": metrics,
             "row_limit": row_limit,
             "row_offset": row_offset,
             "time_column": granularity,
             "time_grain": time_grain,
-            "to_dttm": to_dttm.isoformat() if to_dttm else None,
             "table_columns": [col.column_name for col in self.columns],
             "filter": filter,
         }
@@ -3520,7 +3574,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         columns_by_name: dict[str, "TableColumn"] = {
             col.column_name: col for col in self.columns
         }
-        quoted_columns_by_name = {quote(k): v for k, v in columns_by_name.items()}
 
         metrics_by_name: dict[str, "SqlMetric"] = {
             m.metric_name: m for m in self.metrics
@@ -3596,9 +3649,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     )
                 if utils.is_adhoc_metric(col):
                     # add adhoc sort by column to columns_by_name if not exists
+                    # Pass the template processor so a SIMPLE adhoc metric that
+                    # references a calculated column has that column's Jinja
+                    # expression rendered, matching SELECT/WHERE/GROUP BY. This
+                    # is a no-op for the SQL expression type, whose
+                    # `sqlExpression` was already rendered above; `processed`
+                    # only guards that branch.
                     col = self.adhoc_metric_to_sqla(
                         col,
                         columns_by_name,
+                        template_processor=template_processor,
                         processed=True,
                     )
                     # use the existing instance, if possible
@@ -3688,7 +3748,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # ``quote()`` + ``_process_select_expression`` (sqlglot
                 # ``sanitize_clause``) path below, which re-serializes the merged
                 # identifier into a table-qualified form that no longer matches
-                # ``quoted_columns_by_name`` and is emitted via ``literal_column``
+                # ``columns_by_name`` and is emitted via ``literal_column``
                 # as a single quoted name — breaking drill to detail / samples
                 # queries on nested columns (SC-111745).
                 # The guard fires for every registered physical column, not only
@@ -3704,31 +3764,29 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     )
                     continue
                 if is_adhoc_column(selected):
-                    _sql = selected["sqlExpression"]
-                    _column_label = selected["label"]
-                elif isinstance(selected, str):
-                    _sql = quote(selected)
-                    _column_label = selected
-
-                selected = self._process_select_expression(
-                    expression=_sql,
-                    database_id=self.database_id,
-                    engine=self.database.backend,
-                    schema=self.schema,
-                    template_processor=template_processor,
-                )
-
-                select_exprs.append(
-                    self.convert_tbl_column_to_sqla_col(
-                        quoted_columns_by_name[selected],
+                    # Delegate to ``adhoc_column_to_sqla`` (same path as the
+                    # ``need_groupby`` branch) so calculated columns are resolved
+                    # via metadata lookup and their expression is inlined
+                    # (#34784).
+                    outer, _unused = self.adhoc_column_to_sqla(
+                        col=selected,
                         template_processor=template_processor,
-                        label=_column_label,
                     )
-                    if selected in quoted_columns_by_name
-                    else self.make_sqla_column_compatible(
-                        literal_column(selected), _column_label
+                    select_exprs.append(outer)
+                    continue
+                if isinstance(selected, str):
+                    selected = self._process_select_expression(
+                        expression=quote(selected),
+                        database_id=self.database_id,
+                        engine=self.database.backend,
+                        schema=self.schema,
+                        template_processor=template_processor,
                     )
-                )
+                    select_exprs.append(
+                        self.make_sqla_column_compatible(
+                            literal_column(selected), selected
+                        )
+                    )
             metrics_exprs = []
 
         time_filters = []
@@ -3786,6 +3844,36 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
                 if time_filter_column is not None:
                     time_filters.append(time_filter_column)
+
+        # Gate on `groupby_all_columns` rather than the raw dimensions: it is the
+        # real GROUP BY signal and also captures the timeseries time bucket. A
+        # non-aggregate Custom SQL metric under a GROUP BY is invalid SQL, so
+        # raise a clear error instead of a raw database one (#38913). Templated
+        # expressions may render to an aggregate at runtime, so leave them alone.
+        if groupby_all_columns:
+            for metric in metrics:
+                if (
+                    utils.is_adhoc_metric(metric)
+                    and metric.get("expressionType")
+                    == utils.AdhocMetricExpressionType.SQL
+                ):
+                    expression = metric.get("sqlExpression")
+                    if (
+                        isinstance(expression, str)
+                        and "{{" not in expression
+                        and "{%" not in expression
+                        and not has_aggregate(expression, self.database.backend)
+                    ):
+                        raise QueryObjectValidationError(
+                            _(
+                                'The Custom SQL metric "%(metric)s" is not an '
+                                "aggregate and can't be combined with a GROUP BY. "
+                                "Wrap it in an aggregate function, e.g. "
+                                "%(example)s.",
+                                metric=utils.get_metric_name(metric),
+                                example="MAX(%s)" % expression,
+                            )
+                        )
 
         # Always remove duplicates by column name, as sometimes `metrics_exprs`
         # can have the same name as a groupby column (e.g. when users use
@@ -4125,7 +4213,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         if row_limit:
             qry = qry.limit(row_limit)
-        if row_offset:
+        if row_offset and self.database.db_engine_spec.supports_offset:
             qry = qry.offset(row_offset)
 
         if series_limit and groupby_series_columns:

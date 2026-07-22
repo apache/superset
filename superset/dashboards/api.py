@@ -17,6 +17,7 @@
 # pylint: disable=too-many-lines
 import functools
 import logging
+import uuid
 from datetime import datetime
 from io import BytesIO
 from typing import Any, Callable, cast
@@ -82,6 +83,8 @@ from superset.commands.dashboard.update import (
     UpdateDashboardNativeFiltersCommand,
 )
 from superset.commands.database.exceptions import DatasetValidationError
+from superset.commands.distributed_lock.acquire import AcquireDistributedLock
+from superset.commands.distributed_lock.release import ReleaseDistributedLock
 from superset.commands.exceptions import TagForbiddenError
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
@@ -107,6 +110,8 @@ from superset.dashboards.schemas import (
     DashboardColorsConfigUpdateSchema,
     DashboardCopySchema,
     DashboardDatasetSchema,
+    DashboardExportXlsxPostSchema,
+    DashboardExportXlsxResponseSchema,
     DashboardGetResponseSchema,
     DashboardNativeFiltersConfigUpdateSchema,
     DashboardPostSchema,
@@ -124,7 +129,9 @@ from superset.dashboards.schemas import (
     thumbnail_query_schema,
 )
 from superset.exceptions import (
+    LockAlreadyHeldException,
     ScreenshotImageNotAvailableException,
+    SupersetSecurityException,
 )
 from superset.extensions import event_logger, security_manager
 from superset.models.dashboard import Dashboard
@@ -134,6 +141,12 @@ from superset.security.manager import get_extra_editor_subject_ids
 from superset.subjects.filters import (
     FilterRelatedSubjects,
     subject_type_filter,
+)
+from superset.tasks.export_dashboard_excel import (
+    export_dashboard_excel,
+    EXPORT_LOCK_NAMESPACE,
+    export_lock_params,
+    EXPORT_LOCK_TTL_SECONDS,
 )
 from superset.tasks.thumbnails import (
     cache_dashboard_screenshot,
@@ -274,6 +287,7 @@ class DashboardRestApi(
         "put_chart_customizations",
         "put_colors",
         "export_as_example",
+        "export_xlsx",
         "list_versions",
         "get_version",
         "activity",
@@ -292,6 +306,10 @@ class DashboardRestApi(
     method_permission_name = {
         **MODEL_API_RW_METHOD_PERMISSION_MAP,
         "restore": "write",
+        # Reuse the dashboard ``can_export`` permission (the frontend gates the
+        # menu item on it) instead of the ``can_export_xlsx`` FAB would otherwise
+        # derive from the method name.
+        "export_xlsx": "export",
     }
 
     # Default list_columns (used if config not set)
@@ -497,6 +515,8 @@ class DashboardRestApi(
         DashboardCopySchema,
         DashboardGetResponseSchema,
         DashboardDatasetSchema,
+        DashboardExportXlsxPostSchema,
+        DashboardExportXlsxResponseSchema,
         TabsPayloadSchema,
         GetFavStarIdsSchema,
         EmbeddedDashboardResponseSchema,
@@ -1575,6 +1595,132 @@ class DashboardRestApi(
             response.set_cookie(token, "done", max_age=600)
         return response
 
+    @expose("/<pk>/export_xlsx/", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export_xlsx",
+        log_to_statsd=False,
+    )
+    def export_xlsx(self, pk: int) -> WerkzeugResponse:
+        """Export all of a dashboard's chart data to an Excel workbook (async).
+        ---
+        post:
+          summary: Export dashboard chart data to Excel
+          description: >-
+            Enqueues an async task that writes each chart's data to its own
+            worksheet, uploads the .xlsx to S3, and emails the requesting user a
+            pre-signed download link. Returns immediately with a job id.
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The dashboard id
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/DashboardExportXlsxPostSchema'
+          responses:
+            202:
+              description: Export task accepted
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/DashboardExportXlsxResponseSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+            501:
+              description: Excel export is not configured on this server
+        """
+        if not current_app.config["EXCEL_EXPORT_S3_BUCKET"]:
+            return self.response(
+                501, message="Excel export is not configured on this server."
+            )
+        try:
+            # Tolerate an empty/non-JSON body (e.g. a POST with no Content-Type);
+            # request.json would otherwise raise 415.
+            payload = DashboardExportXlsxPostSchema().load(
+                request.get_json(silent=True) or {}
+            )
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
+        # Image export drives the headless webdriver, so it is only available
+        # when the same screenshot flags the UI checks are enabled. The decorator
+        # form (``@validate_feature_flags``) can't be used here because it would
+        # also block ``mode="data"``; mirror its 404 behavior inline instead.
+        if payload.get("mode") == "images" and not (
+            is_feature_enabled("ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS")
+            and is_feature_enabled("ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT")
+        ):
+            return self.response_404()
+
+        dashboard = cast(Dashboard, self.datamodel.get(pk, self._base_filters))
+        if not dashboard:
+            return self.response_404()
+        try:
+            security_manager.raise_for_access(dashboard=dashboard)
+        except SupersetSecurityException:
+            return self.response_403()
+
+        # Email delivery is the only result channel, so an account with an email
+        # address is required; embedded guest users are excluded in this version.
+        if isinstance(g.user, GuestUser) or not getattr(g.user, "email", None):
+            return self.response_400(
+                message="Excel export requires an account with an email address."
+            )
+        if not dashboard.slices:
+            return self.response_400(message="Dashboard has no charts to export.")
+
+        # Throttle: one concurrent export per user+dashboard. Acquire a shared,
+        # atomic distributed lock (Redis when configured, the metadata DB
+        # otherwise) so the guard works across the web server and workers and is
+        # not a no-op under the default cache. The task releases it when it
+        # settles; the TTL is the backstop if that release is ever lost.
+        lock_params = export_lock_params(g.user.id, dashboard.id)
+        try:
+            AcquireDistributedLock(
+                EXPORT_LOCK_NAMESPACE,
+                lock_params,
+                ttl_seconds=EXPORT_LOCK_TTL_SECONDS,
+            ).run()
+        except LockAlreadyHeldException:
+            return self.response(
+                202,
+                message="An Excel export for this dashboard is already in progress.",
+            )
+
+        job_id = str(uuid.uuid4())
+        try:
+            export_dashboard_excel.apply_async(
+                kwargs={
+                    "dashboard_id": dashboard.id,
+                    "user_id": g.user.id,
+                    "active_data_mask": payload.get("active_data_mask", {}),
+                    "job_id": job_id,
+                    "mode": payload.get("mode", "data"),
+                },
+                task_id=job_id,
+            )
+        except Exception:
+            # If enqueuing fails (e.g. broker down) the task will never run to
+            # release the lock, so free it now rather than block exports until
+            # the TTL expires.
+            ReleaseDistributedLock(EXPORT_LOCK_NAMESPACE, lock_params).run()
+            raise
+        return self.response(202, job_id=job_id)
+
     @expose("/<pk>/cache_dashboard_screenshot/", methods=("POST",))
     @validate_feature_flags(["THUMBNAILS", "ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS"])
     @protect()
@@ -2106,6 +2252,10 @@ class DashboardRestApi(
                     overwrite:
                       description: overwrite existing dashboards?
                       type: boolean
+                    overwrite_all:
+                      description: >-
+                        overwrite all existing assets within the dashboard?
+                      type: boolean
                     ssh_tunnel_passwords:
                       description: >-
                         JSON map of passwords for each ssh_tunnel associated to a
@@ -2168,6 +2318,7 @@ class DashboardRestApi(
             else None
         )
         overwrite = request.form.get("overwrite") == "true"
+        overwrite_all = parse_boolean_string(request.form.get("overwrite_all", "false"))
 
         ssh_tunnel_passwords = (
             json.loads(request.form["ssh_tunnel_passwords"])
@@ -2189,6 +2340,7 @@ class DashboardRestApi(
             contents,
             passwords=passwords,
             overwrite=overwrite,
+            overwrite_all=overwrite_all,
             ssh_tunnel_passwords=ssh_tunnel_passwords,
             ssh_tunnel_private_keys=ssh_tunnel_private_keys,
             ssh_tunnel_priv_key_passwords=ssh_tunnel_priv_key_passwords,

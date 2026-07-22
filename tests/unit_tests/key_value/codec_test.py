@@ -23,6 +23,7 @@ from marshmallow import Schema
 from superset.dashboards.permalink.schemas import DashboardPermalinkSchema
 from superset.key_value.exceptions import KeyValueCodecEncodeException
 from superset.key_value.types import (
+    BinaryKeyValueCodec,
     JsonKeyValueCodec,
     MarshmallowKeyValueCodec,
     PickleKeyValueCodec,
@@ -120,3 +121,16 @@ def test_pickle_codec(input_: Any, expected_result: Any):
     codec = PickleKeyValueCodec()
     encoded_value = codec.encode(input_)
     assert expected_result == codec.decode(encoded_value)
+
+
+def test_binary_codec_encode():
+    codec = BinaryKeyValueCodec()
+    raw = b"\x00\x01binary\xffdata"
+    assert codec.encode(raw) == raw
+
+
+def test_binary_codec_round_trips():
+    codec = BinaryKeyValueCodec()
+    raw = b"\x00\x01binary\xffdata"
+    assert codec.decode(raw) == raw
+    assert codec.encode(codec.decode(raw)) == raw

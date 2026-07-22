@@ -914,7 +914,10 @@ class TestBaseDeckGLViz(SupersetTestCase):
         assert result == []
 
     def test_get_js_columns(self):
-        form_data = load_fixture("deck_path_form_data.json")
+        form_data = {
+            **load_fixture("deck_path_form_data.json"),
+            "js_columns": ["color"],
+        }
         datasource = self.get_datasource_mock()
         mock_d = {"a": "dummy1", "b": "dummy2", "c": "dummy3"}
         test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)

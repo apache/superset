@@ -53,7 +53,7 @@ import { userHasPermission } from 'src/dashboard/util/permissionUtils';
 import { WelcomePageLastTab } from 'src/features/home/types';
 import ActivityTable from 'src/features/home/ActivityTable';
 import ChartTable from 'src/features/home/ChartTable';
-import SavedQueries from 'src/features/home/SavedQueries';
+import ToastedSavedQueries from 'src/features/home/SavedQueries';
 import DashboardTable from 'src/features/home/DashboardTable';
 
 const extensionsRegistry = getExtensionsRegistry();
@@ -422,7 +422,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                         children: !queryData ? (
                           <LoadingCards cover={checked} />
                         ) : (
-                          <SavedQueries
+                          <ToastedSavedQueries
                             showThumbnails={checked}
                             user={user}
                             mine={queryData}
