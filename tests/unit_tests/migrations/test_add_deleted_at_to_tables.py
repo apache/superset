@@ -64,7 +64,7 @@ def engine() -> Engine:
     ``deleted_at`` and its index, so only the columns that participate in
     the test are seeded.
     """
-    engine = create_engine("sqlite:///:memory:")
+    engine = create_engine("sqlite:///:memory:", future=True)
     md = MetaData()
     Table(
         TABLE_NAME,
