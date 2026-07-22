@@ -120,7 +120,7 @@ def test_convert_dttm(
 def test_time_grain_expressions(dttm: str, grain: str, expected: str) -> None:  # noqa: F811
     from superset.db_engine_specs.sqlite import SqliteEngineSpec
 
-    engine = create_engine("sqlite://")
+    engine = create_engine("sqlite://", future=True)
     with engine.begin() as connection:
         connection.execute(text("CREATE TABLE t (dttm DATETIME)"))
         connection.execute(text("INSERT INTO t VALUES (:dttm)"), {"dttm": dttm})

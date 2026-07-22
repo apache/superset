@@ -32,7 +32,6 @@ from pydantic import (
     field_validator,
     model_serializer,
     model_validator,
-    PositiveInt,
 )
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
@@ -44,13 +43,15 @@ from superset.mcp_service.common.cache_schemas import (
     MetadataCacheControl,
     QueryCacheControl,
 )
-from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+from superset.mcp_service.common.pagination_schemas import (
+    PaginatedListRequest,
+    PaginatedResponse,
+)
 from superset.mcp_service.privacy import (
     filter_user_directory_fields,
     strip_user_directory_fields_from_schema,
 )
 from superset.mcp_service.system.schemas import (
-    PaginationInfo,
     serialize_subject_object,
     SubjectInfo,
     TagInfo,
@@ -226,104 +227,33 @@ class DatasetInfo(BaseModel):
         return data
 
 
-class DatasetList(BaseModel):
+class DatasetList(PaginatedResponse[DatasetFilter]):
     datasets: List[DatasetInfo]
-    count: int
-    total_count: int
-    page: int
-    page_size: int
-    total_pages: int
-    has_previous: bool
-    has_next: bool
-    columns_requested: List[str] = Field(
-        default_factory=list,
-        description="Requested columns for the response",
-    )
-    columns_loaded: List[str] = Field(
-        default_factory=list,
-        description="Columns that were actually loaded for each dataset",
-    )
-    columns_available: List[str] = Field(
-        default_factory=list,
-        description="All columns available for selection via select_columns parameter",
-    )
-    sortable_columns: List[str] = Field(
-        default_factory=list,
-        description="Columns that can be used with order_column parameter",
-    )
-    filters_applied: List[DatasetFilter] = Field(
-        default_factory=list,
-        description="List of advanced filter dicts applied to the query.",
-    )
-    pagination: PaginationInfo | None = None
-    timestamp: datetime | None = None
-    model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 
-class ListDatasetsRequest(EditedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
-    """Request schema for list_datasets with clear, unambiguous types."""
+class ListDatasetsRequest(
+    EditedByMeMixin,
+    CreatedByMeMixin,
+    MetadataCacheControl,
+    PaginatedListRequest[DatasetFilter],
+):
+    """Request schema for list_datasets with clear, unambiguous types.
 
-    model_config = ConfigDict(populate_by_name=True)
+    Unlike its siblings, this schema does NOT parse JSON-string `filters`/
+    `select_columns` into lists — it relies on Pydantic's native list
+    validation instead. Preserved intentionally; see
+    test_list_datasets_with_string_filters.
+    """
 
-    filters: Annotated[
-        List[DatasetFilter],
-        Field(
-            default_factory=list,
-            description="List of filter objects (column, operator, value). Each "
-            "filter is an object with 'col', 'opr', and 'value' "
-            "properties. Cannot be used together with 'search'.",
-        ),
-    ]
-    select_columns: Annotated[
-        List[str],
-        Field(
-            default_factory=list,
-            description="List of columns to select. Defaults to common columns if not "
-            "specified.",
-            validation_alias=AliasChoices("select_columns", "columns"),
-        ),
-    ]
-    search: Annotated[
-        str | None,
-        Field(
-            default=None,
-            description="Text search string to match against dataset fields. Cannot "
-            "be used together with 'filters'.",
-        ),
-    ]
-    order_column: Annotated[
-        str | None, Field(default=None, description="Column to order results by")
-    ]
-    order_direction: Annotated[
-        Literal["asc", "desc"],
-        Field(
-            default="desc", description="Direction to order results ('asc' or 'desc')"
-        ),
-    ]
-    page: Annotated[
-        PositiveInt,
-        Field(default=1, description="Page number for pagination (1-based)"),
-    ]
-    page_size: Annotated[
-        int,
-        Field(
-            default=DEFAULT_PAGE_SIZE,
-            gt=0,
-            le=MAX_PAGE_SIZE,
-            description=f"Number of items per page (max {MAX_PAGE_SIZE})",
-        ),
-    ]
+    @field_validator("filters", mode="before")
+    @classmethod
+    def parse_filters(cls, v: Any) -> Any:
+        return v
 
-    @model_validator(mode="after")
-    def validate_search_and_filters(self) -> "ListDatasetsRequest":
-        """Prevent using both search and filters simultaneously."""
-        if self.search and self.filters:
-            raise ValueError(
-                "Cannot use both 'search' and 'filters' parameters simultaneously. "
-                "Use either 'search' for text-based searching across multiple fields, "
-                "or 'filters' for precise column-based filtering, but not both."
-            )
-        return self
+    @field_validator("select_columns", mode="before")
+    @classmethod
+    def parse_select_columns(cls, v: Any) -> Any:
+        return v
 
 
 class DatasetError(BaseModel):
@@ -807,6 +737,29 @@ class QueryDatasetFilter(BaseModel):
     )
 
 
+# Bracket shorthands (e.g. "[year]", "[quarter]") are not a Superset
+# time-range grammar — they appear when an LLM copies a grain token from a
+# dashboard filter context.  Map them to an equivalent form that
+# get_since_until() resolves correctly.
+#
+# "Last second"/"Last minute"/"Last hour" are excluded: get_since_until()
+# pairs a "Last <unit>" since-expression (resolved against "now" for
+# sub-day units) with a default until-expression resolved against "today"
+# (midnight), so since ends up after until and raises "From date cannot
+# be larger than to date". Explicit DATEADD/DATETIME expressions sidestep
+# that mismatch by resolving both ends against "now".
+_BRACKET_SHORTHAND_TO_TIME_RANGE: dict[str, str] = {
+    "[second]": "DATEADD(DATETIME('now'), -1, SECOND) : DATETIME('now')",
+    "[minute]": "DATEADD(DATETIME('now'), -1, MINUTE) : DATETIME('now')",
+    "[hour]": "DATEADD(DATETIME('now'), -1, HOUR) : DATETIME('now')",
+    "[day]": "Last day",
+    "[week]": "Last week",
+    "[month]": "Last month",
+    "[quarter]": "Last quarter",
+    "[year]": "Last year",
+}
+
+
 class QueryDatasetRequest(QueryCacheControl):
     """Request schema for query_dataset tool."""
 
@@ -838,9 +791,12 @@ class QueryDatasetRequest(QueryCacheControl):
     time_range: str | None = Field(
         default=None,
         description=(
-            "Time range filter (e.g. 'Last 7 days', 'Last month', "
-            "'2024-01-01 : 2024-12-31'). Requires a temporal column "
-            "on the dataset."
+            "Time range filter. Use Superset relative shorthands like "
+            "'Last 7 days', 'Last month', 'Last year', 'Last quarter', "
+            "'Current week', 'previous calendar year', or an ISO-8601 range "
+            "like '2024-01-01 : 2024-12-31'. Requires a temporal column "
+            "on the dataset. Do NOT use bracket shorthands like '[year]' "
+            "or '[quarter]' — use 'Last year' / 'Last quarter' instead."
         ),
     )
     time_column: str | None = Field(
@@ -864,6 +820,15 @@ class QueryDatasetRequest(QueryCacheControl):
         le=50000,
         description="Maximum number of rows to return (default 1000, max 50000).",
     )
+
+    @field_validator("time_range")
+    @classmethod
+    def normalize_time_range(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        stripped = v.strip()
+        canonical = _BRACKET_SHORTHAND_TO_TIME_RANGE.get(stripped.lower())
+        return canonical if canonical is not None else stripped
 
     @model_validator(mode="after")
     def validate_metrics_or_columns(self) -> "QueryDatasetRequest":
