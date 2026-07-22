@@ -80,6 +80,8 @@ test('stops propagation of navigation keys to parent elements', async () => {
   const handleParentKeyDown = jest.fn();
 
   render(
+    // Test-only harness div asserting keydown doesn't bubble past the modal.
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div onKeyDown={handleParentKeyDown}>
       <ModalTrigger
         triggerNode={<span>Trigger</span>}
@@ -106,7 +108,11 @@ test('stops propagation of navigation keys to parent elements', async () => {
     expect(handleParentKeyDown).not.toHaveBeenCalled();
   }
 
-  const allowedKeys = ['Escape', 'Tab'];
+  // `Tab` must be checked before `Escape`: pressing `Escape` legitimately
+  // closes the modal (a real global listener unmounts the dialog), so any
+  // key fired on the stale `input` reference afterwards can no longer
+  // bubble anywhere.
+  const allowedKeys = ['Tab', 'Escape'];
 
   for (const key of allowedKeys) {
     handleParentKeyDown.mockClear();

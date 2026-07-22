@@ -63,16 +63,17 @@ def database1(session: Session) -> Iterator["Database"]:
 @pytest.fixture
 def table1(session: Session, database1: "Database") -> Iterator[None]:
     with database1.get_sqla_engine() as engine:
-        conn = engine.connect()
-        conn.execute(
-            text("CREATE TABLE table1 (a INTEGER NOT NULL PRIMARY KEY, b INTEGER)")
-        )
-        conn.execute(text("INSERT INTO table1 (a, b) VALUES (1, 10), (2, 20)"))
+        with engine.begin() as conn:
+            conn.execute(
+                text("CREATE TABLE table1 (a INTEGER NOT NULL PRIMARY KEY, b INTEGER)")
+            )
+            conn.execute(text("INSERT INTO table1 (a, b) VALUES (1, 10), (2, 20)"))
         db.session.commit()
 
         yield
 
-        conn.execute(text("DROP TABLE table1"))
+        with engine.begin() as conn:
+            conn.execute(text("DROP TABLE table1"))
         db.session.commit()
 
 
@@ -99,16 +100,19 @@ def database2(session: Session) -> Iterator["Database"]:
 @pytest.fixture
 def table2(session: Session, database2: "Database") -> Iterator[None]:
     with database2.get_sqla_engine() as engine:
-        conn = engine.connect()
-        conn.execute(
-            text("CREATE TABLE table2 (a INTEGER NOT NULL PRIMARY KEY, b TEXT)")
-        )
-        conn.execute(text("INSERT INTO table2 (a, b) VALUES (1, 'ten'), (2, 'twenty')"))
+        with engine.begin() as conn:
+            conn.execute(
+                text("CREATE TABLE table2 (a INTEGER NOT NULL PRIMARY KEY, b TEXT)")
+            )
+            conn.execute(
+                text("INSERT INTO table2 (a, b) VALUES (1, 'ten'), (2, 'twenty')")
+            )
         db.session.commit()
 
         yield
 
-        conn.execute(text("DROP TABLE table2"))
+        with engine.begin() as conn:
+            conn.execute(text("DROP TABLE table2"))
         db.session.commit()
 
 
@@ -132,14 +136,14 @@ def test_superset(mocker: MockerFixture, app_context: None, table1: None) -> Non
     g.user.is_anonymous = False
 
     try:
-        engine = create_engine("superset://")
+        engine = create_engine("superset://", future=True)
     except Exception as e:
         # Skip test if superset:// dialect can't be loaded (common in Docker)
         pytest.skip(f"Superset dialect not available: {e}")
 
-    conn = engine.connect()
-    results = conn.execute(text('SELECT * FROM "database1.table1"'))
-    assert list(results) == [(1, 10), (2, 20)]
+    with engine.connect() as conn:
+        results = conn.execute(text('SELECT * FROM "database1.table1"'))
+        assert list(results) == [(1, 10), (2, 20)]
 
 
 @with_config(
@@ -173,14 +177,14 @@ def test_superset_limit(mocker: MockerFixture, app_context: None, table1: None) 
     g.user.is_anonymous = False
 
     try:
-        engine = create_engine("superset://")
+        engine = create_engine("superset://", future=True)
     except Exception as e:
         # Skip test if superset:// dialect can't be loaded (common in Docker)
         pytest.skip(f"Superset dialect not available: {e}")
 
-    conn = engine.connect()
-    results = conn.execute(text('SELECT * FROM "database1.table1"'))
-    assert list(results) == [(1, 10)]
+    with engine.connect() as conn:
+        results = conn.execute(text('SELECT * FROM "database1.table1"'))
+        assert list(results) == [(1, 10)]
 
 
 @with_feature_flags(ENABLE_SUPERSET_META_DB=True)
@@ -208,21 +212,21 @@ def test_superset_joins(
     g.user.is_anonymous = False
 
     try:
-        engine = create_engine("superset://")
+        engine = create_engine("superset://", future=True)
     except Exception as e:
         # Skip test if superset:// dialect can't be loaded (common in Docker)
         pytest.skip(f"Superset dialect not available: {e}")
 
-    conn = engine.connect()
-    results = conn.execute(
-        text("""
-        SELECT t1.b, t2.b
-        FROM "database1.table1" AS t1
-        JOIN "database2.table2" AS t2
-        ON t1.a = t2.a
-        """)
-    )
-    assert list(results) == [(10, "ten"), (20, "twenty")]
+    with engine.connect() as conn:
+        results = conn.execute(
+            text("""
+            SELECT t1.b, t2.b
+            FROM "database1.table1" AS t1
+            JOIN "database2.table2" AS t2
+            ON t1.a = t2.a
+            """)
+        )
+        assert list(results) == [(10, "ten"), (20, "twenty")]
 
 
 @with_feature_flags(ENABLE_SUPERSET_META_DB=True)
@@ -252,27 +256,32 @@ def test_dml(
     g.user.is_anonymous = False
 
     try:
-        engine = create_engine("superset://")
+        engine = create_engine("superset://", future=True)
     except Exception as e:
         # Skip test if superset:// dialect can't be loaded (common in Docker)
         pytest.skip(f"Superset dialect not available: {e}")
 
-    conn = engine.connect()
+    with engine.begin() as conn:
+        conn.execute(text('INSERT INTO "database1.table1" (a, b) VALUES (3, 30)'))
+    with engine.connect() as conn:
+        results = conn.execute(text('SELECT * FROM "database1.table1"'))
+        assert list(results) == [(1, 10), (2, 20), (3, 30)]
+    with engine.begin() as conn:
+        conn.execute(text('UPDATE "database1.table1" SET b=35 WHERE a=3'))
+    with engine.connect() as conn:
+        results = conn.execute(text('SELECT * FROM "database1.table1"'))
+        assert list(results) == [(1, 10), (2, 20), (3, 35)]
+    with engine.begin() as conn:
+        conn.execute(text('DELETE FROM "database1.table1" WHERE b>20'))
+    with engine.connect() as conn:
+        results = conn.execute(text('SELECT * FROM "database1.table1"'))
+        assert list(results) == [(1, 10), (2, 20)]
 
-    conn.execute(text('INSERT INTO "database1.table1" (a, b) VALUES (3, 30)'))
-    results = conn.execute(text('SELECT * FROM "database1.table1"'))
-    assert list(results) == [(1, 10), (2, 20), (3, 30)]
-    conn.execute(text('UPDATE "database1.table1" SET b=35 WHERE a=3'))
-    results = conn.execute(text('SELECT * FROM "database1.table1"'))
-    assert list(results) == [(1, 10), (2, 20), (3, 35)]
-    conn.execute(text('DELETE FROM "database1.table1" WHERE b>20'))
-    results = conn.execute(text('SELECT * FROM "database1.table1"'))
-    assert list(results) == [(1, 10), (2, 20)]
-
-    with pytest.raises(ProgrammingError) as excinfo:
-        conn.execute(
-            text("""INSERT INTO "database2.table2" (a, b) VALUES (3, 'thirty')""")
-        )
+    with engine.begin() as conn:
+        with pytest.raises(ProgrammingError) as excinfo:
+            conn.execute(
+                text("""INSERT INTO "database2.table2" (a, b) VALUES (3, 'thirty')""")
+            )
     assert str(excinfo.value).strip() == (
         "(shillelagh.exceptions.ProgrammingError) DML not enabled in database "
         '"database2"\n[SQL: INSERT INTO "database2.table2" (a, b) '
@@ -319,14 +328,14 @@ def test_security_manager(
     )
 
     try:
-        engine = create_engine("superset://")
+        engine = create_engine("superset://", future=True)
     except Exception as e:
         # Skip test if superset:// dialect can't be loaded (common in Docker)
         pytest.skip(f"Superset dialect not available: {e}")
 
-    conn = engine.connect()
-    with pytest.raises(SupersetSecurityException) as excinfo:
-        conn.execute(text('SELECT * FROM "database1.table1"'))
+    with engine.connect() as conn:
+        with pytest.raises(SupersetSecurityException) as excinfo:
+            conn.execute(text('SELECT * FROM "database1.table1"'))
     assert str(excinfo.value) == (
         "You need access to the following tables: `table1`,\n            "
         "`all_database_access` or `all_datasource_access` permission"
@@ -353,18 +362,18 @@ def test_allowed_dbs(mocker: MockerFixture, app_context: None, table1: None) -> 
     g.user.is_anonymous = False
 
     try:
-        engine = create_engine("superset://", allowed_dbs=["database1"])
+        engine = create_engine("superset://", allowed_dbs=["database1"], future=True)
     except Exception as e:
         # Skip test if superset:// dialect can't be loaded (common in Docker)
         pytest.skip(f"Superset dialect not available: {e}")
 
-    conn = engine.connect()
+    with engine.connect() as conn:
+        results = conn.execute(text('SELECT * FROM "database1.table1"'))
+        assert list(results) == [(1, 10), (2, 20)]
 
-    results = conn.execute(text('SELECT * FROM "database1.table1"'))
-    assert list(results) == [(1, 10), (2, 20)]
-
-    with pytest.raises(ProgrammingError) as excinfo:
-        conn.execute(text('SELECT * FROM "database2.table2"'))
+    with engine.connect() as conn:
+        with pytest.raises(ProgrammingError) as excinfo:
+            conn.execute(text('SELECT * FROM "database2.table2"'))
     assert str(excinfo.value) == (
         """
 (shillelagh.exceptions.ProgrammingError) Unsupported table: database2.table2

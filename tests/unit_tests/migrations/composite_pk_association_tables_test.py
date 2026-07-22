@@ -103,7 +103,7 @@ def _build_in_memory_schema(
             primary_key=True,
         ),
     )
-    engine = sa.create_engine("sqlite:///:memory:")
+    engine = sa.create_engine("sqlite:///:memory:", future=True)
     metadata.create_all(engine)
     # Seed parent rows so the FK constraints can be satisfied.
     # Identifiers come from the AFFECTED_TABLES test parameter list, not user input.

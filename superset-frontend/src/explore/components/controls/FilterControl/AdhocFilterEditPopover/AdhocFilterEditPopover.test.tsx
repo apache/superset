@@ -158,8 +158,9 @@ describe('AdhocFilterEditPopover', () => {
     const subjectSelect = screen.getByTestId('select-element');
     await userEvent.click(subjectSelect);
 
-    // Select a value from the dropdown
-    const valueOption = screen.getByText('value');
+    // Select a value from the dropdown (scope to the listbox option, since the
+    // selected subject label also renders the text "value" in antd v6)
+    const valueOption = screen.getByRole('option', { name: 'value' });
     await userEvent.click(valueOption);
 
     // Find and update the value input

@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { AppSection, Behavior, ChartProps } from '@superset-ui/core';
+import {
+  AppSection,
+  Behavior,
+  ChartProps,
+  type FilterState,
+} from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
 import {
   act,
@@ -29,7 +34,6 @@ import {
 import { NULL_STRING } from 'src/utils/common';
 import SelectFilterPlugin from './SelectFilterPlugin';
 import transformProps from './transformProps';
-import { FilterState } from '@superset-ui/core';
 import {
   SelectFilterOperatorType,
   PluginFilterSelectChartProps,

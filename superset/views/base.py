@@ -35,7 +35,7 @@ from flask import (
 )
 from flask_appbuilder import BaseView, Model, ModelView
 from flask_appbuilder.actions import action
-from flask_appbuilder.const import AUTH_OAUTH, AUTH_SAML
+from flask_appbuilder.const import AUTH_LDAP, AUTH_OAUTH, AUTH_SAML
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.security.sqla.models import User
@@ -80,7 +80,6 @@ FRONTEND_CONF_KEYS = (
     "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT",
     "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE",
     "SUPERSET_DASHBOARD_MANUAL_REFRESH_STAGGER_MS",
-    "ENABLE_JAVASCRIPT_CONTROLS",
     "DEFAULT_SQLLAB_LIMIT",
     "DEFAULT_VIZ_TYPE",
     "SQL_MAX_ROW",
@@ -193,7 +192,7 @@ def deprecated(
                     eol_version,
                 ]
                 if new_target:
-                    message += " . Use the following API endpoint instead: %s"
+                    message += ". Use the following API endpoint instead: %s"
                     logger_args.append(new_target)
                 logger.warning(message, *logger_args)
             return f(self, *args, **kwargs)
@@ -547,7 +546,7 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     auth_user_registration = app.config["AUTH_USER_REGISTRATION"]
     frontend_config["AUTH_USER_REGISTRATION"] = auth_user_registration
     should_show_recaptcha = auth_user_registration and (
-        auth_type not in (AUTH_OAUTH, AUTH_SAML)
+        auth_type not in (AUTH_LDAP, AUTH_OAUTH, AUTH_SAML)
     )
 
     if auth_user_registration:
@@ -649,6 +648,27 @@ def get_spa_payload(extra_data: dict[str, Any] | None = None) -> dict[str, Any]:
     return payload
 
 
+def _ensure_static_assets_prefix(url_or_path: str) -> str:
+    """Add the configured static asset prefix to root-relative asset paths."""
+    static_assets_prefix = app.config.get("STATIC_ASSETS_PREFIX", "")
+
+    if (
+        url_or_path.startswith("//")
+        or not url_or_path.startswith("/")
+        or not static_assets_prefix
+    ):
+        return url_or_path
+
+    normalized_prefix = static_assets_prefix.rstrip("/")
+    if normalized_prefix and (
+        url_or_path == normalized_prefix
+        or url_or_path.startswith(f"{normalized_prefix}/")
+    ):
+        return url_or_path
+
+    return f"{normalized_prefix}{url_or_path}"
+
+
 def get_spa_template_context(
     entry: str | None = "spa",
     extra_bootstrap_data: dict[str, Any] | None = None,
@@ -693,6 +713,12 @@ def get_spa_template_context(
             if app_name_from_config != "Superset":
                 # User has customized APP_NAME, use it as brandAppName
                 theme_tokens["brandAppName"] = app_name_from_config
+
+        brand_spinner_url = theme_tokens.get("brandSpinnerUrl")
+        if isinstance(brand_spinner_url, str) and brand_spinner_url:
+            theme_tokens["brandSpinnerUrl"] = _ensure_static_assets_prefix(
+                brand_spinner_url
+            )
 
     # Write the modified theme data back to payload
     if "common" not in payload:

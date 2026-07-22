@@ -17,6 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
+import { mockUserSubjectsBootstrapData } from 'spec/helpers/mockBootstrapData';
 import { screen, waitFor, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { isFeatureEnabled } from '@superset-ui/core';
@@ -42,6 +43,10 @@ jest.mock('src/utils/export', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
+
+jest.mock('src/utils/getBootstrapData', () =>
+  mockUserSubjectsBootstrapData([1]),
+);
 
 const mockIsFeatureEnabled = isFeatureEnabled as jest.MockedFunction<
   typeof isFeatureEnabled
@@ -228,7 +233,7 @@ test('sorts table when clicking column headers', async () => {
   const allHeaders = table.querySelectorAll('.ant-table-column-sorters');
 
   const sortableHeaders = Array.from(allHeaders).filter(
-    header => !header.closest('.ant-table-measure-cell-content'),
+    header => !header.closest('.ant-table-measure-row'),
   );
   expect(sortableHeaders).toHaveLength(3);
 

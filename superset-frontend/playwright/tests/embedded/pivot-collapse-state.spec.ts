@@ -53,6 +53,7 @@ import { apiPost, apiPut } from '../../helpers/api/requests';
 import {
   apiPostDashboard,
   apiDeleteDashboard,
+  buildSingleRowDashboardLayout,
 } from '../../helpers/api/dashboard';
 import { apiDeleteChart } from '../../helpers/api/chart';
 import { EmbeddedPage } from '../../pages/EmbeddedPage';
@@ -190,36 +191,14 @@ test.describe('Embedded Pivot Table collapse state (#33406)', () => {
       });
       chartId = (await chartResp.json()).id;
 
-      const chartLayoutKey = `CHART-${chartId}`;
-      const positionJson = {
-        DASHBOARD_VERSION_KEY: 'v2',
-        ROOT_ID: { type: 'ROOT', id: 'ROOT_ID', children: ['GRID_ID'] },
-        GRID_ID: {
-          type: 'GRID',
-          id: 'GRID_ID',
-          children: ['ROW-1'],
-          parents: ['ROOT_ID'],
+      const positionJson = buildSingleRowDashboardLayout([
+        {
+          id: chartId,
+          sliceName: 'pivot_collapse_repro',
+          width: 6,
+          height: 80,
         },
-        'ROW-1': {
-          type: 'ROW',
-          id: 'ROW-1',
-          children: [chartLayoutKey],
-          parents: ['ROOT_ID', 'GRID_ID'],
-          meta: { background: 'BACKGROUND_TRANSPARENT' },
-        },
-        [chartLayoutKey]: {
-          type: 'CHART',
-          id: chartLayoutKey,
-          children: [],
-          parents: ['ROOT_ID', 'GRID_ID', 'ROW-1'],
-          meta: {
-            chartId,
-            width: 6,
-            height: 80,
-            sliceName: 'pivot_collapse_repro',
-          },
-        },
-      };
+      ]);
       const dashResp = await apiPostDashboard(setupPage, {
         dashboard_title: `pivot_collapse_repro_${Date.now()}`,
         published: true,

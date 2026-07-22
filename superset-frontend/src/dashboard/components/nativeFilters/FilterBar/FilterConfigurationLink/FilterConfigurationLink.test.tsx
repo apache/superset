@@ -17,11 +17,13 @@
  * under the License.
  */
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import FilterConfigurationLink from '.';
+import MemoizedFilterConfigurationLink from '.';
 
 test('should render', () => {
   const { container } = render(
-    <FilterConfigurationLink>Config link</FilterConfigurationLink>,
+    <MemoizedFilterConfigurationLink>
+      Config link
+    </MemoizedFilterConfigurationLink>,
     {
       useRedux: true,
     },
@@ -30,18 +32,23 @@ test('should render', () => {
 });
 
 test('should render the config link text', () => {
-  render(<FilterConfigurationLink>Config link</FilterConfigurationLink>, {
-    useRedux: true,
-  });
+  render(
+    <MemoizedFilterConfigurationLink>
+      Config link
+    </MemoizedFilterConfigurationLink>,
+    {
+      useRedux: true,
+    },
+  );
   expect(screen.getByText('Config link')).toBeInTheDocument();
 });
 
 test('should render the modal on click', () => {
   const showModal = jest.fn();
   render(
-    <FilterConfigurationLink onClick={showModal}>
+    <MemoizedFilterConfigurationLink onClick={showModal}>
       Config link
-    </FilterConfigurationLink>,
+    </MemoizedFilterConfigurationLink>,
     {
       useRedux: true,
     },

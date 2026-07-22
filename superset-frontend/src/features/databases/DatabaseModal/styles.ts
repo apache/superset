@@ -205,7 +205,7 @@ export const formStyles = (theme: SupersetTheme) => css`
     font-size: ${theme.fontSizeSM}px;
     margin-top: ${theme.sizeUnit * 1.5}px;
   }
-  .ant-tabs-content-holder {
+  .ant-tabs-body-holder {
     overflow: auto;
     max-height: 480px;
   }
@@ -536,10 +536,6 @@ export const StyledCatalogTable = styled.div`
 export const StyledUploadWrapper = styled.div`
   margin: ${({ theme }) => theme.sizeUnit * 4}px;
   .ant-progress-inner {
-    display: none;
-  }
-
-  .ant-upload-list-item-card-actions {
     display: none;
   }
 `;
