@@ -21,6 +21,7 @@ from sqlalchemy import types
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
+from superset.sql.parse import RLSMethod
 
 
 class KylinEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
@@ -28,6 +29,8 @@ class KylinEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
     engine = "kylin"
     engine_name = "Apache Kylin"
+
+    rls_method = RLSMethod.AS_PREDICATE_SPLICE
 
     metadata = {
         "description": "Apache Kylin is an open-source OLAP engine for big data.",

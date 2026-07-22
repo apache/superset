@@ -28,7 +28,7 @@ from superset.db_engine_specs.exceptions import (
     SupersetDBAPIOperationalError,
     SupersetDBAPIProgrammingError,
 )
-from superset.sql.parse import LimitMethod
+from superset.sql.parse import LimitMethod, RLSMethod
 from superset.utils.core import GenericDataType
 
 
@@ -40,6 +40,7 @@ class KustoSqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     allows_joins = True
     allows_subqueries = True
     allows_sql_comments = False
+    rls_method = RLSMethod.AS_PREDICATE_SPLICE
 
     metadata = {
         "description": (
