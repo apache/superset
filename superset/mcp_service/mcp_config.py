@@ -96,10 +96,20 @@ MCP_DISABLED_TOOLS: set[str] = set()
 # request. See PRODUCTION.md "Error Tracking" for a Sentry wiring example.
 #
 # Signature: hook(error: Exception, context: dict[str, Any]) -> None
-# ``context`` includes "tool_name", "mcp_call_id", "user_id", "error_type",
-# "sanitized_message", and "duration_ms". Exceptions raised by the hook
-# itself are caught and logged as a warning; they never affect the MCP
-# response.
+# ``context`` always contains the keys "tool_name", "mcp_call_id",
+# "user_id", "error_type", "sanitized_message", and "duration_ms"; on the
+# last-resort capture path (StructuredContentStripperMiddleware) "user_id"
+# and "duration_ms" are None. Only "sanitized_message" is scrubbed — the
+# ``error`` argument is the RAW exception and may contain sensitive data
+# (connection strings, tokens); sanitize it before exporting, or report
+# "sanitized_message" instead.
+#
+# The hook runs SYNCHRONOUSLY on the asyncio event loop, so a blocking hook
+# stalls all in-flight tool handling. Do not perform network I/O inline;
+# hand the event to a background transport (the Sentry SDK's
+# capture_exception already queues to a worker thread). Exceptions raised
+# by the hook itself are caught and logged as a warning; they never affect
+# the MCP response.
 MCP_ERROR_HOOK: Callable[[Exception, dict[str, Any]], None] | None = None
 
 # =============================================================================

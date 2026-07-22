@@ -34,6 +34,7 @@ import pytest
 from fastmcp.exceptions import ToolError
 from fastmcp.tools.tool import ToolResult
 from mcp import types as mt
+from sqlalchemy.exc import OperationalError
 
 from superset.mcp_service.middleware import LoggingMiddleware
 
@@ -673,7 +674,8 @@ class TestOnCallToolErrorTypeExtraction:
 
 class TestOnCallToolStatsMetrics:
     """Tests that on_call_tool emits per-tool StatsD counters and timing,
-    mirroring the success/warning/error split in base_api.py."""
+    mirroring the success/warning/error split in base_api.py. This is the
+    single emission point — GlobalErrorHandlerMiddleware must not emit."""
 
     @patch("superset.mcp_service.middleware.stats_logger_manager")
     @patch("superset.mcp_service.middleware.event_logger")
@@ -699,9 +701,11 @@ class TestOnCallToolStatsMetrics:
     @patch("superset.mcp_service.middleware.event_logger")
     @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
     @pytest.mark.asyncio
-    async def test_emits_error_counter_on_exception(
+    async def test_emits_warning_counter_for_raised_user_error(
         self, mock_get_user_id, mock_event_logger, mock_stats
     ) -> None:
+        """A raised user-class error (ValueError) counts as warning,
+        matching base_api.py's 4xx handling."""
         middleware = LoggingMiddleware()
         ctx = _make_context(name="execute_sql")
         call_next = AsyncMock(side_effect=ValueError("boom"))
@@ -709,7 +713,47 @@ class TestOnCallToolStatsMetrics:
         with pytest.raises(ValueError, match="boom"):
             await middleware.on_call_tool(ctx, call_next)
 
+        mock_stats.instance.incr.assert_called_once_with("mcp.tool.execute_sql.warning")
+
+    @patch("superset.mcp_service.middleware.stats_logger_manager")
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_emits_error_counter_for_raised_system_error(
+        self, mock_get_user_id, mock_event_logger, mock_stats
+    ) -> None:
+        """A raised system-class error (RuntimeError) counts as error."""
+        middleware = LoggingMiddleware()
+        ctx = _make_context(name="execute_sql")
+        call_next = AsyncMock(side_effect=RuntimeError("db down"))
+
+        with pytest.raises(RuntimeError, match="db down"):
+            await middleware.on_call_tool(ctx, call_next)
+
         mock_stats.instance.incr.assert_called_once_with("mcp.tool.execute_sql.error")
+
+    @patch("superset.mcp_service.middleware.stats_logger_manager")
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_unwraps_tool_error_cause_for_classification(
+        self, mock_get_user_id, mock_event_logger, mock_stats
+    ) -> None:
+        """A ToolError wrapping a system error (as raised by
+        GlobalErrorHandlerMiddleware via ``raise ... from error``) must be
+        classified by its __cause__, not by the ToolError wrapper."""
+        middleware = LoggingMiddleware()
+        ctx = _make_context(name="execute_sql")
+        wrapped = ToolError("Database error in execute_sql")
+        wrapped.__cause__ = OperationalError("db error", {}, Exception())
+        call_next = AsyncMock(side_effect=wrapped)
+
+        with pytest.raises(ToolError):
+            await middleware.on_call_tool(ctx, call_next)
+
+        mock_stats.instance.incr.assert_called_once_with("mcp.tool.execute_sql.error")
+        payload = mock_event_logger.log.call_args[1]["curated_payload"]
+        assert payload["error_type"] == "OperationalError"
 
     @patch("superset.mcp_service.middleware.stats_logger_manager")
     @patch("superset.mcp_service.middleware.event_logger")
@@ -759,6 +803,183 @@ class TestOnCallToolStatsMetrics:
         mock_stats.instance.incr.assert_called_once_with(
             "mcp.tool.list_datasets.success"
         )
+
+
+class TestResolveMetricToolName:
+    """Tests for the StatsD metric-key validation in
+    _resolve_metric_tool_name — client-controlled tool names must never
+    reach a metric key unvalidated."""
+
+    @pytest.mark.asyncio
+    async def test_registered_tool_name_is_used(self) -> None:
+        """A name that resolves in the FastMCP tool registry is used."""
+        ctx = _make_context()
+        ctx.fastmcp_context.fastmcp.get_tool = AsyncMock(return_value=MagicMock())
+
+        result = await LoggingMiddleware._resolve_metric_tool_name(
+            ctx, "call_tool", "list_datasets"
+        )
+
+        assert result == "list_datasets"
+        ctx.fastmcp_context.fastmcp.get_tool.assert_awaited_once_with("list_datasets")
+
+    @pytest.mark.asyncio
+    async def test_unregistered_proxy_name_falls_back_to_call_tool(self) -> None:
+        """A bogus call_tool proxy name must not mint a new metric series."""
+        ctx = _make_context()
+        ctx.fastmcp_context.fastmcp.get_tool = AsyncMock(return_value=None)
+
+        result = await LoggingMiddleware._resolve_metric_tool_name(
+            ctx, "call_tool", "totally_fake_tool_9000"
+        )
+
+        assert result == "call_tool"
+
+    @pytest.mark.asyncio
+    async def test_unregistered_direct_name_falls_back_to_unknown(self) -> None:
+        """A bogus direct tool name must not mint a new metric series."""
+        ctx = _make_context()
+        ctx.fastmcp_context.fastmcp.get_tool = AsyncMock(return_value=None)
+
+        result = await LoggingMiddleware._resolve_metric_tool_name(
+            ctx, "totally_fake_tool_9000", None
+        )
+
+        assert result == "unknown"
+
+    @pytest.mark.asyncio
+    async def test_registry_raise_treated_as_unregistered(self) -> None:
+        """get_tool raising (NotFoundError-style) means unregistered."""
+        ctx = _make_context()
+        ctx.fastmcp_context.fastmcp.get_tool = AsyncMock(
+            side_effect=KeyError("not found")
+        )
+
+        result = await LoggingMiddleware._resolve_metric_tool_name(
+            ctx, "call_tool", "totally_fake_tool_9000"
+        )
+
+        assert result == "call_tool"
+
+    @pytest.mark.asyncio
+    async def test_injection_shaped_name_rejected_without_registry(self) -> None:
+        """With no registry reachable (mocked context), StatsD metadata
+        characters must still never reach the metric key."""
+        ctx = _make_context()  # plain MagicMock — get_tool is not awaitable
+
+        result = await LoggingMiddleware._resolve_metric_tool_name(
+            ctx, "call_tool", "evil\nfake.metric:1|c"
+        )
+
+        assert result == "call_tool"
+
+    @pytest.mark.asyncio
+    async def test_overlong_name_rejected_without_registry(self) -> None:
+        ctx = _make_context()
+
+        result = await LoggingMiddleware._resolve_metric_tool_name(ctx, "x" * 500, None)
+
+        assert result == "unknown"
+
+    @pytest.mark.asyncio
+    async def test_missing_name_returns_unknown(self) -> None:
+        ctx = _make_context()
+
+        assert (
+            await LoggingMiddleware._resolve_metric_tool_name(ctx, None, None)
+            == "unknown"
+        )
+
+
+class TestChainLevelStatsMetrics:
+    """Drive failures through the REAL middleware chain from
+    build_middleware_list() and assert the exact set of stats calls —
+    pins that per-tool outcome counters are emitted exactly once per call
+    (no double-counting between LoggingMiddleware and
+    GlobalErrorHandlerMiddleware)."""
+
+    @patch("superset.mcp_service.middleware.stats_logger_manager")
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_raised_user_error_counts_warning_exactly_once(
+        self, mock_get_user_id, mock_event_logger, mock_stats
+    ) -> None:
+        from superset.mcp_service.server import build_middleware_list
+
+        middleware_list = build_middleware_list()
+
+        async def failing_tool(context: Any) -> Any:
+            raise ValueError("chart not found")
+
+        chain = failing_tool
+        for mw in reversed(middleware_list):
+            chain = partial(mw, call_next=chain)
+
+        ctx = _make_context(name="get_chart_info")
+        result = await chain(ctx)
+
+        # Stripper (outermost) converts the ToolError to a safe ToolResult
+        assert isinstance(result, ToolResult)
+        assert result.content[0].text.startswith("Error:")
+
+        # Exactly ONE outcome counter for the whole chain: ValueError is a
+        # user error, classified via the ToolError __cause__ unwrap.
+        incr_keys = [c.args[0] for c in mock_stats.instance.incr.call_args_list]
+        assert incr_keys == ["mcp.tool.get_chart_info.warning"]
+        timing_keys = [c.args[0] for c in mock_stats.instance.timing.call_args_list]
+        assert timing_keys == ["mcp.tool.get_chart_info.time"]
+
+    @patch("superset.mcp_service.middleware.stats_logger_manager")
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_raised_system_error_counts_error_exactly_once(
+        self, mock_get_user_id, mock_event_logger, mock_stats
+    ) -> None:
+        from superset.mcp_service.server import build_middleware_list
+
+        middleware_list = build_middleware_list()
+
+        async def failing_tool(context: Any) -> Any:
+            raise RuntimeError("infrastructure down")
+
+        chain = failing_tool
+        for mw in reversed(middleware_list):
+            chain = partial(mw, call_next=chain)
+
+        ctx = _make_context(name="execute_sql")
+        result = await chain(ctx)
+
+        assert isinstance(result, ToolResult)
+        assert result.content[0].text.startswith("Error:")
+
+        incr_keys = [c.args[0] for c in mock_stats.instance.incr.call_args_list]
+        assert incr_keys == ["mcp.tool.execute_sql.error"]
+
+    @patch("superset.mcp_service.middleware.stats_logger_manager")
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_success_counts_success_exactly_once(
+        self, mock_get_user_id, mock_event_logger, mock_stats
+    ) -> None:
+        from superset.mcp_service.server import build_middleware_list
+
+        middleware_list = build_middleware_list()
+
+        async def ok_tool(context: Any) -> Any:
+            return ToolResult(content=[mt.TextContent(type="text", text="ok")])
+
+        chain = ok_tool
+        for mw in reversed(middleware_list):
+            chain = partial(mw, call_next=chain)
+
+        ctx = _make_context(name="list_charts")
+        await chain(ctx)
+
+        incr_keys = [c.args[0] for c in mock_stats.instance.incr.call_args_list]
+        assert incr_keys == ["mcp.tool.list_charts.success"]
 
 
 class TestAppContextFixForAuditRows:

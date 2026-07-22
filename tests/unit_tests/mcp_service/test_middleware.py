@@ -1338,12 +1338,13 @@ class TestRBACToolVisibilityMiddleware:
 
 
 class TestGlobalErrorHandlerStatsMetrics:
-    """Test that _handle_error emits per-tool error counters, split
-    user (warning) vs system (error) — mirrors base_api.py's
-    success/warning/error split."""
+    """GlobalErrorHandlerMiddleware must NOT emit per-tool outcome
+    counters: it re-raises every failure as ToolError, which the outer
+    LoggingMiddleware catches and counts (classified via __cause__).
+    Emitting here as well would double-count raised errors."""
 
     @pytest.mark.asyncio
-    async def test_emits_error_counter_for_system_error(self) -> None:
+    async def test_no_stats_emitted_for_system_error(self) -> None:
         middleware = GlobalErrorHandlerMiddleware()
         context = MagicMock()
         context.message.name = "execute_sql"
@@ -1358,10 +1359,11 @@ class TestGlobalErrorHandlerStatsMetrics:
         ):
             await middleware.on_message(context, call_next)
 
-        mock_stats.instance.incr.assert_called_once_with("mcp.tool.execute_sql.error")
+        mock_stats.instance.incr.assert_not_called()
+        mock_stats.instance.timing.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_emits_warning_counter_for_user_error(self) -> None:
+    async def test_no_stats_emitted_for_user_error(self) -> None:
         middleware = GlobalErrorHandlerMiddleware()
         context = MagicMock()
         context.message.name = "list_charts"
@@ -1376,7 +1378,8 @@ class TestGlobalErrorHandlerStatsMetrics:
         ):
             await middleware.on_message(context, call_next)
 
-        mock_stats.instance.incr.assert_called_once_with("mcp.tool.list_charts.warning")
+        mock_stats.instance.incr.assert_not_called()
+        mock_stats.instance.timing.assert_not_called()
 
 
 class TestGlobalErrorHandlerErrorHook:
@@ -1563,6 +1566,19 @@ class TestStructuredContentStripperErrorHook:
         hook_error, hook_context = mock_hook.call_args[0]
         assert isinstance(hook_error, RuntimeError)
         assert hook_context["tool_name"] == "list_charts"
+        # The context contract: all keys always present, even on the
+        # last-resort path where user_id/duration_ms are unknown.
+        assert set(hook_context) == {
+            "tool_name",
+            "mcp_call_id",
+            "user_id",
+            "error_type",
+            "sanitized_message",
+            "duration_ms",
+        }
+        assert hook_context["user_id"] is None
+        assert hook_context["duration_ms"] is None
+        assert hook_context["error_type"] == "RuntimeError"
 
     @pytest.mark.asyncio
     async def test_does_not_double_invoke_hook_for_tool_error(self) -> None:

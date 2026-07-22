@@ -893,6 +893,12 @@ async def get_chart_data(  # noqa: C901
                 )
             )
 
+        except (OAuth2RedirectError, OAuth2Error):
+            # OAuth errors subclass SupersetException and would otherwise be
+            # swallowed by the generic handler below; re-raise so the
+            # dedicated outer handlers return the OAuth redirect message
+            # instead of a generic DataError.
+            raise
         except (CommandException, SupersetException, ValueError) as data_error:
             await ctx.error(
                 "Data retrieval failed: chart_id=%s, error=%s, error_type=%s"

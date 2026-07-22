@@ -240,11 +240,14 @@ sentry_sdk.init(
 def _mcp_error_hook(error: Exception, context: dict) -> None:
     """Forward system-class MCP tool errors to Sentry.
 
-    ``context`` includes tool_name, mcp_call_id, user_id, error_type,
-    sanitized_message, and duration_ms — already sanitized by the MCP
-    service before this hook runs.
+    ``context`` always contains tool_name, mcp_call_id, user_id,
+    error_type, sanitized_message, and duration_ms (user_id and
+    duration_ms are None on the last-resort capture path). Note that
+    ``error`` is the RAW exception — only ``sanitized_message`` has been
+    scrubbed — so scrub the event (e.g. Sentry's ``before_send``) if your
+    tracker must not receive connection strings or tokens.
     """
-    with sentry_sdk.push_scope() as scope:
+    with sentry_sdk.new_scope() as scope:
         scope.set_tag("mcp.tool", context.get("tool_name"))
         scope.set_tag("mcp.call_id", context.get("mcp_call_id"))
         scope.set_user({"id": context.get("user_id")})
@@ -259,6 +262,11 @@ capture point, for every system-class error) and from
 `StructuredContentStripperMiddleware`'s last-resort exception handler (for
 errors that slip past the primary handler entirely). Hook failures are
 caught and logged; they never affect the MCP response.
+
+The hook runs synchronously on the asyncio event loop, so a blocking hook
+stalls all in-flight tool handling — hand events to a background transport
+rather than doing network I/O inline. The Sentry SDK already does this:
+`capture_exception` enqueues to a background worker.
 
 **Metrics Export (Prometheus)**:
 
