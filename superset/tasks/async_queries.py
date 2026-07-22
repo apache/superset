@@ -106,7 +106,18 @@ def load_chart_data_into_cache(
                 result_url=result_url,
             )
         except SoftTimeLimitExceeded as ex:
-            logger.warning("A timeout occurred while loading chart data, error: %s", ex)
+            # SoftTimeLimitExceeded is raised both by a genuine timeout and by a
+            # user-initiated cancel (revoke sends SIGUSR1). Emit the matching
+            # terminal event so a cancelled job is reported as cancelled.
+            if async_query_manager.is_job_cancelled(job_metadata["job_id"]):
+                logger.info("Chart data load was cancelled by the user")
+                async_query_manager.update_job(
+                    job_metadata, async_query_manager.STATUS_CANCELLED
+                )
+            else:
+                logger.warning(
+                    "A timeout occurred while loading chart data, error: %s", ex
+                )
             raise
         except Exception as ex:
             # Extract SIP-40 style errors when available

@@ -130,6 +130,44 @@ describe('asyncEvent middleware', () => {
       expect(fetchMock.callHistory.calls(CACHED_DATA_ENDPOINT)).toHaveLength(1);
     });
 
+    test('rejects with an AbortError and cancels the job when the signal aborts', async () => {
+      const CANCEL_ENDPOINT = 'glob:*/api/v1/async_event/*/cancel';
+      fetchMock.post(CANCEL_ENDPOINT, { status: 200, body: {} });
+
+      const controller = new AbortController();
+      const promise = asyncEvent.waitForAsyncData(
+        asyncPendingEvent,
+        controller.signal,
+      );
+      controller.abort();
+
+      let error: any = null;
+      try {
+        await promise;
+      } catch (err) {
+        error = err;
+      }
+      expect(error?.name).toBe('AbortError');
+      // The cancel POST is fire-and-forget; let its microtask flush.
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(fetchMock.callHistory.calls(CANCEL_ENDPOINT)).toHaveLength(1);
+    });
+
+    test('rejects immediately when given an already-aborted signal', async () => {
+      const CANCEL_ENDPOINT = 'glob:*/api/v1/async_event/*/cancel';
+      fetchMock.post(CANCEL_ENDPOINT, { status: 200, body: {} });
+
+      const controller = new AbortController();
+      controller.abort();
+
+      await expect(
+        asyncEvent.waitForAsyncData(asyncPendingEvent, controller.signal),
+      ).rejects.toMatchObject({ name: 'AbortError' });
+      // The cancel POST is fire-and-forget; let its microtask flush.
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(fetchMock.callHistory.calls(CANCEL_ENDPOINT)).toHaveLength(1);
+    });
+
     test('rejects on event error status', async () => {
       fetchMock.clearHistory().removeRoutes();
       fetchMock.get(EVENTS_ENDPOINT, {

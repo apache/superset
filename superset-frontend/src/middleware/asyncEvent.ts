@@ -102,9 +102,38 @@ const fetchCachedData = async (
   return { status, data };
 };
 
-export const waitForAsyncData = async (asyncResponse: AsyncEvent) =>
+const cancelAsyncJob = (jobId: string) => {
+  // Best-effort server-side cancel; the request stops the running Celery task
+  // so it no longer consumes warehouse resources. Failures are non-fatal: the
+  // client has already stopped waiting on the job.
+  SupersetClient.post({
+    endpoint: `/api/v1/async_event/${jobId}/cancel`,
+  }).catch(() => {});
+};
+
+export const waitForAsyncData = async (
+  asyncResponse: AsyncEvent,
+  signal?: AbortSignal,
+) =>
   new Promise((resolve, reject) => {
     const jobId = asyncResponse.job_id;
+
+    const onAbort = () => {
+      // Stop listening for this job and ask the server to cancel it, then
+      // reject with an AbortError so callers treat this like a fetch abort.
+      removeListener(jobId);
+      cancelAsyncJob(jobId);
+      reject(new DOMException('The user aborted a request.', 'AbortError'));
+    };
+
+    if (signal) {
+      if (signal.aborted) {
+        onAbort();
+        return;
+      }
+      signal.addEventListener('abort', onAbort, { once: true });
+    }
+
     const listener = async (asyncEvent: AsyncEvent) => {
       switch (asyncEvent.status) {
         case JOB_STATUS.DONE: {
@@ -126,6 +155,7 @@ export const waitForAsyncData = async (asyncResponse: AsyncEvent) =>
           logging.warn('received event with status', asyncEvent.status);
         }
       }
+      signal?.removeEventListener('abort', onAbort);
       removeListener(jobId);
     };
     addListener(jobId, listener);

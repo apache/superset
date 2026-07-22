@@ -24,6 +24,7 @@ from pytest import fixture, mark, raises  # noqa: PT013
 
 from superset import security_manager
 from superset.async_events.async_query_manager import (
+    AsyncQueryJobException,
     AsyncQueryManager,
     AsyncQueryTokenException,
 )
@@ -31,6 +32,7 @@ from superset.async_events.cache_backend import (
     RedisCacheBackend,
     RedisSentinelCacheBackend,
 )
+from superset.utils import json
 
 JWT_TOKEN_SECRET = "some_secret"  # noqa: S105
 JWT_TOKEN_COOKIE_NAME = "superset_async_jwt"  # noqa: S105
@@ -268,6 +270,7 @@ def test_submit_chart_data_job_as_guest_user(
             },
             {},
         ],
+        task_id=ANY,
         expires=3600,
     )
 
@@ -376,7 +379,138 @@ def test_submit_explore_json_job_as_guest_user(
             "json",
             False,
         ],
+        task_id=ANY,
         expires=3600,
     )
 
     assert "guest_token" not in job_meta
+
+
+@fixture
+def cancellable_manager():
+    """A manager wired to a mock Redis backend for cancellation tests."""
+    manager = AsyncQueryManager()
+    manager._jwt_expiration_seconds = 3600
+    manager._stream_prefix = "async-events-"
+    manager._cache = mock.Mock(spec=RedisCacheBackend)
+    return manager
+
+
+def test_init_job_registers_cancellable_record(cancellable_manager):
+    """init_job persists the owner identity a later cancel must match."""
+    cancellable_manager.init_job("chan-1", 7)
+
+    cancellable_manager._cache.set.assert_called_once()
+    key, value = cancellable_manager._cache.set.call_args.args
+    assert key.startswith("async-events-job-cancel:")
+    assert json.loads(value) == {"channel_id": "chan-1", "user_id": 7}
+
+
+def test_cancel_job_authorized_revokes_task(cancellable_manager):
+    cancellable_manager._cache.get.return_value = json.dumps(
+        {"channel_id": "chan-1", "user_id": 7}
+    )
+    cancellable_manager._cache.set.return_value = True
+
+    with mock.patch("superset.extensions.celery_app") as celery_app:
+        cancellable_manager.cancel_job("job-1", "chan-1", 7)
+
+    celery_app.control.revoke.assert_called_once_with(
+        "job-1", terminate=True, signal="SIGUSR1"
+    )
+    # The job is flagged cancelled (conditionally, xx=True) so the worker emits
+    # STATUS_CANCELLED.
+    assert cancellable_manager._cache.set.call_args.kwargs["xx"] is True
+    flagged = json.loads(cancellable_manager._cache.set.call_args.args[1])
+    assert flagged["cancelled"] is True
+
+
+def test_cancel_job_completed_between_read_and_flag(cancellable_manager):
+    """If the job's record is cleared after the auth read, don't revoke."""
+    cancellable_manager._cache.get.return_value = json.dumps(
+        {"channel_id": "chan-1", "user_id": 7}
+    )
+    # Conditional (xx) write finds no key: the job finished and cleaned up.
+    cancellable_manager._cache.set.return_value = None
+
+    with (
+        mock.patch("superset.extensions.celery_app") as celery_app,
+        raises(AsyncQueryJobException),
+    ):
+        cancellable_manager.cancel_job("job-1", "chan-1", 7)
+
+    celery_app.control.revoke.assert_not_called()
+
+
+def test_cancel_job_wrong_user_is_rejected(cancellable_manager):
+    cancellable_manager._cache.get.return_value = json.dumps(
+        {"channel_id": "chan-1", "user_id": 7}
+    )
+
+    with (
+        mock.patch("superset.extensions.celery_app") as celery_app,
+        raises(AsyncQueryTokenException),
+    ):
+        cancellable_manager.cancel_job("job-1", "chan-1", 999)
+
+    celery_app.control.revoke.assert_not_called()
+
+
+def test_cancel_job_wrong_channel_is_rejected(cancellable_manager):
+    """A matching user on a different channel still cannot cancel the job."""
+    cancellable_manager._cache.get.return_value = json.dumps(
+        {"channel_id": "chan-1", "user_id": 7}
+    )
+
+    with (
+        mock.patch("superset.extensions.celery_app") as celery_app,
+        raises(AsyncQueryTokenException),
+    ):
+        cancellable_manager.cancel_job("job-1", "other-chan", 7)
+
+    celery_app.control.revoke.assert_not_called()
+
+
+def test_cancel_job_unknown_raises(cancellable_manager):
+    cancellable_manager._cache.get.return_value = None
+
+    with (
+        mock.patch("superset.extensions.celery_app") as celery_app,
+        raises(AsyncQueryJobException),
+    ):
+        cancellable_manager.cancel_job("job-1", "chan-1", 7)
+
+    celery_app.control.revoke.assert_not_called()
+
+
+def test_is_job_cancelled(cancellable_manager):
+    cancellable_manager._cache.get.return_value = json.dumps(
+        {"channel_id": "chan-1", "user_id": 7, "cancelled": True}
+    )
+    assert cancellable_manager.is_job_cancelled("job-1") is True
+
+    cancellable_manager._cache.get.return_value = json.dumps(
+        {"channel_id": "chan-1", "user_id": 7}
+    )
+    assert cancellable_manager.is_job_cancelled("job-1") is False
+
+    cancellable_manager._cache.get.return_value = None
+    assert cancellable_manager.is_job_cancelled("job-1") is False
+
+
+def test_is_job_cancelled_swallows_cache_errors(cancellable_manager):
+    """A cache failure must not escape and mask the worker's original error."""
+    cancellable_manager._cache.get.side_effect = RuntimeError("redis down")
+    assert cancellable_manager.is_job_cancelled("job-1") is False
+
+
+def test_update_job_clears_registry_on_terminal_status(cancellable_manager):
+    cancellable_manager._stream_limit = 100
+    cancellable_manager._stream_limit_firehose = 1000
+    job_metadata = {"channel_id": "chan-1", "job_id": "job-1", "user_id": 7}
+
+    cancellable_manager.update_job(job_metadata, AsyncQueryManager.STATUS_DONE)
+
+    cancellable_manager._cache.delete.assert_called_once_with(
+        "async-events-job-cancel:job-1"
+    )
