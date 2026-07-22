@@ -91,6 +91,7 @@ from superset.mcp_service.common.cache_schemas import (
     EditedByMeMixin,
     MetadataCacheControl,
 )
+from superset.mcp_service.common.time_range_validation import validate_time_range
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.privacy import (
     filter_user_directory_fields,
@@ -2337,6 +2338,11 @@ class FilterTimeSpec(BaseNewFilterSpec):
         ),
     )
 
+    @field_validator("default_time_range")
+    @classmethod
+    def _validate_default_time_range(cls, v: str | None) -> str | None:
+        return validate_time_range(v)
+
 
 NewNativeFilterSpec = Annotated[
     FilterSelectSpec | FilterTimeSpec,
@@ -2387,6 +2393,11 @@ class NativeFilterUpdateSpec(BaseModel):
             "scope. All IDs must belong to charts on the dashboard."
         ),
     )
+
+    @field_validator("default_time_range")
+    @classmethod
+    def _validate_default_time_range(cls, v: str | None) -> str | None:
+        return validate_time_range(v)
 
 
 class ManageNativeFiltersRequest(BaseModel):

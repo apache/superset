@@ -1070,6 +1070,36 @@ class TestQueryDatasetBracketShorthandNormalization:
         assert req.time_range is None
 
 
+class TestQueryDatasetTimeRangeValidation:
+    """QueryDatasetRequest.time_range rejects values get_since_until()
+    would otherwise silently resolve to an unbounded, full-table range.
+
+    See SC-114824: shared validator in
+    superset.mcp_service.common.time_range_validation. Complements
+    TestQueryDatasetBracketShorthandNormalization above, which only
+    covers the eight recognized bracket tokens -- this class covers the
+    open class of previously-silent, non-bracket values the shared
+    validator now rejects.
+    """
+
+    @pytest.mark.parametrize(
+        "bad_value",
+        ["banana", "this week", "this month", "last week", "yesterday", "[decade]"],
+    )
+    def test_previously_silent_values_now_raise(self, bad_value: str) -> None:
+        """These values used to silently return an unfiltered, full-table
+        result (empty warnings, success: true). They must now raise a
+        ValidationError instead."""
+        from pydantic import ValidationError
+
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        with pytest.raises(ValidationError, match="Unrecognized time_range"):
+            QueryDatasetRequest.model_validate(
+                {"dataset_id": 1, "metrics": ["count"], "time_range": bad_value}
+            )
+
+
 @pytest.mark.asyncio
 async def test_query_dataset_bracket_year_resolves_without_parse_error(
     mcp_server: FastMCP,
