@@ -30,7 +30,7 @@ import AutoSizer from 'react-virtualized-auto-sizer';
 import { shallowEqual, useSelector } from 'react-redux';
 import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import { useHistory } from 'react-router-dom';
-import { pick } from 'lodash-es';
+import { isEqual, pick, uniqWith } from 'lodash-es';
 import {
   Button,
   ButtonGroup,
@@ -618,7 +618,13 @@ const ResultSet = ({
   }
 
   if (query.state === QueryState.Failed) {
-    const errors = [...(query.extra?.errors || []), ...(query.errors || [])];
+    // `query.extra.errors` (from the async poll payload) and `query.errors`
+    // (from the queryFailed action) can hold the same error, so dedupe to
+    // avoid rendering the failure message twice.
+    const errors = uniqWith(
+      [...(query.extra?.errors || []), ...(query.errors || [])],
+      isEqual,
+    );
 
     return (
       <ResultlessStyles>

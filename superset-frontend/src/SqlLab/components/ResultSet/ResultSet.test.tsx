@@ -355,6 +355,41 @@ describe('ResultSet', () => {
     expect(errorMessages).toHaveLength(errors.length);
   });
 
+  test('should not duplicate errors present in both errors and extra.errors', async () => {
+    // Async query failures populate `extra.errors` (from the poll payload) and
+    // `errors` (from the queryFailed action) with the same error object; the
+    // failure message should still be rendered only once.
+    const error = {
+      message: 'Something went wrong',
+      error_type: 'TEST_ERROR',
+      level: 'error',
+      extra: null,
+    };
+    const duplicatedErrorQuery = {
+      ...failedQueryWithErrors,
+      errors: [error],
+      extra: { errors: [error] },
+    };
+    const duplicatedErrorState = {
+      ...initialState,
+      sqlLab: {
+        ...initialState.sqlLab,
+        queries: {
+          [duplicatedErrorQuery.id]: duplicatedErrorQuery,
+        },
+      },
+    };
+
+    await waitFor(() => {
+      setup(
+        { ...mockedProps, queryId: duplicatedErrorQuery.id },
+        mockStore(duplicatedErrorState),
+      );
+    });
+    const errorMessages = screen.getAllByTestId('error-message');
+    expect(errorMessages).toHaveLength(1);
+  });
+
   test('should render a timeout error with a retrial button', async () => {
     await waitFor(() => {
       setup(
