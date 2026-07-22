@@ -104,11 +104,10 @@ export default function Login() {
   );
 
   const buildProviderLoginUrl = (providerName: string) => {
-    const base = `/login/${providerName}`;
-    const url = nextUrl
-      ? `${base}${base.includes('?') ? '&' : '?'}next=${encodeURIComponent(nextUrl)}`
-      : base;
-    return ensureAppRoot(url);
+    const base = `/login/${encodeURIComponent(providerName)}`;
+    return ensureAppRoot(
+      nextUrl ? `${base}?next=${encodeURIComponent(nextUrl)}` : base,
+    );
   };
 
   const authType: AuthType = bootstrapData.common.conf.AUTH_TYPE;

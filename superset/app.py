@@ -81,12 +81,14 @@ def create_app(
             # value of app_root so things work out of the box
             if not app.config["STATIC_ASSETS_PREFIX"]:
                 app.config["STATIC_ASSETS_PREFIX"] = app_root
-            # Prefix APP_ICON path with subdirectory root for subdirectory deployments
-            if (
-                app.config.get("APP_ICON", "").startswith("/static/")
-                and app_root != "/"
-            ):
-                app.config["APP_ICON"] = f"{app_root}{app.config['APP_ICON']}"
+            # Prefix APP_ICON with the static assets prefix so the brand logo
+            # resolves in subdirectory and CDN deployments alike. Using
+            # STATIC_ASSETS_PREFIX (which defaults to app_root just above)
+            # honours a custom CDN/static prefix when the operator sets one.
+            if app.config.get("APP_ICON", "").startswith("/static/"):
+                app.config["APP_ICON"] = (
+                    f"{app.config['STATIC_ASSETS_PREFIX']}{app.config['APP_ICON']}"
+                )
             if app.config["APPLICATION_ROOT"] == "/":
                 app.config["APPLICATION_ROOT"] = app_root
 
