@@ -897,13 +897,15 @@ class UpdateDashboardRequest(BaseModel):
             "all custom tags. Omit (None) to leave tags unchanged."
         ),
     )
-    owners: List[int] | None = Field(
+    editors: List[int] | None = Field(
         None,
         description=(
-            "Optional FULL-REPLACEMENT list of owner user IDs for the "
-            "dashboard. Discover IDs with ``list_users``. An empty list clears "
-            "all owners. Omit (None) to leave owners unchanged. Editorship is "
-            "still enforced: only current owners or an Admin may change owners."
+            "Optional FULL-REPLACEMENT list of user IDs to set as the "
+            "dashboard's editors (the users allowed to edit it). Discover IDs "
+            "with ``list_users``. An empty list clears editors, except a "
+            "non-admin caller who currently edits the dashboard is retained to "
+            "prevent lockout. Omit (None) to leave editors unchanged. Requires "
+            "editorship: only current editors or an Admin may change editors."
         ),
     )
     cross_filters_enabled: bool | None = Field(

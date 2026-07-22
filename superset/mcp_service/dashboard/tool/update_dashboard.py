@@ -164,71 +164,82 @@ def _collect_metadata_overrides(request: UpdateDashboardRequest) -> dict[str, An
     return overrides
 
 
-def _resolve_owners(owner_ids: list[int]) -> tuple[list[Any], list[int]]:
-    """Resolve owner user IDs to user objects.
-
-    Returns ``(users, missing_ids)``, deduplicating IDs while preserving the
-    caller's order. ``security_manager`` is imported lazily for the same
-    app-context reason as ``_find_and_authorize_dashboard``.
-    """
-    from superset import security_manager
-
-    users: list[Any] = []
-    missing: list[int] = []
-    seen: set[int] = set()
-    for uid in owner_ids:
-        if uid in seen:
-            continue
-        seen.add(uid)
-        user = security_manager.get_user_by_id(uid)
-        if user is None:
-            missing.append(uid)
-        else:
-            users.append(user)
-    return users, missing
-
-
-def _resolve_and_validate_owners(
+def _resolve_and_validate_editors(
+    dashboard: Any,
     request: UpdateDashboardRequest,
 ) -> tuple[list[Any] | None, DashboardError | None]:
-    """Resolve the requested owners exactly once, returning ``(users, error)``.
+    """Resolve the requested editor user IDs to ``Subject`` rows once.
 
-    A ``None`` users result means the request left owners unchanged; an empty
-    list is a valid "clear all owners" request. Resolving here once (rather
-    than again at mutation time) closes the window where a user removed between
-    validation and the write would be silently dropped. Unknown IDs and DB
-    errors are surfaced as structured ``DashboardError`` responses, matching the
-    other pre-flight validations.
+    Returns ``(subjects, error)``. A ``None`` subjects result means the request
+    left editors unchanged. An empty ``editors`` list clears editors, subject to
+    the same no-lockout guard the REST update path uses (a non-admin editing the
+    dashboard is retained so they cannot lock themselves out).
+
+    The ``editors`` relationship holds ``Subject`` rows, not FAB ``User`` rows,
+    and those live in a different ID space than the user IDs ``list_users``
+    returns. User IDs are therefore mapped to their USER subjects with
+    ``get_or_create_user_subject`` (unknown users surface as a structured
+    error), then run through the shared ``compute_subject_list`` helper so
+    lockout and validation semantics stay identical to the REST command. On any
+    failure the session is rolled back to undo subjects that may have been
+    flushed while mapping.
     """
-    if request.owners is None:
+    if request.editors is None:
         return None, None
 
+    from superset.commands.utils import compute_subject_list
+    from superset.subjects.exceptions import SubjectsNotFoundValidationError
+    from superset.subjects.utils import get_or_create_user_subject
+
+    subject_ids: list[int] = []
+    missing: list[int] = []
+    seen: set[int] = set()
     try:
-        users, missing = _resolve_owners(request.owners)
+        for uid in request.editors:
+            if uid in seen:
+                continue
+            seen.add(uid)
+            subject = get_or_create_user_subject(uid)
+            if subject is None:
+                missing.append(uid)
+            else:
+                subject_ids.append(subject.id)
+
+        if missing:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+            return None, DashboardError(
+                error=(
+                    "Unknown user IDs: "
+                    + ", ".join(str(m) for m in missing)
+                    + ". Find valid IDs with list_users."
+                ),
+                error_type="EditorsNotFound",
+            )
+
+        editors = compute_subject_list(
+            dashboard.editors,
+            subject_ids,
+            ensure_no_lockout=True,
+            field_name="editors",
+        )
+    except SubjectsNotFoundValidationError as ex:
+        db.session.rollback()  # pylint: disable=consider-using-transaction
+        return None, DashboardError(error=str(ex), error_type="EditorsNotFound")
     except SQLAlchemyError:
-        logger.warning("Database error during owner validation", exc_info=True)
+        db.session.rollback()  # pylint: disable=consider-using-transaction
+        logger.warning("Database error resolving editors", exc_info=True)
         return None, DashboardError(
-            error="Failed to validate owners due to a database error.",
+            error="Failed to resolve editors due to a database error.",
             error_type="DatabaseError",
         )
 
-    if missing:
-        return None, DashboardError(
-            error=(
-                "Unknown owner user IDs: "
-                + ", ".join(str(m) for m in missing)
-                + ". Find valid IDs with list_users."
-            ),
-            error_type="OwnersNotFound",
-        )
-
-    return users, None
+    return editors, None
 
 
 def _apply_field_updates(
     dashboard: Any,
     request: UpdateDashboardRequest,
-    resolved_owners: list[Any] | None,
+    resolved_editors: list[Any] | None,
 ) -> list[str]:
     """Apply each explicitly-passed field to the dashboard.
 
@@ -236,10 +247,10 @@ def _apply_field_updates(
     in place. ``json_metadata_overrides`` (plus the typed metadata fields) is
     merged shallowly with the existing ``json_metadata``; an empty string in
     ``slug`` or ``css`` clears the underlying value; ``tags`` fully replaces the
-    dashboard's custom tags. ``resolved_owners`` is the already-resolved,
-    already-validated owner list from ``_resolve_and_validate_owners`` (used
-    only when ``request.owners`` is set). Inputs are assumed pre-validated by
-    ``_validate_update_request``.
+    dashboard's custom tags. ``resolved_editors`` is the already-resolved,
+    already-validated ``Subject`` list from ``_resolve_and_validate_editors``
+    (used only when ``request.editors`` is set). Inputs are assumed pre-validated
+    by ``_validate_update_request``.
     """
     changed: list[str] = []
 
@@ -281,13 +292,12 @@ def _apply_field_updates(
         update_tags(ObjectType.dashboard, dashboard.id, dashboard.tags, request.tags)
         changed.append("tags")
 
-    if request.owners is not None:
-        # Full replacement of owners (empty list clears them). The owners were
-        # resolved and validated exactly once by _resolve_and_validate_owners,
-        # so there is no second lookup here that could silently drop a user
-        # removed between validation and this write.
-        dashboard.owners = resolved_owners or []
-        changed.append("owners")
+    if request.editors is not None:
+        # Full replacement of editors (empty list clears them, minus the
+        # no-lockout retention). Subjects were resolved and validated once by
+        # _resolve_and_validate_editors.
+        dashboard.editors = resolved_editors or []
+        changed.append("editors")
 
     return changed
 
@@ -346,9 +356,9 @@ def _validate_update_request(
                 error_type="DatabaseError",
             )
 
-    # Owners are resolved and validated separately by
-    # _resolve_and_validate_owners so the resolution can be reused for the
-    # write without a second lookup.
+    # Editors are resolved and validated separately by
+    # _resolve_and_validate_editors so the User-ID to Subject mapping and the
+    # no-lockout guard can reuse the shared REST helpers.
     return None
 
 
@@ -376,8 +386,9 @@ def update_dashboard(
       - Update ``dashboard_title``, ``description``, ``slug``, ``published``
       - Replace the dashboard's ``tags`` (FULL list of IDs; find them with
         ``list_tags``)
-      - Replace the dashboard's ``owners`` (FULL list of user IDs; find them
-        with ``list_users``). Requires editorship (owner or Admin).
+      - Replace the dashboard's ``editors`` (FULL list of user IDs; find them
+        with ``list_users``). Requires editorship (existing editor or Admin);
+        a non-admin cannot remove themselves (no-lockout guard).
       - Toggle ``cross_filters_enabled``, ``refresh_frequency``, or
         ``filter_bar_orientation`` via typed fields (no need to hand-build
         ``json_metadata_overrides``)
@@ -408,18 +419,18 @@ def update_dashboard(
     if validation_error is not None:
         return validation_error
 
-    # Resolve owners once up front so the same list is used for validation and
-    # the write (no second lookup that could drop a concurrently-removed user).
-    resolved_owners, owners_error = _resolve_and_validate_owners(request)
-    if owners_error is not None:
-        return owners_error
+    # Resolve editor user IDs to Subject rows once, reusing the REST helpers for
+    # the ID mapping and the no-lockout guard.
+    resolved_editors, editors_error = _resolve_and_validate_editors(dashboard, request)
+    if editors_error is not None:
+        return editors_error
 
     changed_fields: list[str] = []
     warnings: list[str] = list(request.sanitization_warnings)
 
     try:
         with event_logger.log_context(action="mcp.update_dashboard.apply"):
-            changed_fields = _apply_field_updates(dashboard, request, resolved_owners)
+            changed_fields = _apply_field_updates(dashboard, request, resolved_editors)
 
             if not changed_fields:
                 warnings.append("No fields provided; dashboard unchanged.")

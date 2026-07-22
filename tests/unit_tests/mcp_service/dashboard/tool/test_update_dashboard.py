@@ -82,7 +82,21 @@ def _mock_dashboard(
     dashboard.editors = []
     dashboard.tags = []
     dashboard.embedded = []
+    dashboard.viewers = []
     return dashboard
+
+
+def _mock_subject(sid: int, label: str = "user") -> Mock:
+    """A Subject mock with the attributes ``serialize_subject_object`` reads,
+    so a dashboard whose ``editors`` are set to these serializes cleanly."""
+    from superset.subjects.models import SubjectType
+
+    subject = Mock()
+    subject.id = sid
+    subject.type = SubjectType.USER
+    subject.label = label
+    subject.active = True
+    return subject
 
 
 class TestUpdateDashboard:
@@ -137,118 +151,139 @@ class TestUpdateDashboard:
         changed = set(payload.get("changed_fields") or [])
         assert {"position_json", "json_metadata", "css"} <= changed
 
-    @patch("superset.security_manager.get_user_by_id")
+    @patch("superset.commands.utils.compute_subject_list")
+    @patch("superset.subjects.utils.get_or_create_user_subject")
     @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
     @patch("superset.extensions.db.session")
     @pytest.mark.asyncio
-    async def test_update_owners_replaces_list(
+    async def test_update_editors_replaces_list(
         self,
         mock_session: Mock,
         mock_get: Mock,
-        mock_get_user: Mock,
+        mock_subject: Mock,
+        mock_compute: Mock,
         mcp_server: object,
     ) -> None:
-        """Owners are fully replaced with the resolved users."""
+        """Editor user IDs map to subjects (different ID space) and land on
+        dashboard.editors via the shared no-lockout helper."""
         dash = _mock_dashboard(id=42)
-        dash.owners = []
+        dash.editors = []
         mock_get.return_value = dash
-        # Every requested ID resolves to a distinct user.
-        mock_get_user.side_effect = lambda uid: Mock(id=uid)
+        # user id -> USER subject; subject IDs live in a different space
+        mock_subject.side_effect = lambda uid: Mock(id=uid * 10)
+        final = [_mock_subject(50), _mock_subject(90)]
+        mock_compute.return_value = final
 
         async with Client(mcp_server) as client:
             result = await client.call_tool(
                 "update_dashboard",
-                {"request": {"identifier": 42, "owners": [5, 9]}},
+                {"request": {"identifier": 42, "editors": [5, 9]}},
             )
 
-        # owners relationship fully replaced with the resolved users
-        assert [u.id for u in dash.owners] == [5, 9]
+        # resolution goes through the shared REST helper on SUBJECT ids, with
+        # the no-lockout guard, and the result is set on the editors relationship
+        assert mock_compute.call_args.args[1] == [50, 90]
+        assert mock_compute.call_args.kwargs.get("ensure_no_lockout") is True
+        assert dash.editors is final
         assert mock_session.commit.call_count >= 1
         payload = json.loads(result.content[0].text)
-        assert "owners" in set(payload.get("changed_fields") or [])
+        assert "editors" in set(payload.get("changed_fields") or [])
 
-    @patch("superset.security_manager.get_user_by_id")
+    @patch("superset.commands.utils.compute_subject_list")
+    @patch("superset.subjects.utils.get_or_create_user_subject")
     @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
     @patch("superset.extensions.db.session")
     @pytest.mark.asyncio
-    async def test_update_owners_unknown_id_errors(
+    async def test_update_editors_unknown_user_errors(
         self,
         mock_session: Mock,
         mock_get: Mock,
-        mock_get_user: Mock,
+        mock_subject: Mock,
+        mock_compute: Mock,
         mcp_server: object,
     ) -> None:
-        """An unknown owner ID returns OwnersNotFound with no mutation."""
+        """An unknown user ID returns EditorsNotFound with no write."""
         dash = _mock_dashboard(id=42)
-        dash.owners = []
+        dash.editors = []
         mock_get.return_value = dash
-        # ID 5 resolves; 999 does not -> validation error, no mutation.
-        mock_get_user.side_effect = lambda uid: Mock(id=uid) if uid == 5 else None
+        # user 5 has a subject; 999 does not -> unresolved -> error
+        mock_subject.side_effect = lambda uid: Mock(id=uid * 10) if uid == 5 else None
 
         async with Client(mcp_server) as client:
             result = await client.call_tool(
                 "update_dashboard",
-                {"request": {"identifier": 42, "owners": [5, 999]}},
+                {"request": {"identifier": 42, "editors": [5, 999]}},
             )
 
         payload = json.loads(result.content[0].text)
-        assert payload.get("error_type") == "OwnersNotFound"
+        assert payload.get("error_type") == "EditorsNotFound"
         assert "999" in (payload.get("error") or "")
-        assert dash.owners == []
+        assert dash.editors == []
+        mock_compute.assert_not_called()
         mock_session.commit.assert_not_called()
+        mock_session.rollback.assert_called()
 
-    @patch("superset.security_manager.get_user_by_id")
+    @patch("superset.commands.utils.compute_subject_list")
+    @patch("superset.subjects.utils.get_or_create_user_subject")
     @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
     @patch("superset.extensions.db.session")
     @pytest.mark.asyncio
-    async def test_update_owners_empty_list_clears(
+    async def test_update_editors_empty_list_clears(
         self,
         mock_session: Mock,
         mock_get: Mock,
-        mock_get_user: Mock,
+        mock_subject: Mock,
+        mock_compute: Mock,
         mcp_server: object,
     ) -> None:
-        """An empty owners list clears all owners without any user lookup."""
+        """An empty editors list clears editors through the helper (no user
+        lookup), respecting the no-lockout guard."""
         dash = _mock_dashboard(id=42)
-        dash.owners = [Mock(id=1)]
+        dash.editors = [Mock(id=10)]
         mock_get.return_value = dash
+        mock_compute.return_value = []
 
         async with Client(mcp_server) as client:
             result = await client.call_tool(
                 "update_dashboard",
-                {"request": {"identifier": 42, "owners": []}},
+                {"request": {"identifier": 42, "editors": []}},
             )
 
-        assert dash.owners == []
-        mock_get_user.assert_not_called()
+        mock_subject.assert_not_called()
+        assert mock_compute.call_args.args[1] == []
+        assert dash.editors == []
         assert mock_session.commit.call_count >= 1
         payload = json.loads(result.content[0].text)
-        assert "owners" in set(payload.get("changed_fields") or [])
+        assert "editors" in set(payload.get("changed_fields") or [])
 
-    @patch("superset.security_manager.get_user_by_id")
+    @patch("superset.commands.utils.compute_subject_list")
+    @patch("superset.subjects.utils.get_or_create_user_subject")
     @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
     @patch("superset.extensions.db.session")
     @pytest.mark.asyncio
-    async def test_update_owners_deduplicates(
+    async def test_update_editors_deduplicates(
         self,
         mock_session: Mock,
         mock_get: Mock,
-        mock_get_user: Mock,
+        mock_subject: Mock,
+        mock_compute: Mock,
         mcp_server: object,
     ) -> None:
-        """Duplicate owner IDs collapse to one, preserving first-seen order."""
+        """Duplicate user IDs collapse to one subject id, first-seen order."""
         dash = _mock_dashboard(id=42)
-        dash.owners = []
+        dash.editors = []
         mock_get.return_value = dash
-        mock_get_user.side_effect = lambda uid: Mock(id=uid)
+        mock_subject.side_effect = lambda uid: Mock(id=uid * 10)
+        mock_compute.return_value = [_mock_subject(50), _mock_subject(90)]
 
         async with Client(mcp_server) as client:
             await client.call_tool(
                 "update_dashboard",
-                {"request": {"identifier": 42, "owners": [5, 5, 9]}},
+                {"request": {"identifier": 42, "editors": [5, 5, 9]}},
             )
 
-        assert [u.id for u in dash.owners] == [5, 9]
+        assert mock_subject.call_count == 2
+        assert mock_compute.call_args.args[1] == [50, 90]
 
     @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
     @patch("superset.extensions.db.session")
@@ -410,6 +445,7 @@ class TestUpdateDashboard:
         from superset.exceptions import SupersetSecurityException
 
         dash = _mock_dashboard(id=42)
+        dash.editors = []
         mock_get.return_value = dash
 
         # mock_auth fixture patches raise_for_editorship to a no-op for the
@@ -426,6 +462,7 @@ class TestUpdateDashboard:
                         "request": {
                             "identifier": 42,
                             "dashboard_title": "Hostile rename",
+                            "editors": [7],
                         }
                     },
                 )
@@ -433,8 +470,10 @@ class TestUpdateDashboard:
         payload = json.loads(result.content[0].text)
         assert payload.get("permission_denied") is True
         assert "permission" in (payload.get("error") or "").lower()
-        # Title was NOT applied
+        # The editorship gate runs before any field logic: neither the title
+        # nor the editors were applied.
         assert dash.dashboard_title == "Test Dashboard"
+        assert dash.editors == []
 
     @pytest.mark.asyncio
     async def test_xss_only_title_is_rejected(self, mcp_server: object) -> None:
