@@ -666,10 +666,10 @@ test('should handle metric save confirmation modal', async () => {
   await userEvent.click(await screen.findByTestId('datasource-modal-save'));
 
   // Verify confirmation modal appears
-  expect(await screen.findByText('OK')).toBeInTheDocument();
+  expect(await screen.findByText('Confirm')).toBeInTheDocument();
 
   // Confirm save
-  await userEvent.click(screen.getByText('OK'));
+  await userEvent.click(screen.getByText('Confirm'));
 
   await waitFor(() => {
     expect(props.onDatasourceSave).toHaveBeenCalled();
