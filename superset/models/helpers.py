@@ -106,7 +106,7 @@ from superset.exceptions import (
 )
 from superset.extensions import feature_flag_manager
 from superset.jinja_context import BaseTemplateProcessor
-from superset.sql.parse import sanitize_clause, SQLScript, SQLStatement
+from superset.sql.parse import has_aggregate, sanitize_clause, SQLScript, SQLStatement
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
@@ -3844,6 +3844,36 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
                 if time_filter_column is not None:
                     time_filters.append(time_filter_column)
+
+        # Gate on `groupby_all_columns` rather than the raw dimensions: it is the
+        # real GROUP BY signal and also captures the timeseries time bucket. A
+        # non-aggregate Custom SQL metric under a GROUP BY is invalid SQL, so
+        # raise a clear error instead of a raw database one (#38913). Templated
+        # expressions may render to an aggregate at runtime, so leave them alone.
+        if groupby_all_columns:
+            for metric in metrics:
+                if (
+                    utils.is_adhoc_metric(metric)
+                    and metric.get("expressionType")
+                    == utils.AdhocMetricExpressionType.SQL
+                ):
+                    expression = metric.get("sqlExpression")
+                    if (
+                        isinstance(expression, str)
+                        and "{{" not in expression
+                        and "{%" not in expression
+                        and not has_aggregate(expression, self.database.backend)
+                    ):
+                        raise QueryObjectValidationError(
+                            _(
+                                'The Custom SQL metric "%(metric)s" is not an '
+                                "aggregate and can't be combined with a GROUP BY. "
+                                "Wrap it in an aggregate function, e.g. "
+                                "%(example)s.",
+                                metric=utils.get_metric_name(metric),
+                                example="MAX(%s)" % expression,
+                            )
+                        )
 
         # Always remove duplicates by column name, as sometimes `metrics_exprs`
         # can have the same name as a groupby column (e.g. when users use
