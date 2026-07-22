@@ -769,10 +769,16 @@ class TestWebDriverPlaywrightErrorHandling:
         assert exc_info.value is timeout
         mock_logger.error.assert_not_called()
         warning_call = mock_logger.warning.call_args
-        assert "Timed out waiting for" in warning_call[0][0]
-        assert "http://example.com" in warning_call[0]
-        assert 60 in warning_call[0]
-        assert [{"chartId": "42", "state": "nothing_mounted"}] in warning_call[0]
+        # Positional args are (format_string, count, url, load_wait,
+        # context_suffix, unready_chart_holders) -- assert against each
+        # argument's exact position rather than `x in warning_call.args`,
+        # which is tuple-element membership, not substring matching, but
+        # reads ambiguously enough that CodeQL flags it as if it were.
+        assert "Timed out waiting for" in warning_call.args[0]
+        assert warning_call.args[1] == 1
+        assert warning_call.args[2] == "http://example.com"
+        assert warning_call.args[3] == 60
+        assert warning_call.args[5] == [{"chartId": "42", "state": "nothing_mounted"}]
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver._browser_manager")
@@ -1154,8 +1160,9 @@ class TestWebDriverPlaywrightChartReadiness:
                     log_context="execution_id=abc-123",
                 )
 
-        warning_call_args = mock_logger.warning.call_args[0]
-        assert " [execution_id=abc-123]" in warning_call_args
+        # context_suffix is the 5th positional arg (index 4); assert its
+        # exact value rather than tuple-element membership via `in`.
+        assert mock_logger.warning.call_args.args[4] == " [execution_id=abc-123]"
 
 
 class TestWebDriverPlaywrightAnimationWaitOrder:
