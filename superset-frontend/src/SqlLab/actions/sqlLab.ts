@@ -1516,7 +1516,6 @@ export function persistEditorHeight(
 
 function handlePopError(dispatch: AppDispatch, errorMessage: string) {
   dispatch(addDangerToast(errorMessage));
-  dispatch(addNewQueryEditor());
 }
 
 export function popPermalink(key: string): SqlLabThunkAction<Promise<unknown>> {

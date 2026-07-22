@@ -825,7 +825,7 @@ describe('async actions', () => {
       );
     });
 
-    test('should dispatch addDangerToast and addNewQueryEditor on API error', async () => {
+    test('should dispatch addDangerToast on API error', async () => {
       supersetClientGetSpy.mockRejectedValue(new Error('not found'));
 
       await makeRequest(1);
@@ -839,7 +839,6 @@ describe('async actions', () => {
               toastType: ToastType.Danger,
             }),
           }),
-          expect.objectContaining({ type: actions.ADD_QUERY_EDITOR }),
         ]),
       );
     });
@@ -862,31 +861,27 @@ describe('async actions', () => {
       name: 'popDatasourceQuery',
       action: () => actions.popDatasourceQuery('1__table'),
     },
-  ])(
-    '$name dispatches addDangerToast and addNewQueryEditor on API error',
-    async ({ action }) => {
-      const store = mockStore(initialState);
-      jest
-        .spyOn(SupersetClient, 'get')
-        .mockRejectedValueOnce(new Error('not found'));
+  ])('$name dispatches addDangerToast on API error', async ({ action }) => {
+    const store = mockStore(initialState);
+    jest
+      .spyOn(SupersetClient, 'get')
+      .mockRejectedValueOnce(new Error('not found'));
 
-      const thunk = action();
-      await thunk(store.dispatch, () => typedInitialState, undefined);
+    const thunk = action();
+    await thunk(store.dispatch, () => typedInitialState, undefined);
 
-      const dispatchedActions = store.getActions();
-      expect(dispatchedActions).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            type: ADD_TOAST,
-            payload: expect.objectContaining({
-              toastType: ToastType.Danger,
-            }),
+    const dispatchedActions = store.getActions();
+    expect(dispatchedActions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: ADD_TOAST,
+          payload: expect.objectContaining({
+            toastType: ToastType.Danger,
           }),
-          expect.objectContaining({ type: actions.ADD_QUERY_EDITOR }),
-        ]),
-      );
-    },
-  );
+        }),
+      ]),
+    );
+  });
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('addQueryEditor', () => {
