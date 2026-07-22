@@ -64,6 +64,28 @@ Update your environment (virtualenv, Docker base image, CI configuration, etc.) 
 Python 3.11+ before upgrading. The `apache/superset-cache:3.10-slim-trixie` and
 `py310` Docker image variants are no longer published.
 
+### `from_dttm` and `to_dttm` Jinja template variables removed
+
+The `{{ from_dttm }}` and `{{ to_dttm }}` Jinja template variables, deprecated since
+v5.0, have been removed from the Jinja context and are no longer available in virtual
+dataset SQL or custom SQL expressions.
+
+Replace usages with the `get_time_filter()` function. For example:
+
+```sql
+-- Before
+SELECT * FROM tbl
+WHERE dttm_col > '{{ from_dttm }}' AND dttm_col < '{{ to_dttm }}'
+
+-- After
+{% set tf = get_time_filter("dttm_col") %}
+SELECT * FROM tbl
+WHERE dttm_col > {{ tf.from_expr }} AND dttm_col <= {{ tf.to_expr }}
+```
+
+Note that `from_expr` and `to_expr` are already fully-formatted SQL expressions (e.g.
+`TO_TIMESTAMP('2024-01-01', ...)`) — do not wrap them in single quotes.
+
 ### Removed deck.gl JavaScript tooltip/data-mutator controls and ENABLE_JAVASCRIPT_CONTROLS
 
 The `ENABLE_JAVASCRIPT_CONTROLS` feature flag and the deck.gl chart controls it gated
