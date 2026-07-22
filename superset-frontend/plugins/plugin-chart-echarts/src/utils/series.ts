@@ -277,11 +277,13 @@ function getHorizontalPlainLegendLayout({
 }
 
 function getVerticalPlainLegendLayout({
+  availableWidth,
   currentMargin,
   legendLabels,
   showSelectors,
   theme,
 }: {
+  availableWidth: number;
   currentMargin: number;
   legendLabels: string[];
   showSelectors: boolean;
@@ -303,9 +305,13 @@ function getVerticalPlainLegendLayout({
       requiredSelectorMargin,
     ),
   );
+  const boundedMargin =
+    availableWidth > 0
+      ? Math.min(requiredMargin, availableWidth * MAX_LEGEND_MARGIN_RATIO)
+      : requiredMargin;
 
   return {
-    effectiveMargin: Math.max(currentMargin, requiredMargin),
+    effectiveMargin: Math.max(currentMargin, boundedMargin),
     effectiveType: LegendType.Plain,
   };
 }
@@ -362,6 +368,7 @@ export function getLegendLayoutResult({
   }
 
   return getVerticalPlainLegendLayout({
+    availableWidth: resolvedAvailableWidth,
     currentMargin: resolvedLegendMargin,
     legendLabels,
     showSelectors,

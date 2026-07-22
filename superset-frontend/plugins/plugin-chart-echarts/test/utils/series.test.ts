@@ -1112,7 +1112,26 @@ test('getLegendLayoutResult bounds reserved margin for overflowing horizontal le
 
   expect(layout.effectiveType).toBe(LegendType.Plain);
   expect(Number.isFinite(layout.effectiveMargin)).toBe(true);
-  expect(layout.effectiveMargin as number).toBeLessThan(chartHeight);
+  // 40% of the 200px chart height.
+  expect(layout.effectiveMargin).toBe(80);
+});
+
+test('getLegendLayoutResult bounds reserved margin for long vertical legend labels so the plot is not collapsed', () => {
+  const chartWidth = 1000;
+  const layout = getLegendLayoutResult({
+    chartHeight: 400,
+    chartWidth,
+    legendItems: ['A'.repeat(200)],
+    legendMargin: null,
+    orientation: LegendOrientation.Left,
+    show: true,
+    theme,
+    type: LegendType.Plain,
+  });
+
+  expect(layout.effectiveType).toBe(LegendType.Plain);
+  // 40% of the 1000px chart width.
+  expect(layout.effectiveMargin).toBe(400);
 });
 
 test('getLegendLayoutResult keeps plain when a single horizontal plain legend item exceeds available width', () => {

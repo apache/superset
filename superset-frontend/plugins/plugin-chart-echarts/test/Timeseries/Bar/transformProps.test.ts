@@ -942,12 +942,31 @@ describe('Bar Chart X-axis Time Formatting', () => {
       // The explicit List selection is honored end-to-end (never flips).
       expect(legend.type).toBe(LegendType.Plain);
       expect(layout.effectiveType).toBe(LegendType.Plain);
+
       // #38675's margin reservation is retained: the wrapped rows reserve a
       // finite margin beyond the single-row baseline, so the grid shrinks to
       // reduce clipping instead of the legend flipping to scroll.
-      expect(layout.effectiveMargin).toEqual(expect.any(Number));
       expect(Number.isFinite(layout.effectiveMargin)).toBe(true);
-      expect(grid.bottom as number).toBeGreaterThanOrEqual(
+
+      const reservedPadding = getPadding(
+        true,
+        LegendOrientation.Bottom,
+        false,
+        false,
+        layout.effectiveMargin,
+        false,
+        undefined,
+        undefined,
+        undefined,
+        true,
+      );
+      [reservedPadding.bottom, reservedPadding.left] = [
+        reservedPadding.left,
+        reservedPadding.bottom,
+      ];
+
+      expect(grid.bottom).toBe(reservedPadding.bottom);
+      expect(grid.bottom as number).toBeGreaterThan(
         basePadding.bottom as number,
       );
     });
