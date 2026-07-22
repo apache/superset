@@ -433,7 +433,6 @@ class SemanticView(AuditMixinNullable, Model):
             "editors": [],
             "supports_samples": self.supports_samples,
             "supports_drill_to_detail": self.supports_drill_to_detail,
-            "owners": [],
             "description": self.description,
             "table_name": self.name,
             "column_types": [
