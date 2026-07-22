@@ -174,4 +174,58 @@ describe('useCatalogs hook', () => {
     await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
     expect(onSuccess).toHaveBeenLastCalledWith(expectedResult, false);
   });
+
+  test('fires callbacks on invalidation refetch even after a failed force refresh (OAuth2 refresh button)', async () => {
+    // Reviewer regression: serializeQueryArgs strips forceRefresh, so the
+    // subscribed query and the lazy force-refresh trigger share one cache entry.
+    // A failed refresh-button click (forceRefresh:true) leaves the entry's
+    // originalArgs.forceRefresh sticky-true. The old `!originalArgs.forceRefresh`
+    // guard then suppressed onSuccess/onError on the later invalidation refetch,
+    // so the banner stayed stuck. The ref-based flag must fire the callbacks.
+    const expectDbId = 'db1';
+    const catalogApiRoute = `glob:*/api/v1/database/${expectDbId}/catalogs/*`;
+    let mode: 'ok' | 'fail' = 'ok';
+    fetchMock.get(catalogApiRoute, () =>
+      mode === 'fail' ? { status: 500, body: {} } : fakeApiResult,
+    );
+    const onSuccess = jest.fn();
+    const onError = jest.fn();
+    const { result } = renderHook(
+      () =>
+        useCatalogs({
+          dbId: expectDbId,
+          onSuccess,
+          onError,
+        }),
+      {
+        wrapper: createWrapper({
+          useRedux: true,
+          store,
+        }),
+      },
+    );
+
+    // Initial subscribed load succeeds (not a manual refresh: isRefetched=false).
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
+    expect(onSuccess).toHaveBeenLastCalledWith(expectedResult, false);
+
+    // User clicks the refresh button (force refresh) and hits the OAuth2 wall.
+    // This makes the shared entry's originalArgs.forceRefresh sticky-true.
+    mode = 'fail';
+    act(() => {
+      result.current.refetch();
+    });
+    await waitFor(() => expect(onError).toHaveBeenCalledTimes(1));
+
+    // User authorizes: invalidateTags refetches the subscribed query, which now
+    // succeeds. onSuccess must fire (isRefetched=false: not a manual refresh).
+    mode = 'ok';
+    act(() => {
+      store.dispatch(
+        api.util.invalidateTags([{ type: 'Catalogs', id: 'LIST' }]),
+      );
+    });
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(2));
+    expect(onSuccess).toHaveBeenLastCalledWith(expectedResult, false);
+  });
 });

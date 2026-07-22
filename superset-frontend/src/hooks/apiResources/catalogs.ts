@@ -71,6 +71,7 @@ export const EMPTY_CATALOGS = [] as CatalogOption[];
 export function useCatalogs(options: Params) {
   const { dbId, onSuccess, onError } = options || {};
   const wasFetchingRef = useRef(false);
+  const isRefreshingRef = useRef(false);
   const result = useCatalogsQuery(
     { dbId, forceRefresh: false },
     {
@@ -91,18 +92,14 @@ export function useCatalogs(options: Params) {
 
   const refetch = useCallback(() => {
     if (dbId) {
-      trigger({ dbId, forceRefresh: true }).then(
-        ({ isSuccess, isError, data, error }) => {
-          if (isSuccess) {
-            handleOnSuccess(data || EMPTY_CATALOGS, true);
-          }
-          if (isError) {
-            handleOnError(error as ClientErrorObject);
-          }
-        },
-      );
+      // Force a real server refresh. The success/error callbacks are fired by
+      // the subscribed effect below (the single source of truth), which
+      // observes the shared cache entry's isFetching transition. isRefreshingRef
+      // flags that completion as a user-requested refresh (isRefetched=true).
+      isRefreshingRef.current = true;
+      trigger({ dbId, forceRefresh: true });
     }
-  }, [dbId, handleOnSuccess, handleOnError, trigger]);
+  }, [dbId, trigger]);
 
   useEffect(() => {
     // Fire the success/error callbacks whenever the subscribed query finishes a
@@ -111,16 +108,19 @@ export function useCatalogs(options: Params) {
     // redirect) so consumers holding local state such as an auth error banner
     // are notified. Keying off the isFetching true->false transition avoids
     // re-firing on cache-hit re-renders, which would spuriously re-run
-    // auto-select logic in the selectors.
-    const { isSuccess, isError, isFetching, currentData, error, originalArgs } =
-      result;
-    if (wasFetchingRef.current && !isFetching && !originalArgs?.forceRefresh) {
+    // auto-select logic in the selectors. isRefreshingRef (not the sticky
+    // originalArgs.forceRefresh, which the shared cache entry never resets)
+    // distinguishes a user-requested refresh from other fetches.
+    const { isSuccess, isError, isFetching, currentData, error } = result;
+    if (wasFetchingRef.current && !isFetching) {
+      const isRefetched = isRefreshingRef.current;
       if (isSuccess && currentData) {
-        handleOnSuccess(currentData, false);
+        handleOnSuccess(currentData, isRefetched);
       }
       if (isError) {
         handleOnError(error as ClientErrorObject);
       }
+      isRefreshingRef.current = false;
     }
     wasFetchingRef.current = isFetching;
   }, [result, handleOnSuccess, handleOnError]);
