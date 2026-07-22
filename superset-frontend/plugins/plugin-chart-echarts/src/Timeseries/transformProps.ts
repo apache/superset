@@ -724,7 +724,8 @@ export default function transformProps(
     }
   }
 
-  // When explicit Y axis bounds are set, clamp series values to those bounds
+  // Whenever a Y axis bound is defined, whether explicitly configured or
+  // derived above from the data, clamp series values to those bounds
   // instead of leaving raw out-of-range values in place. ECharts axis
   // clipping can otherwise drop an out-of-bounds point (and the line
   // segments around it) entirely rather than truncating it at the
