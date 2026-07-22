@@ -749,9 +749,7 @@ def test_query_context_modified_novel_values_still_tampered(
     query_context.queries = [QueryObject(metrics=["sum__SH_DYN_AIDS"])]
     assert query_context_modified(query_context)
 
-    query_context.queries = [
-        QueryObject(columns=["some_other_column"])
-    ]
+    query_context.queries = [QueryObject(columns=["some_other_column"])]
     assert query_context_modified(query_context)
 
     query_context.queries = [
