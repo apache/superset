@@ -130,40 +130,51 @@ use([
 // code-split exactly the locales listed here. Keys are Superset locales
 // uppercased (see LANGUAGES in superset/config.py); values point at the
 // echarts bundle, whose naming differs for some locales (Slovenian is
-// langSI, Brazilian Portuguese is langPT-br). Superset locales absent
-// from this map fall back to English.
+// langSI, Brazilian Portuguese is langPT-br). Only locales that echarts
+// 5.6.0 ships a bundle for are listed — Greek (langEL) and Latvian
+// (langLV) were added in echarts 6 and must stay out until this
+// dependency is upgraded again. Superset locales absent from this map
+// fall back to English.
+//
+// The "-obj" suffix is required and must not be dropped. echarts ships two
+// UMD builds per locale: langXX.js self-registers under echarts' own key and
+// exports nothing, while langXX-obj.js exports the locale object. Importing
+// the plain langXX.js yields an empty object, and registering that erases the
+// locale's `time` section, so every time-axis label crashes echarts'
+// formatTime with "Cannot read properties of null" — it evaluates
+// `month[u - 1]` eagerly for every template, even "{yyyy}". Registering the
+// object ourselves is also what lets Superset locale keys that differ from
+// echarts' own (SL -> SI, PT_BR -> PT-br) resolve at init time.
 type EChartsLocaleOption = Parameters<typeof registerLocale>[1];
 
 const LOCALE_LOADERS: Record<
   string,
   () => Promise<{ default: EChartsLocaleOption }>
 > = {
-  AR: () => import('echarts/i18n/langAR.js'),
-  CS: () => import('echarts/i18n/langCS.js'),
-  DE: () => import('echarts/i18n/langDE.js'),
-  EL: () => import('echarts/i18n/langEL.js'),
-  EN: () => import('echarts/i18n/langEN.js'),
-  ES: () => import('echarts/i18n/langES.js'),
-  FA: () => import('echarts/i18n/langFA.js'),
-  FI: () => import('echarts/i18n/langFI.js'),
-  FR: () => import('echarts/i18n/langFR.js'),
-  HU: () => import('echarts/i18n/langHU.js'),
-  IT: () => import('echarts/i18n/langIT.js'),
-  JA: () => import('echarts/i18n/langJA.js'),
-  KO: () => import('echarts/i18n/langKO.js'),
-  LV: () => import('echarts/i18n/langLV.js'),
-  NL: () => import('echarts/i18n/langNL.js'),
-  PL: () => import('echarts/i18n/langPL.js'),
-  RO: () => import('echarts/i18n/langRO.js'),
-  PT_BR: () => import('echarts/i18n/langPT-br.js'),
-  RU: () => import('echarts/i18n/langRU.js'),
-  SL: () => import('echarts/i18n/langSI.js'),
-  SV: () => import('echarts/i18n/langSV.js'),
-  TH: () => import('echarts/i18n/langTH.js'),
-  TR: () => import('echarts/i18n/langTR.js'),
-  UK: () => import('echarts/i18n/langUK.js'),
-  VI: () => import('echarts/i18n/langVI.js'),
-  ZH: () => import('echarts/i18n/langZH.js'),
+  AR: () => import('echarts/i18n/langAR-obj.js'),
+  CS: () => import('echarts/i18n/langCS-obj.js'),
+  DE: () => import('echarts/i18n/langDE-obj.js'),
+  EN: () => import('echarts/i18n/langEN-obj.js'),
+  ES: () => import('echarts/i18n/langES-obj.js'),
+  FA: () => import('echarts/i18n/langFA-obj.js'),
+  FI: () => import('echarts/i18n/langFI-obj.js'),
+  FR: () => import('echarts/i18n/langFR-obj.js'),
+  HU: () => import('echarts/i18n/langHU-obj.js'),
+  IT: () => import('echarts/i18n/langIT-obj.js'),
+  JA: () => import('echarts/i18n/langJA-obj.js'),
+  KO: () => import('echarts/i18n/langKO-obj.js'),
+  NL: () => import('echarts/i18n/langNL-obj.js'),
+  PL: () => import('echarts/i18n/langPL-obj.js'),
+  RO: () => import('echarts/i18n/langRO-obj.js'),
+  PT_BR: () => import('echarts/i18n/langPT-br-obj.js'),
+  RU: () => import('echarts/i18n/langRU-obj.js'),
+  SL: () => import('echarts/i18n/langSI-obj.js'),
+  SV: () => import('echarts/i18n/langSV-obj.js'),
+  TH: () => import('echarts/i18n/langTH-obj.js'),
+  TR: () => import('echarts/i18n/langTR-obj.js'),
+  UK: () => import('echarts/i18n/langUK-obj.js'),
+  VI: () => import('echarts/i18n/langVI-obj.js'),
+  ZH: () => import('echarts/i18n/langZH-obj.js'),
 };
 
 const loadLocale = async (locale: string) => {
@@ -173,7 +184,11 @@ const loadLocale = async (locale: string) => {
     return undefined;
   }
   try {
-    return (await loader()).default;
+    const localeObj = (await loader()).default;
+    // registerLocale replaces any built-in entry under the same key, so a
+    // partial object would leave echarts formatting against missing data.
+    // Fall back to the built-in locale instead of registering a broken one.
+    return localeObj?.time ? localeObj : undefined;
   } catch {
     return undefined;
   }

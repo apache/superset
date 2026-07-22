@@ -136,7 +136,7 @@ def test_superset(mocker: MockerFixture, app_context: None, table1: None) -> Non
     g.user.is_anonymous = False
 
     try:
-        engine = create_engine("superset://")
+        engine = create_engine("superset://", future=True)
     except Exception as e:
         # Skip test if superset:// dialect can't be loaded (common in Docker)
         pytest.skip(f"Superset dialect not available: {e}")
@@ -177,7 +177,7 @@ def test_superset_limit(mocker: MockerFixture, app_context: None, table1: None) 
     g.user.is_anonymous = False
 
     try:
-        engine = create_engine("superset://")
+        engine = create_engine("superset://", future=True)
     except Exception as e:
         # Skip test if superset:// dialect can't be loaded (common in Docker)
         pytest.skip(f"Superset dialect not available: {e}")
@@ -212,7 +212,7 @@ def test_superset_joins(
     g.user.is_anonymous = False
 
     try:
-        engine = create_engine("superset://")
+        engine = create_engine("superset://", future=True)
     except Exception as e:
         # Skip test if superset:// dialect can't be loaded (common in Docker)
         pytest.skip(f"Superset dialect not available: {e}")
@@ -256,7 +256,7 @@ def test_dml(
     g.user.is_anonymous = False
 
     try:
-        engine = create_engine("superset://")
+        engine = create_engine("superset://", future=True)
     except Exception as e:
         # Skip test if superset:// dialect can't be loaded (common in Docker)
         pytest.skip(f"Superset dialect not available: {e}")
@@ -328,7 +328,7 @@ def test_security_manager(
     )
 
     try:
-        engine = create_engine("superset://")
+        engine = create_engine("superset://", future=True)
     except Exception as e:
         # Skip test if superset:// dialect can't be loaded (common in Docker)
         pytest.skip(f"Superset dialect not available: {e}")
@@ -362,7 +362,7 @@ def test_allowed_dbs(mocker: MockerFixture, app_context: None, table1: None) -> 
     g.user.is_anonymous = False
 
     try:
-        engine = create_engine("superset://", allowed_dbs=["database1"])
+        engine = create_engine("superset://", allowed_dbs=["database1"], future=True)
     except Exception as e:
         # Skip test if superset:// dialect can't be loaded (common in Docker)
         pytest.skip(f"Superset dialect not available: {e}")

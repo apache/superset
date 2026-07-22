@@ -31,6 +31,7 @@ from superset.sql.parse import (
     BaseSQLStatement,
     CTASMethod,
     extract_tables_from_statement,
+    has_aggregate,
     JinjaSQLResult,
     KQLTokenType,
     KustoKQLStatement,
@@ -4428,3 +4429,29 @@ def test_backtick_fallback_logs_warning(caplog: pytest.LogCaptureFixture) -> Non
         record.levelname == "WARNING" and "MySQL dialect" in record.getMessage()
         for record in caplog.records
     )
+
+
+@pytest.mark.parametrize(
+    "expression,expected",
+    [
+        ("GREATEST(confirmed, predicted)", False),
+        ("MAX(GREATEST(a, b))", True),
+        ("SUM(x)", True),
+        ("COUNT(*)", True),
+        ("SUM(x) OVER (PARTITION BY y)", False),
+        ("ROW_NUMBER() OVER ()", False),
+        ("SUM(SUM(x)) OVER ()", True),
+        ("a + b", False),
+        (")(", True),
+        ("MY_CUSTOM_AGG(x)", True),
+        ("a - (SELECT AVG(b) FROM t)", True),
+    ],
+)
+def test_has_aggregate(expression: str, expected: bool) -> None:
+    """
+    ``has_aggregate`` detects any aggregate that is not itself directly windowed
+    -- one nested inside a windowed aggregate or a subquery still counts -- and
+    fails open (returns True) when the expression can't be parsed or uses a
+    function sqlglot can't model.
+    """
+    assert has_aggregate(expression) is expected

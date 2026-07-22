@@ -26,20 +26,15 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    field_validator,
     model_serializer,
-    model_validator,
-    PositiveInt,
 )
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
-from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
-from superset.mcp_service.system.schemas import PaginationInfo
-from superset.mcp_service.utils import sanitize_for_llm_context
-from superset.mcp_service.utils.schema_utils import (
-    parse_json_or_list,
-    parse_json_or_model_list,
+from superset.mcp_service.common.pagination_schemas import (
+    PaginatedListRequest,
+    PaginatedResponse,
 )
+from superset.mcp_service.utils import sanitize_for_llm_context
 
 DEFAULT_TASK_COLUMNS: list[str] = ["id", "uuid", "task_type", "status", "changed_on"]
 ALL_TASK_COLUMNS: list[str] = [
@@ -112,98 +107,12 @@ class TaskInfo(BaseModel):
         return data
 
 
-class TaskList(BaseModel):
+class TaskList(PaginatedResponse[TaskColumnFilter]):
     tasks: list[TaskInfo]
-    count: int
-    total_count: int
-    page: int
-    page_size: int
-    total_pages: int
-    has_previous: bool
-    has_next: bool
-    columns_requested: list[str] = Field(default_factory=list)
-    columns_loaded: list[str] = Field(default_factory=list)
-    columns_available: list[str] = Field(default_factory=list)
-    sortable_columns: list[str] = Field(default_factory=list)
-    filters_applied: list[TaskColumnFilter] = Field(default_factory=list)
-    pagination: PaginationInfo | None = None
-    timestamp: datetime | None = None
-    model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 
-class ListTasksRequest(BaseModel):
+class ListTasksRequest(PaginatedListRequest[TaskColumnFilter]):
     """Request schema for list_tasks."""
-
-    filters: Annotated[
-        list[TaskColumnFilter],
-        Field(
-            default_factory=list,
-            description=(
-                "List of filter objects (col, opr, value). "
-                "Filter columns: task_type, status, scope. "
-                "Cannot be used with 'search'."
-            ),
-        ),
-    ]
-    select_columns: Annotated[
-        list[str],
-        Field(
-            default_factory=list,
-            description="Columns to return. Defaults to common columns.",
-        ),
-    ]
-    search: Annotated[
-        str | None,
-        Field(
-            default=None,
-            description=(
-                "Text search string matched against task_type, task_key, "
-                "task_name, status, and scope. "
-                "Cannot be used together with 'filters'."
-            ),
-        ),
-    ]
-    order_column: Annotated[
-        str | None,
-        Field(default=None, description="Column to sort by (default: created_on)"),
-    ]
-    order_direction: Annotated[
-        Literal["asc", "desc"],
-        Field(default="desc", description="Sort direction ('asc' or 'desc')"),
-    ]
-    page: Annotated[
-        PositiveInt,
-        Field(default=1, description="Page number (1-based)"),
-    ]
-    page_size: Annotated[
-        int,
-        Field(
-            default=DEFAULT_PAGE_SIZE,
-            gt=0,
-            le=MAX_PAGE_SIZE,
-            description=f"Items per page (max {MAX_PAGE_SIZE})",
-        ),
-    ]
-
-    @field_validator("filters", mode="before")
-    @classmethod
-    def parse_filters(cls, v: Any) -> list[TaskColumnFilter]:
-        return parse_json_or_model_list(v, TaskColumnFilter, "filters")
-
-    @field_validator("select_columns", mode="before")
-    @classmethod
-    def parse_columns(cls, v: Any) -> list[str]:
-        return parse_json_or_list(v, "select_columns")
-
-    @model_validator(mode="after")
-    def validate_search_and_filters(self) -> "ListTasksRequest":
-        if self.search and self.filters:
-            raise ValueError(
-                "Cannot use both 'search' and 'filters' simultaneously. "
-                "Use 'search' for text matching on task_type/status/scope, or "
-                "'filters' for column-based filtering, but not both."
-            )
-        return self
 
 
 class TaskError(BaseModel):

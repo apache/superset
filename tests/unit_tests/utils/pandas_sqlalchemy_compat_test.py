@@ -35,7 +35,7 @@ def test_to_sql_accepts_sqlalchemy_engine_and_dtypes() -> None:
     """
     restore_pandas_sqlalchemy_support()
 
-    engine = create_engine("sqlite://")
+    engine = create_engine("sqlite://", future=True)
     df = pd.DataFrame(
         {
             "name": ["a", "b"],
