@@ -23,6 +23,7 @@ import { memo } from 'react';
 import { formatNumber } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { Color } from '@deck.gl/core';
+import { NULL_CATEGORY_KEY, formatNullCategory } from '../utils';
 
 const StyledLegend = styled.div`
   ${({ theme }) => `
@@ -114,6 +115,10 @@ const Legend = ({
   };
 
   const formatCategoryLabel = (k: string) => {
+    if (k === NULL_CATEGORY_KEY) {
+      return formatNullCategory(k);
+    }
+
     if (!d3Format) {
       return k;
     }
