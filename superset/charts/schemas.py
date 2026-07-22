@@ -1380,6 +1380,22 @@ class ChartDataQueryObjectSchema(Schema):
         allow_none=True,
     )
 
+    @post_load
+    def rename_deprecated_fields(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
+        _renames = (
+            ("groupby", "columns"),
+            ("granularity_sqla", "granularity"),
+            ("timeseries_limit", "series_limit"),
+            ("timeseries_limit_metric", "series_limit_metric"),
+        )
+        for old, new in _renames:
+            value = data.pop(old, None)
+            if value or value == 0:
+                data[new] = value
+        return data
+
 
 class ChartDataQueryContextSchema(Schema):
     query_context_factory: QueryContextFactory | None = None
