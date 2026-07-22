@@ -77,19 +77,22 @@ const getCellStyle = (params: CellStyleParams) => {
       }
     };
 
+    // formatter.column can be a legacy display label ("Main colname") for
+    // time-comparison columns rather than the row's actual data key, so
+    // resolve it to the real field id before using it to read row values.
+    const resolveColumnKey = (columnKey: string) =>
+      columnKey.includes('Main') ? columnKey.replace('Main', '').trim() : columnKey;
+
     columnColorFormatters!
       .filter(formatter => {
         if (formatter.columnFormatting) {
           return formatter.columnFormatting === colDef.field;
         }
-        const colTitle = formatter?.column?.includes('Main')
-          ? formatter?.column?.replace('Main', '').trim()
-          : formatter?.column;
-        return colTitle === colDef.field;
+        return resolveColumnKey(formatter.column) === colDef.field;
       })
       .forEach(formatter => {
         const valueToFormat = formatter.columnFormatting
-          ? node?.data?.[formatter.column]
+          ? node?.data?.[resolveColumnKey(formatter.column)]
           : value;
         applyFormatter(formatter, valueToFormat);
       });
@@ -102,7 +105,7 @@ const getCellStyle = (params: CellStyleParams) => {
           formatter.columnFormatting === ObjectFormattingEnum.ENTIRE_ROW,
       )
       .forEach(formatter =>
-        applyFormatter(formatter, node?.data?.[formatter.column]),
+        applyFormatter(formatter, node?.data?.[resolveColumnKey(formatter.column)]),
       );
   }
 

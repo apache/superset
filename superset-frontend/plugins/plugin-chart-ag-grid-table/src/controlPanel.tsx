@@ -792,7 +792,7 @@ const config: ControlPanelConfig = {
                         value: colname,
                         label: Array.isArray(verboseMap)
                           ? colname
-                          : (verboseMap[colname] ?? colname),
+                          : (verboseMap?.[colname] ?? colname),
                         dataType: coltypes[index],
                       })),
                     ]
@@ -807,7 +807,7 @@ const config: ControlPanelConfig = {
                         value: colname,
                         label: Array.isArray(verboseMap)
                           ? colname
-                          : (verboseMap[colname] ?? colname),
+                          : (verboseMap?.[colname] ?? colname),
                         // Every entry here already passed the Numeric filter
                         // above, so the type is always Numeric — no need to
                         // re-look it up (which breaks on duplicate colnames).
