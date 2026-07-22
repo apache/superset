@@ -23,12 +23,14 @@ import pytest
 from flask import g
 
 from superset.mcp_service.auth import (
+    _required_resource_scope,
     check_tool_permission,
     CLASS_PERMISSION_ATTR,
     is_tool_visible_to_current_user,
     MCPPermissionDeniedError,
     METHOD_PERMISSION_ATTR,
     PERMISSION_PREFIX,
+    RESOURCE_SCOPE_NAME,
 )
 
 
@@ -478,6 +480,102 @@ def test_scope_execute_sql_query_requires_write_scope(app_context) -> None:
             assert check_tool_permission(func) is False
         with _patch_token_scopes(["superset:write"]):
             assert check_tool_permission(func) is True
+
+
+# -- Per-resource scopes (superset:<resource>:<action>) --
+
+
+def test_required_resource_scope_special_names() -> None:
+    """The explicit resource map handles names a naive lower() would break:
+    'Row Level Security' (spaces) and 'ReportSchedule'/'SQLLab' (misnames)."""
+    assert _required_resource_scope("Row Level Security", "read") == "superset:rls:read"
+    assert _required_resource_scope("ReportSchedule", "write") == (
+        "superset:report:write"
+    )
+    assert _required_resource_scope("SQLLab", "execute_sql_query") == (
+        "superset:sqllab:write"
+    )
+
+
+def test_required_resource_scope_unmapped_returns_none() -> None:
+    """An unmapped resource or method yields None (no per-resource scope),
+    which callers must NOT treat as a grant."""
+    assert _required_resource_scope("NotAResource", "read") is None
+    assert _required_resource_scope("Chart", "not_a_method") is None
+
+
+def test_resource_scope_name_covers_all_tool_resource_classes() -> None:
+    """RESOURCE_SCOPE_NAME must cover every class_permission_name declared by
+    MCP tools. If a new resource class is added, add it to the map."""
+    assert set(RESOURCE_SCOPE_NAME.keys()) == {
+        "Annotation",
+        "Chart",
+        "Dashboard",
+        "Database",
+        "Dataset",
+        "Explore",
+        "Query",
+        "ReportSchedule",
+        "Role",
+        "Row Level Security",
+        "SavedQuery",
+        "SQLLab",
+        "Tag",
+        "Task",
+        "Theme",
+        "User",
+    }
+
+
+def test_per_resource_scope_grants_matching_tool(app_context) -> None:
+    """A token scoped ONLY to superset:chart:write (no flat superset:write)
+    still grants a Chart/write tool via the per-resource grant path."""
+    g.user = MagicMock(username="editor")
+    func = _make_tool_func(class_perm="Chart", method_perm="write")
+
+    mock_sm = MagicMock()
+    mock_sm.can_access = MagicMock(return_value=True)
+    with (
+        patch("superset.mcp_service.auth.security_manager", mock_sm),
+        _patch_token_scopes(["superset:chart:write"]),
+    ):
+        result = check_tool_permission(func)
+
+    assert result is True
+
+
+def test_per_resource_scope_does_not_leak_across_resources(app_context) -> None:
+    """A token scoped to superset:chart:write does NOT grant a Dashboard/write
+    tool (resource isolation)."""
+    g.user = MagicMock(username="editor")
+    func = _make_tool_func(class_perm="Dashboard", method_perm="write")
+
+    mock_sm = MagicMock()
+    mock_sm.can_access = MagicMock(return_value=True)
+    with (
+        patch("superset.mcp_service.auth.security_manager", mock_sm),
+        _patch_token_scopes(["superset:chart:write"]),
+    ):
+        result = check_tool_permission(func)
+
+    assert result is False
+
+
+def test_per_resource_scope_enforces_action(app_context) -> None:
+    """A token scoped to superset:chart:read does NOT grant a Chart/write tool
+    (action still enforced within the resource)."""
+    g.user = MagicMock(username="editor")
+    func = _make_tool_func(class_perm="Chart", method_perm="write")
+
+    mock_sm = MagicMock()
+    mock_sm.can_access = MagicMock(return_value=True)
+    with (
+        patch("superset.mcp_service.auth.security_manager", mock_sm),
+        _patch_token_scopes(["superset:chart:read"]),
+    ):
+        result = check_tool_permission(func)
+
+    assert result is False
 
 
 # ---------------------------------------------------------------------------

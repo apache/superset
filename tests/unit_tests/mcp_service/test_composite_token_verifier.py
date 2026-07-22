@@ -233,13 +233,22 @@ async def test_api_key_passthrough_propagates_required_scopes() -> None:
 # -- Transport-layer DB validation (app configured) --
 
 
-def _make_app_with_api_key(username: str | None) -> MagicMock:
-    """Return a mock Flask app whose SecurityManager validates to ``username``."""
+def _make_app_with_api_key(
+    username: str | None, scopes: str | None = None
+) -> MagicMock:
+    """Return a mock Flask app whose SecurityManager validates to ``username``.
+
+    ``scopes`` is what ``get_api_key_scopes`` returns (FAB stores scopes as a
+    comma-separated string, or None). It must be configured explicitly — an
+    unconfigured MagicMock return value would raise on ``.split(",")`` inside
+    the verifier's broad except-block and silently read as a rejected key.
+    """
     mock_user = MagicMock()
     mock_user.username = username
 
     mock_sm = MagicMock()
     mock_sm.validate_api_key = MagicMock(return_value=mock_user if username else None)
+    mock_sm.get_api_key_scopes = MagicMock(return_value=scopes)
 
     mock_app = MagicMock()
     mock_app.app_context.return_value.__enter__ = MagicMock(return_value=None)
@@ -262,6 +271,43 @@ async def test_transport_validation_valid_key_returns_access_token() -> None:
     assert result.client_id == "api_key"
     assert result.claims.get(API_KEY_PASSTHROUGH_CLAIM) is True
     assert result.claims.get(API_KEY_VALIDATED_USERNAME_CLAIM) == "alice"
+
+
+@pytest.mark.asyncio
+async def test_transport_validation_uses_keys_own_scopes() -> None:
+    """A key with its own ApiKey.scopes carries them on the AccessToken,
+    parsed from FAB's comma-separated storage format."""
+    mock_app = _make_app_with_api_key(
+        "alice", scopes="superset:dashboard:read, superset:chart:read"
+    )
+    verifier = CompositeTokenVerifier(
+        jwt_verifier=None, api_key_prefixes=["sst_"], app=mock_app
+    )
+
+    result = await verifier.verify_token("sst_valid_key")
+
+    assert result is not None
+    assert result.scopes == ["superset:dashboard:read", "superset:chart:read"]
+
+
+@pytest.mark.asyncio
+async def test_transport_validation_no_key_scopes_falls_back_to_required() -> None:
+    """A key without its own scopes falls back to the verifier-global
+    required_scopes (back-compat: "no scopes advertised")."""
+    mock_app = _make_app_with_api_key("alice", scopes=None)
+    jwt_verifier = MagicMock()
+    jwt_verifier.required_scopes = ["superset:read"]
+    jwt_verifier.verify_token = AsyncMock()
+
+    verifier = CompositeTokenVerifier(
+        jwt_verifier=jwt_verifier, api_key_prefixes=["sst_"], app=mock_app
+    )
+
+    result = await verifier.verify_token("sst_valid_key")
+
+    assert result is not None
+    assert result.scopes == list(verifier.required_scopes)
+    assert result.scopes == ["superset:read"]
 
 
 @pytest.mark.asyncio
