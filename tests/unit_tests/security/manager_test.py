@@ -689,7 +689,7 @@ def test_query_context_modified_singular_metric_param(
         "slice_id": 42,
         "metric": "sum__SP_POP_TOTL",
     }
-    query_context.queries = [QueryObject(metrics=["sum__SP_POP_TOTL"])]  # type: ignore
+    query_context.queries = [QueryObject(metrics=["sum__SP_POP_TOTL"])]
     assert not query_context_modified(query_context)
 
 
@@ -716,7 +716,7 @@ def test_query_context_modified_control_specific_column_params(
 
     query_context.form_data = {"slice_id": 42}
     query_context.queries = [
-        QueryObject(  # type: ignore
+        QueryObject(
             columns=["country_name", "region", "year"],
             metrics=[
                 "sum__SP_RUR_TOTL_ZS",
@@ -746,16 +746,16 @@ def test_query_context_modified_novel_values_still_tampered(
     }
     query_context.form_data = {"slice_id": 42}
 
-    query_context.queries = [QueryObject(metrics=["sum__SH_DYN_AIDS"])]  # type: ignore
+    query_context.queries = [QueryObject(metrics=["sum__SH_DYN_AIDS"])]
     assert query_context_modified(query_context)
 
     query_context.queries = [
-        QueryObject(columns=["some_other_column"])  # type: ignore
+        QueryObject(columns=["some_other_column"])
     ]
     assert query_context_modified(query_context)
 
     query_context.queries = [
-        QueryObject(  # type: ignore
+        QueryObject(
             columns=[
                 {"label": "country_code", "sqlExpression": "(select 1)"},
             ],
