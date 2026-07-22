@@ -88,6 +88,8 @@ interface PivotTableCustomizeProps {
   time_grain_sqla?: TimeGranularity;
   granularity_sqla?: string;
   allowRenderHtml?: boolean;
+  defaultRowExpansionDepth?: number;
+  defaultColExpansionDepth?: number;
 }
 
 export type PivotTableQueryFormData = QueryFormData &

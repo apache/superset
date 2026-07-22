@@ -106,6 +106,8 @@ interface TableRendererProps {
     filters?: Record<string, string>,
   ) => void;
   allowRenderHtml?: boolean;
+  defaultRowExpansionDepth?: number;
+  defaultColExpansionDepth?: number;
   [key: string]: unknown;
 }
 
@@ -134,6 +136,61 @@ interface PivotSettings {
   rowAttrSpans?: number[][];
   colAttrSpans?: number[][];
   visibleRowCount?: number;
+}
+
+/**
+ * Computes the initial collapsed-state map for a set of keys and a depth.
+ *
+ * Semantics:
+ *   - depth = 0 (or invalid): disabled / fully expanded (returns an empty map)
+ *   - depth = 1: collapse at level 1 (show only top-level rows/columns)
+ *   - depth = N: collapse at level N (show N levels expanded)
+ *
+ * Every intermediate level from `depth` up to `maxDepth - 1` is collapsed, so
+ * expanding a group reveals only the next level while deeper levels stay
+ * collapsed until clicked. The leaf level (`maxDepth`) is never collapsed.
+ *
+ * @param keys - Array of key arrays (e.g. rowKeys or colKeys)
+ * @param depth - The (1-based) depth at which to collapse. Must be a positive
+ *   integer (>= 1) to apply any collapse.
+ * @param maxDepth - Optional total number of grouping levels (e.g.
+ *   rows.length or cols.length). Inferred from the longest key when omitted.
+ * @returns A map of flatKey => true for every key that should be collapsed.
+ */
+export function computeCollapsedMap(
+  keys: string[][],
+  depth?: number,
+  maxDepth?: number,
+): Record<string, boolean> {
+  // depth must be a positive integer (>= 1); 0/invalid means fully expanded.
+  if (!Number.isInteger(depth) || (depth as number) <= 0) {
+    return {};
+  }
+  const collapseDepth = depth as number;
+
+  const effectiveMaxDepth = Number.isInteger(maxDepth)
+    ? (maxDepth as number)
+    : Math.max(0, ...keys.map(k => (Array.isArray(k) ? k.length : 0)));
+  if (effectiveMaxDepth <= collapseDepth) {
+    return {};
+  }
+
+  const collapsed: Record<string, boolean> = {};
+  const seen = new Set<string>();
+  keys.forEach(k => {
+    if (!Array.isArray(k) || k.length < collapseDepth) {
+      return;
+    }
+    const limit = Math.min(k.length, effectiveMaxDepth - 1);
+    for (let i = collapseDepth; i <= limit; i += 1) {
+      const keyStr = flatKey(k.slice(0, i));
+      if (!seen.has(keyStr)) {
+        seen.add(keyStr);
+        collapsed[keyStr] = true;
+      }
+    }
+  });
+  return collapsed;
 }
 
 const parseLabel = (value: unknown): string | number => {
@@ -346,6 +403,8 @@ export function TableRenderer(props: TableRendererProps) {
     namesMapping: namesMappingProp,
     onContextMenu,
     allowRenderHtml,
+    defaultRowExpansionDepth = 0,
+    defaultColExpansionDepth = 0,
   } = props;
 
   const [collapsedRows, setCollapsedRows] = useState<Record<string, boolean>>(
@@ -750,6 +809,60 @@ export function TableRenderer(props: TableRendererProps) {
     () => getBasePivotSettings(),
     [getBasePivotSettings],
   );
+
+  // Seed the initial collapsed state once, on mount, from the configured
+  // default expansion depths. Keeping this in an effect (rather than the render
+  // body or a state initializer) avoids the setState-during-render anti-pattern
+  // while still hiding deeper hierarchy levels on first load. A depth of 0 (or
+  // an invalid value) means "fully expanded" and collapses nothing.
+  const didApplyInitialCollapse = useRef(false);
+  useEffect(() => {
+    if (didApplyInitialCollapse.current) {
+      return;
+    }
+    didApplyInitialCollapse.current = true;
+
+    const rowDepth = Number(defaultRowExpansionDepth);
+    const colDepth = Number(defaultColExpansionDepth);
+    const hasValidRowDepth = Number.isInteger(rowDepth) && rowDepth > 0;
+    const hasValidColDepth = Number.isInteger(colDepth) && colDepth > 0;
+    if (!hasValidRowDepth && !hasValidColDepth) {
+      return;
+    }
+
+    const {
+      rowKeys,
+      colKeys,
+      rowAttrs,
+      colAttrs,
+      rowSubtotalDisplay,
+      colSubtotalDisplay,
+    } = basePivotSettings;
+
+    // Only collapse when subtotals are enabled and the requested depth sits
+    // above the deepest level (otherwise there is nothing to hide).
+    const initialCollapsedRows =
+      hasValidRowDepth &&
+      rowSubtotalDisplay.enabled &&
+      rowAttrs.length > 1 &&
+      rowDepth < rowAttrs.length
+        ? computeCollapsedMap(rowKeys, rowDepth, rowAttrs.length)
+        : {};
+    const initialCollapsedCols =
+      hasValidColDepth &&
+      colSubtotalDisplay.enabled &&
+      colAttrs.length > 1 &&
+      colDepth < colAttrs.length
+        ? computeCollapsedMap(colKeys, colDepth, colAttrs.length)
+        : {};
+
+    if (Object.keys(initialCollapsedRows).length > 0) {
+      setCollapsedRows(initialCollapsedRows);
+    }
+    if (Object.keys(initialCollapsedCols).length > 0) {
+      setCollapsedCols(initialCollapsedCols);
+    }
+  }, [basePivotSettings, defaultRowExpansionDepth, defaultColExpansionDepth]);
 
   // Reset sort state and cache when structural props change. Scoping this to
   // an effect (instead of running inside the memo) prevents the cache from
