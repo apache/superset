@@ -84,6 +84,23 @@ def _load_user_from_job_metadata(job_metadata: dict[str, Any]) -> User:
     return user
 
 
+def _handle_soft_time_limit(
+    job_metadata: dict[str, Any], ex: Exception, activity: str
+) -> None:
+    """
+    SoftTimeLimitExceeded is raised both by a genuine timeout and by a
+    user-initiated cancel (revoke sends SIGUSR1). Emit the matching terminal
+    event so a cancelled job is reported as cancelled.
+    """
+    if async_query_manager.is_job_cancelled(job_metadata["job_id"]):
+        logger.info("Cancelled by the user while %s", activity)
+        async_query_manager.update_job(
+            job_metadata, async_query_manager.STATUS_CANCELLED
+        )
+    else:
+        logger.warning("A timeout occurred while %s, error: %s", activity, ex)
+
+
 @celery_app.task(name="load_chart_data_into_cache", soft_time_limit=query_timeout)
 def load_chart_data_into_cache(
     job_metadata: dict[str, Any],
@@ -106,7 +123,7 @@ def load_chart_data_into_cache(
                 result_url=result_url,
             )
         except SoftTimeLimitExceeded as ex:
-            logger.warning("A timeout occurred while loading chart data, error: %s", ex)
+            _handle_soft_time_limit(job_metadata, ex, "loading chart data")
             raise
         except Exception as ex:
             # Extract SIP-40 style errors when available
@@ -176,9 +193,7 @@ def load_explore_json_into_cache(  # pylint: disable=too-many-locals
                 result_url=result_url,
             )
         except SoftTimeLimitExceeded as ex:
-            logger.warning(
-                "A timeout occurred while loading explore json, error: %s", ex
-            )
+            _handle_soft_time_limit(job_metadata, ex, "loading explore json")
             raise
         except Exception as ex:
             if isinstance(ex, SupersetVizException):
