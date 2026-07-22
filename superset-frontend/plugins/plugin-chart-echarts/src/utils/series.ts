@@ -37,7 +37,7 @@ import { SortSeriesType, LegendPaddingType } from '@superset-ui/chart-controls';
 import { format } from 'echarts/core';
 import type { LegendComponentOption } from 'echarts/components';
 import type { SeriesOption } from 'echarts';
-import { isEmpty, maxBy, meanBy, minBy, orderBy, sumBy } from 'lodash';
+import { isEmpty, maxBy, meanBy, minBy, orderBy, sumBy } from 'lodash-es';
 import {
   NULL_STRING,
   StackControlsValue,
@@ -73,11 +73,7 @@ const ESTIMATED_LEGEND_SELECTOR_WIDTH = 112;
 const LEGEND_TEXT_WIDTH_CACHE = new Map<string, number>();
 
 type LegendDataItem =
-  | string
-  | number
-  | null
-  | undefined
-  | { name?: string | number | null };
+  string | number | null | undefined | { name?: string | number | null };
 
 export type LegendLayoutResult = {
   effectiveMargin?: number;
@@ -934,6 +930,7 @@ export function getAxisType(
   stack: StackType,
   forceCategorical?: boolean,
   dataType?: GenericDataType,
+  seriesType?: EchartsTimeseriesSeriesType,
 ): AxisType {
   if (forceCategorical) {
     return AxisType.Category;
@@ -941,7 +938,11 @@ export function getAxisType(
   if (dataType === GenericDataType.Temporal) {
     return AxisType.Time;
   }
-  if (dataType === GenericDataType.Numeric && !stack) {
+  if (
+    dataType === GenericDataType.Numeric &&
+    !stack &&
+    seriesType !== EchartsTimeseriesSeriesType.Bar
+  ) {
     return AxisType.Value;
   }
   return AxisType.Category;

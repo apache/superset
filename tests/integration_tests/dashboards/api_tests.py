@@ -25,23 +25,31 @@ from zipfile import is_zipfile, ZipFile
 from tests.integration_tests.insert_chart_mixin import InsertChartMixin
 
 import pytest
-import prison
+import rison
 import yaml
 
 from freezegun import freeze_time
 from sqlalchemy import and_
 from superset import db, security_manager  # noqa: F401
+from superset.exceptions import LockAlreadyHeldException
 from superset.models.dashboard import Dashboard
 from superset.models.core import FavStar, FavStarClassName
 from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
+from superset.subjects.models import Subject
+from superset.subjects.types import SubjectType
 from superset.tags.models import Tag, TaggedObject, TagType, ObjectType
 from superset.utils.core import backend, override_user
 from superset.utils.screenshots import ScreenshotCachePayload
 from superset.utils import json
 
-from tests.integration_tests.base_api_tests import ApiOwnersTestCaseMixin
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.conftest import with_config
+from tests.integration_tests.base_api_tests import ApiEditorsTestCaseMixin
+from tests.integration_tests.base_tests import (
+    subjects_from_users,
+    SupersetTestCase,
+    user_is_editor,
+)
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import (
     ADMIN_USERNAME,
@@ -74,13 +82,15 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
 DASHBOARDS_FIXTURE_COUNT = 10
 
 
-class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
+class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
     resource_name = "dashboard"
+    subject_types_config_key = "SUBJECTS_RELATED_TYPES_DASHBOARDS"
 
     dashboards: list[Dashboard] = []
     dashboard_data = {
         "dashboard_title": "title1_changed",
         "slug": "slug1_changed",
+        "description": "desc_changed",
         "position_json": '{"b": "B"}',
         "css": "css_changed",
         "json_metadata": '{"refresh_frequency": 30, "timed_refresh_immune_slices": [], "expanded_slices": {}, "color_scheme": "", "label_colors": {}, "shared_label_colors": [], "map_label_colors": {}, "color_scheme_domain": [], "cross_filters_enabled": false}',  # noqa: E501
@@ -295,6 +305,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         assert actual_dataset_ids == expected_dataset_ids
         expected_values = [0, 1] if backend() == "presto" else [0, 1, 2]
         assert result[0]["column_types"] == expected_values
+        assert "sql" in result[0]
         logger_mock.warning.assert_not_called()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
@@ -312,8 +323,33 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         actual_dataset_ids = {dataset["id"] for dataset in result}
         assert actual_dataset_ids == expected_dataset_ids
         for dataset in result:
-            for excluded_key in ["database", "owners"]:
+            for excluded_key in ["database"]:
                 assert excluded_key not in dataset
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @patch("superset.dashboards.api.security_manager.can_access_datasource")
+    def test_get_dashboard_datasets_strips_definition_without_datasource_access(
+        self, can_access_datasource_mock
+    ):
+        can_access_datasource_mock.return_value = False
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/dashboard/world_health/datasets"
+        response = self.get_assert_metric(uri, "get_datasets")
+        assert response.status_code == 200
+        data = json.loads(response.data.decode("utf-8"))
+        for dataset in data["result"]:
+            for excluded_key in [
+                "sql",
+                "select_star",
+                "fetch_values_predicate",
+                "template_params",
+                "params",
+            ]:
+                assert excluded_key not in dataset
+            for column in dataset.get("columns") or []:
+                assert "expression" not in column
+            for metric in dataset.get("metrics") or []:
+                assert "expression" not in metric
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.utils.log.logger")
@@ -512,7 +548,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         """
         admin = self.get_user("admin")
         dashboard = self.insert_dashboard(
-            "title", "slug1", [admin.id], created_by=admin
+            "title", "slug1", [admin.id], created_by=admin, desc="description"
         )
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/dashboard/{dashboard.id}"
@@ -536,22 +572,25 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
                 "dashboard_title": "title",
                 "datasources": [],
                 "json_metadata": "",
-                "owners": [
+                "editors": [
                     {
-                        "id": 1,
-                        "first_name": "admin",
-                        "last_name": "user",
+                        "id": ANY,
+                        "label": "admin user",
+                        "secondary_label": "admin@fab.org",
+                        "type": 1,
+                        "img": ANY,
                     }
                 ],
-                "roles": [],
+                "viewers": [],
                 "position_json": "",
                 "published": False,
-                "url": "/superset/dashboard/slug1/",
+                "url": "/dashboard/slug1/",
                 "slug": "slug1",
                 "tags": [],
                 "thumbnail_url": dashboard.thumbnail_url,
                 "is_managed_externally": False,
                 "theme": None,
+                "description": "description",
             }
         data = json.loads(rv.data.decode("utf-8"))
         assert "changed_on" in data["result"]
@@ -578,7 +617,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "title", "slug1", [admin.id], created_by=admin
         )
         self.login(ADMIN_USERNAME)
-        params = prison.dumps({"columns": ["id", "dashboard_title"]})
+        params = rison.dumps({"columns": ["id", "dashboard_title"]})
         uri = f"api/v1/dashboard/{dashboard.id}?q={params}"
         rv = self.get_assert_metric(uri, "get")
         assert rv.status_code == 200
@@ -588,7 +627,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         assert result["dashboard_title"] == "title"
         assert "thumbnail_url" not in result
         assert "slug" not in result
-        assert "owners" not in result
         # rollback changes
         db.session.delete(dashboard)
         db.session.commit()
@@ -637,7 +675,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "title", "slug1", [admin.id], created_by=admin
         )
         self.login(ADMIN_USERNAME)
-        params = prison.dumps({"columns": ["id", "changed_on_delta_humanized"]})
+        params = rison.dumps({"columns": ["id", "changed_on_delta_humanized"]})
         uri = f"api/v1/dashboard/{dashboard.id}?q={params}"
         rv = self.get_assert_metric(uri, "get")
         assert rv.status_code == 200
@@ -667,7 +705,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         rv = self.get_assert_metric(uri, "get")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
-        for excluded_key in ["changed_by", "changed_by_name", "owners"]:
+        for excluded_key in ["changed_by", "changed_by_name", "editors"]:
             assert excluded_key not in data["result"]
         # rollback changes
         db.session.delete(dashboard)
@@ -688,7 +726,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         """
         self.login(ADMIN_USERNAME)
         params = {"keys": ["permissions"]}
-        uri = f"api/v1/dashboard/_info?q={prison.dumps(params)}"
+        uri = f"api/v1/dashboard/_info?q={rison.dumps(params)}"
         rv = self.get_assert_metric(uri, "info")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -747,7 +785,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
                 "order_column": "changed_on_delta_humanized",
                 "order_direction": "desc",
             }
-            uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+            uri = f"api/v1/dashboard/?q={rison.dumps(arguments)}"
 
             rv = self.get_assert_metric(uri, "get_list")
             assert rv.status_code == 200
@@ -758,6 +796,54 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
             # rollback changes
             db.session.delete(dashboard)
+            db.session.commit()
+
+    def test_get_dashboards_admin_sees_existing_dashboards(self):
+        """Regression for #25890: GET /api/v1/dashboard/ as an Admin user should
+        return existing dashboards, not an empty list. The original report
+        showed an Admin getting {"count": 0, "ids": []} despite dashboards
+        existing in the database."""
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "regression_25890_dashboard", "regression-25890", [admin.id]
+        )
+        try:
+            self.login(ADMIN_USERNAME)
+            rv = self.client.get("api/v1/dashboard/")
+            assert rv.status_code == 200
+            data = json.loads(rv.data.decode("utf-8"))
+            assert data["count"] >= 1, (
+                f"Admin received empty dashboard list despite "
+                f"{dashboard.dashboard_title!r} existing; see issue #25890"
+            )
+            titles = [d["dashboard_title"] for d in data["result"]]
+            assert dashboard.dashboard_title in titles, (
+                f"Admin list missing the inserted dashboard. Got titles: {titles}"
+            )
+        finally:
+            db.session.delete(dashboard)
+            db.session.commit()
+
+    def test_get_charts_admin_sees_existing_charts(self):
+        """Regression for #25890: GET /api/v1/chart/ as an Admin user should
+        return existing charts, not an empty list."""
+        admin = self.get_user("admin")
+        chart = self.insert_chart("regression_25890_chart", [admin.id], 1, params="{}")
+        try:
+            self.login(ADMIN_USERNAME)
+            rv = self.client.get("api/v1/chart/")
+            assert rv.status_code == 200
+            data = json.loads(rv.data.decode("utf-8"))
+            assert data["count"] >= 1, (
+                f"Admin received empty chart list despite "
+                f"{chart.slice_name!r} existing; see issue #25890"
+            )
+            names = [c["slice_name"] for c in data["result"]]
+            assert chart.slice_name in names, (
+                f"Admin list missing the inserted chart. Got slice_names: {names}"
+            )
+        finally:
+            db.session.delete(chart)
             db.session.commit()
 
     def test_get_dashboards_filter(self):
@@ -773,19 +859,25 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         arguments = {
             "filters": [{"col": "dashboard_title", "opr": "sw", "value": "ti"}]
         }
-        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(arguments)}"
 
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
         assert data["count"] == 1
 
+        admin_subject = subjects_from_users([admin])[0]
+        gamma_subject = subjects_from_users([gamma])[0]
         arguments = {
             "filters": [
-                {"col": "owners", "opr": "rel_m_m", "value": [admin.id, gamma.id]}
+                {
+                    "col": "editors",
+                    "opr": "rel_m_m",
+                    "value": [admin_subject.id, gamma_subject.id],
+                }
             ]
         }
-        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -811,7 +903,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "columns": ["dashboard_title", "slug"],
         }
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -824,7 +916,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         # Test slug filter with ilike
         arguments["filters"][0]["value"] = "slug2"
-        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -837,7 +929,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         self.logout()
         self.login(GAMMA_USERNAME)
-        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -867,7 +959,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "columns": ["dashboard_title"],
         }
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -944,7 +1036,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         assert users_favorite_ids
         arguments = [dash.id for dash in db.session.query(Dashboard.id).all()]
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dashboard/favorite_status/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dashboard/favorite_status/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -970,7 +1062,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         db.session.commit()
 
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dashboard/favorite_status/?q={prison.dumps([dashboard.id])}"
+        uri = f"api/v1/dashboard/favorite_status/?q={rison.dumps([dashboard.id])}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         for res in data["result"]:
@@ -979,7 +1071,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         uri = f"api/v1/dashboard/{dashboard.id}/favorites/"
         self.client.post(uri)
 
-        uri = f"api/v1/dashboard/favorite_status/?q={prison.dumps([dashboard.id])}"
+        uri = f"api/v1/dashboard/favorite_status/?q={rison.dumps([dashboard.id])}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         for res in data["result"]:
@@ -1009,7 +1101,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         uri = f"api/v1/dashboard/{dashboard.id}/favorites/"
         self.client.post(uri)
 
-        uri = f"api/v1/dashboard/favorite_status/?q={prison.dumps([dashboard.id])}"
+        uri = f"api/v1/dashboard/favorite_status/?q={rison.dumps([dashboard.id])}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         for res in data["result"]:
@@ -1018,7 +1110,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         uri = f"api/v1/dashboard/{dashboard.id}/favorites/"
         self.client.delete(uri)
 
-        uri = f"api/v1/dashboard/favorite_status/?q={prison.dumps([dashboard.id])}"
+        uri = f"api/v1/dashboard/favorite_status/?q={rison.dumps([dashboard.id])}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         for res in data["result"]:
@@ -1049,7 +1141,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "keys": ["none"],
             "columns": ["dashboard_title"],
         }
-        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(arguments)}"
         self.login(ADMIN_USERNAME)
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
@@ -1075,7 +1167,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         }
         self.login(ADMIN_USERNAME)
 
-        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -1097,7 +1189,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         }
         self.login(ADMIN_USERNAME)
 
-        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -1129,7 +1221,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "page": 0,
             "page_size": 100,
         }
-        uri = f"api/v1/dashboard/?q={prison.dumps(query)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(query)}"
         self.login(GAMMA_USERNAME)
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
@@ -1139,11 +1231,11 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         expected_results = [
             {
                 "dashboard_title": "create_title1",
-                "url": "/superset/dashboard/create_slug1/",
+                "url": "/dashboard/create_slug1/",
             },
             {
                 "dashboard_title": "create_title0",
-                "url": "/superset/dashboard/create_slug0/",
+                "url": "/dashboard/create_slug0/",
             },
         ]
         for idx, response_item in enumerate(data["result"]):
@@ -1390,7 +1482,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             )
         self.login(ADMIN_USERNAME)
         argument = dashboard_ids
-        uri = f"api/v1/dashboard/?q={prison.dumps(argument)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(argument)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
@@ -1430,7 +1522,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             assert result["uuid"] != ""
             assert result["allowed_domains"] == allowed_domains
         argument = dashboard_ids
-        uri = f"api/v1/dashboard/?q={prison.dumps(argument)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(argument)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
@@ -1447,7 +1539,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         dashboard_ids = [1, "a"]
         self.login(ADMIN_USERNAME)
         argument = dashboard_ids
-        uri = f"api/v1/dashboard/?q={prison.dumps(argument)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(argument)}"
         rv = self.client.delete(uri)
         assert rv.status_code == 400
 
@@ -1488,7 +1580,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         dashboard_ids = [1001, 1002]
         self.login(ADMIN_USERNAME)
         argument = dashboard_ids
-        uri = f"api/v1/dashboard/?q={prison.dumps(argument)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(argument)}"
         rv = self.client.delete(uri)
         assert rv.status_code == 404
 
@@ -1511,7 +1603,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         dashboard_ids = [dashboard.id for dashboard in dashboards]
         dashboard_ids.append(dashboard_with_report.id)
-        uri = f"api/v1/dashboard/?q={prison.dumps(dashboard_ids)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(dashboard_ids)}"
         rv = self.client.delete(uri)
         response = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 422
@@ -1552,7 +1644,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         self.login(ADMIN_USERNAME)
         argument = dashboard_ids
-        uri = f"api/v1/dashboard/?q={prison.dumps(argument)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(argument)}"
         rv = self.client.delete(uri)
         response = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -1629,7 +1721,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         # verify we can't delete not owned dashboards
         arguments = [dashboard.id for dashboard in dashboards]
-        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(arguments)}"
         rv = self.client.delete(uri)
         assert rv.status_code == 403
         response = json.loads(rv.data.decode("utf-8"))
@@ -1638,7 +1730,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         # nothing is deleted in bulk with a list of owned and not owned dashboards
         arguments = [dashboard.id for dashboard in dashboards] + [owned_dashboard.id]
-        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(arguments)}"
         rv = self.client.delete(uri)
         assert rv.status_code == 403
         response = json.loads(rv.data.decode("utf-8"))
@@ -1656,11 +1748,12 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         """
         Dashboard API: Test create dashboard
         """
-        admin_id = self.get_user("admin").id
+        admin = self.get_user("admin")
+        admin_subject = subjects_from_users([admin])[0]
         dashboard_data = {
             "dashboard_title": "title1",
             "slug": "slug1",
-            "owners": [admin_id],
+            "editors": [admin_subject.id],
             "position_json": '{"a": "A"}',
             "css": "css",
             "json_metadata": '{"refresh_frequency": 30}',
@@ -1672,8 +1765,92 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         assert rv.status_code == 201
         data = json.loads(rv.data.decode("utf-8"))
         model = db.session.query(Dashboard).get(data.get("id"))
+        # uuid should be returned in the response
+        assert "uuid" in data
+        assert str(model.uuid) == str(data["uuid"])
         db.session.delete(model)
         db.session.commit()
+
+    def test_create_dashboard_via_api_links_charts_from_positions(self):
+        """Regression for #32966: creating a dashboard through the REST API with a
+        ``position_json`` / ``json_metadata`` that references a chart should link
+        that chart to the dashboard (populate ``dashboard.slices``), exactly as
+        saving the dashboard through the UI does.
+
+        The create command stores ``position_json`` verbatim but never calls
+        ``DashboardDAO.set_dash_metadata`` (the update command does), so the
+        dashboard-to-slice relationship is left empty and the chart renders
+        "There is no chart definition associated with this component" until the
+        dashboard is edited and re-saved in the UI.
+
+        CI green => the create path now links the referenced charts and merging
+        closes #32966. CI red => the bug is still live; the fix belongs in
+        ``superset/commands/dashboard/create.py`` (mirror the
+        ``set_dash_metadata`` call from ``update.py``).
+        """
+        admin = self.get_user("admin")
+        self.login(ADMIN_USERNAME)
+        chart = self.insert_chart("issue_32966_chart", [admin.id], 1, params="{}")
+        chart_component_id = "CHART-issue32966"
+        positions = {
+            "DASHBOARD_VERSION_KEY": "v2",
+            "ROOT_ID": {"type": "ROOT", "id": "ROOT_ID", "children": ["GRID_ID"]},
+            "GRID_ID": {
+                "type": "GRID",
+                "id": "GRID_ID",
+                "children": ["ROW-issue32966"],
+                "parents": ["ROOT_ID"],
+            },
+            "ROW-issue32966": {
+                "type": "ROW",
+                "id": "ROW-issue32966",
+                "children": [chart_component_id],
+                "meta": {"background": "BACKGROUND_TRANSPARENT"},
+                "parents": ["ROOT_ID", "GRID_ID"],
+            },
+            chart_component_id: {
+                "type": "CHART",
+                "id": chart_component_id,
+                "children": [],
+                "meta": {
+                    "chartId": chart.id,
+                    "sliceName": chart.slice_name,
+                    "width": 4,
+                    "height": 50,
+                },
+                "parents": ["ROOT_ID", "GRID_ID", "ROW-issue32966"],
+            },
+        }
+        admin_subject = (
+            db.session.query(Subject)
+            .filter_by(user_id=admin.id, type=SubjectType.USER)
+            .first()
+        )
+        dashboard_data = {
+            "dashboard_title": "issue 32966 dashboard",
+            "slug": "issue-32966",
+            "editors": [admin_subject.id],
+            "position_json": json.dumps(positions),
+            "json_metadata": json.dumps({"positions": positions}),
+            "published": True,
+        }
+        dashboard = None
+        try:
+            uri = "api/v1/dashboard/"
+            rv = self.post_assert_metric(uri, dashboard_data, "post")
+            assert rv.status_code == 201
+            data = json.loads(rv.data.decode("utf-8"))
+            dashboard = db.session.query(Dashboard).get(data.get("id"))
+            slice_ids = [slc.id for slc in dashboard.slices]
+            assert chart.id in slice_ids, (
+                "Chart referenced in position_json was not linked to the "
+                f"dashboard (dashboard.slices={slice_ids}); see issue #32966."
+            )
+        finally:
+            if dashboard is not None:
+                db.session.delete(dashboard)
+            db.session.delete(chart)
+            db.session.commit()
 
     def test_create_simple_dashboard(self):
         """
@@ -1757,31 +1934,29 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         db.session.delete(dashboard)
         db.session.commit()
 
-    def test_create_dashboard_validate_owners(self):
+    def test_create_dashboard_validate_editors(self):
         """
-        Dashboard API: Test create validate owners
+        Dashboard API: Test create validate editors
         """
-        dashboard_data = {"dashboard_title": "title1", "owners": [1000]}
+        dashboard_data = {"dashboard_title": "title1", "editors": [1000]}
         self.login(ADMIN_USERNAME)
         uri = "api/v1/dashboard/"
         rv = self.client.post(uri, json=dashboard_data)
         assert rv.status_code == 422
         response = json.loads(rv.data.decode("utf-8"))
-        expected_response = {"message": {"owners": ["Owners are invalid"]}}
+        expected_response = {"message": {"editors": ["Subjects are invalid"]}}
         assert response == expected_response
 
-    def test_create_dashboard_validate_roles(self):
+    def test_create_dashboard_roles_not_accepted(self):
         """
-        Dashboard API: Test create validate roles
+        Dashboard API: Test create rejects roles (replaced by viewers)
         """
         dashboard_data = {"dashboard_title": "title1", "roles": [1000]}
         self.login(ADMIN_USERNAME)
         uri = "api/v1/dashboard/"
         rv = self.client.post(uri, json=dashboard_data)
-        assert rv.status_code == 422
-        response = json.loads(rv.data.decode("utf-8"))
-        expected_response = {"message": {"roles": ["Some roles do not exist"]}}
-        assert response == expected_response
+        # roles is no longer a valid field; reject as bad request
+        assert rv.status_code == 400
 
     def test_create_dashboard_validate_json(self):
         """
@@ -1813,10 +1988,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         Dashboard API: Test update
         """
         admin = self.get_user("admin")
-        admin_role = self.get_role("Admin")
-        dashboard_id = self.insert_dashboard(
-            "title1", "slug1", [admin.id], roles=[admin_role.id]
-        ).id
+        dashboard_id = self.insert_dashboard("title1", "slug1", [admin.id]).id
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/dashboard/{dashboard_id}"
         rv = self.put_assert_metric(uri, self.dashboard_data, "put")
@@ -1828,8 +2000,12 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         assert model.css == self.dashboard_data["css"]
         assert model.json_metadata == self.dashboard_data["json_metadata"]
         assert model.published == self.dashboard_data["published"]
-        assert model.owners == [admin]
-        assert model.roles == [admin_role]
+        admin_subject = (
+            db.session.query(Subject)
+            .filter_by(user_id=admin.id, type=SubjectType.USER)
+            .first()
+        )
+        assert model.editors == [admin_subject]
 
         db.session.delete(model)
         db.session.commit()
@@ -1839,10 +2015,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         Dashboard API: Test that a filter was added
         """
         admin = self.get_user("admin")
-        admin_role = self.get_role("Admin")
-        dashboard_id = self.insert_dashboard(
-            "title1", "slug1", [admin.id], roles=[admin_role.id]
-        ).id
+        dashboard_id = self.insert_dashboard("title1", "slug1", [admin.id]).id
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/dashboard/{dashboard_id}/filters"
         rv = self.put_assert_metric(uri, self.dashboard_put_filters_data, "put_filters")
@@ -1860,7 +2033,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         Dashboard API: Test that a filter was added
         """
         admin = self.get_user("admin")
-        admin_role = self.get_role("Admin")
         json_metadata = {
             "native_filter_configuration": [
                 {
@@ -1875,7 +2047,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "title1",
             "slug1",
             [admin.id],
-            roles=[admin_role.id],
             json_metadata=json.dumps(json_metadata),
         ).id
         self.login(ADMIN_USERNAME)
@@ -1897,7 +2068,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         Dashboard API: Test filters reordered
         """
         admin = self.get_user("admin")
-        admin_role = self.get_role("Admin")
         json_metadata = {
             "native_filter_configuration": [
                 {
@@ -1918,7 +2088,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "title1",
             "slug1",
             [admin.id],
-            roles=[admin_role.id],
             json_metadata=json.dumps(json_metadata),
         ).id
         self.login(ADMIN_USERNAME)
@@ -1943,7 +2112,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         Dashboard API: Test filters deleted
         """
         admin = self.get_user("admin")
-        admin_role = self.get_role("Admin")
         json_metadata = {
             "native_filter_configuration": [
                 {
@@ -1964,7 +2132,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "title1",
             "slug1",
             [admin.id],
-            roles=[admin_role.id],
             json_metadata=json.dumps(json_metadata),
         ).id
         self.login(ADMIN_USERNAME)
@@ -1989,10 +2156,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         Dashboard API: Test modify filters with invalid data
         """
         admin = self.get_user("admin")
-        admin_role = self.get_role("Admin")
-        dashboard_id = self.insert_dashboard(
-            "title1", "slug1", [admin.id], roles=[admin_role.id]
-        ).id
+        dashboard_id = self.insert_dashboard("title1", "slug1", [admin.id]).id
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/dashboard/{dashboard_id}/filters"
         put_data = {"invalid_key": "invalid_value"}
@@ -2008,10 +2172,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         Dashboard API: Test that chart customizations were added
         """
         admin = self.get_user("admin")
-        admin_role = self.get_role("Admin")
-        dashboard_id = self.insert_dashboard(
-            "title1", "slug1", [admin.id], roles=[admin_role.id]
-        ).id
+        dashboard_id = self.insert_dashboard("title1", "slug1", [admin.id]).id
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/dashboard/{dashboard_id}/chart_customizations"
         put_data = {
@@ -2050,7 +2211,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         Dashboard API: Test that chart customizations were modified
         """
         admin = self.get_user("admin")
-        admin_role = self.get_role("Admin")
         json_metadata = {
             "chart_customization_config": [
                 {
@@ -2064,7 +2224,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "title1",
             "slug1",
             [admin.id],
-            roles=[admin_role.id],
             json_metadata=json.dumps(json_metadata),
         ).id
         self.login(ADMIN_USERNAME)
@@ -2106,7 +2265,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         Dashboard API: Test chart customizations reordered
         """
         admin = self.get_user("admin")
-        admin_role = self.get_role("Admin")
         json_metadata = {
             "chart_customization_config": [
                 {
@@ -2125,7 +2283,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "title1",
             "slug1",
             [admin.id],
-            roles=[admin_role.id],
             json_metadata=json.dumps(json_metadata),
         ).id
         self.login(ADMIN_USERNAME)
@@ -2155,7 +2312,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         Dashboard API: Test chart customizations deleted
         """
         admin = self.get_user("admin")
-        admin_role = self.get_role("Admin")
         json_metadata = {
             "chart_customization_config": [
                 {
@@ -2174,7 +2330,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "title1",
             "slug1",
             [admin.id],
-            roles=[admin_role.id],
             json_metadata=json.dumps(json_metadata),
         ).id
         self.login(ADMIN_USERNAME)
@@ -2204,7 +2359,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         (modify, add, delete, reorder)
         """
         admin = self.get_user("admin")
-        admin_role = self.get_role("Admin")
         json_metadata = {
             "chart_customization_config": [
                 {
@@ -2228,7 +2382,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "title1",
             "slug1",
             [admin.id],
-            roles=[admin_role.id],
             json_metadata=json.dumps(json_metadata),
         ).id
         self.login(ADMIN_USERNAME)
@@ -2275,10 +2428,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         Dashboard API: Test modify chart customizations with invalid data
         """
         admin = self.get_user("admin")
-        admin_role = self.get_role("Admin")
-        dashboard_id = self.insert_dashboard(
-            "title1", "slug1", [admin.id], roles=[admin_role.id]
-        ).id
+        dashboard_id = self.insert_dashboard("title1", "slug1", [admin.id]).id
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/dashboard/{dashboard_id}/chart_customizations"
         put_data = {"invalid_key": "invalid_value"}
@@ -2305,13 +2455,10 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
     def test_dashboard_chart_customizations_forbidden(self):
         """
-        Dashboard API: Test chart customizations update forbidden for non-owner
+        Dashboard API: Test chart customizations update forbidden for non-editor
         """
         admin = self.get_user("admin")
-        admin_role = self.get_role("Admin")
-        dashboard_id = self.insert_dashboard(
-            "title1", "slug1", [admin.id], roles=[admin_role.id]
-        ).id
+        dashboard_id = self.insert_dashboard("title1", "slug1", [admin.id]).id
         self.login(GAMMA_USERNAME)
         uri = f"api/v1/dashboard/{dashboard_id}/chart_customizations"
         put_data = {
@@ -2332,10 +2479,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         Dashboard API: Tests that no username is returned
         """
         admin = self.get_user("admin")
-        admin_role = self.get_role("Admin")
-        dashboard_id = self.insert_dashboard(
-            "title1", "slug1", [admin.id], roles=[admin_role.id]
-        ).id
+        dashboard_id = self.insert_dashboard("title1", "slug1", [admin.id]).id
         model = db.session.query(Dashboard).get(dashboard_id)
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/dashboard/{dashboard_id}"
@@ -2349,7 +2493,8 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         current_dash = [d for d in res if d["id"] == dashboard_id][0]
         assert current_dash["dashboard_title"] == "title2"
         assert "username" not in current_dash["changed_by"].keys()
-        assert "username" not in current_dash["owners"][0].keys()
+        # editors are in the list response
+        assert len(current_dash["editors"]) > 0
 
         db.session.delete(model)
         db.session.commit()
@@ -2359,10 +2504,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         Dashboard API: Tests that no username is returned
         """
         admin = self.get_user("admin")
-        admin_role = self.get_role("Admin")
-        dashboard_id = self.insert_dashboard(
-            "title1", "slug1", [admin.id], roles=[admin_role.id]
-        ).id
+        dashboard_id = self.insert_dashboard("title1", "slug1", [admin.id]).id
         model = db.session.query(Dashboard).get(dashboard_id)
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/dashboard/{dashboard_id}"
@@ -2375,15 +2517,14 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         assert res["dashboard_title"] == "title2"
         assert "username" not in res["changed_by"].keys()
-        assert "username" not in res["owners"][0].keys()
 
         db.session.delete(model)
         db.session.commit()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_update_dashboard_chart_owners_propagation(self):
+    def test_update_dashboard_chart_editors_propagation(self):
         """
-        Dashboard API: Test update chart owners propagation
+        Dashboard API: Test update chart editors propagation
         """
         user_alpha1 = self.create_user(
             "alpha1",
@@ -2397,7 +2538,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         slices.append(db.session.query(Slice).filter_by(slice_name="Trends").one())
         slices.append(db.session.query(Slice).filter_by(slice_name="Boys").one())
 
-        # Insert dashboard with admin as owner
+        # Insert dashboard with admin as editor
         dashboard = self.insert_dashboard(
             "title1",
             "slug1",
@@ -2406,9 +2547,10 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         )
 
         # Updates dashboard without Boys in json_metadata positions
-        # and user_alpha1 as owner
+        # and user_alpha1 as editor
+        user_alpha1_subject = subjects_from_users([user_alpha1])[0]
         dashboard_data = {
-            "owners": [user_alpha1.id],
+            "editors": [user_alpha1_subject.id],
             "json_metadata": json.dumps(
                 {
                     "positions": {
@@ -2425,13 +2567,13 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         rv = self.client.put(uri, json=dashboard_data)
         assert rv.status_code == 200
 
-        # Check that chart named Boys does not contain alpha 1 in its owners
+        # Check that chart named Boys does not contain alpha 1 in its editors
         boys = db.session.query(Slice).filter_by(slice_name="Boys").one()
-        assert user_alpha1 not in boys.owners
+        assert not user_is_editor(user_alpha1, boys)
 
-        # Revert owners on slice
+        # Revert editors on slice
         for slice in slices:
-            slice.owners = []
+            slice.editors = []
             db.session.commit()
 
         # Rollback changes
@@ -2468,68 +2610,76 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         db.session.delete(model)
         db.session.commit()
 
-    def test_update_dashboard_new_owner_not_admin(self):
+    def test_update_dashboard_new_editor_not_admin(self):
         """
-        Dashboard API: Test update set new owner implicitly adds logged in owner
+        Dashboard API: Test update set new editor implicitly adds logged in editor
         """
         gamma = self.get_user("gamma")
         alpha = self.get_user("alpha")
         dashboard_id = self.insert_dashboard("title1", "slug1", [alpha.id]).id
-        dashboard_data = {"dashboard_title": "title1_changed", "owners": [gamma.id]}
+        gamma_subject = subjects_from_users([gamma])[0]
+        dashboard_data = {
+            "dashboard_title": "title1_changed",
+            "editors": [gamma_subject.id],
+        }
         self.login(ALPHA_USERNAME)
         uri = f"api/v1/dashboard/{dashboard_id}"
         rv = self.client.put(uri, json=dashboard_data)
         assert rv.status_code == 200
         model = db.session.query(Dashboard).get(dashboard_id)
-        assert gamma in model.owners
-        assert alpha in model.owners
+        assert user_is_editor(gamma, model)
+        assert user_is_editor(alpha, model)
         for slc in model.slices:
-            assert gamma in slc.owners
-            assert alpha in slc.owners
+            assert user_is_editor(gamma, slc)
+            assert user_is_editor(alpha, slc)
         db.session.delete(model)
         db.session.commit()
 
-    def test_update_dashboard_new_owner_admin(self):
+    def test_update_dashboard_new_editor_admin(self):
         """
-        Dashboard API: Test update set new owner as admin to other than current user
+        Dashboard API: Test update set new editor as admin to other than current user
         """
         gamma = self.get_user("gamma")
         admin = self.get_user("admin")
         dashboard_id = self.insert_dashboard("title1", "slug1", [admin.id]).id
-        dashboard_data = {"dashboard_title": "title1_changed", "owners": [gamma.id]}
+        gamma_subject = subjects_from_users([gamma])[0]
+        dashboard_data = {
+            "dashboard_title": "title1_changed",
+            "editors": [gamma_subject.id],
+        }
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/dashboard/{dashboard_id}"
         rv = self.client.put(uri, json=dashboard_data)
         assert rv.status_code == 200
         model = db.session.query(Dashboard).get(dashboard_id)
-        assert gamma in model.owners
-        assert admin not in model.owners
+        assert user_is_editor(gamma, model)
+        assert not user_is_editor(admin, model)
         for slc in model.slices:
-            assert gamma in slc.owners
-            assert admin not in slc.owners
+            assert user_is_editor(gamma, slc)
+            assert not user_is_editor(admin, slc)
         db.session.delete(model)
         db.session.commit()
 
-    def test_update_dashboard_clear_owner_list(self):
+    def test_update_dashboard_clear_editor_list(self):
         """
-        Dashboard API: Test update admin can clear up owners list
+        Dashboard API: Test update admin can clear up editors list
         """
         admin = self.get_user("admin")
         dashboard_id = self.insert_dashboard("title1", "slug1", [admin.id]).id
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard_id}"
-        dashboard_data = {"owners": []}
+        dashboard_data = {"editors": []}
         rv = self.client.put(uri, json=dashboard_data)
         assert rv.status_code == 200
         model = db.session.query(Dashboard).get(dashboard_id)
-        assert [] == model.owners
+        assert model.editors == []
         db.session.delete(model)
         db.session.commit()
 
-    def test_update_dashboard_populate_owner(self):
+    def test_update_dashboard_populate_editor(self):
         """
         Dashboard API: Test update admin can update dashboard with
-        no owners to a different owner
+        no editors to a different editor
         """
         self.login(username="admin")
         gamma = self.get_user("gamma")
@@ -2539,11 +2689,13 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             [],
         )
         uri = f"api/v1/dashboard/{dashboard.id}"
-        dashboard_data = {"owners": [gamma.id]}
+        gamma_subject = subjects_from_users([gamma])[0]
+        dashboard_data = {"editors": [gamma_subject.id]}
         rv = self.client.put(uri, json=dashboard_data)
         assert rv.status_code == 200
         model = db.session.query(Dashboard).get(dashboard.id)
-        assert [gamma] == model.owners
+        assert len(model.editors) == 1
+        assert user_is_editor(gamma, model)
         db.session.delete(model)
         db.session.commit()
 
@@ -2616,8 +2768,8 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         model = db.session.query(Dashboard).get(dashboard.id)
         assert model.published is True
         assert model.slug == "slug1"
-        assert admin in model.owners
-        assert gamma in model.owners
+        assert user_is_editor(admin, model)
+        assert user_is_editor(gamma, model)
         db.session.delete(model)
         db.session.commit()
 
@@ -2659,7 +2811,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         """
         self.login(ADMIN_USERNAME)
         dashboards_ids = get_dashboards_ids(["world_health", "births"])
-        uri = f"api/v1/dashboard/export/?q={prison.dumps(dashboards_ids)}"
+        uri = f"api/v1/dashboard/export/?q={rison.dumps(dashboards_ids)}"
 
         rv = self.get_assert_metric(uri, "export")
 
@@ -2673,7 +2825,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         """
         self.login(ADMIN_USERNAME)
         argument = [1000]
-        uri = f"api/v1/dashboard/export/?q={prison.dumps(argument)}"
+        uri = f"api/v1/dashboard/export/?q={rison.dumps(argument)}"
         rv = self.client.get(uri)
         assert rv.status_code == 404
 
@@ -2686,7 +2838,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         self.login(GAMMA_USERNAME)
         argument = [dashboard.id]
-        uri = f"api/v1/dashboard/export/?q={prison.dumps(argument)}"
+        uri = f"api/v1/dashboard/export/?q={rison.dumps(argument)}"
         rv = self.client.get(uri)
         assert rv.status_code == 404
         db.session.delete(dashboard)
@@ -2697,7 +2849,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         Dashboard API: Test dashboard export
         """
         dashboards_ids = get_dashboards_ids(["world_health", "births"])
-        uri = f"api/v1/dashboard/export/?q={prison.dumps(dashboards_ids)}"
+        uri = f"api/v1/dashboard/export/?q={rison.dumps(dashboards_ids)}"
 
         self.login(ADMIN_USERNAME)
         rv = self.client.get(uri)
@@ -2713,7 +2865,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         """
         self.login(ADMIN_USERNAME)
         argument = [1000]
-        uri = f"api/v1/dashboard/export/?q={prison.dumps(argument)}"
+        uri = f"api/v1/dashboard/export/?q={rison.dumps(argument)}"
         rv = self.client.get(uri)
         assert rv.status_code == 404
 
@@ -2726,7 +2878,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         self.login(GAMMA_USERNAME)
         argument = [dashboard.id]
-        uri = f"api/v1/dashboard/export/?q={prison.dumps(argument)}"
+        uri = f"api/v1/dashboard/export/?q={rison.dumps(argument)}"
         rv = self.client.get(uri)
         assert rv.status_code == 404
 
@@ -2810,6 +2962,74 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         assert rv.status_code == 200
         assert "Content-Disposition" in rv.headers
         assert "_example.zip" in rv.headers["Content-Disposition"]
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_export_as_example_data_respects_row_level_filters(self) -> None:
+        """
+        Dashboard API: export_as_example with export_data must apply the
+        dataset's row-level filters, so a restricted user only receives the
+        rows they are entitled to (not the full underlying table).
+        """
+        import pandas as pd
+
+        from superset.connectors.sqla.models import RowLevelSecurityFilter
+        from superset.subjects.sync import sync_role_subject
+        from superset.subjects.utils import subjects_from_roles
+
+        table = self.get_table(name="birth_names")
+        gamma = security_manager.find_role("Gamma")
+        # birth_names access so the row-level filter (not the access check) is
+        # what scopes the result, and permission to call the endpoint. Track
+        # what we grant so the shared test role is restored afterwards.
+        granted = []
+        for perm, view in (
+            ("datasource_access", table.perm),
+            ("can_export_as_example", "Dashboard"),
+            ("can_export", "Dashboard"),
+        ):
+            pvm = security_manager.find_permission_view_menu(perm, view)
+            if pvm and pvm not in gamma.permissions:
+                gamma.permissions.append(pvm)
+                granted.append(pvm)
+        rls = RowLevelSecurityFilter(
+            name="export_example_girls_only",
+            filter_type="Regular",
+            clause="gender = 'girl'",
+            group_key="gender",
+        )
+        rls.tables.append(table)
+        sync_role_subject(gamma)
+        db.session.flush()
+        rls.subjects = subjects_from_roles([gamma])
+        db.session.add(rls)
+        db.session.commit()
+        try:
+            self.login(GAMMA_USERNAME)
+            dashboard_id = get_dashboards_ids(["births"])[0]
+            uri = (
+                f"api/v1/dashboard/{dashboard_id}/export_as_example/"
+                "?export_data=true&sample_rows=500"
+            )
+            rv = self.client.get(uri)
+            assert rv.status_code == 200
+
+            with ZipFile(BytesIO(rv.data)) as zf:
+                parquet_files = [n for n in zf.namelist() if n.endswith(".parquet")]
+                assert parquet_files, f"expected a data file: {zf.namelist()}"
+                for name in parquet_files:
+                    df = pd.read_parquet(BytesIO(zf.read(name)))
+                    if "gender" in df.columns:
+                        unexpected = set(df["gender"].unique()) - {"girl"}
+                        assert not unexpected, (
+                            f"export returned rows outside the configured "
+                            f"row-level filter: {unexpected}"
+                        )
+        finally:
+            db.session.delete(rls)
+            for pvm in granted:
+                if pvm in gamma.permissions:
+                    gamma.permissions.remove(pvm)
+            db.session.commit()
 
     @patch("superset.commands.database.importers.v1.utils.add_permissions")
     def test_import_dashboard(self, mock_add_permissions):
@@ -3006,59 +3226,210 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         }
         assert error["extra"]["issue_codes"][0]["code"] == 1010
 
-    def test_get_all_related_roles(self):
+    def test_get_all_related_viewers(self):
         """
-        API: Test get filter related roles
+        API: Test get related viewers (replaces roles)
         """
         self.login(ADMIN_USERNAME)
-        uri = "api/v1/dashboard/related/roles"  # noqa: F541
+        uri = "api/v1/dashboard/related/viewers"
 
         rv = self.client.get(uri)
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
-        roles = db.session.query(security_manager.role_model).all()
-        expected_roles = [str(role) for role in roles]
-        assert response["count"] == len(roles)
+        assert response["count"] > 0
 
-        response_roles = [result["text"] for result in response["result"]]
-        for expected_role in expected_roles:
-            assert expected_role in response_roles
-
-    def test_get_filter_related_roles(self):
+    def test_get_filter_related_viewers(self):
         """
-        API: Test get filter related roles
+        API: Test get filter related viewers
         """
         self.login(ADMIN_USERNAME)
-        argument = {"filter": "alpha"}
-        uri = f"api/v1/dashboard/related/roles?q={prison.dumps(argument)}"
+        argument = {"filter": "admin"}
+        uri = f"api/v1/dashboard/related/viewers?q={rison.dumps(argument)}"
 
         rv = self.client.get(uri)
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
-        assert response["count"] == 1
+        assert response["count"] >= 1
+        response_labels = [result["text"] for result in response["result"]]
+        assert any("admin" in label.lower() for label in response_labels)
 
-        response_roles = [result["text"] for result in response["result"]]
-        assert "Alpha" in response_roles
-
-    def test_get_all_related_roles_with_with_extra_filters(self):
+    def test_get_all_related_viewers_with_extra_filters(self):
         """
-        API: Test get filter related roles with extra related query filters
+        API: Test get related viewers with extra related query filters
         """
         self.login(ADMIN_USERNAME)
+        uri = "api/v1/dashboard/related/viewers"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response["count"] > 0
 
-        def _base_filter(query):
-            return query.filter_by(name="Alpha")
+    def test_export_xlsx_501_when_bucket_unset(self):
+        """Dashboard API: export_xlsx returns 501 when the S3 bucket is unset."""
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard("xlsx-501", None, [admin.id])
+        self.login(ADMIN_USERNAME)
+        try:
+            rv = self.client.post(f"api/v1/dashboard/{dashboard.id}/export_xlsx/")
+            assert rv.status_code == 501
+        finally:
+            db.session.delete(dashboard)
+            db.session.commit()
 
-        with patch.dict(
-            "flask.current_app.config",
-            {"EXTRA_RELATED_QUERY_FILTERS": {"role": _base_filter}},
-        ):
-            uri = "api/v1/dashboard/related/roles"  # noqa: F541
-            rv = self.client.get(uri)
-            assert rv.status_code == 200
-            response = json.loads(rv.data.decode("utf-8"))
-            response_roles = [result["text"] for result in response["result"]]
-            assert response_roles == ["Alpha"]
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @patch("superset.dashboards.api.export_dashboard_excel")
+    def test_export_xlsx_404_for_missing_dashboard(self, mock_task):
+        """Dashboard API: export_xlsx returns 404 for an unknown dashboard."""
+        self.login(ADMIN_USERNAME)
+        rv = self.client.post("api/v1/dashboard/99999999/export_xlsx/")
+        assert rv.status_code == 404
+        mock_task.apply_async.assert_not_called()
+
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @patch("superset.dashboards.api.export_dashboard_excel")
+    def test_export_xlsx_400_for_empty_dashboard(self, mock_task):
+        """Dashboard API: export_xlsx returns 400 for a dashboard with no charts."""
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard("xlsx-empty", None, [admin.id])
+        self.login(ADMIN_USERNAME)
+        try:
+            rv = self.client.post(f"api/v1/dashboard/{dashboard.id}/export_xlsx/")
+            assert rv.status_code == 400
+            mock_task.apply_async.assert_not_called()
+        finally:
+            db.session.delete(dashboard)
+            db.session.commit()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @patch("superset.dashboards.api.AcquireDistributedLock")
+    @patch("superset.dashboards.api.export_dashboard_excel")
+    def test_export_xlsx_202_enqueues_task(self, mock_task, mock_acquire):
+        """Dashboard API: export_xlsx enqueues the task and returns 202 + job_id."""
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}},
+        )
+        assert rv.status_code == 202
+        body = json.loads(rv.data.decode("utf-8"))
+        job_id = body["job_id"]
+        assert job_id
+        # The in-flight lock is acquired before the task is enqueued.
+        mock_acquire.return_value.run.assert_called_once()
+        mock_task.apply_async.assert_called_once()
+        _, kwargs = mock_task.apply_async.call_args
+        assert kwargs["task_id"] == job_id
+        assert kwargs["kwargs"]["dashboard_id"] == dashboard.id
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @patch("superset.dashboards.api.AcquireDistributedLock")
+    @patch("superset.dashboards.api.export_dashboard_excel")
+    def test_export_xlsx_202_when_export_already_in_progress(
+        self, mock_task, mock_acquire
+    ):
+        """Dashboard API: export_xlsx does not enqueue a second concurrent export."""
+        # An in-flight lock is already held for this user+dashboard.
+        mock_acquire.return_value.run.side_effect = LockAlreadyHeldException("held")
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}},
+        )
+        assert rv.status_code == 202
+        assert "already in progress" in rv.data.decode("utf-8")
+        mock_task.apply_async.assert_not_called()
+
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @patch("superset.dashboards.api.export_dashboard_excel")
+    def test_export_xlsx_404_for_inaccessible_dashboard(self, mock_task):
+        """Dashboard API: export_xlsx returns 404 for a dashboard the user can't see."""
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "xlsx-private", None, [admin.id], published=False
+        )
+        self.login(GAMMA_USERNAME)
+        try:
+            rv = self.client.post(f"api/v1/dashboard/{dashboard.id}/export_xlsx/")
+            assert rv.status_code == 404
+            mock_task.apply_async.assert_not_called()
+        finally:
+            db.session.delete(dashboard)
+            db.session.commit()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @patch("superset.dashboards.api.AcquireDistributedLock")
+    @patch("superset.dashboards.api.export_dashboard_excel")
+    @patch("superset.dashboards.api.security_manager.raise_for_access")
+    def test_export_xlsx_admitted_with_can_export_only(
+        self, mock_raise, mock_task, mock_acquire
+    ):
+        """Dashboard API: export_xlsx is gated on ``can_export``, not a distinct
+        ``can_export_xlsx``. Gamma holds dashboard ``can_export`` by default (and
+        the frontend shows the menu item on that basis), so a Gamma user must be
+        admitted (202) rather than rejected by ``@protect()`` (403)."""
+        gamma_user = security_manager.find_user(username=GAMMA_USERNAME)
+        slice_ = db.session.query(Slice).first()
+        # Clone Gamma (so the login password is valid); Gamma already carries
+        # dashboard ``can_export``.
+        with self.temporary_user(gamma_user, login=True) as user:
+            dashboard = self.insert_dashboard(
+                "xlsx-can-export", None, [user.id], slices=[slice_], published=True
+            )
+            try:
+                rv = self.client.post(
+                    f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+                    json={"active_data_mask": {}},
+                )
+                assert rv.status_code == 202
+                mock_task.apply_async.assert_called_once()
+            finally:
+                db.session.delete(dashboard)
+                db.session.commit()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @patch("superset.dashboards.api.export_dashboard_excel")
+    def test_export_xlsx_images_404_when_screenshot_flags_off(self, mock_task):
+        """Dashboard API: ``mode=images`` is rejected with 404 when the webdriver
+        screenshot flags are disabled (the same signal the UI gates the option on),
+        and no task is enqueued."""
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}, "mode": "images"},
+        )
+        assert rv.status_code == 404
+        mock_task.apply_async.assert_not_called()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @with_feature_flags(
+        ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True,
+        ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT=True,
+    )
+    @patch("superset.dashboards.api.AcquireDistributedLock")
+    @patch("superset.dashboards.api.export_dashboard_excel")
+    def test_export_xlsx_images_202_when_screenshot_flags_on(
+        self, mock_task, mock_acquire
+    ):
+        """Dashboard API: ``mode=images`` is accepted (202) when both webdriver
+        screenshot flags are enabled."""
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}, "mode": "images"},
+        )
+        assert rv.status_code == 202
+        mock_task.apply_async.assert_called_once()
+        _, kwargs = mock_task.apply_async.call_args
+        assert kwargs["kwargs"]["mode"] == "images"
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_embedded_dashboards(self):
@@ -3134,7 +3505,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         }
         self.login(ADMIN_USERNAME)
 
-        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -3155,7 +3526,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         }
         self.login(ADMIN_USERNAME)
 
-        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -3198,7 +3569,13 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         assert len(dash.position) == len(original_dash.position)
         assert dash.dashboard_title == "copied dash"
         assert dash.css == "<css>"
-        assert dash.owners == [security_manager.find_user("admin")]
+        admin = security_manager.find_user("admin")
+        admin_subject = (
+            db.session.query(Subject)
+            .filter_by(user_id=admin.id, type=SubjectType.USER)
+            .first()
+        )
+        assert dash.editors == [admin_subject]
         self.assertCountEqual(dash.slices, original_dash.slices)  # noqa: PT009
         assert dash.params_dict["color_namespace"] == "Color Namespace Test"
         assert dash.params_dict["color_scheme"] == "Color Scheme Test"
@@ -3241,7 +3618,13 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         assert len(dash.position) == len(original_dash.position)
         assert dash.dashboard_title == "copied dash"
         assert dash.css == "<css>"
-        assert dash.owners == [security_manager.find_user("admin")]
+        admin = security_manager.find_user("admin")
+        admin_subject = (
+            db.session.query(Subject)
+            .filter_by(user_id=admin.id, type=SubjectType.USER)
+            .first()
+        )
+        assert dash.editors == [admin_subject]
         assert dash.params_dict["color_namespace"] == "Color Namespace Test"
         assert dash.params_dict["color_scheme"] == "Color Scheme Test"
         assert len(dash.slices) == len(original_dash.slices)
@@ -3316,7 +3699,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     def test_update_dashboard_add_tags_can_tag_on_dashboard(self):
         """
-        Validates an owner with can tag on dashboard permission can
+        Validates an editor with can tag on dashboard permission can
         add tags while updating a dashboard
         """
         self.login(GAMMA_USERNAME)
@@ -3351,7 +3734,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     def test_update_dashboard_remove_tags_can_tag_on_dashboard(self):
         """
-        Validates an owner with can tag on dashboard permission can
+        Validates an editor with can tag on dashboard permission can
         remove tags from a dashboard
         """
         self.login(GAMMA_USERNAME)
@@ -3382,7 +3765,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     def test_update_dashboard_add_tags_missing_permission(self):
         """
-        Validates an owner can't add tags to a dashboard if they don't
+        Validates an editor can't add tags to a dashboard if they don't
         have permission to it
         """
         self.login(GAMMA_USERNAME)
@@ -3420,7 +3803,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     def test_update_dashboard_remove_tags_missing_permission(self):
         """
-        Validates an owner can't remove tags from a dashboard if they don't
+        Validates an editor can't remove tags from a dashboard if they don't
         have permission to it
         """
         self.login(GAMMA_USERNAME)
@@ -3454,7 +3837,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     def test_update_dashboard_no_tag_changes(self):
         """
-        Validates an owner without permission to change tags is able to
+        Validates an editor without permission to change tags is able to
         update a dashboard when tags haven't changed
         """
         self.login(GAMMA_USERNAME)
@@ -3916,14 +4299,14 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
         """Verify custom_tags filtering at model and API level.
 
         With DASHBOARD_LIST_CUSTOM_TAGS_ONLY=True in superset_test_config.py:
-        1. dashboard.tags returns ALL tags (custom + owner + type)
+        1. dashboard.tags returns ALL tags (custom + editor + type)
         2. dashboard.custom_tags returns ONLY custom tags
         3. API response returns ONLY custom tags in the "tags" property
         """
         dashboard = Dashboard(
             dashboard_title="test-custom-only",
             slug="test-slug-custom",
-            owners=[self.get_user("admin")],
+            editors=subjects_from_users([self.get_user("admin")]),
         )
         db.session.add(dashboard)
         db.session.flush()
@@ -3945,8 +4328,8 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
             all_tags = dashboard.tags
             all_tag_names = [t.name for t in all_tags]
             assert "critical" in all_tag_names, "Should include custom tag"
-            assert any(t.name.startswith("owner:") for t in all_tags), (
-                "Should include owner tags"
+            assert any(t.name.startswith("editor:") for t in all_tags), (
+                "Should include editor tags"
             )
             assert any(t.name.startswith("type:") for t in all_tags), (
                 "Should include type tags"
@@ -3956,8 +4339,8 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
             custom_only = dashboard.custom_tags
             custom_tag_names = [t.name for t in custom_only]
             assert "critical" in custom_tag_names, "Should include custom tag"
-            assert not any(t.name.startswith("owner:") for t in custom_only), (
-                f"custom_tags should NOT include owner tags, got: {custom_tag_names}"
+            assert not any(t.name.startswith("editor:") for t in custom_only), (
+                f"custom_tags should NOT include editor tags, got: {custom_tag_names}"
             )
             assert not any(t.name.startswith("type:") for t in custom_only), (
                 f"custom_tags should NOT include type tags, got: {custom_tag_names}"
@@ -3987,9 +4370,9 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
             # API should return ONLY custom tags
             api_tag_names = [t["name"] for t in test_dash["tags"]]
             assert "critical" in api_tag_names, "API should include custom tag"
-            assert not any(t["name"].startswith("owner:") for t in test_dash["tags"]), (
-                f"API should NOT include owner tags, got: {api_tag_names}"
-            )
+            assert not any(
+                t["name"].startswith("editor:") for t in test_dash["tags"]
+            ), f"API should NOT include editor tags, got: {api_tag_names}"
             assert not any(t["name"].startswith("type:") for t in test_dash["tags"]), (
                 f"API should NOT include type tags, got: {api_tag_names}"
             )

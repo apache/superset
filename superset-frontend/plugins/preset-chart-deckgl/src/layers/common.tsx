@@ -40,7 +40,6 @@ import {
 import { Layer, PickingInfo, Color } from '@deck.gl/core';
 import { ScaleLinear } from 'd3-scale';
 import { ColorBreakpointType } from '../types';
-import sandboxedEval from '../utils/sandbox';
 import { TooltipProps } from '../components/Tooltip';
 import { getCrossFilterDataMask } from '../utils/crossFiltersDataMask';
 import { COLOR_SCHEME_TYPES, ColorSchemeType } from '../utilities/utils';
@@ -68,11 +67,7 @@ export function commonLayerProps({
 }) {
   const fd = formData;
   let onHover;
-  let tooltipContentGenerator = setTooltipContent;
-  if (fd.js_tooltip) {
-    tooltipContentGenerator = sandboxedEval(fd.js_tooltip);
-  }
-  if (tooltipContentGenerator) {
+  if (setTooltipContent) {
     let currentTooltipContent: ReactNode = null;
 
     const isCustomTooltip = (content: ReactNode): boolean =>
@@ -81,7 +76,7 @@ export function commonLayerProps({
 
     onHover = (o: JsonObject) => {
       if (o.picked) {
-        currentTooltipContent = tooltipContentGenerator(o);
+        currentTooltipContent = setTooltipContent(o);
       }
 
       if (
@@ -102,13 +97,7 @@ export function commonLayerProps({
   }
 
   let onClick;
-  if (fd.js_onclick_href) {
-    onClick = (o: any) => {
-      const href = sandboxedEval(fd.js_onclick_href)(o);
-      window.open(href);
-      return true;
-    };
-  } else if (fd.table_filter && onSelect !== undefined) {
+  if (fd.table_filter && onSelect !== undefined) {
     onClick = (o: any) => {
       onSelect(o.object[fd.line_column]);
       return true;
@@ -121,10 +110,21 @@ export function commonLayerProps({
         formData,
       });
 
-      if (event.leftButton && setDataMask !== undefined && crossFilters) {
+      // deck.gl v9 event shape: { type, offsetCenter, srcEvent, tapCount }.
+      // Older code checked event.leftButton / event.rightButton which no
+      // longer exist; dispatch on event.type and the underlying MouseEvent
+      // button instead.
+      const srcEvent = event?.srcEvent;
+      const isContextMenu =
+        event?.type === 'contextmenu' || srcEvent?.button === 2;
+      const isLeftClick =
+        event?.type === 'click' && (srcEvent?.button ?? 0) === 0;
+
+      if (isLeftClick && setDataMask !== undefined && crossFilters) {
         setDataMask(crossFilters.dataMask);
-      } else if (event.rightButton && onContextMenu !== undefined) {
-        onContextMenu(event.center.x, event.center.y, {
+      } else if (isContextMenu && onContextMenu !== undefined) {
+        const center = event?.offsetCenter ?? event?.center ?? { x: 0, y: 0 };
+        onContextMenu(center.x, center.y, {
           drillToDetail: [],
           crossFilter: crossFilters,
           drillBy: {},

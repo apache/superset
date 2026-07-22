@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import copy
 import logging
 import re
 from typing import Any, cast, ClassVar, Sequence, TYPE_CHECKING
@@ -26,6 +27,7 @@ from flask_babel import gettext as _
 
 from superset.common.chart_data import ChartDataResultFormat
 from superset.common.db_query_status import QueryStatus
+from superset.common.grouping_sets import grouping_marker_label
 from superset.common.query_actions import get_query_results
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
@@ -39,7 +41,7 @@ from superset.exceptions import (
 from superset.explorables.base import Explorable
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
-from superset.superset_typing import AdhocColumn, AdhocMetric
+from superset.superset_typing import AdhocColumn, AdhocMetric, Column
 from superset.utils import csv, excel
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import (
@@ -47,6 +49,7 @@ from superset.utils.core import (
     DTTM_ALIAS,
     error_msg_from_exception,
     GenericDataType,
+    get_column_name,
     get_column_names_from_columns,
     get_column_names_from_metrics,
     is_adhoc_column,
@@ -59,6 +62,7 @@ from superset.viz import viz_types
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_object import QueryObject
+    from superset.db_engine_specs.base import BaseEngineSpec
 
 logger = logging.getLogger(__name__)
 
@@ -190,6 +194,18 @@ class QueryContextProcessor:
         )
         cache.df.columns = [unescape_separator(col) for col in cache.df.columns.values]
 
+        warning: str | None = None
+        if cache.bq_memory_limited:
+            row_count = cache.bq_memory_limited_row_count
+            chart_id = (self._query_context.form_data or {}).get("slice_id", "")
+            prefix = f"Chart {chart_id}: " if chart_id else ""
+            warning = _(
+                "%(prefix)sResults truncated to %(row_count)s rows"
+                " due to memory constraints.",
+                prefix=prefix,
+                row_count=f"{row_count:,}",
+            )
+
         return {
             "cache_key": cache_key,
             "cached_dttm": cache.cache_dttm,
@@ -210,6 +226,7 @@ class QueryContextProcessor:
             "from_dttm": query_obj.from_dttm,
             "to_dttm": query_obj.to_dttm,
             "label_map": label_map,
+            "warning": warning,
         }
 
     def query_cache_key(self, query_obj: QueryObject, **kwargs: Any) -> str | None:
@@ -239,12 +256,87 @@ class QueryContextProcessor:
         This method delegates to the datasource's get_query_result method,
         which handles query execution, normalization, time offsets, and
         post-processing.
+
+        When the query requests rollup ``grouping_sets`` but the engine does not
+        support native ``GROUPING SETS``, fall back to one query per level and
+        concatenate the results with ``GROUPING()``-equivalent markers, so the
+        combined result matches the shape the native path produces (SIP.md,
+        phase 3b). Engines that support it run the single native query.
         """
+        if query_object.grouping_sets and not self._supports_grouping_sets():
+            return self._grouping_sets_fallback(query_object)
         return self._qc_datasource.get_query_result(query_object)
+
+    def _supports_grouping_sets(self) -> bool:
+        engine_spec: BaseEngineSpec | None = getattr(
+            self._qc_datasource, "db_engine_spec", None
+        )
+        return bool(engine_spec and engine_spec.supports_grouping_sets)
+
+    def _grouping_sets_fallback(self, query_object: QueryObject) -> QueryResult:
+        """
+        Emulate a GROUPING SETS query on engines without native support: run one
+        query per rollup level and concatenate, tagging each level's rows with
+        the same per-column markers the native path emits.
+
+        This issues one sequential query per rollup level, with no cap on the
+        number of levels. The level count is bounded by the pivot's row/column
+        dimensionality (powerset of grouped dimensions in the worst case), so a
+        chart with many dimensions on an engine lacking native GROUPING SETS
+        support could fan out to a non-trivial number of queries per render.
+        """
+        levels: list[list[str]] = query_object.grouping_sets
+        # Use the same label derivation as the native path (physical column name
+        # or adhoc column label) so both column kinds are represented and each
+        # label maps back to its own column, in the same order as the source
+        # list.
+        all_labels: list[str] = [get_column_name(col) for col in query_object.columns]
+        label_to_column: dict[str, Column] = dict(
+            zip(all_labels, query_object.columns, strict=True)
+        )
+
+        frames: list[pd.DataFrame] = []
+        result: QueryResult | None = None
+        for level in levels:
+            level_labels: set[str] = set(level)
+            sub_query = copy.copy(query_object)
+            sub_query.grouping_sets = []
+            sub_query.columns = [
+                label_to_column[label] for label in all_labels if label in level_labels
+            ]
+            # A GROUPING SETS query computes a bounded set of rollup levels, so
+            # the native path never applies row_limit to it (see the
+            # `use_grouping_sets` check in models/helpers.py). Match that here:
+            # limiting each level's fallback sub-query independently would
+            # truncate subtotal/grand-total rows and diverge from the native
+            # result shape. The native path applies `row_offset` exactly once,
+            # to the combined multi-level result (see the unconditional
+            # `qry.offset()` call in models/helpers.py). Applying the same
+            # offset to each per-level sub-query independently would apply it
+            # once per level instead of once overall, and can silently drop
+            # low-row-count levels (e.g. the single grand-total row) entirely.
+            # Zero it here and apply it once after concatenation instead.
+            sub_query.row_limit = None
+            sub_query.row_offset = 0
+            result = self._qc_datasource.get_query_result(sub_query)
+            level_df = result.df.copy()
+            for label in all_labels:
+                level_df[grouping_marker_label(label)] = (
+                    0 if label in level_labels else 1
+                )
+            frames.append(level_df)
+
+        if result is None:  # no levels requested; nothing to do
+            return self._qc_datasource.get_query_result(query_object)
+
+        result.df = pd.concat(frames, ignore_index=True) if frames else result.df
+        if query_object.row_offset:
+            result.df = result.df.iloc[query_object.row_offset :].reset_index(drop=True)
+        return result
 
     def get_data(
         self, df: pd.DataFrame, coltypes: list[GenericDataType]
-    ) -> str | list[dict[str, Any]]:
+    ) -> str | bytes | list[dict[str, Any]]:
         if self._query_context.result_format in ChartDataResultFormat.table_like():
             include_index = not isinstance(df.index, pd.RangeIndex)
             columns = list(df.columns)
@@ -256,6 +348,11 @@ class QueryContextProcessor:
             if self._query_context.result_format == ChartDataResultFormat.CSV:
                 result = csv.df_to_escaped_csv(
                     df, index=include_index, **current_app.config["CSV_EXPORT"]
+                )
+                # Encode using the configured CSV_EXPORT encoding (default utf-8)
+                # so dashboard chart exports honor the same encoding as SQL Lab.
+                result = result.encode(
+                    current_app.config["CSV_EXPORT"].get("encoding", "utf-8")
                 )
             elif self._query_context.result_format == ChartDataResultFormat.XLSX:
                 excel.apply_column_types(df, coltypes)
@@ -528,10 +625,14 @@ class QueryContextProcessor:
 
         :raises SupersetSecurityException: If the user cannot access the resource
         """
-        for query in self._query_context.queries:
-            query.validate()
-
+        # Evaluate access before validating the queries: query validation
+        # renders the request's filter expressions, so the access decision must
+        # come first to avoid rendering caller-supplied input for a resource the
+        # caller is not allowed to access.
         if self._qc_datasource.type == DatasourceType.QUERY:
             security_manager.raise_for_access(query=self._qc_datasource)
         else:
             security_manager.raise_for_access(query_context=self._query_context)
+
+        for query in self._query_context.queries:
+            query.validate()

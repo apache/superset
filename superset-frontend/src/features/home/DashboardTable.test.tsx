@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { mockUserSubjectsBootstrapData } from 'spec/helpers/mockBootstrapData';
 import {
   render,
   screen,
@@ -36,6 +37,10 @@ jest.mock('src/utils/export', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
+
+jest.mock('src/utils/getBootstrapData', () =>
+  mockUserSubjectsBootstrapData([1]),
+);
 
 const mockExport = handleResourceExport as jest.MockedFunction<
   typeof handleResourceExport
@@ -78,6 +83,7 @@ const mockDashboards = [
     changed_on_delta_humanized: '1 day ago',
     url: '/dashboard/1',
     thumbnail_url: '/thumbnail/1',
+    editors: [{ id: 1, label: 'Test User', type: 1 }],
   },
   {
     id: 2,
@@ -85,6 +91,7 @@ const mockDashboards = [
     changed_on_delta_humanized: '2 days ago',
     url: '/dashboard/2',
     thumbnail_url: '/thumbnail/2',
+    editors: [{ id: 1, label: 'Test User', type: 1 }],
   },
 ];
 
@@ -229,10 +236,10 @@ test('switches to Mine tab correctly', async () => {
 
 test('handles create dashboard button click', async () => {
   const assignMock = jest.fn();
-  Object.defineProperty(window, 'location', {
-    value: { assign: assignMock },
-    writable: true,
-  });
+  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+    ...window.location,
+    assign: assignMock,
+  } as Location);
 
   render(
     <Router history={history}>
@@ -243,7 +250,8 @@ test('handles create dashboard button click', async () => {
 
   const createButton = screen.getByRole('button', { name: /dashboard$/i });
   await userEvent.click(createButton);
-  expect(assignMock).toHaveBeenCalledWith('/dashboard/new');
+  expect(assignMock).toHaveBeenCalledWith('/dashboard/new/');
+  locationSpy.mockRestore();
 });
 
 test('switches to Other tab when available', async () => {

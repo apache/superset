@@ -18,28 +18,24 @@ from __future__ import annotations
 
 import logging
 import os
-import sys
 from typing import cast, Iterable, Optional
+from wsgiref.types import StartResponse, WSGIApplication, WSGIEnvironment
 
 from alembic.config import Config
 from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
-
-if sys.version_info >= (3, 11):
-    from wsgiref.types import StartResponse, WSGIApplication, WSGIEnvironment
-else:
-    from typing import TYPE_CHECKING
-
-    if TYPE_CHECKING:
-        from _typeshed.wsgi import StartResponse, WSGIApplication, WSGIEnvironment
-
 from flask import Flask, Response
 from werkzeug.exceptions import NotFound
 
+from superset.extensions.cache_middleware import ExtensionCacheMiddleware
 from superset.extensions.local_extensions_watcher import (
     start_local_extensions_watcher_thread,
 )
 from superset.initialization import SupersetAppInitializer
+from superset.marshmallow_compatibility import patch_marshmallow_for_flask_appbuilder
+from superset.middleware.legacy_prefix_redirect import LegacyPrefixRedirectMiddleware
+
+patch_marshmallow_for_flask_appbuilder()
 
 logger = logging.getLogger(__name__)
 
@@ -65,33 +61,44 @@ def create_app(
             or os.environ.get("SUPERSET_APP_ROOT")
             or app.config["APPLICATION_ROOT"],
         )
+        # Normalize once at the source: a trailing slash ("/myapp/") would
+        # otherwise leak into STATIC_ASSETS_PREFIX ("/myapp//static/...")
+        # and APPLICATION_ROOT (the session-cookie path). The middlewares
+        # below re-normalize defensively, but every consumer derives from
+        # this value.
+        app_root = app_root.rstrip("/") or "/"
         if app_root != "/":
-            app.wsgi_app = AppRootMiddleware(app.wsgi_app, app_root)
             # If not set, manually configure options that depend on the
             # value of app_root so things work out of the box
             if not app.config["STATIC_ASSETS_PREFIX"]:
                 app.config["STATIC_ASSETS_PREFIX"] = app_root
-            # Prefix APP_ICON path with subdirectory root for subdirectory deployments
-            if (
-                app.config.get("APP_ICON", "").startswith("/static/")
-                and app_root != "/"
-            ):
-                app.config["APP_ICON"] = f"{app_root}{app.config['APP_ICON']}"
-                # Also update theme tokens for subdirectory deployments
-                for theme_key in ("THEME_DEFAULT", "THEME_DARK"):
-                    theme = app.config[theme_key]
-                    token = theme.get("token", {})
-                    # Update brandLogoUrl if it points to /static/
-                    if token.get("brandLogoUrl", "").startswith("/static/"):
-                        token["brandLogoUrl"] = f"{app_root}{token['brandLogoUrl']}"
-                    # Update brandLogoHref if it's the default "/"
-                    if token.get("brandLogoHref") == "/":
-                        token["brandLogoHref"] = app_root
             if app.config["APPLICATION_ROOT"] == "/":
                 app.config["APPLICATION_ROOT"] = app_root
 
         app_initializer = app.config.get("APP_INITIALIZER", SupersetAppInitializer)(app)
         app_initializer.init_app()
+
+        # Must be applied before AppRootMiddleware so the path prefix
+        # is stripped before the extension asset path regex runs.
+        app.wsgi_app = ExtensionCacheMiddleware(app.wsgi_app)
+
+        if app_root != "/":
+            app.wsgi_app = AppRootMiddleware(app.wsgi_app, app_root)
+
+        # Final WSGI wrap — must be outermost so it sees the raw inbound
+        # PATH_INFO and 308s legacy `/superset/*` paths before any other
+        # routing runs. Unconditional (independent of `app_root != "/"`)
+        # because legacy bookmarks exist under root deployments too.
+        # See the "Layering invariant" section of the module docstring
+        # in `superset/middleware/legacy_prefix_redirect.py`.
+        # mypy reads `app.wsgi_app` as `object` after the conditional
+        # `AppRootMiddleware` rewrap above — the LUB of the two branches
+        # widens it. The runtime type is always a WSGI callable; the
+        # `# type: ignore` is intentional.
+        app.wsgi_app = LegacyPrefixRedirectMiddleware(
+            app.wsgi_app,  # type: ignore[arg-type]
+            app_root,
+        )
 
         # Set up LOCAL_EXTENSIONS file watcher when in debug mode
         if app.debug:
@@ -211,15 +218,20 @@ class AppRootMiddleware:
         app_root: str,
     ):
         self.wsgi_app = wsgi_app
-        self.app_root = app_root
+        # Normalize a trailing slash so "/myapp" and "/myapp/" configure the
+        # same prefix and the segment-boundary check below stays uniform.
+        self.app_root = app_root.rstrip("/")
 
     def __call__(
         self, environ: WSGIEnvironment, start_response: StartResponse
     ) -> Iterable[bytes]:
         original_path_info = environ.get("PATH_INFO", "")
-        if original_path_info.startswith(self.app_root):
-            environ["PATH_INFO"] = original_path_info.removeprefix(self.app_root)
+        # Segment-boundary match: accept "/myapp" and "/myapp/..." but never
+        # a path that merely shares a string prefix (e.g. "/myapparoo/...").
+        if original_path_info == self.app_root or original_path_info.startswith(
+            self.app_root + "/"
+        ):
+            environ["PATH_INFO"] = original_path_info[len(self.app_root) :]
             environ["SCRIPT_NAME"] = self.app_root
             return self.wsgi_app(environ, start_response)
-        else:
-            return NotFound()(environ, start_response)
+        return NotFound()(environ, start_response)

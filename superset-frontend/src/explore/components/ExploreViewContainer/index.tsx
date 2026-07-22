@@ -36,6 +36,8 @@ import {
   JsonObject,
   MatrixifyFormData,
   DatasourceType,
+  ensureIsArray,
+  handleKeyboardActivation,
 } from '@superset-ui/core';
 import {
   ControlStateMapping,
@@ -44,7 +46,7 @@ import {
 import { styled, css, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
-import { debounce, isEqual, isObjectLike, omit, pick } from 'lodash';
+import { debounce, isEqual, isObjectLike, omit, pick } from 'lodash-es';
 import { Resizable } from 're-resizable';
 import { useHistory } from 'react-router-dom';
 import { Tooltip } from '@superset-ui/core/components';
@@ -65,6 +67,7 @@ import {
   LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS,
 } from 'src/logger/LogUtils';
 import { getUrlParam } from 'src/utils/urlUtils';
+import { sanitizeDocumentTitle } from 'src/utils/sanitizeDocumentTitle';
 import cx from 'classnames';
 import * as chartActions from 'src/components/Chart/chartAction';
 import { fetchDatasourceMetadata } from 'src/dashboard/actions/datasources';
@@ -396,7 +399,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   // Update document title when slice name changes
   useEffect(() => {
     if (props.sliceName) {
-      document.title = props.sliceName;
+      document.title = sanitizeDocumentTitle(props.sliceName);
     }
   }, [props.sliceName]);
 
@@ -412,8 +415,53 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     [originalTitle, theme?.brandAppName, theme?.brandLogoAlt],
   );
 
+  // M3 + M4: fire compatibility check on mount and whenever the metric /
+  // dimension selection changes.  Only semantic views use the endpoint;
+  // SQL datasets short-circuit to null inside fetchCompatibility.
+  const selectedMetrics = useMemo(
+    () =>
+      ensureIsArray(props.form_data.metrics).filter(
+        (m): m is string => typeof m === 'string',
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [JSON.stringify(props.form_data.metrics)],
+  );
+  const selectedDimensions = useMemo(
+    () =>
+      [
+        ...ensureIsArray(props.form_data.groupby),
+        ...ensureIsArray(props.form_data.columns),
+        ...(typeof props.form_data.x_axis === 'string'
+          ? [props.form_data.x_axis]
+          : []),
+      ].filter((d): d is string => typeof d === 'string'),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      JSON.stringify(props.form_data.groupby),
+      JSON.stringify(props.form_data.columns),
+      props.form_data.x_axis,
+    ],
+  );
+  useEffect(() => {
+    props.actions.fetchCompatibility(
+      props.datasource.type,
+      props.datasource.id as number,
+      selectedMetrics,
+      selectedDimensions,
+    );
+    // props.datasource.id covers the saved-chart-loading case (M4)
+  }, [
+    props.datasource.id,
+    props.datasource.type,
+    selectedMetrics,
+    selectedDimensions,
+  ]);
+
   const addHistory = useCallback(
-    async ({ isReplace = false, title } = {}) => {
+    async ({
+      isReplace = false,
+      title,
+    }: { isReplace?: boolean; title?: string } = {}) => {
       const formData = props.dashboardId
         ? {
             ...props.form_data,
@@ -846,8 +894,11 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
           setForceQuery: props.actions.setForceQuery,
           postChartFormData: props.actions.postChartFormData,
           updateQueryFormData: props.actions.updateQueryFormData,
-          setControlValue: (controlName: string, value: any, chartId: number) =>
-            props.actions.setControlValue(controlName, value),
+          setControlValue: (
+            controlName: string,
+            value: any,
+            _chartId: number,
+          ) => props.actions.setControlValue(controlName, value),
         }}
         can_overwrite={props.can_overwrite}
         can_download={props.can_download}
@@ -948,6 +999,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
               tabIndex={0}
               className="action-button"
               onClick={toggleCollapse}
+              onKeyDown={handleKeyboardActivation(toggleCollapse)}
             >
               <Icons.VerticalAlignTopOutlined
                 iconSize="xl"
@@ -973,9 +1025,11 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
           <div
             className="sidebar"
             onClick={toggleCollapse}
+            onKeyDown={handleKeyboardActivation(toggleCollapse)}
             data-test="open-datasource-tab"
             role="button"
             tabIndex={0}
+            aria-label={t('Open Datasource tab')}
           >
             <span role="button" tabIndex={0} className="action-button">
               <Tooltip title={t('Open Datasource tab')}>
@@ -1119,8 +1173,12 @@ function mapStateToProps(state: ExploreRootState) {
 
   const slice_id = form_data.slice_id ?? slice?.slice_id ?? 0; // 0 - unsaved chart
 
-  // exclude clientView from extra_form_data; keep other ownState pieces
-  const ownStateForQuery = omit(dataMask[slice_id]?.ownState, ['clientView']);
+  // exclude clientView and metricSqlExpressions from extra_form_data;
+  // metricSqlExpressions is runtime-only and must not be serialised to chart params
+  const ownStateForQuery = omit(dataMask[slice_id]?.ownState, [
+    'clientView',
+    'metricSqlExpressions',
+  ]);
 
   form_data.extra_form_data = mergeExtraFormData(
     { ...form_data.extra_form_data },

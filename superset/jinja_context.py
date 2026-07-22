@@ -25,7 +25,6 @@ from datetime import datetime
 from functools import lru_cache, partial
 from typing import Any, Callable, cast, TYPE_CHECKING, TypedDict, Union
 
-import dateutil
 from flask import current_app, g, has_request_context, request
 from flask_babel import gettext as _
 from jinja2 import DebugUndefined, Environment, TemplateSyntaxError, UndefinedError
@@ -95,10 +94,11 @@ def context_addons() -> dict[str, Any]:
     return current_app.config.get("JINJA_CONTEXT_ADDONS", {})
 
 
-class Filter(TypedDict):
+class Filter(TypedDict, total=False):
     op: str  # pylint: disable=C0103
     col: str
     val: Union[None, Any, list[Any]]
+    escaped_val: Union[None, Any, list[Any]]
 
 
 @dataclass
@@ -141,6 +141,7 @@ class ExtraCache:
         database: Database | None = None,
         dialect: Dialect | None = None,
         table: SqlaTable | None = None,
+        query_context_filters: list[Any] | None = None,
     ):
         self.extra_cache_keys = extra_cache_keys
         self.applied_filters = applied_filters if applied_filters is not None else []
@@ -148,6 +149,7 @@ class ExtraCache:
         self.database = database
         self.dialect = dialect
         self.table = table
+        self.query_context_filters: list[Any] = query_context_filters or []
 
     def current_user_id(self, add_to_cache_keys: bool = True) -> int | None:
         """
@@ -286,11 +288,13 @@ class ExtraCache:
         from superset.views.utils import get_form_data
 
         if has_request_context() and request.args.get(param):
-            return request.args.get(param, default)
-
-        form_data, _ = get_form_data()
-        url_params = form_data.get("url_params") or {}
-        result = url_params.get(param, default)
+            result = request.args.get(param, default)
+        else:
+            form_data, _ = get_form_data()
+            url_params = form_data.get("url_params") or {}
+            result = url_params.get(param, default)
+        # Escape the value regardless of its source (request args or form
+        # data); both are interpolated into the rendered SQL.
         if result and escape_result and self.dialect:
             # use the dialect specific quoting logic to escape string
             result = String().literal_processor(dialect=self.dialect)(value=result)[
@@ -341,16 +345,56 @@ class ExtraCache:
 
         return return_val
 
+    def _escape_value(self, val: Any) -> Any:
+        """Return a dialect-quoted form of ``val`` suitable for direct SQL
+        interpolation. When no dialect is configured the value is returned
+        unchanged so callers see the raw value as before. Strings are
+        passed through SQLAlchemy's ``String`` literal processor (with the
+        surrounding quotes stripped, mirroring ``url_param``). Lists are
+        processed element-wise; non-string members are left as-is.
+        """
+        if not self.dialect:
+            return val
+        if isinstance(val, str):
+            return String().literal_processor(dialect=self.dialect)(value=val)[1:-1]
+        if isinstance(val, list):
+            return [
+                String().literal_processor(dialect=self.dialect)(value=v)[1:-1]
+                if isinstance(v, str)
+                else v
+                for v in val
+            ]
+        return val
+
     def get_filters(self, column: str, remove_filter: bool = False) -> list[Filter]:
         """Get the filters applied to the given column. In addition
            to returning values like the filter_values function
            the get_filters function returns the operator specified in the explorer UI.
+
+        Each filter dict additionally carries an ``escaped_val`` key when a
+        SQL dialect is available. Templates that interpolate the value into
+        a SQL string (for example a ``LIKE`` clause) should reference
+        ``escaped_val`` so the value is rendered through the dialect's
+        literal processor. ``val`` continues to expose the raw value for
+        non-SQL uses such as comparison, logging, or ``where_in``.
 
         This is useful if:
             - you want to handle more than the IN operator in your SQL clause
             - you want to handle generating custom SQL conditions for a filter
             - you want to have the ability for filter inside the main query for speed
             purposes
+
+        Always use the ``where_in`` filter for list membership rather than
+        building SQL by hand. The filter renders values with dialect-safe quoting
+        (via SQLAlchemy's ``literal_binds`` compilation) instead of interpolating
+        them directly into the SQL string.
+
+        .. warning::
+
+            Do not manually escape filter values (for example, with
+            ``replace("'", "''")``). Hand-rolled escaping is error-prone and easy
+            to get wrong across dialects. Rely on the ``where_in`` filter so values
+            are quoted safely by the engine.
 
         Usage example::
 
@@ -375,7 +419,7 @@ class ExtraCache:
                 {%- endif -%}
                 {%- if filter.get('op') == 'LIKE' -%}
                     AND
-                    full_name LIKE '{{ filter.get('val') | replace("'", "''") }}'
+                    full_name LIKE '{{ filter.get('escaped_val') }}'
                 {%- endif -%}
                 {%- endfor -%}
                 UNION ALL
@@ -442,8 +486,48 @@ class ExtraCache:
                 ) and not isinstance(val, list):
                     val = [val]
 
-                filters.append({"op": op, "col": column, "val": val})
+                entry: Filter = {"op": op, "col": column, "val": val}
+                if self.dialect:
+                    entry["escaped_val"] = self._escape_value(val)
+                filters.append(entry)
 
+        # Drill-to-detail queries send filters in native {col, op, val} format
+        # rather than adhoc_filters, so get_form_data() above finds nothing.
+        # query_context_filters carries those native filters from
+        # template_kwargs["filter"], already available in the Jinja context.
+        # Only consult them when adhoc_filters produced no match to avoid
+        # duplicating entries for aggregated queries where both formats exist.
+        if not filters:
+            filters = self._get_filters_from_query_context(column, remove_filter)
+
+        return filters
+
+    def _get_filters_from_query_context(
+        self, column: str, remove_filter: bool
+    ) -> list[Filter]:
+        filters: list[Filter] = []
+        for flt in self.query_context_filters:
+            col = flt.get("col")
+            val = flt.get("val")
+            op = (flt.get("op") or FilterOperator.IN).upper()
+            if col != column or (
+                val is None
+                and op not in ("IS NULL", "IS NOT NULL", "IS_NULL", "IS_NOT_NULL")
+            ):
+                continue
+            if op in (
+                FilterOperator.IN,
+                FilterOperator.NOT_IN,
+            ) and not isinstance(val, list):
+                val = [val]
+            if remove_filter and column not in self.removed_filters:
+                self.removed_filters.append(column)
+            if column not in self.applied_filters:
+                self.applied_filters.append(column)
+            entry: Filter = {"op": op, "col": column, "val": val}
+            if self.dialect:
+                entry["escaped_val"] = self._escape_value(val)
+            filters.append(entry)
         return filters
 
     # pylint: disable=too-many-arguments
@@ -650,6 +734,22 @@ def to_datetime(
     return datetime.strptime(value, format)
 
 
+class SupersetSandboxedEnvironment(SandboxedEnvironment):
+    """
+    Sandbox that denies attribute access to the base environment/template
+    classes and to the internals of ``functools.partial`` objects, none of
+    which templates need. Calling such objects is unaffected; only attribute
+    access is denied.
+    """
+
+    def is_safe_attribute(self, obj: Any, attr: str, value: Any) -> bool:
+        if attr in {"environment_class", "template_class"}:
+            return False
+        if isinstance(obj, partial):
+            return False
+        return super().is_safe_attribute(obj, attr, value)
+
+
 class BaseTemplateProcessor:
     """
     Base class for database-specific jinja context
@@ -680,7 +780,7 @@ class BaseTemplateProcessor:
         self._applied_filters = applied_filters
         self._removed_filters = removed_filters
         self._context: dict[str, Any] = {}
-        self.env: Environment = SandboxedEnvironment(undefined=DebugUndefined)
+        self.env: Environment = SupersetSandboxedEnvironment(undefined=DebugUndefined)
         self.set_context(**kwargs)
 
         # custom filters
@@ -786,19 +886,6 @@ class BaseTemplateProcessor:
 
 
 class JinjaTemplateProcessor(BaseTemplateProcessor):
-    def _parse_datetime(self, dttm: str) -> datetime | None:
-        """
-        Try to parse a datetime and default to None in the worst case.
-
-        Since this may have been rendered by different engines, the datetime may
-        vary slightly in format. We try to make it consistent, and if all else
-        fails, just return None.
-        """
-        try:
-            return dateutil.parser.parse(dttm)
-        except dateutil.parser.ParserError:
-            return None
-
     def set_context(self, **kwargs: Any) -> None:
         super().set_context(**kwargs)
         extra_cache = ExtraCache(
@@ -808,23 +895,7 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
             database=self._database,
             dialect=self._database.get_dialect(),
             table=self._table,
-        )
-
-        from_dttm = (
-            self._parse_datetime(dttm)
-            if (dttm := self._context.get("from_dttm"))
-            else None
-        )
-        to_dttm = (
-            self._parse_datetime(dttm)
-            if (dttm := self._context.get("to_dttm"))
-            else None
-        )
-
-        dataset_macro_with_context = partial(
-            dataset_macro,
-            from_dttm=from_dttm,
-            to_dttm=to_dttm,
+            query_context_filters=self._context.get("filter") or [],
         )
 
         self._context.update(
@@ -844,18 +915,19 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
                 "cache_key_wrapper": partial(safe_proxy, extra_cache.cache_key_wrapper),
                 "filter_values": partial(safe_proxy, extra_cache.filter_values),
                 "get_filters": partial(safe_proxy, extra_cache.get_filters),
-                "dataset": partial(safe_proxy, dataset_macro_with_context),
+                "dataset": partial(safe_proxy, dataset_macro),
                 "get_time_filter": partial(safe_proxy, extra_cache.get_time_filter),
             }
         )
 
-        # The `metric` filter needs the full context, in order to expand other filters
-        self._context["metric"] = partial(
-            safe_proxy,
-            metric_macro,
-            self.env,
-            self._context,
-        )
+        # The `metric` filter needs the env and full context to expand other
+        # filters. Bind them through a closure rather than positional args so the
+        # template environment is not reachable via the macro's public
+        # ``partial.args`` from inside a template.
+        def metric_with_context(metric_key: str, dataset_id: int | None = None) -> str:
+            return metric_macro(self.env, self._context, metric_key, dataset_id)
+
+        self._context["metric"] = partial(safe_proxy, metric_with_context)
 
 
 class NoOpTemplateProcessor(BaseTemplateProcessor):
@@ -1001,18 +1073,12 @@ def dataset_macro(
     dataset_id: int,
     include_metrics: bool = False,
     columns: list[str] | None = None,
-    from_dttm: datetime | None = None,
-    to_dttm: datetime | None = None,
 ) -> str:
     """
     Given a dataset ID, return the SQL that represents it.
 
     The generated SQL includes all columns (including computed) by default. Optionally
     the user can also request metrics to be included, and columns to group by.
-
-    The from_dttm and to_dttm parameters are filled in from filter values in explore
-    views, and we take them to make those properties available to jinja templates in
-    the underlying dataset.
     """
     # pylint: disable=import-outside-toplevel
     from superset.daos.dataset import DatasetDAO
@@ -1028,8 +1094,8 @@ def dataset_macro(
         "filter": [],
         "metrics": metrics if include_metrics else None,
         "columns": cast(list[Column], columns),
-        "from_dttm": from_dttm,
-        "to_dttm": to_dttm,
+        "from_dttm": None,
+        "to_dttm": None,
     }
     sqla_query = dataset.get_query_str_extended(query_obj, mutate=False)
     sql = sqla_query.sql

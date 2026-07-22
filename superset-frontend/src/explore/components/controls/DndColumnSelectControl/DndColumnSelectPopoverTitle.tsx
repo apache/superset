@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { handleKeyboardActivation } from '@superset-ui/core';
 import { ChangeEvent, useCallback, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled, useTheme } from '@apache-superset/core/theme';
@@ -63,7 +64,7 @@ export const DndColumnSelectPopoverTitle = ({
   }, []);
 
   const onInputBlur = useCallback(
-    e => {
+    (e: React.FocusEvent<HTMLInputElement>) => {
       if (e.target.value === '') {
         onChange(e);
       }
@@ -94,7 +95,9 @@ export const DndColumnSelectPopoverTitle = ({
         data-test="AdhocMetricEditTitle#trigger"
         onMouseOver={onMouseOver}
         onMouseOut={onMouseOut}
+        onFocus={onMouseOver}
         onClick={onClick}
+        onKeyDown={onClick ? handleKeyboardActivation(onClick) : undefined}
         onBlur={onBlur}
         role="button"
         tabIndex={0}

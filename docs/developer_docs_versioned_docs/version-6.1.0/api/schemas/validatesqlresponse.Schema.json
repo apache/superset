@@ -1,0 +1,1 @@
+{"schema":{"properties":{"end_column":{"type":"integer"},"line_number":{"type":"integer"},"message":{"type":"string"},"start_column":{"type":"integer"}},"type":"object","title":"ValidateSQLResponse"},"schemaType":"response"}

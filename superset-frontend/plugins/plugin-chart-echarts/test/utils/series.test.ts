@@ -67,11 +67,7 @@ const {
     chartHeight: number;
     chartWidth: number;
     legendItems?: (
-      | string
-      | number
-      | null
-      | undefined
-      | { name?: string | number | null }
+      string | number | null | undefined | { name?: string | number | null }
     )[];
     legendMargin?: string | number | null;
     orientation: LegendOrientation;
@@ -94,11 +90,7 @@ const {
     chartHeight: number;
     chartWidth: number;
     legendItems?: (
-      | string
-      | number
-      | null
-      | undefined
-      | { name?: string | number | null }
+      string | number | null | undefined | { name?: string | number | null }
     )[];
     legendMargin?: string | number | null;
     orientation: LegendOrientation;
@@ -1001,6 +993,62 @@ test('getLegendLayoutResult keeps plain horizontal legends when they fit within 
   });
 });
 
+test('getLegendLayoutResult honors user-selected plain type for many horizontal legend items given ample width (#39540)', () => {
+  // Regression contract for issue #39540: a legend with enough items to be
+  // scrollable must still honor a user-selected plain type when the chart is
+  // wide enough, instead of being unconditionally forced to scroll.
+  const layout = getLegendLayoutResult({
+    chartHeight: 600,
+    chartWidth: 1600,
+    legendItems: Array.from({ length: 10 }, (_, i) => `Series ${i + 1}`),
+    legendMargin: null,
+    orientation: LegendOrientation.Top,
+    show: true,
+    theme,
+    type: LegendType.Plain,
+  });
+
+  expect(layout.effectiveType).toBe(LegendType.Plain);
+  expect(layout.effectiveMargin).toBeGreaterThanOrEqual(
+    defaultLegendPadding[LegendOrientation.Top],
+  );
+});
+
+test('getLegendLayoutResult keeps user-selected plain type for bottom-oriented legends when space allows', () => {
+  expect(
+    getLegendLayoutResult({
+      chartHeight: 400,
+      chartWidth: 800,
+      legendItems: ['Alpha', 'Beta', 'Gamma', 'Delta'],
+      legendMargin: null,
+      orientation: LegendOrientation.Bottom,
+      show: true,
+      theme,
+      type: LegendType.Plain,
+    }),
+  ).toEqual({
+    effectiveMargin: defaultLegendPadding[LegendOrientation.Bottom],
+    effectiveType: LegendType.Plain,
+  });
+});
+
+test('getLegendLayoutResult passes a user-selected scroll type through untouched', () => {
+  expect(
+    getLegendLayoutResult({
+      chartHeight: 400,
+      chartWidth: 800,
+      legendItems: ['Alpha', 'Beta'],
+      legendMargin: null,
+      orientation: LegendOrientation.Top,
+      show: true,
+      theme,
+      type: LegendType.Scroll,
+    }),
+  ).toEqual({
+    effectiveType: LegendType.Scroll,
+  });
+});
+
 test('getLegendLayoutResult adds extra margin for wrapped plain horizontal legends', () => {
   const layout = getLegendLayoutResult({
     chartHeight: 400,
@@ -1396,6 +1444,41 @@ test('getAxisType without forced categorical', () => {
 
 test('getAxisType with forced categorical', () => {
   expect(getAxisType(false, true, GenericDataType.Numeric)).toEqual(
+    AxisType.Category,
+  );
+});
+
+test('getAxisType treats numeric as category for bar charts', () => {
+  expect(
+    (getAxisType as (...args: unknown[]) => AxisType)(
+      false,
+      false,
+      GenericDataType.Numeric,
+      EchartsTimeseriesSeriesType.Bar,
+    ),
+  ).toEqual(AxisType.Category);
+  expect(
+    (getAxisType as (...args: unknown[]) => AxisType)(
+      false,
+      false,
+      GenericDataType.Numeric,
+      EchartsTimeseriesSeriesType.Line,
+    ),
+  ).toEqual(AxisType.Value);
+});
+
+test('getAxisType does not coerce Numeric x-axis to Time regardless of values', () => {
+  // Regression guard for echarts-timeseries-epoch-x-axis-labels investigation:
+  // getAxisType only considers the coltype reported by the query, never the
+  // actual values. Numeric coltype must stay on a Value axis so a future
+  // change that introduces implicit temporal coercion is surfaced here.
+  expect(getAxisType(false, false, GenericDataType.Numeric)).toEqual(
+    AxisType.Value,
+  );
+  expect(getAxisType(false, false, GenericDataType.Temporal)).toEqual(
+    AxisType.Time,
+  );
+  expect(getAxisType(false, false, GenericDataType.String)).toEqual(
     AxisType.Category,
   );
 });

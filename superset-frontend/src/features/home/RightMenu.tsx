@@ -16,18 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect, FC, PureComponent, useMemo } from 'react';
+import {
+  useState,
+  useEffect,
+  FC,
+  useMemo,
+  ReactNode,
+  Component,
+  ErrorInfo,
+} from 'react';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { useQueryParams, BooleanParam } from 'use-query-params';
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import {
   SupersetClient,
   getExtensionsRegistry,
   isFeatureEnabled,
   FeatureFlag,
+  CACHE_KEY,
 } from '@superset-ui/core';
 import {
   styled,
@@ -44,7 +53,7 @@ import {
   TelemetryPixel,
 } from '@superset-ui/core/components';
 import type { ItemType, MenuItem } from '@superset-ui/core/components/Menu';
-import { ensureAppRoot, makeUrl } from 'src/utils/pathUtils';
+import { ensureAppRoot, stripAppRoot } from 'src/utils/navigationUtils';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { findPermission } from 'src/utils/findPermission';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
@@ -95,10 +104,12 @@ const StyledMenuItem = styled.div<{ disabled?: boolean }>`
       color: ${!disabled && theme.colorPrimary};
       cursor: ${!disabled ? 'pointer' : 'not-allowed'};
     }
-    ${disabled &&
-    css`
-      color: ${theme.colorTextDisabled};
-    `}
+    ${
+      disabled &&
+      css`
+        color: ${theme.colorTextDisabled};
+      `
+    }
   `}
 `;
 
@@ -133,6 +144,7 @@ const RightMenu = ({
     EXCEL_EXTENSIONS,
     ALLOWED_EXTENSIONS,
     HAS_GSHEETS_INSTALLED,
+    SCARF_ANALYTICS,
   } = useSelector<any, ExtensionConfigs>(state => state.common.conf);
   const [showDatabaseModal, setShowDatabaseModal] = useState<boolean>(false);
   const [showCSVUploadModal, setShowCSVUploadModal] = useState<boolean>(false);
@@ -213,7 +225,10 @@ const RightMenu = ({
     },
     {
       label: t('SQL query'),
-      url: makeUrl('/sqllab?new=true'),
+      // Keep the URL relative so isFrontendRoute() matches and Link navigates
+      // via React Router; the <Typography.Link> fallback applies ensureAppRoot
+      // exactly once for non-frontend routes.
+      url: '/sqllab?new=true',
       icon: <Icons.SearchOutlined data-test={`menu-item-${t('SQL query')}`} />,
       perm: 'can_sqllab',
       view: 'Superset',
@@ -229,7 +244,7 @@ const RightMenu = ({
     },
     {
       label: t('Dashboard'),
-      url: '/dashboard/new',
+      url: '/dashboard/new/',
       icon: (
         <Icons.DashboardOutlined data-test={`menu-item-${t('Dashboard')}`} />
       ),
@@ -350,6 +365,14 @@ const RightMenu = ({
     try {
       window.localStorage.removeItem('redux');
       window.sessionStorage.removeItem('login_attempted');
+      // Purge the namespaced Cache API store so cached GET responses are not
+      // retained on the device after the session ends. Best-effort: the
+      // returned promise is not awaited since logout navigates away.
+      if (typeof caches !== 'undefined') {
+        caches.delete(CACHE_KEY).catch(() => {
+          /* best-effort: ignore cache deletion failures */
+        });
+      }
     } catch (error) {
       console.warn('Failed to clear storage on logout:', error);
     }
@@ -406,7 +429,7 @@ const RightMenu = ({
               items.push({
                 key: menu.label,
                 label: isFrontendRoute(menu.url) ? (
-                  <Link to={menu.url || ''}>{menu.label}</Link>
+                  <Link to={stripAppRoot(menu.url || '')}>{menu.label}</Link>
                 ) : (
                   <Typography.Link href={ensureAppRoot(menu.url || '')}>
                     {menu.label}
@@ -422,7 +445,7 @@ const RightMenu = ({
           items.push({
             key: menu.label,
             label: isFrontendRoute(menu.url) ? (
-              <Link to={menu.url || ''}>{menu.label}</Link>
+              <Link to={stripAppRoot(menu.url || '')}>{menu.label}</Link>
             ) : (
               <Typography.Link href={ensureAppRoot(menu.url || '')}>
                 {menu.label}
@@ -457,7 +480,9 @@ const RightMenu = ({
             sectionItems.push({
               key: child.label,
               label: isFrontendRoute(child.url) ? (
-                <Link to={child.url || ''}>{menuItemDisplay}</Link>
+                <Link to={stripAppRoot(child.url || '')}>
+                  {menuItemDisplay}
+                </Link>
               ) : (
                 <Typography.Link
                   href={child.url || ''}
@@ -538,11 +563,11 @@ const RightMenu = ({
               style: { height: 'auto', minHeight: 'auto' },
               label: (
                 <div
-                  css={(theme: SupersetTheme) => css`
-                    font-size: ${theme.fontSizeSM}px;
-                    color: ${theme.colorTextSecondary || theme.colorText};
+                  css={(themeArg: SupersetTheme) => css`
+                    font-size: ${themeArg.fontSizeSM}px;
+                    color: ${themeArg.colorTextSecondary || themeArg.colorText};
                     white-space: pre-wrap;
-                    padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
+                    padding: ${themeArg.sizeUnit}px ${themeArg.sizeUnit * 2}px;
                   `}
                 >
                   {[
@@ -730,6 +755,7 @@ const RightMenu = ({
             target="_blank"
             rel="noreferrer"
             title={navbarRight.documentation_text || t('Documentation')}
+            aria-label={navbarRight.documentation_text || t('Documentation')}
           >
             {navbarRight.documentation_icon ? (
               <Icons.BookOutlined />
@@ -747,6 +773,7 @@ const RightMenu = ({
             target="_blank"
             rel="noreferrer"
             title={navbarRight.bug_report_text || t('Report a bug')}
+            aria-label={navbarRight.bug_report_text || t('Report a bug')}
           >
             {navbarRight.bug_report_icon ? (
               <i className={navbarRight.bug_report_icon} />
@@ -764,8 +791,12 @@ const RightMenu = ({
       )}
       <TelemetryPixel
         version={navbarRight.version_string}
-        sha={navbarRight.version_sha}
-        build={navbarRight.build_number}
+        // Build details may be redacted to empty/null for non-admins; fall back
+        // to the component's "unknown" defaults instead of emitting empty path
+        // segments in the Scarf pixel URL.
+        sha={navbarRight.version_sha || undefined}
+        build={navbarRight.build_number || undefined}
+        enabled={SCARF_ANALYTICS !== false}
       />
     </StyledDiv>
   );
@@ -785,23 +816,39 @@ const RightMenuWithQueryWrapper: FC<RightMenuProps> = props => {
 // Superset still has multiple entry points, and not all of them have
 // the same setup, and critically, not all of them have the QueryParamProvider.
 // This wrapper ensures the RightMenu renders regardless of the provider being present.
-class RightMenuErrorWrapper extends PureComponent<RightMenuProps> {
-  state = {
-    hasError: false,
-  };
+// Note: Error boundaries require class components in React - there is no hooks equivalent
+// for getDerivedStateFromError and componentDidCatch.
+interface RightMenuErrorWrapperState {
+  hasError: boolean;
+}
 
-  static getDerivedStateFromError() {
+// eslint-disable-next-line react-prefer-function-component/react-prefer-function-component -- componentDidCatch requires class component
+class RightMenuErrorWrapper extends Component<
+  RightMenuProps & { children?: ReactNode },
+  RightMenuErrorWrapperState
+> {
+  constructor(props: RightMenuProps & { children?: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(): RightMenuErrorWrapperState {
     return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+    console.error('RightMenu error caught:', error, errorInfo);
   }
 
   noop = () => {};
 
   render() {
+    const { children, ...rightMenuProps } = this.props;
     if (this.state.hasError) {
-      return <RightMenu setQuery={this.noop} {...this.props} />;
+      return <RightMenu setQuery={this.noop} {...rightMenuProps} />;
     }
 
-    return this.props.children;
+    return children;
   }
 }
 

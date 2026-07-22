@@ -92,7 +92,7 @@ function createAxisTitleControl(axis: 'x' | 'y'): ControlSetRow[] {
           clearable: true,
           label: t('Axis title margin'),
           renderTrigger: true,
-          default: sections.TITLE_MARGIN_OPTIONS[0],
+          default: sections.TITLE_MARGIN_OPTIONS[3],
           choices: formatSelectOptions(sections.TITLE_MARGIN_OPTIONS),
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             isXAxis ? isVertical(controls) : isHorizontal(controls),
@@ -125,7 +125,7 @@ function createAxisTitleControl(axis: 'x' | 'y'): ControlSetRow[] {
           clearable: true,
           label: t('Axis title margin'),
           renderTrigger: true,
-          default: sections.TITLE_MARGIN_OPTIONS[1],
+          default: sections.TITLE_MARGIN_OPTIONS[4],
           choices: formatSelectOptions(sections.TITLE_MARGIN_OPTIONS),
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             isXAxis ? isHorizontal(controls) : isVertical(controls),
@@ -174,7 +174,6 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
         name: 'x_axis_time_format',
         config: {
           ...sharedControls.x_axis_time_format,
-          default: 'smart_date',
           description: `${D3_TIME_FORMAT_DOCS}. ${TIME_SERIES_DESCRIPTION_TEXT}`,
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             (isXAxis ? isVertical(controls) : isHorizontal(controls)) &&
@@ -372,13 +371,8 @@ const config: ControlPanelConfig = {
               description: t(
                 'Stack in groups, where each group corresponds to a dimension',
               ),
-              shouldMapStateToProps: (
-                prevState,
-                state,
-                controlState,
-                chartState,
-              ) => true,
-              mapStateToProps: (state, controlState, chartState) => {
+              shouldMapStateToProps: () => true,
+              mapStateToProps: state => {
                 const value: JsonArray = ensureIsArray(
                   state.controls.groupby?.value,
                 ) as JsonArray;

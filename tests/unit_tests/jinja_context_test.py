@@ -25,6 +25,7 @@ from flask import current_app
 from flask_appbuilder.security.sqla.models import Role
 from freezegun import freeze_time
 from jinja2 import DebugUndefined
+from jinja2.exceptions import SecurityError
 from jinja2.sandbox import SandboxedEnvironment
 from pytest_mock import MockerFixture
 from sqlalchemy.dialects import mysql
@@ -259,6 +260,219 @@ def test_get_filters_remove_not_present() -> None:
     assert cache.removed_filters == []
 
 
+def test_get_filters_query_context_filters() -> None:
+    """
+    Test that ``get_filters`` falls back to native query_context_filters when no
+    adhoc_filters are present — the drill-to-detail path sends filters in native
+    {col, op, val} format rather than adhoc_filters.
+    """
+    cache = ExtraCache(
+        query_context_filters=[{"col": "name", "op": "IN", "val": ["foo", "bar"]}]
+    )
+    assert cache.get_filters("name") == [
+        {"op": "IN", "col": "name", "val": ["foo", "bar"]}
+    ]
+    assert cache.applied_filters == ["name"]
+    assert cache.removed_filters == []
+
+
+def test_get_filters_query_context_filters_remove_filter() -> None:
+    """
+    Test that ``get_filters`` with ``remove_filter=True`` marks the column as removed
+    when matching via query_context_filters.
+    """
+    cache = ExtraCache(
+        query_context_filters=[{"col": "name", "op": "IN", "val": "foo"}]
+    )
+    assert cache.get_filters("name", remove_filter=True) == [
+        {"op": "IN", "col": "name", "val": ["foo"]}
+    ]
+    assert cache.removed_filters == ["name"]
+    assert cache.applied_filters == ["name"]
+
+
+def test_get_filters_query_context_filters_is_null() -> None:
+    """
+    Test that IS_NULL filters (which have no val) are returned correctly from
+    query_context_filters. Unary null operators legitimately have val=None.
+    """
+    cache = ExtraCache(query_context_filters=[{"col": "name", "op": "IS_NULL"}])
+    assert cache.get_filters("name") == [{"op": "IS_NULL", "col": "name", "val": None}]
+    assert cache.applied_filters == ["name"]
+    assert cache.removed_filters == []
+
+
+def test_get_filters_query_context_filters_is_not_null() -> None:
+    """
+    Test that IS_NOT_NULL filters (which have no val) are returned correctly from
+    query_context_filters. Unary null operators legitimately have val=None.
+    """
+    cache = ExtraCache(query_context_filters=[{"col": "name", "op": "IS_NOT_NULL"}])
+    assert cache.get_filters("name") == [
+        {"op": "IS_NOT_NULL", "col": "name", "val": None}
+    ]
+    assert cache.applied_filters == ["name"]
+    assert cache.removed_filters == []
+
+
+def test_get_filters_adhoc_filters_take_precedence_over_query_context_filters() -> None:
+    """
+    Test that adhoc_filters takes precedence over query_context_filters to avoid
+    duplicate filter entries for aggregated queries where both formats are present.
+    """
+    with current_app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "adhoc_filters": [
+                        {
+                            "clause": "WHERE",
+                            "comparator": ["adhoc_val"],
+                            "expressionType": "SIMPLE",
+                            "operator": "in",
+                            "subject": "name",
+                        }
+                    ],
+                }
+            )
+        }
+    ):
+        cache = ExtraCache(
+            query_context_filters=[{"col": "name", "op": "IN", "val": ["native_val"]}]
+        )
+        result = cache.get_filters("name")
+        assert result == [{"op": "IN", "col": "name", "val": ["adhoc_val"]}]
+
+
+def test_filter_values_query_context_filters() -> None:
+    """
+    Test that ``filter_values`` works via query_context_filters (drill-to-detail path).
+    """
+    cache = ExtraCache(
+        query_context_filters=[{"col": "name", "op": "IN", "val": ["foo", "bar"]}]
+    )
+    assert cache.filter_values("name") == ["foo", "bar"]
+    assert cache.applied_filters == ["name"]
+
+
+def test_get_filters_escaped_val_string_adhoc() -> None:
+    """
+    ``get_filters`` exposes an ``escaped_val`` companion for string values
+    when a dialect is configured, while leaving ``val`` raw.
+    """
+    with current_app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "adhoc_filters": [
+                        {
+                            "clause": "WHERE",
+                            "comparator": "O'Brien",
+                            "expressionType": "SIMPLE",
+                            "operator": "LIKE",
+                            "subject": "name",
+                        }
+                    ],
+                }
+            )
+        }
+    ):
+        cache = ExtraCache(dialect=dialect())
+        result = cache.get_filters("name")
+        assert result == [
+            {
+                "op": "LIKE",
+                "col": "name",
+                "val": "O'Brien",
+                "escaped_val": "O''Brien",
+            }
+        ]
+
+
+def test_get_filters_escaped_val_list_adhoc() -> None:
+    """
+    ``get_filters`` produces an ``escaped_val`` list with every string
+    member dialect-escaped; non-string members pass through untouched.
+    """
+    with current_app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "adhoc_filters": [
+                        {
+                            "clause": "WHERE",
+                            "comparator": ["O'Brien", "Smith"],
+                            "expressionType": "SIMPLE",
+                            "operator": "in",
+                            "subject": "name",
+                        }
+                    ],
+                }
+            )
+        }
+    ):
+        cache = ExtraCache(dialect=dialect())
+        result = cache.get_filters("name")
+        assert result == [
+            {
+                "op": "IN",
+                "col": "name",
+                "val": ["O'Brien", "Smith"],
+                "escaped_val": ["O''Brien", "Smith"],
+            }
+        ]
+
+
+def test_get_filters_escaped_val_query_context_filters() -> None:
+    """
+    The ``escaped_val`` companion is also populated when filters arrive via
+    the drill-to-detail ``query_context_filters`` path.
+    """
+    cache = ExtraCache(
+        dialect=dialect(),
+        query_context_filters=[
+            {"col": "name", "op": "LIKE", "val": "O'Brien"},
+        ],
+    )
+    assert cache.get_filters("name") == [
+        {
+            "op": "LIKE",
+            "col": "name",
+            "val": "O'Brien",
+            "escaped_val": "O''Brien",
+        }
+    ]
+
+
+def test_get_filters_no_escaped_val_without_dialect() -> None:
+    """
+    Without a dialect ``get_filters`` returns the original schema, with no
+    ``escaped_val`` key — preserving backwards compatibility for callers
+    that did not opt into a dialect-aware processor.
+    """
+    with current_app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "adhoc_filters": [
+                        {
+                            "clause": "WHERE",
+                            "comparator": "O'Brien",
+                            "expressionType": "SIMPLE",
+                            "operator": "LIKE",
+                            "subject": "name",
+                        }
+                    ],
+                }
+            )
+        }
+    ):
+        cache = ExtraCache()
+        result = cache.get_filters("name")
+        assert result == [{"op": "LIKE", "col": "name", "val": "O'Brien"}]
+        assert "escaped_val" not in result[0]
+
+
 def test_url_param_query() -> None:
     """
     Test the ``url_param`` macro.
@@ -341,6 +555,25 @@ def test_url_param_unescaped_default_form_data() -> None:
     ):
         cache = ExtraCache(dialect=dialect())
         assert cache.url_param("bar", "O'Malley", escape_result=False) == "O'Malley"
+
+
+def test_url_param_escaped_request_args() -> None:
+    """
+    Values read from the request query string are escaped the same way as
+    values from ``form_data`` (both are interpolated into the rendered SQL).
+    """
+    with current_app.test_request_context(query_string={"foo": "O'Brien"}):
+        cache = ExtraCache(dialect=dialect())
+        assert cache.url_param("foo") == "O''Brien"
+
+
+def test_url_param_unescaped_request_args() -> None:
+    """
+    ``escape_result=False`` still opts out of escaping for request-args values.
+    """
+    with current_app.test_request_context(query_string={"foo": "O'Brien"}):
+        cache = ExtraCache(dialect=dialect())
+        assert cache.url_param("foo", escape_result=False) == "O'Brien"
 
 
 def test_safe_proxy_primitive() -> None:
@@ -449,6 +682,136 @@ def test_user_macros_without_user_info(mocker: MockerFixture):
     assert cache.current_user_email() is None
     assert cache.current_user_roles() is None
     assert cache.current_user_rls_rules() is None
+
+
+def _user_metadata_cache_keys(
+    mocker: MockerFixture,
+    *,
+    user_id: int | None,
+    username: str | None,
+    email: str | None,
+    roles: list[str],
+) -> list[Any]:
+    """
+    Render the user-metadata macros for a given user and return the values they
+    contributed to the query cache key.
+    """
+    mock_g = mocker.patch("superset.utils.core.g")
+    if user_id is None:
+        mock_g.user = None
+    else:
+        mock_g.user.id = user_id
+        mock_g.user.username = username
+        mock_g.user.email = email
+    mocker.patch(
+        "superset.security_manager.get_user_roles",
+        return_value=[Role(name=name) for name in roles],
+    )
+    keys: list[Any] = []
+    cache = ExtraCache(extra_cache_keys=keys, table=mocker.MagicMock())
+    cache.current_user_id()
+    cache.current_username()
+    cache.current_user_email()
+    cache.current_user_roles()
+    return keys
+
+
+def test_user_metadata_cache_keys_isolate_distinct_users(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Two different users contribute disjoint values to the cache key, so neither
+    can be served the other's cached result. This is the property that keeps the
+    ``current_user_*`` macro family safe for per-user (and multi-tenant) queries.
+    """
+    alice = _user_metadata_cache_keys(
+        mocker, user_id=1, username="alice", email="alice@example.com", roles=["Admin"]
+    )
+    bob = _user_metadata_cache_keys(
+        mocker, user_id=2, username="bob", email="bob@example.com", roles=["Gamma"]
+    )
+    assert alice
+    assert bob
+    assert set(alice).isdisjoint(set(bob))
+
+
+def test_user_metadata_cache_keys_match_for_identical_users(
+    mocker: MockerFixture,
+) -> None:
+    """
+    The same user always contributes the same values, so identical renders
+    correctly share a cache entry (no needless fragmentation).
+    """
+    first = _user_metadata_cache_keys(
+        mocker, user_id=1, username="alice", email="alice@example.com", roles=["Admin"]
+    )
+    second = _user_metadata_cache_keys(
+        mocker, user_id=1, username="alice", email="alice@example.com", roles=["Admin"]
+    )
+    # The real cache key is built from ``set(extra_cache_keys)``, so compare on
+    # the normalized set rather than the raw ordered list.
+    assert set(first) == set(second)
+
+
+def test_anonymous_user_never_collides_with_a_logged_in_user(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Refutes the "skip cache key when the value is absent" collision concern. A
+    real anonymous request has no user object, so ``current_user_id`` /
+    ``current_username`` / ``current_user_email`` return ``None`` and add nothing
+    to the key, while ``current_user_roles`` still contributes the Public role.
+    Two anonymous requests therefore render identically and correctly share one
+    cache entry, and neither can be served a logged-in user's cached result.
+    """
+    logged_in = _user_metadata_cache_keys(
+        mocker, user_id=1, username="alice", email="alice@example.com", roles=["Admin"]
+    )
+    anon_first = _user_metadata_cache_keys(
+        mocker, user_id=None, username=None, email=None, roles=["Public"]
+    )
+    anon_second = _user_metadata_cache_keys(
+        mocker, user_id=None, username=None, email=None, roles=["Public"]
+    )
+    # The absent id/username/email contribute nothing, so an anonymous request's
+    # key carries only its role, never a stray value for the missing fields.
+    assert set(anon_first) == {json.dumps(["Public"])}
+    # Two anonymous requests share a cache entry; neither collides with a user.
+    assert set(anon_first) == set(anon_second)
+    assert set(anon_first).isdisjoint(set(logged_in))
+
+
+@pytest.mark.parametrize(
+    "field, other_value",
+    [
+        ("user_id", 2),
+        ("username", "bob"),
+        ("email", "bob@example.com"),
+        ("roles", ["Gamma"]),
+    ],
+)
+def test_user_metadata_cache_keys_guard_each_field_independently(
+    mocker: MockerFixture,
+    field: str,
+    other_value: Any,
+) -> None:
+    """
+    Two users who differ in exactly one metadata field get distinct cache keys.
+    Guarding each field on its own means a regression that stops any single
+    macro (``current_user_id`` / ``current_username`` / ``current_user_email`` /
+    ``current_user_roles``) from contributing to the key would fail its case here,
+    rather than hiding behind the other fields.
+    """
+    base: dict[str, Any] = {
+        "user_id": 1,
+        "username": "alice",
+        "email": "alice@example.com",
+        "roles": ["Admin"],
+    }
+    variant: dict[str, Any] = {**base, field: other_value}
+    base_keys = _user_metadata_cache_keys(mocker, **base)
+    variant_keys = _user_metadata_cache_keys(mocker, **variant)
+    assert set(base_keys) != set(variant_keys)
 
 
 def test_current_user_rls_rules_with_no_table(mocker: MockerFixture):
@@ -758,6 +1121,40 @@ def test_metric_macro_expansion(mocker: MockerFixture) -> None:
 
     processor = get_template_processor(database=database)
     assert processor.process_template("{{ metric('c') }}") == "42"
+
+
+def test_metric_macro_does_not_expose_environment(mocker: MockerFixture) -> None:
+    """
+    A template must not be able to read the template environment through the
+    ``metric`` macro's bound arguments.
+    """
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    mock_g = mocker.patch("superset.jinja_context.g")
+    mock_g.form_data = {"datasource": {"id": 1}}
+    processor = get_template_processor(database=database)
+    # Attribute access on the macro's partial is denied, so a reference to its
+    # bound args resolves to an undefined and any further use raises instead of
+    # yielding the environment object.
+    with pytest.raises(SecurityError):
+        processor.process_template("{{ metric.args[1] }}")
+    with pytest.raises(SecurityError):
+        processor.process_template(
+            "{{ metric.args[1].template_class.environment_class() }}"
+        )
+
+
+def test_supersetsandboxedenvironment_denies_unsafe_attributes() -> None:
+    """is_safe_attribute denies env/template class attrs and all attrs on partials."""
+    from functools import partial
+
+    from superset.jinja_context import SupersetSandboxedEnvironment
+
+    env = SupersetSandboxedEnvironment()
+    assert env.is_safe_attribute(env, "environment_class", None) is False
+    assert env.is_safe_attribute(env, "template_class", None) is False
+    macro = partial(lambda value: value, 1)
+    assert env.is_safe_attribute(macro, "args", macro.args) is False
+    assert env.is_safe_attribute(macro, "func", macro.func) is False
 
 
 def test_metric_macro_recursive_compound(mocker: MockerFixture) -> None:

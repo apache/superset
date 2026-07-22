@@ -53,6 +53,7 @@ from superset.superset_typing import (
 )
 from superset.utils import json
 from superset.utils.core import GenericDataType
+from tests.common.assert_utils import assert_called_with_text
 from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,
     assert_convert_dttm,
@@ -343,6 +344,156 @@ def test_get_extra_table_metadata(mocker: MockerFixture) -> None:
     assert result["partitions"]["latest"] == {"ds": "01-01-19", "hour": 1}
 
 
+def test_get_extra_table_metadata_iceberg_unpartitioned(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Iceberg ``$partitions`` metadata fields must not be treated as partition
+    columns, so an unpartitioned Iceberg table yields no partition metadata and
+    no latest-partition query.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    db_mock = mocker.MagicMock()
+    db_mock.get_indexes = Mock(
+        return_value=[
+            {
+                "name": "partition",
+                "column_names": ["data", "file_count", "record_count", "total_size"],
+            }
+        ]
+    )
+    db_mock.get_extra = Mock(return_value={})
+    db_mock.has_view = Mock(return_value=None)
+    db_mock.get_df = Mock()
+    result = TrinoEngineSpec.get_extra_table_metadata(
+        db_mock,
+        Table("test_table", "test_schema"),
+    )
+    assert "partitions" not in result
+    db_mock.get_df.assert_not_called()
+
+
+def test_get_extra_table_metadata_iceberg_partitioned(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A genuinely partitioned Iceberg table exposes a ``partition`` ROW column
+    alongside the metadata fields. Since the real partition columns are nested
+    in the ROW and not directly queryable here, the partition block is skipped
+    rather than generating an invalid latest-partition query.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    db_mock = mocker.MagicMock()
+    db_mock.get_indexes = Mock(
+        return_value=[
+            {
+                "name": "partition",
+                "column_names": [
+                    "partition",
+                    "record_count",
+                    "file_count",
+                    "total_size",
+                    "data",
+                ],
+            }
+        ]
+    )
+    db_mock.get_extra = Mock(return_value={})
+    db_mock.has_view = Mock(return_value=None)
+    db_mock.get_df = Mock()
+    result = TrinoEngineSpec.get_extra_table_metadata(
+        db_mock,
+        Table("test_table", "test_schema"),
+    )
+    assert "partitions" not in result
+    db_mock.get_df.assert_not_called()
+
+
+def test_latest_sub_partition_iceberg(mocker: MockerFixture) -> None:
+    """
+    The ``latest_sub_partition`` macro must not query Iceberg ``$partitions``
+    metadata fields: with no real partition keys it raises instead of building
+    SQL.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+    from superset.exceptions import SupersetTemplateException
+
+    db_mock = mocker.MagicMock()
+    db_mock.get_indexes = Mock(
+        return_value=[
+            {
+                "name": "partition",
+                "column_names": ["data", "file_count", "record_count", "total_size"],
+            }
+        ]
+    )
+    db_mock.get_df = Mock()
+    with pytest.raises(SupersetTemplateException):
+        TrinoEngineSpec.latest_sub_partition(
+            db_mock,
+            Table("test_table", "test_schema"),
+            record_count="1",
+        )
+    db_mock.get_df.assert_not_called()
+
+
+def test_filter_iceberg_partition_indexes() -> None:
+    """
+    Iceberg ``$partitions`` metadata indexes are dropped while real partition
+    indexes (and any index sharing only some metadata names) pass through.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    # Iceberg metadata-only partition index is dropped entirely.
+    assert (
+        TrinoEngineSpec._filter_iceberg_partition_indexes(
+            [
+                {
+                    "name": "partition",
+                    "column_names": [
+                        "data",
+                        "file_count",
+                        "record_count",
+                        "total_size",
+                    ],
+                }
+            ]
+        )
+        == []
+    )
+
+    # Hive partition index (no Iceberg signature) is returned unchanged.
+    hive_indexes = [{"name": "partition", "column_names": ["ds", "hour"]}]
+    assert (
+        TrinoEngineSpec._filter_iceberg_partition_indexes(hive_indexes) == hive_indexes
+    )
+
+    # A Hive partition column that happens to be named ``data`` is preserved
+    # because the Iceberg signature columns are absent.
+    data_indexes = [{"name": "partition", "column_names": ["data"]}]
+    assert (
+        TrinoEngineSpec._filter_iceberg_partition_indexes(data_indexes) == data_indexes
+    )
+
+    # A real partition key alongside coincidental signature-named columns is
+    # preserved untouched: not every column is an Iceberg metadata field.
+    mixed_indexes = [
+        {
+            "name": "partition",
+            "column_names": ["ds", "record_count", "file_count", "total_size"],
+        }
+    ]
+    assert (
+        TrinoEngineSpec._filter_iceberg_partition_indexes(mixed_indexes)
+        == mixed_indexes
+    )
+
+    # Empty / falsy input yields an empty list.
+    assert TrinoEngineSpec._filter_iceberg_partition_indexes(None) == []
+
+
 @patch("sqlalchemy.engine.Engine.connect")
 def test_cancel_query_success(engine_mock: Mock) -> None:
     from superset.db_engine_specs.trino import TrinoEngineSpec
@@ -532,11 +683,14 @@ def test_get_columns_error(mocker: MockerFixture):
         "The specified table does not exist."
     )
     Row = namedtuple("Row", ["Column", "Type"])
-    mock_inspector.bind.execute().fetchall.return_value = [
+
+    mock_connection = mocker.MagicMock()
+    mock_connection.execute().fetchall.return_value = [
         Row("field1", "row(a varchar, b date)"),
         Row("field2", "row(r1 row(a varchar, b varchar))"),
         Row("field3", "int"),
     ]
+    mock_inspector.engine.connect().__enter__.return_value = mock_connection
 
     actual = TrinoEngineSpec.get_columns(mock_inspector, Table("table", "schema"))
     expected = [
@@ -571,7 +725,11 @@ def test_get_columns_error(mocker: MockerFixture):
 
     _assert_columns_equal(actual, expected)
 
-    mock_inspector.bind.execute.assert_called_with('SHOW COLUMNS FROM schema."table"')
+    with mock_inspector.engine.connect() as conn:
+        assert_called_with_text(
+            conn.execute,
+            'SHOW COLUMNS FROM schema."table"',
+        )
 
 
 def test_get_columns_expand_rows(mocker: MockerFixture):
@@ -604,6 +762,7 @@ def test_get_columns_expand_rows(mocker: MockerFixture):
             column_name="field1.a",
             type=types.VARCHAR(),
             is_dttm=False,
+            expression='"field1"."a"',
             query_as='"field1"."a" AS "field1.a"',
         ),
         ResultSetColumnType(
@@ -611,6 +770,7 @@ def test_get_columns_expand_rows(mocker: MockerFixture):
             column_name="field1.b",
             type=types.DATE(),
             is_dttm=True,
+            expression='"field1"."b"',
             query_as='"field1"."b" AS "field1.b"',
         ),
         ResultSetColumnType(
@@ -621,6 +781,7 @@ def test_get_columns_expand_rows(mocker: MockerFixture):
             column_name="field2.r1",
             type=datatype.parse_sqltype("row(a varchar, b varchar)"),
             is_dttm=False,
+            expression='"field2"."r1"',
             query_as='"field2"."r1" AS "field2.r1"',
         ),
         ResultSetColumnType(
@@ -628,6 +789,7 @@ def test_get_columns_expand_rows(mocker: MockerFixture):
             column_name="field2.r1.a",
             type=types.VARCHAR(),
             is_dttm=False,
+            expression='"field2"."r1"."a"',
             query_as='"field2"."r1"."a" AS "field2.r1.a"',
         ),
         ResultSetColumnType(
@@ -635,6 +797,7 @@ def test_get_columns_expand_rows(mocker: MockerFixture):
             column_name="field2.r1.b",
             type=types.VARCHAR(),
             is_dttm=False,
+            expression='"field2"."r1"."b"',
             query_as='"field2"."r1"."b" AS "field2.r1.b"',
         ),
         ResultSetColumnType(
@@ -1443,3 +1606,47 @@ def test_handle_cursor_commits_on_progress_text_change(
 
     # There should be commits for progress_text changes
     assert mock_db.session.commit.call_count >= 2
+
+
+def test_handle_boolean_filter() -> None:
+    """
+    Test that Trino uses equality operators for boolean filters instead of IS,
+    since `col IS TRUE` can fail on computed boolean expressions like
+    `(expiration = 1) AS expiration`.
+    """
+    from sqlalchemy import Boolean, Column
+
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+    from superset.utils.core import FilterOperator
+
+    bool_col = Column("test_col", Boolean)
+
+    result_true = TrinoEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_TRUE, True
+    )
+    assert (
+        str(result_true.compile(compile_kwargs={"literal_binds": True}))
+        == "test_col = true"
+    )
+
+    result_false = TrinoEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_FALSE, False
+    )
+    assert (
+        str(result_false.compile(compile_kwargs={"literal_binds": True}))
+        == "test_col = false"
+    )
+
+    # Regression: the original bug was on computed boolean columns like
+    # `(expiration = 1) AS expiration`. Verify the equality operator also
+    # compiles correctly when the "column" is a computed expression.
+    from sqlalchemy import literal_column
+
+    computed_col = literal_column("(expiration = 1)")
+    result_computed = TrinoEngineSpec.handle_boolean_filter(
+        computed_col, FilterOperator.IS_TRUE, True
+    )
+    assert (
+        str(result_computed.compile(compile_kwargs={"literal_binds": True}))
+        == "(expiration = 1) = true"
+    )

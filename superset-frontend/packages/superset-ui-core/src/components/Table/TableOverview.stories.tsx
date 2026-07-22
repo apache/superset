@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Markdown from 'markdown-to-jsx';
+import MarkdownToJsx from 'markdown-to-jsx';
 
 export default {
   title: 'Design System/Components/Table/TableOverview',
@@ -24,7 +24,7 @@ export default {
 
 export const Overview = () => (
   <>
-    <Markdown>
+    <MarkdownToJsx>
       {`
 # Table
 
@@ -44,9 +44,9 @@ This component provides a general use Table.
 ### [Basic example](./?path=/docs/design-system-components-table-examples--basic)
 
 `}
-    </Markdown>
+    </MarkdownToJsx>
 
-    <Markdown>
+    <MarkdownToJsx>
       {`
 ### Data and Columns
 
@@ -169,8 +169,8 @@ By default, each column will render the value as simple text. Often you will wan
 Cell Renderers are React components provided to the optional \`render\` attribute on a column definition that enables injecting a specific React component to enable this.
 
 `}
-    </Markdown>
-    <Markdown>
+    </MarkdownToJsx>
+    <MarkdownToJsx>
       {`
 
 For convenience and consistency, the Table component provides pre-built Cell Renderers for:
@@ -193,8 +193,8 @@ The following data types can be displayed in table cells.
 The table can be set to a loading state simply by setting the loading prop to true | false
 
   `}
-    </Markdown>
-    <Markdown>
+    </MarkdownToJsx>
+    <MarkdownToJsx>
       {`
 ---
 
@@ -204,8 +204,8 @@ The table displays a set number of rows at a time, the user navigates the table 
 The default page size and page size options for the menu are configurable via the \`pageSizeOptions\` and \`defaultPageSize\` props.
 NOTE: Pagination controls will only display when the data for the table has more records than the default page size.
 `}
-    </Markdown>
-    <Markdown>
+    </MarkdownToJsx>
+    <MarkdownToJsx>
       {`
 
 \`\`\`
@@ -222,8 +222,8 @@ contained in the dataset on the server being paged through. When the user naviga
 function enabling data fetching to occur when the user changes the page.
 
 `}
-    </Markdown>
-    <Markdown>
+    </MarkdownToJsx>
+    <MarkdownToJsx>
       {`
 
 \`\`\`
@@ -293,8 +293,8 @@ NOTE: Row event handlers will be ignored when table is running with \`virtualize
 Support for row event handlers may be added in future versions of the Table.
 
 `}
-    </Markdown>
-    <Markdown>
+    </MarkdownToJsx>
+    <MarkdownToJsx>
       {`
 
 ---
@@ -348,8 +348,8 @@ The prop \`resizable\` enables table columns to be resized by the user dragging 
 column to increase or decrease the columns' width
 
 `}
-    </Markdown>
-    <Markdown>
+    </MarkdownToJsx>
+    <MarkdownToJsx>
       {`
 
 ### [Drag & Drop Columns](./?path=/docs/design-system-components-table-examples--reorderable-columns)
@@ -368,6 +368,6 @@ const handleDrop = (ev:Event) => {
 }
 \`\`\`
 `}
-    </Markdown>
+    </MarkdownToJsx>
   </>
 );

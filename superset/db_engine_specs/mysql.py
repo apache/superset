@@ -238,6 +238,11 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
             LONGTEXT(),
             GenericDataType.STRING,
         ),
+        (
+            re.compile(r"^var_string", re.IGNORECASE),
+            types.VARCHAR(),
+            GenericDataType.STRING,
+        ),
     )
     column_type_mutators: dict[types.TypeEngine, Callable[[Any], Any]] = {
         DECIMAL: lambda val: Decimal(val) if isinstance(val, str) else val
@@ -402,9 +407,14 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
         if not cls.type_code_map:
             # only import and store if needed at least once
             # pylint: disable=import-outside-toplevel
-            import MySQLdb
+            try:
+                import MySQLdb
 
-            ft = MySQLdb.constants.FIELD_TYPE
+                mysql_module = MySQLdb
+            except ImportError:
+                mysql_module = __import__("pymysql")
+
+            ft = mysql_module.constants.FIELD_TYPE
             cls.type_code_map = {
                 getattr(ft, k): k for k in dir(ft) if not k.startswith("_")
             }
@@ -452,6 +462,11 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
         :param cancel_query_id: MySQL Connection ID
         :return: True if query cancelled successfully, False otherwise
         """
+        # Validate cancel_query_id to prevent SQL injection
+        # MySQL CONNECTION_ID() returns an unsigned integer
+        if not cls.validate_cancel_query_id(cancel_query_id, r"^\d+$"):
+            return False
+
         try:
             cursor.execute(f"KILL CONNECTION {cancel_query_id}")
         except Exception:  # pylint: disable=broad-except

@@ -92,6 +92,29 @@ const numberFormat = function (optsIn?: NumberFormatOptions): Formatter {
   };
 };
 
+/**
+ * Safely converts any value to a number for aggregation purposes
+ * Handles null/undefined, strings, and non-numeric values
+ */
+function toAggregationNumber(value: unknown): number {
+  if (value == null) return 0;
+  if (typeof value === 'number') {
+    return Number.isNaN(value) ? 0 : value;
+  }
+  if (typeof value === 'string') {
+    const num = parseFloat(value.trim());
+    return Number.isNaN(num) ? 0 : num;
+  }
+  return 0;
+}
+
+type DataFunction = (key: string[], context: never[]) => unknown;
+
+interface GroupNode {
+  auto_agg_sum: number;
+  [childKey: string]: GroupNode | number;
+}
+
 const rx = /(\d+)|(\D+)/g;
 const rd = /\d/;
 const rz = /^0/;
@@ -167,6 +190,125 @@ const naturalSort: SortFunction = (as, bs) => {
   return aArr.length - bArr.length;
 };
 
+/**
+ * Precomputes aggregate sums for all group levels using safe numeric conversion
+ */
+function buildGroupAggregates(
+  keys: string[][],
+  dataFunc: DataFunction,
+): GroupNode {
+  const root: GroupNode = { auto_agg_sum: 0 } as GroupNode;
+
+  const terminalKeys = keys.filter(
+    key =>
+      !keys.some(
+        ancestorKey =>
+          ancestorKey.length > key.length &&
+          key.every((segment, idx) => ancestorKey[idx] === segment),
+      ),
+  );
+  for (const key of terminalKeys) {
+    let current: GroupNode = root;
+
+    for (let i = 0; i < key.length - 1; i += 1) {
+      const segment = key[i];
+
+      if (!current[segment]) {
+        current[segment] = { auto_agg_sum: 0 } as GroupNode;
+      }
+
+      const childNode = current[segment] as GroupNode;
+      childNode.auto_agg_sum += toAggregationNumber(dataFunc(key, []));
+      current = childNode;
+    }
+  }
+
+  return root;
+}
+
+/**
+ * Creates a comparator function for hierarchical keys with subtotal awareness
+ */
+function createHierarchicalComparator(
+  groups: GroupNode,
+  top: boolean | undefined,
+  asc: boolean,
+  dataFunc: DataFunction,
+): (a: string[], b: string[]) => number {
+  const hierarchyMultiplier = top ? 1 : -1;
+  const valueMultiplier = asc ? 1 : -1;
+
+  return (a: string[], b: string[]) => {
+    const minLen = Math.min(a.length, b.length);
+    let currentGroup: GroupNode = groups;
+    let diffIndex = -1;
+
+    for (let i = 0; i < minLen; i += 1) {
+      if (a[i] !== b[i]) {
+        diffIndex = i;
+        break;
+      }
+      currentGroup = currentGroup[a[i]] as GroupNode;
+    }
+
+    if (diffIndex === -1 && a.length !== b.length) {
+      return (a.length < b.length ? -1 : 1) * hierarchyMultiplier;
+    }
+
+    const isLastLevelComparison =
+      diffIndex === -1 ||
+      (diffIndex === a.length - 1 && diffIndex === b.length - 1);
+
+    if (isLastLevelComparison) {
+      const valA = dataFunc(a, []) as string | number | null;
+      const valB = dataFunc(b, []) as string | number | null;
+
+      const result = naturalSort(valA, valB) * valueMultiplier;
+
+      if (result === 0) {
+        const lastA = a[a.length - 1] ?? '';
+        const lastB = b[b.length - 1] ?? '';
+        return lastA.localeCompare(lastB) * valueMultiplier;
+      }
+      return result;
+    }
+
+    const segmentA = a[diffIndex];
+    const segmentB = b[diffIndex];
+
+    const nodeA = currentGroup[segmentA] as GroupNode | undefined;
+    const nodeB = currentGroup[segmentB] as GroupNode | undefined;
+
+    const sumA = nodeA?.auto_agg_sum ?? 0;
+    const sumB = nodeB?.auto_agg_sum ?? 0;
+
+    if (sumA === sumB) {
+      return segmentA.localeCompare(segmentB) * valueMultiplier;
+    }
+    return (sumA > sumB ? 1 : -1) * valueMultiplier;
+  };
+}
+
+/**
+ * @param keys Hierarchical keys to sort ([[row1, row2], [row1, row3], ...])
+ * @param dataFunc Function to retrieve aggregate value (may return string/number/null)
+ * @param top true = subtotals at top/left, false = subtotals at bottom/right
+ * @param asc true = ascending sort, false = descending sort
+ *
+ * @see https://github.com/apache/superset/issues/20564
+ */
+export function groupingValueSort(
+  keys: string[][],
+  dataFunc: DataFunction,
+  top: boolean | undefined,
+  asc: boolean,
+): void {
+  const groups = buildGroupAggregates(keys, dataFunc);
+
+  const comparator = createHierarchicalComparator(groups, top, asc, dataFunc);
+  keys.sort(comparator);
+}
+
 const sortAs = function (order: (string | number)[]): SortFunction {
   const mapping: Record<string | number, number> = {};
 
@@ -240,6 +382,44 @@ const fmtNonString =
   (formatter: Formatter) =>
   (x: string | number | null): string =>
     typeof x === 'string' ? x : formatter(x as number);
+
+/*
+ * Passthrough "aggregator" for the rollup pivot. Because the database already
+ * computed every rollup level (via a single GROUPING SETS query where the
+ * engine supports it, or one query per level as a fallback otherwise), each
+ * cell receives exactly one record per metric, whose value we store verbatim
+ * rather than re-aggregating. This is what makes non-additive totals correct.
+ * See SIP.md. Currency tracking mirrors the real aggregators for AUTO-mode
+ * detection.
+ */
+const cellValue =
+  (formatter: Formatter = usFmt) =>
+  ([attr]: string[]) =>
+  () => ({
+    val: null as string | number | null,
+    currencySet: new Set<string>(),
+    push(record: PivotRecord) {
+      this.val = record[attr] as string | number | null;
+      if (
+        record.__currencyColumn &&
+        record[record.__currencyColumn as string]
+      ) {
+        this.currencySet.add(String(record[record.__currencyColumn as string]));
+      }
+    },
+    value() {
+      return this.val;
+    },
+    getCurrencies() {
+      return Array.from(this.currencySet);
+    },
+    // A DB-computed rollup value can legitimately be null (e.g. AVG over an
+    // empty group, or a 0/0 ratio). Render it as a blank cell instead of the
+    // literal "null" string that the shared formatter would otherwise produce.
+    format: (x: string | number | null) =>
+      x === null ? '' : fmtNonString(formatter)(x),
+    numInputs: typeof attr !== 'undefined' ? 0 : 1,
+  });
 
 /*
  * Aggregators track currencies via push() and expose them via getCurrencies()
@@ -331,14 +511,10 @@ const baseAggregatorTemplates = {
 
   extremes(mode: string, formatter = usFmt) {
     return function ([attr]: string[]) {
-      return function (data: any) {
+      return function () {
         return {
           val: null as any,
           currencySet: new Set<string>(),
-          sorter: getSort(
-            typeof data !== 'undefined' ? data.sorters : null,
-            attr,
-          ),
           push(record: PivotRecord) {
             const x = record[attr];
             if (['min', 'max'].includes(mode)) {
@@ -357,21 +533,9 @@ const baseAggregatorTemplates = {
                   this.val !== null ? this.val : coercedValue,
                 );
               }
-            } else if (
-              mode === 'first' &&
-              this.sorter(
-                x as any,
-                this.val !== null ? this.val : (x as any),
-              ) <= 0
-            ) {
-              this.val = x;
-            } else if (
-              mode === 'last' &&
-              this.sorter(
-                x as any,
-                this.val !== null ? this.val : (x as any),
-              ) >= 0
-            ) {
+            } else if (mode === 'first') {
+              this.val = this.val === null ? x : this.val;
+            } else if (mode === 'last') {
               this.val = x;
             }
             if (
@@ -774,8 +938,7 @@ class PivotData {
   props: Record<string, unknown>;
   aggregator: (...args: unknown[]) => Aggregator;
   formattedAggregators:
-    | Record<string, Record<string, (...args: unknown[]) => Aggregator>>
-    | false;
+    Record<string, Record<string, (...args: unknown[]) => Aggregator>> | false;
   tree: Record<string, Record<string, Aggregator>>;
   rowKeys: string[][];
   colKeys: string[][];
@@ -805,14 +968,10 @@ class PivotData {
       'PivotData',
     );
 
-    const aggregatorsFactory = this.props.aggregatorsFactory as (
-      fmt: unknown,
-    ) => Record<string, (vals: unknown) => (...args: unknown[]) => Aggregator>;
-    const aggregatorName = this.props.aggregatorName as string;
     const vals = this.props.vals as string[];
-    this.aggregator = aggregatorsFactory(this.props.defaultFormatter)[
-      aggregatorName
-    ](vals);
+    // Values come pre-aggregated from the database (one query per rollup level),
+    // so the pivot stores them verbatim via `cellValue` instead of aggregating.
+    this.aggregator = cellValue(this.props.defaultFormatter as Formatter)(vals);
     this.formattedAggregators = this.props.customFormatters
       ? Object.entries(
           this.props.customFormatters as Record<
@@ -829,8 +988,7 @@ class PivotData {
           ) => {
             acc[key] = {};
             Object.entries(columnFormatter).forEach(([column, formatter]) => {
-              acc[key][column] =
-                aggregatorsFactory(formatter)[aggregatorName](vals);
+              acc[key][column] = cellValue(formatter as Formatter)(vals);
             });
             return acc;
           },
@@ -897,7 +1055,8 @@ class PivotData {
       this.sorted = true;
       const rows = this.props.rows as string[];
       const cols = this.props.cols as string[];
-      const v = (r: string[], c: string[]) => this.getAggregator(r, c).value();
+      const vr = (r: string[], c: string[]) => this.getAggregator(r, c).value();
+      const vc = (c: string[], r: string[]) => this.getAggregator(r, c).value();
       switch (this.props.rowOrder) {
         case 'key_z_to_a':
           this.rowKeys.sort(
@@ -905,10 +1064,20 @@ class PivotData {
           );
           break;
         case 'value_a_to_z':
-          this.rowKeys.sort((a, b) => naturalSort(v(a, []), v(b, [])));
+          groupingValueSort(
+            this.rowKeys,
+            vr,
+            this.subtotals.rowPartialOnTop,
+            true,
+          );
           break;
         case 'value_z_to_a':
-          this.rowKeys.sort((a, b) => -naturalSort(v(a, []), v(b, [])));
+          groupingValueSort(
+            this.rowKeys,
+            vr,
+            this.subtotals.rowPartialOnTop,
+            false,
+          );
           break;
         default:
           this.rowKeys.sort(this.arrSort(rows, this.subtotals.rowPartialOnTop));
@@ -920,10 +1089,20 @@ class PivotData {
           );
           break;
         case 'value_a_to_z':
-          this.colKeys.sort((a, b) => naturalSort(v([], a), v([], b)));
+          groupingValueSort(
+            this.colKeys,
+            vc,
+            this.subtotals.colPartialOnTop,
+            true,
+          );
           break;
         case 'value_z_to_a':
-          this.colKeys.sort((a, b) => -naturalSort(v([], a), v([], b)));
+          groupingValueSort(
+            this.colKeys,
+            vc,
+            this.subtotals.colPartialOnTop,
+            false,
+          );
           break;
         default:
           this.colKeys.sort(this.arrSort(cols, this.subtotals.colPartialOnTop));
@@ -942,76 +1121,108 @@ class PivotData {
   }
 
   processRecord(record: PivotRecord): void {
-    // this code is called in a tight loop
+    // this code is called in a tight loop.
+    // Each record is tagged (in PivotTableChart) with `__rows`/`__columns`:
+    // the dimension labels of the rollup level that produced it. The database
+    // has already aggregated that level, so we place the value into exactly
+    // one slot and store it verbatim (no re-aggregation). A key shorter than
+    // the full dimension list identifies a subtotal level. Records without
+    // tags (e.g. direct unit-test construction) fall back to the full
+    // dimension lists, i.e. they are treated as leaf rows. The `__` prefix
+    // keeps these rollup tags from colliding with a real dataset column
+    // named `rows`/`columns`.
+    const recordRows = (record.__rows as unknown as string[]) ?? null;
+    const recordColumns = (record.__columns as unknown as string[]) ?? null;
+    const levelRows = recordRows ?? (this.props.rows as string[]);
+    const levelColumns = recordColumns ?? (this.props.cols as string[]);
+
     const colKey: string[] = [];
     const rowKey: string[] = [];
-    (this.props.cols as string[]).forEach((col: string) => {
+    levelColumns.forEach((col: string) => {
       colKey.push(col in record ? String(record[col]) : 'null');
     });
-    (this.props.rows as string[]).forEach((row: string) => {
+    levelRows.forEach((row: string) => {
       rowKey.push(row in record ? String(record[row]) : 'null');
     });
 
-    this.allTotal.push(record);
+    const flatRowKey = flatKey(rowKey);
+    const flatColKey = flatKey(colKey);
 
-    const rowStart = this.subtotals.rowEnabled ? 1 : Math.max(1, rowKey.length);
-    const colStart = this.subtotals.colEnabled ? 1 : Math.max(1, colKey.length);
+    const isColSubtotal = colKey.length < (this.props.cols as string[]).length;
+    const isRowSubtotal = rowKey.length < (this.props.rows as string[]).length;
 
-    let isRowSubtotal;
-    let isColSubtotal;
-    for (let ri = rowStart; ri <= rowKey.length; ri += 1) {
-      isRowSubtotal = ri < rowKey.length;
-      const fRowKey = rowKey.slice(0, ri);
-      const flatRowKey = flatKey(fRowKey);
-      if (!this.rowTotals[flatRowKey]) {
-        this.rowKeys.push(fRowKey);
-        this.rowTotals[flatRowKey] = this.getFormattedAggregator(
-          record,
-          rowKey,
-        )(this, fRowKey, []);
+    // Register/create the column-total slot the first time this colKey is seen.
+    if (colKey.length > 0 && !this.colTotals[flatColKey]) {
+      if (!isColSubtotal || this.subtotals.colEnabled) {
+        this.colKeys.push(colKey);
       }
-      this.rowTotals[flatRowKey].push(record);
-      this.rowTotals[flatRowKey].isSubtotal = isRowSubtotal;
+      this.colTotals[flatColKey] = this.getFormattedAggregator(record, colKey)(
+        this,
+        [],
+        colKey,
+      );
     }
-
-    for (let ci = colStart; ci <= colKey.length; ci += 1) {
-      isColSubtotal = ci < colKey.length;
-      const fColKey = colKey.slice(0, ci);
-      const flatColKey = flatKey(fColKey);
-      if (!this.colTotals[flatColKey]) {
-        this.colKeys.push(fColKey);
-        this.colTotals[flatColKey] = this.getFormattedAggregator(
-          record,
-          colKey,
-        )(this, [], fColKey);
+    // Register/create the row-total slot the first time this rowKey is seen.
+    if (rowKey.length > 0 && !this.rowTotals[flatRowKey]) {
+      if (!isRowSubtotal || this.subtotals.rowEnabled) {
+        this.rowKeys.push(rowKey);
       }
-      this.colTotals[flatColKey].push(record);
-      this.colTotals[flatColKey].isSubtotal = isColSubtotal;
+      this.rowTotals[flatRowKey] = this.getFormattedAggregator(record, rowKey)(
+        this,
+        rowKey,
+        [],
+      );
     }
-
-    // And now fill in for all the sub-cells.
-    for (let ri = rowStart; ri <= rowKey.length; ri += 1) {
-      isRowSubtotal = ri < rowKey.length;
-      const fRowKey = rowKey.slice(0, ri);
-      const flatRowKey = flatKey(fRowKey);
+    // Create the body-cell slot.
+    if (rowKey.length > 0 && colKey.length > 0) {
       if (!this.tree[flatRowKey]) {
         this.tree[flatRowKey] = {};
       }
-      for (let ci = colStart; ci <= colKey.length; ci += 1) {
-        isColSubtotal = ci < colKey.length;
-        const fColKey = colKey.slice(0, ci);
-        const flatColKey = flatKey(fColKey);
-        if (!this.tree[flatRowKey][flatColKey]) {
-          this.tree[flatRowKey][flatColKey] = this.getFormattedAggregator(
-            record,
-          )(this, fRowKey, fColKey);
-        }
-        this.tree[flatRowKey][flatColKey].push(record);
+      if (!this.tree[flatRowKey][flatColKey]) {
+        this.tree[flatRowKey][flatColKey] = this.getFormattedAggregator(record)(
+          this,
+          rowKey,
+          colKey,
+        );
+      }
+    }
 
-        this.tree[flatRowKey][flatColKey].isRowSubtotal = isRowSubtotal;
-        this.tree[flatRowKey][flatColKey].isColSubtotal = isColSubtotal;
-        this.tree[flatRowKey][flatColKey].isSubtotal =
-          isRowSubtotal || isColSubtotal;
+    // Place the value in exactly one slot, determined by the level.
+    if (rowKey.length === 0 && colKey.length === 0) {
+      this.allTotal.push(record);
+    } else if (rowKey.length === 0) {
+      this.colTotals[flatColKey].push(record);
+      this.colTotals[flatColKey].isSubtotal = isColSubtotal;
+    } else if (colKey.length === 0) {
+      this.rowTotals[flatRowKey].push(record);
+      this.rowTotals[flatRowKey].isSubtotal = isRowSubtotal;
+    } else {
+      this.tree[flatRowKey][flatColKey].push(record);
+      this.tree[flatRowKey][flatColKey].isRowSubtotal = isRowSubtotal;
+      this.tree[flatRowKey][flatColKey].isColSubtotal = isColSubtotal;
+      this.tree[flatRowKey][flatColKey].isSubtotal =
+        isRowSubtotal || isColSubtotal;
+    }
+
+    // Metric-collapse totals. The metric is a pseudo-dimension always present on
+    // one axis, so no rollup level produces an empty key on that axis -- which
+    // would leave the opposite "Total" axis and the grand-total corner empty.
+    // When a record's axis holds only the metric (no real dims there), its value
+    // is also the collapsed total for that axis, so mirror it into rowTotals /
+    // colTotals / allTotal. (For a single metric this equals the metric column;
+    // for multiple metrics it is the last metric -- a cross-metric total is not
+    // well defined and is left as future work.)
+    const metricKey = record.__metricKey as unknown as string | undefined;
+    if (metricKey) {
+      const realColCount = levelColumns.filter(c => c !== metricKey).length;
+      const realRowCount = levelRows.filter(r => r !== metricKey).length;
+      if (levelColumns.includes(metricKey) && realColCount === 0) {
+        if (rowKey.length === 0) this.allTotal.push(record);
+        else this.rowTotals[flatRowKey]?.push(record);
+      }
+      if (levelRows.includes(metricKey) && realRowCount === 0) {
+        if (colKey.length === 0) this.allTotal.push(record);
+        else this.colTotals[flatColKey]?.push(record);
       }
     }
   }
@@ -1055,11 +1266,9 @@ PivotData.forEachRecord = function (
 };
 
 PivotData.defaultProps = {
-  aggregators,
   cols: [],
   rows: [],
   vals: [],
-  aggregatorName: 'Count',
   sorters: {},
   rowOrder: 'key_a_to_z',
   colOrder: 'key_a_to_z',
@@ -1068,7 +1277,6 @@ PivotData.defaultProps = {
 PivotData.propTypes = {
   data: PropTypes.oneOfType([PropTypes.array, PropTypes.object, PropTypes.func])
     .isRequired,
-  aggregatorName: PropTypes.string,
   cols: PropTypes.arrayOf(PropTypes.string),
   rows: PropTypes.arrayOf(PropTypes.string),
   vals: PropTypes.arrayOf(PropTypes.string),

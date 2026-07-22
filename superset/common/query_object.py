@@ -22,7 +22,6 @@ from datetime import datetime
 from pprint import pformat
 from typing import Any, NamedTuple, TYPE_CHECKING
 
-from flask import g
 from flask_babel import gettext as _
 from jinja2.exceptions import TemplateError
 from pandas import DataFrame
@@ -38,6 +37,7 @@ from superset.extensions import event_logger
 from superset.sql.parse import sanitize_clause, transpile_to_dialect
 from superset.superset_typing import Column, Metric, OrderBy, QueryObjectDict
 from superset.utils import json, pandas_postprocessing
+from superset.utils.cache_keys import add_impersonation_cache_key_if_needed
 from superset.utils.core import (
     DTTM_ALIAS,
     find_duplicates,
@@ -90,6 +90,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     filter: list[QueryObjectFilterClause]
     from_dttm: datetime | None
     granularity: str | None
+    grouping_sets: list[list[str]]
     inner_from_dttm: datetime | None
     inner_to_dttm: datetime | None
     is_rowcount: bool
@@ -105,6 +106,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     series_limit: int
     series_limit_metric: Metric | None
     time_offsets: list[str]
+    time_compare_full_range: bool
     time_shift: str | None
     time_range: str | None
     to_dttm: datetime | None
@@ -132,6 +134,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         series_limit: int = 0,
         series_limit_metric: Metric | None = None,
         group_others_when_limit_reached: bool = False,
+        grouping_sets: list[list[str]] | None = None,
         time_range: str | None = None,
         time_shift: str | None = None,
         **kwargs: Any,
@@ -156,12 +159,14 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         self.series_limit = series_limit
         self.series_limit_metric = series_limit_metric
         self.group_others_when_limit_reached = group_others_when_limit_reached
+        self.grouping_sets = grouping_sets or []
         self.time_range = time_range
         self.time_shift = time_shift
         self.from_dttm = kwargs.get("from_dttm")
         self.to_dttm = kwargs.get("to_dttm")
         self.result_type = kwargs.get("result_type")
         self.time_offsets = kwargs.get("time_offsets", [])
+        self.time_compare_full_range = kwargs.get("time_compare_full_range", False)
         self.inner_from_dttm = kwargs.get("inner_from_dttm")
         self.inner_to_dttm = kwargs.get("inner_to_dttm")
         self._rename_deprecated_fields(kwargs)
@@ -360,11 +365,18 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                     engine = database.db_engine_spec.engine
 
                     if needs_transpilation:
-                        clause = transpile_to_dialect(clause, engine)
+                        # source_engine=engine ensures idempotency: this
+                        # method can run more than once (validate() is called
+                        # from both raise_for_access and get_df_payload), so
+                        # the second pass must be able to re-parse the
+                        # dialect-specific output (e.g. BigQuery backticks)
+                        # produced by the first pass.
+                        clause = transpile_to_dialect(
+                            clause, engine, source_engine=engine, identify=True
+                        )
 
                     sanitized_clause = sanitize_clause(clause, engine)
-                    if sanitized_clause != clause:
-                        self.extras[param] = sanitized_clause
+                    self.extras[param] = sanitized_clause
                 except QueryClauseValidationException as ex:
                     raise QueryObjectValidationError(ex.message) from ex
 
@@ -401,8 +413,10 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             "series_limit": self.series_limit,
             "series_limit_metric": self.series_limit_metric,
             "group_others_when_limit_reached": self.group_others_when_limit_reached,
+            "grouping_sets": self.grouping_sets,
             "to_dttm": self.to_dttm,
             "time_shift": self.time_shift,
+            "time_compare_full_range": self.time_compare_full_range,
         }
         return query_object_dict
 
@@ -479,24 +493,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         # or if the CACHE_QUERY_BY_USER flag is on or per_user_caching is enabled on
         #  the database
         try:
-            database = self.datasource.database  # type: ignore
-            extra = json.loads(database.extra or "{}")
-            if (
-                (
-                    feature_flag_manager.is_feature_enabled("CACHE_IMPERSONATION")
-                    and database.impersonate_user
-                )
-                or feature_flag_manager.is_feature_enabled("CACHE_QUERY_BY_USER")
-                or extra.get("per_user_caching", False)
-            ):
-                if key := database.db_engine_spec.get_impersonation_key(
-                    getattr(g, "user", None)
-                ):
-                    logger.debug(
-                        "Adding impersonation key to QueryObject cache dict: %s", key
-                    )
-
-                    cache_dict["impersonation_key"] = key
+            add_impersonation_cache_key_if_needed(self.datasource.database, cache_dict)  # type: ignore
         except AttributeError:
             # datasource or database do not exist
             pass

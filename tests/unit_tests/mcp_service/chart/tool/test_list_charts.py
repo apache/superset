@@ -19,9 +19,11 @@
 Tests for the list_charts request schema
 """
 
-from unittest.mock import Mock
+import importlib
+from unittest.mock import Mock, patch
 
 import pytest
+from fastmcp import Client
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.schemas import (
@@ -29,11 +31,33 @@ from superset.mcp_service.chart.schemas import (
     ListChartsRequest,
 )
 from superset.mcp_service.constants import MAX_PAGE_SIZE
+from superset.mcp_service.privacy import (
+    DATA_MODEL_METADATA_ERROR_TYPE,
+    remove_chart_data_model_columns,
+    request_uses_chart_data_model_filter,
+    user_can_view_data_model_metadata,
+)
+from superset.utils import json
+
+list_charts_module = importlib.import_module(
+    "superset.mcp_service.chart.tool.list_charts"
+)
 
 
 @pytest.fixture
 def mcp_server():
     return mcp
+
+
+@pytest.fixture(autouse=True)
+def mock_auth():
+    """Mock authentication for client-based tool tests."""
+    with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
+        mock_user = Mock()
+        mock_user.id = 1
+        mock_user.username = "admin"
+        mock_get_user.return_value = mock_user
+        yield mock_get_user
 
 
 @pytest.fixture
@@ -56,7 +80,7 @@ def mock_chart():
     chart.created_on = None
     chart.created_on_humanized = "2 days ago"
     chart.tags = []
-    chart.owners = []
+    chart.editors = []
     chart.uuid = "test-uuid-123"
     chart.cache_timeout = None
     chart.form_data = {}
@@ -160,6 +184,29 @@ class TestListChartsRequestSchema:
         with pytest.raises(ValueError, match="Field required"):
             ChartFilter(col="slice_name")  # Missing opr and value
 
+    def test_dashboards_filter_accepted(self):
+        """`dashboards` is a valid filter column for finding charts on a dashboard."""
+        # The filter is accepted at schema-validation time
+        f = ChartFilter(col="dashboards", opr="eq", value=42)
+        assert f.col == "dashboards"
+        assert f.opr.value == "eq"
+        assert f.value == 42
+
+        # And composes into a request like any other filter
+        request = ListChartsRequest(filters=[f])
+        assert request.filters[0].col == "dashboards"
+
+    def test_invalid_filter_column_rejected(self):
+        """Unknown filter columns are rejected by the literal."""
+        with pytest.raises(
+            ValueError,
+            match=(
+                "Input should be 'slice_name', 'viz_type', 'datasource_name', "
+                "'editor', 'created_by_fk', 'changed_by_fk' or 'dashboards'"
+            ),
+        ):
+            ChartFilter(col="nonexistent_column", opr="eq", value=1)
+
     def test_search_and_filters_conflict_validation(self):
         """Test that using both search and filters raises validation error."""
         with pytest.raises(
@@ -235,3 +282,75 @@ class TestChartDefaultColumnFiltering:
             "description",
             "cache_timeout",
         }
+
+
+class TestChartDataModelMetadataPrivacy:
+    """Test data-model field privacy helpers for chart listing."""
+
+    def test_remove_data_model_columns(self):
+        assert remove_chart_data_model_columns(
+            ["id", "slice_name", "datasource_name", "form_data", "url"]
+        ) == ["id", "slice_name", "url"]
+
+    def test_uses_data_model_filter(self):
+        request = ListChartsRequest(
+            filters=[
+                ChartFilter(
+                    col="datasource_name",
+                    opr="like",
+                    value="Vehicle Sales",
+                )
+            ]
+        )
+
+        assert request_uses_chart_data_model_filter(request.filters) is True
+
+    def test_user_can_view_data_model_metadata_uses_dataset_permission(self):
+        with patch("superset.security_manager", new_callable=Mock) as security_manager:
+            security_manager.is_guest_user.return_value = False
+            security_manager.can_access.side_effect = [False, True, False]
+
+            assert user_can_view_data_model_metadata() is True
+
+        security_manager.can_access.assert_any_call("can_get_drill_info", "Dataset")
+        security_manager.can_access.assert_any_call(
+            "can_get_or_create_dataset", "Dataset"
+        )
+
+    @pytest.mark.asyncio
+    async def test_list_charts_returns_structured_privacy_error(self, mcp_server):
+        request = ListChartsRequest(
+            filters=[
+                ChartFilter(
+                    col="datasource_name",
+                    opr="like",
+                    value="Vehicle Sales",
+                )
+            ]
+        )
+
+        with patch.object(
+            list_charts_module,
+            "user_can_view_data_model_metadata",
+            return_value=False,
+        ):
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "list_charts",
+                    {"request": request.model_dump()},
+                )
+
+        data = json.loads(result.content[0].text)
+        assert data["error_type"] == DATA_MODEL_METADATA_ERROR_TYPE
+
+
+@patch("superset.daos.chart.ChartDAO.list")
+@pytest.mark.asyncio
+async def test_list_charts_no_arguments(mock_list, mcp_server):
+    """Regression test: list_charts must accept zero arguments without raising
+    pydantic_core.ValidationError: Missing required argument: request."""
+    mock_list.return_value = ([], 0)
+    async with Client(mcp_server) as client:
+        result = await client.call_tool("list_charts", {})
+    data = json.loads(result.content[0].text)
+    assert "charts" in data

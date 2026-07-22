@@ -237,6 +237,37 @@ export interface SupersetSpecificTokens {
    * Fallback: transparent
    */
   buttonSecondaryActiveBorderColor?: string;
+
+  // Component flexibility tokens (sizing, radius, behavior)
+  selectOptionActiveOutline?: boolean;
+  labelBorderRadius?: number;
+  buttonControlHeight?: number;
+  buttonControlHeightSM?: number;
+  buttonControlHeightXS?: number;
+  buttonPaddingInline?: number;
+  buttonPaddingInlineSM?: number;
+  buttonFontSize?: number;
+  buttonBorderRadius?: number;
+  buttonStyleMap?: Record<
+    string,
+    { type?: string; variant?: string; color?: string }
+  >;
+
+  // Dashboard tile tokens (opt-in, fallbacks: colorBgContainer bg, no border, borderRadius, hairline box-shadow)
+  dashboardTileBg?: string;
+  dashboardTileBorder?: string;
+  dashboardTileBorderRadius?: number;
+  dashboardTileBoxShadow?: string;
+
+  /**
+   * Results grid customization tokens.
+   * Control the appearance of AG Grid-backed result tables (e.g. SQL Lab).
+   */
+  resultsGridRowHeight?: number;
+  resultsGridHeaderFontWeight?: number;
+  resultsGridHeaderFontSize?: number;
+  resultsGridBorderRadius?: number;
+  resultsGridNoStriping?: boolean;
 }
 
 /**
@@ -508,6 +539,12 @@ export interface ThemeContextType {
   clearLocalOverrides: () => void;
   getCurrentCrudThemeId: () => string | null;
   hasDevOverride: () => boolean;
+  /**
+   * True when an explicit theme config override is active (e.g. supplied via
+   * the Embedded SDK). Such an override takes precedence over a
+   * dashboard-level theme.
+   */
+  hasThemeConfigOverride: boolean;
   canSetMode: () => boolean;
   canSetTheme: () => boolean;
   canDetectOSPreference: () => boolean;

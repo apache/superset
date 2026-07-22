@@ -25,6 +25,7 @@ from sqlalchemy.sql import select
 from superset.db_engine_specs.hive import HiveEngineSpec, upload_to_s3
 from superset.exceptions import SupersetException
 from superset.sql.parse import Table
+from tests.common.assert_utils import assert_any_call_with_text
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.test_app import app
 
@@ -182,12 +183,14 @@ def test_df_to_sql_if_exists_replace(mock_upload_to_s3, mock_g):
     app.config["CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"]: lambda *args: ""  # noqa: F722
     mock_upload_to_s3.return_value = "mock-location"
     mock_g.user = True
+    mock_execute = mock.MagicMock(return_value=True)
+    mock_connection = mock.MagicMock()
+    mock_connection.execute = mock_execute
+    mock_engine = mock.MagicMock()
+    mock_engine.begin().__enter__.return_value = mock_connection
     mock_database = mock.MagicMock()
     mock_database.get_df.return_value.empty = False
-    mock_execute = mock.MagicMock(return_value=True)
-    mock_database.get_sqla_engine.return_value.__enter__.return_value.execute = (
-        mock_execute
-    )
+    mock_database.get_sqla_engine().__enter__.return_value = mock_engine
     table_name = "foobar"
 
     with app.app_context():
@@ -198,7 +201,10 @@ def test_df_to_sql_if_exists_replace(mock_upload_to_s3, mock_g):
             {"if_exists": "replace", "header": 1, "na_values": "mock", "sep": "mock"},
         )
 
-    mock_execute.assert_any_call(f"DROP TABLE IF EXISTS {table_name}")
+    assert_any_call_with_text(
+        mock_execute,
+        f"DROP TABLE IF EXISTS {table_name}",
+    )
     app.config = config
 
 
@@ -209,12 +215,14 @@ def test_df_to_sql_if_exists_replace_with_schema(mock_upload_to_s3, mock_g):
     app.config["CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"]: lambda *args: ""  # noqa: F722
     mock_upload_to_s3.return_value = "mock-location"
     mock_g.user = True
+    mock_execute = mock.MagicMock(return_value=True)
+    mock_connection = mock.MagicMock()
+    mock_connection.execute = mock_execute
+    mock_engine = mock.MagicMock()
+    mock_engine.begin().__enter__.return_value = mock_connection
     mock_database = mock.MagicMock()
     mock_database.get_df.return_value.empty = False
-    mock_execute = mock.MagicMock(return_value=True)
-    mock_database.get_sqla_engine.return_value.__enter__.return_value.execute = (
-        mock_execute
-    )
+    mock_database.get_sqla_engine().__enter__.return_value = mock_engine
     table_name = "foobar"
     schema = "schema"
 
@@ -226,7 +234,9 @@ def test_df_to_sql_if_exists_replace_with_schema(mock_upload_to_s3, mock_g):
             {"if_exists": "replace", "header": 1, "na_values": "mock", "sep": "mock"},
         )
 
-    mock_execute.assert_any_call(f"DROP TABLE IF EXISTS {schema}.{table_name}")
+    assert_any_call_with_text(
+        mock_execute, f"DROP TABLE IF EXISTS {schema}.{table_name}"
+    )
     app.config = config
 
 

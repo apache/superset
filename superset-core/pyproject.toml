@@ -18,7 +18,7 @@
 
 [project]
 name = "apache-superset-core"
-version = "0.1.0rc2"
+version = "0.1.0"
 description = "Core Python package for building Apache Superset backend extensions and integrations"
 readme = "README.md"
 authors = [
@@ -26,7 +26,7 @@ authors = [
 ]
 license = "Apache-2.0"
 license-files = ["LICENSE.txt"]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 keywords = ["superset", "apache", "analytics", "business-intelligence", "extensions", "visualization"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -34,7 +34,6 @@ classifiers = [
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Database",
@@ -42,11 +41,13 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    "flask-appbuilder>=5.0.2,<6",
+    "flask-appbuilder>=5.2.0,<6",
+    "isodate>=0.7.0",
+    "pyarrow>=16.0.0",
     "pydantic>=2.8.0",
     "sqlalchemy>=1.4.0,<2.0",
     "sqlalchemy-utils>=0.38.0, <0.43", # expanding lowerbound to work with pydoris
-    "sqlglot>=28.10.0, <29",
+    "sqlglot>=30.8.0, <31",
     "typing-extensions>=4.0.0",
 ]
 

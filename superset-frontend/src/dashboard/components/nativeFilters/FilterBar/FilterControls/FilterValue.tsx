@@ -31,6 +31,7 @@ import {
   ChartDataResponseResult,
   Behavior,
   DataMask,
+  DatasourceType,
   isFeatureEnabled,
   FeatureFlag,
   getChartMetadataRegistry,
@@ -41,9 +42,10 @@ import {
   getClientErrorObject,
   isChartCustomization,
 } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/theme';
-import { useDispatch, useSelector } from 'react-redux';
-import { isEqual, isEqualWith } from 'lodash';
+import { styled, SupersetTheme } from '@apache-superset/core/theme';
+import { useTheme } from '@emotion/react';
+import { useDispatch, useSelector, shallowEqual } from 'react-redux';
+import { isEqual, isEqualWith } from 'lodash-es';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { ErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
 import { Loading, Constants, Flex } from '@superset-ui/core/components';
@@ -61,7 +63,7 @@ import { RESPONSIVE_WIDTH } from 'src/filters/components/common';
 import { dispatchHoverAction, dispatchFocusAction } from './utils';
 import { FilterControlProps } from './types';
 import { getFormData } from '../../utils';
-import { useFilterDependencies } from './state';
+import { useFilterDependencies, useTransitiveParentIds } from './state';
 import { useFilterOutlined } from '../useFilterOutlined';
 
 const HEIGHT = 32;
@@ -112,6 +114,7 @@ const FilterValue: FC<FilterValueProps> = ({
   clearAllTrigger,
   onClearAllComplete,
 }) => {
+  const theme = useTheme() as SupersetTheme;
   const { id, targets, filterType } = filter;
   const isCustomization = isChartCustomization(filter);
   const adhocFilters = isCustomization ? undefined : filter.adhoc_filters;
@@ -119,7 +122,21 @@ const FilterValue: FC<FilterValueProps> = ({
   const granularitySqla = isCustomization ? undefined : filter.granularity_sqla;
   const metadata = getChartMetadataRegistry().get(filterType);
   const dependencies = useFilterDependencies(id, dataMaskSelected);
+  const transitiveParentIds = useTransitiveParentIds(id);
   const shouldRefresh = useShouldFilterRefresh();
+
+  // Derive only the defaultToFirstItem flag per filter to avoid re-renders
+  // when unrelated filter config fields change.
+  const parentDefaultToFirstItem = useSelector(
+    (state: RootState) =>
+      Object.fromEntries(
+        Object.entries(state.nativeFilters?.filters ?? {}).map(([fId, f]) => [
+          fId,
+          Boolean(f.controlValues?.defaultToFirstItem),
+        ]),
+      ),
+    shallowEqual,
+  );
 
   const behaviors = useMemo(
     () => [
@@ -144,8 +161,13 @@ const FilterValue: FC<FilterValueProps> = ({
   const [target] = targets || [];
   const {
     datasetId,
+    datasourceType,
     column = {},
-  }: Partial<{ datasetId: number; column: { name?: string } }> = target || {};
+  }: Partial<{
+    datasetId: number;
+    datasourceType: DatasourceType;
+    column: { name?: string };
+  }> = target || {};
   const groupby = column?.name;
   const hasDataSource = !!datasetId;
   const [isLoading, setIsLoading] = useState<boolean>(hasDataSource);
@@ -179,6 +201,7 @@ const FilterValue: FC<FilterValueProps> = ({
     const newFormData = getFormData({
       ...filter,
       datasetId,
+      datasourceType,
       dependencies,
       groupby,
       adhoc_filters: adhocFilters,
@@ -187,12 +210,30 @@ const FilterValue: FC<FilterValueProps> = ({
       dashboardId,
     });
     const filterOwnState = filter.dataMask?.ownState || {};
-    if ((filter.cascadeParentIds ?? []).length) {
-      // Prevent unnecessary backend requests by validating parent filter selections first
+    if (transitiveParentIds.length) {
+      // Prevent unnecessary backend requests by validating ancestor filter
+      // selections first. We walk the full transitive ancestor chain (not just
+      // direct parents) so the counts line up with `dependencies`, which is
+      // itself built from the transitive chain by `useFilterDependencies`.
+
+      // Block if any parent with defaultToFirstItem hasn't auto-selected yet.
+      // Without this, the child fetches unfiltered options before the parent
+      // auto-selects, leading to a stale first-value dispatch that never
+      // gets corrected because subsequent re-selections are not first-initialization.
+      const hasDefaultFirstParentPending = transitiveParentIds.some(pId => {
+        const parentMask = dataMaskSelected?.[pId];
+        return (
+          parentDefaultToFirstItem[pId] &&
+          parentMask?.filterState?.value === undefined
+        );
+      });
+      if (hasDefaultFirstParentPending) {
+        return;
+      }
 
       let selectedParentFilterValueCounts = 0;
       let isTimeRangeSelected = false;
-      (filter.cascadeParentIds ?? []).forEach(pId => {
+      transitiveParentIds.forEach(pId => {
         const extraFormData = dataMaskSelected?.[pId]?.extraFormData;
         if (extraFormData?.filters?.length) {
           selectedParentFilterValueCounts += extraFormData.filters.length;
@@ -202,7 +243,7 @@ const FilterValue: FC<FilterValueProps> = ({
         }
       });
 
-      // check if all parent filters with defaults have a value selected
+      // check if all ancestor filters with defaults have a value selected
 
       const depsCount = dependencies.filters?.length ?? 0;
       const hasTimeRangeDeps = Boolean(dependencies?.time_range);
@@ -212,7 +253,7 @@ const FilterValue: FC<FilterValueProps> = ({
         (hasTimeRangeDeps && !isTimeRangeSelected)
       ) {
         // child filter should not request backend until it
-        // has all the required information from parent filters
+        // has all the required information from ancestor filters
         return;
       }
       setHasDepsFilterValue(false);
@@ -248,11 +289,13 @@ const FilterValue: FC<FilterValueProps> = ({
             const result = 'result' in json ? json.result[0] : json;
             if (response.status === 200) {
               setState([result as ChartDataResponseResult]);
+              setError(undefined);
               handleFilterLoadFinish();
             } else if (response.status === 202) {
               waitForAsyncData(result as Parameters<typeof waitForAsyncData>[0])
                 .then((asyncResult: ChartDataResponseResult[]) => {
                   setState(asyncResult);
+                  setError(undefined);
                   handleFilterLoadFinish();
                 })
                 .catch((error: Response) => {
@@ -291,6 +334,8 @@ const FilterValue: FC<FilterValueProps> = ({
     shouldRefresh,
     dataMaskSelected,
     setHasDepsFilterValue,
+    transitiveParentIds,
+    parentDefaultToFirstItem,
   ]);
 
   useEffect(() => {
@@ -431,6 +476,7 @@ const FilterValue: FC<FilterValueProps> = ({
           enableNoResults={metadata?.enableNoResults}
           isRefreshing={isRefreshing}
           hooks={hooks}
+          theme={theme}
         />
       )}
     </StyledDiv>

@@ -342,3 +342,137 @@ SELECT * \nFROM my_catalog.my_schema.my_table
  LIMIT :param_1
     """.strip()
     )
+
+
+def test_handle_boolean_filter() -> None:
+    """
+    Test that Presto uses equality operators for boolean filters instead of IS,
+    since `col IS TRUE` can fail on computed boolean expressions like
+    `(expiration = 1) AS expiration`.
+    """
+    from sqlalchemy import Boolean, Column
+
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+    from superset.utils.core import FilterOperator
+
+    bool_col = Column("test_col", Boolean)
+
+    result_true = PrestoEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_TRUE, True
+    )
+    assert (
+        str(result_true.compile(compile_kwargs={"literal_binds": True}))
+        == "test_col = true"
+    )
+
+    result_false = PrestoEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_FALSE, False
+    )
+    assert (
+        str(result_false.compile(compile_kwargs={"literal_binds": True}))
+        == "test_col = false"
+    )
+
+    # Regression: the original bug was on computed boolean columns like
+    # `(expiration = 1) AS expiration`. Verify the equality operator also
+    # compiles correctly when the "column" is a computed expression.
+    from sqlalchemy import literal_column
+
+    computed_col = literal_column("(expiration = 1)")
+    result_computed = PrestoEngineSpec.handle_boolean_filter(
+        computed_col, FilterOperator.IS_TRUE, True
+    )
+    assert (
+        str(result_computed.compile(compile_kwargs={"literal_binds": True}))
+        == "(expiration = 1) = true"
+    )
+
+
+def test_extract_errors_maps_401_to_access_denied() -> None:
+    """
+    Regression for #33554: Presto 401 errors must surface as
+    CONNECTION_ACCESS_DENIED_ERROR rather than a raw GENERIC_DB_ENGINE_ERROR.
+
+    pyhive raises "presto error: Unexpected status code 401 b'Unauthorized'"
+    when the Presto server rejects the connection with HTTP 401. SQL Lab
+    users see a cryptic raw error instead of an actionable "check your
+    credentials" message.
+
+    The custom_errors map has a pattern for "Access Denied: Invalid
+    credentials" (PyHive LDAP auth path), but not for the HTTP 401
+    status-code message that pyhive raises when the server rejects the
+    initial request. Adding the pattern surfaces a user-readable error.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+    from superset.errors import SupersetErrorType
+
+    msg = "presto error: Unexpected status code 401 b'Unauthorized'"
+    result = PrestoEngineSpec.extract_errors(Exception(msg))
+    assert len(result) == 1
+    assert result[0].error_type == SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR
+
+
+def test_latest_sub_partition_rejects_unknown_field(
+    mocker: MockerFixture,
+) -> None:
+    """Regression test for #41869.
+
+    ``PrestoBaseEngineSpec.latest_sub_partition`` previously used a chained
+    comparison (``k not in k in part_fields``) that Python evaluates as
+    ``(k not in k) and (k in part_fields)``. Since ``k not in k`` is always
+    ``False`` for strings, the guard was unreachable and unknown kwarg names
+    were silently accepted, flowing into ``_partition_query`` and enabling
+    SQL injection via the ``latest_sub_partition`` Jinja macro. This test
+    locks in that unknown fields are now rejected before reaching the query
+    builder.
+    """
+    from superset.db_engine_specs.presto import PrestoBaseEngineSpec
+    from superset.exceptions import SupersetTemplateException
+
+    database: mock.MagicMock = mocker.MagicMock()
+    database.get_indexes.return_value = [{"column_names": ["ds", "event_type"]}]
+    table: mock.MagicMock = mocker.MagicMock()
+    with pytest.raises(SupersetTemplateException) as exc_info:
+        PrestoBaseEngineSpec.latest_sub_partition(
+            database,
+            table,
+            unknown_field="anything",
+        )
+
+    assert "unknown_field" in str(exc_info.value)
+    assert "not part of the partitioning key" in str(exc_info.value)
+
+
+def test_partition_query_escapes_single_quote_in_filter_value(
+    mocker: MockerFixture,
+) -> None:
+    """Regression test for #41869.
+
+    ``_partition_query`` previously interpolated filter values directly into
+    the SQL ``WHERE`` clause with an f-string, allowing SQL injection via any
+    caller that let user input reach ``filters``. Values must be escaped
+    (single-quote doubling per SQL standard) so a ``'`` in the value cannot
+    break out of the string literal.
+    """
+    from superset.db_engine_specs.presto import PrestoBaseEngineSpec
+
+    database: mock.MagicMock = mocker.MagicMock()
+    database.get_extra.return_value = {}
+    table: Table = Table("my_table", "my_schema")
+
+    injected: str = "2024-01-01' UNION SELECT secret FROM other_table--"
+    sql: str = PrestoBaseEngineSpec._partition_query(
+        table,
+        indexes=[{"column_names": ["ds", "event_type"]}],
+        database=database,
+        filters={"ds": injected},
+    )
+
+    # The single quote in the value must be doubled so the injection stays
+    # inside the SQL string literal — this is the whole payload wrapped in
+    # ONE literal, escape sequence and all.
+    assert "'2024-01-01'' UNION SELECT secret FROM other_table--'" in sql
+    # The pre-escape form (single quote closing the literal early followed
+    # by injected SQL) must NOT appear anywhere in the output — that would
+    # mean the payload broke out of the literal.
+    assert "'2024-01-01' UNION SELECT" not in sql

@@ -53,7 +53,12 @@ from superset.utils.slack import (
 logger = logging.getLogger(__name__)
 
 
-# TODO: Deprecated: Remove this class in Superset 6.0.0
+# Deprecated: Slack v1 will be removed in the next major release. The Slack
+# `files.upload` endpoint was retired in 2025, so file-bearing sends already
+# fail at the API level; only text-only `chat_postMessage` sends still work
+# here. When the Slack bot has the `channels:read` and `groups:read` scopes,
+# existing v1 recipients are auto-upgraded to SlackV2 on first send via
+# `update_report_schedule_slack_v2`.
 class SlackNotification(SlackMixin, BaseNotification):  # pylint: disable=too-few-public-methods
     """
     Sends a slack notification for a report recipient
@@ -77,6 +82,8 @@ class SlackNotification(SlackMixin, BaseNotification):  # pylint: disable=too-fe
     ) -> tuple[Union[str, None], Sequence[Union[str, IOBase, bytes]]]:
         if self._content.csv:
             return ("csv", [self._content.csv])
+        if self._content.xlsx:
+            return ("xlsx", [self._content.xlsx])
         if self._content.screenshots:
             return ("png", self._content.screenshots)
         if self._content.pdf:

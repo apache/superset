@@ -32,6 +32,7 @@ import {
 } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
+import { buildNativeFilterTarget } from './transformers/buildTarget';
 import {
   ChartCustomizationsForm,
   FilterChangesType,
@@ -126,13 +127,8 @@ export const createHandleSave =
         };
       }
 
-      const target: Partial<NativeFilterTarget> = {};
-      if (formInputs.dataset) {
-        target.datasetId = formInputs.dataset.value;
-      }
-      if (formInputs.dataset && formInputs.column) {
-        target.column = { name: formInputs.column };
-      }
+      const target: Partial<NativeFilterTarget> =
+        buildNativeFilterTarget(formInputs);
 
       return {
         id,
@@ -140,6 +136,9 @@ export const createHandleSave =
         time_range: formInputs.time_range,
         controlValues: formInputs.controlValues ?? {},
         granularity_sqla: formInputs.granularity_sqla,
+        ...(formInputs.time_grains?.length
+          ? { time_grains: formInputs.time_grains }
+          : {}),
         requiredFirst: Object.values(formInputs.requiredFirst ?? {}).find(
           rf => rf,
         ),

@@ -52,6 +52,15 @@ only see the objects that they have access to.
 The **sql_lab** role grants access to SQL Lab. Note that while **Admin** users have access
 to all databases by default, both **Alpha** and **Gamma** users need to be given access on a per database basis.
 
+Beyond the base `sql_lab` role, two additional SQL Lab permissions must be explicitly granted for users who need these capabilities:
+
+| Permission | Feature |
+|------------|---------|
+| `can_estimate_query_cost` on `SQLLab` | Estimate query cost before running |
+| `can_format_sql` on `SQLLab` | Format SQL using the database's dialect |
+
+Grant these in **Security → List Roles** by adding the permissions to the relevant role.
+
 ### Public
 
 The **Public** role is the most restrictive built-in role, designed specifically for anonymous/unauthenticated
@@ -82,24 +91,24 @@ PUBLIC_ROLE_LIKE = "Public"
 # PUBLIC_ROLE_LIKE = "Gamma"
 ```
 
-If you prefer to manually configure the Public role's permissions (or use `DASHBOARD_RBAC` to
-grant access at the dashboard level), you do not need to set `PUBLIC_ROLE_LIKE`.
+If you prefer to manually configure the Public role's permissions, or use subject-based
+dashboard viewer assignments, you do not need to set `PUBLIC_ROLE_LIKE`.
 
 **Important notes:**
 
-- **Data access is still required:** The Public role only grants UI/API permissions. You must
-  also grant access to specific datasets necessary to view a dashboard. As with other roles,
-  this can be done in two ways:
+- **Data access is still required by default:** The Public role only grants UI/API permissions.
+  You must also grant access to specific datasets necessary to view a dashboard. As with other
+  roles, this can be done in two ways:
 
-  - **Without `DASHBOARD_RBAC`:** Dashboards only appear in the list and are accessible if
-    the user has permission to at least one of their datasets. Grant dataset access by editing
-    the Public role in the Superset UI (Menu → Security → List Roles → Public) and adding the
-    relevant data sources. All published dashboards using those datasets become visible.
+  - **Dataset-based access:** Dashboards only appear in the list and are accessible if the user
+    has permission to at least one of their datasets. Grant dataset access by editing the Public
+    role in the Superset UI (Menu -> Security -> List Roles -> Public) and adding the relevant
+    data sources. All published dashboards using those datasets become visible.
 
-  - **With `DASHBOARD_RBAC` enabled:** Anonymous users will only see dashboards where the
-    "Public" role has been explicitly added in the dashboard's properties. Dataset permissions
-    are not required—DASHBOARD_RBAC handles the cascading permissions check. This provides
-    fine-grained control over which dashboards are publicly visible.
+  - **Subject-based dashboard access:** When `ENABLE_VIEWERS` is enabled, anonymous users can
+    see published dashboards where the "Public" role subject has been explicitly added as a
+    viewer. If `VIEWER_PROMISCUOUS_MODE` is enabled, viewer access can bypass dataset
+    permission checks for dashboard rendering.
 
 - **Role synchronization:** Built-in role permissions (Admin, Alpha, Gamma, sql_lab, and Public
   when `PUBLIC_ROLE_LIKE = "Public"`) are synchronized when you run `superset init`. Any manual
@@ -122,10 +131,76 @@ tables in the **Permissions** dropdown. To select the data sources you want to a
 You can then confirm with users assigned to the **Gamma** role that they see the
 objects (dashboards and slices) associated with the tables you just extended them.
 
+### Subjects
+
+A **subject** is a unified identity that can be granted access to Superset resources such as
+dashboards, charts, and datasets. Subjects come in three types:
+
+- **User** — an individual Superset user
+- **Group** — a FAB group
+- **Role** — a FAB role (e.g. Alpha, Gamma, or any custom role)
+
+Subjects are used throughout Superset to assign **editors** (who can modify a resource) and
+**viewers** (who can view it). For new resource-specific assignments, Superset defaults to
+**Users** and **Groups** in subject pickers. Groups are the recommended way to grant access to a
+set of people because they represent organizational membership, while roles remain focused on
+capability grants such as "can read dashboards" or "can write charts".
+
+Role subjects are still supported for backwards compatibility with features that previously used
+roles directly, including Row Level Security role assignments and `DASHBOARD_RBAC`. Existing role
+subject assignments continue to be enforced even when roles are not exposed in the default picker
+configuration. However, when an administrator edits a subject list, roles are not available as new
+dropdown values unless that picker has been configured to expose role subjects. Roles are not
+recommended for new subject assignments, because using roles for both permissions and resource
+membership couples two separate concerns.
+
+Administrators can control which subject types are available in pickers with
+`SUBJECTS_RELATED_TYPES`. By default, this setting exposes only users and groups:
+
+```python
+from superset.subjects.types import SubjectType
+
+SUBJECTS_RELATED_TYPES = [
+    SubjectType.USER,
+    SubjectType.GROUP,
+]
+```
+
+Set `SUBJECTS_RELATED_TYPES = None` to expose all subject types, including roles. To expose roles
+only for a specific entity, set that entity's override:
+
+```python
+from superset.subjects.types import SubjectType
+
+SUBJECTS_RELATED_TYPES = [
+    SubjectType.USER,
+    SubjectType.GROUP,
+]
+
+# Leave dashboard, chart, and alert/report overrides unset so they inherit
+# the users + groups default. Expose roles only in the RLS subject picker for
+# compatibility with existing role-based RLS workflows.
+SUBJECTS_RELATED_TYPES_RLS = [
+    SubjectType.USER,
+    SubjectType.GROUP,
+    SubjectType.ROLE,
+]
+```
+
+Available per-entity overrides are:
+
+- `SUBJECTS_RELATED_TYPES_DASHBOARDS` for dashboard editor/viewer pickers
+- `SUBJECTS_RELATED_TYPES_CHARTS` for chart editor/viewer pickers
+- `SUBJECTS_RELATED_TYPES_RLS` for Row Level Security subject pickers
+- `SUBJECTS_RELATED_TYPES_ALERT_REPORTS` for alert/report editor pickers
+
+When an override is set, it replaces `SUBJECTS_RELATED_TYPES` for that picker. When it is `None`,
+the picker inherits the global default.
+
 ### Dashboard Access Control
 
-Access to dashboards is managed via owners (users that have edit permissions to the dashboard).
-Non-owner user access can be managed in two ways. Note that dashboards must be published to be
+Access to dashboards is managed via editors (subjects that have edit permissions to the dashboard).
+Non-editor user access can be managed in two ways. Note that dashboards must be published to be
 visible to other users.
 
 #### Dataset-Based Access (Default)
@@ -137,30 +212,40 @@ to a role (Menu → Security → List Roles).
 This is the simplest approach but provides all-or-nothing access based on dataset permissions—
 if a user has access to a dataset, they can see all published dashboards using that dataset.
 
-#### Dashboard-Level Access (DASHBOARD_RBAC)
+#### Dashboard and Chart-Level Access
 
-For fine-grained control over which dashboards specific roles can access, enable the
-`DASHBOARD_RBAC` feature flag:
+For fine-grained control over which dashboards and charts specific users or groups can access,
+enable subject-based viewers:
 
 ```python
 FEATURE_FLAGS = {
-    "DASHBOARD_RBAC": True,
+    "ENABLE_VIEWERS": True,
 }
 ```
 
-With this enabled, you can assign specific roles to each dashboard in its properties. Users
-will only see dashboards where their role is explicitly added.
+With this enabled, you can assign viewer subjects to each dashboard or chart in its properties.
+Users will see resources where they are assigned directly, or indirectly through a group subject.
+Role subjects can also be enabled for compatibility, but groups are recommended for new viewer
+assignments.
+
+`ENABLE_VIEWERS` can be adopted incrementally. Dashboards and charts with no assigned viewers keep
+the existing implicit dataset-access behavior: users who can access the underlying dataset can still
+see published dashboards that use that dataset and charts backed by that dataset. Assigning one or
+more viewers changes that specific resource to explicit viewer access for non-editors. Removing all
+viewers returns the resource to the dataset-based fallback. Explicit Viewers are the preferred model
+going forward; the implicit fallback may be deprecated and removed in a later major version.
 
 **Important considerations:**
-- Dashboard access **bypasses** dataset-level checks—granting a role access to a dashboard
-  implicitly grants read access to all charts and datasets in that dashboard
-- Dashboards without any assigned roles fall back to dataset-based access
+- Viewer access uses normal dataset checks unless `VIEWER_PROMISCUOUS_MODE` is enabled
+- With `VIEWER_PROMISCUOUS_MODE`, dashboard viewer access can bypass dataset-level checks for
+  charts and datasets in that dashboard
+- Dashboards and charts without assigned viewers fall back to dataset-based access
 - The dashboard must still be published to be visible
 
 This feature is particularly useful for:
 - Making specific dashboards public while keeping others private
 - Granting access to dashboards without exposing the underlying datasets for other uses
-- Creating dashboard-specific access patterns that don't align with dataset ownership
+- Creating dashboard-specific access patterns that don't align with dataset permissions
 
 ### SQL Execution Security Considerations
 
@@ -182,6 +267,8 @@ However, it is crucial to understand the following:
 
 By combining Superset's configurable safeguards with strong database-level security practices, you can achieve a more robust and layered security posture.
 
+**Dataset Sample Access**: The `get_samples()` endpoint now enforces datasource-level access control. Users can only fetch sample rows from datasets they have been explicitly granted access to — the same permission check applied when running chart queries. This closes a prior gap where unauthenticated or under-privileged access could retrieve sample data.
+
 ### REST API for user & role management
 
 Flask-AppBuilder supports a REST API for user CRUD,
@@ -193,6 +280,57 @@ FAB_ADD_SECURITY_API = True
 ```
 
 Once configured, the documentation for additional "Security" endpoints will be visible in Swagger for you to explore.
+
+### API Key Authentication
+
+Superset supports long-lived API keys for service accounts, CI/CD pipelines, and programmatic integrations (including MCP clients).
+
+#### Enabling API Key Authentication
+
+API key authentication is **disabled by default**. To turn it on, set the Flask-AppBuilder config value in `superset_config.py` and also enable the matching feature flag so the management UI is exposed:
+
+```python
+FAB_API_KEY_ENABLED = True
+
+FEATURE_FLAGS = {
+    "FAB_API_KEY_ENABLED": True,
+}
+```
+
+The config value registers the `ApiKeyApi` blueprint on the backend; the feature flag controls whether the UI for managing keys appears for the user. See the [Feature Flags](/admin-docs/configuration/feature-flags) documentation for more on feature flag configuration.
+
+#### Creating an API Key
+
+Once enabled, each user manages their own keys from their profile page:
+
+1. Open the user menu (top-right) and click **Info** to navigate to the User Info page
+2. Expand the **API Keys** section
+3. Click **+ API Key**
+4. Enter a name and (optionally) an expiration date
+5. Copy the generated token — it is shown only once
+
+Only users with the `can_read` and `can_write` permissions on `ApiKey` (granted by default to Admins) can manage API keys.
+
+#### Using an API Key
+
+Pass the key as a Bearer token in the `Authorization` header:
+
+```
+Authorization: Bearer <your-api-key>
+```
+
+This works for all REST API endpoints and the MCP server. The request is executed with the permissions of the user who created the key.
+
+#### Use Cases
+
+- **CI/CD pipelines** — automated chart/dashboard exports and imports
+- **MCP integrations** — connect AI assistants without interactive login
+- **External services** — dashboards embedded in other applications
+- **Service accounts** — long-lived credentials that don't expire with session cookies
+
+:::caution
+Store API keys securely. Anyone with a valid key can make requests on behalf of the creating user. Revoke keys promptly if they are compromised by deleting them from the **API Keys** section of your User Info page.
+:::
 
 ### Customizing Permissions
 
@@ -239,26 +377,144 @@ based on the roles and permissions that were attributed.
 ### Row Level Security
 
 Using Row Level Security filters (under the **Security** menu) you can create filters
-that are assigned to a particular table, as well as a set of roles.
+that are assigned to a particular dataset, as well as a set of subjects.
 If you want members of the Finance team to only have access to
 rows where `department = "finance"`, you could:
 
 - Create a Row Level Security filter with that clause (`department = "finance"`)
-- Then assign the clause to the **Finance** role and the table it applies to
+- Then assign the clause to the **Finance** role subject and the dataset it applies to
 
 The **clause** field, which can contain arbitrary text, is then added to the generated
-SQL statement’s WHERE clause. So you could even do something like create a filter
-for the last 30 days and apply it to a specific role, with a clause
+SQL statement's WHERE clause. So you could even do something like create a filter
+for the last 30 days and apply it to a specific subject, with a clause
 like `date_field > DATE_SUB(NOW(), INTERVAL 30 DAY)`. It can also support
 multiple conditions: `client_id = 6` AND `advertiser="foo"`, etc.
 
-All relevant Row level security filters will be combined together (under the hood,
-the different SQL clauses are combined using AND statements). This means it's
-possible to create a situation where two roles conflict in such a way as to limit a table subset to empty.
+RLS clauses also support **Jinja templating** when `ENABLE_TEMPLATE_PROCESSING` is enabled, so you can write dynamic filters such as
+`user_id = '{{ current_username() }}'` to restrict rows based on the logged-in user.
 
-For example, the filters `client_id=4` and `client_id=5`, applied to a role,
-will result in users of that role having `client_id=4` AND `client_id=5`
-added to their query, which can never be true.
+#### Filter Types
+
+There are two types of RLS filters:
+
+- **Regular** — The filter clause is applied when the querying user matches one of the
+  subjects assigned to the filter. Use this to restrict what specific users, roles, or groups
+  can see.
+- **Base** — The filter clause is applied to **all** users _except_ those matching the assigned
+  subjects. Use this to define a default restriction that privileged subjects (e.g. the Admin
+  role subject) are exempt from. For example, a Base filter with clause `1 = 0` and the Admin
+  role subject would hide all rows from everyone except Admin - useful as a deny-by-default
+  baseline.
+
+#### Group Keys and Filter Combination
+
+All applicable RLS filters are combined before being added to the query. The combination
+rules are:
+
+- Filters that share the **same group key** are combined with **OR** (any match within
+  the group is sufficient).
+- Different filter groups (different group keys, or no group key) are combined with
+  **AND** (all groups must match).
+- Filters with **no group key** are each treated as their own group and are always AND'd.
+
+For example, if a dataset has three filters:
+
+| Filter | Clause | Group Key |
+|--------|--------|-----------|
+| F1 | `department = 'Finance'` | `department` |
+| F2 | `department = 'Marketing'` | `department` |
+| F3 | `region = 'Europe'` | `region` |
+
+The resulting WHERE clause would be:
+
+```sql
+(department = 'Finance' OR department = 'Marketing') AND (region = 'Europe')
+```
+
+:::caution Conflicting filters
+It is possible to create filters that conflict and produce an empty result set. For
+example, the filters `client_id = 4` and `client_id = 5` **without a shared group key**
+will be AND'd together, producing `client_id = 4 AND client_id = 5`, which can never
+be true.
+
+If you intend for these to be alternatives, assign them the **same group key** so they
+are OR'd instead.
+:::
+
+#### RLS and Virtual (SQL-Based) Datasets
+
+RLS filters are assigned to **datasets**, not to underlying database tables directly. This
+has important implications when working with virtual (SQL-based) datasets:
+
+- **Physical datasets** (backed directly by a table or view) — RLS filters assigned to
+  the dataset are added as WHERE clauses to the query.
+- **Virtual datasets** (defined by a custom SQL query) — RLS filters assigned directly to
+  the virtual dataset are applied to the _outer_ query that wraps the dataset's SQL.
+  Additionally, RLS filters on the **underlying physical datasets** referenced by the
+  virtual dataset's SQL are injected into the inner subquery for each referenced table.
+
+For example, if you have:
+
+1. A physical dataset `orders` with RLS filter `region = 'US'`
+2. A virtual dataset defined as `SELECT * FROM orders WHERE status = 'active'`
+
+A user affected by the RLS filter will effectively see:
+
+```sql
+SELECT * FROM (
+  SELECT * FROM orders WHERE (region = 'US') AND status = 'active'
+) ...
+```
+
+**Key considerations for virtual datasets:**
+
+- You generally do **not** need to duplicate RLS filters on both the physical and virtual
+  dataset — filters on the physical dataset are applied automatically at query time.
+- If you assign an RLS filter directly to a virtual dataset, the clause must reference
+  columns available in the virtual dataset's _output_, not necessarily the underlying
+  table's columns.
+- In **SQL Lab**, RLS is enforced only when the `RLS_IN_SQLLAB` feature flag is enabled:
+  queries run against tables that have associated datasets with RLS filters will then have
+  the appropriate predicates injected automatically.
+
+#### Checking RLS Filters via the API
+
+You can use the RLS REST API to audit which filters are configured and which datasets
+they affect. This requires the `can_read` permission on the `Row Level Security` resource.
+
+**List all RLS rules:**
+
+```
+GET /api/v1/rowlevelsecurity/
+```
+
+**Filter RLS rules for a specific dataset** (using [Rison](https://github.com/Nanonid/rison) query syntax):
+
+```
+GET /api/v1/rowlevelsecurity/?q=(filters:!((col:tables,opr:rel_m_m,value:<dataset_id>)))
+```
+
+**Filter RLS rules by subject:**
+
+```
+GET /api/v1/rowlevelsecurity/?q=(filters:!((col:subjects,opr:rel_m_m,value:<subject_id>)))
+```
+
+**View details of a specific rule** (including clause, assigned datasets, and subjects):
+
+```
+GET /api/v1/rowlevelsecurity/<id>
+```
+
+The response includes the filter's `name`, `filter_type` (Regular or Base), `clause`,
+`group_key`, assigned `tables` (with id, schema, and table\_name), and assigned `subjects`.
+
+:::tip Auditing RLS for virtual datasets
+To find all RLS rules that could affect a particular virtual dataset, query the list
+endpoint filtered by that dataset's ID for any directly-assigned rules. Then also check
+the physical datasets referenced in the virtual dataset's SQL, since their RLS filters
+are applied at query time too.
+:::
 
 ### User Sessions
 

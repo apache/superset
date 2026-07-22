@@ -17,19 +17,16 @@
  * under the License.
  */
 
-import type { ReactElement } from 'react';
-import {
-  Tooltip,
-  type TooltipPlacement,
-  type IconType,
-} from '@superset-ui/core/components';
+import { handleKeyboardActivation } from '../../utils';
+import type { ReactElement, ReactNode } from 'react';
+import { Tooltip, type TooltipPlacement } from '@superset-ui/core/components';
 import { css, useTheme } from '@apache-superset/core/theme';
 
 export interface ActionProps {
   label: string;
   tooltip?: string | ReactElement;
   placement?: TooltipPlacement;
-  icon: IconType;
+  icon: ReactNode;
   onClick: () => void;
 }
 
@@ -45,6 +42,7 @@ export const ActionButton = ({
     <span
       role="button"
       tabIndex={0}
+      aria-label={typeof tooltip === 'string' ? tooltip : label}
       css={css`
         cursor: pointer;
         color: ${theme.colorIcon};
@@ -58,6 +56,7 @@ export const ActionButton = ({
       className="action-button"
       data-test={label}
       onClick={onClick}
+      onKeyDown={onClick ? handleKeyboardActivation(onClick) : undefined}
     >
       {icon}
     </span>

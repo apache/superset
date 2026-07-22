@@ -369,6 +369,72 @@ describe('Polygon transformProps', () => {
     ]);
   });
 
+  test('should render every polygon part when boundary column contains GeoJSON MultiPolygon Geometry format', () => {
+    const geojsonMultiPolygonProps = {
+      ...mockChartProps,
+      rawFormData: {
+        ...mockChartProps.rawFormData,
+        metric: 'population',
+      },
+      queriesData: [
+        {
+          data: [
+            {
+              geom: JSON.stringify({
+                type: 'MultiPolygon',
+                coordinates: [
+                  [
+                    [
+                      [-122.4, 37.8],
+                      [-122.3, 37.8],
+                      [-122.3, 37.9],
+                      [-122.4, 37.9],
+                      [-122.4, 37.8],
+                    ],
+                  ],
+                  [
+                    [
+                      [-121.4, 36.8],
+                      [-121.3, 36.8],
+                      [-121.3, 36.9],
+                      [-121.4, 36.9],
+                      [-121.4, 36.8],
+                    ],
+                  ],
+                ],
+              }),
+              population: 50000,
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = transformProps(geojsonMultiPolygonProps as ChartProps);
+
+    const features = result.payload.data.features as PolygonFeature[];
+    expect(features).toHaveLength(2);
+    expect(features.map(feature => feature.polygon)).toEqual([
+      [
+        [-122.4, 37.8],
+        [-122.3, 37.8],
+        [-122.3, 37.9],
+        [-122.4, 37.9],
+        [-122.4, 37.8],
+      ],
+      [
+        [-121.4, 36.8],
+        [-121.3, 36.8],
+        [-121.3, 36.9],
+        [-121.4, 36.9],
+        [-121.4, 36.8],
+      ],
+    ]);
+    expect(features.map(feature => feature.metrics?.population)).toEqual([
+      50000, 50000,
+    ]);
+  });
+
   test('should render polygons when boundary column contains JSON with nested geometry', () => {
     // Real-world format: {"type":"Polygon","geometry":{"type":"Polygon","coordinates":[...]}}
     const nonStandardProps = {
@@ -426,5 +492,41 @@ describe('Polygon transformProps', () => {
     const features = result.payload.data.features as PolygonFeature[];
     expect(features.flatMap(p => p?.polygon || [])).toHaveLength(20); // 4 geohashes x 5 corners each
     expect(features[0]?.elevation).toBe(1000);
+  });
+
+  test('should include configured metric label and value in extraProps', () => {
+    const metricProps = {
+      ...mockChartProps,
+      rawFormData: {
+        ...mockChartProps.rawFormData,
+        metric: {
+          expressionType: 'SQL',
+          sqlExpression: 'SUM(population)',
+          label: 'SUM(population)',
+        },
+      },
+      queriesData: [
+        {
+          data: [
+            {
+              geom: JSON.stringify([
+                [-122.4, 37.8],
+                [-122.3, 37.8],
+                [-122.3, 37.9],
+                [-122.4, 37.9],
+              ]),
+              'SUM(population)': 50000,
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = transformProps(metricProps as ChartProps);
+    const features = result.payload.data.features as PolygonFeature[];
+
+    expect(features).toHaveLength(1);
+    expect(features[0]?.extraProps?.['SUM(population)']).toBe(50000);
+    expect(features[0]?.metrics?.['SUM(population)']).toBe(50000);
   });
 });

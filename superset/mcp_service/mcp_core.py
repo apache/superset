@@ -18,15 +18,50 @@
 from __future__ import annotations
 
 import logging
+import re
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Dict, Generic, List, Literal, Type, TypeVar
 
+from flask_appbuilder.models.sqla.interface import SQLAInterface
 from pydantic import BaseModel
+from sqlalchemy import func
 
-from superset.daos.base import BaseDAO
-from superset.mcp_service.constants import ModelType
+from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
+from superset.extensions import db
+from superset.mcp_service.constants import MAX_PAGE_SIZE, ModelType
+from superset.mcp_service.privacy import (
+    filter_user_directory_columns,
+    SELF_REFERENCING_FILTER_COLUMNS,
+    USER_DIRECTORY_FIELDS,
+    USER_FILTER_FIELDS,
+)
+from superset.mcp_service.system.schemas import PaginationInfo
 from superset.mcp_service.utils import _is_uuid
+from superset.mcp_service.utils.permissions_utils import get_current_user
+from superset.mcp_service.utils.schema_utils import (
+    parse_json_or_list,
+    parse_json_or_passthrough,
+)
+from superset.models.helpers import skip_visibility_filter
+from superset.utils import json
+
+
+def _slugify(value: str) -> str:
+    """Normalize a string to a slug-like form for comparison.
+
+    Lowercases, drops apostrophes so possessives collapse
+    ("World Bank's" → "worldbanks" territory), then collapses any
+    remaining non-alphanumerics to single hyphens and trims
+    leading/trailing hyphens. Mirrors how agents typically guess slugs
+    from a dashboard title (e.g. "World Bank's Data" → "world-banks-data").
+    """
+    lowered = value.lower()
+    # Drop apostrophes entirely so "bank's" collapses to "banks" rather than
+    # splitting into "bank-s". Covers straight and curly variants.
+    stripped = re.sub(r"['’]", "", lowered)
+    return re.sub(r"[^a-z0-9]+", "-", stripped).strip("-")
+
 
 # Type variables for generic model tools
 T = TypeVar("T")  # For model objects
@@ -59,12 +94,17 @@ class BaseCore(ABC):
         pass
 
     def _log_error(self, error: Exception, context: str = "") -> None:
-        """Log an error with context."""
+        """Log an error at DEBUG level for stack-trace context.
+
+        Callers must re-raise the exception after calling this method.
+        The GlobalErrorHandlerMiddleware is the single source of truth
+        for error classification and logging level.
+        """
         error_msg = f"Error in {self.__class__.__name__}"
         if context:
             error_msg += f" ({context})"
         error_msg += f": {str(error)}"
-        self.logger.error(error_msg, exc_info=True)
+        self.logger.debug(error_msg, exc_info=True)
 
     def _log_info(self, message: str) -> None:
         """Log an info message."""
@@ -73,6 +113,28 @@ class BaseCore(ABC):
     def _log_warning(self, message: str) -> None:
         """Log a warning message."""
         self.logger.warning(message)
+
+
+class DeletedStateBoundFilter:
+    """Adapt a FAB deleted-state filter for ``BaseDAO.list`` custom_filters.
+
+    ``BaseDAO.list`` invokes custom filters as ``apply(query, None)``, but the
+    ``BaseDeletedStateFilter`` subclasses interpret ``None`` as "live rows
+    only". Binding the value at construction lets the DAO-side invocation
+    reach the FAB filter with the caller's actual ``include``/``only`` choice.
+
+    ``model`` re-exposes the FAB filter's SoftDeleteMixin model class so the
+    caller can scope the session visibility bypass without re-consulting the
+    (Optional) filter-class attribute.
+    """
+
+    def __init__(self, inner: Any, value: str, model: type) -> None:
+        self._inner = inner
+        self._value = value
+        self.model = model
+
+    def apply(self, query: Any, value: Any) -> Any:
+        return self._inner.apply(query, self._value)
 
 
 class ModelListCore(BaseCore, Generic[L]):
@@ -110,18 +172,34 @@ class ModelListCore(BaseCore, Generic[L]):
         logger: logging.Logger | None = None,
         all_columns: List[str] | None = None,
         sortable_columns: List[str] | None = None,
+        editor_filter_column: str = "editor",
+        deleted_state_filter: type | None = None,
     ) -> None:
         super().__init__(logger)
         self.dao_class = dao_class
         self.output_schema = output_schema
         self.item_serializer = item_serializer
         self.filter_type = filter_type
-        self.default_columns = list(default_columns)  # Copy to prevent mutation
-        self.search_columns = list(search_columns)  # Copy to prevent mutation
+        self.default_columns = filter_user_directory_columns(default_columns)
+        self.search_columns = filter_user_directory_columns(search_columns)
         self.list_field_name = list_field_name
         self.output_list_schema = output_list_schema
-        self._all_columns = list(all_columns) if all_columns else list(default_columns)
-        self._sortable_columns = list(sortable_columns) if sortable_columns else []
+        # Track whether an explicit allowlist was provided so _get_columns_to_load
+        # can skip the allowlist check for tools that did not declare one.
+        self._has_explicit_all_columns = all_columns is not None
+        self._all_columns = filter_user_directory_columns(
+            all_columns if all_columns else default_columns
+        )
+        self._sortable_columns = filter_user_directory_columns(
+            sortable_columns if sortable_columns else []
+        )
+        self._editor_filter_column = editor_filter_column
+        # A BaseDeletedStateFilter subclass (e.g. ChartDeletedStateFilter).
+        # The FAB filter owns the restore-audience scoping — only owners and
+        # admins may enumerate soft-deleted rows — so reusing it here keeps
+        # that cross-entity contract in one place. None means the resource
+        # does not support deleted_state listing.
+        self._deleted_state_filter = deleted_state_filter
 
     @property
     def all_columns(self) -> List[str]:
@@ -133,6 +211,135 @@ class ModelListCore(BaseCore, Generic[L]):
         """Return a copy of sortable_columns to prevent external mutation."""
         return list(self._sortable_columns)
 
+    def _get_columns_to_load(
+        self, select_columns: Any | None
+    ) -> tuple[List[str], List[str]]:
+        """Return requested and loaded columns after privacy filtering."""
+        if not select_columns:
+            return self.default_columns, list(self.default_columns)
+
+        parsed_columns = parse_json_or_list(select_columns, param_name="select_columns")
+        columns_to_load = filter_user_directory_columns(parsed_columns)
+
+        # Restrict to the declared allowlist so callers cannot probe for columns
+        # excluded from columns_available (e.g. password, sqlalchemy_uri) that
+        # still exist on the ORM model. Only enforced when all_columns was
+        # explicitly provided; tools without an allowlist are not restricted.
+        if self._has_explicit_all_columns and self._all_columns:
+            allowed = set(self._all_columns)
+            columns_to_load = [col for col in columns_to_load if col in allowed]
+
+        if not columns_to_load:
+            raise ValueError("select_columns contains no valid columns")
+
+        return columns_to_load, list(columns_to_load)
+
+    def _validate_order_column(self, order_column: str | None) -> None:
+        """Reject privacy-filtered or unknown sort columns.
+
+        Validation is skipped when no sortable_columns were declared, to preserve
+        backward-compatible passthrough behaviour for tools that rely on DAO-level
+        sort handling.
+        """
+        if (
+            order_column
+            and self._sortable_columns
+            and order_column not in self._sortable_columns
+        ):
+            raise ValueError(
+                f"Invalid order_column '{order_column}'. "
+                f"Allowed columns: {', '.join(self._sortable_columns)}"
+            )
+
+    def _prepend_self_lookup_filters(
+        self,
+        filters: Any,
+        created_by_me: bool,
+        edited_by_me: bool,
+        user: Any,
+    ) -> Any:
+        """Translate created_by_me/edited_by_me flags into ColumnOperator filters.
+
+        Validates authentication and injects the current user's ID in one step,
+        so no placeholder value ever reaches the DAO layer.
+
+        When both flags are set, a single combined OR filter is used so results
+        include items where the user is either the creator or an editor.
+        """
+        if not (created_by_me or edited_by_me):
+            return filters
+
+        if not user or not getattr(user, "is_authenticated", False):
+            raise ValueError("This operation requires an authenticated user")
+
+        user_id: int = user.id
+        extra: ColumnOperator
+        if created_by_me and edited_by_me:
+            extra = ColumnOperator(
+                col="created_by_fk_or_editor", opr="eq", value=user_id
+            )
+        elif created_by_me:
+            extra = ColumnOperator(col="created_by_fk", opr="eq", value=user_id)
+        else:
+            extra = ColumnOperator(
+                col=self._editor_filter_column, opr="eq", value=user_id
+            )
+
+        if filters is None:
+            return [extra]
+        if isinstance(filters, list):
+            return [extra] + filters
+        return [extra, filters]
+
+    def _call_dao_list(
+        self,
+        filters: Any,
+        order_column: str,
+        order_direction: str,
+        page: int,
+        page_size: int,
+        search: str | None,
+        columns_to_load: List[str],
+        custom_filters: Dict[str, Any] | None = None,
+    ) -> tuple[List[Any], int]:
+        """Call the DAO list method.
+
+        Subclasses may override to change the kwarg name used for filters.
+        """
+        return self.dao_class.list(
+            column_operators=filters,
+            order_column=order_column,
+            order_direction=order_direction,
+            page=page,
+            page_size=page_size,
+            search=search,
+            search_columns=self.search_columns,
+            columns=columns_to_load,
+            custom_filters=custom_filters,
+        )
+
+    def _build_deleted_state_filter(
+        self, deleted_state: str | None
+    ) -> DeletedStateBoundFilter | None:
+        """Validate deleted_state and bind it to the entity's FAB filter.
+
+        Returns None when trash listing was not requested. Raises for a
+        value other than ``include``/``only`` or when the resource has no
+        deleted-state filter configured.
+        """
+        if deleted_state is None:
+            return None
+        normalized = str(deleted_state).lower().strip()
+        if normalized not in {"include", "only"}:
+            raise ValueError("deleted_state must be 'include' or 'only'")
+        if self._deleted_state_filter is None:
+            raise ValueError("deleted_state is not supported for this resource")
+        # ``model`` is the ClassVar every BaseDeletedStateFilter subclass binds.
+        model = self._deleted_state_filter.model  # type: ignore[attr-defined]
+        datamodel = SQLAInterface(model, db.session)
+        inner = self._deleted_state_filter("id", datamodel)
+        return DeletedStateBoundFilter(inner, normalized, model)
+
     def run_tool(
         self,
         filters: Any | None = None,
@@ -142,30 +349,23 @@ class ModelListCore(BaseCore, Generic[L]):
         order_direction: Literal["asc", "desc"] | None = "asc",
         page: int = 0,
         page_size: int = 10,
+        created_by_me: bool = False,
+        edited_by_me: bool = False,
+        deleted_state: str | None = None,
     ) -> L:
-        from superset.mcp_service.constants import MAX_PAGE_SIZE
-
         # Clamp page_size to MAX_PAGE_SIZE as defense-in-depth
         page_size = min(page_size, MAX_PAGE_SIZE)
 
         # Parse filters using generic utility (accepts JSON string or object)
-        from superset.mcp_service.utils.schema_utils import (
-            parse_json_or_list,
-            parse_json_or_passthrough,
+        filters = parse_json_or_passthrough(filters, param_name="filters")
+        filters_applied = filters if isinstance(filters, list) else []
+
+        filters = self._prepend_self_lookup_filters(
+            filters, created_by_me, edited_by_me, get_current_user()
         )
 
-        filters = parse_json_or_passthrough(filters, param_name="filters")
-
         # Parse select_columns using generic utility (accepts JSON, list, or CSV)
-        if select_columns:
-            select_columns = parse_json_or_list(
-                select_columns, param_name="select_columns"
-            )
-            columns_to_load = list(select_columns)
-            columns_requested = select_columns
-        else:
-            columns_to_load = list(self.default_columns)
-            columns_requested = self.default_columns
+        columns_requested, columns_to_load = self._get_columns_to_load(select_columns)
 
         # Ensure computed columns have their dependencies loaded.
         # Humanized timestamps are derived from their raw counterparts —
@@ -173,23 +373,48 @@ class ModelListCore(BaseCore, Generic[L]):
         computed_deps: dict[str, str] = {
             "changed_on_humanized": "changed_on",
             "created_on_humanized": "created_on",
+            "last_eval_dttm_humanized": "last_eval_dttm",
         }
         for computed, dependency in computed_deps.items():
             if computed in columns_to_load and dependency not in columns_to_load:
                 columns_to_load.append(dependency)
 
+        self._validate_order_column(order_column)
+
+        deleted_state_bound = self._build_deleted_state_filter(deleted_state)
+        if deleted_state_bound is not None:
+            # Trashed rows must be distinguishable from live ones (matters in
+            # "include" mode), so force deleted_at into the loaded columns
+            # and the serialization allowlist.
+            for column_list in (columns_requested, columns_to_load):
+                if "deleted_at" not in column_list:
+                    column_list.append("deleted_at")
+
         # Query the DAO
         items: List[Any]
-        items, total_count = self.dao_class.list(
-            column_operators=filters,
-            order_column=order_column or "changed_on",
-            order_direction=str(order_direction or "desc"),
-            page=page,
-            page_size=page_size,
-            search=search,
-            search_columns=self.search_columns,
-            columns=columns_to_load,
-        )
+        dao_kwargs = {
+            "filters": filters,
+            "order_column": order_column or "changed_on",
+            "order_direction": str(order_direction or "desc"),
+            "page": page,
+            "page_size": page_size,
+            "search": search,
+            "columns_to_load": columns_to_load,
+        }
+        if deleted_state_bound is not None:
+            # The soft-delete ORM listener appends ``deleted_at IS NULL`` at
+            # execution time, so the session-scoped bypass must span both
+            # executions inside DAO.list (count + fetch). The context manager
+            # guarantees release even on exceptions; the FAB filter's
+            # restore-audience scoping (applied via custom_filters) decides
+            # which unhidden rows the caller may actually see.
+            with skip_visibility_filter(db.session, deleted_state_bound.model):
+                items, total_count = self._call_dao_list(
+                    custom_filters={"deleted_state": deleted_state_bound},
+                    **dao_kwargs,
+                )
+        else:
+            items, total_count = self._call_dao_list(**dao_kwargs)
         # Serialize items
         item_objs = []
         for item in items:
@@ -197,7 +422,6 @@ class ModelListCore(BaseCore, Generic[L]):
             if obj is not None:
                 item_objs.append(obj)
         total_pages = (total_count + page_size - 1) // page_size if page_size > 0 else 0
-        from superset.mcp_service.system.schemas import PaginationInfo
 
         # Report 1-based page in response to match the 1-based input convention
         # used by all list tool wrappers (list_charts, list_datasets, etc.)
@@ -210,14 +434,6 @@ class ModelListCore(BaseCore, Generic[L]):
             has_next=page < total_pages - 1,
             has_previous=page > 0,
         )
-
-        # Build response
-        def get_keys(obj: BaseModel | dict[str, Any] | Any) -> List[str]:
-            if hasattr(obj, "model_dump"):
-                return list(obj.model_dump().keys())
-            elif isinstance(obj, dict):
-                return list(obj.keys())
-            return []
 
         response_kwargs = {
             self.list_field_name: item_objs,
@@ -232,7 +448,12 @@ class ModelListCore(BaseCore, Generic[L]):
             "columns_loaded": columns_to_load,
             "columns_available": self.all_columns,
             "sortable_columns": self.sortable_columns,
-            "filters_applied": filters if isinstance(filters, list) else [],
+            "filters_applied": [
+                f
+                for f in filters_applied
+                if (f.get("col") if isinstance(f, dict) else getattr(f, "col", None))
+                not in SELF_REFERENCING_FILTER_COLUMNS
+            ],
             "pagination": pagination_info,
             "timestamp": datetime.now(timezone.utc),
         }
@@ -262,6 +483,7 @@ class ModelGetInfoCore(BaseCore):
         supports_slug: bool = False,
         logger: logging.Logger | None = None,
         query_options: list[Any] | None = None,
+        title_column_name: str | None = None,
     ) -> None:
         super().__init__(logger)
         self.dao_class = dao_class
@@ -270,6 +492,94 @@ class ModelGetInfoCore(BaseCore):
         self.serializer = serializer
         self.supports_slug = supports_slug
         self.query_options = query_options or []
+        # When set, enables a slugified-title fallback after slug lookup
+        # fails, so identifiers like "world-banks-data" still resolve to
+        # "World Bank's Data" when the dashboard's slug field is empty.
+        # Defaults to the DAO's `title_column` attribute when not overridden.
+        self.title_column_name = title_column_name or getattr(
+            dao_class, "title_column", None
+        )
+
+    def _base_filtered_query(self) -> Any:
+        """Build a query for this DAO's model with base_filter applied.
+
+        Ensures slug-like and title-based lookups respect RBAC — e.g.
+        DashboardAccessFilter excludes rows the current user is not
+        allowed to see. Mirrors DashboardDAO.get_by_id_or_slug.
+        """
+        model_class = self.dao_class.model_cls
+        query = db.session.query(model_class)
+
+        if (base_filter := getattr(self.dao_class, "base_filter", None)) is not None:
+            query = base_filter(
+                self.dao_class.id_column_name,
+                SQLAInterface(model_class, db.session),
+            ).apply(query, None)
+
+        if self.query_options:
+            query = query.options(*self.query_options)
+        return query
+
+    def _find_by_slugified_title(self, identifier: str) -> Any:
+        """Resolve a slug-like identifier by matching against slugified titles.
+
+        First narrows candidates with an ILIKE on the title column so the
+        DB does the heavy filtering — a slug like "world-banks-data" maps
+        to the pattern "%world%banks%data%". The ILIKE side strips
+        apostrophes from the title (via SQL REPLACE) so it matches the
+        same way `_slugify` does in Python — without that, "World Bank's
+        Data" wouldn't match "%banks%" because the raw title has "bank's".
+        Then confirms each candidate with `_slugify` to weed out
+        coincidental ILIKE matches (e.g. "Worldwide Bank Sandbox Data").
+
+        Orders by primary key so the returned row is deterministic when
+        multiple titles slugify to the same value. The caller can always
+        disambiguate by id or UUID; in the rare collision case we log a
+        warning and return the lowest-id match.
+        """
+        if not self.title_column_name:
+            return None
+        target = _slugify(identifier)
+        if not target:
+            return None
+
+        model_class = self.dao_class.model_cls
+        title_col = getattr(model_class, self.title_column_name, None)
+        if title_col is None:
+            return None
+
+        parts = [p for p in target.split("-") if p]
+        # parts is non-empty: target is non-empty and contains at least one
+        # alphanumeric run. The pattern preserves the agent's word order so
+        # we don't return rows whose titles only happen to share the same
+        # tokens shuffled.
+        pattern = "%" + "%".join(parts) + "%"
+        # Strip both straight and curly apostrophes from the title before
+        # comparing — matches `_slugify`'s Python-side handling.
+        normalized_title = func.replace(func.replace(title_col, "'", ""), "’", "")
+        id_col = getattr(model_class, self.dao_class.id_column_name)
+        candidates = (
+            self._base_filtered_query()
+            .filter(normalized_title.ilike(pattern))
+            .order_by(id_col)
+            .all()
+        )
+
+        matches = [
+            obj
+            for obj in candidates
+            if _slugify(getattr(obj, self.title_column_name, "") or "") == target
+        ]
+        if not matches:
+            return None
+        if len(matches) > 1:
+            ids = [getattr(m, "id", None) for m in matches]
+            self._log_warning(
+                f"Identifier '{identifier}' matched {len(matches)} rows by "
+                f"slugified title (ids={ids}); returning the first. Pass an "
+                "id or UUID to disambiguate."
+            )
+        return matches[0]
 
     def _find_object(self, identifier: int | str) -> Any:
         """Find object by identifier using appropriate method."""
@@ -301,15 +611,22 @@ class ModelGetInfoCore(BaseCore):
             if result:
                 return result
 
-            # Fallback to the existing id_or_slug_filter for complex cases
-            from superset.extensions import db
+            # Fallback to the existing id_or_slug_filter for complex cases.
+            # Apply base_filter so disallowed rows aren't exposed here.
             from superset.models.dashboard import id_or_slug_filter
 
-            model_class = self.dao_class.model_cls
-            query = db.session.query(model_class).filter(id_or_slug_filter(identifier))
-            if opts:
-                query = query.options(*opts)
-            return query.one_or_none()
+            slug_result = (
+                self._base_filtered_query()
+                .filter(id_or_slug_filter(identifier))
+                .one_or_none()
+            )
+            if slug_result is not None:
+                return slug_result
+
+            # Many dashboards have empty slugs, so slug lookup alone silently
+            # fails when agents pass a slug-like string derived from the
+            # dashboard title. Fall back to slugified-title matching.
+            return self._find_by_slugified_title(identifier)
 
         # If we get here, it's an invalid identifier
         return None
@@ -391,13 +708,9 @@ class InstanceInfoCore(BaseCore):
         return counts
 
     def _calculate_time_based_metrics(
-        self, base_counts: Dict[str, int]
+        self, _base_counts: Dict[str, int]
     ) -> Dict[str, Dict[str, int]]:
         """Calculate time-based metrics for recent activity."""
-        from datetime import datetime, timedelta, timezone
-
-        from superset.daos.base import ColumnOperator, ColumnOperatorEnum
-
         now = datetime.now(timezone.utc)
         time_metrics = {}
 
@@ -482,8 +795,6 @@ class InstanceInfoCore(BaseCore):
 
     def get_resource(self) -> str:
         """Resource interface for generating instance metadata as JSON."""
-        from superset.utils import json
-
         instance_info = self._generate_instance_info()
         return json.dumps(instance_info.model_dump(), indent=2)
 
@@ -496,8 +807,6 @@ class InstanceInfoCore(BaseCore):
             custom_metrics = self._calculate_custom_metrics(base_counts, time_metrics)
 
             # Combine all data with fallbacks for required fields
-            from datetime import datetime, timezone
-
             response_data = {
                 **base_counts,
                 **time_metrics,
@@ -544,6 +853,8 @@ class ModelGetSchemaCore(BaseCore, Generic[S]):
         default_sort: str = "changed_on",
         default_sort_direction: Literal["asc", "desc"] = "desc",
         exclude_filter_columns: set[str] | None = None,
+        filter_columns_override: dict[str, list[str]] | None = None,
+        include_filter_columns: frozenset[str] | None = None,
         logger: logging.Logger | None = None,
     ) -> None:
         """
@@ -561,22 +872,40 @@ class ModelGetSchemaCore(BaseCore, Generic[S]):
             default_sort_direction: Default sort direction
             exclude_filter_columns: Column names to omit from filter discovery
                 (e.g., sensitive fields like passwords or connection URIs)
+            filter_columns_override: When set, use this mapping directly as the
+                filter_columns output instead of querying the DAO. Use this to
+                restrict advertised filters to the exact set the list tool accepts.
+            include_filter_columns: When set, only these column names are advertised
+                as filterable. Applied after exclude_filter_columns. Use this when
+                the list tool's filter schema accepts fewer columns than the DAO
+                exposes (e.g., ReportFilter vs. the full ReportSchedule ORM model).
             logger: Optional logger instance
         """
         super().__init__(logger)
         self.model_type = model_type
         self.dao_class = dao_class
         self.output_schema = output_schema
-        self.select_columns = select_columns
-        self.sortable_columns = sortable_columns
-        self.default_columns = default_columns
-        self.search_columns = search_columns
+        self.select_columns = [
+            column
+            for column in select_columns
+            if getattr(column, "name", None) not in USER_DIRECTORY_FIELDS
+        ]
+        self.sortable_columns = filter_user_directory_columns(sortable_columns)
+        self.default_columns = filter_user_directory_columns(default_columns)
+        self.search_columns = filter_user_directory_columns(search_columns)
         self.default_sort = default_sort
         self.default_sort_direction = default_sort_direction
-        self.exclude_filter_columns = exclude_filter_columns or set()
+        self.exclude_filter_columns = set(exclude_filter_columns or set())
+        # Hide user-directory columns from filter discovery, except the small
+        # set callers may legitimately filter by ID (resolved via find_users).
+        self.exclude_filter_columns.update(USER_DIRECTORY_FIELDS - USER_FILTER_FIELDS)
+        self.filter_columns_override = filter_columns_override
+        self.include_filter_columns = include_filter_columns
 
     def _get_filter_columns(self) -> Dict[str, List[str]]:
         """Get filterable columns and operators from the DAO."""
+        if self.filter_columns_override is not None:
+            return self.filter_columns_override
         try:
             filterable = self.dao_class.get_filterable_columns_and_operators()
             # Defensive handling: ensure we have a valid mapping
@@ -601,6 +930,11 @@ class ModelGetSchemaCore(BaseCore, Generic[S]):
                     k: v
                     for k, v in result.items()
                     if k not in self.exclude_filter_columns
+                }
+            # Apply allowlist: keep only explicitly permitted filter columns
+            if self.include_filter_columns is not None:
+                result = {
+                    k: v for k, v in result.items() if k in self.include_filter_columns
                 }
             return result
         except Exception as e:

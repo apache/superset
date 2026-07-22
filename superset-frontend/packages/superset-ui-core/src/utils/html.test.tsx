@@ -33,6 +33,35 @@ describe('sanitizeHtml', () => {
     const sanitizedString = sanitizeHtml(htmlString);
     expect(sanitizedString).not.toContain('script');
   });
+
+  test('should preserve allowed presentational CSS properties', () => {
+    const htmlString =
+      '<div style="color: red; background-color: blue; font-size: 12px; text-align: center">x</div>';
+    const sanitizedString = sanitizeHtml(htmlString);
+    expect(sanitizedString).toContain('color:red');
+    expect(sanitizedString).toContain('background-color:blue');
+    expect(sanitizedString).toContain('font-size:12px');
+    expect(sanitizedString).toContain('text-align:center');
+  });
+
+  test('should strip layout and positioning CSS properties', () => {
+    const htmlString =
+      '<div style="color: red; position: fixed; z-index: 9999; width: 100%; height: 100%">x</div>';
+    const sanitizedString = sanitizeHtml(htmlString);
+    expect(sanitizedString).toContain('color:red');
+    expect(sanitizedString).not.toContain('position');
+    expect(sanitizedString).not.toContain('z-index');
+    expect(sanitizedString).not.toContain('width');
+    expect(sanitizedString).not.toContain('height');
+  });
+
+  test('should strip unsafe CSS property values', () => {
+    const htmlString =
+      '<div style="background-color: url(javascript:alert(1)); color: blue">x</div>';
+    const sanitizedString = sanitizeHtml(htmlString);
+    expect(sanitizedString).not.toContain('javascript');
+    expect(sanitizedString).not.toContain('url(');
+  });
 });
 
 describe('isProbablyHTML', () => {
@@ -64,6 +93,17 @@ describe('isProbablyHTML', () => {
     // Mathematical expressions
     expect(isProbablyHTML('if x < 5 and y > 10')).toBe(false);
     expect(isProbablyHTML('price < $100')).toBe(false);
+  });
+
+  test('should return false for angle-bracketed data values (issue #34082)', () => {
+    // MySQL column values wrapped in angle brackets must not be treated as
+    // HTML, otherwise they get swallowed and appear truncated in SQL Lab
+    // and Table chart results
+    expect(isProbablyHTML('<Buddhist Blue Duck-No Giblets>')).toBe(false);
+    expect(isProbablyHTML('<Roasted Chicken-Whole>')).toBe(false);
+    expect(
+      isProbablyHTML('prefix <Buddhist Blue Duck-No Giblets> suffix'),
+    ).toBe(false);
   });
 
   test('should return true for all known HTML tags', () => {
@@ -116,6 +156,12 @@ describe('safeHtmlSpan', () => {
     const plainText = 'Just a plain text';
     const result = safeHtmlSpan(plainText);
     expect(result).toEqual(plainText);
+  });
+
+  test('should return angle-bracketed data values untouched (issue #34082)', () => {
+    const dataValue = '<Buddhist Blue Duck-No Giblets>';
+    expect(safeHtmlSpan(dataValue)).toBe(dataValue);
+    expect(sanitizeHtmlIfNeeded(dataValue)).toBe(dataValue);
   });
 });
 

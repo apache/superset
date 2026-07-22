@@ -36,9 +36,9 @@ Screenshots will be taken but no messages actually sent as long as `ALERT_REPORT
 #### In your `Dockerfile`
 
 You'll need to extend the Superset image to include a headless browser. Your options include:
-- Use Playwright with Chrome: this is the recommended approach as of version 4.1.x or greater. A working example of a Dockerfile that installs these tools is provided under "Building your own production Docker image" on the [Docker Builds](/admin-docs/installation/docker-builds#building-your-own-production-docker-image) page. Read the code comments there as you'll also need to change a feature flag in your config.
-- Use Firefox: you'll need to install geckodriver and Firefox.
-- Use Chrome without Playwright: you'll need to install Chrome and set the value of `WEBDRIVER_TYPE` to `"chrome"` in your `superset_config.py`.
+- Use Playwright with Chromium: this is the recommended approach as of version 4.1.x or greater. Playwright always uses Chromium — the `WEBDRIVER_TYPE` config setting has no effect when Playwright is active. A working example of a Dockerfile that installs these tools is provided under "Building your own production Docker image" on the [Docker Builds](/admin-docs/installation/docker-builds#building-your-own-production-docker-image) page. Enable the `PLAYWRIGHT_REPORTS_AND_THUMBNAILS` feature flag in your config to activate it.
+- Use Firefox (Selenium): you'll need to install geckodriver and Firefox. Set `WEBDRIVER_TYPE` to `"firefox"` in your `superset_config.py`.
+- Use Chrome (Selenium): you'll need to install Chrome. Set `WEBDRIVER_TYPE` to `"chrome"` in your `superset_config.py`.
 
 In Superset versions &lt;=4.0x, users installed Firefox or Chrome and that was documented here.
 
@@ -80,6 +80,102 @@ SLACK_CACHE_TIMEOUT = int(timedelta(days=2).total_seconds())
 # Default: 2
 SLACK_API_RATE_LIMIT_RETRY_COUNT = 5
 ```
+
+#### Slack Enterprise Grid (org-scoped tokens)
+
+On a Slack Enterprise Grid org, an org-scoped token spans multiple workspaces, so
+workspace-scoped methods such as `conversations.list` require a `team_id` to
+indicate which workspace to target. Set `SLACK_TEAM_ID` to your workspace (team)
+ID so Superset can list channels and deliver reports:
+
+```python
+# The workspace (team) ID to target, e.g. "T01234567"
+SLACK_TEAM_ID = "T01234567"
+```
+
+This defaults to `None` and only needs to be set when using an org-scoped token;
+it is accepted but ignored for standard workspace-level tokens.
+
+### Webhook integration
+
+Superset can send alert and report notifications to any HTTP endpoint — useful for chat platforms, incident management tools, or custom automation.
+
+#### Enabling Webhooks
+
+Enable the feature flag in `superset_config.py`:
+
+```python
+FEATURE_FLAGS = {
+    "ALERT_REPORTS": True,
+    "ALERT_REPORT_WEBHOOK": True,
+}
+```
+
+#### Configuring a Webhook Recipient
+
+When creating or editing an alert or report, select **Webhook** as the notification method and enter your endpoint URL.
+
+#### Payload Format
+
+Superset sends an HTTP POST with `Content-Type: application/json`:
+
+```json
+{
+  "name": "My Alert",
+  "header": {
+    "notification_format": "JSON",
+    "notification_type": "Alert",
+    "notification_source": "Alert",
+    "chart_id": 42,
+    "dashboard_id": null
+  },
+  "text": "Alert condition met: value exceeded threshold",
+  "description": "Monthly revenue dropped below target",
+  "url": "https://your-superset-host/superset/dashboard/1/"
+}
+```
+
+When a report includes file attachments (CSV, Excel, PDF, or PNG screenshots), the request is sent as `multipart/form-data` instead. In that case, each top-level payload field (`name`, `text`, `description`, `url`) becomes its own form field, and nested structures like `header` are serialized as a JSON-encoded string in their own field. Every attachment is added as a repeated form field named `files`:
+
+```
+POST /webhook HTTP/1.1
+Content-Type: multipart/form-data; boundary=...
+
+--...
+Content-Disposition: form-data; name="name"
+
+My Alert
+--...
+Content-Disposition: form-data; name="header"
+
+{"notification_format": "JSON", "notification_type": "Alert", ...}
+--...
+Content-Disposition: form-data; name="text"
+
+Alert condition met: value exceeded threshold
+--...
+Content-Disposition: form-data; name="files"; filename="report.csv"
+Content-Type: text/csv
+
+<file bytes>
+--...
+```
+
+Webhook consumers should branch on `Content-Type`: parse the body as JSON when `application/json`, or read the individual form fields (decoding `header` as JSON) when `multipart/form-data`.
+
+#### HTTPS Enforcement
+
+To require HTTPS webhook URLs (recommended for production), set:
+
+```python
+ALERT_REPORTS_WEBHOOK_HTTPS_ONLY = True
+```
+
+When enabled, Superset rejects webhook configurations that use `http://` URLs.
+
+#### Retry Behavior
+
+Superset automatically retries webhook deliveries on `429 Too Many Requests` and `5xx` server errors using exponential backoff. Retries are bounded to roughly 120 seconds of cumulative wall-clock time (worst case ~210 seconds, because the bound is checked against the time elapsed before each attempt, so the final request can begin just under the limit and still run its full request timeout), after which the delivery is abandoned.
 
 ### Kubernetes-specific
 
@@ -191,8 +287,10 @@ to specify on behalf of which username to render the dashboards. In general, das
 are not accessible to unauthorized requests, that is why the worker needs to take over credentials
 of an existing user to take a snapshot.
 
-By default, Alerts and Reports are executed as the owner of the alert/report object. To use a fixed user account,
-just change the config as follows (`admin` in this example):
+By default, Alerts and Reports are executed as a physical user represented by the alert/report editors
+(giving priority to the last modifier, then the creator, then the first direct user editor, then a
+deterministic user from editor roles or groups). To use a fixed user account, just change the config
+as follows (`admin` in this example):
 
 ```python
 from superset.tasks.types import FixedExecutor
@@ -263,7 +361,7 @@ This is the best source of information about the problem.  In a docker compose d
 
 ### Check web browser and webdriver installation
 
-To take a screenshot, the worker visits the dashboard or chart using a headless browser, then takes a screenshot. If you are able to send a chart as CSV or text but can't send as PNG, your problem may lie with the browser.
+To take a screenshot, the worker visits the dashboard or chart using a headless browser, then takes a screenshot. If you are able to send a chart as CSV, XLSX, or text but can't send as PNG, your problem may lie with the browser.
 
 If you are handling the installation of the headless browser on your own, do your own verification to ensure that the headless browser opens successfully in the worker environment.
 

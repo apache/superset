@@ -31,6 +31,7 @@ import {
   JsonValue,
   QueryFormData,
   SetDataMaskHook,
+  getMapProviderMapStyle,
 } from '@superset-ui/core';
 
 import { PolygonLayer } from '@deck.gl/layers';
@@ -46,7 +47,6 @@ import {
 } from '../../utils';
 
 import { commonLayerProps, getColorForBreakpoints } from '../common';
-import sandboxedEval from '../../utils/sandbox';
 import getPointsFromPolygon from '../../utils/getPointsFromPolygon';
 import fitViewport, { Viewport } from '../../utils/fitViewport';
 import {
@@ -57,6 +57,7 @@ import { TooltipProps } from '../../components/Tooltip';
 import { GetLayerType } from '../../factory';
 import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
 import { DEFAULT_DECKGL_COLOR } from '../../utilities/Shared_DeckGL';
+import { getMapboxApiKey } from '../../utils/mapbox';
 import {
   createTooltipContent,
   CommonTooltipRows,
@@ -119,13 +120,7 @@ export const getLayer: GetLayerType<PolygonLayer> = function ({
   const sc: { r: number; g: number; b: number; a: number } =
     fd.stroke_color_picker;
   const defaultBreakpointColor = fd.default_breakpoint_color;
-  let data = [...payload.data.features];
-
-  if (fd.js_data_mutator) {
-    // Applying user defined data mutator if defined
-    const jsFnMutator = sandboxedEval(fd.js_data_mutator);
-    data = jsFnMutator(data);
-  }
+  const data = [...payload.data.features];
 
   const colorSchemeType = fd.color_scheme_type;
 
@@ -339,6 +334,12 @@ const DeckGLPolygon = (props: DeckGLPolygonProps) => {
     colorSchemeType === COLOR_SCHEME_TYPES.color_breakpoints
       ? getColorBreakpointsBuckets(formData.color_breakpoints)
       : getBuckets(formData, payload.data.features, accessor);
+  const selectedMap = getMapProviderMapStyle({
+    mapProvider: formData.map_renderer,
+    maplibreStyle: formData.maplibre_style,
+    mapboxStyle: formData.mapbox_style,
+    legacyMapStyle: formData.map_style,
+  });
 
   return (
     <div style={{ position: 'relative' }}>
@@ -347,7 +348,9 @@ const DeckGLPolygon = (props: DeckGLPolygonProps) => {
         viewport={viewport}
         layers={getLayers()}
         setControlValue={setControlValue}
-        mapStyle={formData.map_style}
+        mapProvider={selectedMap.mapProvider}
+        mapStyle={selectedMap.mapStyle}
+        mapboxApiKey={getMapboxApiKey()}
         width={props.width}
         height={props.height}
       />

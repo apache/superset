@@ -40,6 +40,7 @@ import {
   GridReadyEvent,
   GridState,
   CellClickedEvent,
+  CellKeyDownEvent,
   SelectionChangedEvent,
 } from '@superset-ui/core/components/ThemedAgGridReact';
 import { t } from '@apache-superset/core/translation';
@@ -50,15 +51,17 @@ import {
   JsonObject,
 } from '@superset-ui/core';
 import { SearchOutlined } from '@ant-design/icons';
-import { debounce, isEqual } from 'lodash';
+import { debounce, isEqual } from 'lodash-es';
 import Pagination from './components/Pagination';
 import SearchSelectDropdown from './components/SearchSelectDropdown';
 import { SearchOption, SortByItem } from '../types';
 import getInitialSortState, { shouldSort } from '../utils/getInitialSortState';
 import getInitialFilterModel from '../utils/getInitialFilterModel';
 import reconcileColumnState from '../utils/reconcileColumnState';
+import getColumnStateSignature from '../utils/getColumnStateSignature';
 import { PAGE_SIZE_OPTIONS } from '../consts';
 import { getCompleteFilterState } from '../utils/filterStateManager';
+import { copyCellValueOnKeyDown } from '../utils/copyCellValue';
 
 export interface AgGridState extends Partial<GridState> {
   timestamp?: number;
@@ -235,6 +238,13 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       isSearchFocused.set(searchId, false);
     }, [searchId]);
 
+    // Copy the focused cell's value on Ctrl/Cmd+C. Needed because cell text is
+    // no longer natively selectable (see enableCellTextSelection below) and the
+    // Enterprise clipboard module is not registered (#106389).
+    const handleCellKeyDown = useCallback((event: CellKeyDownEvent) => {
+      copyCellValueOnKeyDown(event);
+    }, []);
+
     const onFilterTextBoxChanged = useCallback(
       ({ target: { value } }: ChangeEvent<HTMLInputElement>) => {
         if (serverPagination) {
@@ -247,7 +257,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       [serverPagination, debouncedSearch, searchId],
     );
 
-    const handleColSort = (colId: string, sortDir: string) => {
+    const handleColSort = (colId: string, sortDir: string | null) => {
       const isSortable = shouldSort({
         colId,
         sortDir,
@@ -301,10 +311,12 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     };
 
     const handleColumnHeaderClick = useCallback(
-      params => {
+      (params: { column?: { colId?: string; sort?: string | null } }) => {
         const colId = params?.column?.colId;
         const sortDir = params?.column?.sort;
-        handleColSort(colId, sortDir);
+        if (colId && sortDir !== undefined) {
+          handleColSort(colId, sortDir);
+        }
       },
       [serverPagination, gridInitialState, percentMetrics, onSortChange],
     );
@@ -335,11 +347,11 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
               timestamp: Date.now(),
             };
 
-            const stateHash = JSON.stringify({
-              columnOrder: columnState.map(c => c.colId),
-              sorts: sortModel,
-              filters: filterModel,
-            });
+            const stateHash = getColumnStateSignature(
+              columnState,
+              sortModel,
+              filterModel,
+            );
 
             if (stateHash !== lastCapturedStateRef.current) {
               lastCapturedStateRef.current = stateHash;
@@ -468,7 +480,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
           )}
           {includeSearch && (
             <div className="search-container">
-              {serverPagination && (
+              {serverPagination && searchOptions?.length > 0 && (
                 <div className="search-by-text-container">
                   <span className="search-by-text"> {t('Search by')}:</span>
                   <SearchSelectDropdown
@@ -512,13 +524,22 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
           rowSelection="multiple"
           animateRows
           onCellClicked={handleCellClicked}
+          onCellKeyDown={handleCellKeyDown}
           onSelectionChanged={handleSelectionChanged}
           onFilterChanged={handleFilterChanged}
           onStateUpdated={handleGridStateChange}
           initialState={gridInitialState}
           maintainColumnOrder
           suppressAggFuncInHeader
-          enableCellTextSelection
+          // Clicking a cell should select (focus) the cell rather than select
+          // its text content (#106389). enableCellTextSelection forces browser
+          // text selection on click, which suppresses the cell-focus behavior.
+          // Because the Enterprise clipboard module isn't registered, native
+          // text selection was the only way to copy a value, so onCellKeyDown
+          // (above) restores Ctrl/Cmd+C copy for the focused cell. Full
+          // multi-cell range selection still requires AG Grid Enterprise, which
+          // is not available in the Community build used here.
+          enableCellTextSelection={false}
           quickFilterText={serverPagination ? '' : quickFilterText}
           suppressMovableColumns={!allowRearrangeColumns}
           pagination={pagination}
@@ -526,6 +547,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
           paginationPageSizeSelector={PAGE_SIZE_OPTIONS}
           suppressDragLeaveHidesColumns
           pinnedBottomRowData={showTotals ? [cleanedTotals] : undefined}
+          tooltipShowDelay={500}
           localeText={{
             // Pagination controls
             next: t('Next'),

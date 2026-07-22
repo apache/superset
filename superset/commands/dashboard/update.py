@@ -35,12 +35,17 @@ from superset.commands.dashboard.exceptions import (
     DashboardSlugExistsValidationError,
     DashboardUpdateFailedError,
 )
-from superset.commands.utils import populate_roles, update_tags, validate_tags
+from superset.commands.utils import (
+    compute_subjects,
+    update_tags,
+    validate_tags,
+)
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.report import ReportScheduleDAO
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
 from superset.reports.models import ReportSchedule
+from superset.subjects.types import SubjectType
 from superset.tags.models import ObjectType
 from superset.utils import json
 from superset.utils.core import send_email_smtp
@@ -59,25 +64,35 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
     def run(self) -> Model:
         self.validate()
         assert self._model is not None
-        self.process_tab_diff()
-        self.process_native_filter_diff()
+        # Suppress autoflush during the update body so that Continuum's
+        # before_flush baseline listener does not fire mid-operation while
+        # the session is only partially populated.
+        with db.session.no_autoflush:
+            self.process_tab_diff()
+            self.process_native_filter_diff()
 
-        # Update tags
-        if (tags := self._properties.pop("tags", None)) is not None:
-            update_tags(ObjectType.dashboard, self._model.id, self._model.tags, tags)
+            # Update tags
+            if (tags := self._properties.pop("tags", None)) is not None:
+                update_tags(
+                    ObjectType.dashboard, self._model.id, self._model.tags, tags
+                )
 
-        dashboard = DashboardDAO.update(self._model, self._properties)
-        if self._properties.get("json_metadata"):
-            DashboardDAO.set_dash_metadata(
-                dashboard,
-                data=json.loads(self._properties.get("json_metadata", "{}")),
-            )
+            # Re-serialize position_json to escape 4-byte Unicode characters
+            if position_json := self._properties.get("position_json"):
+                self._properties["position_json"] = json.dumps(
+                    json.loads(position_json)
+                )
+
+            dashboard = DashboardDAO.update(self._model, self._properties)
+            if self._properties.get("json_metadata"):
+                DashboardDAO.set_dash_metadata(
+                    dashboard,
+                    data=json.loads(self._properties.get("json_metadata", "{}")),
+                )
         return dashboard
 
     def validate(self) -> None:
         exceptions: list[ValidationError] = []
-        owner_ids: Optional[list[int]] = self._properties.get("owners")
-        roles_ids: Optional[list[int]] = self._properties.get("roles")
         slug: Optional[str] = self._properties.get("slug")
         tag_ids: Optional[list[int]] = self._properties.get("tags")
 
@@ -85,9 +100,9 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
         self._model = DashboardDAO.find_by_id(self._model_id)
         if not self._model:
             raise DashboardNotFoundError()
-        # Check ownership
+        # Check editorship
         try:
-            security_manager.raise_for_ownership(self._model)
+            security_manager.raise_for_editorship(self._model)
         except SupersetSecurityException as ex:
             raise DashboardForbiddenError() from ex
 
@@ -95,15 +110,7 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
         if not DashboardDAO.validate_update_slug_uniqueness(self._model_id, slug):
             exceptions.append(DashboardSlugExistsValidationError())
 
-        # Validate/Populate owner
-        try:
-            owners = self.compute_owners(
-                self._model.owners,
-                owner_ids,
-            )
-            self._properties["owners"] = owners
-        except ValidationError as ex:
-            exceptions.append(ex)
+        compute_subjects(self._model, self._properties, exceptions)
 
         # validate tags
         try:
@@ -111,14 +118,6 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
         except ValidationError as ex:
             exceptions.append(ex)
 
-        # Validate/Populate role
-        if roles_ids is None:
-            roles_ids = [role.id for role in self._model.roles]
-        try:
-            roles = populate_roles(roles_ids)
-            self._properties["roles"] = roles
-        except ValidationError as ex:
-            exceptions.append(ex)
         if exceptions:
             raise DashboardInvalidError(exceptions=exceptions)
 
@@ -149,14 +148,15 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
                 </html>
                 """
         )
-        for report_owner in report.owners:
-            if email := report_owner.email:
-                send_email_smtp(
-                    to=email,
-                    subject=f"[Report: {report.name}] Deactivated",
-                    html_content=html_content,
-                    config=current_app.config,
-                )
+        for editor in report.editors:
+            if editor.type == SubjectType.USER and editor.user:
+                if email := editor.user.email:
+                    send_email_smtp(
+                        to=email,
+                        subject=f"[Report: {report.name}] Deactivated",
+                        html_content=html_content,
+                        config=current_app.config,
+                    )
 
     def process_tab_diff(self) -> None:
         def find_deleted_tabs() -> list[str]:

@@ -21,6 +21,26 @@ Token counting and response size utilities for MCP service.
 This module provides utilities to estimate token counts and generate smart
 suggestions when responses exceed configured limits. This prevents large
 responses from overwhelming LLM clients like Claude Desktop.
+
+Token counting strategy:
+
+1. ``tiktoken`` with the ``cl100k_base`` encoding when the package is
+   installed (it is shipped as part of the ``fastmcp`` extra). This is a
+   real BPE tokenizer trained on a similar vocabulary to Claude's; for
+   English and JSON-heavy MCP payloads it tracks Claude's tokenizer
+   within roughly ±10%, which is far more accurate than the legacy
+   character heuristic.
+2. A character-based fallback (``CHARS_PER_TOKEN``) when tiktoken is not
+   importable. The fallback uses a slightly more conservative ratio than
+   before (3.0 chars/token instead of 3.5) so that JSON-heavy responses
+   are not under-counted, which previously let oversized payloads slip
+   past the response-size guard.
+
+The exact-Claude tokenizer is only available via Anthropic's network
+``count_tokens`` API; calling it from a synchronous middleware on every
+tool result is too slow and adds an external dependency on every
+response. ``tiktoken`` is the closest approximation we can ship without
+that risk.
 """
 
 from __future__ import annotations
@@ -31,23 +51,70 @@ from typing import Any, Dict, List, Union
 from pydantic import BaseModel
 from typing_extensions import TypeAlias
 
+from superset.mcp_service.constants import DEFAULT_MAX_LIST_ITEMS
+
 logger = logging.getLogger(__name__)
 
 # Type alias for MCP tool responses (Pydantic models, dicts, lists, strings, bytes)
 ToolResponse: TypeAlias = Union[BaseModel, Dict[str, Any], List[Any], str, bytes]
 
-# Approximate characters per token for estimation
-# Claude tokenizer averages ~4 chars per token for English text
-# JSON tends to be more verbose, so we use a slightly lower ratio
-CHARS_PER_TOKEN = 3.5
+# Fallback character-to-token ratio used when tiktoken is unavailable.
+# 3.0 is conservative for JSON content (the previous 3.5 under-counted
+# JSON-heavy payloads relative to Claude's actual tokenizer, which let
+# oversized responses slip past the response-size guard).
+CHARS_PER_TOKEN = 3.0
+
+# Encoding used when tiktoken is available. cl100k_base is OpenAI's
+# tokenizer for GPT-3.5/4; it is BPE-based with a vocabulary similar to
+# Claude's and tracks Claude's token counts within roughly ±10% for
+# English and JSON-heavy MCP responses.
+_TIKTOKEN_ENCODING_NAME = "cl100k_base"
+
+
+def _load_tiktoken_encoding() -> Any:
+    """Return a tiktoken encoding instance, or None if tiktoken is unavailable.
+
+    Imported lazily so the module can be used in environments without
+    tiktoken installed. The encoding is small (~1 MB) so we cache it on
+    first use.
+    """
+    try:
+        import tiktoken
+    except ImportError:
+        logger.info(
+            "tiktoken not installed; falling back to char-based token "
+            "estimation (CHARS_PER_TOKEN=%s). Install the 'fastmcp' extra "
+            "for accurate counts.",
+            CHARS_PER_TOKEN,
+        )
+        return None
+
+    try:
+        return tiktoken.get_encoding(_TIKTOKEN_ENCODING_NAME)
+    except (KeyError, ValueError) as exc:
+        # tiktoken installed but the requested encoding is missing — this
+        # only happens on partial installs. Treat as no tokenizer rather
+        # than crashing on every tool call.
+        logger.warning(
+            "tiktoken encoding '%s' unavailable: %s; falling back to "
+            "char-based token estimation",
+            _TIKTOKEN_ENCODING_NAME,
+            exc,
+        )
+        return None
+
+
+# Cached encoding instance (None if tiktoken not importable).
+_ENCODING = _load_tiktoken_encoding()
 
 
 def estimate_token_count(text: str | bytes) -> int:
     """
     Estimate the token count for a given text.
 
-    Uses a character-based heuristic since we don't have direct access to
-    the actual tokenizer. This is conservative to avoid underestimating.
+    Uses tiktoken's ``cl100k_base`` encoding when available for
+    Claude-aligned accuracy (within ~10%), falling back to a
+    character-based heuristic otherwise.
 
     Args:
         text: The text to estimate tokens for (string or bytes)
@@ -58,11 +125,19 @@ def estimate_token_count(text: str | bytes) -> int:
     if isinstance(text, bytes):
         text = text.decode("utf-8", errors="replace")
 
-    # Simple heuristic: ~3.5 characters per token for JSON/code
-    text_length = len(text)
-    if text_length == 0:
+    if not text:
         return 0
-    return max(1, int(text_length / CHARS_PER_TOKEN))
+
+    if _ENCODING is not None:
+        try:
+            return len(_ENCODING.encode(text))
+        except (ValueError, UnicodeError) as exc:
+            # Defensive: if tiktoken chokes on a specific input, fall
+            # back to the char heuristic for this call rather than
+            # raising — the response size guard must never fail-open.
+            logger.warning("tiktoken encode failed (%s); using fallback", exc)
+
+    return max(1, int(len(text) / CHARS_PER_TOKEN))
 
 
 def estimate_response_tokens(response: ToolResponse) -> int:
@@ -255,8 +330,8 @@ def generate_size_reduction_suggestions(
     current_filters = query_params.get("filters")
     if not current_filters and "list_" in tool_name:
         suggestions.append(
-            "Add filters to narrow down results (e.g., filter by owner, "
-            "date range, or specific attributes)"
+            "Add filters to narrow down results (e.g., date range, search term, "
+            "or specific non-user attributes)"
         )
 
     # Suggestion 4: Tool-specific suggestions
@@ -396,8 +471,6 @@ INFO_TOOLS = frozenset(
 
 # Maximum character length for string fields before truncation
 _MAX_STRING_CHARS = 500
-# Maximum items to keep in list fields before truncation
-_MAX_LIST_ITEMS = 30
 # Maximum keys to keep when summarizing large dict fields
 _MAX_DICT_KEYS = 20
 
@@ -465,6 +538,7 @@ def _truncate_lists(data: Dict[str, Any], notes: List[str], max_items: int) -> b
     metadata is communicated through the *notes* list and top-level response
     fields ``_response_truncated`` / ``_truncation_notes``.
     """
+    max_items = max(1, max_items)
     changed = False
     for key, value in data.items():
         if isinstance(value, list) and len(value) > max_items:
@@ -528,13 +602,15 @@ def _is_under_limit(data: Dict[str, Any], token_limit: int) -> bool:
 def truncate_oversized_response(
     response: ToolResponse,
     token_limit: int,
+    # Configurable via MCP_RESPONSE_SIZE_CONFIG["max_list_items"]
+    max_list_items: int = DEFAULT_MAX_LIST_ITEMS,
 ) -> tuple[ToolResponse, bool, list[str]]:
     """
     Dynamically truncate large fields in a response to fit within the token limit.
 
     Applies five progressive phases of truncation:
     1. Truncate long top-level string fields
-    2. Truncate large list fields to _MAX_LIST_ITEMS
+    2. Truncate large list fields to max_list_items (configurable)
     3. Recursively truncate strings in nested structures (list items, nested dicts)
     4. Aggressively reduce lists to 10 items and summarize large dicts
     5. Replace all collections with empty values
@@ -542,6 +618,7 @@ def truncate_oversized_response(
     Args:
         response: The tool response (Pydantic model, dict, or other).
         token_limit: Maximum estimated tokens allowed.
+        max_list_items: Maximum items to keep in list fields during Phase 2.
 
     Returns:
         A tuple of (possibly-truncated response, was_truncated, list of notes).
@@ -564,7 +641,7 @@ def truncate_oversized_response(
         return data, was_truncated, notes
 
     # Phase 2: Truncate large list fields
-    was_truncated |= _truncate_lists(data, notes, _MAX_LIST_ITEMS)
+    was_truncated |= _truncate_lists(data, notes, max_list_items)
     if _is_under_limit(data, token_limit):
         return data, was_truncated, notes
 

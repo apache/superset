@@ -26,7 +26,35 @@ import {
 } from 'spec/helpers/testing-library';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { FeatureFlag, VizType, isFeatureEnabled } from '@superset-ui/core';
+import getBootstrapData from 'src/utils/getBootstrapData';
+import { DEFAULT_COMMON_BOOTSTRAP_DATA } from 'src/constants';
+import type { BootstrapData } from 'src/types/bootstrapTypes';
 import ReportModal from '.';
+
+const bootstrapData = (
+  common: Partial<BootstrapData['common']> = {},
+): BootstrapData => ({
+  common: {
+    ...DEFAULT_COMMON_BOOTSTRAP_DATA,
+    ...common,
+  },
+});
+
+jest.mock('src/utils/getBootstrapData', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    common: {
+      conf: {},
+      feature_flags: {},
+      user_subject_id: 99,
+      user_subjects: [99],
+    },
+  })),
+}));
+
+const mockedGetBootstrapData = getBootstrapData as jest.MockedFunction<
+  typeof getBootstrapData
+>;
 
 const REPORT_ENDPOINT = 'glob:*/api/v1/report*';
 fetchMock.get(REPORT_ENDPOINT, {});
@@ -40,7 +68,6 @@ const defaultProps = {
   onHide: NOOP,
   onReportAdd: NOOP,
   show: true,
-  userId: 1,
   userEmail: 'test@test.com',
   dashboardId: 1,
   creationMethod: 'dashboards',
@@ -59,6 +86,12 @@ jest.mock('@superset-ui/core', () => ({
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 beforeEach(() => {
+  mockedGetBootstrapData.mockReturnValue(
+    bootstrapData({
+      user_subject_id: 99,
+      user_subjects: [99],
+    }),
+  );
   mockedIsFeatureEnabled.mockImplementation(
     featureFlag => featureFlag === FeatureFlag.AlertReports,
   );
@@ -102,11 +135,20 @@ test('does not allow user to create a report without a name', () => {
   expect(addButton).toBeDisabled();
 });
 
+test('shows xlsx notification format option', () => {
+  render(<ReportModal {...defaultProps} />, { useRedux: true });
+  expect(
+    screen.getByText('Formatted Excel attached in email'),
+  ).toBeInTheDocument();
+});
+
 test('creates a new email report via modal Add button', async () => {
+  // The modal calls POST /api/v1/report/subscribe; creation_method, editors, and
+  // recipients are derived server-side — the client payload intentionally omits them.
   fetchMock.post(
-    REPORT_ENDPOINT,
+    'glob:*/api/v1/report/subscribe',
     { id: 1, result: {} },
-    { name: 'post-report' },
+    { name: 'post-subscribe' },
   );
 
   render(<ReportModal {...defaultProps} />, { useRedux: true });
@@ -114,22 +156,22 @@ test('creates a new email report via modal Add button', async () => {
   const addButton = screen.getByRole('button', { name: /add/i });
   await waitFor(() => userEvent.click(addButton));
 
-  // Verify exactly one POST from the modal submit path
+  // Verify exactly one POST to the subscribe endpoint
   await waitFor(() => {
-    const postCalls = fetchMock.callHistory.calls('post-report');
+    const postCalls = fetchMock.callHistory.calls('post-subscribe');
     expect(postCalls).toHaveLength(1);
   });
 
-  const postCalls = fetchMock.callHistory.calls('post-report');
+  const postCalls = fetchMock.callHistory.calls('post-subscribe');
   const body = JSON.parse(postCalls[0].options.body as string);
   expect(body.name).toBe('Weekly Report');
   expect(body.type).toBe('Report');
-  expect(body.creation_method).toBe('dashboards');
   expect(body.crontab).toBeDefined();
-  expect(body.recipients).toBeDefined();
-  expect(body.recipients[0].type).toBe('Email');
+  // creation_method, editors, and recipients are set server-side; not in the client payload
+  expect(body.creation_method).toBeUndefined();
+  expect(body.recipients).toBeUndefined();
 
-  fetchMock.removeRoute('post-report');
+  fetchMock.removeRoute('post-subscribe');
 });
 
 test('text-based chart hides screenshot width and shows message content', () => {
@@ -166,6 +208,31 @@ test('non-text chart shows screenshot width and message content', () => {
   expect(screen.getByText('Screenshot width')).toBeInTheDocument();
 });
 
+test('screenshot width input preserves a typed zero instead of dropping it', () => {
+  const lineChartProps = {
+    ...defaultProps,
+    dashboardId: undefined,
+    chart: { id: 1, sliceFormData: { viz_type: VizType.Line } },
+    chartName: 'My Line Chart',
+    creationMethod: 'charts' as const,
+  };
+  render(<ReportModal {...lineChartProps} />, { useRedux: true });
+
+  const widthInput = screen.getByPlaceholderText(
+    'Input custom width in pixels',
+  );
+
+  // The old `|| null` / `|| ''` logic silently coerced a typed 0 to null, so the
+  // invalid width was swallowed instead of being submitted and surfaced by the
+  // server's min-width validation. The field must preserve the literal value.
+  userEvent.type(widthInput, '0');
+  expect(widthInput).toHaveDisplayValue('0');
+
+  // Clearing the field still yields an empty value (parsed NaN → null).
+  userEvent.clear(widthInput);
+  expect(widthInput).toHaveDisplayValue('');
+});
+
 test('dashboard report hides message content section', () => {
   const dashboardProps = {
     ...defaultProps,
@@ -192,7 +259,7 @@ test('renders edit mode when report exists in store', () => {
     active: true,
     type: 'Report',
     dashboard: 1,
-    owners: [1],
+    editors: [1],
     recipients: [
       {
         recipient_config_json: { target: 'test@test.com' },
@@ -233,7 +300,7 @@ test('edit mode dispatches editReport via PUT on save', async () => {
     active: true,
     type: 'Report',
     dashboard: 1,
-    owners: [1],
+    editors: [1],
     recipients: [
       {
         recipient_config_json: { target: 'test@test.com' },
@@ -278,10 +345,76 @@ test('edit mode dispatches editReport via PUT on save', async () => {
   expect(body.crontab).toBe('0 12 * * 1');
   expect(body.report_format).toBe('PNG');
   expect(body.dashboard).toBe(1);
+  expect(body.editors).toEqual([99]);
   expect(body.recipients).toBeDefined();
   expect(body.recipients[0].type).toBe('Email');
 
   fetchMock.removeRoute('put-report-42');
+});
+
+test('edit mode does not fall back to user id when subject id is unavailable', async () => {
+  mockedGetBootstrapData.mockReturnValue(
+    bootstrapData({
+      user_subject_id: undefined,
+      user_subjects: [],
+    }),
+  );
+
+  const existingReport = {
+    id: 43,
+    name: 'Existing Report',
+    description: '',
+    crontab: '0 12 * * 1',
+    creation_method: 'dashboards',
+    report_format: 'PNG',
+    timezone: 'America/New_York',
+    active: true,
+    type: 'Report',
+    dashboard: 1,
+    editors: [99],
+    recipients: [
+      {
+        recipient_config_json: { target: 'test@test.com' },
+        type: 'Email',
+      },
+    ],
+  };
+  const store = createStore(
+    {
+      reports: {
+        dashboards: { 1: existingReport },
+      },
+    },
+    reducerIndex,
+  );
+
+  fetchMock.put(
+    'glob:*/api/v1/report/43',
+    { id: 43, result: {} },
+    {
+      name: 'put-report-43',
+    },
+  );
+
+  render(<ReportModal {...defaultProps} />, {
+    useRedux: true,
+    store,
+  });
+
+  const saveButton = screen.getByRole('button', { name: /save/i });
+  await waitFor(() => userEvent.click(saveButton));
+
+  await waitFor(() => {
+    const calls = fetchMock.callHistory.calls('put-report-43');
+    expect(calls.length).toBeGreaterThan(0);
+  });
+
+  const calls = fetchMock.callHistory.calls('put-report-43');
+  const body = JSON.parse(calls[calls.length - 1].options.body as string);
+
+  expect(body.editors).toBeUndefined();
+
+  fetchMock.removeRoute('put-report-43');
 });
 
 test('submit failure dispatches danger toast and keeps modal open', async () => {
@@ -308,7 +441,7 @@ test('submit failure dispatches danger toast and keeps modal open', async () => 
     ).toBe(true);
   });
 
-  // Modal stays open — onHide should NOT have been called
+  // Modal stays open; onHide should NOT have been called.
   expect(onHide).not.toHaveBeenCalled();
   expect(screen.getByText('Schedule a new email report')).toBeInTheDocument();
 

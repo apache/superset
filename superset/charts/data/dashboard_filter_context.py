@@ -78,14 +78,13 @@ def _is_filter_in_scope_for_chart(
     position_json: dict[str, Any],
 ) -> bool:
     """
-    Determines whether a native filter applies to a given chart. When
-    chartsInScope is present on the filter config, uses that directly.
-    Otherwise falls back to scope.rootPath and scope.excluded with
-    the dashboard layout.
-    """
-    if (charts_in_scope := filter_config.get("chartsInScope")) is not None:
-        return chart_id in charts_in_scope
+    Determines whether a native filter applies to a given chart.
 
+    A chart is in scope when one of its layout ancestors is in ``rootPath`` and
+    it's not excluded. The persisted ``chartsInScope`` is intentionally NOT used
+    here (it's a denormalized cache that the frontend recomputes from ``scope``
+    on every load, so it can be stale).
+    """
     scope = filter_config.get("scope", {})
     root_path: list[str] = scope.get("rootPath", [])
     excluded: list[int] = scope.get("excluded", [])
@@ -93,12 +92,13 @@ def _is_filter_in_scope_for_chart(
     if chart_id in excluded:
         return False
 
-    chart_layout_item = _find_chart_layout_item(chart_id, position_json)
-    if not chart_layout_item:
-        return False
+    if chart_layout_item := _find_chart_layout_item(chart_id, position_json):
+        parents: list[str] = chart_layout_item.get("parents", [])
+        return any(parent in root_path for parent in parents)
 
-    parents: list[str] = chart_layout_item.get("parents", [])
-    return any(parent in root_path for parent in parents)
+    # If the chart doesn't exist in the dashboard layout, treat it as a
+    # root-level chart.
+    return "ROOT_ID" in root_path
 
 
 def _find_chart_layout_item(
@@ -199,6 +199,31 @@ def _extract_filter_extra_form_data(
     return None, DashboardFilterStatus.NOT_APPLIED
 
 
+def _resolve_filter_extra_form_data(
+    filter_config: dict[str, Any],
+    active_data_mask: dict[str, Any] | None,
+) -> tuple[dict[str, Any] | None, DashboardFilterStatus]:
+    """
+    Resolve a filter's extra_form_data and status, preferring an active value
+    from ``active_data_mask`` over the filter's saved default.
+
+    When ``active_data_mask`` provides an entry for this filter, its
+    ``extraFormData`` is authoritative: a non-empty value is APPLIED, while an
+    empty value means the user explicitly cleared the filter (NOT_APPLIED, with
+    no fallback to the saved default). When no active entry exists, fall back to
+    the saved-default behavior in ``_extract_filter_extra_form_data``.
+
+    Returns (extra_form_data, status).
+    """
+    flt_id = filter_config.get("id", "")
+    if active_data_mask is not None and flt_id in active_data_mask:
+        active_efd = (active_data_mask[flt_id] or {}).get("extraFormData") or {}
+        if active_efd:
+            return active_efd, DashboardFilterStatus.APPLIED
+        return None, DashboardFilterStatus.NOT_APPLIED
+    return _extract_filter_extra_form_data(filter_config)
+
+
 def _get_filter_target_column(filter_config: dict[str, Any]) -> str | None:
     """Extract the target column name from a native filter configuration."""
     if targets := filter_config.get("targets", []):
@@ -234,7 +259,7 @@ def _check_dashboard_access(dashboard: Dashboard) -> None:
     """
     Check that the user has access to the dashboard.
     Uses the security manager's raise_for_access which handles
-    guest users, admins, owners, and DASHBOARD_RBAC.
+    guest users, admins, editors, and viewer access.
 
     :raises SupersetSecurityException: if the user cannot access the dashboard
     """
@@ -244,16 +269,26 @@ def _check_dashboard_access(dashboard: Dashboard) -> None:
 def get_dashboard_filter_context(
     dashboard_id: int,
     chart_id: int,
+    *,
+    active_data_mask: dict[str, Any] | None = None,
 ) -> DashboardFilterContext:
     """
     Build a DashboardFilterContext for a chart on a dashboard.
 
     Loads the dashboard's native filter configuration, determines which
-    filters are in scope for the given chart, extracts default filter values,
+    filters are in scope for the given chart, resolves each filter's value,
     and returns the merged extra_form_data along with metadata about each filter.
+
+    When ``active_data_mask`` is provided (e.g. the live filter state from a
+    dashboard view), each in-scope filter present in the mask uses its active
+    ``extraFormData`` instead of the saved default; an empty active value means
+    the filter was cleared. Filters absent from the mask fall back to their
+    saved defaults, so omitting ``active_data_mask`` reproduces the dashboard's
+    initial-load behavior.
 
     :param dashboard_id: The ID of the dashboard
     :param chart_id: The ID of the chart
+    :param active_data_mask: Optional live filter state keyed by native filter id
     :returns: DashboardFilterContext with merged extra_form_data and filter metadata
     :raises ValueError: if dashboard not found or chart not on dashboard
     :raises SupersetSecurityException: if the user cannot access the dashboard
@@ -287,7 +322,7 @@ def get_dashboard_filter_context(
         flt_id = flt.get("id", "")
         flt_name = flt.get("name", "")
         target_column = _get_filter_target_column(flt)
-        extra_form_data, status = _extract_filter_extra_form_data(flt)
+        extra_form_data, status = _resolve_filter_extra_form_data(flt, active_data_mask)
 
         if extra_form_data and status == DashboardFilterStatus.APPLIED:
             context.extra_form_data = _merge_extra_form_data(
@@ -304,3 +339,50 @@ def get_dashboard_filter_context(
         )
 
     return context
+
+
+def apply_dashboard_filter_context(  # noqa: C901
+    query_context: dict[str, Any],
+    extra_form_data: dict[str, Any],
+) -> None:
+    """
+    Apply dashboard filter context.
+
+    Filters are removed from ``extra_form_data`` to avoid duplicated values when
+    using ``filter_values()`` macro.
+
+    :param query_context: The chart's query context (mutated in place)
+    :param extra_form_data: The dashboard's merged extra_form_data to apply. It's
+    also mutated in place.
+    """
+    extra_filters = extra_form_data.pop("filters", [])
+    for query in query_context.get("queries", []):
+        if extra_filters:
+            existing_filters = query.get("filters") or []
+            query["filters"] = existing_filters + [
+                {**flt, "isExtra": True} for flt in extra_filters
+            ]
+
+        extras = query.get("extras") or {}
+        for key in EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS:
+            if key in extra_form_data:
+                extras[key] = extra_form_data[key]
+
+        # EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS is originally used with form_data objects,
+        # not query_context objects. form_data objects expect time_grain_sqla as a
+        # top-level key, but query_context objects expect it as an extra key.
+        if custom_time_grain := extra_form_data.get("time_grain_sqla"):
+            extras["time_grain_sqla"] = custom_time_grain
+            # get_time_grain() resolves grain from the first adhoc column (columns[0])
+            columns = query.get("columns") or []
+            if columns and isinstance(columns[0], dict):
+                columns[0]["timeGrain"] = custom_time_grain
+
+        if extras:
+            query["extras"] = extras
+
+        for src_key, target_key in EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS.items():
+            if src_key in extra_form_data:
+                query[target_key] = extra_form_data[src_key]
+
+        query["extra_form_data"] = extra_form_data

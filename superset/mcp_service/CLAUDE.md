@@ -243,17 +243,27 @@ async def my_tool(request: MyRequest, ctx: Context) -> MyResponse:
     # g.user is set automatically before this runs
     ...
 
-# Public tool (no auth) - use sparingly
+# Public tool (no auth) - use sparingly, and add the tool name to
+# ALLOWED_UNPROTECTED in app.py (e.g. generate_bug_report)
 @tool(protect=False)
-async def health_check(ctx: Context) -> dict:
+async def public_status(ctx: Context) -> dict:
     return {"status": "healthy"}
 ```
 
+Note: `health_check` is a protected, authenticated tool (`@tool(tags=["core"], ...)`,
+no `protect=False`) — it is not an example of a public tool.
+
 **Authentication priority order** (in `auth.py`):
-1. JWT context (per-request ContextVar from FastMCP)
+1. JWT context (per-request ContextVar from FastMCP). Also resolves a verified
+   embedded **guest token** to a `GuestUser` when `MCP_EMBEDDED_GUEST_AUTH_ENABLED`
+   + `EMBEDDED_SUPERSET` are on (a guest is never downgraded to a lower priority).
 2. API Key authentication (via FAB SecurityManager)
 3. `MCP_DEV_USERNAME` config (development only)
 4. `g.user` fallback (set by external middleware)
+
+Guest tokens are verified by `GuestTokenVerifier` (in the `CompositeTokenVerifier`,
+before the JWT verifier) using the shared core `GUEST_TOKEN_JWT_*` config, then
+built into a `GuestUser` in `_resolve_user_from_jwt_context`. See `SECURITY.md`.
 
 **`@mcp_auth_hook`** is only used directly on **resources** — tools get auth wrapping from `@tool(protect=True)`.
 
@@ -393,16 +403,25 @@ Used by: `get_chart_info`, `get_chart_preview`, `get_chart_data`, `generate_char
 
 ### 11. Compile Check for Chart Creation
 
-When creating or saving charts, run a compile check to verify the query executes:
+When creating, saving, or previewing charts, run schema validation (Tier 1)
+and optionally a compile check (Tier 2) before persisting or caching.
+``validate_and_compile`` glues both together; tools with tight SLAs
+(``generate_explore_link``, ``update_chart_preview``) opt out of Tier 2.
 
 ```python
-from superset.mcp_service.chart.tool.generate_chart import _compile_chart
+from superset.mcp_service.chart.compile import validate_and_compile
 
-compile_result = _compile_chart(form_data, dataset.id)
-if not compile_result.success:
-    # Delete broken chart, return error
+result = validate_and_compile(
+    config, form_data, dataset, run_compile_check=True
+)
+if not result.success:
+    # ``result.error_obj`` is a ``ChartGenerationError`` with fuzzy-match
+    # suggestions ("did you mean sum_boys?") so the LLM can self-correct.
     ...
 ```
+
+The lower-level ``_compile_chart(form_data, dataset_id)`` is still exported
+for callers that have already done their own schema validation.
 
 ### 12. Flexible Input Parsing
 
@@ -444,8 +463,20 @@ MCP_USER_RESOLVER = None         # Custom function to extract username from JWT
 # RBAC
 MCP_RBAC_ENABLED = True          # Enable permission checking (default: True)
 
-# Request Parsing
-MCP_PARSE_REQUEST_ENABLED = True # Accept JSON string requests (workaround for client bugs)
+# Embedded guest auth (opt-in; requires the EMBEDDED_SUPERSET feature flag).
+# Reuses core GUEST_TOKEN_JWT_* config — no MCP-specific guest secret/audience.
+MCP_EMBEDDED_GUEST_AUTH_ENABLED = False
+# Default-deny: the ONLY tools a guest may call (everything else is denied).
+MCP_GUEST_ALLOWED_TOOLS = {
+    "get_dashboard_info", "get_dashboard_layout", "list_dashboards",
+    "list_charts", "get_chart_info", "get_chart_data", "get_chart_preview",
+}
+# Principal-agnostic extension point: given the current user, return an allow-list
+# (only these tools are callable) or None if unrestricted. Defaults to restricting
+# embedded guests to MCP_GUEST_ALLOWED_TOOLS; override to add other restricted
+# principals without touching the enforcement path.
+MCP_RESTRICTED_TOOL_POLICY = None  # Callable[[user], frozenset[str] | None]
+
 
 # Response Caching (optional, uses in-memory store by default; Redis when MCP_STORE_CONFIG enabled)
 MCP_CACHE_CONFIG = {

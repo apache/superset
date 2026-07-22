@@ -22,6 +22,7 @@ import {
   SupersetClient,
   getClientErrorObject,
   ClientErrorObject,
+  sanitizeHtml,
 } from '@superset-ui/core';
 import setupErrorMessages from 'src/setup/setupErrorMessages';
 
@@ -41,7 +42,7 @@ function showApiMessage(resp: ClientErrorObject) {
   const severity = resp.severity || 'info';
   $(template)
     .addClass(`alert-${severity}`)
-    .append(resp.message || '')
+    .append(sanitizeHtml(resp.message || ''))
     .appendTo($('#alert-container'));
 }
 
@@ -71,12 +72,12 @@ export default function setupApp() {
     });
 
     // for language picker dropdown
-    $('#language-picker a').click(function (
+    $<HTMLAnchorElement>('#language-picker a').click(function (
       ev: JQuery.ClickEvent<
-        HTMLLinkElement,
+        HTMLAnchorElement,
         null,
-        HTMLLinkElement,
-        HTMLLinkElement
+        HTMLAnchorElement,
+        HTMLAnchorElement
       >,
     ) {
       ev.preventDefault();
