@@ -405,12 +405,6 @@
         "default": true,
         "lifecycle": "deprecated",
         "description": "Enable drill-to-detail functionality in charts"
-      },
-      {
-        "name": "ENABLE_JAVASCRIPT_CONTROLS",
-        "default": false,
-        "lifecycle": "deprecated",
-        "description": "Allow JavaScript in chart controls. WARNING: XSS security vulnerability!"
       }
     ]
   }

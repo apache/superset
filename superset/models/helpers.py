@@ -106,7 +106,7 @@ from superset.exceptions import (
 )
 from superset.extensions import feature_flag_manager
 from superset.jinja_context import BaseTemplateProcessor
-from superset.sql.parse import sanitize_clause, SQLScript, SQLStatement
+from superset.sql.parse import has_aggregate, sanitize_clause, SQLScript, SQLStatement
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
@@ -3530,14 +3530,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         template_kwargs = {
             "columns": columns,
-            "from_dttm": from_dttm.isoformat() if from_dttm else None,
             "groupby": groupby,
             "metrics": metrics,
             "row_limit": row_limit,
             "row_offset": row_offset,
             "time_column": granularity,
             "time_grain": time_grain,
-            "to_dttm": to_dttm.isoformat() if to_dttm else None,
             "table_columns": [col.column_name for col in self.columns],
             "filter": filter,
         }
@@ -3576,7 +3574,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         columns_by_name: dict[str, "TableColumn"] = {
             col.column_name: col for col in self.columns
         }
-        quoted_columns_by_name = {quote(k): v for k, v in columns_by_name.items()}
 
         metrics_by_name: dict[str, "SqlMetric"] = {
             m.metric_name: m for m in self.metrics
@@ -3751,7 +3748,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # ``quote()`` + ``_process_select_expression`` (sqlglot
                 # ``sanitize_clause``) path below, which re-serializes the merged
                 # identifier into a table-qualified form that no longer matches
-                # ``quoted_columns_by_name`` and is emitted via ``literal_column``
+                # ``columns_by_name`` and is emitted via ``literal_column``
                 # as a single quoted name — breaking drill to detail / samples
                 # queries on nested columns (SC-111745).
                 # The guard fires for every registered physical column, not only
@@ -3767,31 +3764,29 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     )
                     continue
                 if is_adhoc_column(selected):
-                    _sql = selected["sqlExpression"]
-                    _column_label = selected["label"]
-                elif isinstance(selected, str):
-                    _sql = quote(selected)
-                    _column_label = selected
-
-                selected = self._process_select_expression(
-                    expression=_sql,
-                    database_id=self.database_id,
-                    engine=self.database.backend,
-                    schema=self.schema,
-                    template_processor=template_processor,
-                )
-
-                select_exprs.append(
-                    self.convert_tbl_column_to_sqla_col(
-                        quoted_columns_by_name[selected],
+                    # Delegate to ``adhoc_column_to_sqla`` (same path as the
+                    # ``need_groupby`` branch) so calculated columns are resolved
+                    # via metadata lookup and their expression is inlined
+                    # (#34784).
+                    outer, _unused = self.adhoc_column_to_sqla(
+                        col=selected,
                         template_processor=template_processor,
-                        label=_column_label,
                     )
-                    if selected in quoted_columns_by_name
-                    else self.make_sqla_column_compatible(
-                        literal_column(selected), _column_label
+                    select_exprs.append(outer)
+                    continue
+                if isinstance(selected, str):
+                    selected = self._process_select_expression(
+                        expression=quote(selected),
+                        database_id=self.database_id,
+                        engine=self.database.backend,
+                        schema=self.schema,
+                        template_processor=template_processor,
                     )
-                )
+                    select_exprs.append(
+                        self.make_sqla_column_compatible(
+                            literal_column(selected), selected
+                        )
+                    )
             metrics_exprs = []
 
         time_filters = []
@@ -3849,6 +3844,36 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
                 if time_filter_column is not None:
                     time_filters.append(time_filter_column)
+
+        # Gate on `groupby_all_columns` rather than the raw dimensions: it is the
+        # real GROUP BY signal and also captures the timeseries time bucket. A
+        # non-aggregate Custom SQL metric under a GROUP BY is invalid SQL, so
+        # raise a clear error instead of a raw database one (#38913). Templated
+        # expressions may render to an aggregate at runtime, so leave them alone.
+        if groupby_all_columns:
+            for metric in metrics:
+                if (
+                    utils.is_adhoc_metric(metric)
+                    and metric.get("expressionType")
+                    == utils.AdhocMetricExpressionType.SQL
+                ):
+                    expression = metric.get("sqlExpression")
+                    if (
+                        isinstance(expression, str)
+                        and "{{" not in expression
+                        and "{%" not in expression
+                        and not has_aggregate(expression, self.database.backend)
+                    ):
+                        raise QueryObjectValidationError(
+                            _(
+                                'The Custom SQL metric "%(metric)s" is not an '
+                                "aggregate and can't be combined with a GROUP BY. "
+                                "Wrap it in an aggregate function, e.g. "
+                                "%(example)s.",
+                                metric=utils.get_metric_name(metric),
+                                example="MAX(%s)" % expression,
+                            )
+                        )
 
         # Always remove duplicates by column name, as sometimes `metrics_exprs`
         # can have the same name as a groupby column (e.g. when users use
@@ -4188,7 +4213,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         if row_limit:
             qry = qry.limit(row_limit)
-        if row_offset:
+        if row_offset and self.database.db_engine_spec.supports_offset:
             qry = qry.offset(row_offset)
 
         if series_limit and groupby_series_columns:

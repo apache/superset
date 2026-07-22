@@ -81,7 +81,6 @@ jobs:
         id: changed_files
         env:
           EVENT_NAME: ${{ github.event_name }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
           BEFORE_SHA: ${{ github.event.before }}
         run: |
           set -euo pipefail
@@ -95,7 +94,15 @@ jobs:
           # Resolve the commit to diff against.
           base=""
           if [ "${EVENT_NAME}" = "pull_request" ]; then
-            base="${BASE_SHA}"
+            # HEAD is the PR merge commit, so its first parent is the current
+            # tip of the base branch. github.event.pull_request.base.sha is
+            # NOT that: GitHub freezes it at PR creation, so on a long-lived
+            # PR it points at the original branch point and the diff picks up
+            # all of the base branch's churn since then — thousands of paths,
+            # enough for the CHANGED_FILES env var below to exceed the
+            # kernel's per-variable size limit and kill the step with
+            # "Argument list too long" before bash even starts.
+            base="$(git rev-parse HEAD^1 2>/dev/null || true)"
           elif [ -n "${BEFORE_SHA:-}" ] && \
                [ "${BEFORE_SHA}" != "0000000000000000000000000000000000000000" ]; then
             base="${BEFORE_SHA}"
@@ -113,6 +120,15 @@ jobs:
 
           # Files present in HEAD that changed since the base (drop deletions).
           files="$(git diff --name-only --diff-filter=ACMRT "${base}...HEAD")"
+
+          # Env vars have a hard per-variable size limit (E2BIG at step
+          # start). A PR that legitimately touches thousands of files is
+          # better served by --all-files anyway.
+          if [ "$(printf '%s' "${files}" | wc -c)" -gt 100000 ]; then
+            echo "::notice::Changed-file list too large to pass via env; falling back to --all-files."
+            echo "mode=all" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
 
           if [ -z "${files}" ]; then
             echo "mode=none" >> "$GITHUB_OUTPUT"

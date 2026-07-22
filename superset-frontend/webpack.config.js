@@ -186,6 +186,10 @@ const plugins = [
         requiredVersion: packageConfig.dependencies.antd,
         eager: true,
       },
+      '@apache-superset/core': {
+        singleton: true,
+        eager: true,
+      },
     },
   }),
 ];
@@ -472,7 +476,7 @@ const config = {
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.yml'],
     fallback: {
       fs: false,
-      vm: require.resolve('vm-browserify'),
+      vm: false,
       path: false,
       stream: require.resolve('stream-browserify'),
       ...(isDevMode ? { buffer: require.resolve('buffer/') } : {}), // Fix legacy-plugin-chart-paired-t-test broken Story

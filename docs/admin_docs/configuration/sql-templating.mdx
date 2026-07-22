@@ -39,8 +39,6 @@ made available in the Jinja context:
 
 - `columns`: columns which to group by in the query
 - `filter`: filters applied in the query
-- `from_dttm`: start `datetime` value from the selected time range (`None` if undefined). **Note:** Only available in virtual datasets when a time range filter is applied in Explore/Chart views—not available in standalone SQL Lab queries. (deprecated beginning in version 5.0, use `get_time_filter` instead)
-- `to_dttm`: end `datetime` value from the selected time range (`None` if undefined). **Note:** Only available in virtual datasets when a time range filter is applied in Explore/Chart views—not available in standalone SQL Lab queries. (deprecated beginning in version 5.0, use `get_time_filter` instead)
 - `groupby`: columns which to group by in the query (deprecated)
 - `metrics`: aggregate expressions in the query
 - `row_limit`: row limit of the query
@@ -49,84 +47,25 @@ made available in the Jinja context:
 - `time_column`: temporal column of the query (`None` if undefined)
 - `time_grain`: selected time grain (`None` if undefined)
 
-For example, to add a time range to a virtual dataset, you can write the following:
+For example, to add a time range to a virtual dataset, use the `get_time_filter` macro:
 
 ```sql
+{% set tf = get_time_filter("dttm_col") %}
 SELECT *
 FROM tbl
-WHERE dttm_col > '{{ from_dttm }}' and dttm_col < '{{ to_dttm }}'
+WHERE dttm_col > {{ tf.from_expr }} AND dttm_col <= {{ tf.to_expr }}
 ```
-
-You can also use [Jinja's logic](https://jinja.palletsprojects.com/en/2.11.x/templates/#tests)
-to make your query robust to clearing the timerange filter:
-
-```sql
-SELECT *
-FROM tbl
-WHERE (
-    {% if from_dttm is not none %}
-        dttm_col > '{{ from_dttm }}' AND
-    {% endif %}
-    {% if to_dttm is not none %}
-        dttm_col < '{{ to_dttm }}' AND
-    {% endif %}
-    1 = 1
-)
-```
-
-The `1 = 1` at the end ensures a value is present for the `WHERE` clause even when
-the time filter is not set. For many database engines, this could be replaced with `true`.
 
 Note that the Jinja parameters are called within _double_ brackets in the query and with
 _single_ brackets in the logic blocks.
 
 ### Understanding Context Availability
 
-Some Jinja variables like `from_dttm`, `to_dttm`, and `filter` are **only available when a chart or dashboard provides them**. They are populated from:
+Some Jinja variables like `filter` are **only available when a chart or dashboard provides them**. They are populated from:
 
 - Time range filters applied in Explore/Chart views
 - Dashboard native filters
 - Filter components
-
-**These variables are NOT available in standalone SQL Lab queries** because there's no filter context. If you try to use `{{ from_dttm }}` directly in SQL Lab, you'll get an "undefined parameter" error.
-
-#### Testing Time-Filtered Queries in SQL Lab
-
-To test queries that use time variables in SQL Lab, you have several options:
-
-**Option 1: Use Jinja defaults (recommended)**
-
-```sql
-SELECT *
-FROM tbl
-WHERE dttm_col > '{{ from_dttm | default("2024-01-01", true) }}'
-  AND dttm_col < '{{ to_dttm | default("2024-12-31", true) }}'
-```
-
-**Option 2: Use SQL Lab Parameters**
-
-Set parameters in the SQL Lab UI (Parameters menu):
-```json
-{
-  "from_dttm": "2024-01-01",
-  "to_dttm": "2024-12-31"
-}
-```
-
-**Option 3: Use `{% set %}` for testing**
-
-```sql
-{% set from_dttm = "2024-01-01" %}
-{% set to_dttm = "2024-12-31" %}
-SELECT *
-FROM tbl
-WHERE dttm_col > '{{ from_dttm }}' AND dttm_col < '{{ to_dttm }}'
-```
-
-:::tip
-When you save a SQL Lab query as a virtual dataset and use it in a chart with time filters,
-the actual filter values will override any defaults or test values you set.
-:::
 
 To add custom functionality to the Jinja context, you need to overload the default Jinja
 context in your environment by defining the `JINJA_CONTEXT_ADDONS` in your superset configuration
@@ -479,10 +418,13 @@ Here's a concrete example:
 
 ### Time Filter
 
-The `{{ get_time_filter() }}` macro returns the time filter applied to a specific column. This is useful if you want
-to handle time filters inside the virtual dataset, as by default the time filter is placed on the outer query. This can
-considerably improve performance, as many databases and query engines are able to optimize the query better
-if the temporal filter is placed on the inner query, as opposed to the outer query.
+The `{{ get_time_filter() }}` macro is the standard way to reference the selected time range
+in a virtual dataset. It returns a `TimeFilter` object whose `from_expr` and `to_expr`
+properties are fully-formatted SQL expressions for the start and end of the range — use them
+directly in your `WHERE` clause without quoting.
+
+Placing the filter inside the virtual dataset (rather than relying on it being applied to
+the outer query) also gives many database engines the opportunity to optimize the query better.
 
 The macro takes the following parameters:
 

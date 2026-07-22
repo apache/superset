@@ -199,7 +199,6 @@ describe('spatialUtils', () => {
         latCol: 'latitude',
       },
       size: 'count',
-      js_columns: ['extra_col'],
     } as SpatialFormData;
 
     buildSpatialQuery(formData);
@@ -220,20 +219,21 @@ describe('spatialUtils', () => {
       latCol: 'latitude',
     };
     const metricLabel = 'count';
-    const jsColumns = ['extra'];
 
-    const result = processSpatialData(records, spatial, metricLabel, jsColumns);
+    const result = processSpatialData(records, spatial, metricLabel);
 
     expect(result).toHaveLength(2);
     expect(result[0]).toEqual({
       position: [-122.4, 37.8],
       weight: 10,
-      extraProps: { extra: 'test1' },
+      extraProps: {},
+      extra: 'test1',
     });
     expect(result[1]).toEqual({
       position: [-122.5, 37.9],
       weight: 20,
-      extraProps: { extra: 'test2' },
+      extraProps: {},
+      extra: 'test2',
     });
   });
 
@@ -398,22 +398,21 @@ describe('spatialUtils', () => {
       lonCol: 'longitude',
       latCol: 'latitude',
     };
-    const jsColumns = ['extra_col'];
 
-    const result = processSpatialData(records, spatial, 'count', jsColumns);
+    const result = processSpatialData(records, spatial, 'count');
 
     expect(result[0]).toEqual({
       position: [-122.4, 37.8],
       weight: 10,
-      extraProps: { extra_col: 'extra_value' },
+      extraProps: {},
       category: 'A',
       description: 'Test location',
+      extra_col: 'extra_value',
     });
 
     expect(result[0]).not.toHaveProperty('longitude');
     expect(result[0]).not.toHaveProperty('latitude');
     expect(result[0]).not.toHaveProperty('count');
-    expect(result[0]).not.toHaveProperty('extra_col');
   });
 
   test('transformSpatialProps transforms chart props correctly', () => {
@@ -452,7 +451,6 @@ describe('spatialUtils', () => {
           latCol: 'latitude',
         },
         size: 'count',
-        js_columns: [],
         viewport: {
           zoom: 10,
           latitude: 37.8,
@@ -471,7 +469,6 @@ describe('spatialUtils', () => {
           latCol: 'latitude',
         },
         size: 'count',
-        js_columns: [],
         viewport: {
           zoom: 10,
           latitude: 37.8,

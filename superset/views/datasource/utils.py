@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Iterable, Optional, TYPE_CHECKING
 
+import pandas as pd
 from flask import current_app as app
 
 from superset.commands.dataset.exceptions import DatasetSamplesFailedError
@@ -27,10 +28,11 @@ from superset.common.query_context_factory import QueryContextFactory
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.constants import CacheRegion
 from superset.daos.datasource import DatasourceDAO
-from superset.utils.core import QueryStatus
+from superset.utils.core import extract_dataframe_dtypes, QueryStatus
 from superset.views.datasource.schemas import SamplesPayloadSchema
 
 if TYPE_CHECKING:
+    from superset.common.query_context import QueryContext
     from superset.daos.datasource import Datasource
 
 logger = logging.getLogger(__name__)
@@ -176,11 +178,36 @@ def get_samples(  # pylint: disable=too-many-arguments
         if count_star_data.get("status") == QueryStatus.FAILED:
             raise DatasetSamplesFailedError(count_star_data.get("error"))
 
-        sample_data = samples_instance.get_payload()["queries"][0]
+        engine_spec = datasource.database.db_engine_spec
+        row_offset = limit_clause["row_offset"]
+        row_limit = limit_clause["row_limit"]
 
-        if sample_data.get("status") == QueryStatus.FAILED:
-            QueryCacheManager.delete(count_star_data.get("cache_key"), CacheRegion.DATA)
-            raise DatasetSamplesFailedError(sample_data.get("error"))
+        if not engine_spec.supports_offset and row_offset > 0:
+            try:
+                sample_data = _fetch_samples_via_cursor(
+                    datasource=datasource,
+                    samples_instance=samples_instance,
+                    count_star_data=count_star_data,
+                    page_index=row_offset // row_limit,
+                    page_size=row_limit,
+                )
+            except DatasetSamplesFailedError:
+                raise
+            except Exception as exc:
+                QueryCacheManager.delete(
+                    count_star_data.get("cache_key"), CacheRegion.DATA
+                )
+                logger.exception("Cursor-based samples pagination failed")
+                raise DatasetSamplesFailedError(
+                    "Failed to fetch samples via cursor pagination"
+                ) from exc
+        else:
+            sample_data = samples_instance.get_payload()["queries"][0]
+            if sample_data.get("status") == QueryStatus.FAILED:
+                QueryCacheManager.delete(
+                    count_star_data.get("cache_key"), CacheRegion.DATA
+                )
+                raise DatasetSamplesFailedError(sample_data.get("error") or "")
 
         sample_data["page"] = page
         sample_data["per_page"] = per_page
@@ -188,3 +215,51 @@ def get_samples(  # pylint: disable=too-many-arguments
         return sample_data
     except (IndexError, KeyError) as exc:
         raise DatasetSamplesFailedError from exc
+
+
+def _fetch_samples_via_cursor(
+    datasource: Datasource,
+    samples_instance: QueryContext,
+    count_star_data: dict[str, Any],
+    page_index: int,
+    page_size: int,
+) -> dict[str, Any]:
+    """
+    Fetch a single page of samples via engine-spec cursor pagination.
+
+    Used when ``datasource.database.db_engine_spec.supports_offset`` is
+    False and a non-first page is requested. Compiles the same SQL Superset
+    would run for the normal samples payload — without executing it — and
+    delegates cursor iteration to the engine spec. The engine spec is
+    responsible for stripping any trailing ``LIMIT`` from the SQL so the
+    cursor is not capped to a single page.
+
+    ``coltypes`` are inferred from the returned rows with
+    ``extract_dataframe_dtypes``, the same function the non-cursor path
+    uses to type page 1 — it works off the actual returned values, not
+    ``cursor.description``, so no ES-type-to-coltype translator is needed
+    and no extra query is required to source them.
+    """
+    query_obj = samples_instance.queries[0]
+    sql = samples_instance.datasource.get_query_str(query_obj.to_dict())
+    if not sql:
+        QueryCacheManager.delete(count_star_data.get("cache_key"), CacheRegion.DATA)
+        raise DatasetSamplesFailedError("Empty samples query")
+
+    engine_spec = datasource.database.db_engine_spec
+    rows, colnames = engine_spec.fetch_data_with_cursor(
+        database=datasource.database,
+        sql=sql,
+        page_index=page_index,
+        page_size=page_size,
+    )
+
+    df = pd.DataFrame(rows, columns=colnames)
+    coltypes = extract_dataframe_dtypes(df, datasource)
+
+    return {
+        "data": df.to_dict(orient="records"),
+        "colnames": colnames,
+        "coltypes": coltypes,
+        "status": QueryStatus.SUCCESS,
+    }
