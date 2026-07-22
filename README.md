@@ -185,10 +185,10 @@ Try out Superset's [quickstart](https://superset.apache.org/docs/quickstart/) gu
 
 ## Get Involved
 
-- Ask and answer questions on [StackOverflow](https://stackoverflow.com/questions/tagged/apache-superset) using the **apache-superset** tag
+- Ask and answer questions on [Stack Overflow](https://stackoverflow.com/questions/tagged/apache-superset) using the **apache-superset** tag
 - [Join our community's Slack](http://bit.ly/join-superset-slack)
   and please read our [Slack Community Guidelines](https://github.com/apache/superset/blob/master/CODE_OF_CONDUCT.md#slack-community-guidelines)
-- [Join our dev@superset.apache.org Mailing list](https://lists.apache.org/list.html?dev@superset.apache.org). To join, simply send an email to [dev-subscribe@superset.apache.org](mailto:dev-subscribe@superset.apache.org)
+- [Join our dev@superset.apache.org mailing list](https://lists.apache.org/list.html?dev@superset.apache.org). To join, simply send an email to [dev-subscribe@superset.apache.org](mailto:dev-subscribe@superset.apache.org)
 - Follow us on social media:
   [X](https://x.com/apachesuperset) |
   [LinkedIn](https://www.linkedin.com/company/apache-superset) |
@@ -199,10 +199,9 @@ Try out Superset's [quickstart](https://superset.apache.org/docs/quickstart/) gu
 
 ## Contributor Guide
 
-Interested in contributing? Check out our
+Interested in contributing? Check out
 [Developer Guide](https://superset.apache.org/developer-docs/)
-to find resources around contributing along with a detailed guide on
-how to set up a development environment.
+our Developer Guide for resources and a detailed setup guide.
 
 ## Resources
 
