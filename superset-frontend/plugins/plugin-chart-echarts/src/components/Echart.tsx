@@ -130,11 +130,8 @@ use([
 // code-split exactly the locales listed here. Keys are Superset locales
 // uppercased (see LANGUAGES in superset/config.py); values point at the
 // echarts bundle, whose naming differs for some locales (Slovenian is
-// langSI, Brazilian Portuguese is langPT-br). Only locales that echarts
-// 5.6.0 ships a bundle for are listed — Greek (langEL) and Latvian
-// (langLV) were added in echarts 6 and must stay out until this
-// dependency is upgraded again. Superset locales absent from this map
-// fall back to English.
+// langSI, Brazilian Portuguese is langPT-br). Superset locales absent
+// from this map fall back to English.
 //
 // The "-obj" suffix is required and must not be dropped. echarts ships two
 // UMD builds per locale: langXX.js self-registers under echarts' own key and
@@ -154,6 +151,7 @@ const LOCALE_LOADERS: Record<
   AR: () => import('echarts/i18n/langAR-obj.js'),
   CS: () => import('echarts/i18n/langCS-obj.js'),
   DE: () => import('echarts/i18n/langDE-obj.js'),
+  EL: () => import('echarts/i18n/langEL-obj.js'),
   EN: () => import('echarts/i18n/langEN-obj.js'),
   ES: () => import('echarts/i18n/langES-obj.js'),
   FA: () => import('echarts/i18n/langFA-obj.js'),
@@ -163,6 +161,7 @@ const LOCALE_LOADERS: Record<
   IT: () => import('echarts/i18n/langIT-obj.js'),
   JA: () => import('echarts/i18n/langJA-obj.js'),
   KO: () => import('echarts/i18n/langKO-obj.js'),
+  LV: () => import('echarts/i18n/langLV-obj.js'),
   NL: () => import('echarts/i18n/langNL-obj.js'),
   PL: () => import('echarts/i18n/langPL-obj.js'),
   RO: () => import('echarts/i18n/langRO-obj.js'),
