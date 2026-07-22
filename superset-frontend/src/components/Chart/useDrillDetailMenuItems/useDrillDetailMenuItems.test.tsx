@@ -444,3 +444,47 @@ test('context menu renders <NULL> for null dimension values', async () => {
   await expectDrillToDetailByEnabled();
   await expectDrillToDetailByDimension(filterNull);
 });
+
+const buildStateWithUnsupportedDatasource = () => {
+  const baseState = getMockStoreWithNativeFilters().getState();
+  const datasourceKey = defaultFormData.datasource as string;
+  return {
+    ...baseState,
+    datasources: {
+      ...baseState.datasources,
+      [datasourceKey]: {
+        ...baseState.datasources[datasourceKey],
+        supports_drill_to_detail: false,
+      },
+    },
+  };
+};
+
+test('dropdown keeps unsupported drill visible and disabled', async () => {
+  cleanup();
+  render(<MockRenderChart formData={defaultFormData} />, {
+    useRouter: true,
+    useRedux: true,
+    initialState: buildStateWithUnsupportedDatasource(),
+  });
+
+  await expectDrillToDetailDisabled(
+    'Drill to detail is not available for this datasource type',
+  );
+  await expectNoDrillToDetailBy();
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+});
+
+test('context menu disables both unsupported detail actions', async () => {
+  cleanup();
+  render(<MockRenderChart formData={defaultFormData} isContextMenu />, {
+    useRouter: true,
+    useRedux: true,
+    initialState: buildStateWithUnsupportedDatasource(),
+  });
+
+  const reason = 'Drill to detail is not available for this datasource type';
+  await expectDrillToDetailDisabled(reason);
+  await expectDrillToDetailByDisabled(reason);
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+});

@@ -202,6 +202,19 @@ class Datasource(BaseSupersetView):
             payload = SamplesPayloadSchema().load(request.json)
         except ValidationError as err:
             return json_error_response(err.messages, status=400)
+
+        datasource_class = DatasourceDAO.sources.get(
+            DatasourceType(params["datasource_type"])
+        )
+        if (
+            datasource_class is not None
+            and getattr(datasource_class, "supports_samples", True) is False
+        ):
+            return json_error_response(
+                _("Samples are not available for this datasource type"),
+                status=400,
+            )
+
         dashboard_id = None
         if security_manager.is_guest_user():
             if not params["dashboard_id"]:

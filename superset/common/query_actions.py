@@ -230,6 +230,10 @@ def _get_drill_detail(
     # todo(yongjie): Remove this function,
     #  when determining whether samples should be applied to the time filter.
     datasource = _get_datasource(query_context, query_obj)
+    if getattr(datasource, "supports_drill_to_detail", True) is False:
+        raise QueryObjectValidationError(
+            _("Drill to detail is not available for this datasource type")
+        )
     query_obj = copy.copy(query_obj)
     query_obj.is_timeseries = False
     query_obj.metrics = None

@@ -50,6 +50,7 @@ const DISABLED_REASONS = {
   DATABASE: t(
     'Drill to detail is disabled for this database. Change the database settings to enable it.',
   ),
+  DATASOURCE: t('Drill to detail is not available for this datasource type'),
   NO_AGGREGATIONS: t(
     'Drill to detail is disabled because this chart does not group data by dimension value.',
   ),
@@ -116,6 +117,14 @@ export const useDrillDetailMenuItems = ({
       datasources[formData.datasource]?.database?.disable_drill_to_detail,
   );
 
+  const datasourceSupportsDrillToDetail = useSelector<
+    RootState,
+    boolean | undefined
+  >(
+    ({ datasources }) =>
+      datasources[formData.datasource]?.supports_drill_to_detail,
+  );
+
   const openModal = useCallback(
     (filters: BinaryQueryObjectFilterClause[], event: MouseEvent) => {
       onClick(event);
@@ -158,7 +167,10 @@ export const useDrillDetailMenuItems = ({
 
   let drillDisabled;
   let drillByDisabled;
-  if (drillToDetailDisabled) {
+  if (datasourceSupportsDrillToDetail === false) {
+    drillDisabled = DISABLED_REASONS.DATASOURCE;
+    drillByDisabled = DISABLED_REASONS.DATASOURCE;
+  } else if (drillToDetailDisabled) {
     drillDisabled = DISABLED_REASONS.DATABASE;
     drillByDisabled = DISABLED_REASONS.DATABASE;
   } else if (handlesDimensionContextMenu) {

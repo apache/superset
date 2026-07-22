@@ -244,25 +244,37 @@ export const DataTablesPane = ({
     }
   }, [resultsTabFallback]);
 
+  const showSamplesTab = datasource?.supports_samples !== false;
+
+  useEffect(() => {
+    if (!showSamplesTab && activeTabKey === ResultTypes.Samples) {
+      setActiveTabKey(ResultTypes.Results);
+    }
+  }, [activeTabKey, showSamplesTab]);
+
   const tabItems = [
     ...queryResultsPanes,
-    {
-      key: ResultTypes.Samples,
-      label: t('Samples'),
-      children: (
-        <StyledDiv>
-          <SamplesPane
-            datasource={datasource}
-            queryFormData={queryFormData}
-            queryForce={queryForce}
-            isRequest={isRequest.samples}
-            setForceQuery={setForceQuery}
-            isVisible={ResultTypes.Samples === activeTabKey}
-            canDownload={canDownload}
-          />
-        </StyledDiv>
-      ),
-    },
+    ...(showSamplesTab
+      ? [
+          {
+            key: ResultTypes.Samples,
+            label: t('Samples'),
+            children: (
+              <StyledDiv>
+                <SamplesPane
+                  datasource={datasource}
+                  queryFormData={queryFormData}
+                  queryForce={queryForce}
+                  isRequest={isRequest.samples}
+                  setForceQuery={setForceQuery}
+                  isVisible={ResultTypes.Samples === activeTabKey}
+                  canDownload={canDownload}
+                />
+              </StyledDiv>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (

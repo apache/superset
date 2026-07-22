@@ -74,6 +74,8 @@ export type Datasource = Dataset & {
   schema?: string;
   is_sqllab_view?: boolean;
   extra?: string | object;
+  supports_samples?: boolean;
+  supports_drill_to_detail?: boolean;
 };
 
 export interface ExplorePageInitialData {

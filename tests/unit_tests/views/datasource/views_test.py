@@ -268,6 +268,60 @@ def test_save_always_checks_editorship_even_without_editors_field(
     mock_security_manager.raise_for_editorship.assert_called_once_with(mock_orm)
 
 
+@patch("superset.views.datasource.views._", lambda message: message)
+@patch("superset.views.datasource.views.get_samples")
+@patch("superset.views.datasource.views.json_error_response")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+def test_samples_rejects_unsupported_datasource_before_query(
+    mock_security_manager: MagicMock,
+    mock_json_error_response: MagicMock,
+    mock_get_samples: MagicMock,
+) -> None:
+    """Reject unsupported Samples requests before constructing a query."""
+    from flask import Flask
+
+    mock_security_manager.is_guest_user.return_value = False
+    mock_json_error_response.return_value = "error-response"
+
+    with Flask(__name__).test_request_context(
+        "/datasource/samples?datasource_type=semantic_view&datasource_id=1",
+        method="POST",
+        json={},
+    ):
+        result: str = _get_view_func("samples")(_view_self())
+
+    assert result == "error-response"
+    mock_json_error_response.assert_called_once_with(
+        "Samples are not available for this datasource type",
+        status=400,
+    )
+    mock_get_samples.assert_not_called()
+
+
+@patch("superset.views.datasource.views.get_samples")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+def test_samples_preserves_supported_datasource_behavior(
+    mock_security_manager: MagicMock,
+    mock_get_samples: MagicMock,
+) -> None:
+    """Continue to fetch Samples when a datasource does not opt out."""
+    from flask import Flask
+
+    mock_security_manager.is_guest_user.return_value = False
+    mock_get_samples.return_value = {"rows": []}
+    view = _view_self()
+
+    with Flask(__name__).test_request_context(
+        "/datasource/samples?datasource_type=query&datasource_id=1",
+        method="POST",
+        json={},
+    ):
+        _get_view_func("samples")(view)
+
+    mock_get_samples.assert_called_once()
+    view.json_response.assert_called_once_with({"result": {"rows": []}})
+
+
 @patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
 @patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
 def test_save_non_editor_with_editors_field_is_rejected(

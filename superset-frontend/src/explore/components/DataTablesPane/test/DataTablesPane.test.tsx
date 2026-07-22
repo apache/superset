@@ -19,7 +19,12 @@
 import fetchMock from 'fetch-mock';
 import { FeatureFlag } from '@superset-ui/core';
 import * as copyUtils from 'src/utils/copy';
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { DataTablesPane } from '..';
@@ -65,6 +70,19 @@ describe('DataTablesPane', () => {
   });
 
   test('Should show tabs: View results', async () => {
+    fetchMock.post(
+      'glob:*/api/v1/chart/data?form_data=%7B%22slice_id%22%3A0%7D',
+      {
+        result: [
+          {
+            data: [],
+            colnames: [],
+            coltypes: [],
+            rowcount: 0,
+          },
+        ],
+      },
+    );
     const props = createDataTablesPaneProps(0);
     render(<DataTablesPane {...props} />, {
       useRedux: true,
@@ -78,15 +96,76 @@ describe('DataTablesPane', () => {
   });
 
   test('Should show tabs: View samples', async () => {
+    fetchMock.post(
+      'end:/datasource/samples?force=false&datasource_type=table&datasource_id=34&per_page=100&page=1',
+      {
+        result: {
+          data: [],
+          colnames: [],
+          coltypes: [],
+          rowcount: 0,
+        },
+      },
+    );
     const props = createDataTablesPaneProps(0);
     render(<DataTablesPane {...props} />, {
       useRedux: true,
     });
     userEvent.click(screen.getByText('Samples'));
     expect(
-      await screen.findByText('0 rows', undefined, { timeout: 5000 }),
+      await screen.findByText('No samples were returned for this dataset'),
     ).toBeVisible();
     expect(await screen.findByLabelText('Collapse data panel')).toBeVisible();
+  });
+
+  test('Hides Samples only when the datasource explicitly opts out', async () => {
+    const props = createDataTablesPaneProps(0);
+    render(
+      <DataTablesPane
+        {...props}
+        datasource={{ ...props.datasource, supports_samples: false }}
+      />,
+      { useRedux: true },
+    );
+
+    expect(await screen.findByText('Results')).toBeVisible();
+    expect(screen.queryByText('Samples')).not.toBeInTheDocument();
+  });
+
+  test('Falls back to rendered Results after Samples becomes unavailable', async () => {
+    const props = createDataTablesPaneProps(0);
+    const { rerender } = render(<DataTablesPane {...props} />, {
+      useRedux: true,
+    });
+
+    userEvent.click(screen.getByLabelText('Expand data panel'));
+    userEvent.click(await screen.findByText('Samples'));
+    rerender(
+      <DataTablesPane
+        {...props}
+        datasource={{ ...props.datasource, supports_samples: false }}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(screen.queryByText('Samples')).not.toBeInTheDocument(),
+    );
+    expect(screen.getByText('Results')).toBeVisible();
+    expect(screen.getByLabelText('Collapse data panel')).toBeVisible();
+  });
+
+  test('Shows only an accessible alert when Results loading fails', async () => {
+    fetchMock.post('glob:*/api/v1/chart/data*', 500);
+    const props = createDataTablesPaneProps(999);
+    render(<DataTablesPane {...props} />, { useRedux: true });
+
+    userEvent.click(screen.getByText('Results'));
+    expect(await screen.findByRole('alert')).toBeVisible();
+    expect(await screen.findByText('Failed to load results')).toBeVisible();
+    expect(screen.queryByLabelText('Copy')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Reload')).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    fetchMock.clearHistory().removeRoutes();
   });
 
   test('Should copy data table content correctly', async () => {
