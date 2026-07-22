@@ -219,15 +219,15 @@ def test_get_virtual_table_metadata_renders_jinja(mocker: MockerFixture) -> None
     be rendered via the template processor before SQL parsing. Otherwise the
     raw Jinja tokens reach sqlglot and the parser rejects them as a syntax
     error (the user-visible symptom is "Invalid SQL" when clicking
-    "SYNC COLUMNS FROM SOURCE" on a dataset that uses {{ from_dttm }} etc.).
+    "SYNC COLUMNS FROM SOURCE" on a dataset that uses Jinja macros).
     """
     mock_get_columns_description = mocker.patch(
         "superset.connectors.sqla.utils.get_columns_description",
         return_value=[{"name": "rendered_col", "type": "INTEGER"}],
     )
 
-    raw_sql = "SELECT * FROM tbl WHERE ts > '{{ from_dttm }}'"
-    rendered_sql = "SELECT * FROM tbl WHERE ts > '2024-01-01 00:00:00'"
+    raw_sql = "SELECT * FROM tbl WHERE user_id = {{ current_user_id() }}"
+    rendered_sql = "SELECT * FROM tbl WHERE user_id = 42"
 
     dataset = mocker.MagicMock(sql=raw_sql)
     dataset.database.db_engine_spec.engine = "postgresql"

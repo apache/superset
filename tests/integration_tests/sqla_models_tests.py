@@ -182,12 +182,13 @@ class TestDatabaseModel(SupersetTestCase):
             type="VARCHAR(100)",
             table=table,
         )
-        SqlMetric(
+        metric = SqlMetric(
             metric_name="count_timegrain",
             expression="count('{{ 'bar_' + time_grain }}')",
             table=table,
         )
         db.session.add(column)
+        db.session.add(metric)
         db.session.commit()
 
         sqla_query = table.get_sqla_query(**base_query_obj)
@@ -215,6 +216,7 @@ class TestDatabaseModel(SupersetTestCase):
         metric = SqlMetric(
             metric_name="count_jinja_metric", expression="count(*)", table=table
         )
+        db.session.add(metric)
         db.session.commit()
 
         base_query_obj = {
@@ -557,8 +559,9 @@ def text_column_table(app_context: AppContext):
         database=get_example_database(),
     )
     column = TableColumn(column_name="foo", type="VARCHAR(255)", table=table)
-    SqlMetric(metric_name="count", expression="count(*)", table=table)
+    metric = SqlMetric(metric_name="count", expression="count(*)", table=table)
     db.session.add(column)
+    db.session.add(metric)
     return table
 
 
@@ -738,7 +741,8 @@ def test_should_generate_closed_and_open_time_filter_range(login_as_admin):
         is_dttm=True,
     )
     db.session.add(column)
-    SqlMetric(metric_name="count", expression="count(*)", table=table)
+    metric = SqlMetric(metric_name="count", expression="count(*)", table=table)
+    db.session.add(metric)
     result_object = table.query(
         {
             "metrics": ["count"],
@@ -1016,17 +1020,17 @@ def test_extra_cache_keys_in_dataset_metrics_and_columns(
         ),
     ]
     db.session.add_all(columns)
+    metric = SqlMetric(
+        metric_name="variable_profit",
+        expression="SUM(price) * {{ url_param('multiplier') }}",
+    )
+    db.session.add(metric)
     table = SqlaTable(
         table_name="test_has_no_extra_cache_keys_table",
         sql="SELECT 'abc' as user",
         database=get_example_database(),
         columns=columns,
-        metrics=[
-            SqlMetric(
-                metric_name="variable_profit",
-                expression="SUM(price) * {{ url_param('multiplier') }}",
-            ),
-        ],
+        metrics=[metric],
     )
     query_obj: dict[str, Any] = {
         "granularity": None,
@@ -1189,6 +1193,7 @@ def test_generic_metric_filtering_without_chart_flag(login_as_admin):
         expression="COUNT(*)",
         table=table,
     )
+    db.session.add(metric)
     table.metrics = [metric]
 
     db.session.add(table)
@@ -1247,6 +1252,7 @@ def test_column_ordering_without_chart_flag(login_as_admin):
 
     metric_x = SqlMetric(metric_name="metric_x", expression="COUNT(*)", table=table)
     metric_y = SqlMetric(metric_name="metric_y", expression="SUM(val)", table=table)
+    db.session.add_all([metric_x, metric_y])
     table.metrics = [metric_x, metric_y]
 
     db.session.add(table)
