@@ -19,7 +19,9 @@
 
 from __future__ import annotations
 
+import contextlib
 import copy
+import re
 from contextlib import contextmanager
 from typing import Any, cast, TYPE_CHECKING
 from unittest.mock import MagicMock, patch
@@ -2715,6 +2717,220 @@ def test_adhoc_column_to_sqla_skips_probe_when_not_forced(
         _, generic_type = table.adhoc_column_to_sqla(adhoc_col)
 
     assert generic_type is None
+
+
+class _FakeClickHouseConnectCursor:
+    """
+    Mimics clickhouse-connect 0.14.1's ``cursor.py``: the empty-result
+    metadata fallback -- which backfills ``cursor.description`` for a
+    legitimate zero-row result -- only runs when the executed operation
+    string starts with ``SELECT``/``WITH`` after stripping whitespace. A
+    leading SQL comment (e.g. from SQL_QUERY_MUTATOR) defeats that check.
+    """
+
+    def __init__(self, real_description: list[tuple[object, ...]]) -> None:
+        self._real_description = real_description
+        self.description: list[tuple[object, ...]] | None = None
+        self.arraysize = 0
+        self.executed: list[str] = []
+
+    def execute(self, operation: str, *args: object, **kwargs: object) -> None:
+        self.executed.append(operation)
+        if operation.strip().upper().startswith(("SELECT", "WITH")):
+            self.description = self._real_description
+        else:
+            self.description = []
+
+    def fetchall(self) -> list[tuple[object, ...]]:
+        return []
+
+
+def _mutate_with_attribution_comments(sql_: str, is_split: bool = False) -> str:
+    """
+    Mirrors a typical SQL_QUERY_MUTATOR: leading query-hash/workspace
+    attribution comments plus a trailing query-hash comment.
+    """
+    return (
+        "-- query hash: abc123\n"
+        "-- workspace_slug: acme-corp\n"
+        f"{sql_}\n"
+        "-- query hash: abc123"
+    )
+
+
+def _run_probe_with_real_cursor(
+    database: Database,
+    adhoc_col: AdhocColumn,
+    mocker: MockerFixture,
+    *,
+    with_comment_safe_retry: bool,
+) -> _FakeClickHouseConnectCursor:
+    """
+    Exercise the real ``get_columns_description`` (not mocked out, unlike
+    ``_run_probe``) against a fake cursor that reproduces clickhouse-connect
+    0.14.1's comment-sensitive empty-result metadata fallback, with a mutator
+    that adds leading and trailing SQL comments like Preset's
+    SQL_QUERY_MUTATOR does.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a", type="INTEGER")],
+    )
+
+    real_description: list[tuple[object, ...]] = [
+        ("Duration", "Float64", None, None, None, None, None)
+    ]
+    cursor = _FakeClickHouseConnectCursor(real_description)
+
+    @contextmanager
+    def mock_get_raw_connection(catalog=None, schema=None, **kwargs):
+        connection = MagicMock()
+        connection.cursor.return_value = cursor
+        yield connection
+
+    spec_cls = database.db_engine_spec
+    mocker.patch.object(database, "get_raw_connection", new=mock_get_raw_connection)
+    mocker.patch.object(
+        database,
+        "mutate_sql_based_on_config",
+        new=_mutate_with_attribution_comments,
+    )
+
+    patches: list[Any] = [
+        patch.object(spec_cls, "type_probe_needs_row", False),
+    ]
+    if with_comment_safe_retry:
+        patches.append(
+            patch.object(
+                spec_cls,
+                "get_column_description_retry_sql",
+                new=classmethod(
+                    lambda cls, sql: (
+                        ClickHouseConnectEngineSpec.get_column_description_retry_sql(
+                            sql
+                        )
+                    )
+                ),
+            )
+        )
+
+    with contextlib.ExitStack() as stack:
+        for p in patches:
+            stack.enter_context(p)
+        table.adhoc_column_to_sqla(adhoc_col)
+
+    return cursor
+
+
+@pytest.mark.parametrize(
+    "adhoc_col",
+    [
+        pytest.param(
+            {
+                "sqlExpression": "round(a / 50) * 50 / 1000",
+                "label": "Duration",
+                "columnType": "BASE_AXIS",
+                "timeGrain": "P1D",
+            },
+            id="simple_expression",
+        ),
+        pytest.param(
+            {
+                "sqlExpression": "arrayElement(splitByChar(',', 'a,b,c'), 1)",
+                "label": "Duration",
+                "columnType": "BASE_AXIS",
+                "timeGrain": "P1D",
+            },
+            id="array_syntax_expression",
+        ),
+    ],
+)
+def test_adhoc_column_type_probe_survives_query_mutator_comments_on_clickhouse(
+    database: Database,
+    mocker: MockerFixture,
+    adhoc_col: AdhocColumn,
+) -> None:
+    """
+    Regression test for SC-114843.
+
+    clickhouse-connect 0.14.1 only backfills ``cursor.description`` for a
+    zero-row result when the executed operation string starts with
+    SELECT/WITH after stripping whitespace. SQL_QUERY_MUTATOR prepends
+    query-attribution comments (query hash, workspace_slug) ahead of the
+    SELECT keyword and appends a trailing query-hash comment, which used to
+    make adhoc_column_to_sqla's WHERE FALSE type probe come back with an
+    empty cursor.description and raise ColumnNotFoundException at
+    superset/connectors/sqla/models.py:~1705 -- even though the underlying
+    expression is completely valid and zero rows are read.
+
+    The fix (ClickHouseConnectEngineSpec.get_column_description_retry_sql)
+    must resolve this WITHOUT falling back to a real-row probe, which would
+    reintroduce ClickHouse's max_rows_to_read failures on huge tables.
+    """
+    cursor = _run_probe_with_real_cursor(
+        database, adhoc_col, mocker, with_comment_safe_retry=True
+    )
+
+    # One or more comment-prefixed attempts (which the fake driver -- like
+    # the real one -- can't read metadata from), followed by the
+    # comment-safe wrapped retry as the last execution.
+    assert len(cursor.executed) >= 2
+    *earlier_attempts, retry = cursor.executed
+
+    for attempt in earlier_attempts:
+        assert "query hash" in attempt, "mutator comments must be applied"
+        assert not attempt.strip().upper().startswith(("SELECT", "WITH")), (
+            "prior attempts should still be comment-prefixed, reproducing the bug"
+        )
+
+    assert retry.strip().upper().startswith("SELECT"), (
+        "retry must start with a bare SELECT so clickhouse-connect's "
+        "empty-result fallback triggers"
+    )
+    assert "-- query hash: abc123" in retry, (
+        "retry must preserve the mutator's comments verbatim -- no security/"
+        "audit information should be dropped"
+    )
+    assert "-- workspace_slug: acme-corp" in retry
+    # apply_limit_to_sql reformats the query (via sqlglot), so WHERE and its
+    # condition can land on separate lines -- match loosely on whitespace.
+    always_false_pattern = re.compile(r"where\s+(false|0\s*=\s*1)", re.IGNORECASE)
+    assert always_false_pattern.search(retry), (
+        f"retry must still be a zero-row probe (WHERE false), got: {retry}"
+    )
+    assert retry.strip().lower().endswith("limit 0"), (
+        f"outer wrapper must also guarantee zero rows, got: {retry}"
+    )
+
+
+def test_adhoc_column_type_probe_raises_without_comment_safe_retry_hook(
+    database: Database,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Companion negative-control for SC-114843: confirms the failure mode this
+    fix addresses. Without an engine-spec hook to retry with a comment-safe
+    query, a comment-mutated zero-row probe against a clickhouse-connect-like
+    driver raises ColumnNotFoundException, exactly as it did before this fix.
+    """
+    from superset.exceptions import ColumnNotFoundException
+
+    adhoc_col: AdhocColumn = {
+        "sqlExpression": "round(a / 50) * 50 / 1000",
+        "label": "Duration",
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1D",
+    }
+
+    with pytest.raises(ColumnNotFoundException):
+        _run_probe_with_real_cursor(
+            database, adhoc_col, mocker, with_comment_safe_retry=False
+        )
 
 
 def _normalize_df_datasource(column: object) -> MagicMock:
