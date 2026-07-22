@@ -64,6 +64,15 @@ spec:
                 port:
                   name: ws
           {{- end }}
+          {{- if and $.Values.supersetMcp.enabled $.Values.supersetMcp.ingress.enabled }}
+          - path: {{ $.Values.supersetMcp.ingress.path }}
+            pathType: {{ $.Values.supersetMcp.ingress.pathType }}
+            backend:
+              service:
+                name: "{{ template "superset.fullname" $ }}-mcp"
+                port:
+                  name: mcp
+          {{- end }}
     {{- end }}
   {{- if .Values.ingress.extraHostsRaw }}
     {{- toYaml .Values.ingress.extraHostsRaw | nindent 4 }}

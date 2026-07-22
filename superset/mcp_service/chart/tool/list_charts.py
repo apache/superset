@@ -61,15 +61,6 @@ DEFAULT_CHART_COLUMNS = [
     "changed_on_humanized",
 ]
 
-SORTABLE_CHART_COLUMNS = [
-    "id",
-    "slice_name",
-    "viz_type",
-    "description",
-    "changed_on",
-    "created_on",
-]
-
 _DEFAULT_LIST_CHARTS_REQUEST = ListChartsRequest()
 
 
@@ -104,7 +95,7 @@ async def list_charts(
         list_charts(search="revenue", page=1)  # DO NOT DO THIS
 
     Valid filter columns for ``filters[].col``:
-        ``slice_name``, ``viz_type``, ``datasource_name``,
+        ``slice_name``, ``viz_type``, ``datasource_name``, ``editor``,
         ``created_by_fk``, ``changed_by_fk``, ``dashboards``
 
     Sortable columns for ``order_column``:
@@ -133,6 +124,7 @@ async def list_charts(
         )
     )
 
+    from superset.charts.filters import ChartDeletedStateFilter
     from superset.daos.chart import ChartDAO
     from superset.mcp_service.common.schema_discovery import (
         CHART_SORTABLE_COLUMNS,
@@ -182,6 +174,7 @@ async def list_charts(
         all_columns=all_columns,
         sortable_columns=sortable_columns,
         logger=logger,
+        deleted_state_filter=ChartDeletedStateFilter,
     )
 
     try:
@@ -196,6 +189,7 @@ async def list_charts(
                 page_size=request.page_size,
                 created_by_me=request.created_by_me,
                 edited_by_me=request.edited_by_me,
+                deleted_state=request.deleted_state,
             )
         count = len(result.charts) if hasattr(result, "charts") else 0
         total_pages = getattr(result, "total_pages", None)

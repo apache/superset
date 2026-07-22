@@ -166,6 +166,11 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
 
     supports_dynamic_schema = True
     supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
+    # Not set here: GROUPING SETS support is opted in per-concrete-engine
+    # (``PrestoEngineSpec``, ``TrinoEngineSpec``) rather than on this shared
+    # base, since Hive-family descendants (``HiveEngineSpec``, ``SparkEngineSpec``,
+    # ``DatabricksHiveEngineSpec``) have not been verified against this query
+    # pattern and should not silently inherit it.
     # Presto/Trino don't reliably support IS true/false on computed boolean
     # expressions (e.g. columns defined as `(expiration = 1) AS expiration`),
     # which raises a query error. Use = true/false instead.
@@ -499,7 +504,10 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         if filters:
             l = []  # noqa: E741
             for field, value in filters.items():
-                l.append(f"{field} = '{value}'")
+                # Escape single quotes so a ``'`` in the caller-supplied value
+                # cannot break out of the SQL string literal. See #41869.
+                escaped_value: str = str(value).replace("'", "''")
+                l.append(f"{field} = '{escaped_value}'")
             where_clause = "WHERE " + " AND ".join(l)
 
         # Partition select syntax changed in v0.199, so check here.
@@ -672,9 +680,9 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
             )
 
         part_fields = indexes[0]["column_names"]
-        for k in kwargs.keys():  # pylint: disable=consider-iterating-dictionary
-            if k not in k in part_fields:  # pylint: disable=comparison-with-itself
-                msg = f"Field [{k}] is not part of the portioning key"
+        for k in kwargs:
+            if k not in part_fields:
+                msg: str = f"Field [{k}] is not part of the partitioning key"
                 raise SupersetTemplateException(msg)
         if len(kwargs.keys()) != len(part_fields) - 1:
             # pylint: disable=consider-using-f-string
@@ -911,6 +919,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
     engine = "presto"
     engine_name = "Presto"
     allows_alias_to_source_column = False
+    supports_grouping_sets = True
 
     metadata = {
         "description": "Presto is a distributed SQL query engine for big data.",

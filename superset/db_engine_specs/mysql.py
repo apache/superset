@@ -238,6 +238,11 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
             LONGTEXT(),
             GenericDataType.STRING,
         ),
+        (
+            re.compile(r"^var_string", re.IGNORECASE),
+            types.VARCHAR(),
+            GenericDataType.STRING,
+        ),
     )
     column_type_mutators: dict[types.TypeEngine, Callable[[Any], Any]] = {
         DECIMAL: lambda val: Decimal(val) if isinstance(val, str) else val
