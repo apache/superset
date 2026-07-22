@@ -94,7 +94,11 @@ export const loadLocale = async (
     // Depending on the module system, the locale object is either the
     // module's default export or the module namespace itself.
     const localeObj = mod.default ?? (mod as unknown as EChartsLocaleOption);
-    if (localeObj && Object.keys(localeObj).length > 0) {
+    // registerLocale replaces any builtin entry under the same key, and
+    // `time` is the section whose absence crashes every time-axis chart, so
+    // a locale without it (an empty or partial bundle) must not be
+    // registered. Fall back to the builtin locale instead.
+    if (localeObj?.time) {
       return localeObj;
     }
   } catch {

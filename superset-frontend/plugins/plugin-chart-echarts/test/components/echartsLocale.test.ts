@@ -57,22 +57,26 @@ test('registering the loaded EN locale keeps time-axis charts rendering', async 
     height: 300,
     locale: 'EN',
   });
-  chart.setOption(
-    {
-      xAxis: { type: 'time' },
-      yAxis: { type: 'value' },
-      series: [
-        {
-          type: 'line',
-          data: [
-            [new Date(1965, 0, 1).getTime(), 100],
-            [new Date(1985, 0, 1).getTime(), 200],
-            [new Date(2005, 0, 1).getTime(), 150],
-          ],
-        },
-      ],
-    },
-    { notMerge: true, lazyUpdate: false },
-  );
-  expect(chart.renderToSVGString()).toContain('<svg');
+  try {
+    chart.setOption(
+      {
+        xAxis: { type: 'time' },
+        yAxis: { type: 'value' },
+        series: [
+          {
+            type: 'line',
+            data: [
+              [new Date(1965, 0, 1).getTime(), 100],
+              [new Date(1985, 0, 1).getTime(), 200],
+              [new Date(2005, 0, 1).getTime(), 150],
+            ],
+          },
+        ],
+      },
+      { notMerge: true, lazyUpdate: false },
+    );
+    expect(chart.renderToSVGString()).toContain('<svg');
+  } finally {
+    chart.dispose();
+  }
 });
