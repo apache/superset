@@ -64,6 +64,13 @@ def test_columns_x_axis_dict_without_column_name_is_ignored() -> None:
     assert columns_from_form_data(form_data) == ["region"]
 
 
+def test_columns_empty_columns_key_does_not_shadow_groupby() -> None:
+    # A stale, explicitly-present-but-empty ``columns`` key must not drop the
+    # group-by dimensions (which would silently change the aggregation).
+    form_data = {"groupby": ["country"], "columns": []}
+    assert columns_from_form_data(form_data) == ["country"]
+
+
 def test_build_context_maps_groupby_metrics_and_filters() -> None:
     form_data = {
         "groupby": ["country"],
@@ -102,6 +109,34 @@ def test_build_context_big_number_singular_metric_and_default_time_range() -> No
     assert query["time_range"] == "No filter"
     # No row_limit in form data → not forced into the query.
     assert "row_limit" not in query
+
+
+def test_build_context_merges_legacy_and_adhoc_filters() -> None:
+    # Legacy charts store simple filters directly under ``filters`` (already in
+    # QueryObject shape); they are honored alongside adhoc_filters, and malformed
+    # entries are dropped.
+    form_data = {
+        "groupby": ["country"],
+        "adhoc_filters": [
+            {
+                "expressionType": "SIMPLE",
+                "subject": "year",
+                "operator": ">",
+                "comparator": 2000,
+            },
+        ],
+        "filters": [
+            {"col": "region", "op": "==", "val": "EMEA"},
+            {"not_a_filter": True},
+        ],
+    }
+
+    query = build_query_context_from_form_data(form_data, DATASOURCE)["queries"][0]
+
+    assert query["filters"] == [
+        {"col": "year", "op": ">", "val": 2000},
+        {"col": "region", "op": "==", "val": "EMEA"},
+    ]
 
 
 def test_build_context_falls_back_to_granularity_sqla_column() -> None:

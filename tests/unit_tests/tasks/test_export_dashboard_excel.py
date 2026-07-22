@@ -295,6 +295,25 @@ def test_eligible_viz_skipped_when_form_data_unusable(
     mocks["ChartDataCommand"].return_value.run.assert_called_once()
 
 
+@pytest.mark.parametrize(
+    ("configured", "expected"),
+    [
+        (None, {"table", "big_number_total", "big_number", "pie"}),  # default
+        (set(), set()),  # explicit empty set disables rebuild entirely
+        ({"table"}, {"table"}),  # explicit override
+    ],
+)
+def test_rebuild_viz_types_respects_explicit_empty_set(
+    configured: set[str] | None, expected: set[str]
+) -> None:
+    from superset.tasks import export_dashboard_excel as module
+
+    fake_app = mock.MagicMock()
+    fake_app.config.get.return_value = configured
+    with mock.patch.object(module, "current_app", fake_app):
+        assert module._rebuild_viz_types() == expected
+
+
 def test_chart_query_error_grouped_as_general_export_continues(
     mocks: dict[str, Any],
 ) -> None:
