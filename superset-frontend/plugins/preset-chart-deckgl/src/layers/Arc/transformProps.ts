@@ -24,6 +24,7 @@ import {
   addPropertiesToFeature,
 } from '../transformUtils';
 import { DeckArcFormData } from './buildQuery';
+import { NULL_CATEGORY_KEY } from '../../utils';
 
 interface ArcPoint {
   sourcePosition: [number, number];
@@ -65,8 +66,11 @@ function processArcData(
         extraProps: {},
       };
 
-      if (dimension && record[dimension] != null) {
-        arcPoint.cat_color = String(record[dimension]);
+      if (dimension) {
+        arcPoint.cat_color =
+          record[dimension] != null
+            ? String(record[dimension])
+            : NULL_CATEGORY_KEY;
       }
 
       // eslint-disable-next-line no-underscore-dangle

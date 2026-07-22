@@ -18,6 +18,7 @@
  */
 import { ChartProps, DatasourceType } from '@superset-ui/core';
 import transformProps from './transformProps';
+import { NULL_CATEGORY_KEY } from '../../utils';
 
 interface PathFeature {
   path: [number, number][];
@@ -318,6 +319,35 @@ test('Path transformProps should set cat_color from dimension column', () => {
   expect(features[0]?.cat_color).toBe('express');
   expect(features[1]?.cat_color).toBe('local');
   expect(features[2]?.cat_color).toBe('express');
+});
+
+test('Path transformProps should fall back to NULL_CATEGORY_KEY for empty dimension values', () => {
+  const props = {
+    ...mockChartProps,
+    rawFormData: {
+      ...mockChartProps.rawFormData,
+      dimension: 'route_type',
+    },
+    queriesData: [
+      {
+        data: [
+          { path_json: samplePath1, route_type: 'express' },
+          { path_json: samplePath2, route_type: null },
+          { path_json: samplePath3, route_type: undefined },
+        ],
+      },
+    ],
+  };
+
+  const result = transformProps(props as ChartProps);
+  const features = result.payload.data.features as PathFeature[];
+
+  // Path emits features in reverse record order.
+  expect(features.map(f => f.cat_color)).toEqual([
+    NULL_CATEGORY_KEY,
+    NULL_CATEGORY_KEY,
+    'express',
+  ]);
 });
 
 test('Path transformProps should include metric labels when breakpoint_metric is set', () => {

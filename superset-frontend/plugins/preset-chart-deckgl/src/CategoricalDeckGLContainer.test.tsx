@@ -26,6 +26,7 @@ import CategoricalDeckGLContainer, {
 } from './CategoricalDeckGLContainer';
 import { addColorToFeatures } from './utils/addColor';
 import { COLOR_SCHEME_TYPES } from './utilities/utils';
+import { NULL_CATEGORY_KEY } from './utils';
 
 // maplibre-gl 6 is ESM-only, so jest can't resolve it; DeckGLContainer.tsx
 // calls setWorkerUrl() on it at import time.
@@ -274,4 +275,26 @@ test('with autozoom a tilt written back by Explore keeps the viewer on the same 
     </ThemeProvider>,
   );
   expect(mockViewports.at(-1)).toEqual(fitted);
+});
+
+test('rows with a null dimension get their own legend category', () => {
+  const fd = {
+    datasource: '1__table',
+    viz_type: 'deck_scatter',
+    color_scheme_type: COLOR_SCHEME_TYPES.categorical_palette,
+    color_scheme: 'supersetColors',
+    dimension: 'category',
+    slice_id: 42,
+    color_picker: { r: 0, g: 0, b: 0, a: 1 },
+  } as unknown as QueryFormData;
+  const data = [{ cat_color: 'A' }, { cat_color: NULL_CATEGORY_KEY }];
+
+  const categories = getCategories(fd, data);
+
+  expect(categories[NULL_CATEGORY_KEY]?.enabled).toBe(true);
+  expect(categories[NULL_CATEGORY_KEY]?.color).toBeDefined();
+
+  // Without a category entry the container drops the feature entirely, which is
+  // how null-dimension rows used to disappear from the map.
+  expect(data.filter(d => categories[d.cat_color]?.enabled)).toHaveLength(2);
 });
