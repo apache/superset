@@ -54,7 +54,7 @@ def test_create_chart_command_forbidden_when_no_datasource_access() -> None:
             side_effect=_security_exception(),
         ):
             with patch(
-                "superset.commands.chart.create.CreateChartCommand.populate_owners",
+                "superset.commands.chart.create.populate_subjects",
                 return_value=[],
             ):
                 command = CreateChartCommand(
@@ -82,7 +82,7 @@ def test_create_chart_command_allowed_when_access_passes() -> None:
     ):
         with patch("superset.commands.chart.create.security_manager.raise_for_access"):
             with patch(
-                "superset.commands.chart.create.CreateChartCommand.populate_owners",
+                "superset.commands.chart.create.populate_subjects",
                 return_value=[],
             ):
                 with patch(
@@ -100,6 +100,42 @@ def test_create_chart_command_allowed_when_access_passes() -> None:
                     command.validate()  # should not raise
 
 
+def test_create_chart_command_delegates_editors_to_subjects() -> None:
+    """CreateChartCommand.validate() must resolve editor subject IDs."""
+    from superset.commands.chart.create import CreateChartCommand
+
+    mock_datasource = MagicMock()
+    mock_datasource.name = "test_table"
+
+    with patch(
+        "superset.commands.chart.create.get_datasource_by_id",
+        return_value=mock_datasource,
+    ):
+        with patch("superset.commands.chart.create.security_manager.raise_for_access"):
+            with patch(
+                "superset.commands.chart.create.DashboardDAO.find_by_ids",
+                return_value=[],
+            ):
+                with patch(
+                    "superset.commands.chart.create.populate_subjects",
+                    return_value=None,
+                ) as populate_subjects:
+                    command = CreateChartCommand(
+                        {
+                            "slice_name": "test",
+                            "viz_type": "bar",
+                            "datasource_id": 1,
+                            "datasource_type": "table",
+                            "editors": [7],
+                        }
+                    )
+                    command.validate()
+
+    properties, exceptions = populate_subjects.call_args.args
+    assert properties["editors"] == [7]
+    assert exceptions == []
+
+
 # ---------------------------------------------------------------------------
 # UpdateChartCommand
 # ---------------------------------------------------------------------------
@@ -112,7 +148,7 @@ def test_update_chart_command_forbidden_when_no_datasource_access() -> None:
 
     mock_chart = MagicMock()
     mock_chart.id = 1
-    mock_chart.owners = []
+    mock_chart.editors = []
     mock_chart.dashboards = []
     mock_chart.tags = []
 
@@ -121,10 +157,10 @@ def test_update_chart_command_forbidden_when_no_datasource_access() -> None:
         return_value=mock_chart,
     ):
         with patch(
-            "superset.commands.chart.update.security_manager.raise_for_ownership"
+            "superset.commands.chart.update.security_manager.raise_for_editorship"
         ):
             with patch(
-                "superset.commands.chart.update.UpdateChartCommand.compute_owners",
+                "superset.commands.chart.update.compute_subjects",
                 return_value=[],
             ):
                 with patch("superset.commands.chart.update.validate_tags"):

@@ -30,6 +30,7 @@ import {
   type FilterState,
   type JsonObject,
   type AgGridChartState,
+  handleKeyboardActivation,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import type { ChartState, Datasource, ChartStatus } from 'src/explore/types';
@@ -439,6 +440,30 @@ function Chart({
     );
   }
 
+  if (chartStatus === 'stopped') {
+    return (
+      <EmptyState
+        size="large"
+        title={chartAlert || t('Updating chart was stopped')}
+        description={
+          <span>
+            {t('Run a new query using the "Update chart" button or')}{' '}
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={onQuery}
+              onKeyDown={handleKeyboardActivation(() => onQuery?.())}
+            >
+              {t('click here')}
+            </span>
+            .
+          </span>
+        }
+        image="chart.svg"
+      />
+    );
+  }
+
   if (errorMessage && ensureIsArray(queriesResponse).length === 0) {
     return (
       <EmptyState
@@ -465,7 +490,12 @@ function Chart({
             {t(
               'Click on "Create chart" button in the control panel on the left to preview a visualization or',
             )}{' '}
-            <span role="button" tabIndex={0} onClick={onQuery}>
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={onQuery}
+              onKeyDown={handleKeyboardActivation(() => onQuery?.())}
+            >
               {t('click here')}
             </span>
             .

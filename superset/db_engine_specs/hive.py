@@ -96,6 +96,11 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     supports_dynamic_schema = True
     supports_cross_catalog_queries = False
+    # Explicitly opt out (overriding the inherited PrestoEngineSpec value):
+    # Hive/Spark's GROUPING SETS + GROUPING() marker semantics have not been
+    # verified against this query pattern, so fall back to one query per
+    # rollup level instead of assuming native support.
+    supports_grouping_sets: bool = False
 
     metadata = {
         "description": (
@@ -234,7 +239,8 @@ class HiveEngineSpec(PrestoEngineSpec):
                 catalog=table.catalog,
                 schema=table.schema,
             ) as engine:
-                engine.execute(f"DROP TABLE IF EXISTS {str(table)}")
+                with engine.begin() as conn:
+                    conn.execute(text(f"DROP TABLE IF EXISTS {str(table)}"))
 
         def _get_hive_type(dtype: np.dtype[Any]) -> str:
             hive_type_by_dtype = {
@@ -260,22 +266,25 @@ class HiveEngineSpec(PrestoEngineSpec):
                 catalog=table.catalog,
                 schema=table.schema,
             ) as engine:
-                engine.execute(
-                    text(
-                        f"""
-                        CREATE TABLE {str(table)} ({schema_definition})
-                        STORED AS PARQUET
-                        LOCATION :location
-                        """
-                    ),
-                    location=upload_to_s3(
-                        filename=file.name,
-                        upload_prefix=app.config["CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"](
-                            database, g.user, table.schema
+                with engine.begin() as conn:
+                    conn.execute(
+                        text(
+                            f"""
+                            CREATE TABLE {str(table)} ({schema_definition})
+                            STORED AS PARQUET
+                            LOCATION :location
+                            """
                         ),
-                        table=table,
-                    ),
-                )
+                        {
+                            "location": upload_to_s3(
+                                filename=file.name,
+                                upload_prefix=app.config[
+                                    "CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"
+                                ](database, g.user, table.schema),
+                                table=table,
+                            ),
+                        },
+                    )
 
     @classmethod
     def convert_dttm(

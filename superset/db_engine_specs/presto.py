@@ -33,7 +33,7 @@ import pandas as pd
 from flask import current_app as app
 from flask_babel import gettext as __, lazy_gettext as _
 from packaging.version import Version
-from sqlalchemy import Column, literal_column, types
+from sqlalchemy import Column, literal_column, text, types
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.result import Row as ResultRow
@@ -166,6 +166,11 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
 
     supports_dynamic_schema = True
     supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
+    # Not set here: GROUPING SETS support is opted in per-concrete-engine
+    # (``PrestoEngineSpec``, ``TrinoEngineSpec``) rather than on this shared
+    # base, since Hive-family descendants (``HiveEngineSpec``, ``SparkEngineSpec``,
+    # ``DatabricksHiveEngineSpec``) have not been verified against this query
+    # pattern and should not silently inherit it.
     # Presto/Trino don't reliably support IS true/false on computed boolean
     # expressions (e.g. columns defined as `(expiration = 1) AS expiration`),
     # which raises a query error. Use = true/false instead.
@@ -326,7 +331,8 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         """
         Get all catalogs.
         """
-        return {catalog for (catalog,) in inspector.bind.execute("SHOW CATALOGS")}
+        with inspector.engine.connect() as conn:
+            return {catalog for (catalog,) in conn.execute(text("SHOW CATALOGS"))}
 
     @classmethod
     def adjust_engine_params(
@@ -498,7 +504,10 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         if filters:
             l = []  # noqa: E741
             for field, value in filters.items():
-                l.append(f"{field} = '{value}'")
+                # Escape single quotes so a ``'`` in the caller-supplied value
+                # cannot break out of the SQL string literal. See #41869.
+                escaped_value: str = str(value).replace("'", "''")
+                l.append(f"{field} = '{escaped_value}'")
             where_clause = "WHERE " + " AND ".join(l)
 
         # Partition select syntax changed in v0.199, so check here.
@@ -636,6 +645,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         cls,
         database: Database,
         table: Table,
+        indexes: list[dict[str, Any]] | None = None,
         **kwargs: Any,
     ) -> Any:
         """Returns the latest (max) partition value for a table
@@ -660,11 +670,19 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         >>> latest_sub_partition('sub_partition_table', event_type='click')
         '2018-01-01'
         """
-        indexes = database.get_indexes(table)
+        if indexes is None:
+            indexes = database.get_indexes(table)
+
+        if not indexes:
+            raise SupersetTemplateException(
+                f"Error getting partition for {table}. "
+                "Verify that this table has a partition."
+            )
+
         part_fields = indexes[0]["column_names"]
-        for k in kwargs.keys():  # pylint: disable=consider-iterating-dictionary
-            if k not in k in part_fields:  # pylint: disable=comparison-with-itself
-                msg = f"Field [{k}] is not part of the portioning key"
+        for k in kwargs:
+            if k not in part_fields:
+                msg: str = f"Field [{k}] is not part of the partitioning key"
                 raise SupersetTemplateException(msg)
         if len(kwargs.keys()) != len(part_fields) - 1:
             # pylint: disable=consider-using-f-string
@@ -703,7 +721,8 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         :return: list of column objects
         """
         full_table_name = cls.quote_table(table, inspector.engine.dialect)
-        return inspector.bind.execute(f"SHOW COLUMNS FROM {full_table_name}").fetchall()
+        with inspector.engine.connect() as conn:
+            return conn.execute(text(f"SHOW COLUMNS FROM {full_table_name}")).fetchall()
 
     @classmethod
     def _create_column_info(
@@ -900,6 +919,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
     engine = "presto"
     engine_name = "Presto"
     allows_alias_to_source_column = False
+    supports_grouping_sets = True
 
     metadata = {
         "description": "Presto is a distributed SQL query engine for big data.",

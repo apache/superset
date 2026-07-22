@@ -29,18 +29,15 @@ import asyncio
 import base64
 import html as html_module
 import logging
+import math
 import time
 from collections.abc import Callable
 from contextvars import ContextVar
 from typing import Any, cast
 
 import httpx
-from authlib.jose.errors import (
-    BadSignatureError,
-    DecodeError,
-    ExpiredTokenError,
-    JoseError,
-)
+from authlib.jose import JsonWebToken
+from authlib.jose.errors import JoseError
 from fastmcp.server.auth.auth import AccessToken
 from fastmcp.server.auth.providers.jwt import JWTVerifier
 from mcp.server.auth.middleware.auth_context import AuthContextMiddleware
@@ -397,6 +394,10 @@ class MCPJWTVerifier(JWTVerifier):
         # is unset, so self.algorithm is always truthy post-construction).
         explicit_algorithm = kwargs.get("algorithm")
         super().__init__(*args, **kwargs)
+        # fastmcp >= 3.4.2 removed self.jwt from JWTVerifier (switched to joserfc
+        # internally). Restore it here using authlib so that load_access_token()
+        # can continue to call self.jwt.decode() with the raw verification key.
+        self.jwt = JsonWebToken([self.algorithm])
         # Surface permissive auth configuration at startup. Config-gated:
         # a verifier is only built when auth is enabled (see mcp_config).
         # Prefer the raw MCP_JWT_ALGORITHM config value over the constructor
@@ -491,7 +492,7 @@ class DetailedJWTVerifier(MCPJWTVerifier):
             # Step 1: Decode header and check algorithm
             try:
                 header = self._decode_token_header(token)
-            except (ValueError, DecodeError) as e:
+            except ValueError as e:
                 reason = "Malformed token header"
                 _jwt_failure_reason.set(reason)
                 logger.debug("Malformed token header: %s", e)
@@ -511,7 +512,17 @@ class DetailedJWTVerifier(MCPJWTVerifier):
                     _sanitize_for_log(token_alg),
                 )
                 return None
-            if self.algorithm and token_alg != self.algorithm:
+            # Require a pinned signing algorithm. Without one, the accepted
+            # algorithm family would be whatever the verification key or the
+            # underlying library permits; refuse rather than validating against
+            # an unconstrained algorithm set. The production factory always
+            # pins an algorithm, so this guards the directly-constructed case.
+            if not self.algorithm:
+                reason = "No signing algorithm pinned"
+                _jwt_failure_reason.set(reason)
+                logger.debug("Rejected token: verifier has no pinned signing algorithm")
+                return None
+            if token_alg != self.algorithm:
                 reason = "Algorithm mismatch"
                 _jwt_failure_reason.set(reason)
                 logger.debug(
@@ -566,18 +577,16 @@ class DetailedJWTVerifier(MCPJWTVerifier):
             # Step 3: Decode and verify signature
             try:
                 claims = self.jwt.decode(token, verification_key)
-            except BadSignatureError:
-                reason = "Signature verification failed"
-                _jwt_failure_reason.set(reason)
-                return None
-            except ExpiredTokenError:
-                reason = "Token has expired (detected during decode)"
-                _jwt_failure_reason.set(reason)
-                return None
             except JoseError as e:
-                reason = "Token decode failed"
+                error_code = getattr(e, "error", None)
+                if error_code == "bad_signature":
+                    reason = "Signature verification failed"
+                elif error_code == "expired_token":
+                    reason = "Token has expired (detected during decode)"
+                else:
+                    reason = "Token decode failed"
+                    logger.debug("Token decode failed: %s", e)
                 _jwt_failure_reason.set(reason)
-                logger.debug("Token decode failed: %s", e)
                 return None
 
             # Extract client ID for logging
@@ -596,6 +605,24 @@ class DetailedJWTVerifier(MCPJWTVerifier):
                 _jwt_failure_reason.set(reason)
                 logger.debug(
                     "Token missing required exp claim for client '%s'",
+                    _sanitize_for_log(client_id),
+                )
+                return None
+            # ``exp`` must be a finite real number. A non-numeric value would
+            # raise ``TypeError`` on the comparison below, and a non-finite
+            # float (e.g. ``inf`` parsed from a JSON ``1e309``) would overflow
+            # the ``int(exp)`` cast later, raising ``OverflowError``. Both are
+            # rejected here with a precise reason rather than escaping as a
+            # generic failure (or, for the overflow, an uncaught 500).
+            if (
+                not isinstance(exp, (int, float))
+                or isinstance(exp, bool)
+                or not math.isfinite(exp)
+            ):
+                reason = "Token has invalid expiration"
+                _jwt_failure_reason.set(reason)
+                logger.debug(
+                    "Token exp claim is not a finite number for client '%s'",
                     _sanitize_for_log(client_id),
                 )
                 return None
@@ -703,7 +730,14 @@ class DetailedJWTVerifier(MCPJWTVerifier):
                 claims=dict(claims),
             )
 
-        except (ValueError, JoseError, KeyError, AttributeError, TypeError) as e:
+        except (
+            ValueError,
+            JoseError,
+            KeyError,
+            AttributeError,
+            TypeError,
+            OverflowError,
+        ) as e:
             reason = "Token validation failed"
             _jwt_failure_reason.set(reason)
             logger.debug("Token validation failed: %s", e)

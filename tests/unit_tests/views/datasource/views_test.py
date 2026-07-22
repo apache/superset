@@ -220,23 +220,22 @@ def test_external_metadata_by_name_no_datasource_raises_when_access_denied(
 
 
 # ---------------------------------------------------------------------------
-# Datasource.save — ownership bypass prevention
+# Datasource.save — editorship bypass prevention
 # ---------------------------------------------------------------------------
 
 
 @patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
 @patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
-def test_save_always_checks_ownership_even_without_owners_field(
+def test_save_always_checks_editorship_even_without_editors_field(
     mock_get_datasource: MagicMock,
     mock_security_manager: MagicMock,
 ) -> None:
-    """Ownership check runs even when 'owners' is absent from the payload."""
+    """Editorship check runs even when 'editors' is absent from the payload."""
     mock_orm = MagicMock()
-    mock_orm.owner_class = MagicMock()  # not None — model supports ownership
     mock_get_datasource.return_value = mock_orm
-    mock_security_manager.raise_for_ownership.side_effect = SupersetSecurityException(
+    mock_security_manager.raise_for_editorship.side_effect = SupersetSecurityException(
         SupersetError(
-            message="Not an owner",
+            message="Not an editor",
             error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
             level=ErrorLevel.WARNING,
         )
@@ -258,7 +257,7 @@ def test_save_always_checks_ownership_even_without_owners_field(
                     "type": "table",
                     "database": {"id": 1},
                     "columns": [],
-                    # 'owners' intentionally omitted
+                    # 'editors' intentionally omitted
                 }
             )
         },
@@ -266,22 +265,21 @@ def test_save_always_checks_ownership_even_without_owners_field(
         with pytest.raises(DatasetForbiddenError):
             raw_save(_view_self())
 
-    mock_security_manager.raise_for_ownership.assert_called_once_with(mock_orm)
+    mock_security_manager.raise_for_editorship.assert_called_once_with(mock_orm)
 
 
 @patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
 @patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
-def test_save_non_owner_with_owners_field_is_rejected(
+def test_save_non_editor_with_editors_field_is_rejected(
     mock_get_datasource: MagicMock,
     mock_security_manager: MagicMock,
 ) -> None:
-    """A non-owner cannot use the save endpoint even when supplying an owners list."""
+    """A non-editor cannot use the save endpoint even when supplying an editors list."""
     mock_orm = MagicMock()
-    mock_orm.owner_class = MagicMock()
     mock_get_datasource.return_value = mock_orm
-    mock_security_manager.raise_for_ownership.side_effect = SupersetSecurityException(
+    mock_security_manager.raise_for_editorship.side_effect = SupersetSecurityException(
         SupersetError(
-            message="Not an owner",
+            message="Not an editor",
             error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
             level=ErrorLevel.WARNING,
         )
@@ -303,7 +301,7 @@ def test_save_non_owner_with_owners_field_is_rejected(
                     "type": "table",
                     "database": {"id": 1},
                     "columns": [],
-                    "owners": [99],  # attacker-supplied owners list
+                    "editors": [99],  # attacker-supplied editors list
                 }
             )
         },
@@ -311,4 +309,4 @@ def test_save_non_owner_with_owners_field_is_rejected(
         with pytest.raises(DatasetForbiddenError):
             raw_save(_view_self())
 
-    mock_security_manager.raise_for_ownership.assert_called_once_with(mock_orm)
+    mock_security_manager.raise_for_editorship.assert_called_once_with(mock_orm)

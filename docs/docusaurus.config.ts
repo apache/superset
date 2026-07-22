@@ -749,7 +749,7 @@ const config: Config = {
           showReadingTime: true,
           // Please change this to your repo.
           editUrl:
-            'https://github.com/facebook/docusaurus/edit/main/website/blog/',
+            'https://github.com/apache/superset/tree/master/docs',
         },
         theme: {
           customCss: require.resolve('./src/styles/custom.css'),

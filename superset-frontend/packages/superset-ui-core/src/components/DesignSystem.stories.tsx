@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Markdown from 'markdown-to-jsx';
+import MarkdownToJsx from 'markdown-to-jsx';
 import AtomicDesign from './atomic-design.png';
 
 export default {
@@ -25,7 +25,7 @@ export default {
 
 export const DesignSystem = () => (
   <>
-    <Markdown>
+    <MarkdownToJsx>
       {`
   # Superset Design System
 
@@ -39,7 +39,7 @@ export const DesignSystem = () => (
 
   While the Superset Design System will use Atomic Design principles, we choose a different language to describe the elements.
       `}
-    </Markdown>
+    </MarkdownToJsx>
     <table style={{ borderCollapse: 'collapse', margin: '16px 0' }}>
       <thead>
         <tr>
