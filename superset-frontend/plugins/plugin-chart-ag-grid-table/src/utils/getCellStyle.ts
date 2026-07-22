@@ -81,7 +81,9 @@ const getCellStyle = (params: CellStyleParams) => {
     // time-comparison columns rather than the row's actual data key, so
     // resolve it to the real field id before using it to read row values.
     const resolveColumnKey = (columnKey: string) =>
-      columnKey.includes('Main') ? columnKey.replace('Main', '').trim() : columnKey;
+      columnKey.includes('Main')
+        ? columnKey.replace('Main', '').trim()
+        : columnKey;
 
     columnColorFormatters!
       .filter(formatter => {
@@ -105,7 +107,10 @@ const getCellStyle = (params: CellStyleParams) => {
           formatter.columnFormatting === ObjectFormattingEnum.ENTIRE_ROW,
       )
       .forEach(formatter =>
-        applyFormatter(formatter, node?.data?.[resolveColumnKey(formatter.column)]),
+        applyFormatter(
+          formatter,
+          node?.data?.[resolveColumnKey(formatter.column)],
+        ),
       );
   }
 
