@@ -216,6 +216,12 @@ test('should render the error', async () => {
     .spyOn(SupersetClient, 'post')
     .mockRejectedValue(new Error('Something went wrong'));
   await waitForRender();
+  // The error is wrapped in an Alert component with a stable headline and the
+  // raw error text in the description — no more bare ``<pre>`` elements.
+  expect(await screen.findByRole('alert')).toBeVisible();
+  expect(
+    await screen.findByText('Failed to load drill-to-detail rows'),
+  ).toBeVisible();
   expect(screen.getByText('Error: Something went wrong')).toBeInTheDocument();
 });
 

@@ -244,25 +244,44 @@ export const DataTablesPane = ({
     }
   }, [resultsTabFallback]);
 
+  // Hide the Samples tab for datasources that don't expose raw rows
+  // (e.g. semantic views). The check is intentionally ``=== false`` so that
+  // datasources from older backends that don't send the flag still show the
+  // tab and preserve current behavior.
+  const showSamplesTab = datasource?.supports_samples !== false;
+
+  // If the datasource swaps to one that doesn't support samples while the
+  // Samples tab is active (e.g. the user picks a semantic view), the tab
+  // disappears from ``tabItems`` and ``activeTabKey`` is orphaned. Fall back
+  // to Results so the panel keeps rendering content.
+  useEffect(() => {
+    if (!showSamplesTab && activeTabKey === ResultTypes.Samples) {
+      setActiveTabKey(ResultTypes.Results);
+    }
+  }, [showSamplesTab, activeTabKey]);
   const tabItems = [
     ...queryResultsPanes,
-    {
-      key: ResultTypes.Samples,
-      label: t('Samples'),
-      children: (
-        <StyledDiv>
-          <SamplesPane
-            datasource={datasource}
-            queryFormData={queryFormData}
-            queryForce={queryForce}
-            isRequest={isRequest.samples}
-            setForceQuery={setForceQuery}
-            isVisible={ResultTypes.Samples === activeTabKey}
-            canDownload={canDownload}
-          />
-        </StyledDiv>
-      ),
-    },
+    ...(showSamplesTab
+      ? [
+          {
+            key: ResultTypes.Samples,
+            label: t('Samples'),
+            children: (
+              <StyledDiv>
+                <SamplesPane
+                  datasource={datasource}
+                  queryFormData={queryFormData}
+                  queryForce={queryForce}
+                  isRequest={isRequest.samples}
+                  setForceQuery={setForceQuery}
+                  isVisible={ResultTypes.Samples === activeTabKey}
+                  canDownload={canDownload}
+                />
+              </StyledDiv>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (

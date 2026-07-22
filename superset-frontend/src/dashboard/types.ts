@@ -232,6 +232,10 @@ export type Datasource = Dataset & {
   // Populated by the dashboard datasets API alongside ``type``; declared here
   // so callers can rely on structural typing instead of casting.
   datasource_type?: DatasourceType;
+  /** False when the datasource can't return row samples (e.g. semantic views). */
+  supports_samples?: boolean;
+  /** False when the datasource can't answer drill-to-detail requests. */
+  supports_drill_to_detail?: boolean;
 };
 export type DatasourcesState = {
   [key: string]: Datasource;

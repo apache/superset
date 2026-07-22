@@ -310,3 +310,66 @@ def test_save_non_editor_with_editors_field_is_rejected(
             raw_save(_view_self())
 
     mock_security_manager.raise_for_editorship.assert_called_once_with(mock_orm)
+
+
+# ---------------------------------------------------------------------------
+# Datasource.samples
+# ---------------------------------------------------------------------------
+
+
+@patch("superset.views.datasource.views._", lambda s: s)
+@patch("superset.views.datasource.views.get_samples")
+@patch("superset.views.datasource.views.json_error_response")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+def test_samples_returns_400_for_unsupported_datasource_type(
+    mock_security_manager: MagicMock,
+    mock_json_error_response: MagicMock,
+    mock_get_samples: MagicMock,
+) -> None:
+    """Semantic views can't return raw samples — endpoint should refuse with 400."""
+    from flask import Flask
+
+    mock_security_manager.is_guest_user.return_value = False
+    mock_json_error_response.return_value = "error-response"
+
+    raw_samples = _get_view_func("samples")
+    app = Flask(__name__)
+    with app.test_request_context(
+        "/datasource/samples?datasource_type=semantic_view&datasource_id=1",
+        method="POST",
+        json={},
+    ):
+        result = raw_samples(_view_self())
+
+    assert result == "error-response"
+    mock_json_error_response.assert_called_once()
+    _, kwargs = mock_json_error_response.call_args
+    assert kwargs.get("status") == 400
+    # The bail-out must happen before any sample fetching is attempted.
+    mock_get_samples.assert_not_called()
+
+
+@patch("superset.views.datasource.views.get_samples")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+def test_samples_proceeds_for_supported_datasource_type(
+    mock_security_manager: MagicMock,
+    mock_get_samples: MagicMock,
+) -> None:
+    """A `query` datasource (supports_samples=True) bypasses the 400 short-circuit."""
+    from flask import Flask
+
+    mock_security_manager.is_guest_user.return_value = False
+    mock_get_samples.return_value = {"rows": []}
+
+    view = _view_self()
+    raw_samples = _get_view_func("samples")
+    app = Flask(__name__)
+    with app.test_request_context(
+        "/datasource/samples?datasource_type=query&datasource_id=1",
+        method="POST",
+        json={},
+    ):
+        raw_samples(view)
+
+    mock_get_samples.assert_called_once()
+    view.json_response.assert_called_once_with({"result": {"rows": []}})
