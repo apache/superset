@@ -187,7 +187,6 @@ testWithAssets(
       dashboard_title: `load_smoke_${uniqueSuffix}`,
       published: true,
       position_json: JSON.stringify(positionJson),
-      json_metadata: JSON.stringify({ color_scheme: 'supersetColors' }),
     });
     expect(dashResp.ok()).toBe(true);
     const dashboardId = await extractIdFromResponse(dashResp);
