@@ -58,7 +58,7 @@ export function getQueryMode(formData: TableChartFormData) {
   return hasRawColumns ? QueryMode.Raw : QueryMode.Aggregate;
 }
 
-export const buildQuery: BuildQuery<TableChartFormData> = (
+export const buildQueryUncached: BuildQuery<TableChartFormData> = (
   formData: TableChartFormData,
   options,
 ) => {
@@ -782,7 +782,7 @@ export const cachedBuildQuery = (): BuildQuery<TableChartFormData> => {
   };
 
   return (formData, options) =>
-    buildQuery(
+    buildQueryUncached(
       { ...formData },
       {
         extras: { cachedChanges },
