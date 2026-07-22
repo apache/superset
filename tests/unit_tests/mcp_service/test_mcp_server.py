@@ -129,9 +129,9 @@ def test_suppress_third_party_warnings():
         and isinstance(f[3], re.Pattern)
         and f[3].pattern == r"marshmallow\..*"
     ]
-    assert (
-        len(marshmallow_filters) >= 1
-    ), "Expected marshmallow DeprecationWarning filter"
+    assert len(marshmallow_filters) >= 1, (
+        "Expected marshmallow DeprecationWarning filter"
+    )
 
     # Verify google FutureWarning filter is installed
     google_filters = [
