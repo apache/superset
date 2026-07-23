@@ -397,8 +397,9 @@ The server responded with: missing scope: channels:read"""
         )
         cache_set.assert_not_called()
 
+    @pytest.mark.parametrize("cache_set_result", [True, None])
     def test_refreshes_cached_channels_once_per_workspace_cooldown(
-        self, mocker
+        self, mocker, cache_set_result
     ) -> None:
         refreshed_channels = [{"id": "C2", "name": "new", "is_private": False}]
         mocker.patch(
@@ -415,7 +416,7 @@ The server responded with: missing scope: channels:read"""
         )
         cache_set = mocker.patch(
             "superset.utils.slack.cache_manager.cache.set",
-            return_value=True,
+            return_value=cache_set_result,
         )
         mocker.patch.dict(
             "superset.utils.slack.app.config", {"SLACK_TEAM_ID": "T123456"}

@@ -37,7 +37,7 @@ from superset.reports.notifications.exceptions import (
     SlackV1NotificationError,
 )
 from superset.reports.notifications.slack_mixin import (
-    call_slack_api,
+    call_slack_api_with_timeout,
     send_to_slack_channels,
     SlackMixin,
 )
@@ -96,9 +96,11 @@ class SlackNotification(SlackMixin, BaseNotification):  # pylint: disable=too-fe
             raise NotificationParamException(NO_SLACK_RECIPIENTS_MESSAGE)
         send_to_slack_channels(
             channels,
-            lambda target, retry_deadline: call_slack_api(
+            lambda target, retry_deadline: call_slack_api_with_timeout(
+                client,
                 client.chat_postMessage,
                 retry_deadline=retry_deadline,
+                retry_transient_errors=False,
                 channel=target,
                 text=body,
             ),

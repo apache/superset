@@ -16,10 +16,10 @@
 # under the License.
 import logging
 import time
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from email.message import Message
 from io import IOBase
-from typing import List, TypeVar, Union
+from typing import List, Union
 from urllib.error import HTTPError
 
 from flask import g
@@ -43,7 +43,9 @@ from superset.reports.notifications.exceptions import (
 )
 from superset.reports.notifications.slack_mixin import (
     call_slack_api,
+    call_slack_api_with_timeout,
     send_to_slack_channels,
+    SlackChannelResponseError,
     SlackMixin,
     SlackRetryDeadlineError,
 )
@@ -56,31 +58,6 @@ from superset.utils.slack import (
 )
 
 logger = logging.getLogger(__name__)
-
-_SlackPhaseResult = TypeVar("_SlackPhaseResult")
-
-
-def _call_slack_api_phase(
-    client: WebClient,
-    method: Callable[..., _SlackPhaseResult],
-    *,
-    retry_deadline: float,
-    **kwargs: object,
-) -> _SlackPhaseResult:
-    """Call one Slack upload phase with its request timeout capped by the budget."""
-    original_timeout = client.timeout
-
-    def call() -> _SlackPhaseResult:
-        remaining = retry_deadline - time.monotonic()
-        if remaining <= 0:
-            raise SlackRetryDeadlineError("Slack send retry deadline exceeded")
-        client.timeout = min(float(original_timeout), remaining)
-        try:
-            return method(**kwargs)
-        finally:
-            client.timeout = original_timeout
-
-    return call_slack_api(call, retry_deadline=retry_deadline)
 
 
 def _read_upload_data(file: str | IOBase | bytes) -> bytes:
@@ -106,17 +83,28 @@ def _upload_file_to_slack(
 ) -> None:
     """Upload one file without replaying completed phases during retries."""
     data = _read_upload_data(file)
-    upload_url_response = _call_slack_api_phase(
+    upload_url_response = call_slack_api_with_timeout(
         client,
         client.files_getUploadURLExternal,
         retry_deadline=retry_deadline,
+        retry_transport_errors=True,
         filename=filename,
         length=len(data),
     )
-    file_id = upload_url_response.get("file_id")
-    upload_url = upload_url_response.get("upload_url")
-    if not isinstance(file_id, str) or not isinstance(upload_url, str):
-        raise SlackRequestError("Slack did not return a file ID and upload URL")
+    try:
+        file_id = upload_url_response.get("file_id")
+        upload_url = upload_url_response.get("upload_url")
+    except (AttributeError, TypeError) as ex:
+        raise SlackChannelResponseError(
+            "Slack did not return valid upload metadata"
+        ) from ex
+    if (
+        not isinstance(file_id, str)
+        or not file_id
+        or not isinstance(upload_url, str)
+        or not upload_url
+    ):
+        raise SlackChannelResponseError("Slack did not return a file ID and upload URL")
 
     def upload_file() -> None:
         remaining = retry_deadline - time.monotonic()
@@ -142,10 +130,11 @@ def _upload_file_to_slack(
             )
 
     call_slack_api(upload_file, retry_deadline=retry_deadline)
-    _call_slack_api_phase(
+    call_slack_api_with_timeout(
         client,
         client.files_completeUploadExternal,
         retry_deadline=retry_deadline,
+        retry_transient_errors=False,
         files=[{"id": file_id, "title": title}],
         channel_id=channel,
         initial_comment=initial_comment,
@@ -202,10 +191,14 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
                 raise NotificationParamException(NO_SLACK_RECIPIENTS_MESSAGE)
 
             file_type, files = self._get_inline_files()
-            file_name = f"{title}.{file_type}"
 
             def send_to_channel(channel: str, retry_deadline: float) -> None:
                 if len(files) > 0:
+                    if file_type is None:
+                        raise SlackChannelResponseError(
+                            "Slack upload file type was not provided"
+                        )
+                    file_name = f"{title}.{file_type}"
                     for file in files:
                         _upload_file_to_slack(
                             client,
@@ -217,9 +210,11 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
                             filename=file_name,
                         )
                 else:
-                    call_slack_api(
+                    call_slack_api_with_timeout(
+                        client,
                         client.chat_postMessage,
                         retry_deadline=retry_deadline,
+                        retry_transient_errors=False,
                         channel=channel,
                         text=body,
                     )

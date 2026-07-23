@@ -46,6 +46,7 @@ from superset.commands.report.exceptions import (
     ReportScheduleXlsxTimeout,
 )
 from superset.commands.report.execute import (
+    _match_slack_channel,
     BaseReportState,
     ReportNotTriggeredErrorState,
     ReportScheduleStateMachine,
@@ -76,6 +77,16 @@ from superset.utils.slack import (
     SlackV2ProbeError,
 )
 from tests.integration_tests.conftest import with_feature_flags
+
+
+def test_match_slack_channel_rejects_ambiguous_casefolded_names() -> None:
+    channels = [
+        {"id": "C1", "name": "Private-Channel"},
+        {"id": "C2", "name": "private-channel"},
+    ]
+
+    with pytest.raises(NotificationParamException, match="ambiguous"):
+        _match_slack_channel("PRIVATE-CHANNEL", channels)
 
 
 def _make_mock_editors(mocker: MockerFixture, user_ids: list[int]) -> list[Mock]:
@@ -2437,6 +2448,37 @@ def test_send_records_system_upgrade_failure_when_text_fallback_succeeds(
         "execution_id": "execution_id_example",
         "report_schedule_id": 42,
     }
+
+
+def test_failed_slack_v1_fallback_does_not_record_delivery(
+    app: SupersetApp,
+    mocker: MockerFixture,
+) -> None:
+    stats_logger = mocker.Mock()
+    mocker.patch.dict(app.config, {"STATS_LOGGER": stats_logger})
+    report_schedule = ReportSchedule(id=42, name="Private channel report")
+    report_state = BaseReportState(
+        report_schedule,
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    notification = mocker.Mock()
+    notification.send_legacy_text.side_effect = NotificationParamException(
+        "Slack delivery failed"
+    )
+    content = mocker.Mock()
+    content.has_attachments = False
+
+    with pytest.raises(NotificationParamException, match="Slack delivery failed"):
+        report_state._send_slack_v1_fallback(
+            notification,
+            content,
+            UpdateFailedError("Slack upgrade failed"),
+            record_upgrade_failure=True,
+        )
+
+    assert report_state._filter_warnings == []
+    stats_logger.incr.assert_not_called()
 
 
 def test_failed_slack_upgrade_fallback_does_not_affect_other_recipient_types(

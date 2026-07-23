@@ -461,9 +461,14 @@ def test_v1_send_retries_only_the_failed_channel(
         nonlocal failed_attempts
         if channel == "private-b" and failed_attempts < 2:
             failed_attempts += 1
+            response = _make_slack_response(
+                429,
+                {"ok": False, "error": "ratelimited"},
+                headers={"Retry-After": ["0"]},
+            )
             raise SlackApiError(
-                message="service unavailable",
-                response={"ok": False, "error": "service_unavailable"},
+                message="rate limited",
+                response=response,
             )
         return {"ok": True}
 
@@ -901,7 +906,7 @@ def test_v2_file_upload_classifies_raw_http_status(
     expected_calls: int,
     mock_header_data: HeaderDataType,
 ) -> None:
-    """External-upload HTTP 4xx is permanent while 5xx remains transient."""
+    """Classify raw-upload HTTP failures and honor exposed Retry-After headers."""
     flask_global_mock.logs_context = {}
     client = _configure_v2_upload_client(slack_client_mock.return_value)
     upload = client._upload_file
@@ -924,6 +929,30 @@ def test_v2_file_upload_classifies_raw_http_status(
         notification.send()
 
     assert upload.call_count == expected_calls
+    client.files_getUploadURLExternal.assert_called_once()
+    client.files_completeUploadExternal.assert_not_called()
+
+
+@patch("superset.reports.notifications.slackv2.g")
+@patch("superset.reports.notifications.slackv2.get_slack_client")
+def test_v2_raw_upload_result_429_without_headers_does_not_retry(
+    slack_client_mock: MagicMock,
+    flask_global_mock: MagicMock,
+    mock_header_data: HeaderDataType,
+) -> None:
+    """An SDK result without headers cannot safely synthesize a retry delay."""
+    flask_global_mock.logs_context = {}
+    client = _configure_v2_upload_client(slack_client_mock.return_value)
+    client._upload_file.return_value = MagicMock(status=429, body="rate limited")
+    notification = _make_v2_notification(
+        _make_content(mock_header_data, screenshots=[b"screenshot-bytes"]),
+        target="C12345",
+    )
+
+    with pytest.raises(NotificationTransientError, match="C12345"):
+        notification.send()
+
+    client._upload_file.assert_called_once()
     client.files_getUploadURLExternal.assert_called_once()
     client.files_completeUploadExternal.assert_not_called()
 
@@ -980,13 +1009,47 @@ def test_raw_http_rate_limit_respects_shared_deadline(mocker) -> None:
     sleep.assert_called_once_with(120.0)
 
 
-@pytest.mark.parametrize("status_code", [429, 503])
+@pytest.mark.parametrize("retry_after", ["NaN", "inf", "-inf", ""])
+def test_malformed_retry_after_preserves_channel_isolation(
+    retry_after: str,
+) -> None:
+    response = _make_slack_response(
+        429,
+        {"ok": False, "error": "ratelimited"},
+        headers={"Retry-After": [retry_after]},
+    )
+    methods = {
+        "C1": MagicMock(
+            side_effect=SlackApiError(message="rate limited", response=response)
+        ),
+        "C2": MagicMock(return_value={"ok": True}),
+    }
+
+    def send(channel: str, retry_deadline: float) -> None:
+        call_slack_api(methods[channel], retry_deadline=retry_deadline)
+
+    with pytest.raises(NotificationTransientError, match="C1"):
+        send_to_slack_channels(["C1", "C2"], send)
+
+    methods["C1"].assert_called_once_with()
+    methods["C2"].assert_called_once_with()
+
+
+@pytest.mark.parametrize(
+    ("status_code", "expected_calls", "expected_exception"),
+    [
+        (429, 2, None),
+        (503, 1, NotificationTransientError),
+    ],
+)
 @patch("superset.reports.notifications.slackv2.g")
 @patch("superset.reports.notifications.slackv2.get_slack_client")
 def test_v2_completion_retry_does_not_replay_prior_upload_phases(
     slack_client_mock: MagicMock,
     flask_global_mock: MagicMock,
     status_code: int,
+    expected_calls: int,
+    expected_exception: type[Exception] | None,
     mock_header_data: HeaderDataType,
 ) -> None:
     flask_global_mock.logs_context = {}
@@ -1005,11 +1068,78 @@ def test_v2_completion_retry_does_not_replay_prior_upload_phases(
         _make_content(mock_header_data, screenshots=[b"screenshot"]),
     )
 
-    notification.send()
+    if expected_exception:
+        with pytest.raises(expected_exception, match="C12345"):
+            notification.send()
+    else:
+        notification.send()
 
     client.files_getUploadURLExternal.assert_called_once()
     client._upload_file.assert_called_once()
-    assert client.files_completeUploadExternal.call_count == 2
+    assert client.files_completeUploadExternal.call_count == expected_calls
+
+
+@pytest.mark.parametrize(
+    "invalid_response",
+    [
+        object(),
+        {"file_id": None, "upload_url": None},
+        {"file_id": "", "upload_url": ""},
+    ],
+    ids=["non-mapping", "missing-values", "empty-values"],
+)
+@patch("superset.reports.notifications.slackv2.g")
+@patch("superset.reports.notifications.slackv2.get_slack_client")
+def test_v2_upload_aggregates_missing_metadata_per_channel(
+    slack_client_mock: MagicMock,
+    flask_global_mock: MagicMock,
+    invalid_response: object,
+    mock_header_data: HeaderDataType,
+) -> None:
+    flask_global_mock.logs_context = {}
+    client = _configure_v2_upload_client(slack_client_mock.return_value)
+    client.files_getUploadURLExternal.side_effect = [
+        invalid_response,
+        {"file_id": "F2", "upload_url": "https://files.slack.com/upload/2"},
+    ]
+    notification = _make_v2_notification(
+        _make_content(mock_header_data, screenshots=[b"screenshot"]),
+        target="C12345,C67890",
+    )
+
+    with pytest.raises(NotificationTransientError, match="C12345"):
+        notification.send()
+
+    assert client.files_getUploadURLExternal.call_count == 2
+    client._upload_file.assert_called_once()
+    client.files_completeUploadExternal.assert_called_once()
+
+
+@patch("superset.reports.notifications.slackv2.g")
+@patch("superset.reports.notifications.slackv2.get_slack_client")
+def test_v2_upload_url_creation_retries_transient_transport_failure(
+    slack_client_mock: MagicMock,
+    flask_global_mock: MagicMock,
+    mock_header_data: HeaderDataType,
+) -> None:
+    flask_global_mock.logs_context = {}
+    client = _configure_v2_upload_client(slack_client_mock.return_value)
+    client.files_getUploadURLExternal.side_effect = [
+        URLError("connection reset"),
+        {
+            "file_id": "F1",
+            "upload_url": "https://files.slack.com/upload/1",
+        },
+    ]
+    notification = _make_v2_notification(
+        _make_content(mock_header_data, screenshots=[b"screenshot"]),
+    )
+
+    notification.send()
+
+    assert client.files_getUploadURLExternal.call_count == 2
+    client._upload_file.assert_called_once()
+    client.files_completeUploadExternal.assert_called_once()
 
 
 @patch("superset.reports.notifications.slackv2.g")
@@ -1283,12 +1413,12 @@ def test_v2_send_maps_slack_sdk_exceptions(
 
 @patch("superset.reports.notifications.slackv2.g")
 @patch("superset.reports.notifications.slackv2.get_slack_client")
-def test_v2_send_retries_on_transient_slack_api_error(
+def test_v2_send_does_not_retry_ambiguous_transient_slack_api_error(
     slack_client_mock: MagicMock,
     flask_global_mock: MagicMock,
     mock_header_data,
 ) -> None:
-    """A persistent 5xx-style Slack error uses five application attempts."""
+    """An outcome-ambiguous terminal write is attempted at most once."""
     flask_global_mock.logs_context = {}
     slack_client_mock.return_value.chat_postMessage.side_effect = SlackApiError(
         message="service unavailable",
@@ -1301,27 +1431,26 @@ def test_v2_send_retries_on_transient_slack_api_error(
     with pytest.raises(NotificationError, match="C12345"):
         notification.send()
 
-    assert slack_client_mock.return_value.chat_postMessage.call_count == 5
+    slack_client_mock.return_value.chat_postMessage.assert_called_once()
 
 
 @patch("superset.reports.notifications.slackv2.g")
 @patch("superset.reports.notifications.slackv2.get_slack_client")
-def test_v2_send_retries_then_succeeds_on_transient_failure(
+def test_v2_send_retries_then_succeeds_on_explicit_http_rate_limit(
     slack_client_mock: MagicMock,
     flask_global_mock: MagicMock,
     mock_header_data,
 ) -> None:
-    """A transient server failure can recover within the application budget."""
+    """An explicit HTTP 429 safely retries a rejected terminal write."""
     flask_global_mock.logs_context = {}
+    response = _make_slack_response(
+        429,
+        {"ok": False, "error": "ratelimited"},
+        headers={"Retry-After": ["0"]},
+    )
     slack_client_mock.return_value.chat_postMessage.side_effect = [
-        SlackApiError(
-            message="service unavailable",
-            response={"ok": False, "error": "service_unavailable"},
-        ),
-        SlackApiError(
-            message="service unavailable",
-            response={"ok": False, "error": "service_unavailable"},
-        ),
+        SlackApiError(message="rate limited", response=response),
+        SlackApiError(message="rate limited", response=response),
         {"ok": True},
     ]
 
@@ -1351,9 +1480,14 @@ def test_v2_send_retries_only_failed_channel(
         nonlocal failed_attempts
         if channel == "C67890" and failed_attempts < 2:
             failed_attempts += 1
+            response = _make_slack_response(
+                429,
+                {"ok": False, "error": "ratelimited"},
+                headers={"Retry-After": ["0"]},
+            )
             raise SlackApiError(
-                message="service unavailable",
-                response={"ok": False, "error": "service_unavailable"},
+                message="rate limited",
+                response=response,
             )
         return {"ok": True}
 
@@ -1368,6 +1502,48 @@ def test_v2_send_retries_only_failed_channel(
         slack_call.kwargs["channel"]
         for slack_call in slack_client_mock.return_value.chat_postMessage.call_args_list
     ] == ["C12345", "C67890", "C67890", "C67890"]
+
+
+@pytest.mark.parametrize("send_fails", [False, True], ids=["success", "failure"])
+@patch("superset.reports.notifications.slackv2.g")
+@patch("superset.reports.notifications.slackv2.get_slack_client")
+def test_v2_text_send_clamps_timeout_to_shared_deadline(
+    slack_client_mock: MagicMock,
+    flask_global_mock: MagicMock,
+    send_fails: bool,
+    mock_header_data: HeaderDataType,
+) -> None:
+    flask_global_mock.logs_context = {}
+    client = slack_client_mock.return_value
+    client.timeout = 30
+
+    def assert_timeout(**kwargs: object) -> dict[str, bool]:
+        assert client.timeout == 10
+        if send_fails:
+            raise SlackApiError(
+                message="service unavailable",
+                response={"ok": False, "error": "service_unavailable"},
+            )
+        return {"ok": True}
+
+    client.chat_postMessage.side_effect = assert_timeout
+    notification = _make_v2_notification(
+        _make_content(mock_header_data),
+        target="C12345",
+    )
+
+    clock = iter([0.0, 140.0])
+    with patch(
+        "superset.reports.notifications.slack_mixin.time.monotonic",
+        side_effect=lambda: next(clock, 140.0),
+    ):
+        if send_fails:
+            with pytest.raises(NotificationTransientError, match="C12345"):
+                notification.send()
+        else:
+            notification.send()
+
+    assert client.timeout == 30
 
 
 @patch("superset.reports.notifications.slackv2.g")
@@ -1575,6 +1751,7 @@ def test_call_slack_api_rate_limit_budget_spans_server_error_retries(mocker) -> 
         response=_make_slack_response(
             429,
             {"ok": False, "error": "ratelimited"},
+            headers={"Retry-After": ["0"]},
         ),
     )
     server_error = SlackApiError(
@@ -1701,6 +1878,33 @@ def test_call_slack_api_checks_monotonic_deadline_before_each_retry() -> None:
     method.assert_called_once_with()
 
 
+def test_call_slack_api_without_explicit_deadline_is_still_bounded() -> None:
+    """The helper's default cannot create an unbounded retry operation."""
+    clock = [0.0]
+    error = SlackApiError(
+        message="service unavailable",
+        response={"ok": False, "error": "service_unavailable"},
+    )
+    method = MagicMock()
+
+    def fail_after_default_deadline() -> None:
+        clock[0] = 151.0
+        raise error
+
+    method.side_effect = fail_after_default_deadline
+
+    with (
+        patch(
+            "superset.reports.notifications.slack_mixin.time.monotonic",
+            side_effect=lambda: clock[0],
+        ),
+        pytest.raises(SlackRetryDeadlineError, match="deadline exceeded"),
+    ):
+        call_slack_api(method)
+
+    method.assert_called_once_with()
+
+
 @patch("superset.reports.notifications.slackv2.g")
 @patch("superset.reports.notifications.slackv2.get_slack_client")
 def test_v2_send_uses_configured_application_rate_limit_budget(
@@ -1713,6 +1917,7 @@ def test_v2_send_uses_configured_application_rate_limit_budget(
     response = _make_slack_response(
         429,
         {"ok": False, "error": "ratelimited"},
+        headers={"Retry-After": ["0"]},
     )
     slack_client_mock.return_value.chat_postMessage.side_effect = SlackApiError(
         message="rate limited",
