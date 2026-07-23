@@ -763,9 +763,9 @@ class TestResolveWaitBudgetSeconds:
     """The budget is derived from the running Celery task's own time limit
     when available, and falls back to the fixed constant otherwise."""
 
-    def _mock_task(self, soft=None, hard=None):
+    def _mock_task(self, hard=None, soft=None):
         task = MagicMock()
-        task.request.timelimit = (soft, hard)
+        task.request.timelimit = (hard, soft)
         return task
 
     def test_derives_budget_from_soft_time_limit(self):

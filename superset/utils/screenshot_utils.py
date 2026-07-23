@@ -93,7 +93,8 @@ def _resolve_wait_budget_seconds(log_context: str | None = None) -> float:
     context_suffix = f" [{log_context}]" if log_context else ""
     try:
         if current_task:
-            soft_limit, hard_limit = current_task.request.timelimit or (
+            # Celery exposes task.request.timelimit as (hard, soft).
+            hard_limit, soft_limit = current_task.request.timelimit or (
                 None,
                 None,
             )
