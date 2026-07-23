@@ -355,11 +355,18 @@ describe('DashboardState reducer', () => {
         { expandedSlices: { 1: true, 2: false } } as Partial<DashboardState>,
         { type: TOGGLE_EXPAND_SLICE, sliceId: 1 },
       ),
-    ).toEqual({ expandedSlices: { 2: false } });
+    ).toEqual({ expandedSlices: { 1: false, 2: false } });
 
     expect(
       typedDashboardStateReducer(
         { expandedSlices: { 1: true, 2: false } } as Partial<DashboardState>,
+        { type: TOGGLE_EXPAND_SLICE, sliceId: 2 },
+      ),
+    ).toEqual({ expandedSlices: { 1: true, 2: true } });
+
+    expect(
+      typedDashboardStateReducer(
+        { expandedSlices: { 1: true } } as Partial<DashboardState>,
         { type: TOGGLE_EXPAND_SLICE, sliceId: 2 },
       ),
     ).toEqual({ expandedSlices: { 1: true, 2: true } });
