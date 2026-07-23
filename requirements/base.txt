@@ -300,7 +300,7 @@ pyarrow==24.0.0
     #   -r requirements/base.in
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
-pyasn1==0.6.3
+pyasn1==0.6.4
     # via pyasn1-modules
 pyasn1-modules==0.4.2
     # via google-auth
