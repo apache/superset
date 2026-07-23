@@ -94,6 +94,8 @@ export class ThemeController {
 
   private devThemeOverride: AnyThemeConfig | null = null;
 
+  private bootstrapDefaultMode: ThemeMode = ThemeMode.DEFAULT;
+
   // Dashboard themes managed by controller
   private dashboardThemes: Map<string, Theme> = new Map();
 
@@ -125,13 +127,17 @@ export class ThemeController {
     this.globalTheme = themeObject;
 
     // Initialize bootstrap data and themes
-    const { bootstrapDefaultTheme, bootstrapDarkTheme }: BootstrapThemeData =
-      this.loadBootstrapData();
+    const {
+      bootstrapDefaultTheme,
+      bootstrapDarkTheme,
+      bootstrapDefaultMode,
+    }: BootstrapThemeData = this.loadBootstrapData();
 
     // Set themes from bootstrap data
     // These will be the THEME_DEFAULT and THEME_DARK from config
     this.defaultTheme = bootstrapDefaultTheme || defaultTheme || null;
     this.darkTheme = bootstrapDarkTheme;
+    this.bootstrapDefaultMode = bootstrapDefaultMode;
 
     // Initialize system theme detection
     this.systemMode = ThemeController.getSystemPreferredMode();
@@ -352,7 +358,7 @@ export class ThemeController {
    * @throws {Error} If the user does not have permission to update the theme mode
    */
   public setThemeMode(mode: ThemeMode): void {
-    this.validateModeUpdatePermission(mode);
+    this.validateModeUpdatePermission();
 
     if (
       this.currentMode === mode &&
@@ -537,7 +543,7 @@ export class ThemeController {
 
     let newMode: ThemeMode;
     try {
-      this.validateModeUpdatePermission(this.currentMode);
+      this.validateModeUpdatePermission();
       const hasRequiredTheme = this.isValidThemeMode(this.currentMode);
       newMode = hasRequiredTheme
         ? this.currentMode
@@ -686,7 +692,7 @@ export class ThemeController {
       common: { theme = {} as BootstrapThemeDataConfig },
     } = getBootstrapData();
 
-    const { default: defaultTheme, dark: darkTheme } = theme;
+    const { default: defaultTheme, dark: darkTheme, defaultMode } = theme;
 
     const hasValidDefault: boolean = this.isNonEmptyObject(defaultTheme);
     const hasValidDark: boolean = this.isNonEmptyObject(darkTheme);
@@ -696,9 +702,21 @@ export class ThemeController {
       hasValidDefault && !this.isEmptyTheme(defaultTheme);
     const hasCustomDark = hasValidDark && !this.isEmptyTheme(darkTheme);
 
+    const modeMap: Record<string, ThemeMode> = {
+      default: ThemeMode.DEFAULT,
+      dark: ThemeMode.DARK,
+      system: ThemeMode.SYSTEM,
+    };
+    const bootstrapDefaultMode: ThemeMode =
+      (defaultMode &&
+        Object.hasOwn(modeMap, defaultMode) &&
+        modeMap[defaultMode]) ||
+      ThemeMode.SYSTEM;
+
     return {
       bootstrapDefaultTheme: hasCustomDefault ? defaultTheme : null,
       bootstrapDarkTheme: hasCustomDark ? darkTheme : null,
+      bootstrapDefaultMode,
       hasCustomThemes: hasCustomDefault || hasCustomDark,
     };
   }
@@ -790,8 +808,8 @@ export class ThemeController {
     )
       return this.initialMode;
 
-    // Default to system preference when both themes are available
-    return ThemeMode.SYSTEM;
+    // Fall back to the deployment-configured default mode
+    return this.bootstrapDefaultMode;
   }
 
   /**
@@ -845,10 +863,9 @@ export class ThemeController {
 
   /**
    * Validates permission to update mode.
-   * @param newMode - The new mode to validate
    * @throws {Error} If the user does not have permission to update the theme mode
    */
-  private validateModeUpdatePermission(newMode: ThemeMode): void {
+  private validateModeUpdatePermission(): void {
     // Check if user can set a new theme mode (dark theme must exist)
     if (!this.canSetMode())
       throw new Error(

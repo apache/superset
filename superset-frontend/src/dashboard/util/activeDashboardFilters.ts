@@ -100,7 +100,7 @@ export function getAppliedFilterValues(
   // use cached data if possible
   if (!(chartId in appliedFilterValuesByChart)) {
     const applicableFilters = Object.entries(filters || activeFilters).filter(
-      ([, { scope: chartIds }]) => chartIds.includes(chartId),
+      ([, activeFilter]) => activeFilter?.scope?.includes(chartId),
     );
     appliedFilterValuesByChart[chartId] = flow(
       keyBy(

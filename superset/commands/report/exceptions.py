@@ -197,6 +197,12 @@ class ReportScheduleCsvFailedError(CommandException):
     message = _("Report Schedule execution failed when generating a csv.")
 
 
+class ReportScheduleXlsxFailedError(CommandException):
+    """Raised when generating the Excel (xlsx) attachment for a report fails."""
+
+    message = _("Report Schedule execution failed when generating an Excel file.")
+
+
 class ReportScheduleDataFrameFailedError(CommandException):
     message = _("Report Schedule execution failed when generating a dataframe.")
 
@@ -223,6 +229,20 @@ class ReportScheduleExecutorNotFoundError(CommandException):
 
 class ReportScheduleExecuteUnexpectedError(CommandException):
     message = _("Report Schedule execution got an unexpected error.")
+
+
+class ReportScheduleTargetChartDeletedError(CommandException):
+    message = _(
+        "The chart this report targets was deleted. Restore the chart, or "
+        "update the report to point at an active chart."
+    )
+
+
+class ReportScheduleTargetDashboardDeletedError(CommandException):
+    message = _(
+        "The dashboard this report targets was deleted. Restore the "
+        "dashboard, or update the report to point at an active dashboard."
+    )
 
 
 class ReportSchedulePreviousWorkingError(CommandException):
@@ -294,6 +314,13 @@ class ReportScheduleScreenshotTimeout(CommandException):
 class ReportScheduleCsvTimeout(CommandException):
     status = 408
     message = _("A timeout occurred while generating a csv.")
+
+
+class ReportScheduleXlsxTimeout(CommandException):
+    """Raised when generating the Excel (xlsx) attachment for a report times out."""
+
+    status: int = 408
+    message = _("A timeout occurred while generating an Excel file.")
 
 
 class ReportScheduleDataFrameTimeout(CommandException):

@@ -7,6 +7,11 @@ on:
       - "[0-9].[0-9]*"
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
+  # Nightly full-tree sweep. Per-PR runs only lint changed files, so a change
+  # that invalidates an untouched file (e.g. a type change that breaks an
+  # importing test) can pass every PR yet leave master red. This catches that.
+  schedule:
+    - cron: "0 6 * * *"
 
 permissions:
   contents: read
@@ -18,35 +23,37 @@ concurrency:
 
 jobs:
   pre-commit:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     strategy:
       matrix:
         # Run the full version spread on push (master/release) and nightly,
         # but only the current version on PRs — lint/format/type results
         # rarely differ across patch versions, so 3x per PR is wasteful.
-        python-version: ${{ github.event_name == 'pull_request' && fromJSON('["current"]') || fromJSON('["current", "previous", "next"]') }}
+        python-version: ${{ github.event_name == 'pull_request' && fromJSON('["current"]') || fromJSON('["current", "next"]') }}
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
           submodules: recursive
+          # Full history so we can diff a PR/push against its base commit to
+          # determine changed files (see "Determine changed files" below).
+          fetch-depth: 0
+
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Enable brew and helm-docs
-        # Add brew to the path - see https://github.com/actions/runner-images/issues/6283
-        run: |
-          echo "/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin" >> $GITHUB_PATH
-          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-          echo "HOMEBREW_PREFIX=$HOMEBREW_PREFIX" >>"${GITHUB_ENV}"
-          echo "HOMEBREW_CELLAR=$HOMEBREW_CELLAR" >>"${GITHUB_ENV}"
-          echo "HOMEBREW_REPOSITORY=$HOMEBREW_REPOSITORY" >>"${GITHUB_ENV}"
-          brew install norwoodj/tap/helm-docs
+
+      - name: Setup Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+
+      - name: Install helm-docs
+        run: go install github.com/norwoodj/helm-docs/cmd/helm-docs@v1.14.2
+
       - name: Setup Node.js
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: "superset-frontend/.nvmrc"
           cache: "npm"
@@ -63,26 +70,105 @@ jobs:
           yarn install --immutable
 
       - name: Cache pre-commit environments
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/pre-commit
           key: pre-commit-v2-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('.pre-commit-config.yaml') }}
           restore-keys: |
             pre-commit-v2-${{ runner.os }}-py${{ matrix.python-version }}-
 
-      - name: Get changed files
+      - name: Determine changed files
         id: changed_files
-        uses: ./.github/actions/file-changes-action
-        with:
-          output: " "
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+
+          # Scheduled runs check the whole tree (see the pre-commit step).
+          if [ "${EVENT_NAME}" = "schedule" ]; then
+            echo "mode=all" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Resolve the commit to diff against.
+          base=""
+          if [ "${EVENT_NAME}" = "pull_request" ]; then
+            # HEAD is the PR merge commit, so its first parent is the current
+            # tip of the base branch. github.event.pull_request.base.sha is
+            # NOT that: GitHub freezes it at PR creation, so on a long-lived
+            # PR it points at the original branch point and the diff picks up
+            # all of the base branch's churn since then — thousands of paths,
+            # enough for the CHANGED_FILES env var below to exceed the
+            # kernel's per-variable size limit and kill the step with
+            # "Argument list too long" before bash even starts.
+            base="$(git rev-parse HEAD^1 2>/dev/null || true)"
+          elif [ -n "${BEFORE_SHA:-}" ] && \
+               [ "${BEFORE_SHA}" != "0000000000000000000000000000000000000000" ]; then
+            base="${BEFORE_SHA}"
+          fi
+
+          # Fail closed: if the diff base can't be resolved, check every file
+          # instead of silently checking nothing. Previously an empty file list
+          # made `pre-commit run --files` a no-op that still reported success,
+          # which let unlinted code reach master.
+          if [ -z "${base}" ] || ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
+            echo "::notice::Could not resolve a diff base; falling back to --all-files."
+            echo "mode=all" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Files present in HEAD that changed since the base (drop deletions).
+          files="$(git diff --name-only --diff-filter=ACMRT "${base}...HEAD")"
+
+          # Env vars have a hard per-variable size limit (E2BIG at step
+          # start). A PR that legitimately touches thousands of files is
+          # better served by --all-files anyway.
+          if [ "$(printf '%s' "${files}" | wc -c)" -gt 100000 ]; then
+            echo "::notice::Changed-file list too large to pass via env; falling back to --all-files."
+            echo "mode=all" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ -z "${files}" ]; then
+            echo "mode=none" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=files" >> "$GITHUB_OUTPUT"
+            {
+              echo "files<<__CHANGED_FILES_EOF__"
+              echo "${files}"
+              echo "__CHANGED_FILES_EOF__"
+            } >> "$GITHUB_OUTPUT"
+          fi
 
       - name: pre-commit
         env:
+          MODE: ${{ steps.changed_files.outputs.mode }}
           CHANGED_FILES: ${{ steps.changed_files.outputs.files }}
         run: |
           set +e  # Don't exit immediately on failure
           export SKIP=type-checking-frontend
-          pre-commit run --files $CHANGED_FILES
+
+          case "${MODE}" in
+            all)
+              echo "ℹ️ Running pre-commit on all files."
+              pre-commit run --all-files
+              ;;
+            files)
+              echo "ℹ️ Running pre-commit on changed files:"
+              echo "${CHANGED_FILES}"
+              # shellcheck disable=SC2086
+              pre-commit run --files ${CHANGED_FILES}
+              ;;
+            none)
+              echo "ℹ️ No source files changed; nothing for pre-commit to check."
+              exit 0
+              ;;
+            *)
+              echo "⚠️ Unrecognized changed-files mode '${MODE}'; checking all files."
+              pre-commit run --all-files
+              ;;
+          esac
           PRE_COMMIT_EXIT_CODE=$?
           git diff --quiet --exit-code
           GIT_DIFF_EXIT_CODE=$?

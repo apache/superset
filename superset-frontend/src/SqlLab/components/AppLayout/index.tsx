@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { noop } from 'lodash-es';
 import type { SqlLabRootState } from 'src/SqlLab/types';
 import { css, styled } from '@apache-superset/core/theme';
@@ -32,6 +32,7 @@ import {
 } from 'src/SqlLab/constants';
 import { ViewLocations } from 'src/SqlLab/contributions';
 import ViewListExtension from 'src/components/ViewListExtension';
+import { toggleLeftBar } from 'src/SqlLab/actions/sqlLab';
 
 import SqlEditorLeftBar from '../SqlEditorLeftBar';
 import StatusBar from '../StatusBar';
@@ -66,6 +67,7 @@ const ContentWrapper = styled.div`
 `;
 
 const AppLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
+  const dispatch = useDispatch();
   const queryEditorId = useSelector<SqlLabRootState, string>(
     ({ sqlLab: { tabHistory } }) => tabHistory.slice(-1)[0],
   );
@@ -91,6 +93,7 @@ const AppLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const onSidebarChange = (sizes: number[]) => {
     const [updatedWidth, _, possibleRightWidth] = sizes;
     setLeftWidth(updatedWidth);
+    dispatch(toggleLeftBar(updatedWidth === 0));
 
     if (typeof possibleRightWidth === 'number') {
       setRightWidth(possibleRightWidth);

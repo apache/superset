@@ -67,6 +67,9 @@ def test_escape_value():
     result = csv.escape_value(" =10+2")
     assert result == "' =10+2"
 
+    result = csv.escape_value('  ""=10+2')
+    assert result == '\'  ""=10+2'
+
     # A leading tab or carriage return followed by a dangerous char was already
     # handled by \s{1,} in the pre-existing regex. The cases below test the
     # new behavior: tab/CR alone (not followed by a dangerous char) are now

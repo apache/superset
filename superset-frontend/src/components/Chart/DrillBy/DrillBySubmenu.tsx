@@ -217,6 +217,7 @@ export const DrillBySubmenu = ({
       role="menu"
       tabIndex={0}
       data-test="drill-by-submenu"
+      onKeyDown={e => e.stopPropagation()}
       css={css`
         width: 220px;
         max-width: 220px;
@@ -330,7 +331,8 @@ export const DrillBySubmenu = ({
         root: {
           paddingLeft: 0,
         },
-        body: {
+        // antd v6 renamed the inner content slot `body` -> `container`
+        container: {
           padding: theme.sizeUnit * 2,
           boxShadow: theme.boxShadow,
           borderRadius: theme.borderRadius,

@@ -78,8 +78,8 @@ def test_inject_semantic_layer_extension_context() -> None:
     registry.clear()
 
     mock_context = MagicMock()
-    mock_context.manifest.publisher = "acme"
-    mock_context.manifest.name = "analytics"
+    mock_context.extension.publisher = "acme"
+    mock_context.extension.name = "analytics"
 
     inject_semantic_layer_implementations()
 

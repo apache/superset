@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   config:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       has-secrets: ${{ steps.check.outputs.has-secrets }}
     steps:
@@ -28,7 +28,7 @@ jobs:
   process-and-upload:
     needs: config
     if: needs.config.outputs.has-secrets
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     name: Generate Reports
     steps:
       - name: Checkout Repository
@@ -37,7 +37,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: "./superset-frontend/.nvmrc"
 

@@ -142,9 +142,11 @@ const publishDataMask = debounce(
 
     // pathname could be updated somewhere else through window.history
     // keep react router history in sync with window history
-    // replace params only when current page is /superset/dashboard
+    // replace params only when current page is a dashboard route under the
+    // configured applicationRoot (e.g. `/dashboard/...` for root deploy,
+    // `/superset/dashboard/...` for the legacy subdir deploy).
     // this prevents a race condition between updating filters and navigating to Explore
-    if (window.location.pathname.includes('/superset/dashboard')) {
+    if (window.location.pathname.startsWith(`${applicationRoot()}/dashboard`)) {
       // The history API is part of React router and understands that a basename may exist.
       // Internally it treats all paths as if they are relative to the root and appends
       // it when necessary. We strip any prefix so that history.replace adds it back and doesn't
@@ -460,9 +462,16 @@ const FilterBar: FC<FiltersBarProps> = ({
       pendingChartCustomizations &&
       Object.keys(pendingChartCustomizations).length > 0
     ) {
-      const pendingItems = Object.values(pendingChartCustomizations).filter(
-        Boolean,
-      ) as (ChartCustomization | ChartCustomizationDivider)[];
+      // Skip pending items no longer in the config; re-saving a deleted one
+      // makes the backend append it back, resurrecting the control.
+      const existingCustomizationIds = new Set(
+        chartCustomizationValues.map(item => item.id),
+      );
+      const pendingItems = (
+        Object.values(pendingChartCustomizations).filter(Boolean) as (
+          ChartCustomization | ChartCustomizationDivider
+        )[]
+      ).filter(item => existingCustomizationIds.has(item.id));
 
       if (pendingItems.length > 0) {
         dispatch(saveChartCustomization(pendingItems, []));

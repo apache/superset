@@ -43,7 +43,7 @@ def get_session(mocker: MockerFixture) -> Callable[[], Session]:
     """
     Create an in-memory SQLite db.session.to test models.
     """
-    engine = create_engine("sqlite://")
+    engine = create_engine("sqlite://", future=True)
 
     def get_session():
         Session_ = sessionmaker(bind=engine)  # pylint: disable=invalid-name  # noqa: N806

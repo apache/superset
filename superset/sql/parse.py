@@ -27,6 +27,7 @@ from dataclasses import dataclass
 from typing import Any, Generic, Optional, TYPE_CHECKING, TypeVar
 
 import sqlglot
+from flask import current_app, has_app_context
 from jinja2 import nodes, Template
 from sqlglot import exp
 from sqlglot.dialects.dialect import (
@@ -54,6 +55,44 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+
+def _check_script_length(script: str, engine: str | None) -> None:
+    """
+    Reject scripts whose UTF-8 byte length exceeds the configured maximum
+    before they reach sqlglot. Sits at every code path in this module that
+    hands a string to ``sqlglot.parse`` or ``sqlglot.parse_one`` so the
+    bound cannot be bypassed by a direct caller.
+
+    The check is in bytes, not Unicode code points, because the
+    threat model is parser memory and CPU on the encoded payload that
+    sqlglot ingests.
+    """
+    # Imported lazily to avoid a circular import (``superset.config`` pulls in
+    # ``superset.jinja_context``, which imports this module).
+    from superset import config
+
+    # The live app config wins when a Flask app context is active (honoring any
+    # operator override); otherwise (Alembic migrations, scripts, isolated unit
+    # tests) fall back to the documented default declared in ``superset.config``
+    # so the bound stays sourced from configuration rather than duplicated here.
+    max_length = (
+        current_app.config.get("SQL_MAX_PARSE_LENGTH", config.SQL_MAX_PARSE_LENGTH)
+        if has_app_context()
+        else config.SQL_MAX_PARSE_LENGTH
+    )
+
+    if max_length is None:
+        return
+    if (byte_length := len(script.encode("utf-8"))) > max_length:
+        raise SupersetParseError(
+            script,
+            engine,
+            message=(
+                f"SQL script length ({byte_length} bytes) exceeds the "
+                f"configured maximum of {max_length} bytes."
+            ),
+        )
 
 
 # mapping between DB engine specs and sqlglot dialects
@@ -120,6 +159,31 @@ SQLGLOT_DIALECTS = {
     # hence a string name rather than a class reference like the built-in dialects.
     "yql": "ydb",
 }
+
+
+def has_aggregate(expression: str, engine: str = "base") -> bool:
+    """
+    Return True if the SQL expression contains an aggregate function, ignoring
+    only an aggregate that is *itself* windowed (``SUM(x) OVER (...)``), which
+    doesn't collapse rows and is just as invalid under a GROUP BY as a plain
+    column. A plain aggregate nested inside a windowed one
+    (``SUM(SUM(x)) OVER ()``) still counts.
+
+    Deliberately permissive so a valid query is never wrongly blocked: an
+    aggregate inside a scalar subquery still counts, and it fails open (returns
+    True) on a parse error or an unmodelled function (``exp.Anonymous``) that
+    might itself be an aggregate.
+    """
+    dialect = SQLGLOT_DIALECTS.get(engine)
+    try:
+        parsed = sqlglot.parse_one(f"SELECT {expression}", dialect=dialect)
+    except Exception:
+        return True
+    if parsed.find(exp.Anonymous):
+        return True
+    return any(
+        not isinstance(agg.parent, exp.Window) for agg in parsed.find_all(exp.AggFunc)
+    )
 
 
 class LimitMethod(enum.Enum):
@@ -520,12 +584,46 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
-    def check_tables_present(self, tables: set[str]) -> bool:
+    def check_tables_present(
+        self, tables: set[str], default_schema: str | None = None
+    ) -> bool:
         """
         Check if any of the given tables are present in the statement.
 
         :param tables: Set of table names to check for (case-insensitive)
+        :param default_schema: Schema unqualified references resolve to at
+            runtime (e.g. the session ``search_path`` / selected schema)
         :return: True if any of the tables are present
+        """
+        raise NotImplementedError()
+
+    def changes_search_path(self) -> bool:
+        """
+        Check if the statement changes the session ``search_path``.
+
+        Defaults to ``False``; engines whose statements can rebind unqualified
+        schema resolution override this.
+
+        :return: True if the statement changes the session ``search_path``
+        """
+        return False
+
+    def get_disallowed_tables(
+        self,
+        tables: set[str],
+        default_schema: str | None = None,
+        schema_indeterminate: bool = False,
+    ) -> set[str]:
+        """
+        Return the subset of ``tables`` referenced by this statement.
+
+        :param tables: Set of table names to check for (case-insensitive)
+        :param default_schema: Schema unqualified references resolve to at
+            runtime (e.g. the session ``search_path`` / selected schema)
+        :param schema_indeterminate: When True, unqualified references are
+            matched against schema-qualified entries too (see
+            :meth:`SQLStatement.get_disallowed_tables`)
+        :return: The matched entries, in their original denylist form
         """
         raise NotImplementedError()
 
@@ -631,7 +729,10 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             "LO_IMPORT",
             "LO_PUT",
             "LO_CREATE",
+            "LO_CREAT",
             "LOWRITE",
+            "LO_TRUNCATE",
+            "LO_TRUNCATE64",
             "LO_UNLINK",
             # PostgreSQL sequence mutators. `SELECT setval('seq', N)` and
             # `SELECT nextval('seq')` look like reads but change sequence state
@@ -717,6 +818,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         supports backticks natively. This handles cases like "Other" database type
         where users may have MySQL-compatible syntax with backtick-quoted table names.
         """
+        _check_script_length(script, engine)
         dialect = SQLGLOT_DIALECTS.get(engine)
         try:
             statements = sqlglot.parse(script, dialect=dialect)
@@ -1020,15 +1122,135 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         return any(function.upper() in present for function in functions)
 
-    def check_tables_present(self, tables: set[str]) -> bool:
+    def check_tables_present(
+        self, tables: set[str], default_schema: str | None = None
+    ) -> bool:
         """
         Check if any of the given tables are present in the statement.
 
+        Denylist entries may be bare (``pg_stat_activity``) or
+        schema-qualified (``information_schema.tables``). Bare entries
+        match by table name regardless of schema; qualified entries
+        require the schema to match too. This lets us block all access
+        to ``information_schema`` without also blocking any
+        user-authored table that happens to be named ``tables``.
+
         :param tables: Set of table names to check for (case-insensitive)
-        :return: True if any of the tables are present
+        :param default_schema: Schema unqualified references resolve to at
+            runtime (e.g. the session ``search_path`` / selected schema)
+        :return: True if any of the given tables is referenced
         """
-        present = {table.table.lower() for table in self.tables}
-        return any(table.lower() in present for table in tables)
+        return bool(self.get_disallowed_tables(tables, default_schema))
+
+    def changes_search_path(self) -> bool:
+        """
+        Return True if the statement changes the session ``search_path``.
+
+        A ``SET search_path = ...`` makes unqualified references in later
+        statements resolve to a schema other than the caller's
+        ``default_schema``, so denylist matching against ``default_schema``
+        alone becomes unreliable once such a statement is present.
+        """
+        # `SET search_path = schema` (and the `TO`/`SESSION`/`LOCAL` variants)
+        # parse as a structured exp.Set, surfaced by get_settings(). Strip any
+        # identifier quoting so `SET "search_path" = ...` (equivalent to the
+        # unquoted form in Postgres) is still recognized.
+        if any(key.strip('"').lower() == "search_path" for key in self.get_settings()):
+            return True
+        # `set_config('search_path', ...)` rebinds the search path through a
+        # function call rather than a SET statement, so it never reaches
+        # get_settings() and must be detected on the parsed tree.
+        for func in self._parsed.find_all(exp.Anonymous):
+            if (
+                func.name.lower() == "set_config"
+                and func.expressions
+                and isinstance(func.expressions[0], exp.Literal)
+                and func.expressions[0].name.lower() == "search_path"
+            ):
+                return True
+        # Exotic forms (e.g. `SET search_path TO "$user", public`) fall back to
+        # an opaque exp.Command. Match the leading setting name rather than
+        # scanning the whole expression, so `SET ROLE my_search_path_role`
+        # (whose value merely contains the substring) is not misclassified.
+        parsed = self._parsed
+        if isinstance(parsed, exp.Command) and parsed.name.upper() == "SET":
+            tokens = str(parsed.expression).replace("=", " ").split()
+            while tokens and tokens[0].upper() in {"SESSION", "LOCAL"}:
+                tokens.pop(0)
+            return bool(tokens) and tokens[0].strip('"').lower() == "search_path"
+        return False
+
+    def get_disallowed_tables(
+        self,
+        tables: set[str],
+        default_schema: str | None = None,
+        schema_indeterminate: bool = False,
+    ) -> set[str]:
+        """
+        Return the subset of ``tables`` referenced by this statement.
+
+        Matching mirrors :meth:`check_tables_present`: bare entries match by
+        table name regardless of schema, while schema-qualified entries
+        require the schema to match too. Entries are returned in their
+        original denylist form so callers can report exactly which
+        denylisted tables were hit.
+
+        A reference without an explicit schema is resolved against
+        ``default_schema`` when one is supplied, so an unqualified ``tables``
+        run under ``search_path = information_schema`` still matches the
+        ``information_schema.tables`` entry, while the same name under a
+        user schema does not.
+
+        :param tables: Set of table names to check for (case-insensitive)
+        :param default_schema: Schema unqualified references resolve to at
+            runtime (e.g. the session ``search_path`` / selected schema)
+        :param schema_indeterminate: When True, the effective ``search_path``
+            cannot be pinned to ``default_schema`` (e.g. the script contains a
+            ``SET search_path``), so an unqualified reference is matched
+            against the bare-name portion of schema-qualified entries too, to
+            avoid bypassing a qualified denylist entry
+        :return: The matched entries, in their original denylist form
+        """
+        fallback = default_schema.lower() if default_schema else None
+        present_bare: set[str] = set()
+        present_qualified: set[str] = set()
+        present_unqualified: set[str] = set()
+        for t in self.tables:
+            bare = t.table.lower()
+            present_bare.add(bare)
+            if t.schema:
+                present_qualified.add(f"{t.schema.lower()}.{bare}")
+                # Also index the fully-qualified (catalog.schema.table) form so a
+                # three-part denylist entry can match; without this, qualified
+                # entries deeper than schema.table would silently never match.
+                if t.catalog:
+                    present_qualified.add(
+                        f"{t.catalog.lower()}.{t.schema.lower()}.{bare}"
+                    )
+            else:
+                present_unqualified.add(bare)
+                # An unqualified reference can only be resolved against a known
+                # default schema. When ``default_schema`` is None (the runtime
+                # search_path is unknown to us), a qualified denylist entry is
+                # matched only via the ``schema_indeterminate`` bare-name
+                # fallback below, never here, this is an inherent limit of static
+                # analysis without the live search_path.
+                if fallback:
+                    present_qualified.add(f"{fallback}.{bare}")
+        found: set[str] = set()
+        for entry in tables:
+            needle = entry.lower()
+            if "." in needle:
+                if needle in present_qualified:
+                    found.add(entry)
+                elif (
+                    schema_indeterminate
+                    and needle.rsplit(".", 1)[1] in present_unqualified
+                ):
+                    found.add(entry)
+            elif needle in present_bare:
+                found.add(entry)
+        return found
 
     def get_limit_value(self) -> int | None:
         """
@@ -1150,6 +1372,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         :param predicate: The predicate to parse.
         :return: The parsed predicate.
         """
+        _check_script_length(predicate, self.engine)
         return sqlglot.parse_one(predicate, dialect=self._dialect)
 
     def apply_rls(
@@ -1459,15 +1682,35 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         logger.warning("Kusto KQL doesn't support checking for functions present.")
         return False
 
-    def check_tables_present(self, tables: set[str]) -> bool:
+    def check_tables_present(
+        self, tables: set[str], default_schema: str | None = None
+    ) -> bool:
         """
         Check if any of the given tables are present in the statement.
 
         :param tables: Set of table names to check for (case-insensitive)
+        :param default_schema: Unused; accepted for interface parity
         :return: True if any of the tables are present
         """
         logger.warning("Kusto KQL doesn't support checking for tables present.")
         return False
+
+    def get_disallowed_tables(
+        self,
+        tables: set[str],
+        default_schema: str | None = None,
+        schema_indeterminate: bool = False,
+    ) -> set[str]:
+        """
+        Return the subset of ``tables`` referenced by this statement.
+
+        :param tables: Set of table names to check for (case-insensitive)
+        :param default_schema: Unused; accepted for interface parity
+        :param schema_indeterminate: Unused; accepted for interface parity
+        :return: The matched entries, in their original denylist form
+        """
+        logger.warning("Kusto KQL doesn't support checking for tables present.")
+        return set()
 
     def get_limit_value(self) -> int | None:
         """
@@ -1640,16 +1883,46 @@ class SQLScript:
             for statement in self.statements
         )
 
-    def check_tables_present(self, tables: set[str]) -> bool:
+    def check_tables_present(
+        self, tables: set[str], default_schema: str | None = None
+    ) -> bool:
         """
         Check if any of the given tables are present in the script.
 
         :param tables: Set of table names to check for (case-insensitive)
+        :param default_schema: Schema unqualified references resolve to at
+            runtime (e.g. the session ``search_path`` / selected schema)
         :return: True if any of the tables are present
         """
-        return any(
-            statement.check_tables_present(tables) for statement in self.statements
-        )
+        return bool(self.get_disallowed_tables(tables, default_schema))
+
+    def get_disallowed_tables(
+        self, tables: set[str], default_schema: str | None = None
+    ) -> set[str]:
+        """
+        Return the subset of ``tables`` referenced anywhere in the script.
+
+        :param tables: Set of table names to check for (case-insensitive)
+        :param default_schema: Schema unqualified references resolve to at
+            runtime (e.g. the session ``search_path`` / selected schema)
+        :return: The matched entries, in their original denylist form
+        """
+        # A `SET search_path` only affects statements that run *after* it, so
+        # track the indeterminate state in statement order: an unqualified
+        # reference is matched conservatively (against the bare-name portion of
+        # qualified denylist entries) only once a preceding statement has
+        # rebound the search path. This keeps a qualified denylist entry from
+        # being bypassed (e.g. `SET search_path = information_schema; SELECT *
+        # FROM tables`) without penalizing statements that ran beforehand.
+        found: set[str] = set()
+        schema_indeterminate = False
+        for statement in self.statements:
+            found |= statement.get_disallowed_tables(
+                tables, default_schema, schema_indeterminate
+            )
+            if statement.changes_search_path():
+                schema_indeterminate = True
+        return found
 
     def is_valid_ctas(self) -> bool:
         """
@@ -1698,9 +1971,11 @@ def extract_tables_from_statement(
         if not literal:
             return set()
 
+        pseudo_sql = f"SELECT {literal.this}"
         try:
-            pseudo_query = sqlglot.parse_one(f"SELECT {literal.this}", dialect=dialect)
-        except ParseError:
+            _check_script_length(pseudo_sql, None)
+            pseudo_query = sqlglot.parse_one(pseudo_sql, dialect=dialect)
+        except (ParseError, SupersetParseError):
             return set()
         sources = pseudo_query.find_all(exp.Table)
     else:
@@ -1843,16 +2118,39 @@ def process_jinja_sql(
 
 def sanitize_clause(clause: str, engine: str) -> str:
     """
-    Make sure the SQL clause is valid.
+    Validate a SQL clause and return it unchanged.
+
+    The clause is parsed to ensure it is a single, well-formed statement. We
+    intentionally return the *original* text rather than a re-rendered version:
+    round-tripping user SQL through SQLGlot's dialect generator can silently
+    alter semantics. For example, the Postgres dialect (borrowed by several
+    engines) rewrites ``ROUND(AVG(x), n)`` to ``ROUND(CAST(AVG(x) AS DECIMAL),
+    n)``, which rounds the value to an integer before the explicit ``ROUND`` on
+    engines whose unqualified ``DECIMAL`` defaults to scale 0 (see #36113).
+
+    Comments are the one exception: a trailing line comment can comment out
+    surrounding SQL once the clause is embedded into a larger query (e.g.
+    wrapped in parentheses), so any clause that contains comments is re-rendered
+    to normalize them into a safe form. That re-rendering uses the *base* dialect
+    rather than the engine dialect, so it normalizes comments without re-applying
+    the engine-specific rewrites (e.g. the Postgres ``ROUND``/``CAST`` rewrite
+    from #36113) that we deliberately avoid above. A trailing statement
+    terminator is likewise stripped, since callers embed the clause inside a
+    larger fragment (``WHERE (...)``) where a stray ``;`` would produce invalid
+    SQL.
     """
     try:
         statement = SQLStatement(clause, engine)
+        parsed = statement._parsed  # pylint: disable=protected-access
+        if not any(node.comments for node in parsed.walk()):
+            return clause.rstrip().rstrip(";").rstrip()
+
         return _normalized_generator(
-            SQLGLOT_DIALECTS.get(engine),
+            None,
             pretty=False,
             comments=True,
         ).generate(
-            statement._parsed,  # pylint: disable=protected-access
+            parsed,
             copy=True,
         )
     except SupersetParseError as ex:
@@ -1889,6 +2187,7 @@ def transpile_to_dialect(
     source_dialect = SQLGLOT_DIALECTS.get(source_engine) if source_engine else Dialect
 
     try:
+        _check_script_length(sql, source_engine)
         parsed = sqlglot.parse_one(sql, dialect=source_dialect)
         return Dialect.get_or_raise(target_dialect).generate(
             parsed,

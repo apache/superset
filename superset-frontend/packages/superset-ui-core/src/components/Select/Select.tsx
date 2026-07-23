@@ -34,6 +34,8 @@ import { t } from '@apache-superset/core/translation';
 import { ensureIsArray, formatNumber, usePrevious } from '@superset-ui/core';
 import { Constants } from '@superset-ui/core/components';
 import {
+  BaseOptionType,
+  DefaultOptionType,
   LabeledValue as AntdLabeledValue,
   RefSelectProps,
 } from 'antd/es/select';
@@ -47,10 +49,13 @@ import {
   hasOption,
   isLabeledValue,
   isObject,
+  makeQuoteAwareTokenizer,
   mapOptions,
   mapValues,
   sortComparatorWithSearchHelper,
   sortSelectedFirstHelper,
+  splitWithQuoteEscaping,
+  stripSurroundingQuotes,
   isEqual as utilsIsEqual,
 } from './utils';
 import { RawValue, SelectOptionsType, SelectProps } from './types';
@@ -64,7 +69,7 @@ import {
 } from './styles';
 import {
   DEFAULT_SORT_COMPARATOR,
-  DROPDOWN_ALIGN_BOTTOM,
+  DROPDOWN_BUILTIN_PLACEMENTS,
   EMPTY_OPTIONS,
   MAX_TAG_COUNT,
   TOKEN_SEPARATORS,
@@ -128,7 +133,9 @@ const Select = forwardRef(
     ref: Ref<RefSelectProps>,
   ) => {
     const isSingleMode = mode === 'single';
-    const shouldShowSearch = allowNewOptions ? true : showSearch;
+    // antd v6 widened `showSearch` to `boolean | SearchConfig`; coerce to a
+    // plain boolean for Superset's internal toggles and helpers.
+    const shouldShowSearch = allowNewOptions ? true : Boolean(showSearch);
     const [selectValue, setSelectValue] = useState(value);
     const [inputValue, setInputValue] = useState('');
     const [isDropdownVisible, setIsDropdownVisible] = useState(false);
@@ -188,6 +195,19 @@ const Select = forwardRef(
 
     const mappedMode = isSingleMode ? undefined : 'multiple';
 
+    const reconcileTokensRef = useRef<(tokens: string[]) => void>(() => {});
+
+    const quoteAwareTokenSeparators = useMemo(() => {
+      const tokenize = makeQuoteAwareTokenizer(tokenSeparators);
+      return (input: string) => {
+        const tokens = tokenize(input);
+        if (tokens.length !== 1 || tokens[0] !== input) {
+          reconcileTokensRef.current(tokens);
+        }
+        return tokens;
+      };
+    }, [tokenSeparators]);
+
     const sortSelectedFirst = useCallback(
       (a: AntdLabeledValue, b: AntdLabeledValue) =>
         sortSelectedFirstHelper(a, b, selectValue),
@@ -212,7 +232,17 @@ const Select = forwardRef(
     );
 
     const initialOptionsSorted = useMemo(
-      () => initialOptions.slice().sort(sortSelectedFirst),
+      () =>
+        initialOptions
+          .slice()
+          // Forward-compat: TS 6.0 infers stricter antd option types; widen the
+          // comparator to accept the broader DefaultOptionType shape.
+          .sort(
+            sortSelectedFirst as unknown as (
+              a: BaseOptionType | DefaultOptionType,
+              b: BaseOptionType | DefaultOptionType,
+            ) => number,
+          ),
       [initialOptions, sortSelectedFirst],
     );
 
@@ -240,8 +270,23 @@ const Select = forwardRef(
         missingValues.length > 0
           ? missingValues.concat(selectOptions)
           : selectOptions;
-      return result.slice().sort(sortSelectedFirst);
+      return (
+        result
+          .slice()
+          // Forward-compat: see note on initialOptionsSorted.
+          .sort(
+            sortSelectedFirst as unknown as (
+              a: BaseOptionType | DefaultOptionType,
+              b: BaseOptionType | DefaultOptionType,
+            ) => number,
+          )
+      );
     }, [selectOptions, selectValue, sortSelectedFirst]);
+
+    const fullSelectOptionsRef = useRef(fullSelectOptions);
+    fullSelectOptionsRef.current = fullSelectOptions;
+    const selectValueRef = useRef(selectValue);
+    selectValueRef.current = selectValue;
 
     const enabledOptions = useMemo(
       () => visibleOptions.filter(option => !option.disabled),
@@ -342,6 +387,42 @@ const Select = forwardRef(
       onSelect?.(selectedItem, option);
     };
 
+    // The underlying Select silently drops tokens it cannot match against the
+    // rendered options. That happens whenever tokenization outpaces the
+    // debounced option registration, e.g. dead-key keyboard layouts deliver a
+    // closing quote and a separator in a single input event.
+    reconcileTokensRef.current = (tokens: string[]) => {
+      if (isSingleMode || !allowNewOptions) {
+        return;
+      }
+      setTimeout(() => {
+        tokens.forEach(token => {
+          const matched = getOption(token, fullSelectOptionsRef.current, true);
+          const matchedValue = isObject(matched) ? matched.value : matched;
+          if (hasOption(matchedValue ?? token, selectValueRef.current)) {
+            return;
+          }
+          const option = isObject(matched)
+            ? (matched as AntdLabeledValue)
+            : { label: token, value: token, isNewOption: true };
+          if (!matched) {
+            const addOption = (previous: SelectOptionsType) =>
+              hasOption(token, previous, true)
+                ? previous
+                : [option, ...previous];
+            setSelectOptions(addOption);
+            setVisibleOptions(addOption);
+          }
+          handleOnSelect(
+            (labelInValue
+              ? { label: option.label, value: option.value }
+              : option.value) as string | AntdLabeledValue,
+            option as AntdLabeledValue,
+          );
+        });
+      });
+    };
+
     const clear = () => {
       if (isSingleMode) {
         setSelectValue(undefined);
@@ -390,61 +471,101 @@ const Select = forwardRef(
     const handleFilterOption = (search: string, option: AntdLabeledValue) =>
       handleFilterOptionHelper(search, option, optionFilterProps, filterOption);
 
-    const handleOnSearch = debounce((search: string) => {
-      const searchValue = search.trim();
-      setIsSearching(!!searchValue);
+    const stateRef = useRef({
+      selectOptions,
+      allowNewOptions,
+      fullSelectOptions,
+      selectValue,
+      handleFilterOption,
+      onSearch,
+    });
 
-      let updatedOptions = selectOptions;
+    useEffect(() => {
+      stateRef.current = {
+        selectOptions,
+        allowNewOptions,
+        fullSelectOptions,
+        selectValue,
+        handleFilterOption,
+        onSearch,
+      };
+    });
 
-      if (allowNewOptions) {
-        const optionsWithoutTemporary = ensureIsArray(fullSelectOptions).filter(
-          opt => !opt.isNewOption,
-        );
-        const shouldCreateNewOption =
-          searchValue && !hasOption(searchValue, optionsWithoutTemporary, true);
+    const handleOnSearch = useMemo(
+      () =>
+        debounce((search: string) => {
+          const {
+            selectOptions,
+            allowNewOptions,
+            fullSelectOptions,
+            selectValue,
+            handleFilterOption,
+            onSearch,
+          } = stateRef.current;
 
-        const newOption = shouldCreateNewOption && {
-          label: searchValue,
-          value: searchValue,
-          isNewOption: true,
-        };
-        const cleanSelectOptions = ensureIsArray(fullSelectOptions).filter(
-          opt => !opt.isNewOption || hasOption(opt.value, selectValue),
-        );
-        updatedOptions = newOption
-          ? [newOption, ...cleanSelectOptions]
-          : cleanSelectOptions;
-        setSelectOptions(updatedOptions);
-      }
+          const searchValue = search.trim();
+          setIsSearching(!!searchValue);
 
-      const filteredOptions = updatedOptions
-        .map((option: any) => {
-          /*
+          let updatedOptions = selectOptions;
+
+          if (allowNewOptions) {
+            const optionsWithoutTemporary = ensureIsArray(
+              fullSelectOptions,
+            ).filter(opt => !opt.isNewOption);
+            const unquotedSearch = stripSurroundingQuotes(searchValue);
+            const shouldCreateNewOption =
+              unquotedSearch &&
+              !hasOption(unquotedSearch, optionsWithoutTemporary, true);
+
+            const newOption = shouldCreateNewOption && {
+              label: unquotedSearch,
+              value: unquotedSearch,
+              isNewOption: true,
+            };
+            const cleanSelectOptions = ensureIsArray(fullSelectOptions).filter(
+              opt => !opt.isNewOption || hasOption(opt.value, selectValue),
+            );
+            updatedOptions = newOption
+              ? [newOption, ...cleanSelectOptions]
+              : cleanSelectOptions;
+            setSelectOptions(updatedOptions);
+          }
+
+          const filteredOptions = updatedOptions
+            .map((option: DefaultOptionType) => {
+              /*
           If it's a group, filter its nested options and only return it
           if it has matching options
           */
-          if ('options' in option && Array.isArray(option.options)) {
-            const filteredGroupOptions = option.options.filter(
-              (subOption: AntdLabeledValue) =>
-                handleFilterOption(search, subOption),
-            );
-            return filteredGroupOptions.length > 0
-              ? { ...option, options: filteredGroupOptions }
-              : null;
-          }
+              if ('options' in option && Array.isArray(option.options)) {
+                const filteredGroupOptions = option.options.filter(
+                  (subOption: AntdLabeledValue) =>
+                    handleFilterOption(search, subOption),
+                );
+                return filteredGroupOptions.length > 0
+                  ? { ...option, options: filteredGroupOptions }
+                  : null;
+              }
 
-          return handleFilterOption(search, option as AntdLabeledValue)
-            ? option
-            : null;
-        })
-        .filter((option): option is AntdLabeledValue => option !== null);
+              return handleFilterOption(search, option as AntdLabeledValue)
+                ? option
+                : null;
+            })
+            .filter((option): option is AntdLabeledValue => option !== null);
 
-      setVisibleOptions(filteredOptions);
-      setInputValue(searchValue);
-      onSearch?.(searchValue);
-    }, Constants.FAST_DEBOUNCE);
+          setVisibleOptions(filteredOptions);
+          setInputValue(searchValue);
+          onSearch?.(searchValue);
+        }, Constants.FAST_DEBOUNCE),
+      [],
+    );
 
-    useEffect(() => () => handleOnSearch.cancel(), [handleOnSearch]);
+    useEffect(
+      () => () => {
+        handleOnSearch.cancel?.();
+      },
+      [handleOnSearch],
+    );
 
     const handleOnDropdownVisibleChange = (isDropdownVisible: boolean) => {
       setIsDropdownVisible(isDropdownVisible);
@@ -697,15 +818,11 @@ const Select = forwardRef(
           setSelectValue(value);
         }
       } else {
-        const token = tokenSeparators.find(token => pastedText.includes(token));
-        const array = token
-          ? uniq(
-              pastedText
-                .split(token)
-                .map(item => item.trim())
-                .filter(Boolean),
-            )
-          : [pastedText.trim()].filter(Boolean);
+        // Superset's prop is the array form; antd receives the function form
+        const separators = Array.isArray(tokenSeparators)
+          ? tokenSeparators
+          : [];
+        const array = uniq(splitWithQuoteEscaping(pastedText, separators));
 
         const newOptions: SelectOptionsType = [];
         // When `allowNewOptionsOnPaste` is set, accept pasted values that are
@@ -730,6 +847,10 @@ const Select = forwardRef(
             return getPastedTextValue(item);
           })
           .filter(item => item !== undefined);
+
+        if (values.length > 0) {
+          e.preventDefault();
+        }
 
         if (newOptions.length > 0) {
           const updatedOptions = [...fullSelectOptions, ...newOptions];
@@ -773,10 +894,26 @@ const Select = forwardRef(
           data-test={ariaLabel || name}
           autoClearSearchValue={autoClearSearchValue}
           popupRender={popupRender}
-          filterOption={handleFilterOption}
-          filterSort={sortComparatorWithSearch}
+          // Forward-compat: TS 6.0 infers stricter antd option types; local
+          // helpers typed against AntdLabeledValue are behaviorally compatible
+          // with the broader BaseOptionType/DefaultOptionType antd expects.
+          filterOption={
+            handleFilterOption as unknown as (
+              search: string,
+              option?: BaseOptionType | DefaultOptionType,
+            ) => boolean
+          }
+          filterSort={
+            sortComparatorWithSearch as unknown as (
+              a: BaseOptionType | DefaultOptionType,
+              b: BaseOptionType | DefaultOptionType,
+            ) => number
+          }
           getPopupContainer={
-            getPopupContainer || (triggerNode => triggerNode.parentNode)
+            getPopupContainer ||
+            ((triggerNode: HTMLElement) =>
+              (triggerNode?.closest('.ant-modal-content') as HTMLElement) ||
+              (triggerNode.parentNode as HTMLElement))
           }
           headerPosition={headerPosition}
           labelInValue={labelInValue}
@@ -785,16 +922,29 @@ const Select = forwardRef(
           mode={mappedMode}
           notFoundContent={isLoading ? t('Loading...') : notFoundContent}
           onBlur={handleOnBlur}
-          onDeselect={handleOnDeselect}
+          // Forward-compat: TS 6.0 narrows the Select value type handed to
+          // SelectHandler; our local handlers already accept the broader union.
+          onDeselect={
+            handleOnDeselect as unknown as (
+              value: unknown,
+              option: BaseOptionType | DefaultOptionType,
+            ) => void
+          }
           onOpenChange={handleOnDropdownVisibleChange}
-          // @ts-expect-error
+          // @ts-expect-error antd Select does not declare onPaste on its prop
+          // surface, but the underlying input accepts it and we rely on that.
           onPaste={onPaste}
           onPopupScroll={undefined}
           onSearch={shouldShowSearch ? handleOnSearch : undefined}
-          onSelect={handleOnSelect}
+          onSelect={
+            handleOnSelect as unknown as (
+              value: unknown,
+              option: BaseOptionType | DefaultOptionType,
+            ) => void
+          }
           onClear={handleClear}
           placeholder={placeholder}
-          tokenSeparators={tokenSeparators}
+          tokenSeparators={quoteAwareTokenSeparators}
           value={selectValue}
           virtual={
             virtual !== undefined
@@ -817,8 +967,8 @@ const Select = forwardRef(
           optionRender={option => <Space>{option.label || option.value}</Space>}
           oneLine={oneLine}
           popupMatchSelectWidth={oneLine ? dropdownWidth : true}
+          builtinPlacements={DROPDOWN_BUILTIN_PLACEMENTS}
           css={props.css}
-          dropdownAlign={DROPDOWN_ALIGN_BOTTOM}
           {...props}
           showSearch={shouldShowSearch}
           ref={ref}

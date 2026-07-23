@@ -25,7 +25,7 @@ from uuid import UUID
 from flask_babel import lazy_gettext as _
 from sqlalchemy.engine.url import URL as SqlaURL  # noqa: N811
 from sqlalchemy.exc import NoSuchTableError
-from sqlalchemy.ext.declarative import DeclarativeMeta
+from sqlalchemy.orm import DeclarativeMeta
 from sqlalchemy.orm.exc import ObjectDeletedError
 from sqlalchemy.sql.type_api import TypeEngine
 
@@ -161,6 +161,21 @@ def get_columns_description(
             db_engine_spec.execute(cursor, mutated_query, database)
             result = db_engine_spec.fetch_data(cursor, limit=limit)
             result_set = SupersetResultSet(result, cursor.description, db_engine_spec)
+            if not result_set.columns and (
+                retry_sql := db_engine_spec.get_column_description_retry_sql(
+                    mutated_query
+                )
+            ):
+                # Some drivers (e.g. clickhouse-connect) fail to populate
+                # cursor.description for a legitimate zero-row metadata probe
+                # once SQL_QUERY_MUTATOR has added leading comments. Retry
+                # once with a comment-safe wrapped query -- see
+                # get_column_description_retry_sql -- before giving up.
+                db_engine_spec.execute(cursor, retry_sql, database)
+                result = db_engine_spec.fetch_data(cursor, limit=limit)
+                result_set = SupersetResultSet(
+                    result, cursor.description, db_engine_spec
+                )
             return result_set.columns
     except Exception as ex:
         raise SupersetGenericDBErrorException(message=str(ex)) from ex

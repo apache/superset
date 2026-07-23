@@ -93,7 +93,7 @@ def find_models(module: ModuleType) -> list[type[Model]]:  # noqa: C901
     # where the current model is out-of-sync with the existing table after a
     # downgrade
     sqlalchemy_uri = current_app.config["SQLALCHEMY_DATABASE_URI"]
-    engine = create_engine(sqlalchemy_uri)
+    engine = create_engine(sqlalchemy_uri, future=True)
     Base = automap_base()  # noqa: N806
     Base.prepare(engine, reflect=True)
     seen = set()
@@ -153,10 +153,11 @@ def main(  # noqa: C901
         )
 
     print(f"Migration goes from {down_revision} to {revision}")
-    current_revision = db.engine.execute(
-        text("SELECT version_num FROM alembic_version")
-    ).scalar()
-    print(f"Current version of the DB is {current_revision}")
+    with db.engine.connect() as conn:
+        current_revision = conn.execute(
+            text("SELECT version_num FROM alembic_version")
+        ).scalar()
+        print(f"Current version of the DB is {current_revision}")
 
     if current_revision != down_revision:
         if not force:

@@ -548,3 +548,46 @@ test('Scope boundary: display control with chartsInScope:[] does not affect the 
   const result = getFormDataWithExtraFilters(argsOutOfScope);
   expectGroupBy(result, ['original_column']);
 });
+
+test('chart customization does not match across datasource ID spaces', () => {
+  // A customization targeting semantic_view ``3`` must not match a chart
+  // backed by table ``3``: the two have independent ID spaces.
+  const customizationId = 'CHART_CUSTOMIZATION-groupby-cross';
+  const args: GetFormDataWithExtraFiltersArguments = {
+    ...mockArgs,
+    chart: {
+      ...mockChart,
+      form_data: {
+        ...mockChart.form_data,
+        viz_type: 'table',
+        datasource: '3__table',
+        groupby: ['original_column'],
+      },
+    },
+    dataMask: {
+      [customizationId]: {
+        id: customizationId,
+        extraFormData: {},
+        filterState: { value: ['status'] },
+        ownState: {},
+      },
+    },
+    chartCustomizationItems: [
+      createChartCustomization({
+        id: customizationId,
+        targets: [
+          {
+            datasetId: 3,
+            datasourceType: 'semantic_view' as any,
+            column: { name: 'status' },
+          },
+        ],
+      }),
+    ],
+  };
+
+  // Customization is on semantic_view:3, chart is on table:3 — they
+  // shouldn't be linked, so the chart's groupby is unchanged.
+  const result = getFormDataWithExtraFilters(args);
+  expectGroupBy(result, ['original_column']);
+});

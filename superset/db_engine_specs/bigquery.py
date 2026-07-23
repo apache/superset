@@ -287,6 +287,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
 
     supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
     supports_dynamic_schema = True
+    supports_grouping_sets = True
 
     # when editing the database, mask this field in `encrypted_extra`
     # pylint: disable=invalid-name
@@ -728,15 +729,17 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
                 "Could not import libraries needed to connect to BigQuery."
             )
 
+        project: str | None = engine.url.host or None
+
         if credentials_info := engine.dialect.credentials_info:
             credentials = service_account.Credentials.from_service_account_info(
                 credentials_info
             )
-            return bigquery.Client(credentials=credentials)
+            return bigquery.Client(credentials=credentials, project=project)
 
         try:
             credentials = google.auth.default()[0]
-            return bigquery.Client(credentials=credentials)
+            return bigquery.Client(credentials=credentials, project=project)
         except google.auth.exceptions.DefaultCredentialsError as ex:
             raise SupersetDBAPIConnectionError(
                 "The database credentials could not be found."

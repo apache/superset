@@ -26,7 +26,12 @@ import {
   useState,
 } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { getExtensionsRegistry, QueryData, VizType } from '@superset-ui/core';
+import {
+  getExtensionsRegistry,
+  JsonObject,
+  QueryData,
+  VizType,
+} from '@superset-ui/core';
 import {
   css,
   styled,
@@ -39,8 +44,8 @@ import { Tooltip, EditableTitle, Icons } from '@superset-ui/core/components';
 import { useSelector } from 'react-redux';
 import SliceHeaderControls from 'src/dashboard/components/SliceHeaderControls';
 import { SliceHeaderControlsProps } from 'src/dashboard/components/SliceHeaderControls/types';
-import FiltersBadge from 'src/dashboard/components/FiltersBadge';
-import CustomizationsBadge from 'src/dashboard/components/CustomizationsBadge';
+import MemoizedFiltersBadge from 'src/dashboard/components/FiltersBadge';
+import MemoizedCustomizationsBadge from 'src/dashboard/components/CustomizationsBadge';
 import { RootState } from 'src/dashboard/types';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
@@ -58,6 +63,7 @@ type SliceHeaderProps = SliceHeaderControlsProps & {
   filters: object;
   handleToggleFullSize: () => void;
   formData: object;
+  ownState?: JsonObject;
   width: number;
   height: number;
   queriedDttm?: string | null;
@@ -157,7 +163,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       sliceName = '',
       supersetCanExplore = false,
       supersetCanShare = false,
-      supersetCanCSV = false,
+      supersetCanDownload = false,
       exportPivotCSV,
       exportFullCSV,
       exportFullXLSX,
@@ -174,6 +180,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       height,
       exportPivotExcel = () => ({}),
       chartHolderRef,
+      ownState,
     },
     ref,
   ) => {
@@ -326,11 +333,11 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                 </Tooltip>
               )}
               {!uiConfig.hideChartControls && (
-                <CustomizationsBadge chartId={slice.slice_id} />
+                <MemoizedCustomizationsBadge chartId={slice.slice_id} />
               )}
 
               {!uiConfig.hideChartControls && (
-                <FiltersBadge chartId={slice.slice_id} />
+                <MemoizedFiltersBadge chartId={slice.slice_id} />
               )}
 
               {showRowLimitWarning && (
@@ -367,7 +374,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   exportFullXLSX={exportFullXLSX}
                   supersetCanExplore={supersetCanExplore}
                   supersetCanShare={supersetCanShare}
-                  supersetCanCSV={supersetCanCSV}
+                  supersetCanDownload={supersetCanDownload}
                   componentId={componentId}
                   dashboardId={dashboardId}
                   addSuccessToast={addSuccessToast}
@@ -381,6 +388,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   crossFiltersEnabled={isCrossFiltersEnabled}
                   exportPivotExcel={exportPivotExcel}
                   chartHolderRef={chartHolderRef}
+                  ownState={ownState}
                 />
               )}
             </>

@@ -677,6 +677,69 @@ class TestSavedQueryApi(SupersetTestCase):
         db.session.delete(model)
         db.session.commit()
 
+    def test_create_saved_query_blank_label(self) -> None:
+        """
+        Saved Query API: Test create rejects blank/whitespace-only labels
+        """
+        example_db = get_example_database()
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/saved_query/"
+
+        for label in ("", "   ", "\t\n"):
+            post_data = {
+                "schema": "schema1",
+                "label": label,
+                "description": "some description",
+                "sql": "SELECT col1, col2 from table1",
+                "db_id": example_db.id,
+            }
+            rv = self.client.post(uri, json=post_data)
+            data = json.loads(rv.data.decode("utf-8"))
+            assert rv.status_code == 422
+            assert "label" in data["message"]
+
+    def test_create_saved_query_strips_label(self) -> None:
+        """
+        Saved Query API: Test create trims surrounding whitespace from labels
+        """
+        example_db = get_example_database()
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/saved_query/"
+
+        post_data = {
+            "schema": "schema1",
+            "label": "  label1  ",
+            "description": "some description",
+            "sql": "SELECT col1, col2 from table1",
+            "db_id": example_db.id,
+        }
+        rv = self.client.post(uri, json=post_data)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 201
+
+        model = db.session.query(SavedQuery).get(data.get("id"))
+        assert model.label == "label1"
+
+        # Rollback changes
+        db.session.delete(model)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("create_saved_queries")
+    def test_update_saved_query_blank_label(self) -> None:
+        """
+        Saved Query API: Test update rejects blank/whitespace-only labels
+        """
+        saved_query = (
+            db.session.query(SavedQuery).filter(SavedQuery.label == "label1").all()[0]
+        )
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/saved_query/{saved_query.id}"
+
+        rv = self.client.put(uri, json={"label": "   "})
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 422
+        assert "label" in data["message"]
+
     @pytest.mark.usefixtures("create_saved_queries")
     def test_update_saved_query(self):
         """
@@ -800,11 +863,12 @@ class TestSavedQueryApi(SupersetTestCase):
     @patch(
         "superset.queries.saved_queries.filters.security_manager.can_access_all_queries"
     )
-    def test_delete_bulk_saved_query_all_query_access_keeps_owner_filter(
+    def test_delete_bulk_saved_query_all_query_access_keeps_creator_filter(
         self, mock_can_access_all_queries: Mock
     ) -> None:
         """
-        Saved Query API: Test all_query_access does not bypass ownership for delete
+        Saved Query API: Test all_query_access does not bypass creator scoping
+        for delete.
         """
         mock_can_access_all_queries.return_value = True
         admin = self.get_user("admin")

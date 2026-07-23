@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, cast, TYPE_CHECKING
 from urllib import parse
 
@@ -132,7 +132,10 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
         if isinstance(sqla_type, types.Date):
             return f"toDate('{dttm.date().isoformat()}')"
         if isinstance(sqla_type, types.DateTime):
-            return f"""toDateTime('{dttm.isoformat(sep=" ", timespec="seconds")}')"""
+            if dttm.tzinfo is not None and dttm.utcoffset() is not None:
+                dttm = dttm.astimezone(timezone.utc).replace(tzinfo=None)
+            formatted_dttm: str = dttm.isoformat(sep=" ", timespec="seconds")
+            return f"toDateTime('{formatted_dttm}', 'UTC')"
         return None
 
 
@@ -528,3 +531,15 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         if schema:
             uri = uri.set(database=parse.quote(schema, safe=""))
         return uri, connect_args
+
+    @classmethod
+    def get_column_description_retry_sql(cls, sql: str) -> str | None:
+        # clickhouse-connect's cursor only backfills `cursor.description` for
+        # a zero-row result -- e.g. the `WHERE false` probe used to detect an
+        # adhoc column's type without scanning any rows -- when the operation
+        # string starts with SELECT/WITH after stripping whitespace. Leading
+        # SQL comments inserted by SQL_QUERY_MUTATOR (e.g. query attribution)
+        # defeat that check, so wrap the untouched, already-mutated SQL in a
+        # bare outer SELECT to satisfy it without altering or dropping any of
+        # the mutator's comments.
+        return f"SELECT * FROM (\n{sql}\n) AS __superset_type_probe LIMIT 0"  # noqa: S608
