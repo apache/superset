@@ -19,7 +19,7 @@ import logging
 from typing import Any
 from urllib.parse import urlparse
 
-import backoff
+import backon
 import requests
 from flask import current_app
 
@@ -139,8 +139,8 @@ class WebhookNotification(BaseNotification):
         if not is_safe_host(parsed.hostname):
             raise NotificationParamException("Webhook URL target host is not allowed.")
 
-    @backoff.on_exception(
-        backoff.expo,
+    @backon.on_exception(
+        backon.expo,
         NotificationUnprocessableException,
         factor=10,
         base=2,
@@ -149,16 +149,16 @@ class WebhookNotification(BaseNotification):
         # persistently-failing target can stall a worker for minutes per bad
         # URL, starving sequential report dispatch.
         #
-        # backoff (see backoff._sync.retry_exception) samples elapsed at the
-        # start of each attempt and checks it against max_time only after that
-        # attempt fails -- so the giveup decision uses the time measured before
-        # the attempt ran, ignoring the attempt's own duration. With each
-        # request carrying timeout=60, a third attempt can begin past the 120s
-        # mark (its start gated by the prior check, which still saw ~60-70s) and
-        # then run its full 60s before the check trips. The loop therefore makes
-        # 3 attempts: total wall-clock is ~180-210s (180s of requests + up to
-        # ~30s of jitter sleeps: <=10s then <=20s), not 120s. factor is kept at
-        # 10 so legitimately-transient 5xx targets are not abandoned early.
+        # max_time samples elapsed at the start of each attempt and checks
+        # it against max_time only after that attempt fails -- so the giveup
+        # decision uses the time measured before the attempt ran, ignoring
+        # the attempt's own duration. With each request carrying timeout=60,
+        # a third attempt can begin past the 120s mark (its start gated by the
+        # prior check, which still saw ~60-70s) and then run its full 60s
+        # before the check trips. The loop therefore makes 3 attempts: total
+        # wall-clock is ~180-210s (180s of requests + up to ~30s of jitter
+        # sleeps: <=10s then <=20s), not 120s. factor is kept at 10 so
+        # legitimately-transient 5xx targets are not abandoned early.
         max_time=120,
     )
     @statsd_gauge("reports.webhook.send")

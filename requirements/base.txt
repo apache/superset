@@ -26,7 +26,7 @@ attrs==25.3.0
     #   trio
 babel==2.17.0
     # via flask-babel
-backoff==2.2.1
+backon==4.4.2
     # via apache-superset (pyproject.toml)
 bcrypt==4.3.0
     # via paramiko
