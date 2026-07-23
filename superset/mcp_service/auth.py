@@ -125,6 +125,54 @@ _METHOD_TO_REQUIRED_SCOPE = {
     "execute_sql_query": "superset:write",
 }
 
+# Maps a tool's ``class_permission_name`` to the resource segment of its
+# per-resource scope string (``superset:<resource>:<action>``).
+#
+# This is an explicit map rather than a ``class_permission_name.lower()``
+# transform because a naive lowercase breaks for "Row Level Security" (which
+# contains spaces) and produces awkward names for "ReportSchedule" and
+# "SQLLab". Keep this in sync with the ``class_permission_name`` values
+# declared by MCP tools (grep for ``class_permission_name=`` under
+# ``superset/mcp_service``). A resource missing from this map simply has no
+# per-resource scope — tokens must then rely on the flat
+# ``_METHOD_TO_REQUIRED_SCOPE`` scopes (see ``_token_scope_allows``).
+RESOURCE_SCOPE_NAME: dict[str, str] = {
+    "Annotation": "annotation",
+    "Chart": "chart",
+    "Dashboard": "dashboard",
+    "Database": "database",
+    "Dataset": "dataset",
+    "Explore": "explore",
+    "Query": "query",
+    "ReportSchedule": "report",
+    "Role": "role",
+    "Row Level Security": "rls",
+    "SavedQuery": "savedquery",
+    "SQLLab": "sqllab",
+    "Tag": "tag",
+    "Task": "task",
+    "Theme": "theme",
+    "User": "user",
+}
+
+
+def _required_resource_scope(
+    class_permission_name: str, method_permission_name: str
+) -> str | None:
+    """Compute the ``superset:<resource>:<action>`` scope string for a tool.
+
+    Returns None if either the resource or the action isn't mapped — callers
+    must treat that as "no per-resource scope available," not as a grant;
+    the flat ``_METHOD_TO_REQUIRED_SCOPE`` fallback still applies in that case
+    (see ``_token_scope_allows``).
+    """
+    resource = RESOURCE_SCOPE_NAME.get(class_permission_name)
+    action = _METHOD_TO_REQUIRED_SCOPE.get(method_permission_name)
+    if resource is None or action is None:
+        return None
+    action_slug = action.rsplit(":", 1)[-1]
+    return f"superset:{resource}:{action_slug}"
+
 
 def _get_token_scopes() -> set[str] | None:
     """Return the set of scopes on the current JWT access token, or None.
@@ -154,12 +202,21 @@ def _get_token_scopes() -> set[str] | None:
     return {str(s) for s in scopes}
 
 
-def _token_scope_allows(method_permission_name: str) -> bool:
+def _token_scope_allows(
+    method_permission_name: str, class_permission_name: str | None = None
+) -> bool:
     """Return whether the current token's scopes permit the given method.
 
     Back-compat: returns True (allow) when the token carries no scopes or there
     is no JWT context, so deployments not using scopes keep RBAC-only behavior.
     Only when the token advertises scopes is the mapped required scope enforced.
+
+    The per-resource scope (``superset:<resource>:<action>``, derived via
+    ``_required_resource_scope``) is an ALTERNATIVE grant path alongside the
+    flat method scope: a token carrying either the flat scope
+    (e.g. ``superset:read``) or the matching per-resource scope
+    (e.g. ``superset:dashboard:read``) is allowed, so already-issued
+    flat-scoped tokens keep working unchanged.
     """
     token_scopes = _get_token_scopes()
     if token_scopes is None:
@@ -177,7 +234,15 @@ def _token_scope_allows(method_permission_name: str) -> bool:
             method_permission_name,
         )
         return False
-    return required_scope in token_scopes
+    if required_scope in token_scopes:
+        return True
+    if class_permission_name is not None:
+        resource_scope = _required_resource_scope(
+            class_permission_name, method_permission_name
+        )
+        if resource_scope is not None and resource_scope in token_scopes:
+            return True
+    return False
 
 
 class MCPPermissionDeniedError(PermissionError):
@@ -221,12 +286,16 @@ def _log_scope_denial(
     cyclomatic complexity in check.
     """
     required_scope = _METHOD_TO_REQUIRED_SCOPE.get(method_permission_name)
+    resource_scope = _required_resource_scope(
+        class_permission_name, method_permission_name
+    )
+    scope_desc = resource_scope or required_scope
     if log_denial:
         logger.warning(
             "Scope denied for user %s: token lacks required scope "
             "'%s' for %s on %s (tool: %s)",
             _sanitize_for_log(g.user.username),
-            required_scope,
+            scope_desc,
             permission_str,
             class_permission_name,
             func.__name__,
@@ -235,7 +304,7 @@ def _log_scope_denial(
         logger.debug(
             "Tool hidden for user %s: token lacks required scope '%s' (tool: %s)",
             _sanitize_for_log(g.user.username),
-            required_scope,
+            scope_desc,
             func.__name__,
         )
 
@@ -398,7 +467,9 @@ def check_tool_permission(  # noqa: C901
         # advertises scopes. Tokens/deployments that don't use scopes (API keys,
         # scope-less JWTs, dev-mode) fall through to RBAC-only behavior — see
         # ``_token_scope_allows``.
-        if has_permission and not _token_scope_allows(method_permission_name):
+        if has_permission and not _token_scope_allows(
+            method_permission_name, class_permission_name
+        ):
             _log_scope_denial(
                 func,
                 method_permission_name,

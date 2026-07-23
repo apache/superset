@@ -17,6 +17,7 @@
 # pylint: disable=too-many-lines
 """A set of constants and methods to manage permissions and security"""
 
+import datetime
 import logging
 import re
 import time
@@ -4612,6 +4613,105 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         audience = self._get_guest_token_jwt_audience()
         return self.pyjwt_for_guest_token.decode(
             raw_token, secret, algorithms=[algo], audience=audience
+        )
+
+    def get_api_key_scopes(self, api_key_string: str) -> Optional[str]:
+        """Return the ``scopes`` value for a validated API key.
+
+        FAB's ``validate_api_key`` resolves the matching ``ApiKey`` row
+        internally (by lookup hash) but only returns the associated
+        ``User`` — the row's ``scopes`` column is otherwise unreachable by
+        callers. This repeats the same cheap, indexed lookup so MCP's
+        ``CompositeTokenVerifier`` can propagate per-key scopes instead of
+        silently falling back to verifier-global scopes. Call only after
+        ``validate_api_key`` has already succeeded for this token — this
+        method does not itself verify the key hash or active status.
+        """
+        lookup = self._compute_lookup_hash(api_key_string)  # type: ignore[attr-defined]
+        api_key = (
+            self.session.query(self.api_key_model)  # type: ignore[attr-defined]
+            .filter(self.api_key_model.lookup_hash == lookup)
+            .one_or_none()
+        )
+        return api_key.scopes if api_key else None
+
+    def _validate_requested_api_key_scopes(
+        self, user: Any, scopes: Optional[str]
+    ) -> None:
+        """Raise if ``scopes`` would grant a user more than their own RBAC.
+
+        Enforces the "intersection, never broader" rule confirmed for this
+        feature: a user must never be able to mint a token scoped beyond
+        what their own role already permits, even if they hand-author the
+        scopes string themselves at issuance time.
+
+        Per-resource scopes (``superset:<resource>:<action>``) are checked
+        against the user's actual ``can_<method>`` RBAC grant for that
+        resource. Flat scopes (``superset:read``/``superset:write``, the
+        pre-per-resource form) can only be self-issued by Admins — a flat
+        scope grants a method across every resource, and there's no single
+        RBAC check that soundly proves a non-Admin has that for "every
+        resource," so it's rejected for anyone else rather than guessed at.
+        Unrecognized scope strings are rejected outright (fail closed).
+
+        NOTE: this only prevents the request from being honored; it does
+        not (yet) produce a clean 400 response, since FAB's ``ApiKeyApi``
+        has no validation hook this can plug into without replacing the API
+        registration entirely. Raising here surfaces as a 500 via FAB's
+        ``@safe`` decorator until that's addressed — tracked as a known
+        follow-up, not silently accepted.
+        """
+        if not scopes:
+            return
+        # pylint: disable-next=import-outside-toplevel
+        from superset.mcp_service.auth import RESOURCE_SCOPE_NAME
+
+        resource_for_slug = {slug: name for name, slug in RESOURCE_SCOPE_NAME.items()}
+        is_admin = any(role.name == "Admin" for role in getattr(user, "roles", []))
+        for raw_scope in scopes.split(","):
+            scope = raw_scope.strip()
+            if not scope:
+                continue
+            parts = scope.split(":")
+            if len(parts) == 3 and parts[0] == "superset":
+                _, resource_slug, action = parts
+                class_permission_name = resource_for_slug.get(resource_slug)
+                if class_permission_name is None:
+                    raise ValueError(
+                        f"Requested scope '{scope}' names an unrecognized "
+                        f"resource '{resource_slug}'"
+                    )
+                method = "read" if action == "read" else "write"
+                if self.can_access(f"can_{method}", class_permission_name):
+                    continue
+                raise ValueError(
+                    f"Requested scope '{scope}' exceeds the issuing user's "
+                    "own permissions"
+                )
+            if len(parts) == 2 and parts[0] == "superset" and is_admin:
+                continue
+            raise ValueError(
+                f"Requested scope '{scope}' is not a recognized "
+                "superset:<resource>:<action> scope, or requires Admin to "
+                "self-issue as a flat scope"
+            )
+
+    def create_api_key(
+        self,
+        user: Any,
+        name: str,
+        scopes: Optional[str] = None,
+        expires_on: Optional[datetime.datetime] = None,
+    ) -> Optional[dict[str, Any]]:
+        """Create a new API key, enforcing the scope-intersection rule.
+
+        Thin wrapper around FAB's ``SecurityManager.create_api_key`` — see
+        ``_validate_requested_api_key_scopes`` for the actual check. FAB's
+        base implementation is otherwise unchanged.
+        """
+        self._validate_requested_api_key_scopes(user, scopes)
+        return super().create_api_key(  # type: ignore[misc]
+            user=user, name=name, scopes=scopes, expires_on=expires_on
         )
 
     @staticmethod
