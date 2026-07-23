@@ -101,7 +101,7 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
         db.session.add_all(columns)
         table.columns = columns
 
-        table.metrics = [
+        metrics = [
             SqlMetric(
                 metric_name=m.metric_name,
                 verbose_name=m.verbose_name,
@@ -115,6 +115,9 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
             )
             for m in self._base_model.metrics
         ]
+        db.session.add_all(metrics)
+        table.metrics = metrics
+
         return table
 
     def validate(self) -> None:

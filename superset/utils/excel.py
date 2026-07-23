@@ -41,18 +41,21 @@ NEUTRAL_DOCUMENT_PROPERTIES: dict[str, Any] = {
     "created": NEUTRAL_TIMESTAMP,
 }
 
+# Leading characters that turn a cell into a formula in spreadsheet apps. Shared
+# with the streaming writer (superset.utils.excel_streaming) so both export paths
+# guard against the same formula-injection vectors.
+FORMULA_PREFIXES = {"=", "+", "-", "@"}
+
 
 def quote_formulas(df: pd.DataFrame) -> pd.DataFrame:
     """
     Make sure to quote any formulas for security reasons.
     """
-    formula_prefixes = {"=", "+", "-", "@"}
-
     for col in df.select_dtypes(include="object").columns:
         df[col] = df[col].apply(
             lambda x: (
                 f"'{x}"
-                if isinstance(x, str) and len(x) and x[0] in formula_prefixes
+                if isinstance(x, str) and len(x) and x[0] in FORMULA_PREFIXES
                 else x
             )
         )

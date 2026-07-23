@@ -153,6 +153,10 @@ solr = ["sqlalchemy-solr >= 0.2.4.3"]
 elasticsearch = ["elasticsearch-dbapi>=0.2.13, <0.3.0"]
 exasol = ["sqlalchemy-exasol>=2.4.0, <8.0"]
 excel = ["xlrd>=2.0.2, <2.1"]
+# Async dashboard "Export Data/Images to Excel": uploads the workbook to S3 and
+# emails a pre-signed link. boto3 is imported lazily by superset.utils.s3, so
+# installing this extra is only required to actually run exports.
+excel-export = ["boto3"]
 fastmcp = [
     "fastmcp>=3.4.3,<4.0",
     # tiktoken backs the response-size-guard token estimator. Without
@@ -205,7 +209,7 @@ spark = [
 ]
 tdengine = [
     "taospy>=2.8.9",
-    "taos-ws-py>=0.6.9"
+    "taos-ws-py>=0.7.0"
 ]
 teradata = ["teradatasql>=20.0.0.62"]
 thumbnails = [] # deprecated, will be removed in 7.0

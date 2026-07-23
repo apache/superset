@@ -253,3 +253,53 @@ def test_adjust_engine_params_fully_qualified(
 
     uri = spec.adjust_engine_params(url, {}, None, schema)[0]
     assert str(uri) == expected_result
+
+
+def test_get_column_description_retry_sql_preserves_comments_and_zero_rows() -> None:
+    """
+    Regression test for SC-114843.
+
+    clickhouse-connect's cursor only backfills cursor.description for a
+    zero-row result when the operation string starts with SELECT/WITH after
+    stripping whitespace. SQL_QUERY_MUTATOR-inserted leading comments (e.g.
+    query hash / workspace attribution) defeat that check. The retry SQL
+    built by ``get_column_description_retry_sql`` must wrap the *exact*
+    mutated SQL -- including all of its comments -- in a bare outer SELECT,
+    without dropping or reordering anything, and without introducing a
+    real-row probe.
+    """
+    from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+
+    mutated_sql = (
+        "-- query hash: abc123\n"
+        "-- workspace_slug: acme-corp\n"
+        "SELECT arrayElement(tags, 1) AS tag\n"
+        "FROM events\n"
+        "WHERE false\n"
+        "LIMIT 1\n"
+        "-- query hash: abc123"
+    )
+
+    retry_sql = ClickHouseConnectEngineSpec.get_column_description_retry_sql(
+        mutated_sql
+    )
+
+    assert retry_sql is not None
+    assert retry_sql.strip().upper().startswith("SELECT")
+    # every line of the original mutated SQL -- comments included -- must
+    # survive verbatim
+    for line in mutated_sql.splitlines():
+        assert line in retry_sql
+    assert "where false" in retry_sql.lower()
+    assert retry_sql.strip().lower().endswith("limit 0")
+
+
+def test_base_engine_spec_has_no_column_description_retry_by_default() -> None:
+    """
+    The comment-safe retry is opt-in: engines that don't override
+    ``get_column_description_retry_sql`` must keep returning ``None`` so
+    ``get_columns_description`` never retries for them.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    assert BaseEngineSpec.get_column_description_retry_sql("SELECT 1") is None

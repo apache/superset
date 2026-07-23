@@ -570,7 +570,7 @@ msgspec==0.19.0
     #   flask-session
 mysqlclient==2.2.8
     # via apache-superset
-nh3==0.3.5
+nh3==0.3.6
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -738,7 +738,7 @@ pycparser==2.22
     # via
     #   -c requirements/base-constraint.txt
     #   cffi
-pydantic==2.11.7
+pydantic==2.13.4
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -747,7 +747,7 @@ pydantic==2.11.7
     #   mcp
     #   openapi-pydantic
     #   pydantic-settings
-pydantic-core==2.33.2
+pydantic-core==2.46.4
     # via
     #   -c requirements/base-constraint.txt
     #   pydantic
@@ -987,7 +987,7 @@ sqlalchemy==1.4.54
     #   sqlalchemy-utils
 sqlalchemy-bigquery==1.17.0
     # via apache-superset
-sqlalchemy-continuum==1.6.0
+sqlalchemy-continuum==1.7.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -1066,7 +1066,7 @@ typing-extensions==4.16.0
     #   shillelagh
     #   starlette
     #   typing-inspection
-typing-inspection==0.4.1
+typing-inspection==0.4.2
     # via
     #   -c requirements/base-constraint.txt
     #   mcp

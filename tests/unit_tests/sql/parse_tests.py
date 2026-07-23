@@ -31,6 +31,7 @@ from superset.sql.parse import (
     BaseSQLStatement,
     CTASMethod,
     extract_tables_from_statement,
+    has_aggregate,
     JinjaSQLResult,
     KQLTokenType,
     KustoKQLStatement,
@@ -469,6 +470,35 @@ def test_format_oracle_group_by_keeps_explicit_expressions() -> None:
         "TRUNC(CAST(order_date AS DATE), 'MONTH')",
         "region",
     ]
+    # no item should have been replaced by a positional reference
+    assert not any(item.isdigit() for item in group_by_items)
+
+
+def test_format_oracle_group_by_keeps_explicit_expressions_subquery() -> None:
+    """
+    Test that formatting an Oracle chart query doesn't rewrite ``GROUP BY``
+    to ordinals when the aggregated column comes from a virtual dataset
+    subquery.
+
+    This mirrors the query shape SQLAlchemy generates for a bar chart with a
+    dimension and a ``COUNT(*)`` metric on a virtual dataset, which is the
+    reproduction reported in
+    https://github.com/apache/superset/issues/28327 (``ORA-00979: not a
+    GROUP BY expression``). Fixed by the same sqlglot upgrade that resolved
+    https://github.com/apache/superset/issues/35414.
+    """
+    sql = (
+        "SELECT bar AS bar, COUNT(*) AS count "
+        "FROM (SELECT 'foo' AS bar FROM dual) AS virtual_table "
+        "GROUP BY bar"
+    )
+    formatted = SQLStatement(sql, engine="oracle").format()
+
+    group_by_clause = formatted.split("GROUP BY")[1]
+    group_by_items = [
+        line.strip().rstrip(",") for line in group_by_clause.strip().splitlines()
+    ]
+    assert group_by_items == ["bar"]
     # no item should have been replaced by a positional reference
     assert not any(item.isdigit() for item in group_by_items)
 
@@ -4399,3 +4429,29 @@ def test_backtick_fallback_logs_warning(caplog: pytest.LogCaptureFixture) -> Non
         record.levelname == "WARNING" and "MySQL dialect" in record.getMessage()
         for record in caplog.records
     )
+
+
+@pytest.mark.parametrize(
+    "expression,expected",
+    [
+        ("GREATEST(confirmed, predicted)", False),
+        ("MAX(GREATEST(a, b))", True),
+        ("SUM(x)", True),
+        ("COUNT(*)", True),
+        ("SUM(x) OVER (PARTITION BY y)", False),
+        ("ROW_NUMBER() OVER ()", False),
+        ("SUM(SUM(x)) OVER ()", True),
+        ("a + b", False),
+        (")(", True),
+        ("MY_CUSTOM_AGG(x)", True),
+        ("a - (SELECT AVG(b) FROM t)", True),
+    ],
+)
+def test_has_aggregate(expression: str, expected: bool) -> None:
+    """
+    ``has_aggregate`` detects any aggregate that is not itself directly windowed
+    -- one nested inside a windowed aggregate or a subquery still counts -- and
+    fails open (returns True) when the expression can't be parsed or uses a
+    function sqlglot can't model.
+    """
+    assert has_aggregate(expression) is expected

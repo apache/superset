@@ -125,10 +125,6 @@ export const ArcChartViz = ({
       stroke_width: strokeWidth,
       legend_position: 'tr',
       legend_format: null,
-      js_columns: [],
-      js_data_mutator: '',
-      js_tooltip: '',
-      js_onclick_href: '',
     }}
   />
 );
