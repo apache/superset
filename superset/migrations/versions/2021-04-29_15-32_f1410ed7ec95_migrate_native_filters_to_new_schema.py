@@ -94,7 +94,7 @@ def upgrade_dashboard(dashboard: dict[str, Any]) -> tuple[int, int]:
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     dashboards = (
         session.query(Dashboard)
@@ -136,7 +136,7 @@ def downgrade_dashboard(dashboard: dict[str, Any]) -> tuple[int, int]:
 
 def downgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     dashboards = (
         session.query(Dashboard)

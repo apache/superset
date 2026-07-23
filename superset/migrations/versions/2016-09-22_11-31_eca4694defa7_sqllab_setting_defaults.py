@@ -45,7 +45,7 @@ class Database(Base):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for obj in session.query(Database).all():
         obj.allow_run_sync = True

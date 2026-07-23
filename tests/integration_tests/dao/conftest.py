@@ -84,7 +84,7 @@ def app_context(app: Flask) -> Generator[Session, None, None]:
     )
 
     # Create session bound to in-memory database
-    session_factory = sessionmaker(bind=engine)
+    session_factory = sessionmaker(bind=engine, future=True)
     session = session_factory()
 
     # Make session compatible with Flask-SQLAlchemy expectations

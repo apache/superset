@@ -83,7 +83,7 @@ def upgrade_slc(slc: Slice) -> None:
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
     with op.batch_alter_table("slices") as batch_op:
         for slc in session.query(Slice).filter(Slice.datasource_type != "table").all():
             if slc.datasource_type == "query":

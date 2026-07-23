@@ -62,7 +62,7 @@ def has_uuid_column(table_name, bind):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for table_name, model in models.items():
         # this script adds missing uuid columns

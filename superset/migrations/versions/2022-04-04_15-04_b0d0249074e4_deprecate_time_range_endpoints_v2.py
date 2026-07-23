@@ -44,7 +44,7 @@ class Slice(Base):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for slc in session.query(Slice).filter(Slice.params.like("%time_range_endpoints%")):
         params = json.loads(slc.params)

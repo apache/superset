@@ -45,7 +45,7 @@ def test_exclude_users_filter_no_exclusions(mocker: MockerFixture) -> None:
     )
 
     engine = create_engine("sqlite://", future=True)
-    Session = sessionmaker(bind=engine)  # noqa: N806
+    Session = sessionmaker(bind=engine, future=True)  # noqa: N806
     session = Session()
     query = session.query(User)
 
@@ -70,7 +70,7 @@ def test_exclude_users_filter_with_config(mocker: MockerFixture) -> None:
     )
 
     engine = create_engine("sqlite://")
-    Session = sessionmaker(bind=engine)  # noqa: N806
+    Session = sessionmaker(bind=engine, future=True)  # noqa: N806
     session = Session()
     query = session.query(User)
 
@@ -106,7 +106,7 @@ def test_exclude_users_filter_with_security_manager(mocker: MockerFixture) -> No
     )
 
     engine = create_engine("sqlite://")
-    Session = sessionmaker(bind=engine)  # noqa: N806
+    Session = sessionmaker(bind=engine, future=True)  # noqa: N806
     session = Session()
     query = session.query(User)
 
@@ -144,7 +144,7 @@ def test_exclude_users_filter_config_takes_precedence(mocker: MockerFixture) -> 
     )
 
     engine = create_engine("sqlite://")
-    Session = sessionmaker(bind=engine)  # noqa: N806
+    Session = sessionmaker(bind=engine, future=True)  # noqa: N806
     session = Session()
     query = session.query(User)
 

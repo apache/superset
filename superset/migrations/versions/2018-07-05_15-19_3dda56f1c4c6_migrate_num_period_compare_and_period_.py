@@ -134,7 +134,7 @@ def compute_time_compare(granularity, periods):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for chart in session.query(Slice):
         params = json.loads(chart.params or "{}")
@@ -163,7 +163,7 @@ def upgrade():
 
 def downgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for chart in session.query(Slice):
         params = json.loads(chart.params or "{}")

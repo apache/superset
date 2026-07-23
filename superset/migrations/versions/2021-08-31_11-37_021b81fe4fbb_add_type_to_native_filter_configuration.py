@@ -49,7 +49,7 @@ class Dashboard(Base):
 def upgrade():
     logger.info("[AddTypeToNativeFilter] Starting upgrade")
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for dashboard in session.query(Dashboard).all():
         logger.info("[AddTypeToNativeFilter] Updating Dashboard<pk:%s> ", dashboard.id)
@@ -87,7 +87,7 @@ def upgrade():
 def downgrade():
     logger.info("[RemoveTypeToNativeFilter] Starting downgrade")
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for dashboard in session.query(Dashboard).all():
         logger.info(
