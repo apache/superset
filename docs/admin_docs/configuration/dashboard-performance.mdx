@@ -1,0 +1,168 @@
+---
+title: Dashboard Performance
+hide_title: true
+sidebar_position: 5
+version: 1
+---
+
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+# Dashboard Performance
+
+A dashboard's perceived speed is determined by three independent things: how
+many charts have to render, how many queries the backend can execute
+concurrently, and how quickly the underlying data warehouse can return
+results. Superset gives you levers for the first two; the third belongs to
+your warehouse. This page covers the dashboard-side levers and the practical
+guidance around them.
+
+## Is there a maximum chart count per dashboard?
+
+**No hard limit is enforced** — Superset has no configuration key that
+caps the number of charts on a dashboard. In practice, dashboards behave
+well up to a few dozen charts. Beyond that, you'll typically feel friction
+on the initial load and during cross-filter / time-range updates, even with
+the lazy-loading optimizations described below.
+
+Rough thresholds to keep in mind:
+
+- **Under ~25 charts**: usually no perceptible problem.
+- **25–50 charts**: still fine, but you start to want tabs to break the
+  page into chunks the user actually looks at.
+- **Over ~50 charts**: split into multiple dashboards or use tabs
+  aggressively. The bottleneck is rarely Superset itself — it's the
+  warehouse executing dozens of queries in parallel and the browser
+  rendering dozens of chart frames.
+
+These are guidelines, not guarantees. A dashboard of 100 sparkline-style
+charts hitting a fast cache behaves very differently from a dashboard of
+20 heavy aggregations against a cold warehouse.
+
+## Lazy rendering — `DASHBOARD_VIRTUALIZATION`
+
+Superset's dashboard layout is virtualized at the row level. Charts that
+are far below the user's current scroll position are not rendered (and
+therefore don't fetch data) until the user scrolls them into view, and they
+are unmounted again if scrolled well past. This is on by default.
+
+**Feature flag**: `DASHBOARD_VIRTUALIZATION` (default: `True`)
+
+The flag is `stable` and marked for path-to-deprecation — meaning the
+behavior will eventually be non-optional, but the flag still exists so
+operators can disable it if a specific layout misbehaves.
+
+**Behavior** (from `superset-frontend/src/dashboard/components/gridComponents/Row/Row.tsx`):
+
+- A chart is rendered when its row scrolls within **1 viewport height** of
+  the visible area.
+- A chart is unmounted when its row scrolls more than **4 viewport
+  heights** away from the visible area.
+- Tabs that aren't currently selected don't render their content at all
+  (see below).
+- The unmounting half is skipped in **embedded** mode (so an embedded
+  dashboard keeps its charts mounted once they've been seen, which avoids
+  re-fetching on scroll-up). Both halves are skipped for **headless /
+  bot** rendering (so screenshot / report jobs load every chart).
+
+## Deferred data fetch — `DASHBOARD_VIRTUALIZATION_DEFER_DATA`
+
+By default, `DASHBOARD_VIRTUALIZATION` controls *rendering* — but charts
+that don't render also don't fetch data, because Superset's chart
+components issue their data request on mount. `DASHBOARD_VIRTUALIZATION_DEFER_DATA`
+is a supplementary flag that further defers the data request itself, useful
+for backends where opening a connection or compiling a query is expensive
+even if the result is later thrown away.
+
+**Feature flag**: `DASHBOARD_VIRTUALIZATION_DEFER_DATA` (default: `False`)
+
+Enable this if you see warehouse load spike on dashboard *open* even
+though most charts are off-screen.
+
+## Per-tab lazy loading
+
+**This is on by default and has no flag.** A tab's content is not rendered
+until the user activates that tab, so charts inside an unselected tab do
+not fetch data on dashboard open. When the user clicks the tab, that
+tab's charts mount and fetch in the normal way.
+
+Practically: tabs are the single most effective tool for a large
+dashboard. Splitting 60 charts across 4 tabs effectively turns dashboard
+open into "load ~15 charts," and the remaining ones lazy-load only if the
+user goes looking.
+
+## Is there a switch to cap concurrent chart queries?
+
+**No.** Superset does not implement a frontend-side concurrent-request
+limiter. Each chart issues its own data request when it mounts, and the
+browser handles parallelism (typically ~6 in-flight HTTP requests per
+origin, then the rest queue). Backend throughput is bounded by your
+Gunicorn worker count for synchronous query execution, or by your Celery
+worker pool when [async queries](./async-queries-celery.mdx) are enabled.
+
+If you need to throttle warehouse load, the right place is:
+
+1. The warehouse itself (connection pool / concurrency limits).
+2. Superset's Celery configuration (smaller worker pool when async
+   queries are on).
+3. Splitting heavy charts across tabs or separate dashboards (each
+   dashboard load only fetches what's visible).
+
+## Splitting strategies
+
+When a dashboard outgrows comfortable performance, the options in order
+of effort:
+
+**1. Move sections into tabs.** Same dashboard, but only the active tab's
+charts fetch. This is the cheapest change and often the only one needed.
+
+**2. Cache aggressively.** A Redis cache backend (see
+[Caching](./cache.mdx)) means repeat dashboard loads serve from cache
+rather than re-hitting the warehouse. This is especially impactful for
+dashboards opened by many users in close succession.
+
+**3. Enable async queries.** [Async query execution](./async-queries-celery.mdx)
+via Celery decouples query duration from request lifetime, so a slow
+chart doesn't block the page. The user sees other charts come in as
+their queries complete.
+
+**4. Split into multiple dashboards.** Group related charts into purpose-
+specific dashboards rather than one mega-dashboard. Link them from a
+landing dashboard or a navigation menu.
+
+**5. Pre-aggregate at the warehouse level.** If the same expensive
+aggregation appears across many charts, materialize it as a view or
+scheduled table in the warehouse so each chart query is a cheap lookup.
+
+## Operational notes
+
+- The feature flags above are set in `superset_config.py`, e.g.:
+
+  ```python
+  FEATURE_FLAGS = {
+      "DASHBOARD_VIRTUALIZATION": True,
+      "DASHBOARD_VIRTUALIZATION_DEFER_DATA": True,
+  }
+  ```
+
+- See [Feature Flags](./feature-flags.mdx) for the full list of supported
+  flags and their lifecycle stages.
+- Report and screenshot jobs (alerts, scheduled reports, dashboard
+  exports) intentionally bypass row virtualization so the rendered
+  artifact includes every chart, not just the ones above the fold.
