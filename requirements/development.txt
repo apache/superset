@@ -987,7 +987,7 @@ sqlalchemy==1.4.54
     #   sqlalchemy-utils
 sqlalchemy-bigquery==1.17.0
     # via apache-superset
-sqlalchemy-continuum==1.6.0
+sqlalchemy-continuum==1.7.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
