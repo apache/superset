@@ -362,6 +362,10 @@ class BaseScreenshot:
 
                 # Cache the result (success or error) to avoid immediate retries
                 invalid_reason = validate_screenshot_image(image)
+                # `image and` is redundant at runtime (validate_screenshot_image
+                # only returns None for truthy, well-formed bytes) but mypy can't
+                # infer that image is non-None from invalid_reason being None
+                # across the function-call boundary, so it's kept for narrowing.
                 if image and invalid_reason is None:
                     with event_logger.log_context(
                         f"screenshot.cache.{self.thumbnail_type}"
