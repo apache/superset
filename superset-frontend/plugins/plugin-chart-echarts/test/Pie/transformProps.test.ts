@@ -20,12 +20,20 @@ import {
   ChartProps,
   getNumberFormatter,
   SqlaFormData,
-  supersetTheme,
 } from '@superset-ui/core';
-import { LabelFormatterCallback, PieSeriesOption } from 'echarts';
-import { CallbackDataParams } from 'echarts/types/src/util/types';
-import transformProps, { parseParams } from '../../src/Pie/transformProps';
-import { EchartsPieChartProps } from '../../src/Pie/types';
+import { supersetTheme } from '@apache-superset/core/theme';
+import type { PieSeriesOption } from 'echarts/charts';
+import type {
+  LabelFormatterCallback,
+  CallbackDataParams,
+} from 'echarts/types/src/util/types';
+import transformProps, {
+  parseParams,
+  getHalfDonut,
+  getTotalValuePadding,
+} from '../../src/Pie/transformProps';
+import { EchartsPieChartProps, PieChartDataItem } from '../../src/Pie/types';
+import { LegendOrientation, LegendType } from '../../src/types';
 
 describe('Pie transformProps', () => {
   const formData: SqlaFormData = {
@@ -43,15 +51,20 @@ describe('Pie transformProps', () => {
     queriesData: [
       {
         data: [
-          { foo: 'Sylvester', bar: 1, sum__num: 10 },
-          { foo: 'Arnold', bar: 2, sum__num: 2.5 },
+          {
+            foo: 'Sylvester',
+            bar: 1,
+            sum__num: 10,
+            sum__num__contribution: 0.8,
+          },
+          { foo: 'Arnold', bar: 2, sum__num: 2.5, sum__num__contribution: 0.2 },
         ],
       },
     ],
     theme: supersetTheme,
   });
 
-  it('should transform chart props for viz', () => {
+  test('should transform chart props for viz', () => {
     expect(transformProps(chartProps as EchartsPieChartProps)).toEqual(
       expect.objectContaining({
         width: 800,
@@ -76,10 +89,98 @@ describe('Pie transformProps', () => {
       }),
     );
   });
+
+  test('renders every slice when a NULL group value is mixed with named ones', () => {
+    // Regression guard for https://github.com/apache/superset/issues/33174:
+    // a Pie chart whose groupby dimension contains a NULL/empty value alongside
+    // named values reportedly dropped the named slices (or rendered only the
+    // NULL one). This asserts the transform keeps one slice per row, mapping the
+    // NULL group to the `<NULL>` placeholder and preserving every other slice.
+    const nullMixedChartProps = new ChartProps({
+      formData: {
+        colorScheme: 'bnbColors',
+        datasource: '3__table',
+        granularity_sqla: 'ds',
+        metric: 'sum__num',
+        groupby: ['region'],
+        viz_type: 'pie',
+      } as SqlaFormData,
+      width: 800,
+      height: 600,
+      queriesData: [
+        {
+          data: [
+            { region: '국내', sum__num: 817280006121 },
+            { region: '해외', sum__num: 118777753521 },
+            { region: null, sum__num: 20596314924 },
+          ],
+        },
+      ],
+      theme: supersetTheme,
+    });
+
+    const series = (
+      transformProps(nullMixedChartProps as EchartsPieChartProps).echartOptions
+        .series as PieSeriesOption[]
+    )[0];
+    const data = series.data as PieChartDataItem[];
+
+    // every input row must still produce a slice -- none are dropped
+    expect(data).toHaveLength(3);
+    expect(data.map(d => d.name)).toEqual(['국내', '해외', '<NULL>']);
+    expect(data.map(d => d.value)).toEqual([
+      817280006121, 118777753521, 20596314924,
+    ]);
+  });
+
+  test('falls back to scroll for plain legends with overlong labels', () => {
+    const longLegendChartProps = new ChartProps({
+      formData: {
+        colorScheme: 'bnbColors',
+        datasource: '3__table',
+        granularity_sqla: 'ds',
+        metric: 'sum__num',
+        groupby: ['category'],
+        viz_type: 'pie',
+        legendType: LegendType.Plain,
+        legendOrientation: LegendOrientation.Top,
+        showLegend: true,
+      } as SqlaFormData,
+      width: 320,
+      height: 600,
+      queriesData: [
+        {
+          data: [
+            {
+              category: 'This is a very long pie legend label one',
+              sum__num: 10,
+            },
+            {
+              category: 'This is a very long pie legend label two',
+              sum__num: 20,
+            },
+            {
+              category: 'This is a very long pie legend label three',
+              sum__num: 30,
+            },
+          ],
+        },
+      ],
+      theme: supersetTheme,
+    });
+
+    const transformed = transformProps(
+      longLegendChartProps as EchartsPieChartProps,
+    );
+
+    expect((transformed.echartOptions.legend as any).type).toBe(
+      LegendType.Scroll,
+    );
+  });
 });
 
 describe('formatPieLabel', () => {
-  it('should generate a valid pie chart label', () => {
+  test('should generate a valid pie chart label', () => {
     const numberFormatter = getNumberFormatter();
     const params = { name: 'My Label', value: 1234, percent: 12.34 };
     expect(
@@ -183,7 +284,7 @@ describe('Pie label string template', () => {
     return (formatter as LabelFormatterCallback)(params);
   };
 
-  it('should generate a valid pie chart label with template', () => {
+  test('should generate a valid pie chart label with template', () => {
     expect(
       format({
         label_type: 'template',
@@ -192,7 +293,7 @@ describe('Pie label string template', () => {
     ).toEqual('Tablet:123k\n55.50%');
   });
 
-  it('should be formatted using the number formatter', () => {
+  test('should be formatted using the number formatter', () => {
     expect(
       format({
         label_type: 'template',
@@ -202,7 +303,7 @@ describe('Pie label string template', () => {
     ).toEqual('Tablet:123,456\n55.50%');
   });
 
-  it('should be compatible with ECharts raw variable syntax', () => {
+  test('should be compatible with ECharts raw variable syntax', () => {
     expect(
       format({
         label_type: 'template',
@@ -211,4 +312,578 @@ describe('Pie label string template', () => {
       }),
     ).toEqual('Tablet:123456\n55.5');
   });
+});
+
+describe('Total value positioning with legends', () => {
+  const getChartPropsWithLegend = (
+    showTotal = true,
+    showLegend = true,
+    legendOrientation = 'right',
+    donut = true,
+  ): EchartsPieChartProps => {
+    const formData: SqlaFormData = {
+      colorScheme: 'bnbColors',
+      datasource: '3__table',
+      granularity_sqla: 'ds',
+      metric: 'sum__num',
+      groupby: ['category'],
+      viz_type: 'pie',
+      show_total: showTotal,
+      show_legend: showLegend,
+      legend_orientation: legendOrientation,
+      donut,
+    };
+
+    return new ChartProps({
+      formData,
+      width: 800,
+      height: 600,
+      queriesData: [
+        {
+          data: [
+            { category: 'A', sum__num: 10, sum__num__contribution: 0.4 },
+            { category: 'B', sum__num: 15, sum__num__contribution: 0.6 },
+          ],
+        },
+      ],
+      theme: supersetTheme,
+    }) as EchartsPieChartProps;
+  };
+
+  test('should center total text when legend is on the right', () => {
+    const props = getChartPropsWithLegend(true, true, 'right', true);
+    const transformed = transformProps(props);
+
+    expect(transformed.echartOptions.graphic).toEqual(
+      expect.objectContaining({
+        type: 'text',
+        left: expect.stringMatching(/^\d+(\.\d+)?%$/),
+        top: 'middle',
+        style: expect.objectContaining({
+          text: expect.stringContaining('Total:'),
+        }),
+      }),
+    );
+
+    // The left position should be less than 50% (shifted left)
+    const leftValue = parseFloat(
+      (transformed.echartOptions.graphic as any).left.replace('%', ''),
+    );
+    expect(leftValue).toBeLessThan(50);
+    expect(leftValue).toBeGreaterThan(30); // Should be reasonable positioning
+  });
+
+  test('should center total text when legend is on the left', () => {
+    const props = getChartPropsWithLegend(true, true, 'left', true);
+    const transformed = transformProps(props);
+
+    expect(transformed.echartOptions.graphic).toEqual(
+      expect.objectContaining({
+        type: 'text',
+        left: expect.stringMatching(/^\d+(\.\d+)?%$/),
+        top: 'middle',
+      }),
+    );
+
+    // The left position should be greater than 50% (shifted right)
+    const leftValue = parseFloat(
+      (transformed.echartOptions.graphic as any).left.replace('%', ''),
+    );
+    expect(leftValue).toBeGreaterThan(50);
+    expect(leftValue).toBeLessThan(70); // Should be reasonable positioning
+  });
+
+  test('should center total text when legend is on top', () => {
+    const props = getChartPropsWithLegend(true, true, 'top', true);
+    const transformed = transformProps(props);
+
+    expect(transformed.echartOptions.graphic).toEqual(
+      expect.objectContaining({
+        type: 'text',
+        left: 'center',
+        top: expect.stringMatching(/^\d+(\.\d+)?%$/),
+      }),
+    );
+
+    // The top position should be adjusted for top legend
+    const topValue = parseFloat(
+      (transformed.echartOptions.graphic as any).top.replace('%', ''),
+    );
+    expect(topValue).toBeGreaterThan(50); // Shifted down for top legend
+  });
+
+  test('should center total text when legend is on bottom', () => {
+    const props = getChartPropsWithLegend(true, true, 'bottom', true);
+    const transformed = transformProps(props);
+
+    expect(transformed.echartOptions.graphic).toEqual(
+      expect.objectContaining({
+        type: 'text',
+        left: 'center',
+        top: expect.stringMatching(/^\d+(\.\d+)?%$/),
+      }),
+    );
+
+    // The top position should be adjusted for bottom legend
+    const topValue = parseFloat(
+      (transformed.echartOptions.graphic as any).top.replace('%', ''),
+    );
+    expect(topValue).toBeLessThan(50); // Shifted up for bottom legend
+  });
+
+  test('should use default positioning when no legend is shown', () => {
+    const props = getChartPropsWithLegend(true, false, 'right', true);
+    const transformed = transformProps(props);
+
+    expect(transformed.echartOptions.graphic).toEqual(
+      expect.objectContaining({
+        type: 'text',
+        left: 'center',
+        top: 'middle',
+      }),
+    );
+  });
+
+  test('should handle regular pie chart (non-donut) positioning', () => {
+    const props = getChartPropsWithLegend(true, true, 'right', false);
+    const transformed = transformProps(props);
+
+    expect(transformed.echartOptions.graphic).toEqual(
+      expect.objectContaining({
+        type: 'text',
+        top: '0', // Non-donut charts use '0' as default top position
+        left: expect.stringMatching(/^\d+(\.\d+)?%$/), // Should still adjust left for right legend
+      }),
+    );
+  });
+
+  test('should not show total graphic when showTotal is false', () => {
+    const props = getChartPropsWithLegend(false, true, 'right', true);
+    const transformed = transformProps(props);
+
+    expect(transformed.echartOptions.graphic).toBeNull();
+  });
+});
+
+describe('Other category', () => {
+  const defaultFormData: SqlaFormData = {
+    colorScheme: 'bnbColors',
+    datasource: '3__table',
+    granularity_sqla: 'ds',
+    metric: 'metric',
+    groupby: ['foo', 'bar'],
+    viz_type: 'my_viz',
+  };
+
+  const getChartProps = (formData: Partial<SqlaFormData>) =>
+    new ChartProps({
+      formData: {
+        ...defaultFormData,
+        ...formData,
+      },
+      width: 800,
+      height: 600,
+      queriesData: [
+        {
+          data: [
+            {
+              foo: 'foo 1',
+              bar: 'bar 1',
+              metric: 1,
+              metric__contribution: 1 / 15, // 6.7%
+            },
+            {
+              foo: 'foo 2',
+              bar: 'bar 2',
+              metric: 2,
+              metric__contribution: 2 / 15, // 13.3%
+            },
+            {
+              foo: 'foo 3',
+              bar: 'bar 3',
+              metric: 3,
+              metric__contribution: 3 / 15, // 20%
+            },
+            {
+              foo: 'foo 4',
+              bar: 'bar 4',
+              metric: 4,
+              metric__contribution: 4 / 15, // 26.7%
+            },
+            {
+              foo: 'foo 5',
+              bar: 'bar 5',
+              metric: 5,
+              metric__contribution: 5 / 15, // 33.3%
+            },
+          ],
+        },
+      ],
+      theme: supersetTheme,
+    });
+
+  test('generates Other category', () => {
+    const chartProps = getChartProps({
+      threshold_for_other: 20,
+    });
+    const transformed = transformProps(chartProps as EchartsPieChartProps);
+    const series = transformed.echartOptions.series as PieSeriesOption[];
+    const data = series[0].data as PieChartDataItem[];
+    expect(data).toHaveLength(4);
+    expect(data[0].value).toBe(3);
+    expect(data[1].value).toBe(4);
+    expect(data[2].value).toBe(5);
+    expect(data[3].value).toBe(1 + 2);
+    expect(data[3].name).toBe('Other');
+    expect(data[3].isOther).toBe(true);
+  });
+});
+
+describe('legend sorting', () => {
+  const defaultFormData: SqlaFormData = {
+    colorScheme: 'bnbColors',
+    datasource: '3__table',
+    granularity_sqla: 'ds',
+    metric: 'metric',
+    groupby: ['foo', 'bar'],
+    viz_type: 'my_viz',
+  };
+
+  const getChartProps = (formData: Partial<SqlaFormData>) =>
+    new ChartProps({
+      formData: {
+        ...defaultFormData,
+        ...formData,
+      },
+      width: 800,
+      height: 600,
+      queriesData: [
+        {
+          data: [
+            {
+              foo: 'A foo',
+              bar: 'A bar',
+              metric: 1,
+            },
+            {
+              foo: 'D foo',
+              bar: 'D bar',
+              metric: 2,
+            },
+
+            {
+              foo: 'C foo',
+              bar: 'C bar',
+              metric: 3,
+            },
+            {
+              foo: 'B foo',
+              bar: 'B bar',
+              metric: 4,
+            },
+
+            {
+              foo: 'E foo',
+              bar: 'E bar',
+              metric: 5,
+            },
+          ],
+        },
+      ],
+      theme: supersetTheme,
+    });
+
+  test('sort legend by data', () => {
+    const chartProps = getChartProps({
+      legendSort: null,
+    });
+    const transformed = transformProps(chartProps as EchartsPieChartProps);
+
+    expect((transformed.echartOptions.legend as any).data).toEqual([
+      'A foo, A bar',
+      'D foo, D bar',
+      'C foo, C bar',
+      'B foo, B bar',
+      'E foo, E bar',
+    ]);
+  });
+
+  test('sort legend by label ascending', () => {
+    const chartProps = getChartProps({
+      legendSort: 'asc',
+    });
+    const transformed = transformProps(chartProps as EchartsPieChartProps);
+
+    expect((transformed.echartOptions.legend as any).data).toEqual([
+      'A foo, A bar',
+      'B foo, B bar',
+      'C foo, C bar',
+      'D foo, D bar',
+      'E foo, E bar',
+    ]);
+  });
+
+  test('sort legend by label descending', () => {
+    const chartProps = getChartProps({
+      legendSort: 'desc',
+    });
+    const transformed = transformProps(chartProps as EchartsPieChartProps);
+
+    expect((transformed.echartOptions.legend as any).data).toEqual([
+      'E foo, E bar',
+      'D foo, D bar',
+      'C foo, C bar',
+      'B foo, B bar',
+      'A foo, A bar',
+    ]);
+  });
+});
+
+const getAngleChartProps = (
+  donut: boolean,
+  sweptAngle: number,
+  startAngle: number = 180,
+) => {
+  const formData: SqlaFormData = {
+    colorScheme: 'bnbColors',
+    datasource: '3__table',
+    granularity_sqla: 'ds',
+    metric: 'sum__num',
+    groupby: ['category'],
+    viz_type: 'pie',
+    donut,
+    startAngle,
+    sweptAngle,
+    show_total: true,
+  };
+
+  return new ChartProps({
+    formData,
+    width: 800,
+    height: 600,
+    queriesData: [
+      {
+        data: [
+          { category: 'A', sum__num: 10, sum__num__contribution: 0.5 },
+          { category: 'B', sum__num: 10, sum__num__contribution: 0.5 },
+        ],
+      },
+    ],
+    theme: supersetTheme,
+  }) as EchartsPieChartProps;
+};
+
+test('sets center to 70% for half-donut', () => {
+  const props = getAngleChartProps(true, 180);
+  const transformed = transformProps(props);
+  const series = transformed.echartOptions.series as PieSeriesOption[];
+  expect(series[0].center).toEqual(['50%', '70%']);
+});
+
+test('keeps center at 50% for full donut', () => {
+  const props = getAngleChartProps(true, 360);
+  const transformed = transformProps(props);
+  const series = transformed.echartOptions.series as PieSeriesOption[];
+  expect(series[0].center).toEqual(['50%', '50%']);
+});
+
+test('calculates endAngle for a quarter donut', () => {
+  const props = getAngleChartProps(true, 90);
+  const transformed = transformProps(props);
+  const series = transformed.echartOptions.series as PieSeriesOption[];
+  expect(series[0].endAngle).toBe(90);
+});
+
+test('sets center to 30% for bottom half-donut (startAngle=0)', () => {
+  const props = getAngleChartProps(true, 180, 0);
+  const transformed = transformProps(props);
+  const series = transformed.echartOptions.series as PieSeriesOption[];
+  expect(series[0].center).toEqual(['50%', '30%']);
+});
+
+test('sets center to 30% for bottom half-donut (startAngle=360)', () => {
+  const props = getAngleChartProps(true, 180, 360);
+  const transformed = transformProps(props);
+  const series = transformed.echartOptions.series as PieSeriesOption[];
+  expect(series[0].center).toEqual(['50%', '30%']);
+});
+
+test('shifts center left for right half-donut (startAngle=90)', () => {
+  const props = getAngleChartProps(true, 180, 90);
+  const transformed = transformProps(props);
+  const series = transformed.echartOptions.series as PieSeriesOption[];
+  expect(series[0].center).toEqual(['40%', '50%']);
+});
+
+test('shifts center right for left half-donut (startAngle=270)', () => {
+  const props = getAngleChartProps(true, 180, 270);
+  const transformed = transformProps(props);
+  const series = transformed.echartOptions.series as PieSeriesOption[];
+  expect(series[0].center).toEqual(['60%', '50%']);
+});
+
+test('keeps center at 50% for non-cardinal start angle even when sweep ≤ 180', () => {
+  const props = getAngleChartProps(true, 180, 45);
+  const transformed = transformProps(props);
+  const series = transformed.echartOptions.series as PieSeriesOption[];
+  expect(series[0].center).toEqual(['50%', '50%']);
+});
+
+test('allows endAngle to go negative for right half-donut', () => {
+  const props = getAngleChartProps(true, 180, 90);
+  const transformed = transformProps(props);
+  const series = transformed.echartOptions.series as PieSeriesOption[];
+  expect(series[0].startAngle).toBe(90);
+  expect(series[0].endAngle).toBe(-90);
+});
+
+test.each([
+  [180, 180, 'top'],
+  [180, 90, 'top'],
+  [180, 45, 'top'],
+  [0, 180, 'bottom'],
+  [360, 180, 'bottom'],
+  [360, 90, 'bottom'],
+  [90, 180, 'right'],
+  [90, 90, 'right'],
+  [270, 180, 'left'],
+  [270, 90, 'left'],
+  [45, 180, 'none'],
+  [170, 180, 'none'],
+  [180, 360, 'none'],
+  [180, 181, 'none'],
+  [0, 360, 'none'],
+])('startAngle=%i, sweptAngle=%i → %s', (start, swept, expected) => {
+  expect(getHalfDonut(start, swept)).toBe(expected);
+});
+
+const baseProps = {
+  donut: true,
+  width: 800,
+  height: 600,
+  startAngle: 180,
+  sweptAngle: 360,
+};
+
+test('returns "middle" for donut without padding and not half', () => {
+  const result = getTotalValuePadding({
+    ...baseProps,
+    chartPadding: { top: 0, bottom: 0, left: 0, right: 0 },
+  });
+  expect(result.top).toBe('middle');
+});
+
+test('returns "0" for non-donut without padding and not half', () => {
+  const result = getTotalValuePadding({
+    ...baseProps,
+    donut: false,
+    chartPadding: { top: 0, bottom: 0, left: 0, right: 0 },
+  });
+  expect(result.top).toBe('0');
+});
+
+test('adjusts top for donut with bottom padding', () => {
+  const result = getTotalValuePadding({
+    ...baseProps,
+    chartPadding: { top: 0, bottom: 60, left: 0, right: 0 },
+  });
+  expect(result.top).toBe('45%');
+});
+
+test('returns "0" for non-donut with bottom padding', () => {
+  const result = getTotalValuePadding({
+    ...baseProps,
+    donut: false,
+    chartPadding: { top: 0, bottom: 60, left: 0, right: 0 },
+  });
+  expect(result.top).toBe('0');
+});
+
+test('adjusts top for donut with top padding', () => {
+  const result = getTotalValuePadding({
+    ...baseProps,
+    chartPadding: { top: 60, bottom: 0, left: 0, right: 0 },
+  });
+  expect(result.top).toBe('55%');
+});
+
+test('adjusts top for non-donut with top padding', () => {
+  const result = getTotalValuePadding({
+    ...baseProps,
+    donut: false,
+    chartPadding: { top: 60, bottom: 0, left: 0, right: 0 },
+  });
+  expect(result.top).toBe('10%');
+});
+
+test('positions total at 68.5% for top half-donut without padding', () => {
+  const result = getTotalValuePadding({
+    ...baseProps,
+    sweptAngle: 180,
+    chartPadding: { top: 0, bottom: 0, left: 0, right: 0 },
+  });
+  expect(result.top).toBe('68.5%');
+});
+
+test('adjusts total position from 68.5% base for top half-donut with top padding', () => {
+  const result = getTotalValuePadding({
+    ...baseProps,
+    sweptAngle: 180,
+    chartPadding: { top: 60, bottom: 0, left: 0, right: 0 },
+  });
+  expect(result.top).toBe('73.5%');
+});
+
+test('returns "center" when no left/right padding', () => {
+  const result = getTotalValuePadding({
+    ...baseProps,
+    chartPadding: { top: 0, bottom: 0, left: 0, right: 0 },
+  });
+  expect(result.left).toBe('center');
+});
+
+test('adjusts left for left padding', () => {
+  const result = getTotalValuePadding({
+    ...baseProps,
+    chartPadding: { top: 0, bottom: 0, left: 80, right: 0 },
+  });
+  expect(result.left).toBe('52.5%');
+});
+
+test('adjusts left for right padding', () => {
+  const result = getTotalValuePadding({
+    ...baseProps,
+    chartPadding: { top: 0, bottom: 0, left: 0, right: 80 },
+  });
+  expect(result.left).toBe('42.5%');
+});
+
+test('prioritizes right padding over left padding', () => {
+  const result = getTotalValuePadding({
+    ...baseProps,
+    chartPadding: { top: 0, bottom: 0, left: 80, right: 80 },
+  });
+  expect(result.left).toBe('42.5%');
+});
+
+test('positions total inside the shifted center for left half-donut', () => {
+  const result = getTotalValuePadding({
+    ...baseProps,
+    startAngle: 270,
+    sweptAngle: 180,
+    chartPadding: { top: 0, bottom: 0, left: 0, right: 0 },
+  });
+  expect(result.left).toBe('55%');
+  expect(result.top).toBe('50%');
+});
+
+test('positions total inside the shifted center for right half-donut', () => {
+  const result = getTotalValuePadding({
+    ...baseProps,
+    startAngle: 90,
+    sweptAngle: 180,
+    chartPadding: { top: 0, bottom: 0, left: 0, right: 0 },
+  });
+  expect(result.left).toBe('35%');
+  expect(result.top).toBe('50%');
 });

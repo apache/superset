@@ -20,13 +20,16 @@ from __future__ import annotations
 import inspect
 from typing import Any, TYPE_CHECKING
 
+from flask import current_app
 from flask_babel import gettext as _
 from marshmallow import EXCLUDE, fields, post_load, Schema, validate
 from marshmallow.validate import Length, Range
+from marshmallow_union import Union
 
-from superset import app
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.db_engine_specs.base import builtin_time_grains
+from superset.subjects.schemas import SubjectResponseSchema
+from superset.tags.models import TagType
 from superset.utils import pandas_postprocessing, schema as utils
 from superset.utils.core import (
     AnnotationType,
@@ -40,7 +43,63 @@ if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_context_factory import QueryContextFactory
 
-config = app.config
+
+def get_time_grain_choices() -> Any:
+    """Get time grain choices including addons from config"""
+    try:
+        # Try to get config from current app context
+        time_grain_addons = current_app.config.get("TIME_GRAIN_ADDONS", {})
+    except RuntimeError:
+        # Outside app context, use empty addons
+        time_grain_addons = {}
+
+    return [
+        i
+        for i in {
+            **builtin_time_grains,
+            **time_grain_addons,
+        }.keys()
+        if i
+    ]
+
+
+# Fallback upper bound for the number of Prophet forecast periods when the
+# application config cannot be read (for example, outside of an app context).
+DEFAULT_MAX_PROPHET_PERIODS = 10000
+
+
+def get_max_prophet_periods() -> int:
+    """Get the configured upper bound for Prophet forecast periods."""
+    try:
+        configured = current_app.config.get(
+            "MAX_PROPHET_PERIODS", DEFAULT_MAX_PROPHET_PERIODS
+        )
+    except RuntimeError:
+        # Outside app context, fall back to the default bound
+        return DEFAULT_MAX_PROPHET_PERIODS
+
+    # Normalize to int so that overrides supplied as strings (for example via
+    # ``os.getenv``) don't cause a TypeError when compared by ``Range``. Fall
+    # back to the default for invalid or non-positive values.
+    try:
+        normalized = int(configured)
+    except (TypeError, ValueError):
+        return DEFAULT_MAX_PROPHET_PERIODS
+    return normalized if normalized > 0 else DEFAULT_MAX_PROPHET_PERIODS
+
+
+def validate_prophet_periods(value: int) -> None:
+    """Ensure the number of Prophet forecast periods stays within bounds."""
+    max_periods = get_max_prophet_periods()
+    Range(
+        min=1,
+        max=max_periods,
+        error=_(
+            "`periods` must be between 1 and %(max)s",
+            max=max_periods,
+        ),
+    )(value)
+
 
 #
 # RISON/JSON schemas for query parameters
@@ -74,9 +133,11 @@ id_description = "The id of the chart."
 slice_name_description = "The name of the chart."
 description_description = "A description of the chart propose."
 viz_type_description = "The type of chart visualization used."
-owners_description = (
-    "Owner are users ids allowed to delete or change this chart. "
-    "If left empty you will be one of the owners of the chart."
+editors_description = (
+    "A list of subject IDs (users, roles, or groups) that can alter the chart."
+)
+viewers_description = (
+    "A list of subject IDs (users, roles, or groups) that can view the chart."
 )
 params_description = (
     "Parameters are generated dynamically when clicking the save "
@@ -118,7 +179,6 @@ form_data_description = (
     "Form data from the Explore controls used to form the chart's data query."
 )
 description_markeddown_description = "Sanitized HTML version of the chart description."
-owners_name_description = "Name of an owner of the chart."
 certified_by_description = "Person or group that has certified this chart"
 certification_details_description = "Details of the certification"
 tags_description = "Tags to be associated with the chart"
@@ -136,8 +196,8 @@ openapi_spec_methods_override = {
     "info": {"get": {"summary": "Get metadata information about this API resource"}},
     "related": {
         "get": {
-            "description": "Get a list of all possible owners for a chart. "
-            "Use `owners` has the `column_name` parameter"
+            "description": "Get a list of all possible related entities for a chart. "
+            "Use `editors` as the `column_name` parameter"
         }
     },
 }
@@ -184,7 +244,8 @@ class ChartPostSchema(Schema):
         },
         validate=Length(0, 250),
     )
-    owners = fields.List(fields.Integer(metadata={"description": owners_description}))
+    editors = fields.List(fields.Integer(metadata={"description": editors_description}))
+    viewers = fields.List(fields.Integer(metadata={"description": viewers_description}))
     params = fields.String(
         metadata={"description": params_description},
         allow_none=True,
@@ -222,7 +283,8 @@ class ChartPostSchema(Schema):
         metadata={"description": certification_details_description}, allow_none=True
     )
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
-    external_url = fields.String(allow_none=True)
+    external_url = fields.String(allow_none=True, validate=utils.validate_external_url)
+    uuid = fields.UUID(allow_none=True)
 
 
 class ChartPutSchema(Schema):
@@ -246,12 +308,17 @@ class ChartPutSchema(Schema):
         allow_none=True,
         validate=Length(0, 250),
     )
-    owners = fields.List(fields.Integer(metadata={"description": owners_description}))
+    editors = fields.List(fields.Integer(metadata={"description": editors_description}))
+    viewers = fields.List(fields.Integer(metadata={"description": viewers_description}))
     params = fields.String(
-        metadata={"description": params_description}, allow_none=True
+        metadata={"description": params_description},
+        allow_none=True,
+        validate=utils.validate_json,
     )
     query_context = fields.String(
-        metadata={"description": query_context_description}, allow_none=True
+        metadata={"description": query_context_description},
+        allow_none=True,
+        validate=utils.validate_json,
     )
     query_context_generation = fields.Boolean(
         metadata={"description": query_context_generation_description}, allow_none=True
@@ -277,8 +344,9 @@ class ChartPutSchema(Schema):
         metadata={"description": certification_details_description}, allow_none=True
     )
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
-    external_url = fields.String(allow_none=True)
+    external_url = fields.String(allow_none=True, validate=utils.validate_external_url)
     tags = fields.List(fields.Integer(metadata={"description": tags_description}))
+    uuid = fields.UUID(allow_none=True)
 
 
 class ChartGetDatasourceObjectDataResponseSchema(Schema):
@@ -304,6 +372,21 @@ class ChartCacheScreenshotResponseSchema(Schema):
     image_url = fields.String(
         metadata={"description": "The url to fetch the screenshot"}
     )
+    task_status = fields.String(
+        metadata={"description": "The status of the async screenshot"}
+    )
+    task_updated_at = fields.String(
+        metadata={"description": "The timestamp of the last change in status"}
+    )
+
+
+class ChartGetCachedScreenshotResponseSchema(Schema):
+    task_status = fields.String(
+        metadata={"description": "The status of the async screenshot"}
+    )
+    task_updated_at = fields.String(
+        metadata={"description": "The timestamp of the last change in status"}
+    )
 
 
 class ChartDataColumnSchema(Schema):
@@ -320,7 +403,7 @@ class ChartDataAdhocMetricSchema(Schema):
     Ad-hoc metrics are used to define metrics outside the datasource.
     """
 
-    expressionType = fields.String(
+    expressionType = fields.String(  # noqa: N815
         metadata={"description": "Simple or SQL metric", "example": "SQL"},
         required=True,
         validate=validate.OneOf(choices=("SIMPLE", "SQL")),
@@ -335,7 +418,7 @@ class ChartDataAdhocMetricSchema(Schema):
         ),
     )
     column = fields.Nested(ChartDataColumnSchema)
-    sqlExpression = fields.String(
+    sqlExpression = fields.String(  # noqa: N815
         metadata={
             "description": "The metric as defined by a SQL aggregate expression. "
             "Only required for SQL expression type.",
@@ -349,14 +432,14 @@ class ChartDataAdhocMetricSchema(Schema):
             "example": "Weighted observations",
         },
     )
-    hasCustomLabel = fields.Boolean(
+    hasCustomLabel = fields.Boolean(  # noqa: N815
         metadata={
-            "description": "When false, the label will be automatically generated based "
-            "on the aggregate expression. When true, a custom label has to be specified.",
+            "description": "When false, the label will be automatically generated based "  # noqa: E501
+            "on the aggregate expression. When true, a custom label has to be specified.",  # noqa: E501
             "example": True,
         },
     )
-    optionName = fields.String(
+    optionName = fields.String(  # noqa: N815
         metadata={
             "description": "Unique identifier. Can be any string value, as long as all "
             "metrics have a unique identifier. If undefined, a random name"
@@ -364,15 +447,15 @@ class ChartDataAdhocMetricSchema(Schema):
             "example": "metric_aec60732-fac0-4b17-b736-93f1a5c93e30",
         },
     )
-    timeGrain = fields.String(
+    timeGrain = fields.String(  # noqa: N815
         metadata={
             "description": "Optional time grain for temporal filters",
             "example": "PT1M",
         },
     )
-    isExtra = fields.Boolean(
+    isExtra = fields.Boolean(  # noqa: N815
         metadata={
-            "description": "Indicates if the filter has been added by a filter component "
+            "description": "Indicates if the filter has been added by a filter component "  # noqa: E501
             "as opposed to being a part of the original query."
         }
     )
@@ -420,7 +503,7 @@ class ChartDataAggregateOptionsSchema(ChartDataPostProcessingOperationOptionsSch
                 allow_none=False,
                 metadata={"description": "Columns by which to group by"},
             ),
-            minLength=1,
+            metadata={"minLength": 1},
             required=True,
         ),
     )
@@ -437,8 +520,8 @@ class ChartDataRollingOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
             metadata={
                 "description": "columns on which to perform rolling, mapping source "
                 "column to target column. For instance, `{'y': 'y'}` will replace the "
-                "column `y` with the rolling value in `y`, while `{'y': 'y2'}` will add "
-                "a column `y2` based on rolling values calculated from `y`, leaving the "
+                "column `y` with the rolling value in `y`, while `{'y': 'y2'}` will add "  # noqa: E501
+                "a column `y2` based on rolling values calculated from `y`, leaving the "  # noqa: E501
                 "original column `y` unchanged.",
                 "example": {"weekly_rolling_sales": "sales"},
             },
@@ -477,8 +560,20 @@ class ChartDataRollingOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
         required=True,
     )
     window = fields.Integer(
-        metadata={"description": "Size of the rolling window in days.", "example": 7},
+        metadata={
+            "description": "Size of the rolling window in days.",
+            "example": 7,
+            "min": 1,
+            "max": 10000,
+        },
         required=True,
+        validate=[
+            Range(
+                min=1,
+                max=10000,
+                error=_("`window` must be between 1 and 10000"),
+            )
+        ],
     )
     rolling_type_options = fields.Dict(
         metadata={
@@ -541,7 +636,7 @@ class ChartDataSelectOptionsSchema(ChartDataPostProcessingOperationOptionsSchema
     columns = fields.List(
         fields.String(),
         metadata={
-            "description": "Columns which to select from the input data, in the desired "
+            "description": "Columns which to select from the input data, in the desired "  # noqa: E501
             "order. If columns are renamed, the original column name should be "
             "referenced here.",
             "example": ["country", "gender", "age"],
@@ -609,13 +704,7 @@ class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
             "[ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) durations.",
             "example": "P1D",
         },
-        validate=validate.OneOf(
-            choices=[
-                i
-                for i in {**builtin_time_grains, **config["TIME_GRAIN_ADDONS"]}.keys()
-                if i
-            ]
-        ),
+        validate=validate.OneOf(choices=get_time_grain_choices()),
         required=True,
     )
     periods = fields.Integer(
@@ -623,8 +712,10 @@ class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
             "description": "Time periods (in units of `time_grain`) to predict into "
             "the future",
             "example": 7,
+            "min": 1,
+            "max": DEFAULT_MAX_PROPHET_PERIODS,
         },
-        min=0,
+        validate=validate_prophet_periods,
         required=True,
     )
     confidence_interval = fields.Float(
@@ -691,8 +782,8 @@ class ChartDataBoxplotOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
             "references to datasource metrics (strings), or ad-hoc metrics"
             "which are defined only within the query object. See "
             "`ChartDataAdhocMetricSchema` for the structure of ad-hoc metrics. "
-            "When metrics is undefined or null, the query is executed without a groupby. "
-            "However, when metrics is an array (length >= 0), a groupby clause is added "
+            "When metrics is undefined or null, the query is executed without a groupby. "  # noqa: E501
+            "However, when metrics is an array (length >= 0), a groupby clause is added "  # noqa: E501
             "to the query."
         },
         allow_none=True,
@@ -757,8 +848,10 @@ class ChartDataPivotOptionsSchema(ChartDataPostProcessingOperationOptionsSchema)
     index = (
         fields.List(
             fields.String(allow_none=False),
-            metadata={"description": "Columns to group by on the table index (=rows)"},
-            minLength=1,
+            metadata={
+                "description": "Columns to group by on the table index (=rows)",
+                "minLength": 1,
+            },
             required=True,
         ),
     )
@@ -766,7 +859,9 @@ class ChartDataPivotOptionsSchema(ChartDataPostProcessingOperationOptionsSchema)
         fields.String(allow_none=False),
         metadata={"description": "Columns to group by on the table columns"},
     )
-    metric_fill_value = fields.Number(
+    # `fields.Number` became abstract in marshmallow 4; use `Float`, which
+    # preserves the previous "any numeric value" semantics for this field.
+    metric_fill_value = fields.Float(
         metadata={
             "description": "Value to replace missing values with in "
             "aggregate calculations."
@@ -786,8 +881,7 @@ class ChartDataPivotOptionsSchema(ChartDataPostProcessingOperationOptionsSchema)
     )
     marginal_distribution_name = fields.String(
         metadata={
-            "description": "Name of marginal distribution row/column. "
-            "(default: `All`)"
+            "description": "Name of marginal distribution row/column. (default: `All`)"
         },
     )
     aggregates = ChartDataAggregateConfigField()
@@ -907,7 +1001,7 @@ class ChartDataPostProcessingOperationSchema(Schema):
 class ChartDataFilterSchema(Schema):
     col = fields.Raw(
         metadata={
-            "description": "The column to filter by. Can be either a string (physical or "
+            "description": "The column to filter by. Can be either a string (physical or "  # noqa: E501
             "saved expression) or an object (adhoc column)",
             "example": "country",
         },
@@ -934,7 +1028,7 @@ class ChartDataFilterSchema(Schema):
             "example": "PT1M",
         },
     )
-    isExtra = fields.Boolean(
+    isExtra = fields.Boolean(  # noqa: N815
         metadata={
             "description": "Indicates if the filter has been added by a filter "
             "component as opposed to being a part of the original query."
@@ -975,13 +1069,7 @@ class ChartDataExtrasSchema(Schema):
             "[ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) durations.",
             "example": "P1D",
         },
-        validate=validate.OneOf(
-            choices=[
-                i
-                for i in {**builtin_time_grains, **config["TIME_GRAIN_ADDONS"]}.keys()
-                if i
-            ]
-        ),
+        validate=validate.OneOf(choices=get_time_grain_choices()),
         allow_none=True,
     )
     instant_time_comparison_range = fields.String(
@@ -992,10 +1080,28 @@ class ChartDataExtrasSchema(Schema):
         },
         allow_none=True,
     )
+    column_order = fields.List(
+        fields.String(),
+        metadata={
+            "description": (
+                "Ordered list of column names for result ordering. "
+                "Used to preserve user's column reordering (including mixed "
+                "dimension columns and metrics)"
+            )
+        },
+        allow_none=True,
+    )
+    transpile_to_dialect = fields.Boolean(
+        metadata={
+            "description": "If true, WHERE/HAVING clauses will be transpiled to the "
+            "target database dialect using SQLGlot."
+        },
+        allow_none=True,
+    )
 
 
 class AnnotationLayerSchema(Schema):
-    annotationType = fields.String(
+    annotationType = fields.String(  # noqa: N815
         metadata={"description": "Type of annotation layer"},
         validate=validate.OneOf(choices=[ann.value for ann in AnnotationType]),
     )
@@ -1003,20 +1109,20 @@ class AnnotationLayerSchema(Schema):
         metadata={"description": "Layer color"},
         allow_none=True,
     )
-    descriptionColumns = fields.List(
+    descriptionColumns = fields.List(  # noqa: N815
         fields.String(),
         metadata={
             "description": "Columns to use as the description. If none are provided, "
             "all will be shown."
         },
     )
-    hideLine = fields.Boolean(
+    hideLine = fields.Boolean(  # noqa: N815
         metadata={
             "description": "Should line be hidden. Only applies to line annotations"
         },
         allow_none=True,
     )
-    intervalEndColumn = fields.String(
+    intervalEndColumn = fields.String(  # noqa: N815
         metadata={
             "description": "Column containing end of interval. "
             "Only applies to interval layers"
@@ -1046,17 +1152,17 @@ class AnnotationLayerSchema(Schema):
     show = fields.Boolean(
         metadata={"description": "Should the layer be shown"}, required=True
     )
-    showLabel = fields.Boolean(
+    showLabel = fields.Boolean(  # noqa: N815
         metadata={"description": "Should the label always be shown"},
         allow_none=True,
     )
-    showMarkers = fields.Boolean(
+    showMarkers = fields.Boolean(  # noqa: N815
         metadata={
             "description": "Should markers be shown. Only applies to line annotations."
         },
         required=True,
     )
-    sourceType = fields.String(
+    sourceType = fields.String(  # noqa: N815
         metadata={"description": "Type of source for annotation data"},
         validate=validate.OneOf(
             choices=(
@@ -1078,11 +1184,11 @@ class AnnotationLayerSchema(Schema):
             )
         ),
     )
-    timeColumn = fields.String(
+    timeColumn = fields.String(  # noqa: N815
         metadata={"description": "Column with event date or interval start date"},
         allow_none=True,
     )
-    titleColumn = fields.String(
+    titleColumn = fields.String(  # noqa: N815
         metadata={"description": "Column with title"},
         allow_none=True,
     )
@@ -1107,8 +1213,9 @@ class AnnotationLayerSchema(Schema):
 
 class ChartDataDatasourceSchema(Schema):
     description = "Chart datasource"
-    id = fields.Integer(
-        metadata={"description": "Datasource id"},
+    id = Union(
+        [fields.Integer(), fields.UUID()],
+        metadata={"description": "Datasource id or uuid"},
         required=True,
     )
     type = fields.String(
@@ -1180,7 +1287,7 @@ class ChartDataQueryObjectSchema(Schema):
         fields.Nested(ChartDataPostProcessingOperationSchema, allow_none=True),
         allow_none=True,
         metadata={
-            "description": "Post processing operations to be applied to the result set. "
+            "description": "Post processing operations to be applied to the result set. "  # noqa: E501
             "Operations are applied to the result set in sequential order."
         },
     )
@@ -1241,6 +1348,25 @@ class ChartDataQueryObjectSchema(Schema):
             "description": "Metric used to limit timeseries queries by. "
             "Requires `series` and `series_limit` to be set."
         },
+        allow_none=True,
+    )
+    group_others_when_limit_reached = fields.Boolean(
+        metadata={
+            "description": "When true, groups remaining series into an 'Others' "
+            "category when series limit is reached. Prevents incomplete data."
+        },
+        load_default=False,
+        allow_none=True,
+    )
+    grouping_sets = fields.List(
+        fields.List(fields.String()),
+        metadata={
+            "description": "Rollup levels for non-additive totals: each entry is "
+            "the list of groupby columns to group at that level (e.g. the empty "
+            "list is the grand total). When set and the engine supports it, the "
+            "levels are computed in a single GROUPING SETS query.",
+        },
+        load_default=None,
         allow_none=True,
     )
     timeseries_limit = fields.Integer(
@@ -1344,6 +1470,34 @@ class ChartDataQueryObjectSchema(Schema):
         fields.String(),
         allow_none=True,
     )
+    time_compare_full_range = fields.Boolean(
+        required=False,
+        allow_none=True,
+        metadata={
+            "description": (
+                "When using a time comparison (time_offsets), plot each shifted "
+                "series across its full time range instead of truncating it to the "
+                "main series' range. Useful for comparing a partial current period "
+                "against complete prior periods."
+            )
+        },
+    )
+
+    @post_load
+    def rename_deprecated_fields(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
+        _renames = (
+            ("groupby", "columns"),
+            ("granularity_sqla", "granularity"),
+            ("timeseries_limit", "series_limit"),
+            ("timeseries_limit_metric", "series_limit_metric"),
+        )
+        for old, new in _renames:
+            value = data.pop(old, None)
+            if value or value == 0:
+                data[new] = value
+        return data
 
 
 class ChartDataQueryContextSchema(Schema):
@@ -1418,9 +1572,16 @@ class ChartDataResponseResult(Schema):
         required=True,
         allow_none=True,
     )
+    queried_dttm = fields.String(
+        metadata={
+            "description": "UTC timestamp when the query was executed (ISO 8601 format)"
+        },
+        required=True,
+        allow_none=True,
+    )
     cache_timeout = fields.Integer(
         metadata={
-            "description": "Cache timeout in following order: custom timeout, datasource "
+            "description": "Cache timeout in following order: custom timeout, datasource "  # noqa: E501
             "timeout, cache default timeout, config default cache timeout."
         },
         required=True,
@@ -1436,9 +1597,12 @@ class ChartDataResponseResult(Schema):
         allow_none=None,
     )
     query = fields.String(
-        metadata={"description": "The executed query statement"},
-        required=True,
-        allow_none=False,
+        metadata={
+            "description": "The executed query statement. May be absent when "
+            "validation errors occur."
+        },
+        required=False,
+        allow_none=True,
     )
     status = fields.String(
         metadata={"description": "Status of the query"},
@@ -1477,6 +1641,15 @@ class ChartDataResponseResult(Schema):
     rejected_filters = fields.List(
         fields.Dict(), metadata={"description": "A list with rejected filters"}
     )
+    detected_currency = fields.String(
+        metadata={
+            "description": "Detected ISO 4217 currency code when AUTO mode is used. "
+            "Returns the currency code if all filtered data contains a single currency "
+            "or null if multiple currencies are present."
+        },
+        allow_none=True,
+        load_default=None,
+    )
     from_dttm = fields.Integer(
         metadata={"description": "Start timestamp of time range"},
         required=False,
@@ -1487,6 +1660,46 @@ class ChartDataResponseResult(Schema):
         required=False,
         allow_none=True,
     )
+    warning = fields.String(
+        metadata={"description": "Warning message when results were truncated"},
+        allow_none=True,
+    )
+
+
+class DashboardFilterInfoSchema(Schema):
+    id = fields.String(
+        metadata={"description": "The native filter ID"},
+        required=True,
+    )
+    name = fields.String(
+        metadata={"description": "The native filter name"},
+        required=True,
+    )
+    status = fields.String(
+        metadata={
+            "description": "Filter status: 'applied' (default value was included "
+            "in the query), 'not_applied' (filter had no default value and was "
+            "omitted, matching dashboard initial-load behavior), or "
+            "'not_applied_uses_default_to_first_item_prequery' (filter uses "
+            "defaultToFirstItem which requires a pre-query to resolve and cannot "
+            "be applied server-side)",
+        },
+        required=True,
+    )
+    column = fields.String(
+        metadata={"description": "Target column name for the filter"},
+        allow_none=True,
+    )
+
+
+class DashboardFiltersResponseSchema(Schema):
+    filters = fields.List(
+        fields.Nested(DashboardFilterInfoSchema),
+        metadata={
+            "description": "Metadata about each in-scope dashboard native filter "
+            "and whether its default value was applied to the query"
+        },
+    )
 
 
 class ChartDataResponseSchema(Schema):
@@ -1496,6 +1709,14 @@ class ChartDataResponseSchema(Schema):
             "description": "A list of results for each corresponding query in the "
             "request."
         },
+    )
+    dashboard_filters = fields.Nested(
+        DashboardFiltersResponseSchema,
+        metadata={
+            "description": "Metadata about dashboard native filters applied to "
+            "the query. Only present when filters_dashboard_id is provided."
+        },
+        required=False,
     )
 
 
@@ -1531,7 +1752,7 @@ class GetFavStarIdsSchema(Schema):
     result = fields.List(
         fields.Nested(ChartFavStarResponseResult),
         metadata={
-            "description": "A list of results for each corresponding chart in the request"
+            "description": "A list of results for each corresponding chart in the request"  # noqa: E501
         },
     )
 
@@ -1549,7 +1770,8 @@ class ImportV1ChartSchema(Schema):
     version = fields.String(required=True)
     dataset_uuid = fields.UUID(required=True)
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
-    external_url = fields.String(allow_none=True)
+    external_url = fields.String(allow_none=True, validate=utils.validate_external_url)
+    tags = fields.List(fields.String(), allow_none=True)
 
 
 class ChartCacheWarmUpRequestSchema(Schema):
@@ -1559,7 +1781,7 @@ class ChartCacheWarmUpRequestSchema(Schema):
     )
     dashboard_id = fields.Integer(
         metadata={
-            "description": "The ID of the dashboard to get filters for when warming cache"
+            "description": "The ID of the dashboard to get filters for when warming cache"  # noqa: E501
         }
     )
     extra_filters = fields.String(
@@ -1588,10 +1810,56 @@ class ChartCacheWarmUpResponseSchema(Schema):
     )
 
 
+class TagSchema(Schema):
+    id = fields.Int()
+    name = fields.String()
+    type = fields.Enum(TagType, by_value=True)
+
+
+class UserSchema(Schema):
+    id = fields.Int()
+    first_name = fields.String()
+    last_name = fields.String()
+    email = fields.String()
+
+
+class DashboardSchema(Schema):
+    id = fields.Int()
+    dashboard_title = fields.String()
+    json_metadata = fields.String()
+
+
+class ChartGetResponseSchema(Schema):
+    id = fields.Int(metadata={"description": id_description})
+    url = fields.String()
+    cache_timeout = fields.String()
+    certified_by = fields.String()
+    certification_details = fields.String()
+    changed_on_humanized = fields.String(data_key="changed_on_delta_humanized")
+    description = fields.String()
+    params = fields.String()
+    slice_name = fields.String()
+    thumbnail_url = fields.String()
+    viz_type = fields.String()
+    query_context = fields.String()
+    is_managed_externally = fields.Boolean()
+    tags = fields.Nested(TagSchema, many=True)
+    editors = fields.List(fields.Nested(SubjectResponseSchema))
+    viewers = fields.List(fields.Nested(SubjectResponseSchema))
+    dashboards = fields.List(fields.Nested(DashboardSchema))
+    uuid = fields.UUID()
+    datasource_id = fields.Int()
+    datasource_name_text = fields.Function(lambda obj: obj.datasource_name_text())
+    datasource_type = fields.String()
+    datasource_url = fields.Function(lambda obj: obj.datasource_url())
+    datasource_uuid = fields.UUID(attribute="table.uuid")
+
+
 CHART_SCHEMAS = (
     ChartCacheWarmUpRequestSchema,
     ChartCacheWarmUpResponseSchema,
     ChartDataQueryContextSchema,
+    DashboardFiltersResponseSchema,
     ChartDataResponseSchema,
     ChartDataAsyncResponseSchema,
     # TODO: These should optimally be included in the QueryContext schema as an `anyOf`
@@ -1611,6 +1879,7 @@ CHART_SCHEMAS = (
     ChartDataGeodeticParseOptionsSchema,
     ChartEntityResponseSchema,
     ChartGetDatasourceResponseSchema,
+    ChartGetResponseSchema,
     ChartCacheScreenshotResponseSchema,
     GetFavStarIdsSchema,
 )

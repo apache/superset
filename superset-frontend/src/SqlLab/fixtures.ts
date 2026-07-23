@@ -16,30 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import sinon from 'sinon';
 import * as actions from 'src/SqlLab/actions/sqlLab';
 import { ColumnKeyTypeType } from 'src/SqlLab/components/ColumnElement';
 import {
   DatasourceType,
   denormalizeTimestamp,
-  GenericDataType,
+  ErrorTypeEnum,
   QueryResponse,
   QueryState,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { LatestQueryEditorVersion } from 'src/SqlLab/types';
 import { ISaveableDatasource } from 'src/SqlLab/components/SaveDatasetModal';
+import { SubjectType } from 'src/types/Subject';
 
-export const mockedActions = sinon.stub({ ...actions });
+export const mockedActions = Object.fromEntries(
+  Object.keys(actions).map(key => [key, jest.fn()]),
+);
 
-export const alert = { bsStyle: 'danger', msg: 'Ooops', id: 'lksvmcx32' };
+export const alert = { bsStyle: 'danger', msg: 'Oops', id: 'lksvmcx32' };
 export const table = {
   dbId: 1,
   selectStar: 'SELECT * FROM ab_user',
   queryEditorId: 'dfsadfs',
   catalog: null,
-  schema: 'superset',
+  schema: 'main',
   name: 'ab_user',
   id: 'r11Vgt60',
+  view: 'SELECT * FROM ab_user',
   dataPreviewQueryId: null,
   partitions: {
     cols: ['username'],
@@ -186,8 +190,9 @@ export const table = {
 export const defaultQueryEditor = {
   version: LatestQueryEditorVersion,
   id: 'dfsadfs',
+  immutableId: 'immutable-id',
   autorun: false,
-  dbId: undefined,
+  dbId: 1,
   latestQueryId: null,
   selectedText: undefined,
   sql: 'SELECT *\nFROM\nWHERE',
@@ -202,6 +207,7 @@ export const defaultQueryEditor = {
 export const extraQueryEditor1 = {
   ...defaultQueryEditor,
   id: 'diekd23',
+  immutableId: 'immutable-id',
   sql: 'SELECT *\nFROM\nWHERE\nLIMIT',
   name: 'Untitled Query 2',
   selectedText: 'SELECT',
@@ -210,8 +216,18 @@ export const extraQueryEditor1 = {
 export const extraQueryEditor2 = {
   ...defaultQueryEditor,
   id: 'owkdi998',
-  sql: 'SELECT *\nFROM\nWHERE\nGROUP BY',
+  immutableId: 'immutable-id',
+  sql: '',
   name: 'Untitled Query 3',
+};
+
+export const extraQueryEditor3 = {
+  ...defaultQueryEditor,
+  id: 'kvk23',
+  immutableId: 'immutable-id',
+  sql: '',
+  name: 'Untitled Query 4',
+  tabViewId: 37,
 };
 
 export const queries = [
@@ -224,6 +240,7 @@ export const queries = [
     ctas: false,
     cached: false,
     id: 'BkA1CLrJg',
+    sqlEditorImmutableId: 'BkA1CLrJg_immutable',
     progress: 100,
     startDttm: 1476910566092.96,
     state: QueryState.Success,
@@ -283,6 +300,7 @@ export const queries = [
     ctas: false,
     cached: false,
     id: 'S1zeAISkx',
+    sqlEditorImmutableId: 'S1zeAISkx_immutable',
     progress: 100,
     startDttm: 1476910570802.2,
     state: QueryState.Success,
@@ -317,6 +335,7 @@ export const queryWithNoQueryLimit = {
   ctas: false,
   cached: false,
   id: 'BkA1CLrJg',
+  sqlEditorImmutableId: 'BkA1CLrJg_immutable',
   progress: 100,
   startDttm: 1476910566092.96,
   state: QueryState.Success,
@@ -344,7 +363,7 @@ export const queryWithNoQueryLimit = {
       },
       {
         is_dttm: false,
-        name: 'gender',
+        column_name: 'gender',
         type: 'STRING',
       },
     ],
@@ -531,6 +550,12 @@ export const failedQueryWithErrors = {
       level: 'error',
       extra: null,
     },
+    {
+      message: 'Something else wrong',
+      error_type: 'TEST_ERROR',
+      level: 'error',
+      extra: null,
+    },
   ],
   id: 'ryhMUZCGb',
   progress: 0,
@@ -546,6 +571,20 @@ export const failedQueryWithErrors = {
   tempTable: '',
 };
 
+export const failedQueryWithFrontendTimeoutErrors = {
+  ...failedQueryWithErrorMessage,
+  errors: [
+    {
+      error_type: ErrorTypeEnum.FRONTEND_TIMEOUT_ERROR,
+      message: 'Request timed out',
+      level: 'error',
+      extra: {
+        timeout: 10,
+      },
+    },
+  ],
+};
+
 const baseQuery: QueryResponse = {
   queryId: 567,
   dbId: 1,
@@ -555,6 +594,7 @@ const baseQuery: QueryResponse = {
   ctas: false,
   cached: false,
   id: 'BkA1CLrJg',
+  sqlEditorImmutableId: 'BkA1CLrJg_immutable',
   progress: 100,
   startDttm: 1476910566092.96,
   state: QueryState.Success,
@@ -638,6 +678,7 @@ export const runningQuery: QueryResponse = {
   cached: false,
   ctas: false,
   id: 'ryhMUZCGb',
+  sqlEditorImmutableId: 'ryhMUZCGb_immutable',
   progress: 90,
   state: QueryState.Running,
   startDttm: Date.now() - 500,
@@ -649,6 +690,7 @@ export const successfulQuery: QueryResponse = {
   cached: false,
   ctas: false,
   id: 'ryhMUZCGb',
+  sqlEditorImmutableId: 'ryhMUZCGb_immutable',
   progress: 100,
   state: QueryState.Success,
   startDttm: Date.now() - 500,
@@ -734,7 +776,7 @@ export const testQuery: ISaveableDatasource = {
   ],
 };
 
-export const mockdatasets = [...new Array(3)].map((_, i) => ({
+export const mockdatasets = Array.from({ length: 3 }, (_, i) => ({
   changed_by_name: 'user',
   kind: i === 0 ? 'virtual' : 'physical', // ensure there is 1 virtual
   changed_by: 'user',
@@ -745,5 +787,5 @@ export const mockdatasets = [...new Array(3)].map((_, i) => ({
   catalog: null,
   schema: `schema ${i}`,
   table_name: `coolest table ${i}`,
-  owners: [{ username: 'admin', userId: 1 }],
+  editors: [{ id: i + 1, label: `Editor ${i + 1}`, type: SubjectType.User }],
 }));

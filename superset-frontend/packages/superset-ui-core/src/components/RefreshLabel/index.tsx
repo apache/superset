@@ -1,0 +1,50 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { MouseEventHandler } from 'react';
+import { SupersetTheme } from '@apache-superset/core/theme';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Tooltip } from '../Tooltip';
+
+export interface RefreshLabelProps {
+  onClick: MouseEventHandler<HTMLSpanElement>;
+  tooltipContent: string;
+  disabled?: boolean;
+}
+
+const RefreshLabel = ({
+  onClick,
+  tooltipContent,
+  disabled,
+}: RefreshLabelProps) => (
+  <Tooltip title={tooltipContent}>
+    <Icons.SyncOutlined
+      iconSize="l"
+      role="button"
+      tabIndex={disabled ? -1 : 0}
+      onClick={disabled ? undefined : onClick}
+      css={(theme: SupersetTheme) => ({
+        cursor: 'pointer',
+        color: theme.colorIcon,
+        '&:hover': { color: theme.colorPrimary },
+      })}
+    />
+  </Tooltip>
+);
+
+export default RefreshLabel;

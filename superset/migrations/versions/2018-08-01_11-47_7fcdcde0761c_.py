@@ -27,7 +27,7 @@ import re
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 from superset import db
 from superset.utils import json
@@ -58,7 +58,7 @@ def upgrade():
     session = db.Session(bind=bind)
 
     dashboards = session.query(Dashboard).all()
-    for i, dashboard in enumerate(dashboards):
+    for i, dashboard in enumerate(dashboards):  # noqa: B007
         original_text = dashboard.position_json or ""
         position_json = json.loads(original_text or "{}")
         if is_v2_dash(position_json):

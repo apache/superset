@@ -17,10 +17,11 @@
  * under the License.
  */
 
+import '@testing-library/jest-dom';
 import PropTypes from 'prop-types';
-import { PureComponent } from 'react';
-import { mount } from 'enzyme';
+import { useEffect, useState } from 'react';
 import { reactify } from '@superset-ui/core';
+import { render, screen, waitFor } from '@testing-library/react';
 import { RenderFuncType } from '../../../src/chart/components/reactify';
 
 describe('reactify(renderFn)', () => {
@@ -51,96 +52,83 @@ describe('reactify(renderFn)', () => {
     componentWillUnmount: willUnmountCb,
   });
 
-  class TestComponent extends PureComponent<{}, { content: string }> {
-    constructor(props = {}) {
-      super(props);
-      this.state = { content: 'abc' };
-    }
+  function TestComponent() {
+    const [content, setContent] = useState('abc');
 
-    componentDidMount() {
-      setTimeout(() => {
-        this.setState({ content: 'def' });
+    useEffect(() => {
+      const timer = setTimeout(() => {
+        setContent('def');
       }, 10);
-    }
+      return () => clearTimeout(timer);
+    }, []);
 
-    render() {
-      const { content } = this.state;
-
-      return <TheChart id="test" content={content} />;
-    }
+    return <TheChart id="test" content={content} />;
   }
 
-  class AnotherTestComponent extends PureComponent<{}, {}> {
-    render() {
-      return <TheChartWithWillUnmountHook id="another_test" />;
-    }
+  function AnotherTestComponent() {
+    return <TheChartWithWillUnmountHook id="another_test" />;
   }
 
-  it('returns a React component class', () =>
-    new Promise(done => {
-      const wrapper = mount(<TestComponent />);
+  beforeEach(() => {
+    (renderFn as jest.Mock).mockClear();
+    willUnmountCb.mockClear();
+  });
 
-      expect(renderFn).toHaveBeenCalledTimes(1);
-      expect(wrapper.html()).toEqual('<div id="test"><b>abc</b></div>');
-      setTimeout(() => {
-        expect(renderFn).toHaveBeenCalledTimes(2);
-        expect(wrapper.html()).toEqual('<div id="test"><b>def</b></div>');
-        wrapper.unmount();
-        done(undefined);
-      }, 20);
-    }));
+  test('returns a React component and re-renders on prop changes', async () => {
+    render(<TestComponent />);
+
+    expect(renderFn).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('abc')).toBeInTheDocument();
+    expect(screen.getByText('abc').parentNode).toHaveAttribute('id', 'test');
+
+    await waitFor(() => {
+      expect(screen.getByText('def')).toBeInTheDocument();
+    });
+    expect(screen.getByText('def').parentNode).toHaveAttribute('id', 'test');
+    expect(renderFn).toHaveBeenCalledTimes(2);
+  });
   describe('displayName', () => {
-    it('has displayName if renderFn.displayName is defined', () => {
+    test('has displayName if renderFn.displayName is defined', () => {
       expect(TheChart.displayName).toEqual('BoldText');
     });
-    it('does not have displayName if renderFn.displayName is not defined', () => {
+    test('does not have displayName if renderFn.displayName is not defined', () => {
       const AnotherChart = reactify(() => {});
       expect(AnotherChart.displayName).toBeUndefined();
     });
   });
   describe('propTypes', () => {
-    it('has propTypes if renderFn.propTypes is defined', () => {
+    test('has propTypes if renderFn.propTypes is defined', () => {
       /* eslint-disable-next-line react/forbid-foreign-prop-types */
-      expect(Object.keys(TheChart.propTypes ?? {})).toEqual([
-        'id',
-        'className',
-        'content',
-      ]);
+      expect(Object.keys(TheChart.propTypes ?? {})).toEqual(['content']);
     });
-    it('does not have propTypes if renderFn.propTypes is not defined', () => {
+    test('does not have propTypes if renderFn.propTypes is not defined', () => {
       const AnotherChart = reactify(() => {});
       /* eslint-disable-next-line react/forbid-foreign-prop-types */
-      expect(Object.keys(AnotherChart.propTypes ?? {})).toEqual([
-        'id',
-        'className',
-      ]);
+      expect(Object.keys(AnotherChart.propTypes ?? {})).toEqual([]);
     });
   });
   describe('defaultProps', () => {
-    it('has defaultProps if renderFn.defaultProps is defined', () => {
+    test('has defaultProps if renderFn.defaultProps is defined', () => {
       expect(TheChart.defaultProps).toBe(renderFn.defaultProps);
-      const wrapper = mount(<TheChart id="test" />);
-      expect(wrapper.html()).toEqual('<div id="test"><b>ghi</b></div>');
+      render(<TheChart id="test" />);
+      expect(screen.getByText('ghi')).toBeInTheDocument();
+      expect(screen.getByText('ghi').parentNode).toHaveAttribute('id', 'test');
     });
-    it('does not have defaultProps if renderFn.defaultProps is not defined', () => {
+    test('does not have defaultProps if renderFn.defaultProps is not defined', () => {
       const AnotherChart = reactify(() => {});
       expect(AnotherChart.defaultProps).toBeUndefined();
     });
   });
-  it('does not try to render if not mounted', () => {
+  test('calls renderFn when container is set', () => {
     const anotherRenderFn = jest.fn();
-    const AnotherChart = reactify(anotherRenderFn); // enables valid new AnotherChart() call
-    // @ts-ignore
-    new AnotherChart({ id: 'test' }).execute();
-    expect(anotherRenderFn).not.toHaveBeenCalled();
+    const AnotherChart = reactify(anotherRenderFn);
+    const { unmount } = render(<AnotherChart id="test" />);
+    expect(anotherRenderFn).toHaveBeenCalled();
+    unmount();
   });
-  it('calls willUnmount hook when it is provided', () =>
-    new Promise(done => {
-      const wrapper = mount(<AnotherTestComponent />);
-      setTimeout(() => {
-        wrapper.unmount();
-        expect(willUnmountCb).toHaveBeenCalledTimes(1);
-        done(undefined);
-      }, 20);
-    }));
+  test('calls willUnmount hook when it is provided', () => {
+    const { unmount } = render(<AnotherTestComponent />);
+    unmount();
+    expect(willUnmountCb).toHaveBeenCalledTimes(1);
+  });
 });

@@ -28,7 +28,7 @@ down_revision = "9c2a5681ddfd"
 
 import sqlalchemy as sa  # noqa: E402
 from alembic import op  # noqa: E402
-from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
+from sqlalchemy.orm import declarative_base  # noqa: E402
 
 from superset import db  # noqa: E402
 from superset.utils import json  # noqa: E402
@@ -54,7 +54,7 @@ def upgrade():
             if "show_native_filters" in json_metadata:
                 del json_metadata["show_native_filters"]
                 dashboard.json_metadata = json.dumps(json_metadata)
-        except Exception:  # pylint: disable=broad-except
+        except Exception:  # pylint: disable=broad-except  # noqa: S110
             pass
 
     session.commit()

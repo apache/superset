@@ -25,19 +25,24 @@ import {
   ChangeEvent,
 } from 'react';
 
-import { t, SupersetTheme, getClientErrorObject } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { getClientErrorObject, VizType } from '@superset-ui/core';
+import { Alert } from '@apache-superset/core/components';
+import { SupersetTheme } from '@apache-superset/core/theme';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  addReport,
   editReport,
+  subscribeReport,
 } from 'src/features/reports/ReportModal/actions';
-import Alert from 'src/components/Alert';
-import TimezoneSelector from 'src/components/TimezoneSelector';
-import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
-import Icons from 'src/components/Icons';
-import { CronError } from 'src/components/CronPicker';
-import { RadioChangeEvent } from 'src/components';
-import { Input } from 'src/components/Input';
+import {
+  Input,
+  LabeledErrorBoundInput,
+  type CronError,
+} from '@superset-ui/core/components';
+import TimezoneSelector from '@superset-ui/core/components/TimezoneSelector';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Typography } from '@superset-ui/core/components/Typography';
+import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { ChartState } from 'src/explore/types';
 import {
@@ -46,6 +51,7 @@ import {
   NotificationFormats,
 } from 'src/features/reports/types';
 import { reportSelector } from 'src/views/CRUD/hooks';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import { StyledInputContainer } from 'src/features/alerts/AlertReportModal';
 import { CreationMethod } from './HeaderReportDropdown';
 import {
@@ -63,16 +69,15 @@ import {
   TimezoneHeaderStyle,
   SectionHeaderStyle,
   StyledMessageContentTitle,
-  StyledRadio,
-  StyledRadioGroup,
 } from './styles';
 
 interface ReportProps {
   onHide: () => {};
   addDangerToast: (msg: string) => void;
   show: boolean;
-  userId: number;
   userEmail: string;
+  ccEmail: string;
+  bccEmail: string;
   chart?: ChartState;
   chartName?: string;
   dashboardId?: number;
@@ -82,9 +87,9 @@ interface ReportProps {
 }
 
 const TEXT_BASED_VISUALIZATION_TYPES = [
-  'pivot_table_v2',
+  VizType.PivotTable,
   'table',
-  'paired_ttest',
+  VizType.PairedTTest,
 ];
 
 const INITIAL_STATE = {
@@ -107,8 +112,9 @@ function ReportModal({
   show = false,
   dashboardId,
   chart,
-  userId,
   userEmail,
+  ccEmail,
+  bccEmail,
   creationMethod,
   dashboardName,
   chartName,
@@ -120,6 +126,7 @@ function ReportModal({
   const defaultNotificationFormat = isTextBasedChart
     ? NotificationFormats.Text
     : NotificationFormats.PNG;
+  const currentUserSubjectId = getBootstrapData()?.common?.user_subject_id;
   const entityName = dashboardName || chartName;
   const initialState: ReportObjectState = useMemo(
     () => ({
@@ -172,22 +179,13 @@ function ReportModal({
   }, [isEditMode, report]);
 
   const onSave = async () => {
-    // Create new Report
-    const newReportValues: Partial<ReportObject> = {
+    const commonFields: Partial<ReportObject> = {
       type: 'Report',
       active: true,
       force_screenshot: false,
       custom_width: currentReport.custom_width,
-      creation_method: creationMethod,
       dashboard: dashboardId,
       chart: chart?.id,
-      owners: [userId],
-      recipients: [
-        {
-          recipient_config_json: { target: userEmail },
-          type: 'Email',
-        },
-      ],
       name: currentReport.name,
       description: currentReport.description,
       crontab: currentReport.crontab,
@@ -197,12 +195,30 @@ function ReportModal({
 
     setCurrentReport({ isSubmitting: true, error: undefined });
     try {
-      if (isEditMode) {
+      if (isEditMode && currentReport.id) {
+        // Edit path: include all fields, PUT endpoint accepts recipients/editors directly
         await dispatch(
-          editReport(currentReport.id, newReportValues as ReportObject),
+          editReport(currentReport.id, {
+            ...commonFields,
+            creation_method: creationMethod,
+            ...(currentUserSubjectId === undefined
+              ? {}
+              : { editors: [currentUserSubjectId] }),
+            recipients: [
+              {
+                recipient_config_json: {
+                  target: userEmail,
+                  ccTarget: ccEmail,
+                  bccTarget: bccEmail,
+                },
+                type: 'Email',
+              },
+            ],
+          } as ReportObject),
         );
       } else {
-        await dispatch(addReport(newReportValues as ReportObject));
+        // Subscribe path: creation_method, editors, and recipients are set server-side.
+        await dispatch(subscribeReport(commonFields as ReportObject));
       }
       onHide();
     } catch (e) {
@@ -214,7 +230,7 @@ function ReportModal({
 
   const wrappedTitle = (
     <StyledIconWrapper>
-      <Icons.Calendar />
+      <Icons.CalendarOutlined />
       <span className="text">
         {isEditMode ? t('Edit email report') : t('Schedule a new email report')}
       </span>
@@ -241,27 +257,39 @@ function ReportModal({
   const renderMessageContentSection = (
     <>
       <StyledMessageContentTitle>
-        <h4>{t('Message content')}</h4>
+        <Typography.Title level={4}>{t('Message content')}</Typography.Title>
       </StyledMessageContentTitle>
       <div className="inline-container">
-        <StyledRadioGroup
+        <Radio.GroupWrapper
+          spaceConfig={{
+            direction: 'vertical',
+            size: 'middle',
+            align: 'start',
+            wrap: false,
+          }}
           onChange={(event: RadioChangeEvent) => {
             setCurrentReport({ report_format: event.target.value });
           }}
           value={currentReport.report_format || defaultNotificationFormat}
-        >
-          {isTextBasedChart && (
-            <StyledRadio value={NotificationFormats.Text}>
-              {t('Text embedded in email')}
-            </StyledRadio>
-          )}
-          <StyledRadio value={NotificationFormats.PNG}>
-            {t('Image (PNG) embedded in email')}
-          </StyledRadio>
-          <StyledRadio value={NotificationFormats.CSV}>
-            {t('Formatted CSV attached in email')}
-          </StyledRadio>
-        </StyledRadioGroup>
+          options={[
+            {
+              label: t('Text embedded in email'),
+              value: NotificationFormats.Text,
+            },
+            {
+              label: t('Image (PNG) embedded in email'),
+              value: NotificationFormats.PNG,
+            },
+            {
+              label: t('Formatted CSV attached in email'),
+              value: NotificationFormats.CSV,
+            },
+            {
+              label: t('Formatted Excel attached in email'),
+              value: NotificationFormats.XLSX,
+            },
+          ]}
+        />
       </div>
     </>
   );
@@ -274,11 +302,12 @@ function ReportModal({
         <Input
           type="number"
           name="custom_width"
-          value={currentReport?.custom_width || ''}
+          value={currentReport?.custom_width ?? ''}
           placeholder={t('Input custom width in pixels')}
           onChange={(event: ChangeEvent<HTMLInputElement>) => {
+            const parsedWidth = parseInt(event.target.value, 10);
             setCurrentReport({
-              custom_width: parseInt(event.target.value, 10) || null,
+              custom_width: Number.isNaN(parsedWidth) ? null : parsedWidth,
             });
           }}
         />
@@ -329,9 +358,12 @@ function ReportModal({
 
       <StyledBottomSection>
         <StyledScheduleTitle>
-          <h4 css={(theme: SupersetTheme) => SectionHeaderStyle(theme)}>
+          <Typography.Title
+            level={5}
+            css={(theme: SupersetTheme) => SectionHeaderStyle(theme)}
+          >
             {t('Schedule')}
-          </h4>
+          </Typography.Title>
           <p>{t('The report will be sent to your email at')}</p>
         </StyledScheduleTitle>
 
@@ -343,7 +375,7 @@ function ReportModal({
           }}
           onError={setCronError}
         />
-        <StyledCronError>{cronError}</StyledCronError>
+        <StyledCronError>{cronError?.description}</StyledCronError>
         <div
           className="control-label"
           css={(theme: SupersetTheme) => TimezoneHeaderStyle(theme)}

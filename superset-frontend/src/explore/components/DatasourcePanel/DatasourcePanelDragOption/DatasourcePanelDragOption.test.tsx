@@ -23,28 +23,14 @@ import DatasourcePanelDragOption from '.';
 test('should render', async () => {
   render(
     <DatasourcePanelDragOption
-      value={{ metric_name: 'test' }}
+      value={{ metric_name: 'test', uuid: '1' }}
       type={DndItemType.Metric}
     />,
-    { useDnd: true },
+    { useDndKit: true, useRedux: true, initialState: { explore: {} } },
   );
 
   expect(
     await screen.findByTestId('DatasourcePanelDragOption'),
   ).toBeInTheDocument();
   expect(screen.getByText('test')).toBeInTheDocument();
-});
-
-test('should have attribute draggable:true', async () => {
-  render(
-    <DatasourcePanelDragOption
-      value={{ metric_name: 'test' }}
-      type={DndItemType.Metric}
-    />,
-    { useDnd: true },
-  );
-
-  expect(
-    await screen.findByTestId('DatasourcePanelDragOption'),
-  ).toHaveAttribute('draggable', 'true');
 });

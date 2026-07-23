@@ -23,7 +23,7 @@ import {
 } from '@superset-ui/core';
 
 describe('CategoricalSchemeRegistry', () => {
-  it('has default value out-of-the-box', () => {
+  test('has default value out-of-the-box', () => {
     expect(getCategoricalSchemeRegistry().get()).toBeInstanceOf(
       CategoricalScheme,
     );

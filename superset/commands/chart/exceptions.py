@@ -103,6 +103,19 @@ class DatasourceTypeUpdateRequiredValidationError(ValidationError):
         )
 
 
+class ChartQueryContextDatasourceMismatchValidationError(ValidationError):
+    """
+    Raised when a query-context-only update carries a datasource that does not
+    match the chart's own datasource.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            _("The query context datasource does not match the chart datasource"),
+            field_name="query_context",
+        )
+
+
 class ChartNotFoundError(CommandException):
     message = "Chart not found."
 
@@ -121,6 +134,16 @@ class ChartUpdateFailedError(UpdateFailedError):
 
 class ChartDeleteFailedError(DeleteFailedError):
     message = _("Charts could not be deleted.")
+
+
+class ChartRestoreFailedError(UpdateFailedError):
+    # Restore semantically clears ``deleted_at``; it is an UPDATE, not a new
+    # row. ``UpdateFailedError`` is the nearest typed middle-tier base in the
+    # codebase. A dedicated ``RestoreFailedError`` in
+    # ``superset/commands/exceptions.py`` would be more precise across the
+    # entity rollouts but lives in already-merged infrastructure (#39977);
+    # introducing it can be a cross-entity follow-up.
+    message = _("Chart could not be restored.")
 
 
 class ChartDeleteFailedReportsExistError(ChartDeleteFailedError):
@@ -154,3 +177,11 @@ class DashboardsForbiddenError(ForbiddenError):
 class WarmUpCacheChartNotFoundError(CommandException):
     status = 404
     message = _("Chart not found")
+
+
+class ChartFaveError(CommandException):
+    message = _("Error faving chart")
+
+
+class ChartUnfaveError(CommandException):
+    message = _("Error unfaving chart")

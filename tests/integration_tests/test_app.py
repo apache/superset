@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from flask.testing import FlaskClient
 
 
+# DEPRECATED: Creating global app instance - use app fixture from conftest.py instead
 superset_config_module = environ.get(
     "SUPERSET_CONFIG", "tests.integration_tests.superset_test_config"
 )
@@ -32,11 +33,13 @@ app = create_app(superset_config_module=superset_config_module)
 
 
 def login(
-    client: "FlaskClient[Any]", username: str = "admin", password: str = "general"
+    client: "FlaskClient[Any]",
+    username: str = "admin",
+    password: str = "general",  # noqa: S107
 ):
     resp = client.post(
         "/login/",
-        data=dict(username=username, password=password),
+        data=dict(username=username, password=password),  # noqa: C408
     ).get_data(as_text=True)
     assert "User confirmation needed" not in resp
     return resp

@@ -1,0 +1,568 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { fireEvent, render } from 'spec/helpers/testing-library';
+import { FeatureFlag, VizType } from '@superset-ui/core';
+import * as redux from 'redux';
+
+import * as exploreUtils from 'src/explore/exploreUtils';
+import * as chartStateConverter from '../../../util/chartStateConverter';
+import { sliceEntitiesForChart as sliceEntities } from 'spec/fixtures/mockSliceEntities';
+import mockDatasource from 'spec/fixtures/mockDatasource';
+import chartQueries, {
+  sliceId as queryId,
+} from 'spec/fixtures/mockChartQueries';
+import Chart from './Chart';
+
+let capturedChartContainerProps: Record<string, unknown> = {};
+jest.mock('src/components/Chart/ChartContainer', () => {
+  const MockChartContainer = (props: Record<string, unknown>) => {
+    capturedChartContainerProps = props;
+    return <div data-test="chart-container" />;
+  };
+  return { __esModule: true, default: MockChartContainer };
+});
+
+const props = {
+  id: queryId,
+  width: 100,
+  height: 100,
+  updateSliceName() {},
+  // from redux
+  maxRows: 500, // will be overwritten with SQL_MAX_ROW from conf
+  formData: chartQueries[queryId].form_data,
+  datasource: (mockDatasource as Record<string, unknown>)[
+    sliceEntities.slices[queryId].datasource
+  ],
+  sliceName: sliceEntities.slices[queryId].slice_name,
+  timeout: 60,
+  filters: {},
+  refreshChart() {},
+  toggleExpandSlice() {},
+  addFilter() {},
+  logEvent() {},
+  handleToggleFullSize() {},
+  changeFilter() {},
+  setFocusedFilterField() {},
+  unsetFocusedFilterField() {},
+  addSuccessToast() {},
+  addDangerToast() {},
+  exportCSV() {},
+  exportFullCSV() {},
+  exportXLSX() {},
+  exportFullXLSX() {},
+  componentId: 'test',
+  dashboardId: 111,
+};
+
+const defaultState = {
+  charts: chartQueries,
+  sliceEntities: {
+    ...sliceEntities,
+    slices: {
+      [queryId]: {
+        ...sliceEntities.slices[queryId],
+        description_markdown: 'markdown',
+        viz_type: VizType.Table,
+      },
+    },
+  },
+  datasources: mockDatasource,
+  dashboardState: { editMode: false, expandedSlices: {} },
+  dashboardInfo: {
+    id: props.dashboardId,
+    superset_can_explore: false,
+    superset_can_share: false,
+    superset_can_download: false,
+    common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 0, SQL_MAX_ROW: 666 } },
+  },
+  dashboardLayout: {
+    present: {},
+    past: [],
+    future: [],
+  },
+};
+
+function setup(
+  overrideProps: Record<string, unknown> = {},
+  overrideState: Record<string, unknown> = {},
+) {
+  return render(<Chart {...props} {...overrideProps} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState: { ...defaultState, ...overrideState },
+  });
+}
+
+const refreshChart = jest.fn();
+const logEvent = jest.fn();
+const changeFilter = jest.fn();
+const addSuccessToast = jest.fn();
+const addDangerToast = jest.fn();
+const toggleExpandSlice = jest.fn();
+const setFocusedFilterField = jest.fn();
+const unsetFocusedFilterField = jest.fn();
+beforeAll(() => {
+  jest.spyOn(redux, 'bindActionCreators').mockImplementation(() => ({
+    refreshChart,
+    logEvent,
+    changeFilter,
+    addSuccessToast,
+    addDangerToast,
+    toggleExpandSlice,
+    setFocusedFilterField,
+    unsetFocusedFilterField,
+  }));
+});
+
+afterEach(() => {
+  jest.clearAllMocks();
+});
+
+test('should render a SliceHeader', () => {
+  const { getByTestId, container } = setup();
+  expect(getByTestId('slice-header')).toBeInTheDocument();
+  expect(container.querySelector('.slice_description')).not.toBeInTheDocument();
+});
+
+test('should render a ChartContainer', () => {
+  const { getByTestId } = setup();
+  expect(getByTestId('chart-container')).toBeInTheDocument();
+});
+
+test('should render a description if it has one and isExpanded=true', () => {
+  const { container } = setup(
+    {},
+    {
+      dashboardState: {
+        ...defaultState.dashboardState,
+        expandedSlices: { [props.id]: true },
+      },
+    },
+  );
+  expect(container.querySelector('.slice_description')).toBeInTheDocument();
+});
+
+test('should call refreshChart when SliceHeader calls forceRefresh', () => {
+  const { getByText, getByRole } = setup({});
+  fireEvent.click(getByRole('button', { name: 'More Options' }));
+  fireEvent.click(getByText('Force refresh'));
+  expect(refreshChart).toHaveBeenCalled();
+});
+
+/* oxlint-disable-next-line jest/no-disabled-tests */
+test.skip('should call changeFilter when ChartContainer calls changeFilter', () => {
+  const mockChangeFilter = jest.fn();
+  const wrapper = setup({ changeFilter: mockChangeFilter }) as any;
+  wrapper.instance().changeFilter();
+  expect((mockChangeFilter as any).callCount).toBe(1);
+});
+
+test('should call exportChart when exportCSV is clicked', async () => {
+  const stubbedExportCSV = jest
+    .spyOn(exploreUtils, 'exportChart')
+    .mockImplementation((() => {}) as any);
+  const { findByText, getByRole } = setup(
+    {},
+    {
+      dashboardInfo: {
+        ...defaultState.dashboardInfo,
+        superset_can_download: true,
+      },
+    },
+  );
+  fireEvent.click(getByRole('button', { name: 'More Options' }));
+  fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
+  const exportAction = await findByText('Export to .CSV');
+  fireEvent.click(exportAction);
+  expect(stubbedExportCSV).toHaveBeenCalledTimes(1);
+  expect(stubbedExportCSV).toHaveBeenCalledWith(
+    expect.objectContaining({
+      formData: expect.objectContaining({
+        dashboardId: 111,
+      }),
+      resultType: 'full',
+      resultFormat: 'csv',
+    }),
+  );
+  stubbedExportCSV.mockRestore();
+});
+
+test('should call exportChart with row_limit props.maxRows when exportFullCSV is clicked', async () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.AllowFullCsvExport]: true,
+  };
+  const stubbedExportCSV = jest
+    .spyOn(exploreUtils, 'exportChart')
+    .mockImplementation((() => {}) as any);
+  const { findByText, getByRole } = setup(
+    {},
+    {
+      dashboardInfo: {
+        ...defaultState.dashboardInfo,
+        superset_can_download: true,
+      },
+    },
+  );
+  fireEvent.click(getByRole('button', { name: 'More Options' }));
+  fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
+  const exportAction = await findByText('Export to full .CSV');
+  fireEvent.click(exportAction);
+  expect(stubbedExportCSV).toHaveBeenCalledTimes(1);
+  expect(stubbedExportCSV).toHaveBeenCalledWith(
+    expect.objectContaining({
+      formData: expect.objectContaining({
+        row_limit: 666,
+        dashboardId: 111,
+      }),
+      resultType: 'full',
+      resultFormat: 'csv',
+    }),
+  );
+  stubbedExportCSV.mockRestore();
+});
+
+test('should call exportChart when exportXLSX is clicked', async () => {
+  const stubbedExportXLSX = jest
+    .spyOn(exploreUtils, 'exportChart')
+    .mockImplementation((() => {}) as any);
+  const { findByText, getByRole } = setup(
+    {},
+    {
+      dashboardInfo: {
+        ...defaultState.dashboardInfo,
+        superset_can_download: true,
+      },
+    },
+  );
+  fireEvent.click(getByRole('button', { name: 'More Options' }));
+  fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
+  const exportAction = await findByText('Export to Excel');
+  fireEvent.click(exportAction);
+  expect(stubbedExportXLSX).toHaveBeenCalledTimes(1);
+  expect(stubbedExportXLSX).toHaveBeenCalledWith(
+    expect.objectContaining({
+      resultType: 'full',
+      resultFormat: 'xlsx',
+    }),
+  );
+  stubbedExportXLSX.mockRestore();
+});
+
+test('should call exportChart with row_limit props.maxRows when exportFullXLSX is clicked', async () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.AllowFullCsvExport]: true,
+  };
+  const stubbedExportXLSX = jest
+    .spyOn(exploreUtils, 'exportChart')
+    .mockImplementation((() => {}) as any);
+  const { findByText, getByRole } = setup(
+    {},
+    {
+      dashboardInfo: {
+        ...defaultState.dashboardInfo,
+        superset_can_download: true,
+      },
+    },
+  );
+  fireEvent.click(getByRole('button', { name: 'More Options' }));
+  fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
+  const exportAction = await findByText('Export to full Excel');
+  fireEvent.click(exportAction);
+  expect(stubbedExportXLSX).toHaveBeenCalledTimes(1);
+  expect(stubbedExportXLSX).toHaveBeenCalledWith(
+    expect.objectContaining({
+      formData: expect.objectContaining({
+        row_limit: 666,
+        dashboardId: 111,
+      }),
+      resultType: 'full',
+      resultFormat: 'xlsx',
+    }),
+  );
+
+  stubbedExportXLSX.mockRestore();
+});
+
+test('should re-render when chart becomes visible', () => {
+  const { rerender, getByTestId } = setup({ isComponentVisible: false });
+  expect(getByTestId('chart-container')).toBeInTheDocument();
+
+  rerender(<Chart {...props} isComponentVisible />);
+  expect(getByTestId('chart-container')).toBeInTheDocument();
+});
+
+test('should re-render when componentId changes', () => {
+  const { rerender, getByTestId } = setup({
+    isComponentVisible: true,
+    componentId: 'test-1',
+  });
+  expect(getByTestId('chart-container')).toBeInTheDocument();
+
+  rerender(<Chart {...props} isComponentVisible componentId="test-2" />);
+  expect(getByTestId('chart-container')).toBeInTheDocument();
+});
+
+test('should re-render when cacheBusterProp changes', () => {
+  const { rerender, getByTestId } = setup({
+    isComponentVisible: true,
+    cacheBusterProp: 'v1',
+  });
+  expect(getByTestId('chart-container')).toBeInTheDocument();
+
+  rerender(<Chart {...props} isComponentVisible cacheBusterProp="v2" />);
+  expect(getByTestId('chart-container')).toBeInTheDocument();
+});
+
+test('should handle chart state conversion when converter exists', () => {
+  const mockChartState = { sortColumn: 'column1', sortOrder: 'asc' };
+  const mockConvertedState = { sort: [{ columnId: 'column1', order: 'asc' }] };
+
+  jest
+    .spyOn(chartStateConverter, 'hasChartStateConverter')
+    .mockReturnValue(true);
+  jest
+    .spyOn(chartStateConverter, 'convertChartStateToOwnState')
+    .mockReturnValue(mockConvertedState);
+
+  const { getByTestId } = setup(
+    {},
+    {
+      ...defaultState,
+      dashboardState: {
+        ...defaultState.dashboardState,
+        chartStates: {
+          [queryId]: { state: mockChartState },
+        },
+      },
+    },
+  );
+
+  expect(getByTestId('chart-container')).toBeInTheDocument();
+  expect(chartStateConverter.hasChartStateConverter).toHaveBeenCalledWith(
+    VizType.Table,
+  );
+});
+
+test('should fallback to formData state when runtime state not available', () => {
+  const mockFormDataState = { sortColumn: 'column2', sortOrder: 'desc' };
+  const mockConvertedState = { sort: [{ columnId: 'column2', order: 'desc' }] };
+
+  jest
+    .spyOn(chartStateConverter, 'hasChartStateConverter')
+    .mockReturnValue(true);
+  jest
+    .spyOn(chartStateConverter, 'convertChartStateToOwnState')
+    .mockReturnValue(mockConvertedState);
+
+  const { getByTestId } = setup(
+    {},
+    {
+      ...defaultState,
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          form_data: {
+            ...defaultState.charts[queryId].form_data,
+            table_state: mockFormDataState,
+          },
+        },
+      },
+    },
+  );
+
+  expect(getByTestId('chart-container')).toBeInTheDocument();
+});
+
+test('chart height is reduced on first render in expanded state (guards against useEffect regression)', () => {
+  const DESCRIPTION_HEIGHT = 60;
+  const CHART_HEIGHT = 300;
+  // Matches the DEFAULT_HEADER_HEIGHT constant in Chart.tsx.
+  const DEFAULT_HEADER_HEIGHT = 22;
+
+  // Stabilise getHeaderHeight(): emotion injects margin-bottom CSS during
+  // React's commit phase, so getComputedStyle returns different values in
+  // initial renders vs re-renders. Mock it to always return empty so
+  // getHeaderHeight() consistently falls back to DEFAULT_HEADER_HEIGHT.
+  const getComputedStyleSpy = jest
+    .spyOn(window, 'getComputedStyle')
+    .mockReturnValue({
+      getPropertyValue: () => '',
+    } as unknown as CSSStyleDeclaration);
+
+  // JSDOM doesn't compute layout, so mock offsetHeight to simulate a real
+  // description element with height.
+  const offsetHeightSpy = jest
+    .spyOn(HTMLElement.prototype, 'offsetHeight', 'get')
+    .mockImplementation(function (this: HTMLElement) {
+      return this.classList.contains('slice_description')
+        ? DESCRIPTION_HEIGHT
+        : 0;
+    });
+
+  // Suppress all passive effects to simulate the first-paint moment — the
+  // point at which the original useEffect bug caused clipping. useLayoutEffect
+  // (the fix) runs synchronously before paint and is intentionally NOT mocked
+  // here. If the implementation were reverted to useEffect, this spy would
+  // prevent the height measurement and the assertion below would fail.
+  const useEffectSpy = jest
+    .spyOn(global.React, 'useEffect')
+    .mockImplementation(() => {});
+
+  const { container } = setup(
+    { height: CHART_HEIGHT },
+    {
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          // ChartOverlay renders with an inline height style when loading —
+          // this is the observable proxy for getChartHeight() without real layout.
+          chartStatus: 'loading',
+        },
+      },
+      dashboardState: {
+        ...defaultState.dashboardState,
+        expandedSlices: { [queryId]: true },
+      },
+    },
+  );
+
+  const chartHeight = parseInt(
+    container.querySelector<HTMLDivElement>('.dashboard-chart > div[style]')!
+      .style.height,
+    10,
+  );
+
+  // useLayoutEffect must have measured and applied descriptionHeight
+  // synchronously. If useEffect were used instead, descriptionHeight would
+  // still be 0 here (suppressed by useEffectSpy) and chartHeight would equal
+  // CHART_HEIGHT - DEFAULT_HEADER_HEIGHT rather than the value below.
+  expect(chartHeight).toBe(
+    CHART_HEIGHT - DEFAULT_HEADER_HEIGHT - DESCRIPTION_HEIGHT,
+  );
+
+  useEffectSpy.mockRestore();
+  getComputedStyleSpy.mockRestore();
+  offsetHeightSpy.mockRestore();
+});
+
+test('should not show a close button on chart error banners', () => {
+  const { queryByRole } = setup(
+    {},
+    {
+      ...defaultState,
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          chartStatus: 'failed',
+          chartAlert: 'Something went wrong',
+          queriesResponse: [
+            {
+              message: 'Something went wrong',
+              errors: [],
+            },
+          ],
+        },
+      },
+    },
+  );
+
+  expect(queryByRole('button', { name: /close/i })).not.toBeInTheDocument();
+});
+
+test('should handle chart state when no converter exists', () => {
+  jest
+    .spyOn(chartStateConverter, 'hasChartStateConverter')
+    .mockReturnValue(false);
+  jest.spyOn(chartStateConverter, 'convertChartStateToOwnState');
+
+  const { getByTestId } = setup(
+    {},
+    {
+      ...defaultState,
+      dashboardState: {
+        ...defaultState.dashboardState,
+        chartStates: {
+          [queryId]: { state: { someState: 'value' } },
+        },
+      },
+    },
+  );
+
+  expect(getByTestId('chart-container')).toBeInTheDocument();
+  expect(
+    chartStateConverter.convertChartStateToOwnState,
+  ).not.toHaveBeenCalled();
+});
+
+test('should merge base ownState with converted chart state', () => {
+  const baseOwnState = { existingProp: 'value' };
+  const mockChartState = { sortColumn: 'column1', sortOrder: 'asc' };
+  const mockConvertedState = { sort: [{ columnId: 'column1', order: 'asc' }] };
+
+  jest
+    .spyOn(chartStateConverter, 'hasChartStateConverter')
+    .mockReturnValue(true);
+  jest
+    .spyOn(chartStateConverter, 'convertChartStateToOwnState')
+    .mockReturnValue(mockConvertedState);
+
+  const { getByTestId } = setup(
+    {},
+    {
+      ...defaultState,
+      dataMask: {
+        [queryId]: {
+          ownState: baseOwnState,
+        },
+      },
+      dashboardState: {
+        ...defaultState.dashboardState,
+        chartStates: {
+          [queryId]: { state: mockChartState },
+        },
+      },
+    },
+  );
+
+  expect(getByTestId('chart-container')).toBeInTheDocument();
+});
+
+test('should pass filterState from dataMask to ChartContainer', () => {
+  const mockFilterState = { value: ['bar'], selectedValues: ['bar'] };
+
+  setup(
+    {},
+    {
+      ...defaultState,
+      dataMask: {
+        [queryId]: {
+          filterState: mockFilterState,
+        },
+      },
+    },
+  );
+
+  expect(capturedChartContainerProps).toHaveProperty(
+    'filterState',
+    mockFilterState,
+  );
+});

@@ -21,10 +21,12 @@ from unittest import mock
 import pytest
 import pytz
 from pyhive.sqlalchemy_presto import PrestoDialect
-from sqlalchemy import sql, text, types
+from pytest_mock import MockerFixture
+from sqlalchemy import column, sql, text, types
+from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.url import make_url
 
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,
@@ -40,17 +42,17 @@ from tests.unit_tests.db_engine_specs.utils import (
         (
             "TIMESTAMP",
             datetime(2022, 1, 1, 1, 23, 45, 600000),
-            "TIMESTAMP '2022-01-01 01:23:45.600000'",
+            "TIMESTAMP '2022-01-01 01:23:45.600'",
         ),
         (
             "TIMESTAMP WITH TIME ZONE",
             datetime(2022, 1, 1, 1, 23, 45, 600000),
-            "TIMESTAMP '2022-01-01 01:23:45.600000'",
+            "TIMESTAMP '2022-01-01 01:23:45.600'",
         ),
         (
             "TIMESTAMP WITH TIME ZONE",
             datetime(2022, 1, 1, 1, 23, 45, 600000, tzinfo=pytz.UTC),
-            "TIMESTAMP '2022-01-01 01:23:45.600000+00:00'",
+            "TIMESTAMP '2022-01-01 01:23:45.600+00:00'",
         ),
     ],
 )
@@ -59,7 +61,7 @@ def test_convert_dttm(
     dttm: datetime,
     expected_result: Optional[str],
 ) -> None:
-    from superset.db_engine_specs.presto import PrestoEngineSpec as spec
+    from superset.db_engine_specs.presto import PrestoEngineSpec as spec  # noqa: N813
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
 
@@ -83,7 +85,7 @@ def test_get_column_spec(
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:
-    from superset.db_engine_specs.presto import PrestoEngineSpec as spec
+    from superset.db_engine_specs.presto import PrestoEngineSpec as spec  # noqa: N813
 
     assert_column_spec(spec, native_type, sqla_type, attrs, generic_type, is_dttm)
 
@@ -150,7 +152,7 @@ def test_where_latest_partition(
                 compile_kwargs={"literal_binds": True},
             )
         )
-        == f"""SELECT * FROM table \nWHERE "partition_key" = {expected_value}"""
+        == f"""SELECT * FROM table \nWHERE "partition_key" = {expected_value}"""  # noqa: S608
     )
 
 
@@ -240,3 +242,237 @@ def test_get_default_catalog() -> None:
         sqlalchemy_uri="presto://localhost:8080/hive/default",
     )
     assert PrestoEngineSpec.get_default_catalog(database) == "hive"
+
+
+@pytest.mark.parametrize(
+    "time_grain,expected_result",
+    [
+        ("PT1S", "date_trunc('second', CAST(col AS TIMESTAMP))"),
+        (
+            "PT5S",
+            "date_trunc('second', CAST(col AS TIMESTAMP)) - interval '1' second * (second(CAST(col AS TIMESTAMP)) % 5)",  # noqa: E501
+        ),
+        (
+            "PT30S",
+            "date_trunc('second', CAST(col AS TIMESTAMP)) - interval '1' second * (second(CAST(col AS TIMESTAMP)) % 30)",  # noqa: E501
+        ),
+        ("PT1M", "date_trunc('minute', CAST(col AS TIMESTAMP))"),
+        (
+            "PT5M",
+            "date_trunc('minute', CAST(col AS TIMESTAMP)) - interval '1' minute * (minute(CAST(col AS TIMESTAMP)) % 5)",  # noqa: E501
+        ),
+        (
+            "PT10M",
+            "date_trunc('minute', CAST(col AS TIMESTAMP)) - interval '1' minute * (minute(CAST(col AS TIMESTAMP)) % 10)",  # noqa: E501
+        ),
+        (
+            "PT15M",
+            "date_trunc('minute', CAST(col AS TIMESTAMP)) - interval '1' minute * (minute(CAST(col AS TIMESTAMP)) % 15)",  # noqa: E501
+        ),
+        (
+            "PT0.5H",
+            "date_trunc('minute', CAST(col AS TIMESTAMP)) - interval '1' minute * (minute(CAST(col AS TIMESTAMP)) % 30)",  # noqa: E501
+        ),
+        ("PT1H", "date_trunc('hour', CAST(col AS TIMESTAMP))"),
+        (
+            "PT6H",
+            "date_trunc('hour', CAST(col AS TIMESTAMP)) - interval '1' hour * (hour(CAST(col AS TIMESTAMP)) % 6)",  # noqa: E501
+        ),
+        ("P1D", "date_trunc('day', CAST(col AS TIMESTAMP))"),
+        ("P1W", "date_trunc('week', CAST(col AS TIMESTAMP))"),
+        ("P1M", "date_trunc('month', CAST(col AS TIMESTAMP))"),
+        ("P3M", "date_trunc('quarter', CAST(col AS TIMESTAMP))"),
+        ("P1Y", "date_trunc('year', CAST(col AS TIMESTAMP))"),
+        (
+            "1969-12-28T00:00:00Z/P1W",
+            "date_trunc('week', CAST(col AS TIMESTAMP) + interval '1' day) - interval '1' day",  # noqa: E501
+        ),
+        ("1969-12-29T00:00:00Z/P1W", "date_trunc('week', CAST(col AS TIMESTAMP))"),
+        (
+            "P1W/1970-01-03T00:00:00Z",
+            "date_trunc('week', CAST(col AS TIMESTAMP) + interval '1' day) + interval '5' day",  # noqa: E501
+        ),
+        (
+            "P1W/1970-01-04T00:00:00Z",
+            "date_trunc('week', CAST(col AS TIMESTAMP)) + interval '6' day",
+        ),
+    ],
+)
+def test_timegrain_expressions(time_grain: str, expected_result: str) -> None:
+    from superset.db_engine_specs.presto import PrestoEngineSpec as spec  # noqa: N813
+
+    actual = str(
+        spec.get_timestamp_expr(col=column("col"), pdf=None, time_grain=time_grain)
+    )
+    assert actual == expected_result
+
+
+def test_select_star(mocker: MockerFixture) -> None:
+    """
+    Test the ``select_star`` method.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec as spec  # noqa: N813
+
+    database = mocker.MagicMock()
+    dialect = mocker.MagicMock()
+
+    def quote_table(table: Table, dialect: Dialect) -> str:
+        return ".".join(
+            part for part in (table.catalog, table.schema, table.table) if part
+        )
+
+    mocker.patch.object(spec, "quote_table", quote_table)
+
+    spec.select_star(
+        database=database,
+        table=Table("my_table", "my_schema", "my_catalog"),
+        dialect=dialect,
+        limit=100,
+        show_cols=False,
+        indent=True,
+        latest_partition=False,
+        cols=None,
+    )
+
+    query = database.compile_sqla_query.mock_calls[0][1][0]
+    assert (
+        str(query)
+        == """
+SELECT * \nFROM my_catalog.my_schema.my_table
+ LIMIT :param_1
+    """.strip()
+    )
+
+
+def test_handle_boolean_filter() -> None:
+    """
+    Test that Presto uses equality operators for boolean filters instead of IS,
+    since `col IS TRUE` can fail on computed boolean expressions like
+    `(expiration = 1) AS expiration`.
+    """
+    from sqlalchemy import Boolean, Column
+
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+    from superset.utils.core import FilterOperator
+
+    bool_col = Column("test_col", Boolean)
+
+    result_true = PrestoEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_TRUE, True
+    )
+    assert (
+        str(result_true.compile(compile_kwargs={"literal_binds": True}))
+        == "test_col = true"
+    )
+
+    result_false = PrestoEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_FALSE, False
+    )
+    assert (
+        str(result_false.compile(compile_kwargs={"literal_binds": True}))
+        == "test_col = false"
+    )
+
+    # Regression: the original bug was on computed boolean columns like
+    # `(expiration = 1) AS expiration`. Verify the equality operator also
+    # compiles correctly when the "column" is a computed expression.
+    from sqlalchemy import literal_column
+
+    computed_col = literal_column("(expiration = 1)")
+    result_computed = PrestoEngineSpec.handle_boolean_filter(
+        computed_col, FilterOperator.IS_TRUE, True
+    )
+    assert (
+        str(result_computed.compile(compile_kwargs={"literal_binds": True}))
+        == "(expiration = 1) = true"
+    )
+
+
+def test_extract_errors_maps_401_to_access_denied() -> None:
+    """
+    Regression for #33554: Presto 401 errors must surface as
+    CONNECTION_ACCESS_DENIED_ERROR rather than a raw GENERIC_DB_ENGINE_ERROR.
+
+    pyhive raises "presto error: Unexpected status code 401 b'Unauthorized'"
+    when the Presto server rejects the connection with HTTP 401. SQL Lab
+    users see a cryptic raw error instead of an actionable "check your
+    credentials" message.
+
+    The custom_errors map has a pattern for "Access Denied: Invalid
+    credentials" (PyHive LDAP auth path), but not for the HTTP 401
+    status-code message that pyhive raises when the server rejects the
+    initial request. Adding the pattern surfaces a user-readable error.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+    from superset.errors import SupersetErrorType
+
+    msg = "presto error: Unexpected status code 401 b'Unauthorized'"
+    result = PrestoEngineSpec.extract_errors(Exception(msg))
+    assert len(result) == 1
+    assert result[0].error_type == SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR
+
+
+def test_latest_sub_partition_rejects_unknown_field(
+    mocker: MockerFixture,
+) -> None:
+    """Regression test for #41869.
+
+    ``PrestoBaseEngineSpec.latest_sub_partition`` previously used a chained
+    comparison (``k not in k in part_fields``) that Python evaluates as
+    ``(k not in k) and (k in part_fields)``. Since ``k not in k`` is always
+    ``False`` for strings, the guard was unreachable and unknown kwarg names
+    were silently accepted, flowing into ``_partition_query`` and enabling
+    SQL injection via the ``latest_sub_partition`` Jinja macro. This test
+    locks in that unknown fields are now rejected before reaching the query
+    builder.
+    """
+    from superset.db_engine_specs.presto import PrestoBaseEngineSpec
+    from superset.exceptions import SupersetTemplateException
+
+    database: mock.MagicMock = mocker.MagicMock()
+    database.get_indexes.return_value = [{"column_names": ["ds", "event_type"]}]
+    table: mock.MagicMock = mocker.MagicMock()
+    with pytest.raises(SupersetTemplateException) as exc_info:
+        PrestoBaseEngineSpec.latest_sub_partition(
+            database,
+            table,
+            unknown_field="anything",
+        )
+
+    assert "unknown_field" in str(exc_info.value)
+    assert "not part of the partitioning key" in str(exc_info.value)
+
+
+def test_partition_query_escapes_single_quote_in_filter_value(
+    mocker: MockerFixture,
+) -> None:
+    """Regression test for #41869.
+
+    ``_partition_query`` previously interpolated filter values directly into
+    the SQL ``WHERE`` clause with an f-string, allowing SQL injection via any
+    caller that let user input reach ``filters``. Values must be escaped
+    (single-quote doubling per SQL standard) so a ``'`` in the value cannot
+    break out of the string literal.
+    """
+    from superset.db_engine_specs.presto import PrestoBaseEngineSpec
+
+    database: mock.MagicMock = mocker.MagicMock()
+    database.get_extra.return_value = {}
+    table: Table = Table("my_table", "my_schema")
+
+    injected: str = "2024-01-01' UNION SELECT secret FROM other_table--"
+    sql: str = PrestoBaseEngineSpec._partition_query(
+        table,
+        indexes=[{"column_names": ["ds", "event_type"]}],
+        database=database,
+        filters={"ds": injected},
+    )
+
+    # The single quote in the value must be doubled so the injection stays
+    # inside the SQL string literal — this is the whole payload wrapped in
+    # ONE literal, escape sequence and all.
+    assert "'2024-01-01'' UNION SELECT secret FROM other_table--'" in sql
+    # The pre-escape form (single quote closing the literal early followed
+    # by injected SQL) must NOT appear anywhere in the output — that would
+    # mean the payload broke out of the literal.
+    assert "'2024-01-01' UNION SELECT" not in sql

@@ -16,36 +16,46 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { RefObject } from 'react';
-import { useDrag } from 'react-dnd';
-import { css, Metric, styled } from '@superset-ui/core';
+import { RefObject, useMemo } from 'react';
+import { useDraggable } from '@dnd-kit/core';
+import { useSelector } from 'react-redux';
+import { Metric } from '@superset-ui/core';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import { DndItemType } from 'src/explore/components/DndItemType';
 import {
   StyledColumnOption,
   StyledMetricOption,
 } from 'src/explore/components/optionRenderers';
-import Icons from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { ExplorePageState } from 'src/explore/types';
 
 import { DatasourcePanelDndItem } from '../types';
 
-const DatasourceItemContainer = styled.div`
-  ${({ theme }) => css`
+const DatasourceItemContainer = styled.div<{ isDragging?: boolean }>`
+  ${({ theme, isDragging }) => css`
     display: flex;
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    height: ${theme.gridUnit * 6}px;
-    padding: 0 ${theme.gridUnit}px;
+    height: ${theme.sizeUnit * 6}px;
+    padding: 0 ${theme.sizeUnit}px;
 
-    // hack to make the drag preview image corners rounded
+    /* hack to make the drag preview image corners rounded */
     transform: translate(0, 0);
-    background-color: inherit;
+    color: ${theme.colorText};
+    background-color: ${theme.colorBgLayout};
     border-radius: 4px;
+    cursor: ${isDragging ? 'grabbing' : 'grab'};
+    opacity: ${isDragging ? 0.5 : 1};
+
+    &:hover {
+      background-color: ${theme.colorPrimaryBgHover};
+    }
 
     > div {
       min-width: 0;
-      margin-right: ${theme.gridUnit * 2}px;
+      margin-right: ${theme.sizeUnit * 2}px;
     }
   `}
 `;
@@ -63,14 +73,53 @@ export default function DatasourcePanelDragOption(
   props: DatasourcePanelDragOptionProps,
 ) {
   const { labelRef, showTooltip, type, value } = props;
-  const [{ isDragging }, drag] = useDrag({
-    item: {
-      value: props.value,
-      type: props.type,
+  const theme = useTheme();
+
+  // Read compatibility lists from Redux.
+  // `null` means no filtering is active (SQL datasets, or no selection yet).
+  const compatibleMetrics = useSelector<
+    ExplorePageState,
+    string[] | null | undefined
+  >(state => state.explore.compatibleMetrics);
+  const compatibleDimensions = useSelector<
+    ExplorePageState,
+    string[] | null | undefined
+  >(state => state.explore.compatibleDimensions);
+
+  // An item is compatible when the list is null (no filter) or when its
+  // name explicitly appears in the list returned by the backend.
+  const isCompatible = useMemo(() => {
+    if (type === DndItemType.Metric) {
+      if (!compatibleMetrics) return true;
+      return compatibleMetrics.includes((value as Metric).metric_name);
+    }
+    if (type === DndItemType.Column) {
+      if (!compatibleDimensions) return true;
+      return compatibleDimensions.includes((value as ColumnMeta).column_name);
+    }
+    return true;
+  }, [type, value, compatibleMetrics, compatibleDimensions]);
+
+  // Create a unique ID for this draggable item
+  const draggableId = useMemo(() => {
+    if (type === DndItemType.Column) {
+      const col = value as ColumnMeta;
+      return `datasource-${type}-${col.column_name || col.verbose_name}`;
+    }
+    const metric = value as MetricOption;
+    return `datasource-${type}-${metric.metric_name || metric.label}`;
+  }, [type, value]);
+
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: draggableId,
+    data: {
+      type,
+      value,
     },
-    collect: monitor => ({
-      isDragging: monitor.isDragging(),
-    }),
+    // @dnd-kit equivalent of react-dnd's `canDrag: isCompatible`. Disabling
+    // the draggable suppresses pointer activation entirely so incompatible
+    // items can't be picked up at all (matched in the visual style below).
+    disabled: !isCompatible,
   });
 
   const optionProps = {
@@ -80,13 +129,31 @@ export default function DatasourcePanelDragOption(
   };
 
   return (
-    <DatasourceItemContainer data-test="DatasourcePanelDragOption" ref={drag}>
+    <DatasourceItemContainer
+      data-test="DatasourcePanelDragOption"
+      ref={setNodeRef}
+      isDragging={isDragging}
+      {...attributes}
+      {...listeners}
+      style={{
+        opacity: isCompatible ? undefined : 0.35,
+        cursor: isCompatible ? undefined : 'not-allowed',
+      }}
+    >
       {type === DndItemType.Column ? (
         <StyledColumnOption column={value as ColumnMeta} {...optionProps} />
       ) : (
         <StyledMetricOption metric={value as MetricOption} {...optionProps} />
       )}
-      <Icons.Drag />
+      <Icons.Drag
+        iconSize="xl"
+        css={css`
+          color: ${theme.colorFill};
+          &hover {
+            color: ${theme.colorIcon};
+          }
+        `}
+      />
     </DatasourceItemContainer>
   );
 }

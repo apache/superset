@@ -18,25 +18,30 @@
  */
 import { useCallback, useState, useMemo, useEffect } from 'react';
 import rison from 'rison';
+import { t } from '@apache-superset/core/translation';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   Column,
+  DatasourceType,
   ensureIsArray,
-  t,
+  JsonResponse,
   useChangeEffect,
   getClientErrorObject,
 } from '@superset-ui/core';
-import { Select, FormInstance } from 'src/components';
+import { type FormInstance, Select } from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
-import { NativeFiltersForm } from '../types';
+import { NativeFiltersForm, NativeFiltersFormItem } from '../types';
+import { mapSemanticTypeToGenericDataType } from './utils';
 
 interface ColumnSelectProps {
   allowClear?: boolean;
   filterValues?: (column: Column) => boolean;
   form: FormInstance<NativeFiltersForm>;
-  formField?: string;
+  formField?: keyof NativeFiltersFormItem;
   filterId: string;
   datasetId?: number;
+  datasourceType?: DatasourceType;
   value?: string | string[];
   onChange?: (value: string) => void;
   mode?: 'multiple';
@@ -51,11 +56,13 @@ export function ColumnSelect({
   formField = 'column',
   filterId,
   datasetId,
+  datasourceType,
   value,
   onChange,
   mode,
 }: ColumnSelectProps) {
   const [columns, setColumns] = useState<Column[]>();
+  const [loading, setLoading] = useState(false);
   const { addDangerToast } = useToasts();
   const resetColumnField = useCallback(() => {
     form.setFields([
@@ -85,39 +92,80 @@ export function ColumnSelect({
     }
   }, [currentColumn, currentFilterType, resetColumnField]);
 
-  useChangeEffect(datasetId, previous => {
+  // Use a compound key so the effect re-fires when either the dataset ID or
+  // the datasource type changes.  Datasets and semantic views have independent
+  // ID sequences, so switching between them with the same numeric ID must still
+  // trigger a column re-fetch.
+  const datasourceKey = `${datasetId}__${datasourceType || DatasourceType.Table}`;
+  useChangeEffect(datasourceKey, previous => {
     if (previous != null) {
+      setColumns([]);
       resetColumnField();
     }
     if (datasetId != null) {
-      cachedSupersetGet({
-        endpoint: `/api/v1/dataset/${datasetId}?q=${rison.encode({
-          columns: [
-            'columns.column_name',
-            'columns.is_dttm',
-            'columns.type_generic',
-          ],
-        })}`,
-      }).then(
-        ({ json: { result } }) => {
-          const lookupValue = Array.isArray(value) ? value : [value];
-          const valueExists = result.columns.some(
-            (column: Column) => lookupValue?.includes(column.column_name),
-          );
-          if (!valueExists) {
-            resetColumnField();
-          }
-          setColumns(result.columns);
-        },
-        async badResponse => {
-          const { error, message } = await getClientErrorObject(badResponse);
-          let errorText = message || error || t('An error has occurred');
-          if (message === 'Forbidden') {
-            errorText = t('You do not have permission to edit this dashboard');
-          }
-          addDangerToast(errorText);
-        },
-      );
+      setLoading(true);
+      const handleError = async (
+        badResponse: Parameters<typeof getClientErrorObject>[0],
+      ) => {
+        const { error, message } = await getClientErrorObject(badResponse);
+        let errorText = message || error || t('An error has occurred');
+        if (message === 'Forbidden') {
+          errorText = t('You do not have permission to edit this dashboard');
+        }
+        addDangerToast(errorText);
+      };
+
+      if (datasourceType === DatasourceType.SemanticView) {
+        cachedSupersetGet({
+          endpoint: `/api/v1/semantic_view/${datasetId}/structure`,
+        })
+          .then((response: JsonResponse) => {
+            const { dimensions = [] } = response.json?.result ?? {};
+            const cols: Column[] = dimensions.map(
+              (dim: { name: string; type: string }) => {
+                const mappedType = mapSemanticTypeToGenericDataType(dim.type);
+                return {
+                  column_name: dim.name,
+                  type: dim.type,
+                  is_dttm: mappedType === GenericDataType.Temporal,
+                  type_generic: mappedType,
+                  filterable: true,
+                };
+              },
+            );
+            const lookupValue = Array.isArray(value) ? value : [value];
+            const valueExists = cols.some((column: Column) =>
+              lookupValue?.includes(column.column_name),
+            );
+            if (!valueExists) {
+              resetColumnField();
+            }
+            setColumns(cols);
+          }, handleError)
+          .finally(() => setLoading(false));
+      } else {
+        cachedSupersetGet({
+          endpoint: `/api/v1/dataset/${datasetId}?q=${rison.encode({
+            columns: [
+              'columns.column_name',
+              'columns.is_dttm',
+              'columns.type_generic',
+              'columns.filterable',
+            ],
+          })}`,
+        })
+          .then(({ json: { result } }) => {
+            const lookupValue = Array.isArray(value) ? value : [value];
+            const valueExists = result.columns.some((column: Column) =>
+              lookupValue?.includes(column.column_name),
+            );
+            if (!valueExists) {
+              resetColumnField();
+            }
+            setColumns(result.columns);
+          }, handleError)
+          .finally(() => setLoading(false));
+      }
     }
   });
 
@@ -126,6 +174,7 @@ export function ColumnSelect({
       mode={mode}
       value={mode === 'multiple' ? value || [] : value}
       ariaLabel={t('Column select')}
+      loading={loading}
       onChange={onChange}
       options={options}
       placeholder={t('Select a column')}

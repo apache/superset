@@ -43,7 +43,7 @@ class TestStatsdStatsLogger(TestCase):
         self.verify_client_calls(stats_logger, client)
 
     def test_init_with_params(self):
-        with patch("superset.stats_logger.StatsClient") as MockStatsdClient:
+        with patch("superset.stats_logger.StatsClient") as MockStatsdClient:  # noqa: N806
             mock_client = MockStatsdClient.return_value
 
             stats_logger = StatsdStatsLogger()

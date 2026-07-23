@@ -16,43 +16,73 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, FC } from 'react';
+import { useEffect, useMemo, useRef, useState, FC } from 'react';
 
 import { bindActionCreators } from 'redux';
-import { useSelector, useDispatch, shallowEqual } from 'react-redux';
-import { Dropdown } from 'src/components/Dropdown';
-import { Menu } from 'src/components/Menu';
-import { styled, t, QueryState } from '@superset-ui/core';
+import { useSelector, shallowEqual } from 'react-redux';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
+import {
+  MenuDotsDropdown,
+  Modal,
+  Input,
+  InputRef,
+} from '@superset-ui/core/components';
+import { Menu, MenuItemType } from '@superset-ui/core/components/Menu';
+import { t } from '@apache-superset/core/translation';
+import { QueryState } from '@superset-ui/core';
+import {
+  styled,
+  css,
+  SupersetTheme,
+  useTheme,
+} from '@apache-superset/core/theme';
 import {
   removeQueryEditor,
   removeAllOtherQueryEditors,
   queryEditorSetTitle,
   cloneQueryToNewTab,
-  toggleLeftBar,
 } from 'src/SqlLab/actions/sqlLab';
 import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
-import TabStatusIcon from '../TabStatusIcon';
+import { Icons, type IconType } from '@superset-ui/core/components/Icons';
 
 const TabTitleWrapper = styled.div`
   display: flex;
   align-items: center;
+
+  [aria-label='check-circle'],
+  .status-icon {
+    margin: 0px;
+  }
 `;
 const TabTitle = styled.span`
-  margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+  margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
   text-transform: none;
 `;
 
 const IconContainer = styled.div`
-  display: inline-block;
-  width: ${({ theme }) => theme.gridUnit * 8}px;
-  text-align: center;
+  ${({ theme }) => css`
+    display: inline-block;
+    margin: 0 ${theme.sizeUnit * 2}px 0 0px;
+  `}
 `;
-
 interface Props {
   queryEditor: QueryEditor;
 }
 
+const STATE_ICONS: Record<string, FC<IconType>> = {
+  started: Icons.CircleSolid,
+  stopped: Icons.StopOutlined,
+  pending: Icons.CircleSolid,
+  scheduled: Icons.CalendarOutlined,
+  fetching: Icons.CircleSolid,
+  timedOut: Icons.FieldTimeOutlined,
+  running: Icons.CircleSolid,
+  success: Icons.CheckCircleOutlined,
+  failed: Icons.CloseCircleOutlined,
+};
+
 const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
+  const theme = useTheme();
   const qe = useSelector<SqlLabRootState, QueryEditor>(
     ({ sqlLab: { unsavedQueryEditor } }) => ({
       ...queryEditor,
@@ -63,7 +93,9 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
   const queryState = useSelector<SqlLabRootState, QueryState>(
     ({ sqlLab }) => sqlLab.queries[qe.latestQueryId || '']?.state || '',
   );
-  const dispatch = useDispatch();
+  const StatusIcon = queryState ? STATE_ICONS[queryState] : STATE_ICONS.running;
+
+  const dispatch = useAppDispatch();
   const actions = useMemo(
     () =>
       bindActionCreators(
@@ -72,81 +104,182 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
           removeAllOtherQueryEditors,
           queryEditorSetTitle,
           cloneQueryToNewTab,
-          toggleLeftBar,
         },
         dispatch,
       ),
     [dispatch],
   );
 
-  function renameTab() {
-    const newTitle = prompt(t('Enter a new title for the tab'));
-    if (newTitle) {
-      actions.queryEditorSetTitle(qe, newTitle, qe.id);
-    }
+  const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const renameInputRef = useRef<InputRef>(null);
+  const tabHeaderRef = useRef<HTMLDivElement>(null);
+  const trimmedTitle = newTitle.trim();
+
+  function openRenameModal() {
+    setNewTitle(qe.name);
+    setIsRenameModalOpen(true);
   }
 
+  // antd's Modal moves focus to the dialog container on open, which overrides
+  // the Input's autoFocus, so focus and select the field via a ref once the
+  // modal is open (select lets the prefilled name be overtyped, like prompt()).
+  useEffect(() => {
+    if (isRenameModalOpen) {
+      renameInputRef.current?.focus();
+      renameInputRef.current?.select();
+    }
+  }, [isRenameModalOpen]);
+
+  function handleRenameTab() {
+    if (trimmedTitle) {
+      actions.queryEditorSetTitle(qe, trimmedTitle, qe.id);
+    }
+    setIsRenameModalOpen(false);
+    // Save closes via the show prop rather than the Modal's onHide, so return
+    // focus to the tab header here, matching what openerRef does on dismiss.
+    tabHeaderRef.current?.focus();
+  }
+  const getStatusColor = (state: QueryState, theme: SupersetTheme): string => {
+    const statusColors: Record<QueryState, string> = {
+      [QueryState.Running]: theme.colorInfo,
+      [QueryState.Success]: theme.colorSuccess,
+      [QueryState.Failed]: theme.colorError,
+      [QueryState.Started]: theme.colorPrimary,
+      [QueryState.Stopped]: theme.colorWarning,
+      [QueryState.Pending]: theme.colorIcon,
+      [QueryState.Scheduled]: theme.colorIcon,
+      [QueryState.Fetching]: theme.colorWarning,
+      [QueryState.TimedOut]: theme.colorError,
+    };
+
+    return statusColors[state] || theme.colorIcon;
+  };
   return (
-    <TabTitleWrapper>
-      <Dropdown
+    <TabTitleWrapper
+      ref={tabHeaderRef}
+      tabIndex={-1}
+      data-test="sql-editor-tab-header"
+    >
+      <MenuDotsDropdown
         trigger={['click']}
         overlay={
-          <Menu style={{ width: 176 }}>
-            <Menu.Item
-              className="close-btn"
-              key="1"
-              onClick={() => actions.removeQueryEditor(qe)}
-              data-test="close-tab-menu-option"
-            >
-              <IconContainer>
-                <i className="fa fa-close" />
-              </IconContainer>
-              {t('Close tab')}
-            </Menu.Item>
-            <Menu.Item
-              key="2"
-              onClick={renameTab}
-              data-test="rename-tab-menu-option"
-            >
-              <IconContainer>
-                <i className="fa fa-i-cursor" />
-              </IconContainer>
-              {t('Rename tab')}
-            </Menu.Item>
-            <Menu.Item
-              key="3"
-              onClick={() => actions.toggleLeftBar(qe)}
-              data-test="toggle-menu-option"
-            >
-              <IconContainer>
-                <i className="fa fa-cogs" />
-              </IconContainer>
-              {qe.hideLeftBar ? t('Expand tool bar') : t('Hide tool bar')}
-            </Menu.Item>
-            <Menu.Item
-              key="4"
-              onClick={() => actions.removeAllOtherQueryEditors(qe)}
-              data-test="close-all-other-menu-option"
-            >
-              <IconContainer>
-                <i className="fa fa-times-circle-o" />
-              </IconContainer>
-              {t('Close all other tabs')}
-            </Menu.Item>
-            <Menu.Item
-              key="5"
-              onClick={() => actions.cloneQueryToNewTab(qe, false)}
-              data-test="clone-tab-menu-option"
-            >
-              <IconContainer>
-                <i className="fa fa-files-o" />
-              </IconContainer>
-              {t('Duplicate tab')}
-            </Menu.Item>
-          </Menu>
+          <Menu
+            items={[
+              {
+                className: 'close-btn',
+                key: '1',
+                onClick: () => actions.removeQueryEditor(qe),
+                'data-test': 'close-tab-menu-option',
+                label: (
+                  <>
+                    <IconContainer>
+                      <Icons.CloseOutlined
+                        iconSize="l"
+                        css={css`
+                          vertical-align: middle;
+                        `}
+                      />
+                    </IconContainer>
+                    {t('Close tab')}
+                  </>
+                ),
+              } as MenuItemType,
+              {
+                key: '2',
+                onClick: openRenameModal,
+                'data-test': 'rename-tab-menu-option',
+                label: (
+                  <>
+                    <IconContainer>
+                      <Icons.EditOutlined
+                        css={css`
+                          vertical-align: middle;
+                        `}
+                        iconSize="l"
+                      />
+                    </IconContainer>
+                    {t('Rename tab')}
+                  </>
+                ),
+              } as MenuItemType,
+              {
+                key: '4',
+                onClick: () => actions.removeAllOtherQueryEditors(qe),
+                'data-test': 'close-all-other-menu-option',
+                label: (
+                  <>
+                    <IconContainer>
+                      <Icons.CloseOutlined
+                        iconSize="l"
+                        css={css`
+                          vertical-align: middle;
+                        `}
+                      />
+                    </IconContainer>
+                    {t('Close all other tabs')}
+                  </>
+                ),
+              } as MenuItemType,
+              {
+                key: '5',
+                onClick: () => actions.cloneQueryToNewTab(qe, false),
+                'data-test': 'clone-tab-menu-option',
+                label: (
+                  <>
+                    <IconContainer>
+                      <Icons.CopyOutlined
+                        iconSize="l"
+                        css={css`
+                          vertical-align: middle;
+                        `}
+                      />
+                    </IconContainer>
+                    {t('Duplicate tab')}
+                  </>
+                ),
+              } as MenuItemType,
+            ]}
+          />
         }
       />
-      <TabTitle>{qe.name}</TabTitle> <TabStatusIcon tabState={queryState} />{' '}
+      <TabTitle data-test="sql-editor-tab-title">{qe.name}</TabTitle>{' '}
+      <StatusIcon
+        className="status-icon"
+        iconSize="m"
+        iconColor={getStatusColor(queryState, theme)}
+      />{' '}
+      <Modal
+        show={isRenameModalOpen}
+        onHide={() => setIsRenameModalOpen(false)}
+        title={t('Rename tab')}
+        onHandledPrimaryAction={handleRenameTab}
+        primaryButtonName={t('Save')}
+        disablePrimaryButton={!trimmedTitle}
+        openerRef={tabHeaderRef}
+      >
+        <Input
+          ref={renameInputRef}
+          data-test="rename-tab-input"
+          aria-label={t('Tab name')}
+          value={newTitle}
+          onChange={e => setNewTitle(e.target.value)}
+          onPressEnter={() => {
+            if (trimmedTitle) {
+              handleRenameTab();
+            }
+          }}
+          onKeyDown={e => {
+            // The modal portals over the editable-card tabs; without this, keys
+            // bubble to their handler and remove, navigate, or activate a tab
+            // (Space included). Escape and Tab are left to bubble so the Modal
+            // can close and trap focus.
+            if (e.key !== 'Escape' && e.key !== 'Tab') {
+              e.stopPropagation();
+            }
+          }}
+        />
+      </Modal>
     </TabTitleWrapper>
   );
 };

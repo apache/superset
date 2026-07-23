@@ -98,6 +98,7 @@ charts_config_1: dict[str, Any] = {
         "uuid": "0499bdec-0837-44f3-ae8a-8c670de81afd",
         "version": "1.0.0",
         "dataset_uuid": "53d47c0c-c03d-47f0-b9ac-81225f808283",
+        "tags": ["tag_1", "tag_2"],
     },
 }
 dashboards_config_1: dict[str, Any] = {
@@ -175,10 +176,12 @@ dashboards_config_1: dict[str, Any] = {
             "color_scheme": "supersetColors",
             "label_colors": {},
             "color_scheme_domain": [],
-            "shared_label_colors": {},
+            "shared_label_colors": [],
+            "map_label_colors": {},
             "cross_filters_enabled": False,
         },
         "version": "1.0.0",
+        "tags": ["tag_1", "tag_2"],
     },
 }
 
@@ -251,7 +254,8 @@ dashboards_config_2: dict[str, Any] = {
             "color_scheme": "supersetColors",
             "label_colors": {},
             "color_scheme_domain": [],
-            "shared_label_colors": {},
+            "shared_label_colors": [],
+            "map_label_colors": {},
         },
         "version": "1.0.0",
     },

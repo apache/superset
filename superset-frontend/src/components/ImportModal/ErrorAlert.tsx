@@ -18,23 +18,24 @@
  */
 
 import { FunctionComponent } from 'react';
-import { t, SupersetTheme } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
+import { SupersetTheme } from '@apache-superset/core/theme';
 
 import { getDatabaseDocumentationLinks } from 'src/views/CRUD/hooks';
-import Alert from 'src/components/Alert';
 import { antdWarningAlertStyles } from './styles';
 
 const supersetTextDocs = getDatabaseDocumentationLinks();
 export const DOCUMENTATION_LINK = supersetTextDocs
   ? supersetTextDocs.support
-  : 'https://superset.apache.org/docs/databases/installing-database-drivers';
+  : 'https://superset.apache.org/user-docs/databases/#installing-database-drivers';
 
 export interface IProps {
   errorMessage: string;
   showDbInstallInstructions: boolean;
 }
 
-const ErrorAlert: FunctionComponent<IProps> = ({
+export const ErrorAlert: FunctionComponent<IProps> = ({
   errorMessage,
   showDbInstallInstructions,
 }) => (
@@ -67,5 +68,3 @@ const ErrorAlert: FunctionComponent<IProps> = ({
     }
   />
 );
-
-export default ErrorAlert;

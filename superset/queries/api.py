@@ -18,7 +18,13 @@ import logging
 from typing import Any
 
 import backoff
-from flask_appbuilder.api import expose, protect, request, rison, safe
+from flask_appbuilder.api import (
+    expose,
+    protect,
+    request,
+    rison as parse_rison,
+    safe,
+)
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from superset import db, event_logger
@@ -41,7 +47,7 @@ from superset.views.base_api import (
     requires_json,
     statsd_metrics,
 )
-from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedUsers
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +97,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
         "user.id",
         "user.last_name",
         "start_time",
+        "start_running_time",
         "end_time",
         "tmp_table_name",
         "tracking_url",
@@ -135,6 +142,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
     order_columns = [
         "changed_on",
         "database.database_name",
+        "duration",
         "rows",
         "schema",
         "start_time",
@@ -144,12 +152,14 @@ class QueryRestApi(BaseSupersetModelRestApi):
     ]
     base_related_field_filters = {
         "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
         "user": [["id", BaseFilterRelatedUsers, lambda: []]],
         "database": [["id", DatabaseFilter, lambda: []]],
     }
     related_field_filters = {
-        "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
-        "user": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "created_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
+        "user": RelatedFieldFilter("first_name", FilterRelatedUsers),
     }
 
     search_columns = [
@@ -160,6 +170,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
         "user",
         "start_time",
         "sql_editor_id",
+        "uuid",
     ]
 
     allowed_rel_fields = {"database", "user"}
@@ -168,11 +179,12 @@ class QueryRestApi(BaseSupersetModelRestApi):
     @expose("/updated_since")
     @protect()
     @safe
-    @rison(queries_get_updated_since_schema)
+    @parse_rison(queries_get_updated_since_schema)
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".get_updated_since",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.get_updated_since"
+        ),
         log_to_statsd=False,
     )
     def get_updated_since(self, **kwargs: Any) -> FlaskResponse:
@@ -223,8 +235,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".stop_query",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.stop_query",
         log_to_statsd=False,
     )
     @backoff.on_exception(

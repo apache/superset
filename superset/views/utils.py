@@ -19,17 +19,24 @@ import logging
 from collections import defaultdict
 from functools import wraps
 from typing import Any, Callable, DefaultDict, Optional, Union
+from urllib import parse
 
 import msgpack
 import pyarrow as pa
-from flask import flash, g, has_request_context, redirect, request
+from flask import (
+    current_app as app,
+    g,
+    has_request_context,
+    redirect,
+    request,
+    url_for,
+)
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import _
 from sqlalchemy.exc import NoResultFound
-from werkzeug.wrappers.response import Response
 
-from superset import app, dataframe, db, result_set, viz
+from superset import appbuilder, dataframe, db, result_set, viz
 from superset.common.db_query_status import QueryStatus
 from superset.daos.datasource import DatasourceDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -39,13 +46,17 @@ from superset.exceptions import (
     SupersetException,
     SupersetSecurityException,
 )
-from superset.extensions import cache_manager, feature_flag_manager, security_manager
+from superset.extensions import cache_manager, security_manager
 from superset.legacy import update_time_range
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
-from superset.superset_typing import FormData
+from superset.superset_typing import (
+    ExplorableData,
+    FlaskResponse,
+    FormData,
+)
 from superset.utils import json
 from superset.utils.core import DatasourceType
 from superset.utils.decorators import stats_timing
@@ -54,24 +65,52 @@ from superset.viz import BaseViz
 logger = logging.getLogger(__name__)
 stats_logger = app.config["STATS_LOGGER"]
 
-REJECTED_FORM_DATA_KEYS: list[str] = []
-if not feature_flag_manager.is_feature_enabled("ENABLE_JAVASCRIPT_CONTROLS"):
-    REJECTED_FORM_DATA_KEYS = ["js_tooltip", "js_onclick_href", "js_data_mutator"]
+
+def redirect_to_login(next_target: str | None = None) -> FlaskResponse:
+    """Return a redirect response to the login view, preserving target URL.
+
+    When ``next_target`` is ``None`` the current request path (including query
+    string) is used, provided a request context is available. The resulting URL
+    always remains relative, mirroring Flask-AppBuilder expectations.
+    """
+
+    login_url = appbuilder.get_url_for_login
+    parsed = parse.urlparse(login_url)
+    query = parse.parse_qs(parsed.query, keep_blank_values=True)
+
+    target = next_target
+    if target is None and has_request_context():
+        if request.query_string:
+            target = request.script_root + request.full_path.rstrip("?")
+        else:
+            target = request.script_root + request.path
+
+    if target:
+        query["next"] = [target]
+
+    encoded_query = parse.urlencode(query, doseq=True)
+    redirect_url = parse.urlunparse(parsed._replace(query=encoded_query))
+    return redirect(redirect_url)
 
 
-def sanitize_datasource_data(datasource_data: dict[str, Any]) -> dict[str, Any]:
+def sanitize_datasource_data(
+    datasource_data: ExplorableData,
+) -> dict[str, Any]:
+    """
+    Sanitize datasource data by removing sensitive database parameters.
+    """
     if datasource_data:
         datasource_database = datasource_data.get("database")
         if datasource_database:
             datasource_database["parameters"] = {}
 
-    return datasource_data
+    return datasource_data  # type: ignore[return-value]
 
 
 def bootstrap_user_data(user: User, include_perms: bool = False) -> dict[str, Any]:
     if user.is_anonymous:
         payload = {}
-        user.roles = (security_manager.find_role("Public"),)
+        user.roles = (security_manager.get_public_role(),)
     elif security_manager.is_guest_user(user):
         payload = {
             "username": user.username,
@@ -90,21 +129,28 @@ def bootstrap_user_data(user: User, include_perms: bool = False) -> dict[str, An
             "isAnonymous": user.is_anonymous,
             "createdOn": user.created_on.isoformat(),
             "email": user.email,
+            "loginCount": user.login_count,
         }
 
     if include_perms:
         roles, permissions = get_permissions(user)
         payload["roles"] = roles
         payload["permissions"] = permissions
+        payload["groups"] = [group.name for group in getattr(user, "groups", [])]
 
     return payload
+
+
+def get_config_value(key: str) -> Any:
+    value = app.config[key]
+    return value() if callable(value) else value
 
 
 def get_permissions(
     user: User,
 ) -> tuple[dict[str, list[tuple[str]]], DefaultDict[str, list[str]]]:
-    if not user.roles:
-        raise AttributeError("User object does not have roles")
+    if not user.roles and not user.groups:
+        raise AttributeError("User object does not have roles or groups")
 
     data_permissions = defaultdict(set)
     roles_permissions = security_manager.get_user_roles_permissions(user)
@@ -137,10 +183,158 @@ def get_viz(
 
 
 def loads_request_json(request_json_data: str) -> dict[Any, Any]:
+    """Parse a JSON request payload, coercing non-objects to ``{}``.
+
+    Callers (notably ``get_form_data``) chain ``.update()`` / ``.get()`` on
+    the result assuming a dict. A bare scalar payload (``form_data=42``)
+    used to surface as ``TypeError: 'int' object is not iterable`` inside
+    ``event_logger.log_this`` and bubble out as 500.
+    """
     try:
-        return json.loads(request_json_data)
+        parsed = json.loads(request_json_data)
     except (TypeError, json.JSONDecodeError):
         return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
+#: Parameter names `url_for` interprets itself rather than appending to the
+#: query string. Request-supplied query keys matching these must never be
+#: forwarded as `url_for` kwargs.
+_RESERVED_URL_FOR_KWARGS = frozenset(
+    {"endpoint", "_external", "_scheme", "_anchor", "_method"}
+)
+
+
+def get_explore_redirect_url() -> str | None:  # noqa: C901
+    """Construct the `/explore/?form_data_key=...` redirect URL, or None.
+
+    Returns ``None`` when the request should render the SPA fall-through
+    instead of redirecting — covers all of:
+    - no/empty/non-dict ``form_data``;
+    - ``form_data`` missing a ``datasource`` (e.g. legacy ``slice_url``
+      payloads carrying only ``slice_id``);
+    - ``datasource`` that doesn't decompose as ``"<id>__<type>"``;
+    - ``datasource`` whose type is not a valid ``DatasourceType``;
+    - cache-write failure (``CreateFormDataCommand.run`` raises
+      ``ValueError``) — avoid 302-looping when the cache layer is down;
+    - the current request already matches the would-be redirect target
+      (loop guard via ``(endpoint, sorted(query_items))`` equality).
+
+    Single source of truth for the form_data → form_data_key cache-and-
+    redirect contract; both ``ExploreView.root`` (``views/explore.py``)
+    and the deprecated ``Superset.explore`` GET branch
+    (``views/core.py``) call this and redirect only when it returns a URL.
+    """
+    # Local imports break a circular dependency: `views/utils.py` is imported
+    # transitively by `commands/base.py`'s dependency graph, so importing
+    # `CreateFormDataCommand` at module level would loop back through this
+    # file before initialisation finishes (matches the prior inline
+    # `from superset.views.core import Superset` pattern in `views/explore.py`).
+    from superset.commands.explore.form_data.create import (  # noqa: PLC0415
+        CreateFormDataCommand,
+    )
+    from superset.commands.explore.form_data.parameters import (  # noqa: PLC0415
+        CommandParameters,
+    )
+
+    request_form_data = request.args.get("form_data")
+    if not request_form_data:
+        return None
+    # `loads_request_json` coerces any non-object payload (scalar, list) to
+    # `{}`, so a non-dict `form_data` falls through to the `not datasource`
+    # guard below — no separate isinstance check is needed here.
+    parsed_form_data = loads_request_json(request_form_data)
+    datasource = parsed_form_data.get("datasource")
+    if not datasource:
+        return None
+    if not isinstance(datasource, str):
+        # Malformed `form_data.datasource` of a
+        # non-string shape (number, list, dict) used to raise
+        # `AttributeError: ... has no attribute 'split'` and surface as 500.
+        return None
+
+    parts = datasource.split("__")
+    if len(parts) != 2:
+        # Malformed `datasource` (missing the `__type` suffix) used to
+        # raise `ValueError: not enough values to unpack` and surface as 500.
+        return None
+    datasource_id_str, datasource_type_str = parts
+    try:
+        datasource_type_enum = DatasourceType(datasource_type_str)
+    except ValueError:
+        # An unknown `datasource_type` used to raise `ValueError` from
+        # `DatasourceType(...)` and surface as 500. Fall through to SPA.
+        return None
+    try:
+        datasource_id = int(datasource_id_str)
+    except ValueError:
+        # Non-integer `datasource_id` (e.g. `"abc__table"`)
+        # would crash deeper inside the form-data write. Fall through to SPA.
+        return None
+
+    slice_id = parsed_form_data.get("slice_id")
+    if not isinstance(slice_id, int) or isinstance(slice_id, bool):
+        # A non-int, non-None `form_data.slice_id` (`"abc"`, `[1, 2]`, `{}`,
+        # `True`) used to survive the `is None` guard and surface as 500
+        # downstream when `CommandParameters(chart_id=...)` reached the
+        # cache write. Treat any non-int shape the same as missing and
+        # fall back to the typed query parse. `bool` is excluded because
+        # it is a subclass of `int` in Python — `True` would otherwise
+        # become `chart_id=1`.
+        # Previously `int(request.args.get("slice_id", 0))` blew up on
+        # non-numeric values (`?slice_id=abc`). `type=int` returns None on
+        # parse failure; coerce to 0 to preserve historical default.
+        slice_id = request.args.get("slice_id", type=int) or 0
+
+    parameters = CommandParameters(
+        datasource_id=datasource_id,
+        datasource_type=datasource_type_enum,
+        chart_id=slice_id,
+        form_data=request_form_data,
+    )
+    try:
+        form_data_key = CreateFormDataCommand(parameters).run()
+    except ValueError:
+        # Narrow catch: cache-write failure renders SPA instead of looping.
+        # `SQLAlchemyError` remains caught inside `CreateFormDataCommand.run`.
+        return None
+
+    # Use `url_for` with the query as kwargs so subdirectory deployments
+    # inherit SCRIPT_NAME *and* CodeQL sees a sanctioned Flask URL builder
+    # (the prior `f"{url_for(...)}?{urlencode(...)}"` form tripped
+    # `py/url-redirection` because string concatenation isn't recognised
+    # as sanitization). The endpoint params here (slice_id, dataset_id,
+    # form_data_key, ...) are single-valued; we keep the first value if a
+    # caller ever repeats a key so `url_for` receives scalars, not lists.
+    raw_query_string = request.query_string.decode()
+    query_multi = parse.parse_qs(raw_query_string)
+    if form_data_key:
+        query_multi.pop("form_data", None)
+        query_multi["form_data_key"] = [form_data_key]
+    # Drop keys that collide with `url_for`'s own parameters: a query string
+    # like `?_external=1&_scheme=ftp` would otherwise steer URL building
+    # (absolute URLs, scheme injection, fragment injection), and `?endpoint=x`
+    # would raise TypeError on the duplicated positional argument.
+    query: dict[str, str] = {
+        k: vals[0]
+        for k, vals in query_multi.items()
+        if vals and k not in _RESERVED_URL_FOR_KWARGS
+    }
+    target_url = url_for("ExploreView.root", **query)
+
+    # Loop guard: if the current request is already at the redirect target
+    # (same endpoint, same sorted query items), render the SPA instead of
+    # 302-looping. Compare on `(endpoint, sorted_query_items)` rather than
+    # `full_path` so SCRIPT_NAME (subdir deployment) is irrelevant.
+    current_query_items = sorted(parse.parse_qsl(raw_query_string))
+    target_query_items = sorted(query.items())
+    if (
+        request.endpoint == "ExploreView.root"
+        and current_query_items == target_query_items
+    ):
+        return None
+
+    return target_url
 
 
 def get_form_data(
@@ -180,12 +374,10 @@ def get_form_data(
 
     # Fallback to using the Flask globals (used for cache warmup and async queries)
     if not form_data and hasattr(g, "form_data"):
-        form_data = getattr(g, "form_data")
+        form_data = g.form_data
         # chart data API requests are JSON
         json_data = form_data["queries"][0] if "queries" in form_data else {}
         form_data.update(json_data)
-
-    form_data = {k: v for k, v in form_data.items() if k not in REJECTED_FORM_DATA_KEYS}
 
     # When a slice_id is present, load from DB and override
     # the form_data from the DB with the other form_data provided
@@ -200,10 +392,12 @@ def get_form_data(
     # or if form_data only contains slice_id and additional filters
     if slice_id and (use_slice_data or valid_slice_id):
         slc = db.session.query(Slice).filter_by(id=slice_id).one_or_none()
-        if slc:
+        if slc and security_manager.can_access_chart(slc):
             slice_form_data = slc.form_data.copy()
             slice_form_data.update(form_data)
             form_data = slice_form_data
+        else:
+            slc = None
 
     update_time_range(form_data)
     return form_data, slc
@@ -329,7 +523,7 @@ def get_dashboard_extra_filters(
     return []
 
 
-def build_extra_filters(  # pylint: disable=too-many-locals,too-many-nested-blocks
+def build_extra_filters(  # pylint: disable=too-many-locals,too-many-nested-blocks  # noqa: C901
     layout: dict[str, dict[str, Any]],
     filter_scopes: dict[str, dict[str, Any]],
     default_filters: dict[str, dict[str, list[Any]]],
@@ -545,8 +739,3 @@ def get_cta_schema_name(
     if not func:
         return None
     return func(database, user, schema, sql)
-
-
-def redirect_with_flash(url: str, message: str, category: str) -> Response:
-    flash(message=message, category=category)
-    return redirect(url)

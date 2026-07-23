@@ -30,12 +30,14 @@ import logging  # noqa: E402
 
 from alembic import op  # noqa: E402
 from sqlalchemy import Column, Integer, Text  # noqa: E402
-from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
+from sqlalchemy.orm import declarative_base  # noqa: E402
 
 from superset import db  # noqa: E402
 from superset.utils import json  # noqa: E402
 
 Base = declarative_base()
+
+logger = logging.getLogger("alembic.env")
 
 
 class Database(Base):
@@ -52,7 +54,7 @@ def upgrade():
         try:
             extra = json.loads(database.extra)
         except json.JSONDecodeError as ex:
-            logging.warning(str(ex))
+            logger.warning(str(ex))
             continue
 
         if "schemas_allowed_for_csv_upload" in extra:
@@ -74,7 +76,7 @@ def downgrade():
         try:
             extra = json.loads(database.extra)
         except json.JSONDecodeError as ex:
-            logging.warning(str(ex))
+            logger.warning(str(ex))
             continue
 
         if "schemas_allowed_for_file_upload" in extra:

@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useContext, useEffect, useReducer, createContext, FC } from 'react';
+import {
+  useContext,
+  useEffect,
+  useReducer,
+  createContext,
+  FC,
+  ReactNode,
+} from 'react';
 
 import {
   ChartMetadata,
@@ -24,28 +31,13 @@ import {
   isFeatureEnabled,
   FeatureFlag,
   getChartMetadataRegistry,
-  logging,
   makeApi,
 } from '@superset-ui/core';
-import { omitBy } from 'lodash';
+import { logging } from '@apache-superset/core/utils';
+import { omitBy } from 'lodash-es';
+import type { Plugin, PluginAction, PluginContextType } from './types';
 
 const metadataRegistry = getChartMetadataRegistry();
-
-export type PluginContextType = {
-  loading: boolean;
-  /** These are actually only the dynamic plugins */
-  dynamicPlugins: {
-    [key: string]: {
-      key: string;
-      mounting: boolean;
-      error: null | Error;
-    };
-  };
-  keys: string[];
-  /** Mounted means the plugin's js bundle has been imported */
-  mountedPluginMetadata: Record<string, ChartMetadata>;
-  fetchAll: () => void;
-};
 
 const dummyPluginContext: PluginContextType = {
   loading: true,
@@ -70,33 +62,6 @@ export const PluginContext = createContext(dummyPluginContext);
  * Dynamic plugins are added by the end user and can be any webhosted javascript.
  */
 export const usePluginContext = () => useContext(PluginContext);
-
-// the plugin returned from the API
-type Plugin = {
-  name: string;
-  key: string;
-  bundle_url: string;
-  id: number;
-};
-
-// when a plugin completes loading
-type CompleteAction = {
-  type: 'complete';
-  key: string;
-  error: null | Error;
-};
-
-// when plugins start loading
-type BeginAction = {
-  type: 'begin';
-  keys: string[];
-};
-
-type ChangedKeysAction = {
-  type: 'changed keys';
-};
-
-type PluginAction = BeginAction | CompleteAction | ChangedKeysAction;
 
 function getRegistryData() {
   return {
@@ -164,7 +129,9 @@ const sharedModules = {
   '@superset-ui/core': () => import('@superset-ui/core'),
 };
 
-export const DynamicPluginProvider: FC = ({ children }) => {
+export const DynamicPluginProvider: FC<{ children?: ReactNode }> = ({
+  children,
+}) => {
   const [pluginState, dispatch] = useReducer(
     pluginContextReducer,
     dummyPluginContext,
@@ -229,3 +196,5 @@ export const DynamicPluginProvider: FC = ({ children }) => {
     </PluginContext.Provider>
   );
 };
+
+export type { PluginContextType };

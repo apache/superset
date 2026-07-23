@@ -1,0 +1,388 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import {
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+  useEffect,
+  ReactNode,
+} from 'react';
+import { createPortal } from 'react-dom';
+import { ResizeCallback, ResizeStartCallback, Resizable } from 're-resizable';
+import cx from 'classnames';
+import { addAlpha } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/theme';
+
+import {
+  RightResizeHandle,
+  BottomResizeHandle,
+  BottomRightResizeHandle,
+} from './ResizableHandle';
+import resizableConfig from '../../util/resizableConfig';
+import {
+  GRID_BASE_UNIT,
+  GRID_GUTTER_SIZE,
+  BOTTOM_RESIZE_DIRECTION,
+} from '../../util/constants';
+
+const proxyToInfinity = Number.MAX_VALUE;
+
+export interface ResizableContainerProps {
+  id: string;
+  children?: ReactNode;
+  adjustableWidth?: boolean;
+  adjustableHeight?: boolean;
+  gutterWidth?: number;
+  widthStep?: number;
+  heightStep?: number;
+  widthMultiple: number;
+  heightMultiple: number;
+  minWidthMultiple?: number;
+  maxWidthMultiple?: number;
+  minHeightMultiple?: number;
+  maxHeightMultiple?: number;
+  staticHeight?: number;
+  staticHeightMultiple?: number;
+  staticWidth?: number;
+  staticWidthMultiple?: number;
+  onResizeStart?: ResizeStartCallback;
+  onResize?: ResizeCallback;
+  onResizeStop?: ResizeCallback;
+  editMode: boolean;
+}
+
+// because columns are not multiples of a single variable (width = n*cols + (n-1) * gutters)
+// we snap to the base unit and then snap to _actual_ column multiples on stop
+const SNAP_TO_GRID: [number, number] = [GRID_BASE_UNIT, GRID_BASE_UNIT];
+const HANDLE_CLASSES = {
+  right: 'resizable-container-handle--right',
+  bottom: 'resizable-container-handle--bottom',
+};
+
+const CursorLabel = styled.div`
+  ${({ theme }) => css`
+    position: fixed;
+    background-color: ${addAlpha(theme.colorPrimary, 0.9)};
+    color: ${theme.colorBgBase};
+    font-size: ${theme.fontSizeXS}px;
+    font-weight: ${theme.fontWeightStrong};
+    line-height: 1;
+    padding: ${theme.sizeUnit}px ${theme.sizeUnit * 1.5}px;
+    border-radius: ${theme.borderRadius}px;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 9999;
+    transform: translate(12px, 12px);
+  `}
+`;
+
+// @ts-expect-error
+const StyledResizable = styled(Resizable)`
+  ${({ theme }) => css`
+    &.resizable-container {
+      background-color: transparent;
+      position: relative;
+
+      /* re-resizable sets an empty div to 100% width and height, which doesn't
+      play well with many 100% height containers we need */
+
+      & ~ div {
+        width: auto !important;
+        height: auto !important;
+      }
+    }
+
+    &.resizable-container--resizing {
+      /* after ensures border visibility on top of any children */
+
+      &:after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        box-shadow: inset 0 0 0 2px ${theme.colorPrimary};
+      }
+
+      & > span .resize-handle {
+        border-color: ${theme.colorPrimary};
+      }
+    }
+
+    .resize-handle {
+      opacity: 0;
+      z-index: 10;
+
+      &--bottom-right {
+        position: absolute;
+        border-right: 1px solid ${theme.colorSplit};
+        border-bottom: 1px solid ${theme.colorSplit};
+        right: ${theme.sizeUnit * 4}px;
+        bottom: ${theme.sizeUnit * 4}px;
+        width: ${theme.sizeUnit * 2}px;
+        height: ${theme.sizeUnit * 2}px;
+      }
+
+      &--right {
+        width: ${theme.sizeUnit / 2}px;
+        height: ${theme.sizeUnit * 5}px;
+        right: ${theme.sizeUnit}px;
+        top: 50%;
+        transform: translate(0, -50%);
+        position: absolute;
+        border-left: 1px solid ${theme.colorSplit};
+        border-right: 1px solid ${theme.colorSplit};
+      }
+
+      &--bottom {
+        height: ${theme.sizeUnit / 2}px;
+        width: ${theme.sizeUnit * 5}px;
+        bottom: ${theme.sizeUnit}px;
+        left: 50%;
+        transform: translate(-50%);
+        position: absolute;
+        border-top: 1px solid ${theme.colorSplit};
+        border-bottom: 1px solid ${theme.colorSplit};
+      }
+    }
+  `}
+
+  &.resizable-container:hover .resize-handle,
+  &.resizable-container--resizing .resize-handle {
+    opacity: 1;
+  }
+
+  .dragdroppable-column & .resizable-container-handle--right {
+    /* override the default because the inner column's handle's mouse target is very small */
+    right: 0 !important;
+  }
+
+  & .resizable-container-handle--bottom {
+    bottom: 0 !important;
+  }
+`;
+
+export default function ResizableContainer({
+  id,
+  children,
+  widthMultiple,
+  heightMultiple,
+  staticHeight,
+  staticHeightMultiple,
+  staticWidth,
+  staticWidthMultiple,
+  onResizeStop,
+  onResize,
+  onResizeStart,
+  editMode,
+  adjustableWidth = true,
+  adjustableHeight = true,
+  gutterWidth = GRID_GUTTER_SIZE,
+  widthStep = GRID_BASE_UNIT,
+  heightStep = GRID_BASE_UNIT,
+  minWidthMultiple = 1,
+  maxWidthMultiple = proxyToInfinity,
+  minHeightMultiple = 1,
+  maxHeightMultiple = proxyToInfinity,
+}: ResizableContainerProps) {
+  const [isResizing, setIsResizing] = useState<boolean>(false);
+  const cursorLabelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isResizing && cursorLabelRef.current) {
+      cursorLabelRef.current.style.display = 'none';
+    }
+  }, [isResizing]);
+
+  const handleResize = useCallback<ResizeCallback>(
+    (event, direction, elementRef, delta) => {
+      if (onResize) onResize(event, direction, elementRef, delta);
+      if (direction.toLowerCase().includes(BOTTOM_RESIZE_DIRECTION)) {
+        const clientX =
+          'touches' in event
+            ? (event.touches[0]?.clientX ?? 0)
+            : (event as MouseEvent).clientX;
+        const clientY =
+          'touches' in event
+            ? (event.touches[0]?.clientY ?? 0)
+            : (event as MouseEvent).clientY;
+        const snappedDelta = Math.round(delta.height / heightStep) * heightStep;
+        const currentHeightPx = Math.max(
+          minHeightMultiple * heightStep,
+          heightMultiple * heightStep + snappedDelta,
+        );
+        if (cursorLabelRef.current) {
+          cursorLabelRef.current.style.display = 'block';
+          cursorLabelRef.current.style.left = `${clientX}px`;
+          cursorLabelRef.current.style.top = `${clientY}px`;
+          cursorLabelRef.current.textContent = `${currentHeightPx}px`;
+        }
+      }
+    },
+    [onResize, heightMultiple, heightStep, minHeightMultiple],
+  );
+
+  const handleResizeStart = useCallback<ResizeStartCallback>(
+    (e, dir, elementRef) => {
+      if (onResizeStart) onResizeStart(e, dir, elementRef);
+      setIsResizing(true);
+    },
+    [onResizeStart],
+  );
+
+  const handleResizeStop = useCallback<ResizeCallback>(
+    (event, direction, elementRef, delta) => {
+      if (onResizeStop) {
+        const nextWidthMultiple =
+          widthMultiple + Math.round(delta.width / (widthStep + gutterWidth));
+        const nextHeightMultiple =
+          heightMultiple + Math.round(delta.height / heightStep);
+
+        onResizeStop(
+          event,
+          direction,
+          elementRef,
+          {
+            width: adjustableWidth ? nextWidthMultiple : 0,
+            height: adjustableHeight ? nextHeightMultiple : 0,
+          },
+          // @ts-expect-error
+          id,
+        );
+      }
+      setIsResizing(false);
+    },
+    [
+      onResizeStop,
+      widthMultiple,
+      heightMultiple,
+      widthStep,
+      heightStep,
+      gutterWidth,
+      adjustableWidth,
+      adjustableHeight,
+      id,
+    ],
+  );
+
+  const size = useMemo(
+    () => ({
+      width: adjustableWidth
+        ? (widthStep + gutterWidth) * widthMultiple - gutterWidth
+        : (staticWidthMultiple && staticWidthMultiple * widthStep) ||
+          staticWidth ||
+          undefined,
+      height: adjustableHeight
+        ? heightStep * heightMultiple
+        : (staticHeightMultiple && staticHeightMultiple * heightStep) ||
+          staticHeight ||
+          undefined,
+    }),
+    [
+      adjustableWidth,
+      widthStep,
+      gutterWidth,
+      widthMultiple,
+      staticWidthMultiple,
+      staticWidth,
+      adjustableHeight,
+      heightStep,
+      heightMultiple,
+      staticHeightMultiple,
+      staticHeight,
+    ],
+  );
+
+  const handleComponent = useMemo(
+    () => ({
+      right: <RightResizeHandle />,
+      bottom: <BottomResizeHandle />,
+      bottomRight: <BottomRightResizeHandle />,
+    }),
+    [],
+  );
+
+  const enableConfig = useMemo(() => {
+    if (editMode && adjustableWidth && adjustableHeight) {
+      return resizableConfig.widthAndHeight;
+    }
+    if (editMode && adjustableWidth) {
+      return resizableConfig.widthOnly;
+    }
+    if (editMode && adjustableHeight) {
+      return resizableConfig.heightOnly;
+    }
+    return resizableConfig.notAdjustable;
+  }, [editMode, adjustableWidth, adjustableHeight]);
+
+  return (
+    <>
+      <StyledResizable
+        enable={enableConfig}
+        grid={SNAP_TO_GRID}
+        gridGap={undefined}
+        minWidth={
+          adjustableWidth
+            ? minWidthMultiple * (widthStep + gutterWidth) - gutterWidth
+            : undefined
+        }
+        minHeight={
+          adjustableHeight ? minHeightMultiple * heightStep : undefined
+        }
+        maxWidth={
+          adjustableWidth && size.width
+            ? Math.max(
+                size.width,
+                Math.min(
+                  proxyToInfinity,
+                  maxWidthMultiple * (widthStep + gutterWidth) - gutterWidth,
+                ),
+              )
+            : undefined
+        }
+        maxHeight={
+          adjustableHeight && size.height
+            ? Math.max(
+                size.height,
+                Math.min(proxyToInfinity, maxHeightMultiple * heightStep),
+              )
+            : undefined
+        }
+        size={size}
+        onResizeStart={handleResizeStart}
+        onResize={handleResize}
+        onResizeStop={handleResizeStop}
+        handleComponent={handleComponent}
+        className={cx(
+          'resizable-container',
+          isResizing && 'resizable-container--resizing',
+        )}
+        handleClasses={HANDLE_CLASSES}
+      >
+        {children}
+      </StyledResizable>
+      {createPortal(
+        <CursorLabel ref={cursorLabelRef} style={{ display: 'none' }} />,
+        document.body,
+      )}
+    </>
+  );
+}

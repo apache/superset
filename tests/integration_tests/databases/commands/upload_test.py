@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import pytest
 from flask.ctx import AppContext
+from sqlalchemy import text
 
 from superset import db, security_manager
 from superset.commands.database.exceptions import (
@@ -33,6 +34,7 @@ from superset.models.core import Database
 from superset.utils import json
 from superset.utils.core import override_user
 from superset.utils.database import get_or_create_db
+from tests.integration_tests.base_tests import user_is_editor
 from tests.integration_tests.conftest import only_postgresql
 from tests.integration_tests.test_app import app
 from tests.unit_tests.fixtures.common import create_csv_file
@@ -58,9 +60,14 @@ CSV_FILE_WITH_NULLS = [
 
 
 def _setup_csv_upload(allowed_schemas: list[str] | None = None):
-    upload_db = get_or_create_db(
-        CSV_UPLOAD_DATABASE, app.config["SQLALCHEMY_EXAMPLES_URI"]
-    )
+    # Use main database URI for schema-related tests (PostgreSQL-specific)
+    # Use examples URI for general upload tests
+    if allowed_schemas:
+        db_uri = app.config["SQLALCHEMY_DATABASE_URI"]
+    else:
+        db_uri = app.config["SQLALCHEMY_EXAMPLES_URI"]
+
+    upload_db = get_or_create_db(CSV_UPLOAD_DATABASE, db_uri)
     upload_db.allow_file_upload = True
     extra = upload_db.get_extra()
     allowed_schemas = allowed_schemas or []
@@ -73,8 +80,9 @@ def _setup_csv_upload(allowed_schemas: list[str] | None = None):
 
     upload_db = get_upload_db()
     with upload_db.get_sqla_engine() as engine:
-        engine.execute(f"DROP TABLE IF EXISTS {CSV_UPLOAD_TABLE}")
-        engine.execute(f"DROP TABLE IF EXISTS {CSV_UPLOAD_TABLE_W_SCHEMA}")
+        with engine.begin() as conn:
+            conn.execute(text(f"DROP TABLE IF EXISTS {CSV_UPLOAD_TABLE}"))
+            conn.execute(text(f"DROP TABLE IF EXISTS {CSV_UPLOAD_TABLE_W_SCHEMA}"))
     db.session.delete(upload_db)
     db.session.commit()
 
@@ -83,12 +91,12 @@ def get_upload_db():
     return db.session.query(Database).filter_by(database_name=CSV_UPLOAD_DATABASE).one()
 
 
-@pytest.fixture()
+@pytest.fixture
 def setup_csv_upload_with_context(app_context: AppContext):
     yield from _setup_csv_upload()
 
 
-@pytest.fixture()
+@pytest.fixture
 def setup_csv_upload_with_context_schema(app_context: AppContext):
     yield from _setup_csv_upload(["public"])
 
@@ -107,12 +115,13 @@ def test_csv_upload_with_nulls():
             CSVReader({"null_values": ["N/A", "None"]}),
         ).run()
     with upload_database.get_sqla_engine() as engine:
-        data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE}").fetchall()
-        assert data == [
-            ("name1", None, "city1", "1-1-1980"),
-            ("name2", 29, None, "1-1-1981"),
-            ("name3", 28, "city3", "1-1-1982"),
-        ]
+        with engine.connect() as conn:
+            data = conn.execute(text(f"SELECT * from {CSV_UPLOAD_TABLE}")).fetchall()  # noqa: S608
+            assert data == [
+                ("name1", None, "city1", "1-1-1980"),
+                ("name2", 29, None, "1-1-1981"),
+                ("name3", 28, "city3", "1-1-1982"),
+            ]
 
 
 @pytest.mark.usefixtures("setup_csv_upload_with_context")
@@ -134,7 +143,7 @@ def test_csv_upload_dataset():
         .one_or_none()
     )
     assert dataset is not None
-    assert security_manager.find_user("admin") in dataset.owners
+    assert user_is_editor(security_manager.find_user("admin"), dataset)
 
 
 @pytest.mark.usefixtures("setup_csv_upload_with_context")
@@ -151,22 +160,26 @@ def test_csv_upload_with_index():
             CSVReader({"dataframe_index": True, "index_label": "id"}),
         ).run()
     with upload_database.get_sqla_engine() as engine:
-        data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE}").fetchall()
-        assert data == [
-            (0, "name1", 30, "city1", "1-1-1980"),
-            (1, "name2", 29, "city2", "1-1-1981"),
-            (2, "name3", 28, "city3", "1-1-1982"),
-        ]
-        # assert column names
-        assert [
-            col for col in engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE}").keys()
-        ] == [
-            "id",
-            "Name",
-            "Age",
-            "City",
-            "Birth",
-        ]
+        with engine.connect() as conn:
+            data = conn.execute(text(f"SELECT * from {CSV_UPLOAD_TABLE}")).fetchall()  # noqa: S608
+            assert data == [
+                (0, "name1", 30, "city1", "1-1-1980"),
+                (1, "name2", 29, "city2", "1-1-1981"),
+                (2, "name3", 28, "city3", "1-1-1982"),
+            ]
+            # assert column names
+            assert [  # noqa: C416
+                col
+                for col in conn.execute(
+                    text(f"SELECT * from {CSV_UPLOAD_TABLE}")  # noqa: S608
+                ).keys()  # noqa: S608
+            ] == [
+                "id",
+                "Name",
+                "Age",
+                "City",
+                "Birth",
+            ]
 
 
 @only_postgresql

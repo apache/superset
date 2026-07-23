@@ -20,17 +20,48 @@
 // Constants for visualization tests
 // ***********************************************
 
+/**
+ * Look up a dataset ID by table name
+ * @param {string} tableName - The name of the table to look up
+ * @returns {Cypress.Chainable<number>} - The dataset ID
+ */
+export function getDatasetId(tableName) {
+  return cy
+    .request({
+      method: 'GET',
+      url: `/api/v1/dataset/?q=${encodeURIComponent(
+        JSON.stringify({
+          filters: [{ col: 'table_name', opr: 'eq', value: tableName }],
+        }),
+      )}`,
+    })
+    .then(response => {
+      const datasets = response.body.result;
+      if (datasets && datasets.length > 0) {
+        return datasets[0].id;
+      }
+      throw new Error(`Dataset with table name "${tableName}" not found`);
+    });
+}
+
 export const FORM_DATA_DEFAULTS = {
   datasource: '3__table',
-  granularity_sqla: 'ds',
   time_grain_sqla: null,
-  time_range: '100 years ago : now',
-  adhoc_filters: [],
+  x_axis: 'ds',
+  adhoc_filters: [
+    {
+      clause: 'WHERE',
+      subject: 'ds',
+      operator: 'TEMPORAL_RANGE',
+      comparator: '100 years ago : now',
+      expressionType: 'SIMPLE',
+    },
+  ],
   groupby: [],
   limit: null,
   timeseries_limit_metric: null,
   order_desc: false,
-  contribution: false,
+  contributionMode: null,
 };
 
 export const HEALTH_POP_FORM_DATA_DEFAULTS = {

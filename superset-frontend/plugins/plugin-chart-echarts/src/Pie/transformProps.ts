@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core/translation';
 import {
   CategoricalColorNamespace,
   getColumnLabel,
@@ -23,19 +24,24 @@ import {
   getNumberFormatter,
   getTimeFormatter,
   NumberFormats,
-  t,
   ValueFormatter,
   getValueFormatter,
   tooltipHtml,
+  DataRecord,
 } from '@superset-ui/core';
-import { CallbackDataParams } from 'echarts/types/src/util/types';
-import { EChartsCoreOption, PieSeriesOption } from 'echarts';
+import type { CallbackDataParams } from 'echarts/types/src/util/types';
+import type { EChartsCoreOption } from 'echarts/core';
+import type { PieSeriesOption } from 'echarts/charts';
 import {
   DEFAULT_FORM_DATA as DEFAULT_PIE_FORM_DATA,
   EchartsPieChartProps,
   EchartsPieFormData,
   EchartsPieLabelType,
+  PieChartDataItem,
   PieChartTransformedProps,
+  TotalValuePaddingProps,
+  PaddingResult,
+  HalfDonut,
 } from './types';
 import { DEFAULT_LEGEND_FORM_DATA, OpacityEnum } from '../constants';
 import {
@@ -45,10 +51,12 @@ import {
   getLegendProps,
   sanitizeHtml,
 } from '../utils/series';
+import { resolveLegendLayout } from '../utils/legendLayout';
 import { defaultGrid } from '../defaults';
 import { convertInteger } from '../utils/convertInteger';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
+import { getContributionLabel } from './utils';
 
 const percentFormatter = getNumberFormatter(NumberFormats.PERCENT_2_POINT);
 
@@ -68,52 +76,121 @@ export function parseParams({
   return [name, formattedValue, formattedPercent];
 }
 
-function getTotalValuePadding({
+const HALF_DONUT_SWEEP_LIMIT = 180;
+
+/**
+ * Geometric configuration for each type of semi-circular layout.
+ *
+ * - `centerOffset` — offset of the chart center from the baseline 50% on the X and Y axes.
+ *                    Resulting position: `50% + offset`.
+ * - `totalBase`    — base position of the "Total" text as a percentage on the X and Y axes.
+ *
+ * The values are empirically tuned so that the "Total" text visually remains
+ * at the geometric center of the arc after the chart is re-centered. The
+ * `left`/`right` totalBase values sit 5% inside the shifted chart center
+ * (60% and 40% respectively) to compensate for the text being positioned by
+ * its left edge rather than its midpoint.
+ */
+const HALF_DONUT_LAYOUT: Record<
+  HalfDonut,
+  {
+    centerOffset: { x: number; y: number };
+    totalBase: { left: number; top: number };
+  }
+> = {
+  top: { centerOffset: { x: 0, y: 20 }, totalBase: { left: 50, top: 68.5 } },
+  bottom: { centerOffset: { x: 0, y: -20 }, totalBase: { left: 50, top: 30 } },
+  left: { centerOffset: { x: 10, y: 0 }, totalBase: { left: 55, top: 50 } },
+  right: { centerOffset: { x: -10, y: 0 }, totalBase: { left: 35, top: 50 } },
+  none: { centerOffset: { x: 0, y: 0 }, totalBase: { left: 50, top: 50 } },
+};
+
+/**
+ * Determines the type of semicircular layout based on the start angle and swept angle.
+ *
+ * All four semicircle orientations are supported:
+ * - `'top'`    — the arc is positioned at the top; the chart center shifts downwards.
+ * - `'bottom'` — the arc is positioned at the bottom; the chart center shifts upwards.
+ * - `'left'`   — the arc is positioned at the left; the chart center shifts right.
+ * - `'right'`  — the arc is positioned at the right; the chart center shifts left.
+ *
+ * @param startAngle - The start angle of the arc in degrees (0–360).
+ * @param sweptAngle - The swept angle of the arc in degrees (10–360).
+ * @returns The type of semicircular layout.
+ */
+export const getHalfDonut = (
+  startAngle: number,
+  sweptAngle: number,
+): HalfDonut => {
+  if (sweptAngle > HALF_DONUT_SWEEP_LIMIT) return 'none';
+
+  const normalized = startAngle % 360;
+
+  if (normalized === 180) return 'top';
+  if (normalized === 0) return 'bottom';
+  if (normalized === 270) return 'left';
+  if (normalized === 90) return 'right';
+
+  return 'none';
+};
+
+const getHalfDonutLayout = (startAngle: number, sweptAngle: number) =>
+  HALF_DONUT_LAYOUT[getHalfDonut(startAngle, sweptAngle)];
+
+export function getTotalValuePadding({
   chartPadding,
   donut,
   width,
   height,
-}: {
-  chartPadding: {
-    bottom: number;
-    left: number;
-    right: number;
-    top: number;
+  startAngle,
+  sweptAngle,
+}: TotalValuePaddingProps): PaddingResult {
+  const safeHeight = height || 1;
+  const safeWidth = width || 1;
+
+  const halfType = getHalfDonut(startAngle, sweptAngle);
+  const layout = HALF_DONUT_LAYOUT[halfType];
+  const isHalf = halfType !== 'none';
+
+  const calculateTop = (): string => {
+    if (chartPadding.bottom) {
+      return donut
+        ? `${layout.totalBase.top - (chartPadding.bottom / safeHeight) * 50}%`
+        : '0';
+    }
+
+    if (chartPadding.top || isHalf) {
+      if (donut) {
+        return `${layout.totalBase.top + (chartPadding.top / safeHeight) * 50}%`;
+      }
+      return `${(chartPadding.top / safeHeight) * 100}%`;
+    }
+
+    return donut ? 'middle' : '0';
   };
-  donut: boolean;
-  width: number;
-  height: number;
-}) {
-  const padding: {
-    left?: string;
-    top?: string;
-  } = {
-    top: donut ? 'middle' : '0',
-    left: 'center',
+
+  const calculateLeft = (): string => {
+    if (chartPadding.right) {
+      const rightPercent = (chartPadding.right / safeWidth) * 100;
+      return `${layout.totalBase.left - rightPercent * 0.75}%`;
+    }
+
+    if (chartPadding.left) {
+      const leftPercent = (chartPadding.left / safeWidth) * 100;
+      return `${layout.totalBase.left + leftPercent * 0.25}%`;
+    }
+
+    if (isHalf && (halfType === 'left' || halfType === 'right')) {
+      return `${layout.totalBase.left}%`;
+    }
+
+    return 'center';
   };
-  const LEGEND_HEIGHT = 15;
-  const LEGEND_WIDTH = 215;
-  if (chartPadding.top) {
-    padding.top = donut
-      ? `${50 + ((chartPadding.top - LEGEND_HEIGHT) / height / 2) * 100}%`
-      : `${((chartPadding.top + LEGEND_HEIGHT) / height) * 100}%`;
-  }
-  if (chartPadding.bottom) {
-    padding.top = donut
-      ? `${50 - ((chartPadding.bottom + LEGEND_HEIGHT) / height / 2) * 100}%`
-      : '0';
-  }
-  if (chartPadding.left) {
-    padding.left = `${
-      50 + ((chartPadding.left - LEGEND_WIDTH) / width / 2) * 100
-    }%`;
-  }
-  if (chartPadding.right) {
-    padding.left = `${
-      50 - ((chartPadding.right + LEGEND_WIDTH) / width / 2) * 100
-    }%`;
-  }
-  return padding;
+
+  return {
+    top: calculateTop(),
+    left: calculateLeft(),
+  };
 }
 
 export default function transformProps(
@@ -131,8 +208,13 @@ export default function transformProps(
     emitCrossFilters,
     datasource,
   } = chartProps;
-  const { columnFormats = {}, currencyFormats = {} } = datasource;
-  const { data = [] } = queriesData[0];
+  const {
+    columnFormats = {},
+    currencyFormats = {},
+    currencyCodeColumn,
+  } = datasource;
+  const { data: rawData = [], detected_currency: detectedCurrency } =
+    queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
 
   const {
@@ -147,6 +229,7 @@ export default function transformProps(
     legendMargin,
     legendOrientation,
     legendType,
+    legendSort,
     metric = '',
     numberFormat,
     currencyFormat,
@@ -155,9 +238,12 @@ export default function transformProps(
     showLabels,
     showLegend,
     showLabelsThreshold,
+    startAngle,
+    sweptAngle,
     sliceId,
     showTotal,
     roseType,
+    thresholdForOther,
   }: EchartsPieFormData = {
     ...DEFAULT_LEGEND_FORM_DATA,
     ...DEFAULT_PIE_FORM_DATA,
@@ -165,17 +251,72 @@ export default function transformProps(
   };
   const refs: Refs = {};
   const metricLabel = getMetricLabel(metric);
+  const contributionLabel = getContributionLabel(metricLabel);
   const groupbyLabels = groupby.map(getColumnLabel);
   const minShowLabelAngle = (showLabelsThreshold || 0) * 3.6;
 
-  const keys = data.map(datum =>
-    extractGroupbyLabel({
-      datum,
-      groupby: groupbyLabels,
-      coltypeMapping,
-      timeFormatter: getTimeFormatter(dateFormat),
-    }),
+  const numberFormatter = getValueFormatter(
+    metric,
+    currencyFormats,
+    columnFormats,
+    numberFormat,
+    currencyFormat,
+    undefined,
+    rawData,
+    currencyCodeColumn,
+    detectedCurrency,
   );
+
+  let data = rawData;
+  const otherRows: DataRecord[] = [];
+  const otherTooltipData: string[][] = [];
+  let otherDatum: PieChartDataItem | null = null;
+  let otherSum = 0;
+  if (thresholdForOther) {
+    let contributionSum = 0;
+    data = data.filter(datum => {
+      const contribution = datum[contributionLabel] as number;
+      if (!contribution || contribution * 100 >= thresholdForOther) {
+        return true;
+      }
+      otherSum += datum[metricLabel] as number;
+      contributionSum += contribution;
+      otherRows.push(datum);
+      otherTooltipData.push([
+        extractGroupbyLabel({
+          datum,
+          groupby: groupbyLabels,
+          coltypeMapping,
+          timeFormatter: getTimeFormatter(dateFormat),
+        }),
+        numberFormatter(datum[metricLabel] as number),
+        percentFormatter(contribution),
+      ]);
+      return false;
+    });
+    const otherName = t('Other');
+    otherTooltipData.push([
+      t('Total'),
+      numberFormatter(otherSum),
+      percentFormatter(contributionSum),
+    ]);
+    if (otherSum) {
+      otherDatum = {
+        name: otherName,
+        value: otherSum,
+        itemStyle: {
+          color: theme.colorText,
+          opacity:
+            filterState.selectedValues &&
+            !filterState.selectedValues.includes(otherName)
+              ? OpacityEnum.SemiTransparent
+              : OpacityEnum.NonTransparent,
+        },
+        isOther: true,
+      };
+    }
+  }
+
   const labelMap = data.reduce((acc: Record<string, string[]>, datum) => {
     const label = extractGroupbyLabel({
       datum,
@@ -190,15 +331,7 @@ export default function transformProps(
   }, {});
 
   const { setDataMask = () => {}, onContextMenu } = hooks;
-
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
-  const numberFormatter = getValueFormatter(
-    metric,
-    currencyFormats,
-    columnFormats,
-    numberFormat,
-    currencyFormat,
-  );
 
   let totalValue = 0;
 
@@ -222,13 +355,17 @@ export default function transformProps(
       value,
       name,
       itemStyle: {
-        color: colorFn(name, sliceId, colorScheme),
+        color: colorFn(name, sliceId),
         opacity: isFiltered
           ? OpacityEnum.SemiTransparent
           : OpacityEnum.NonTransparent,
       },
     };
   });
+  if (otherDatum) {
+    transformedData.push(otherDatum);
+    totalValue += otherSum;
+  }
 
   const selectedValues = (filterState.selectedValues || []).reduce(
     (acc: Record<string, number>, selectedValue: string) => {
@@ -316,14 +453,32 @@ export default function transformProps(
   const defaultLabel = {
     formatter,
     show: showLabels,
-    color: theme.colors.grayscale.dark2,
+    color: theme.colorText,
   };
+  const legendData = transformedData
+    .map(datum => datum.name)
+    .sort((a: string, b: string) => {
+      if (!legendSort) return 0;
+      return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
+    });
+  const { effectiveLegendMargin, effectiveLegendType } = resolveLegendLayout({
+    chartHeight: height,
+    chartWidth: width,
+    legendItems: legendData,
+    legendMargin,
+    orientation: legendOrientation,
+    show: showLegend,
+    theme,
+    type: legendType,
+  });
 
   const chartPadding = getChartPadding(
     showLegend,
     legendOrientation,
-    legendMargin,
+    effectiveLegendMargin,
   );
+
+  const { centerOffset } = getHalfDonutLayout(startAngle, sweptAngle);
 
   const series: PieSeriesOption[] = [
     {
@@ -332,7 +487,9 @@ export default function transformProps(
       animation: false,
       roseType: roseType || undefined,
       radius: [`${donut ? innerRadius : 0}%`, `${outerRadius}%`],
-      center: ['50%', '50%'],
+      center: [`${50 + centerOffset.x}%`, `${50 + centerOffset.y}%`],
+      startAngle,
+      endAngle: startAngle - sweptAngle,
       avoidLabelOverlap: true,
       labelLine: labelsOutside && labelLine ? { show: true } : { show: false },
       minShowLabelAngle,
@@ -351,7 +508,7 @@ export default function transformProps(
         label: {
           show: true,
           fontWeight: 'bold',
-          backgroundColor: theme.colors.grayscale.light5,
+          backgroundColor: theme.colorBgContainer,
         },
       },
       data: transformedData,
@@ -372,6 +529,9 @@ export default function transformProps(
           numberFormatter,
           sanitizeName: true,
         });
+        if (params?.data?.isOther) {
+          return tooltipHtml(otherTooltipData, name);
+        }
         return tooltipHtml(
           [[metricLabel, formattedValue, formattedPercent]],
           name,
@@ -379,17 +539,30 @@ export default function transformProps(
       },
     },
     legend: {
-      ...getLegendProps(legendType, legendOrientation, showLegend, theme),
-      data: keys,
+      ...getLegendProps(
+        effectiveLegendType,
+        legendOrientation,
+        showLegend,
+        theme,
+      ),
+      data: legendData,
     },
     graphic: showTotal
       ? {
           type: 'text',
-          ...getTotalValuePadding({ chartPadding, donut, width, height }),
+          ...getTotalValuePadding({
+            chartPadding,
+            donut,
+            width,
+            height,
+            startAngle,
+            sweptAngle,
+          }),
           style: {
             text: t('Total: %s', numberFormatter(totalValue)),
             fontSize: 16,
             fontWeight: 'bold',
+            fill: theme.colorText,
           },
           z: 10,
         }

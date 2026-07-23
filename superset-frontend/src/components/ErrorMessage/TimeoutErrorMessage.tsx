@@ -17,24 +17,25 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { t, tn } from '@superset-ui/core';
+import { t, tn } from '@apache-superset/core/translation';
 
-import { ErrorMessageComponentProps } from './types';
-import IssueCode from './IssueCode';
-import ErrorAlert from './ErrorAlert';
+import type { ErrorMessageComponentProps } from './types';
+import { IssueCode } from './IssueCode';
+import { ErrorAlert } from './ErrorAlert';
 
 interface TimeoutErrorExtra {
   issue_codes: {
     code: number;
     message: string;
   }[];
-  owners?: string[];
+  editors?: string[];
   timeout: number;
 }
 
-function TimeoutErrorMessage({
+export function TimeoutErrorMessage({
   error,
   source,
+  closable,
 }: ErrorMessageComponentProps<TimeoutErrorExtra>) {
   const { extra, level } = error;
 
@@ -65,22 +66,22 @@ function TimeoutErrorMessage({
           .map<ReactNode>(issueCode => <IssueCode {...issueCode} />)
           .reduce((prev, curr) => [prev, <br />, curr])}
       </p>
-      {isVisualization && extra.owners && (
+      {isVisualization && extra.editors && (
         <>
           <br />
           <p>
             {tn(
-              'Please reach out to the Chart Owner for assistance.',
-              'Please reach out to the Chart Owners for assistance.',
-              extra.owners.length,
+              'Please reach out to the Chart Editor for assistance.',
+              'Please reach out to the Chart Editors for assistance.',
+              extra.editors.length,
             )}
           </p>
           <p>
             {tn(
-              'Chart Owner: %s',
-              'Chart Owners: %s',
-              extra.owners.length,
-              extra.owners.join(', '),
+              'Chart Editor: %s',
+              'Chart Editors: %s',
+              extra.editors.length,
+              extra.editors.join(', '),
             )}
           </p>
         </>
@@ -88,21 +89,13 @@ function TimeoutErrorMessage({
     </>
   );
 
-  const copyText = t('%(subtitle)s\nThis may be triggered by:\n %(issue)s', {
-    subtitle,
-    issue: extra.issue_codes.map(issueCode => issueCode.message).join('\n'),
-  });
-
   return (
     <ErrorAlert
-      title={t('Timeout error')}
-      subtitle={subtitle}
-      level={level}
-      source={source}
-      copyText={copyText}
-      body={body}
+      errorType={t('Timeout error')}
+      message={subtitle}
+      type={level}
+      descriptionDetails={body}
+      closable={closable}
     />
   );
 }
-
-export default TimeoutErrorMessage;

@@ -17,7 +17,9 @@
  * under the License.
  */
 import { useState, useEffect, useCallback } from 'react';
-import { SupersetClient, logging, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient } from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 
 const useGetDatasetRelatedCounts = (id: string) => {
@@ -41,7 +43,7 @@ const useGetDatasetRelatedCounts = (id: string) => {
   );
 
   useEffect(() => {
-    // Todo: this useEffect should be used to call all count methods conncurently
+    // Todo: this useEffect should be used to call all count methods concurrently
     // when we populate data for the new tabs. For right separating out this
     // api call for building the usage page.
     if (id) {

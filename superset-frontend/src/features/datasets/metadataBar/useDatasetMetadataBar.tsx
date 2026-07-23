@@ -16,49 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useMemo, useState } from 'react';
-import { css, t, useTheme } from '@superset-ui/core';
-import Alert from 'src/components/Alert';
+import { useMemo } from 'react';
+import { t } from '@apache-superset/core/translation';
+import { css, useTheme } from '@apache-superset/core/theme';
 import { Dataset } from 'src/components/Chart/types';
-import MetadataBar from 'src/components/MetadataBar';
+import MetadataBar from '@superset-ui/core/components/MetadataBar';
 import {
   ContentType,
   MetadataType,
-} from 'src/components/MetadataBar/ContentType';
-import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
-import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
+} from '@superset-ui/core/components/MetadataBar/ContentType';
+import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 
-export type UseDatasetMetadataBarProps =
-  | { datasetId?: undefined; dataset: Dataset }
-  | { datasetId: number | string; dataset?: undefined };
+export interface UseDatasetMetadataBarProps {
+  dataset?: Dataset;
+}
+
 export const useDatasetMetadataBar = ({
-  dataset: datasetProps,
-  datasetId,
-}: UseDatasetMetadataBarProps) => {
+  dataset,
+}: UseDatasetMetadataBarProps): { metadataBar: React.ReactElement | null } => {
   const theme = useTheme();
-  const [result, setResult] = useState<Dataset>();
-  const [status, setStatus] = useState<ResourceStatus>(
-    datasetProps ? ResourceStatus.Complete : ResourceStatus.Loading,
-  );
-
-  useEffect(() => {
-    if (!datasetProps && datasetId) {
-      cachedSupersetGet({
-        endpoint: `/api/v1/dataset/${datasetId}`,
-      })
-        .then(({ json: { result } }) => {
-          setResult(result);
-          setStatus(ResourceStatus.Complete);
-        })
-        .catch(() => {
-          setStatus(ResourceStatus.Error);
-        });
-    }
-  }, [datasetId, datasetProps]);
 
   const metadataBar = useMemo(() => {
+    // Short-circuit for embedded users - they don't need metadata bar
+    if (isEmbedded()) {
+      return null;
+    }
     const items: ContentType[] = [];
-    const dataset = datasetProps || result;
     if (dataset) {
       const {
         changed_on_humanized,
@@ -67,7 +50,7 @@ export const useDatasetMetadataBar = ({
         table_name,
         changed_by,
         created_by,
-        owners,
+        editors = [],
       } = dataset;
       const notAvailable = t('Not available');
       const createdBy =
@@ -77,24 +60,23 @@ export const useDatasetMetadataBar = ({
       const modifiedBy = changed_by
         ? `${changed_by.first_name} ${changed_by.last_name}`
         : notAvailable;
-      const formattedOwners =
-        owners?.length > 0
-          ? owners.map(owner => `${owner.first_name} ${owner.last_name}`)
-          : [notAvailable];
+      const editorLabels = editors
+        .map(editor => editor.label)
+        .filter((label): label is string => Boolean(label));
       items.push({
         type: MetadataType.Table,
-        title: table_name,
+        title: table_name || notAvailable,
       });
       items.push({
         type: MetadataType.LastModified,
-        value: changed_on_humanized,
+        value: changed_on_humanized || notAvailable,
         modifiedBy,
       });
       items.push({
-        type: MetadataType.Owner,
+        type: MetadataType.Editor,
         createdBy,
-        owners: formattedOwners,
-        createdOn: created_on_humanized,
+        editors: editorLabels,
+        createdOn: created_on_humanized || notAvailable,
       });
       if (description) {
         items.push({
@@ -107,24 +89,17 @@ export const useDatasetMetadataBar = ({
       <div
         css={css`
           display: flex;
-          margin-bottom: ${theme.gridUnit * 4}px;
+          margin-bottom: ${theme.sizeUnit * 4}px;
         `}
       >
-        {status === ResourceStatus.Complete && (
+        {items.length > 0 && (
           <MetadataBar items={items} tooltipPlacement="bottom" />
-        )}
-        {status === ResourceStatus.Error && (
-          <Alert
-            type="error"
-            message={t('There was an error loading the dataset metadata')}
-          />
         )}
       </div>
     );
-  }, [datasetProps, result, status, theme.gridUnit]);
+  }, [dataset, theme.sizeUnit]);
 
   return {
     metadataBar,
-    status,
   };
 };

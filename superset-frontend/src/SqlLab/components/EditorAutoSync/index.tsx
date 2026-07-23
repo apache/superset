@@ -17,10 +17,11 @@
  * under the License.
  */
 
-import { useRef, useEffect, FC } from 'react';
+import { useRef, useEffect, FC, useMemo } from 'react';
 
-import { useDispatch, useSelector } from 'react-redux';
-import { logging } from '@superset-ui/core';
+import { useSelector } from 'react-redux';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
+import { logging } from '@apache-superset/core/utils';
 import {
   SqlLabRootState,
   QueryEditor,
@@ -69,13 +70,24 @@ const EditorAutoSync: FC = () => {
   const queryEditors = useSelector<SqlLabRootState, QueryEditor[]>(
     state => state.sqlLab.queryEditors,
   );
+  const queryEditorsById = useMemo(
+    () =>
+      queryEditors.reduce(
+        (acc, queryEditor) => {
+          acc[queryEditor.id] = queryEditor;
+          return acc;
+        },
+        {} as Record<string, QueryEditor>,
+      ),
+    [queryEditors],
+  );
   const unsavedQueryEditor = useSelector<SqlLabRootState, UnsavedQueryEditor>(
     state => state.sqlLab.unsavedQueryEditor,
   );
   const editorTabLastUpdatedAt = useSelector<SqlLabRootState, number>(
     state => state.sqlLab.editorTabLastUpdatedAt,
   );
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const lastSavedTimestampRef = useRef<number>(editorTabLastUpdatedAt);
 
   const currentQueryEditorId = useSelector<SqlLabRootState, string>(
@@ -120,7 +132,10 @@ const EditorAutoSync: FC = () => {
       !queryEditors.find(({ id }) => id === currentQueryEditorId)
         ?.inLocalStorage
     ) {
-      updateCurrentSqlEditor(currentQueryEditorId).then(() => {
+      const queryEditorId =
+        queryEditorsById[currentQueryEditorId]?.tabViewId ??
+        currentQueryEditorId;
+      updateCurrentSqlEditor(queryEditorId).then(() => {
         dispatch(setLastUpdatedActiveTab(currentQueryEditorId));
       });
     }
@@ -129,7 +144,8 @@ const EditorAutoSync: FC = () => {
   const syncDeletedQueryEditor = useEffectEvent(() => {
     if (Object.keys(destroyedQueryEditors).length > 0) {
       Object.keys(destroyedQueryEditors).forEach(id => {
-        deleteSqlEditor(id)
+        const queryEditorId = queryEditorsById[id]?.tabViewId ?? id;
+        deleteSqlEditor(queryEditorId)
           .then(() => {
             dispatch(clearDestoryedQueryEditor(id));
           })

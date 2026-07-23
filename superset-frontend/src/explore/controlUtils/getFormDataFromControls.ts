@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryFormData } from '@superset-ui/core';
+import { JsonValue, QueryFormData } from '@superset-ui/core';
 import { ControlStateMapping } from '@superset-ui/chart-controls';
 
 export function getFormDataFromControls(
   controlsState: ControlStateMapping,
 ): QueryFormData {
-  const formData = {};
+  const formData: Record<string, JsonValue | undefined> = {};
   Object.keys(controlsState).forEach(controlName => {
     const control = controlsState[controlName];
     formData[controlName] = control.value;

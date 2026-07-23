@@ -30,8 +30,7 @@ import pickle  # noqa: E402
 
 from alembic import op  # noqa: E402
 from sqlalchemy import Column, Integer, LargeBinary, String  # noqa: E402
-from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
-from sqlalchemy.orm import Session  # noqa: E402
+from sqlalchemy.orm import declarative_base, Session  # noqa: E402
 
 from superset import db  # noqa: E402
 from superset.migrations.shared.utils import paginated_update  # noqa: E402
@@ -56,7 +55,7 @@ def upgrade():
             KeyValueEntry.resource == DASHBOARD_PERMALINK_RESOURCE_TYPE
         )
     ):
-        value = pickle.loads(entry.value) or {}
+        value = pickle.loads(entry.value) or {}  # noqa: S301
         state = value.get("state")
         if state:
             if "filterState" in state:
@@ -76,7 +75,7 @@ def downgrade():
             KeyValueEntry.resource == DASHBOARD_PERMALINK_RESOURCE_TYPE
         ),
     ):
-        value = pickle.loads(entry.value) or {}
+        value = pickle.loads(entry.value) or {}  # noqa: S301
         state = value.get("state")
         if state:
             if "dataMask" in state:

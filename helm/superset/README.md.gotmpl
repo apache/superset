@@ -45,6 +45,24 @@ It should be a long random bytes or str.
 
 On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverrides.secrets`
 
+## Upgrade Notes
+
+### Kubernetes recommended labels (breaking)
+
+This chart labels and selects workloads using the [Kubernetes recommended labels](https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/) (`app.kubernetes.io/*`) instead of the legacy `app`/`release` labels. A Deployment's `spec.selector.matchLabels` is immutable, so `helm upgrade` against a release created before this change fails with a `field is immutable` error.
+
+To upgrade an existing release, delete the affected workloads first (their selector labels changed), then upgrade so they are recreated:
+
+```console
+kubectl delete deployment,statefulset -l release=<release-name> -n <namespace>
+helm upgrade <release-name> superset/superset
+```
+
+Alternatively, perform a fresh install. This is a one-time migration; subsequent upgrades are unaffected.
+
 {{ template "chart.requirementsSection" . }}
 
 {{ template "chart.valuesSection" . }}
+
+## Versioning
+This chart follows [semantic versioning](https://semver.org/). The chart version is independent of the Superset version. The chart version is incremented when there are changes to the chart itself, such as new features, bug fixes, or changes in configuration options. In addition to semver, the chart version is also incremented in the minor version when there is a breaking change in the Superset appVersion itself. When there are non-breaking changes in the Superset appVersion, the chart version is incremented in the patch version.

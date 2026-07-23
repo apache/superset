@@ -26,7 +26,7 @@ import {
 
 describe('Filter type guards', () => {
   describe('isUnaryAdhocFilter', () => {
-    it('should return true when it is the correct type', () => {
+    test('should return true when it is the correct type', () => {
       expect(
         isUnaryAdhocFilter({
           expressionType: 'SIMPLE',
@@ -36,7 +36,7 @@ describe('Filter type guards', () => {
         }),
       ).toEqual(true);
     });
-    it('should return false otherwise', () => {
+    test('should return false otherwise', () => {
       expect(
         isUnaryAdhocFilter({
           expressionType: 'SIMPLE',
@@ -50,7 +50,7 @@ describe('Filter type guards', () => {
   });
 
   describe('isBinaryAdhocFilter', () => {
-    it('should return true when it is the correct type', () => {
+    test('should return true when it is the correct type', () => {
       expect(
         isBinaryAdhocFilter({
           expressionType: 'SIMPLE',
@@ -61,7 +61,7 @@ describe('Filter type guards', () => {
         }),
       ).toEqual(true);
     });
-    it('should return false otherwise', () => {
+    test('should return false otherwise', () => {
       expect(
         isBinaryAdhocFilter({
           expressionType: 'SIMPLE',
@@ -74,7 +74,7 @@ describe('Filter type guards', () => {
   });
 
   describe('isSetAdhocFilter', () => {
-    it('should return true when it is the correct type', () => {
+    test('should return true when it is the correct type', () => {
       expect(
         isSetAdhocFilter({
           expressionType: 'SIMPLE',
@@ -85,7 +85,7 @@ describe('Filter type guards', () => {
         }),
       ).toEqual(true);
     });
-    it('should return false otherwise', () => {
+    test('should return false otherwise', () => {
       expect(
         isSetAdhocFilter({
           expressionType: 'SIMPLE',
@@ -97,7 +97,7 @@ describe('Filter type guards', () => {
     });
   });
   describe('isFreeFormAdhocFilter', () => {
-    it('should return true when it is the correct type', () => {
+    test('should return true when it is the correct type', () => {
       expect(
         isFreeFormAdhocFilter({
           expressionType: 'SQL',
@@ -106,7 +106,7 @@ describe('Filter type guards', () => {
         }),
       ).toEqual(true);
     });
-    it('should return false otherwise', () => {
+    test('should return false otherwise', () => {
       expect(
         isFreeFormAdhocFilter({
           expressionType: 'SIMPLE',

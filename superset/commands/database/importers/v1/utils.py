@@ -15,19 +15,29 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import logging
 from typing import Any
 
-from superset import app, db, security_manager
+from flask import current_app as app
+
+from superset import db, security_manager
+from superset.commands.database.utils import add_permissions
 from superset.commands.exceptions import ImportFailedError
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
-from superset.exceptions import SupersetSecurityException
+from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
+from superset.exceptions import (
+    OAuth2RedirectError,
+    SupersetSecurityException,
+)
 from superset.models.core import Database
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
 from superset.utils import json
 
+logger = logging.getLogger(__name__)
 
-def import_database(
+
+def import_database(  # noqa: C901
     config: dict[str, Any],
     overwrite: bool = False,
     ignore_permissions: bool = False,
@@ -43,17 +53,23 @@ def import_database(
         config["id"] = existing.id
     elif not can_write:
         raise ImportFailedError(
-            "Database doesn't exist and user doesn't have permission to create databases"
+            "Database doesn't exist and user doesn't have permission to create databases"  # noqa: E501
         )
-    # Check if this URI is allowed
-    if app.config["PREVENT_UNSAFE_DB_CONNECTIONS"]:
+    # Check if this URI is allowed (skip for system imports like examples)
+    if app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] and not ignore_permissions:
         try:
             check_sqlalchemy_uri(make_url_safe(config["sqlalchemy_uri"]))
         except SupersetSecurityException as exc:
             raise ImportFailedError(exc.message) from exc
     # https://github.com/apache/superset/pull/16756 renamed ``csv`` to ``file``.
-    config["allow_file_upload"] = config.pop("allow_csv_upload")
-    if "schemas_allowed_for_csv_upload" in config["extra"]:
+    # Handle both old and new field names, defaulting to True for examples database
+    if "allow_csv_upload" in config:
+        config["allow_file_upload"] = config.pop("allow_csv_upload")
+    elif "allow_file_upload" not in config:
+        # Default to True for backward compatibility
+        config["allow_file_upload"] = True
+
+    if "schemas_allowed_for_csv_upload" in config.get("extra", {}):
         config["extra"]["schemas_allowed_for_file_upload"] = config["extra"].pop(
             "schemas_allowed_for_csv_upload"
         )
@@ -61,15 +77,46 @@ def import_database(
     # TODO (betodealmeida): move this logic to import_from_dict
     config["extra"] = json.dumps(config["extra"])
 
-    # Before it gets removed in import_from_dict
-    ssh_tunnel = config.pop("ssh_tunnel", None)
+    # Convert masked_encrypted_extra → encrypted_extra before importing.
+    # For existing DBs, reveal masked sensitive values from current encrypted_extra.
+    # For new DBs, schema validation already ensured no fields are still masked.
+    if masked_encrypted_extra := config.pop("masked_encrypted_extra", None):
+        if existing and existing.encrypted_extra:
+            old_config = json.loads(existing.encrypted_extra)
+            new_config = json.loads(masked_encrypted_extra)
+            sensitive_fields = (
+                existing.db_engine_spec.encrypted_extra_sensitive_field_paths()
+            )
+            revealed = json.reveal_sensitive(
+                old_config,
+                new_config,
+                sensitive_fields,
+            )
+            config["encrypted_extra"] = json.dumps(revealed)
+        else:
+            config["encrypted_extra"] = masked_encrypted_extra
 
-    database = Database.import_from_dict(config, recursive=False)
+    ssh_tunnel_config = config.pop("ssh_tunnel", None)
+
+    # set SQLAlchemy URI via `set_sqlalchemy_uri` so that the password gets masked
+    sqlalchemy_uri = config.pop("sqlalchemy_uri")
+    # TODO (betodealmeida): we should use the `CreateDatabaseCommand` for imports
+    database: Database = Database.import_from_dict(config, recursive=False)
+    database.set_sqlalchemy_uri(sqlalchemy_uri)
+
     if database.id is None:
         db.session.flush()
 
-    if ssh_tunnel:
-        ssh_tunnel["database_id"] = database.id
-        SSHTunnel.import_from_dict(ssh_tunnel, recursive=False)
+    if ssh_tunnel_config:
+        ssh_tunnel_config["database_id"] = database.id
+        database.ssh_tunnel = SSHTunnel.import_from_dict(
+            ssh_tunnel_config,
+            recursive=False,
+        )
+
+    try:
+        add_permissions(database)
+    except (SupersetDBAPIConnectionError, OAuth2RedirectError) as ex:
+        logger.warning(ex.message)
 
     return database

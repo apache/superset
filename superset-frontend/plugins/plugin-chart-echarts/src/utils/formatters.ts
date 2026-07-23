@@ -29,13 +29,120 @@ import {
   SMART_DATE_ID,
   SMART_DATE_VERBOSE_ID,
   TimeFormatter,
+  TimeGranularity,
   ValueFormatter,
 } from '@superset-ui/core';
 
 export const getSmartDateDetailedFormatter = () =>
   getTimeFormatter(SMART_DATE_DETAILED_ID);
 
-export const getSmartDateFormatter = () => getTimeFormatter(SMART_DATE_ID);
+export const getSmartDateFormatter = (timeGrain?: string) => {
+  const baseFormatter = getTimeFormatter(SMART_DATE_ID);
+
+  // If no time grain provided, use the standard smart date formatter
+  if (!timeGrain) {
+    return baseFormatter;
+  }
+
+  // Create a wrapper that normalizes dates based on time grain
+  return new TimeFormatter({
+    id: SMART_DATE_ID,
+    label: baseFormatter.label,
+    formatFunc: (date: Date) => {
+      // Create a normalized date based on time grain to ensure consistent smart formatting
+      const normalizedDate = new Date(date);
+
+      // Always remove milliseconds to prevent .XXXms format
+      normalizedDate.setMilliseconds(0);
+
+      // For all time grains, normalize using UTC methods to avoid timezone issues
+      if (timeGrain === TimeGranularity.YEAR) {
+        // Set to January 1st at midnight UTC - smart formatter will show year
+        const year = normalizedDate.getUTCFullYear();
+        const cleanDate = new Date(Date.UTC(year, 0, 1, 0, 0, 0, 0));
+        return baseFormatter(cleanDate);
+      } else if (timeGrain === TimeGranularity.QUARTER) {
+        // Set to first month of quarter, first day, midnight UTC
+        const year = normalizedDate.getUTCFullYear();
+        const month = normalizedDate.getUTCMonth();
+        const quarterStartMonth = Math.floor(month / 3) * 3;
+        const cleanDate = new Date(
+          Date.UTC(year, quarterStartMonth, 1, 0, 0, 0, 0),
+        );
+        return baseFormatter(cleanDate);
+      } else if (timeGrain === TimeGranularity.MONTH) {
+        // Set to first of month at midnight UTC - smart formatter will show month name or year
+        const year = normalizedDate.getUTCFullYear();
+        const month = normalizedDate.getUTCMonth();
+        const cleanDate = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0));
+        return baseFormatter(cleanDate);
+      } else if (
+        timeGrain === TimeGranularity.WEEK ||
+        timeGrain === TimeGranularity.WEEK_STARTING_SUNDAY ||
+        timeGrain === TimeGranularity.WEEK_STARTING_MONDAY ||
+        timeGrain === TimeGranularity.WEEK_ENDING_SATURDAY ||
+        timeGrain === TimeGranularity.WEEK_ENDING_SUNDAY
+      ) {
+        // Set to midnight UTC, keep the day
+        const year = normalizedDate.getUTCFullYear();
+        const month = normalizedDate.getUTCMonth();
+        const day = normalizedDate.getUTCDate();
+        const cleanDate = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
+        return baseFormatter(cleanDate);
+      } else if (
+        timeGrain === TimeGranularity.DAY ||
+        timeGrain === TimeGranularity.DATE
+      ) {
+        // Set to midnight UTC
+        const year = normalizedDate.getUTCFullYear();
+        const month = normalizedDate.getUTCMonth();
+        const day = normalizedDate.getUTCDate();
+        const cleanDate = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
+        return baseFormatter(cleanDate);
+      } else if (timeGrain === TimeGranularity.HOUR) {
+        // Set to top of hour UTC - smart formatter will show hour
+        const year = normalizedDate.getUTCFullYear();
+        const month = normalizedDate.getUTCMonth();
+        const day = normalizedDate.getUTCDate();
+        const hour = normalizedDate.getUTCHours();
+        const cleanDate = new Date(Date.UTC(year, month, day, hour, 0, 0, 0));
+        return baseFormatter(cleanDate);
+      } else if (
+        timeGrain === TimeGranularity.THIRTY_MINUTES ||
+        timeGrain === TimeGranularity.FIFTEEN_MINUTES ||
+        timeGrain === TimeGranularity.TEN_MINUTES ||
+        timeGrain === TimeGranularity.FIVE_MINUTES ||
+        timeGrain === TimeGranularity.MINUTE
+      ) {
+        // Preserve hour and minute for sub-hour grains
+        const year = normalizedDate.getUTCFullYear();
+        const month = normalizedDate.getUTCMonth();
+        const day = normalizedDate.getUTCDate();
+        const hour = normalizedDate.getUTCHours();
+        const minute = normalizedDate.getUTCMinutes();
+        const cleanDate = new Date(
+          Date.UTC(year, month, day, hour, minute, 0, 0),
+        );
+        return baseFormatter(cleanDate);
+      } else if (timeGrain === TimeGranularity.SECOND) {
+        // Preserve hour, minute, and second for second-level grain
+        const year = normalizedDate.getUTCFullYear();
+        const month = normalizedDate.getUTCMonth();
+        const day = normalizedDate.getUTCDate();
+        const hour = normalizedDate.getUTCHours();
+        const minute = normalizedDate.getUTCMinutes();
+        const second = normalizedDate.getUTCSeconds();
+        const cleanDate = new Date(
+          Date.UTC(year, month, day, hour, minute, second, 0),
+        );
+        return baseFormatter(cleanDate);
+      }
+
+      // Use the base formatter on the normalized date
+      return baseFormatter(normalizedDate);
+    },
+  });
+};
 
 export const getSmartDateVerboseFormatter = () =>
   getTimeFormatter(SMART_DATE_VERBOSE_ID);
@@ -76,21 +183,30 @@ export const getYAxisFormatter = (
 
 export function getTooltipTimeFormatter(
   format?: string,
+  timeGrain?: TimeGranularity,
 ): TimeFormatter | StringConstructor {
-  if (format === SMART_DATE_ID) {
-    return getSmartDateDetailedFormatter();
+  // When a time grain is active and the user hasn't pinned an explicit format,
+  // honor the grain so tooltips read "Jan 2021", "2021 Q1", "2021", weekly
+  // ranges, etc. instead of a fixed timestamp. An explicit custom format is
+  // always respected verbatim.
+  if (!format || format === SMART_DATE_ID) {
+    if (timeGrain) {
+      return getTimeFormatter(undefined, timeGrain);
+    }
+    if (format === SMART_DATE_ID) {
+      return getSmartDateVerboseFormatter();
+    }
+    return String;
   }
-  if (format) {
-    return getTimeFormatter(format);
-  }
-  return String;
+  return getTimeFormatter(format);
 }
 
 export function getXAxisFormatter(
   format?: string,
+  timeGrain?: string,
 ): TimeFormatter | StringConstructor | undefined {
   if (format === SMART_DATE_ID || !format) {
-    return undefined;
+    return getSmartDateFormatter(timeGrain);
   }
   if (format) {
     return getTimeFormatter(format);

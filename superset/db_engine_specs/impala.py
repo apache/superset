@@ -21,16 +21,18 @@ import logging
 import re
 import time
 from datetime import datetime
-from typing import Any, TYPE_CHECKING
+from typing import Any, Optional, TYPE_CHECKING
 
-from flask import current_app
-from sqlalchemy import types
+import requests
+from flask import current_app as app
+from sqlalchemy import text, types
 from sqlalchemy.engine.reflection import Inspector
 
 from superset import db
 from superset.constants import QUERY_EARLY_CANCEL_KEY, TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.models.sql_lab import Query
+from superset.utils.network import is_safe_host
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -46,6 +48,23 @@ class ImpalaEngineSpec(BaseEngineSpec):
     engine = "impala"
     engine_name = "Apache Impala"
 
+    metadata = {
+        "description": (
+            "Apache Impala is an open-source massively parallel "
+            "processing SQL query engine."
+        ),
+        "logo": "apache-impala.png",
+        "homepage_url": "https://impala.apache.org/",
+        "categories": [
+            DatabaseCategory.APACHE_PROJECTS,
+            DatabaseCategory.QUERY_ENGINES,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
+        "pypi_packages": ["impyla"],
+        "connection_string": "impala://{hostname}:{port}/{database}",
+        "default_port": 21050,
+    }
+
     _time_grain_expressions = {
         None: "{col}",
         TimeGrain.MINUTE: "TRUNC({col}, 'MI')",
@@ -56,6 +75,8 @@ class ImpalaEngineSpec(BaseEngineSpec):
         TimeGrain.QUARTER: "TRUNC({col}, 'Q')",
         TimeGrain.YEAR: "TRUNC({col}, 'YYYY')",
     }
+
+    has_query_id_before_execute = False
 
     @classmethod
     def epoch_to_dttm(cls) -> str:
@@ -75,11 +96,12 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
     @classmethod
     def get_schema_names(cls, inspector: Inspector) -> set[str]:
-        return {
-            row[0]
-            for row in inspector.engine.execute("SHOW SCHEMAS")
-            if not row[0].startswith("_")
-        }
+        with inspector.engine.connect() as conn:
+            return {
+                row[0]
+                for row in conn.execute(text("SHOW SCHEMAS"))
+                if not row[0].startswith("_")
+            }
 
     @classmethod
     def has_implicit_cancel(cls) -> bool:
@@ -91,7 +113,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
         :see: handle_cursor
         """
 
-        return True
+        return False
 
     @classmethod
     def execute(
@@ -121,7 +143,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
             while status in unfinished_states:
                 db.session.refresh(query)
                 query = db.session.query(Query).filter_by(id=query_id).one()
-                # if query cancelation was requested prior to the handle_cursor call, but
+                # if query cancelation was requested prior to the handle_cursor call, but  # noqa: E501
                 # the query was still executed
                 # modified in stop_query in views / core.py is reflected  here.
                 # stop query
@@ -152,7 +174,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
                     if needs_commit:
                         db.session.commit()  # pylint: disable=consider-using-transaction
-                sleep_interval = current_app.config["DB_POLL_INTERVAL_SECONDS"].get(
+                sleep_interval = app.config["DB_POLL_INTERVAL_SECONDS"].get(
                     cls.engine, 5
                 )
                 time.sleep(sleep_interval)
@@ -160,3 +182,62 @@ class ImpalaEngineSpec(BaseEngineSpec):
         except Exception:  # pylint: disable=broad-except
             logger.debug("Call to status() failed ")
             return
+
+    @classmethod
+    def get_cancel_query_id(cls, cursor: Any, query: Query) -> Optional[str]:
+        """
+        Get Impala Query ID that will be used to cancel the running
+        queries to release impala resources.
+
+        :param cursor: Cursor instance in which the query will be executed
+        :param query: Query instance
+        :return: Impala Query ID
+        """
+        last_operation = getattr(cursor, "_last_operation", None)
+        if not last_operation:
+            return None
+        guid = last_operation.handle.operationId.guid[::-1].hex()
+        return f"{guid[-16:]}:{guid[:16]}"
+
+    @classmethod
+    def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> bool:
+        """
+        Cancel query in the underlying database.
+
+        :param cursor: New cursor instance to the db of the query
+        :param query: Query instance
+        :param cancel_query_id: Impala query ID in format "hex:hex"
+        :return: True if query cancelled successfully, False otherwise
+        """
+        # Validate cancel_query_id to prevent URL injection
+        # Impala query IDs are in "hex:hex" form (16 hex chars per side)
+        if not cls.validate_cancel_query_id(
+            cancel_query_id, r"^[A-Fa-f0-9]{16}:[A-Fa-f0-9]{16}$"
+        ):
+            return False
+
+        try:
+            impala_host = query.database.url_object.host
+            # The cancel call issues an outbound HTTP request from the
+            # Superset backend to whatever host the DB connection was
+            # configured with; validate it before the call to keep this
+            # path consistent with the dataset-import and webhook URL
+            # checks. Operators with internal Impala targets can opt out
+            # via IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS.
+            if not impala_host:
+                return False
+            if not app.config[
+                "IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS"
+            ] and not is_safe_host(impala_host):
+                logger.warning(
+                    "Impala cancel_query refused: target host is not allowed"
+                )
+                return False
+            url = f"http://{impala_host}:25000/cancel_query?query_id={cancel_query_id}"
+            # Do not follow redirects: a validated host could otherwise 30x the
+            # request to an internal target, bypassing the is_safe_host check.
+            response = requests.post(url, timeout=3, allow_redirects=False)
+        except Exception:  # pylint: disable=broad-except
+            return False
+
+        return bool(response and response.status_code == 200)

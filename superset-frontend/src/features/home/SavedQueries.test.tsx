@@ -16,97 +16,131 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import thunk from 'redux-thunk';
-import { styledMount as mount } from 'spec/helpers/theming';
+import { act, ComponentProps } from 'react';
+import {
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
-import configureStore from 'redux-mock-store';
-import { act } from 'react-dom/test-utils';
-import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import SubMenu from './SubMenu';
-import SavedQueries from './SavedQueries';
+import ToastedSavedQueries from './SavedQueries';
 
-// store needed for withToasts(DashboardTable)
-const mockStore = configureStore([thunk]);
-const store = mockStore({});
+const savedQueriesEndpoint = 'glob:*/api/v1/saved_query/?*';
+const savedQueriesInfoEndpoint = 'glob:*/api/v1/saved_query/_info*';
 
-const queriesEndpoint = 'glob:*/api/v1/saved_query/?*';
-const savedQueriesInfo = 'glob:*/api/v1/saved_query/_info*';
-
-const mockqueries = [...new Array(3)].map((_, i) => ({
-  created_by: {
-    id: i,
-    first_name: `user`,
-    last_name: `${i}`,
-  },
-  created_on: `${i}-2020`,
-  database: {
-    database_name: `db ${i}`,
-    id: i,
-  },
-  changed_on_delta_humanized: '1 day ago',
-  db_id: i,
-  description: `SQL for ${i}`,
+const mockQueries = Array.from({ length: 3 }).map((_, i) => ({
   id: i,
-  label: `query ${i}`,
-  schema: 'public',
-  sql: `SELECT ${i} FROM table`,
-  sql_tables: [
-    {
-      catalog: null,
-      schema: null,
-      table: `${i}`,
-    },
-  ],
+  label: `cool query ${i}`,
+  sql: 'SELECT 1',
+  changed_on_delta_humanized: '1 day ago',
 }));
 
-fetchMock.get(queriesEndpoint, {
-  result: mockqueries,
-});
+const mockedProps: ComponentProps<typeof ToastedSavedQueries> = {
+  addDangerToast: jest.fn(),
+  addSuccessToast: jest.fn(),
+  user: {
+    userId: 2,
+    firstName: 'Test',
+    lastName: 'User',
+    username: 'test',
+    isActive: true,
+    isAnonymous: false,
+  },
+  queryFilter: 'Mine',
+  mine: mockQueries,
+  showThumbnails: false,
+  featureFlag: false,
+};
 
-fetchMock.get(savedQueriesInfo, {
-  permissions: ['can_list', 'can_edit', 'can_delete'],
-});
-
-describe('SavedQueries', () => {
-  const savedQueryProps = {
-    user: {
-      userId: '1',
-    },
-    mine: mockqueries,
-  };
-
-  const wrapper = mount(<SavedQueries store={store} {...savedQueryProps} />);
-
-  const clickTab = (idx: number) => {
-    act(() => {
-      const handler = wrapper.find('[role="tab"] a').at(idx).prop('onClick');
-      if (handler) {
-        handler({} as any);
-      }
+const renderSavedQueries = (
+  props: ComponentProps<typeof ToastedSavedQueries>,
+) =>
+  act(async () => {
+    render(<ToastedSavedQueries {...props} />, {
+      useRedux: true,
+      useRouter: true,
     });
+  });
+
+beforeEach(() => {
+  window.history.pushState({}, '', '/');
+  fetchMock.get(
+    savedQueriesEndpoint,
+    { result: mockQueries },
+    { name: savedQueriesEndpoint },
+  );
+  fetchMock.get(savedQueriesInfoEndpoint, {
+    permissions: ['can_read', 'can_write'],
+  });
+});
+
+afterEach(() => fetchMock.clearHistory().removeRoutes());
+
+test('navigates to SQL Lab when a saved query card is clicked', async () => {
+  await renderSavedQueries(mockedProps);
+
+  await userEvent.click(await screen.findByText('cool query 0'));
+
+  await waitFor(() => {
+    expect(window.location.pathname).toBe('/sqllab');
+    expect(window.location.search).toContain('savedQueryId=0');
+  });
+});
+
+test('navigates to SQL Lab when a saved query card is activated by keyboard', async () => {
+  await renderSavedQueries(mockedProps);
+
+  const card = await screen.findByRole('button', { name: 'cool query 0' });
+  card.focus();
+  expect(card).toHaveFocus();
+
+  fireEvent.keyDown(card, { key: 'Enter' });
+
+  await waitFor(() => {
+    expect(window.location.pathname).toBe('/sqllab');
+    expect(window.location.search).toContain('savedQueryId=0');
+  });
+});
+
+test('does not navigate when a control inside the card is activated by keyboard', async () => {
+  await renderSavedQueries(mockedProps);
+
+  const [menuButton] = await screen.findAllByRole('button', {
+    name: 'More Options',
+  });
+  fireEvent.keyDown(menuButton, { key: 'Enter' });
+
+  expect(window.location.pathname).toBe('/');
+});
+
+test('navigates only via the card wrapper, without a competing link', async () => {
+  // With thumbnails on and a query that has no SQL, ListViewCard would render
+  // its fallback cover. Navigation must come solely from the card wrapper, so
+  // the card must not also render an anchor to the saved query (which would
+  // double-navigate and break modified-click behavior).
+  const emptySqlQuery = {
+    id: 5,
+    label: 'no sql query',
+    changed_on_delta_humanized: '1 day ago',
   };
-
-  beforeAll(async () => {
-    await waitForComponentToPaint(wrapper);
+  fetchMock.removeRoutes();
+  fetchMock.get(
+    savedQueriesEndpoint,
+    { result: [emptySqlQuery] },
+    { name: savedQueriesEndpoint },
+  );
+  fetchMock.get(savedQueriesInfoEndpoint, {
+    permissions: ['can_read', 'can_write'],
   });
 
-  it('is valid', () => {
-    expect(wrapper.find(SavedQueries)).toExist();
+  await renderSavedQueries({
+    ...mockedProps,
+    showThumbnails: true,
+    mine: [emptySqlQuery],
   });
 
-  it('fetches queries mine and renders listviewcard cards', async () => {
-    clickTab(0);
-    await waitForComponentToPaint(wrapper);
-    expect(fetchMock.calls(/saved_query\/\?q/)).toHaveLength(1);
-    expect(wrapper.find('ListViewCard')).toExist();
-  });
-
-  it('renders a submenu with clickable tables and buttons', async () => {
-    expect(wrapper.find(SubMenu)).toExist();
-    expect(wrapper.find('[role="tab"]')).toHaveLength(1);
-    expect(wrapper.find('button')).toHaveLength(2);
-    clickTab(0);
-    await waitForComponentToPaint(wrapper);
-    expect(fetchMock.calls(/saved_query\/\?q/)).toHaveLength(2);
-  });
+  await screen.findByText('no sql query');
+  expect(document.querySelectorAll('a[href*="savedQueryId"]')).toHaveLength(0);
 });

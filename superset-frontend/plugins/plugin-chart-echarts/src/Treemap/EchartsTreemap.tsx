@@ -26,7 +26,7 @@ import {
 import { useCallback } from 'react';
 import Echart from '../components/Echart';
 import { NULL_STRING } from '../constants';
-import { EventHandlers } from '../types';
+import { EventHandlers, TreePathInfo } from '../types';
 import { extractTreePathInfo } from './constants';
 import { TreemapTransformedProps } from './types';
 import { formatSeriesName } from '../utils/series';
@@ -46,7 +46,7 @@ export default function EchartsTreemap({
   coltypeMapping,
 }: TreemapTransformedProps) {
   const getCrossFilterDataMask = useCallback(
-    (data, treePathInfo) => {
+    (data: Record<string, unknown>, treePathInfo: TreePathInfo[]) => {
       if (data?.children) {
         return undefined;
       }
@@ -96,8 +96,8 @@ export default function EchartsTreemap({
   );
 
   const handleChange = useCallback(
-    (data, treePathInfo) => {
-      if (!emitCrossFilters) {
+    (data: Record<string, unknown>, treePathInfo: TreePathInfo[]) => {
+      if (!emitCrossFilters || groupby.length === 0) {
         return;
       }
 
@@ -106,7 +106,7 @@ export default function EchartsTreemap({
         setDataMask(dataMask);
       }
     },
-    [emitCrossFilters, getCrossFilterDataMask, setDataMask],
+    [emitCrossFilters, getCrossFilterDataMask, setDataMask, groupby.length],
   );
 
   const eventHandlers: EventHandlers = {
@@ -144,7 +144,10 @@ export default function EchartsTreemap({
           });
           onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
             drillToDetail: drillToDetailFilters,
-            crossFilter: getCrossFilterDataMask(data, treePathInfo),
+            crossFilter:
+              groupby.length > 0
+                ? getCrossFilterDataMask(data, treePathInfo)
+                : undefined,
             drillBy: { filters: drillByFilters, groupbyFieldName: 'groupby' },
           });
         }
@@ -160,6 +163,7 @@ export default function EchartsTreemap({
       echartOptions={echartOptions}
       eventHandlers={eventHandlers}
       selectedValues={selectedValues}
+      vizType={formData.vizType}
     />
   );
 }

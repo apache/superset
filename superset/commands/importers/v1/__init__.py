@@ -14,7 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Optional
+
+from __future__ import annotations
+
+import logging
+from typing import Any
 
 from marshmallow import Schema, validate  # noqa: F401
 from marshmallow.exceptions import ValidationError
@@ -33,6 +37,8 @@ from superset.commands.importers.v1.utils import (
 from superset.daos.base import BaseDAO
 from superset.models.core import Database  # noqa: F401
 from superset.utils.decorators import transaction
+
+logger = logging.getLogger(__name__)
 
 
 class ImportModelsCommand(BaseCommand):
@@ -57,11 +63,19 @@ class ImportModelsCommand(BaseCommand):
         self.ssh_tunnel_priv_key_passwords: dict[str, str] = (
             kwargs.get("ssh_tunnel_priv_key_passwords") or {}
         )
+        self.encrypted_extra_secrets: dict[str, dict[str, str]] = (
+            kwargs.get("encrypted_extra_secrets") or {}
+        )
         self.overwrite: bool = kwargs.get("overwrite", False)
         self._configs: dict[str, Any] = {}
 
     @staticmethod
-    def _import(configs: dict[str, Any], overwrite: bool = False) -> None:
+    # ruff: noqa: C901
+    def _import(
+        configs: dict[str, Any],
+        overwrite: bool = False,
+        contents: dict[str, Any] | None = None,
+    ) -> None:
         raise NotImplementedError("Subclasses MUST implement _import")
 
     @classmethod
@@ -72,8 +86,21 @@ class ImportModelsCommand(BaseCommand):
     def run(self) -> None:
         self.validate()
 
+        # Declare the high-level avenue before any session writes. The
+        # change-record listener reads this on its first after_flush
+        # for the resulting ``version_transaction`` row and stamps
+        # ``version_transaction.action_kind = 'import'``. Lets operators
+        # explain otherwise-confusing diffs ("Cleared default_filters")
+        # as "this was an import".
+        # Method-scoped import — defers the versioning bootstrap path
+        # out of this command's module-load graph; see ``changes.py``
+        # module docstring for the broader init-order rationale.
+        from superset.versioning.changes import ACTION_KIND_IMPORT, ACTION_KIND_KEY
+
+        db.session.info[ACTION_KIND_KEY] = ACTION_KIND_IMPORT
+
         try:
-            self._import(self._configs, self.overwrite)
+            self._import(self._configs, self.overwrite, self.contents)
         except CommandException:
             raise
         except Exception as ex:
@@ -84,14 +111,14 @@ class ImportModelsCommand(BaseCommand):
 
         # verify that the metadata file is present and valid
         try:
-            metadata: Optional[dict[str, str]] = load_metadata(self.contents)
+            metadata: dict[str, str] | None = load_metadata(self.contents)
         except ValidationError as exc:
             exceptions.append(exc)
             metadata = None
         if self.dao.model_cls:
             validate_metadata_type(metadata, self.dao.model_cls.__name__, exceptions)
 
-        # load the configs and make sure we have confirmation to overwrite existing models
+        # load the configs and make sure we have confirmation to overwrite existing models  # noqa: E501
         self._configs = load_configs(
             self.contents,
             self.schemas,
@@ -100,12 +127,25 @@ class ImportModelsCommand(BaseCommand):
             self.ssh_tunnel_passwords,
             self.ssh_tunnel_private_keys,
             self.ssh_tunnel_priv_key_passwords,
+            self.encrypted_extra_secrets,
         )
         self._prevent_overwrite_existing_model(exceptions)
 
         if exceptions:
+            detailed_errors = []
+            for ex in exceptions:
+                # Extract detailed error information
+                if hasattr(ex, "messages") and isinstance(ex.messages, dict):
+                    for file_name, errors in ex.messages.items():
+                        logger.error("Validation failed for %s: %s", file_name, errors)
+                        detailed_errors.append(f"{file_name}: {errors}")
+                else:
+                    logger.error("Import validation error: %s", ex)
+                    detailed_errors.append(str(ex))
+
+            error_summary = "; ".join(detailed_errors)
             raise CommandInvalidError(
-                f"Error importing {self.model_name}",
+                f"Error importing {self.model_name}: {error_summary}",
                 exceptions,
             )
 

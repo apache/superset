@@ -16,27 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
+import thumbnailDark from './images/thumbnail-dark.png';
 
 export default class PopKPIPlugin extends ChartPlugin {
   constructor() {
     const metadata = new ChartMetadata({
       category: t('KPI'),
-      description:
+      description: t(
         'Showcases a metric along with a comparison of value, change, and percent change for a selected time period.',
+      ),
       name: t('Big Number with Time Period Comparison'),
       tags: [
         t('Comparison'),
         t('Business'),
+        t('ECharts'),
         t('Percentages'),
         t('Report'),
         t('Advanced-Analytics'),
       ],
       thumbnail,
+      thumbnailDark,
     });
 
     super({

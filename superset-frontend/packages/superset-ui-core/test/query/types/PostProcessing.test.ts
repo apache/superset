@@ -49,8 +49,10 @@ import {
   isPostProcessingRename,
   isPostProcessingFlatten,
   isPostProcessingRank,
+  ComparisonType,
+  RollingType,
+  TimeGranularity,
 } from '@superset-ui/core';
-import { ComparisonType, RollingType, TimeGranularity } from '../../../src';
 
 const AGGREGATES_OPTION: Aggregates = {
   bar: {
@@ -61,7 +63,7 @@ const AGGREGATES_OPTION: Aggregates = {
 };
 
 const AGGREGATE_RULE: PostProcessingAggregation = {
-  operation: 'aggregation',
+  operation: 'aggregate',
   options: {
     groupby: ['foo'],
     aggregates: AGGREGATES_OPTION,

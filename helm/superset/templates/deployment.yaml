@@ -23,12 +23,9 @@ metadata:
   name: {{ template "superset.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ template "superset.name" . }}
-    chart: {{ template "superset.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
-    {{- if .Values.supersetNode.deploymentLabels }}
-      {{- toYaml .Values.supersetNode.deploymentLabels | nindent 4 }}
+    {{- include "superset.componentLabels" (dict "component" "web" "root" .) | nindent 4 }}
+    {{- with .Values.supersetNode.deploymentLabels }}
+      {{- toYaml . | nindent 4 }}
     {{- end }}
   {{- if .Values.supersetNode.deploymentAnnotations }}
   annotations: {{- toYaml .Values.supersetNode.deploymentAnnotations | nindent 4 }}
@@ -47,10 +44,13 @@ spec:
     metadata:
       annotations:
         # Force reload on config changes
-        checksum/superset_config.py: {{ include "superset-config" . | sha256sum }}
-        checksum/superset_init.sh: {{ tpl .Values.init.initscript . | sha256sum }}
+        checksum/superset_config.py: {{ include "superset.config" . | sha256sum }}
+        checksum/superset_init.sh: {{ include "superset.initScript" . | sha256sum }}
         checksum/superset_bootstrap.sh: {{ tpl .Values.bootstrapScript . | sha256sum }}
-        checksum/connections: {{ .Values.supersetNode.connections | toYaml | sha256sum }}
+        checksum/database: {{ .Values.database | toYaml | sha256sum }}
+        checksum/redis: {{ .Values.cache | toYaml | sha256sum }}
+        checksum/config: {{ .Values.config | toYaml | sha256sum }}
+        checksum/featureFlags: {{ .Values.featureFlags | toYaml | sha256sum }}
         checksum/extraConfigs: {{ .Values.extraConfigs | toYaml | sha256sum }}
         checksum/extraSecrets: {{ .Values.extraSecrets | toYaml | sha256sum }}
         checksum/extraSecretEnv: {{ .Values.extraSecretEnv | toYaml | sha256sum }}
@@ -63,13 +63,18 @@ spec:
         {{- if .Values.supersetNode.podAnnotations }}
           {{- toYaml .Values.supersetNode.podAnnotations | nindent 8 }}
         {{- end }}
+        {{- with .Values.globalPodAnnotations }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
       labels:
-        app: {{ template "superset.name" . }}
-        release: {{ .Release.Name }}
+        {{- include "supersetNode.selectorLabels" . | nindent 8 }}
         {{- if .Values.supersetNode.podLabels }}
           {{- toYaml .Values.supersetNode.podLabels | nindent 8 }}
         {{- end }}
     spec:
+      {{- if .Values.supersetNode.deploymentAdditionalPodSpec }}
+      {{- tpl (toYaml .Values.supersetNode.deploymentAdditionalPodSpec) . | nindent 6 }}
+      {{- end }}
       {{- if or (.Values.serviceAccount.create) (.Values.serviceAccountName) }}
       serviceAccountName: {{ template "superset.serviceAccountName" . }}
       {{- end }}
@@ -78,8 +83,14 @@ spec:
         {{- if .Values.supersetNode.podSecurityContext }}
           {{- toYaml .Values.supersetNode.podSecurityContext | nindent 8 }}
         {{- end }}
+      {{- if or .Values.supersetNode.initContainers .Values.supersetNode.extraInitContainers }}
+      initContainers:
       {{- if .Values.supersetNode.initContainers }}
-      initContainers: {{- tpl (toYaml .Values.supersetNode.initContainers) . | nindent 6 }}
+      {{- tpl (toYaml .Values.supersetNode.initContainers) . | nindent 6 }}
+      {{- end }}
+      {{- if .Values.supersetNode.extraInitContainers }}
+      {{- tpl (toYaml .Values.supersetNode.extraInitContainers) . | nindent 6 }}
+      {{- end }}
       {{- end }}
       {{- with .Values.hostAliases }}
       hostAliases: {{- toYaml . | nindent 6 }}
@@ -138,6 +149,9 @@ spec:
           {{- if .Values.supersetNode.livenessProbe }}
           livenessProbe: {{- .Values.supersetNode.livenessProbe | toYaml | nindent 12 }}
           {{- end }}
+          {{- if .Values.supersetNode.lifecycle }}
+          lifecycle: {{- .Values.supersetNode.lifecycle | toYaml | nindent 12 }}
+          {{- end }}
           resources:
             {{- if .Values.supersetNode.resources }}
               {{- toYaml .Values.supersetNode.resources | nindent 12 }}
@@ -145,7 +159,7 @@ spec:
               {{- toYaml .Values.resources | nindent 12 }}
             {{- end }}
         {{- if .Values.supersetNode.extraContainers }}
-          {{- toYaml .Values.supersetNode.extraContainers | nindent 8 }}
+          {{- tpl (toYaml .Values.supersetNode.extraContainers) . | nindent 8 }}
         {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector: {{- toYaml . | nindent 8 }}
@@ -173,6 +187,9 @@ spec:
       {{- end }}
       {{- with .Values.tolerations }}
       tolerations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.supersetNode.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds: {{ .Values.supersetNode.terminationGracePeriodSeconds }}
       {{- end }}
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets: {{- toYaml .Values.imagePullSecrets | nindent 8 }}

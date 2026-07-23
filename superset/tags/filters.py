@@ -14,10 +14,20 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
+from typing import Any
+
 from flask_babel import lazy_gettext as _
 from sqlalchemy.orm import Query
 
-from superset.tags.models import Tag, TagType
+from superset.connectors.sqla.models import SqlaTable
+from superset.extensions import db, security_manager
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
+from superset.sql_lab import Query as SqllabQuery
+from superset.tags.models import Tag, TagType, user_favorite_tag_table
+from superset.utils.core import get_user_id
 from superset.views.base import BaseFilter
 
 
@@ -37,3 +47,73 @@ class UserCreatedTagTypeFilter(BaseFilter):  # pylint: disable=too-few-public-me
         if value is False:
             return query.filter(Tag.type != TagType.custom)
         return query
+
+
+class TagFavoriteFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    """
+    Custom filter for the GET list that filters tags the current user has
+    favorited or not.
+
+    Tag favorites are stored in the dedicated ``user_favorite_tag_table`` M2M
+    table rather than in ``FavStar``, so this filter cannot reuse
+    ``BaseFavoriteFilter`` (which queries ``FavStar``).
+    """
+
+    name = _("Is favorite")
+    arg_name = "tag_is_favorite"
+
+    def apply(self, query: Query, value: Any) -> Query:
+        # If anonymous user filter nothing
+        if security_manager.current_user is None:
+            return query
+        users_favorite_query = db.session.query(
+            user_favorite_tag_table.c.tag_id
+        ).filter(user_favorite_tag_table.c.user_id == get_user_id())
+        if value:
+            return query.filter(Tag.id.in_(users_favorite_query))
+        return query.filter(~Tag.id.in_(users_favorite_query))
+
+
+class BaseTagNameFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    """
+    Base Custom filter for the GET list that filters all dashboards, slices
+    and saved queries associated with a tag (by the tag name).
+    """
+
+    name = _("Is tagged")
+    arg_name = ""
+    class_name = ""
+    """ The Tag class_name to user """
+    model: type[Dashboard | Slice | SqllabQuery | SqlaTable] = Dashboard
+    """ The SQLAlchemy model """
+
+    def apply(self, query: Query, value: Any) -> Query:
+        ilike_value = f"%{value}%"
+        tags_query = (
+            db.session.query(self.model.id)
+            .join(self.model.tags)
+            .filter(Tag.name.ilike(ilike_value))
+        )
+        return query.filter(self.model.id.in_(tags_query))  # type: ignore[union-attr]
+
+
+class BaseTagIdFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    """
+    Base Custom filter for the GET list that filters all dashboards, slices
+    and saved queries associated with a tag (by the tag ID).
+    """
+
+    name = _("Is tagged")
+    arg_name = ""
+    class_name = ""
+    """ The Tag class_name to user """
+    model: type[Dashboard | Slice | SqllabQuery | SqlaTable] = Dashboard
+    """ The SQLAlchemy model """
+
+    def apply(self, query: Query, value: Any) -> Query:
+        tags_query = (
+            db.session.query(self.model.id)
+            .join(self.model.tags)
+            .filter(Tag.id == value)
+        )
+        return query.filter(self.model.id.in_(tags_query))  # type: ignore[union-attr]

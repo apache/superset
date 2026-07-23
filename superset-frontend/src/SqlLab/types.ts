@@ -22,9 +22,12 @@ import {
   UserWithPermissionsAndRoles,
 } from 'src/types/bootstrapTypes';
 import { ToastType } from 'src/components/MessageToasts/types';
-import { DropdownButtonProps } from 'src/components/DropdownButton';
-import { ButtonProps } from 'src/components/Button';
+import type {
+  ButtonProps,
+  DropdownButtonProps,
+} from '@superset-ui/core/components';
 import type { TableMetaData } from 'src/hooks/apiResources';
+import type Subject from 'src/types/Subject';
 
 export type QueryButtonProps = DropdownButtonProps | ButtonProps;
 
@@ -47,6 +50,7 @@ export interface CursorPosition {
 export interface QueryEditor {
   version: QueryEditorVersion;
   id: string;
+  immutableId: string;
   dbId?: number;
   name: string;
   title?: string; // keep it optional for backward compatibility
@@ -67,6 +71,8 @@ export interface QueryEditor {
   southPercent?: number;
   updatedAt?: number;
   cursorPosition?: CursorPosition;
+  isDataset?: boolean;
+  tabViewId?: string;
 }
 
 export type toastState = {
@@ -86,7 +92,7 @@ export interface Table {
   schema: string;
   name: string;
   queryEditorId: QueryEditor['id'];
-  dataPreviewQueryId: string | null;
+  dataPreviewQueryId?: string | null;
   expanded: boolean;
   initialized?: boolean;
   inLocalStorage?: boolean;
@@ -130,17 +136,10 @@ export const EXPLORE_CHART_DEFAULT = {
   row_limit: 1000,
 };
 
-export interface DatasetOwner {
-  first_name: string;
-  id: number;
-  last_name: string;
-  username: string;
-}
-
 export interface DatasetOptionAutocomplete {
   value: string;
   datasetId: number;
-  owners: [DatasetOwner];
+  editors: Subject[];
 }
 
 export interface SchemaOption {

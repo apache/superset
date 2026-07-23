@@ -11,37 +11,57 @@
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
+ * OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
  */
 import { useCallback, useEffect, useMemo, useState, MouseEvent } from 'react';
+import { t } from '@apache-superset/core/translation';
 import {
   isFeatureEnabled,
   FeatureFlag,
-  styled,
-  t,
-  useTheme,
+  handleKeyboardActivation,
 } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
-import Tabs from 'src/components/Tabs';
+import { styled } from '@apache-superset/core/theme';
+import { Icons } from '@superset-ui/core/components/Icons';
+import Tabs from '@superset-ui/core/components/Tabs';
 import {
   getItem,
   setItem,
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
-import {
-  SamplesPane,
-  TableControlsWrapper,
-  useResultsPane,
-} from './components';
+import { SamplesPane, useResultsPane } from './components';
 import { DataTablesPaneProps, ResultTypes } from './types';
+
+/**
+ * A mixed chart can be reconfigured to return fewer result panes than before
+ * (e.g. dropping a query), which removes the corresponding results tab. If the
+ * selected tab was one of those, the active key goes stale and the data panel
+ * renders blank until the user reselects a valid tab. Returns the first
+ * results tab to fall back to in that case, otherwise undefined.
+ */
+export const getStaleResultsTabFallback = (
+  activeTabKey: string,
+  resultsTabKeys: string[],
+): string | undefined =>
+  activeTabKey.startsWith(ResultTypes.Results) &&
+  !resultsTabKeys.includes(activeTabKey)
+    ? ResultTypes.Results
+    : undefined;
+
+const StyledDiv = styled.div`
+  ${() => `
+    display: flex;
+    height: 100%;
+    flex-direction: column;
+    `}
+`;
 
 const SouthPane = styled.div`
   ${({ theme }) => `
     position: relative;
-    background-color: ${theme.colors.grayscale.light5};
+    background-color: ${theme.colorBgContainer};
     z-index: 5;
     overflow: hidden;
 
@@ -49,30 +69,28 @@ const SouthPane = styled.div`
       height: 100%;
     }
 
-    .ant-tabs-content-holder {
+    .ant-tabs-body-holder {
+      height: 100%;
+    }
+
+    .ant-tabs-body {
       height: 100%;
     }
 
     .ant-tabs-content {
       height: 100%;
-    }
-
-    .ant-tabs-tabpane {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
+      position: relative;
 
       .table-condensed {
         height: 100%;
         overflow: auto;
-        margin-bottom: ${theme.gridUnit * 4}px;
+        margin-bottom: ${theme.sizeUnit * 4}px;
 
         .table {
-          margin-bottom: ${theme.gridUnit * 2}px;
+          margin-bottom: ${theme.sizeUnit * 2}px;
         }
       }
-
-      .pagination-container > ul[role='navigation'] {
+     .pagination-container > ul[role='navigation'] {
         margin-top: 0;
       }
     }
@@ -87,10 +105,10 @@ export const DataTablesPane = ({
   chartStatus,
   ownState,
   errorMessage,
-  actions,
+  setForceQuery,
   canDownload,
+  queriesResponse,
 }: DataTablesPaneProps) => {
-  const theme = useTheme();
   const [activeTabKey, setActiveTabKey] = useState<string>(ResultTypes.Results);
   const [isRequest, setIsRequest] = useState<Record<ResultTypes, boolean>>({
     results: false,
@@ -113,6 +131,10 @@ export const DataTablesPane = ({
         results: false,
         samples: false,
       });
+    }
+
+    if (panelOpen && chartStatus === 'loading') {
+      setIsRequest(prev => ({ ...prev, results: false }));
     }
 
     if (
@@ -158,23 +180,20 @@ export const DataTablesPane = ({
 
   const CollapseButton = useMemo(() => {
     const caretIcon = panelOpen ? (
-      <Icons.CaretUp
-        iconColor={theme.colors.grayscale.base}
-        aria-label={t('Collapse data panel')}
-      />
+      <Icons.UpOutlined aria-label={t('Collapse data panel')} />
     ) : (
-      <Icons.CaretDown
-        iconColor={theme.colors.grayscale.base}
-        aria-label={t('Expand data panel')}
-      />
+      <Icons.DownOutlined aria-label={t('Expand data panel')} />
     );
     return (
-      <TableControlsWrapper>
+      <div>
         {panelOpen ? (
           <span
             role="button"
             tabIndex={0}
             onClick={() => handleCollapseChange(false)}
+            onKeyDown={handleKeyboardActivation(() =>
+              handleCollapseChange(false),
+            )}
           >
             {caretIcon}
           </span>
@@ -183,13 +202,16 @@ export const DataTablesPane = ({
             role="button"
             tabIndex={0}
             onClick={() => handleCollapseChange(true)}
+            onKeyDown={handleKeyboardActivation(() =>
+              handleCollapseChange(true),
+            )}
           >
             {caretIcon}
           </span>
         )}
-      </TableControlsWrapper>
+      </div>
     );
-  }, [handleCollapseChange, panelOpen, theme.colors.grayscale.base]);
+  }, [handleCollapseChange, panelOpen]);
 
   const queryResultsPanes = useResultsPane({
     errorMessage,
@@ -197,50 +219,60 @@ export const DataTablesPane = ({
     queryForce,
     ownState,
     isRequest: isRequest.results,
-    actions,
-    isVisible: ResultTypes.Results === activeTabKey,
+    setForceQuery,
     canDownload,
+    queriesResponse,
   }).map((pane, idx) => {
-    if (idx === 0) {
-      return (
-        <Tabs.TabPane tab={t('Results')} key={ResultTypes.Results}>
-          {pane}
-        </Tabs.TabPane>
-      );
-    }
-    if (idx > 0) {
-      return (
-        <Tabs.TabPane
-          tab={t('Results %s', idx + 1)}
-          key={`${ResultTypes.Results} ${idx + 1}`}
-        >
-          {pane}
-        </Tabs.TabPane>
-      );
-    }
-    return null;
+    const tabKey =
+      idx === 0 ? ResultTypes.Results : `${ResultTypes.Results} ${idx + 1}`;
+
+    return {
+      key: tabKey,
+      label: idx === 0 ? t('Results') : t('Results %s', idx + 1),
+      children: activeTabKey === tabKey ? pane : null,
+    };
   });
+
+  const resultsTabFallback = getStaleResultsTabFallback(
+    activeTabKey,
+    queryResultsPanes.map(({ key }) => key),
+  );
+
+  useEffect(() => {
+    if (resultsTabFallback) {
+      setActiveTabKey(resultsTabFallback);
+    }
+  }, [resultsTabFallback]);
+
+  const tabItems = [
+    ...queryResultsPanes,
+    {
+      key: ResultTypes.Samples,
+      label: t('Samples'),
+      children: (
+        <StyledDiv>
+          <SamplesPane
+            datasource={datasource}
+            queryFormData={queryFormData}
+            queryForce={queryForce}
+            isRequest={isRequest.samples}
+            setForceQuery={setForceQuery}
+            isVisible={ResultTypes.Samples === activeTabKey}
+            canDownload={canDownload}
+          />
+        </StyledDiv>
+      ),
+    },
+  ];
 
   return (
     <SouthPane data-test="some-purposeful-instance">
       <Tabs
-        fullWidth={false}
         tabBarExtraContent={CollapseButton}
         activeKey={panelOpen ? activeTabKey : ''}
         onTabClick={handleTabClick}
-      >
-        {queryResultsPanes}
-        <Tabs.TabPane tab={t('Samples')} key={ResultTypes.Samples}>
-          <SamplesPane
-            datasource={datasource}
-            queryForce={queryForce}
-            isRequest={isRequest.samples}
-            actions={actions}
-            isVisible={ResultTypes.Samples === activeTabKey}
-            canDownload={canDownload}
-          />
-        </Tabs.TabPane>
-      </Tabs>
+        items={tabItems}
+      />
     </SouthPane>
   );
 };

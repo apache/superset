@@ -16,13 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import userEvent from '@testing-library/user-event';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { FilterInput } from '.';
 
-jest.mock('lodash/debounce', () => ({
-  __esModule: true,
-  default: (fuc: Function) => fuc,
+jest.mock('lodash', () => ({
+  ...jest.requireActual('lodash'),
+  debounce: (fuc: Function) => fuc,
 }));
 
 test('Render a FilterInput', async () => {
@@ -30,8 +29,45 @@ test('Render a FilterInput', async () => {
   render(<FilterInput onChangeHandler={onChangeHandler} />);
   expect(await screen.findByRole('textbox')).toBeInTheDocument();
 
-  expect(onChangeHandler).toBeCalledTimes(0);
+  expect(onChangeHandler).toHaveBeenCalledTimes(0);
   userEvent.type(screen.getByRole('textbox'), 'test');
 
-  expect(onChangeHandler).toBeCalledTimes(4);
+  expect(onChangeHandler).toHaveBeenCalledTimes(4);
+});
+
+test('FilterInput auto-focuses when a non-editable element (e.g. a tab) has focus', () => {
+  const onChangeHandler = jest.fn();
+  const button = document.createElement('button');
+  document.body.appendChild(button);
+  try {
+    button.focus();
+    expect(document.activeElement).toBe(button);
+
+    render(<FilterInput onChangeHandler={onChangeHandler} shouldFocus />);
+    const filterInput = screen.getByPlaceholderText('Search');
+
+    // Auto-focus should fire — a button is not an editable element
+    expect(document.activeElement).toBe(filterInput);
+  } finally {
+    document.body.removeChild(button);
+  }
+});
+
+test('FilterInput does not steal focus when another input already has focus', () => {
+  const onChangeHandler = jest.fn();
+  const otherInput = document.createElement('input');
+  document.body.appendChild(otherInput);
+  try {
+    otherInput.focus();
+    expect(document.activeElement).toBe(otherInput);
+
+    render(<FilterInput onChangeHandler={onChangeHandler} shouldFocus />);
+    const filterInput = screen.getByPlaceholderText('Search');
+
+    // FilterInput should not have stolen focus from the already-focused input
+    expect(document.activeElement).not.toBe(filterInput);
+    expect(document.activeElement).toBe(otherInput);
+  } finally {
+    document.body.removeChild(otherInput);
+  }
 });

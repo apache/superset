@@ -17,8 +17,9 @@
  * under the License.
  */
 
-import prettyMsFormatter from 'pretty-ms';
 import NumberFormatter from '../NumberFormatter';
+import { getIntlDurationFormatter } from '../utils/getIntlDurationFormatter';
+import { parseMilliseconds } from '../utils/parseMilliseconds';
 
 export default function createDurationFormatter(
   config: {
@@ -26,13 +27,48 @@ export default function createDurationFormatter(
     id?: string;
     label?: string;
     multiplier?: number;
-  } & prettyMsFormatter.Options = {},
+    locale?: string;
+    formatSubMilliseconds?: boolean;
+  } & Intl.DurationFormatOptions = {},
 ) {
-  const { description, id, label, multiplier = 1, ...prettyMsOptions } = config;
-
+  const {
+    description,
+    id,
+    label,
+    multiplier = 1,
+    locale,
+    formatSubMilliseconds = false,
+    ...intlOptions
+  } = config;
+  const durationFormatter = getIntlDurationFormatter(locale, {
+    secondsDisplay: 'auto',
+    style: 'narrow',
+    ...intlOptions,
+  });
+  const zeroDurationFormatter = getIntlDurationFormatter(locale, {
+    secondsDisplay: 'always',
+    style: 'narrow',
+    ...intlOptions,
+  });
   return new NumberFormatter({
     description,
-    formatFunc: value => prettyMsFormatter(value * multiplier, prettyMsOptions),
+    formatFunc: value => {
+      const durObject = parseMilliseconds(value * multiplier);
+
+      if (!formatSubMilliseconds) {
+        durObject.milliseconds = 0;
+        durObject.microseconds = 0;
+        durObject.nanoseconds = 0;
+      }
+
+      const isAllUnitsZero = Object.values(durObject).every(
+        value => value === 0,
+      );
+
+      return (
+        isAllUnitsZero ? zeroDurationFormatter : durationFormatter
+      ).format(durObject);
+    },
     id: id ?? 'duration_format',
     label: label ?? `Duration formatter`,
   });

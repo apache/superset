@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import logging
 from enum import Enum
 from typing import Type
 
@@ -107,9 +108,10 @@ def migrate_viz() -> None:
 )
 def upgrade(viz_type: str, ids: tuple[int, ...] | None = None) -> None:
     """Upgrade a viz to the latest version."""
-    if ids is None:
+    setup_logger()
+    if viz_type:
         migrate_by_viz_type(VizType(viz_type))
-    else:
+    elif ids:
         migrate_by_id(ids)
 
 
@@ -133,9 +135,10 @@ def upgrade(viz_type: str, ids: tuple[int, ...] | None = None) -> None:
 )
 def downgrade(viz_type: str, ids: tuple[int, ...] | None = None) -> None:
     """Downgrade a viz to the previous version."""
-    if ids is None:
+    setup_logger()
+    if viz_type:
         migrate_by_viz_type(VizType(viz_type), is_downgrade=True)
-    else:
+    elif ids:
         migrate_by_id(ids, is_downgrade=True)
 
 
@@ -163,7 +166,7 @@ def migrate_by_id(ids: tuple[int, ...], is_downgrade: bool = False) -> None:
     slices = db.session.query(Slice).filter(Slice.id.in_(ids))
     for slc in paginated_update(
         slices,
-        lambda current, total: print(
+        lambda current, total: click.echo(
             f"{('Downgraded' if is_downgrade else 'Upgraded')} {current}/{total} charts"
         ),
     ):
@@ -171,3 +174,12 @@ def migrate_by_id(ids: tuple[int, ...], is_downgrade: bool = False) -> None:
             PREVIOUS_VERSION[slc.viz_type].downgrade_slice(slc)
         elif slc.viz_type in MIGRATIONS:
             MIGRATIONS[slc.viz_type].upgrade_slice(slc)
+
+
+def setup_logger() -> None:
+    """
+    Configure the logger for the CLI commands.
+    """
+    console_handler = logging.StreamHandler()
+    logger = logging.getLogger("alembic")
+    logger.addHandler(console_handler)

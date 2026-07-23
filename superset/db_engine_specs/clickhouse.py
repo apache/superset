@@ -18,10 +18,11 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, cast, TYPE_CHECKING
+from urllib import parse
 
-from flask import current_app
+from flask import current_app as app
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
@@ -35,12 +36,12 @@ from superset.db_engine_specs.base import (
     BasicParametersMixin,
     BasicParametersType,
     BasicPropertiesType,
+    DatabaseCategory,
 )
 from superset.db_engine_specs.exceptions import SupersetDBAPIDatabaseError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.extensions import cache_manager
 from superset.utils.core import GenericDataType
-from superset.utils.hashing import md5_sha_from_str
 from superset.utils.network import is_hostname_valid, is_port_open
 
 if TYPE_CHECKING:
@@ -53,6 +54,7 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
     """Shared engine spec for ClickHouse."""
 
     time_groupby_inline = True
+    supports_multivalues_insert = True
 
     _time_grain_expressions = {
         None: "{col}",
@@ -130,18 +132,25 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
         if isinstance(sqla_type, types.Date):
             return f"toDate('{dttm.date().isoformat()}')"
         if isinstance(sqla_type, types.DateTime):
-            return f"""toDateTime('{dttm.isoformat(sep=" ", timespec="seconds")}')"""
+            if dttm.tzinfo is not None and dttm.utcoffset() is not None:
+                dttm = dttm.astimezone(timezone.utc).replace(tzinfo=None)
+            formatted_dttm: str = dttm.isoformat(sep=" ", timespec="seconds")
+            return f"toDateTime('{formatted_dttm}', 'UTC')"
         return None
 
 
 class ClickHouseEngineSpec(ClickHouseBaseEngineSpec):
-    """Engine spec for clickhouse_sqlalchemy connector"""
+    """Engine spec for clickhouse_sqlalchemy connector (legacy)"""
 
     engine = "clickhouse"
-    engine_name = "ClickHouse"
+    engine_name = "ClickHouse (sqlalchemy)"  # Internal name for legacy connector
 
     _show_functions_column = "name"
     supports_file_upload = False
+
+    # Note: Primary metadata is in ClickHouseConnectEngineSpec which consolidates
+    # both drivers. This spec exists for backwards compatibility with existing
+    # connections using the clickhouse-sqlalchemy driver.
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
@@ -219,6 +228,10 @@ class ClickHouseParametersSchema(Schema):
         values=fields.Raw(),
         metadata={"description": __("Additional parameters")},
     )
+    ssh = fields.Boolean(
+        required=False,
+        metadata={"description": __("Use an ssh tunnel connection to the database")},
+    )
 
 
 try:
@@ -242,17 +255,17 @@ try:
     )
     set_setting(
         "product_name",
-        f"superset/{current_app.config.get('VERSION_STRING', 'dev')}",
+        f"superset/{app.config.get('VERSION_STRING', 'dev')}",
     )
 except ImportError:  # ClickHouse Connect not installed, do nothing
     pass
 
 
 class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
-    """Engine spec for clickhouse-connect connector"""
+    """Engine spec for clickhouse-connect connector (recommended)"""
 
     engine = "clickhousedb"
-    engine_name = "ClickHouse Connect (Superset)"
+    engine_name = "ClickHouse"
 
     default_driver = "connect"
     _function_names: list[str] = []
@@ -262,6 +275,113 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
     )
     parameters_schema = ClickHouseParametersSchema()
     encryption_parameters = {"secure": "true"}
+
+    supports_dynamic_schema = True
+
+    metadata = {
+        "description": (
+            "ClickHouse is an open-source column-oriented database for real-time "
+            "analytics using SQL. It's known for extremely fast query performance "
+            "on large datasets."
+        ),
+        "logo": "clickhouse.png",
+        "homepage_url": "https://clickhouse.com/",
+        "categories": [
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
+        "pypi_packages": ["clickhouse-connect>=0.13.0"],
+        "connection_string": "clickhousedb://{username}:{password}@{host}:{port}/{database}",
+        "default_port": 8123,
+        "drivers": [
+            {
+                "name": "clickhouse-connect (Recommended)",
+                "pypi_package": "clickhouse-connect>=0.13.0",
+                "connection_string": (
+                    "clickhousedb://{username}:{password}@{host}:{port}/{database}"
+                ),
+                "is_recommended": True,
+                "notes": (
+                    "Official ClickHouse Python driver with native protocol support."
+                ),
+            },
+            {
+                "name": "clickhouse-sqlalchemy (Legacy)",
+                "pypi_package": "clickhouse-sqlalchemy",
+                "connection_string": (
+                    "clickhouse://{username}:{password}@{host}:{port}/{database}"
+                ),
+                "is_recommended": False,
+                "notes": (
+                    "Older driver using HTTP interface. Use clickhouse-connect "
+                    "for new deployments."
+                ),
+            },
+        ],
+        "connection_examples": [
+            {
+                "description": "Altinity Cloud",
+                "connection_string": (
+                    "clickhousedb://demo:demo@github.demo.trial.altinity.cloud"
+                    "/default?secure=true"
+                ),
+            },
+            {
+                "description": "Local (no auth, no SSL)",
+                "connection_string": "clickhousedb://localhost/default",
+            },
+        ],
+        "install_instructions": (
+            'echo "clickhouse-connect>=0.13.0" >> ./docker/requirements-local.txt'
+        ),
+        "compatible_databases": [
+            {
+                "name": "ClickHouse Cloud",
+                "description": (
+                    "ClickHouse Cloud is the official fully-managed cloud service "
+                    "for ClickHouse. It provides automatic scaling, built-in "
+                    "backups, and enterprise security features."
+                ),
+                "logo": "clickhouse.png",
+                "homepage_url": "https://clickhouse.cloud/",
+                "categories": [
+                    DatabaseCategory.ANALYTICAL_DATABASES,
+                    DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+                "pypi_packages": ["clickhouse-connect>=0.13.0"],
+                "connection_string": (
+                    "clickhousedb://{username}:{password}@{host}:8443/{database}?secure=true"
+                ),
+                "parameters": {
+                    "username": "ClickHouse Cloud username",
+                    "password": "ClickHouse Cloud password",
+                    "host": "Your ClickHouse Cloud hostname",
+                    "database": "Database name (default)",
+                },
+                "docs_url": "https://clickhouse.com/docs/en/cloud",
+            },
+            {
+                "name": "Altinity.Cloud",
+                "description": (
+                    "Altinity.Cloud is a managed ClickHouse service providing "
+                    "Kubernetes-native deployments with enterprise support."
+                ),
+                "logo": "altinity.png",
+                "homepage_url": "https://altinity.cloud/",
+                "categories": [
+                    DatabaseCategory.ANALYTICAL_DATABASES,
+                    DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+                "pypi_packages": ["clickhouse-connect>=0.13.0"],
+                "connection_string": (
+                    "clickhousedb://{username}:{password}@{host}/{database}?secure=true"
+                ),
+                "docs_url": "https://docs.altinity.com/",
+            },
+        ],
+    }
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
@@ -285,7 +405,7 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
             return cls._function_names
         try:
             names = database.get_df(
-                "SELECT name FROM system.functions UNION ALL "
+                "SELECT name FROM system.functions UNION ALL "  # noqa: S608
                 + "SELECT name FROM system.table_functions LIMIT 10000"
             )["name"].tolist()
             cls._function_names = names
@@ -312,17 +432,27 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
             url_params["query"] = query
         if not url_params.get("database"):
             url_params["database"] = "__default__"
-        url_params.pop("encryption", None)
-        return str(URL.create(f"{cls.engine}+{cls.default_driver}", **url_params))
+
+        return str(
+            URL.create(
+                f"{cls.engine}+{cls.default_driver}",
+                username=url_params.get("username"),
+                password=url_params.get("password"),
+                host=url_params.get("host"),
+                port=url_params.get("port"),
+                database=url_params.get("database"),
+                query=url_params.get("query"),
+            )
+        )
 
     @classmethod
     def get_parameters_from_uri(
         cls, uri: str, encrypted_extra: dict[str, Any] | None = None
     ) -> BasicParametersType:
         url = make_url_safe(uri)
-        query = url.query
+        query = dict(url.query)
         if "secure" in query:
-            encryption = url.query.get("secure") == "true"
+            encryption = query.get("secure") == "true"
             query.pop("secure")
         else:
             encryption = False
@@ -332,7 +462,7 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
             host=url.host,
             port=url.port,
             database="" if url.database == "__default__" else cast(str, url.database),
-            query=dict(query),
+            query=query,
             encryption=encryption,
         )
 
@@ -390,13 +520,26 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
             ]
         return []
 
-    @staticmethod
-    def _mutate_label(label: str) -> str:
-        """
-        Suffix with the first six characters from the md5 of the label to avoid
-        collisions with original column names
+    @classmethod
+    def adjust_engine_params(
+        cls,
+        uri: URL,
+        connect_args: dict[str, Any],
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> tuple[URL, dict[str, Any]]:
+        if schema:
+            uri = uri.set(database=parse.quote(schema, safe=""))
+        return uri, connect_args
 
-        :param label: Expected expression label
-        :return: Conditionally mutated label
-        """
-        return f"{label}_{md5_sha_from_str(label)[:6]}"
+    @classmethod
+    def get_column_description_retry_sql(cls, sql: str) -> str | None:
+        # clickhouse-connect's cursor only backfills `cursor.description` for
+        # a zero-row result -- e.g. the `WHERE false` probe used to detect an
+        # adhoc column's type without scanning any rows -- when the operation
+        # string starts with SELECT/WITH after stripping whitespace. Leading
+        # SQL comments inserted by SQL_QUERY_MUTATOR (e.g. query attribution)
+        # defeat that check, so wrap the untouched, already-mutated SQL in a
+        # bare outer SELECT to satisfy it without altering or dropping any of
+        # the mutator's comments.
+        return f"SELECT * FROM (\n{sql}\n) AS __superset_type_probe LIMIT 0"  # noqa: S608

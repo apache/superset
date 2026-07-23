@@ -14,9 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from marshmallow import fields, Schema
+from marshmallow import fields, Schema, validate
 
 from superset.databases.schemas import ImportV1DatabaseSchema
+
+# Restricts the optional CTAS target name to a bare SQL identifier. Shared by the
+# SQL Lab execute payload schemas so both request paths validate it identically.
+tmp_table_name_validator = validate.Regexp(
+    r"^([A-Za-z_][A-Za-z0-9_]*)?\Z",
+    error="tmp_table_name must contain only letters, digits, and underscores",
+)
 
 sql_lab_get_results_schema = {
     "type": "object",
@@ -48,53 +55,63 @@ class EstimateQueryCostSchema(Schema):
 class FormatQueryPayloadSchema(Schema):
     sql = fields.String(required=True)
     engine = fields.String(required=False, allow_none=True)
+    database_id = fields.Integer(
+        required=False, allow_none=True, metadata={"description": "The database id"}
+    )
+    template_params = fields.String(
+        required=False,
+        allow_none=True,
+        metadata={"description": "The SQL query template params as JSON string"},
+    )
 
 
 class ExecutePayloadSchema(Schema):
     database_id = fields.Integer(required=True)
     sql = fields.String(required=True)
     client_id = fields.String(allow_none=True)
-    queryLimit = fields.Integer(allow_none=True)
+    queryLimit = fields.Integer(allow_none=True)  # noqa: N815
     sql_editor_id = fields.String(allow_none=True)
     catalog = fields.String(allow_none=True)
     schema = fields.String(allow_none=True)
     tab = fields.String(allow_none=True)
     ctas_method = fields.String(allow_none=True)
-    templateParams = fields.String(allow_none=True)
-    tmp_table_name = fields.String(allow_none=True)
+    templateParams = fields.String(allow_none=True)  # noqa: N815
+    tmp_table_name = fields.String(
+        allow_none=True,
+        validate=tmp_table_name_validator,
+    )
     select_as_cta = fields.Boolean(allow_none=True)
-    json = fields.Boolean(allow_none=True)
-    runAsync = fields.Boolean(allow_none=True)
+    runAsync = fields.Boolean(allow_none=True)  # noqa: N815
     expand_data = fields.Boolean(allow_none=True)
 
 
 class QueryResultSchema(Schema):
     changed_on = fields.DateTime()
-    dbId = fields.Integer()
+    dbId = fields.Integer()  # noqa: N815
     db = fields.String()  # pylint: disable=disallowed-name
-    endDttm = fields.Float()
-    errorMessage = fields.String(allow_none=True)
-    executedSql = fields.String()
+    endDttm = fields.Float()  # noqa: N815
+    errorMessage = fields.String(allow_none=True)  # noqa: N815
+    executedSql = fields.String()  # noqa: N815
     id = fields.String()
-    queryId = fields.Integer()
+    queryId = fields.Integer()  # noqa: N815
     limit = fields.Integer()
-    limitingFactor = fields.String()
+    limitingFactor = fields.String()  # noqa: N815
     progress = fields.Integer()
     rows = fields.Integer()
     schema = fields.String()
     ctas = fields.Boolean()
-    serverId = fields.Integer()
+    serverId = fields.Integer()  # noqa: N815
     sql = fields.String()
-    sqlEditorId = fields.String()
-    startDttm = fields.Float()
+    sqlEditorId = fields.String()  # noqa: N815
+    startDttm = fields.Float()  # noqa: N815
     state = fields.String()
     tab = fields.String()
-    tempSchema = fields.String(allow_none=True)
-    tempTable = fields.String(allow_none=True)
-    userId = fields.Integer()
+    tempSchema = fields.String(allow_none=True)  # noqa: N815
+    tempTable = fields.String(allow_none=True)  # noqa: N815
+    userId = fields.Integer()  # noqa: N815
     user = fields.String()
-    resultsKey = fields.String()
-    trackingUrl = fields.String(allow_none=True)
+    resultsKey = fields.String()  # noqa: N815
+    trackingUrl = fields.String(allow_none=True)  # noqa: N815
     extra = fields.Dict(keys=fields.String())
 
 

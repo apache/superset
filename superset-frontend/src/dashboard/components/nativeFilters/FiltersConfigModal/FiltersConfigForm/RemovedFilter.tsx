@@ -16,18 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Button, { OnClickHandler } from 'src/components/Button';
+import { Button, type OnClickHandler } from '@superset-ui/core/components';
 import { FC } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 
 const RemovedContent = styled.div`
   display: flex;
   flex-direction: column;
-  height: 400px; // arbitrary
+  height: 400px; /* arbitrary */
   text-align: center;
   justify-content: center;
   align-items: center;
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  color: ${({ theme }) => theme.colorText};
 `;
 
 type RemovedFilterProps = {
@@ -43,7 +44,7 @@ const RemovedFilter: FC<RemovedFilterProps> = ({ onClick }) => (
         buttonStyle="primary"
         onClick={onClick}
       >
-        {t('Restore Filter')}
+        {t('Restore filter')}
       </Button>
     </div>
   </RemovedContent>

@@ -20,7 +20,9 @@ import logging
 from datetime import datetime
 from typing import Any
 
-from superset.daos.base import BaseDAO
+from sqlalchemy import or_, select
+
+from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
 from superset.extensions import db
 from superset.reports.filters import ReportScheduleFilter
 from superset.reports.models import (
@@ -41,6 +43,71 @@ REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER = "Notification sent with error"
 
 class ReportScheduleDAO(BaseDAO[ReportSchedule]):
     base_filter = ReportScheduleFilter
+
+    @classmethod
+    def apply_column_operators(
+        cls,
+        query: Any,
+        column_operators: list[ColumnOperator] | None = None,
+    ) -> Any:
+        """Override to handle editor self-filters via subqueries.
+
+        - editor: filters reports by editor user ID via report_schedule_editors
+        - created_by_fk_or_editor: OR(created_by_fk == value, id IN editor_subq)
+        """
+        if not column_operators:
+            return query
+
+        remaining_operators: list[ColumnOperator] = []
+        for c in column_operators:
+            if not isinstance(c, ColumnOperator):
+                c = ColumnOperator.model_validate(c)
+            if c.col == "editor":
+                from superset.subjects.models import report_schedule_editors, Subject
+
+                operator_enum = ColumnOperatorEnum(c.opr)
+                subq = (
+                    select(report_schedule_editors.c.report_schedule_id)
+                    .join(
+                        Subject.__table__,
+                        Subject.__table__.c.id == report_schedule_editors.c.subject_id,
+                    )
+                    .where(
+                        Subject.__table__.c.type == 1,
+                        operator_enum.apply(Subject.__table__.c.user_id, c.value),
+                    )
+                )
+                query = query.filter(ReportSchedule.id.in_(subq))
+            elif c.col == "created_by_fk_or_editor":
+                if c.opr != "eq":
+                    raise ValueError(
+                        f"created_by_fk_or_editor only supports 'eq'; got '{c.opr}'"
+                    )
+                from superset.subjects.models import report_schedule_editors, Subject
+
+                editor_subq = (
+                    select(report_schedule_editors.c.report_schedule_id)
+                    .join(
+                        Subject.__table__,
+                        Subject.__table__.c.id == report_schedule_editors.c.subject_id,
+                    )
+                    .where(
+                        Subject.__table__.c.type == 1,
+                        Subject.__table__.c.user_id == c.value,
+                    )
+                )
+                query = query.filter(
+                    or_(
+                        ReportSchedule.created_by_fk == c.value,
+                        ReportSchedule.id.in_(editor_subq),
+                    )
+                )
+            else:
+                remaining_operators.append(c)
+
+        if remaining_operators:
+            query = super().apply_column_operators(query, remaining_operators)
+        return query
 
     @staticmethod
     def find_by_chart_id(chart_id: int) -> list[ReportSchedule]:
@@ -87,6 +154,27 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
         return (
             db.session.query(ReportSchedule)
             .filter(ReportSchedule.database_id.in_(database_ids))
+            .all()
+        )
+
+    @staticmethod
+    def find_by_extra_metadata(slug: str) -> list[ReportSchedule]:
+        return (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.extra_json.contains(slug, autoescape=True))
+            .all()
+        )
+
+    @staticmethod
+    def find_by_native_filter_id(native_filter_id: str) -> list[ReportSchedule]:
+        """
+        searches extra_json for a filter ID string
+        """
+        return (
+            db.session.query(ReportSchedule)
+            .filter(
+                ReportSchedule.extra_json.contains(native_filter_id, autoescape=True)
+            )
             .all()
         )
 
@@ -179,7 +267,8 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
             item = ReportSchedule()
 
         if attributes:
-            if recipients := attributes.pop("recipients", None):
+            if "recipients" in attributes:
+                recipients = attributes.pop("recipients")
                 attributes["recipients"] = [
                     ReportRecipients(
                         type=recipient["type"],

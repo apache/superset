@@ -22,6 +22,8 @@ export interface Location {
   pathname: string;
 }
 
+type ExploreUrlSearchParamsWithParser = 'form_data' | 'datasource';
+
 // mapping { url_param: v1_explore_request_param }
 const EXPLORE_URL_SEARCH_PARAMS = {
   form_data: {
@@ -75,30 +77,39 @@ const EXPLORE_URL_PATH_PARAMS = {
 
 // search params can be placed in form_data object
 // we need to "flatten" the search params to use them with /v1/explore endpoint
-const getParsedExploreURLSearchParams = (search: string) => {
+const getParsedExploreURLSearchParams = (
+  search: string,
+): Record<string, any> => {
   const urlSearchParams = new URLSearchParams(search);
-  return Array.from(urlSearchParams.keys()).reduce((acc, currentParam) => {
-    const paramValue = urlSearchParams.get(currentParam);
-    if (paramValue === null) {
-      return acc;
-    }
-    let parsedParamValue;
-    try {
-      parsedParamValue =
-        EXPLORE_URL_SEARCH_PARAMS[currentParam].parser?.(paramValue) ??
-        paramValue;
-    } catch {
-      parsedParamValue = paramValue;
-    }
-    if (typeof parsedParamValue === 'object') {
-      return { ...acc, ...parsedParamValue };
-    }
-    const key = EXPLORE_URL_SEARCH_PARAMS[currentParam]?.name || currentParam;
-    return {
-      ...acc,
-      [key]: parsedParamValue,
-    };
-  }, {});
+  return Array.from(urlSearchParams.keys()).reduce<Record<string, any>>(
+    (acc, currentParam) => {
+      const paramValue = urlSearchParams.get(currentParam);
+      if (paramValue === null) {
+        return acc;
+      }
+      let parsedParamValue;
+      try {
+        parsedParamValue =
+          EXPLORE_URL_SEARCH_PARAMS[
+            currentParam as ExploreUrlSearchParamsWithParser
+          ].parser?.(paramValue) ?? paramValue;
+      } catch {
+        parsedParamValue = paramValue;
+      }
+      if (typeof parsedParamValue === 'object') {
+        return { ...acc, ...parsedParamValue };
+      }
+      const key =
+        EXPLORE_URL_SEARCH_PARAMS[
+          currentParam as keyof typeof EXPLORE_URL_SEARCH_PARAMS
+        ]?.name || currentParam;
+      return {
+        ...acc,
+        [key]: parsedParamValue,
+      };
+    },
+    {},
+  );
 };
 
 // path params need to be transformed to search params to use them with /v1/explore endpoint
@@ -107,7 +118,12 @@ const getParsedExploreURLPathParams = (pathname: string) =>
     const re = new RegExp(`/(${currentParam})/(\\w+)`);
     const pathGroups = pathname.match(re);
     if (pathGroups?.[2]) {
-      return { ...acc, [EXPLORE_URL_PATH_PARAMS[currentParam]]: pathGroups[2] };
+      return {
+        ...acc,
+        [EXPLORE_URL_PATH_PARAMS[
+          currentParam as keyof typeof EXPLORE_URL_PATH_PARAMS
+        ]]: pathGroups[2],
+      };
     }
     return acc;
   }, {});

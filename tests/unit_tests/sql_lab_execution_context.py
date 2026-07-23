@@ -18,6 +18,7 @@
 
 import pytest
 
+from superset.sql.parse import CTASMethod
 from superset.sqllab.sqllab_execution_context import (
     CreateTableAsSelect,
     SqlJsonExecutionContext,
@@ -63,7 +64,10 @@ def test_sql_json_execution_context_init(query_params):
 @with_feature_flags(SQLLAB_FORCE_RUN_ASYNC=True)
 @pytest.mark.parametrize("runAsync, expected_async_flag", [(True, True), (False, True)])
 def test_sql_json_execution_context_feature_flag_false(
-    mocker, query_params, runAsync, expected_async_flag
+    mocker,
+    query_params,
+    runAsync,  # noqa: N803
+    expected_async_flag,  # noqa: N803
 ):
     query_params["runAsync"] = runAsync
     context = SqlJsonExecutionContext(query_params)
@@ -76,7 +80,10 @@ def test_sql_json_execution_context_feature_flag_false(
     "runAsync, expected_async_flag", [(True, True), (False, False)]
 )
 def test_sql_json_execution_context_feature_flag_true(
-    mocker, query_params, runAsync, expected_async_flag
+    mocker,
+    query_params,
+    runAsync,  # noqa: N803
+    expected_async_flag,  # noqa: N803
 ):
     query_params["runAsync"] = runAsync
     context = SqlJsonExecutionContext(query_params)
@@ -91,6 +98,6 @@ def test_create_table_as_select():
         "tmp_table_name": "temp_table",
     }
     ctas = CreateTableAsSelect.create_from(query_params)
-    assert ctas.ctas_method == "TABLE"
+    assert ctas.ctas_method == CTASMethod.TABLE
     assert ctas.target_schema_name == "public"
     assert ctas.target_table_name == "temp_table"

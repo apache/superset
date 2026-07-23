@@ -18,18 +18,24 @@ from marshmallow import fields, Schema
 
 
 class DashboardPermalinkStateSchema(Schema):
-    dataMask = fields.Dict(
+    dataMask = fields.Dict(  # noqa: N815
         required=False,
         allow_none=True,
         metadata={"description": "Data mask used for native filter state"},
     )
-    activeTabs = fields.List(
-        fields.String(),
+    activeTabs = fields.List(  # noqa: N815
+        # ``allow_none`` on the inner ``fields.String`` is required because
+        # legacy v5 dashboard exports persist ``null`` entries inside the
+        # ``activeTabs`` list (one ``null`` per tab level that has no active
+        # child). Without it the import path through this schema rejects
+        # the whole permalink with ``{'activeTabs': {N: ['Field may not be
+        # null.']}}`` (#40934).
+        fields.String(allow_none=True),
         required=False,
         allow_none=True,
         metadata={"description": "Current active dashboard tabs"},
     )
-    urlParams = fields.List(
+    urlParams = fields.List(  # noqa: N815
         fields.Tuple(
             (
                 fields.String(
@@ -52,10 +58,20 @@ class DashboardPermalinkStateSchema(Schema):
         allow_none=True,
         metadata={"description": "Optional anchor link added to url hash"},
     )
+    chartStates = fields.Dict(  # noqa: N815
+        required=False,
+        allow_none=True,
+        metadata={
+            "description": (
+                "Chart-level state for stateful tables "
+                "(column order, sorting, filtering)"
+            )
+        },
+    )
 
 
 class DashboardPermalinkSchema(Schema):
-    dashboardId = fields.String(
+    dashboardId = fields.String(  # noqa: N815
         required=True,
         allow_none=False,
         metadata={"description": "The id or slug of the dashboard"},

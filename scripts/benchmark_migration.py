@@ -30,7 +30,7 @@ from flask import current_app
 from flask_appbuilder import Model
 from flask_migrate import downgrade, upgrade
 from progress.bar import ChargingBar
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.ext.automap import automap_base
 
 from superset import db
@@ -70,7 +70,7 @@ def extract_modified_tables(module: ModuleType) -> set[str]:
     return tables
 
 
-def find_models(module: ModuleType) -> list[type[Model]]:
+def find_models(module: ModuleType) -> list[type[Model]]:  # noqa: C901
     """
     Find all models in a migration script.
     """
@@ -93,8 +93,8 @@ def find_models(module: ModuleType) -> list[type[Model]]:
     # where the current model is out-of-sync with the existing table after a
     # downgrade
     sqlalchemy_uri = current_app.config["SQLALCHEMY_DATABASE_URI"]
-    engine = create_engine(sqlalchemy_uri)
-    Base = automap_base()
+    engine = create_engine(sqlalchemy_uri, future=True)
+    Base = automap_base()  # noqa: N806
     Base.prepare(engine, reflect=True)
     seen = set()
     while tables:
@@ -138,7 +138,7 @@ def find_models(module: ModuleType) -> list[type[Model]]:
 @click.option("--limit", default=1000, help="Maximum number of entities.")
 @click.option("--force", is_flag=True, help="Do not prompt for confirmation.")
 @click.option("--no-auto-cleanup", is_flag=True, help="Do not remove created models.")
-def main(
+def main(  # noqa: C901
     filepath: str, limit: int = 1000, force: bool = False, no_auto_cleanup: bool = False
 ) -> None:
     auto_cleanup = not no_auto_cleanup
@@ -153,10 +153,11 @@ def main(
         )
 
     print(f"Migration goes from {down_revision} to {revision}")
-    current_revision = db.engine.execute(
-        "SELECT version_num FROM alembic_version"
-    ).scalar()
-    print(f"Current version of the DB is {current_revision}")
+    with db.engine.connect() as conn:
+        current_revision = conn.execute(
+            text("SELECT version_num FROM alembic_version")
+        ).scalar()
+        print(f"Current version of the DB is {current_revision}")
 
     if current_revision != down_revision:
         if not force:

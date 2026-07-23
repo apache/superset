@@ -26,7 +26,7 @@ import logging
 
 from alembic import op
 from sqlalchemy import Column, Integer, or_, String, Text
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 from superset import db
 from superset.utils import json
@@ -62,7 +62,7 @@ def upgrade():
                 params["line_width_unit"] = "meters"
                 slc.params = json.dumps(params)
         except Exception:
-            logging.exception(f"Unable to parse params for slice {slc.id}")
+            logging.exception("Unable to parse params for slice %s", slc.id)
     session.commit()
     session.close()
 

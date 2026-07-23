@@ -14,12 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import re
 from typing import Any, Optional, Union
 
 from croniter import croniter
 from flask import current_app
 from flask_babel import gettext as _
-from marshmallow import fields, Schema, validate, validates, validates_schema
+from marshmallow import EXCLUDE, fields, Schema, validate, validates, validates_schema
 from marshmallow.validate import Length, Range, ValidationError
 from pytz import all_timezones
 
@@ -49,6 +50,20 @@ openapi_spec_methods_override = {
 }
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
+get_slack_channels_schema = {
+    "type": "object",
+    "properties": {
+        "search_string": {"type": "string"},
+        "types": {
+            "type": "array",
+            "items": {"type": "string", "enum": ["public_channel", "private_channel"]},
+        },
+        "exact_match": {"type": "boolean"},
+        "force": {"type": "boolean"},
+        "page": {"type": "integer", "minimum": 0},
+        "page_size": {"type": "integer", "minimum": 1},
+    },
+}
 
 type_description = "The report schedule type"
 name_description = "The report schedule name."
@@ -66,9 +81,8 @@ sql_description = (
     "A SQL statement that defines whether the alert should get triggered or "
     "not. The query is expected to return either NULL or a number value."
 )
-owners_description = (
-    "Owner are users ids allowed to delete or change this report. "
-    "If left empty you will be one of the owners of the report."
+editors_description = (
+    "A list of subject IDs (users, roles, or groups) that can alter the report."
 )
 validator_type_description = (
     "Determines when to trigger alert based off value from alert query. "
@@ -109,9 +123,13 @@ class ValidatorConfigJSONSchema(Schema):
     threshold = fields.Float()
 
 
+EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
+
+
 class ReportRecipientConfigJSONSchema(Schema):
-    # TODO if email check validity
     target = fields.String()
+    ccTarget = fields.String()  # noqa: N815
+    bccTarget = fields.String()  # noqa: N815
 
 
 class ReportRecipientSchema(Schema):
@@ -124,6 +142,34 @@ class ReportRecipientSchema(Schema):
         ),
     )
     recipient_config_json = fields.Nested(ReportRecipientConfigJSONSchema)
+
+    @validates_schema
+    def validate_email_recipients(self, data: dict[str, Any], **kwargs: Any) -> None:
+        if data.get("type") != ReportRecipientType.EMAIL.value:
+            return
+
+        config = data.get("recipient_config_json") or {}
+
+        def validate_addresses(field: str, value: str | None, required: bool) -> None:
+            if not value or not value.strip():
+                if required:
+                    raise ValidationError(
+                        {field: ["Email target is required for Email recipients"]}
+                    )
+                return
+            invalid = [
+                addr.strip()
+                for addr in re.split(r"[,;]", value)
+                if addr.strip() and not EMAIL_REGEX.match(addr.strip())
+            ]
+            if invalid:
+                raise ValidationError(
+                    {field: [f"Invalid email address(es): {', '.join(invalid)}"]}
+                )
+
+        validate_addresses("target", config.get("target"), required=True)
+        validate_addresses("ccTarget", config.get("ccTarget"), required=False)
+        validate_addresses("bccTarget", config.get("bccTarget"), required=False)
 
 
 class ReportSchedulePostSchema(Schema):
@@ -186,9 +232,8 @@ class ReportSchedulePostSchema(Schema):
         metadata={"description": creation_method_description},
     )
     dashboard = fields.Integer(required=False, allow_none=True)
-    selected_tabs = fields.List(fields.Integer(), required=False, allow_none=True)
     database = fields.Integer(required=False)
-    owners = fields.List(fields.Integer(metadata={"description": owners_description}))
+    editors = fields.List(fields.Integer(metadata={"description": editors_description}))
     validator_type = fields.String(
         metadata={"description": validator_type_description},
         validate=validate.OneOf(
@@ -211,7 +256,7 @@ class ReportSchedulePostSchema(Schema):
         validate=[Range(min=1, error=_("Value must be greater than 0"))],
     )
 
-    recipients = fields.List(fields.Nested(ReportRecipientSchema))
+    recipients = fields.List(fields.Nested(ReportRecipientSchema), required=False)
     report_format = fields.String(
         dump_default=ReportDataFormat.PNG,
         validate=validate.OneOf(choices=tuple(key.value for key in ReportDataFormat)),
@@ -227,13 +272,14 @@ class ReportSchedulePostSchema(Schema):
         },
         allow_none=True,
         required=False,
-        default=None,
+        dump_default=None,
     )
 
     @validates("custom_width")
     def validate_custom_width(
         self,
         value: Optional[int],
+        **kwargs: Any,
     ) -> None:
         if value is None:
             return
@@ -260,6 +306,30 @@ class ReportSchedulePostSchema(Schema):
                 raise ValidationError(
                     {"database": ["Database reference is not allowed on a report"]}
                 )
+
+
+class ReportScheduleSubscribeSchema(ReportSchedulePostSchema):
+    """Schema for creating a chart/dashboard subscription.
+
+    ``recipients`` and ``creation_method`` are excluded — both are set
+    server-side: recipients are locked to the authenticated user's email,
+    and creation_method is derived from the presence of ``chart`` or
+    ``dashboard`` in the payload.
+
+    ``type`` is restricted to ``Report`` — alert schedules cannot be
+    created through the subscribe endpoint.
+    """
+
+    type = fields.String(
+        metadata={"description": type_description},
+        allow_none=False,
+        required=True,
+        validate=validate.OneOf(choices=[ReportScheduleType.REPORT.value]),
+    )
+
+    class Meta:
+        exclude = ("recipients", "creation_method", "editors")
+        unknown = EXCLUDE
 
 
 class ReportSchedulePutSchema(Schema):
@@ -321,9 +391,9 @@ class ReportSchedulePutSchema(Schema):
         metadata={"description": creation_method_description},
     )
     dashboard = fields.Integer(required=False, allow_none=True)
-    database = fields.Integer(required=False)
-    owners = fields.List(
-        fields.Integer(metadata={"description": owners_description}), required=False
+    database = fields.Integer(required=False, allow_none=True)
+    editors = fields.List(
+        fields.Integer(metadata={"description": editors_description}), required=False
     )
     validator_type = fields.String(
         metadata={"description": validator_type_description},
@@ -365,13 +435,14 @@ class ReportSchedulePutSchema(Schema):
         },
         allow_none=True,
         required=False,
-        default=None,
+        dump_default=None,
     )
 
     @validates("custom_width")
     def validate_custom_width(
         self,
         value: Optional[int],
+        **kwargs: Any,
     ) -> None:
         if value is None:
             return
@@ -386,3 +457,29 @@ class ReportSchedulePutSchema(Schema):
                     max=max_width,
                 )
             )
+
+
+class SlackChannelSchema(Schema):
+    """
+    Schema to load Slack channels, set to ignore any fields not used by Superset.
+    """
+
+    class Meta:
+        unknown = EXCLUDE
+
+    id = fields.String()
+    name = fields.String()
+    is_member = fields.Boolean()
+    is_private = fields.Boolean()
+
+
+class ReportScheduleExecuteResponseSchema(Schema):
+    """Schema for the response when executing a report schedule immediately."""
+
+    class Meta:
+        unknown = EXCLUDE
+
+    execution_id = fields.UUID(
+        metadata={"description": _("UUID to track the execution status")}
+    )
+    message = fields.String(metadata={"description": _("Success message")})

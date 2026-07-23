@@ -11,6 +11,9 @@ on:
       - "superset-websocket/**"
     types: [synchronize, opened, reopened, ready_for_review]
 
+permissions:
+  contents: read
+
 # cancel previous workflow jobs for PRs
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
@@ -18,12 +21,17 @@ concurrency:
 
 jobs:
   app-checks:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: './superset-websocket/.nvmrc'
       - name: Install dependencies
         working-directory: ./superset-websocket
         run: npm ci

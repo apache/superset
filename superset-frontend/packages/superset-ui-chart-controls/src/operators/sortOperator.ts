@@ -16,7 +16,7 @@
  * specific language governing permissions and limitationsxw
  * under the License.
  */
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'lodash-es';
 import {
   ensureIsArray,
   getMetricLabel,
@@ -27,10 +27,9 @@ import {
 import { PostProcessingFactory } from './types';
 import { extractExtraMetrics } from './utils';
 
-export const sortOperator: PostProcessingFactory<PostProcessingSort> = (
-  formData,
-  queryObject,
-) => {
+export const sortOperator: PostProcessingFactory<
+  PostProcessingSort
+> = formData => {
   // the sortOperator only used in the barchart v2
   const sortableLabels = [
     getXAxisLabel(formData),

@@ -29,7 +29,7 @@ down_revision = "ab9a9d86e695"
 
 from alembic import op  # noqa: E402
 from sqlalchemy import Column, Integer, String, Text  # noqa: E402
-from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
+from sqlalchemy.orm import declarative_base  # noqa: E402
 
 from superset import db  # noqa: E402
 from superset.utils import json  # noqa: E402
@@ -57,7 +57,7 @@ def upgrade():
             if not adhoc_filters_b:
                 params["adhoc_filters_b"] = []
                 slc.params = json.dumps(params, sort_keys=True)
-        except Exception:
+        except Exception:  # noqa: S110
             pass
 
     session.commit()
@@ -76,7 +76,7 @@ def downgrade():
             if not adhoc_filters_b:
                 del params["adhoc_filters_b"]
                 slc.params = json.dumps(params, sort_keys=True)
-        except Exception:
+        except Exception:  # noqa: S110
             pass
 
     session.commit()

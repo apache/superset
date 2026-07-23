@@ -18,17 +18,28 @@
  */
 // ParentSize uses resize observer so the dashboard will update size
 // when its container size changes, due to e.g., builder side panel opening
-import { FC, useEffect, useMemo, useRef } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
 import {
-  Filter,
-  Filters,
+  FC,
+  FocusEvent as ReactFocusEvent,
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { useDispatch, useSelector, shallowEqual } from 'react-redux';
+import { createSelector } from '@reduxjs/toolkit';
+import { isEqual } from 'lodash-es';
+import {
+  ChartCustomizationConfiguration,
+  ChartCustomizationType,
   LabelsColorMapSource,
+  NativeFilterType,
   getLabelsColorMap,
 } from '@superset-ui/core';
-import { ParentSize } from '@visx/responsive';
-import { pick } from 'lodash';
-import Tabs from 'src/components/Tabs';
+import { useParentSize } from '@visx/responsive';
+import Tabs from '@superset-ui/core/components/Tabs';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
 import {
   DashboardInfo,
@@ -40,40 +51,96 @@ import {
   DASHBOARD_GRID_ID,
   DASHBOARD_ROOT_DEPTH,
 } from 'src/dashboard/util/constants';
-import { getChartIdsInFilterScope } from 'src/dashboard/util/getChartIdsInFilterScope';
 import findTabIndexByComponentId from 'src/dashboard/util/findTabIndexByComponentId';
 import { setInScopeStatusOfFilters } from 'src/dashboard/actions/nativeFilters';
-import { updateDashboardLabelsColor } from 'src/dashboard/actions/dashboardState';
+import { setInScopeStatusOfCustomizations } from 'src/dashboard/actions/chartCustomizationActions';
+import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
 import {
-  applyColors,
-  getColorNamespace,
-  resetColors,
-} from 'src/utils/colorScheme';
+  applyDashboardLabelsColorOnLoad,
+  updateDashboardLabelsColor,
+  persistDashboardLabelsColor,
+  ensureSyncedSharedLabelsColors,
+  ensureSyncedLabelsColorMap,
+} from 'src/dashboard/actions/dashboardState';
+import { getColorNamespace, resetColors } from 'src/utils/colorScheme';
+import { calculateScopes } from 'src/dashboard/util/calculateScopes';
+import {
+  isLegacyChartCustomizationFormat,
+  migrateChartCustomization,
+} from 'src/dashboard/util/migrateChartCustomization';
+import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import { NATIVE_FILTER_DIVIDER_PREFIX } from '../nativeFilters/FiltersConfigModal/utils';
-import { findTabsWithChartsInScope } from '../nativeFilters/utils';
+import { selectFilterConfiguration } from '../nativeFilters/state';
 import { getRootLevelTabsComponent } from './utils';
 
 type DashboardContainerProps = {
   topLevelTabs?: LayoutItem;
 };
 
-const useNativeFilterScopes = () => {
-  const nativeFilters = useSelector<RootState, Filters>(
-    state => state.nativeFilters?.filters,
+interface ScopeData {
+  chartsInScope: number[];
+  tabsInScope: string[];
+}
+
+interface FilterScopeData extends ScopeData {
+  filterId: string;
+}
+
+interface CustomizationScopeData extends ScopeData {
+  customizationId: string;
+}
+
+function normalizeChartCustomizationsForScopeCalculation(
+  chartCustomizations: ChartCustomizationConfiguration,
+  chartIds: number[],
+): ChartCustomizationConfiguration {
+  const truthyCustomizations = chartCustomizations.filter(Boolean);
+
+  if (!truthyCustomizations.some(isLegacyChartCustomizationFormat)) {
+    return truthyCustomizations;
+  }
+
+  return truthyCustomizations.map(item => {
+    if (!isLegacyChartCustomizationFormat(item)) {
+      return item;
+    }
+
+    const migratedCustomization = migrateChartCustomization(item);
+
+    if (!item.chartId) {
+      return migratedCustomization;
+    }
+
+    return {
+      ...migratedCustomization,
+      // Legacy items could target a single chart without an explicit scope.
+      // Preserve that targeting before calculateScopes recomputes chartsInScope.
+      scope: {
+        ...migratedCustomization.scope,
+        excluded: chartIds.filter(chartId => chartId !== item.chartId),
+      },
+    };
+  });
+}
+
+export const renderedChartIdsSelector: (state: RootState) => number[] =
+  createSelector([(state: RootState) => state.charts], charts =>
+    Object.values(charts)
+      .filter(chart => chart.chartStatus === 'rendered')
+      .map(chart => chart.id),
   );
-  return useMemo(
-    () =>
-      nativeFilters
-        ? Object.values(nativeFilters).map((filter: Filter) =>
-            pick(filter, ['id', 'scope', 'type']),
-          )
-        : [],
-    [JSON.stringify(nativeFilters)],
+
+const useRenderedChartIds = () => {
+  const renderedChartIds = useSelector<RootState, number[]>(
+    renderedChartIdsSelector,
+    shallowEqual,
   );
+  return renderedChartIds;
 };
 
+const TOP_OF_PAGE_RANGE = 220;
+
 const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
-  const nativeFilterScopes = useNativeFilterScopes();
   const dispatch = useDispatch();
 
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
@@ -82,14 +149,27 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const dashboardInfo = useSelector<RootState, DashboardInfo>(
     state => state.dashboardInfo,
   );
+  const filterItems = useSelector(selectFilterConfiguration);
+  const chartCustomizations = useSelector<
+    RootState,
+    ChartCustomizationConfiguration
+  >(
+    state => state.dashboardInfo?.metadata?.chart_customization_config || [],
+    shallowEqual,
+  );
   const directPathToChild = useSelector<RootState, string[]>(
     state => state.dashboardState.directPathToChild,
   );
-  const chartIds = useSelector<RootState, number[]>(state =>
-    Object.values(state.charts).map(chart => chart.id),
-  );
+  const chartIds = useChartIds();
 
-  const prevTabIndexRef = useRef();
+  const renderedChartIds = useRenderedChartIds();
+
+  const [dashboardLabelsColorInitiated, setDashboardLabelsColorInitiated] =
+    useState(false);
+  const prevRenderedChartIds = useRef<number[]>([]);
+  const prevTabIndexRef = useRef<number>();
+  const prevFilterScopesRef = useRef<FilterScopeData[]>([]);
+  const prevCustomizationScopesRef = useRef<CustomizationScopeData[]>([]);
   const tabIndex = useMemo(() => {
     const nextTabIndex = findTabIndexByComponentId({
       currentComponent: getRootLevelTabsComponent(dashboardLayout),
@@ -102,118 +182,207 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     prevTabIndexRef.current = nextTabIndex;
     return nextTabIndex;
   }, [dashboardLayout, directPathToChild]);
+  // when all charts have rendered, enforce fresh shared labels
+  const shouldForceFreshSharedLabelsColors =
+    dashboardLabelsColorInitiated &&
+    renderedChartIds.length > 0 &&
+    chartIds.length === renderedChartIds.length &&
+    prevRenderedChartIds.current.length < renderedChartIds.length;
+
+  const onBeforeUnload = useCallback(() => {
+    dispatch(persistDashboardLabelsColor());
+    resetColors(getColorNamespace(dashboardInfo?.metadata?.color_namespace));
+    prevRenderedChartIds.current = [];
+  }, [dashboardInfo?.metadata?.color_namespace, dispatch]);
+
+  const chartLayoutItems = useMemo(
+    () =>
+      Object.values(dashboardLayout).filter(item => item?.type === CHART_TYPE),
+    [dashboardLayout],
+  );
 
   useEffect(() => {
-    if (nativeFilterScopes.length === 0) {
+    if (filterItems.length === 0) {
       return;
     }
-    const scopes = nativeFilterScopes.map(filterScope => {
-      if (filterScope.id.startsWith(NATIVE_FILTER_DIVIDER_PREFIX)) {
-        return {
-          filterId: filterScope.id,
-          tabsInScope: [],
-          chartsInScope: [],
-        };
-      }
-      const chartsInScope: number[] = getChartIdsInFilterScope(
-        filterScope.scope,
-        chartIds,
-        dashboardLayout,
-      );
-      const tabsInScope = findTabsWithChartsInScope(
-        dashboardLayout,
-        chartsInScope,
-      );
-      return {
-        filterId: filterScope.id,
-        tabsInScope: Array.from(tabsInScope),
-        chartsInScope,
-      };
-    });
-    dispatch(setInScopeStatusOfFilters(scopes));
-  }, [nativeFilterScopes, dashboardLayout, dispatch]);
 
-  const childIds: string[] = topLevelTabs
-    ? topLevelTabs.children
-    : [DASHBOARD_GRID_ID];
-  const min = Math.min(tabIndex, childIds.length - 1);
-  const activeKey = min === 0 ? DASHBOARD_GRID_ID : min.toString();
-  const TOP_OF_PAGE_RANGE = 220;
+    const scopes = calculateScopes(
+      filterItems,
+      chartIds,
+      chartLayoutItems,
+      item =>
+        item.id.startsWith(NATIVE_FILTER_DIVIDER_PREFIX) ||
+        item.type === NativeFilterType.Divider,
+    ).map(scope => ({
+      filterId: scope.id,
+      chartsInScope: scope.chartsInScope,
+      tabsInScope: scope.tabsInScope,
+    }));
+
+    if (!isEqual(scopes, prevFilterScopesRef.current)) {
+      prevFilterScopesRef.current = scopes;
+      dispatch(setInScopeStatusOfFilters(scopes));
+    }
+  }, [chartIds, filterItems, chartLayoutItems, dispatch]);
 
   useEffect(() => {
-    // verify freshness of color map on tab change
-    // and when loading for first time
-    setTimeout(() => {
-      dispatch(updateDashboardLabelsColor());
-    }, 500);
-  }, [directPathToChild, dispatch]);
+    if (chartCustomizations.length === 0) {
+      return;
+    }
+
+    const normalizedCustomizations =
+      normalizeChartCustomizationsForScopeCalculation(
+        chartCustomizations,
+        chartIds,
+      );
+
+    const scopes = calculateScopes(
+      normalizedCustomizations,
+      chartIds,
+      chartLayoutItems,
+      item => item.type === ChartCustomizationType.Divider,
+    ).map(scope => ({
+      customizationId: scope.id,
+      chartsInScope: scope.chartsInScope,
+      tabsInScope: scope.tabsInScope,
+    }));
+
+    if (!isEqual(scopes, prevCustomizationScopesRef.current)) {
+      prevCustomizationScopesRef.current = scopes;
+      dispatch(setInScopeStatusOfCustomizations(scopes));
+    }
+  }, [chartIds, chartCustomizations, chartLayoutItems, dispatch]);
+
+  const childIds: string[] = useMemo(
+    () => (topLevelTabs ? topLevelTabs.children : [DASHBOARD_GRID_ID]),
+    [topLevelTabs],
+  );
+  const min = Math.min(tabIndex, childIds.length - 1);
+  const activeKey = min === 0 ? DASHBOARD_GRID_ID : min.toString();
+
+  useEffect(() => {
+    if (shouldForceFreshSharedLabelsColors) {
+      // all available charts have rendered, enforce freshest shared label colors
+      dispatch(ensureSyncedSharedLabelsColors(dashboardInfo.metadata, true));
+    }
+  }, [dashboardInfo.metadata, dispatch, shouldForceFreshSharedLabelsColors]);
+
+  useEffect(() => {
+    // verify freshness of color map
+    // when charts render to catch new labels
+    const numRenderedCharts = renderedChartIds.length;
+
+    if (
+      dashboardLabelsColorInitiated &&
+      numRenderedCharts > 0 &&
+      prevRenderedChartIds.current.length < numRenderedCharts
+    ) {
+      const newRenderedChartIds = renderedChartIds.filter(
+        id => !prevRenderedChartIds.current.includes(id),
+      );
+      prevRenderedChartIds.current = renderedChartIds;
+      dispatch(updateDashboardLabelsColor(newRenderedChartIds));
+      // new data may have appeared in the map (data changes)
+      // or new slices may have appeared while changing tabs
+      dispatch(ensureSyncedLabelsColorMap(dashboardInfo.metadata));
+
+      if (!shouldForceFreshSharedLabelsColors) {
+        dispatch(ensureSyncedSharedLabelsColors(dashboardInfo.metadata));
+      }
+    }
+  }, [
+    renderedChartIds,
+    dispatch,
+    dashboardLabelsColorInitiated,
+    dashboardInfo.metadata,
+    shouldForceFreshSharedLabelsColors,
+  ]);
 
   useEffect(() => {
     const labelsColorMap = getLabelsColorMap();
-    const colorNamespace = getColorNamespace(
-      dashboardInfo?.metadata?.color_namespace,
-    );
     labelsColorMap.source = LabelsColorMapSource.Dashboard;
-    // apply labels color as dictated by stored metadata
-    applyColors(dashboardInfo.metadata);
+
+    if (dashboardInfo?.id && !dashboardLabelsColorInitiated) {
+      dispatch(applyDashboardLabelsColorOnLoad(dashboardInfo.metadata));
+      // apply labels color as dictated by stored metadata (if any)
+      setDashboardLabelsColorInitiated(true);
+    }
 
     return () => {
-      resetColors(getColorNamespace(colorNamespace));
+      onBeforeUnload();
     };
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dashboardInfo.id, dispatch]);
+  }, [dashboardInfo?.id, dispatch]);
+
+  useEffect(() => {
+    // 'beforeunload' event interferes with Cypress data cleanup process.
+    // This code prevents 'beforeunload' from triggering in Cypress tests,
+    // as it is not required for end-to-end testing scenarios.
+    if (!(window as any).Cypress) {
+      window.addEventListener('beforeunload', onBeforeUnload);
+    }
+
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload);
+    };
+  }, [onBeforeUnload]);
+
+  const renderTabBar = useCallback(() => <></>, []);
+  const handleFocus = useCallback((e: ReactFocusEvent<HTMLElement>) => {
+    if (
+      // prevent scrolling when tabbing to the tab pane
+      e.target.classList.contains('ant-tabs-content') &&
+      window.scrollY < TOP_OF_PAGE_RANGE
+    ) {
+      // prevent window from jumping down when tabbing
+      // if already at the top of the page
+      // to help with accessibility when using keyboard navigation
+      window.scrollTo(window.scrollX, 0);
+    }
+  }, []);
+
+  const renderParentSizeChildren = useCallback(
+    ({ width }: { width: number }) => {
+      const tabItems = childIds.map((id, index) => ({
+        key: index === 0 ? DASHBOARD_GRID_ID : index.toString(),
+        label: null,
+        children: (
+          <DashboardGrid
+            gridComponent={dashboardLayout[id]}
+            depth={DASHBOARD_ROOT_DEPTH + 1}
+            width={width}
+            isComponentVisible={index === tabIndex}
+          />
+        ),
+      }));
+
+      return (
+        <Tabs
+          id={DASHBOARD_GRID_ID}
+          activeKey={activeKey}
+          renderTabBar={renderTabBar}
+          animated={false}
+          allowOverflow
+          fullHeight
+          onFocus={handleFocus}
+          items={tabItems}
+          tabBarStyle={{ paddingLeft: 0 }}
+        />
+      );
+    },
+    [activeKey, childIds, dashboardLayout, handleFocus, renderTabBar, tabIndex],
+  );
+
+  // Hook form, not <ParentSize>: @visx 4.0.0's component clips content taller
+  // than the viewport, which breaks dashboard page scrolling.
+  const { parentRef, width } = useParentSize();
 
   return (
-    <div className="grid-container" data-test="grid-container">
-      <ParentSize>
-        {({ width }) => (
-          /*
-            We use a TabContainer irrespective of whether top-level tabs exist to maintain
-            a consistent React component tree. This avoids expensive mounts/unmounts of
-            the entire dashboard upon adding/removing top-level tabs, which would otherwise
-            happen because of React's diffing algorithm
-          */
-          <Tabs
-            id={DASHBOARD_GRID_ID}
-            activeKey={activeKey}
-            renderTabBar={() => <></>}
-            fullWidth={false}
-            animated={false}
-            allowOverflow
-            onFocus={e => {
-              if (
-                // prevent scrolling when tabbing to the tab pane
-                e.target.classList.contains('ant-tabs-tabpane') &&
-                window.scrollY < TOP_OF_PAGE_RANGE
-              ) {
-                // prevent window from jumping down when tabbing
-                // if already at the top of the page
-                // to help with accessibility when using keyboard navigation
-                window.scrollTo(window.scrollX, 0);
-              }
-            }}
-          >
-            {childIds.map((id, index) => (
-              // Matching the key of the first TabPane irrespective of topLevelTabs
-              // lets us keep the same React component tree when !!topLevelTabs changes.
-              // This avoids expensive mounts/unmounts of the entire dashboard.
-              <Tabs.TabPane
-                key={index === 0 ? DASHBOARD_GRID_ID : index.toString()}
-              >
-                <DashboardGrid
-                  gridComponent={dashboardLayout[id]}
-                  // see isValidChild for why tabs do not increment the depth of their children
-                  depth={DASHBOARD_ROOT_DEPTH + 1} // (topLevelTabs ? 0 : 1)}
-                  width={width}
-                  isComponentVisible={index === tabIndex}
-                />
-              </Tabs.TabPane>
-            ))}
-          </Tabs>
-        )}
-      </ParentSize>
+    <div className="grid-container" data-test="grid-container" ref={parentRef}>
+      {renderParentSizeChildren({ width })}
     </div>
   );
 };
 
-export default DashboardContainer;
+export default memo(DashboardContainer);

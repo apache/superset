@@ -17,44 +17,24 @@
  * under the License.
  */
 
-import { render } from '@testing-library/react';
+import { render } from '@superset-ui/core/spec';
 import '@testing-library/jest-dom';
-import { FallbackProps } from 'react-error-boundary';
-import { ThemeProvider, supersetTheme } from '../../../src/style';
 
-import FallbackComponent from '../../../src/chart/components/FallbackComponent';
+import FallbackComponent, {
+  Props as FallbackComponentProps,
+} from '../../../src/chart/components/FallbackComponent';
 
-const renderWithTheme = (props: FallbackProps) =>
-  render(
-    <ThemeProvider theme={supersetTheme}>
-      <FallbackComponent {...props} />
-    </ThemeProvider>,
-  );
+const setup = (props: FallbackComponentProps) =>
+  render(<FallbackComponent {...props} />);
 
 const ERROR = new Error('CaffeineOverLoadException');
-const STACK_TRACE = 'Error at line 1: x.drink(coffee)';
-
-test('renders error and stack trace', () => {
-  const { getByText } = renderWithTheme({
-    componentStack: STACK_TRACE,
-    error: ERROR,
-  });
-  expect(getByText('Error: CaffeineOverLoadException')).toBeInTheDocument();
-  expect(getByText('Error at line 1: x.drink(coffee)')).toBeInTheDocument();
-});
 
 test('renders error only', () => {
-  const { getByText } = renderWithTheme({ error: ERROR });
-  expect(getByText('Error: CaffeineOverLoadException')).toBeInTheDocument();
-});
-
-test('renders stacktrace only', () => {
-  const { getByText } = renderWithTheme({ componentStack: STACK_TRACE });
-  expect(getByText('Unknown Error')).toBeInTheDocument();
-  expect(getByText('Error at line 1: x.drink(coffee)')).toBeInTheDocument();
+  const { getByText } = setup({ error: ERROR });
+  expect(getByText('CaffeineOverLoadException')).toBeInTheDocument();
 });
 
 test('renders when nothing is given', () => {
-  const { getByText } = renderWithTheme({});
+  const { getByText } = setup({});
   expect(getByText('Unknown Error')).toBeInTheDocument();
 });

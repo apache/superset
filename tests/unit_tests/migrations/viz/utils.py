@@ -20,6 +20,7 @@ from superset.migrations.shared.migrate_viz import MigrateViz
 from superset.utils import json
 
 TIMESERIES_SOURCE_FORM_DATA: dict[str, Any] = {
+    "datasource": "1__table",
     "bottom_margin": 20,
     "comparison_type": "absolute",
     "contribution": True,
@@ -42,6 +43,7 @@ TIMESERIES_SOURCE_FORM_DATA: dict[str, Any] = {
 }
 
 TIMESERIES_TARGET_FORM_DATA: dict[str, Any] = {
+    "datasource": "1__table",
     "comparison_type": "difference",
     "contributionMode": "row",
     "logAxis": True,
@@ -75,7 +77,7 @@ def migrate_and_assert(
         viz_type=cls.source_viz_type,
         datasource_type="table",
         params=dumped_form_data,
-        query_context=f'{{"form_data": {dumped_form_data}}}',
+        query_context=f'{{"form_data": {dumped_form_data}, "queries": []}}',
     )
 
     # upgrade
@@ -83,6 +85,7 @@ def migrate_and_assert(
 
     # verify form_data
     new_form_data = json.loads(slc.params)
+    new_form_data.pop("queries_bak", None)
     assert new_form_data == target
     assert new_form_data["form_data_bak"] == source
 

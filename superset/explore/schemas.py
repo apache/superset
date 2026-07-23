@@ -16,6 +16,38 @@
 # under the License.
 from marshmallow import fields, Schema
 
+from superset.subjects.schemas import SubjectResponseSchema
+
+
+class RlsRoleSchema(Schema):
+    id = fields.Integer(metadata={"description": "Role ID."})
+    name = fields.String(metadata={"description": "Role name."})
+
+
+class RlsFilterSchema(Schema):
+    id = fields.Integer(metadata={"description": "RLS filter ID."})
+    name = fields.String(metadata={"description": "RLS filter name."})
+    filter_type = fields.String(
+        allow_none=True, metadata={"description": "RLS filter type."}
+    )
+    group_key = fields.String(
+        allow_none=True, metadata={"description": "RLS filter group key."}
+    )
+    clause = fields.String(
+        allow_none=True, metadata={"description": "RLS filter clause."}
+    )
+    roles = fields.List(
+        fields.Nested(RlsRoleSchema),
+        load_default=[],
+        metadata={"description": "Roles associated with the RLS filter."},
+    )
+    inherited = fields.Bool(
+        load_default=False,
+        metadata={
+            "description": "If the filter is inherited from underlying physical tables."
+        },
+    )
+
 
 class DatasetSchema(Schema):
     cache_timeout = fields.Integer(
@@ -25,7 +57,6 @@ class DatasetSchema(Schema):
         }
     )
     column_formats = fields.Dict(metadata={"description": "Column formats."})
-    currency_formats = fields.Dict(metadata={"description": "Currency formats."})
     columns = fields.List(fields.Dict(), metadata={"description": "Columns metadata."})
     database = fields.Dict(
         metadata={"description": "Database associated with the dataset."}
@@ -76,8 +107,9 @@ class DatasetSchema(Schema):
         fields.List(fields.String()),
         metadata={"description": "List of order by columns."},
     )
-    owners = fields.List(
-        fields.Integer(), metadata={"description": "List of owners identifiers"}
+    editors = fields.List(
+        fields.Nested(SubjectResponseSchema),
+        metadata={"description": "List of editors"},
     )
     params = fields.Dict(metadata={"description": "Extra params for the dataset."})
     perm = fields.String(metadata={"description": "Permission expression."})
@@ -101,12 +133,17 @@ class DatasetSchema(Schema):
     verbose_map = fields.Dict(
         metadata={"description": "Mapping from raw name to verbose name."}
     )
+    rls_filters = fields.List(
+        fields.Nested(RlsFilterSchema),
+        load_default=[],
+        metadata={"description": "Row-level security filters applied to this dataset."},
+    )
 
 
 class SliceSchema(Schema):
     cache_timeout = fields.Integer(
         metadata={
-            "description": "Duration (in seconds) of the caching timeout for this chart."
+            "description": "Duration (in seconds) of the caching timeout for this chart."  # noqa: E501
         }
     )
     certification_details = fields.String(
@@ -138,8 +175,9 @@ class SliceSchema(Schema):
     modified = fields.String(
         metadata={"description": "Last modification in human readable form."}
     )
-    owners = fields.List(
-        fields.Integer(), metadata={"description": "Owners identifiers."}
+    editors = fields.List(
+        fields.Nested(SubjectResponseSchema),
+        metadata={"description": "List of editors"},
     )
     query_context = fields.Dict(
         metadata={"description": "The context associated with the query."}

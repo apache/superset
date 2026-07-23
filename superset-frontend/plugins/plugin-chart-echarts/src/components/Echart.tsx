@@ -25,16 +25,187 @@ import {
   useLayoutEffect,
   useCallback,
   Ref,
+  useState,
 } from 'react';
+import { useSelector } from 'react-redux';
 
-import { styled } from '@superset-ui/core';
-import { ECharts, init } from 'echarts';
-import { EchartsHandler, EchartsProps, EchartsStylesProps } from '../types';
+import { styled, useTheme } from '@apache-superset/core/theme';
+import { use, init, EChartsType, registerLocale } from 'echarts/core';
+import {
+  SankeyChart,
+  PieChart,
+  BarChart,
+  FunnelChart,
+  GaugeChart,
+  GraphChart,
+  LineChart,
+  ScatterChart,
+  RadarChart,
+  BoxplotChart,
+  TreeChart,
+  TreemapChart,
+  HeatmapChart,
+  SunburstChart,
+  CustomChart,
+} from 'echarts/charts';
+import { CanvasRenderer } from 'echarts/renderers';
+import {
+  TooltipComponent,
+  TitleComponent,
+  GridComponent,
+  VisualMapComponent,
+  LegendComponent,
+  DataZoomComponent,
+  type DataZoomComponentOption,
+  ToolboxComponent,
+  GraphicComponent,
+  AriaComponent,
+  MarkAreaComponent,
+  MarkLineComponent,
+} from 'echarts/components';
+import { LabelLayout } from 'echarts/features';
+import {
+  EchartsHandler,
+  EchartsProps,
+  EchartsStylesProps,
+  QueryEventHandlers,
+} from '../types';
+import { DEFAULT_LOCALE } from '../constants';
+import { mergeEchartsThemeOverrides } from '../utils/themeOverrides';
+
+// Define this interface here to avoid creating a dependency back to superset-frontend,
+// TODO: to move the type to @superset-ui/core
+interface ExplorePageState {
+  common?: {
+    locale?: string;
+  };
+  dashboardState?: {
+    isRefreshing?: boolean;
+  };
+}
 
 const Styles = styled.div<EchartsStylesProps>`
   height: ${({ height }) => height};
   width: ${({ width }) => width};
 `;
+
+// eslint-disable-next-line react-hooks/rules-of-hooks -- This is ECharts' use function, not a React hook
+use([
+  CanvasRenderer,
+  BarChart,
+  BoxplotChart,
+  CustomChart,
+  FunnelChart,
+  GaugeChart,
+  GraphChart,
+  HeatmapChart,
+  LineChart,
+  PieChart,
+  RadarChart,
+  SankeyChart,
+  ScatterChart,
+  SunburstChart,
+  TreeChart,
+  TreemapChart,
+  AriaComponent,
+  DataZoomComponent,
+  GraphicComponent,
+  GridComponent,
+  MarkAreaComponent,
+  MarkLineComponent,
+  LegendComponent,
+  ToolboxComponent,
+  TooltipComponent,
+  TitleComponent,
+  VisualMapComponent,
+  LabelLayout,
+]);
+
+// Explicit per-locale imports rather than a template-literal dynamic
+// import: a computed import makes bundlers build a "context module" over
+// echarts/i18n, and resolving that directory through the echarts package's
+// `exports` map fails intermittently in webpack incremental builds
+// ("Package path ./i18n is exported ... but no valid target file was
+// found"). A static map is also the only thing that lets bundlers
+// code-split exactly the locales listed here. Keys are Superset locales
+// uppercased (see LANGUAGES in superset/config.py); values point at the
+// echarts bundle, whose naming differs for some locales (Slovenian is
+// langSI, Brazilian Portuguese is langPT-br). Only locales that echarts
+// 5.6.0 ships a bundle for are listed — Greek (langEL) and Latvian
+// (langLV) were added in echarts 6 and must stay out until this
+// dependency is upgraded again. Superset locales absent from this map
+// fall back to English.
+//
+// The "-obj" suffix is required and must not be dropped. echarts ships two
+// UMD builds per locale: langXX.js self-registers under echarts' own key and
+// exports nothing, while langXX-obj.js exports the locale object. Importing
+// the plain langXX.js yields an empty object, and registering that erases the
+// locale's `time` section, so every time-axis label crashes echarts'
+// formatTime with "Cannot read properties of null" — it evaluates
+// `month[u - 1]` eagerly for every template, even "{yyyy}". Registering the
+// object ourselves is also what lets Superset locale keys that differ from
+// echarts' own (SL -> SI, PT_BR -> PT-br) resolve at init time.
+type EChartsLocaleOption = Parameters<typeof registerLocale>[1];
+
+const LOCALE_LOADERS: Record<
+  string,
+  () => Promise<{ default: EChartsLocaleOption }>
+> = {
+  AR: () => import('echarts/i18n/langAR-obj.js'),
+  CS: () => import('echarts/i18n/langCS-obj.js'),
+  DE: () => import('echarts/i18n/langDE-obj.js'),
+  EN: () => import('echarts/i18n/langEN-obj.js'),
+  ES: () => import('echarts/i18n/langES-obj.js'),
+  FA: () => import('echarts/i18n/langFA-obj.js'),
+  FI: () => import('echarts/i18n/langFI-obj.js'),
+  FR: () => import('echarts/i18n/langFR-obj.js'),
+  HU: () => import('echarts/i18n/langHU-obj.js'),
+  IT: () => import('echarts/i18n/langIT-obj.js'),
+  JA: () => import('echarts/i18n/langJA-obj.js'),
+  KO: () => import('echarts/i18n/langKO-obj.js'),
+  NL: () => import('echarts/i18n/langNL-obj.js'),
+  PL: () => import('echarts/i18n/langPL-obj.js'),
+  RO: () => import('echarts/i18n/langRO-obj.js'),
+  PT_BR: () => import('echarts/i18n/langPT-br-obj.js'),
+  RU: () => import('echarts/i18n/langRU-obj.js'),
+  SL: () => import('echarts/i18n/langSI-obj.js'),
+  SV: () => import('echarts/i18n/langSV-obj.js'),
+  TH: () => import('echarts/i18n/langTH-obj.js'),
+  TR: () => import('echarts/i18n/langTR-obj.js'),
+  UK: () => import('echarts/i18n/langUK-obj.js'),
+  VI: () => import('echarts/i18n/langVI-obj.js'),
+  ZH: () => import('echarts/i18n/langZH-obj.js'),
+};
+
+const loadLocale = async (locale: string) => {
+  const loader = LOCALE_LOADERS[locale];
+  if (!loader) {
+    // Locale not supported in ECharts
+    return undefined;
+  }
+  try {
+    const localeObj = (await loader()).default;
+    // registerLocale replaces any built-in entry under the same key, so a
+    // partial object would leave echarts formatting against missing data.
+    // Fall back to the built-in locale instead of registering a broken one.
+    return localeObj?.time ? localeObj : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+// Report/thumbnail screenshots use standalone="true" (charts) or 3 (reports);
+// live embeds use 1/2 and keep animation. See superset/utils/screenshots.py.
+export function isReportScreenshotMode(): boolean {
+  try {
+    const standalone = new URLSearchParams(window.location.search).get(
+      'standalone',
+    );
+    return standalone === 'true' || standalone === '3';
+  } catch {
+    return false;
+  }
+}
 
 function Echart(
   {
@@ -42,18 +213,23 @@ function Echart(
     height,
     echartOptions,
     eventHandlers,
+    queryEventHandlers,
     zrEventHandlers,
     selectedValues = {},
     refs,
+    vizType,
   }: EchartsProps,
   ref: Ref<EchartsHandler>,
 ) {
+  const theme = useTheme();
   const divRef = useRef<HTMLDivElement>(null);
   if (refs) {
     // eslint-disable-next-line no-param-reassign
     refs.divRef = divRef;
   }
-  const chartRef = useRef<ECharts>();
+  const [didMount, setDidMount] = useState(false);
+  const chartRef = useRef<EChartsType>();
+  const previousQueryEventHandlers = useRef<QueryEventHandlers>([]);
   const currentSelection = useMemo(
     () => Object.keys(selectedValues) || [],
     [selectedValues],
@@ -64,24 +240,218 @@ function Echart(
     getEchartInstance: () => chartRef.current,
   }));
 
+  const locale = useSelector(
+    (state: ExplorePageState) => state?.common?.locale ?? DEFAULT_LOCALE,
+  ).toUpperCase();
+  const isDashboardRefreshing = useSelector((state: ExplorePageState) =>
+    Boolean(state?.dashboardState?.isRefreshing),
+  );
+
+  const handleSizeChange = useCallback(
+    ({ width, height }: { width: number; height: number }) => {
+      if (chartRef.current) {
+        chartRef.current.resize({ width, height });
+      }
+    },
+    [],
+  );
+
   useEffect(() => {
-    if (!divRef.current) return;
-    if (!chartRef.current) {
-      chartRef.current = init(divRef.current);
+    loadLocale(locale).then(localeObj => {
+      if (localeObj) {
+        registerLocale(locale, localeObj);
+      }
+      if (!divRef.current) return;
+      if (!chartRef.current) {
+        // Pass width and height to init to avoid "Can't get DOM width or height" warning
+        // since the DOM element may not have its dimensions yet when init is called
+        chartRef.current = init(divRef.current, null, {
+          locale,
+          width,
+          height,
+        });
+      }
+      // did mount
+      handleSizeChange({ width, height });
+      setDidMount(true);
+    });
+  }, [locale, width, height, handleSizeChange]);
+
+  useEffect(() => {
+    if (didMount) {
+      previousQueryEventHandlers.current.forEach(({ name, handler }) => {
+        chartRef.current?.off(name, handler);
+      });
+      Object.entries(eventHandlers || {}).forEach(([name, handler]) => {
+        chartRef.current?.off(name);
+        chartRef.current?.on(name, handler);
+      });
+
+      (queryEventHandlers || []).forEach(({ name, query, handler }) => {
+        chartRef.current?.on(name, query, handler);
+      });
+      previousQueryEventHandlers.current = queryEventHandlers || [];
+
+      Object.entries(zrEventHandlers || {}).forEach(([name, handler]) => {
+        chartRef.current?.getZr().off(name);
+        chartRef.current?.getZr().on(name, handler);
+      });
+
+      const getEchartsTheme = (options: any) => {
+        const antdTheme = theme;
+        const echartsTheme = {
+          textStyle: {
+            color: antdTheme.colorText,
+            fontFamily: antdTheme.fontFamily,
+          },
+          title: {
+            textStyle: { color: antdTheme.colorText },
+          },
+          legend: {
+            textStyle: { color: antdTheme.colorTextSecondary },
+            pageTextStyle: {
+              color: antdTheme.colorTextSecondary,
+            },
+            pageIconColor: antdTheme.colorTextSecondary,
+            pageIconInactiveColor: antdTheme.colorTextDisabled,
+            inactiveColor: antdTheme.colorTextDisabled,
+          },
+          tooltip: {
+            backgroundColor: antdTheme.colorBgContainer,
+            textStyle: { color: antdTheme.colorText },
+          },
+          axisPointer: {
+            lineStyle: { color: antdTheme.colorPrimary },
+            label: { color: antdTheme.colorText },
+          },
+        } as any;
+        if (options?.xAxis) {
+          echartsTheme.xAxis = {
+            axisLine: { lineStyle: { color: antdTheme.colorSplit } },
+            axisLabel: { color: antdTheme.colorTextSecondary },
+            splitLine: { lineStyle: { color: antdTheme.colorSplit } },
+            minorSplitLine: {
+              lineStyle: { color: antdTheme.colorBorderSecondary },
+            },
+          };
+        }
+        if (options?.yAxis) {
+          echartsTheme.yAxis = {
+            axisLine: { lineStyle: { color: antdTheme.colorSplit } },
+            axisLabel: { color: antdTheme.colorTextSecondary },
+            splitLine: { lineStyle: { color: antdTheme.colorSplit } },
+            minorSplitLine: {
+              lineStyle: { color: antdTheme.colorBorderSecondary },
+            },
+          };
+        }
+        return echartsTheme;
+      };
+
+      const baseTheme = getEchartsTheme(echartOptions);
+      const globalOverrides = theme.echartsOptionsOverrides || {};
+      const chartOverrides = vizType
+        ? theme.echartsOptionsOverridesByChartType?.[vizType] || {}
+        : {};
+
+      // Disable animation on auto-refresh and screenshots. Screenshots have no
+      // "render finished" signal, so a running draw can be captured mid-frame,
+      // producing partial/blank charts.
+      const animationOverride =
+        isDashboardRefreshing || isReportScreenshotMode()
+          ? {
+              animation: false,
+              animationDuration: 0,
+            }
+          : {};
+
+      const themedEchartOptions = mergeEchartsThemeOverrides(
+        baseTheme,
+        echartOptions,
+        globalOverrides,
+        chartOverrides,
+        animationOverride,
+      );
+
+      const notMerge = !isDashboardRefreshing;
+      chartRef.current?.dispatchAction({ type: 'hideTip' });
+      // setOption(notMerge:true) replaces the dataZoom config, dropping any
+      // range the user has engaged. Preserve it across the call.
+      const previousZoom = notMerge
+        ? (
+            chartRef.current?.getOption() as {
+              dataZoom?: DataZoomComponentOption[];
+            }
+          )?.dataZoom
+        : undefined;
+      chartRef.current?.setOption(themedEchartOptions, {
+        notMerge,
+        replaceMerge: notMerge ? undefined : ['series'],
+        // lazyUpdate defers render, causing tooltip crashes on stale shapes (#39247)
+        lazyUpdate: false,
+      });
+      if (previousZoom?.length) {
+        // Skip restore when the new option reshapes dataZoom (different count
+        // means index-based restore could land on the wrong component).
+        const newZoom = (
+          chartRef.current?.getOption() as {
+            dataZoom?: DataZoomComponentOption[];
+          }
+        )?.dataZoom;
+        if (newZoom?.length === previousZoom.length) {
+          const batch = previousZoom
+            .map((dz, dataZoomIndex) => ({
+              dataZoomIndex,
+              start: dz.start,
+              end: dz.end,
+              startValue: dz.startValue,
+              endValue: dz.endValue,
+            }))
+            .filter(b => {
+              const hasAny =
+                b.start !== undefined ||
+                b.end !== undefined ||
+                b.startValue !== undefined ||
+                b.endValue !== undefined;
+              if (!hasAny) return false;
+              // Default full-range zoom is functionally identical to the
+              // fresh state setOption already produces — skip the dispatch.
+              const isDefaultRange =
+                b.start === 0 &&
+                b.end === 100 &&
+                b.startValue === undefined &&
+                b.endValue === undefined;
+              return !isDefaultRange;
+            });
+          if (batch.length) {
+            chartRef.current?.dispatchAction({ type: 'dataZoom', batch });
+          }
+        }
+      }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- isDashboardRefreshing intentionally excluded to prevent extra setOption calls
+  }, [
+    didMount,
+    echartOptions,
+    eventHandlers,
+    queryEventHandlers,
+    zrEventHandlers,
+    theme,
+    vizType,
+  ]);
 
-    Object.entries(eventHandlers || {}).forEach(([name, handler]) => {
-      chartRef.current?.off(name);
-      chartRef.current?.on(name, handler);
-    });
+  // Clear tooltip on refresh start to avoid stale content (#39247)
+  useEffect(() => {
+    if (didMount && isDashboardRefreshing && chartRef.current) {
+      chartRef.current.dispatchAction({ type: 'hideTip' });
+      chartRef.current.dispatchAction({
+        type: 'updateAxisPointer',
+        currTrigger: 'leave',
+      });
+    }
+  }, [didMount, isDashboardRefreshing]);
 
-    Object.entries(zrEventHandlers || {}).forEach(([name, handler]) => {
-      chartRef.current?.getZr().off(name);
-      chartRef.current?.getZr().on(name, handler);
-    });
-
-    chartRef.current.setOption(echartOptions, true);
-  }, [echartOptions, eventHandlers, zrEventHandlers]);
+  useEffect(() => () => chartRef.current?.dispose(), []);
 
   // highlighting
   useEffect(() => {
@@ -100,21 +470,6 @@ function Echart(
     }
     previousSelection.current = currentSelection;
   }, [currentSelection]);
-
-  const handleSizeChange = useCallback(
-    ({ width, height }: { width: number; height: number }) => {
-      if (chartRef.current) {
-        chartRef.current.resize({ width, height });
-      }
-    },
-    [],
-  );
-
-  // did mount
-  useEffect(() => {
-    handleSizeChange({ width, height });
-    return () => chartRef.current?.dispose();
-  }, []);
 
   useLayoutEffect(() => {
     handleSizeChange({ width, height });

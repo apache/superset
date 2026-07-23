@@ -1,0 +1,66 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { useCallback, useEffect } from 'react';
+import { HeaderProps } from '../Header/types';
+
+type UndoRedoKeyListenersProps = {
+  onUndo: HeaderProps['onUndo'];
+  onRedo: HeaderProps['onRedo'];
+};
+
+function UndoRedoKeyListeners({ onUndo, onRedo }: UndoRedoKeyListenersProps) {
+  const handleKeydown = useCallback(
+    (event: KeyboardEvent) => {
+      const controlOrCommand = event.ctrlKey || event.metaKey;
+      if (controlOrCommand) {
+        const key = event.key.toLowerCase();
+        // Fall back to event.code (the physical key) so undo/redo still work on
+        // non-Latin keyboard layouts where event.key is a different glyph.
+        const isZ = key === 'z' || event.code === 'KeyZ';
+        const isY = key === 'y' || event.code === 'KeyY';
+        const isUndo = isZ && !event.shiftKey;
+        const isRedo = isY || (isZ && event.shiftKey);
+        const isEditingMarkdown = document?.querySelector(
+          '.dashboard-markdown--editing',
+        );
+        const isEditingTitle = document?.querySelector(
+          '.editable-title--editing',
+        );
+
+        if (!isEditingMarkdown && !isEditingTitle && (isUndo || isRedo)) {
+          event.preventDefault();
+          const func = isUndo ? onUndo : onRedo;
+          func();
+        }
+      }
+    },
+    [onUndo, onRedo],
+  );
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeydown);
+    return () => {
+      document.removeEventListener('keydown', handleKeydown);
+    };
+  }, [handleKeydown]);
+
+  return null;
+}
+
+export default UndoRedoKeyListeners;

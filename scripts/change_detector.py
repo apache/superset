@@ -20,8 +20,20 @@ import json
 import os
 import re
 import subprocess
-from typing import List
+import time
+from typing import List, Optional
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
+
+# The change detector gates the entire CI matrix, so a single transient GitHub
+# API hiccup should not fail the build. Retry server errors and network blips
+# with exponential backoff before giving up.
+MAX_RETRIES: int = 4
+RETRY_BACKOFF_SECONDS: int = 2
+REQUEST_TIMEOUT_SECONDS: int = 30
+# GitHub returns 429 (and 403 for secondary rate limits) when throttling, which
+# is transient and worth retrying alongside 5xx server errors.
+RETRYABLE_STATUS_CODES: frozenset[int] = frozenset({403, 429})
 
 # Define patterns for each group of files you're interested in
 PATTERNS = {
@@ -31,7 +43,9 @@ PATTERNS = {
         r"^superset/",
         r"^scripts/",
         r"^setup\.py",
+        r"^pyproject\.toml$",
         r"^requirements/.+\.txt",
+        r"^pyproject\.toml",
         r"^.pylintrc",
     ],
     "frontend": [
@@ -40,30 +54,57 @@ PATTERNS = {
     ],
     "docker": [
         r"^Dockerfile$",
-        r"^docker/",
+        r"^docker.*",
     ],
     "docs": [
         r"^docs/",
+    ],
+    "superset-extensions-cli": [
+        r"^\.github/workflows/superset-extensions-cli\.yml",
+        r"^superset-extensions-cli/",
+        r"^superset-core/",
     ],
 }
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 
 
 def fetch_files_github_api(url: str):  # type: ignore
-    """Fetches data using GitHub API."""
-    req = Request(url)
-    req.add_header("Authorization", f"token {GITHUB_TOKEN}")
+    """Fetches data using GitHub API, retrying on transient failures."""
+    req = Request(url)  # noqa: S310
+    req.add_header("Authorization", f"Bearer {GITHUB_TOKEN}")
     req.add_header("Accept", "application/vnd.github.v3+json")
 
     print(f"Fetching from {url}")
-    with urlopen(req) as response:
-        body = response.read()
-        return json.loads(body)
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            with urlopen(req, timeout=REQUEST_TIMEOUT_SECONDS) as response:  # noqa: S310
+                body = response.read()
+                return json.loads(body)
+        except (HTTPError, URLError) as err:
+            # Retry transient failures: network errors (URLError has no status
+            # code), 5xx server errors, and GitHub rate-limit responses. Other
+            # 4xx client errors are deterministic, so re-raise immediately. Also
+            # re-raise once the retry budget is exhausted.
+            status = getattr(err, "code", None)
+            is_transient = (
+                status is None or status >= 500 or status in RETRYABLE_STATUS_CODES
+            )
+            if not is_transient or attempt == MAX_RETRIES:
+                raise
+            wait = RETRY_BACKOFF_SECONDS * 2 ** (attempt - 1)
+            print(
+                f"Attempt {attempt}/{MAX_RETRIES} failed ({err}); "
+                f"retrying in {wait}s..."
+            )
+            time.sleep(wait)
 
 
 def fetch_changed_files_pr(repo: str, pr_number: str) -> List[str]:
     """Fetches files changed in a PR using the GitHub API."""
-    url = f"https://api.github.com/repos/{repo}/pulls/{pr_number}/files"
+
+    # NOTE: limited to 100 files ideally should page-through but instead resorting
+    # to assuming we should trigger when 100 files have been touched
+    url = f"https://api.github.com/repos/{repo}/pulls/{pr_number}/files?per_page=100"
     files = fetch_files_github_api(url)
     return [file_info["filename"] for file_info in files]
 
@@ -95,46 +136,59 @@ def print_files(files: List[str]) -> None:
     print("\n".join([f"- {s}" for s in files]))
 
 
+def is_int(s: str) -> bool:
+    return bool(re.match(r"^-?\d+$", s))
+
+
 def main(event_type: str, sha: str, repo: str) -> None:
     """Main function to check for file changes based on event context."""
     print("SHA:", sha)
     print("EVENT_TYPE", event_type)
+    files: Optional[List[str]] = []
     if event_type == "pull_request":
         pr_number = os.getenv("GITHUB_REF", "").split("/")[-2]
-        files = fetch_changed_files_pr(repo, pr_number)
-        print("PR files:")
-        print_files(files)
+        if is_int(pr_number):
+            files = fetch_changed_files_pr(repo, pr_number)
+            print("PR files:")
+            print_files(files)
 
     elif event_type == "push":
         files = fetch_changed_files_push(repo, sha)
         print("Files touched since previous commit:")
         print_files(files)
 
-    elif event_type == "workflow_dispatch":
-        print("Workflow dispatched, assuming all changed")
+    elif event_type in ("workflow_dispatch", "schedule"):
+        # Manual or cron-triggered runs aren't tied to a specific diff, so
+        # treat every group as changed. `files = None` makes the loop below
+        # short-circuit to True for every group via `files is None or ...`.
+        print(f"{event_type} run, assuming all changed")
+        files = None
 
     else:
-        raise ValueError("Unsupported event type")
+        raise ValueError(f"Unsupported event type: {event_type}")
 
     changes_detected = {}
     for group, regex_patterns in PATTERNS.items():
         patterns_compiled = [re.compile(p) for p in regex_patterns]
-        changes_detected[group] = event_type == "workflow_dispatch" or detect_changes(
+        changes_detected[group] = files is None or detect_changes(
             files, patterns_compiled
         )
 
     # Output results
-    output_path = os.getenv("GITHUB_OUTPUT") or "/tmp/GITHUB_OUTPUT.txt"
+    output_path = os.getenv("GITHUB_OUTPUT") or "/tmp/GITHUB_OUTPUT.txt"  # noqa: S108
     with open(output_path, "a") as f:
         for check, changed in changes_detected.items():
-            if changed:
-                print(f"{check}={str(changed).lower()}", file=f)
+            # NOTE: as noted above, we assume that if 100 files are touched, we should
+            # trigger all checks. This is a workaround for the GitHub API limit of 100
+            # files. Using >= 99 because off-by-one errors are not uncommon
+            if changed or (files is not None and len(files) >= 99):
+                print(f"{check}=true", file=f)
                 print(f"Triggering group: {check}")
 
 
 def get_git_sha() -> str:
-    return os.getenv("GITHUB_SHA") or subprocess.check_output(
-        ["git", "rev-parse", "HEAD"]
+    return os.getenv("GITHUB_SHA") or subprocess.check_output(  # noqa: S603
+        ["git", "rev-parse", "HEAD"]  # noqa: S603, S607
     ).strip().decode("utf-8")
 
 

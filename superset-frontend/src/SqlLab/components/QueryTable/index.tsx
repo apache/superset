@@ -16,13 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo } from 'react';
-import moment from 'moment';
-import Card from 'src/components/Card';
-import ProgressBar from 'src/components/ProgressBar';
-import Label from 'src/components/Label';
-import { t, useTheme, QueryResponse } from '@superset-ui/core';
-import { useDispatch, useSelector } from 'react-redux';
+import { useMemo, ReactNode, useState, useRef } from 'react';
+import {
+  Card,
+  Button,
+  Tooltip,
+  Label,
+  Icons,
+  ModalTrigger,
+  TableView,
+} from '@superset-ui/core/components';
+import ProgressBar from '@superset-ui/core/components/ProgressBar';
+import { t } from '@apache-superset/core/translation';
+import { QueryResponse } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/theme';
+import { shallowEqual, useSelector } from 'react-redux';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 
 import {
   queryEditorSetSql,
@@ -30,25 +39,35 @@ import {
   fetchQueryResults,
   clearQueryResults,
   removeQuery,
+  startQuery,
 } from 'src/SqlLab/actions/sqlLab';
-import TableView from 'src/components/TableView';
-import Button from 'src/components/Button';
-import { fDuration } from 'src/utils/dates';
-import Icons from 'src/components/Icons';
-import { Tooltip } from 'src/components/Tooltip';
+import { fDuration, extendedDayjs } from '@superset-ui/core/utils/dates';
 import { SqlLabRootState } from 'src/SqlLab/types';
-import ModalTrigger from 'src/components/ModalTrigger';
 import { UserWithPermissionsAndRoles as User } from 'src/types/bootstrapTypes';
+import { openInNewTab } from 'src/utils/navigationUtils';
 import ResultSet from '../ResultSet';
 import HighlightedSql from '../HighlightedSql';
-import { StaticPosition, verticalAlign, StyledTooltip } from './styles';
+import { StaticPosition, StyledTooltip, ModalResultSetWrapper } from './styles';
 
-interface QueryTableQuery
-  extends Omit<QueryResponse, 'state' | 'sql' | 'progress' | 'results'> {
-  state?: Record<string, any>;
-  sql?: Record<string, any>;
-  progress?: Record<string, any>;
-  results?: Record<string, any>;
+interface QueryTableQuery extends Omit<
+  QueryResponse,
+  | 'state'
+  | 'sql'
+  | 'progress'
+  | 'results'
+  | 'duration'
+  | 'started'
+  | 'user'
+  | 'db'
+> {
+  state?: ReactNode;
+  sql?: ReactNode;
+  progress?: ReactNode;
+  results?: ReactNode;
+  duration?: ReactNode;
+  started?: ReactNode;
+  user?: ReactNode;
+  db?: ReactNode;
 }
 
 interface QueryTableProps {
@@ -61,8 +80,7 @@ interface QueryTableProps {
 }
 
 const openQuery = (id: number) => {
-  const url = `/sqllab?queryId=${id}`;
-  window.open(url);
+  openInNewTab(`/sqllab?queryId=${id}`);
 };
 
 const QueryTable = ({
@@ -74,7 +92,16 @@ const QueryTable = ({
   latestQueryId,
 }: QueryTableProps) => {
   const theme = useTheme();
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
+  const [selectedQuery, setSelectedQuery] = useState<QueryResponse | null>(
+    null,
+  );
+  const selectedQueryRef = useRef<QueryResponse | null>(null);
+  const modalRef = useRef<{
+    close: () => void;
+    open: (e: React.MouseEvent) => void;
+    showModal: boolean;
+  } | null>(null);
 
   const QUERY_HISTORY_TABLE_HEADERS_LOCALIZED = {
     state: t('State'),
@@ -99,13 +126,24 @@ const QueryTable = ({
       columns.map(column => ({
         accessor: column,
         Header:
-          QUERY_HISTORY_TABLE_HEADERS_LOCALIZED[column] || setHeaders(column),
+          QUERY_HISTORY_TABLE_HEADERS_LOCALIZED[
+            column as keyof typeof QUERY_HISTORY_TABLE_HEADERS_LOCALIZED
+          ] || setHeaders(column),
         disableSortBy: true,
+        id: column,
       })),
     [columns],
   );
 
   const user = useSelector<SqlLabRootState, User>(state => state.user);
+  const reduxQueries = useSelector<
+    SqlLabRootState,
+    Record<string, QueryResponse>
+  >(state => state.sqlLab?.queries ?? {}, shallowEqual);
+
+  const openAsyncResults = (query: QueryResponse, displayLimit: number) => {
+    dispatch(fetchQueryResults(query, displayLimit));
+  };
 
   const data = useMemo(() => {
     const restoreSql = (query: QueryResponse) => {
@@ -118,92 +156,125 @@ const QueryTable = ({
       dispatch(cloneQueryToNewTab(query, true));
     };
 
-    const openAsyncResults = (query: QueryResponse, displayLimit: number) => {
-      dispatch(fetchQueryResults(query, displayLimit));
-    };
-
     const statusAttributes = {
       success: {
         config: {
-          icon: <Icons.Check iconColor={theme.colors.success.base} />,
+          icon: (
+            <Icons.CheckOutlined iconColor={theme.colorSuccess} iconSize="m" />
+          ),
+          // icon: <Icons.Edit iconSize="xl" />,
           label: t('Success'),
         },
       },
       failed: {
         config: {
-          icon: <Icons.XSmall iconColor={theme.colors.error.base} />,
+          icon: (
+            <Icons.CloseOutlined iconColor={theme.colorError} iconSize="m" />
+          ),
           label: t('Failed'),
         },
       },
       stopped: {
         config: {
-          icon: <Icons.XSmall iconColor={theme.colors.error.base} />,
+          icon: (
+            <Icons.CloseOutlined iconColor={theme.colorError} iconSize="m" />
+          ),
           label: t('Failed'),
         },
       },
       running: {
         config: {
-          icon: <Icons.Running iconColor={theme.colors.primary.base} />,
+          icon: (
+            <Icons.LoadingOutlined
+              iconColor={theme.colorPrimary}
+              iconSize="m"
+            />
+          ),
           label: t('Running'),
         },
       },
       fetching: {
         config: {
-          icon: <Icons.Queued iconColor={theme.colors.primary.base} />,
+          icon: (
+            <Icons.LoadingOutlined
+              iconColor={theme.colorPrimary}
+              iconSize="m"
+            />
+          ),
           label: t('Fetching'),
         },
       },
       timed_out: {
         config: {
-          icon: <Icons.Offline iconColor={theme.colors.grayscale.light1} />,
+          icon: (
+            <Icons.ClockCircleOutlined
+              iconColor={theme.colorError}
+              iconSize="m"
+            />
+          ),
           label: t('Offline'),
         },
       },
       scheduled: {
         config: {
-          icon: <Icons.Queued iconColor={theme.colors.grayscale.base} />,
+          icon: (
+            <Icons.LoadingOutlined
+              iconColor={theme.colorWarning}
+              iconSize="m"
+            />
+          ),
           label: t('Scheduled'),
         },
       },
       pending: {
         config: {
-          icon: <Icons.Queued iconColor={theme.colors.grayscale.base} />,
+          icon: (
+            <Icons.LoadingOutlined
+              iconColor={theme.colorWarning}
+              iconSize="m"
+            />
+          ),
           label: t('Scheduled'),
         },
       },
       error: {
         config: {
-          icon: <Icons.Error iconColor={theme.colors.error.base} />,
+          icon: <Icons.Error iconColor={theme.colorError} iconSize="m" />,
           label: t('Unknown Status'),
+        },
+      },
+      started: {
+        config: {
+          icon: (
+            <Icons.LoadingOutlined
+              iconColor={theme.colorPrimary}
+              iconSize="m"
+            />
+          ),
+          label: t('Started'),
         },
       },
     };
 
     return queries
       .map(query => {
-        const { state, sql, progress, ...rest } = query;
+        const { state, sql, progress, results: _results, ...rest } = query;
         const q = rest as QueryTableQuery;
 
         const status = statusAttributes[state] || statusAttributes.error;
 
         if (q.endDttm) {
-          q.duration = fDuration(q.startDttm, q.endDttm);
+          q.duration = (
+            <Label monospace>{fDuration(q.startDttm, q.endDttm)}</Label>
+          );
         }
-        const time = moment(q.startDttm).format().split('T');
-        q.time = (
-          <div>
-            <span>
-              {time[0]} <br /> {time[1]}
-            </span>
-          </div>
-        );
         q.user = (
           <Button
             buttonSize="small"
             buttonStyle="link"
             onClick={() => onUserClicked(q.userId)}
           >
-            {q.user}
+            {q.user as ReactNode}
           </Button>
         );
         q.db = (
@@ -212,17 +283,21 @@ const QueryTable = ({
             buttonStyle="link"
             onClick={() => onDbClicked(q.dbId)}
           >
-            {q.db}
+            {q.db as ReactNode}
           </Button>
         );
-        q.started = moment(q.startDttm).format('L HH:mm:ss');
+        q.started = (
+          <Label monospace>
+            {extendedDayjs(q.startDttm).format('L HH:mm:ss')}
+          </Label>
+        );
         q.querylink = (
           <Button
             buttonSize="small"
             buttonStyle="link"
             onClick={() => openQuery(q.queryId)}
           >
-            <i className="fa fa-external-link m-r-3" />
+            <Icons.Full iconSize="m" iconColor={theme.colorPrimary} />
             {t('Edit')}
           </Button>
         );
@@ -238,27 +313,17 @@ const QueryTable = ({
         );
         if (q.resultsKey) {
           q.results = (
-            <ModalTrigger
-              className="ResultsModal"
-              triggerNode={
-                <Label type="info" className="pointer">
-                  {t('View')}
-                </Label>
-              }
-              modalTitle={t('Data preview')}
-              beforeOpen={() => openAsyncResults(query, displayLimit)}
-              onExit={() => dispatch(clearQueryResults(query))}
-              modalBody={
-                <ResultSet
-                  showSql
-                  queryId={query.id}
-                  height={400}
-                  displayLimit={displayLimit}
-                  defaultQueryLimit={1000}
-                />
-              }
-              responsive
-            />
+            <Button
+              buttonSize="xsmall"
+              buttonStyle="secondary"
+              onClick={(e: React.MouseEvent) => {
+                selectedQueryRef.current = query;
+                setSelectedQuery(query);
+                modalRef.current?.open(e);
+              }}
+            >
+              {t('View')}
+            </Button>
           );
         } else {
           q.results = <></>;
@@ -275,9 +340,7 @@ const QueryTable = ({
             <ProgressBar percent={parseInt(progress.toFixed(0), 10)} striped />
           );
         q.state = (
-          <Tooltip title={status.config.label} placement="bottom">
-            <span>{status.config.icon}</span>
-          </Tooltip>
+          <Tooltip title={status.config.label}>{status.config.icon}</Tooltip>
         );
         q.actions = (
           <div>
@@ -287,22 +350,25 @@ const QueryTable = ({
                 'Overwrite text in the editor with a query on this table',
               )}
               placement="top"
+              className="pointer"
             >
-              <Icons.Edit iconSize="xl" />
+              <Icons.EditOutlined iconSize="l" />
             </StyledTooltip>
             <StyledTooltip
               onClick={() => openQueryInNewTab(query)}
               tooltip={t('Run query in a new tab')}
               placement="top"
+              className="pointer"
             >
-              <Icons.PlusCircleOutlined iconSize="xl" css={verticalAlign} />
+              <Icons.PlusCircleOutlined iconSize="l" />
             </StyledTooltip>
             {q.id !== latestQueryId && (
               <StyledTooltip
                 tooltip={t('Remove query from log')}
                 onClick={() => dispatch(removeQuery(query))}
+                className="pointer"
               >
-                <Icons.Trash iconSize="xl" />
+                <Icons.DeleteOutlined iconSize="l" />
               </StyledTooltip>
             )}
           </div>
@@ -314,6 +380,43 @@ const QueryTable = ({
 
   return (
     <div className="QueryTable">
+      <ModalTrigger
+        ref={modalRef}
+        triggerNode={null}
+        className="ResultsModal"
+        modalTitle={t('Data preview')}
+        beforeOpen={() => {
+          const query = selectedQueryRef.current;
+          if (query) {
+            const existingQuery = reduxQueries[query.id];
+            if (!existingQuery?.sql && query.sql) {
+              dispatch(startQuery({ ...query, sql: query.sql }, false));
+            }
+            openAsyncResults(query, displayLimit);
+          }
+        }}
+        onExit={() => {
+          const query = selectedQueryRef.current;
+          if (query) {
+            dispatch(clearQueryResults(query));
+            selectedQueryRef.current = null;
+            setSelectedQuery(null);
+          }
+        }}
+        modalBody={
+          selectedQuery ? (
+            <ModalResultSetWrapper>
+              <ResultSet
+                showSql
+                queryId={selectedQuery.id}
+                displayLimit={displayLimit}
+                defaultQueryLimit={1000}
+              />
+            </ModalResultSetWrapper>
+          ) : null
+        }
+        responsive
+      />
       <TableView
         columns={columnsOfTable}
         data={data}

@@ -20,19 +20,23 @@ import {
   ControlSetItem,
   CustomControlConfig,
   sharedControls,
-  InfoTooltipWithTrigger,
 } from '@superset-ui/chart-controls';
-import { t, useTheme } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { useTheme, useThemeMode } from '@apache-superset/core/theme';
+import { InfoTooltip } from '@superset-ui/core/components';
 import { CodeEditor } from '../../components/CodeEditor/CodeEditor';
 import { ControlHeader } from '../../components/ControlHeader/controlHeader';
 import { debounceFunc } from '../../consts';
 
 interface StyleCustomControlProps {
   value: string;
+  htmlSanitization: boolean;
 }
 
 const StyleControl = (props: CustomControlConfig<StyleCustomControlProps>) => {
   const theme = useTheme();
+  const isDarkMode = useThemeMode();
+  const htmlSanitization = props.htmlSanitization ?? true;
 
   const defaultValue = props?.value
     ? undefined
@@ -46,15 +50,21 @@ const StyleControl = (props: CustomControlConfig<StyleCustomControlProps>) => {
     <div>
       <ControlHeader>
         <div>
-          {props.label}
-          <InfoTooltipWithTrigger
-            iconsStyle={{ marginLeft: theme.gridUnit }}
-            tooltip={t('You need to configure HTML sanitization to use CSS')}
-          />
+          {typeof props.label === 'function' ? null : props.label}
+          {htmlSanitization && (
+            <InfoTooltip
+              iconStyle={{ marginLeft: theme.sizeUnit }}
+              tooltip={t(
+                'CSS styles may be removed by server-side HTML sanitization. ' +
+                  'If styles are not applying, ask your Superset administrator ' +
+                  'to adjust the HTML sanitization configuration.',
+              )}
+            />
+          )}
         </div>
       </ControlHeader>
       <CodeEditor
-        theme="dark"
+        theme={isDarkMode ? 'dark' : 'light'}
         mode="css"
         value={props.value}
         defaultValue={defaultValue}
@@ -75,10 +85,12 @@ export const styleControlSetItem: ControlSetItem = {
     description: t('CSS applied to the chart'),
     isInt: false,
     renderTrigger: true,
+    valueKey: null,
 
     validators: [],
-    mapStateToProps: ({ controls }) => ({
-      value: controls?.handlebars_template?.value,
+    mapStateToProps: ({ form_data, common }) => ({
+      value: form_data?.styleTemplate ?? form_data?.style_template,
+      htmlSanitization: common?.conf?.HTML_SANITIZATION ?? true,
     }),
   },
 };

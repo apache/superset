@@ -14,12 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import warnings
+
 import pytest
 
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils.core import PostProcessingBoxplotWhiskerType
 from superset.utils.pandas_postprocessing import boxplot
 from tests.unit_tests.fixtures.dataframes import names_df
+from tests.unit_tests.pandas_postprocessing.utils import series_to_list
 
 
 def test_boxplot_tukey():
@@ -29,7 +32,7 @@ def test_boxplot_tukey():
         whisker_type=PostProcessingBoxplotWhiskerType.TUKEY,
         metrics=["cars"],
     )
-    columns = {column for column in df.columns}
+    columns = {column for column in df.columns}  # noqa: C416
     assert columns == {
         "cars__mean",
         "cars__median",
@@ -44,6 +47,49 @@ def test_boxplot_tukey():
     assert len(df) == 4
 
 
+def test_boxplot_mean_median_no_future_warning():
+    """mean/median must be passed as strings (not np.mean/np.median) to
+    GroupBy.agg, else pandas raises a FutureWarning. Also verify the values
+    match a plain pandas groupby, since the string and callable forms could
+    silently diverge on a future pandas version."""
+    expected = names_df.groupby("region")["cars"].agg(["mean", "median"])
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", FutureWarning)
+        df = boxplot(
+            df=names_df,
+            groupby=["region"],
+            whisker_type=PostProcessingBoxplotWhiskerType.TUKEY,
+            metrics=["cars"],
+        )
+
+    df = df.set_index("region")
+    assert series_to_list(df["cars__mean"]) == series_to_list(expected["mean"])
+    assert series_to_list(df["cars__median"]) == series_to_list(expected["median"])
+
+
+def test_boxplot_minmax_no_future_warning():
+    """Under MINMAX, whisker_high/whisker_low are plain np.max/np.min, which
+    must be passed as strings (not the callables) to GroupBy.agg, else pandas
+    raises a FutureWarning. Also verify the values match a plain pandas
+    groupby, since the string and callable forms could silently diverge on a
+    future pandas version."""
+    expected = names_df.groupby("region")["cars"].agg(["max", "min"])
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", FutureWarning)
+        df = boxplot(
+            df=names_df,
+            groupby=["region"],
+            whisker_type=PostProcessingBoxplotWhiskerType.MINMAX,
+            metrics=["cars"],
+        )
+
+    df = df.set_index("region")
+    assert series_to_list(df["cars__max"]) == series_to_list(expected["max"])
+    assert series_to_list(df["cars__min"]) == series_to_list(expected["min"])
+
+
 def test_boxplot_min_max():
     df = boxplot(
         df=names_df,
@@ -51,7 +97,7 @@ def test_boxplot_min_max():
         whisker_type=PostProcessingBoxplotWhiskerType.MINMAX,
         metrics=["cars"],
     )
-    columns = {column for column in df.columns}
+    columns = {column for column in df.columns}  # noqa: C416
     assert columns == {
         "cars__mean",
         "cars__median",
@@ -74,7 +120,7 @@ def test_boxplot_percentile():
         metrics=["cars"],
         percentiles=[1, 99],
     )
-    columns = {column for column in df.columns}
+    columns = {column for column in df.columns}  # noqa: C416
     assert columns == {
         "cars__mean",
         "cars__median",
@@ -136,7 +182,7 @@ def test_boxplot_type_coercion():
         metrics=["cars"],
     )
 
-    columns = {column for column in df.columns}
+    columns = {column for column in df.columns}  # noqa: C416
     assert columns == {
         "cars__mean",
         "cars__median",

@@ -79,14 +79,12 @@ class TestCacheWarmUp(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         dash = self.get_dash_by_slug("births")
         for _ in range(10):
-            self.client.get(f"/superset/dashboard/{dash.id}/")
+            self.client.get(f"/dashboard/{dash.id}/")
 
         strategy = TopNDashboardsStrategy(1)
-        result = strategy.get_payloads()
-        expected = [
-            {"chart_id": chart.id, "dashboard_id": dash.id} for chart in dash.slices
-        ]
-        self.assertCountEqual(result, expected)
+        result = sorted(strategy.get_urls())
+        expected = sorted([f"{get_url_host().rstrip('/')}{dash.url}"])
+        assert result == expected
 
     def reset_tag(self, tag):
         """Remove associated object from tag, used to reset tests"""
@@ -104,46 +102,27 @@ class TestCacheWarmUp(SupersetTestCase):
         self.reset_tag(tag1)
 
         strategy = DashboardTagsStrategy(["tag1"])
-        result = strategy.get_payloads()
+        result = sorted(strategy.get_urls())
         expected = []
-        self.assertEqual(result, expected)
+        assert result == expected
 
         # tag dashboard 'births' with `tag1`
         tag1 = get_tag("tag1", db.session, TagType.custom)
         dash = self.get_dash_by_slug("births")
-        tag1_urls = [{"chart_id": chart.id} for chart in dash.slices]
+        tag1_urls = [f"{get_url_host().rstrip('/')}{dash.url}"]
         tagged_object = TaggedObject(
             tag_id=tag1.id, object_id=dash.id, object_type=ObjectType.dashboard
         )
         db.session.add(tagged_object)
         db.session.commit()
 
-        self.assertCountEqual(strategy.get_payloads(), tag1_urls)
+        result = sorted(strategy.get_urls())
+        assert result == tag1_urls
 
         strategy = DashboardTagsStrategy(["tag2"])
         tag2 = get_tag("tag2", db.session, TagType.custom)
         self.reset_tag(tag2)
 
-        result = strategy.get_payloads()
+        result = sorted(strategy.get_urls())
         expected = []
-        self.assertEqual(result, expected)
-
-        # tag first slice
-        dash = self.get_dash_by_slug("unicode-test")
-        chart = dash.slices[0]
-        tag2_urls = [{"chart_id": chart.id}]
-        object_id = chart.id
-        tagged_object = TaggedObject(
-            tag_id=tag2.id, object_id=object_id, object_type=ObjectType.chart
-        )
-        db.session.add(tagged_object)
-        db.session.commit()
-
-        result = strategy.get_payloads()
-        self.assertCountEqual(result, tag2_urls)
-
-        strategy = DashboardTagsStrategy(["tag1", "tag2"])
-
-        result = strategy.get_payloads()
-        expected = tag1_urls + tag2_urls
-        self.assertCountEqual(result, expected)
+        assert result == expected

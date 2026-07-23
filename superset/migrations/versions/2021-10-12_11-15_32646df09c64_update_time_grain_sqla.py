@@ -28,7 +28,7 @@ down_revision = "60dc453f4e2e"
 
 from alembic import op  # noqa: E402
 from sqlalchemy import Column, Integer, Text  # noqa: E402
-from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
+from sqlalchemy.orm import declarative_base  # noqa: E402
 
 from superset import db  # noqa: E402
 from superset.utils import json  # noqa: E402
@@ -55,7 +55,7 @@ def migrate(mapping: dict[str, str]) -> None:
             if time_grain_sqla in mapping:
                 params["time_grain_sqla"] = mapping[time_grain_sqla]
                 slc.params = json.dumps(params, sort_keys=True)
-        except Exception:
+        except Exception:  # noqa: S110
             pass
 
     session.commit()

@@ -19,16 +19,26 @@
 import {
   ChartProps,
   DataRecord,
+  ensureIsArray,
   extractTimegrain,
-  GenericDataType,
+  getColumnLabel,
+  getMetricLabel,
   getTimeFormatter,
   getTimeFormatterForGranularity,
   QueryFormData,
   SMART_DATE_ID,
   TimeFormats,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { getColorFormatters } from '@superset-ui/chart-controls';
-import { DateFormatter } from '../types';
+import { DateFormatter, PivotTableQueryFormData, QueryData } from '../types';
+import buildGroupbyCombinations, {
+  additiveReducerFor,
+  allMetricsAdditive,
+  RollupReducer,
+  splitGroupingSetsResult,
+  synthesizeAdditiveLevels,
+} from './utilities';
 
 const { DATABASE_DATETIME } = TimeFormats;
 
@@ -79,10 +89,65 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     rawFormData,
     hooks: { setDataMask = () => {}, onContextMenu },
     filterState,
-    datasource: { verboseMap = {}, columnFormats = {}, currencyFormats = {} },
+    datasource: {
+      verboseMap = {},
+      columnFormats = {},
+      currencyFormats = {},
+      currencyCodeColumn,
+    },
     emitCrossFilters,
+    theme,
   } = chartProps;
-  const { data, colnames, coltypes } = queriesData[0];
+  const groupbyCombinations = buildGroupbyCombinations(
+    formData as PivotTableQueryFormData,
+  );
+  const metricsArr = ensureIsArray(formData.metrics);
+  let data: QueryData[];
+  if (allMetricsAdditive(metricsArr)) {
+    // Additive fast-path: a single full-detail query was issued; synthesize
+    // each rollup level by reducing the leaf rows on the client (see SIP.md).
+    const leafRows = queriesData[0].data;
+    const metricReducers: Record<string, RollupReducer> = {};
+    metricsArr.forEach(metric => {
+      metricReducers[getMetricLabel(metric)] = additiveReducerFor(metric);
+    });
+    const labelLevels = groupbyCombinations.map(combination => ({
+      rows: combination.rows.map(getColumnLabel),
+      columns: combination.columns.map(getColumnLabel),
+    }));
+    const synthesized = synthesizeAdditiveLevels(
+      leafRows,
+      labelLevels,
+      metricReducers,
+    );
+    data = groupbyCombinations.map((combination, i) => ({
+      data: synthesized[i] as DataRecord[],
+      groupby: combination,
+    }));
+  } else {
+    // Non-additive: a single GROUPING SETS query returned all rollup levels
+    // tagged with GROUPING() markers; split the combined result back into one
+    // frame per level (same order as buildQuery's grouping_sets). See SIP.md.
+    const levelLabels = groupbyCombinations.map(combination =>
+      [...combination.rows, ...combination.columns].map(getColumnLabel),
+    );
+    const allGroupbyLabels = Array.from(new Set(levelLabels.flat()));
+    const splitRows = splitGroupingSetsResult(
+      queriesData[0].data,
+      levelLabels,
+      allGroupbyLabels,
+    );
+    data = groupbyCombinations.map((combination, i) => ({
+      data: splitRows[i] as DataRecord[],
+      groupby: combination,
+    }));
+  }
+  // The full-granularity query has the most colnames -- use it for column/type
+  // metadata and formatters.
+  const mainQuery = queriesData.reduce((main, query) =>
+    query.colnames.length > main.colnames.length ? query : main,
+  );
+  const { colnames, coltypes, detected_currency: detectedCurrency } = mainQuery;
   const {
     groupbyRows,
     groupbyColumns,
@@ -90,7 +155,6 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     tableRenderer,
     colOrder,
     rowOrder,
-    aggregateFunction,
     transposePivot,
     combineMetric,
     rowSubtotalPosition,
@@ -105,6 +169,7 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     conditionalFormatting,
     timeGrainSqla,
     currencyFormat,
+    allowRenderHtml,
   } = formData;
   const { selectedFilters } = filterState;
   const granularity = extractTimegrain(rawFormData);
@@ -124,7 +189,7 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
           if (granularity) {
             // time column use formats based on granularity
             formatter = getTimeFormatterForGranularity(granularity);
-          } else if (isNumeric(temporalColname, data)) {
+          } else if (isNumeric(temporalColname, mainQuery.data)) {
             formatter = getTimeFormatter(DATABASE_DATETIME);
           } else {
             // if no column-specific format, print cell as is
@@ -140,7 +205,13 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
       },
       {},
     );
-  const metricColorFormatters = getColorFormatters(conditionalFormatting, data);
+  const metricColorFormatters = getColorFormatters(
+    conditionalFormatting,
+    mainQuery.data,
+    theme,
+  );
+
+  // AUTO symbol passed through - PivotTableChart handles per-cell currency detection
 
   return {
     width,
@@ -152,7 +223,6 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     tableRenderer,
     colOrder,
     rowOrder,
-    aggregateFunction,
     transposePivot,
     combineMetric,
     rowSubtotalPosition,
@@ -163,6 +233,8 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     rowSubTotals,
     valueFormat,
     currencyFormat,
+    currencyCodeColumn,
+    detectedCurrency,
     emitCrossFilters,
     setDataMask,
     selectedFilters,
@@ -174,5 +246,6 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     dateFormatters,
     onContextMenu,
     timeGrainSqla,
+    allowRenderHtml,
   };
 }

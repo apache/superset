@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { sanitizeUrl } from '@braintree/sanitize-url';
 import callApiAndParseWithTimeout from './callApi/callApiAndParseWithTimeout';
 import {
   ClientConfig,
@@ -31,11 +32,11 @@ import {
   RequestConfig,
   ParseMethod,
 } from './types';
-import { DEFAULT_FETCH_RETRY_OPTIONS, DEFAULT_BASE_URL } from './constants';
+import { DEFAULT_FETCH_RETRY_OPTIONS, DEFAULT_APP_ROOT } from './constants';
 
-const defaultUnauthorizedHandler = () => {
-  if (!window.location.pathname.startsWith('/login')) {
-    window.location.href = `/login?next=${window.location.href}`;
+const defaultUnauthorizedHandlerForPrefix = (appRoot: string) => () => {
+  if (!window.location.pathname.startsWith(`${appRoot}/login`)) {
+    window.location.href = `${appRoot}/login?next=${window.location.href}`;
   }
 };
 
@@ -52,7 +53,7 @@ export default class SupersetClientClass {
 
   fetchRetryOptions?: FetchRetryOptions;
 
-  baseUrl: string;
+  appRoot?: string;
 
   protocol: Protocol;
 
@@ -67,9 +68,9 @@ export default class SupersetClientClass {
   handleUnauthorized: () => void;
 
   constructor({
-    baseUrl = DEFAULT_BASE_URL,
     host,
     protocol,
+    appRoot = DEFAULT_APP_ROOT,
     headers = {},
     fetchRetryOptions = {},
     mode = 'same-origin',
@@ -78,17 +79,14 @@ export default class SupersetClientClass {
     csrfToken = undefined,
     guestToken = undefined,
     guestTokenHeaderName = 'X-GuestToken',
-    unauthorizedHandler = defaultUnauthorizedHandler,
+    unauthorizedHandler = undefined,
   }: ClientConfig = {}) {
-    const url = new URL(
-      host || protocol
-        ? `${protocol || 'https:'}//${host || 'localhost'}`
-        : baseUrl,
-      // baseUrl for API could also be relative, so we provide current location.href
-      // as the base of baseUrl
-      window.location.href,
-    );
-    this.baseUrl = url.href.replace(/\/+$/, ''); // always strip trailing slash
+    const url = new URL(`${protocol || 'https:'}//${host || 'localhost'}`);
+    // Strip a trailing slash so the getUrl dedupe comparisons and the final
+    // `${this.appRoot}/${...}` build stay correct regardless of how the root
+    // was supplied. Mirrors normalizeBackendUrlString / AppRootMiddleware /
+    // LegacyPrefixRedirectMiddleware, which all rstrip the root.
+    this.appRoot = appRoot.replace(/\/$/, '');
     this.host = url.host;
     this.protocol = url.protocol as Protocol;
     this.headers = { Accept: 'application/json', ...headers }; // defaulting accept to json
@@ -109,21 +107,28 @@ export default class SupersetClientClass {
     if (guestToken) {
       this.headers[guestTokenHeaderName] = guestToken;
     }
-    this.handleUnauthorized = unauthorizedHandler;
+    this.handleUnauthorized =
+      unauthorizedHandler !== undefined
+        ? unauthorizedHandler
+        : defaultUnauthorizedHandlerForPrefix(this.appRoot);
   }
 
   async init(force = false): CsrfPromise {
     if (this.isAuthenticated() && !force) {
       return this.csrfPromise as CsrfPromise;
     }
-    return this.getCSRFToken();
+    return this.fetchCSRFToken();
   }
 
-  async postForm(url: string, payload: Record<string, any>, target = '_blank') {
-    if (url) {
+  async postForm(
+    endpoint: string,
+    payload: Record<string, any>,
+    target = '_blank',
+  ) {
+    if (endpoint) {
       await this.ensureAuth();
       const hiddenForm = document.createElement('form');
-      hiddenForm.action = url;
+      hiddenForm.action = sanitizeUrl(this.getUrl({ endpoint }));
       hiddenForm.method = 'POST';
       hiddenForm.target = target;
       const payloadWithToken: Record<string, any> = {
@@ -147,6 +152,26 @@ export default class SupersetClientClass {
       hiddenForm.submit();
       document.body.removeChild(hiddenForm);
     }
+  }
+
+  /**
+   * POST request that returns a blob for file downloads.
+   * Unlike postForm, this uses AJAX so errors can be caught and handled.
+   * @param endpoint - API endpoint
+   * @param payload - Request payload
+   * @returns Promise resolving to Response with blob
+   */
+  async postBlob(
+    endpoint: string,
+    payload: Record<string, any>,
+  ): Promise<Response> {
+    await this.ensureAuth();
+    return this.post({
+      endpoint,
+      postPayload: payload,
+      parseMethod: 'raw',
+      stringify: false,
+    });
   }
 
   async reAuthenticate() {
@@ -227,7 +252,7 @@ export default class SupersetClientClass {
     );
   }
 
-  async getCSRFToken() {
+  async fetchCSRFToken() {
     this.csrfToken = undefined;
     // If we can request this resource successfully, it means that the user has
     // authenticated. If not we throw an error prompting to authenticate.
@@ -239,7 +264,7 @@ export default class SupersetClientClass {
       method: 'GET',
       mode: this.mode,
       timeout: this.timeout,
-      url: this.getUrl({ endpoint: 'api/v1/security/csrf_token/' }),
+      url: this.getUrl({ endpoint: '/api/v1/security/csrf_token/' }),
       parseMethod: 'json',
     }).then(({ json }) => {
       if (typeof json === 'object') {
@@ -257,6 +282,10 @@ export default class SupersetClientClass {
     return this.csrfPromise;
   }
 
+  async getCSRFToken() {
+    return this.csrfToken || this.fetchCSRFToken();
+  }
+
   getUrl({
     host: inputHost,
     endpoint = '',
@@ -271,8 +300,26 @@ export default class SupersetClientClass {
     const host = inputHost ?? this.host;
     const cleanHost = host.slice(-1) === '/' ? host.slice(0, -1) : host; // no backslash
 
-    return `${this.protocol}//${cleanHost}/${
-      endpoint[0] === '/' ? endpoint.slice(1) : endpoint
+    // Strip a single leading appRoot segment so callers that accidentally
+    // pre-prefix their endpoint (e.g. by wrapping with ensureAppRoot before
+    // passing to the client) do not produce a doubled `/superset/superset/...`
+    // URL. Single-pass strip mirrors
+    // `stripAppRoot` in `src/utils/pathUtils` and `normalizeBackendUrlString`
+    // exactly: a genuine `/superset/superset/<slug>` is a legitimate route, not
+    // a double-prefix bug. The L2 static invariant still flags pre-prefixing as
+    // a migration issue; this is the runtime safety net.
+    let cleanEndpoint = endpoint;
+    const root = this.appRoot;
+    if (root) {
+      if (cleanEndpoint === root) {
+        cleanEndpoint = '';
+      } else if (cleanEndpoint.startsWith(`${root}/`)) {
+        cleanEndpoint = cleanEndpoint.slice(root.length);
+      }
+    }
+
+    return `${this.protocol}//${cleanHost}${this.appRoot}/${
+      cleanEndpoint[0] === '/' ? cleanEndpoint.slice(1) : cleanEndpoint
     }`;
   }
 }

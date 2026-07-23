@@ -28,7 +28,7 @@ down_revision = "f9a30386bd74"
 
 from alembic import op  # noqa: E402
 from sqlalchemy import Column, ForeignKey, Integer, Text  # noqa: E402
-from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
+from sqlalchemy.orm import declarative_base  # noqa: E402
 
 from superset import db, db_engine_specs  # noqa: E402
 from superset.databases.utils import make_url_safe  # noqa: E402
@@ -92,7 +92,7 @@ def upgrade():
             if granularity in duration_dict:
                 params["time_grain_sqla"] = duration_dict[granularity]
                 slc.params = json.dumps(params, sort_keys=True)
-        except Exception:
+        except Exception:  # noqa: S110
             pass
 
     session.commit()

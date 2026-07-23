@@ -21,14 +21,24 @@ import { histogramOperator } from '@superset-ui/chart-controls';
 import { HistogramFormData } from './types';
 
 export default function buildQuery(formData: HistogramFormData) {
-  const { column, groupby = [] } = formData;
+  const { column, groupby = [], adhoc_filters } = formData;
+  const hasHavingFilter = (adhoc_filters ?? []).some(
+    (filter: { clause?: string }) => filter.clause === 'HAVING',
+  );
   return buildQueryContext(formData, baseQueryObject => [
     {
       ...baseQueryObject,
-      extras: { where: `${column} IS NOT NULL` },
       columns: [...groupby, column],
       post_processing: [histogramOperator(formData, baseQueryObject)],
-      metrics: undefined,
+      metrics: hasHavingFilter
+        ? [
+            {
+              expressionType: 'SQL' as const,
+              sqlExpression: 'COUNT(*)',
+              label: 'COUNT(*)',
+            },
+          ]
+        : undefined,
     },
   ]);
 }

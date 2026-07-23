@@ -29,7 +29,7 @@ import datetime
 import isodate
 from alembic import op
 from sqlalchemy import Column, Integer, String, Text
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 from superset import db
 from superset.utils import json
@@ -99,7 +99,7 @@ def timedelta_to_string(obj):
 
 def format_seconds(value):
     periods = [("minute", 60), ("hour", 3600), ("day", 86400), ("week", 604800)]
-    for period, multiple in periods:
+    for period, multiple in periods:  # noqa: B007
         if value % multiple == 0:
             value //= multiple
             break

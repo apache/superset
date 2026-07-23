@@ -1,0 +1,78 @@
+name: "Setup Docker Environment"
+description: "Reusable steps for setting up QEMU, Docker Buildx, DockerHub login, Supersetbot, and optionally Docker Compose"
+inputs:
+  build:
+    description: "Used for building?"
+    required: false
+    default: "false"
+  dockerhub-user:
+    description: "DockerHub username"
+    required: false
+  dockerhub-token:
+    description: "DockerHub token"
+    required: false
+  install-docker-compose:
+    description: "Flag to install Docker Compose"
+    required: false
+    default: "true"
+  login-to-dockerhub:
+    description: "Whether you want to log into dockerhub"
+    required: false
+    default: "true"
+outputs: {}
+runs:
+  using: "composite"
+  steps:
+
+    - name: Set up QEMU
+      if: ${{ inputs.build == 'true' }}
+      uses: docker/setup-qemu-action@06116385d9baf250c9f4dcb4858b16962ea869c3 # v4.1.0
+      with:
+        # Pin the binfmt image to a specific QEMU release. The default
+        # (`tonistiigi/binfmt:latest`) is a moving target, and drift across
+        # QEMU's x86_64→aarch64 translator has been the proximate cause of
+        # intermittent `exit code: 132` (SIGILL) failures during the arm64
+        # leg of the multi-platform docker build — newer Node native modules
+        # emit instructions QEMU's user-mode emulation occasionally drops on
+        # the floor. Pinning a known-good release stabilises that path.
+        image: tonistiigi/binfmt:qemu-v8.1.5
+
+    - name: Set up Docker Buildx
+      if: ${{ inputs.build == 'true' }}
+      uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
+
+    - name: Try to login to DockerHub
+      if: ${{ inputs.login-to-dockerhub == 'true' }}
+      continue-on-error: true
+      uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+      with:
+        username: ${{ inputs.dockerhub-user }}
+        password: ${{ inputs.dockerhub-token }}
+
+    - name: Install Docker Compose
+      if: ${{ inputs.install-docker-compose == 'true' }}
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ca-certificates curl
+        sudo install -m 0755 -d /etc/apt/keyrings
+
+        # Download and save the Docker GPG key in the correct format
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+        # Ensure the key file is readable
+        sudo chmod a+r /etc/apt/keyrings/docker.gpg
+
+        # Add the Docker repository using the correct key
+        echo \
+          "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+          $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+          sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+        # Update package lists and install Docker Compose plugin
+        sudo apt update
+        sudo apt install -y docker-compose-plugin
+
+    - name: Docker Version Info
+      shell: bash
+      run: docker info

@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import time
+from datetime import datetime
 from unittest.mock import patch
 
 import pytest
@@ -23,20 +25,29 @@ from flask import g  # noqa: F401
 from superset import db, security_manager
 from superset.commands.chart.create import CreateChartCommand
 from superset.commands.chart.exceptions import (
+    ChartForbiddenError,
     ChartNotFoundError,
     WarmUpCacheChartNotFoundError,
 )
 from superset.commands.chart.export import ExportChartsCommand
+from superset.commands.chart.fave import AddFavoriteChartCommand
 from superset.commands.chart.importers.v1 import ImportChartsCommand
+from superset.commands.chart.unfave import DelFavoriteChartCommand
 from superset.commands.chart.update import UpdateChartCommand
 from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
+from superset.daos.chart import ChartDAO
 from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.utils import json
-from tests.integration_tests.base_tests import SupersetTestCase
+from superset.utils.core import override_user
+from tests.integration_tests.base_tests import (
+    subjects_from_users,
+    SupersetTestCase,
+    user_is_editor,
+)
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
@@ -69,7 +80,7 @@ class TestExportChartsCommand(SupersetTestCase):
         expected = [
             "metadata.yaml",
             f"charts/Energy_Sankey_{example_chart.id}.yaml",
-            "datasets/examples/energy_usage.yaml",
+            f"datasets/examples/energy_usage_{example_chart.table.id}.yaml",
             "databases/examples.yaml",
         ]
         assert expected == list(contents.keys())
@@ -99,16 +110,18 @@ class TestExportChartsCommand(SupersetTestCase):
             "query_context": None,
         }
 
+    @patch("superset.utils.core.g")
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
-    def test_export_chart_command_no_access(self, mock_g):
+    def test_export_chart_command_no_access(self, utils_mock_g, manager_mock_g):
         """Test that users can't export datasets they don't have access to"""
-        mock_g.user = security_manager.find_user("gamma")
+        manager_mock_g.user = security_manager.find_user("gamma")
+        utils_mock_g.user = manager_mock_g.user
 
         example_chart = db.session.query(Slice).all()[0]
         command = ExportChartsCommand([example_chart.id])
         contents = command.run()
-        with self.assertRaises(ChartNotFoundError):
+        with self.assertRaises(ChartNotFoundError):  # noqa: PT027
             next(contents)
 
     @patch("superset.security.manager.g")
@@ -117,7 +130,7 @@ class TestExportChartsCommand(SupersetTestCase):
         mock_g.user = security_manager.find_user("admin")
         command = ExportChartsCommand([-1])
         contents = command.run()
-        with self.assertRaises(ChartNotFoundError):
+        with self.assertRaises(ChartNotFoundError):  # noqa: PT027
             next(contents)
 
     @patch("superset.security.manager.g")
@@ -169,11 +182,39 @@ class TestExportChartsCommand(SupersetTestCase):
         ]
         assert expected == list(contents.keys())
 
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_export_chart_command_unicode_chars(self, mock_g):
+        """Test that unicode characters in a chart name are exported to the YAML"""
+        mock_g.user = security_manager.find_user("admin")
+        db.session.query(Slice).filter_by(slice_name="Energy Sankey").update(
+            {"slice_name": "中文"},
+        )
+        try:
+            example_chart = db.session.query(Slice).filter_by(slice_name="中文").one()
+
+            command = ExportChartsCommand([example_chart.id])
+            contents = dict(command.run())
+
+            path = f"charts/{example_chart.id}.yaml"
+            assert path in set(contents.keys())
+            yaml_content = contents[path]()
+            metadata = yaml.safe_load(yaml_content)
+            assert metadata["slice_name"] == "中文"
+            assert "slice_name: 中文" in yaml_content
+        finally:
+            # restore the original name so fixture teardown works even if an
+            # assertion above fails
+            db.session.query(Slice).filter_by(slice_name="中文").update(
+                {"slice_name": "Energy Sankey"},
+            )
+
 
 class TestImportChartsCommand(SupersetTestCase):
     @patch("superset.utils.core.g")
     @patch("superset.security.manager.g")
-    def test_import_v1_chart(self, sm_g, utils_g) -> None:
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_v1_chart(self, mock_add_permissions, sm_g, utils_g) -> None:
         """Test that we can import a chart"""
         admin = sm_g.user = utils_g.user = security_manager.find_user("admin")
         contents = {
@@ -193,10 +234,6 @@ class TestImportChartsCommand(SupersetTestCase):
             "annotation_layers": [],
             "color_picker": {"a": 1, "b": 135, "g": 122, "r": 0},
             "datasource": dataset.uid if dataset else None,
-            "js_columns": ["color"],
-            "js_data_mutator": "data => data.map(d => ({\\n    ...d,\\n    color: colors.hexToRGB(d.extraProps.color)\\n}));",
-            "js_onclick_href": "",
-            "js_tooltip": "",
             "line_column": "path_json",
             "line_type": "json",
             "line_width": 150,
@@ -238,7 +275,8 @@ class TestImportChartsCommand(SupersetTestCase):
         assert database.database_name == "imported_database"
         assert chart.table.database == database
 
-        assert chart.owners == [admin]
+        assert len(chart.editors) == 1
+        assert user_is_editor(admin, chart)
 
         db.session.delete(chart)
         db.session.delete(dataset)
@@ -246,7 +284,8 @@ class TestImportChartsCommand(SupersetTestCase):
         db.session.commit()
 
     @patch("superset.security.manager.g")
-    def test_import_v1_chart_multiple(self, sm_g):
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_v1_chart_multiple(self, mock_add_permissions, sm_g):
         """Test that a chart can be imported multiple times"""
         sm_g.user = security_manager.find_user("admin")
         contents = {
@@ -272,7 +311,8 @@ class TestImportChartsCommand(SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
-    def test_import_v1_chart_validation(self):
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_v1_chart_validation(self, mock_add_permissions):
         """Test different validations applied when importing a chart"""
         # metadata.yaml must be present
         contents = {
@@ -303,7 +343,7 @@ class TestImportChartsCommand(SupersetTestCase):
         command = ImportChartsCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing chart"
+        assert str(excinfo.value).startswith("Error importing chart")
         assert excinfo.value.normalized_messages() == {
             "metadata.yaml": {"type": ["Must be equal to Slice."]}
         }
@@ -316,7 +356,7 @@ class TestImportChartsCommand(SupersetTestCase):
         command = ImportChartsCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing chart"
+        assert str(excinfo.value).startswith("Error importing chart")
         assert excinfo.value.normalized_messages() == {
             "databases/imported_database.yaml": {
                 "database_name": ["Missing data for required field."],
@@ -336,7 +376,6 @@ class TestChartsCreateCommand(SupersetTestCase):
         chart_data = {
             "slice_name": "new chart",
             "description": "new description",
-            "owners": [user.id],
             "viz_type": "new_viz_type",
             "params": json.dumps({"viz_type": "new_viz_type"}),
             "cache_timeout": 1000,
@@ -350,7 +389,8 @@ class TestChartsCreateCommand(SupersetTestCase):
         json_params = json.loads(chart.params)
         assert json_params == {"viz_type": "new_viz_type"}
         assert chart.slice_name == "new chart"
-        assert chart.owners == [user]
+        assert len(chart.editors) == 1
+        assert user_is_editor(user, chart)
         db.session.delete(chart)
         db.session.commit()
 
@@ -360,36 +400,71 @@ class TestChartsUpdateCommand(SupersetTestCase):
     @patch("superset.utils.core.g")
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
-    def test_update_v1_response(self, mock_sm_g, mock_c_g, mock_u_g):
-        """Test that a chart command updates properties"""
+    def test_update_sets_last_saved_at(self, mock_sm_g, mock_c_g, mock_u_g):
+        """Test that update sets last_saved_at when previously unset"""
         pk = db.session.query(Slice).all()[0].id
         user = security_manager.find_user(username="admin")
         mock_u_g.user = mock_c_g.user = mock_sm_g.user = user
-        model_id = pk
-        json_obj = {
-            "description": "test for update",
-            "cache_timeout": None,
-            "owners": [user.id],
-        }
-        command = UpdateChartCommand(model_id, json_obj)
-        last_saved_before = db.session.query(Slice).get(pk).last_saved_at
+
+        # Explicitly set last_saved_at to None to test None -> datetime transition
+        chart_to_update = db.session.query(Slice).get(pk)
+        chart_to_update.last_saved_at = None
+        db.session.commit()
+
+        command = UpdateChartCommand(
+            pk,
+            {"description": "test"},
+        )
         command.run()
+
         chart = db.session.query(Slice).get(pk)
-        assert chart.last_saved_at != last_saved_before
+        assert chart.last_saved_at is not None
+        assert chart.last_saved_by == user
+
+    @patch("superset.commands.chart.update.g")
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_update_changes_last_saved_at(self, mock_sm_g, mock_c_g, mock_u_g):
+        """Test that update changes last_saved_at when it already has a value"""
+        pk = db.session.query(Slice).all()[0].id
+        user = security_manager.find_user(username="admin")
+        mock_u_g.user = mock_c_g.user = mock_sm_g.user = user
+
+        chart_to_update = db.session.query(Slice).get(pk)
+        chart_to_update.last_saved_at = datetime.now()
+        db.session.commit()
+        # Refresh to get the database value with MySQL's truncated microseconds
+        db.session.refresh(chart_to_update)
+        last_saved_before = chart_to_update.last_saved_at
+
+        command = UpdateChartCommand(
+            pk,
+            {"description": "test"},
+        )
+        # Sleep to ensure timestamp differs at MySQL's second precision (DATETIME(0))
+        time.sleep(1)
+        command.run()
+
+        chart = db.session.query(Slice).get(pk)
+        assert chart.last_saved_at.replace(microsecond=0) != last_saved_before.replace(
+            microsecond=0
+        )
         assert chart.last_saved_by == user
 
     @patch("superset.utils.core.g")
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
+    @pytest.mark.skip(reason="This test will be changed to use the api/v1/data")
     def test_query_context_update_command(self, mock_sm_g, mock_g):
         """
         Test that a user can generate the chart query context
-        payload without affecting owners
+        payload without affecting editors
         """
         chart = db.session.query(Slice).all()[0]
         pk = chart.id
         admin = security_manager.find_user(username="admin")
-        chart.owners = [admin]
+        chart.editors = subjects_from_users([admin])
         db.session.commit()
 
         user = security_manager.find_user(username="alpha")
@@ -403,25 +478,286 @@ class TestChartsUpdateCommand(SupersetTestCase):
         command.run()
         chart = db.session.query(Slice).get(pk)
         assert chart.query_context == query_context
-        assert len(chart.owners) == 1
-        assert chart.owners[0] == admin
+        assert len(chart.editors) == 1
+        assert user_is_editor(admin, chart)
+
+    @patch("superset.commands.chart.update.ChartDAO.find_by_id")
+    @patch("superset.commands.chart.update.g")
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_query_context_update_requires_chart_access(
+        self, mock_sm_g, mock_core_g, mock_update_g, mock_find_by_id
+    ) -> None:
+        """
+        A query_context-only update relaxes the editor requirement but must
+        still require access to the chart. We bypass the DAO ``ChartFilter``
+        base filter (by patching ``find_by_id`` to return the chart directly)
+        so the request reaches the new explicit ``raise_for_access`` check, and
+        assert that a non-editor with no access to the chart's datasource is
+        rejected with ``ChartForbiddenError``. This deterministically exercises
+        the new branch and would fail on master, where the check is absent.
+        """
+        chart = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
+        pk = chart.id
+        admin = security_manager.find_user(username="admin")
+        chart.editors = subjects_from_users([admin])
+        db.session.commit()
+
+        # Return the chart directly, bypassing ChartFilter, so the command's
+        # own raise_for_access gate is what denies the request.
+        mock_find_by_id.return_value = chart
+
+        # gamma has no access to the energy datasource and cannot edit the chart
+        gamma = security_manager.find_user(username="gamma")
+        mock_core_g.user = mock_sm_g.user = mock_update_g.user = gamma
+        json_obj = {
+            "query_context_generation": True,
+            "query_context": json.dumps({"foo": "bar"}),
+        }
+        with pytest.raises(ChartForbiddenError):
+            UpdateChartCommand(pk, json_obj).run()
+
+    @patch("superset.commands.chart.update.g")
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_update_chart_dashboard_security_existing_relationship(
+        self, mock_sm_g, mock_u_g, mock_c_g
+    ):
+        """Test that chart editors can update charts linked to inaccessible
+        dashboards (existing relationships)"""
+        from superset.models.dashboard import Dashboard
+
+        # Create a chart owned by alpha
+        admin = security_manager.find_user(username="admin")
+        alpha = security_manager.find_user(username="alpha")
+
+        # Set user context for dashboard creation
+        mock_u_g.user = mock_c_g.user = mock_sm_g.user = admin
+
+        chart = db.session.query(Slice).first()
+        chart.editors = subjects_from_users([alpha])
+
+        # Create a dashboard owned by admin (not accessible to alpha)
+        admin_dashboard = Dashboard(
+            dashboard_title="Admin Dashboard",
+            slug="admin-dashboard",
+            editors=subjects_from_users([admin]),
+            published=False,
+        )
+        db.session.add(admin_dashboard)
+
+        # Link chart to admin's dashboard (alpha owns chart, admin owns dashboard)
+        chart.dashboards.append(admin_dashboard)
+        db.session.commit()
+
+        # Alpha should still be able to update their chart
+        # even though it's linked to admin's dashboard
+        mock_u_g.user = mock_c_g.user = mock_sm_g.user = alpha
+
+        json_obj = {
+            "description": "Updated description",
+            "dashboards": [
+                d.id for d in chart.dashboards
+            ],  # Keep existing relationships
+        }
+        command = UpdateChartCommand(chart.id, json_obj)
+        command.run()
+
+        # Should succeed - alpha can update their chart
+        updated_chart = db.session.query(Slice).get(chart.id)
+        assert updated_chart.description == "Updated description"
+
+        # Clean up
+        db.session.delete(admin_dashboard)
+        db.session.commit()
+
+    @patch("superset.commands.chart.update.g")
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_update_chart_dashboard_security_new_unauthorized_relationship(
+        self, mock_sm_g, mock_u_g, mock_c_g
+    ):
+        """Test that users cannot add charts to dashboards they don't have access to"""
+        from superset.commands.chart.exceptions import ChartInvalidError
+        from superset.models.dashboard import Dashboard
+
+        admin = security_manager.find_user(username="admin")
+        alpha = security_manager.find_user(username="alpha")
+
+        # Set user context for dashboard creation
+        mock_u_g.user = mock_c_g.user = mock_sm_g.user = admin
+
+        # Create chart owned by alpha
+        chart = db.session.query(Slice).first()
+        chart.editors = subjects_from_users([alpha])
+
+        # Create private dashboard owned by admin (not accessible to alpha)
+        admin_dashboard = Dashboard(
+            dashboard_title="Admin Private Dashboard",
+            slug="admin-private-dashboard",
+            editors=subjects_from_users([admin]),
+            published=False,  # Private dashboard
+        )
+        db.session.add(admin_dashboard)
+        db.session.commit()
+
+        # Alpha tries to add their chart to admin's private dashboard
+        mock_u_g.user = mock_c_g.user = mock_sm_g.user = alpha
+
+        json_obj = {
+            "description": "Trying to add to unauthorized dashboard",
+            "dashboards": [admin_dashboard.id],  # NEW unauthorized relationship
+        }
+        command = UpdateChartCommand(chart.id, json_obj)
+
+        # Should fail - alpha cannot access admin's private dashboard
+        with self.assertRaises(ChartInvalidError):  # noqa: PT027
+            command.run()
+
+        # Clean up
+        db.session.delete(admin_dashboard)
+        db.session.commit()
+
+    @patch("superset.commands.chart.update.g")
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_update_chart_dashboard_security_admin_bypass(
+        self, mock_sm_g, mock_u_g, mock_c_g
+    ):
+        """Test that admins can add charts to any dashboard"""
+        from superset.models.dashboard import Dashboard
+
+        admin = security_manager.find_user(username="admin")
+        alpha = security_manager.find_user(username="alpha")
+
+        # Set user context for dashboard creation
+        mock_u_g.user = mock_c_g.user = mock_sm_g.user = alpha
+
+        # Create chart owned by admin
+        chart = db.session.query(Slice).first()
+        chart.editors = subjects_from_users([admin])
+
+        # Create private dashboard owned by alpha
+        alpha_dashboard = Dashboard(
+            dashboard_title="Alpha Private Dashboard",
+            slug="alpha-private-dashboard",
+            editors=subjects_from_users([alpha]),
+            published=False,
+        )
+        db.session.add(alpha_dashboard)
+        db.session.commit()
+
+        # Admin should be able to add chart to any dashboard
+        mock_u_g.user = mock_c_g.user = mock_sm_g.user = admin
+
+        json_obj = {
+            "description": "Admin adding to any dashboard",
+            "dashboards": [alpha_dashboard.id],
+        }
+        command = UpdateChartCommand(chart.id, json_obj)
+        command.run()
+
+        # Should succeed - admin has access to all dashboards
+        updated_chart = db.session.query(Slice).get(chart.id)
+        assert alpha_dashboard in updated_chart.dashboards
+
+        # Clean up
+        db.session.delete(alpha_dashboard)
+        db.session.commit()
 
 
 class TestChartWarmUpCacheCommand(SupersetTestCase):
     def test_warm_up_cache_command_chart_not_found(self):
-        with self.assertRaises(WarmUpCacheChartNotFoundError):
+        with self.assertRaises(WarmUpCacheChartNotFoundError):  # noqa: PT027
             ChartWarmUpCacheCommand(99999, None, None).run()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.skip(reason="This test will be changed to use the api/v1/data")
     def test_warm_up_cache(self):
         slc = self.get_slice("Top 10 Girl Name Share")
         result = ChartWarmUpCacheCommand(slc.id, None, None).run()
-        self.assertEqual(
-            result, {"chart_id": slc.id, "viz_error": None, "viz_status": "success"}
-        )
+        assert result == {
+            "chart_id": slc.id,
+            "viz_error": None,
+            "viz_status": "success",
+        }
 
         # can just pass in chart as well
         result = ChartWarmUpCacheCommand(slc, None, None).run()
-        self.assertEqual(
-            result, {"chart_id": slc.id, "viz_error": None, "viz_status": "success"}
-        )
+        assert result == {
+            "chart_id": slc.id,
+            "viz_error": None,
+            "viz_status": "success",
+        }
+
+
+class TestFavoriteChartCommand(SupersetTestCase):
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_fave_unfave_chart_command(self):
+        """Test that a user can fave/unfave a chart"""
+        with self.client.application.test_request_context():
+            example_chart = db.session.query(Slice).all()[0]
+
+            # Assert that the chart exists
+            assert example_chart is not None
+
+            with override_user(security_manager.find_user("admin")):
+                AddFavoriteChartCommand(example_chart.id).run()
+
+                # Assert that the dashboard was faved
+                ids = ChartDAO.favorited_ids([example_chart])
+                assert example_chart.id in ids
+
+                DelFavoriteChartCommand(example_chart.id).run()
+
+                # Assert that the chart was unfaved
+                ids = ChartDAO.favorited_ids([example_chart])
+                assert example_chart.id not in ids
+
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_fave_unfave_chart_command_not_found(self):
+        """Test that faving / unfaving a non-existing chart raises an exception"""
+        with self.client.application.test_request_context():
+            example_chart_id = 0
+
+            with override_user(security_manager.find_user("admin")):
+                with self.assertRaises(ChartNotFoundError):  # noqa: PT027
+                    AddFavoriteChartCommand(example_chart_id).run()
+
+                with self.assertRaises(ChartNotFoundError):  # noqa: PT027
+                    DelFavoriteChartCommand(example_chart_id).run()
+
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    @patch("superset.daos.base.BaseDAO.find_by_id")
+    def test_fave_unfave_chart_command_non_owner(self, mock_find_by_id):
+        """Test that faving / unfaving a chart the user doesn't own works properly"""  # noqa: E501
+        with self.client.application.test_request_context():
+            example_chart = db.session.query(Slice).all()[0]
+            mock_find_by_id.return_value = example_chart
+
+            # Assert that the chart exists
+            assert example_chart is not None
+
+            # Grant gamma read access to the datasource so the access check passes.
+            # Faving requires datasource access but not ownership.
+            if example_chart.datasource:
+                self.grant_role_access_to_table(example_chart.datasource, "Gamma")
+
+            try:
+                with override_user(security_manager.find_user("gamma")):
+                    AddFavoriteChartCommand(example_chart.id).run()
+                    ids = ChartDAO.favorited_ids([example_chart])
+
+                    assert example_chart.id in ids
+
+                    DelFavoriteChartCommand(example_chart.id).run()
+                    ids = ChartDAO.favorited_ids([example_chart])
+
+                    assert example_chart.id not in ids
+            finally:
+                if example_chart.datasource:
+                    self.revoke_role_access_to_table("Gamma", example_chart.datasource)

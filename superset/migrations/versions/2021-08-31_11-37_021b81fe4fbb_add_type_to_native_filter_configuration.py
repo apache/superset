@@ -30,14 +30,14 @@ import logging  # noqa: E402
 
 import sqlalchemy as sa  # noqa: E402
 from alembic import op  # noqa: E402
-from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
+from sqlalchemy.orm import declarative_base  # noqa: E402
 
 from superset import db  # noqa: E402
 from superset.utils import json  # noqa: E402
 
 Base = declarative_base()
 
-logger = logging.getLogger("alembic")
+logger = logging.getLogger("alembic.env")
 
 
 class Dashboard(Base):
@@ -96,7 +96,7 @@ def downgrade():
         )
         if not dashboard.json_metadata:
             logger.info(
-                "[RemoveTypeToNativeFilter] Skipping Dashboard<pk:%s> json_metadata is %s",
+                "[RemoveTypeToNativeFilter] Skipping Dashboard<pk:%s> json_metadata is %s",  # noqa: E501
                 dashboard.id,
                 dashboard.json_metadata,
             )

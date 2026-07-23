@@ -120,14 +120,16 @@ def test_datetime(console: Console, engine: Engine) -> None:
     now = datetime.now()
 
     console.print("Inserting timestamp value...")
-    insert_stmt = insert(table).values(ts=now)
-    engine.execute(insert_stmt)
+    with engine.begin() as conn:
+        insert_stmt = insert(table).values(ts=now)
+        conn.execute(insert_stmt)
 
     console.print("Reading timestamp value...")
-    select_stmt = select(table)
-    row = engine.execute(select_stmt).fetchone()
-    assert row[0] == now
-    console.print(":thumbs_up: [green]Success!")
+    with engine.connect() as conn:
+        select_stmt = select(table)
+        row = conn.execute(select_stmt).fetchone()
+        assert row[0] == now
+        console.print(":thumbs_up: [green]Success!")
 
 
 @click.command()
@@ -138,7 +140,7 @@ def test_datetime(console: Console, engine: Engine) -> None:
     "raw_engine_kwargs",
     help="Connect args as JSON or YAML",
 )
-def test_db(sqlalchemy_uri: str, raw_engine_kwargs: str | None = None) -> None:
+def test_db(sqlalchemy_uri: str, raw_engine_kwargs: str | None = None) -> None:  # noqa: PT028
     """
     Run a series of tests against an analytical database.
 
@@ -181,7 +183,8 @@ def collect_connection_info(
     """
     Collect ``engine_kwargs`` if needed.
     """
-    console.print(f"[green]SQLAlchemy URI: [bold]{sqlalchemy_uri}")
+    safe_uri = make_url_safe(str(sqlalchemy_uri)).render_as_string(hide_password=True)
+    console.print(f"[green]SQLAlchemy URI: [bold]{safe_uri}")
     if raw_engine_kwargs is None:
         configure_engine_kwargs = input(
             "> Do you want to configure connection arguments? [y/N] "
@@ -198,7 +201,7 @@ def collect_connection_info(
     return yaml.safe_load(raw_engine_kwargs)
 
 
-def test_db_engine_spec(
+def test_db_engine_spec(  # noqa: C901
     console: Console,
     sqlalchemy_uri: str,
 ) -> type[BaseEngineSpec] | None:
@@ -277,6 +280,9 @@ def test_sqlalchemy_dialect(
     """
     Test the SQLAlchemy dialect, making sure it supports everything Superset needs.
     """
+    if "future" not in engine_kwargs:
+        engine_kwargs["future"] = True
+
     engine = create_engine(sqlalchemy_uri, **engine_kwargs)
     dialect = engine.dialect
 

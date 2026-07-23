@@ -17,11 +17,21 @@
  * under the License.
  */
 import { isValidElement } from 'react';
-import FilterableTable from 'src/components/FilterableTable';
-import { render, screen, within } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  render,
+  screen,
+  userEvent,
+  within,
+} from 'spec/helpers/testing-library';
+import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
+import { FilterableTable } from '.';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('FilterableTable', () => {
+  beforeAll(() => {
+    setupAGGridModules();
+  });
+
   const mockedProps = {
     orderedColumnKeys: ['a', 'b', 'c', 'children'],
     data: [
@@ -31,42 +41,103 @@ describe('FilterableTable', () => {
     ],
     height: 500,
   };
-  it('is valid element', () => {
+  test('is valid element', () => {
     expect(isValidElement(<FilterableTable {...mockedProps} />)).toBe(true);
   });
-  it('renders a grid with 3 Table rows', () => {
+  test('renders a grid with 3 Table rows', () => {
     const { getByRole, getByText } = render(
       <FilterableTable {...mockedProps} />,
     );
-    expect(getByRole('table')).toBeInTheDocument();
+    expect(getByRole('grid')).toBeInTheDocument();
     mockedProps.data.forEach(({ b: columnBContent }) => {
       expect(getByText(columnBContent)).toBeInTheDocument();
     });
   });
-  it('filters on a string', () => {
+  test('filters on a string', () => {
     const props = {
       ...mockedProps,
       filterText: 'b1',
     };
     const { getByText, queryByText } = render(<FilterableTable {...props} />);
     expect(getByText(props.filterText)).toBeInTheDocument();
-    expect(queryByText('b2')).toBeFalsy();
-    expect(queryByText('b3')).toBeFalsy();
+    expect(queryByText('b2')).not.toBeInTheDocument();
+    expect(queryByText('b3')).not.toBeInTheDocument();
   });
-  it('filters on a number', () => {
+  test('filters on a number', () => {
     const props = {
       ...mockedProps,
       filterText: '100',
     };
     const { getByText, queryByText } = render(<FilterableTable {...props} />);
     expect(getByText('b2')).toBeInTheDocument();
-    expect(queryByText('b1')).toBeFalsy();
-    expect(queryByText('b3')).toBeFalsy();
+    expect(queryByText('b1')).not.toBeInTheDocument();
+    expect(queryByText('b3')).not.toBeInTheDocument();
+  });
+
+  test('shows all rows when filterText is empty', () => {
+    const props = {
+      ...mockedProps,
+      filterText: '',
+    };
+    const { getByText } = render(<FilterableTable {...props} />);
+    expect(getByText('b1')).toBeInTheDocument();
+    expect(getByText('b2')).toBeInTheDocument();
+    expect(getByText('b3')).toBeInTheDocument();
+  });
+
+  test('updates filtered rows when filterText prop changes', () => {
+    const props = {
+      ...mockedProps,
+      filterText: 'b1',
+    };
+    const { getByText, queryByText, rerender } = render(
+      <FilterableTable {...props} />,
+    );
+    expect(getByText('b1')).toBeInTheDocument();
+    expect(queryByText('b2')).not.toBeInTheDocument();
+    expect(queryByText('b3')).not.toBeInTheDocument();
+
+    rerender(<FilterableTable {...mockedProps} filterText="b2" />);
+    expect(queryByText('b1')).not.toBeInTheDocument();
+    expect(getByText('b2')).toBeInTheDocument();
+    expect(queryByText('b3')).not.toBeInTheDocument();
+  });
+
+  test('shows all rows when filterText is cleared', () => {
+    const props = {
+      ...mockedProps,
+      filterText: 'b1',
+    };
+    const { getByText, queryByText, rerender } = render(
+      <FilterableTable {...props} />,
+    );
+    expect(getByText('b1')).toBeInTheDocument();
+    expect(queryByText('b2')).not.toBeInTheDocument();
+
+    rerender(<FilterableTable {...mockedProps} filterText="" />);
+    expect(getByText('b1')).toBeInTheDocument();
+    expect(getByText('b2')).toBeInTheDocument();
+    expect(getByText('b3')).toBeInTheDocument();
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('FilterableTable sorting - RTL', () => {
-  it('sorts strings correctly', () => {
+  beforeAll(() => {
+    setupAGGridModules();
+  });
+
+  // AG Grid's row-number column shares the same `[role=rowgroup]` ancestor as
+  // the data columns, so cell values for a single data column must be read by
+  // targeting that column's `col-id` directly rather than a shared ancestor.
+  const getColumnCellsText = (colId: string) =>
+    Array.from(
+      document.querySelectorAll(`[role="gridcell"][col-id="${colId}"]`),
+    )
+      .map(cell => cell.textContent)
+      .join('');
+
+  test('sorts strings correctly', () => {
     const stringProps = {
       orderedColumnKeys: ['columnA'],
       data: [
@@ -78,14 +149,12 @@ describe('FilterableTable sorting - RTL', () => {
     };
     render(<FilterableTable {...stringProps} />);
 
-    const stringColumn = within(screen.getByRole('table'))
+    const stringColumn = within(screen.getByRole('grid'))
       .getByText('columnA')
-      .closest('th');
-    // Antd 4.x Table does not follow the table role structure. Need a hacky selector to point the cell item
-    const gridCells = screen.getByTitle('Bravo').closest('.virtual-grid');
+      .closest('[role=button]');
 
     // Original order
-    expect(gridCells?.textContent).toEqual(
+    expect(getColumnCellsText('columnA')).toEqual(
       ['Bravo', 'Alpha', 'Charlie'].join(''),
     );
 
@@ -94,7 +163,7 @@ describe('FilterableTable sorting - RTL', () => {
       userEvent.click(stringColumn);
     }
 
-    expect(gridCells?.textContent).toEqual(
+    expect(getColumnCellsText('columnA')).toEqual(
       ['Alpha', 'Bravo', 'Charlie'].join(''),
     );
 
@@ -103,7 +172,7 @@ describe('FilterableTable sorting - RTL', () => {
       userEvent.click(stringColumn);
     }
 
-    expect(gridCells?.textContent).toEqual(
+    expect(getColumnCellsText('columnA')).toEqual(
       ['Charlie', 'Bravo', 'Alpha'].join(''),
     );
 
@@ -111,12 +180,12 @@ describe('FilterableTable sorting - RTL', () => {
       // Third click to clear sorting
       userEvent.click(stringColumn);
     }
-    expect(gridCells?.textContent).toEqual(
+    expect(getColumnCellsText('columnA')).toEqual(
       ['Bravo', 'Alpha', 'Charlie'].join(''),
     );
   });
 
-  it('sorts integers correctly', () => {
+  test('sorts integers correctly', () => {
     const integerProps = {
       orderedColumnKeys: ['columnB'],
       data: [{ columnB: 21 }, { columnB: 0 }, { columnB: 623 }],
@@ -124,34 +193,33 @@ describe('FilterableTable sorting - RTL', () => {
     };
     render(<FilterableTable {...integerProps} />);
 
-    const integerColumn = within(screen.getByRole('table'))
+    const integerColumn = within(screen.getByRole('grid'))
       .getByText('columnB')
-      .closest('th');
-    const gridCells = screen.getByTitle('21').closest('.virtual-grid');
+      .closest('[role=button]');
 
     // Original order
-    expect(gridCells?.textContent).toEqual(['21', '0', '623'].join(''));
+    expect(getColumnCellsText('columnB')).toEqual(['21', '0', '623'].join(''));
 
     // First click to sort ascending
     if (integerColumn) {
       userEvent.click(integerColumn);
     }
-    expect(gridCells?.textContent).toEqual(['0', '21', '623'].join(''));
+    expect(getColumnCellsText('columnB')).toEqual(['0', '21', '623'].join(''));
 
     // Second click to sort descending
     if (integerColumn) {
       userEvent.click(integerColumn);
     }
-    expect(gridCells?.textContent).toEqual(['623', '21', '0'].join(''));
+    expect(getColumnCellsText('columnB')).toEqual(['623', '21', '0'].join(''));
 
     // Third click to clear sorting
     if (integerColumn) {
       userEvent.click(integerColumn);
     }
-    expect(gridCells?.textContent).toEqual(['21', '0', '623'].join(''));
+    expect(getColumnCellsText('columnB')).toEqual(['21', '0', '623'].join(''));
   });
 
-  it('sorts floating numbers correctly', () => {
+  test('sorts floating numbers correctly', () => {
     const floatProps = {
       orderedColumnKeys: ['columnC'],
       data: [{ columnC: 45.67 }, { columnC: 1.23 }, { columnC: 89.0000001 }],
@@ -159,13 +227,12 @@ describe('FilterableTable sorting - RTL', () => {
     };
     render(<FilterableTable {...floatProps} />);
 
-    const floatColumn = within(screen.getByRole('table'))
+    const floatColumn = within(screen.getByRole('grid'))
       .getByText('columnC')
-      .closest('th');
-    const gridCells = screen.getByTitle('45.67').closest('.virtual-grid');
+      .closest('[role=button]');
 
     // Original order
-    expect(gridCells?.textContent).toEqual(
+    expect(getColumnCellsText('columnC')).toEqual(
       ['45.67', '1.23', '89.0000001'].join(''),
     );
 
@@ -173,7 +240,7 @@ describe('FilterableTable sorting - RTL', () => {
     if (floatColumn) {
       userEvent.click(floatColumn);
     }
-    expect(gridCells?.textContent).toEqual(
+    expect(getColumnCellsText('columnC')).toEqual(
       ['1.23', '45.67', '89.0000001'].join(''),
     );
 
@@ -181,7 +248,7 @@ describe('FilterableTable sorting - RTL', () => {
     if (floatColumn) {
       userEvent.click(floatColumn);
     }
-    expect(gridCells?.textContent).toEqual(
+    expect(getColumnCellsText('columnC')).toEqual(
       ['89.0000001', '45.67', '1.23'].join(''),
     );
 
@@ -189,12 +256,12 @@ describe('FilterableTable sorting - RTL', () => {
     if (floatColumn) {
       userEvent.click(floatColumn);
     }
-    expect(gridCells?.textContent).toEqual(
+    expect(getColumnCellsText('columnC')).toEqual(
       ['45.67', '1.23', '89.0000001'].join(''),
     );
   });
 
-  it('sorts rows properly when floating numbers have mixed types', () => {
+  test('sorts rows properly when floating numbers have mixed types', () => {
     const mixedFloatProps = {
       orderedColumnKeys: ['columnD'],
       data: [
@@ -214,13 +281,12 @@ describe('FilterableTable sorting - RTL', () => {
     };
     render(<FilterableTable {...mixedFloatProps} />);
 
-    const mixedFloatColumn = within(screen.getByRole('table'))
+    const mixedFloatColumn = within(screen.getByRole('grid'))
       .getByText('columnD')
-      .closest('th');
-    const gridCells = screen.getByTitle('48710.92').closest('.virtual-grid');
+      .closest('[role=button]');
 
     // Original order
-    expect(gridCells?.textContent).toEqual(
+    expect(getColumnCellsText('columnD')).toEqual(
       [
         '48710.92',
         '145776.56',
@@ -239,7 +305,7 @@ describe('FilterableTable sorting - RTL', () => {
     if (mixedFloatColumn) {
       userEvent.click(mixedFloatColumn);
     }
-    expect(gridCells?.textContent).toEqual(
+    expect(getColumnCellsText('columnD')).toEqual(
       [
         '24078.610000000004',
         '26260.210000000003',
@@ -259,7 +325,7 @@ describe('FilterableTable sorting - RTL', () => {
     if (mixedFloatColumn) {
       userEvent.click(mixedFloatColumn);
     }
-    expect(gridCells?.textContent).toEqual(
+    expect(getColumnCellsText('columnD')).toEqual(
       [
         '4528047.219999993',
         '3439718.0300000007',
@@ -279,7 +345,7 @@ describe('FilterableTable sorting - RTL', () => {
     if (mixedFloatColumn) {
       userEvent.click(mixedFloatColumn);
     }
-    expect(gridCells?.textContent).toEqual(
+    expect(getColumnCellsText('columnD')).toEqual(
       [
         '48710.92',
         '145776.56',
@@ -296,7 +362,7 @@ describe('FilterableTable sorting - RTL', () => {
     );
   });
 
-  it('sorts YYYY-MM-DD properly', () => {
+  test('sorts YYYY-MM-DD properly', () => {
     const dsProps = {
       orderedColumnKeys: ['columnDS'],
       data: [
@@ -312,13 +378,12 @@ describe('FilterableTable sorting - RTL', () => {
     };
     render(<FilterableTable {...dsProps} />);
 
-    const dsColumn = within(screen.getByRole('table'))
+    const dsColumn = within(screen.getByRole('grid'))
       .getByText('columnDS')
-      .closest('th');
-    const gridCells = screen.getByTitle('2021-01-01').closest('.virtual-grid');
+      .closest('[role=button]');
 
     // Original order
-    expect(gridCells?.textContent).toEqual(
+    expect(getColumnCellsText('columnDS')).toEqual(
       [
         '2021-01-01',
         '2022-01-01',
@@ -334,7 +399,7 @@ describe('FilterableTable sorting - RTL', () => {
     if (dsColumn) {
       userEvent.click(dsColumn);
     }
-    expect(gridCells?.textContent).toEqual(
+    expect(getColumnCellsText('columnDS')).toEqual(
       [
         '2021-01-01',
         '2021-01-02',
@@ -350,7 +415,7 @@ describe('FilterableTable sorting - RTL', () => {
     if (dsColumn) {
       userEvent.click(dsColumn);
     }
-    expect(gridCells?.textContent).toEqual(
+    expect(getColumnCellsText('columnDS')).toEqual(
       [
         '2022-01-02',
         '2022-01-01',
@@ -366,7 +431,7 @@ describe('FilterableTable sorting - RTL', () => {
     if (dsColumn) {
       userEvent.click(dsColumn);
     }
-    expect(gridCells?.textContent).toEqual(
+    expect(getColumnCellsText('columnDS')).toEqual(
       [
         '2021-01-01',
         '2022-01-01',

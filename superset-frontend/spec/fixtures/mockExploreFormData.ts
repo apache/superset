@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { JsonObject } from '@superset-ui/core';
+import { JsonObject, VizType } from '@superset-ui/core';
 
 export const getExploreFormData = (overrides: JsonObject = {}) => ({
   adhoc_filters: [
@@ -82,6 +82,6 @@ export const getExploreFormData = (overrides: JsonObject = {}) => ({
   },
   slice_id: 46,
   time_range: '100 years ago : now',
-  viz_type: 'pie',
+  viz_type: VizType.Pie,
   ...overrides,
 });

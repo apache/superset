@@ -25,10 +25,7 @@ metadata:
   name: {{ $fullName }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ template "superset.name" . }}
-    chart: {{ template "superset.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
+    {{- include "superset.componentLabels" (dict "component" "ingress" "root" .) | nindent 4 }}
   {{- with .Values.ingress.annotations }}
   annotations: {{- toYaml . | nindent 4 }}
   {{- end }}
@@ -66,6 +63,15 @@ spec:
                 name: "{{ template "superset.fullname" $ }}-ws"
                 port:
                   name: ws
+          {{- end }}
+          {{- if and $.Values.supersetMcp.enabled $.Values.supersetMcp.ingress.enabled }}
+          - path: {{ $.Values.supersetMcp.ingress.path }}
+            pathType: {{ $.Values.supersetMcp.ingress.pathType }}
+            backend:
+              service:
+                name: "{{ template "superset.fullname" $ }}-mcp"
+                port:
+                  name: mcp
           {{- end }}
     {{- end }}
   {{- if .Values.ingress.extraHostsRaw }}

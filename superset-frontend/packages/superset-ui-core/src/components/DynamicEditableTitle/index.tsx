@@ -1,0 +1,254 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import {
+  ChangeEvent,
+  KeyboardEvent,
+  memo,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
+import { t } from '@apache-superset/core/translation';
+import { css, SupersetTheme, useTheme } from '@apache-superset/core/theme';
+import { useResizeDetector } from 'react-resize-detector';
+import { Tooltip } from '../Tooltip';
+import { Input } from '../Input';
+import type { InputRef } from '../Input';
+import type { DynamicEditableTitleProps } from './types';
+
+const titleStyles = (theme: SupersetTheme) => css`
+  display: flex;
+  font-size: ${theme.fontSizeXL}px;
+  font-weight: ${theme.fontWeightStrong};
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  & .dynamic-title-input {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 0;
+    color: ${theme.colorText};
+    background-color: ${theme.colorBgContainer};
+
+    &::placeholder {
+      color: ${theme.colorTextTertiary};
+    }
+  }
+
+  & .input-sizer {
+    position: absolute;
+    left: -9999px;
+    display: inline-block;
+    white-space: pre;
+  }
+`;
+
+export const DynamicEditableTitle = memo(
+  ({
+    title,
+    placeholder,
+    onSave,
+    canEdit,
+    label,
+  }: DynamicEditableTitleProps) => {
+    const theme = useTheme();
+    const [isEditing, setIsEditing] = useState(false);
+    const [showTooltip, setShowTooltip] = useState(false);
+    const [currentTitle, setCurrentTitle] = useState(title || '');
+    const [inputWidth, setInputWidth] = useState<number>(0);
+
+    const sizerRef = useRef<HTMLSpanElement>(null);
+    const inputRef = useRef<InputRef>(null);
+    // Tracks whether the user has actually typed since entering edit mode.
+    // Gates onSave so that passive focus (click without typing) followed by a
+    // parent-driven title change and blur does not silently revert the
+    // parent's update with our stale currentTitle.
+    const dirtyRef = useRef(false);
+    const { width: containerWidth, ref: containerRef } = useResizeDetector({
+      refreshMode: 'debounce',
+    });
+
+    useEffect(() => {
+      // Don't overwrite in-flight user input when the parent re-renders with a
+      // new title prop mid-edit. handleBlur already syncs currentTitle on commit;
+      // re-running this effect when isEditing flips would resync to a stale
+      // title prop, so isEditing is intentionally read via closure rather than
+      // listed as a dep.
+      if (!isEditing) {
+        setCurrentTitle(title);
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [title]);
+    useEffect(() => {
+      if (isEditing) {
+        // move cursor and scroll to the end
+        const inputElement = inputRef.current?.input;
+        if (inputElement) {
+          const { length } = inputElement.value;
+          inputElement.setSelectionRange(length, length);
+          inputElement.scrollLeft = inputElement.scrollWidth;
+        }
+      }
+    }, [isEditing]);
+
+    // a trick to make the input grow when user types text
+    // we make an additional span component, place it somewhere out of view and
+    // mirror the input value, then measure the span synchronously (pre-paint)
+    // to resize the input element. Reading offsetWidth in a useLayoutEffect
+    // forces a sync layout, so the input width updates in the same commit as
+    // the value change — preventing a flicker frame where the input is shown
+    // with new value but stale width.
+    useLayoutEffect(() => {
+      if (sizerRef.current) {
+        sizerRef.current.textContent = currentTitle || placeholder;
+        setInputWidth(sizerRef.current.offsetWidth);
+      }
+    }, [currentTitle, placeholder]);
+
+    useEffect(() => {
+      const inputElement = inputRef.current?.input;
+
+      if (inputElement) {
+        if (inputElement.scrollWidth > inputElement.clientWidth) {
+          setShowTooltip(true);
+        } else {
+          setShowTooltip(false);
+        }
+      }
+    }, [inputWidth, containerWidth]);
+
+    const handleClick = useCallback(() => {
+      if (!canEdit || isEditing) {
+        return;
+      }
+      setIsEditing(true);
+    }, [canEdit, isEditing]);
+
+    const handleBlur = useCallback(() => {
+      if (!canEdit) {
+        return;
+      }
+      const formattedTitle = currentTitle.trim();
+      // Only commit when the user actually typed. Passive focus must not
+      // overwrite a parent-driven title change that landed mid-edit.
+      if (dirtyRef.current && title !== formattedTitle) {
+        setCurrentTitle(formattedTitle);
+        onSave(formattedTitle);
+      } else if (!dirtyRef.current) {
+        // Drop any stale local state and resync to the latest title prop so a
+        // subsequent edit starts from the current parent value.
+        setCurrentTitle(title);
+      } else {
+        setCurrentTitle(formattedTitle);
+      }
+      dirtyRef.current = false;
+      setIsEditing(false);
+    }, [canEdit, currentTitle, onSave, title]);
+
+    const handleChange = useCallback(
+      (ev: ChangeEvent<HTMLInputElement>) => {
+        if (!canEdit) {
+          return;
+        }
+        // Any change implies the user is editing. Ensure isEditing is true
+        // even if the change event arrives before the click handler has
+        // committed (e.g. focus via tab, autofocus, or batched click+type
+        // events). Otherwise the keystroke would be dropped and the
+        // controlled input would revert to the previous value.
+        if (!isEditing) {
+          setIsEditing(true);
+        }
+        dirtyRef.current = true;
+        setCurrentTitle(ev.target.value);
+      },
+      [canEdit, isEditing],
+    );
+
+    const handleKeyPress = useCallback(
+      (ev: KeyboardEvent<HTMLInputElement>) => {
+        if (!canEdit) {
+          return;
+        }
+        ev.preventDefault();
+        const { activeElement } = document;
+        if (activeElement && activeElement instanceof HTMLElement) {
+          activeElement.blur();
+        }
+      },
+      [canEdit],
+    );
+
+    return (
+      <div css={titleStyles} ref={containerRef}>
+        <Tooltip
+          id="title-tooltip"
+          title={
+            showTooltip && currentTitle && !isEditing ? currentTitle : null
+          }
+        >
+          <Input
+            ref={inputRef}
+            data-test="editable-title-input"
+            variant="borderless"
+            aria-label={label ?? t('Title')}
+            className="dynamic-title-input"
+            value={currentTitle}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            onClick={handleClick}
+            onPressEnter={handleKeyPress}
+            placeholder={placeholder}
+            css={css`
+              ${
+                !canEdit &&
+                `&[disabled] {
+                  cursor: default;
+                }
+              `
+              }
+              font-size: ${theme.fontSizeXL}px;
+              transition: auto;
+              ${
+                inputWidth &&
+                inputWidth > 0 &&
+                css`
+                  width: ${inputWidth}px;
+                `
+              }
+            `}
+            disabled={!canEdit}
+          />
+        </Tooltip>
+        <span
+          ref={sizerRef}
+          className="input-sizer"
+          aria-hidden
+          tabIndex={-1}
+        />
+      </div>
+    );
+  },
+);
+export type { DynamicEditableTitleProps } from './types';

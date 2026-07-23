@@ -16,7 +16,7 @@
 # under the License.
 import logging
 
-from flask import session
+from flask import current_app as app, session
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand
@@ -37,6 +37,10 @@ class CreateFormDataCommand(BaseCommand):
     def __init__(self, cmd_params: CommandParameters):
         self._cmd_params = cmd_params
 
+    def _get_session_id(self) -> str | None:
+        """Get session ID. Can be overridden in subclasses."""
+        return session.get("_id")
+
     def run(self) -> str:
         self.validate()
         try:
@@ -47,7 +51,7 @@ class CreateFormDataCommand(BaseCommand):
             form_data = self._cmd_params.form_data
             check_access(datasource_id, chart_id, datasource_type)
             contextual_key = cache_key(
-                session.get("_id"), tab_id, datasource_id, chart_id, datasource_type
+                self._get_session_id(), tab_id, datasource_id, chart_id, datasource_type
             )
             key = cache_manager.explore_form_data_cache.get(contextual_key)
             if not key or not tab_id:
@@ -60,8 +64,13 @@ class CreateFormDataCommand(BaseCommand):
                     "chart_id": chart_id,
                     "form_data": form_data,
                 }
-                cache_manager.explore_form_data_cache.set(key, state)
-                cache_manager.explore_form_data_cache.set(contextual_key, key)
+                timeout = app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"].get(
+                    "CACHE_DEFAULT_TIMEOUT"
+                )
+                cache_manager.explore_form_data_cache.set(key, state, timeout=timeout)
+                cache_manager.explore_form_data_cache.set(
+                    contextual_key, key, timeout=timeout
+                )
             return key
         except SQLAlchemyError as ex:
             logger.exception("Error running create command")

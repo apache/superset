@@ -20,6 +20,7 @@ from flask_babel import lazy_gettext as _
 from marshmallow.validate import ValidationError
 
 from superset.commands.exceptions import (
+    CommandException,
     CommandInvalidError,
     CreateFailedError,
     DeleteFailedError,
@@ -58,8 +59,41 @@ class DashboardUpdateFailedError(UpdateFailedError):
     message = _("Dashboard could not be updated.")
 
 
+class DashboardNativeFiltersUpdateFailedError(UpdateFailedError):
+    message = _("Dashboard native filters could not be patched.")
+
+
+class DashboardChartCustomizationsUpdateFailedError(UpdateFailedError):
+    message = _("Dashboard chart customizations could not be updated.")
+
+
+class DashboardColorsConfigUpdateFailedError(UpdateFailedError):
+    message = _("Dashboard color configuration could not be updated.")
+
+
+class DashboardRestoreFailedError(UpdateFailedError):
+    # Restore semantically clears ``deleted_at``; it is an UPDATE, not a new
+    # row. ``UpdateFailedError`` is the nearest typed middle-tier base in the
+    # codebase. A dedicated ``RestoreFailedError`` in
+    # ``superset/commands/exceptions.py`` would be more precise across the
+    # entity rollouts; extracting it there is left as a cross-entity follow-up.
+    message = _("Dashboard could not be restored.")
+
+
+class DashboardSlugConflictError(CommandException):
+    status = 422
+    message = _(
+        "Dashboard cannot be restored because its slug is now used by "
+        "another active dashboard. Rename one of the dashboards and retry."
+    )
+
+
 class DashboardDeleteFailedError(DeleteFailedError):
     message = _("Dashboard could not be deleted.")
+
+
+class DashboardDeleteEmbeddedFailedError(DeleteFailedError):
+    message = _("Embedded dashboard could not be deleted.")
 
 
 class DashboardDeleteFailedReportsExistError(DashboardDeleteFailedError):
@@ -76,3 +110,15 @@ class DashboardImportError(ImportFailedError):
 
 class DashboardAccessDeniedError(ForbiddenError):
     message = _("You don't have access to this dashboard.")
+
+
+class DashboardCopyError(CommandInvalidError):
+    message = _("Dashboard cannot be copied due to invalid parameters.")
+
+
+class DashboardFaveError(CommandInvalidError):
+    message = _("Dashboard cannot be favorited.")
+
+
+class DashboardUnfaveError(CommandInvalidError):
+    message = _("Dashboard cannot be unfavorited.")

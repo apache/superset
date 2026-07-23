@@ -53,9 +53,48 @@ def test_convert_dttm(
     expected_result: Optional[str],
     dttm: datetime,  # noqa: F811
 ) -> None:
-    from superset.db_engine_specs.databend import DatabendEngineSpec as spec
+    from superset.db_engine_specs.databend import (
+        DatabendEngineSpec as spec,  # noqa: N813
+    )
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
+
+
+def test_get_engine_spec_supports_parameters() -> None:
+    """
+    Regression test: configuring Databend via individual parameters must
+    resolve to an engine spec that supports the dynamic form.
+
+    Previously two specs were registered under engine ``databend`` and neither
+    declared a distinct ``drivers`` set, so ``get_engine_spec`` resolved to the
+    first-defined legacy spec, which lacked ``parameters_schema`` /
+    ``build_sqlalchemy_uri``. This made the "configure via individual
+    parameters" flow fail with:
+        Engine spec "InvalidEngine" does not support being configured via
+        individual parameters.
+    """
+    from superset.db_engine_specs import get_engine_spec
+    from superset.db_engine_specs.databend import (
+        DatabendConnectEngineSpec,
+        DatabendEngineSpec,
+    )
+
+    # Both with and without an explicit driver, the resolved spec must support
+    # configuration via individual parameters.
+    for driver in (None, "databend"):
+        spec = get_engine_spec("databend", driver)
+        assert hasattr(spec, "parameters_schema"), (
+            f"resolved spec {spec.__name__} (driver={driver!r}) is missing "
+            "parameters_schema"
+        )
+        assert hasattr(spec, "build_sqlalchemy_uri"), (
+            f"resolved spec {spec.__name__} (driver={driver!r}) is missing "
+            "build_sqlalchemy_uri"
+        )
+
+    # The legacy alias must point to the same merged spec for backwards
+    # compatibility.
+    assert DatabendConnectEngineSpec is DatabendEngineSpec
 
 
 def test_execute_connection_error() -> None:
@@ -115,7 +154,9 @@ def test_get_column_spec(
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:
-    from superset.db_engine_specs.databend import DatabendConnectEngineSpec as spec
+    from superset.db_engine_specs.databend import (
+        DatabendConnectEngineSpec as spec,  # noqa: N813
+    )
 
     assert_column_spec(spec, native_type, sqla_type, attrs, generic_type, is_dttm)
 
@@ -123,12 +164,15 @@ def test_get_column_spec(
 @pytest.mark.parametrize(
     "column_name,expected_result",
     [
-        ("time", "time_07cc69"),
-        ("count", "count_e2942a"),
+        # SHA-256 hash suffix (first 6 chars) with default HASH_ALGORITHM
+        ("time", "time_336074"),
+        ("count", "count_6c3549"),
     ],
 )
 def test_make_label_compatible(column_name: str, expected_result: str) -> None:
-    from superset.db_engine_specs.databend import DatabendConnectEngineSpec as spec
+    from superset.db_engine_specs.databend import (
+        DatabendConnectEngineSpec as spec,  # noqa: N813
+    )
 
     label = spec.make_label_compatible(column_name)
     assert label == expected_result

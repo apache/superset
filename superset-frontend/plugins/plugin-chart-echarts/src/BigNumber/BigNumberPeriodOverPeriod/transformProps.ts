@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import moment from 'moment';
+// Type augmentation for dayjs plugins
+import 'dayjs/plugin/utc';
+import { Metric } from '@superset-ui/chart-controls';
 import {
   ChartProps,
   getMetricLabel,
@@ -24,15 +26,19 @@ import {
   getNumberFormatter,
   SimpleAdhocFilter,
   ensureIsArray,
-  getTimeOffset,
-  parseDttmToDate,
 } from '@superset-ui/core';
-import { isEmpty } from 'lodash';
-import { getComparisonFontSize, getHeaderFontSize } from './utils';
+import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
+import {
+  getComparisonFontSize,
+  getHeaderFontSize,
+  getMetricNameFontSize,
+} from './utils';
+
+import { getOriginalLabel } from '../utils';
 
 export const parseMetricValue = (metricValue: number | string | null) => {
   if (typeof metricValue === 'string') {
-    const dateObject = moment.utc(metricValue, moment.ISO_8601, true);
+    const dateObject = dayjs.utc(metricValue, undefined, true);
     if (dateObject.isValid()) {
       return dateObject.valueOf();
     }
@@ -76,55 +82,62 @@ export default function transformProps(chartProps: ChartProps) {
     height,
     formData,
     queriesData,
-    datasource: { currencyFormats = {}, columnFormats = {} },
+    datasource: {
+      currencyFormats = {},
+      columnFormats = {},
+      currencyCodeColumn,
+    },
   } = chartProps;
   const {
     boldText,
     headerFontSize,
     headerText,
     metric,
+    metricNameFontSize,
     yAxisFormat,
     currencyFormat,
     subheaderFontSize,
     comparisonColorScheme,
     comparisonColorEnabled,
     percentDifferenceFormat,
+    subtitle = '',
+    subtitleFontSize,
+    columnConfig = {},
   } = formData;
-  const { data: dataA = [] } = queriesData[0];
+  const { data: dataA = [], detected_currency: detectedCurrency } =
+    queriesData[0] || {};
   const data = dataA;
   const metricName = metric ? getMetricLabel(metric) : '';
-  const timeComparison = ensureIsArray(chartProps.rawFormData?.time_compare)[0];
+  const metrics = chartProps.datasource?.metrics || [];
+  const originalLabel = getOriginalLabel(metric, metrics);
+  const showMetricName = chartProps.rawFormData?.show_metric_name ?? false;
+
+  const dashboardTimeCompare = formData?.extraFormData?.time_compare;
+  const timeComparison =
+    dashboardTimeCompare ||
+    ensureIsArray(chartProps.rawFormData?.time_compare)[0];
   const startDateOffset = chartProps.rawFormData?.start_date_offset;
   const currentTimeRangeFilter = chartProps.rawFormData?.adhoc_filters?.filter(
     (adhoc_filter: SimpleAdhocFilter) =>
       adhoc_filter.operator === 'TEMPORAL_RANGE',
   )?.[0];
-  // In case the viz is using all version of controls, we try to load them
-  const previousCustomTimeRangeFilters: any =
-    chartProps.rawFormData?.adhoc_custom?.filter(
-      (filter: SimpleAdhocFilter) => filter.operator === 'TEMPORAL_RANGE',
-    ) || [];
 
-  let previousCustomStartDate = '';
-  if (
-    !isEmpty(previousCustomTimeRangeFilters) &&
-    previousCustomTimeRangeFilters[0]?.comparator !== 'No Filter'
-  ) {
-    previousCustomStartDate =
-      previousCustomTimeRangeFilters[0]?.comparator.split(' : ')[0];
+  let metricEntry: Metric | undefined;
+  if (chartProps.datasource?.metrics) {
+    metricEntry = chartProps.datasource.metrics.find(
+      metricItem => metricItem.metric_name === metric,
+    );
   }
+
   const isCustomOrInherit =
     timeComparison === 'custom' || timeComparison === 'inherit';
   let dataOffset: string[] = [];
   if (isCustomOrInherit) {
-    dataOffset = getTimeOffset({
-      timeRangeFilter: currentTimeRangeFilter,
-      shifts: ensureIsArray(timeComparison),
-      startDate:
-        previousCustomStartDate && !startDateOffset
-          ? parseDttmToDate(previousCustomStartDate)?.toUTCString()
-          : startDateOffset,
-    });
+    if (timeComparison && timeComparison === 'custom') {
+      dataOffset = [startDateOffset];
+    } else {
+      dataOffset = ensureIsArray(timeComparison) || [];
+    }
   }
 
   const { value1, value2 } = data.reduce(
@@ -156,8 +169,12 @@ export default function transformProps(chartProps: ChartProps) {
     metric,
     currencyFormats,
     columnFormats,
-    yAxisFormat,
+    metricEntry?.d3format || yAxisFormat,
     currencyFormat,
+    undefined,
+    data,
+    currencyCodeColumn,
+    detectedCurrency,
   );
 
   const compTitles = {
@@ -181,7 +198,8 @@ export default function transformProps(chartProps: ChartProps) {
     percentDifferenceNum = (bigNumber - prevNumber) / Math.abs(prevNumber);
   }
 
-  const compType = compTitles[formData.timeComparison];
+  const compType =
+    compTitles[formData.timeComparison as keyof typeof compTitles];
   bigNumber = numberFormatter(bigNumber);
   prevNumber = numberFormatter(prevNumber);
   valueDifference = numberFormatter(valueDifference);
@@ -191,12 +209,16 @@ export default function transformProps(chartProps: ChartProps) {
     width,
     height,
     data,
-    metricName,
+    metricName: originalLabel,
     bigNumber,
     prevNumber,
     valueDifference,
     percentDifferenceFormattedString: percentDifference,
     boldText,
+    subtitle,
+    subtitleFontSize,
+    showMetricName,
+    metricNameFontSize: getMetricNameFontSize(metricNameFontSize),
     headerFontSize: getHeaderFontSize(headerFontSize),
     subheaderFontSize: getComparisonFontSize(subheaderFontSize),
     headerText,
@@ -207,5 +229,7 @@ export default function transformProps(chartProps: ChartProps) {
     currentTimeRangeFilter,
     startDateOffset,
     shift: timeComparison,
+    dashboardTimeRange: formData?.extraFormData?.time_range,
+    columnConfig,
   };
 }

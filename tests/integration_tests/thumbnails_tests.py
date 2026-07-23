@@ -18,7 +18,6 @@
 # from superset.models.dashboard import Dashboard
 
 import urllib.request
-from io import BytesIO
 from unittest import skipUnless
 from unittest.mock import ANY, call, MagicMock, patch
 
@@ -30,9 +29,13 @@ from superset import db, is_feature_enabled, security_manager
 from superset.extensions import machine_auth_provider_factory
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.tasks.types import ExecutorType
+from superset.tasks.types import ExecutorType, FixedExecutor
 from superset.utils import json
-from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
+from superset.utils.screenshots import (
+    ChartScreenshot,
+    DashboardScreenshot,
+    ScreenshotCachePayload,
+)
 from superset.utils.urls import get_url_path
 from superset.utils.webdriver import WebDriverSelenium
 from tests.integration_tests.base_tests import SupersetTestCase
@@ -53,8 +56,8 @@ class TestThumbnailsSeleniumLive(LiveServerTestCase):
         return app
 
     def url_open_auth(self, username: str, url: str):
-        admin_user = security_manager.find_user(username=username)
-        cookies = machine_auth_provider_factory.instance.get_auth_cookies(admin_user)
+        user = security_manager.find_user(username=username)
+        cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
         opener = urllib.request.build_opener()
         opener.addheaders.append(("Cookie", f"session={cookies['session']}"))
         return opener.open(f"{self.get_server_url()}/{url}")
@@ -64,16 +67,19 @@ class TestThumbnailsSeleniumLive(LiveServerTestCase):
         """
         Thumbnails: Simple get async dashboard screenshot
         """
-        with patch("superset.dashboards.api.DashboardRestApi.get") as mock_get:  # noqa: F841
-            rv = self.client.get(DASHBOARD_URL)
-            resp = json.loads(rv.data.decode("utf-8"))
-            thumbnail_url = resp["result"][0]["thumbnail_url"]
+        rv = self.client.get(DASHBOARD_URL)
+        resp = json.loads(rv.data.decode("utf-8"))
+        obj_id = resp["result"][0]["id"]
+        rv = self.client.get(f"{DASHBOARD_URL}{obj_id}")
+        resp = json.loads(rv.data.decode("utf-8"))
+        thumbnail_url = resp["result"]["thumbnail_url"]
 
+        with patch("superset.dashboards.api.DashboardRestApi.get"):
             response = self.url_open_auth(
-                "admin",
+                ADMIN_USERNAME,
                 thumbnail_url,
             )
-            self.assertEqual(response.getcode(), 202)
+            assert response.getcode() == 202
 
 
 class TestWebDriverScreenshotErrorDetector(SupersetTestCase):
@@ -84,9 +90,7 @@ class TestWebDriverScreenshotErrorDetector(SupersetTestCase):
         self, mock_find_unexpected_errors, mock_firefox, mock_webdriver_wait
     ):
         webdriver_proxy = WebDriverSelenium("firefox")
-        user = security_manager.get_user_by_username(
-            app.config["THUMBNAIL_SELENIUM_USER"]
-        )
+        user = security_manager.get_user_by_username(ADMIN_USERNAME)
         url = get_url_path("Superset.dashboard", dashboard_id_or_slug=1)
         webdriver_proxy.get_screenshot(url, "grid-container", user=user)
 
@@ -100,9 +104,7 @@ class TestWebDriverScreenshotErrorDetector(SupersetTestCase):
     ):
         app.config["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"] = True
         webdriver_proxy = WebDriverSelenium("firefox")
-        user = security_manager.get_user_by_username(
-            app.config["THUMBNAIL_SELENIUM_USER"]
-        )
+        user = security_manager.get_user_by_username(ADMIN_USERNAME)
         url = get_url_path("Superset.dashboard", dashboard_id_or_slug=1)
         webdriver_proxy.get_screenshot(url, "grid-container", user=user)
 
@@ -148,37 +150,31 @@ class TestWebDriverSelenium(SupersetTestCase):
     def test_screenshot_selenium_headstart(
         self, mock_sleep, mock_webdriver, mock_webdriver_wait
     ):
-        webdriver = WebDriverSelenium("firefox")
-        user = security_manager.get_user_by_username(
-            app.config["THUMBNAIL_SELENIUM_USER"]
-        )
+        user = security_manager.get_user_by_username(ADMIN_USERNAME)
+        webdriver = WebDriverSelenium("firefox", user=user)
         url = get_url_path("Superset.slice", slice_id=1, standalone="true")
         app.config["SCREENSHOT_SELENIUM_HEADSTART"] = 5
-        webdriver.get_screenshot(url, "chart-container", user=user)
+        webdriver.get_screenshot(url, "chart-container")
         assert mock_sleep.call_args_list[0] == call(5)
 
     @patch("superset.utils.webdriver.WebDriverWait")
     @patch("superset.utils.webdriver.firefox")
     def test_screenshot_selenium_locate_wait(self, mock_webdriver, mock_webdriver_wait):
         app.config["SCREENSHOT_LOCATE_WAIT"] = 15
-        webdriver = WebDriverSelenium("firefox")
-        user = security_manager.get_user_by_username(
-            app.config["THUMBNAIL_SELENIUM_USER"]
-        )
+        user = security_manager.get_user_by_username(ADMIN_USERNAME)
+        webdriver = WebDriverSelenium("firefox", user=user)
         url = get_url_path("Superset.slice", slice_id=1, standalone="true")
-        webdriver.get_screenshot(url, "chart-container", user=user)
+        webdriver.get_screenshot(url, "chart-container")
         assert mock_webdriver_wait.call_args_list[0] == call(ANY, 15)
 
     @patch("superset.utils.webdriver.WebDriverWait")
     @patch("superset.utils.webdriver.firefox")
     def test_screenshot_selenium_load_wait(self, mock_webdriver, mock_webdriver_wait):
         app.config["SCREENSHOT_LOAD_WAIT"] = 15
-        webdriver = WebDriverSelenium("firefox")
-        user = security_manager.get_user_by_username(
-            app.config["THUMBNAIL_SELENIUM_USER"]
-        )
+        user = security_manager.get_user_by_username(ADMIN_USERNAME)
+        webdriver = WebDriverSelenium("firefox", user=user)
         url = get_url_path("Superset.slice", slice_id=1, standalone="true")
-        webdriver.get_screenshot(url, "chart-container", user=user)
+        webdriver.get_screenshot(url, "chart-container")
         assert mock_webdriver_wait.call_args_list[2] == call(ANY, 15)
 
     @patch("superset.utils.webdriver.WebDriverWait")
@@ -187,26 +183,45 @@ class TestWebDriverSelenium(SupersetTestCase):
     def test_screenshot_selenium_animation_wait(
         self, mock_sleep, mock_webdriver, mock_webdriver_wait
     ):
-        webdriver = WebDriverSelenium("firefox")
-        user = security_manager.get_user_by_username(
-            app.config["THUMBNAIL_SELENIUM_USER"]
-        )
+        user = security_manager.get_user_by_username(ADMIN_USERNAME)
+        webdriver = WebDriverSelenium("firefox", user=user)
         url = get_url_path("Superset.slice", slice_id=1, standalone="true")
         app.config["SCREENSHOT_SELENIUM_ANIMATION_WAIT"] = 4
-        webdriver.get_screenshot(url, "chart-container", user=user)
+        webdriver.get_screenshot(url, "chart-container")
         assert mock_sleep.call_args_list[1] == call(4)
 
 
 class TestThumbnails(SupersetTestCase):
     mock_image = b"bytes mock image"
     digest_return_value = "foo_bar"
-    digest_hash = "5c7d96a3dd7a87850a2ef34087565a6e"
+    # SHA-256 hash of "foo_bar" (default HASH_ALGORITHM is sha256)
+    digest_hash = "4928cae8b37b3d1113f5e01e60c967df6c2b9e826dc7d91488d23a62fec715ba"
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_dashboard_list_omits_thumbnail_url(self):
+        """
+        Thumbnails: dashboard list response must not include thumbnail_url
+        """
+        self.login(ADMIN_USERNAME)
+        rv = self.client.get(DASHBOARD_URL)
+        resp = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        assert len(resp["result"]) > 0
+        for dashboard in resp["result"]:
+            assert "thumbnail_url" not in dashboard, (
+                "thumbnail_url should not appear in list responses; "
+                "it is only available on the detail endpoint"
+            )
 
     def _get_id_and_thumbnail_url(self, url: str) -> tuple[int, str]:
         rv = self.client.get(url)
         resp = json.loads(rv.data.decode("utf-8"))
-        obj = resp["result"][0]
-        return obj["id"], obj["thumbnail_url"]
+        obj_id = resp["result"][0]["id"]
+        # Fetch thumbnail_url from the detail endpoint since it's
+        # not included in list responses
+        rv = self.client.get(f"{url}{obj_id}")
+        resp = json.loads(rv.data.decode("utf-8"))
+        return obj_id, resp["result"]["thumbnail_url"]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=False)
@@ -217,7 +232,7 @@ class TestThumbnails(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         _, thumbnail_url = self._get_id_and_thumbnail_url(DASHBOARD_URL)
         rv = self.client.get(thumbnail_url)
-        self.assertEqual(rv.status_code, 404)
+        assert rv.status_code == 404
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=False)
@@ -228,20 +243,20 @@ class TestThumbnails(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         _, thumbnail_url = self._get_id_and_thumbnail_url(CHART_URL)
         rv = self.client.get(thumbnail_url)
-        self.assertEqual(rv.status_code, 404)
+        assert rv.status_code == 404
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
-    def test_get_async_dashboard_screenshot_as_selenium(self):
+    def test_get_async_dashboard_screenshot_as_fixed_user(self):
         """
         Thumbnails: Simple get async dashboard screenshot as selenium user
         """
         self.login(ALPHA_USERNAME)
         with (
             patch.dict(
-                "superset.thumbnails.digest.current_app.config",
+                "flask.current_app.config",
                 {
-                    "THUMBNAIL_EXECUTE_AS": [ExecutorType.SELENIUM],
+                    "THUMBNAIL_EXECUTORS": [FixedExecutor(ADMIN_USERNAME)],
                 },
             ),
             patch(
@@ -251,11 +266,11 @@ class TestThumbnails(SupersetTestCase):
             mock_adjust_string.return_value = self.digest_return_value
             _, thumbnail_url = self._get_id_and_thumbnail_url(DASHBOARD_URL)
             assert self.digest_hash in thumbnail_url
-            assert mock_adjust_string.call_args[0][1] == ExecutorType.SELENIUM
-            assert mock_adjust_string.call_args[0][2] == "admin"
+            assert mock_adjust_string.call_args[0][1] == ExecutorType.FIXED_USER
+            assert mock_adjust_string.call_args[0][2] == ADMIN_USERNAME
 
             rv = self.client.get(thumbnail_url)
-            self.assertEqual(rv.status_code, 202)
+            assert rv.status_code == 202
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
@@ -267,9 +282,9 @@ class TestThumbnails(SupersetTestCase):
         self.login(username)
         with (
             patch.dict(
-                "superset.thumbnails.digest.current_app.config",
+                "flask.current_app.config",
                 {
-                    "THUMBNAIL_EXECUTE_AS": [ExecutorType.CURRENT_USER],
+                    "THUMBNAIL_EXECUTORS": [ExecutorType.CURRENT_USER],
                 },
             ),
             patch(
@@ -283,7 +298,7 @@ class TestThumbnails(SupersetTestCase):
             assert mock_adjust_string.call_args[0][2] == username
 
             rv = self.client.get(thumbnail_url)
-            self.assertEqual(rv.status_code, 202)
+            assert rv.status_code == 202
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
@@ -295,31 +310,31 @@ class TestThumbnails(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/dashboard/{max_id + 1}/thumbnail/1234/"
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 404)
+        assert rv.status_code == 404
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
-    def test_get_async_dashboard_not_allowed(self):
+    def test_get_async_dashboard_created(self):
         """
         Thumbnails: Simple get async dashboard not allowed
         """
         self.login(ADMIN_USERNAME)
         _, thumbnail_url = self._get_id_and_thumbnail_url(DASHBOARD_URL)
         rv = self.client.get(thumbnail_url)
-        self.assertEqual(rv.status_code, 404)
+        assert rv.status_code == 202
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
-    def test_get_async_chart_screenshot_as_selenium(self):
+    def test_get_async_chart_screenshot_as_fixed_user(self):
         """
         Thumbnails: Simple get async chart screenshot as selenium user
         """
         self.login(ADMIN_USERNAME)
         with (
             patch.dict(
-                "superset.thumbnails.digest.current_app.config",
+                "flask.current_app.config",
                 {
-                    "THUMBNAIL_EXECUTE_AS": [ExecutorType.SELENIUM],
+                    "THUMBNAIL_EXECUTORS": [FixedExecutor(ADMIN_USERNAME)],
                 },
             ),
             patch(
@@ -329,11 +344,11 @@ class TestThumbnails(SupersetTestCase):
             mock_adjust_string.return_value = self.digest_return_value
             _, thumbnail_url = self._get_id_and_thumbnail_url(CHART_URL)
             assert self.digest_hash in thumbnail_url
-            assert mock_adjust_string.call_args[0][1] == ExecutorType.SELENIUM
-            assert mock_adjust_string.call_args[0][2] == "admin"
+            assert mock_adjust_string.call_args[0][1] == ExecutorType.FIXED_USER
+            assert mock_adjust_string.call_args[0][2] == ADMIN_USERNAME
 
             rv = self.client.get(thumbnail_url)
-            self.assertEqual(rv.status_code, 202)
+            assert rv.status_code == 202
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
@@ -345,9 +360,9 @@ class TestThumbnails(SupersetTestCase):
         self.login(username)
         with (
             patch.dict(
-                "superset.thumbnails.digest.current_app.config",
+                "flask.current_app.config",
                 {
-                    "THUMBNAIL_EXECUTE_AS": [ExecutorType.CURRENT_USER],
+                    "THUMBNAIL_EXECUTORS": [ExecutorType.CURRENT_USER],
                 },
             ),
             patch(
@@ -361,7 +376,7 @@ class TestThumbnails(SupersetTestCase):
             assert mock_adjust_string.call_args[0][2] == username
 
             rv = self.client.get(thumbnail_url)
-            self.assertEqual(rv.status_code, 202)
+            assert rv.status_code == 202
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
@@ -373,7 +388,7 @@ class TestThumbnails(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/chart/{max_id + 1}/thumbnail/1234/"
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 404)
+        assert rv.status_code == 404
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
@@ -382,13 +397,15 @@ class TestThumbnails(SupersetTestCase):
         Thumbnails: Simple get chart with wrong digest
         """
         with patch.object(
-            ChartScreenshot, "get_from_cache", return_value=BytesIO(self.mock_image)
+            ChartScreenshot,
+            "get_from_cache",
+            return_value=ScreenshotCachePayload(self.mock_image),
         ):
             self.login(ADMIN_USERNAME)
             id_, thumbnail_url = self._get_id_and_thumbnail_url(CHART_URL)
             rv = self.client.get(f"api/v1/chart/{id_}/thumbnail/1234/")
-            self.assertEqual(rv.status_code, 302)
-            self.assertEqual(rv.headers["Location"], thumbnail_url)
+            assert rv.status_code == 302
+            assert rv.headers["Location"] == thumbnail_url
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
@@ -397,13 +414,15 @@ class TestThumbnails(SupersetTestCase):
         Thumbnails: Simple get cached dashboard screenshot
         """
         with patch.object(
-            DashboardScreenshot, "get_from_cache", return_value=BytesIO(self.mock_image)
+            DashboardScreenshot,
+            "get_from_cache_key",
+            return_value=ScreenshotCachePayload(self.mock_image),
         ):
             self.login(ADMIN_USERNAME)
             _, thumbnail_url = self._get_id_and_thumbnail_url(DASHBOARD_URL)
             rv = self.client.get(thumbnail_url)
-            self.assertEqual(rv.status_code, 200)
-            self.assertEqual(rv.data, self.mock_image)
+            assert rv.status_code == 200
+            assert rv.data == self.mock_image
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
@@ -412,13 +431,15 @@ class TestThumbnails(SupersetTestCase):
         Thumbnails: Simple get cached chart screenshot
         """
         with patch.object(
-            ChartScreenshot, "get_from_cache", return_value=BytesIO(self.mock_image)
+            ChartScreenshot,
+            "get_from_cache_key",
+            return_value=ScreenshotCachePayload(self.mock_image),
         ):
             self.login(ADMIN_USERNAME)
             id_, thumbnail_url = self._get_id_and_thumbnail_url(CHART_URL)
             rv = self.client.get(thumbnail_url)
-            self.assertEqual(rv.status_code, 200)
-            self.assertEqual(rv.data, self.mock_image)
+            assert rv.status_code == 200
+            assert rv.data == self.mock_image
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
@@ -427,10 +448,12 @@ class TestThumbnails(SupersetTestCase):
         Thumbnails: Simple get dashboard with wrong digest
         """
         with patch.object(
-            DashboardScreenshot, "get_from_cache", return_value=BytesIO(self.mock_image)
+            DashboardScreenshot,
+            "get_from_cache",
+            return_value=ScreenshotCachePayload(self.mock_image),
         ):
             self.login(ADMIN_USERNAME)
             id_, thumbnail_url = self._get_id_and_thumbnail_url(DASHBOARD_URL)
             rv = self.client.get(f"api/v1/dashboard/{id_}/thumbnail/1234/")
-            self.assertEqual(rv.status_code, 302)
-            self.assertEqual(rv.headers["Location"], thumbnail_url)
+            assert rv.status_code == 302
+            assert rv.headers["Location"] == thumbnail_url

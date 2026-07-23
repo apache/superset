@@ -17,20 +17,26 @@
 import logging
 import textwrap
 from dataclasses import dataclass
+from datetime import datetime
 from email.utils import make_msgid, parseaddr
-from typing import Any, Optional
+from io import BytesIO
+from typing import IO, Optional
+from zipfile import BadZipFile, ZipFile
 
 import nh3
+from flask import current_app
 from flask_babel import gettext as __
+from pytz import timezone
 
-from superset import app
+from superset import is_feature_enabled
 from superset.exceptions import SupersetErrorsException
-from superset.reports.models import ReportRecipientType
-from superset.reports.notifications.base import BaseNotification
+from superset.reports.models import ReportRecipients, ReportRecipientType
+from superset.reports.notifications.base import BaseNotification, NotificationContent
 from superset.reports.notifications.exceptions import NotificationError
 from superset.utils import json
 from superset.utils.core import HeaderDataType, send_email_smtp
 from superset.utils.decorators import statsd_gauge
+from superset.utils.link_redirect import process_html_links
 
 logger = logging.getLogger(__name__)
 
@@ -55,22 +61,54 @@ ALLOWED_TAGS = {
     "ul",
 }.union(TABLE_TAGS)
 
-ALLOWED_TABLE_ATTRIBUTES = {tag: TABLE_ATTRIBUTES for tag in TABLE_TAGS}
+ALLOWED_TABLE_ATTRIBUTES = dict.fromkeys(TABLE_TAGS, TABLE_ATTRIBUTES)
 ALLOWED_ATTRIBUTES = {
     "a": {"href", "title"},
     "abbr": {"title"},
     "acronym": {"title"},
     **ALLOWED_TABLE_ATTRIBUTES,
 }
+ZIP_LOCAL_FILE_HEADER = b"PK\x03\x04"
 
 
 @dataclass
 class EmailContent:
     body: str
     header_data: Optional[HeaderDataType] = None
-    data: Optional[dict[str, Any]] = None
+    data: Optional[dict[str, bytes | str]] = None
     pdf: Optional[dict[str, bytes]] = None
     images: Optional[dict[str, bytes]] = None
+
+
+def _get_xlsx_attachment_extension(content: bytes) -> str:
+    """
+    Return the attachment extension for bytes returned by the XLSX export endpoint.
+    """
+    try:
+        with ZipFile(BytesIO(content)) as zip_file:
+            names = zip_file.namelist()
+            if _is_xlsx_zip(names):
+                return "xlsx"
+
+            files = [name for name in names if not name.endswith("/")]
+            if files and all(name.lower().endswith(".xlsx") for name in files):
+                for name in files:
+                    with zip_file.open(name) as xlsx_file:
+                        if not _has_zip_signature(xlsx_file):
+                            return "xlsx"
+                return "zip"
+    except BadZipFile:
+        return "xlsx"
+
+    return "xlsx"
+
+
+def _is_xlsx_zip(names: list[str]) -> bool:
+    return "[Content_Types].xml" in names and "xl/workbook.xml" in names
+
+
+def _has_zip_signature(content: IO[bytes]) -> bool:
+    return content.read(len(ZIP_LOCAL_FILE_HEADER)) == ZIP_LOCAL_FILE_HEADER
 
 
 class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-methods
@@ -80,17 +118,47 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
 
     type = ReportRecipientType.EMAIL
 
-    @staticmethod
-    def _get_smtp_domain() -> str:
-        return parseaddr(app.config["SMTP_MAIL_FROM"])[1].split("@")[1]
+    def __init__(
+        self, recipient: ReportRecipients, content: NotificationContent
+    ) -> None:
+        super().__init__(recipient, content)
+        # Stamp each notification with its own timestamp at construction, which
+        # happens per recipient immediately before the email is dispatched. The
+        # date rendered into the subject (when DATE_FORMAT_IN_EMAIL_SUBJECT is
+        # enabled) therefore tracks the dispatch time. A module- or class-level
+        # value would instead freeze on the first import in a long-running worker.
+        self.now = datetime.now(timezone("UTC"))
+
+    @property
+    def _name(self) -> str:
+        """Include date format in the name if feature flag is enabled"""
+        return (
+            self._parse_name(self._content.name)
+            if is_feature_enabled("DATE_FORMAT_IN_EMAIL_SUBJECT")
+            else self._content.name
+        )
 
     @staticmethod
-    def _error_template(text: str) -> str:
+    def _get_smtp_domain() -> str:
+        return parseaddr(current_app.config["SMTP_MAIL_FROM"])[1].split("@")[1]
+
+    def _error_template(self, text: str) -> str:
+        call_to_action = self._get_call_to_action()
+        # The error text is derived from exception messages that can embed
+        # data-controlled content (e.g. crafted table/column names in a DB
+        # error). Strip all HTML before interpolating it into the email body,
+        # matching the sanitization applied to the normal content path.
+        # pylint: disable=no-member
+        safe_text = nh3.clean(text, tags=set(), attributes={})
         return __(
             """
-            Error: %(text)s
-            """,
-            text=text,
+            <p>Your report/alert was unable to be generated because of the following error: %(text)s</p>
+            <p>Please check your dashboard/chart for errors.</p>
+            <p><b><a href="%(url)s">%(call_to_action)s</a></b></p>
+            """,  # noqa: E501
+            text=safe_text,
+            url=self._content.url,
+            call_to_action=call_to_action,
         )
 
     def _get_content(self) -> EmailContent:
@@ -116,6 +184,9 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             attributes=ALLOWED_ATTRIBUTES,
         )
 
+        # Rewrite external links to go through the redirect warning page
+        description = process_html_links(description)
+
         # Strip malicious HTML from embedded data, allowing only table elements
         if self._content.embedded_data is not None:
             df = self._content.embedded_data
@@ -127,19 +198,20 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 tags=TABLE_TAGS,
                 attributes=ALLOWED_TABLE_ATTRIBUTES,
             )
+            html_table = process_html_links(html_table)
         else:
             html_table = ""
 
-        call_to_action = __(app.config["EMAIL_REPORTS_CTA"])
         img_tags = []
         for msgid in images.keys():
             img_tags.append(
                 f"""<div class="image">
-                    <img width="1000px" src="cid:{msgid}">
+                    <img width="1000" src="cid:{msgid}">
                 </div>
                 """
             )
         img_tag = "".join(img_tags)
+        call_to_action = self._get_call_to_action()
         body = textwrap.dedent(
             f"""
             <html>
@@ -153,6 +225,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                   }}
                   .image{{
                       margin-bottom: 18px;
+                      min-width: 1000px;
                   }}
                 </style>
               </head>
@@ -166,54 +239,91 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             </html>
             """
         )
-        csv_data = None
+        # CSV and Excel are mutually exclusive (a report has a single format),
+        # so at most one tabular attachment is present in the data dict.
+        attachment_data: dict[str, bytes | str] | None = None
         if self._content.csv:
-            csv_data = {__("%(name)s.csv", name=self._content.name): self._content.csv}
+            attachment_data = {__("%(name)s.csv", name=self._name): self._content.csv}
+        elif self._content.xlsx:
+            extension = _get_xlsx_attachment_extension(self._content.xlsx)
+            attachment_data = {
+                __(
+                    "%(name)s.%(extension)s",
+                    name=self._name,
+                    extension=extension,
+                ): self._content.xlsx
+            }
 
         pdf_data = None
         if self._content.pdf:
-            pdf_data = {__("%(name)s.pdf", name=self._content.name): self._content.pdf}
+            pdf_data = {__("%(name)s.pdf", name=self._name): self._content.pdf}
 
         return EmailContent(
             body=body,
             images=images,
             pdf=pdf_data,
-            data=csv_data,
+            data=attachment_data,
             header_data=self._content.header_data,
         )
 
     def _get_subject(self) -> str:
         return __(
             "%(prefix)s %(title)s",
-            prefix=app.config["EMAIL_REPORTS_SUBJECT_PREFIX"],
-            title=self._content.name,
+            prefix=current_app.config["EMAIL_REPORTS_SUBJECT_PREFIX"],
+            title=self._name,
         )
+
+    def _parse_name(self, name: str) -> str:
+        """If user add a date format to the subject, parse it to the real date
+        This feature is hidden behind a feature flag `DATE_FORMAT_IN_EMAIL_SUBJECT`
+        by default it is disabled
+        """
+        return self.now.strftime(name)
+
+    def _get_call_to_action(self) -> str:
+        return __(current_app.config["EMAIL_REPORTS_CTA"])
 
     def _get_to(self) -> str:
         return json.loads(self._recipient.recipient_config_json)["target"]
+
+    def _get_cc(self) -> str:
+        # To accommodate backward compatibility
+        return json.loads(self._recipient.recipient_config_json).get("ccTarget", "")
+
+    def _get_bcc(self) -> str:
+        # To accommodate backward compatibility
+        return json.loads(self._recipient.recipient_config_json).get("bccTarget", "")
 
     @statsd_gauge("reports.email.send")
     def send(self) -> None:
         subject = self._get_subject()
         content = self._get_content()
         to = self._get_to()
+        cc = self._get_cc()
+        bcc = self._get_bcc()
+
         try:
             send_email_smtp(
                 to,
                 subject,
                 content.body,
-                app.config,
+                current_app.config,
                 files=[],
                 data=content.data,
                 pdf=content.pdf,
                 images=content.images,
-                bcc="",
                 mime_subtype="related",
                 dryrun=False,
+                cc=cc,
+                bcc=bcc,
                 header_data=content.header_data,
             )
             logger.info(
-                "Report sent to email, notification content is %s", content.header_data
+                "Report sent to email, task_id: %s, notification content is %s",
+                content.header_data.get("execution_id")
+                if content.header_data
+                else None,
+                content.header_data,
             )
         except SupersetErrorsException as ex:
             raise NotificationError(

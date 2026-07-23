@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import {
   ControlPanelConfig,
   sharedControls,
@@ -50,22 +50,21 @@ const config: ControlPanelConfig = {
             name: 'enableEmptyFilter',
             config: {
               type: 'CheckboxControl',
-              label: t('Filter value is required'),
+              label: () => t('Filter value is required'),
               default: false,
               renderTrigger: true,
-              description: t(
-                'User must select a value before applying the filter',
-              ),
+              description: () =>
+                t('User must select a value before applying the filter'),
             },
           },
           {
             name: 'enableSingleValue',
             config: {
               type: 'CheckboxControl',
-              label: t('Single value'),
+              label: () => t('Single value'),
               default: SingleValueType.Exact,
               renderTrigger: true,
-              description: t('Use only a single value.'),
+              description: () => t('Use only a single value.'),
             },
           },
         ],

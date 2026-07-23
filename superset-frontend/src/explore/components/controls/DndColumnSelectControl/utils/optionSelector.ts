@@ -17,6 +17,7 @@
  * under the License.
  */
 import { ColumnMeta, isColumnMeta } from '@superset-ui/chart-controls';
+import { t } from '@apache-superset/core/translation';
 import {
   AdhocColumn,
   ensureIsArray,
@@ -55,7 +56,13 @@ export class OptionSelector {
         if (!isPhysicalColumn(value)) {
           return value;
         }
-        return null;
+        return {
+          type_generic: 'UNKNOWN',
+          column_name: value,
+          error_text: t(
+            'This column might be incompatible with current dataset',
+          ),
+        };
       })
       .filter(Boolean) as ColumnMeta[];
   }
@@ -78,8 +85,12 @@ export class OptionSelector {
     }
   }
 
-  swap(a: number, b: number) {
-    [this.values[a], this.values[b]] = [this.values[b], this.values[a]];
+  move(dragIndex: number, hoverIndex: number) {
+    // @dnd-kit reports the final indices at drag-end, so reorder by removing
+    // the dragged item and reinserting it, rather than swapping in place,
+    // which only produces the correct result for adjacent drags.
+    const [moved] = this.values.splice(dragIndex, 1);
+    this.values.splice(hoverIndex, 0, moved);
   }
 
   has(value: QueryFormColumn): boolean {

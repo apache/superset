@@ -65,9 +65,9 @@ export function getChartDataRouteForSlice(slice: Slice) {
   const isLegacy = isLegacyChart(vizType);
   const formData = encodeURIComponent(`{"slice_id":${slice.slice_id}}`);
   if (isLegacy) {
-    return `/superset/explore_json/?*${formData}*`;
+    return `**/superset/explore_json/?*${formData}*`;
   }
-  return `/api/v1/chart/data?*${formData}*`;
+  return `**/api/v1/chart/data?*${formData}*`;
 }
 
 export function getChartAlias(slice: Slice): string {

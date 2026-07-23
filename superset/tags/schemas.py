@@ -18,6 +18,7 @@ from marshmallow import fields, Schema
 from marshmallow.validate import Length, Range
 
 from superset.dashboards.schemas import UserSchema
+from superset.subjects.schemas import SubjectResponseSchema
 
 delete_tags_schema = {"type": "array", "items": {"type": "string"}}
 object_type_description = "A title for the tag."
@@ -53,21 +54,41 @@ class TaggedObjectEntityResponseSchema(Schema):
     changed_on = fields.DateTime()
     created_by = fields.Nested(UserSchema(exclude=["username"]))
     creator = fields.String()
-    tags = fields.List(fields.Nested(TagGetResponseSchema))
-    owners = fields.List(fields.Nested(UserSchema))
+    tags = fields.List(fields.Nested(TagGetResponseSchema()))
+    editors = fields.List(fields.Nested(SubjectResponseSchema()))
+
+
+objects_to_tag_field = fields.List(
+    fields.Tuple(
+        (
+            fields.String(metadata={"description": "type of resource"}),
+            fields.Int(validate=Range(min=1), metadata={"description": "resource id"}),
+        ),
+    ),
+    metadata={
+        "description": "Objects to tag",
+    },
+    required=False,
+)
 
 
 class TagObjectSchema(Schema):
     name = fields.String(validate=Length(min=1))
     description = fields.String(required=False, allow_none=True)
-    objects_to_tag = fields.List(
-        fields.Tuple((fields.String(), fields.Int(validate=Range(min=1)))),
-        required=False,
-    )
+    objects_to_tag = objects_to_tag_field
 
 
 class TagPostBulkSchema(Schema):
-    tags = fields.List(fields.Nested(TagObjectSchema))
+    tags = fields.List(fields.Nested(TagObjectSchema()))
+
+
+class TagPostBulkResponseObjectSchema(Schema):
+    objects_tagged = objects_to_tag_field
+    objects_skipped = objects_to_tag_field
+
+
+class TagPostBulkResponseSchema(Schema):
+    result = fields.Nested(TagPostBulkResponseObjectSchema())
 
 
 class TagPostSchema(TagObjectSchema):

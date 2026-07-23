@@ -16,24 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { act } from 'react-dom/test-utils';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
-import { styledMount as mount } from 'spec/helpers/theming';
-import { ReactWrapper } from 'enzyme';
+import { fireEvent, render, waitFor } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
-import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { Upload } from 'src/components';
-import Button from 'src/components/Button';
 import { ImportResourceName } from 'src/views/CRUD/types';
-import ImportModelsModal from 'src/components/ImportModal';
-import Modal from 'src/components/Modal';
+import type { ImportModelsModalProps } from './types';
+import { ImportModal } from '.';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
 const DATABASE_IMPORT_URL = 'glob:*/api/v1/database/import/';
-fetchMock.config.overwriteRoutes = true;
 fetchMock.post(DATABASE_IMPORT_URL, { result: 'OK' });
 
 const requiredProps = {
@@ -48,148 +42,145 @@ const requiredProps = {
   onHide: () => {},
 };
 
-describe('ImportModelsModal', () => {
-  let wrapper: ReactWrapper;
+afterEach(() => {
+  fetchMock.clearHistory();
+  jest.clearAllMocks();
+});
 
-  beforeEach(() => {
-    wrapper = mount(<ImportModelsModal {...requiredProps} />, {
-      context: { store },
-    });
+const setup = (overrides: Partial<ImportModelsModalProps> = {}) =>
+  render(<ImportModal {...requiredProps} {...overrides} />, { store });
+
+test('renders', () => {
+  const { container } = setup();
+  expect(container).toBeInTheDocument();
+});
+
+test('renders a Modal', () => {
+  const { getByTestId } = setup();
+  expect(getByTestId('model-modal')).toBeInTheDocument();
+});
+
+test('renders "Import database" header', () => {
+  const { getByText } = setup();
+  expect(getByText('Import database')).toBeInTheDocument();
+});
+
+test('renders a file input field', () => {
+  setup();
+  expect(document.querySelector('input[type="file"]')).toBeInTheDocument();
+});
+
+test('should render the close, file, import and cancel buttons', () => {
+  setup();
+  expect(document.querySelectorAll('button')).toHaveLength(4);
+});
+
+test('should render the import button initially disabled', () => {
+  const { getByRole } = setup();
+  expect(getByRole('button', { name: 'Import' })).toBeDisabled();
+});
+
+test('should render the import button enabled when a file is selected', async () => {
+  const file = new File([new ArrayBuffer(1)], 'model_export.zip');
+  const { getByTestId, getByRole } = setup();
+  await waitFor(() =>
+    fireEvent.change(getByTestId('model-file-input'), {
+      target: {
+        files: [file],
+      },
+    }),
+  );
+  expect(getByRole('button', { name: 'Import' })).toBeEnabled();
+});
+
+test('should POST with request header `Accept: application/json`', async () => {
+  const file = new File([new ArrayBuffer(1)], 'model_export.zip');
+  const { getByTestId, getByRole } = setup();
+  await waitFor(() =>
+    fireEvent.change(getByTestId('model-file-input'), {
+      target: {
+        files: [file],
+      },
+    }),
+  );
+  fireEvent.click(getByRole('button', { name: 'Import' }));
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls(DATABASE_IMPORT_URL)).toHaveLength(1),
+  );
+  expect(
+    fetchMock.callHistory.calls(DATABASE_IMPORT_URL)[0].options?.headers,
+  ).toStrictEqual({
+    accept: 'application/json',
+    'x-csrftoken': '1234',
   });
+});
 
-  afterEach(() => {
-    jest.clearAllMocks();
+test('should render password fields when needed for import', () => {
+  setup({ passwordFields: ['databases/examples.yaml'] });
+  expect(document.querySelector('input[type="password"]')).toBeInTheDocument();
+});
+
+test('should render ssh_tunnel password fields when needed for import', () => {
+  const { getByTestId } = setup({
+    sshTunnelPasswordFields: ['databases/examples.yaml'],
   });
+  expect(getByTestId('ssh_tunnel_password')).toBeInTheDocument();
+});
 
-  it('renders', () => {
-    expect(wrapper.find(ImportModelsModal)).toExist();
+test('should render ssh_tunnel private_key fields when needed for import', () => {
+  const { getByTestId } = setup({
+    sshTunnelPrivateKeyFields: ['databases/examples.yaml'],
   });
+  expect(getByTestId('ssh_tunnel_private_key')).toBeInTheDocument();
+});
 
-  it('renders a Modal', () => {
-    expect(wrapper.find(Modal)).toExist();
+test('should render ssh_tunnel private_key_password fields when needed for import', () => {
+  const { getByTestId } = setup({
+    sshTunnelPrivateKeyPasswordFields: ['databases/examples.yaml'],
   });
+  expect(getByTestId('ssh_tunnel_private_key_password')).toBeInTheDocument();
+});
 
-  it('renders "Import database" header', () => {
-    expect(wrapper.find('h4').text()).toEqual('Import database');
-  });
-
-  it('renders a file input field', () => {
-    expect(wrapper.find('input[type="file"]')).toExist();
-  });
-
-  it('should render the close, file, import and cancel buttons', () => {
-    expect(wrapper.find('button')).toHaveLength(4);
-  });
-
-  it('should render the import button initially disabled', () => {
-    expect(wrapper.find(Button).at(2).prop('disabled')).toBe(true);
-  });
-
-  it('should render the import button enabled when a file is selected', () => {
-    const file = new File([new ArrayBuffer(1)], 'model_export.zip');
-    act(() => {
-      const handler = wrapper.find(Upload).prop('onChange');
-      if (handler) {
-        handler({
-          fileList: [],
-          file: {
-            name: 'model_export.zip',
-            originFileObj: file,
-            uid: '-1',
-            size: 0,
-            type: 'zip',
+test('should render encrypted extra secret fields when needed for import', () => {
+  const { getByTestId } = setup({
+    encryptedExtraFields: [
+      {
+        fileName: 'databases/examples.yaml',
+        fields: [
+          {
+            path: '$.credentials_info.private_key',
+            label: 'Service Account Private Key',
           },
-        });
-      }
-    });
-    wrapper.update();
-    expect(wrapper.find(Button).at(2).prop('disabled')).toBe(false);
+        ],
+      },
+    ],
   });
+  expect(getByTestId('encrypted_extra_secret')).toBeInTheDocument();
+});
 
-  it('should POST with request header `Accept: application/json`', async () => {
-    const file = new File([new ArrayBuffer(1)], 'model_export.zip');
-    act(() => {
-      const handler = wrapper.find(Upload).prop('onChange');
-      if (handler) {
-        handler({
-          fileList: [],
-          file: {
-            name: 'model_export.zip',
-            originFileObj: file,
-            uid: '-1',
-            size: 0,
-            type: 'zip',
+test('should render multiple encrypted extra secret fields for multiple files', () => {
+  const { getAllByTestId } = setup({
+    encryptedExtraFields: [
+      {
+        fileName: 'databases/bigquery.yaml',
+        fields: [
+          {
+            path: '$.credentials_info.private_key',
+            label: 'Service Account Private Key',
           },
-        });
-      }
-    });
-    wrapper.update();
-
-    wrapper.find(Button).at(2).simulate('click');
-    await waitForComponentToPaint(wrapper);
-    expect(fetchMock.calls(DATABASE_IMPORT_URL)[0][1]?.headers).toStrictEqual({
-      Accept: 'application/json',
-      'X-CSRFToken': '1234',
-    });
-  });
-
-  it('should render password fields when needed for import', () => {
-    const wrapperWithPasswords = mount(
-      <ImportModelsModal
-        {...requiredProps}
-        passwordFields={['databases/examples.yaml']}
-      />,
-      {
-        context: { store },
+        ],
       },
-    );
-    expect(wrapperWithPasswords.find('input[type="password"]')).toExist();
-  });
-
-  it('should render ssh_tunnel password fields when needed for import', () => {
-    const wrapperWithPasswords = mount(
-      <ImportModelsModal
-        {...requiredProps}
-        sshTunnelPasswordFields={['databases/examples.yaml']}
-      />,
       {
-        context: { store },
+        fileName: 'databases/snowflake.yaml',
+        fields: [
+          { path: '$.auth_params.privatekey_body', label: 'Private Key Body' },
+          {
+            path: '$.auth_params.privatekey_pass',
+            label: 'Private Key Password',
+          },
+        ],
       },
-    );
-    expect(
-      wrapperWithPasswords.find('[data-test="ssh_tunnel_password"]'),
-    ).toExist();
+    ],
   });
-
-  it('should render ssh_tunnel private_key fields when needed for import', () => {
-    const wrapperWithPasswords = mount(
-      <ImportModelsModal
-        {...requiredProps}
-        sshTunnelPrivateKeyFields={['databases/examples.yaml']}
-      />,
-      {
-        context: { store },
-      },
-    );
-    expect(
-      wrapperWithPasswords.find('[data-test="ssh_tunnel_private_key"]'),
-    ).toExist();
-  });
-
-  it('should render ssh_tunnel private_key_password fields when needed for import', () => {
-    const wrapperWithPasswords = mount(
-      <ImportModelsModal
-        {...requiredProps}
-        sshTunnelPrivateKeyPasswordFields={['databases/examples.yaml']}
-      />,
-      {
-        context: { store },
-      },
-    );
-    expect(
-      wrapperWithPasswords.find(
-        '[data-test="ssh_tunnel_private_key_password"]',
-      ),
-    ).toExist();
-  });
+  expect(getAllByTestId('encrypted_extra_secret')).toHaveLength(3);
 });

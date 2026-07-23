@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DatasourceType, GenericDataType } from '@superset-ui/core';
+import { DatasourceType } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { Dataset } from './types';
 
 export const TestDataset: Dataset = {
   column_formats: {},
-  currency_formats: {},
   columns: [
     {
       advanced_data_type: undefined,
@@ -121,6 +121,7 @@ export const TestDataset: Dataset = {
   main_dttm_col: 'ds',
   metrics: [
     {
+      uuid: '123',
       certification_details: null,
       certified_by: null,
       d3format: null,
@@ -137,7 +138,7 @@ export const TestDataset: Dataset = {
   ],
   name: 'public.birth_names',
   order_by_choices: [],
-  owners: [
+  editors: [
     {
       first_name: 'admin',
       id: 1,

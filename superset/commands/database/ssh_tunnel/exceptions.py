@@ -69,9 +69,17 @@ class SSHTunnelRequiredFieldValidationError(ValidationError, SSHTunnelError):
         )
 
 
-class SSHTunnelMissingCredentials(CommandInvalidError, SSHTunnelError):
+class SSHTunnelMissingCredentials(CommandInvalidError, SSHTunnelError):  # noqa: N818
     message = _("Must provide credentials for the SSH Tunnel")
 
 
-class SSHTunnelInvalidCredentials(CommandInvalidError, SSHTunnelError):
+class SSHTunnelInvalidCredentials(CommandInvalidError, SSHTunnelError):  # noqa: N818
     message = _("Cannot have multiple credentials for the SSH Tunnel")
+
+
+class SSHTunnelHostKeyVerificationError(CommandInvalidError, SSHTunnelError):
+    """The SSH server's host key failed opt-in verification for a tunnel."""
+
+    message = _(
+        "The SSH server host key could not be verified against the expected key."
+    )

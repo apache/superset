@@ -1,17 +1,3 @@
-import {
-  ColorSchemeConfig,
-  FeatureFlagMap,
-  JsonObject,
-  LanguagePack,
-  Locale,
-  SequentialSchemeConfig,
-} from '@superset-ui/core';
-import { FormatLocaleDefinition } from 'd3-format';
-import { TimeLocaleDefinition } from 'd3-time-format';
-import { isPlainObject } from 'lodash';
-import { Languages } from 'src/features/home/LanguagePicker';
-import { FlashMessage } from '../components/FlashProvider';
-
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -30,6 +16,27 @@ import { FlashMessage } from '../components/FlashProvider';
  * specific language governing permissions and limitations
  * under the License.
  */
+import { FormatLocaleDefinition } from 'd3-format';
+import { TimeLocaleDefinition } from 'd3-time-format';
+import { isPlainObject } from 'lodash-es';
+import { Languages } from 'src/features/home/LanguagePicker';
+import {
+  AnyThemeConfig,
+  SerializableThemeConfig,
+  ThemeMode,
+} from '@apache-superset/core/theme';
+import type {
+  ColorSchemeConfig,
+  FeatureFlagMap,
+  JsonObject,
+  SequentialSchemeConfig,
+} from '@superset-ui/core';
+
+import {
+  type LanguagePack,
+  type Locale,
+} from '@apache-superset/core/translation';
+
 export type User = {
   createdOn?: string;
   email?: string;
@@ -39,6 +46,7 @@ export type User = {
   lastName: string;
   userId?: number; // optional because guest user doesn't have a user id
   username: string;
+  loginCount?: number;
 };
 
 export type UserRoles = Record<string, [string, string][]>;
@@ -48,6 +56,7 @@ export interface PermissionsAndRoles {
     datasource_access?: string[];
   };
   roles: UserRoles;
+  groups: string[];
 }
 
 export type UserWithPermissionsAndRoles = User & PermissionsAndRoles;
@@ -91,6 +100,7 @@ export interface BrandProps {
   alt: string;
   tooltip: string;
   text: string;
+  hide_logo?: boolean;
 }
 
 export interface NavBarProps {
@@ -116,7 +126,7 @@ export interface NavBarProps {
 export interface MenuObjectChildProps {
   label: string;
   name?: string;
-  icon?: string;
+  icon?: React.ReactNode;
   index?: number;
   url?: string;
   onClick?: () => void;
@@ -142,18 +152,29 @@ export interface MenuData {
   };
 }
 
+export interface BootstrapThemeDataConfig {
+  default: SerializableThemeConfig | {};
+  dark: SerializableThemeConfig | {};
+  defaultMode?: string;
+  enableUiThemeAdministration?: boolean;
+}
+
 export interface CommonBootstrapData {
-  flash_messages: FlashMessage[];
+  application_root: string;
+  static_assets_prefix: string;
   conf: JsonObject;
   locale: Locale;
   feature_flags: FeatureFlagMap;
   language_pack: LanguagePack;
   extra_categorical_color_schemes: ColorSchemeConfig[];
   extra_sequential_color_schemes: SequentialSchemeConfig[];
-  theme_overrides: JsonObject;
+  theme: BootstrapThemeDataConfig;
   menu_data: MenuData;
   d3_format: Partial<FormatLocaleDefinition>;
   d3_time_format: Partial<TimeLocaleDefinition>;
+  pdf_compression_level: 'NONE' | 'FAST' | 'MEDIUM' | 'SLOW';
+  user_subject_id?: number;
+  user_subjects?: number[];
 }
 
 export interface BootstrapData {
@@ -162,8 +183,18 @@ export interface BootstrapData {
   config?: any;
   embedded?: {
     dashboard_id: string;
+    // Domains allowed to embed this dashboard. An empty/undefined list means
+    // any domain is allowed (no restriction).
+    allowed_domains?: string[];
   };
   requested_query?: JsonObject;
+}
+
+export interface BootstrapThemeData {
+  bootstrapDefaultTheme: AnyThemeConfig | null;
+  bootstrapDarkTheme: AnyThemeConfig | null;
+  bootstrapDefaultMode: ThemeMode;
+  hasCustomThemes: boolean;
 }
 
 export function isUser(user: any): user is User {

@@ -28,8 +28,7 @@ from collections import defaultdict
 
 from alembic import op
 from sqlalchemy import Column, ForeignKey, Integer, String, Table, Text
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import declarative_base, relationship
 
 from superset import db
 from superset.utils import json
@@ -121,7 +120,7 @@ def upgrade():
         )
         for i, dashboard in enumerate(dashboards):
             print(
-                f"scanning dashboard ({i + 1}/{len(dashboards)}) dashboard: {dashboard.id} >>>>"
+                f"scanning dashboard ({i + 1}/{len(dashboards)}) dashboard: {dashboard.id} >>>>"  # noqa: E501
             )
 
             # remove iframe slices from dashboard
@@ -188,7 +187,7 @@ def upgrade():
         )
 
     except Exception as ex:
-        logging.exception(f"dashboard {dashboard.id} has error: {ex}")
+        logging.exception("dashboard %s has error: %s", dashboard.id, ex)
 
     session.commit()
     session.close()

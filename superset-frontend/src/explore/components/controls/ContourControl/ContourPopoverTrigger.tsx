@@ -47,12 +47,14 @@ const ContourPopoverTrigger = ({
     <ControlPopover
       trigger="click"
       content={popoverContent}
-      defaultVisible={visible}
-      visible={visible}
-      onVisibleChange={setVisibility}
-      destroyTooltipOnHide
+      defaultOpen={visible}
+      open={visible}
+      onOpenChange={setVisibility}
+      destroyOnHidden
     >
-      {props.children}
+      {/* Wrap in span so the Popover can attach a ref without relying
+          on findDOMNode (deprecated in React 18+). */}
+      <span>{props.children}</span>
     </ControlPopover>
   );
 };

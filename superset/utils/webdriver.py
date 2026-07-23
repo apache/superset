@@ -17,13 +17,16 @@
 
 from __future__ import annotations
 
+import atexit
 import logging
 from abc import ABC, abstractmethod
 from enum import Enum
 from time import sleep
 from typing import Any, TYPE_CHECKING
 
-from flask import current_app
+from flask import current_app as app
+from packaging import version
+from selenium import __version__ as selenium_version
 from selenium.common.exceptions import (
     StaleElementReferenceException,
     TimeoutException,
@@ -31,21 +34,31 @@ from selenium.common.exceptions import (
 )
 from selenium.webdriver import chrome, firefox, FirefoxProfile
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.service import Service
 from selenium.webdriver.remote.webdriver import WebDriver
-from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support import expected_conditions as EC  # noqa: N812
 from selenium.webdriver.support.ui import WebDriverWait
 
-from superset import feature_flag_manager
 from superset.extensions import machine_auth_provider_factory
 from superset.utils.retries import retry_call
+from superset.utils.screenshot_utils import take_tiled_screenshot
 
 WindowSize = tuple[int, int]
 logger = logging.getLogger(__name__)
 
+# Installation message for missing Playwright (Cypress doesn't work with DeckGL)
+PLAYWRIGHT_INSTALL_MESSAGE = (
+    "To complete the migration from Cypress "
+    "and enable WebGL/DeckGL screenshot support, install Playwright with: "
+    "pip install playwright && playwright install chromium"
+)
+
 if TYPE_CHECKING:
+    from typing import Any
+
     from flask_appbuilder.security.sqla.models import User
 
-if feature_flag_manager.is_feature_enabled("PLAYWRIGHT_REPORTS_AND_THUMBNAILS"):
+try:
     from playwright.sync_api import (
         BrowserContext,
         Error as PlaywrightError,
@@ -54,6 +67,119 @@ if feature_flag_manager.is_feature_enabled("PLAYWRIGHT_REPORTS_AND_THUMBNAILS"):
         sync_playwright,
         TimeoutError as PlaywrightTimeout,
     )
+except ImportError:
+    from typing import Any
+
+    # Define dummy classes when playwright is not available
+    BrowserContext = Any
+    PlaywrightError = Exception
+    PlaywrightTimeout = Exception
+    Locator = Any
+    Page = Any
+    sync_playwright = None
+
+
+def check_playwright_availability() -> bool:
+    """
+    Lightweight check for Playwright availability.
+
+    First checks if browser binary exists, falls back to launch test if needed.
+    """
+    if sync_playwright is None:
+        return False
+
+    try:
+        with sync_playwright() as p:
+            # First try lightweight check - just verify executable exists
+            try:
+                executable_path = p.chromium.executable_path
+                if executable_path:
+                    return True
+            except Exception:
+                # Fall back to full launch test if executable_path fails
+                logger.debug(
+                    "Executable path check failed, falling back to launch test"
+                )
+
+            # Fallback: actually launch browser to ensure it works
+            browser = p.chromium.launch(headless=True)
+            browser.close()
+            return True
+    except Exception as e:
+        logger.warning(
+            "Playwright module is installed but browser launch failed. "
+            "Run 'playwright install chromium' to install browser binaries. "
+            "Error: %s",
+            str(e),
+        )
+        return False
+
+
+PLAYWRIGHT_AVAILABLE = check_playwright_availability()
+
+
+class _PlaywrightBrowserManager:
+    """Manages a long-lived Playwright browser instance per worker process.
+
+    In Celery's prefork model, each worker process runs tasks sequentially,
+    so a single browser instance per process is safe and avoids the overhead
+    of launching/destroying Chromium on every screenshot task. Each task
+    creates a lightweight, isolated browser context instead of a full browser.
+    """
+
+    def __init__(self) -> None:
+        self._playwright: Any = None
+        self._browser: Any = None
+
+    def get_browser(self, browser_args: list[str]) -> Any:
+        """Return a reusable browser, creating one if needed."""
+        if self._browser is not None and self._browser.is_connected():
+            return self._browser
+
+        self._cleanup()
+        self._playwright = sync_playwright().start()
+        self._browser = self._playwright.chromium.launch(args=browser_args)
+        return self._browser
+
+    def _cleanup(self) -> None:
+        if self._browser is not None:
+            try:
+                self._browser.close()
+            except Exception:  # noqa: S110
+                pass
+            self._browser = None
+        if self._playwright is not None:
+            try:
+                self._playwright.stop()
+            except Exception:  # noqa: S110
+                pass
+            self._playwright = None
+
+
+_browser_manager = _PlaywrightBrowserManager()
+atexit.register(_browser_manager._cleanup)
+
+
+def validate_webdriver_config() -> dict[str, Any]:
+    """
+    Validate webdriver configuration and dependencies.
+
+    Used to check migration status from Cypress to Playwright.
+    Returns a dictionary with the status of available webdrivers
+    and feature flags.
+    """
+    from superset import feature_flag_manager
+
+    return {
+        "selenium_available": True,  # Always available as required dependency
+        "playwright_available": PLAYWRIGHT_AVAILABLE,
+        "playwright_feature_enabled": feature_flag_manager.is_feature_enabled(
+            "PLAYWRIGHT_REPORTS_AND_THUMBNAILS"
+        ),
+        "recommended_action": (
+            PLAYWRIGHT_INSTALL_MESSAGE if not PLAYWRIGHT_AVAILABLE else None
+        ),
+    }
 
 
 class DashboardStandaloneMode(Enum):
@@ -72,13 +198,22 @@ class WebDriverProxy(ABC):
     def __init__(self, driver_type: str, window: WindowSize | None = None):
         self._driver_type = driver_type
         self._window: WindowSize = window or (800, 600)
-        self._screenshot_locate_wait = current_app.config["SCREENSHOT_LOCATE_WAIT"]
-        self._screenshot_load_wait = current_app.config["SCREENSHOT_LOAD_WAIT"]
+        self._screenshot_locate_wait = app.config["SCREENSHOT_LOCATE_WAIT"]
+        self._screenshot_load_wait = app.config["SCREENSHOT_LOAD_WAIT"]
 
     @abstractmethod
-    def get_screenshot(self, url: str, element_name: str, user: User) -> bytes | None:
+    def get_screenshot(
+        self,
+        url: str,
+        element_name: str,
+        user: User | None = None,
+        log_context: str | None = None,
+    ) -> bytes | None:
         """
         Run webdriver and return a screenshot
+
+        :param log_context: Optional identifier (e.g. report execution id, or
+            a cache key for thumbnails) included in log lines for tracing.
         """
 
 
@@ -133,42 +268,61 @@ class WebDriverPlaywright(WebDriverProxy):
 
         return error_messages
 
-    def get_screenshot(  # pylint: disable=too-many-locals, too-many-statements
-        self, url: str, element_name: str, user: User
+    @staticmethod
+    def _get_screenshot(page: Page, element: Locator, element_name: str) -> bytes:
+        if element_name == "standalone":
+            return page.screenshot(full_page=True)
+        else:
+            return element.screenshot()
+
+    def get_screenshot(  # pylint: disable=too-many-locals, too-many-statements  # noqa: C901
+        self,
+        url: str,
+        element_name: str,
+        user: User | None = None,
+        log_context: str | None = None,
     ) -> bytes | None:
-        with sync_playwright() as playwright:
-            browser_args = current_app.config["WEBDRIVER_OPTION_ARGS"]
-            browser = playwright.chromium.launch(args=browser_args)
-            pixel_density = current_app.config["WEBDRIVER_WINDOW"].get(
-                "pixel_density", 1
+        if not PLAYWRIGHT_AVAILABLE:
+            logger.info(
+                "Playwright not available - falling back to Selenium. "
+                "Note: WebGL/Canvas charts may not render correctly with Selenium. "
+                "%s",
+                PLAYWRIGHT_INSTALL_MESSAGE,
             )
-            context = browser.new_context(
-                bypass_csp=True,
-                viewport={
-                    "height": self._window[1],
-                    "width": self._window[0],
-                },
-                device_scale_factor=pixel_density,
-            )
-            context.set_default_timeout(
-                current_app.config["SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT"]
-            )
+            return None
+
+        browser_args = app.config["WEBDRIVER_OPTION_ARGS"]
+        browser = _browser_manager.get_browser(browser_args)
+        pixel_density = app.config["WEBDRIVER_WINDOW"].get("pixel_density", 1)
+        viewport_height = self._window[1]
+        viewport_width = self._window[0]
+        context = browser.new_context(
+            bypass_csp=True,
+            viewport={
+                "height": viewport_height,
+                "width": viewport_width,
+            },
+            device_scale_factor=pixel_density,
+        )
+        context.set_default_timeout(app.config["SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT"])
+        if user:
             self.auth(user, context)
-            page = context.new_page()
+        page = context.new_page()
+        img: bytes | None = None
+        try:
             try:
                 page.goto(
                     url,
-                    wait_until=current_app.config["SCREENSHOT_PLAYWRIGHT_WAIT_EVENT"],
+                    wait_until=app.config["SCREENSHOT_PLAYWRIGHT_WAIT_EVENT"],
                 )
             except PlaywrightTimeout:
                 logger.exception(
-                    "Web event %s not detected. Page %s might not have been fully loaded",
-                    current_app.config["SCREENSHOT_PLAYWRIGHT_WAIT_EVENT"],
+                    "Web event %s not detected. Page %s might not have been fully loaded",  # noqa: E501
+                    app.config["SCREENSHOT_PLAYWRIGHT_WAIT_EVENT"],
                     url,
                 )
 
-            img: bytes | None = None
-            selenium_headstart = current_app.config["SCREENSHOT_SELENIUM_HEADSTART"]
+            selenium_headstart = app.config["SCREENSHOT_SELENIUM_HEADSTART"]
             logger.debug("Sleeping for %i seconds", selenium_headstart)
             page.wait_for_timeout(selenium_headstart * 1000)
             element: Locator
@@ -188,7 +342,6 @@ class WebDriverPlaywright(WebDriverProxy):
                     # chart containers didn't render
                     logger.debug("Wait for chart containers to draw at url: %s", url)
                     slice_container_locator = page.locator(".chart-container")
-                    slice_container_locator.first.wait_for()
                     for slice_container_elem in slice_container_locator.all():
                         slice_container_elem.wait_for()
                 except PlaywrightTimeout:
@@ -197,100 +350,394 @@ class WebDriverPlaywright(WebDriverProxy):
                         url,
                     )
                     raise
-                try:
-                    # charts took too long to load
-                    logger.debug(
-                        "Wait for loading element of charts to be gone at url: %s", url
-                    )
-                    for loading_element in page.locator(".loading").all():
-                        loading_element.wait_for(state="detached")
-                except PlaywrightTimeout:
-                    logger.exception(
-                        "Timed out waiting for charts to load at url %s", url
-                    )
-                    raise
-
-                selenium_animation_wait = current_app.config[
+                selenium_animation_wait = app.config[
                     "SCREENSHOT_SELENIUM_ANIMATION_WAIT"
                 ]
-                logger.debug(
-                    "Wait %i seconds for chart animation", selenium_animation_wait
-                )
-                page.wait_for_timeout(selenium_animation_wait * 1000)
-                logger.debug(
-                    "Taking a PNG screenshot of url %s as user %s",
-                    url,
-                    user.username,
-                )
-                if current_app.config["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"]:
+                if app.config["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"]:
                     unexpected_errors = WebDriverPlaywright.find_unexpected_errors(page)
                     if unexpected_errors:
                         logger.warning(
-                            "%i errors found in the screenshot. URL: %s. Errors are: %s",
+                            "%i errors found in the screenshot. URL: %s. Errors are: %s",  # noqa: E501
                             len(unexpected_errors),
                             url,
                             unexpected_errors,
                         )
-                img = element.screenshot()
+                # Detect large dashboards and use tiled screenshots if enabled
+                tiled_enabled = app.config.get("SCREENSHOT_TILED_ENABLED", False)
+
+                if tiled_enabled:
+                    chart_count = page.evaluate(
+                        'document.querySelectorAll(".chart-container").length'
+                    )
+                    dashboard_height = page.evaluate(
+                        f"""() => {{
+                            const target = document.querySelector(\".{element_name}\");
+                            return target ? target.scrollHeight : 0;
+                        }}"""
+                    )
+                    chart_threshold = app.config.get(
+                        "SCREENSHOT_TILED_CHART_THRESHOLD", 20
+                    )
+                    height_threshold = app.config.get(
+                        "SCREENSHOT_TILED_HEIGHT_THRESHOLD", 5000
+                    )
+                    tile_height = app.config.get(
+                        "SCREENSHOT_TILED_VIEWPORT_HEIGHT", viewport_height
+                    )
+
+                    if dashboard_height == 0:
+                        logger.warning(
+                            "Could not determine dashboard height for element %s "
+                            "at url %s; falling back to standard screenshot behavior",
+                            element_name,
+                            url,
+                        )
+
+                    # Use tiled screenshots for large dashboards
+                    use_tiled = (
+                        chart_count >= chart_threshold
+                        or dashboard_height > height_threshold
+                    ) and dashboard_height > tile_height
+
+                    if use_tiled:
+                        logger.info(
+                            "Large dashboard detected: %s charts, %spx height. "
+                            "Using tiled screenshots.",
+                            chart_count,
+                            dashboard_height,
+                        )
+                        # set viewport height to tile height for easier calculations
+                        page.set_viewport_size(
+                            {"height": tile_height, "width": viewport_width}
+                        )
+                        img = take_tiled_screenshot(
+                            page,
+                            element_name,
+                            tile_height,
+                            load_wait=self._screenshot_load_wait,
+                            animation_wait=selenium_animation_wait,
+                            log_context=log_context,
+                        )
+                        if not img:
+                            logger.warning(
+                                (
+                                    "Tiled screenshot failed, "
+                                    "falling back to standard screenshot"
+                                )
+                            )
+                            img = WebDriverPlaywright._get_screenshot(
+                                page, element, element_name
+                            )
+                        logger.debug(
+                            "Tiled screenshot result: %d bytes for url: %s",
+                            len(img) if img else 0,
+                            url,
+                        )
+                    else:
+                        logger.debug(
+                            "Dashboard below tiling threshold "
+                            "(%s charts, %spx height); using standard screenshot "
+                            "for url: %s",
+                            chart_count,
+                            dashboard_height,
+                            url,
+                        )
+                        # Standard screenshot captures the full element including
+                        # below-the-fold content, so wait for all spinners globally.
+                        try:
+                            logger.debug(
+                                "Waiting for all spinners to clear at url: %s "
+                                "(SCREENSHOT_LOAD_WAIT=%ss)",
+                                url,
+                                self._screenshot_load_wait,
+                            )
+                            page.wait_for_function(
+                                "() => document.querySelectorAll("
+                                "'.loading').length === 0",
+                                timeout=self._screenshot_load_wait * 1000,
+                            )
+                        except PlaywrightTimeout:
+                            logger.warning(
+                                "Timed out waiting for charts to load at url %s "
+                                "(SCREENSHOT_LOAD_WAIT=%ss)",
+                                url,
+                                self._screenshot_load_wait,
+                            )
+                            raise
+                        logger.debug("All spinners cleared for url: %s", url)
+                        if selenium_animation_wait > 0:
+                            logger.debug(
+                                "Wait %i seconds for chart animation",
+                                selenium_animation_wait,
+                            )
+                            page.wait_for_timeout(selenium_animation_wait * 1000)
+                        logger.debug(
+                            "Taking screenshot of url %s as user %s",
+                            url,
+                            user.username if user else "None",
+                        )
+                        img = WebDriverPlaywright._get_screenshot(
+                            page, element, element_name
+                        )
+                        logger.debug(
+                            "Screenshot result: %d bytes for url: %s",
+                            len(img) if img else 0,
+                            url,
+                        )
+                else:
+                    logger.debug(
+                        "Tiled screenshots disabled; using standard screenshot "
+                        "for url: %s",
+                        url,
+                    )
+                    # Standard screenshot captures the full element including
+                    # below-the-fold content, so wait for all spinners globally.
+                    try:
+                        logger.debug(
+                            "Waiting for all spinners to clear at url: %s "
+                            "(SCREENSHOT_LOAD_WAIT=%ss)",
+                            url,
+                            self._screenshot_load_wait,
+                        )
+                        page.wait_for_function(
+                            "() => document.querySelectorAll('.loading').length === 0",
+                            timeout=self._screenshot_load_wait * 1000,
+                        )
+                    except PlaywrightTimeout:
+                        logger.warning(
+                            "Timed out waiting for charts to load at url %s "
+                            "(SCREENSHOT_LOAD_WAIT=%ss)",
+                            url,
+                            self._screenshot_load_wait,
+                        )
+                        raise
+                    logger.debug("All spinners cleared for url: %s", url)
+                    if selenium_animation_wait > 0:
+                        logger.debug(
+                            "Wait %i seconds for chart animation",
+                            selenium_animation_wait,
+                        )
+                        page.wait_for_timeout(selenium_animation_wait * 1000)
+                    logger.debug(
+                        "Taking screenshot of url %s as user %s",
+                        url,
+                        user.username if user else "None",
+                    )
+                    img = WebDriverPlaywright._get_screenshot(
+                        page, element, element_name
+                    )
+                    logger.debug(
+                        "Screenshot result: %d bytes for url: %s",
+                        len(img) if img else 0,
+                        url,
+                    )
+
             except PlaywrightTimeout:
-                # raise again for the finally block, but handled above
-                pass
+                raise
             except PlaywrightError:
                 logger.exception(
                     "Encountered an unexpected error when requesting url %s", url
                 )
-            return img
+        finally:
+            context.close()
+        return img
 
 
 class WebDriverSelenium(WebDriverProxy):
+    def __init__(
+        self,
+        driver_type: str,
+        window: WindowSize | None = None,
+        user: User | None = None,
+    ):
+        super().__init__(driver_type, window)
+        self._user = user
+        self._driver: WebDriver | None = None
+
+    def __del__(self) -> None:
+        self._destroy()
+
+    @property
+    def driver(self) -> WebDriver:
+        if not self._driver:
+            self._driver = self._create()
+            if not self._driver:
+                raise RuntimeError("WebDriver creation failed")
+            try:
+                self._driver.set_window_size(*self._window)
+                # Bound driver.get() so an unreachable page raises a
+                # TimeoutException instead of blocking the worker (and the
+                # report schedule) forever.
+                page_load_wait = app.config["SCREENSHOT_PAGE_LOAD_WAIT"]
+                if page_load_wait is not None:
+                    self._driver.set_page_load_timeout(page_load_wait)
+                if self._user:
+                    self._auth(self._user)
+            except Exception:
+                # A failure mid-setup (e.g. the new page-load timeout or auth
+                # raising) would otherwise leave a partially initialized,
+                # unauthenticated driver cached for reuse. Tear it down so the
+                # next access recreates it cleanly.
+                self._destroy()
+                raise
+        return self._driver
+
+    def _create_firefox_driver(
+        self, pixel_density: float
+    ) -> tuple[type[WebDriver], type[Service], dict[str, Any]]:
+        """Create Firefox driver configuration."""
+        options = firefox.options.Options()
+        profile = FirefoxProfile()
+        profile.set_preference("layout.css.devPixelsPerPx", str(pixel_density))
+        options.profile = profile
+        return (
+            firefox.webdriver.WebDriver,
+            firefox.service.Service,
+            {"options": options},
+        )
+
+    def _create_chrome_driver(
+        self, pixel_density: float
+    ) -> tuple[type[WebDriver], type[Service], dict[str, Any]]:
+        """Create Chrome driver configuration."""
+        options = chrome.options.Options()
+        options.add_argument(f"--force-device-scale-factor={pixel_density}")
+        options.add_argument(f"--window-size={self._window[0]},{self._window[1]}")
+        return (
+            chrome.webdriver.WebDriver,
+            chrome.service.Service,
+            {"options": options},
+        )
+
+    def _normalize_timeout_values(self, config: dict[str, Any]) -> dict[str, Any]:
+        """Convert timeout values to float for urllib3 2.x compatibility."""
+        timeout_keys = [
+            "timeout",
+            "connect_timeout",
+            "socket_timeout",
+            "read_timeout",
+            "page_load_timeout",
+            "implicit_wait",
+            "command_executor_timeout",
+            "connection_timeout",
+        ]
+
+        for key, value in config.items():
+            if any(timeout_key in key.lower() for timeout_key in timeout_keys):
+                if value is None or value == "None" or value == "null":
+                    config[key] = None
+                else:
+                    try:
+                        config[key] = float(value)
+                    except (ValueError, TypeError):
+                        config[key] = None
+                        logger.warning(
+                            "Invalid timeout value for %s: %s, setting to None",
+                            key,
+                            value,
+                        )
+        return config
+
     def create(self) -> WebDriver:
-        pixel_density = current_app.config["WEBDRIVER_WINDOW"].get("pixel_density", 1)
+        """Create and return the WebDriver instance.
+
+        This is the public interface for creating the driver. It wraps
+        the internal _create method for backward compatibility.
+        """
+        return self._create()
+
+    def destroy(self) -> None:
+        """Destroy the WebDriver instance.
+
+        This is the public interface for cleanup. It wraps the internal
+        _destroy method and should be called when done with the driver.
+        """
+        self._destroy()
+
+    def _create(self) -> WebDriver:
+        pixel_density = app.config["WEBDRIVER_WINDOW"].get("pixel_density", 1)
+
+        # Get driver class and initial kwargs based on driver type
         if self._driver_type == "firefox":
-            driver_class = firefox.webdriver.WebDriver
-            options = firefox.options.Options()
-            profile = FirefoxProfile()
-            profile.set_preference("layout.css.devPixelsPerPx", str(pixel_density))
-            kwargs: dict[Any, Any] = {"options": options, "firefox_profile": profile}
+            driver_class, service_class, kwargs = self._create_firefox_driver(
+                pixel_density
+            )
         elif self._driver_type == "chrome":
-            driver_class = chrome.webdriver.WebDriver
-            options = chrome.options.Options()
-            options.add_argument(f"--force-device-scale-factor={pixel_density}")
-            options.add_argument(f"--window-size={self._window[0]},{self._window[1]}")
-            kwargs = {"options": options}
+            driver_class, service_class, kwargs = self._create_chrome_driver(
+                pixel_density
+            )
         else:
             raise Exception(  # pylint: disable=broad-exception-raised
                 f"Webdriver name ({self._driver_type}) not supported"
             )
-        # Prepare args for the webdriver init
 
-        # Add additional configured options
-        for arg in current_app.config["WEBDRIVER_OPTION_ARGS"]:
+        # Add additional arguments from config
+        options = kwargs["options"]
+        for arg in list(app.config["WEBDRIVER_OPTION_ARGS"]):
             options.add_argument(arg)
 
-        kwargs.update(current_app.config["WEBDRIVER_CONFIGURATION"])
-        logger.debug("Init selenium driver")
+        # Fix timeout values for urllib3 2.x compatibility
+        webdriver_config = app.config["WEBDRIVER_CONFIGURATION"].copy()
+        webdriver_config = self._normalize_timeout_values(webdriver_config)
+        kwargs.update(webdriver_config)
 
+        # Set the binary location if provided
+        # We need to pop it from the dict due to selenium_version < 4.10.0
+        options.binary_location = webdriver_config.pop("binary_location", "")
+
+        if version.parse(selenium_version) < version.parse("4.10.0"):
+            kwargs |= webdriver_config
+        else:
+            driver_opts = dict(
+                webdriver_config.get("options", {"capabilities": {}, "preferences": {}})
+            )
+            driver_srv = dict(
+                webdriver_config.get(
+                    "service",
+                    {
+                        "log_output": "/dev/null",
+                        "service_args": [],
+                        "port": 0,
+                        "env": {},
+                    },
+                )
+            )
+            for name, value in driver_opts.get("capabilities", {}).items():
+                options.set_capability(name, value)
+            if hasattr(options, "profile"):
+                for name, value in driver_opts.get("preferences", {}).items():
+                    options.profile.set_preference(str(name), value)
+            kwargs |= {
+                "options": options,
+                "service": service_class(**driver_srv),
+            }
+
+        logger.debug("Init selenium driver")
         return driver_class(**kwargs)
 
-    def auth(self, user: User) -> WebDriver:
-        driver = self.create()
-        return machine_auth_provider_factory.instance.authenticate_webdriver(
-            driver, user
+    def _auth(self, user: User) -> None:
+        """Authenticate the persistent driver in-place."""
+        if self._driver is None:
+            raise RuntimeError("WebDriver is not initialized")
+        machine_auth_provider_factory.instance.authenticate_webdriver(
+            self._driver, user
         )
 
-    @staticmethod
-    def destroy(driver: WebDriver, tries: int = 2) -> None:
-        """Destroy a driver"""
+    def _destroy(self, tries: int = 2) -> None:
+        """Destroy the persistent driver"""
+        if not self._driver:
+            return
         # This is some very flaky code in selenium. Hence the retries
         # and catch-all exceptions
         try:
-            retry_call(driver.close, max_tries=tries)
-        except Exception:  # pylint: disable=broad-except
+            retry_call(self._driver.close, max_tries=tries)
+        except Exception:  # pylint: disable=broad-except  # noqa: S110
             pass
         try:
-            driver.quit()
-        except Exception:  # pylint: disable=broad-except
+            self._driver.quit()
+        except Exception:  # pylint: disable=broad-except  # noqa: S110
             pass
+        self._driver = None
 
     @staticmethod
     def find_unexpected_errors(driver: WebDriver) -> list[str]:
@@ -309,7 +756,7 @@ class WebDriverSelenium(WebDriverProxy):
                 # wait for modal to show up
                 modal = WebDriverWait(
                     driver,
-                    current_app.config["SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE"],
+                    app.config["SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE"],
                 ).until(
                     EC.visibility_of_any_elements_located(
                         (By.CLASS_NAME, "ant-modal-content")
@@ -327,7 +774,7 @@ class WebDriverSelenium(WebDriverProxy):
                 # wait until the modal becomes invisible
                 WebDriverWait(
                     driver,
-                    current_app.config["SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE"],
+                    app.config["SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE"],
                 ).until(EC.invisibility_of_element(modal))
 
                 # Use HTML so that error messages are shown in the same style (color)
@@ -348,15 +795,30 @@ class WebDriverSelenium(WebDriverProxy):
 
         return error_messages
 
-    def get_screenshot(self, url: str, element_name: str, user: User) -> bytes | None:
-        driver = self.auth(user)
-        driver.set_window_size(*self._window)
+    def get_screenshot(  # noqa: C901
+        self,
+        url: str,
+        element_name: str,
+        user: User | None = None,
+        log_context: str | None = None,
+    ) -> bytes | None:
+        # If a user is passed explicitly and differs from the stored user,
+        # update and re-authenticate
+        if user and user != self._user:
+            self._user = user
+            if self._driver:
+                self._destroy()
+        driver = self.driver
         driver.get(url)
         img: bytes | None = None
-        selenium_headstart = current_app.config["SCREENSHOT_SELENIUM_HEADSTART"]
+        selenium_headstart = app.config["SCREENSHOT_SELENIUM_HEADSTART"]
         logger.debug("Sleeping for %i seconds", selenium_headstart)
         sleep(selenium_headstart)
 
+        # WebDriver cleanup is intentionally not performed in this method. When the
+        # driver is used persistently (e.g., cache warmup), cleanup is handled
+        # externally via destroy(). When used for one-off screenshots, the caller or
+        # __del__ handles cleanup.
         try:
             try:
                 # page didn't load
@@ -367,7 +829,9 @@ class WebDriverSelenium(WebDriverProxy):
                     EC.presence_of_element_located((By.CLASS_NAME, element_name))
                 )
             except TimeoutException:
-                logger.exception("Selenium timed out requesting url %s", url)
+                logger.warning(
+                    "Selenium timed out requesting url %s", url, exc_info=True
+                )
                 raise
 
             try:
@@ -379,11 +843,21 @@ class WebDriverSelenium(WebDriverProxy):
                     )
                 )
             except TimeoutException:
-                logger.exception(
-                    "Selenium timed out waiting for chart containers to draw at url %s",
-                    url,
-                )
-                raise
+                logger.info("Timeout Exception caught")
+                # Fallback to allow a screenshot of an empty dashboard
+                try:
+                    WebDriverWait(driver, 0).until(
+                        EC.visibility_of_all_elements_located(
+                            (By.CLASS_NAME, "grid-container")
+                        )
+                    )
+                except Exception:
+                    logger.warning(
+                        "Selenium timed out waiting for dashboard to draw at url %s",
+                        url,
+                        exc_info=True,
+                    )
+                    raise
 
             try:
                 # charts took too long to load
@@ -394,23 +868,23 @@ class WebDriverSelenium(WebDriverProxy):
                     EC.presence_of_all_elements_located((By.CLASS_NAME, "loading"))
                 )
             except TimeoutException:
-                logger.exception(
-                    "Selenium timed out waiting for charts to load at url %s", url
+                logger.warning(
+                    "Selenium timed out waiting for charts to load at url %s",
+                    url,
+                    exc_info=True,
                 )
                 raise
 
-            selenium_animation_wait = current_app.config[
-                "SCREENSHOT_SELENIUM_ANIMATION_WAIT"
-            ]
+            selenium_animation_wait = app.config["SCREENSHOT_SELENIUM_ANIMATION_WAIT"]
             logger.debug("Wait %i seconds for chart animation", selenium_animation_wait)
             sleep(selenium_animation_wait)
             logger.debug(
                 "Taking a PNG screenshot of url %s as user %s",
                 url,
-                user.username,
+                self._user.username if self._user else "None",
             )
 
-            if current_app.config["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"]:
+            if app.config["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"]:
                 unexpected_errors = WebDriverSelenium.find_unexpected_errors(driver)
                 if unexpected_errors:
                     logger.warning(
@@ -422,17 +896,23 @@ class WebDriverSelenium(WebDriverProxy):
 
             img = element.screenshot_as_png
         except TimeoutException:
-            # raise again for the finally block, but handled above
-            pass
+            # Already logged at WARNING in the inner handlers above
+            raise
         except StaleElementReferenceException:
-            logger.exception(
+            logger.warning(
                 "Selenium got a stale element while requesting url %s",
                 url,
+                exc_info=True,
             )
+            raise
         except WebDriverException:
-            logger.exception(
-                "Encountered an unexpected error when requesting url %s", url
+            logger.warning(
+                "Encountered an unexpected error when requesting url %s",
+                url,
+                exc_info=True,
             )
-        finally:
-            self.destroy(driver, current_app.config["SCREENSHOT_SELENIUM_RETRIES"])
+            raise
+        except Exception as ex:
+            logger.warning("exception in webdriver", exc_info=ex)
+            raise
         return img

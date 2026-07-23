@@ -27,8 +27,7 @@ from uuid import uuid4
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import load_only
+from sqlalchemy.orm import declarative_base, load_only
 from sqlalchemy_utils import UUIDType
 
 from superset import db
@@ -111,7 +110,7 @@ def update_dashboards(session, uuid_map):
         update_position_json(dashboard, session, uuid_map)
         if i and i % default_batch_size == 0:
             session.commit()
-        print(f"{message} {i+1}/{dashboard_count}\r", end="")
+        print(f"{message} {i + 1}/{dashboard_count}\r", end="")
 
     session.commit()
     # Extra whitespace to override very long numbers, e.g. 99999/99999.

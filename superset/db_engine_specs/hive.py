@@ -29,9 +29,9 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
-from flask import current_app, g
+from flask import current_app as app, g
 from sqlalchemy import Column, text, types
-from sqlalchemy.engine.base import Engine
+from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.expression import ColumnClause, Select
@@ -39,18 +39,15 @@ from sqlalchemy.sql.expression import ColumnClause, Select
 from superset import db
 from superset.common.db_query_status import QueryStatus
 from superset.constants import TimeGrain
-from superset.databases.utils import make_url_safe
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.exceptions import SupersetException
 from superset.extensions import cache_manager
 from superset.models.sql_lab import Query
-from superset.sql_parse import ParsedQuery, Table
+from superset.sql.parse import Table
 from superset.superset_typing import ResultSetColumnType
 
 if TYPE_CHECKING:
-    # prevent circular imports
-
     from superset.models.core import Database
 
 logger = logging.getLogger(__name__)
@@ -66,11 +63,10 @@ def upload_to_s3(filename: str, upload_prefix: str, table: Table) -> str:
     :returns: The S3 location of the table
     """
 
-    # pylint: disable=import-outside-toplevel
-    import boto3
-    from boto3.s3.transfer import TransferConfig
+    import boto3  # pylint: disable=all
+    from boto3.s3.transfer import TransferConfig  # pylint: disable=all
 
-    bucket_path = current_app.config["CSV_TO_HIVE_UPLOAD_S3_BUCKET"]
+    bucket_path = app.config["CSV_TO_HIVE_UPLOAD_S3_BUCKET"]
 
     if not bucket_path:
         logger.info("No upload bucket specified")
@@ -79,12 +75,6 @@ def upload_to_s3(filename: str, upload_prefix: str, table: Table) -> str:
         )
 
     s3 = boto3.client("s3")
-
-    # The location is merely an S3 prefix and thus we first need to ensure that there is
-    # one and only one key associated with the table.
-    bucket = s3.Bucket(bucket_path)
-    bucket.objects.filter(Prefix=os.path.join(upload_prefix, table.table)).delete()
-
     location = os.path.join("s3a://", bucket_path, upload_prefix, table.table)
     s3.upload_file(
         filename,
@@ -105,6 +95,28 @@ class HiveEngineSpec(PrestoEngineSpec):
     allows_hidden_orderby_agg = False
 
     supports_dynamic_schema = True
+    supports_cross_catalog_queries = False
+    # Explicitly opt out (overriding the inherited PrestoEngineSpec value):
+    # Hive/Spark's GROUPING SETS + GROUPING() marker semantics have not been
+    # verified against this query pattern, so fall back to one query per
+    # rollup level instead of assuming native support.
+    supports_grouping_sets: bool = False
+
+    metadata = {
+        "description": (
+            "Apache Hive is a data warehouse infrastructure built on Hadoop."
+        ),
+        "logo": "apache-hive.svg",
+        "homepage_url": "https://hive.apache.org/",
+        "categories": [
+            DatabaseCategory.APACHE_PROJECTS,
+            DatabaseCategory.QUERY_ENGINES,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
+        "pypi_packages": ["pyhive"],
+        "connection_string": "hive://hive@{hostname}:{port}/{database}",
+        "default_port": 10000,
+    }
 
     # When running `SHOW FUNCTIONS`, what is the name of the column with the
     # function names?
@@ -117,12 +129,12 @@ class HiveEngineSpec(PrestoEngineSpec):
         TimeGrain.MINUTE: "from_unixtime(unix_timestamp({col}), 'yyyy-MM-dd HH:mm:00')",
         TimeGrain.HOUR: "from_unixtime(unix_timestamp({col}), 'yyyy-MM-dd HH:00:00')",
         TimeGrain.DAY: "from_unixtime(unix_timestamp({col}), 'yyyy-MM-dd 00:00:00')",
-        TimeGrain.WEEK: "date_format(date_sub({col}, CAST(7-from_unixtime(unix_timestamp({col}),'u') as int)), 'yyyy-MM-dd 00:00:00')",
+        TimeGrain.WEEK: "date_format(date_sub({col}, CAST(7-from_unixtime(unix_timestamp({col}),'u') as int)), 'yyyy-MM-dd 00:00:00')",  # noqa: E501
         TimeGrain.MONTH: "from_unixtime(unix_timestamp({col}), 'yyyy-MM-01 00:00:00')",
-        TimeGrain.QUARTER: "date_format(add_months(trunc({col}, 'MM'), -(month({col})-1)%3), 'yyyy-MM-dd 00:00:00')",
+        TimeGrain.QUARTER: "date_format(add_months(trunc({col}, 'MM'), -(month({col})-1)%3), 'yyyy-MM-dd 00:00:00')",  # noqa: E501
         TimeGrain.YEAR: "from_unixtime(unix_timestamp({col}), 'yyyy-01-01 00:00:00')",
-        TimeGrain.WEEK_ENDING_SATURDAY: "date_format(date_add({col}, INT(6-from_unixtime(unix_timestamp({col}), 'u'))), 'yyyy-MM-dd 00:00:00')",
-        TimeGrain.WEEK_STARTING_SUNDAY: "date_format(date_add({col}, -INT(from_unixtime(unix_timestamp({col}), 'u'))), 'yyyy-MM-dd 00:00:00')",
+        TimeGrain.WEEK_ENDING_SATURDAY: "date_format(date_add({col}, INT(6-from_unixtime(unix_timestamp({col}), 'u'))), 'yyyy-MM-dd 00:00:00')",  # noqa: E501
+        TimeGrain.WEEK_STARTING_SUNDAY: "date_format(date_add({col}, -INT(from_unixtime(unix_timestamp({col}), 'u'))), 'yyyy-MM-dd 00:00:00')",  # noqa: E501
     }
 
     # Scoping regex at class level to avoid recompiling
@@ -199,13 +211,24 @@ class HiveEngineSpec(PrestoEngineSpec):
 
         if to_sql_kwargs["if_exists"] == "fail":
             # Ensure table doesn't already exist.
+            escaped_table = (
+                table.table.replace("\\", "\\\\")
+                .replace("'", "\\'")
+                .replace("%", "\\%")
+                .replace("_", "\\_")
+            )
+            # Hive LIKE uses backslash as the escape character. Python needs \\\\
+            # to produce the two-character SQL literal \\ (a single backslash).
+            escape_clause = " ESCAPE '\\\\'"
             if table.schema:
+                escaped_schema = table.schema.replace("`", "``")
                 table_exists = not database.get_df(
-                    f"SHOW TABLES IN {table.schema} LIKE '{table.table}'"
+                    f"SHOW TABLES IN `{escaped_schema}`"
+                    f" LIKE '{escaped_table}'{escape_clause}"
                 ).empty
             else:
                 table_exists = not database.get_df(
-                    f"SHOW TABLES LIKE '{table.table}'"
+                    f"SHOW TABLES LIKE '{escaped_table}'{escape_clause}"
                 ).empty
 
             if table_exists:
@@ -216,7 +239,8 @@ class HiveEngineSpec(PrestoEngineSpec):
                 catalog=table.catalog,
                 schema=table.schema,
             ) as engine:
-                engine.execute(f"DROP TABLE IF EXISTS {str(table)}")
+                with engine.begin() as conn:
+                    conn.execute(text(f"DROP TABLE IF EXISTS {str(table)}"))
 
         def _get_hive_type(dtype: np.dtype[Any]) -> str:
             hive_type_by_dtype = {
@@ -233,7 +257,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         )
 
         with tempfile.NamedTemporaryFile(
-            dir=current_app.config["UPLOAD_FOLDER"], suffix=".parquet"
+            dir=app.config["UPLOAD_FOLDER"], suffix=".parquet"
         ) as file:
             pq.write_table(pa.Table.from_pandas(df), where=file.name)
 
@@ -242,22 +266,25 @@ class HiveEngineSpec(PrestoEngineSpec):
                 catalog=table.catalog,
                 schema=table.schema,
             ) as engine:
-                engine.execute(
-                    text(
-                        f"""
-                        CREATE TABLE {str(table)} ({schema_definition})
-                        STORED AS PARQUET
-                        LOCATION :location
-                        """
-                    ),
-                    location=upload_to_s3(
-                        filename=file.name,
-                        upload_prefix=current_app.config[
-                            "CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"
-                        ](database, g.user, table.schema),
-                        table=table,
-                    ),
-                )
+                with engine.begin() as conn:
+                    conn.execute(
+                        text(
+                            f"""
+                            CREATE TABLE {str(table)} ({schema_definition})
+                            STORED AS PARQUET
+                            LOCATION :location
+                            """
+                        ),
+                        {
+                            "location": upload_to_s3(
+                                filename=file.name,
+                                upload_prefix=app.config[
+                                    "CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"
+                                ](database, g.user, table.schema),
+                                table=table,
+                            ),
+                        },
+                    )
 
     @classmethod
     def convert_dttm(
@@ -268,8 +295,9 @@ class HiveEngineSpec(PrestoEngineSpec):
         if isinstance(sqla_type, types.Date):
             return f"CAST('{dttm.date().isoformat()}' AS DATE)"
         if isinstance(sqla_type, types.TIMESTAMP):
-            return f"""CAST('{dttm
-                .isoformat(sep=" ", timespec="microseconds")}' AS TIMESTAMP)"""
+            return f"""CAST('{
+                dttm.isoformat(sep=" ", timespec="microseconds")
+            }' AS TIMESTAMP)"""
         return None
 
     @classmethod
@@ -345,7 +373,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         return None
 
     @classmethod
-    def handle_cursor(  # pylint: disable=too-many-locals
+    def handle_cursor(  # pylint: disable=too-many-locals  # noqa: C901
         cls, cursor: Any, query: Query
     ) -> None:
         """Updates progress information"""
@@ -409,12 +437,13 @@ class HiveEngineSpec(PrestoEngineSpec):
                     last_log_line = len(log_lines)
                 if needs_commit:
                     db.session.commit()  # pylint: disable=consider-using-transaction
-            if sleep_interval := current_app.config.get("HIVE_POLL_INTERVAL"):
+            if sleep_interval := app.config.get("HIVE_POLL_INTERVAL"):
                 logger.warning(
-                    "HIVE_POLL_INTERVAL is deprecated and will be removed in 3.0. Please use DB_POLL_INTERVAL_SECONDS instead"
+                    "HIVE_POLL_INTERVAL is deprecated and will be removed in 3.0. "
+                    "Please use DB_POLL_INTERVAL_SECONDS instead"
                 )
             else:
-                sleep_interval = current_app.config["DB_POLL_INTERVAL_SECONDS"].get(
+                sleep_interval = app.config["DB_POLL_INTERVAL_SECONDS"].get(
                     cls.engine, 5
                 )
             time.sleep(sleep_interval)
@@ -447,7 +476,7 @@ class HiveEngineSpec(PrestoEngineSpec):
             # table is not partitioned
             return None
         if values is not None and columns is not None:
-            for col_name, value in zip(col_names, values):
+            for col_name, value in zip(col_names, values, strict=False):
                 for clm in columns:
                     if clm.get("name") == col_name:
                         query = query.where(Column(col_name) == value)
@@ -480,7 +509,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         return None
 
     @classmethod
-    def _partition_query(  # pylint: disable=too-many-arguments
+    def _partition_query(  # pylint: disable=all
         cls,
         table: Table,
         indexes: list[dict[str, Any]],
@@ -489,27 +518,33 @@ class HiveEngineSpec(PrestoEngineSpec):
         order_by: list[tuple[str, bool]] | None = None,
         filters: dict[Any, Any] | None = None,
     ) -> str:
-        full_table_name = (
-            f"{table.schema}.{table.table}" if table.schema else table.table
-        )
+        escaped_table = table.table.replace("`", "``")
+        if table.schema:
+            escaped_schema = table.schema.replace("`", "``")
+            full_table_name = f"`{escaped_schema}`.`{escaped_table}`"
+        else:
+            full_table_name = f"`{escaped_table}`"
         return f"SHOW PARTITIONS {full_table_name}"
 
     @classmethod
-    def select_star(  # pylint: disable=too-many-arguments
+    def select_star(  # pylint: disable=all
         cls,
         database: Database,
         table: Table,
-        engine: Engine,
+        dialect: Dialect,
         limit: int = 100,
         show_cols: bool = False,
         indent: bool = True,
         latest_partition: bool = True,
         cols: list[ResultSetColumnType] | None = None,
     ) -> str:
+        # remove catalog from table name if it exists
+        table = Table(table.table, table.schema, None)
+
         return super(PrestoEngineSpec, cls).select_star(
             database,
             table,
-            engine,
+            dialect,
             limit,
             show_cols,
             indent,
@@ -518,51 +553,25 @@ class HiveEngineSpec(PrestoEngineSpec):
         )
 
     @classmethod
-    def get_url_for_impersonation(
+    def impersonate_user(
         cls,
+        database: Database,
+        username: str | None,
+        user_token: str | None,
         url: URL,
-        impersonate_user: bool,
-        username: str | None,
-        access_token: str | None,
-    ) -> URL:
-        """
-        Return a modified URL with the username set.
+        engine_kwargs: dict[str, Any],
+    ) -> tuple[URL, dict[str, Any]]:
+        if username is None:
+            return url, engine_kwargs
 
-        :param url: SQLAlchemy URL object
-        :param impersonate_user: Flag indicating if impersonation is enabled
-        :param username: Effective username
-        """
-        # Do nothing in the URL object since instead this should modify
-        # the configuration dictionary. See get_configuration_for_impersonation
-        return url
-
-    @classmethod
-    def update_impersonation_config(
-        cls,
-        connect_args: dict[str, Any],
-        uri: str,
-        username: str | None,
-        access_token: str | None,
-    ) -> None:
-        """
-        Update a configuration dictionary
-        that can set the correct properties for impersonating users
-        :param connect_args:
-        :param uri: URI string
-        :param impersonate_user: Flag indicating if impersonation is enabled
-        :param username: Effective username
-        :return: None
-        """
-        url = make_url_safe(uri)
         backend_name = url.get_backend_name()
-
-        # Must be Hive connection, enable impersonation, and set optional param
-        # auth=LDAP|KERBEROS
-        # this will set hive.server2.proxy.user=$effective_username on connect_args['configuration']
-        if backend_name == "hive" and username is not None:
+        connect_args = engine_kwargs.setdefault("connect_args", {})
+        if backend_name == "hive":
             configuration = connect_args.get("configuration", {})
             configuration["hive.server2.proxy.user"] = username
             connect_args["configuration"] = configuration
+
+        return url, engine_kwargs
 
     @staticmethod
     def execute(  # type: ignore
@@ -604,15 +613,6 @@ class HiveEngineSpec(PrestoEngineSpec):
         return []
 
     @classmethod
-    def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
-        """Pessimistic readonly, 100% sure statement won't mutate anything"""
-        return (
-            super().is_readonly_query(parsed_query)
-            or parsed_query.is_set()
-            or parsed_query.is_show()
-        )
-
-    @classmethod
     def has_implicit_cancel(cls) -> bool:
         """
         Return True if the live cursor handles the implicit cancelation of the query,
@@ -651,7 +651,8 @@ class HiveEngineSpec(PrestoEngineSpec):
         sql = "SHOW VIEWS"
 
         if schema:
-            sql += f" IN `{schema}`"
+            escaped_schema = schema.replace("`", "``")
+            sql += f" IN `{escaped_schema}`"
 
         with database.get_raw_connection(schema=schema) as conn:
             cursor = conn.cursor()

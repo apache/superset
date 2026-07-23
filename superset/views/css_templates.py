@@ -15,18 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 from flask_appbuilder.api import expose
-from flask_appbuilder.baseviews import expose_api
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_appbuilder.security.decorators import (
-    has_access,
-    has_access_api,
-    permission_name,
-)
+from flask_appbuilder.security.decorators import has_access
 
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.models import core as models
 from superset.superset_typing import FlaskResponse
-from superset.views.base import DeleteMixin, deprecated, SupersetModelView
+from superset.views.base import DeleteMixin, SupersetModelView
 
 
 class CssTemplateModelView(  # pylint: disable=too-many-ancestors
@@ -43,20 +38,3 @@ class CssTemplateModelView(  # pylint: disable=too-many-ancestors
     @has_access
     def list(self) -> FlaskResponse:
         return super().render_app_template()
-
-
-class CssTemplateAsyncModelView(  # pylint: disable=too-many-ancestors
-    CssTemplateModelView
-):
-    include_route_methods = RouteMethod.API_READ
-    class_permission_name = "CssTemplate"
-    method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
-
-    list_columns = ["template_name", "css"]
-
-    @expose_api(name="read", url="/api/read", methods=["GET"])
-    @has_access_api
-    @permission_name("list")
-    @deprecated(eol_version="5.0.0")
-    def api_read(self) -> FlaskResponse:
-        return super().api_read()

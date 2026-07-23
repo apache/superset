@@ -14,42 +14,43 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=consider-using-transaction
 from __future__ import annotations
 
 import contextlib
 import logging
+import math
 import threading
 import time
-from tempfile import NamedTemporaryFile
+from collections.abc import Sequence
 from typing import Any, TYPE_CHECKING
 
-import numpy as np
-import pandas as pd
-import pyarrow as pa
-from flask import current_app, Flask, g
-from sqlalchemy import text
+import requests
+from flask import copy_current_request_context, ctx, current_app as app, Flask, g
+from flask_babel import gettext as __
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchTableError
 
-from superset import db
-from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY, USER_AGENT
-from superset.databases.utils import make_url_safe
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset import cache_manager, db
+from superset.common.db_query_status import QueryStatus
+from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    convert_inspector_columns,
+    DatabaseCategory,
+)
 from superset.db_engine_specs.exceptions import (
     SupersetDBAPIConnectionError,
     SupersetDBAPIDatabaseError,
     SupersetDBAPIOperationalError,
     SupersetDBAPIProgrammingError,
 )
-from superset.db_engine_specs.hive import upload_to_s3
 from superset.db_engine_specs.presto import PrestoBaseEngineSpec
-from superset.exceptions import SupersetException
 from superset.models.sql_lab import Query
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.superset_typing import ResultSetColumnType
-from superset.utils import core as utils, json
+from superset.utils import json
+from superset.utils.core import create_ssl_cert_file, get_user_agent, QuerySource
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -59,11 +60,156 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+try:
+    # since trino is an optional dependency, we need to handle the ImportError
+    from trino.exceptions import HttpError
+except ImportError:
+    HttpError = Exception
+
 
 class TrinoEngineSpec(PrestoBaseEngineSpec):
     engine = "trino"
     engine_name = "Trino"
     allows_alias_to_source_column = False
+    supports_grouping_sets = True
+
+    # The full set of columns Trino's "<table>$partitions" exposes for an
+    # Iceberg table. The real partition keys are nested in the "partition" ROW,
+    # so none of these are user partition columns.
+    iceberg_partitions_metadata_columns = frozenset(
+        {"partition", "record_count", "file_count", "total_size", "data"}
+    )
+    # Always present for Iceberg; used as the positive signal so we don't act on
+    # a table that merely happens to share one of the names above.
+    iceberg_partitions_signature_columns = frozenset(
+        {"record_count", "file_count", "total_size"}
+    )
+
+    metadata = {
+        "description": (
+            "Trino is a distributed SQL query engine for big data analytics."
+        ),
+        "logo": "trino.png",
+        "homepage_url": "https://trino.io/",
+        "categories": [DatabaseCategory.QUERY_ENGINES, DatabaseCategory.OPEN_SOURCE],
+        "pypi_packages": ["trino"],
+        "install_instructions": 'pip install "apache-superset[trino]"',
+        "connection_string": "trino://{username}:{password}@{hostname}:{port}/{catalog}",
+        "default_port": 8080,
+        "parameters": {
+            "username": "Trino username",
+            "password": "Trino password (if authentication is enabled)",
+            "hostname": "Trino coordinator hostname",
+            "port": "Trino coordinator port (default 8080)",
+            "catalog": "Catalog name",
+        },
+        "drivers": [
+            {
+                "name": "trino",
+                "pypi_package": "trino",
+                "connection_string": (
+                    "trino://{username}:{password}@{hostname}:{port}/{catalog}"
+                ),
+                "is_recommended": True,
+            },
+        ],
+        "compatible_databases": [
+            {
+                "name": "Starburst Galaxy",
+                "description": (
+                    "Starburst Galaxy is a fully-managed cloud analytics platform "
+                    "built on Trino. It provides data lake analytics with "
+                    "enterprise security and governance."
+                ),
+                "logo": "starburst.png",
+                "homepage_url": "https://www.starburst.io/platform/starburst-galaxy/",
+                "categories": [
+                    DatabaseCategory.QUERY_ENGINES,
+                    DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+                "pypi_packages": ["trino"],
+                "connection_string": (
+                    "trino://{username}:{password}@{host}:{port}/{catalog}"
+                ),
+                "parameters": {
+                    "username": "Starburst Galaxy username (email/role)",
+                    "password": "Starburst Galaxy password or token",
+                    "host": "Your Galaxy cluster hostname",
+                    "port": "Port (default 443)",
+                    "catalog": "Catalog name",
+                },
+                "docs_url": "https://docs.starburst.io/starburst-galaxy/",
+            },
+            {
+                "name": "Starburst Enterprise",
+                "description": (
+                    "Starburst Enterprise is a self-managed Trino distribution "
+                    "with enterprise features, security, and support."
+                ),
+                "logo": "starburst.png",
+                "homepage_url": "https://www.starburst.io/platform/starburst-enterprise/",
+                "categories": [
+                    DatabaseCategory.QUERY_ENGINES,
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+                "pypi_packages": ["trino"],
+                "connection_string": (
+                    "trino://{username}:{password}@{hostname}:{port}/{catalog}"
+                ),
+                "docs_url": "https://docs.starburst.io/",
+            },
+        ],
+    }
+
+    # OAuth 2.0
+    supports_oauth2 = True
+    oauth2_token_request_type = "data"  # noqa: S105
+
+    @classmethod
+    def needs_oauth2(cls, ex: Exception) -> bool:
+        """
+        Check if the exception indicates that OAuth2 authentication is required.
+
+        Trino returns an HTTP 401 error when the access token is missing or expired.
+        """
+        return (
+            bool(g)
+            and hasattr(g, "user")
+            and isinstance(ex, HttpError)
+            and "error 401" in str(ex)
+        )
+
+    @classmethod
+    def _filter_iceberg_partition_indexes(
+        cls,
+        indexes: list[dict[str, Any]] | None,
+    ) -> list[dict[str, Any]]:
+        """
+        Drop Iceberg "$partitions" metadata indexes.
+
+        A partition index is recognized as Iceberg metadata only when it carries
+        the signature columns *and* every one of its columns is a known metadata
+        field. Requiring the latter means an index with any real partition key
+        (e.g. a Hive table partitioned on "ds" that also has a column named
+        "record_count") is left untouched. Such an index has no real partition
+        keys, so it's dropped entirely; all other indexes pass through unchanged.
+
+        :param indexes: the indexes associated with a table
+        :returns: the indexes with Iceberg metadata indexes removed
+        """
+        filtered_indexes = []
+        for index in indexes or []:
+            column_names = set(index.get("column_names") or [])
+            is_iceberg_metadata = (
+                index.get("name") == "partition"
+                and cls.iceberg_partitions_signature_columns <= column_names
+                and column_names <= cls.iceberg_partitions_metadata_columns
+            )
+            if not is_iceberg_metadata:
+                filtered_indexes.append(index)
+
+        return filtered_indexes
 
     @classmethod
     def get_extra_table_metadata(
@@ -73,7 +219,9 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     ) -> dict[str, Any]:
         metadata = {}
 
-        if indexes := database.get_indexes(table):
+        if indexes := cls._filter_iceberg_partition_indexes(
+            database.get_indexes(table)
+        ):
             col_names, latest_parts = cls.latest_partition(
                 database,
                 table,
@@ -81,11 +229,14 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                 indexes=indexes,
             )
 
-            if not latest_parts:
-                latest_parts = tuple([None] * len(col_names))
+            partition_values: Sequence[str | None]
+            if latest_parts:
+                partition_values = latest_parts
+            else:
+                partition_values = [None] * len(col_names)
 
             metadata["partitions"] = {
-                "cols": sorted(
+                "cols": sorted(  # noqa: C414
                     list(
                         {
                             column_name
@@ -95,7 +246,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                         }
                     )
                 ),
-                "latest": dict(zip(col_names, latest_parts)),
+                "latest": dict(zip(col_names, partition_values, strict=False)),
                 "partitionQuery": cls._partition_query(
                     table=table,
                     indexes=indexes,
@@ -116,48 +267,27 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         return metadata
 
     @classmethod
-    def update_impersonation_config(
+    def impersonate_user(
         cls,
-        connect_args: dict[str, Any],
-        uri: str,
+        database: Database,
         username: str | None,
-        access_token: str | None,
-    ) -> None:
-        """
-        Update a configuration dictionary
-        that can set the correct properties for impersonating users
-        :param connect_args: config to be updated
-        :param uri: URI string
-        :param username: Effective username
-        :param access_token: Personal access token for OAuth2
-        :return: None
-        """
-        url = make_url_safe(uri)
-        backend_name = url.get_backend_name()
-
-        # Must be Trino connection, enable impersonation, and set optional param
-        # auth=LDAP|KERBEROS
-        # Set principal_username=$effective_username
-        if backend_name == "trino" and username is not None:
-            connect_args["user"] = username
-
-    @classmethod
-    def get_url_for_impersonation(
-        cls,
+        user_token: str | None,
         url: URL,
-        impersonate_user: bool,
-        username: str | None,
-        access_token: str | None,
-    ) -> URL:
-        """
-        Return a modified URL with the username set.
+        engine_kwargs: dict[str, Any],
+    ) -> tuple[URL, dict[str, Any]]:
+        if username is None:
+            return url, engine_kwargs
 
-        :param url: SQLAlchemy URL object
-        :param impersonate_user: Flag indicating if impersonation is enabled
-        :param username: Effective username
-        """
-        # Do nothing and let update_impersonation_config take care of impersonation
-        return url
+        backend_name = url.get_backend_name()
+        connect_args = engine_kwargs.setdefault("connect_args", {})
+        if backend_name == "trino":
+            connect_args["user"] = username
+            if user_token is not None:
+                http_session = requests.Session()
+                http_session.headers.update({"Authorization": f"Bearer {user_token}"})
+                connect_args["http_session"] = http_session
+
+        return url, engine_kwargs
 
     @classmethod
     def get_allow_cost_estimate(cls, extra: dict[str, Any]) -> bool:
@@ -184,6 +314,9 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         `execute_with_cursor` instead, to handle this asynchronously.
         """
 
+        execute_result = getattr(cursor, "_execute_result", None)
+        execute_event = getattr(cursor, "_execute_event", None)
+
         # Adds the executed query id to the extra payload so the query can be cancelled
         cancel_query_id = cursor.query_id
         logger.debug("Query %d: queryId %s found in cursor", query.id, cancel_query_id)
@@ -192,18 +325,63 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         if tracking_url := cls.get_tracking_url(cursor):
             query.tracking_url = tracking_url
 
-        db.session.commit()
-
-        # if query cancelation was requested prior to the handle_cursor call, but
-        # the query was still executed, trigger the actual query cancelation now
-        if query.extra.get(QUERY_EARLY_CANCEL_KEY):
-            cls.cancel_query(
-                cursor=cursor,
-                query=query,
-                cancel_query_id=cancel_query_id,
-            )
+        db.session.commit()  # pylint: disable=consider-using-transaction
 
         super().handle_cursor(cursor=cursor, query=query)
+
+        terminal_states = {"FINISHED", "FAILED", "CANCELED"}
+        state = "QUEUED"
+        progress = 0.0
+        poll_interval = app.config["DB_POLL_INTERVAL_SECONDS"].get(cls.engine, 1)
+        max_wait_time = app.config.get("SQLLAB_ASYNC_TIME_LIMIT_SEC", 21600)
+        start_time = time.time()
+        while state not in terminal_states:
+            if time.time() - start_time > max_wait_time:
+                logger.warning("Query %d: Progress polling timed out", query.id)
+                break
+            # Check for errors raised in execute_thread
+            if execute_result is not None and execute_result.get("error"):
+                break
+
+            # Check if execute_event is set (thread completed)
+            if execute_event is not None and execute_event.is_set():
+                break
+
+            # if query cancelation was requested prior to the handle_cursor call, but
+            # the query was still executed, trigger the actual query cancelation now
+            if query.extra.get(QUERY_EARLY_CANCEL_KEY) or query.status in [
+                QueryStatus.STOPPED,
+                QueryStatus.TIMED_OUT,
+            ]:
+                cls.cancel_query(
+                    cursor=cursor,
+                    query=query,
+                    cancel_query_id=cancel_query_id,
+                )
+                break
+
+            needs_commit = False
+            info = getattr(cursor, "stats", {}) or {}
+            state = info.get("state", "UNKNOWN")
+            completed_splits = float(info.get("completedSplits", 0))
+            total_splits = float(info.get("totalSplits", 1) or 1)
+            progress = math.floor((completed_splits / (total_splits or 1)) * 100)
+            progress_text = {
+                "PLANNING": __("Scheduled"),
+                "QUEUED": __("Queued"),
+            }.get(state, state)
+
+            if progress != query.progress:
+                query.progress = progress
+                needs_commit = True
+            if progress_text != query.extra.get("progress_text"):
+                query.set_extra_json_key(key="progress_text", value=progress_text)
+                needs_commit = True
+
+            if needs_commit:
+                db.session.commit()  # pylint: disable=consider-using-transaction
+
+            time.sleep(poll_interval)
 
     @classmethod
     def execute_with_cursor(
@@ -222,18 +400,30 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         # Fetch the query ID beforehand, since it might fail inside the thread due to
         # how the SQLAlchemy session is handled.
         query_id = query.id
+        query_database = query.database
 
         execute_result: dict[str, Any] = {}
         execute_event = threading.Event()
 
+        @copy_current_request_context
         def _execute(
-            results: dict[str, Any], event: threading.Event, app: Flask
+            results: dict[str, Any],
+            event: threading.Event,
+            app: Flask,
+            g_copy: ctx._AppCtxGlobals,
         ) -> None:
             logger.debug("Query %d: Running query: %s", query_id, sql)
 
             try:
+                # Flask contexts are local to the thread that handles the request.
+                # When you spawn a new thread, it does not inherit the contexts
+                # from the parent thread,
+                # meaning the g object and other context-bound variables are not
+                # accessible
                 with app.app_context():
-                    cls.execute(cursor, sql, query.database)
+                    for key, value in g_copy.__dict__.items():
+                        setattr(g, key, value)
+                    cls.execute(cursor, sql, query_database)
             except Exception as ex:  # pylint: disable=broad-except
                 results["error"] = ex
             finally:
@@ -241,15 +431,26 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
 
         execute_thread = threading.Thread(
             target=_execute,
-            args=(execute_result, execute_event, current_app._get_current_object()),  # pylint: disable=protected-access
+            args=(
+                execute_result,
+                execute_event,
+                app._get_current_object(),  # pylint: disable=protected-access
+                g._get_current_object(),  # pylint: disable=protected-access
+            ),
         )
         execute_thread.start()
 
+        # Wait for the thread to start before continuing
+        time.sleep(0.1)
         # Wait for a query ID to be available before handling the cursor, as
         # it's required by that method; it may never become available on error.
         while not cursor.query_id and not execute_event.is_set():
             time.sleep(0.1)
 
+        # Pass additional attributes to check whether an error occurred in the
+        # execute thread running in parallel while updating progress through the cursor.
+        cursor._execute_result = execute_result
+        cursor._execute_event = execute_event
         logger.debug("Query %d: Handling cursor", query_id)
         cls.handle_cursor(cursor, query)
 
@@ -266,7 +467,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     def prepare_cancel_query(cls, query: Query) -> None:
         if QUERY_CANCEL_KEY not in query.extra:
             query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
-            db.session.commit()
+            db.session.commit()  # pylint: disable=consider-using-transaction
 
     @classmethod
     def cancel_query(cls, cursor: Cursor, query: Query, cancel_query_id: str) -> bool:
@@ -278,6 +479,12 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         :param cancel_query_id: Trino `queryId`
         :return: True if query cancelled successfully, False otherwise
         """
+        # Validate cancel_query_id to prevent SQL injection
+        # Trino query IDs look like yyyymmdd_hhmmss_nnnnn_xxxxx
+        # (alphanumeric with underscores)
+        if not cls.validate_cancel_query_id(cancel_query_id, r"^[a-zA-Z0-9_]+$"):
+            return False
+
         try:
             cursor.execute(
                 f"CALL system.runtime.kill_query(query_id => '{cancel_query_id}',"
@@ -290,23 +497,27 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         return True
 
     @staticmethod
-    def get_extra_params(database: Database) -> dict[str, Any]:
+    def get_extra_params(
+        database: Database, source: QuerySource | None = None
+    ) -> dict[str, Any]:
         """
         Some databases require adding elements to connection parameters,
         like passing certificates to `extra`. This can be done here.
 
         :param database: database instance from which to extract extras
+        :param source: in which context is the connection needed
         :raises CertificateException: If certificate is not valid/unparseable
         """
-        extra: dict[str, Any] = BaseEngineSpec.get_extra_params(database)
+        extra: dict[str, Any] = BaseEngineSpec.get_extra_params(database, source)
         engine_params: dict[str, Any] = extra.setdefault("engine_params", {})
         connect_args: dict[str, Any] = engine_params.setdefault("connect_args", {})
+        user_agent = get_user_agent(database, source)
 
-        connect_args.setdefault("source", USER_AGENT)
+        connect_args.setdefault("source", user_agent)
 
         if database.server_cert:
             connect_args["http_scheme"] = "https"
-            connect_args["verify"] = utils.create_ssl_cert_file(database.server_cert)
+            connect_args["verify"] = create_ssl_cert_file(database.server_cert)
 
         return extra
 
@@ -336,9 +547,9 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             elif auth_method == "jwt":
                 from trino.auth import JWTAuthentication as trino_auth  # noqa
             else:
-                allowed_extra_auths = current_app.config[
-                    "ALLOWED_EXTRA_AUTHENTICATIONS"
-                ].get("trino", {})
+                allowed_extra_auths = app.config["ALLOWED_EXTRA_AUTHENTICATIONS"].get(
+                    "trino", {}
+                )
                 if auth_method in allowed_extra_auths:
                     trino_auth = allowed_extra_auths.get(auth_method)
                 else:
@@ -392,7 +603,11 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         Expanded columns are named foo.bar.baz and we provide a query_as property to
         instruct the base engine spec how to correctly query them: instead of quoting
         the whole string they have to be quoted like "foo"."bar"."baz" and we then
-        alias them to the full dotted string for ease of reference.
+        alias them to the full dotted string for ease of reference. We also provide
+        an `expression` property with the same correctly quoted path (without the
+        alias), so that a physical `TableColumn` created from this metadata selects
+        the column correctly instead of quoting the whole dotted name as a single
+        (invalid) identifier.
         """
         # pylint: disable=import-outside-toplevel
         from trino.sqlalchemy import datatype
@@ -415,6 +630,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                 column_name=name,
                 type=inner_type,
                 is_dttm=is_dttm,
+                expression=query_name,
                 query_as=f'{query_name} AS "{name}"',
             )
             cols.extend(cls._expand_columns(inner_col))
@@ -433,7 +649,17 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         "schema_options", expand the schema definition out to show all
         subfields of nested ROWs as their appropriate dotted paths.
         """
-        base_cols = super().get_columns(inspector, table, options)
+        # The Trino dialect raises `NoSuchTableError` on the inspection methods when the
+        # table is empty. We can work around this by running a `SHOW COLUMNS FROM` query
+        # when that happens, using the method from the Presto base engine spec.
+        try:
+            # `SELECT * FROM information_schema.columns WHERE ...`
+            sqla_columns = inspector.get_columns(table.table, table.schema)
+            base_cols = convert_inspector_columns(sqla_columns)
+        except NoSuchTableError:
+            # `SHOW COLUMNS FROM ...`
+            base_cols = super().get_columns(inspector, table, options)
+
         if not (options or {}).get("expand_rows"):
             return base_cols
 
@@ -462,81 +688,64 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             return []
 
     @classmethod
-    def df_to_sql(
+    @cache_manager.data_cache.memoize(timeout=60)
+    def latest_partition(
         cls,
         database: Database,
         table: Table,
-        df: pd.DataFrame,
-        to_sql_kwargs: dict[str, Any],
-    ) -> None:
+        show_first: bool = False,
+        indexes: list[dict[str, Any]] | None = None,
+    ) -> tuple[list[str], list[str] | None]:
         """
-        Upload data from a Pandas DataFrame to a database.
+        Return the latest partition for a table.
 
-        The data is stored via the binary Parquet format which is both less problematic
-        and more performant than a text file.
+        Iceberg "$partitions" metadata fields are filtered out first, so we
+        never build a latest-partition query against them. Memoized like the
+        base implementation so the index lookup is not repeated on cache hits.
 
-        Note this method does not create metadata for the table.
-
-        :param database: The database to upload the data to
-        :param table: The table to upload the data to
-        :param df: The Pandas Dataframe with data to be uploaded
-        :param to_sql_kwargs: The `pandas.DataFrame.to_sql` keyword arguments
-        :see: superset.db_engine_specs.HiveEngineSpec.df_to_sql
+        :param database: the database the query will be run against
+        :param table: the table instance
+        :param show_first: return the value for the first partitioning key when
+            there are several
+        :param indexes: the indexes associated with the table
+        :returns: the column names and the latest partition values
         """
+        if indexes is None:
+            indexes = database.get_indexes(table)
 
-        # pylint: disable=import-outside-toplevel
+        return super().latest_partition(
+            database,
+            table,
+            show_first=show_first,
+            indexes=cls._filter_iceberg_partition_indexes(indexes),
+        )
 
-        if to_sql_kwargs["if_exists"] == "append":
-            raise SupersetException("Append operation not currently supported")
+    @classmethod
+    def latest_sub_partition(
+        cls,
+        database: Database,
+        table: Table,
+        indexes: list[dict[str, Any]] | None = None,
+        **kwargs: Any,
+    ) -> Any:
+        """
+        Return the latest sub-partition value for a table.
 
-        if to_sql_kwargs["if_exists"] == "fail":
-            if database.has_table_by_name(table.table, table.schema):
-                raise SupersetException("Table already exists")
-        elif to_sql_kwargs["if_exists"] == "replace":
-            with cls.get_engine(database) as engine:
-                engine.execute(f"DROP TABLE IF EXISTS {str(table)}")
+        Iceberg "$partitions" metadata fields are filtered out first, so the
+        ``latest_sub_partition`` macro never builds a query against them.
 
-        def _get_trino_type(dtype: np.dtype[Any]) -> str:
-            return {
-                np.dtype("bool"): "BOOLEAN",
-                np.dtype("float64"): "DOUBLE",
-                np.dtype("int64"): "BIGINT",
-                np.dtype("object"): "VARCHAR",
-            }.get(dtype, "VARCHAR")
+        :param database: the database the query will be run against
+        :param table: the table instance
+        :param indexes: the indexes associated with the table
+        :param kwargs: filtering criteria on the partition list
+        :returns: the latest sub-partition value
+        """
+        if indexes is None:
+            indexes = database.get_indexes(table)
 
-        with NamedTemporaryFile(
-            dir=current_app.config["UPLOAD_FOLDER"],
-            suffix=".parquet",
-        ) as file:
-            pa.parquet.write_table(pa.Table.from_pandas(df), where=file.name)
-
-            with cls.get_engine(database) as engine:
-                engine.execute(
-                    # pylint: disable=consider-using-f-string
-                    text(
-                        """
-                        CREATE TABLE {table} ({schema})
-                        WITH (
-                            format = 'PARQUET',
-                            external_location = '{location}'
-                        )
-                        """.format(
-                            location=upload_to_s3(
-                                filename=file.name,
-                                upload_prefix=current_app.config[
-                                    "CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"
-                                ](
-                                    database,
-                                    g.user,
-                                    table.schema,
-                                ),
-                                table=table,
-                            ),
-                            schema=", ".join(
-                                f'"{name}" {_get_trino_type(dtype)}'
-                                for name, dtype in df.dtypes.items()
-                            ),
-                            table=str(table),
-                        ),
-                    ),
-                )
+        return super().latest_sub_partition(
+            database,
+            table,
+            indexes=cls._filter_iceberg_partition_indexes(indexes),
+            **kwargs,
+        )

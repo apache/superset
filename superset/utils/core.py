@@ -34,6 +34,7 @@ import tempfile
 import threading
 import traceback
 import uuid
+import warnings
 import zlib
 from collections.abc import Iterable, Iterator, Sequence
 from contextlib import closing, contextmanager
@@ -48,8 +49,17 @@ from enum import Enum, IntEnum
 from io import BytesIO
 from timeit import default_timer
 from types import TracebackType
-from typing import Any, Callable, cast, NamedTuple, TYPE_CHECKING, TypedDict, TypeVar
-from urllib.parse import unquote_plus
+from typing import (
+    Any,
+    Callable,
+    cast,
+    NamedTuple,
+    Optional,
+    TYPE_CHECKING,
+    TypedDict,
+    TypeVar,
+)
+from urllib.parse import unquote_plus, urlparse
 from zipfile import ZipFile
 
 import markdown as md
@@ -58,10 +68,10 @@ import pandas as pd
 import sqlalchemy as sa
 from cryptography.hazmat.backends import default_backend
 from cryptography.x509 import Certificate, load_pem_x509_certificate
-from flask import current_app, g, request
-from flask_appbuilder import SQLA
+from flask import current_app as app, g, request
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __
+from flask_sqlalchemy import SQLAlchemy
 from markupsafe import Markup
 from pandas.api.types import infer_dtype
 from pandas.core.dtypes.common import is_numeric_dtype
@@ -74,6 +84,7 @@ from sqlalchemy.types import TypeEngine
 from typing_extensions import TypeGuard
 
 from superset.constants import (
+    DEFAULT_USER_AGENT,
     EXTRA_FORM_DATA_APPEND_KEYS,
     EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
     EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS,
@@ -85,7 +96,7 @@ from superset.exceptions import (
     SupersetException,
     SupersetTimeoutException,
 )
-from superset.sql_parse import sanitize_clause
+from superset.sql.parse import sanitize_clause
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
@@ -99,14 +110,37 @@ from superset.superset_typing import (
 from superset.utils.backports import StrEnum
 from superset.utils.database import get_example_database
 from superset.utils.date_parser import parse_human_timedelta
-from superset.utils.hashing import md5_sha_from_dict, md5_sha_from_str
+from superset.utils.hashing import hash_from_dict, hash_from_str
+from superset.utils.pandas import detect_datetime_format
 
 if TYPE_CHECKING:
-    from superset.connectors.sqla.models import BaseDatasource, TableColumn
-    from superset.models.sql_lab import Query
+    from superset.explorables.base import ColumnMetadata, Explorable
+    from superset.models.core import Database
 
 logging.getLogger("MARKDOWN").setLevel(logging.INFO)
 logger = logging.getLogger(__name__)
+
+EMAIL_ATTACHMENT_SUBTYPES: dict[str, str] = {
+    ".pdf": "pdf",
+    ".zip": "zip",
+    ".xlsx": "vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+}
+
+
+def build_email_attachment(name: str, body: bytes | str) -> MIMEApplication:
+    """
+    Create an email attachment part with stable filename metadata.
+    """
+    subtype = EMAIL_ATTACHMENT_SUBTYPES.get(os.path.splitext(name)[1].lower())
+    payload = body.encode("utf-8") if isinstance(body, str) else body
+    attachment = MIMEApplication(
+        payload,
+        _subtype=subtype or "octet-stream",
+        Name=name,
+    )
+    attachment.add_header("Content-Disposition", "attachment", filename=name)
+    return attachment
+
 
 DTTM_ALIAS = "__timestamp"
 
@@ -118,10 +152,45 @@ InputType = TypeVar("InputType")  # pylint: disable=invalid-name
 
 ADHOC_FILTERS_REGEX = re.compile("^adhoc_filters")
 
+TYPE_MAPPING = {
+    re.compile(r"INT", re.IGNORECASE): "integer",
+    re.compile(r"CHAR|TEXT|VARCHAR", re.IGNORECASE): "string",
+    re.compile(r"DECIMAL|NUMERIC|FLOAT|DOUBLE", re.IGNORECASE): "floating",
+    re.compile(r"BOOL", re.IGNORECASE): "boolean",
+    re.compile(r"DATE|TIME", re.IGNORECASE): "datetime64",
+}
+
+METRIC_MAP_TYPE = {
+    "SUM": "floating",
+    "AVG": "floating",
+    "COUNT": "floating",
+    "COUNT_DISTINCT": "floating",
+    "MIN": "numeric",
+    "MAX": "numeric",
+    "FIRST": "string",
+    "LAST": "string",
+    "GROUP_CONCAT": "string",
+    "ARRAY_AGG": "string",
+    "STRING_AGG": "string",
+    "MEDIAN": "floating",
+    "PERCENTILE": "floating",
+    "VARIANCE": "floating",
+    "STDDEV": "floating",
+}
+
 
 class AdhocMetricExpressionType(StrEnum):
     SIMPLE = "SIMPLE"
     SQL = "SQL"
+
+
+class SqlExpressionType(StrEnum):
+    """Types of SQL expressions that can be validated."""
+
+    COLUMN = "column"
+    METRIC = "metric"
+    WHERE = "where"
+    HAVING = "having"
 
 
 class AnnotationType(StrEnum):
@@ -152,6 +221,7 @@ class DatasourceType(StrEnum):
     QUERY = "query"
     SAVEDQUERY = "saved_query"
     VIEW = "view"
+    SEMANTIC_VIEW = "semantic_view"
 
 
 class LoggerLevel(StrEnum):
@@ -162,16 +232,18 @@ class LoggerLevel(StrEnum):
 
 class HeaderDataType(TypedDict):
     notification_format: str
-    owners: list[int]
+    editors: list[int]
     notification_type: str
     notification_source: str | None
     chart_id: int | None
     dashboard_id: int | None
+    slack_channels: list[str] | None
+    execution_id: str | None
 
 
 class DatasourceDict(TypedDict):
     type: str  # todo(hugh): update this to be DatasourceType
-    id: int
+    id: int | str
 
 
 class AdhocFilterClause(TypedDict, total=False):
@@ -217,7 +289,9 @@ class FilterOperator(StrEnum):
     GREATER_THAN_OR_EQUALS = ">="
     LESS_THAN_OR_EQUALS = "<="
     LIKE = "LIKE"
+    NOT_LIKE = "NOT LIKE"
     ILIKE = "ILIKE"
+    NOT_ILIKE = "NOT ILIKE"
     IS_NULL = "IS NULL"
     IS_NOT_NULL = "IS NOT NULL"
     IN = "IN"
@@ -277,14 +351,14 @@ class QuerySource(Enum):
 class QueryStatus(StrEnum):
     """Enum-type class for query statuses"""
 
-    STOPPED: str = "stopped"
-    FAILED: str = "failed"
-    PENDING: str = "pending"
-    RUNNING: str = "running"
-    SCHEDULED: str = "scheduled"
-    SUCCESS: str = "success"
-    FETCHING: str = "fetching"
-    TIMED_OUT: str = "timed_out"
+    STOPPED = "stopped"
+    FAILED = "failed"
+    PENDING = "pending"
+    RUNNING = "running"
+    SCHEDULED = "scheduled"
+    SUCCESS = "success"
+    FETCHING = "fetching"
+    TIMED_OUT = "timed_out"
 
 
 class DashboardStatus(StrEnum):
@@ -342,6 +416,27 @@ def parse_js_uri_path_item(
     """
     item = None if eval_undefined and item in ("null", "undefined") else item
     return unquote_plus(item) if unquote and item else item
+
+
+# Matches a safe, opaque token suitable for use as a cookie name. Restricting the
+# allowed characters prevents client-controlled input from injecting unexpected
+# cookie attributes or control characters.
+COOKIE_TOKEN_RE = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
+
+
+def sanitize_cookie_token(token: str | None) -> str | None:
+    """Return the token if it is a valid cookie name, otherwise None.
+
+    The export endpoints echo a client-provided ``token`` query parameter back as
+    a cookie name to signal download completion. Validate it against a strict
+    allow-list before trusting it.
+
+    :param token: the client-provided token value
+    :return: the token if valid, else None
+    """
+    if token and COOKIE_TOKEN_RE.match(token):
+        return token
+    return None
 
 
 def cast_to_num(value: float | int | str | None) -> float | int | None:
@@ -432,10 +527,11 @@ def error_msg_from_exception(ex: Exception) -> str:
             msg = ex.message.get("message")  # type: ignore
         elif ex.message:
             msg = ex.message
-    return msg or str(ex)
+    return str(msg) or str(ex)
 
 
 def markdown(raw: str, markup_wrap: bool | None = False) -> str:
+    """Render Markdown to sanitized HTML."""
     safe_markdown_tags = {
         "h1",
         "h2",
@@ -465,7 +561,7 @@ def markdown(raw: str, markup_wrap: bool | None = False) -> str:
     }
     safe_markdown_attrs = {
         "img": {"src", "alt", "title"},
-        "a": {"href", "alt", "title"},
+        "a": {"href", "alt", "title", "target"},
     }
     safe = md.markdown(
         raw or "",
@@ -476,10 +572,85 @@ def markdown(raw: str, markup_wrap: bool | None = False) -> str:
         ],
     )
     # pylint: disable=no-member
+    # nh3 preserves supported link attributes and enforces a safe rel value.
     safe = nh3.clean(safe, tags=safe_markdown_tags, attributes=safe_markdown_attrs)
     if markup_wrap:
         safe = Markup(safe)
     return safe
+
+
+def sanitize_svg_content(svg_content: str) -> str:
+    """Basic SVG protection - remove obvious XSS vectors, trust admin input otherwise.
+
+    Minimal protection approach that removes scripts and javascript: URLs while
+    preserving all legitimate SVG features. Assumes admin-provided content.
+
+    Args:
+        svg_content: Raw SVG content string
+
+    Returns:
+        str: SVG content with obvious XSS vectors removed
+    """
+    if not svg_content or not svg_content.strip():
+        return ""
+
+    # Minimal protection: remove obvious malicious content, preserve all SVG features
+    content = re.sub(
+        r"<script[^>]*>.*?</script>", "", svg_content, flags=re.IGNORECASE | re.DOTALL
+    )
+    content = re.sub(r"javascript:", "", content, flags=re.IGNORECASE)
+    content = re.sub(r"data:[^;]*;[^,]*,.*javascript", "", content, flags=re.IGNORECASE)
+
+    # Remove event handlers (simple catch-all approach)
+    content = re.sub(r"\bon\w+\s*=", "", content, flags=re.IGNORECASE)
+
+    # Remove other suspicious patterns
+    content = re.sub(
+        r"<iframe[^>]*>.*?</iframe>", "", content, flags=re.IGNORECASE | re.DOTALL
+    )
+    content = re.sub(
+        r"<object[^>]*>.*?</object>", "", content, flags=re.IGNORECASE | re.DOTALL
+    )
+    content = re.sub(r"<embed[^>]*>", "", content, flags=re.IGNORECASE)
+
+    return content
+
+
+def sanitize_url(url: str) -> str:
+    """Sanitize URL using urllib.parse to block dangerous schemes.
+
+    Simple validation using standard library. Allows relative URLs and
+    safe absolute URLs while blocking javascript: and other dangerous schemes.
+
+    Args:
+        url: Raw URL string
+
+    Returns:
+        str: Sanitized URL or empty string if dangerous
+    """
+    if not url or not url.strip():
+        return ""
+
+    url = url.strip()
+
+    # Relative URLs are safe
+    if url.startswith("/"):
+        return url
+
+    try:
+        from urllib.parse import urlparse
+
+        parsed = urlparse(url)
+
+        # Allow safe schemes only
+        if parsed.scheme.lower() in {"http", "https", ""}:
+            return url
+
+        # Block everything else (javascript:, data:, etc.)
+        return ""
+
+    except Exception:
+        return ""
 
 
 def readfile(file_path: str) -> str | None:
@@ -489,12 +660,10 @@ def readfile(file_path: str) -> str | None:
 
 
 def generic_find_constraint_name(
-    table: str, columns: set[str], referenced: str, database: SQLA
+    table: str, columns: set[str], referenced: str, database: SQLAlchemy
 ) -> str | None:
     """Utility to find a constraint name in alembic migrations"""
-    tbl = sa.Table(
-        table, database.metadata, autoload=True, autoload_with=database.engine
-    )
+    tbl = sa.Table(table, database.metadata, autoload_with=database.engine)
 
     for fk in tbl.foreign_key_constraints:
         if fk.referred_table.name == referenced and set(fk.column_keys) == columns:
@@ -639,7 +808,7 @@ def pessimistic_connection_handling(some_engine: Engine) -> None:
             # run a SELECT 1.   use a core select() so that
             # the SELECT of a scalar value without a table is
             # appropriately formatted for the backend
-            connection.scalar(select([1]))
+            connection.scalar(select(1))
         except exc.DBAPIError as err:
             # catch SQLAlchemy's DBAPIError, which is a wrapper
             # for the DBAPI's exception.  It includes a .connection_invalidated
@@ -651,7 +820,7 @@ def pessimistic_connection_handling(some_engine: Engine) -> None:
                 # itself and establish a new connection.  The disconnect detection
                 # here also causes the whole connection pool to be invalidated
                 # so that all stale connections are discarded.
-                connection.scalar(select([1]))
+                connection.scalar(select(1))
             else:
                 raise
         finally:
@@ -683,7 +852,7 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     html_content: str,
     config: dict[str, Any],
     files: list[str] | None = None,
-    data: dict[str, str] | None = None,
+    data: dict[str, bytes | str] | None = None,
     pdf: dict[str, bytes] | None = None,
     images: dict[str, bytes] | None = None,
     dryrun: bool = False,
@@ -698,9 +867,12 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
         'test@example.com', 'foo', '<b>Foo</b> bar',['/dev/null'], dryrun=True)
     """
     smtp_mail_from = config["SMTP_MAIL_FROM"]
-    smtp_mail_to = get_email_address_list(to)
+    smtp_mail_to = recipients_string_to_list(to)
 
     msg = MIMEMultipart(mime_subtype)
+    # Strip CR/LF from the subject so the value cannot inject additional
+    # email headers via header folding/splitting.
+    subject = subject.replace("\r", "").replace("\n", " ").strip()
     msg["Subject"] = subject
     msg["From"] = smtp_mail_from
     msg["To"] = ", ".join(smtp_mail_to)
@@ -709,14 +881,14 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
 
     recipients = smtp_mail_to
     if cc:
-        smtp_mail_cc = get_email_address_list(cc)
-        msg["CC"] = ", ".join(smtp_mail_cc)
+        smtp_mail_cc = recipients_string_to_list(cc)
+        msg["Cc"] = ", ".join(smtp_mail_cc)
         recipients = recipients + smtp_mail_cc
 
     smtp_mail_bcc = []
     if bcc:
         # don't add bcc in header
-        smtp_mail_bcc = get_email_address_list(bcc)
+        smtp_mail_bcc = recipients_string_to_list(bcc)
         recipients = recipients + smtp_mail_bcc
 
     msg["Date"] = formatdate(localtime=True)
@@ -727,30 +899,14 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     for fname in files or []:
         basename = os.path.basename(fname)
         with open(fname, "rb") as f:
-            msg.attach(
-                MIMEApplication(
-                    f.read(),
-                    Content_Disposition=f"attachment; filename='{basename}'",
-                    Name=basename,
-                )
-            )
+            msg.attach(build_email_attachment(basename, f.read()))
 
     # Attach any files passed directly
     for name, body in (data or {}).items():
-        msg.attach(
-            MIMEApplication(
-                body, Content_Disposition=f"attachment; filename='{name}'", Name=name
-            )
-        )
+        msg.attach(build_email_attachment(name, body))
 
     for name, body_pdf in (pdf or {}).items():
-        msg.attach(
-            MIMEApplication(
-                body_pdf,
-                Content_Disposition=f"attachment; filename='{name}'",
-                Name=name,
-            )
-        )
+        msg.attach(build_email_attachment(name, body_pdf))
 
     # Attach any inline images, which may be required for display in
     # HTML content (inline)
@@ -786,6 +942,11 @@ def send_mime_email(
     smtp_starttls = config["SMTP_STARTTLS"]
     smtp_ssl = config["SMTP_SSL"]
     smtp_ssl_server_auth = config["SMTP_SSL_SERVER_AUTH"]
+    # A missing timeout means the socket blocks forever when the SMTP server is
+    # unreachable, wedging the report schedule in the WORKING state. Fall back to
+    # the key being absent for backwards compatibility with custom configs.
+    # Keep this fallback in sync with the SMTP_TIMEOUT default in config.py.
+    smtp_timeout = config.get("SMTP_TIMEOUT", 30)
 
     if dryrun:
         logger.info("Dryrun enabled, email notification content is below:")
@@ -796,20 +957,36 @@ def send_mime_email(
     # root CA certificates
     ssl_context = ssl.create_default_context() if smtp_ssl_server_auth else None
     smtp = (
-        smtplib.SMTP_SSL(smtp_host, smtp_port, context=ssl_context)
+        smtplib.SMTP_SSL(
+            smtp_host, smtp_port, context=ssl_context, timeout=smtp_timeout
+        )
         if smtp_ssl
-        else smtplib.SMTP(smtp_host, smtp_port)
+        else smtplib.SMTP(smtp_host, smtp_port, timeout=smtp_timeout)
     )
-    if smtp_starttls:
-        smtp.starttls(context=ssl_context)
-    if smtp_user and smtp_password:
-        smtp.login(smtp_user, smtp_password)
-    logger.debug("Sent an email to %s", str(e_to))
-    smtp.sendmail(e_from, e_to, mime_msg.as_string())
-    smtp.quit()
+    try:
+        if smtp_starttls:
+            smtp.starttls(context=ssl_context)
+        if smtp_user and smtp_password:
+            smtp.login(smtp_user, smtp_password)
+        logger.debug("Sent an email to %s", str(e_to))
+        smtp.sendmail(e_from, e_to, mime_msg.as_string())
+    finally:
+        # Always release the socket; the new timeout means starttls/login/
+        # sendmail can raise, and a skipped quit() would leak connections in
+        # the long-lived worker process.
+        try:
+            smtp.quit()
+        except smtplib.SMTPException:
+            pass
 
 
-def get_email_address_list(address_string: str) -> list[str]:
+def recipients_string_to_list(address_string: str | None) -> list[str]:
+    """
+    Returns the list of target recipients for alerts and reports.
+
+    Strips values and converts a comma/semicolon separated
+    string into a list.
+    """
     address_string_list: list[str] = []
     if isinstance(address_string, str):
         address_string_list = re.split(r",|\s|;", address_string)
@@ -861,7 +1038,7 @@ def simple_filter_to_adhoc(
     }
     if filter_clause.get("isExtra"):
         result["isExtra"] = True
-    result["filterOptionName"] = md5_sha_from_dict(cast(dict[Any, Any], result))
+    result["filterOptionName"] = hash_from_dict(cast(dict[Any, Any], result))
 
     return result
 
@@ -874,12 +1051,45 @@ def form_data_to_adhoc(form_data: dict[str, Any], clause: str) -> AdhocFilterCla
         "expressionType": "SQL",
         "sqlExpression": form_data.get(clause),
     }
-    result["filterOptionName"] = md5_sha_from_dict(cast(dict[Any, Any], result))
+    result["filterOptionName"] = hash_from_dict(cast(dict[Any, Any], result))
 
     return result
 
 
-def merge_extra_form_data(form_data: dict[str, Any]) -> None:
+def _update_existing_temporal_filter(
+    temporal_filter: AdhocFilterClause,
+    granularity_sqla_override: str | None,
+    time_range: str | None,
+    chart_has_granularity_sqla: bool,
+) -> None:
+    """Update an existing temporal filter with new subject/comparator."""
+    if (
+        granularity_sqla_override is not None
+        and temporal_filter.get("expressionType") == "SIMPLE"
+    ):
+        temporal_filter["subject"] = granularity_sqla_override
+    if time_range and not chart_has_granularity_sqla:
+        temporal_filter["comparator"] = time_range
+
+
+def _create_temporal_filter(
+    granularity_sqla: str,
+    time_range: str,
+) -> AdhocFilterClause:
+    """Create a new TEMPORAL_RANGE adhoc filter."""
+    new_filter: AdhocFilterClause = {
+        "clause": "WHERE",
+        "expressionType": "SIMPLE",
+        "operator": FilterOperator.TEMPORAL_RANGE,
+        "subject": granularity_sqla,
+        "comparator": time_range,
+        "isExtra": True,
+    }
+    new_filter["filterOptionName"] = hash_from_dict(cast(dict[Any, Any], new_filter))
+    return new_filter
+
+
+def merge_extra_form_data(form_data: dict[str, Any]) -> None:  # noqa: C901
     """
     Merge extra form data (appends and overrides) into the main payload
     and add applied time extras to the payload.
@@ -917,24 +1127,48 @@ def merge_extra_form_data(form_data: dict[str, Any]) -> None:
         "adhoc_filters", []
     )
     adhoc_filters.extend(
-        {"isExtra": True, **adhoc_filter}  # type: ignore
-        for adhoc_filter in append_adhoc_filters
+        {"isExtra": True, **adhoc_filter} for adhoc_filter in append_adhoc_filters
     )
     if append_filters:
         for key, value in form_data.items():
             if re.match("adhoc_filter.*", key):
                 value.extend(
-                    simple_filter_to_adhoc({"isExtra": True, **fltr})  # type: ignore
+                    simple_filter_to_adhoc({"isExtra": True, **fltr})
                     for fltr in append_filters
                     if fltr
                 )
-    if form_data.get("time_range") and not form_data.get("granularity_sqla"):
-        for adhoc_filter in form_data.get("adhoc_filters", []):
-            if adhoc_filter.get("operator") == "TEMPORAL_RANGE":
-                adhoc_filter["comparator"] = form_data["time_range"]
+
+    granularity_sqla_override = extra_form_data.get("granularity_sqla")
+    time_range = form_data.get("time_range")
+    chart_has_granularity_sqla = bool(form_data.get("granularity_sqla"))
+
+    temporal_filters = [
+        adhoc_filter
+        for adhoc_filter in adhoc_filters
+        if adhoc_filter.get("operator") == FilterOperator.TEMPORAL_RANGE
+    ]
+
+    for temporal_filter in temporal_filters:
+        _update_existing_temporal_filter(
+            temporal_filter,
+            granularity_sqla_override,
+            time_range,
+            chart_has_granularity_sqla,
+        )
+
+    if (
+        not temporal_filters
+        and granularity_sqla_override is not None
+        and time_range is not None
+    ):
+        new_temporal_filter = _create_temporal_filter(
+            granularity_sqla_override,
+            cast(str, time_range),
+        )
+        adhoc_filters.append(new_temporal_filter)
 
 
-def merge_extra_filters(form_data: dict[str, Any]) -> None:
+def merge_extra_filters(form_data: dict[str, Any]) -> None:  # noqa: C901
     # extra_filters are temporary/contextual filters (using the legacy constructs)
     # that are external to the slice definition. We use those for dynamic
     # interactive filters.
@@ -1087,6 +1321,11 @@ def get_column_name(column: Column, verbose_map: dict[str, Any] | None = None) -
     :return: String representation of column
     :raises ValueError: if metric object is invalid
     """
+    if hasattr(column, "column_name"):
+        column_name = getattr(column, "column_name", "")
+        verbose_name = getattr(column, "verbose_name", "")
+        return verbose_name or column_name
+
     if isinstance(column, dict):
         if label := column.get("label"):
             return label
@@ -1195,6 +1434,7 @@ def convert_legacy_filters_into_adhoc(  # pylint: disable=invalid-name
 
 def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
     form_data: FormData,
+    engine: str,
 ) -> None:
     """
     Mutates form data to restructure the adhoc filters in the form of the three base
@@ -1220,7 +1460,7 @@ def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
                     )
             elif expression_type == "SQL":
                 sql_expression = adhoc_filter.get("sqlExpression")
-                sql_expression = sanitize_clause(sql_expression)
+                sql_expression = sanitize_clause(sql_expression, engine)
                 if clause == "WHERE":
                     sql_where_filters.append(sql_expression)
                 elif clause == "HAVING":
@@ -1335,8 +1575,10 @@ def create_ssl_cert_file(certificate: str) -> str:
     :return: The path to the certificate file
     :raises CertificateException: If certificate is not valid/unparseable
     """
-    filename = f"{md5_sha_from_str(certificate)}.crt"
-    cert_dir = current_app.config["SSL_CERT_PATH"]
+    filename = f"{hash_from_str(certificate)}.crt"
+    # pylint: disable=import-outside-toplevel
+
+    cert_dir = app.config["SSL_CERT_PATH"]
     path = cert_dir if cert_dir else tempfile.gettempdir()
     path = os.path.join(path, filename)
     if not os.path.exists(path):
@@ -1364,11 +1606,11 @@ def time_function(
     return (stop - start) * 1000.0, response
 
 
-def MediumText() -> Variant:  # pylint:disable=invalid-name
+def MediumText() -> Variant:  # pylint:disable=invalid-name  # noqa: N802
     return Text().with_variant(MEDIUMTEXT(), "mysql")
 
 
-def LongText() -> Variant:  # pylint:disable=invalid-name
+def LongText() -> Variant:  # pylint:disable=invalid-name  # noqa: N802
     return Text().with_variant(LONGTEXT(), "mysql")
 
 
@@ -1383,7 +1625,9 @@ class DatasourceName(NamedTuple):
 
 
 def get_stacktrace() -> str | None:
-    if current_app.config["SHOW_STACKTRACE"]:
+    # pylint: disable=import-outside-toplevel
+
+    if app.config["SHOW_STACKTRACE"]:
         return traceback.format_exc()
     return None
 
@@ -1478,7 +1722,9 @@ def get_column_name_from_metric(metric: Metric) -> str | None:
     if is_adhoc_metric(metric):
         metric = cast(AdhocMetric, metric)
         if metric["expressionType"] == AdhocMetricExpressionType.SIMPLE:
-            return cast(dict[str, Any], metric["column"])["column_name"]
+            column = metric["column"]
+            if column:
+                return column["column_name"]
     return None
 
 
@@ -1493,9 +1739,67 @@ def get_column_names_from_metrics(metrics: list[Metric]) -> list[str]:
     return [col for col in map(get_column_name_from_metric, metrics) if col]
 
 
+def map_sql_type_to_inferred_type(sql_type: Optional[str]) -> str:
+    """
+    Map a SQL type to a type string recognized by pandas' `infer_objects` method.
+
+    If the SQL type is not recognized, the function will return "string" as the
+    default type.
+
+    :param sql_type: SQL type to map
+    :return: string type recognized by pandas
+    """
+    if not sql_type:
+        return "string"  # If no SQL type is provided, return "string" as default
+
+    # Use regular expressions to check the SQL type. The first match is returned.
+    for pattern, inferred_type in TYPE_MAPPING.items():
+        if pattern.search(sql_type):
+            return inferred_type
+
+    return "string"  # If no match is found, return "string" as default
+
+
+def get_metric_type_from_column(column: Any, datasource: Explorable) -> str:
+    """
+    Determine the metric type from a given column in a datasource.
+
+    This function checks if the specified column is a metric in the provided
+    datasource. If it is, it extracts the SQL expression associated with the
+    metric and attempts to identify the aggregation operation used within
+    the expression (e.g., SUM, COUNT, etc.). It then maps the operation to
+    a corresponding GenericDataType.
+
+    :param column: The column name or identifier to check.
+    :param datasource: The datasource containing metrics to search within.
+    :return: The inferred metric type as a string, or an empty string if the
+             column is not a metric or no valid operation is found.
+    """
+    metric = next(
+        (m for m in datasource.metrics if m.metric_name == column),
+        None,
+    )
+
+    if metric is None:
+        return ""
+
+    expression: str = metric.expression
+
+    match = re.match(
+        r"(SUM|AVG|COUNT|COUNT_DISTINCT|MIN|MAX|FIRST|LAST)\((.*)\)", expression
+    )
+
+    if match:
+        operation = match.group(1)
+        return METRIC_MAP_TYPE.get(operation, "")
+
+    logger.warning("Unexpected metric expression type: %s", expression)
+    return ""
+
+
 def extract_dataframe_dtypes(
     df: pd.DataFrame,
-    datasource: BaseDatasource | Query | None = None,
+    datasource: Explorable | None = None,
 ) -> list[GenericDataType]:
     """Serialize pandas/numpy dtypes to generic types"""
 
@@ -1515,15 +1819,26 @@ def extract_dataframe_dtypes(
     if datasource:
         for column in datasource.columns:
             if isinstance(column, dict):
-                columns_by_name[column.get("column_name")] = column
+                if column_name := column.get("column_name"):
+                    columns_by_name[column_name] = column
             else:
                 columns_by_name[column.column_name] = column
 
     generic_types: list[GenericDataType] = []
-    for column in df.columns:
-        column_object = columns_by_name.get(column)
-        series = df[column]
-        inferred_type = infer_dtype(series)
+    for i, column in enumerate(df.columns):
+        column_object = columns_by_name.get(str(column))
+        series = df.iloc[:, i]
+        inferred_type: str = ""
+        if series.isna().all():
+            sql_type: Optional[str] = ""
+            if datasource and hasattr(datasource, "columns_types"):
+                if column in datasource.columns_types:
+                    sql_type = datasource.columns_types.get(column)
+                    inferred_type = map_sql_type_to_inferred_type(sql_type)
+                else:
+                    inferred_type = get_metric_type_from_column(column, datasource)
+        else:
+            inferred_type = infer_dtype(series)
         if isinstance(column_object, dict):
             generic_type = (
                 GenericDataType.TEMPORAL
@@ -1541,11 +1856,17 @@ def extract_dataframe_dtypes(
     return generic_types
 
 
-def extract_column_dtype(col: TableColumn) -> GenericDataType:
-    if col.is_temporal:
+def extract_column_dtype(col: ColumnMetadata) -> GenericDataType:
+    # Check for temporal type
+    if hasattr(col, "is_temporal") and col.is_temporal:
         return GenericDataType.TEMPORAL
-    if col.is_numeric:
+    if col.is_dttm:
+        return GenericDataType.TEMPORAL
+
+    # Check for numeric type
+    if hasattr(col, "is_numeric") and col.is_numeric:
         return GenericDataType.NUMERIC
+
     # TODO: add check for boolean data type when proper support is added
     return GenericDataType.STRING
 
@@ -1555,7 +1876,7 @@ def is_test() -> bool:
 
 
 def get_time_filter_status(
-    datasource: BaseDatasource,
+    datasource: Explorable,
     applied_time_extras: dict[str, str],
 ) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
     temporal_columns: set[Any] = {
@@ -1655,38 +1976,86 @@ class DateColumn:
         )
 
 
+def _process_datetime_column(
+    df: pd.DataFrame,
+    col: DateColumn,
+) -> None:
+    """Process a single datetime column with format detection."""
+    if col.timestamp_format in ("epoch_s", "epoch_ms"):
+        dttm_series = df[col.col_label]
+        if is_numeric_dtype(dttm_series):
+            # Column is formatted as a numeric value
+            unit = col.timestamp_format.replace("epoch_", "")
+            df[col.col_label] = pd.to_datetime(
+                dttm_series,
+                utc=False,
+                unit=unit,
+                origin="unix",
+                errors="coerce",
+                exact=False,
+            )
+        else:
+            # Column has already been formatted as a timestamp.
+            try:
+                df[col.col_label] = dttm_series.apply(
+                    lambda x: pd.Timestamp(x) if pd.notna(x) else pd.NaT
+                )
+            except ValueError:
+                logger.warning(
+                    "Unable to convert column %s to datetime, ignoring",
+                    col.col_label,
+                )
+    else:
+        # Try to detect format if not specified
+        format_to_use = col.timestamp_format or detect_datetime_format(
+            df[col.col_label]
+        )
+
+        # Parse with or without format (suppress warning if no format)
+        if format_to_use:
+            df[col.col_label] = pd.to_datetime(
+                df[col.col_label],
+                utc=False,
+                format=format_to_use,
+                errors="coerce",
+                exact=False,
+            )
+        else:
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message=".*Could not infer format.*")
+                df[col.col_label] = pd.to_datetime(
+                    df[col.col_label],
+                    utc=False,
+                    format=None,
+                    errors="coerce",
+                    exact=False,
+                )
+
+
 def normalize_dttm_col(
     df: pd.DataFrame,
-    dttm_cols: tuple[DateColumn, ...] = tuple(),
+    dttm_cols: tuple[DateColumn, ...] = tuple(),  # noqa: C408
+    format_map: dict[str, str] | None = None,
 ) -> None:
+    """
+    Normalize datetime columns in a DataFrame.
+
+    :param df: DataFrame to process
+    :param dttm_cols: Tuple of DateColumn objects to process
+    :param format_map: Optional mapping of column names to datetime formats.
+                       When provided, these pre-detected formats are used instead
+                       of runtime detection, improving performance and consistency.
+    """
     for _col in dttm_cols:
         if _col.col_label not in df.columns:
             continue
 
-        if _col.timestamp_format in ("epoch_s", "epoch_ms"):
-            dttm_series = df[_col.col_label]
-            if is_numeric_dtype(dttm_series):
-                # Column is formatted as a numeric value
-                unit = _col.timestamp_format.replace("epoch_", "")
-                df[_col.col_label] = pd.to_datetime(
-                    dttm_series,
-                    utc=False,
-                    unit=unit,
-                    origin="unix",
-                    errors="raise",
-                    exact=False,
-                )
-            else:
-                # Column has already been formatted as a timestamp.
-                df[_col.col_label] = dttm_series.apply(pd.Timestamp)
-        else:
-            df[_col.col_label] = pd.to_datetime(
-                df[_col.col_label],
-                utc=False,
-                format=_col.timestamp_format,
-                errors="raise",
-                exact=False,
-            )
+        # Use format from format_map if available and not already set
+        if format_map and _col.col_label in format_map and not _col.timestamp_format:
+            _col.timestamp_format = format_map[_col.col_label]
+
+        _process_datetime_column(df, _col)
+
         if _col.offset:
             df[_col.col_label] += timedelta(hours=_col.offset)
         if _col.time_shift is not None:
@@ -1724,24 +2093,32 @@ def parse_boolean_string(bool_str: str | None) -> bool:
 
 def apply_max_row_limit(
     limit: int,
-    max_limit: int | None = None,
+    server_pagination: bool | None = None,
 ) -> int:
     """
-    Override row limit if max global limit is defined
+    Override row limit based on server pagination setting
 
     :param limit: requested row limit
-    :param max_limit: Maximum allowed row limit
+    :param server_pagination: whether server-side pagination
+    is enabled, defaults to None
     :return: Capped row limit
 
-    >>> apply_max_row_limit(100000, 10)
-    10
-    >>> apply_max_row_limit(10, 100000)
-    10
-    >>> apply_max_row_limit(0, 10000)
-    10000
+    >>> apply_max_row_limit(600000, server_pagination=True)  # Server pagination
+    500000
+    >>> apply_max_row_limit(600000, server_pagination=False)  # No pagination
+    50000
+    >>> apply_max_row_limit(5000)  # No server_pagination specified
+    5000
+    >>> apply_max_row_limit(0)  # Zero returns default max limit
+    50000
     """
-    if max_limit is None:
-        max_limit = current_app.config["SQL_MAX_ROW"]
+    # pylint: disable=import-outside-toplevel
+
+    max_limit = (
+        app.config["TABLE_VIZ_MAX_ROW_SERVER"]
+        if server_pagination
+        else app.config["SQL_MAX_ROW"]
+    )
     if limit != 0:
         return min(max_limit, limit)
     return max_limit
@@ -1764,15 +2141,30 @@ def check_is_safe_zip(zip_file: ZipFile) -> None:
     :param zip_file:
     :return:
     """
+    # pylint: disable=import-outside-toplevel
+
     uncompress_size = 0
     compress_size = 0
     for zip_file_element in zip_file.infolist():
-        if zip_file_element.file_size > current_app.config["ZIPPED_FILE_MAX_SIZE"]:
+        if zip_file_element.file_size > app.config["ZIPPED_FILE_MAX_SIZE"]:
             raise SupersetException("Found file with size above allowed threshold")
         uncompress_size += zip_file_element.file_size
         compress_size += zip_file_element.compress_size
-    compress_ratio = uncompress_size / compress_size
-    if compress_ratio > current_app.config["ZIP_FILE_MAX_COMPRESS_RATIO"]:
+        # Bound the total decompressed size, not just the per-file size, so an
+        # archive of many individually-allowed entries cannot exhaust memory.
+        # Checked inside the loop to fail fast once the running total exceeds
+        # the cap rather than after summing every entry.
+        if uncompress_size > app.config["ZIP_FILE_MAX_TOTAL_SIZE"]:
+            raise SupersetException(
+                "Found total uncompressed size above allowed threshold"
+            )
+    # Guard the division: a zero compressed size would otherwise raise
+    # ZeroDivisionError instead of a clean error. The total-size cap above
+    # still bounds memory when compress_size is reported as zero.
+    if (
+        compress_size
+        and uncompress_size / compress_size > app.config["ZIP_FILE_MAX_COMPRESS_RATIO"]
+    ):
         raise SupersetException("Zip compress ratio above allowed threshold")
 
 
@@ -1794,3 +2186,35 @@ def to_int(v: Any, value_if_invalid: int = 0) -> int:
         return int(v)
     except (ValueError, TypeError):
         return value_if_invalid
+
+
+def get_query_source_from_request() -> QuerySource | None:
+    if not request or not request.referrer:
+        return None
+    # Match on the referrer's path only, so query-string payloads (e.g.
+    # /explore/?next=/dashboard/1/) cannot misattribute the source. The bare
+    # segment covers legacy /superset/dashboard/ referrers and any
+    # application-root prefix (e.g. /myapp/dashboard/1/).
+    try:
+        referrer_path = urlparse(request.referrer).path
+    except ValueError:
+        # Client-controlled header; e.g. "http://[" raises on the IPv6
+        # bracket check and must not 500 the query path.
+        return None
+    if "/dashboard/" in referrer_path:
+        return QuerySource.DASHBOARD
+    if "/explore/" in referrer_path:
+        return QuerySource.CHART
+    if "/sqllab/" in referrer_path:
+        return QuerySource.SQL_LAB
+    return None
+
+
+def get_user_agent(database: Database, source: QuerySource | None) -> str:
+    # pylint: disable=import-outside-toplevel
+
+    source = source or get_query_source_from_request()
+    if user_agent_func := app.config["USER_AGENT_FUNC"]:
+        return user_agent_func(database, source)
+
+    return DEFAULT_USER_AGENT

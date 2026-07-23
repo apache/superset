@@ -26,11 +26,23 @@ from superset.commands.exceptions import (
     ImportFailedError,
     UpdateFailedError,
 )
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 
 
 def get_dataset_exist_error_msg(table: Table) -> str:
     return _("Dataset %(table)s already exists", table=table)
+
+
+class MultiCatalogDisabledValidationError(ValidationError):
+    """
+    Validation error for using a non-default catalog when multi-catalog is disabled
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            [_("Only the default catalog is supported for this connection")],
+            field_name="catalog",
+        )
 
 
 class DatabaseNotFoundValidationError(ValidationError):
@@ -40,15 +52,6 @@ class DatabaseNotFoundValidationError(ValidationError):
 
     def __init__(self) -> None:
         super().__init__([_("Database does not exist")], field_name="database")
-
-
-class DatabaseChangeValidationError(ValidationError):
-    """
-    Marshmallow validation error database changes are not allowed on update
-    """
-
-    def __init__(self) -> None:
-        super().__init__([_("Database not allowed to change")], field_name="database")
 
 
 class DatasetExistsValidationError(ValidationError):
@@ -138,12 +141,7 @@ class TableNotFoundValidationError(ValidationError):
         )
 
 
-class OwnersNotFoundValidationError(ValidationError):
-    def __init__(self) -> None:
-        super().__init__([_("Owners are invalid")], field_name="owners")
-
-
-class DatasetDataAccessIsNotAllowed(ValidationError):
+class DatasetDataAccessIsNotAllowed(ValidationError):  # noqa: N818
     status = 422
 
     def __init__(self, message: str) -> None:
@@ -165,6 +163,49 @@ class DatasetCreateFailedError(CreateFailedError):
 
 class DatasetUpdateFailedError(UpdateFailedError):
     message = _("Dataset could not be updated.")
+
+
+class DatasetRestoreFailedError(UpdateFailedError):
+    # Restore semantically clears ``deleted_at``; it is an UPDATE, not a new
+    # row. ``UpdateFailedError`` is the nearest typed middle-tier base in the
+    # codebase. A dedicated ``RestoreFailedError`` in
+    # ``superset/commands/exceptions.py`` would be more precise across the
+    # entity rollouts but lives in already-merged infrastructure (#39977);
+    # introducing it can be a cross-entity follow-up.
+    message = _("Dataset could not be restored.")
+
+
+class DatasetSoftDeletedTwinExistsError(CommandException):
+    """A soft-deleted dataset holds the physical table the caller targets.
+
+    Single source of the blocked-by-hidden-twin message: the create command,
+    ``get_or_create_dataset``, and any future caller raise this so the
+    wording (restore pointer, executable recoveries only) cannot drift
+    between surfaces.
+    """
+
+    status = 422
+
+    def __init__(self, dataset_uuid: str) -> None:
+        super().__init__(
+            _(
+                "A soft-deleted dataset (uuid %(uuid)s) already references "
+                "this table. Restore it via POST "
+                "/api/v1/dataset/%(uuid)s/restore before creating a new "
+                "dataset over this table, or use a different table name.",
+                uuid=dataset_uuid,
+            )
+        )
+
+
+class DatasetLogicalDuplicateError(CommandException):
+    status = 422
+    message = _(
+        "Dataset cannot be restored because another active dataset already "
+        "references the same physical table (same database, catalog, schema, "
+        "and table name). Delete the duplicate or rename the table before "
+        "restoring."
+    )
 
 
 class DatasetDeleteFailedError(DeleteFailedError):
@@ -195,7 +236,7 @@ class DatasetDuplicateFailedError(CreateFailedError):
     message = _("Dataset could not be duplicated.")
 
 
-class DatasetForbiddenDataURI(ImportFailedError):
+class DatasetForbiddenDataURI(ImportFailedError):  # noqa: N818
     message = _("Data URI is not allowed.")
 
 

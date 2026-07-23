@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsInt, t, validateNonEmpty } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { ensureIsInt, validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
@@ -27,6 +28,7 @@ import {
   D3_TIME_FORMAT_OPTIONS,
   getStandardizedControls,
   sharedControls,
+  DEFAULT_TIME_FORMAT,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
 import { legendSection } from '../controls';
@@ -80,6 +82,23 @@ const config: ControlPanelConfig = {
               default: 5,
               description: t(
                 'Minimum threshold in percentage points for showing labels.',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'threshold_for_other',
+            config: {
+              type: 'NumberControl',
+              label: t('Threshold for Other'),
+              min: 0,
+              step: 0.5,
+              max: 100,
+              default: 0,
+              renderTrigger: true,
+              description: t(
+                'Values less than this percentage will be grouped into the Other category.',
               ),
             },
           },
@@ -170,7 +189,7 @@ const config: ControlPanelConfig = {
               label: t('Date format'),
               renderTrigger: true,
               choices: D3_TIME_FORMAT_OPTIONS,
-              default: 'smart_date',
+              default: DEFAULT_TIME_FORMAT,
               description: D3_FORMAT_DOCS,
             },
           },
@@ -272,6 +291,46 @@ const config: ControlPanelConfig = {
               description: t('Inner radius of donut hole'),
               visibility: ({ controls }: ControlPanelsContainerProps) =>
                 Boolean(controls?.donut?.value),
+            },
+          },
+        ],
+        [
+          {
+            name: 'startAngle',
+            config: {
+              type: 'NumberControl',
+              min: 0,
+              max: 360,
+              step: 10,
+              label: t('Start angle'),
+              description: t(
+                'Angle at which the first slice begins, in degrees. ' +
+                  '90° starts at the top, 0°/360° at the right, ' +
+                  '270° at the bottom, and 180° at the left.',
+              ),
+              renderTrigger: true,
+              default: DEFAULT_FORM_DATA.startAngle,
+            },
+          },
+        ],
+        [
+          {
+            name: 'sweptAngle',
+            config: {
+              type: 'NumberControl',
+              min: 10,
+              max: 360,
+              step: 10,
+              label: t('Sweep angle'),
+              description: t(
+                'Total angle covered by the chart, in degrees. ' +
+                  '360° draws a full circle and 180° draws a half donut. ' +
+                  'When the sweep is 180° or less and the start angle is a ' +
+                  'multiple of 90°, the chart is automatically re-centered ' +
+                  'to make use of the empty space.',
+              ),
+              renderTrigger: true,
+              default: DEFAULT_FORM_DATA.sweptAngle,
             },
           },
         ],

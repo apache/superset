@@ -15,12 +15,39 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      python: ${{ steps.check.outputs.python }}
+      frontend: ${{ steps.check.outputs.frontend }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Check for file changes
+        id: check
+        uses: ./.github/actions/change-detector/
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
   analyze:
     name: Analyze
-    runs-on: ubuntu-22.04
+    needs: changes
+    # Skip on PRs that touch neither code group (e.g. docs-only) so the
+    # analysis runners don't spin up. push/schedule runs always proceed:
+    # the change-detector returns "all changed" for non-PR events.
+    if: needs.changes.outputs.python == 'true' || needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
     permissions:
       actions: read
       contents: read
+      pull-requests: read
       security-events: write
 
     strategy:
@@ -31,17 +58,13 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Check for file changes
-        id: check
-        uses: ./.github/actions/change-detector/
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: false
 
       # Initializes the CodeQL tools for scanning.
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4.37.0
         with:
           languages: ${{ matrix.language }}
           # If you wish to specify custom queries, you can do so here or in a config file.
@@ -52,7 +75,6 @@ jobs:
           # queries: security-extended,security-and-quality
 
       - name: Perform CodeQL Analysis
-        if: steps.check.outputs.python || steps.check.outputs.frontend
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4.37.0
         with:
           category: "/language:${{matrix.language}}"

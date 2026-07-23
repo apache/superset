@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import logging
 import re
 from datetime import datetime
@@ -25,8 +27,9 @@ from sqlalchemy import types
 from sqlalchemy.dialects.mssql.base import SMALLDATETIME
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.errors import SupersetErrorType
+from superset.models.sql_types.mssql_sql_types import GUID
 from superset.utils.core import GenericDataType
 
 logger = logging.getLogger(__name__)
@@ -49,10 +52,44 @@ CONNECTION_HOST_DOWN_REGEX = re.compile(
 class MssqlEngineSpec(BaseEngineSpec):
     engine = "mssql"
     engine_name = "Microsoft SQL Server"
-    limit_method = LimitMethod.WRAP_SQL
+
+    metadata = {
+        "description": (
+            "Microsoft SQL Server is a relational database management system."
+        ),
+        "logo": "msql.png",
+        "homepage_url": "https://www.microsoft.com/en-us/sql-server",
+        "categories": [
+            DatabaseCategory.TRADITIONAL_RDBMS,
+            DatabaseCategory.PROPRIETARY,
+        ],
+        "pypi_packages": ["pymssql"],
+        "connection_string": "mssql+pymssql://{username}:{password}@{host}:{port}/{database}",
+        "default_port": 1433,
+        "drivers": [
+            {
+                "name": "pymssql",
+                "pypi_package": "pymssql",
+                "connection_string": "mssql+pymssql://{username}:{password}@{host}:{port}/{database}",
+                "is_recommended": True,
+            },
+            {
+                "name": "pyodbc",
+                "pypi_package": "pyodbc",
+                "connection_string": "mssql+pyodbc:///?odbc_connect=Driver%3D%7BODBC+Driver+17+for+SQL+Server%7D%3BServer%3Dtcp%3A%3C{host}%3E%2C1433%3BDatabase%3D{database}%3BUid%3D{username}%3BPwd%3D{password}%3BEncrypt%3Dyes%3BConnection+Timeout%3D30",
+                "is_recommended": False,
+                "notes": (
+                    "Connection string must be URL-encoded. "
+                    "Special characters like @ need encoding."
+                ),
+            },
+        ],
+        "docs_url": "https://docs.sqlalchemy.org/en/20/core/engines.html#escaping-special-characters-such-as-signs-in-passwords",
+    }
+
     max_column_name_length = 128
     allows_cte_in_subquery = False
-    allow_limit_clause = False
+    supports_multivalues_insert = True
 
     _time_grain_expressions = {
         None: "{col}",
@@ -85,6 +122,11 @@ class MssqlEngineSpec(BaseEngineSpec):
             re.compile(r"^smalldatetime.*", re.IGNORECASE),
             SMALLDATETIME(),
             GenericDataType.TEMPORAL,
+        ),
+        (
+            re.compile(r"^uniqueidentifier.*", re.IGNORECASE),
+            GUID(),
+            GenericDataType.STRING,
         ),
     )
 
@@ -151,7 +193,7 @@ class MssqlEngineSpec(BaseEngineSpec):
     def extract_error_message(cls, ex: Exception) -> str:
         if str(ex).startswith("(8155,"):
             return (
-                f"{cls.engine} error: All your SQL functions need to "
+                f"{cls.engine} error: All your SQL functions need to "  # noqa: S608
                 "have an alias on MSSQL. For example: SELECT COUNT(*) AS C1 FROM TABLE1"
             )
         return f"{cls.engine} error: {cls._extract_error_message(ex)}"
@@ -161,3 +203,22 @@ class AzureSynapseSpec(MssqlEngineSpec):
     engine = "mssql"
     engine_name = "Azure Synapse"
     default_driver = "pyodbc"
+
+    metadata = {
+        "description": (
+            "Azure Synapse Analytics is a cloud-based enterprise data warehouse "
+            "from Microsoft that combines big data and data warehousing."
+        ),
+        "logo": "azure.svg",
+        "homepage_url": "https://azure.microsoft.com/en-us/products/synapse-analytics/",
+        "categories": [
+            DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.PROPRIETARY,
+        ],
+        "pypi_packages": ["pymssql"],
+        "connection_string": (
+            "mssql+pymssql://{username}@{server}:{password}@"
+            "{server}.database.windows.net:1433/{database}"
+        ),
+    }

@@ -1,0 +1,19 @@
+---
+id: row-level-security
+title: "Row Level Security"
+description: "Row Level Security"
+custom_edit_url: null
+---
+
+Manage row-level security rules for data access.
+
+| Method | Endpoint | Path |
+|--------|----------|------|
+| `DELETE` | [Bulk delete RLS rules](./bulk-delete-rls-rules) | `/api/v1/rowlevelsecurity/` |
+| `GET` | [Get a list of RLS](./get-a-list-of-rls) | `/api/v1/rowlevelsecurity/` |
+| `POST` | [Create a new RLS rule](./create-a-new-rls-rule) | `/api/v1/rowlevelsecurity/` |
+| `GET` | [Get metadata information about this API resource (rowlevelsecurity--info)](./get-metadata-information-about-this-api-resource-rowlevelsecurity-info) | `/api/v1/rowlevelsecurity/_info` |
+| `DELETE` | [Delete an RLS](./delete-an-rls) | `/api/v1/rowlevelsecurity/{pk}` |
+| `GET` | [Get an RLS](./get-an-rls) | `/api/v1/rowlevelsecurity/{pk}` |
+| `PUT` | [Update an RLS rule](./update-an-rls-rule) | `/api/v1/rowlevelsecurity/{pk}` |
+| `GET` | [Get related fields data (rowlevelsecurity-related-column-name)](./get-related-fields-data-rowlevelsecurity-related-column-name) | `/api/v1/rowlevelsecurity/related/{column_name}` |

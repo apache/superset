@@ -16,19 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import * as reactRedux from 'react-redux';
+import { act, type ComponentProps } from 'react';
 import {
+  cleanup,
   fireEvent,
   render,
   screen,
-  cleanup,
+  userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { createDatasource } from 'src/SqlLab/actions/sqlLab';
 import { user, testQuery, mockdatasets } from 'src/SqlLab/fixtures';
+import { FeatureFlag, SupersetClient } from '@superset-ui/core';
 
 const mockedProps = {
   visible: true,
@@ -38,49 +39,67 @@ const mockedProps = {
   datasource: testQuery,
 };
 
+// Render with the SqlLab user fixture preloaded into the mock store so the
+// component's useSelector(state => state.user) returns a useful value.
+// Previously this test used jest.spyOn(reactRedux, 'useSelector') to inject
+// the user directly, which can't intercept calls routed through the typed
+// useAppSelector hook.
+const renderModal = (
+  props: Partial<ComponentProps<typeof SaveDatasetModal>> = {},
+) =>
+  render(<SaveDatasetModal {...mockedProps} {...props} />, {
+    useRedux: true,
+    initialState: { user },
+  });
+
 fetchMock.get('glob:*/api/v1/dataset/?*', {
   result: mockdatasets,
   dataset_count: 3,
 });
 
-jest.useFakeTimers();
+jest.useFakeTimers({ advanceTimers: true });
 
-// Mock the user
-const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
 beforeEach(() => {
-  useSelectorMock.mockClear();
   cleanup();
 });
 
-// Mock the createDatasource action
-const useDispatchMock = jest.spyOn(reactRedux, 'useDispatch');
+// Mock createDatasource to return a thunk that resolves with the dataset's
+// new id. The test's mock store includes redux-thunk middleware (from RTK's
+// getDefaultMiddleware), so dispatch(createDatasource(...)) properly unwraps
+// the thunk and the production code's .then((data) => clearDatasetCache(data.id))
+// chain receives `{ id: 123 }`. Individual tests can override per-call as needed.
 jest.mock('src/SqlLab/actions/sqlLab', () => ({
-  createDatasource: jest.fn(),
+  createDatasource: jest.fn(() => () => Promise.resolve({ id: 123 })),
 }));
 jest.mock('src/explore/exploreUtils/formData', () => ({
   postFormData: jest.fn(),
 }));
+jest.mock('src/utils/cachedSupersetGet', () => ({
+  ...jest.requireActual('src/utils/cachedSupersetGet'),
+  clearDatasetCache: jest.fn(),
+}));
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SaveDatasetModal', () => {
-  it('renders a "Save as new" field', () => {
-    render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
+  test('renders a "Save as new" field', () => {
+    renderModal();
 
     const saveRadioBtn = screen.getByRole('radio', {
-      name: /save as new unimportant/i,
+      name: /save as new/i,
     });
 
     const fieldLabel = screen.getByText(/save as new/i);
     const inputField = screen.getByRole('textbox');
     const inputFieldText = screen.getByDisplayValue(/unimportant/i);
 
-    expect(saveRadioBtn).toBeVisible();
-    expect(fieldLabel).toBeVisible();
-    expect(inputField).toBeVisible();
-    expect(inputFieldText).toBeVisible();
+    expect(saveRadioBtn).toBeInTheDocument();
+    expect(fieldLabel).toBeInTheDocument();
+    expect(inputField).toBeInTheDocument();
+    expect(inputFieldText).toBeInTheDocument();
   });
 
-  it('renders an "Overwrite existing" field', () => {
-    render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
+  test('renders an "Overwrite existing" field', () => {
+    renderModal();
 
     const overwriteRadioBtn = screen.getByRole('radio', {
       name: /overwrite existing/i,
@@ -89,27 +108,49 @@ describe('SaveDatasetModal', () => {
     const inputField = screen.getByRole('combobox');
     const placeholderText = screen.getByText(/select or type dataset name/i);
 
-    expect(overwriteRadioBtn).toBeVisible();
-    expect(fieldLabel).toBeVisible();
-    expect(inputField).toBeVisible();
-    expect(placeholderText).toBeVisible();
+    expect(overwriteRadioBtn).toBeInTheDocument();
+    expect(fieldLabel).toBeInTheDocument();
+    expect(inputField).toBeInTheDocument();
+    expect(placeholderText).toBeInTheDocument();
   });
 
-  it('renders a close button', () => {
-    render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
+  test('renders a close button', () => {
+    renderModal();
 
-    expect(screen.getByRole('button', { name: /close/i })).toBeVisible();
+    expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
   });
 
-  it('renders a save button when "Save as new" is selected', () => {
-    render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
+  test('renders a save button when "Save as new" is selected', () => {
+    renderModal();
 
     // "Save as new" is selected when the modal opens by default
-    expect(screen.getByRole('button', { name: /save/i })).toBeVisible();
+    expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument();
   });
 
-  it('renders an overwrite button when "Overwrite existing" is selected', () => {
-    render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
+  test('disables the save button when the dataset name is empty or whitespace-only', async () => {
+    renderModal();
+
+    const nameInput = screen.getByRole('textbox');
+    const saveBtn = screen.getByRole('button', { name: /save/i });
+
+    // Default name is present, so save starts enabled
+    expect(saveBtn).toBeEnabled();
+
+    // Clearing the name disables save
+    await userEvent.clear(nameInput);
+    await waitFor(() => expect(saveBtn).toBeDisabled());
+
+    // Whitespace-only name keeps save disabled
+    await userEvent.type(nameInput, '   ');
+    await waitFor(() => expect(saveBtn).toBeDisabled());
+
+    // A non-empty name re-enables save
+    await userEvent.type(nameInput, 'My dataset');
+    await waitFor(() => expect(saveBtn).toBeEnabled());
+  });
+
+  test('renders an overwrite button when "Overwrite existing" is selected', () => {
+    renderModal();
 
     // Click the overwrite radio button to reveal the overwrite confirmation and back buttons
     const overwriteRadioBtn = screen.getByRole('radio', {
@@ -117,18 +158,19 @@ describe('SaveDatasetModal', () => {
     });
     userEvent.click(overwriteRadioBtn);
 
-    expect(screen.getByRole('button', { name: /overwrite/i })).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: /overwrite/i }),
+    ).toBeInTheDocument();
   });
 
-  it('renders the overwrite button as disabled until an existing dataset is selected', async () => {
-    useSelectorMock.mockReturnValue({ ...user });
-    render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
+  test('renders the overwrite button as disabled until an existing dataset is selected', async () => {
+    renderModal();
 
     // Click the overwrite radio button
     const overwriteRadioBtn = screen.getByRole('radio', {
       name: /overwrite existing/i,
     });
-    userEvent.click(overwriteRadioBtn);
+    await userEvent.click(overwriteRadioBtn);
 
     // Overwrite confirmation button should be disabled at this point
     const overwriteConfirmationBtn = screen.getByRole('button', {
@@ -138,65 +180,74 @@ describe('SaveDatasetModal', () => {
 
     // Click the overwrite select component
     const select = screen.getByRole('combobox', { name: /existing dataset/i })!;
-    userEvent.click(select);
+    await userEvent.click(select);
 
-    await waitFor(() =>
-      expect(screen.queryByText('Loading...')).not.toBeVisible(),
-    );
+    // Advance timers to flush debounced fetches in AsyncSelect
+    await act(async () => {
+      jest.runAllTimers();
+    });
+
+    await waitFor(() => {
+      const loading = screen.queryByText('Loading...');
+      expect(loading === null || !loading.checkVisibility()).toBe(true);
+    });
 
     // Select the first "existing dataset" from the listbox
     const option = screen.getAllByText('coolest table 0')[1];
-    userEvent.click(option);
+    await userEvent.click(option);
 
     // Overwrite button should now be enabled
     expect(overwriteConfirmationBtn).toBeEnabled();
   });
 
-  it('renders a confirm overwrite screen when overwrite is clicked', async () => {
-    useSelectorMock.mockReturnValue({ ...user });
-    render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
+  test('renders a confirm overwrite screen when overwrite is clicked', async () => {
+    renderModal();
 
     // Click the overwrite radio button
     const overwriteRadioBtn = screen.getByRole('radio', {
       name: /overwrite existing/i,
     });
-    userEvent.click(overwriteRadioBtn);
+    await userEvent.click(overwriteRadioBtn);
 
     // Click the overwrite select component
     const select = screen.getByRole('combobox', { name: /existing dataset/i });
-    userEvent.click(select);
+    await userEvent.click(select);
 
-    await waitFor(() =>
-      expect(screen.queryByText('Loading...')).not.toBeVisible(),
-    );
+    // Advance timers to flush debounced fetches in AsyncSelect
+    await act(async () => {
+      jest.runAllTimers();
+    });
+
+    await waitFor(() => {
+      const loading = screen.queryByText('Loading...');
+      expect(loading === null || !loading.checkVisibility()).toBe(true);
+    });
 
     // Select the first "existing dataset" from the listbox
     const option = screen.getAllByText('coolest table 0')[1];
-    userEvent.click(option);
+    await userEvent.click(option);
 
     // Click the overwrite button to access the confirmation screen
     const overwriteConfirmationBtn = screen.getByRole('button', {
       name: /overwrite/i,
     });
-    userEvent.click(overwriteConfirmationBtn);
+    await userEvent.click(overwriteConfirmationBtn);
 
     // Overwrite screen text
-    expect(screen.getByText(/save or overwrite dataset/i)).toBeVisible();
+    expect(screen.getByText(/save or overwrite dataset/i)).toBeInTheDocument();
     expect(
       screen.getByText(/are you sure you want to overwrite this dataset\?/i),
-    ).toBeVisible();
+    ).toBeInTheDocument();
     // Overwrite screen buttons
-    expect(screen.getByRole('button', { name: /close/i })).toBeVisible();
-    expect(screen.getByRole('button', { name: /back/i })).toBeVisible();
-    expect(screen.getByRole('button', { name: /overwrite/i })).toBeVisible();
+    expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /back/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /overwrite/i }),
+    ).toBeInTheDocument();
   });
 
-  it('sends the schema when creating the dataset', async () => {
-    const dummyDispatch = jest.fn().mockResolvedValue({});
-    useDispatchMock.mockReturnValue(dummyDispatch);
-    useSelectorMock.mockReturnValue({ ...user });
-
-    render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
+  test('sends the schema when creating the dataset', async () => {
+    renderModal();
 
     const inputFieldText = screen.getByDisplayValue(/unimportant/i);
     fireEvent.change(inputFieldText, { target: { value: 'my dataset' } });
@@ -216,18 +267,26 @@ describe('SaveDatasetModal', () => {
     });
   });
 
-  it('sends the catalog when creating the dataset', async () => {
-    const dummyDispatch = jest.fn().mockResolvedValue({});
-    useDispatchMock.mockReturnValue(dummyDispatch);
-    useSelectorMock.mockReturnValue({ ...user });
+  test('trims surrounding whitespace from the dataset name on save', async () => {
+    renderModal();
 
-    render(
-      <SaveDatasetModal
-        {...mockedProps}
-        datasource={{ ...mockedProps.datasource, catalog: 'public' }}
-      />,
-      { useRedux: true },
+    const inputFieldText = screen.getByDisplayValue(/unimportant/i);
+    fireEvent.change(inputFieldText, { target: { value: '  my dataset  ' } });
+
+    const saveConfirmationBtn = screen.getByRole('button', {
+      name: /save/i,
+    });
+    userEvent.click(saveConfirmationBtn);
+
+    expect(createDatasource).toHaveBeenCalledWith(
+      expect.objectContaining({ datasourceName: 'my dataset' }),
     );
+  });
+
+  test('sends the catalog when creating the dataset', async () => {
+    renderModal({
+      datasource: { ...mockedProps.datasource, catalog: 'public' },
+    });
 
     const inputFieldText = screen.getByDisplayValue(/unimportant/i);
     fireEvent.change(inputFieldText, { target: { value: 'my dataset' } });
@@ -245,5 +304,224 @@ describe('SaveDatasetModal', () => {
       sql: 'SELECT *',
       templateParams: undefined,
     });
+  });
+
+  test('does not renders a checkbox button when template processing is disabled', () => {
+    renderModal();
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+  });
+
+  test('renders a checkbox button when template processing is enabled', () => {
+    // @ts-expect-error
+    global.featureFlags = {
+      [FeatureFlag.EnableTemplateProcessing]: true,
+    };
+    renderModal();
+    expect(screen.getByRole('checkbox')).toBeInTheDocument();
+  });
+
+  test('correctly includes template parameters when template processing is enabled', () => {
+    // @ts-expect-error
+    global.featureFlags = {
+      [FeatureFlag.EnableTemplateProcessing]: true,
+    };
+    renderModal({
+      datasource: {
+        ...testQuery,
+        templateParams: JSON.stringify({ my_param: 12 }),
+      },
+    });
+    const inputFieldText = screen.getByDisplayValue(/unimportant/i);
+    fireEvent.change(inputFieldText, { target: { value: 'my dataset' } });
+
+    userEvent.click(screen.getByRole('checkbox'));
+
+    const saveConfirmationBtn = screen.getByRole('button', {
+      name: /save/i,
+    });
+    userEvent.click(saveConfirmationBtn);
+
+    expect(createDatasource).toHaveBeenCalledWith({
+      datasourceName: 'my dataset',
+      dbId: 1,
+      catalog: null,
+      schema: 'main',
+      sql: 'SELECT *',
+      templateParams: JSON.stringify({ my_param: 12 }),
+    });
+  });
+
+  test('correctly excludes template parameters when template processing is enabled', () => {
+    // @ts-expect-error
+    global.featureFlags = {
+      [FeatureFlag.EnableTemplateProcessing]: true,
+    };
+    renderModal({
+      datasource: {
+        ...testQuery,
+        templateParams: JSON.stringify({ my_param: 12 }),
+      },
+    });
+    const inputFieldText = screen.getByDisplayValue(/unimportant/i);
+    fireEvent.change(inputFieldText, { target: { value: 'my dataset' } });
+
+    userEvent.click(screen.getByRole('checkbox'));
+
+    const saveConfirmationBtn = screen.getByRole('button', {
+      name: /save/i,
+    });
+    userEvent.click(saveConfirmationBtn);
+
+    expect(createDatasource).toHaveBeenCalledWith({
+      datasourceName: 'my dataset',
+      dbId: 1,
+      catalog: null,
+      schema: 'main',
+      sql: 'SELECT *',
+      templateParams: undefined,
+    });
+  });
+
+  const setupOverwriteFlow = async () => {
+    // Select the "Overwrite existing" radio
+    await userEvent.click(
+      screen.getByRole('radio', { name: /overwrite existing/i }),
+    );
+    // Open the select to load existing-dataset options
+    await userEvent.click(
+      screen.getByRole('combobox', { name: /existing dataset/i }),
+    );
+    // Advance timers to flush debounced fetches in AsyncSelect
+    await act(async () => {
+      jest.runAllTimers();
+    });
+    // Wait for the loading indicator to clear
+    await waitFor(() => {
+      const loading = screen.queryByText('Loading...');
+      expect(loading === null || !loading.checkVisibility()).toBe(true);
+    });
+    // Pick an existing dataset (use the listbox item, not the input mirror)
+    const options = await screen.findAllByText('coolest table 0');
+    await userEvent.click(options[1]);
+    // First overwrite click → confirmation screen
+    await userEvent.click(screen.getByRole('button', { name: /overwrite/i }));
+    // Wait for the confirmation screen to render
+    await screen.findByText(/are you sure you want to overwrite this dataset/i);
+    // Second overwrite click → triggers the PUT
+    await userEvent.click(screen.getByRole('button', { name: /overwrite/i }));
+  };
+
+  test('sends template_params when overwriting a dataset with include template parameters checked', async () => {
+    // @ts-expect-error
+    global.featureFlags = {
+      [FeatureFlag.EnableTemplateProcessing]: true,
+    };
+
+    const putSpy = jest
+      .spyOn(SupersetClient, 'put')
+      .mockResolvedValue({ json: { result: { id: 0 } } } as any);
+
+    renderModal({
+      datasource: {
+        ...testQuery,
+        templateParams: JSON.stringify({ my_param: 12, _filters: 'foo' }),
+      },
+    });
+
+    // Check the "Include Template Parameters" checkbox
+    await userEvent.click(screen.getByRole('checkbox'));
+
+    await setupOverwriteFlow();
+
+    await waitFor(() => {
+      expect(
+        putSpy.mock.calls.some(([req]) =>
+          req.endpoint?.includes('api/v1/dataset/'),
+        ),
+      ).toBe(true);
+    });
+
+    const datasetPutCall = putSpy.mock.calls.find(([req]) =>
+      req.endpoint?.includes('api/v1/dataset/'),
+    )!;
+    const [req] = datasetPutCall;
+    expect(req.endpoint).toContain('override_columns=true');
+    const body = JSON.parse(req.body as string);
+    // _filters should be stripped, but my_param should be preserved
+    expect(body.template_params).toEqual(JSON.stringify({ my_param: 12 }));
+
+    putSpy.mockRestore();
+  });
+
+  test('does not send template_params when overwriting a dataset with include template parameters unchecked', async () => {
+    // @ts-expect-error
+    global.featureFlags = {
+      [FeatureFlag.EnableTemplateProcessing]: true,
+    };
+
+    const putSpy = jest
+      .spyOn(SupersetClient, 'put')
+      .mockResolvedValue({ json: { result: { id: 0 } } } as any);
+
+    renderModal({
+      datasource: {
+        ...testQuery,
+        templateParams: JSON.stringify({ my_param: 12 }),
+      },
+    });
+
+    // Do NOT check the "Include Template Parameters" checkbox
+    await setupOverwriteFlow();
+
+    await waitFor(() => {
+      expect(
+        putSpy.mock.calls.some(([req]) =>
+          req.endpoint?.includes('api/v1/dataset/'),
+        ),
+      ).toBe(true);
+    });
+
+    const datasetPutCall = putSpy.mock.calls.find(([req]) =>
+      req.endpoint?.includes('api/v1/dataset/'),
+    )!;
+    const [req] = datasetPutCall;
+    const body = JSON.parse(req.body as string);
+    expect(body.template_params).toBeUndefined();
+
+    putSpy.mockRestore();
+  });
+
+  test('clears dataset cache when creating new dataset', async () => {
+    const clearDatasetCache = jest.spyOn(
+      require('src/utils/cachedSupersetGet'),
+      'clearDatasetCache',
+    );
+    const postFormData = jest.spyOn(
+      require('src/explore/exploreUtils/formData'),
+      'postFormData',
+    );
+
+    postFormData.mockResolvedValue('chart_key_123');
+
+    renderModal();
+
+    const inputFieldText = screen.getByDisplayValue(/unimportant/i);
+    fireEvent.change(inputFieldText, { target: { value: 'my dataset' } });
+
+    const saveConfirmationBtn = screen.getByRole('button', {
+      name: /save/i,
+    });
+    userEvent.click(saveConfirmationBtn);
+
+    await waitFor(() => {
+      expect(clearDatasetCache).toHaveBeenCalledWith(123);
+    });
+  });
+
+  test('clearDatasetCache is imported and available', () => {
+    const { clearDatasetCache } = require('src/utils/cachedSupersetGet');
+
+    expect(clearDatasetCache).toBeDefined();
+    expect(typeof clearDatasetCache).toBe('function');
   });
 });

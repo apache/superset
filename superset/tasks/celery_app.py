@@ -23,6 +23,7 @@ it needs to call create_app() in order to initialize things properly
 from typing import Any
 
 from celery.signals import task_postrun, worker_process_init
+from flask import has_app_context
 
 # Superset framework imports
 from superset import create_app
@@ -32,6 +33,9 @@ from superset.extensions import celery_app, db
 flask_app = create_app()
 
 # Need to import late, as the celery_app will have been setup by "create_app()"
+# ruff: noqa: E402, F401
+# pylint: disable=wrong-import-position, unused-import
+from . import cache, scheduler
 
 # Export the celery app globally for Celery (as run on the cmd line) to find
 app = celery_app
@@ -60,9 +64,7 @@ def teardown(  # pylint: disable=unused-argument
     :see: https://gist.github.com/twolfson/a1b329e9353f9b575131
     """
 
-    if flask_app.config.get("SQLALCHEMY_COMMIT_ON_TEARDOWN"):
-        if not isinstance(retval, Exception):
-            db.session.commit()  # pylint: disable=consider-using-transaction
-
     if not flask_app.config.get("CELERY_ALWAYS_EAGER"):
-        db.session.remove()
+        # Ensure session is removed only inside flask app context
+        if has_app_context():
+            db.session.remove()

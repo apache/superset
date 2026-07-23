@@ -16,10 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { headerFontSize, subheaderFontSize } from '../sharedControls';
+import {
+  headerFontSize,
+  subheaderFontSize,
+  metricNameFontSize,
+} from '../sharedControls';
 
 const headerFontSizes = [16, 20, 30, 48, 60];
-const comparisonFontSizes = [16, 20, 26, 32, 40];
+const sharedFontSizes = [16, 20, 26, 32, 40];
+
+const metricNameProportionValues =
+  metricNameFontSize.config.options.map(
+    (option: { label: string; value: number }) => option.value,
+  ) ?? [];
 
 const headerProportionValues =
   headerFontSize.config.options.map(
@@ -35,11 +44,15 @@ const getFontSizeMapping = (
   proportionValues: number[],
   actualSizes: number[],
 ) =>
-  proportionValues.reduce((acc, value, index) => {
+  proportionValues.reduce<Record<number, number>>((acc, value, index) => {
     acc[value] = actualSizes[index] ?? actualSizes[actualSizes.length - 1];
     return acc;
   }, {});
 
+const metricNameFontSizesMapping = getFontSizeMapping(
+  metricNameProportionValues,
+  sharedFontSizes,
+);
 const headerFontSizesMapping = getFontSizeMapping(
   headerProportionValues,
   headerFontSizes,
@@ -47,8 +60,12 @@ const headerFontSizesMapping = getFontSizeMapping(
 
 const comparisonFontSizesMapping = getFontSizeMapping(
   subheaderProportionValues,
-  comparisonFontSizes,
+  sharedFontSizes,
 );
+
+export const getMetricNameFontSize = (proportionValue: number) =>
+  metricNameFontSizesMapping[proportionValue] ??
+  sharedFontSizes[sharedFontSizes.length - 1];
 
 export const getHeaderFontSize = (proportionValue: number) =>
   headerFontSizesMapping[proportionValue] ??
@@ -56,4 +73,4 @@ export const getHeaderFontSize = (proportionValue: number) =>
 
 export const getComparisonFontSize = (proportionValue: number) =>
   comparisonFontSizesMapping[proportionValue] ??
-  comparisonFontSizes[comparisonFontSizes.length - 1];
+  sharedFontSizes[sharedFontSizes.length - 1];

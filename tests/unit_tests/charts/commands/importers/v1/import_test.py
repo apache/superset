@@ -18,8 +18,11 @@
 
 import copy
 from collections.abc import Generator
+from datetime import datetime, timezone
+from unittest.mock import patch
 
 import pytest
+import yaml
 from flask_appbuilder.security.sqla.models import Role, User
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
@@ -27,8 +30,11 @@ from sqlalchemy.orm.session import Session
 from superset import security_manager
 from superset.commands.chart.importers.v1.utils import import_chart
 from superset.commands.exceptions import ImportFailedError
+from superset.commands.importers.v1.utils import import_tag
 from superset.connectors.sqla.models import Database, SqlaTable
+from superset.extensions import feature_flag_manager
 from superset.models.slice import Slice
+from superset.tags.models import TaggedObject
 from superset.utils.core import override_user
 from tests.integration_tests.fixtures.importexport import chart_config
 
@@ -68,7 +74,7 @@ def session_with_schema(session: Session) -> Generator[Session, None, None]:
     engine = session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
 
-    yield session
+    return session
 
 
 def test_import_chart(mocker: MockerFixture, session_with_schema: Session) -> None:
@@ -76,7 +82,9 @@ def test_import_chart(mocker: MockerFixture, session_with_schema: Session) -> No
     Test importing a chart.
     """
 
-    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mock_can_access = mocker.patch.object(
+        security_manager, "can_access", return_value=True
+    )
 
     config = copy.deepcopy(chart_config)
     config["datasource_id"] = 1
@@ -89,7 +97,7 @@ def test_import_chart(mocker: MockerFixture, session_with_schema: Session) -> No
     assert chart.external_url is None
 
     # Assert that the can write to chart was checked
-    security_manager.can_access.assert_called_once_with("can_write", "Chart")
+    mock_can_access.assert_called_once_with("can_write", "Chart")
 
 
 def test_import_chart_managed_externally(
@@ -98,7 +106,9 @@ def test_import_chart_managed_externally(
     """
     Test importing a chart that is managed externally.
     """
-    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mock_can_access = mocker.patch.object(
+        security_manager, "can_access", return_value=True
+    )
 
     config = copy.deepcopy(chart_config)
     config["datasource_id"] = 1
@@ -111,7 +121,7 @@ def test_import_chart_managed_externally(
     assert chart.external_url == "https://example.org/my_chart"
 
     # Assert that the can write to chart was checked
-    security_manager.can_access.assert_called_once_with("can_write", "Chart")
+    mock_can_access.assert_called_once_with("can_write", "Chart")
 
 
 def test_import_chart_without_permission(
@@ -121,7 +131,9 @@ def test_import_chart_without_permission(
     """
     Test importing a chart when a user doesn't have permissions to create.
     """
-    mocker.patch.object(security_manager, "can_access", return_value=False)
+    mock_can_access = mocker.patch.object(
+        security_manager, "can_access", return_value=False
+    )
 
     config = copy.deepcopy(chart_config)
     config["datasource_id"] = 1
@@ -134,7 +146,7 @@ def test_import_chart_without_permission(
         == "Chart doesn't exist and user doesn't have permission to create charts"
     )
     # Assert that the can write to chart was checked
-    security_manager.can_access.assert_called_once_with("can_write", "Chart")
+    mock_can_access.assert_called_once_with("can_write", "Chart")
 
 
 def test_filter_chart_annotations(session: Session) -> None:
@@ -152,7 +164,7 @@ def test_filter_chart_annotations(session: Session) -> None:
     annotation_layers = params["annotation_layers"]
 
     assert len(annotation_layers) == 1
-    assert all([al["annotationType"] == "FORMULA" for al in annotation_layers])
+    assert all([al["annotationType"] == "FORMULA" for al in annotation_layers])  # noqa: C419
 
 
 def test_import_existing_chart_without_permission(
@@ -162,8 +174,12 @@ def test_import_existing_chart_without_permission(
     """
     Test importing a chart when a user doesn't have permissions to modify.
     """
-    mocker.patch.object(security_manager, "can_access", return_value=True)
-    mocker.patch.object(security_manager, "can_access_chart", return_value=False)
+    mock_can_access = mocker.patch.object(
+        security_manager, "can_access", return_value=True
+    )
+    mock_can_access_chart = mocker.patch.object(
+        security_manager, "can_access_chart", return_value=False
+    )
 
     slice = (
         session_with_data.query(Slice)
@@ -171,17 +187,66 @@ def test_import_existing_chart_without_permission(
         .one_or_none()
     )
 
-    with override_user("admin"):
+    user = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe@example.org",
+        username="admin",
+        roles=[Role(name="Admin")],
+    )
+
+    with override_user(user):
         with pytest.raises(ImportFailedError) as excinfo:
             import_chart(chart_config, overwrite=True)
         assert (
             str(excinfo.value)
-            == "A chart already exists and user doesn't have permissions to overwrite it"
+            == "A chart already exists and user doesn't have permissions to overwrite it"  # noqa: E501
         )
 
     # Assert that the can write to chart was checked
-    security_manager.can_access.assert_called_once_with("can_write", "Chart")
-    security_manager.can_access_chart.assert_called_once_with(slice)
+    mock_can_access.assert_called_once_with("can_write", "Chart")
+    mock_can_access_chart.assert_called_once_with(slice)
+
+
+def test_import_existing_chart_without_owner_permission(
+    mocker: MockerFixture,
+    session_with_data: Session,
+) -> None:
+    """
+    Test importing a chart when a user doesn't have permissions to modify.
+    """
+    mock_can_access = mocker.patch.object(
+        security_manager, "can_access", return_value=True
+    )
+    mock_can_access_chart = mocker.patch.object(
+        security_manager, "can_access_chart", return_value=True
+    )
+
+    slice = (
+        session_with_data.query(Slice)
+        .filter(Slice.uuid == chart_config["uuid"])
+        .one_or_none()
+    )
+
+    user = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe@example.org",
+        username="admin",
+        roles=[Role(name="Gamma")],
+    )
+
+    with override_user(user):
+        with pytest.raises(ImportFailedError) as excinfo:
+            import_chart(chart_config, overwrite=True)
+        assert (
+            str(excinfo.value)
+            == "A chart already exists and user doesn't have permissions to overwrite it"  # noqa: E501
+        )
+
+    # Assert that the can write to chart was checked
+    mock_can_access.assert_called_once_with("can_write", "Chart")
+    mock_can_access_chart.assert_called_once_with(slice)
 
 
 def test_import_existing_chart_with_permission(
@@ -191,8 +256,12 @@ def test_import_existing_chart_with_permission(
     """
     Test importing a chart that exists when a user has access permission to that chart.
     """
-    mocker.patch.object(security_manager, "can_access", return_value=True)
-    mocker.patch.object(security_manager, "can_access_chart", return_value=True)
+    mock_can_access = mocker.patch.object(
+        security_manager, "can_access", return_value=True
+    )
+    mock_can_access_chart = mocker.patch.object(
+        security_manager, "can_access_chart", return_value=True
+    )
 
     admin = User(
         first_name="Alice",
@@ -215,5 +284,225 @@ def test_import_existing_chart_with_permission(
     with override_user(admin):
         import_chart(config, overwrite=True)
     # Assert that the can write to chart was checked
-    security_manager.can_access.assert_called_once_with("can_write", "Chart")
-    security_manager.can_access_chart.assert_called_once_with(slice)
+    mock_can_access.assert_called_once_with("can_write", "Chart")
+    mock_can_access_chart.assert_called_once_with(slice)
+
+
+def _soft_delete_existing_chart(session: Session) -> int:
+    """Soft-delete the seeded chart (by fixture UUID) and return its original id.
+
+    Shared setup for the soft-delete import tests: locate the chart, stamp
+    ``deleted_at``, flush, and return the id so callers can assert the restore
+    happened in place (same id).
+    """
+    existing = (
+        session.query(Slice).filter(Slice.uuid == chart_config["uuid"]).one_or_none()
+    )
+    assert existing is not None
+    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+    session.flush()
+    return existing.id
+
+
+def test_import_soft_deleted_chart_overwrite_restores_in_place(
+    mocker: MockerFixture,
+    session_with_data: Session,
+) -> None:
+    """
+    Overwrite-importing a soft-deleted chart must restore the row in place,
+    not hard-delete-and-replace. Otherwise out-of-archive references
+    (dashboard_slices junctions, report.chart_id) would cascade away.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "can_access_chart", return_value=True)
+
+    original_id = _soft_delete_existing_chart(session_with_data)
+
+    admin = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe@example.org",
+        username="admin",
+        roles=[Role(name="Admin")],
+    )
+
+    config = copy.deepcopy(chart_config)
+    config["datasource_id"] = 1
+    config["datasource_type"] = "table"
+
+    with override_user(admin):
+        chart = import_chart(config, overwrite=True)
+
+    assert chart.id == original_id
+    assert chart.deleted_at is None
+
+
+def test_import_soft_deleted_chart_ignore_permissions_restores_in_place(
+    mocker: MockerFixture,
+    session_with_data: Session,
+) -> None:
+    """
+    The example loader path: ignore_permissions=True with no logged-in
+    user. The if/elif structure must preserve config["id"] on the
+    fallthrough overwrite path so the example loader can re-import over
+    a soft-deleted match without colliding on the UUID unique index.
+    """
+    original_id = _soft_delete_existing_chart(session_with_data)
+
+    config = copy.deepcopy(chart_config)
+    config["datasource_id"] = 1
+    config["datasource_type"] = "table"
+
+    chart = import_chart(config, overwrite=True, ignore_permissions=True)
+
+    assert chart.id == original_id
+    assert chart.deleted_at is None
+
+
+def test_import_soft_deleted_chart_non_overwrite_restores_for_editor(
+    mocker: MockerFixture,
+    session_with_data: Session,
+) -> None:
+    """
+    Non-overwrite re-import of a soft-deleted UUID is implicitly a
+    restore-and-update: the user is bringing the chart back by uploading
+    it again. The same editorship rule as the overwrite path applies, so
+    an editor (or admin) succeeds without setting overwrite=True.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "can_access_chart", return_value=True)
+
+    original_id = _soft_delete_existing_chart(session_with_data)
+
+    admin = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe@example.org",
+        username="admin",
+        roles=[Role(name="Admin")],
+    )
+
+    config = copy.deepcopy(chart_config)
+    config["datasource_id"] = 1
+    config["datasource_type"] = "table"
+
+    with override_user(admin):
+        chart = import_chart(config, overwrite=False)
+
+    assert chart.id == original_id
+    assert chart.deleted_at is None
+
+
+def test_import_soft_deleted_chart_non_overwrite_raises_for_non_editor(
+    mocker: MockerFixture,
+    session_with_data: Session,
+) -> None:
+    """
+    Non-overwrite re-import that would resurrect a soft-deleted chart
+    must respect editorship: a non-editor without admin role cannot
+    restore-via-import. Mirrors the explicit /restore endpoint's check.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "can_access_chart", return_value=True)
+
+    _soft_delete_existing_chart(session_with_data)
+
+    non_editor = User(
+        first_name="Bob",
+        last_name="Roe",
+        email="bob@example.org",
+        username="bob",
+        roles=[Role(name="Gamma")],
+    )
+
+    with override_user(non_editor):
+        with pytest.raises(ImportFailedError) as excinfo:
+            import_chart(chart_config, overwrite=False)
+    assert "permissions to restore" in str(excinfo.value)
+
+
+def test_import_soft_deleted_chart_raises_when_caller_lacks_can_write(
+    mocker: MockerFixture,
+    session_with_data: Session,
+) -> None:
+    """
+    Case B: re-import of a soft-deleted UUID by a caller without
+    can_write must raise, not silently return the soft-deleted row.
+
+    Real-world scenario: a user has can_write Dashboard but not
+    can_write Chart, and they import a dashboard zip that references a
+    soft-deleted chart. Silently returning the row would let the
+    dashboard importer reattach to it via chart_ids[uuid] = existing.id
+    and produce a dashboard with hidden (broken) charts.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=False)
+
+    _soft_delete_existing_chart(session_with_data)
+
+    with pytest.raises(ImportFailedError) as excinfo:
+        import_chart(chart_config, overwrite=False)
+    assert "can_write" in str(excinfo.value)
+
+
+def test_import_existing_active_chart_overwrite_without_can_write_returns_existing(
+    mocker: MockerFixture,
+    session_with_data: Session,
+) -> None:
+    """
+    An *active* (not soft-deleted) chart re-imported with overwrite=True by a
+    caller without can_write must fall through to returning the existing row,
+    not raise the restore error. Case B is keyed on ``is_soft_deleted``, so the
+    fused ``needs_mutation`` condition must not pull active rows into the
+    restore-without-permission branch (pre-soft-delete overwrite behaviour).
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=False)
+
+    existing = (
+        session_with_data.query(Slice).filter(Slice.uuid == chart_config["uuid"]).one()
+    )
+    assert existing.deleted_at is None
+
+    result = import_chart(chart_config, overwrite=True)
+
+    assert result.id == existing.id
+    assert result.deleted_at is None
+
+
+def test_import_tag_logic_for_charts(session_with_schema: Session):
+    contents = {
+        "tags.yaml": yaml.dump(
+            {"tags": [{"tag_name": "tag_1", "description": "Description for tag_1"}]}
+        )
+    }
+
+    object_id = 1
+    object_type = "chart"
+
+    with patch.object(feature_flag_manager, "is_feature_enabled", return_value=True):
+        new_tag_ids = import_tag(
+            ["tag_1"], contents, object_id, object_type, session_with_schema
+        )
+        assert len(new_tag_ids) > 0
+        assert (
+            session_with_schema.query(TaggedObject)
+            .filter_by(object_id=object_id, object_type=object_type)
+            .count()
+            > 0
+        )
+
+    session_with_schema.query(TaggedObject).filter_by(
+        object_id=object_id, object_type=object_type
+    ).delete()
+    session_with_schema.commit()
+
+    with patch.object(feature_flag_manager, "is_feature_enabled", return_value=False):
+        new_tag_ids_disabled = import_tag(
+            ["tag_1"], contents, object_id, object_type, session_with_schema
+        )
+        assert len(new_tag_ids_disabled) == 0
+        associated_tags = (
+            session_with_schema.query(TaggedObject)
+            .filter_by(object_id=object_id, object_type=object_type)
+            .all()
+        )
+        assert len(associated_tags) == 0

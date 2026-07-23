@@ -53,13 +53,15 @@ export type SetAdhocFilter = BaseSimpleAdhocFilter & {
 };
 
 export type SimpleAdhocFilter =
-  | UnaryAdhocFilter
-  | BinaryAdhocFilter
-  | SetAdhocFilter;
+  UnaryAdhocFilter | BinaryAdhocFilter | SetAdhocFilter;
 
 export interface FreeFormAdhocFilter extends BaseAdhocFilter {
   expressionType: 'SQL';
   sqlExpression: string;
+}
+
+export interface LatestPartitionAdhocFilter extends BaseAdhocFilter {
+  datasource?: { schema?: string; datasource_name?: string };
 }
 
 export type AdhocFilter = SimpleAdhocFilter | FreeFormAdhocFilter;

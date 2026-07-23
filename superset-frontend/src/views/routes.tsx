@@ -16,8 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
-import { lazy, ComponentType, ComponentProps } from 'react';
+import {
+  lazy,
+  ComponentType,
+  ComponentProps,
+  LazyExoticComponent,
+} from 'react';
+import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
+import getBootstrapData from 'src/utils/getBootstrapData';
+import { stripAppRoot } from 'src/utils/navigationUtils';
+import { RoutePaths } from './routePaths';
 
 // not lazy loaded since this is the home page.
 import Home from 'src/pages/Home';
@@ -55,6 +65,10 @@ const CssTemplateList = lazy(
     import(
       /* webpackChunkName: "CssTemplateList" */ 'src/pages/CssTemplateList'
     ),
+);
+
+const ThemeList = lazy(
+  () => import(/* webpackChunkName: "ThemeList" */ 'src/pages/ThemeList'),
 );
 
 const DashboardList = lazy(
@@ -116,6 +130,10 @@ const Tags = lazy(
   () => import(/* webpackChunkName: "Tags" */ 'src/pages/Tags'),
 );
 
+const Extensions = lazy(
+  () => import(/* webpackChunkName: "Tags" */ 'src/extensions/ExtensionsList'),
+);
+
 const RowLevelSecurityList = lazy(
   () =>
     import(
@@ -123,122 +141,132 @@ const RowLevelSecurityList = lazy(
     ),
 );
 
+const TaskList = lazy(
+  () => import(/* webpackChunkName: "TaskList" */ 'src/pages/TaskList'),
+);
+
+const RolesList = lazy(
+  () => import(/* webpackChunkName: "RolesList" */ 'src/pages/RolesList'),
+);
+
+const UsersList: LazyExoticComponent<any> = lazy(
+  () => import(/* webpackChunkName: "UsersList" */ 'src/pages/UsersList'),
+);
+
+const UserInfo = lazy(
+  () => import(/* webpackChunkName: "UserInfo" */ 'src/pages/UserInfo'),
+);
+const ActionLogList: LazyExoticComponent<any> = lazy(
+  () => import(/* webpackChunkName: "ActionLogList" */ 'src/pages/ActionLog'),
+);
+
+const Login = lazy(
+  () => import(/* webpackChunkName: "Login" */ 'src/pages/Login'),
+);
+
+const Register = lazy(
+  () => import(/* webpackChunkName: "Register" */ 'src/pages/Register'),
+);
+
+const GroupsList: LazyExoticComponent<any> = lazy(
+  () => import(/* webpackChunkName: "GroupsList" */ 'src/pages/GroupsList'),
+);
+const UserRegistrations = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "UserRegistrations" */ 'src/pages/UserRegistrations'
+    ),
+);
+
+const FileHandler = lazy(
+  () => import(/* webpackChunkName: "FileHandler" */ 'src/pages/FileHandler'),
+);
+
+const RedirectWarning = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "RedirectWarning" */ 'src/pages/RedirectWarning'
+    ),
+);
+
 type Routes = {
   path: string;
-  Component: ComponentType;
-  Fallback?: ComponentType;
+  Component: ComponentType<any>;
+  Fallback?: ComponentType<any>;
   props?: ComponentProps<any>;
 }[];
 
 export const routes: Routes = [
+  { path: RoutePaths.REDIRECT, Component: RedirectWarning },
+  { path: RoutePaths.LOGIN, Component: Login },
+  { path: RoutePaths.REGISTER_ACTIVATION, Component: Register },
+  { path: RoutePaths.REGISTER, Component: Register },
+  { path: RoutePaths.LOGOUT, Component: Login },
+  { path: RoutePaths.HOME, Component: Home },
+  { path: RoutePaths.FILE_HANDLER, Component: FileHandler },
+  { path: RoutePaths.DASHBOARD_LIST, Component: DashboardList },
+  { path: RoutePaths.DASHBOARD, Component: Dashboard },
+  { path: RoutePaths.CHART_ADD, Component: ChartCreation },
+  { path: RoutePaths.CHART_LIST, Component: ChartList },
+  { path: RoutePaths.DATASET_LIST, Component: DatasetList },
+  { path: RoutePaths.DATABASE_LIST, Component: DatabaseList },
+  { path: RoutePaths.SAVED_QUERIES, Component: SavedQueryList },
+  { path: RoutePaths.CSS_TEMPLATES, Component: CssTemplateList },
+  { path: RoutePaths.THEMES, Component: ThemeList },
+  { path: RoutePaths.ANNOTATION_LAYERS, Component: AnnotationLayerList },
+  { path: RoutePaths.ANNOTATION_LIST, Component: AnnotationList },
+  { path: RoutePaths.QUERY_HISTORY, Component: QueryHistoryList },
+  { path: RoutePaths.ALERTS, Component: AlertReportList },
   {
-    path: '/superset/welcome/',
-    Component: Home,
-  },
-  {
-    path: '/dashboard/list/',
-    Component: DashboardList,
-  },
-  {
-    path: '/superset/dashboard/:idOrSlug/',
-    Component: Dashboard,
-  },
-  {
-    path: '/chart/add',
-    Component: ChartCreation,
-  },
-  {
-    path: '/chart/list/',
-    Component: ChartList,
-  },
-  {
-    path: '/tablemodelview/list/',
-    Component: DatasetList,
-  },
-  {
-    path: '/databaseview/list/',
-    Component: DatabaseList,
-  },
-  {
-    path: '/savedqueryview/list/',
-    Component: SavedQueryList,
-  },
-  {
-    path: '/csstemplatemodelview/list/',
-    Component: CssTemplateList,
-  },
-  {
-    path: '/annotationlayer/list/',
-    Component: AnnotationLayerList,
-  },
-  {
-    path: '/annotationlayer/:annotationLayerId/annotation/',
-    Component: AnnotationList,
-  },
-  {
-    path: '/sqllab/history/',
-    Component: QueryHistoryList,
-  },
-  {
-    path: '/alert/list/',
+    path: RoutePaths.REPORTS,
     Component: AlertReportList,
+    props: { isReportEnabled: true },
   },
+  { path: RoutePaths.ALERT_LOG, Component: ExecutionLogList },
   {
-    path: '/report/list/',
-    Component: AlertReportList,
-    props: {
-      isReportEnabled: true,
-    },
-  },
-  {
-    path: '/alert/:alertId/log/',
+    path: RoutePaths.REPORT_LOG,
     Component: ExecutionLogList,
+    props: { isReportEnabled: true },
   },
-  {
-    path: '/report/:alertId/log/',
-    Component: ExecutionLogList,
-    props: {
-      isReportEnabled: true,
-    },
-  },
-  {
-    path: '/explore/',
-    Component: Chart,
-  },
-  {
-    path: '/superset/explore/p',
-    Component: Chart,
-  },
-  {
-    path: '/dataset/add/',
-    Component: DatasetCreation,
-  },
-  {
-    path: '/dataset/:datasetId',
-    Component: DatasetCreation,
-  },
-  {
-    path: '/rowlevelsecurity/list',
-    Component: RowLevelSecurityList,
-  },
-  {
-    path: '/sqllab/',
-    Component: SqlLab,
-  },
+  { path: RoutePaths.EXPLORE, Component: Chart },
+  { path: RoutePaths.EXPLORE_PERMALINK, Component: Chart },
+  { path: RoutePaths.DATASET_ADD, Component: DatasetCreation },
+  { path: RoutePaths.DATASET, Component: DatasetCreation },
+  { path: RoutePaths.ROW_LEVEL_SECURITY, Component: RowLevelSecurityList },
+  { path: RoutePaths.TASKS, Component: TaskList },
+  { path: RoutePaths.SQLLAB, Component: SqlLab },
+  { path: RoutePaths.USER_INFO, Component: UserInfo },
+  { path: RoutePaths.ACTION_LOG, Component: ActionLogList },
+  { path: RoutePaths.REGISTRATIONS, Component: UserRegistrations },
 ];
 
 if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
-  routes.push({
-    path: '/superset/all_entities/',
-    Component: AllEntities,
-  });
-  routes.push({
-    path: '/superset/tags/',
-    Component: Tags,
-  });
+  routes.push({ path: RoutePaths.ALL_ENTITIES, Component: AllEntities });
+  routes.push({ path: RoutePaths.TAGS, Component: Tags });
 }
 
-const frontEndRoutes = routes
+const user = getBootstrapData()?.user;
+const authRegistrationEnabled =
+  getBootstrapData()?.common.conf.AUTH_USER_REGISTRATION;
+const isAdmin = isUserAdmin(user);
+
+if (isAdmin) {
+  routes.push(
+    { path: RoutePaths.ROLES, Component: RolesList },
+    { path: RoutePaths.USERS, Component: UsersList },
+    { path: RoutePaths.GROUPS, Component: GroupsList },
+  );
+
+  if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
+    routes.push({ path: RoutePaths.EXTENSIONS, Component: Extensions });
+  }
+}
+
+if (authRegistrationEnabled) {
+  routes.push({ path: RoutePaths.REGISTRATIONS, Component: UserRegistrations });
+}
+
+const frontEndRoutes: Record<string, boolean> = routes
   .map(r => r.path)
   .reduce(
     (acc, curr) => ({
@@ -248,10 +276,19 @@ const frontEndRoutes = routes
     {},
   );
 
-export function isFrontendRoute(path?: string) {
+export const isFrontendRoute = (path?: string): boolean => {
   if (path) {
-    const basePath = path.split(/[?#]/)[0]; // strip out query params and link bookmarks
+    // Strip query / hash, then strip the application-root segment so menu URLs
+    // emitted by the backend (`url_for(...)` → `/<appRoot>/<route>`) match
+    // against the route table, which is keyed by post-basename paths.
+    //
+    // Note: this is a literal dictionary lookup, not a path-pattern match —
+    // parameterised routes such as `/dashboard/:idOrSlug/` are NOT matched
+    // by a concrete `/dashboard/123/` URL. Callers relying on that behaviour
+    // (e.g., the brand-link SPA-route check in `Menu.tsx`) accept a
+    // full-page-reload fallback for those URLs.
+    const basePath = stripAppRoot(path.split(/[?#]/)[0]);
     return !!frontEndRoutes[basePath];
   }
   return false;
-}
+};

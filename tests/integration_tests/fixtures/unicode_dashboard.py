@@ -16,7 +16,7 @@
 # under the License.
 import pandas as pd
 import pytest
-from sqlalchemy import String
+from sqlalchemy import String, text
 
 from superset import db
 from superset.connectors.sqla.models import SqlaTable
@@ -52,10 +52,11 @@ def load_unicode_data():
     yield
     with app.app_context():
         with get_example_database().get_sqla_engine() as engine:
-            engine.execute("DROP TABLE IF EXISTS unicode_test")
+            with engine.begin() as conn:
+                conn.execute(text("DROP TABLE IF EXISTS unicode_test"))
 
 
-@pytest.fixture()
+@pytest.fixture
 def load_unicode_dashboard_with_slice(load_unicode_data):
     slice_name = "Unicode Cloud"
     with app.app_context():
@@ -64,7 +65,7 @@ def load_unicode_dashboard_with_slice(load_unicode_data):
         _cleanup(dash, slice_name)
 
 
-@pytest.fixture()
+@pytest.fixture
 def load_unicode_dashboard_with_position(load_unicode_data):
     slice_name = "Unicode Cloud"
     position = "{}"

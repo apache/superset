@@ -33,9 +33,11 @@ export type InitialState = {
       id: number;
       table: string;
       description: {
-        columns?: {
+        name: string;
+        columns: {
           name: string;
           type: string;
+          longType: string;
         }[];
         dataPreviewQueryId?: string;
       } & Record<string, any>;
@@ -69,7 +71,7 @@ export type InitialState = {
   }[];
 };
 
-const queryValidationApi = api.injectEndpoints({
+const initialStateApi = api.injectEndpoints({
   endpoints: builder => ({
     sqlLabInitialState: builder.query<InitialState, void>({
       providesTags: ['SqlLabInitialState'],
@@ -83,4 +85,4 @@ const queryValidationApi = api.injectEndpoints({
 });
 
 export const { useSqlLabInitialStateQuery: useSqlLabInitialState } =
-  queryValidationApi;
+  initialStateApi;

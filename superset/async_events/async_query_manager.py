@@ -14,25 +14,45 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
+import hashlib
+import hmac
 import logging
 import uuid
-from typing import Any, Literal, Optional
+from datetime import datetime, timedelta, timezone
+from typing import Any, Literal, Optional, TYPE_CHECKING
 
 import jwt
-import redis
 from flask import Flask, Request, request, Response, session
+from flask_caching.backends.base import BaseCache
 
+from superset.async_events.cache_backend import (
+    RedisCacheBackend,
+    RedisSentinelCacheBackend,
+)
 from superset.utils import json
 from superset.utils.core import get_user_id
+
+if TYPE_CHECKING:
+    from superset.security.guest_token import GuestUser
 
 logger = logging.getLogger(__name__)
 
 
-class AsyncQueryTokenException(Exception):
+class CacheBackendNotInitialized(Exception):  # noqa: N818
     pass
 
 
-class AsyncQueryJobException(Exception):
+class AsyncQueryTokenException(Exception):  # noqa: N818
+    pass
+
+
+class UnsupportedCacheBackendError(Exception):  # noqa: N818
+    pass
+
+
+class AsyncQueryJobException(Exception):  # noqa: N818
     pass
 
 
@@ -55,13 +75,29 @@ def parse_event(event_data: tuple[str, dict[str, Any]]) -> dict[str, Any]:
     return {"id": event_id, **json.loads(event_payload)}
 
 
-def increment_id(redis_id: str) -> str:
+def increment_id(entry_id: str) -> str:
     # redis stream IDs are in this format: '1607477697866-0'
     try:
-        prefix, last = redis_id[:-1], int(redis_id[-1])
+        prefix, last = entry_id[:-1], int(entry_id[-1])
         return prefix + str(last + 1)
     except Exception:  # pylint: disable=broad-except
-        return redis_id
+        return entry_id
+
+
+def get_cache_backend(
+    config: dict[str, Any],
+) -> RedisCacheBackend | RedisSentinelCacheBackend:
+    cache_config = config.get("GLOBAL_ASYNC_QUERIES_CACHE_BACKEND", {})
+    cache_type = cache_config.get("CACHE_TYPE")
+
+    if cache_type == "RedisCache":
+        return RedisCacheBackend.from_config(cache_config)
+
+    if cache_type == "RedisSentinelCache":
+        return RedisSentinelCacheBackend.from_config(cache_config)
+
+    # TODO: Expand cache backend options.
+    raise UnsupportedCacheBackendError("Unsupported cache backend configuration")
 
 
 class AsyncQueryManager:
@@ -73,7 +109,7 @@ class AsyncQueryManager:
 
     def __init__(self) -> None:
         super().__init__()
-        self._redis: redis.Redis  # type: ignore
+        self._cache: Optional[BaseCache] = None
         self._stream_prefix: str = ""
         self._stream_limit: Optional[int]
         self._stream_limit_firehose: Optional[int]
@@ -82,16 +118,15 @@ class AsyncQueryManager:
         self._jwt_cookie_domain: Optional[str]
         self._jwt_cookie_samesite: Optional[Literal["None", "Lax", "Strict"]] = None
         self._jwt_secret: str
+        self._jwt_expiration_seconds: int = 0
         self._load_chart_data_into_cache_job: Any = None
         # pylint: disable=invalid-name
         self._load_explore_json_into_cache_job: Any = None
 
     def init_app(self, app: Flask) -> None:
-        config = app.config
-        if (
-            config["CACHE_CONFIG"]["CACHE_TYPE"] == "null"
-            or config["DATA_CACHE_CONFIG"]["CACHE_TYPE"] == "null"
-        ):
+        cache_type = app.config.get("CACHE_CONFIG", {}).get("CACHE_TYPE")
+        data_cache_type = app.config.get("DATA_CACHE_CONFIG", {}).get("CACHE_TYPE")
+        if cache_type in [None, "null"] or data_cache_type in [None, "null"]:
             raise Exception(  # pylint: disable=broad-exception-raised
                 """
                 Cache backends (CACHE_CONFIG, DATA_CACHE_CONFIG) must be configured
@@ -99,26 +134,31 @@ class AsyncQueryManager:
                 """
             )
 
-        if len(config["GLOBAL_ASYNC_QUERIES_JWT_SECRET"]) < 32:
+        self._cache = get_cache_backend(app.config)
+        logger.debug("Using GAQ Cache backend as %s", type(self._cache).__name__)
+
+        if len(app.config["GLOBAL_ASYNC_QUERIES_JWT_SECRET"]) < 32:
             raise AsyncQueryTokenException(
                 "Please provide a JWT secret at least 32 bytes long"
             )
 
-        self._redis = redis.Redis(
-            **config["GLOBAL_ASYNC_QUERIES_REDIS_CONFIG"], decode_responses=True
-        )
-        self._stream_prefix = config["GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX"]
-        self._stream_limit = config["GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT"]
-        self._stream_limit_firehose = config[
+        self._stream_prefix = app.config["GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX"]
+        self._stream_limit = app.config["GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT"]
+        self._stream_limit_firehose = app.config[
             "GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE"
         ]
-        self._jwt_cookie_name = config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME"]
-        self._jwt_cookie_secure = config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE"]
-        self._jwt_cookie_samesite = config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SAMESITE"]
-        self._jwt_cookie_domain = config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN"]
-        self._jwt_secret = config["GLOBAL_ASYNC_QUERIES_JWT_SECRET"]
+        self._jwt_cookie_name = app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME"]
+        self._jwt_cookie_secure = app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE"]
+        self._jwt_cookie_samesite = app.config[
+            "GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SAMESITE"
+        ]
+        self._jwt_cookie_domain = app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN"]
+        self._jwt_secret = app.config["GLOBAL_ASYNC_QUERIES_JWT_SECRET"]
+        self._jwt_expiration_seconds = app.config[
+            "GLOBAL_ASYNC_QUERIES_JWT_EXPIRATION_SECONDS"
+        ]
 
-        if config["GLOBAL_ASYNC_QUERIES_REGISTER_REQUEST_HANDLERS"]:
+        if app.config["GLOBAL_ASYNC_QUERIES_REGISTER_REQUEST_HANDLERS"]:
             self.register_request_handlers(app)
 
         # pylint: disable=import-outside-toplevel
@@ -133,6 +173,17 @@ class AsyncQueryManager:
     def register_request_handlers(self, app: Flask) -> None:
         @app.after_request
         def validate_session(response: Response) -> Response:
+            # pylint: disable=import-outside-toplevel
+            from superset import security_manager
+
+            # Guest users (embedded dashboards) are typically loaded from a
+            # third-party context where session cookies are unreliable, so the
+            # async channel is derived deterministically from the guest token
+            # in `parse_channel_id_from_request` and the JWT cookie is not
+            # required.
+            if security_manager.get_current_guest_user_if_guest():
+                return response
+
             user_id = get_user_id()
 
             reset_token = (
@@ -147,9 +198,18 @@ class AsyncQueryManager:
                 session["async_channel_id"] = async_channel_id
                 session["async_user_id"] = user_id
 
-                sub = str(user_id) if user_id else None
+                # Conditionally include 'sub' claim only when user_id is present.
+                # RFC 7519 specifies 'sub' as optional; when present it must be
+                # a string, so omit it entirely for guest/anonymous users.
+                now = datetime.now(tz=timezone.utc)
+                payload = {
+                    "channel": async_channel_id,
+                    "exp": now + timedelta(seconds=self._jwt_expiration_seconds),
+                }
+                if user_id is not None:
+                    payload["sub"] = str(user_id)
                 token = jwt.encode(
-                    {"channel": async_channel_id, "sub": sub},
+                    payload,
                     self._jwt_secret,
                     algorithm="HS256",
                 )
@@ -161,11 +221,49 @@ class AsyncQueryManager:
                     secure=self._jwt_cookie_secure,
                     domain=self._jwt_cookie_domain,
                     samesite=self._jwt_cookie_samesite,
+                    max_age=self._jwt_expiration_seconds,
                 )
 
             return response
 
+    def get_guest_user_channel_id(self, guest_user: GuestUser) -> str:
+        """
+        Derive a deterministic async channel ID for a guest user.
+
+        Embedded guest sessions cannot reliably rely on the async-token cookie
+        because cross-origin cookies are blocked or stripped by modern browsers
+        when running inside a third-party iframe. Using an HMAC over stable
+        guest-token claims yields a per-token channel that the chart data
+        request, the celery worker, and the polling endpoint can all derive
+        without needing a cookie. The HMAC is keyed with the configured JWT
+        secret so the value is unguessable to outside callers.
+        """
+        token = guest_user.guest_token
+        # ``iat`` uniquely identifies a guest token issuance, so it provides
+        # per-token isolation while remaining stable across the lifetime of a
+        # single embedded session.
+        message = json.dumps(
+            {
+                "user": token.get("user"),
+                "resources": token.get("resources"),
+                "iat": token.get("iat"),
+                "exp": token.get("exp"),
+                "aud": token.get("aud"),
+            },
+            sort_keys=True,
+        ).encode("utf-8")
+        digest = hmac.new(
+            self._jwt_secret.encode("utf-8"), message, hashlib.sha256
+        ).hexdigest()
+        return f"guest-{digest}"
+
     def parse_channel_id_from_request(self, req: Request) -> str:
+        # pylint: disable=import-outside-toplevel
+        from superset import security_manager
+
+        if guest_user := security_manager.get_current_guest_user_if_guest():
+            return self.get_guest_user_channel_id(guest_user)
+
         token = req.cookies.get(self._jwt_cookie_name)
         if not token:
             raise AsyncQueryTokenException("Token not preset")
@@ -195,13 +293,16 @@ class AsyncQueryManager:
         from superset import security_manager
 
         job_metadata = self.init_job(channel_id, user_id)
-        self._load_explore_json_into_cache_job.delay(
-            {**job_metadata, "guest_token": guest_user.guest_token}
-            if (guest_user := security_manager.get_current_guest_user_if_guest())
-            else job_metadata,
-            form_data,
-            response_type,
-            force,
+        self._load_explore_json_into_cache_job.apply_async(
+            args=[
+                {**job_metadata, "guest_token": guest_user.guest_token}
+                if (guest_user := security_manager.get_current_guest_user_if_guest())
+                else job_metadata,
+                form_data,
+                response_type,
+                force,
+            ],
+            expires=self._jwt_expiration_seconds,
         )
         return job_metadata
 
@@ -219,25 +320,49 @@ class AsyncQueryManager:
         # this way we can keep the cache key consistent between sync and async command
         # so that it can be looked up consistently
         job_metadata = self.init_job(channel_id, user_id)
-        self._load_chart_data_into_cache_job.delay(
-            {**job_metadata, "guest_token": guest_user.guest_token}
-            if (guest_user := security_manager.get_current_guest_user_if_guest())
-            else job_metadata,
-            form_data,
+        self._load_chart_data_into_cache_job.apply_async(
+            args=[
+                {**job_metadata, "guest_token": guest_user.guest_token}
+                if (guest_user := security_manager.get_current_guest_user_if_guest())
+                else job_metadata,
+                form_data,
+            ],
+            expires=self._jwt_expiration_seconds,
         )
         return job_metadata
 
     def read_events(
         self, channel: str, last_id: Optional[str]
     ) -> list[Optional[dict[str, Any]]]:
+        if not self._cache:
+            raise CacheBackendNotInitialized("Cache backend not initialized")
+
         stream_name = f"{self._stream_prefix}{channel}"
         start_id = increment_id(last_id) if last_id else "-"
-        results = self._redis.xrange(stream_name, start_id, "+", self.MAX_EVENT_COUNT)
+        results = self._cache.xrange(stream_name, start_id, "+", self.MAX_EVENT_COUNT)
+        # Decode bytes to strings, decode_responses is not supported at RedisCache and RedisSentinelCache  # noqa: E501
+        if isinstance(self._cache, (RedisSentinelCacheBackend, RedisCacheBackend)):
+            decoded_results = [
+                (
+                    event_id.decode("utf-8"),
+                    {
+                        key.decode("utf-8"): value.decode("utf-8")
+                        for key, value in event_data.items()
+                    },
+                )
+                for event_id, event_data in results
+            ]
+            return (
+                [] if not decoded_results else list(map(parse_event, decoded_results))
+            )
         return [] if not results else list(map(parse_event, results))
 
     def update_job(
         self, job_metadata: dict[str, Any], status: str, **kwargs: Any
     ) -> None:
+        if not self._cache:
+            raise CacheBackendNotInitialized("Cache backend not initialized")
+
         if "channel_id" not in job_metadata:
             raise AsyncQueryJobException("No channel ID specified")
 
@@ -253,5 +378,5 @@ class AsyncQueryManager:
         logger.debug("********** logging event data to stream %s", scoped_stream_name)
         logger.debug(event_data)
 
-        self._redis.xadd(scoped_stream_name, event_data, "*", self._stream_limit)
-        self._redis.xadd(full_stream_name, event_data, "*", self._stream_limit_firehose)
+        self._cache.xadd(scoped_stream_name, event_data, "*", self._stream_limit)
+        self._cache.xadd(full_stream_name, event_data, "*", self._stream_limit_firehose)

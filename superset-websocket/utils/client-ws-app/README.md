@@ -16,18 +16,23 @@ KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License.
 -->
+
 # Test client application
+
 This Express web application is provided for testing the WebSocket server. It is not required for running the server application, and is provided here for testing and development purposes only.
 
 ## Running
+
 First, start the WebSocket server:
-```
+
+```bash
 cd ..
 npm run dev-server
 ```
 
 Then run the client application:
-```
+
+```bash
 cd client-ws-app
 npm install
 npm start

@@ -100,7 +100,10 @@ class CacheRestApi(BaseSupersetModelRestApi):
         )
         cache_keys = [c.cache_key for c in cache_key_objs]
         if cache_key_objs:
-            all_keys_deleted = cache_manager.cache.delete_many(*cache_keys)
+            # Chart query results live in ``data_cache``, not the default
+            # ``cache`` — using the wrong backend silently misses the Redis
+            # keys when ``CACHE_KEY_PREFIX`` differs between the two configs.
+            all_keys_deleted = cache_manager.data_cache.delete_many(*cache_keys)
 
             if not all_keys_deleted:
                 # expected behavior as keys may expire and cache is not a
@@ -114,8 +117,8 @@ class CacheRestApi(BaseSupersetModelRestApi):
                     CacheKey.cache_key.in_(cache_keys)
                 )
 
-                with db.session.begin_nested():
-                    db.session.execute(delete_stmt)
+                db.session.execute(delete_stmt)
+                db.session.commit()  # pylint: disable=consider-using-transaction
 
                 stats_logger_manager.instance.gauge(
                     "invalidated_cache", len(cache_keys)
@@ -126,6 +129,7 @@ class CacheRestApi(BaseSupersetModelRestApi):
                     len(datasource_uids),
                 )
             except SQLAlchemyError as ex:  # pragma: no cover
+                db.session.rollback()  # pylint: disable=consider-using-transaction
                 logger.error(ex, exc_info=True)
                 return self.response_500(str(ex))
         return self.response(201)

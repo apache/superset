@@ -16,9 +16,11 @@
 # under the License.
 from typing import Optional
 
-from superset import db, security_manager
+from superset import db
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.slice import Slice
+from superset.subjects.models import Subject
+from superset.subjects.types import SubjectType
 
 
 class InsertChartMixin:
@@ -29,7 +31,7 @@ class InsertChartMixin:
     def insert_chart(
         self,
         slice_name: str,
-        owners: list[int],
+        editor_user_ids: list[int],
         datasource_id: int,
         created_by=None,
         datasource_type: str = "table",
@@ -40,10 +42,15 @@ class InsertChartMixin:
         certified_by: Optional[str] = None,
         certification_details: Optional[str] = None,
     ) -> Slice:
-        obj_owners = list()
-        for owner in owners:
-            user = db.session.query(security_manager.user_model).get(owner)
-            obj_owners.append(user)
+        obj_editors = list()  # noqa: C408
+        for user_id in editor_user_ids:
+            subject = (
+                db.session.query(Subject)
+                .filter_by(user_id=user_id, type=SubjectType.USER)
+                .first()
+            )
+            if subject:
+                obj_editors.append(subject)
         datasource = (
             db.session.query(SqlaTable).filter_by(id=datasource_id).one_or_none()
         )
@@ -56,7 +63,7 @@ class InsertChartMixin:
             datasource_name=datasource.name,
             datasource_type=datasource.type,
             description=description,
-            owners=obj_owners,
+            editors=obj_editors,
             params=params,
             slice_name=slice_name,
             viz_type=viz_type,

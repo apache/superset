@@ -23,15 +23,17 @@ from typing import Any, Optional
 from flask_babel import lazy_gettext as _
 from sqlalchemy.orm import make_transient
 
-from superset import db
+from superset import db, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.dataset.importers.v0 import import_dataset
+from superset.commands.exceptions import ImportFailedError
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.exceptions import DashboardImportException
 from superset.migrations.shared.native_filters import migrate_dashboard
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils import json
+from superset.utils.core import get_user
 from superset.utils.dashboard_filter_scopes_converter import (
     convert_filter_scopes,
     copy_filter_scopes,
@@ -81,7 +83,7 @@ def import_chart(
     return slc_to_import.id
 
 
-def import_dashboard(
+def import_dashboard(  # noqa: C901
     # pylint: disable=too-many-locals,too-many-statements
     dashboard_to_import: Dashboard,
     dataset_id_mapping: Optional[dict[int, int]] = None,
@@ -305,6 +307,18 @@ def import_dashboards(
     if not data:
         raise DashboardImportException(_("No data in file"))
     dataset_id_mapping: dict[int, int] = {}
+    # This legacy path creates/updates the embedded datasets. Mirror the
+    # versioned (v1) import commands and require dataset write permission for the
+    # objects being created here. Only enforced when there is something to import
+    # and a request user is present, so the CLI import paths keep working.
+    if (
+        data["datasources"]
+        and get_user()
+        and not security_manager.can_access("can_write", "Dataset")
+    ):
+        raise ImportFailedError(
+            "User doesn't have permission to create or update datasets"
+        )
     for table in data["datasources"]:
         new_dataset_id = import_dataset(table, database_id, import_time=import_time)
         params = json.loads(table.params)

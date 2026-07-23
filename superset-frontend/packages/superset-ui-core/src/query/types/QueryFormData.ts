@@ -51,8 +51,7 @@ export type QueryFormColumn = PhysicalColumn | AdhocColumn;
  * Format: [metric/column, is_ascending].
  */
 export type QueryFormOrderBy =
-  | [QueryFormColumn | QueryFormMetric | {}, boolean]
-  | [];
+  [QueryFormColumn | QueryFormMetric | {}, boolean] | [];
 
 export interface FormDataResidual {
   [key: string]: any;
@@ -105,7 +104,7 @@ export type QueryFormExtraFilter = {
     }
 );
 
-/** These properties will be appended to those pre-existing in the form data/query object */
+/** These properties will be appended to those preexisting in the form data/query object */
 export type ExtraFormDataAppend = {
   adhoc_filters?: AdhocFilter[];
   filters?: QueryObjectFilterClause[];
@@ -122,7 +121,7 @@ export type ExtraFormDataAppend = {
  * filter clauses can't be overridden */
 export type ExtraFormDataOverrideExtras = Pick<
   QueryObjectExtras,
-  'relative_start' | 'relative_end' | 'time_grain_sqla'
+  'relative_start' | 'relative_end' | 'time_grain_sqla' | 'time_compare'
 >;
 
 /** These parameters override those already present in the form data/query object */
@@ -131,7 +130,10 @@ export type ExtraFormDataOverrideRegular = Partial<
 > &
   Partial<Pick<SqlaFormData, 'granularity'>> &
   Partial<Pick<BaseFormData, 'time_range'>> &
-  Partial<Pick<QueryObject, 'time_column' | 'time_grain'>>;
+  Partial<Pick<QueryObject, 'time_column' | 'time_grain' | 'time_compare'>> & {
+    /** deck.gl layer visibility filter - controls which layers are visible in deck.gl multi-layer charts */
+    visible_deckgl_layers?: number[];
+  };
 
 /** These parameters override those already present in the form data/query object */
 export type ExtraFormDataOverride = ExtraFormDataOverrideRegular &
@@ -203,6 +205,8 @@ export interface SqlaFormData extends BaseFormData {
 }
 
 export type QueryFormData = SqlaFormData;
+
+export type LatestQueryFormData = Partial<QueryFormData>;
 
 //---------------------------------------------------
 // Type guards

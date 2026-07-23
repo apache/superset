@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import URLShortLinkButton from 'src/dashboard/components/URLShortLinkButton';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
@@ -27,6 +26,9 @@ const PERMALINK_PAYLOAD = {
   key: '123',
   url: 'http://fakeurl.com/123',
 };
+// rewritePermalinkOrigin substitutes window.location.origin (jsdom: http://localhost)
+// for the permalink's origin while preserving the path. See urlUtils.ts.
+const REWRITTEN_URL = `${window.location.origin}/123`;
 const FILTER_STATE_PAYLOAD = {
   value: '{}',
 };
@@ -40,10 +42,10 @@ fetchMock.get(
   FILTER_STATE_PAYLOAD,
 );
 
-fetchMock.post(
-  `glob:*/api/v1/dashboard/${DASHBOARD_ID}/permalink`,
-  PERMALINK_PAYLOAD,
-);
+const postDashboardPermanentlinkMockUrl = `glob:*/api/v1/dashboard/${DASHBOARD_ID}/permalink`;
+fetchMock.post(postDashboardPermanentlinkMockUrl, PERMALINK_PAYLOAD, {
+  name: postDashboardPermanentlinkMockUrl,
+});
 
 test('renders with default props', () => {
   render(<URLShortLinkButton {...props} />, { useRedux: true });
@@ -59,9 +61,7 @@ test('renders overlay on click', async () => {
 test('obtains short url', async () => {
   render(<URLShortLinkButton {...props} />, { useRedux: true });
   userEvent.click(screen.getByRole('button'));
-  expect(await screen.findByRole('tooltip')).toHaveTextContent(
-    PERMALINK_PAYLOAD.url,
-  );
+  expect(await screen.findByRole('tooltip')).toHaveTextContent(REWRITTEN_URL);
 });
 
 test('creates email anchor', async () => {
@@ -79,15 +79,14 @@ test('creates email anchor', async () => {
     },
   );
 
-  const href = `mailto:?Subject=${subject}%20&Body=${content}${PERMALINK_PAYLOAD.url}`;
+  const href = `mailto:?Subject=${subject}%20&Body=${content}${REWRITTEN_URL}`;
   userEvent.click(screen.getByRole('button'));
   expect(await screen.findByRole('link')).toHaveAttribute('href', href);
 });
 
 test('renders error message on short url error', async () => {
-  fetchMock.mock(`glob:*/api/v1/dashboard/${DASHBOARD_ID}/permalink`, 500, {
-    overwriteRoutes: true,
-  });
+  fetchMock.removeRoute(postDashboardPermanentlinkMockUrl);
+  fetchMock.route(`glob:*/api/v1/dashboard/${DASHBOARD_ID}/permalink`, 500);
 
   render(
     <>

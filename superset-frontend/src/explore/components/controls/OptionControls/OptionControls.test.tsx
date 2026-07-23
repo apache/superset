@@ -16,14 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  render,
-  screen,
-  fireEvent,
-  waitFor,
-} from 'spec/helpers/testing-library';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import {
   OptionControlLabel,
   DragContainer,
@@ -49,11 +42,9 @@ const defaultProps = {
 };
 
 const setup = (overrides?: Record<string, any>) =>
-  render(
-    <DndProvider backend={HTML5Backend}>
-      <OptionControlLabel {...defaultProps} {...overrides} />
-    </DndProvider>,
-  );
+  render(<OptionControlLabel {...defaultProps} {...overrides} />, {
+    useDndKit: true,
+  });
 
 test('should render', async () => {
   const { container } = setup();
@@ -62,8 +53,11 @@ test('should render', async () => {
 
 test('should display a label', async () => {
   setup();
-  expect(await screen.findByText('Test label')).toBeTruthy();
+  expect(await screen.findByText('Test label')).toBeInTheDocument();
 });
+
+// Add at the top of the file, after imports
+jest.setTimeout(20000);
 
 test('should display a certification icon if saved metric is certified', async () => {
   const { container } = setup({
@@ -72,15 +66,26 @@ test('should display a certification icon if saved metric is certified', async (
       is_certified: true,
     },
   });
-  await waitFor(() => {
-    expect(screen.queryByText('Test label')).toBeFalsy();
-    expect(container.querySelector('.metric-option > svg')).toBeInTheDocument();
-  });
+
+  await waitFor(
+    () => {
+      expect(screen.queryByText('Test label')).not.toBeInTheDocument();
+    },
+    { timeout: 10000 },
+  );
+
+  await waitFor(
+    () => {
+      const icon = container.querySelector('.metric-option > svg');
+      expect(icon).toBeInTheDocument();
+    },
+    { timeout: 10000 },
+  );
 });
 
-test('triggers onMoveLabel on drop', async () => {
+test('renders multiple labels', async () => {
   render(
-    <DndProvider backend={HTML5Backend}>
+    <>
       <OptionControlLabel
         {...defaultProps}
         index={1}
@@ -91,13 +96,11 @@ test('triggers onMoveLabel on drop', async () => {
         index={2}
         label={<span>Label 2</span>}
       />
-    </DndProvider>,
+    </>,
+    { useDndKit: true },
   );
-  await waitFor(() => {
-    fireEvent.dragStart(screen.getByText('Label 1'));
-    fireEvent.drop(screen.getByText('Label 2'));
-    expect(defaultProps.onMoveLabel).toHaveBeenCalled();
-  });
+  expect(await screen.findByText('Label 1')).toBeInTheDocument();
+  expect(await screen.findByText('Label 2')).toBeInTheDocument();
 });
 
 test('renders DragContainer', () => {

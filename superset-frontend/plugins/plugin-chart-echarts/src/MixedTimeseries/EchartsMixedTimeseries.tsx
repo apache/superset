@@ -57,7 +57,7 @@ export default function EchartsMixedTimeseries({
   );
 
   const getCrossFilterDataMask = useCallback(
-    (seriesName, seriesIndex) => {
+    (seriesName: string, seriesIndex: number) => {
       const selected: string[] = Object.values(selectedValues || {});
       let values: string[];
       if (selected.includes(seriesName)) {
@@ -75,27 +75,29 @@ export default function EchartsMixedTimeseries({
       return {
         dataMask: {
           extraFormData: {
-            // @ts-ignore
+            // An empty lookup result means the clicked series could not be
+            // resolved through the label map; emitting column filters anyway
+            // would produce bogus `IS NULL` clauses (an empty array makes the
+            // `every` below vacuously true), so clear the filters instead.
             filters:
-              values.length === 0
+              values.length === 0 || groupbyValues.length === 0
                 ? []
-                : [
-                    ...currentGroupBy.map((col, idx) => {
-                      const val: DataRecordValue[] = groupbyValues.map(
-                        v => v[idx],
-                      );
-                      if (val === null || val === undefined)
-                        return {
-                          col,
-                          op: 'IS NULL' as const,
-                        };
+                : currentGroupBy.map((col, idx) => {
+                    const val: DataRecordValue[] = groupbyValues.map(v => {
+                      const metricsCount = v.length - currentGroupBy.length;
+                      return v[metricsCount + idx];
+                    });
+                    if (val.every(vv => vv == null))
                       return {
                         col,
-                        op: 'IN' as const,
-                        val: val as (string | number | boolean)[],
+                        op: 'IS NULL' as const,
                       };
-                    }),
-                  ],
+                    return {
+                      col,
+                      op: 'IN' as const,
+                      val: val as (string | number | boolean)[],
+                    };
+                  }),
           },
           filterState: {
             value: !groupbyValues.length ? null : groupbyValues,
@@ -110,13 +112,25 @@ export default function EchartsMixedTimeseries({
 
   const handleChange = useCallback(
     (seriesName: string, seriesIndex: number) => {
-      if (!emitCrossFilters) {
+      const isFirst = isFirstQuery(seriesIndex);
+      if (
+        !emitCrossFilters ||
+        (isFirst && groupby.length === 0) ||
+        (!isFirst && groupbyB.length === 0)
+      ) {
         return;
       }
 
       setDataMask(getCrossFilterDataMask(seriesName, seriesIndex).dataMask);
     },
-    [emitCrossFilters, setDataMask, getCrossFilterDataMask],
+    [
+      isFirstQuery,
+      emitCrossFilters,
+      groupby.length,
+      groupbyB.length,
+      setDataMask,
+      getCrossFilterDataMask,
+    ],
   );
 
   const eventHandlers: EventHandlers = {
@@ -138,10 +152,11 @@ export default function EchartsMixedTimeseries({
         const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
         const drillByFilters: BinaryQueryObjectFilterClause[] = [];
         const isFirst = isFirstQuery(seriesIndex);
-        const values = [
-          ...(eventParams.name ? [eventParams.name] : []),
-          ...(isFirst ? labelMap : labelMapB)[eventParams.seriesName],
-        ];
+        const currentGroupBy = isFirst ? formData.groupby : formData.groupbyB;
+        const seriesValues = (isFirst ? labelMap : labelMapB)[seriesName] || [];
+        // Label map values may carry metric/offset labels ahead of the
+        // dimension values — anchor from the tail, like getCrossFilterDataMask.
+        const metricsCount = seriesValues.length - currentGroupBy.length;
         if (data && xAxis.type === AxisType.Time) {
           drillToDetailFilters.push({
             col:
@@ -154,34 +169,47 @@ export default function EchartsMixedTimeseries({
             formattedVal: xValueFormatter(data[0]),
           });
         }
-        [
-          ...(data && xAxis.type === AxisType.Category ? [xAxis.label] : []),
-          ...(isFirst ? formData.groupby : formData.groupbyB),
-        ].forEach((dimension, i) =>
+        if (
+          data &&
+          xAxis.type === AxisType.Category &&
+          eventParams.name != null
+        ) {
           drillToDetailFilters.push({
-            col: dimension,
+            col: xAxis.label,
             op: '==',
-            val: values[i],
-            formattedVal: String(values[i]),
-          }),
-        );
-
-        [...(isFirst ? formData.groupby : formData.groupbyB)].forEach(
-          (dimension, i) =>
+            val: eventParams.name,
+            formattedVal: String(eventParams.name),
+          });
+        }
+        if (metricsCount >= 0) {
+          currentGroupBy.forEach((dimension, i) => {
+            const value = seriesValues[metricsCount + i];
+            drillToDetailFilters.push({
+              col: dimension,
+              op: '==',
+              val: value,
+              formattedVal: String(value),
+            });
             drillByFilters.push({
               col: dimension,
               op: '==',
-              val: values[i],
-              formattedVal: formatSeriesName(values[i], {
+              val: value,
+              formattedVal: formatSeriesName(value, {
                 timeFormatter: getTimeFormatter(formData.dateFormat),
                 numberFormatter: getNumberFormatter(formData.numberFormat),
                 coltype: coltypeMapping?.[getColumnLabel(dimension)],
               }),
-            }),
-        );
+            });
+          });
+        }
+        const hasCrossFilter =
+          (isFirst && groupby.length > 0) || (!isFirst && groupbyB.length > 0);
+
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
           drillToDetail: drillToDetailFilters,
-          crossFilter: getCrossFilterDataMask(seriesName, seriesIndex),
+          crossFilter: hasCrossFilter
+            ? getCrossFilterDataMask(seriesName, seriesIndex)
+            : undefined,
           drillBy: {
             filters: drillByFilters,
             groupbyFieldName: isFirst ? 'groupby' : 'groupby_b',
@@ -200,6 +228,7 @@ export default function EchartsMixedTimeseries({
       echartOptions={echartOptions}
       eventHandlers={eventHandlers}
       selectedValues={selectedValues}
+      vizType={formData.vizType}
     />
   );
 }

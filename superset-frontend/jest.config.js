@@ -16,33 +16,53 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 // timezone for unit tests
 process.env.TZ = 'America/New_York';
-
 module.exports = {
+  // [/\\] matches both path separators so the suite also collects on
+  // native Windows, where jest hands the regex backslash-separated paths.
   testRegex:
-    '\\/superset-frontend\\/(spec|src|plugins|packages|tools)\\/.*(_spec|\\.test)\\.[jt]sx?$',
+    '[/\\\\]superset-frontend[/\\\\](spec|src|plugins|packages|tools)[/\\\\].*(_spec|\\.test)\\.[jt]sx?$',
   moduleNameMapper: {
     '\\.(css|less|geojson)$': '<rootDir>/spec/__mocks__/mockExportObject.js',
     '\\.(gif|ttf|eot|png|jpg)$': '<rootDir>/spec/__mocks__/mockExportString.js',
     '\\.svg$': '<rootDir>/spec/__mocks__/svgrMock.tsx',
+    // lodash-es is ESM (type: module) which jest.mock cannot intercept; alias to
+    // the CJS lodash build (identical API) so module mocks work in tests.
+    '^lodash-es$': '<rootDir>/node_modules/lodash',
     '^src/(.*)$': '<rootDir>/src/$1',
     '^spec/(.*)$': '<rootDir>/spec/$1',
     // mapping plugins of superset-ui to source code
-    '@superset-ui/(.*)$': '<rootDir>/node_modules/@superset-ui/$1/src',
+    '^@superset-ui/([^/]+)/(.*)$':
+      '<rootDir>/node_modules/@superset-ui/$1/src/$2',
+    '^@superset-ui/([^/]+)$': '<rootDir>/node_modules/@superset-ui/$1/src',
+    // mapping @apache-superset/core to local package
+    '^@apache-superset/core$': '<rootDir>/packages/superset-core/src',
+    '^@apache-superset/core/(.*)$': '<rootDir>/packages/superset-core/src/$1',
   },
-  testEnvironment: 'jsdom',
-  modulePathIgnorePatterns: ['<rootDir>/packages/generator-superset'],
+  testEnvironment: '<rootDir>/spec/helpers/jsDomWithFetchAPI.ts',
+  modulePathIgnorePatterns: [
+    '<rootDir>/packages/generator-superset',
+    '<rootDir>/packages/.*/esm',
+    '<rootDir>/packages/.*/lib',
+    '<rootDir>/plugins/.*/esm',
+    '<rootDir>/plugins/.*/lib',
+    // Ignore build artifacts that contain duplicate package.json or mock files
+    '<rootDir>/storybook-static',
+    // Ignore duplicate __mocks__ at package root level (e.g., packages/superset-ui-core/__mocks__)
+    // but not test __mocks__ directories (e.g., packages/superset-ui-core/test/__mocks/)
+    '<rootDir>/packages/[^/]+/__mocks__',
+  ],
   setupFilesAfterEnv: ['<rootDir>/spec/helpers/setup.ts'],
+  snapshotSerializers: ['@emotion/jest/serializer'],
   testEnvironmentOptions: {
+    globalsCleanup: true,
     url: 'http://localhost',
   },
   collectCoverageFrom: [
     'src/**/*.{js,jsx,ts,tsx}',
     '{packages,plugins}/**/src/**/*.{js,jsx,ts,tsx}',
     '!**/*.stories.*',
-    '!packages/superset-ui-demo/**/*',
   ],
   coverageDirectory: '<rootDir>/coverage/',
   coveragePathIgnorePatterns: [
@@ -53,11 +73,17 @@ module.exports = {
     'dist/',
   ],
   coverageReporters: ['lcov', 'json-summary', 'html', 'text'],
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
-  snapshotSerializers: ['@emotion/jest/enzyme-serializer'],
   transformIgnorePatterns: [
-    'node_modules/(?!d3-(interpolate|color)|remark-gfm|markdown-table|micromark-*.|decode-named-character-reference|character-entities|mdast-util-*.|unist-util-*.|ccount|escape-string-regexp)',
+    // @ant-design/colors and @ant-design/fast-color are allowed through because
+    // @ant-design/icons >= 6.3 deep-imports the ESM build of @ant-design/colors
+    // from its CJS output, so babel-jest must transform those files.
+    'node_modules/(?!@ant-design/(colors|fast-color)|@formatjs/.*|d3-(array|interpolate|color|time|scale|time-format|format)|internmap|@mapbox/tiny-sdf|remark-gfm|(?!@ngrx|(?!deck.gl)|d3-scale)|markdown-table|micromark-*.|decode-named-character-reference|character-entities|mdast-util-*.|unist-util-*.|ccount|escape-string-regexp|nanoid|uuid|@rjsf/*.|@x0k/.*|echarts|zrender|fetch-mock|pretty-ms|parse-ms|ol|@babel/runtime|@emotion|cheerio|cheerio/lib|parse5|dom-serializer|entities|htmlparser2|rehype-sanitize|hast-util-sanitize|unified|unist-.*|hast-.*|hastscript|refractor|rehype-.*|remark-.*|mdast-.*|micromark-.*|parse-entities|character-reference-invalid|is-alphanumerical|is-alphabetical|is-decimal|is-hexadecimal|property-information|space-separated-tokens|comma-separated-tokens|bail|devlop|zwitch|longest-streak|geostyler|geostyler-.*|(?!geostyler)lodash|react-error-boundary|react-json-tree|react-base16-styling|lodash-es|rbush|quickselect|react-diff-viewer-continued|storybook/*.|json-stringify-pretty-compact|@x0k/json-schema-merge)',
   ],
+  preset: 'ts-jest',
+  transform: {
+    '^.+\\.(js|jsx|ts|tsx)$': 'babel-jest',
+  },
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   globals: {
     __DEV__: true,
     caches: true,
@@ -71,4 +97,5 @@ module.exports = {
       },
     ],
   ],
+  testTimeout: 20000,
 };

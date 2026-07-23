@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
-import FilterConfigurationLink from '.';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import MemoizedFilterConfigurationLink from '.';
 
 test('should render', () => {
   const { container } = render(
-    <FilterConfigurationLink>Config link</FilterConfigurationLink>,
+    <MemoizedFilterConfigurationLink>
+      Config link
+    </MemoizedFilterConfigurationLink>,
     {
       useRedux: true,
     },
@@ -31,18 +32,28 @@ test('should render', () => {
 });
 
 test('should render the config link text', () => {
-  render(<FilterConfigurationLink>Config link</FilterConfigurationLink>, {
-    useRedux: true,
-  });
+  render(
+    <MemoizedFilterConfigurationLink>
+      Config link
+    </MemoizedFilterConfigurationLink>,
+    {
+      useRedux: true,
+    },
+  );
   expect(screen.getByText('Config link')).toBeInTheDocument();
 });
 
 test('should render the modal on click', () => {
-  render(<FilterConfigurationLink>Config link</FilterConfigurationLink>, {
-    useRedux: true,
-  });
+  const showModal = jest.fn();
+  render(
+    <MemoizedFilterConfigurationLink onClick={showModal}>
+      Config link
+    </MemoizedFilterConfigurationLink>,
+    {
+      useRedux: true,
+    },
+  );
   const configLink = screen.getByText('Config link');
-  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   userEvent.click(configLink);
-  expect(screen.getByRole('dialog')).toBeInTheDocument();
+  expect(showModal).toHaveBeenCalled();
 });

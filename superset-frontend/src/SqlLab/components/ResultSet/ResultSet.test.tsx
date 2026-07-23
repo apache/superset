@@ -16,23 +16,90 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import { type ReactChild } from 'react';
+import {
+  render,
+  screen,
+  waitFor,
+  fireEvent,
+  within,
+} from 'spec/helpers/testing-library';
 import configureStore from 'redux-mock-store';
 import { Store } from 'redux';
 import thunk from 'redux-thunk';
 import fetchMock from 'fetch-mock';
+import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import ResultSet from 'src/SqlLab/components/ResultSet';
+import * as getBootstrapData from 'src/utils/getBootstrapData';
 import {
   cachedQuery,
-  failedQueryWithErrorMessage,
   failedQueryWithErrors,
   queries,
-  runningQuery,
   stoppedQuery,
   initialState,
   user,
   queryWithNoQueryLimit,
+  failedQueryWithFrontendTimeoutErrors,
 } from 'src/SqlLab/fixtures';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import { ViewLocations } from 'src/SqlLab/contributions';
+import {
+  registerToolbarAction,
+  cleanupExtensions,
+} from 'spec/helpers/extensionTestHelpers';
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn().mockReturnValue(false),
+}));
+
+// Mock openInNewTab so the Create-chart "new window" branch can be asserted
+// without spawning a real window. The rest of navigationUtils stays real so
+// existing CSV-download tests keep using the genuine `redirect`/`makeUrl`.
+jest.mock('src/utils/navigationUtils', () => ({
+  ...jest.requireActual('src/utils/navigationUtils'),
+  openInNewTab: jest.fn(),
+}));
+// eslint-disable-next-line import/order, import/first
+import { openInNewTab } from 'src/utils/navigationUtils';
+
+// Stub postFormData so the Create-chart click resolves quickly; this lets
+// the test focus on the URL composition that happens after the resolve.
+jest.mock('src/explore/exploreUtils/formData', () => ({
+  ...jest.requireActual('src/explore/exploreUtils/formData'),
+  postFormData: jest.fn(),
+}));
+// eslint-disable-next-line import/order, import/first
+import { postFormData } from 'src/explore/exploreUtils/formData';
+
+const mockIsFeatureEnabled = isFeatureEnabled as jest.Mock;
+const mockOpenInNewTab = openInNewTab as jest.Mock;
+const mockPostFormData = postFormData as jest.Mock;
+
+jest.mock('src/components/ErrorMessage', () => ({
+  ErrorMessageWithStackTrace: () => <div data-test="error-message">Error</div>,
+}));
+
+// Mock useStreamingExport to capture startExport calls
+const mockStartExport = jest.fn();
+const mockResetExport = jest.fn();
+const mockCancelExport = jest.fn();
+jest.mock('src/components/StreamingExportModal/useStreamingExport', () => ({
+  useStreamingExport: () => ({
+    startExport: mockStartExport,
+    resetExport: mockResetExport,
+    cancelExport: mockCancelExport,
+    progress: { status: 'streaming', rowsProcessed: 0 },
+  }),
+}));
+
+jest.mock(
+  'react-virtualized-auto-sizer',
+  () =>
+    ({ children }: { children: (params: { height: number }) => ReactChild }) =>
+      children({ height: 500 }),
+);
+const applicationRootMock = jest.spyOn(getBootstrapData, 'applicationRoot');
 
 const mockedProps = {
   cache: true,
@@ -51,32 +118,6 @@ const stoppedQueryState = {
     },
   },
 };
-const runningQueryState = {
-  ...initialState,
-  sqlLab: {
-    ...initialState.sqlLab,
-    queries: {
-      [runningQuery.id]: runningQuery,
-    },
-  },
-};
-const fetchingQueryState = {
-  ...initialState,
-  sqlLab: {
-    ...initialState.sqlLab,
-    queries: {
-      [mockedProps.queryId]: {
-        dbId: 1,
-        cached: false,
-        ctas: false,
-        id: 'ryhHUZCGb',
-        progress: 100,
-        state: 'fetching',
-        startDttm: Date.now() - 500,
-      },
-    },
-  },
-};
 const cachedQueryState = {
   ...initialState,
   sqlLab: {
@@ -86,21 +127,22 @@ const cachedQueryState = {
     },
   },
 };
-const failedQueryWithErrorMessageState = {
-  ...initialState,
-  sqlLab: {
-    ...initialState.sqlLab,
-    queries: {
-      [failedQueryWithErrorMessage.id]: failedQueryWithErrorMessage,
-    },
-  },
-};
 const failedQueryWithErrorsState = {
   ...initialState,
   sqlLab: {
     ...initialState.sqlLab,
     queries: {
       [failedQueryWithErrors.id]: failedQueryWithErrors,
+    },
+  },
+};
+const failedQueryWithTimeoutState = {
+  ...initialState,
+  sqlLab: {
+    ...initialState.sqlLab,
+    queries: {
+      [failedQueryWithFrontendTimeoutErrors.id]:
+        failedQueryWithFrontendTimeoutErrors,
     },
   },
 };
@@ -119,7 +161,7 @@ fetchMock.post(reRunQueryEndpoint, { result: [] });
 fetchMock.get('glob:*/api/v1/sqllab/results/*', { result: [] });
 
 beforeEach(() => {
-  fetchMock.resetHistory();
+  fetchMock.clearHistory();
 });
 
 const middlewares = [thunk];
@@ -130,7 +172,28 @@ const setup = (props?: any, store?: Store) =>
     ...(store && { store }),
   });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ResultSet', () => {
+  beforeAll(() => {
+    setupAGGridModules();
+  });
+
+  beforeEach(() => {
+    applicationRootMock.mockReturnValue('');
+    mockStartExport.mockClear();
+    mockOpenInNewTab.mockClear();
+    mockPostFormData.mockReset();
+    mockPostFormData.mockResolvedValue('test-form-data-key');
+  });
+
+  // Add cleanup after each test
+  afterEach(async () => {
+    fetchMock.clearHistory();
+    cleanupExtensions();
+    // Wait for any pending effects to complete
+    await new Promise(resolve => setTimeout(resolve, 0));
+  });
+
   test('renders a Table', async () => {
     const { getByTestId } = setup(
       mockedProps,
@@ -145,8 +208,10 @@ describe('ResultSet', () => {
         },
       }),
     );
-    const table = getByTestId('table-container');
-    expect(table).toBeInTheDocument();
+    await waitFor(() => {
+      const table = getByTestId('table-container');
+      expect(table).toBeInTheDocument();
+    });
   });
 
   test('should render success query', async () => {
@@ -223,7 +288,7 @@ describe('ResultSet', () => {
       },
     });
 
-    expect(fetchMock.calls(reRunQueryEndpoint)).toHaveLength(0);
+    expect(fetchMock.callHistory.calls(reRunQueryEndpoint)).toHaveLength(0);
     setup(mockedProps, store);
     expect(store.getActions()).toHaveLength(1);
     expect(store.getActions()[0].query.errorMessage).toEqual(
@@ -231,7 +296,7 @@ describe('ResultSet', () => {
     );
     expect(store.getActions()[0].type).toEqual('START_QUERY');
     await waitFor(() =>
-      expect(fetchMock.calls(reRunQueryEndpoint)).toHaveLength(1),
+      expect(fetchMock.callHistory.calls(reRunQueryEndpoint)).toHaveLength(1),
     );
   });
 
@@ -249,7 +314,7 @@ describe('ResultSet', () => {
     });
     setup(mockedProps, store);
     expect(store.getActions()).toEqual([]);
-    expect(fetchMock.calls(reRunQueryEndpoint)).toHaveLength(0);
+    expect(fetchMock.callHistory.calls(reRunQueryEndpoint)).toHaveLength(0);
   });
 
   test('should render cached query', async () => {
@@ -259,7 +324,6 @@ describe('ResultSet', () => {
       store,
     );
 
-    // @ts-ignore
     rerender(<ResultSet {...mockedProps} {...newProps} />);
     expect(store.getActions()).toHaveLength(1);
     expect(store.getActions()[0].query.results).toEqual(cachedQuery.results);
@@ -278,45 +342,29 @@ describe('ResultSet', () => {
     expect(alert).toBeInTheDocument();
   });
 
-  test('should render running/pending/fetching query', async () => {
-    const { getByTestId } = setup(
-      { ...mockedProps, queryId: runningQuery.id },
-      mockStore(runningQueryState),
-    );
-    const progressBar = getByTestId('progress-bar');
-    expect(progressBar).toBeInTheDocument();
-  });
-
-  test('should render fetching w/ 100 progress query', async () => {
-    const { getByRole, getByText } = setup(
-      mockedProps,
-      mockStore(fetchingQueryState),
-    );
-    const loading = getByRole('status');
-    expect(loading).toBeInTheDocument();
-    expect(getByText('fetching')).toBeInTheDocument();
-  });
-
-  test('should render a failed query with an error message', async () => {
-    await waitFor(() => {
-      setup(
-        { ...mockedProps, queryId: failedQueryWithErrorMessage.id },
-        mockStore(failedQueryWithErrorMessageState),
-      );
-    });
-
-    expect(screen.getByText('Database error')).toBeInTheDocument();
-    expect(screen.getByText('Something went wrong')).toBeInTheDocument();
-  });
-
   test('should render a failed query with an errors object', async () => {
+    const { errors } = failedQueryWithErrors;
+
     await waitFor(() => {
       setup(
         { ...mockedProps, queryId: failedQueryWithErrors.id },
         mockStore(failedQueryWithErrorsState),
       );
     });
-    expect(screen.getByText('Database error')).toBeInTheDocument();
+    const errorMessages = screen.getAllByTestId('error-message');
+    expect(errorMessages).toHaveLength(errors.length);
+  });
+
+  test('should render a timeout error with a retrial button', async () => {
+    await waitFor(() => {
+      setup(
+        { ...mockedProps, queryId: failedQueryWithFrontendTimeoutErrors.id },
+        mockStore(failedQueryWithTimeoutState),
+      );
+    });
+    expect(
+      screen.getByRole('button', { name: /Retry fetching results/i }),
+    ).toBeInTheDocument();
   });
 
   test('renders if there is no limit in query.results but has queryLimit', async () => {
@@ -339,7 +387,7 @@ describe('ResultSet', () => {
       );
     });
     const { getByRole } = setup(mockedProps, mockStore(initialState));
-    expect(getByRole('table')).toBeInTheDocument();
+    expect(getByRole('grid')).toBeInTheDocument();
   });
 
   test('renders if there is a limit in query.results but not queryLimit', async () => {
@@ -357,7 +405,7 @@ describe('ResultSet', () => {
         },
       }),
     );
-    expect(getByRole('table')).toBeInTheDocument();
+    expect(getByRole('grid')).toBeInTheDocument();
   });
 
   test('Async queries - renders "Fetch data preview" button when data preview has no results', () => {
@@ -385,7 +433,7 @@ describe('ResultSet', () => {
         name: /fetch data preview/i,
       }),
     ).toBeVisible();
-    expect(screen.queryByRole('table')).toBe(null);
+    expect(screen.queryByRole('grid')).not.toBeInTheDocument();
   });
 
   test('Async queries - renders "Refetch results" button when a query has no results', () => {
@@ -414,7 +462,7 @@ describe('ResultSet', () => {
         name: /refetch results/i,
       }),
     ).toBeVisible();
-    expect(screen.queryByRole('table')).toBe(null);
+    expect(screen.queryByRole('grid')).not.toBeInTheDocument();
   });
 
   test('Async queries - renders on the first call', () => {
@@ -434,21 +482,55 @@ describe('ResultSet', () => {
         },
       }),
     );
-    expect(screen.getByRole('table')).toBeVisible();
+    expect(screen.getByRole('grid')).toBeVisible();
     expect(
       screen.queryByRole('button', {
         name: /fetch data preview/i,
       }),
-    ).toBe(null);
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', {
         name: /refetch results/i,
       }),
-    ).toBe(null);
+    ).not.toBeInTheDocument();
   });
 
-  test('should allow download as CSV when user has permission to export data', async () => {
-    const { queryByTestId } = setup(
+  test.each(['', '/myapp'])(
+    'should allow download as CSV when user has permission to export data with app_root=%s',
+    async app_root => {
+      applicationRootMock.mockReturnValue(app_root);
+      const { queryByTestId } = setup(
+        mockedProps,
+        mockStore({
+          ...initialState,
+          user: {
+            ...user,
+            roles: {
+              sql_lab: [['can_export_csv', 'SQLLab']],
+            },
+          },
+          sqlLab: {
+            ...initialState.sqlLab,
+            queries: {
+              [queries[0].id]: queries[0],
+            },
+          },
+        }),
+      );
+      expect(queryByTestId('export-csv-button')).toBeInTheDocument();
+      const export_csv_button = screen.getByTestId('export-csv-button');
+      expect(export_csv_button).toHaveAttribute(
+        'href',
+        expect.stringMatching(
+          new RegExp(`^${app_root}/api/v1/sqllab/export/[a-zA-Z0-9]+/$`),
+        ),
+      );
+    },
+  );
+
+  test('should display a popup message when the CSV content is limited to the dropdown limit', async () => {
+    const queryLimit = 2;
+    const { getByTestId, findByRole } = setup(
       mockedProps,
       mockStore({
         ...initialState,
@@ -461,12 +543,30 @@ describe('ResultSet', () => {
         sqlLab: {
           ...initialState.sqlLab,
           queries: {
-            [queries[0].id]: queries[0],
+            [queries[0].id]: {
+              ...queries[0],
+              limitingFactor: 'DROPDOWN',
+              queryLimit,
+            },
           },
         },
       }),
     );
-    expect(queryByTestId('export-csv-button')).toBeInTheDocument();
+
+    await waitFor(() => {
+      const downloadButton = getByTestId('export-csv-button');
+      expect(downloadButton).toBeInTheDocument();
+    });
+
+    const downloadButton = getByTestId('export-csv-button');
+    await waitFor(() => fireEvent.click(downloadButton));
+
+    const warningModal = await findByRole('dialog');
+    await waitFor(() => {
+      expect(
+        within(warningModal).getByText(`Download is on the way`),
+      ).toBeInTheDocument();
+    });
   });
 
   test('should not allow download as CSV when user does not have permission to export data', async () => {
@@ -483,7 +583,9 @@ describe('ResultSet', () => {
         },
       }),
     );
-    expect(queryByTestId('export-csv-button')).not.toBeInTheDocument();
+    const csvButton = queryByTestId('export-csv-button');
+    expect(csvButton).toBeInTheDocument();
+    expect(csvButton).toBeDisabled();
   });
 
   test('should allow copy to clipboard when user has permission to export data', async () => {
@@ -522,6 +624,557 @@ describe('ResultSet', () => {
         },
       }),
     );
-    expect(queryByTestId('copy-to-clipboard-button')).not.toBeInTheDocument();
+    const clipboardButton = queryByTestId('copy-to-clipboard-button');
+    expect(clipboardButton).toBeInTheDocument();
+    expect(clipboardButton).toBeDisabled();
+  });
+
+  test('should include sqlEditorImmutableId in query object when fetching results', async () => {
+    const queryWithResultsKey = {
+      ...queries[0],
+      resultsKey: 'test-results-key',
+      sqlEditorImmutableId: 'test-immutable-id-123',
+    };
+
+    const store = mockStore({
+      ...initialState,
+      user,
+      sqlLab: {
+        ...initialState.sqlLab,
+        queries: {
+          [queryWithResultsKey.id]: queryWithResultsKey,
+        },
+      },
+    });
+
+    setup({ ...mockedProps, queryId: queryWithResultsKey.id }, store);
+
+    await waitFor(() => {
+      // Check that REQUEST_QUERY_RESULTS action was dispatched
+      const actions = store.getActions();
+      const requestAction = actions.find(
+        action => action.type === 'REQUEST_QUERY_RESULTS',
+      );
+      expect(requestAction).toBeDefined();
+      // Verify sqlEditorImmutableId is present in the query object
+      expect(requestAction?.query?.sqlEditorImmutableId).toBe(
+        'test-immutable-id-123',
+      );
+    });
+
+    // Verify the API was called
+    const resultsCalls = fetchMock.callHistory.calls(
+      'glob:*/api/v1/sqllab/results/*',
+    );
+    expect(resultsCalls).toHaveLength(1);
+  });
+
+  test('should use non-streaming export (href) when rows below threshold', async () => {
+    // This test validates that when rows < CSV_STREAMING_ROW_THRESHOLD,
+    // the component uses the direct download href instead of streaming export.
+    const appRoot = '/superset';
+    applicationRootMock.mockReturnValue(appRoot);
+
+    // Create a query with rows BELOW the threshold
+    const smallQuery = {
+      ...queries[0],
+      rows: 500, // Below the 1000 threshold
+      limitingFactor: 'NOT_LIMITED',
+    };
+
+    const { getByTestId } = setup(
+      mockedProps,
+      mockStore({
+        ...initialState,
+        user: {
+          ...user,
+          roles: {
+            sql_lab: [['can_export_csv', 'SQLLab']],
+          },
+        },
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [smallQuery.id]: smallQuery,
+          },
+        },
+        common: {
+          conf: {
+            CSV_STREAMING_ROW_THRESHOLD: 1000,
+          },
+        },
+      }),
+    );
+
+    await waitFor(() => {
+      expect(getByTestId('export-csv-button')).toBeInTheDocument();
+    });
+
+    const exportButton = getByTestId('export-csv-button');
+
+    // Non-streaming export should have href attribute with prefixed URL
+    expect(exportButton).toHaveAttribute(
+      'href',
+      expect.stringMatching(new RegExp(`^${appRoot}/api/v1/sqllab/export/`)),
+    );
+
+    // Click should NOT trigger startExport for non-streaming
+    fireEvent.click(exportButton);
+    expect(mockStartExport).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    {
+      name: 'no prefix (default deployment)',
+      appRoot: '',
+      expectedUrl: '/api/v1/sqllab/export_streaming/',
+    },
+    {
+      name: 'with subdirectory prefix',
+      appRoot: '/superset',
+      expectedUrl: '/superset/api/v1/sqllab/export_streaming/',
+    },
+    {
+      name: 'with nested subdirectory prefix',
+      appRoot: '/my-app/superset',
+      expectedUrl: '/my-app/superset/api/v1/sqllab/export_streaming/',
+    },
+  ])(
+    'streaming export URL respects app root configuration: $name',
+    async ({ appRoot, expectedUrl }) => {
+      // This test validates that streaming export startExport receives the correct URL
+      // based on the applicationRoot configuration.
+      applicationRootMock.mockReturnValue(appRoot);
+
+      // Create a query with enough rows to trigger streaming export (>= threshold)
+      const largeQuery = {
+        ...queries[0],
+        rows: 5000, // Above the default 1000 threshold
+        limitingFactor: 'NOT_LIMITED',
+      };
+
+      const { getByTestId } = setup(
+        mockedProps,
+        mockStore({
+          ...initialState,
+          user: {
+            ...user,
+            roles: {
+              sql_lab: [['can_export_csv', 'SQLLab']],
+            },
+          },
+          sqlLab: {
+            ...initialState.sqlLab,
+            queries: {
+              [largeQuery.id]: largeQuery,
+            },
+          },
+          common: {
+            conf: {
+              CSV_STREAMING_ROW_THRESHOLD: 1000,
+            },
+          },
+        }),
+      );
+
+      await waitFor(() => {
+        expect(getByTestId('export-csv-button')).toBeInTheDocument();
+      });
+
+      const exportButton = getByTestId('export-csv-button');
+      fireEvent.click(exportButton);
+
+      // Verify startExport was called exactly once
+      expect(mockStartExport).toHaveBeenCalledTimes(1);
+
+      // The URL should match the expected prefixed URL
+      expect(mockStartExport).toHaveBeenCalledWith(
+        expect.objectContaining({
+          url: expectedUrl,
+        }),
+      );
+    },
+  );
+
+  test('should show CSV button with granular can_export_data permission when flag is ON', async () => {
+    mockIsFeatureEnabled.mockImplementation(
+      (flag: FeatureFlag) => flag === FeatureFlag.GranularExportControls,
+    );
+    const { queryByTestId } = setup(
+      mockedProps,
+      mockStore({
+        ...initialState,
+        user: {
+          ...user,
+          roles: {
+            sql_lab: [['can_export_data', 'Superset']],
+          },
+        },
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [queries[0].id]: queries[0],
+          },
+        },
+      }),
+    );
+    const csvButton = queryByTestId('export-csv-button');
+    expect(csvButton).toBeInTheDocument();
+    expect(csvButton).toBeEnabled();
+    mockIsFeatureEnabled.mockReset();
+  });
+
+  test('should disable CSV button when granular flag is ON and user lacks can_export_data', async () => {
+    mockIsFeatureEnabled.mockImplementation(
+      (flag: FeatureFlag) => flag === FeatureFlag.GranularExportControls,
+    );
+    const { queryByTestId } = setup(
+      mockedProps,
+      mockStore({
+        ...initialState,
+        user: {
+          ...user,
+          roles: {
+            sql_lab: [],
+          },
+        },
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [queries[0].id]: queries[0],
+          },
+        },
+      }),
+    );
+    const csvButton = queryByTestId('export-csv-button');
+    expect(csvButton).toBeInTheDocument();
+    expect(csvButton).toBeDisabled();
+    mockIsFeatureEnabled.mockReset();
+  });
+
+  test('should show clipboard button with granular can_copy_clipboard permission when flag is ON', async () => {
+    mockIsFeatureEnabled.mockImplementation(
+      (flag: FeatureFlag) => flag === FeatureFlag.GranularExportControls,
+    );
+    const { queryByTestId } = setup(
+      mockedProps,
+      mockStore({
+        ...initialState,
+        user: {
+          ...user,
+          roles: {
+            sql_lab: [['can_copy_clipboard', 'Superset']],
+          },
+        },
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [queries[0].id]: queries[0],
+          },
+        },
+      }),
+    );
+    const clipboardButton = queryByTestId('copy-to-clipboard-button');
+    expect(clipboardButton).toBeInTheDocument();
+    expect(clipboardButton).toBeEnabled();
+    mockIsFeatureEnabled.mockReset();
+  });
+
+  test('should disable clipboard button when granular flag is ON and user lacks can_copy_clipboard', async () => {
+    mockIsFeatureEnabled.mockImplementation(
+      (flag: FeatureFlag) => flag === FeatureFlag.GranularExportControls,
+    );
+    const { queryByTestId } = setup(
+      mockedProps,
+      mockStore({
+        ...initialState,
+        user: {
+          ...user,
+          roles: {
+            sql_lab: [['can_export_data', 'Superset']],
+          },
+        },
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [queries[0].id]: queries[0],
+          },
+        },
+      }),
+    );
+    const clipboardButton = queryByTestId('copy-to-clipboard-button');
+    expect(clipboardButton).toBeInTheDocument();
+    expect(clipboardButton).toBeDisabled();
+    mockIsFeatureEnabled.mockReset();
+  });
+
+  test('should use legacy can_export_csv for both CSV and clipboard when granular flag is OFF', async () => {
+    mockIsFeatureEnabled.mockReturnValue(false);
+    const { queryByTestId } = setup(
+      mockedProps,
+      mockStore({
+        ...initialState,
+        user: {
+          ...user,
+          roles: {
+            sql_lab: [['can_export_csv', 'SQLLab']],
+          },
+        },
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [queries[0].id]: queries[0],
+          },
+        },
+      }),
+    );
+    const csvButton = queryByTestId('export-csv-button');
+    const clipboardButton = queryByTestId('copy-to-clipboard-button');
+    expect(csvButton).toBeInTheDocument();
+    expect(csvButton).toBeEnabled();
+    expect(clipboardButton).toBeInTheDocument();
+    expect(clipboardButton).toBeEnabled();
+    mockIsFeatureEnabled.mockReset();
+  });
+
+  test('disabled CSV button should show permission tooltip when granular flag is ON', async () => {
+    mockIsFeatureEnabled.mockImplementation(
+      (flag: FeatureFlag) => flag === FeatureFlag.GranularExportControls,
+    );
+    const { getByTestId } = setup(
+      mockedProps,
+      mockStore({
+        ...initialState,
+        user: {
+          ...user,
+          roles: {
+            sql_lab: [['can_copy_clipboard', 'Superset']],
+          },
+        },
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [queries[0].id]: queries[0],
+          },
+        },
+      }),
+    );
+    const csvButton = getByTestId('export-csv-button');
+    expect(csvButton).toBeDisabled();
+    fireEvent.mouseOver(csvButton.parentElement ?? csvButton);
+    await waitFor(() => {
+      expect(
+        screen.getByText("You don't have permission to export data"),
+      ).toBeInTheDocument();
+    });
+    mockIsFeatureEnabled.mockReset();
+  });
+
+  test('disabled clipboard button should show permission tooltip when granular flag is ON', async () => {
+    mockIsFeatureEnabled.mockImplementation(
+      (flag: FeatureFlag) => flag === FeatureFlag.GranularExportControls,
+    );
+    const { getByTestId } = setup(
+      mockedProps,
+      mockStore({
+        ...initialState,
+        user: {
+          ...user,
+          roles: {
+            sql_lab: [['can_export_data', 'Superset']],
+          },
+        },
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [queries[0].id]: queries[0],
+          },
+        },
+      }),
+    );
+    const clipboardButton = getByTestId('copy-to-clipboard-button');
+    expect(clipboardButton).toBeDisabled();
+    fireEvent.mouseOver(clipboardButton.parentElement ?? clipboardButton);
+    await waitFor(() => {
+      expect(
+        screen.getByText("You don't have permission to copy to clipboard"),
+      ).toBeInTheDocument();
+    });
+    mockIsFeatureEnabled.mockReset();
+  });
+
+  test('renders contributed toolbar action in results slot', async () => {
+    registerToolbarAction(
+      ViewLocations.sqllab.results,
+      'test-results-action',
+      'Results Action',
+      jest.fn(),
+    );
+
+    const { getByTestId } = setup(
+      mockedProps,
+      mockStore({
+        ...initialState,
+        user,
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [queries[0].id]: queries[0],
+          },
+        },
+      }),
+    );
+
+    await waitFor(() => {
+      expect(getByTestId('table-container')).toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByRole('button', { name: 'Results Action' }),
+    ).toBeInTheDocument();
+  });
+
+  test('Create chart in new window opens single-prefixed explore URL under subdirectory deployment', async () => {
+    // When the user metaKey-clicks "Create chart", the SQL-Lab result handoff
+    // composes an explore URL via mountExploreUrl(..., includeAppRoot=true).
+    // Under SUPERSET_APP_ROOT=/superset, the resulting URL must contain the
+    // prefix exactly once. A doubled prefix (/superset/superset/explore/…)
+    // produces a blank Explore page.
+    const appRoot = '/superset';
+    applicationRootMock.mockReturnValue(appRoot);
+
+    const queryWithId = {
+      ...queries[0],
+      results: {
+        ...queries[0].results,
+        query_id: 42,
+      },
+    };
+
+    const { getByTestId } = setup(
+      {
+        ...mockedProps,
+        queryId: queryWithId.id,
+        database: { allows_subquery: true, allows_virtual_table_explore: true },
+      },
+      mockStore({
+        ...initialState,
+        user,
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [queryWithId.id]: queryWithId,
+          },
+        },
+      }),
+    );
+
+    const exploreButton = await waitFor(() =>
+      getByTestId('explore-results-button'),
+    );
+    fireEvent.click(exploreButton, { metaKey: true });
+
+    await waitFor(() => {
+      expect(mockOpenInNewTab).toHaveBeenCalledTimes(1);
+    });
+    const url = mockOpenInNewTab.mock.calls[0][0] as string;
+    expect(url).toMatch(/^\/superset\/explore\/\?.*form_data_key=/);
+    expect(url).not.toMatch(/\/superset\/superset\//);
+  });
+
+  test('Create chart in same window pushes router-relative explore URL under subdirectory deployment', async () => {
+    // Same-tab click (no metaKey) goes through history.push under the SPA
+    // basename Router, so mountExploreUrl is called with includeAppRoot=false.
+    // The composed URL must NOT carry an app-root prefix — the router applies
+    // it once via <Router basename={applicationRoot()}>. A premature prefix
+    // here would compound with the basename and yield /superset/superset/…
+    const appRoot = '/superset';
+    applicationRootMock.mockReturnValue(appRoot);
+
+    const queryWithId = {
+      ...queries[0],
+      results: {
+        ...queries[0].results,
+        query_id: 99,
+      },
+    };
+
+    const store = mockStore({
+      ...initialState,
+      user,
+      sqlLab: {
+        ...initialState.sqlLab,
+        queries: {
+          [queryWithId.id]: queryWithId,
+        },
+      },
+    });
+
+    const { getByTestId } = render(
+      <ResultSet
+        {...mockedProps}
+        queryId={queryWithId.id}
+        database={{
+          allows_subquery: true,
+          allows_virtual_table_explore: true,
+        }}
+      />,
+      { useRedux: true, store, useRouter: true },
+    );
+
+    const exploreButton = await waitFor(() =>
+      getByTestId('explore-results-button'),
+    );
+    fireEvent.click(exploreButton);
+
+    await waitFor(() => {
+      expect(mockPostFormData).toHaveBeenCalledTimes(1);
+    });
+    expect(mockOpenInNewTab).not.toHaveBeenCalled();
+  });
+
+  test('filters the results table when typing in the search box', async () => {
+    const filterableQuery = {
+      ...queries[0],
+      id: 'filterableQueryId',
+      cached: false,
+      results: {
+        columns: [{ is_dttm: false, column_name: 'fruit', type: 'STRING' }],
+        selected_columns: [
+          { is_dttm: false, column_name: 'fruit', type: 'STRING' },
+        ],
+        data: [{ fruit: 'apple' }, { fruit: 'banana' }],
+      },
+    };
+    const { getByTestId, getByPlaceholderText, queryByText } = setup(
+      { ...mockedProps, cache: false, queryId: filterableQuery.id },
+      mockStore({
+        ...initialState,
+        user,
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [filterableQuery.id]: filterableQuery,
+          },
+        },
+      }),
+    );
+
+    await waitFor(() => {
+      expect(getByTestId('table-container')).toBeInTheDocument();
+    });
+    // Both rows are visible before filtering
+    expect(queryByText('apple')).toBeInTheDocument();
+    expect(queryByText('banana')).toBeInTheDocument();
+
+    // Typing in the search box filters the rows (case-insensitive substring)
+    fireEvent.change(getByPlaceholderText('Filter results'), {
+      target: { value: 'APP' },
+    });
+
+    await waitFor(() => {
+      expect(queryByText('banana')).not.toBeInTheDocument();
+    });
+    expect(queryByText('apple')).toBeInTheDocument();
   });
 });

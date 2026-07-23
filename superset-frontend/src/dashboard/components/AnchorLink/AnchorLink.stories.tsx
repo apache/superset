@@ -19,7 +19,7 @@
 import AnchorLink from '.';
 
 export default {
-  title: 'AnchorLink',
+  title: 'Components/AnchorLink',
   component: AnchorLink,
 };
 

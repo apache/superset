@@ -21,12 +21,13 @@ import {
   DataRecordValue,
   tooltipHtml,
 } from '@superset-ui/core';
-import { EChartsCoreOption, TreeSeriesOption } from 'echarts';
-import {
+import type { EChartsCoreOption } from 'echarts/core';
+import type { TreeSeriesOption } from 'echarts/charts';
+import type {
   TreeSeriesCallbackDataParams,
   TreeSeriesNodeItemOption,
 } from 'echarts/types/src/chart/tree/TreeSeries';
-import { OptionName } from 'echarts/types/src/util/types';
+import type { OptionName } from 'echarts/types/src/util/types';
 import {
   EchartsTreeChartProps,
   EchartsTreeFormData,
@@ -55,7 +56,8 @@ export function formatTooltip({
 export default function transformProps(
   chartProps: EchartsTreeChartProps,
 ): TreeTransformedProps {
-  const { width, height, formData, queriesData } = chartProps;
+  const { width, height, formData, queriesData, theme, isRefreshing } =
+    chartProps;
   const refs: Refs = {};
   const data: TreeDataRecord[] = queriesData[0].data || [];
 
@@ -73,6 +75,7 @@ export default function transformProps(
     nodeLabelPosition,
     childLabelPosition,
     emphasis,
+    initialTreeDepth,
   }: EchartsTreeFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const metricLabel = getMetricLabel(metric);
 
@@ -180,6 +183,10 @@ export default function transformProps(
       }
     });
   }
+  // Disable animation during refresh to prevent expand/collapse layout animation
+  const seriesAnimation = isRefreshing
+    ? false
+    : DEFAULT_TREE_SERIES_OPTION.animation;
 
   const series: TreeSeriesOption[] = [
     {
@@ -188,17 +195,22 @@ export default function transformProps(
       label: {
         ...DEFAULT_TREE_SERIES_OPTION.label,
         position: nodeLabelPosition,
+        color: theme.colorText,
       },
       emphasis: { focus: emphasis },
-      animation: DEFAULT_TREE_SERIES_OPTION.animation,
+      animation: seriesAnimation,
       layout,
       orient,
       symbol,
       roam,
       symbolSize,
-      lineStyle: DEFAULT_TREE_SERIES_OPTION.lineStyle,
+      lineStyle: {
+        color: theme.colorText,
+        width: 1.5,
+      },
       select: DEFAULT_TREE_SERIES_OPTION.select,
       leaves: { label: { position: childLabelPosition } },
+      initialTreeDepth,
     },
   ];
 

@@ -16,15 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  DatasourceType,
-  GenericDataType,
-  testQueryResponse,
-} from '@superset-ui/core';
+import { DatasourceType, testQueryResponse } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { columnChoices } from '../../src';
 
 describe('columnChoices()', () => {
-  it('should convert columns to choices when source is a Dataset', () => {
+  test('should convert columns to choices when source is a Dataset', () => {
     expect(
       columnChoices({
         id: 1,
@@ -53,7 +50,6 @@ describe('columnChoices()', () => {
         ],
         verbose_map: {},
         column_formats: { fiz: 'NUMERIC', about: 'STRING', foo: 'DATE' },
-        currency_formats: {},
         datasource_name: 'my_datasource',
         description: 'this is my datasource',
       }),
@@ -64,11 +60,11 @@ describe('columnChoices()', () => {
     ]);
   });
 
-  it('should return empty array when no columns', () => {
+  test('should return empty array when no columns', () => {
     expect(columnChoices(undefined)).toEqual([]);
   });
 
-  it('should convert columns to choices when source is a Query', () => {
+  test('should convert columns to choices when source is a Query', () => {
     expect(columnChoices(testQueryResponse)).toEqual([
       ['Column 1', 'Column 1'],
       ['Column 2', 'Column 2'],
@@ -76,12 +72,12 @@ describe('columnChoices()', () => {
     ]);
   });
 
-  it('should return choices of a specific type', () => {
+  test('should return choices of a specific type', () => {
     expect(columnChoices(testQueryResponse, GenericDataType.Temporal)).toEqual([
       ['Column 2', 'Column 2'],
     ]);
   });
-  it('should use name when verbose_name key exists but is not defined', () => {
+  test('should use name when verbose_name key exists but is not defined', () => {
     expect(
       columnChoices({
         id: 1,
@@ -105,7 +101,6 @@ describe('columnChoices()', () => {
         ],
         verbose_map: {},
         column_formats: { fiz: 'NUMERIC', about: 'STRING', foo: 'DATE' },
-        currency_formats: {},
         datasource_name: 'my_datasource',
         description: 'this is my datasource',
       }),

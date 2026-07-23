@@ -17,31 +17,33 @@
  * under the License.
  */
 
-import { KeyboardEvent, ReactElement } from 'react';
-import userEvent from '@testing-library/user-event';
-import { render, screen } from 'spec/helpers/testing-library';
-import { FeatureFlag } from '@superset-ui/core';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
+import { FeatureFlag, VizType } from '@superset-ui/core';
 import mockState from 'spec/fixtures/mockState';
-import { Menu } from 'src/components/Menu';
-import SliceHeaderControls, {
-  SliceHeaderControlsProps,
-  handleDropdownNavigation,
-} from '.';
+import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
+import downloadAsImage from 'src/utils/downloadAsImage';
+import downloadAsPdf from 'src/utils/downloadAsPdf';
+import SliceHeaderControls, { SliceHeaderControlsProps } from '.';
 
-jest.mock('src/components/Dropdown', () => {
-  const original = jest.requireActual('src/components/Dropdown');
-  return {
-    ...original,
-    NoAnimationDropdown: (props: any) => (
-      <div data-test="NoAnimationDropdown" className="ant-dropdown">
-        {props.overlay}
-        {props.children}
-      </div>
-    ),
-  };
-});
+jest.mock('src/utils/cachedSupersetGet');
+jest.mock('src/utils/downloadAsImage', () =>
+  jest.fn(() => jest.fn().mockResolvedValue(undefined)),
+);
+jest.mock('src/utils/downloadAsPdf', () =>
+  jest.fn(() => jest.fn().mockResolvedValue(undefined)),
+);
 
-const createProps = (viz_type = 'sunburst_v2') =>
+const mockCachedSupersetGet = cachedSupersetGet as jest.MockedFunction<
+  typeof cachedSupersetGet
+>;
+const SLICE_ID = 371;
+
+const createProps = (viz_type = VizType.Sunburst) =>
   ({
     addDangerToast: jest.fn(),
     addSuccessToast: jest.fn(),
@@ -50,12 +52,13 @@ const createProps = (viz_type = 'sunburst_v2') =>
     exportFullCSV: jest.fn(),
     exportXLSX: jest.fn(),
     exportFullXLSX: jest.fn(),
+    exportPivotExcel: jest.fn(),
     forceRefresh: jest.fn(),
     handleToggleFullSize: jest.fn(),
     toggleExpandSlice: jest.fn(),
     logEvent: jest.fn(),
     slice: {
-      slice_id: 371,
+      slice_id: SLICE_ID,
       slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%20371%7D',
       slice_name: 'Vaccine Candidates per Country & Stage',
       slice_description: 'Table of vaccine candidates for 100 countries',
@@ -63,7 +66,7 @@ const createProps = (viz_type = 'sunburst_v2') =>
         adhoc_filters: [],
         color_scheme: 'supersetColors',
         datasource: '58__table',
-        ...(viz_type === 'sunburst_v2'
+        ...(viz_type === VizType.Sunburst
           ? { columns: ['product_category', 'clinical_stage'] }
           : { groupby: ['product_category', 'clinical_stage'] }),
         linear_color_scheme: 'schemeYlOrBr',
@@ -74,7 +77,7 @@ const createProps = (viz_type = 'sunburst_v2') =>
           secondary_metric: 'metrics',
         },
         row_limit: 10000,
-        slice_id: 371,
+        slice_id: SLICE_ID,
         time_range: 'No filter',
         url_params: {},
         viz_type,
@@ -83,24 +86,29 @@ const createProps = (viz_type = 'sunburst_v2') =>
       datasource: '58__table',
       description: 'test-description',
       description_markeddown: '',
-      owners: [],
       modified: '<span class="no-wrap">22 hours ago</span>',
       changed_on: 1617143411523,
+      editors: [],
     },
     isCached: [false],
     isExpanded: false,
     cachedDttm: [''],
     updatedDttm: 1617213803803,
     supersetCanExplore: true,
-    supersetCanCSV: true,
+    supersetCanDownload: true,
     componentId: 'CHART-fYo7IyvKZQ',
     dashboardId: 26,
     isFullSize: false,
     chartStatus: 'rendered',
     showControls: true,
     supersetCanShare: true,
-    formData: { slice_id: 1, datasource: '58__table', viz_type: 'sunburst_v2' },
+    formData: {
+      slice_id: 1,
+      datasource: '58__table',
+      viz_type: VizType.Sunburst,
+    },
     exploreUrl: '/explore',
+    defaultOpen: true,
   }) as SliceHeaderControlsProps;
 
 const renderWrapper = (
@@ -123,86 +131,109 @@ const renderWrapper = (
   });
 };
 
+const openMenu = () => {
+  userEvent.click(screen.getByRole('button', { name: 'More Options' }));
+};
+
+const mockDownloadAsImage = downloadAsImage as jest.MockedFunction<
+  typeof downloadAsImage
+>;
+const mockDownloadAsPdf = downloadAsPdf as jest.MockedFunction<
+  typeof downloadAsPdf
+>;
+const mockFullscreenElement = (getElement: () => Element | null) => {
+  Object.defineProperty(document, 'fullscreenElement', {
+    configurable: true,
+    get: getElement,
+  });
+};
+
+beforeEach(() => {
+  mockCachedSupersetGet.mockClear();
+  mockDownloadAsImage.mockClear();
+  mockDownloadAsPdf.mockClear();
+  mockCachedSupersetGet.mockResolvedValue({
+    response: {} as Response,
+    json: {
+      result: {
+        columns: [],
+        metrics: [],
+      },
+    },
+  });
+});
+
+afterEach(() => {
+  Reflect.deleteProperty(document, 'fullscreenElement');
+});
+
 test('Should render', () => {
   renderWrapper();
-  expect(
-    screen.getByRole('button', { name: 'More Options' }),
-  ).toBeInTheDocument();
-  expect(screen.getByTestId('NoAnimationDropdown')).toBeInTheDocument();
+  openMenu();
+  expect(screen.getByTestId(`slice_${SLICE_ID}-menu`)).toBeInTheDocument();
 });
 
 test('Should render default props', () => {
   const props = createProps();
 
-  // @ts-ignore
+  // @ts-expect-error - testing with missing required props
   delete props.forceRefresh;
-  // @ts-ignore
   delete props.toggleExpandSlice;
-  // @ts-ignore
-  delete props.exploreChart;
-  // @ts-ignore
+  delete props.logExploreChart;
   delete props.exportCSV;
-  // @ts-ignore
   delete props.exportXLSX;
-  // @ts-ignore
+  // @ts-expect-error - testing with missing required props
   delete props.cachedDttm;
-  // @ts-ignore
+  // @ts-expect-error - testing with missing required props
   delete props.updatedDttm;
-  // @ts-ignore
+  // @ts-expect-error - testing with missing required props
   delete props.isCached;
-  // @ts-ignore
   delete props.isExpanded;
 
   renderWrapper(props);
-  expect(
-    screen.getByRole('menuitem', { name: 'Enter fullscreen' }),
-  ).toBeInTheDocument();
-  expect(
-    screen.getByRole('menuitem', { name: /Force refresh/ }),
-  ).toBeInTheDocument();
-  expect(
-    screen.getByRole('menuitem', { name: 'Show chart description' }),
-  ).toBeInTheDocument();
-  expect(
-    screen.getByRole('menuitem', { name: 'Edit chart' }),
-  ).toBeInTheDocument();
-  expect(
-    screen.getByRole('menuitem', { name: 'Download' }),
-  ).toBeInTheDocument();
-  expect(screen.getByRole('menuitem', { name: 'Share' })).toBeInTheDocument();
+  openMenu();
+  expect(screen.getByText('Enter fullscreen')).toBeInTheDocument();
+  expect(screen.getByText('Force refresh')).toBeInTheDocument();
+  expect(screen.getByText('Show chart description')).toBeInTheDocument();
+  expect(screen.getByText('Edit chart')).toBeInTheDocument();
+  expect(screen.getByText('Download')).toBeInTheDocument();
+  expect(screen.getByText('Share')).toBeInTheDocument();
 
   expect(
     screen.getByRole('button', { name: 'More Options' }),
   ).toBeInTheDocument();
-  expect(screen.getByTestId('NoAnimationDropdown')).toBeInTheDocument();
+  expect(screen.getByTestId(`slice_${SLICE_ID}-menu`)).toBeInTheDocument();
 });
 
 test('Should "export to CSV"', async () => {
   const props = createProps();
   renderWrapper(props);
-  expect(props.exportCSV).toBeCalledTimes(0);
+  openMenu();
+  expect(props.exportCSV).toHaveBeenCalledTimes(0);
   userEvent.hover(screen.getByText('Download'));
   userEvent.click(await screen.findByText('Export to .CSV'));
-  expect(props.exportCSV).toBeCalledTimes(1);
-  expect(props.exportCSV).toBeCalledWith(371);
+  expect(props.exportCSV).toHaveBeenCalledTimes(1);
+  expect(props.exportCSV).toHaveBeenCalledWith(371);
 });
 
 test('Should "export to Excel"', async () => {
   const props = createProps();
   renderWrapper(props);
-  expect(props.exportXLSX).toBeCalledTimes(0);
+  openMenu();
+  expect(props.exportXLSX).toHaveBeenCalledTimes(0);
   userEvent.hover(screen.getByText('Download'));
   userEvent.click(await screen.findByText('Export to Excel'));
-  expect(props.exportXLSX).toBeCalledTimes(1);
-  expect(props.exportXLSX).toBeCalledWith(371);
+  expect(props.exportXLSX).toHaveBeenCalledTimes(1);
+  expect(props.exportXLSX).toHaveBeenCalledWith(371);
 });
 
 test('Export full CSV is under featureflag', async () => {
   (global as any).featureFlags = {
     [FeatureFlag.AllowFullCsvExport]: false,
   };
-  const props = createProps('table');
+  const props = createProps(VizType.Table);
   renderWrapper(props);
+  openMenu();
   userEvent.hover(screen.getByText('Download'));
   expect(await screen.findByText('Export to .CSV')).toBeInTheDocument();
   expect(screen.queryByText('Export to full .CSV')).not.toBeInTheDocument();
@@ -212,13 +243,14 @@ test('Should "export full CSV"', async () => {
   (global as any).featureFlags = {
     [FeatureFlag.AllowFullCsvExport]: true,
   };
-  const props = createProps('table');
+  const props = createProps(VizType.Table);
   renderWrapper(props);
-  expect(props.exportFullCSV).toBeCalledTimes(0);
+  openMenu();
+  expect(props.exportFullCSV).toHaveBeenCalledTimes(0);
   userEvent.hover(screen.getByText('Download'));
   userEvent.click(await screen.findByText('Export to full .CSV'));
-  expect(props.exportFullCSV).toBeCalledTimes(1);
-  expect(props.exportFullCSV).toBeCalledWith(371);
+  expect(props.exportFullCSV).toHaveBeenCalledTimes(1);
+  expect(props.exportFullCSV).toHaveBeenCalledWith(371);
 });
 
 test('Should not show export full CSV if report is not table', async () => {
@@ -226,6 +258,7 @@ test('Should not show export full CSV if report is not table', async () => {
     [FeatureFlag.AllowFullCsvExport]: true,
   };
   renderWrapper();
+  openMenu();
   userEvent.hover(screen.getByText('Download'));
   expect(await screen.findByText('Export to .CSV')).toBeInTheDocument();
   expect(screen.queryByText('Export to full .CSV')).not.toBeInTheDocument();
@@ -235,8 +268,9 @@ test('Export full Excel is under featureflag', async () => {
   (global as any).featureFlags = {
     [FeatureFlag.AllowFullCsvExport]: false,
   };
-  const props = createProps('table');
+  const props = createProps(VizType.Table);
   renderWrapper(props);
+  openMenu();
   userEvent.hover(screen.getByText('Download'));
   expect(await screen.findByText('Export to Excel')).toBeInTheDocument();
   expect(screen.queryByText('Export to full Excel')).not.toBeInTheDocument();
@@ -246,13 +280,14 @@ test('Should "export full Excel"', async () => {
   (global as any).featureFlags = {
     [FeatureFlag.AllowFullCsvExport]: true,
   };
-  const props = createProps('table');
+  const props = createProps(VizType.Table);
   renderWrapper(props);
-  expect(props.exportFullXLSX).toBeCalledTimes(0);
+  openMenu();
+  expect(props.exportFullXLSX).toHaveBeenCalledTimes(0);
   userEvent.hover(screen.getByText('Download'));
   userEvent.click(await screen.findByText('Export to full Excel'));
-  expect(props.exportFullXLSX).toBeCalledTimes(1);
-  expect(props.exportFullXLSX).toBeCalledWith(371);
+  expect(props.exportFullXLSX).toHaveBeenCalledTimes(1);
+  expect(props.exportFullXLSX).toHaveBeenCalledWith(371);
 });
 
 test('Should not show export full Excel if report is not table', async () => {
@@ -260,37 +295,102 @@ test('Should not show export full Excel if report is not table', async () => {
     [FeatureFlag.AllowFullCsvExport]: true,
   };
   renderWrapper();
+  openMenu();
   userEvent.hover(screen.getByText('Download'));
   expect(await screen.findByText('Export to Excel')).toBeInTheDocument();
   expect(screen.queryByText('Export to full Excel')).not.toBeInTheDocument();
 });
 
+test('Should export to pivoted Excel if report is pivot table', async () => {
+  const props = createProps(VizType.PivotTable);
+  renderWrapper(props);
+  openMenu();
+  expect(props.exportPivotExcel).toHaveBeenCalledTimes(0);
+  userEvent.hover(screen.getByText('Download'));
+  userEvent.click(await screen.findByText('Export to Pivoted Excel'));
+  expect(props.exportPivotExcel).toHaveBeenCalledTimes(1);
+  expect(props.exportPivotExcel).toHaveBeenCalledWith(
+    '#chart-id-371 .pvtTable',
+    props.slice.slice_name,
+  );
+});
+
 test('Should "Show chart description"', () => {
   const props = createProps();
   renderWrapper(props);
-  expect(props.toggleExpandSlice).toBeCalledTimes(0);
+  openMenu();
+  expect(props.toggleExpandSlice).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByText('Show chart description'));
-  expect(props.toggleExpandSlice).toBeCalledTimes(1);
-  expect(props.toggleExpandSlice).toBeCalledWith(371);
+  expect(props.toggleExpandSlice).toHaveBeenCalledTimes(1);
+  expect(props.toggleExpandSlice).toHaveBeenCalledWith(371);
 });
 
 test('Should "Force refresh"', () => {
   const props = createProps();
   renderWrapper(props);
-  expect(props.forceRefresh).toBeCalledTimes(0);
+  openMenu();
+  expect(props.forceRefresh).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByText('Force refresh'));
-  expect(props.forceRefresh).toBeCalledTimes(1);
-  expect(props.forceRefresh).toBeCalledWith(371, 26);
-  expect(props.addSuccessToast).toBeCalledTimes(1);
+  expect(props.forceRefresh).toHaveBeenCalledTimes(1);
+  expect(props.forceRefresh).toHaveBeenCalledWith(371, 26);
+  expect(props.addSuccessToast).toHaveBeenCalledTimes(1);
 });
 
-test('Should "Enter fullscreen"', () => {
-  const props = createProps();
+test('Should sync local state after entering fullscreen', async () => {
+  const mockDiv = document.createElement('div');
+  let fullscreenElement: Element | null = null;
+  mockFullscreenElement(() => fullscreenElement);
+  mockDiv.requestFullscreen = jest.fn().mockImplementation(async () => {
+    fullscreenElement = mockDiv;
+  });
+  const originalExitFullscreen = document.exitFullscreen;
+  (document as any).exitFullscreen = jest.fn().mockResolvedValue(undefined);
+  const props = {
+    ...createProps(),
+    chartHolderRef: { current: mockDiv },
+  };
   renderWrapper(props);
+  openMenu();
+  expect(props.handleToggleFullSize).toHaveBeenCalledTimes(0);
+  const fullscreenItem = screen.getByRole('menuitem', {
+    name: /enter fullscreen/i,
+  });
+  await userEvent.click(fullscreenItem);
+  expect(props.handleToggleFullSize).toHaveBeenCalledTimes(0);
+  expect(mockDiv.requestFullscreen).toHaveBeenCalled();
+  document.dispatchEvent(new Event('fullscreenchange'));
+  await waitFor(() => {
+    expect(props.handleToggleFullSize).toHaveBeenCalledTimes(1);
+  });
+  (document as any).exitFullscreen = originalExitFullscreen;
+});
 
-  expect(props.handleToggleFullSize).toBeCalledTimes(0);
-  userEvent.click(screen.getByText('Enter fullscreen'));
-  expect(props.handleToggleFullSize).toBeCalledTimes(1);
+test('Should sync local state after exiting fullscreen', async () => {
+  const mockDiv = document.createElement('div');
+  let fullscreenElement: Element | null = mockDiv;
+  mockFullscreenElement(() => fullscreenElement);
+  const originalExitFullscreen = document.exitFullscreen;
+  (document as any).exitFullscreen = jest.fn().mockImplementation(async () => {
+    fullscreenElement = null;
+  });
+  const props = {
+    ...createProps(),
+    isFullSize: true,
+    chartHolderRef: { current: mockDiv },
+  };
+  renderWrapper(props);
+  openMenu();
+  const fullscreenItem = screen.getByRole('menuitem', {
+    name: /exit fullscreen/i,
+  });
+  await userEvent.click(fullscreenItem);
+  expect(props.handleToggleFullSize).toHaveBeenCalledTimes(0);
+  expect(document.exitFullscreen).toHaveBeenCalledTimes(1);
+  document.dispatchEvent(new Event('fullscreenchange'));
+  await waitFor(() => {
+    expect(props.handleToggleFullSize).toHaveBeenCalledTimes(1);
+  });
+  (document as any).exitFullscreen = originalExitFullscreen;
 });
 
 test('Drill to detail modal is under featureflag', () => {
@@ -299,25 +399,28 @@ test('Drill to detail modal is under featureflag', () => {
   };
   const props = createProps();
   renderWrapper(props);
+  openMenu();
   expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
 });
 
-test('Should show "Drill to detail" with `can_explore` & `can_samples` perms', () => {
+test('Should show "Drill to detail" with `can_explore`, `can_samples` & `can_get_drill_info` perms', () => {
   (global as any).featureFlags = {
     [FeatureFlag.DrillToDetail]: true,
   };
-  const props = {
-    ...createProps(),
-    supersetCanExplore: true,
-  };
+  const props = createProps();
   props.slice.slice_id = 18;
   renderWrapper(props, {
-    Admin: [['can_samples', 'Datasource']],
+    Admin: [
+      ['can_samples', 'Datasource'],
+      ['can_explore', 'Superset'],
+      ['can_get_drill_info', 'Dataset'],
+    ],
   });
+  openMenu();
   expect(screen.getByText('Drill to detail')).toBeInTheDocument();
 });
 
-test('Should show "Drill to detail" with `can_drill` & `can_samples` perms', () => {
+test('Should show "Drill to detail" with `can_drill` & `can_samples` & `can_get_drill_info` perms', () => {
   (global as any).featureFlags = {
     [FeatureFlag.DrillToDetail]: true,
   };
@@ -330,12 +433,14 @@ test('Should show "Drill to detail" with `can_drill` & `can_samples` perms', () 
     Admin: [
       ['can_samples', 'Datasource'],
       ['can_drill', 'Dashboard'],
+      ['can_get_drill_info', 'Dataset'],
     ],
   });
+  openMenu();
   expect(screen.getByText('Drill to detail')).toBeInTheDocument();
 });
 
-test('Should show "Drill to detail" with both `canexplore` + `can_drill` & `can_samples` perms', () => {
+test('Should show "Drill to detail" with both `canexplore` + `can_drill` & `can_samples` & `can_get_drill_info` perms', () => {
   (global as any).featureFlags = {
     [FeatureFlag.DrillToDetail]: true,
   };
@@ -347,9 +452,12 @@ test('Should show "Drill to detail" with both `canexplore` + `can_drill` & `can_
   renderWrapper(props, {
     Admin: [
       ['can_samples', 'Datasource'],
+      ['can_explore', 'Superset'],
       ['can_drill', 'Dashboard'],
+      ['can_get_drill_info', 'Dataset'],
     ],
   });
+  openMenu();
   expect(screen.getByText('Drill to detail')).toBeInTheDocument();
 });
 
@@ -365,10 +473,11 @@ test('Should not show "Drill to detail" with neither of required perms', () => {
   renderWrapper(props, {
     Admin: [['invalid_permission', 'Dashboard']],
   });
+  openMenu();
   expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
 });
 
-test('Should not show "Drill to detail" only `can_dril` perm', () => {
+test('Should not show "Drill to detail" only `can_drill` perm', () => {
   (global as any).featureFlags = {
     [FeatureFlag.DrillToDetail]: true,
   };
@@ -380,6 +489,65 @@ test('Should not show "Drill to detail" only `can_dril` perm', () => {
   renderWrapper(props, {
     Admin: [['can_drill', 'Dashboard']],
   });
+  openMenu();
+  expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
+});
+
+test('Should not show "Drill to detail" with only `can_drill` & `can_samples` perms', () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DrillToDetail]: true,
+  };
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [
+      ['can_drill', 'Dashboard'],
+      ['can_samples', 'Datasource'],
+    ],
+  });
+  openMenu();
+  expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
+});
+
+test('Should not show "Drill to detail" with only `can_explore` & `can_samples` perms', () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DrillToDetail]: true,
+  };
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [
+      ['can_explore', 'Superset'],
+      ['can_samples', 'Datasource'],
+    ],
+  });
+  openMenu();
+  expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
+});
+
+test('Should not show "Drill to detail" with only `can_explore`, `can_drill` & `can_samples` perms', () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DrillToDetail]: true,
+  };
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [
+      ['can_explore', 'Superset'],
+      ['can_samples', 'Datasource'],
+      ['can_drill', 'Dashboard'],
+    ],
+  });
+  openMenu();
   expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
 });
 
@@ -392,6 +560,7 @@ test('Should show "View query"', () => {
   renderWrapper(props, {
     Admin: [['can_view_query', 'Dashboard']],
   });
+  openMenu();
   expect(screen.getByText('View query')).toBeInTheDocument();
 });
 
@@ -404,6 +573,7 @@ test('Should not show "View query"', () => {
   renderWrapper(props, {
     Admin: [['invalid_permission', 'Dashboard']],
   });
+  openMenu();
   expect(screen.queryByText('View query')).not.toBeInTheDocument();
 });
 
@@ -416,6 +586,7 @@ test('Should show "View as table"', () => {
   renderWrapper(props, {
     Admin: [['can_view_chart_as_table', 'Dashboard']],
   });
+  openMenu();
   expect(screen.getByText('View as table')).toBeInTheDocument();
 });
 
@@ -428,6 +599,7 @@ test('Should not show "View as table"', () => {
   renderWrapper(props, {
     Admin: [['invalid_permission', 'Dashboard']],
   });
+  openMenu();
   expect(screen.queryByText('View as table')).not.toBeInTheDocument();
 });
 
@@ -444,170 +616,292 @@ test('Should not show the "Edit chart" button', () => {
       ['can_view_chart_as_table', 'Dashboard'],
     ],
   });
+  openMenu();
   expect(screen.queryByText('Edit chart')).not.toBeInTheDocument();
 });
 
-describe('handleDropdownNavigation', () => {
-  const mockToggleDropdown = jest.fn();
-  const mockSetSelectedKeys = jest.fn();
-  const mockSetOpenKeys = jest.fn();
+test('Dataset drill info API call is made when user has drill permissions', async () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DrillToDetail]: true,
+  };
+  renderWrapper(undefined, {
+    Admin: [
+      ['can_samples', 'Datasource'],
+      ['can_explore', 'Superset'],
+      ['can_get_drill_info', 'Dataset'],
+    ],
+  });
 
-  const menu = (
-    <Menu selectedKeys={['item1']}>
-      <Menu.Item key="item1">Item 1</Menu.Item>
-      <Menu.Item key="item2">Item 2</Menu.Item>
-      <Menu.Item key="item3">Item 3</Menu.Item>
-    </Menu>
+  await new Promise(resolve => setTimeout(resolve, 0));
+
+  expect(mockCachedSupersetGet).toHaveBeenCalledWith({
+    endpoint: expect.stringContaining(
+      '/api/v1/dataset/58/drill_info/?q=(dashboard_id:26)',
+    ),
+  });
+});
+
+test('Dataset drill info API call is not made when user lacks drill permissions', async () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DrillToDetail]: true,
+  };
+  renderWrapper(undefined, {
+    Admin: [['invalid_permission', 'Dashboard']],
+  });
+
+  await new Promise(resolve => setTimeout(resolve, 0));
+
+  expect(mockCachedSupersetGet).not.toHaveBeenCalled();
+});
+
+test('Should show "Embed code" in Share menu when feature flag is enabled and chart has data', async () => {
+  window.featureFlags = {
+    EMBEDDABLE_CHARTS: true,
+  };
+  const props = createProps();
+  renderWrapper(props);
+  openMenu();
+  userEvent.hover(screen.getByText('Share'));
+  expect(await screen.findByText('Embed code')).toBeInTheDocument();
+});
+
+test('Should NOT show "Embed code" in Share menu when feature flag is disabled', async () => {
+  window.featureFlags = {
+    EMBEDDABLE_CHARTS: false,
+  };
+  const props = createProps();
+  renderWrapper(props);
+  openMenu();
+  userEvent.hover(screen.getByText('Share'));
+  expect(
+    await screen.findByText('Copy permalink to clipboard'),
+  ).toBeInTheDocument();
+  expect(screen.queryByText('Embed code')).not.toBeInTheDocument();
+});
+
+test('Should pass formData to Share menu for embed code feature', () => {
+  window.featureFlags = {
+    EMBEDDABLE_CHARTS: true,
+  };
+  const props = createProps();
+  const { container } = renderWrapper(props);
+
+  expect(container).toBeInTheDocument();
+  openMenu();
+  expect(screen.getByText('Share')).toBeInTheDocument();
+});
+
+test('Download submenu shows standardized export screenshot and PDF labels', async () => {
+  const props = createProps();
+  renderWrapper(props);
+  openMenu();
+  userEvent.hover(screen.getByText('Download'));
+  expect(
+    await screen.findByText('Export screenshot (jpeg)'),
+  ).toBeInTheDocument();
+  expect(screen.getByText('Export screenshot (png)')).toBeInTheDocument();
+  expect(screen.getByText('Export as PDF')).toBeInTheDocument();
+});
+
+test('Clicking "Export screenshot (jpeg)" calls downloadAsImage and logEvent', async () => {
+  const props = createProps();
+  renderWrapper(props);
+  openMenu();
+  userEvent.hover(screen.getByText('Download'));
+  userEvent.click(await screen.findByText('Export screenshot (jpeg)'));
+  expect(downloadAsImage).toHaveBeenCalledWith(
+    `.dashboard-chart-id-${SLICE_ID}`,
+    props.slice.slice_name,
+    true,
+    expect.anything(),
   );
+  expect(props.logEvent).toHaveBeenCalledWith(
+    expect.anything(),
+    expect.objectContaining({ chartId: SLICE_ID }),
+  );
+});
 
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
+test('Export screenshot (png) submenu shows Transparent and Solid options', async () => {
+  const props = createProps();
+  renderWrapper(props);
+  openMenu();
+  userEvent.hover(screen.getByText('Download'));
+  userEvent.hover(await screen.findByText('Export screenshot (png)'));
+  expect(await screen.findByText('Transparent background')).toBeInTheDocument();
+  expect(screen.getByText('Solid background')).toBeInTheDocument();
+});
 
-  test('should continue with system tab navigation if dropdown is closed and tab key is pressed', () => {
-    const event = {
-      key: 'Tab',
-      preventDefault: jest.fn(),
-    } as unknown as KeyboardEvent<HTMLDivElement>;
+test('Clicking "Transparent background" calls downloadAsImage with transparent option and logEvent', async () => {
+  const props = createProps();
+  renderWrapper(props);
+  openMenu();
+  userEvent.hover(screen.getByText('Download'));
+  userEvent.hover(await screen.findByText('Export screenshot (png)'));
+  userEvent.click(await screen.findByText('Transparent background'));
+  expect(downloadAsImage).toHaveBeenCalledWith(
+    `.dashboard-chart-id-${SLICE_ID}`,
+    props.slice.slice_name,
+    true,
+    expect.anything(),
+    { format: 'png', backgroundType: 'transparent' },
+  );
+  expect(props.logEvent).toHaveBeenCalledWith(
+    expect.anything(),
+    expect.objectContaining({
+      chartId: SLICE_ID,
+      backgroundType: 'transparent',
+    }),
+  );
+});
 
-    handleDropdownNavigation(
-      event,
-      false,
-      <div />,
-      mockToggleDropdown,
-      mockSetSelectedKeys,
-      mockSetOpenKeys,
-    );
-    expect(mockToggleDropdown).not.toHaveBeenCalled();
-    expect(mockSetSelectedKeys).not.toHaveBeenCalled();
-  });
+test('Clicking "Solid background" calls downloadAsImage with solid option and logEvent', async () => {
+  const props = createProps();
+  renderWrapper(props);
+  openMenu();
+  userEvent.hover(screen.getByText('Download'));
+  userEvent.hover(await screen.findByText('Export screenshot (png)'));
+  userEvent.click(await screen.findByText('Solid background'));
+  expect(downloadAsImage).toHaveBeenCalledWith(
+    `.dashboard-chart-id-${SLICE_ID}`,
+    props.slice.slice_name,
+    true,
+    expect.anything(),
+    { format: 'png', backgroundType: 'solid' },
+  );
+  expect(props.logEvent).toHaveBeenCalledWith(
+    expect.anything(),
+    expect.objectContaining({
+      chartId: SLICE_ID,
+      backgroundType: 'solid',
+    }),
+  );
+});
 
-  test(`should prevent default behavior and toggle dropdown if dropdown
-      is closed and action key is pressed`, () => {
-    const event = {
-      key: 'Enter',
-      preventDefault: jest.fn(),
-    } as unknown as KeyboardEvent<HTMLDivElement>;
+test('Clicking "Export as PDF" calls downloadAsPdf and logEvent', async () => {
+  const props = createProps();
+  renderWrapper(props);
+  openMenu();
+  userEvent.hover(screen.getByText('Download'));
+  userEvent.click(await screen.findByText('Export as PDF'));
+  expect(downloadAsPdf).toHaveBeenCalledWith(
+    `.dashboard-chart-id-${SLICE_ID}`,
+    props.slice.slice_name,
+    true,
+  );
+  expect(props.logEvent).toHaveBeenCalledWith(
+    expect.anything(),
+    expect.objectContaining({ chartId: SLICE_ID }),
+  );
+});
 
-    handleDropdownNavigation(
-      event,
-      false,
-      <div />,
-      mockToggleDropdown,
-      mockSetSelectedKeys,
-      mockSetOpenKeys,
-    );
-    expect(mockToggleDropdown).toHaveBeenCalled();
-    expect(mockSetSelectedKeys).not.toHaveBeenCalled();
-  });
+test('Should show single fetched query tooltip with timestamp', async () => {
+  const updatedDttm = Date.parse('2024-01-28T10:00:00.000Z');
+  const props = createProps();
+  props.isCached = [false];
+  props.cachedDttm = [''];
+  props.updatedDttm = updatedDttm;
 
-  test(`should trigger menu item click,
-      clear selected keys, close dropdown, and focus on menu trigger
-      if action key is pressed and menu item is selected`, () => {
-    const event = {
-      key: 'Enter',
-      preventDefault: jest.fn(),
-      currentTarget: { focus: jest.fn() },
-    } as unknown as KeyboardEvent<HTMLDivElement>;
+  renderWrapper(props);
+  openMenu();
 
-    handleDropdownNavigation(
-      event,
-      true,
-      menu,
-      mockToggleDropdown,
-      mockSetSelectedKeys,
-      mockSetOpenKeys,
-    );
-    expect(mockToggleDropdown).toHaveBeenCalled();
-    expect(mockSetSelectedKeys).toHaveBeenCalledWith([]);
-    expect(event.currentTarget.focus).toHaveBeenCalled();
-  });
+  const refreshButton = screen.getByText('Force refresh');
+  expect(refreshButton).toBeInTheDocument();
 
-  test('should select the next menu item if down arrow key is pressed', () => {
-    const event = {
-      key: 'ArrowDown',
-      preventDefault: jest.fn(),
-    } as unknown as KeyboardEvent<HTMLDivElement>;
+  userEvent.hover(refreshButton);
+  expect(await screen.findByText(/Fetched/)).toBeInTheDocument();
+});
 
-    handleDropdownNavigation(
-      event,
-      true,
-      menu,
-      mockToggleDropdown,
-      mockSetSelectedKeys,
-      mockSetOpenKeys,
-    );
-    expect(mockSetSelectedKeys).toHaveBeenCalledWith(['item2']);
-  });
+test('Should show single cached query tooltip with timestamp', async () => {
+  const cachedDttm = '2024-01-28T10:00:00.000Z';
+  const props = createProps();
+  props.isCached = [true];
+  props.cachedDttm = [cachedDttm];
+  props.updatedDttm = null;
 
-  test('should select the previous menu item if up arrow key is pressed', () => {
-    const event = {
-      key: 'ArrowUp',
-      preventDefault: jest.fn(),
-    } as unknown as KeyboardEvent<HTMLDivElement>;
+  renderWrapper(props);
+  openMenu();
 
-    handleDropdownNavigation(
-      event,
-      true,
-      menu,
-      mockToggleDropdown,
-      mockSetSelectedKeys,
-      mockSetOpenKeys,
-    );
-    expect(mockSetSelectedKeys).toHaveBeenCalledWith(['item1']);
-  });
+  const refreshButton = screen.getByText('Force refresh');
+  expect(refreshButton).toBeInTheDocument();
 
-  test('should close dropdown menu if escape key is pressed', () => {
-    const event = {
-      key: 'Escape',
-      preventDefault: jest.fn(),
-    } as unknown as KeyboardEvent<HTMLDivElement>;
+  userEvent.hover(refreshButton);
+  expect(await screen.findByText(/Cached/)).toBeInTheDocument();
+});
 
-    handleDropdownNavigation(
-      event,
-      true,
-      <div />,
-      mockToggleDropdown,
-      mockSetSelectedKeys,
-      mockSetOpenKeys,
-    );
-    expect(mockToggleDropdown).toHaveBeenCalled();
-    expect(mockSetSelectedKeys).not.toHaveBeenCalled();
-  });
+test('Should show multiple per-query tooltips when all queries are fetched', async () => {
+  const cachedDttm1 = '';
+  const cachedDttm2 = '';
+  const updatedDttm = Date.parse('2024-01-28T10:10:00.000Z');
+  const props = createProps(VizType.Table);
+  props.isCached = [false, false];
+  props.cachedDttm = [cachedDttm1, cachedDttm2];
+  props.updatedDttm = updatedDttm;
 
-  test('should do nothing if an unsupported key is pressed', () => {
-    const event = {
-      key: 'Shift',
-      preventDefault: jest.fn(),
-    } as unknown as KeyboardEvent<HTMLDivElement>;
+  renderWrapper(props);
+  openMenu();
 
-    handleDropdownNavigation(
-      event,
-      true,
-      <div />,
-      mockToggleDropdown,
-      mockSetSelectedKeys,
-      mockSetOpenKeys,
-    );
-    expect(mockToggleDropdown).not.toHaveBeenCalled();
-    expect(mockSetSelectedKeys).not.toHaveBeenCalled();
-  });
+  const refreshButton = screen.getByText('Force refresh');
+  expect(refreshButton).toBeInTheDocument();
 
-  test('should find a child element with a key', () => {
-    const item = {
-      props: {
-        children: [
-          <div key="1">Child 1</div>,
-          <div key="2">Child 2</div>,
-          <div key="3">Child 3</div>,
-        ],
-      },
-    };
+  userEvent.hover(refreshButton);
+  expect(await screen.findByText(/Fetched/)).toBeInTheDocument();
+});
 
-    const childWithKey = item?.props?.children?.find(
-      (child: ReactElement) => child?.key,
-    );
+test('Should show multiple per-query tooltips when all queries are cached', async () => {
+  const cachedDttm1 = '2025-01-28T10:00:00.000Z';
+  const cachedDttm2 = '2024-01-28T10:05:00.000Z';
+  const props = createProps(VizType.Table);
+  props.isCached = [true, true];
+  props.cachedDttm = [cachedDttm1, cachedDttm2];
+  props.updatedDttm = null;
 
-    expect(childWithKey).toBeDefined();
-  });
+  renderWrapper(props);
+  openMenu();
+
+  const refreshButton = screen.getByText('Force refresh');
+  expect(refreshButton).toBeInTheDocument();
+
+  userEvent.hover(refreshButton);
+  expect(await screen.findByText(/Query 1: Cached/)).toBeInTheDocument();
+  expect(await screen.findByText(/Query 2: Cached/)).toBeInTheDocument();
+});
+
+test('Should deduplicate identical cache times in tooltip', async () => {
+  const sameCachedDttm = '2024-01-28T10:00:00.000Z';
+  const props = createProps(VizType.Table);
+  props.isCached = [true, true];
+  props.cachedDttm = [sameCachedDttm, sameCachedDttm];
+  props.updatedDttm = null;
+
+  renderWrapper(props);
+  openMenu();
+
+  const refreshButton = screen.getByText('Force refresh');
+  expect(refreshButton).toBeInTheDocument();
+
+  userEvent.hover(refreshButton);
+  expect(await screen.findByText(/Cached/)).toBeInTheDocument();
+});
+
+test('Should handle three or more queries with different cache states', async () => {
+  const cachedDttm1 = '2024-01-28T10:00:00.000Z';
+  const cachedDttm2 = '2024-01-28T10:05:00.000Z';
+  const cachedDttm3 = '';
+  const updatedDttm = Date.parse('2024-01-28T10:15:00.000Z');
+  const props = createProps(VizType.Table);
+  props.isCached = [true, false, true];
+  props.cachedDttm = [cachedDttm1, cachedDttm2, cachedDttm3];
+  props.updatedDttm = updatedDttm;
+
+  renderWrapper(props);
+  openMenu();
+
+  const refreshButton = screen.getByText('Force refresh');
+  expect(refreshButton).toBeInTheDocument();
+
+  userEvent.hover(refreshButton);
+
+  expect(await screen.findByText(/Query 1:/)).toBeInTheDocument();
+  expect(await screen.findByText(/Query 2:/)).toBeInTheDocument();
+  expect(await screen.findByText(/Query 3:/)).toBeInTheDocument();
 });

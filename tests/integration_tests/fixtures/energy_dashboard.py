@@ -18,7 +18,7 @@ import random
 
 import pandas as pd
 import pytest
-from sqlalchemy import column, Float, String
+from sqlalchemy import column, Float, String, text
 
 from superset import db
 from superset.connectors.sqla.models import SqlaTable, SqlMetric
@@ -53,10 +53,11 @@ def load_energy_table_data():
     yield
     with app.app_context():
         with get_example_database().get_sqla_engine() as engine:
-            engine.execute("DROP TABLE IF EXISTS energy_usage")
+            with engine.begin() as conn:
+                conn.execute(text("DROP TABLE IF EXISTS energy_usage"))
 
 
-@pytest.fixture()
+@pytest.fixture
 def load_energy_table_with_slice(load_energy_table_data):
     with app.app_context():
         slices = _create_energy_table()
@@ -79,9 +80,9 @@ def _create_energy_table() -> list[Slice]:
 
     if not any(col.metric_name == "sum__value" for col in table.metrics):
         col = str(column("value").compile(db.engine))
-        table.metrics.append(
-            SqlMetric(metric_name="sum__value", expression=f"SUM({col})")
-        )
+        metric = SqlMetric(metric_name="sum__value", expression=f"SUM({col})")
+        db.session.add(metric)
+        table.metrics.append(metric)
     table.fetch_metadata()
 
     slices = []
@@ -135,7 +136,7 @@ def _get_energy_data():
             {
                 "source": f"energy_source{i}",
                 "target": f"energy_target{i}",
-                "value": random.uniform(0.1, 11.0),
+                "value": random.uniform(0.1, 11.0),  # noqa: S311
             }
         )
     return data
@@ -186,6 +187,6 @@ def _get_energy_slices():
                 "xscale_interval": "1",
                 "yscale_interval": "1",
             },
-            "query_context": '{"datasource":{"id":12,"type":"table"},"force":false,"queries":[{"time_range":" : ","filters":[],"extras":{"time_grain_sqla":null,"having":"","where":""},"applied_time_extras":{},"columns":[],"metrics":[],"annotation_layers":[],"row_limit":5000,"timeseries_limit":0,"order_desc":true,"url_params":{},"custom_params":{},"custom_form_data":{}}],"result_format":"json","result_type":"full"}',
+            "query_context": '{"datasource":{"id":12,"type":"table"},"force":false,"queries":[{"time_range":" : ","filters":[],"extras":{"time_grain_sqla":null,"having":"","where":""},"applied_time_extras":{},"columns":[],"metrics":[],"annotation_layers":[],"row_limit":5000,"timeseries_limit":0,"order_desc":true,"url_params":{},"custom_params":{},"custom_form_data":{}}],"result_format":"json","result_type":"full"}',  # noqa: E501
         },
     ]

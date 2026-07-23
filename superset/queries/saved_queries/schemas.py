@@ -14,8 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from marshmallow import fields, Schema
+from flask_babel import lazy_gettext as _
+from marshmallow import fields, Schema, ValidationError
 from marshmallow.validate import Length
+
+
+def validate_label(value: str | None) -> None:
+    """Reject blank or whitespace-only saved query labels."""
+    if value is None or not value.strip():
+        raise ValidationError(_("Label must not be empty."))
+
 
 openapi_spec_methods_override = {
     "get": {"get": {"summary": "Get a saved query"}},
@@ -39,6 +47,7 @@ get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
 
 
 class ImportV1SavedQuerySchema(Schema):
+    catalog = fields.String(allow_none=True, validate=Length(0, 128))
     schema = fields.String(allow_none=True, validate=Length(0, 128))
     label = fields.String(allow_none=True, validate=Length(0, 256))
     description = fields.String(allow_none=True)

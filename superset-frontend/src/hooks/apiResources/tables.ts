@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useCallback, useMemo, useEffect, useRef } from 'react';
+import { ClientErrorObject } from '@superset-ui/core';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { toQueryString } from 'src/utils/urlUtils';
 import { api, JsonResponse } from './queryApi';
@@ -55,7 +56,7 @@ export type FetchTablesQueryParams = {
   schema?: string;
   forceRefresh?: boolean;
   onSuccess?: (data: Data, isRefetched: boolean) => void;
-  onError?: (error: Response) => void;
+  onError?: (error: ClientErrorObject) => void;
 };
 
 export type FetchTableMetadataQueryParams = {
@@ -66,10 +67,12 @@ export type FetchTableMetadataQueryParams = {
 };
 
 type ColumnKeyTypeType = 'pk' | 'fk' | 'index';
-interface Column {
+export interface Column {
   name: string;
   keys?: { type: ColumnKeyTypeType }[];
   type: string;
+  comment?: string;
+  longType: string;
 }
 
 export type TableMetaData = {
@@ -83,16 +86,19 @@ export type TableMetaData = {
   selectStar?: string;
   view?: string;
   columns: Column[];
+  comment?: string;
 };
 
-type TableMetadataReponse = {
+type TableMetadataResponse = {
   json: TableMetaData;
   response: Response;
 };
 
 export type TableExtendedMetadata = Record<string, string>;
 
-type Params = Omit<FetchTablesQueryParams, 'forceRefresh'>;
+type Params = Omit<FetchTablesQueryParams, 'forceRefresh'> & {
+  supportsSchemas?: boolean;
+};
 
 const tableApi = api.injectEndpoints({
   endpoints: builder => ({
@@ -117,13 +123,20 @@ const tableApi = api.injectEndpoints({
       }),
     }),
     tableMetadata: builder.query<TableMetaData, FetchTableMetadataQueryParams>({
+      providesTags: result =>
+        result
+          ? [
+              { type: 'TableMetadatas', id: result.name },
+              { type: 'TableMetadatas', id: 'LIST' },
+            ]
+          : [{ type: 'TableMetadatas', id: 'LIST' }],
       query: ({ dbId, catalog, schema, table }) => ({
         endpoint: `/api/v1/database/${dbId}/table_metadata/${toQueryString({
           name: table,
           catalog,
           schema,
         })}`,
-        transformResponse: ({ json }: TableMetadataReponse) => json,
+        transformResponse: ({ json }: TableMetadataResponse) => json,
       }),
     }),
     tableExtendedMetadata: builder.query<
@@ -136,6 +149,9 @@ const tableApi = api.injectEndpoints({
         )}`,
         transformResponse: ({ json }: JsonResponse) => json,
       }),
+      providesTags: (result, error, { table }) => [
+        { type: 'TableMetadatas', id: table },
+      ],
     }),
   }),
 });
@@ -143,6 +159,8 @@ const tableApi = api.injectEndpoints({
 export const {
   useLazyTablesQuery,
   useTablesQuery,
+  useLazyTableMetadataQuery,
+  useLazyTableExtendedMetadataQuery,
   useTableMetadataQuery,
   useTableExtendedMetadataQuery,
   endpoints: tableEndpoints,
@@ -150,9 +168,16 @@ export const {
 } = tableApi;
 
 export function useTables(options: Params) {
-  const { dbId, catalog, schema, onSuccess, onError } = options || {};
+  const {
+    dbId,
+    catalog,
+    schema,
+    supportsSchemas = true,
+    onSuccess,
+    onError,
+  } = options || {};
   const isMountedRef = useRef(false);
-  const { data: schemaOptions, isFetching } = useSchemas({
+  const { currentData: schemaOptions, isFetching } = useSchemas({
     dbId,
     catalog: catalog || undefined,
   });
@@ -161,9 +186,9 @@ export function useTables(options: Params) {
     [schemaOptions],
   );
 
-  const enabled = Boolean(
-    dbId && schema && !isFetching && schemaOptionsMap.has(schema),
-  );
+  const enabled = supportsSchemas
+    ? Boolean(dbId && schema && !isFetching && schemaOptionsMap.has(schema))
+    : Boolean(dbId);
 
   const result = useTablesQuery(
     { dbId, catalog, schema, forceRefresh: false },
@@ -177,7 +202,7 @@ export function useTables(options: Params) {
     onSuccess?.(data, isRefetched);
   });
 
-  const handleOnError = useEffectEvent((error: Response) => {
+  const handleOnError = useEffectEvent((error: ClientErrorObject) => {
     onError?.(error);
   });
 
@@ -189,7 +214,7 @@ export function useTables(options: Params) {
             handleOnSuccess(data, true);
           }
           if (isError) {
-            handleOnError(error as Response);
+            handleOnError(error as ClientErrorObject);
           }
         },
       );
@@ -203,16 +228,16 @@ export function useTables(options: Params) {
         isSuccess,
         isError,
         isFetching,
-        data,
+        currentData,
         error,
         originalArgs,
       } = result;
       if (!originalArgs?.forceRefresh && requestId && !isFetching) {
-        if (isSuccess && data) {
-          handleOnSuccess(data, false);
+        if (isSuccess && currentData) {
+          handleOnSuccess(currentData, false);
         }
         if (isError) {
-          handleOnError(error as Response);
+          handleOnError(error as ClientErrorObject);
         }
       }
     } else {

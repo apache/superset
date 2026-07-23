@@ -14,18 +14,22 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import copy
 import decimal
 import logging
 import uuid
 from datetime import date, datetime, time, timedelta
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Dict, Optional, Union
 
 import numpy as np
 import pandas as pd
 import simplejson
 from flask_babel.speaklater import LazyString
+from jsonpath_ng import parse
+from jsonpath_ng.jsonpath import Child, Fields, Root
 from simplejson import JSONDecodeError
 
+from superset.constants import PASSWORD_MASK
 from superset.utils.dates import datetime_to_epoch, EPOCH
 
 logging.getLogger("MARKDOWN").setLevel(logging.INFO)
@@ -66,7 +70,7 @@ def format_timedelta(time_delta: timedelta) -> str:
     return str(time_delta)
 
 
-def base_json_conv(obj: Any) -> Any:
+def base_json_conv(obj: Any) -> Any:  # noqa: C901
     """
     Tries to convert additional types to JSON compatible forms.
 
@@ -92,6 +96,9 @@ def base_json_conv(obj: Any) -> Any:
         return str(obj)
     if isinstance(obj, timedelta):
         return format_timedelta(obj)
+    if isinstance(obj, pd.DateOffset):
+        offset_attrs = ", ".join(f"{k}={v}" for k, v in obj.kwds.items())
+        return f"DateOffset({offset_attrs})"
     if isinstance(obj, bytes):
         try:
             return obj.decode("utf-8")
@@ -171,7 +178,11 @@ def validate_json(obj: Union[bytes, bytearray, str]) -> None:
     :param obj: an object that should be parseable to JSON
     """
     if obj:
-        loads(obj)
+        try:
+            loads(obj)
+        except JSONDecodeError as ex:
+            logger.error("JSON is not valid %s", str(ex), exc_info=True)
+            raise
 
 
 def dumps(  # pylint: disable=too-many-arguments
@@ -183,6 +194,8 @@ def dumps(  # pylint: disable=too-many-arguments
     indent: Union[str, int, None] = None,
     separators: Union[tuple[str, str], None] = None,
     cls: Union[type[simplejson.JSONEncoder], None] = None,
+    encoding: Optional[str] = "utf-8",
+    ensure_ascii: bool = True,
 ) -> str:
     """
     Dumps object to compatible JSON format
@@ -195,33 +208,29 @@ def dumps(  # pylint: disable=too-many-arguments
     :param indent: when set elements and object members will be pretty-printed
     :param separators: when specified dumps will use (item_separator, key_separator)
     :param cls: custom `JSONEncoder` subclass
+    :param ensure_ascii: when set to False non-ASCII characters are kept verbatim
+        instead of being escaped to ``\\uXXXX`` sequences. Defaults to True so the
+        escaped output stays safe for narrow charset columns (e.g. MySQL ``utf8``).
     :returns: String object in the JSON compatible form
     """
 
     results_string = ""
+    dumps_kwargs: Dict[str, Any] = {
+        "default": default,
+        "allow_nan": allow_nan,
+        "ignore_nan": ignore_nan,
+        "sort_keys": sort_keys,
+        "indent": indent,
+        "separators": separators,
+        "cls": cls,
+        "encoding": encoding,
+        "ensure_ascii": ensure_ascii,
+    }
     try:
-        results_string = simplejson.dumps(
-            obj,
-            default=default,
-            allow_nan=allow_nan,
-            ignore_nan=ignore_nan,
-            sort_keys=sort_keys,
-            indent=indent,
-            separators=separators,
-            cls=cls,
-        )
+        results_string = simplejson.dumps(obj, **dumps_kwargs)
     except UnicodeDecodeError:
-        results_string = simplejson.dumps(  # type: ignore[call-overload]
-            obj,
-            default=default,
-            allow_nan=allow_nan,
-            ignore_nan=ignore_nan,
-            sort_keys=sort_keys,
-            indent=indent,
-            separators=separators,
-            cls=cls,
-            encoding=None,
-        )
+        dumps_kwargs["encoding"] = None
+        results_string = simplejson.dumps(obj, **dumps_kwargs)
     return results_string
 
 
@@ -240,13 +249,131 @@ def loads(
     :param object_hook: function that will be called to decode objects values
     :returns: A Python object deserialized from string
     """
-    try:
-        return simplejson.loads(
-            obj,
-            encoding=encoding,
-            allow_nan=allow_nan,
-            object_hook=object_hook,
-        )
-    except JSONDecodeError as ex:
-        logger.error("JSON is not valid %s", str(ex), exc_info=True)
-        raise
+    return simplejson.loads(
+        obj,
+        encoding=encoding,
+        allow_nan=allow_nan,
+        object_hook=object_hook,
+    )
+
+
+def redact_sensitive(
+    payload: dict[str, Any],
+    sensitive_fields: set[str],
+) -> dict[str, Any]:
+    """
+    Redacts sensitive fields from a payload.
+
+    :param payload: The payload to redact
+    :param sensitive_fields: The set of fields to redact, as JSONPath expressions
+    :returns: The redacted payload
+    """
+    redacted_payload = copy.deepcopy(payload)
+
+    for json_path in sensitive_fields:
+        jsonpath_expr = parse(json_path)
+        for match in jsonpath_expr.find(redacted_payload):
+            match.context.value[match.path.fields[0]] = PASSWORD_MASK
+
+    return redacted_payload
+
+
+def reveal_sensitive(
+    old_payload: dict[str, Any],
+    new_payload: dict[str, Any],
+    sensitive_fields: set[str],
+) -> dict[str, Any]:
+    """
+    Reveals sensitive fields from a payload when not modified.
+
+    This allows users to perform deep edits on a payload without having to provide
+    sensitive information. The old payload is sent to the user with any sensitive fields
+    masked, and when the user sends back a modified payload, any fields that were masked
+    are replaced with the original values from the old payload.
+
+    For now this is only used to edit `encrypted_extra` fields in the database.
+
+    :param old_payload: The old payload to reveal
+    :param new_payload: The new payload to reveal
+    :param sensitive_fields: The set of fields to reveal, as JSONPath expressions
+    :returns: The revealed payload
+    """
+    revealed_payload = copy.deepcopy(new_payload)
+
+    for json_path in sensitive_fields:
+        jsonpath_expr = parse(json_path)
+        for match in jsonpath_expr.find(revealed_payload):
+            if match.value == PASSWORD_MASK:
+                old_value = match.full_path.find(old_payload)
+                match.context.value[match.path.fields[0]] = old_value[0].value
+
+    return revealed_payload
+
+
+def _render_jsonpath(node: Any) -> str:
+    """
+    Render a JSONPath node as a stable dotted string (e.g. ``foo.bar``).
+
+    ``str()`` of a jsonpath-ng path is not stable across releases: as of
+    jsonpath-ng 1.8.0 a ``Child`` node renders with surrounding parentheses
+    (e.g. ``(foo.bar)``). This helper produces the historic dotted notation so
+    that the strings returned by :func:`get_masked_fields` remain consistent and
+    can be round-tripped back through ``parse``.
+
+    Falls back to ``str()`` for node kinds that aren't plain field access (e.g.
+    array indices, slices), preserving their existing representation.
+    """
+    if isinstance(node, Child):
+        left = _render_jsonpath(node.left)
+        right = _render_jsonpath(node.right)
+        return f"{left}.{right}" if left else right
+    if isinstance(node, Fields):
+        return ".".join(node.fields)
+    if isinstance(node, Root):
+        return ""
+    return str(node)
+
+
+def get_masked_fields(
+    payload: dict[str, Any],
+    sensitive_fields: set[str],
+) -> list[str]:
+    """
+    Returns masked fields in JSON config.
+
+    :param payload: The payload to check
+    :param sensitive_fields: The set of fields to check, as JSONPath expressions
+    :returns: List of JSONPath expressions for fields that are masked
+    """
+    masked = []
+    for json_path in sensitive_fields:
+        jsonpath_expr = parse(json_path)
+        for match in jsonpath_expr.find(payload):
+            if match.value == PASSWORD_MASK:
+                # Using `match.full_path` instead of json_path to account
+                # for wildcards. Render the path explicitly so the output is
+                # stable across jsonpath-ng versions (newer releases wrap
+                # `Child` paths in parentheses when stringified).
+                masked.append(f"$.{_render_jsonpath(match.full_path)}")
+    return masked
+
+
+def set_masked_fields(
+    payload: dict[str, Any],
+    path_values: dict[str, Any],
+) -> dict[str, Any]:
+    """
+    Sets values at JSONPath locations in a payload.
+
+    :param payload: The payload to modify
+    :param path_values: A dict mapping JSONPath expressions to values
+    :returns: The modified payload (copy)
+    """
+    result = copy.deepcopy(payload)
+
+    for json_path, value in path_values.items():
+        jsonpath_expr = parse(json_path)
+        for match in jsonpath_expr.find(result):
+            match.context.value[match.path.fields[0]] = value
+
+    return result

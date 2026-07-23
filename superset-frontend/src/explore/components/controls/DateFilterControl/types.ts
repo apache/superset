@@ -22,22 +22,10 @@ export type SelectOptionType = {
 };
 
 export type FrameType =
-  | 'Common'
-  | 'Calendar'
-  | 'Current'
-  | 'Custom'
-  | 'Advanced'
-  | 'No filter';
+  'Common' | 'Calendar' | 'Current' | 'Custom' | 'Advanced' | 'No filter';
 
 export type DateTimeGrainType =
-  | 'second'
-  | 'minute'
-  | 'hour'
-  | 'day'
-  | 'week'
-  | 'month'
-  | 'quarter'
-  | 'year';
+  'second' | 'minute' | 'hour' | 'day' | 'week' | 'month' | 'quarter' | 'year';
 
 export type CustomRangeKey =
   | 'sinceMode'
@@ -72,18 +60,16 @@ export type CustomRangeDecodeType = {
 };
 
 export type CommonRangeType =
-  | 'Last day'
-  | 'Last week'
-  | 'Last month'
-  | 'Last quarter'
-  | 'Last year';
+  'Last day' | 'Last week' | 'Last month' | 'Last quarter' | 'Last year';
 
 export const PreviousCalendarWeek = 'previous calendar week';
 export const PreviousCalendarMonth = 'previous calendar month';
+export const PreviousCalendarQuarter = 'previous calendar quarter';
 export const PreviousCalendarYear = 'previous calendar year';
 export type CalendarRangeType =
   | typeof PreviousCalendarWeek
   | typeof PreviousCalendarMonth
+  | typeof PreviousCalendarQuarter
   | typeof PreviousCalendarYear;
 
 export const CurrentDay = 'Current day';
@@ -101,6 +87,7 @@ export type CurrentRangeType =
 export type FrameComponentProps = {
   onChange: (timeRange: string) => void;
   value: string;
+  isOverflowingFilterBar?: boolean;
 };
 
 export interface DateFilterControlProps {
@@ -109,6 +96,5 @@ export interface DateFilterControlProps {
   value?: string;
   onOpenPopover?: () => void;
   onClosePopover?: () => void;
-  overlayStyle?: 'Modal' | 'Popover';
   isOverflowingFilterBar?: boolean;
 }

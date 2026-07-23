@@ -21,11 +21,10 @@ from typing import Any
 from zipfile import is_zipfile, ZipFile
 
 from flask import g, request, Response, send_file
-from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 
-from superset import is_feature_enabled
 from superset.commands.importers.exceptions import (
     IncorrectFormatError,
     NoValidFilesFoundError,
@@ -46,19 +45,24 @@ from superset.queries.saved_queries.filters import (
     SavedQueryAllTextFilter,
     SavedQueryFavoriteFilter,
     SavedQueryFilter,
-    SavedQueryTagFilter,
+    SavedQueryTagIdFilter,
+    SavedQueryTagNameFilter,
 )
 from superset.queries.saved_queries.schemas import (
     get_delete_ids_schema,
     get_export_ids_schema,
     openapi_spec_methods_override,
+    validate_label,
 )
 from superset.utils import json
+from superset.utils.core import sanitize_cookie_token
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
+    RelatedFieldFilter,
     requires_form_data,
     statsd_metrics,
 )
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedUsers
 
 logger = logging.getLogger(__name__)
 
@@ -124,9 +128,10 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "schema",
         "sql",
         "sql_tables",
+        "tags.id",
+        "tags.name",
+        "tags.type",
     ]
-    if is_feature_enabled("TAGGING_SYSTEM"):
-        list_columns += ["tags.id", "tags.name", "tags.type"]
     list_select_columns = list_columns + ["changed_by_fk", "changed_on"]
     add_columns = [
         "db_id",
@@ -161,15 +166,13 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "schema",
         "created_by",
         "changed_by",
+        "tags",
     ]
-    if is_feature_enabled("TAGGING_SYSTEM"):
-        search_columns += ["tags"]
     search_filters = {
         "id": [SavedQueryFavoriteFilter],
         "label": [SavedQueryAllTextFilter],
+        "tags": [SavedQueryTagNameFilter, SavedQueryTagIdFilter],
     }
-    if is_feature_enabled("TAGGING_SYSTEM"):
-        search_filters["tags"] = [SavedQueryTagFilter]
 
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,
@@ -180,13 +183,23 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
 
     related_field_filters = {
         "database": "database_name",
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
+        "created_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
     }
-    base_related_field_filters = {"database": [["id", DatabaseFilter, lambda: []]]}
+    base_related_field_filters = {
+        "database": [["id", DatabaseFilter, lambda: []]],
+        "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
+    }
     allowed_rel_fields = {"database", "changed_by", "created_by"}
     allowed_distinct_fields = {"catalog", "schema"}
 
+    validators_columns = {"label": validate_label}
+
     def pre_add(self, item: SavedQuery) -> None:
         item.user = g.user
+        if item.label:
+            item.label = item.label.strip()
 
     def pre_update(self, item: SavedQuery) -> None:
         self.pre_add(item)
@@ -195,7 +208,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_delete_ids_schema)
+    @parse_rison(get_delete_ids_schema)
     def bulk_delete(self, **kwargs: Any) -> Response:
         """Bulk delete saved queries.
         ---
@@ -247,7 +260,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_export_ids_schema)
+    @parse_rison(get_export_ids_schema)
     def export(self, **kwargs: Any) -> Response:
         """Download multiple saved queries as YAML files.
         ---
@@ -300,7 +313,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
             as_attachment=True,
             download_name=filename,
         )
-        if token := request.args.get("token"):
+        if token := sanitize_cookie_token(request.args.get("token")):
             response.set_cookie(token, "done", max_age=600)
         return response
 

@@ -79,7 +79,7 @@ def create_columnar_file(
 
 
 @pytest.fixture
-def admin_user() -> Generator[User, None, None]:
+def admin_user() -> User:
     role = db.session.query(Role).filter_by(name="Admin").one()
     user = User(
         first_name="Alice",
@@ -90,7 +90,7 @@ def admin_user() -> Generator[User, None, None]:
     )
     db.session.add(user)
     db.session.flush()
-    yield user
+    return user
 
 
 @pytest.fixture

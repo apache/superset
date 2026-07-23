@@ -17,8 +17,9 @@
 from typing import Any, Optional
 
 from flask import current_app as app
-from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.hooks import before_request
+from flask_appbuilder.models.sqla.filters import FilterRelationOneToManyEqual
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 import superset.models.core as models
@@ -45,16 +46,32 @@ class LogRestApi(LogMixin, BaseSupersetModelRestApi):
     resource_name = "log"
     allow_browser_login = True
     list_columns = [
+        "user.first_name",
+        "user.last_name",
         "user.username",
+        "user_id",
         "action",
         "dttm",
         "json",
         "slice_id",
         "dashboard_id",
-        "user_id",
         "duration_ms",
         "referrer",
     ]
+    search_columns = [
+        "user",
+        "user_id",
+        "action",
+        "dttm",
+        "json",
+        "slice_id",
+        "dashboard_id",
+        "duration_ms",
+        "referrer",
+    ]
+    search_filters = {
+        "user": [FilterRelationOneToManyEqual],
+    }
     show_columns = list_columns
     page_size = 20
     apispec_parameter_schemas = {
@@ -89,10 +106,11 @@ class LogRestApi(LogMixin, BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_recent_activity_schema)
+    @parse_rison(get_recent_activity_schema)
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".recent_activity",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.recent_activity"
+        ),
         log_to_statsd=False,
     )
     def recent_activity(self, **kwargs: Any) -> FlaskResponse:
@@ -130,7 +148,7 @@ class LogRestApi(LogMixin, BaseSupersetModelRestApi):
         """
         args = kwargs["rison"]
         page, page_size = self._sanitize_page_args(*self._handle_page_args(args))
-        actions = args.get("actions", ["explore", "dashboard"])
+        actions = args.get("actions", ["mount_explorer", "mount_dashboard"])
         distinct = args.get("distinct", True)
 
         payload = LogDAO.get_recent_activity(actions, distinct, page, page_size)

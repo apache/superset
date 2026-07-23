@@ -17,12 +17,13 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timezone
 from typing import Any
 
+from flask import current_app, g, has_request_context
 from flask_caching import Cache
 from pandas import DataFrame
 
-from superset import app
 from superset.common.db_query_status import QueryStatus
 from superset.constants import CacheRegion
 from superset.exceptions import CacheLoadError
@@ -33,8 +34,6 @@ from superset.superset_typing import Column
 from superset.utils.cache import set_and_log_cache
 from superset.utils.core import error_msg_from_exception, get_stacktrace
 
-config = app.config
-stats_logger: BaseStatsLogger = config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
 
 _cache: dict[CacheRegion, Cache] = {
@@ -48,10 +47,14 @@ class QueryCacheManager:
     Class for manage query-cache getting and setting
     """
 
+    @property
+    def stats_logger(self) -> BaseStatsLogger:
+        return current_app.config["STATS_LOGGER"]
+
     # pylint: disable=too-many-instance-attributes,too-many-arguments
     def __init__(
         self,
-        df: DataFrame = DataFrame(),
+        df: DataFrame = DataFrame(),  # noqa: B008
         query: str = "",
         annotation_data: dict[str, Any] | None = None,
         applied_template_filters: list[str] | None = None,
@@ -65,6 +68,7 @@ class QueryCacheManager:
         cache_dttm: str | None = None,
         cache_value: dict[str, Any] | None = None,
         sql_rowcount: int | None = None,
+        queried_dttm: str | None = None,
     ) -> None:
         self.df = df
         self.query = query
@@ -81,6 +85,9 @@ class QueryCacheManager:
         self.cache_dttm = cache_dttm
         self.cache_value = cache_value
         self.sql_rowcount = sql_rowcount
+        self.queried_dttm = queried_dttm
+        self.bq_memory_limited: bool = False
+        self.bq_memory_limited_row_count: int = 0
 
     # pylint: disable=too-many-arguments
     def set_query_result(
@@ -106,12 +113,26 @@ class QueryCacheManager:
             self.df = query_result.df
             self.sql_rowcount = query_result.sql_rowcount
             self.annotation_data = {} if annotation_data is None else annotation_data
+            self.queried_dttm = (
+                datetime.now(tz=timezone.utc).replace(microsecond=0).isoformat()
+            )
 
             if self.status != QueryStatus.FAILED:
-                stats_logger.incr("loaded_from_source")
+                current_app.config["STATS_LOGGER"].incr("loaded_from_source")
                 if not force_query:
-                    stats_logger.incr("loaded_from_source_without_force")
+                    current_app.config["STATS_LOGGER"].incr(
+                        "loaded_from_source_without_force"
+                    )
                 self.is_loaded = True
+
+            # Capture BigQuery memory-limit flag so it survives cache hits
+            if has_request_context():
+                self.bq_memory_limited = getattr(g, "bq_memory_limited", False)
+                self.bq_memory_limited_row_count = getattr(
+                    g, "bq_memory_limited_row_count", 0
+                )
+                g.bq_memory_limited = False
+                g.bq_memory_limited_row_count = 0
 
             value = {
                 "df": self.df,
@@ -121,6 +142,10 @@ class QueryCacheManager:
                 "rejected_filter_columns": self.rejected_filter_columns,
                 "annotation_data": self.annotation_data,
                 "sql_rowcount": self.sql_rowcount,
+                "queried_dttm": self.queried_dttm,
+                "dttm": self.queried_dttm,  # Backwards compatibility
+                "bq_memory_limited": self.bq_memory_limited,
+                "bq_memory_limited_row_count": self.bq_memory_limited_row_count,
             }
             if self.is_loaded and key and self.status != QueryStatus.FAILED:
                 self.set(
@@ -152,9 +177,20 @@ class QueryCacheManager:
         if not key or not _cache[region] or force_query:
             return query_cache
 
-        if cache_value := _cache[region].get(key):
+        try:
+            cache_value = _cache[region].get(key)
+        except Exception as ex:  # pylint: disable=broad-except
+            # A cache backend outage (e.g. Redis connection/timeout errors)
+            # should not surface as an error to the caller: treat it the
+            # same as a cache miss and fall through to querying live data.
+            logger.warning("Error reading cache: %s", error_msg_from_exception(ex))
+            cache_value = None
+
+        if cache_value:
             logger.debug("Cache key: %s", key)
-            stats_logger.incr("loading_from_cache")
+            # Log cache hit for debugging
+            logger.debug("CACHE GET - Key: %s, Region: %s", key, region)
+            current_app.config["STATS_LOGGER"].incr("loading_from_cache")
             try:
                 query_cache.df = cache_value["df"]
                 query_cache.query = cache_value["query"]
@@ -175,8 +211,17 @@ class QueryCacheManager:
                 query_cache.cache_dttm = (
                     cache_value["dttm"] if cache_value is not None else None
                 )
+                query_cache.queried_dttm = cache_value.get(
+                    "queried_dttm", cache_value.get("dttm")
+                )
                 query_cache.cache_value = cache_value
-                stats_logger.incr("loaded_from_cache")
+                query_cache.bq_memory_limited = cache_value.get(
+                    "bq_memory_limited", False
+                )
+                query_cache.bq_memory_limited_row_count = cache_value.get(
+                    "bq_memory_limited_row_count", 0
+                )
+                current_app.config["STATS_LOGGER"].incr("loaded_from_cache")
             except KeyError as ex:
                 logger.exception(ex)
                 logger.error(

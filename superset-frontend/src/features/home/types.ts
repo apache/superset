@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { ReactNode } from 'react';
 import { Filter } from 'src/views/CRUD/types';
 import { NavBarProps, MenuObjectProps } from 'src/types/bootstrapTypes';
 
@@ -35,6 +36,7 @@ export interface ExtensionConfigs {
   COLUMNAR_EXTENSIONS: Array<any>;
   EXCEL_EXTENSIONS: Array<any>;
   HAS_GSHEETS_INSTALLED: boolean;
+  SCARF_ANALYTICS?: boolean;
 }
 export interface RightMenuProps {
   align: 'flex-start' | 'flex-end';
@@ -45,6 +47,7 @@ export interface RightMenuProps {
     text: string;
     color: string;
   };
+  children?: ReactNode;
 }
 
 export enum GlobalMenuDataOptions {
@@ -54,4 +57,16 @@ export enum GlobalMenuDataOptions {
   CSVUpload = 'csvUpload',
   ExcelUpload = 'excelUpload',
   ColumnarUpload = 'columnarUpload',
+}
+
+/**
+ * Return result from /api/v1/log/recent_activity/
+ */
+export interface RecentActivity {
+  action: string;
+  item_type: 'slice' | 'dashboard';
+  item_url: string;
+  item_title: string;
+  time: number;
+  time_delta_humanized?: string;
 }

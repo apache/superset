@@ -23,10 +23,7 @@ kind: HorizontalPodAutoscaler
 metadata:
   name: {{ include "superset.fullname" . }}-hpa-worker
   labels:
-    app: {{ template "superset.name" . }}
-    chart: {{ template "superset.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
+    {{- include "superset.labels" . | nindent 4 }}
 spec:
   scaleTargetRef:
     apiVersion: apps/v1

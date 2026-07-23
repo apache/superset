@@ -39,7 +39,7 @@ import {
 } from '@superset-ui/plugin-chart-echarts';
 
 new EchartsTimeseriesChartPlugin().configure({ key: 'echarts-ts' }).register();
-new EchartsPieChartPlugin().configure({ key: 'echarts-pie' }).register();
+new EchartsPieChartPlugin().configure({ key: 'pie' }).register();
 ```
 
 Then use it via `SuperChart`. See

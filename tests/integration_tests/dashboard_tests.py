@@ -18,8 +18,8 @@
 """Unit tests for Superset"""
 
 import re
-import unittest
 from random import random
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 from flask import Response, escape, url_for
@@ -52,7 +52,7 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_data,  # noqa: F401
 )
 
-from .base_tests import SupersetTestCase
+from .base_tests import DEFAULT_PASSWORD, subjects_from_users, SupersetTestCase
 
 
 class TestDashboard(SupersetTestCase):
@@ -64,8 +64,8 @@ class TestDashboard(SupersetTestCase):
 
         self.grant_public_access_to_table(table)
 
-        pytest.hidden_dash_slug = f"hidden_dash_{random()}"
-        pytest.published_dash_slug = f"published_dash_{random()}"
+        pytest.hidden_dash_slug = f"hidden_dash_{random()}"  # noqa: S311
+        pytest.published_dash_slug = f"published_dash_{random()}"  # noqa: S311
 
         # Create a published and hidden dashboard and add them to the database
         published_dash = Dashboard()
@@ -117,9 +117,9 @@ class TestDashboard(SupersetTestCase):
         url = "/dashboard/new/"
         response = self.client.get(url, follow_redirects=False)
         dash_count_after = db.session.query(func.count(Dashboard.id)).first()[0]
-        self.assertEqual(dash_count_before + 1, dash_count_after)
+        assert dash_count_before + 1 == dash_count_after
         group = re.match(
-            r"\/superset\/dashboard\/([0-9]*)\/\?edit=true",
+            r"\/dashboard\/([0-9]*)\/\?edit=true",
             response.headers["Location"],
         )
         assert group is not None
@@ -145,25 +145,25 @@ class TestDashboard(SupersetTestCase):
         self.logout()
 
         resp = self.get_resp("/api/v1/chart/")
-        self.assertNotIn("birth_names", resp)
+        assert "birth_names" not in resp
 
         resp = self.get_resp("/api/v1/dashboard/")
-        self.assertNotIn("/superset/dashboard/births/", resp)
+        assert "/dashboard/births/" not in resp
 
         self.grant_public_access_to_table(table)
 
         # Try access after adding appropriate permissions.
-        self.assertIn("birth_names", self.get_resp("/api/v1/chart/"))
+        assert "birth_names" in self.get_resp("/api/v1/chart/")
 
         resp = self.get_resp("/api/v1/dashboard/")
-        self.assertIn("/superset/dashboard/births/", resp)
+        assert "/dashboard/births/" in resp
 
         # Confirm that public doesn't have access to other datasets.
         resp = self.get_resp("/api/v1/chart/")
-        self.assertNotIn("wb_health_population", resp)
+        assert "wb_health_population" not in resp
 
         resp = self.get_resp("/api/v1/dashboard/")
-        self.assertNotIn("/superset/dashboard/world_health/", resp)
+        assert "/dashboard/world_health/" not in resp
 
         # Cleanup
         self.revoke_public_access_to_table(table)
@@ -176,15 +176,81 @@ class TestDashboard(SupersetTestCase):
         self.grant_public_access_to_table(table)
 
         dash = db.session.query(Dashboard).filter_by(slug="births").first()
-        dash.owners = [security_manager.find_user("admin")]
+        dash.editors = subjects_from_users([security_manager.find_user("admin")])
         dash.created_by = security_manager.find_user("admin")
         db.session.commit()
 
-        res: Response = self.client.get("/superset/dashboard/births/")
+        res: Response = self.client.get("/dashboard/births/")
         assert res.status_code == 200
 
         # Cleanup
         self.revoke_public_access_to_table(table)
+
+    @pytest.mark.usefixtures(
+        "load_energy_table_with_slice",
+        "load_dashboard",
+    )
+    def test_anonymous_user_redirects_to_login_with_next(self):
+        self.logout()
+        target_path = f"/dashboard/{pytest.hidden_dash_slug}/"
+
+        response = self.client.get(target_path, follow_redirects=False)
+
+        assert response.status_code == 302
+
+        redirect_location = response.headers["Location"]
+        parsed = urlparse(redirect_location)
+        assert parsed.path.rstrip("/") == "/login"
+
+        next_values = parse_qs(parsed.query).get("next")
+        assert next_values is not None
+        assert next_values[0].endswith(target_path)
+
+        login_target = (
+            f"{parsed.path}{'?' + parsed.query if parsed.query else ''}"
+            if parsed.scheme or parsed.netloc
+            else redirect_location
+        )
+
+        login_response = self.client.post(
+            login_target,
+            data={"username": ADMIN_USERNAME, "password": DEFAULT_PASSWORD},
+            follow_redirects=False,
+        )
+        assert login_response.status_code == 302
+        assert login_response.headers["Location"].endswith(target_path)
+
+        target_response: Response = self.client.get(target_path, follow_redirects=False)
+        assert target_response.status_code == 200
+
+    def test_anonymous_user_redirects_to_login_for_missing_dashboard(self):
+        self.logout()
+        target_path = "/dashboard/nonexistent-dashboard/"
+
+        response = self.client.get(target_path, follow_redirects=False)
+
+        assert response.status_code == 302
+        parsed = urlparse(response.headers["Location"])
+        assert parsed.path.rstrip("/") == "/login"
+        next_values = parse_qs(parsed.query).get("next")
+        assert next_values is not None
+        assert next_values[0].endswith(target_path)
+
+    @pytest.mark.usefixtures(
+        "public_role_like_gamma",
+        "load_energy_table_with_slice",
+        "load_dashboard",
+    )
+    def test_authenticated_user_without_access_gets_404(self):
+        self.login(GAMMA_USERNAME)
+        target_path = f"/dashboard/{pytest.hidden_dash_slug}/"
+
+        response = self.client.get(
+            target_path,
+            follow_redirects=False,
+            headers={"Accept": "text/html"},
+        )
+        assert response.status_code == 404
 
     @pytest.mark.usefixtures(
         "public_role_like_gamma",
@@ -194,19 +260,19 @@ class TestDashboard(SupersetTestCase):
     def test_users_can_list_published_dashboard(self):
         self.login(ALPHA_USERNAME)
         resp = self.get_resp("/api/v1/dashboard/")
-        assert f"/superset/dashboard/{pytest.hidden_dash_slug}/" not in resp
-        assert f"/superset/dashboard/{pytest.published_dash_slug}/" in resp
+        assert f"/dashboard/{pytest.hidden_dash_slug}/" not in resp
+        assert f"/dashboard/{pytest.published_dash_slug}/" in resp
 
     def test_users_can_view_own_dashboard(self):
         user = security_manager.find_user("gamma")
-        my_dash_slug = f"my_dash_{random()}"
-        not_my_dash_slug = f"not_my_dash_{random()}"
+        my_dash_slug = f"my_dash_{random()}"  # noqa: S311
+        not_my_dash_slug = f"not_my_dash_{random()}"  # noqa: S311
 
         # Create one dashboard I own and another that I don't
         dash = Dashboard()
         dash.dashboard_title = "My Dashboard"
         dash.slug = my_dash_slug
-        dash.owners = [user]
+        dash.editors = subjects_from_users([user])
 
         hidden_dash = Dashboard()
         hidden_dash.dashboard_title = "Not My Dashboard"
@@ -224,18 +290,18 @@ class TestDashboard(SupersetTestCase):
         db.session.delete(hidden_dash)
         db.session.commit()
 
-        self.assertIn(f"/superset/dashboard/{my_dash_slug}/", resp)
-        self.assertNotIn(f"/superset/dashboard/{not_my_dash_slug}/", resp)
+        assert f"/dashboard/{my_dash_slug}/" in resp
+        assert f"/dashboard/{not_my_dash_slug}/" not in resp
 
     def test_user_can_not_view_unpublished_dash(self):
         admin_user = security_manager.find_user("admin")
-        slug = f"admin_owned_unpublished_dash_{random()}"
+        slug = f"admin_owned_unpublished_dash_{random()}"  # noqa: S311
 
         # Create a dashboard owned by admin and unpublished
         dash = Dashboard()
         dash.dashboard_title = "My Dashboard"
         dash.slug = slug
-        dash.owners = [admin_user]
+        dash.editors = subjects_from_users([admin_user])
         dash.published = False
         db.session.add(dash)
         db.session.commit()
@@ -247,8 +313,4 @@ class TestDashboard(SupersetTestCase):
         db.session.delete(dash)
         db.session.commit()
 
-        self.assertNotIn(f"/superset/dashboard/{slug}/", resp)
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert f"/dashboard/{slug}/" not in resp

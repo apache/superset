@@ -17,77 +17,105 @@
  * under the License.
  */
 import { useState } from 'react';
-import { t, styled } from '@superset-ui/core';
-import { AntdForm, Col, Row } from 'src/components';
-import { Form, FormLabel } from 'src/components/Form';
-import { Radio } from 'src/components/Radio';
-import { Input, TextArea } from 'src/components/Input';
-import { Input as AntdInput, Tooltip } from 'antd';
-import { EyeInvisibleOutlined, EyeOutlined } from '@ant-design/icons';
-import { DatabaseObject, FieldPropTypes } from '../types';
+import { t } from '@apache-superset/core/translation';
+import { JsonObject } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
+import { Alert } from '@apache-superset/core/components';
+import {
+  Form,
+  FormLabel,
+  Col,
+  Row,
+  LabeledErrorBoundInput,
+} from '@superset-ui/core/components';
+import { Input } from '@superset-ui/core/components/Input';
+import { Radio } from '@superset-ui/core/components/Radio';
+import { DatabaseObject, CustomEventHandlerType } from '../types';
 import { AuthType } from '.';
 
 const StyledDiv = styled.div`
-  padding-top: ${({ theme }) => theme.gridUnit * 2}px;
+  padding-top: ${({ theme }) => theme.sizeUnit * 2}px;
   label {
-    color: ${({ theme }) => theme.colors.grayscale.base};
-    text-transform: uppercase;
-    margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+    color: ${({ theme }) => theme.colorText};
+    margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
   }
 `;
 
 const StyledRow = styled(Row)`
-  padding-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+  padding-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
-const StyledFormItem = styled(AntdForm.Item)`
+const StyledFormItem = styled(Form.Item)`
   margin-bottom: 0 !important;
 `;
 
-const StyledInputPassword = styled(AntdInput.Password)`
-  margin: ${({ theme }) => `${theme.gridUnit}px 0 ${theme.gridUnit * 2}px`};
-`;
+interface SSHTunnelFormProps {
+  db: DatabaseObject | null;
+  onSSHTunnelParametersChange: CustomEventHandlerType;
+  setSSHTunnelLoginMethod: (method: AuthType) => void;
+  isValidating?: boolean;
+  validationErrors?: JsonObject | null;
+  getValidation: () => void;
+}
 
 const SSHTunnelForm = ({
   db,
   onSSHTunnelParametersChange,
   setSSHTunnelLoginMethod,
-}: {
-  db: DatabaseObject | null;
-  onSSHTunnelParametersChange: FieldPropTypes['changeMethods']['onSSHTunnelParametersChange'];
-  setSSHTunnelLoginMethod: (method: AuthType) => void;
-}) => {
+  isValidating = false,
+  validationErrors,
+  getValidation,
+}: SSHTunnelFormProps) => {
   const [usePassword, setUsePassword] = useState<AuthType>(AuthType.Password);
+  const sshErrors = validationErrors?.ssh_tunnel || {};
+  const sshSectionError = sshErrors?._error;
 
   return (
     <Form>
+      {sshSectionError && (
+        <StyledRow gutter={16}>
+          <Col xs={24}>
+            <Alert
+              type="error"
+              showIcon
+              message={sshSectionError}
+              data-test="ssh-tunnel-section-error"
+            />
+          </Col>
+        </StyledRow>
+      )}
       <StyledRow gutter={16}>
         <Col xs={24} md={12}>
           <StyledDiv>
-            <FormLabel htmlFor="server_address" required>
-              {t('SSH Host')}
-            </FormLabel>
-            <Input
+            <LabeledErrorBoundInput
+              id="server_address"
               name="server_address"
-              type="text"
+              label={t('SSH Host')}
+              required
               placeholder={t('e.g. 127.0.0.1')}
               value={db?.ssh_tunnel?.server_address || ''}
               onChange={onSSHTunnelParametersChange}
+              validationMethods={{ onBlur: getValidation }}
+              errorMessage={sshErrors?.server_address}
+              isValidating={isValidating}
               data-test="ssh-tunnel-server_address-input"
             />
           </StyledDiv>
         </Col>
         <Col xs={24} md={12}>
           <StyledDiv>
-            <FormLabel htmlFor="server_port" required>
-              {t('SSH Port')}
-            </FormLabel>
-            <Input
+            <LabeledErrorBoundInput
+              id="server_port"
               name="server_port"
+              label={t('SSH Port')}
+              required
               placeholder={t('22')}
               type="number"
               value={db?.ssh_tunnel?.server_port}
               onChange={onSSHTunnelParametersChange}
+              validationMethods={{ onBlur: getValidation }}
+              errorMessage={sshErrors?.server_port}
+              isValidating={isValidating}
               data-test="ssh-tunnel-server_port-input"
             />
           </StyledDiv>
@@ -96,15 +124,17 @@ const SSHTunnelForm = ({
       <StyledRow gutter={16}>
         <Col xs={24}>
           <StyledDiv>
-            <FormLabel htmlFor="username" required>
-              {t('Username')}
-            </FormLabel>
-            <Input
+            <LabeledErrorBoundInput
+              id="username"
               name="username"
-              type="text"
+              label={t('Username')}
+              required
               placeholder={t('e.g. Analytics')}
               value={db?.ssh_tunnel?.username || ''}
               onChange={onSSHTunnelParametersChange}
+              validationMethods={{ onBlur: getValidation }}
+              errorMessage={sshErrors?.username}
+              isValidating={isValidating}
               data-test="ssh-tunnel-username-input"
             />
           </StyledDiv>
@@ -144,26 +174,19 @@ const SSHTunnelForm = ({
         <StyledRow gutter={16}>
           <Col xs={24}>
             <StyledDiv>
-              <FormLabel htmlFor="password" required>
-                {t('SSH Password')}
-              </FormLabel>
-              <StyledInputPassword
+              <LabeledErrorBoundInput
+                id="password"
                 name="password"
+                label={t('SSH Password')}
+                required
+                visibilityToggle
                 placeholder={t('e.g. ********')}
                 value={db?.ssh_tunnel?.password || ''}
                 onChange={onSSHTunnelParametersChange}
+                validationMethods={{ onBlur: getValidation }}
+                errorMessage={sshErrors?.password}
+                isValidating={isValidating}
                 data-test="ssh-tunnel-password-input"
-                iconRender={visible =>
-                  visible ? (
-                    <Tooltip title="Hide password.">
-                      <EyeInvisibleOutlined />
-                    </Tooltip>
-                  ) : (
-                    <Tooltip title="Show password.">
-                      <EyeOutlined />
-                    </Tooltip>
-                  )
-                }
                 role="textbox"
               />
             </StyledDiv>
@@ -178,40 +201,45 @@ const SSHTunnelForm = ({
                 <FormLabel htmlFor="private_key" required>
                   {t('Private Key')}
                 </FormLabel>
-                <TextArea
-                  name="private_key"
-                  placeholder={t('Paste Private Key here')}
-                  value={db?.ssh_tunnel?.private_key || ''}
-                  onChange={onSSHTunnelParametersChange}
-                  data-test="ssh-tunnel-private_key-input"
-                  rows={4}
-                />
+                <StyledFormItem
+                  validateStatus={
+                    isValidating
+                      ? 'validating'
+                      : sshErrors?.private_key
+                        ? 'error'
+                        : 'success'
+                  }
+                  help={sshErrors?.private_key}
+                  hasFeedback={isValidating || !!sshErrors?.private_key}
+                >
+                  <Input.TextArea
+                    name="private_key"
+                    placeholder={t('Paste Private Key here')}
+                    value={db?.ssh_tunnel?.private_key || ''}
+                    onChange={onSSHTunnelParametersChange}
+                    onBlur={getValidation}
+                    data-test="ssh-tunnel-private_key-input"
+                    rows={4}
+                  />
+                </StyledFormItem>
               </StyledDiv>
             </Col>
           </StyledRow>
           <StyledRow gutter={16}>
             <Col xs={24}>
               <StyledDiv>
-                <FormLabel htmlFor="private_key_password" required>
-                  {t('Private Key Password')}
-                </FormLabel>
-                <StyledInputPassword
+                <LabeledErrorBoundInput
+                  id="private_key_password"
                   name="private_key_password"
+                  label={t('Private Key Password')}
+                  visibilityToggle
                   placeholder={t('e.g. ********')}
                   value={db?.ssh_tunnel?.private_key_password || ''}
                   onChange={onSSHTunnelParametersChange}
+                  validationMethods={{ onBlur: getValidation }}
+                  errorMessage={sshErrors?.private_key_password}
+                  isValidating={isValidating}
                   data-test="ssh-tunnel-private_key_password-input"
-                  iconRender={visible =>
-                    visible ? (
-                      <Tooltip title="Hide password.">
-                        <EyeInvisibleOutlined />
-                      </Tooltip>
-                    ) : (
-                      <Tooltip title="Show password.">
-                        <EyeOutlined />
-                      </Tooltip>
-                    )
-                  }
                   role="textbox"
                 />
               </StyledDiv>

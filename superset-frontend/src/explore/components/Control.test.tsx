@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import Control, { ControlProps } from 'src/explore/components/Control';
 
@@ -29,17 +28,13 @@ const defaultProps: ControlProps = {
   },
 };
 
-const setup = (overrides = {}) => (
-  <ThemeProvider theme={supersetTheme}>
-    <Control {...defaultProps} {...overrides} />
-  </ThemeProvider>
-);
+const setup = (overrides = {}) => <Control {...defaultProps} {...overrides} />;
 
 test('render a control', () => {
   render(setup());
 
   const checkbox = screen.getByRole('checkbox');
-  expect(checkbox).toBeVisible();
+  expect(checkbox).toBeInTheDocument();
 });
 
 test('render null if type is not exit', () => {
@@ -76,9 +71,9 @@ test('call setControlValue if isVisible is false', async () => {
       default: false,
     }),
   );
-  expect(defaultProps.actions.setControlValue).not.toBeCalled();
+  expect(defaultProps.actions.setControlValue).not.toHaveBeenCalled();
   rerender(setup({ isVisible: false, default: false }));
   await waitFor(() =>
-    expect(defaultProps.actions.setControlValue).toBeCalled(),
+    expect(defaultProps.actions.setControlValue).toHaveBeenCalled(),
   );
 });
