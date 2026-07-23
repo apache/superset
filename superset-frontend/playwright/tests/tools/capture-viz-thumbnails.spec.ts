@@ -56,7 +56,12 @@ const RENDERED_CHART_SELECTOR =
  * Charts that render plain markup — no svg/canvas/table for the rendered
  * selector to key on — get a looser signal plus a longer settle.
  */
-const TEXT_ONLY_VIZ_TYPES = new Set(['big_number_total', 'handlebars']);
+const TEXT_ONLY_VIZ_TYPES = new Set([
+  'ag-grid-table',
+  'big_number_total',
+  'handlebars',
+  'pop_kpi',
+]);
 const TEXT_RENDERED_CHART_SELECTOR =
   '[data-test="chart-container"]:not(:has([data-test="loading-indicator"]))';
 
