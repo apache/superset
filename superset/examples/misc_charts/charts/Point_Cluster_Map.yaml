@@ -1,0 +1,41 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+cache_timeout: null
+certification_details: null
+certified_by: null
+dataset_uuid: a46c986d-8780-4745-91ff-7fefeef69f3c
+description: Clustered points over San Francisco on a keyless map renderer.
+params:
+  all_columns_x: LON
+  all_columns_y: LAT
+  clustering_radius: '60'
+  global_opacity: 1
+  map_renderer: maplibre
+  mapbox_style: OpenStreetMap
+  point_radius: Auto
+  point_radius_unit: Pixels
+  row_limit: 5000
+  time_range: No filter
+  viewport_latitude: 37.78926922909199
+  viewport_longitude: -122.42613341901688
+  viewport_zoom: 12
+  viz_type: point_cluster_map
+query_context: null
+slice_name: Point Cluster Map
+uuid: c35ddd67-03af-4f99-a316-86665adf89d5
+version: 1.0.0
+viz_type: point_cluster_map

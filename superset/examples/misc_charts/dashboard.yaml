@@ -39,6 +39,13 @@ metadata:
     - 1acf135b-2c1f-4ee6-8a11-e4b4be52d1ea
     - a71ebf2f-338d-466f-a862-48d068832295
     - 55ad4f1d-debc-42c7-b359-f9bbdb569a10
+    - 658307e1-48a8-4622-a54a-f9731f3b55fb
+    - f0316454-d3f5-4228-8739-b5be5e0f4a2d
+    - c6f5c35e-1c0b-48ac-978d-d540b594e89f
+    - 5f1c946b-4894-4546-866a-944bf1bb569f
+    - 0c2ec098-172e-436f-ad89-803e8e939156
+    - c50f8942-080d-4bab-8a2a-3889f490d03d
+    - c35ddd67-03af-4f99-a316-86665adf89d5
     scope:
       excluded: []
       rootPath:
@@ -245,6 +252,104 @@ position:
     - GRID_ID
     - ROW-misc-migrated-4
     type: CHART
+  CHART-misc-generic-ts:
+    children: []
+    id: CHART-misc-generic-ts
+    meta:
+      chartId: 90010
+      height: 69
+      sliceName: Population Time Series
+      uuid: 658307e1-48a8-4622-a54a-f9731f3b55fb
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-extra-1
+    type: CHART
+  CHART-misc-smooth:
+    children: []
+    id: CHART-misc-smooth
+    meta:
+      chartId: 90011
+      height: 69
+      sliceName: Population Smooth Line
+      uuid: f0316454-d3f5-4228-8739-b5be5e0f4a2d
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-extra-2
+    type: CHART
+  CHART-misc-step:
+    children: []
+    id: CHART-misc-step
+    meta:
+      chartId: 90012
+      height: 69
+      sliceName: Population Step Line
+      uuid: c6f5c35e-1c0b-48ac-978d-d540b594e89f
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-extra-2
+    type: CHART
+  CHART-misc-handlebars:
+    children: []
+    id: CHART-misc-handlebars
+    meta:
+      chartId: 90014
+      height: 69
+      sliceName: Sales Handlebars List
+      uuid: 5f1c946b-4894-4546-866a-944bf1bb569f
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-extra-3
+    type: CHART
+  CHART-misc-deck-contour:
+    children: []
+    id: CHART-misc-deck-contour
+    meta:
+      chartId: 90015
+      height: 69
+      sliceName: Deck.gl Contour
+      uuid: 0c2ec098-172e-436f-ad89-803e8e939156
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-extra-4
+    type: CHART
+  CHART-misc-deck-heatmap:
+    children: []
+    id: CHART-misc-deck-heatmap
+    meta:
+      chartId: 90016
+      height: 69
+      sliceName: Deck.gl Heatmap
+      uuid: c50f8942-080d-4bab-8a2a-3889f490d03d
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-extra-4
+    type: CHART
+  CHART-misc-point-cluster:
+    children: []
+    id: CHART-misc-point-cluster
+    meta:
+      chartId: 90017
+      height: 69
+      sliceName: Point Cluster Map
+      uuid: c35ddd67-03af-4f99-a316-86665adf89d5
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-extra-5
+    type: CHART
   DASHBOARD_VERSION_KEY: v2
   GRID_ID:
     children:
@@ -253,6 +358,11 @@ position:
     - ROW-misc-migrated-2
     - ROW-misc-migrated-3
     - ROW-misc-migrated-4
+    - ROW-misc-extra-1
+    - ROW-misc-extra-2
+    - ROW-misc-extra-3
+    - ROW-misc-extra-4
+    - ROW-misc-extra-5
     id: GRID_ID
     parents:
     - ROOT_ID
@@ -317,6 +427,58 @@ position:
     - CHART-misc-paired-ttest
     - CHART-misc-time-table
     id: ROW-misc-migrated-4
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    type: ROW
+  ROW-misc-extra-1:
+    children:
+    - CHART-misc-generic-ts
+    id: ROW-misc-extra-1
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    type: ROW
+  ROW-misc-extra-2:
+    children:
+    - CHART-misc-smooth
+    - CHART-misc-step
+    id: ROW-misc-extra-2
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    type: ROW
+  ROW-misc-extra-3:
+    children:
+    - CHART-misc-handlebars
+    id: ROW-misc-extra-3
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    type: ROW
+  ROW-misc-extra-4:
+    children:
+    - CHART-misc-deck-contour
+    - CHART-misc-deck-heatmap
+    id: ROW-misc-extra-4
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    type: ROW
+  ROW-misc-extra-5:
+    children:
+    - CHART-misc-point-cluster
+    id: ROW-misc-extra-5
     meta:
       background: BACKGROUND_TRANSPARENT
     parents:
