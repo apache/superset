@@ -371,7 +371,10 @@ const SaveModal = ({
       if (dashboardId) {
         try {
           const result = (await loadDashboard(dashboardId)) as Dashboard;
-          if (canUserEditDashboard(result, user)) {
+          if (
+            canUserEditDashboard(result, user) &&
+            !result.is_managed_externally
+          ) {
             setDashboard({ label: result.dashboard_title, value: result.id });
             await loadTabs(dashboardId);
           }
@@ -392,7 +395,11 @@ const SaveModal = ({
             for (const { id } of metadataDashboards) {
               // eslint-disable-next-line no-await-in-loop
               const result = await loadDashboard(id).catch(() => null);
-              if (result && canUserEditDashboard(result, user)) {
+              if (
+                result &&
+                canUserEditDashboard(result, user) &&
+                !result.is_managed_externally
+              ) {
                 editable = result as Dashboard;
                 break;
               }
@@ -670,6 +677,11 @@ const SaveModal = ({
             col: 'id',
             opr: 'is_editable',
             value: true,
+          },
+          {
+            col: 'is_managed_externally',
+            opr: 'eq',
+            value: false,
           },
         ],
         page,
