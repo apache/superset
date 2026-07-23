@@ -17,6 +17,10 @@
 from typing import Any, Optional, Type
 from unittest import mock
 
+from superset.async_events.async_query_manager import (
+    AsyncQueryJobException,
+    AsyncQueryTokenException,
+)
 from superset.async_events.cache_backend import (
     RedisCacheBackend,
     RedisSentinelCacheBackend,
@@ -30,11 +34,15 @@ from tests.integration_tests.test_app import app
 
 class TestAsyncEventApi(SupersetTestCase):
     UUID = "943c920-32a5-412a-977d-b8e47d36f5a4"
+    JOB_ID = "10a0bd9a-03c8-4737-9345-f4234ba86512"
 
     def fetch_events(self, last_id: Optional[str] = None):
         base_uri = "api/v1/async_event/"
         uri = f"{base_uri}?last_id={last_id}" if last_id else base_uri
         return self.client.get(uri)
+
+    def cancel_event(self, job_id: str):
+        return self.client.post(f"api/v1/async_event/{job_id}/cancel")
 
     def run_test_with_cache_backend(self, cache_backend_cls: Type[Any], test_func):
         app._got_first_request = False
@@ -135,4 +143,54 @@ class TestAsyncEventApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         self.client.set_cookie(app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME"], "")
         rv = self.fetch_events()
+        assert rv.status_code == 401
+
+    def _test_cancel_logic(self, mock_cache):
+        with mock.patch.object(async_query_manager, "cancel_job") as mock_cancel:
+            rv = self.cancel_event(self.JOB_ID)
+
+        assert rv.status_code == 200
+        mock_cancel.assert_called_once()
+        assert mock_cancel.call_args.args[0] == self.JOB_ID
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response["result"] == {"job_id": self.JOB_ID, "status": "cancelled"}
+
+    def _test_cancel_forbidden_logic(self, mock_cache):
+        with mock.patch.object(
+            async_query_manager,
+            "cancel_job",
+            side_effect=AsyncQueryTokenException("nope"),
+        ):
+            rv = self.cancel_event(self.JOB_ID)
+        assert rv.status_code == 403
+
+    def _test_cancel_not_found_logic(self, mock_cache):
+        with mock.patch.object(
+            async_query_manager,
+            "cancel_job",
+            side_effect=AsyncQueryJobException("gone"),
+        ):
+            rv = self.cancel_event(self.JOB_ID)
+        assert rv.status_code == 404
+
+    @mock.patch("uuid.uuid4", return_value=UUID)
+    def test_cancel_redis_cache_backend(self, mock_uuid4):
+        self.run_test_with_cache_backend(RedisCacheBackend, self._test_cancel_logic)
+
+    @mock.patch("uuid.uuid4", return_value=UUID)
+    def test_cancel_forbidden(self, mock_uuid4):
+        self.run_test_with_cache_backend(
+            RedisCacheBackend, self._test_cancel_forbidden_logic
+        )
+
+    @mock.patch("uuid.uuid4", return_value=UUID)
+    def test_cancel_not_found(self, mock_uuid4):
+        self.run_test_with_cache_backend(
+            RedisCacheBackend, self._test_cancel_not_found_logic
+        )
+
+    def test_cancel_no_login(self):
+        app._got_first_request = False
+        async_query_manager_factory.init_app(app)
+        rv = self.cancel_event(self.JOB_ID)
         assert rv.status_code == 401

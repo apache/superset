@@ -106,6 +106,10 @@ class AsyncQueryManager:
     STATUS_RUNNING = "running"
     STATUS_ERROR = "error"
     STATUS_DONE = "done"
+    STATUS_CANCELLED = "cancelled"
+    # Redis key prefix (within the GAQ stream namespace) for the per-job record
+    # that authorizes cancellation and flags a job as cancelled for the worker.
+    _JOB_REGISTRY_PREFIX = "job-cancel:"
 
     def __init__(self) -> None:
         super().__init__()
@@ -276,8 +280,30 @@ class AsyncQueryManager:
 
     def init_job(self, channel_id: str, user_id: Optional[int]) -> dict[str, Any]:
         job_id = str(uuid.uuid4())
+        self._register_cancellable_job(job_id, channel_id, user_id)
         return build_job_metadata(
             channel_id, job_id, user_id, status=self.STATUS_PENDING
+        )
+
+    def _job_registry_key(self, job_id: str) -> str:
+        return f"{self._stream_prefix}{self._JOB_REGISTRY_PREFIX}{job_id}"
+
+    def _register_cancellable_job(
+        self, job_id: str, channel_id: str, user_id: Optional[int]
+    ) -> None:
+        """
+        Persist the identity a later cancel request must match. Keyed by
+        ``job_id`` (also the Celery task id — see ``submit_chart_data_job``) so
+        the cancel endpoint can authorize the caller against the job's original
+        owner without trusting the client-supplied id. Expires with the JWT so
+        it never outlives the job it guards.
+        """
+        if not self._cache:
+            return
+        self._cache.set(
+            self._job_registry_key(job_id),
+            json.dumps({"channel_id": channel_id, "user_id": user_id}),
+            ex=self._jwt_expiration_seconds or None,
         )
 
     # pylint: disable=too-many-arguments
@@ -302,6 +328,9 @@ class AsyncQueryManager:
                 response_type,
                 force,
             ],
+            # Use job_id as the Celery task id so the cancel endpoint can revoke
+            # the running task by the id the client already holds.
+            task_id=job_metadata["job_id"],
             expires=self._jwt_expiration_seconds,
         )
         return job_metadata
@@ -327,6 +356,9 @@ class AsyncQueryManager:
                 else job_metadata,
                 form_data,
             ],
+            # Use job_id as the Celery task id so the cancel endpoint can revoke
+            # the running task by the id the client already holds.
+            task_id=job_metadata["job_id"],
             expires=self._jwt_expiration_seconds,
         )
         return job_metadata
@@ -380,3 +412,79 @@ class AsyncQueryManager:
 
         self._cache.xadd(scoped_stream_name, event_data, "*", self._stream_limit)
         self._cache.xadd(full_stream_name, event_data, "*", self._stream_limit_firehose)
+
+        # Once a job reaches a terminal state its cancel record is dead weight
+        # (and a stale record would let a caller "cancel" a finished job), so
+        # drop it. TTL is the backstop if this is never reached.
+        if status in (self.STATUS_DONE, self.STATUS_ERROR, self.STATUS_CANCELLED):
+            if job_id := job_metadata.get("job_id"):
+                self._cache.delete(self._job_registry_key(job_id))
+
+    def is_job_cancelled(self, job_id: str) -> bool:
+        """
+        Whether ``cancel_job`` has flagged this job for cancellation.
+
+        Called from the worker's exception handler, so any cache failure is
+        swallowed and treated as "not cancelled" — a Redis blip must never mask
+        the original error (e.g. a genuine timeout) with a connection error.
+        """
+        if not self._cache:
+            return False
+        try:
+            raw = self._cache.get(self._job_registry_key(job_id))
+            if raw is None:
+                return False
+            return bool(json.loads(raw).get("cancelled"))
+        except Exception:  # pylint: disable=broad-except
+            logger.warning(
+                "Failed to read cancellation flag for job %s", job_id, exc_info=True
+            )
+            return False
+
+    def cancel_job(self, job_id: str, channel_id: str, user_id: Optional[int]) -> None:
+        """
+        Authorize and cancel a running async job.
+
+        The caller's ``channel_id`` and ``user_id`` (resolved server-side from
+        the request, never taken from the client) must match the job's original
+        owner. On success the running Celery task is revoked; the SIGUSR1 it
+        receives surfaces as ``SoftTimeLimitExceeded`` in the worker, which
+        reads the cancelled flag set here and emits the terminal
+        ``STATUS_CANCELLED`` event — so exactly one terminal event is written.
+
+        :raises AsyncQueryJobException: the job is unknown or already terminal
+        :raises AsyncQueryTokenException: the caller does not own the job
+        """
+        if not self._cache:
+            raise CacheBackendNotInitialized("Cache backend not initialized")
+
+        key = self._job_registry_key(job_id)
+        raw = self._cache.get(key)
+        if raw is None:
+            raise AsyncQueryJobException("Job not found or already completed")
+
+        record = json.loads(raw)
+        if record.get("channel_id") != channel_id or record.get("user_id") != user_id:
+            raise AsyncQueryTokenException("Not authorized to cancel this job")
+
+        # Flag before revoking so the worker's timeout handler, which may fire
+        # almost immediately, reliably sees the cancellation. Write only if the
+        # key still exists (``xx``): if the job finished and cleared its record
+        # between the read above and here, don't recreate a stale record or
+        # revoke a task that is already gone — report it as not found instead.
+        flagged = self._cache.set(
+            key,
+            json.dumps({**record, "cancelled": True}),
+            ex=self._jwt_expiration_seconds or None,
+            xx=True,
+        )
+        if not flagged:
+            raise AsyncQueryJobException("Job not found or already completed")
+
+        # pylint: disable=import-outside-toplevel
+        from superset.extensions import celery_app
+
+        # SIGUSR1 raises SoftTimeLimitExceeded inside the running task rather
+        # than hard-killing the process, so the worker can emit its terminal
+        # event before exiting.
+        celery_app.control.revoke(job_id, terminate=True, signal="SIGUSR1")

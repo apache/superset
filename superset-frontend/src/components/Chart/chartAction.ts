@@ -699,6 +699,7 @@ export function handleChartDataResponse(
   response: Response,
   json: { result: QueryData[] },
   useLegacyApi?: boolean,
+  signal?: AbortSignal,
 ): Promise<QueryData[]> | QueryData[] {
   if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
     // deal with getChartDataRequest transforming the response data
@@ -711,13 +712,16 @@ export function handleChartDataResponse(
         // Query is running asynchronously and we must await the results.
         // When status is 202, result contains async event data (job_id, channel_id, etc.)
         // which differs from QueryData. We cast through unknown to handle this safely.
+        // The signal lets a Stop action abort the wait and cancel the job.
         if (useLegacyApi) {
           return waitForAsyncData(
             result[0] as unknown as Parameters<typeof waitForAsyncData>[0],
+            signal,
           ) as Promise<QueryData[]>;
         }
         return waitForAsyncData(
           result as unknown as Parameters<typeof waitForAsyncData>[0],
+          signal,
         ) as Promise<QueryData[]>;
       default:
         throw new Error(
@@ -780,15 +784,25 @@ export function exploreJSON(
     const [useLegacyApi] = getQuerySettings(formData);
     const chartDataRequestCaught = chartDataRequest
       .then(({ response, json }) =>
-        handleChartDataResponse(response, json, useLegacyApi),
+        handleChartDataResponse(
+          response,
+          json,
+          useLegacyApi,
+          controller.signal,
+        ),
       )
       .then(queriesResponse => {
-        // Drop stale responses: if a newer query has started for this chart,
-        // its controller will have replaced ours in state, so ignore this
-        // response to avoid clobbering newer data with older results.
+        // Drop stale responses: if this request was aborted (Stop, or a newer
+        // query that aborted ours), or a newer query has since replaced our
+        // controller in state, ignore the result so we don't clobber newer
+        // data or a 'stopped' status. Checking the signal is authoritative
+        // because the reducer nulls out queryController when a query stops.
         if (key != null) {
           const currentController = getState().charts?.[key]?.queryController;
-          if (currentController && currentController !== controller) {
+          if (
+            controller.signal.aborted ||
+            (currentController != null && currentController !== controller)
+          ) {
             return undefined;
           }
         }
@@ -847,7 +861,10 @@ export function exploreJSON(
           // so a slow earlier request can't mark a newer one as failed.
           if (key != null) {
             const currentController = getState().charts?.[key]?.queryController;
-            if (currentController && currentController !== controller) {
+            if (
+              controller.signal.aborted ||
+              (currentController != null && currentController !== controller)
+            ) {
               return undefined;
             }
           }
