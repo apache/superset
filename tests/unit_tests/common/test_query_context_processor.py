@@ -2256,3 +2256,106 @@ def test_grouping_sets_fallback_applies_row_offset_once_globally() -> None:
     # ...and the requested offset is applied exactly once, to the combined
     # result: 2 + 1 = 3 total rows in, minus an offset of 1 = 2 rows out.
     assert len(result.df) == 2
+
+
+def test_relative_offset_preserves_inner_bounds(
+    processor: QueryContextProcessor,
+) -> None:
+    """
+    Regression test for #40501: Relative time comparison offset should
+    preserve inner bounds as the original (unshifted) period, not the shifted one.
+
+    When comparing 2026-05-01 : 2026-05-28 with offset "365 days ago":
+    - inner_from_dttm should be 2026-05-01 (original), NOT 2025-05-01 (shifted)
+    - inner_to_dttm should be 2026-05-28 (original), NOT 2025-05-28 (shifted)
+    """
+    from superset.common.query_object import QueryObject
+    from superset.models.helpers import ExploreMixin
+
+    datasource: Any = processor._qc_datasource
+
+    for method in (
+        "processing_time_offsets",
+        "_align_offset_without_time_grain",
+        "_coalesce_offset_index",
+    ):
+        setattr(
+            datasource,
+            method,
+            getattr(ExploreMixin, method).__get__(datasource),
+        )
+
+    df = pd.DataFrame(
+        {
+            "__timestamp": pd.to_datetime(["2026-05-01", "2026-05-15", "2026-05-28"]),
+            "sum__num": [100, 200, 300],
+        }
+    )
+
+    query_object = QueryObject(
+        datasource=MagicMock(),
+        granularity="ds",
+        columns=[],
+        metrics=["sum__num"],
+        is_timeseries=True,
+        time_offsets=["365 days ago"],
+        filters=[
+            {
+                "col": "ds",
+                "op": "TEMPORAL_RANGE",
+                "val": "2026-05-01 : 2026-05-28",
+            }
+        ],
+    )
+
+    captured: list[dict[str, Any]] = []
+
+    def fake_query(dct: dict[str, Any]) -> MagicMock:
+        captured.append(dct)
+        result = MagicMock()
+        result.df = pd.DataFrame(
+            {
+                "__timestamp": pd.date_range(
+                    start=dct["from_dttm"], periods=3, freq="14D"
+                ),
+                "sum__num": [1.0, 2.0, 3.0],
+            }
+        )
+        result.query = "SELECT 1"
+        return result
+
+    datasource.query = fake_query
+    datasource.normalize_df = MagicMock(
+        side_effect=lambda offset_df, _query_object: offset_df
+    )
+
+    with (
+        patch(
+            "superset.models.helpers.get_since_until_from_query_object",
+            return_value=(pd.Timestamp("2026-05-01"), pd.Timestamp("2026-05-28")),
+        ),
+        patch(
+            "superset.common.utils.query_cache_manager.QueryCacheManager"
+        ) as mock_cache_manager,
+        patch.object(
+            datasource,
+            "get_time_grain",
+            return_value=None,
+        ),
+    ):
+        mock_cache = MagicMock()
+        mock_cache.is_loaded = False
+        mock_cache_manager.get.return_value = mock_cache
+
+        result = datasource.processing_time_offsets(df, query_object, None, None, False)
+
+    # The offset query should use shifted dates for the main window
+    assert len(captured) == 1
+    assert captured[0]["from_dttm"] == pd.Timestamp("2025-05-01")
+    assert captured[0]["to_dttm"] == pd.Timestamp("2025-05-28")
+
+    # The inner bounds (used for series-limit subquery) should be the
+    # ORIGINAL unshifted dates, not the shifted ones — this is the fix
+    # for #40501. Without the fix, inner_from/to_dttm == shifted dates.
+    assert captured[0]["inner_from_dttm"] == pd.Timestamp("2026-05-01")
+    assert captured[0]["inner_to_dttm"] == pd.Timestamp("2026-05-28")
