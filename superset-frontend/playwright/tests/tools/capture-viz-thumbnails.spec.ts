@@ -37,11 +37,13 @@
  *   VIZ_TYPES=bullet,rose npm run playwright:thumbnails   # subset
  *
  * Notes:
- * - Only light-theme images are captured; `thumbnail-dark.png` variants
- *   are left untouched.
+ * - Dark variants (`thumbnail-dark.png`, `example-dark.jpg`) are captured
+ *   via prefers-color-scheme emulation whenever the sibling file exists;
+ *   if the app ignores the emulation (dark theming disabled) the dark
+ *   file is left untouched.
  * - New gallery images (e.g. the Line percent-change example) still need
  *   to be registered in the plugin's metadata before they render in the
- *   gallery; the capture logs a reminder for any non-thumbnail output.
+ *   gallery; the capture logs a reminder for any new image.
  */
 import * as fs from 'fs';
 import * as path from 'path';
