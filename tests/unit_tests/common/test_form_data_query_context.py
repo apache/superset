@@ -139,12 +139,130 @@ def test_build_context_merges_legacy_and_adhoc_filters() -> None:
     ]
 
 
-def test_build_context_falls_back_to_granularity_sqla_column() -> None:
-    # A Big Number with a trendline has no groupby/columns; its time column
-    # (granularity_sqla) becomes the query's sole column.
+def test_big_number_trendline_promotes_granularity_sqla_column() -> None:
+    # A Big Number *with a trendline* (viz_type "big_number") has no
+    # groupby/columns; its time column (granularity_sqla) becomes the sole column.
     form_data = {"metric": "count", "granularity_sqla": "order_date"}
 
-    query = build_query_context_from_form_data(form_data, DATASOURCE)["queries"][0]
+    query = build_query_context_from_form_data(
+        form_data, DATASOURCE, viz_type="big_number"
+    )["queries"][0]
 
     assert query["columns"] == ["order_date"]
     assert query["metrics"] == ["count"]
+
+
+def test_big_number_total_does_not_promote_granularity_sqla_column() -> None:
+    # big_number_total is a single aggregate; promoting granularity_sqla to a
+    # column would turn one total into one row per timestamp.
+    form_data = {"metric": "count", "granularity_sqla": "order_date"}
+
+    query = build_query_context_from_form_data(
+        form_data, DATASOURCE, viz_type="big_number_total"
+    )["queries"][0]
+
+    assert query["columns"] == []
+
+
+def test_build_context_sets_granularity_for_time_filtering() -> None:
+    # Without a `granularity`, the `time_range` is inert downstream, so a legacy
+    # chart with granularity_sqla + time_range would export its full history.
+    form_data = {
+        "metrics": ["count"],
+        "granularity_sqla": "ds",
+        "time_range": "Last quarter",
+    }
+
+    query = build_query_context_from_form_data(form_data, DATASOURCE)["queries"][0]
+
+    assert query["granularity"] == "ds"
+    assert query["time_range"] == "Last quarter"
+
+
+def test_build_context_prefers_explicit_granularity_over_sqla() -> None:
+    form_data = {
+        "metrics": ["count"],
+        "granularity": "event_time",
+        "granularity_sqla": "ds",
+        "time_range": "Last week",
+    }
+    query = build_query_context_from_form_data(form_data, DATASOURCE)["queries"][0]
+    assert query["granularity"] == "event_time"
+
+
+def test_build_context_omits_granularity_without_active_time_range() -> None:
+    # A numeric column saved as granularity_sqla with no active range must not be
+    # forced through temporal bucketing (which would fail on non-temporal columns).
+    form_data = {"metrics": ["count"], "granularity_sqla": "year"}
+    query = build_query_context_from_form_data(form_data, DATASOURCE)["queries"][0]
+    assert "granularity" not in query
+
+
+def test_orderby_defaults_to_first_metric_descending() -> None:
+    # With a row_limit, ordering must be deterministic so the export returns the
+    # chart's top-N, not an arbitrary N.
+    form_data = {"metrics": ["count"], "groupby": ["c"], "row_limit": 10}
+    query = build_query_context_from_form_data(form_data, DATASOURCE)["queries"][0]
+    assert query["orderby"] == [["count", False]]
+
+
+def test_orderby_uses_timeseries_limit_metric_and_order_desc() -> None:
+    form_data = {
+        "metrics": ["count"],
+        "groupby": ["c"],
+        "timeseries_limit_metric": "revenue",
+        "order_desc": False,
+    }
+    query = build_query_context_from_form_data(form_data, DATASOURCE)["queries"][0]
+    assert query["orderby"] == [["revenue", True]]
+
+
+def test_orderby_pie_sort_by_metric() -> None:
+    form_data = {"metric": "count", "groupby": ["c"], "sort_by_metric": True}
+    query = build_query_context_from_form_data(form_data, DATASOURCE, viz_type="pie")[
+        "queries"
+    ][0]
+    assert query["orderby"] == [["count", False]]
+
+
+def test_orderby_raw_mode_parses_order_by_cols() -> None:
+    form_data = {
+        "query_mode": "raw",
+        "all_columns": ["a"],
+        # A malformed entry is skipped rather than raising.
+        "order_by_cols": ['["a", true]', "not json", ["b", False]],
+    }
+    query = build_query_context_from_form_data(form_data, DATASOURCE)["queries"][0]
+    assert query["orderby"] == [["a", True], ["b", False]]
+
+
+def test_sql_filters_and_legacy_where_go_into_extras() -> None:
+    form_data = {
+        "groupby": ["c"],
+        "where": "region = 'EMEA'",
+        "adhoc_filters": [
+            {"expressionType": "SQL", "clause": "WHERE", "sqlExpression": "sales > 0"},
+            {
+                "expressionType": "SQL",
+                "clause": "HAVING",
+                "sqlExpression": "SUM(x) > 5",
+            },
+        ],
+    }
+    query = build_query_context_from_form_data(form_data, DATASOURCE)["queries"][0]
+    assert query["extras"]["where"] == "(region = 'EMEA') AND (sales > 0)"
+    assert query["extras"]["having"] == "(SUM(x) > 5)"
+
+
+def test_table_percent_metrics_and_time_grain_are_carried() -> None:
+    form_data = {
+        "groupby": ["c"],
+        "metrics": ["count"],
+        "percent_metrics": ["pct_total"],
+        "time_grain_sqla": "P1M",
+    }
+    query = build_query_context_from_form_data(form_data, DATASOURCE, viz_type="table")[
+        "queries"
+    ][0]
+    assert query["metrics"] == ["count", "pct_total"]
+    assert query["extras"]["time_grain_sqla"] == "P1M"
