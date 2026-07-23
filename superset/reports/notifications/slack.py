@@ -37,8 +37,8 @@ from superset.reports.notifications.exceptions import (
     SlackV1NotificationError,
 )
 from superset.reports.notifications.slack_mixin import (
-    _call_slack_api,
-    _send_to_slack_channels,
+    call_slack_api,
+    send_to_slack_channels,
     SlackMixin,
 )
 from superset.utils import json
@@ -94,10 +94,11 @@ class SlackNotification(SlackMixin, BaseNotification):  # pylint: disable=too-fe
         """Send a text notification once to each configured channel."""
         if not channels:
             raise NotificationParamException(NO_SLACK_RECIPIENTS_MESSAGE)
-        _send_to_slack_channels(
+        send_to_slack_channels(
             channels,
-            lambda target: _call_slack_api(
+            lambda target, retry_deadline: call_slack_api(
                 client.chat_postMessage,
+                retry_deadline=retry_deadline,
                 channel=target,
                 text=body,
             ),
@@ -110,7 +111,7 @@ class SlackNotification(SlackMixin, BaseNotification):  # pylint: disable=too-fe
         body = self._get_body(content=self._content)
         global_logs_context = getattr(g, "logs_context", {}) or {}
         try:
-            client = get_slack_client()
+            client = get_slack_client(for_delivery=True)
             channels = self._get_channels()
             self._send_text(client, channels, body)
             logger.info(
@@ -139,7 +140,10 @@ class SlackNotification(SlackMixin, BaseNotification):  # pylint: disable=too-fe
         """Send through Slack v1 without repeating the v2 availability probe."""
         self._send_legacy_text()
 
-    @statsd_gauge("reports.slack.send")
+    @statsd_gauge(
+        "reports.slack.send",
+        ignored_exceptions=(SlackV1NotificationError,),
+    )
     def send(self) -> None:
         if should_use_v2_api(raise_on_error=self._content.has_attachments):
             raise SlackV1NotificationError

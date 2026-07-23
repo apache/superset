@@ -89,6 +89,26 @@ def test_statsd_gauge(
             mock.assert_called_once_with(expected_result, 1)
 
 
+def test_statsd_gauge_ignores_configured_exception() -> None:
+    class RoutingSignalError(Exception):
+        pass
+
+    @decorators.statsd_gauge(
+        "custom.prefix",
+        ignored_exceptions=(RoutingSignalError,),
+    )
+    def my_func() -> None:
+        raise RoutingSignalError
+
+    with (
+        patch("superset.extensions.stats_logger_manager.instance.gauge") as mock,
+        pytest.raises(RoutingSignalError),
+    ):
+        my_func()
+
+    mock.assert_not_called()
+
+
 @patch("superset.utils.decorators.g")
 def test_context_decorator(flask_g_mock) -> None:
     @decorators.logs_context()

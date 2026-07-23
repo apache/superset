@@ -20,7 +20,7 @@ import urllib.request
 from collections.abc import Sequence
 from contextlib import closing
 from datetime import datetime, timedelta, timezone
-from typing import Any, Optional, TYPE_CHECKING, Union
+from typing import Any, cast, Optional, TYPE_CHECKING, Union
 from urllib.error import URLError
 from uuid import UUID
 
@@ -98,6 +98,8 @@ from superset.utils.slack import (
     get_channels_with_search,
     NO_SLACK_RECIPIENTS_MESSAGE,
     parse_slack_recipient_targets,
+    refresh_cached_slack_channels_with_search,
+    SlackChannelListingClientError,
     SlackChannelTypes,
 )
 from superset.utils.urls import get_url_path
@@ -108,41 +110,83 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def _get_slack_channels_by_target(
+def _get_slack_channels(
     search_string: str,
-    *,
-    force: bool = False,
-) -> dict[str, Any]:
-    """Fetch Slack channels and index them by case-insensitive name and id."""
-    force_kwargs = {"force": True} if force else {}
-    channels = get_channels_with_search(
+) -> tuple[list[dict[str, Any]], bool]:
+    """Fetch matching Slack channels and same-read cache provenance."""
+    channels, used_cache = get_channels_with_search(
         search_string=search_string,
         types=[
             SlackChannelTypes.PRIVATE,
             SlackChannelTypes.PUBLIC,
         ],
         exact_match=True,
-        **force_kwargs,
+        force=False,
+        return_cache_status=True,
     )
-    return {
-        target.casefold(): channel
-        for channel in channels
-        for target in (channel["name"], channel["id"])
-    }
+    return (
+        cast(list[dict[str, Any]], channels),
+        used_cache,
+    )
+
+
+def _match_slack_channel(
+    target: str,
+    channels: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    """Resolve one target with deterministic ID-before-name precedence."""
+    match_groups = (
+        [channel for channel in channels if channel["id"] == target],
+        [
+            channel
+            for channel in channels
+            if channel["name"].casefold() == target.casefold()
+        ],
+        [
+            channel
+            for channel in channels
+            if channel["id"].casefold() == target.casefold()
+        ],
+    )
+    for matches in match_groups:
+        if len(matches) > 1:
+            raise NotificationParamException(
+                f"Slack channel target is ambiguous: {target}"
+            )
+        if matches:
+            return matches[0]
+    return None
+
+
+def _match_slack_channels(
+    targets: list[str],
+    channels: list[dict[str, Any]],
+) -> tuple[dict[str, dict[str, Any]], list[str]]:
+    resolved: dict[str, dict[str, Any]] = {}
+    missing: list[str] = []
+    for target in targets:
+        if channel := _match_slack_channel(target, channels):
+            resolved[target] = channel
+        else:
+            missing.append(target)
+    return resolved, missing
 
 
 def _resolve_slack_channel_targets(targets: list[str]) -> dict[str, Any]:
-    """Resolve configured Slack names or ids after one forced cache refresh."""
+    """Resolve Slack names or IDs, refreshing only a stale cached listing."""
     search_string = ",".join(targets)
-    channels_by_target = _get_slack_channels_by_target(search_string)
-    missing_channels = [
-        target for target in targets if target.casefold() not in channels_by_target
-    ]
-    if missing_channels:
-        channels_by_target = _get_slack_channels_by_target(search_string, force=True)
-        missing_channels = [
-            target for target in targets if target.casefold() not in channels_by_target
-        ]
+    channels, used_cached_channels = _get_slack_channels(search_string)
+    channels_by_target, missing_channels = _match_slack_channels(targets, channels)
+    if missing_channels and used_cached_channels:
+        channels = cast(
+            list[dict[str, Any]],
+            refresh_cached_slack_channels_with_search(
+                search_string=search_string,
+                types=[SlackChannelTypes.PRIVATE, SlackChannelTypes.PUBLIC],
+                exact_match=True,
+            ),
+        )
+        channels_by_target, missing_channels = _match_slack_channels(targets, channels)
     if missing_channels:
         raise NotificationParamException(
             f"Could not find the following channels: {', '.join(missing_channels)}"
@@ -235,7 +279,7 @@ class BaseReportState:
         leave the schedule with some recipients already switched to v2 (and
         persisted by a later error-log commit) while others are untouched.
         """
-        resolved: list[tuple[ReportRecipients, str]] = []
+        pending: list[tuple[ReportRecipients, list[str]]] = []
         try:
             for recipient in self._report_schedule.recipients:
                 if recipient.type != ReportRecipientType.SLACK:
@@ -257,15 +301,25 @@ class BaseReportState:
                 channels_list = parse_slack_recipient_targets(target.replace("#", ""))
                 if not channels_list:
                     raise NotificationParamException(NO_SLACK_RECIPIENTS_MESSAGE)
-                # we need to ensure that existing reports can also fetch
-                # ids from private channels
-                channels_by_target = _resolve_slack_channel_targets(channels_list)
+                pending.append((recipient, channels_list))
+
+            # Resolve one combined ordered target set so a multi-recipient
+            # schedule only traverses the Slack workspace once.
+            all_targets = list(
+                dict.fromkeys(
+                    channel for _, channels_list in pending for channel in channels_list
+                )
+            )
+            channels_by_target = (
+                _resolve_slack_channel_targets(all_targets) if all_targets else {}
+            )
+            resolved: list[tuple[ReportRecipients, str]] = []
+            for recipient, channels_list in pending:
                 channel_ids = ",".join(
-                    channels_by_target[channel.casefold()]["id"]
-                    for channel in channels_list
+                    channels_by_target[channel]["id"] for channel in channels_list
                 )
                 resolved.append((recipient, json.dumps({"target": channel_ids})))
-        except NotificationParamException as ex:
+        except (NotificationParamException, SlackChannelListingClientError) as ex:
             msg = f"Failed to update slack recipients to v2: {str(ex)}"
             logger.warning(msg)
             raise NotificationParamException(msg) from ex
@@ -1080,6 +1134,11 @@ class BaseReportState:
     ) -> None:
         """Deliver a text-only notification after one failed atomic v2 upgrade."""
         if notification_content.has_attachments:
+            metric_suffix = "error" if update_error.status >= 500 else "warning"
+            app.config["STATS_LOGGER"].gauge(
+                f"reports.slack.send.{metric_suffix}",
+                1,
+            )
             if isinstance(update_error, UpdateFailedError):
                 raise UpdateFailedError(
                     f"{SLACK_V1_FILE_UPLOAD_MESSAGE} "
@@ -1091,6 +1150,10 @@ class BaseReportState:
             ) from update_error
 
         if record_upgrade_failure:
+            self._filter_warnings.append(
+                "Slack v2 upgrade unavailable; delivered the text-only report "
+                f"through deprecated Slack v1: {update_error}"
+            )
             app.config["STATS_LOGGER"].incr("reports.slack.v1_fallback")
             if isinstance(update_error, UpdateFailedError):
                 app.config["STATS_LOGGER"].incr(

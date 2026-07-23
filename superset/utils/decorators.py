@@ -36,7 +36,11 @@ if TYPE_CHECKING:
     from superset.stats_logger import BaseStatsLogger
 
 
-def statsd_gauge(metric_prefix: str | None = None) -> Callable[..., Any]:
+def statsd_gauge(
+    metric_prefix: str | None = None,
+    *,
+    ignored_exceptions: tuple[type[Exception], ...] = (),
+) -> Callable[..., Any]:
     def decorate(f: Callable[..., Any]) -> Callable[..., Any]:
         """
         Handle sending statsd gauge metric from any method or function
@@ -48,6 +52,8 @@ def statsd_gauge(metric_prefix: str | None = None) -> Callable[..., Any]:
                 result = f(*args, **kwargs)
                 app.config["STATS_LOGGER"].gauge(f"{metric_prefix_}.ok", 1)
                 return result
+            except ignored_exceptions:
+                raise
             except Exception as ex:
                 if (
                     hasattr(ex, "status") and ex.status < 500  # pylint: disable=no-member
