@@ -50,7 +50,10 @@ class PooledBaseScreenshot(BaseScreenshot):
     """
 
     def get_screenshot(
-        self, user: User, window_size: WindowSize | None = None
+        self,
+        user: User,
+        window_size: WindowSize | None = None,
+        log_context: str | None = None,
     ) -> bytes | None:
         """
         Generate screenshot using pooled WebDriver with retry logic for reliability.
@@ -58,6 +61,9 @@ class PooledBaseScreenshot(BaseScreenshot):
         Args:
             user: User context for authentication
             window_size: Optional window size override
+            log_context: Accepted for signature compatibility with
+                BaseScreenshot; the pooled Selenium path does not emit the
+                per-tile readiness logs that use it.
 
         Returns:
             Screenshot as PNG bytes or None if failed
