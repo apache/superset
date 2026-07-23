@@ -98,7 +98,7 @@ export type LegendProps = {
 const Legend = ({
   format: d3Format = null,
   forceCategorical = false,
-  position = 'tr',
+  position,
   categories: categoriesObject = {},
   toggleCategory = () => {},
   showSingleCategory = () => {},
@@ -136,7 +136,12 @@ const Legend = ({
     return format(k);
   };
 
-  if (Object.keys(categoriesObject).length === 0 || position === null) {
+  // Hide the legend when there are no categories, or when Legend Position is
+  // "None". The control's "None" choice has a null value, but the Select can
+  // round-trip it as undefined (or an empty string), so treat every falsy
+  // position as "hidden" rather than strictly matching null. Valid corner
+  // values ('tl'/'tr'/'bl'/'br') are truthy and fall through to render.
+  if (Object.keys(categoriesObject).length === 0 || !position) {
     return null;
   }
 

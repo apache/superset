@@ -18,7 +18,7 @@
  */
 import type { ReactElement } from 'react';
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import '@testing-library/jest-dom';
 import { supersetTheme, ThemeProvider } from '@apache-superset/core/theme';
@@ -53,15 +53,24 @@ jest.mock('../../utils/mapbox', () => ({
   hasMapboxApiKey: () => true,
 }));
 
-jest.mock('../../components/Legend', () => ({ categories, position }: any) => (
-  <div
-    data-testid="legend"
-    data-categories={JSON.stringify(categories)}
-    data-position={position}
-  >
-    Legend Mock
-  </div>
-));
+// Stand in for the real Legend while preserving its hide contract: a falsy
+// position (Legend Position "None") renders nothing. Without this the mock
+// would render unconditionally and the "None hides the legend" assertions
+// below would pass vacuously.
+jest.mock(
+  '../../components/Legend',
+  () =>
+    ({ categories, position }: any) =>
+      position ? (
+        <div
+          data-testid="legend"
+          data-categories={JSON.stringify(categories)}
+          data-position={position}
+        >
+          Legend Mock
+        </div>
+      ) : null,
+);
 
 const mockProps = {
   formData: {
@@ -369,20 +378,30 @@ describe('DeckGLPolygon Error Handling and Edge Cases', () => {
     expect(mockGetBuckets).not.toHaveBeenCalled();
   });
 
-  test('handles null legend_position correctly', () => {
-    const propsWithNullLegendPosition = {
-      ...mockProps,
-      formData: {
-        ...mockProps.formData,
-        legend_position: null,
-      },
-    };
+  // The "None" choice can reach the layer as null or (after the Select
+  // round-trip) undefined; either must hide the legend. queryByTestId is
+  // configured to match data-test, not the mock's data-testid, so assert
+  // against the container directly.
+  test.each([null, undefined])(
+    'hides the legend when legend_position is None (%p)',
+    legendPosition => {
+      const propsWithNoLegend = {
+        ...mockProps,
+        formData: {
+          ...mockProps.formData,
+          legend_position: legendPosition,
+        },
+      };
 
-    renderWithTheme(<DeckGLPolygon {...propsWithNullLegendPosition} />);
+      const { container } = renderWithTheme(
+        <DeckGLPolygon {...propsWithNoLegend} />,
+      );
 
-    // Legend should not be rendered when position is null
-    expect(screen.queryByTestId('legend')).not.toBeInTheDocument();
-  });
+      expect(
+        container.querySelector('[data-testid="legend"]'),
+      ).not.toBeInTheDocument();
+    },
+  );
 });
 
 describe('DeckGLPolygon Legend Integration', () => {
@@ -421,10 +440,14 @@ describe('DeckGLPolygon Legend Integration', () => {
       },
     };
 
-    renderWithTheme(<DeckGLPolygon {...propsWithoutMetric} />);
+    const { container } = renderWithTheme(
+      <DeckGLPolygon {...propsWithoutMetric} />,
+    );
 
     // Legend should not be rendered when no metric is defined
-    expect(screen.queryByTestId('legend')).not.toBeInTheDocument();
+    expect(
+      container.querySelector('[data-testid="legend"]'),
+    ).not.toBeInTheDocument();
   });
 });
 
