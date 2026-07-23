@@ -29,12 +29,13 @@
  * pre-seeded World Health dashboard, whose charts were already warm, so it could
  * assert `is_cached === false` and thereby prove force-refresh busted a
  * populated cache. This test deliberately creates fresh, isolated charts per run
- * for parallel safety — which are never cached — so it cannot make that claim.
- * Reproducing it would require warming the cache and re-reading it mid-test,
- * racing the 30s DATA_CACHE TTL and reintroducing the flakiness this migration
- * exists to remove. The load-bearing assertion here is therefore that every
- * distinct chart issues a `force=true` request and gets a 200; `is_cached` is
- * checked only as a falsy smoke signal (expected `null` for these fresh charts).
+ * for parallel safety — which are never cached — so that guarantee is out of
+ * reach: `is_cached` would always be null here and prove nothing, so it is not
+ * asserted. Reproducing the original claim would require warming the cache and
+ * re-reading it mid-test, racing the 30s DATA_CACHE TTL and reintroducing the
+ * flakiness this migration exists to remove. The load-bearing assertion is
+ * therefore that every distinct chart issues a `force=true` request and each is
+ * accepted (200).
  *
  * The other case ("should allow chart level refresh") only asserted the menu
  * item's `ant-dropdown-menu-item-disabled` class — a DOM/state assertion with no
@@ -46,97 +47,53 @@
  * CI red   => force refresh did not re-query every chart, or a request failed.
  */
 import { testWithAssets, expect } from '../../helpers/fixtures';
-import { apiPostChart, apiPutChart } from '../../helpers/api/chart';
-import {
-  apiPostDashboard,
-  buildSingleRowDashboardLayout,
-  type DashboardLayoutChart,
-} from '../../helpers/api/dashboard';
-import { getDatasetByName } from '../../helpers/api/dataset';
-import { extractIdFromResponse } from '../../helpers/api/assertions';
 import { TIMEOUT } from '../../utils/constants';
 import { DashboardPage } from '../../pages/DashboardPage';
-import { sliceIdFromChartDataUrl } from './dashboard-test-helpers';
-
-const DATASET_NAME = 'birth_names';
+import {
+  createDashboardWithCharts,
+  sliceIdFromChartDataUrl,
+} from './dashboard-test-helpers';
 
 testWithAssets(
-  'dashboard-level force refresh re-queries every chart with force=true and uncached results',
+  'dashboard-level force refresh re-queries every chart with force=true',
   async ({ page, testAssets }) => {
     testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
 
-    const dataset = await getDatasetByName(page, DATASET_NAME);
-    if (!dataset) {
-      throw new Error(`Dataset ${DATASET_NAME} not found`);
-    }
-    const datasetId = dataset.id;
-    const datasource = `${datasetId}__table`;
-
-    const chartSpecs = [
-      { datasource, viz_type: 'big_number_total', metric: 'count' },
+    const { dashboardId, charts } = await createDashboardWithCharts(
+      page,
+      testAssets,
+      testWithAssets.info(),
       {
-        datasource,
-        viz_type: 'table',
-        query_mode: 'aggregate',
-        groupby: ['name'],
-        metrics: ['count'],
-        row_limit: 100,
+        datasetName: 'birth_names',
+        chartNamePrefix: 'controls',
+        dashboardTitlePrefix: 'controls_force_refresh',
+        chartSpecs: [
+          { viz_type: 'big_number_total', params: { metric: 'count' } },
+          {
+            viz_type: 'table',
+            params: {
+              query_mode: 'aggregate',
+              groupby: ['name'],
+              metrics: ['count'],
+              row_limit: 100,
+            },
+          },
+        ],
       },
-    ];
-
-    // Parallel-safe suffix so chart/dashboard names never collide across workers.
-    const uniqueSuffix = `${Date.now()}_${testWithAssets.info().parallelIndex}`;
-
-    const charts: DashboardLayoutChart[] = [];
-    for (const params of chartSpecs) {
-      const sliceName = `controls_${params.viz_type}_${uniqueSuffix}`;
-      const resp = await apiPostChart(page, {
-        slice_name: sliceName,
-        viz_type: params.viz_type,
-        datasource_id: datasetId,
-        datasource_type: 'table',
-        params: JSON.stringify(params),
-      });
-      expect(resp.ok()).toBe(true);
-      const chartId = await extractIdFromResponse(resp);
-      testAssets.trackChart(chartId);
-      charts.push({ id: chartId, sliceName });
-    }
+    );
     const chartIds = charts.map(chart => chart.id);
-
-    // Lay all charts out in a single row.
-    const positionJson = buildSingleRowDashboardLayout(charts);
-
-    const dashResp = await apiPostDashboard(page, {
-      dashboard_title: `controls_force_refresh_${uniqueSuffix}`,
-      published: true,
-      position_json: JSON.stringify(positionJson),
-    });
-    expect(dashResp.ok()).toBe(true);
-    const dashboardId = await extractIdFromResponse(dashResp);
-    testAssets.trackDashboard(dashboardId);
-
-    // Associate every chart with the dashboard so they actually render.
-    for (const chartId of chartIds) {
-      await apiPutChart(page, chartId, { dashboards: [dashboardId] });
-    }
 
     const dashboard = new DashboardPage(page);
     await dashboard.gotoById(dashboardId);
     await dashboard.waitForLoad();
-    // Initial load warms the cache; the force refresh must then bypass it.
     await dashboard.waitForChartsToLoad();
 
     // Capture the force-refresh chart-data round-trips, keyed by the chart each
     // one queried for. A `page.on('response')` listener rather than the
     // `waitForPost` helper: those resolve on a single response, and this needs
-    // to collect every chart's request and correlate them by slice id.
-    const forcedSliceIds = new Set<number>();
-    const forceResponses: Promise<{
-      sliceId: number;
-      status: number;
-      isCached: unknown;
-    }>[] = [];
+    // to collect every chart's request and correlate them by slice id. Set up
+    // after the initial load so only the forced requests are recorded.
+    const forcedStatusBySliceId = new Map<number, number>();
     page.on('response', response => {
       const request = response.request();
       if (
@@ -145,23 +102,9 @@ testWithAssets(
         response.url().includes('force=true')
       ) {
         const sliceId = sliceIdFromChartDataUrl(response.url());
-        // Only track requests we can tie back to a chart, and keep both
-        // collections in agreement: an unparsable slice id would otherwise land
-        // in forceResponses as `undefined` and fail the `chartIds.toContain`
-        // check below with a confusing message.
-        if (sliceId === undefined) return;
-        forcedSliceIds.add(sliceId);
-        forceResponses.push(
-          (async () => {
-            const body = await response.json();
-            const result = Array.isArray(body.result) ? body.result[0] : body;
-            return {
-              sliceId,
-              status: response.status(),
-              isCached: result?.is_cached,
-            };
-          })(),
-        );
+        if (sliceId !== undefined) {
+          forcedStatusBySliceId.set(sliceId, response.status());
+        }
       }
     });
 
@@ -172,30 +115,24 @@ testWithAssets(
     // raw length) rejects a regression that refreshes one chart twice while
     // skipping another.
     await expect
-      .poll(() => chartIds.every(id => forcedSliceIds.has(id)), {
+      .poll(() => chartIds.every(id => forcedStatusBySliceId.has(id)), {
         timeout: TIMEOUT.API_RESPONSE,
       })
       .toBe(true);
 
-    const resolved = await Promise.all(forceResponses);
-    for (const { sliceId, status, isCached } of resolved) {
-      // Each forced request targeted one of this dashboard's charts...
-      expect(chartIds).toContain(sliceId);
-      // ...and the backend served a real result.
-      expect(status).toBe(200);
-      // Smoke check only: these freshly-created charts are never cached, so
-      // is_cached is expected to be falsy (`null`). This does NOT prove the
-      // force-refresh busted a warm cache — see the scope note in the file
-      // header for why that guarantee is out of reach here.
+    // Each forced request the backend served was accepted.
+    for (const chartId of chartIds) {
       expect(
-        isCached,
-        `force-refreshed result should not be cached, got is_cached=${isCached}`,
-      ).toBeFalsy();
+        forcedStatusBySliceId.get(chartId),
+        `chart ${chartId}'s forced /api/v1/chart/data response should be 200`,
+      ).toBe(200);
     }
 
     // The set of refreshed charts matches exactly the charts on the dashboard:
     // none skipped, none foreign.
     const byId = (a: number, b: number) => a - b;
-    expect([...forcedSliceIds].sort(byId)).toEqual([...chartIds].sort(byId));
+    expect([...forcedStatusBySliceId.keys()].sort(byId)).toEqual(
+      [...chartIds].sort(byId),
+    );
   },
 );
