@@ -138,14 +138,49 @@ const PREFERRED_SLICES: Record<string, string> = {
   time_table: 'Region Population Time Table',
 };
 
+/** Gallery example images use a wide aspect, matching the existing art. */
+const EXAMPLE_WIDTH = 800;
+const EXAMPLE_HEIGHT = 460;
+
+interface ExtraCapture {
+  sliceName: string;
+  output: string;
+  width: number;
+  height: number;
+}
+
 /**
- * Extra captures keyed by slice name: additional gallery images beyond
- * the per-viz-type thumbnail. Register new images in the plugin metadata
- * after capturing.
+ * Extra captures beyond the per-viz-type thumbnail: gallery example
+ * images that are obsolete (the Bullet/TimePivot/TimeTable examples
+ * still show the removed nvd3 renderers) and brand-new gallery images.
+ * Register new images in the plugin metadata after capturing.
  */
-const EXTRA_CAPTURES: Record<string, string> = {
-  'Population Percent Change': `${ECHARTS}/Timeseries/Regular/Line/images/Line3.png`,
-};
+const EXTRA_CAPTURES: ExtraCapture[] = [
+  {
+    sliceName: 'Population Percent Change',
+    output: `${ECHARTS}/Timeseries/Regular/Line/images/Line3.png`,
+    width: EXAMPLE_WIDTH,
+    height: EXAMPLE_HEIGHT,
+  },
+  {
+    sliceName: 'Total Sales Bullet',
+    output: `${ECHARTS}/Bullet/images/example.jpg`,
+    width: EXAMPLE_WIDTH,
+    height: EXAMPLE_HEIGHT,
+  },
+  {
+    sliceName: 'Sales Period Pivot',
+    output: `${ECHARTS}/TimePivot/images/example.jpg`,
+    width: EXAMPLE_WIDTH,
+    height: EXAMPLE_HEIGHT,
+  },
+  {
+    sliceName: 'Region Population Time Table',
+    output: 'src/visualizations/TimeTable/images/example.jpg',
+    width: EXAMPLE_WIDTH,
+    height: EXAMPLE_HEIGHT,
+  },
+];
 
 interface ExampleChart {
   id: number;
@@ -206,11 +241,15 @@ async function discoverDashboardCharts(page: Page): Promise<ExampleChart[]> {
   return [...chartsById.values()];
 }
 
-async function captureChart(
+/** thumbnail.png -> thumbnail-dark.png, example.jpg -> example-dark.jpg */
+function darkSibling(output: string): string {
+  return output.replace(/\.(png|jpg)$/, '-dark.$1');
+}
+
+async function renderAndShoot(
   page: Page,
   chart: ExampleChart,
-  output: string,
-): Promise<void> {
+): Promise<Buffer> {
   await page.goto(`/explore/?slice_id=${chart.id}&standalone=1`);
   await page
     .locator(RENDERED_CHART_SELECTOR)
@@ -218,13 +257,53 @@ async function captureChart(
     .waitFor({ state: 'visible', timeout: 60_000 });
   // Give animations/map tiles a moment to settle before the still
   await page.waitForTimeout(2_000);
+  return page.screenshot();
+}
 
+/**
+ * Captures a chart light and (when a dark variant is wanted) dark. Dark
+ * rendering relies on the app following prefers-color-scheme (theme mode
+ * SYSTEM); if the dark render is byte-identical to the light one the app
+ * ignored the emulation, and the dark file is left untouched rather than
+ * overwritten with light-theme art.
+ */
+async function captureChart(
+  page: Page,
+  chart: ExampleChart,
+  output: string,
+  size: { width: number; height: number },
+): Promise<void> {
   const outputPath = path.join(FRONTEND_ROOT, output);
+  const darkPath = path.join(FRONTEND_ROOT, darkSibling(output));
+  const isNewImage = !fs.existsSync(outputPath);
+  const wantDark = fs.existsSync(darkPath) || isNewImage;
+
+  await page.setViewportSize(size);
+  await page.emulateMedia({ colorScheme: 'light' });
+  const lightShot = await renderAndShoot(page, chart);
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-  await page.screenshot({ path: outputPath });
+  fs.writeFileSync(outputPath, lightShot);
   // eslint-disable-next-line no-console
   console.log(`captured ${chart.sliceName} (${chart.vizType}) -> ${output}`);
-  if (!output.endsWith('thumbnail.png')) {
+
+  if (wantDark) {
+    await page.emulateMedia({ colorScheme: 'dark' });
+    const darkShot = await renderAndShoot(page, chart);
+    if (darkShot.equals(lightShot)) {
+      // eslint-disable-next-line no-console
+      console.log(
+        `SKIPPED dark variant for ${chart.sliceName}: the app ignored the dark color-scheme emulation (is dark theming enabled?)`,
+      );
+    } else {
+      fs.writeFileSync(darkPath, darkShot);
+      // eslint-disable-next-line no-console
+      console.log(
+        `captured ${chart.sliceName} (dark) -> ${darkSibling(output)}`,
+      );
+    }
+  }
+
+  if (isNewImage) {
     // eslint-disable-next-line no-console
     console.log(
       `NOTE: ${output} is a new gallery image — register it in the plugin metadata (exampleGallery) to surface it.`,
@@ -262,11 +341,7 @@ test.describe('capture viz thumbnails', () => {
       byVizType.set(chart.vizType, group);
     }
 
-    await page.setViewportSize({
-      width: THUMBNAIL_SIZE,
-      height: THUMBNAIL_SIZE,
-    });
-
+    const thumbnailSize = { width: THUMBNAIL_SIZE, height: THUMBNAIL_SIZE };
     const unmapped: string[] = [];
     const failures: string[] = [];
     for (const [vizType, group] of [...byVizType.entries()].sort()) {
@@ -280,21 +355,24 @@ test.describe('capture viz thumbnails', () => {
       const chart =
         group.find(c => c.sliceName === PREFERRED_SLICES[vizType]) ?? group[0];
       try {
-        await captureChart(page, chart, output);
+        await captureChart(page, chart, output, thumbnailSize);
       } catch (error) {
         failures.push(`${vizType} (${chart.sliceName}): ${error}`);
       }
     }
 
-    for (const [sliceName, output] of Object.entries(EXTRA_CAPTURES)) {
-      const chart = charts.find(c => c.sliceName === sliceName);
+    for (const extra of EXTRA_CAPTURES) {
+      const chart = charts.find(c => c.sliceName === extra.sliceName);
       if (!chart || (vizTypeFilter && !vizTypeFilter.has(chart.vizType))) {
         continue;
       }
       try {
-        await captureChart(page, chart, output);
+        await captureChart(page, chart, extra.output, {
+          width: extra.width,
+          height: extra.height,
+        });
       } catch (error) {
-        failures.push(`${sliceName}: ${error}`);
+        failures.push(`${extra.sliceName}: ${error}`);
       }
     }
 
