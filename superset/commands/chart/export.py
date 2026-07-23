@@ -110,4 +110,4 @@ class ExportChartsCommand(ExportModelsCommand):
             and feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM")
         ):
             chart_id = model.id
-            yield from ExportTagsCommand().export(chart_ids=[chart_id])
+            yield from ExportTagsCommand(chart_ids=[chart_id]).run()
