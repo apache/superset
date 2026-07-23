@@ -206,11 +206,9 @@ class QueryCacheManager:
                 )
                 query_cache.status = QueryStatus.SUCCESS
                 query_cache.is_loaded = True
-                query_cache.is_cached = cache_value is not None
+                query_cache.is_cached = True
                 query_cache.sql_rowcount = cache_value.get("sql_rowcount", None)
-                query_cache.cache_dttm = (
-                    cache_value["dttm"] if cache_value is not None else None
-                )
+                query_cache.cache_dttm = cache_value["dttm"]
                 query_cache.queried_dttm = cache_value.get(
                     "queried_dttm", cache_value.get("dttm")
                 )
