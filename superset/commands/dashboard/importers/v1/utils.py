@@ -53,15 +53,20 @@ def find_native_filter_datasets(metadata: dict[str, Any]) -> set[str]:
 
 
 def build_uuid_to_id_map(position: dict[str, Any]) -> dict[str, int]:
-    return {
-        child["meta"]["uuid"]: child["meta"]["chartId"]
-        for child in position.values()
-        if (
-            isinstance(child, dict)
-            and child["type"] == "CHART"
-            and "uuid" in child["meta"]
-        )
-    }
+    result: dict[str, int] = {}
+    for child in position.values():
+        if not isinstance(child, dict):
+            continue
+        if child.get("type") != "CHART":
+            continue
+        meta = child.get("meta")
+        if not isinstance(meta, dict):
+            continue
+        uuid = meta.get("uuid")
+        chart_id = meta.get("chartId")
+        if uuid is not None and chart_id is not None:
+            result[uuid] = chart_id
+    return result
 
 
 def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
@@ -83,7 +88,9 @@ def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
     metadata = fixed.get("metadata", {})
     if "timed_refresh_immune_slices" in metadata:
         metadata["timed_refresh_immune_slices"] = [
-            id_map[old_id] for old_id in metadata["timed_refresh_immune_slices"]
+            id_map[old_id]
+            for old_id in metadata["timed_refresh_immune_slices"]
+            if old_id in id_map
         ]
 
     if "filter_scopes" in metadata:
@@ -108,6 +115,7 @@ def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
         metadata["expanded_slices"] = {
             str(id_map[int(old_id)]): value
             for old_id, value in metadata["expanded_slices"].items()
+            if int(old_id) in id_map
         }
 
     if "default_filters" in metadata:
@@ -123,13 +131,15 @@ def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
     # fix position
     position = fixed.get("position", {})
     for child in position.values():
-        if (
-            isinstance(child, dict)
-            and child["type"] == "CHART"
-            and "uuid" in child["meta"]
-            and child["meta"]["uuid"] in chart_ids
-        ):
-            child["meta"]["chartId"] = chart_ids[child["meta"]["uuid"]]
+        if not isinstance(child, dict):
+            continue
+        if child.get("type") != "CHART":
+            continue
+        meta = child.get("meta")
+        if not isinstance(meta, dict):
+            continue
+        if "uuid" in meta and meta["uuid"] in chart_ids:
+            meta["chartId"] = chart_ids[meta["uuid"]]
 
     # fix native filter references
     native_filter_configuration = fixed.get("metadata", {}).get(
