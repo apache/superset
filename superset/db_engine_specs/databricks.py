@@ -534,6 +534,7 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         ],
     ) -> list[SupersetError]:
         errors: list[SupersetError] = []
+        connect_args: dict[str, Any] = {}
         if extra := json.loads(properties.get("extra")):  # type: ignore
             engine_params = extra.get("engine_params", {})
             connect_args = engine_params.get("connect_args", {})

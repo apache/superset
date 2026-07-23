@@ -1229,6 +1229,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         all_columns: list[ResultSetColumnType] = []
         expanded_columns = []
         current_array_level = None
+        unnested_rows: dict[int, int] = defaultdict(int)
         while to_process:
             column, level = to_process.popleft()
             if column["column_name"] not in [
@@ -1242,7 +1243,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             # added by the first. every time we change a level in the nested arrays
             # we reinitialize this.
             if level != current_array_level:
-                unnested_rows: dict[int, int] = defaultdict(int)
+                unnested_rows = defaultdict(int)
                 current_array_level = level
 
             name = column["column_name"]
