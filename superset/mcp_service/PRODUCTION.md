@@ -228,12 +228,19 @@ denials) to Sentry instead:
 # superset_config.py
 import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
+from sentry_sdk.scrubber import EventScrubber
 
 sentry_sdk.init(
     dsn="https://your-dsn@sentry.io/project-id",
     integrations=[FlaskIntegration()],  # covers the Flask web app only
     environment="production",
     traces_sample_rate=0.1,  # 10% of transactions
+    # The hook forwards the RAW exception, which may embed connection
+    # strings or tokens in its message — scrub events before they leave
+    # the process. The default EventScrubber covers common secret keys;
+    # add a before_send for anything deployment-specific.
+    event_scrubber=EventScrubber(recursive=True),
+    send_default_pii=False,
 )
 
 
@@ -241,11 +248,12 @@ def _mcp_error_hook(error: Exception, context: dict) -> None:
     """Forward system-class MCP tool errors to Sentry.
 
     ``context`` always contains tool_name, mcp_call_id, user_id,
-    error_type, sanitized_message, and duration_ms (user_id and
-    duration_ms are None on the last-resort capture path). Note that
+    error_type, sanitized_message, and duration_ms. Values may be
+    unavailable depending on the capture path: user_id and duration_ms
+    are None on the last-resort path, mcp_call_id is None outside a tool
+    call, and tool_name falls back to "unknown" for non-tool messages.
     ``error`` is the RAW exception — only ``sanitized_message`` has been
-    scrubbed — so scrub the event (e.g. Sentry's ``before_send``) if your
-    tracker must not receive connection strings or tokens.
+    scrubbed — hence the event_scrubber/before_send above.
     """
     with sentry_sdk.new_scope() as scope:
         scope.set_tag("mcp.tool", context.get("tool_name"))

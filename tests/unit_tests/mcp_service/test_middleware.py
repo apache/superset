@@ -1601,3 +1601,29 @@ class TestStructuredContentStripperErrorHook:
 
         assert result.content[0].text.startswith("Error:")
         mock_hook.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_hostile_str_does_not_escape_last_resort_handler(self) -> None:
+        """The last-resort handler must never propagate — even when the
+        exception's own __str__ raises, it must fall back to the class
+        name rather than letting a formatting error escape to the MCP SDK
+        (the exact encoding failure this handler exists to prevent)."""
+
+        class HostileStrError(Exception):
+            def __str__(self) -> str:
+                raise RuntimeError("hostile __str__")
+
+        middleware = StructuredContentStripperMiddleware()
+        context = MagicMock()
+        context.message.name = "list_charts"
+        call_next = AsyncMock(side_effect=HostileStrError())
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = None
+
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=mock_flask_app,
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert result.content[0].text == "Error: HostileStrError"

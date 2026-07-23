@@ -615,6 +615,16 @@ class StructuredContentStripperMiddleware(Middleware):
             # GlobalErrorHandlerMiddleware, ValueError, TypeError, etc. —
             # will cause encoding failures on the wire.
             mcp_call_id = _mcp_call_id_var.get(None)
+            # This is the documented "must never propagate" point, but
+            # formatting/sanitizing both call str(e) — a pathological
+            # __str__ would make this handler itself raise past the
+            # middleware chain. Fall back to the exception class name.
+            try:
+                error_text = f"Error: {e}"
+                sanitized_message = _sanitize_error_for_logging(e)
+            except Exception:  # noqa: BLE001
+                error_text = f"Error: {type(e).__name__}"
+                sanitized_message = type(e).__name__
             if not isinstance(e, ToolError):
                 # GlobalErrorHandlerMiddleware converts every exception it
                 # sees into ToolError (and already invokes MCP_ERROR_HOOK
@@ -631,12 +641,12 @@ class StructuredContentStripperMiddleware(Middleware):
                         "mcp_call_id": mcp_call_id,
                         "user_id": None,
                         "error_type": type(e).__name__,
-                        "sanitized_message": _sanitize_error_for_logging(e),
+                        "sanitized_message": sanitized_message,
                         "duration_ms": None,
                     },
                 )
             return ToolResult(
-                content=[mt.TextContent(type="text", text=f"Error: {e}")],
+                content=[mt.TextContent(type="text", text=error_text)],
                 meta={"mcp_call_id": mcp_call_id} if mcp_call_id else None,
             )
         if isinstance(result, ToolResult) and result.structured_content is not None:

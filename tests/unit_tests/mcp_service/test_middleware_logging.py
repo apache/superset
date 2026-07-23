@@ -804,15 +804,17 @@ class TestOnCallToolStatsMetrics:
             "mcp.tool.list_datasets.success"
         )
 
+    @patch("superset.mcp_service.middleware.logger")
     @patch("superset.mcp_service.middleware.stats_logger_manager")
     @patch("superset.mcp_service.middleware.event_logger")
     @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
     @pytest.mark.asyncio
     async def test_metrics_failure_does_not_mask_tool_result(
-        self, mock_get_user_id, mock_event_logger, mock_stats
+        self, mock_get_user_id, mock_event_logger, mock_stats, mock_logger
     ) -> None:
         """A failing stats backend must not turn a successful tool call
-        into an error — metrics are a side effect only."""
+        into an error — metrics are a side effect only. The swallowed
+        error must still be logged, not silently dropped."""
         mock_stats.instance.incr.side_effect = RuntimeError("metrics backend down")
         middleware = LoggingMiddleware()
         ctx = _make_context(name="list_charts")
@@ -821,13 +823,16 @@ class TestOnCallToolStatsMetrics:
         result = await middleware.on_call_tool(ctx, call_next)
 
         assert result == "ok"
+        warning_messages = [c.args[0] for c in mock_logger.warning.call_args_list]
+        assert any("Failed to emit MCP tool metrics" in m for m in warning_messages)
 
+    @patch("superset.mcp_service.middleware.logger")
     @patch("superset.mcp_service.middleware.stats_logger_manager")
     @patch("superset.mcp_service.middleware.event_logger")
     @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
     @pytest.mark.asyncio
     async def test_metrics_failure_does_not_mask_tool_exception(
-        self, mock_get_user_id, mock_event_logger, mock_stats
+        self, mock_get_user_id, mock_event_logger, mock_stats, mock_logger
     ) -> None:
         """A failing stats backend must not replace the tool's real
         exception with its own error in the finally block."""
@@ -838,6 +843,9 @@ class TestOnCallToolStatsMetrics:
 
         with pytest.raises(ValueError, match="boom"):
             await middleware.on_call_tool(ctx, call_next)
+
+        warning_messages = [c.args[0] for c in mock_logger.warning.call_args_list]
+        assert any("Failed to emit MCP tool metrics" in m for m in warning_messages)
 
 
 class TestResolveMetricToolName:
@@ -901,6 +909,20 @@ class TestResolveMetricToolName:
         """With no registry reachable (mocked context), StatsD metadata
         characters must still never reach the metric key."""
         ctx = _make_context()  # plain MagicMock — get_tool is not awaitable
+
+        result = await LoggingMiddleware._resolve_metric_tool_name(
+            ctx, "call_tool", "evil\nfake.metric:1|c"
+        )
+
+        assert result == "call_tool"
+
+    @pytest.mark.asyncio
+    async def test_injection_shaped_name_rejected_via_registry(self) -> None:
+        """The production path: a reachable registry that does not know
+        the hostile name must fall back to the constant — the metadata
+        characters never reach the metric key."""
+        ctx = _make_context()
+        ctx.fastmcp_context.fastmcp.get_tool = AsyncMock(return_value=None)
 
         result = await LoggingMiddleware._resolve_metric_tool_name(
             ctx, "call_tool", "evil\nfake.metric:1|c"
@@ -1015,6 +1037,39 @@ class TestChainLevelStatsMetrics:
 
         incr_keys = [c.args[0] for c in mock_stats.instance.incr.call_args_list]
         assert incr_keys == ["mcp.tool.list_charts.success"]
+
+    @patch("superset.mcp_service.middleware.stats_logger_manager")
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_structured_error_response_counts_error_exactly_once(
+        self, mock_get_user_id, mock_event_logger, mock_stats
+    ) -> None:
+        """A tool that returns an error schema (no raise) counts one
+        .error through the real chain — not .success, not doubled."""
+        from superset.mcp_service.server import build_middleware_list
+
+        middleware_list = build_middleware_list()
+
+        async def error_returning_tool(context: Any) -> Any:
+            return ToolResult(
+                content=[
+                    mt.TextContent(
+                        type="text",
+                        text='{"error": "not found", "error_type": "not_found"}',
+                    )
+                ]
+            )
+
+        chain = error_returning_tool
+        for mw in reversed(middleware_list):
+            chain = partial(mw, call_next=chain)
+
+        ctx = _make_context(name="get_chart_info")
+        await chain(ctx)
+
+        incr_keys = [c.args[0] for c in mock_stats.instance.incr.call_args_list]
+        assert incr_keys == ["mcp.tool.get_chart_info.error"]
 
 
 class TestAppContextFixForAuditRows:

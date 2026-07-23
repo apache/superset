@@ -97,11 +97,14 @@ MCP_DISABLED_TOOLS: set[str] = set()
 #
 # Signature: hook(error: Exception, context: dict[str, Any]) -> None
 # ``context`` always contains the keys "tool_name", "mcp_call_id",
-# "user_id", "error_type", "sanitized_message", and "duration_ms"; on the
-# last-resort capture path (StructuredContentStripperMiddleware) "user_id"
-# and "duration_ms" are None. Only "sanitized_message" is scrubbed — the
-# ``error`` argument is the RAW exception and may contain sensitive data
-# (connection strings, tokens); sanitize it before exporting, or report
+# "user_id", "error_type", "sanitized_message", and "duration_ms" — but
+# values may be unavailable depending on the capture path: "user_id" and
+# "duration_ms" are None on the last-resort path
+# (StructuredContentStripperMiddleware), "mcp_call_id" is None outside a
+# tool call, and "tool_name" falls back to "unknown" for non-tool
+# messages. Only "sanitized_message" is scrubbed — the ``error`` argument
+# is the RAW exception and may contain sensitive data (connection
+# strings, tokens); sanitize it before exporting, or report
 # "sanitized_message" instead.
 #
 # The hook runs SYNCHRONOUSLY on the asyncio event loop, so a blocking hook

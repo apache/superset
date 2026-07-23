@@ -1097,6 +1097,11 @@ async def _query_from_form_data(
             )
         )
 
+    except (OAuth2RedirectError, OAuth2Error):
+        # OAuth errors subclass SupersetException; re-raise so the caller's
+        # outer OAuth handlers return the redirect instead of a generic
+        # DataError.
+        raise
     except (CommandException, SupersetException, ValueError) as e:
         logger.error("Error querying unsaved chart data: %s", e)
         return ChartError(
