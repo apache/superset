@@ -163,12 +163,20 @@ class DatasourceDAO(BaseDAO[Datasource]):
             ds_q = ds_q.where(SqlaTable.schema == schema_filter)
 
         if owners_filter is not None:
-            ds_q = ds_q.join(
-                sqla_models.sqlatable_user,
-                sqla_models.sqlatable_user.c.table_id == ds_table.c.id,
-            ).where(
-                sqla_models.sqlatable_user.c.user_id.in_(owners_filter)
-            ).distinct()
+            from superset.subjects.models import sqlatable_editors, Subject
+
+            subq = (
+                select(sqlatable_editors.c.table_id)
+                .join(
+                    Subject.__table__,
+                    Subject.__table__.c.id == sqlatable_editors.c.subject_id,
+                )
+                .where(
+                    Subject.__table__.c.type == 1,
+                    Subject.__table__.c.user_id.in_(owners_filter),
+                )
+            )
+            ds_q = ds_q.where(ds_table.c.id.in_(subq))
 
         if changed_by_filter is not None:
             ds_q = ds_q.where(ds_table.c.changed_by_fk == changed_by_filter)
