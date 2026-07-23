@@ -747,6 +747,7 @@ export default function transformProps(
     onContextMenu,
     onLegendStateChanged,
     onLegendScroll,
+    onDrillDown,
   } = hooks;
 
   const addYAxisLabelOffset =
@@ -1247,5 +1248,6 @@ export default function transformProps(
     refs,
     coltypeMapping: dataTypes,
     onLegendScroll,
+    onDrillDown,
   };
 }

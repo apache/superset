@@ -16,13 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { BinaryQueryObjectFilterClause } from '@superset-ui/core';
 
-export * from './sections';
-export * from './advancedAnalytics';
-export * from './annotationsAndLayers';
-export * from './forecastInterval';
-export * from './chartTitle';
-export * from './echartsTimeSeriesQuery';
-export * from './timeComparison';
-export * from './matrixify';
-export * from './drilldownHierarchy';
+/**
+ * One step of the user's drill-down journey: the column we drilled on
+ * and the value the user clicked.
+ */
+export interface DrillDownLevel {
+  /** Filter clauses identifying the clicked data point */
+  filters: BinaryQueryObjectFilterClause[];
+  /** Human-readable label for the breadcrumb (e.g. 'USA') */
+  label: string;
+}

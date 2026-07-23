@@ -177,6 +177,29 @@ describe('Pie transformProps', () => {
       LegendType.Scroll,
     );
   });
+
+  test('passes the onDrillDown hook through to the transformed props', () => {
+    const onDrillDown = jest.fn();
+    const drillChartProps = new ChartProps({
+      formData,
+      width: 800,
+      height: 600,
+      queriesData: [
+        {
+          data: [
+            { foo: 'Sylvester', bar: 1, sum__num: 10 },
+            { foo: 'Arnold', bar: 2, sum__num: 2.5 },
+          ],
+        },
+      ],
+      theme: supersetTheme,
+      hooks: { onDrillDown },
+    });
+
+    const result = transformProps(drillChartProps as EchartsPieChartProps);
+
+    expect(result.onDrillDown).toBe(onDrillDown);
+  });
 });
 
 describe('formatPieLabel', () => {

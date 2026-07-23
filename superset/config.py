@@ -866,6 +866,11 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: stable
     # @category: runtime_config
     "DRILL_BY": True,
+    # Enable click-to-drill-down through a configured hierarchy on dashboard
+    # charts (dark launch; off by default while the feature stabilizes)
+    # @lifecycle: development
+    # @category: runtime_config
+    "DRILL_DOWN": False,
     # Enable Druid JOINs (requires Druid version with JOIN support)
     # @lifecycle: stable
     # @category: runtime_config

@@ -23,6 +23,7 @@ import {
   EchartsFunnelChartProps,
   PercentCalcType,
 } from '../../src/Funnel/types';
+import { allEventHandlers } from '../../src/utils/eventHandlers';
 
 const formData = {
   colorScheme: 'bnbColors',
@@ -80,6 +81,54 @@ describe('Funnel transformProps', () => {
     expect(label.color).toBe(supersetTheme.colorText);
     expect(label.textBorderColor).toBeUndefined();
     expect(label.textBorderWidth).toBeUndefined();
+  });
+
+  test('passes the onDrillDown hook through to the transformed props', () => {
+    const onDrillDown = jest.fn();
+    const drillChartProps = new ChartProps({
+      formData,
+      width: 800,
+      height: 600,
+      queriesData,
+      theme: supersetTheme,
+      hooks: { onDrillDown },
+    });
+
+    const result = transformProps(drillChartProps as EchartsFunnelChartProps);
+
+    expect(result.onDrillDown).toBe(onDrillDown);
+  });
+
+  test('wires onDrillDown so a segment click drills instead of cross-filtering', () => {
+    const onDrillDown = jest.fn();
+    const setDataMask = jest.fn();
+    const drillChartProps = new ChartProps({
+      formData: { ...formData, emit_cross_filters: true },
+      width: 800,
+      height: 600,
+      queriesData,
+      theme: supersetTheme,
+      hooks: { onDrillDown, setDataMask },
+    });
+
+    const result = transformProps(
+      drillChartProps as unknown as EchartsFunnelChartProps,
+    );
+    const handlers = allEventHandlers(result);
+
+    handlers.click({ name: 'Sylvester, 1' });
+
+    // The clicked segment is reported upward via onDrillDown with its
+    // accumulated drill filters, and no cross-filter data mask is emitted.
+    expect(onDrillDown).toHaveBeenCalledTimes(1);
+    expect(onDrillDown).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ col: 'foo', op: '==', val: 'Sylvester' }),
+        expect.objectContaining({ col: 'bar', op: '==', val: 1 }),
+      ]),
+      expect.any(String),
+    );
+    expect(setDataMask).not.toHaveBeenCalled();
   });
 });
 
