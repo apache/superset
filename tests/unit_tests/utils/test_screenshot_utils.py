@@ -648,8 +648,8 @@ class TestTileWaitBudget:
         clock = self._FakeClock()
         # Tile 0's readiness wait consumes the whole budget; tile 1's budget
         # check then sees remaining <= 0 and raises before capturing.
-        mock_page.wait_for_function.side_effect = (
-            lambda *args, **kwargs: setattr(clock, "now", 1000.0)
+        mock_page.wait_for_function.side_effect = lambda *args, **kwargs: setattr(
+            clock, "now", 1000.0
         )
 
         with patch("superset.utils.screenshot_utils.time.monotonic", new=clock):
@@ -695,8 +695,8 @@ class TestTileWaitBudget:
         clock = self._FakeClock()
         # Tile 0's readiness wait consumes the whole budget; tile 1's budget
         # check then sees remaining <= 0 and raises.
-        mock_page.wait_for_function.side_effect = (
-            lambda *args, **kwargs: setattr(clock, "now", 1000.0)
+        mock_page.wait_for_function.side_effect = lambda *args, **kwargs: setattr(
+            clock, "now", 1000.0
         )
         with patch("superset.utils.screenshot_utils.time.monotonic", new=clock):
             with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):

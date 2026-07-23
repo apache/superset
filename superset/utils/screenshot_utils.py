@@ -268,7 +268,7 @@ def combine_screenshot_tiles(
         return screenshot_tiles[0]
 
 
-def take_tiled_screenshot(
+def take_tiled_screenshot(  # noqa: C901
     page: "Page",
     element_name: str,
     tile_height: int,
