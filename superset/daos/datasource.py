@@ -155,7 +155,9 @@ class DatasourceDAO(BaseDAO[Datasource]):
             ds_q = ds_q.join(
                 sqla_models.sqlatable_user,
                 sqla_models.sqlatable_user.c.table_id == ds_table.c.id,
-            ).where(sqla_models.sqlatable_user.c.user_id.in_(owners_filter))
+            ).where(
+                sqla_models.sqlatable_user.c.user_id.in_(owners_filter)
+            ).distinct()
 
         if changed_by_filter is not None:
             ds_q = ds_q.where(ds_table.c.changed_by_fk == changed_by_filter)

@@ -21,12 +21,13 @@ from sqlalchemy import literal, select
 
 from superset.commands.datasource.list import (
     _apply_owners_filter,
+    _Filters,
     GetCombinedDatasourceListCommand,
 )
 
 
 def test_parse_filters_semantic_view_requires_dataset_operator() -> None:
-    filters = GetCombinedDatasourceListCommand._parse_filters(
+    filters: _Filters = GetCombinedDatasourceListCommand._parse_filters(
         [{"col": "sql", "opr": "eq", "value": "semantic_view"}]
     )
 
@@ -39,7 +40,7 @@ def test_parse_filters_semantic_view_requires_dataset_operator() -> None:
 
 
 def test_parse_filters_semantic_view_with_dataset_operator() -> None:
-    filters = GetCombinedDatasourceListCommand._parse_filters(
+    filters: _Filters = GetCombinedDatasourceListCommand._parse_filters(
         [
             {
                 "col": "sql",
@@ -71,7 +72,7 @@ def test_parse_filters_sql_bool_requires_dataset_operator() -> None:
 
 
 def test_parse_filters_schema() -> None:
-    filters = GetCombinedDatasourceListCommand._parse_filters(
+    filters: _Filters = GetCombinedDatasourceListCommand._parse_filters(
         [{"col": "schema", "opr": "eq", "value": "public"}]
     )
 
@@ -103,7 +104,7 @@ def test_parse_filters_owners_none() -> None:
 
 
 def test_parse_filters_changed_by() -> None:
-    filters = GetCombinedDatasourceListCommand._parse_filters(
+    filters: _Filters = GetCombinedDatasourceListCommand._parse_filters(
         [{"col": "changed_by", "opr": "rel_o_m", "value": "3"}]
     )
 
