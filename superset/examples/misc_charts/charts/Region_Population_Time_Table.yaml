@@ -1,0 +1,70 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+cache_timeout: null
+certification_details: null
+certified_by: null
+dataset_uuid: 69e9de42-fe7f-4948-946a-f7913227aee8
+description: Population metrics with a sparkline trend and a five-year percent change.
+params:
+  column_collection:
+  - bounds:
+    - null
+    - null
+    colType: spark
+    comparisonType: ''
+    d3format: ''
+    dateFormat: ''
+    height: ''
+    key: spark_trend
+    label: Trend
+    showYAxis: false
+    timeLag: 0
+    timeRatio: ''
+    tooltip: Time series of the metric
+    width: ''
+    yAxisBounds:
+    - null
+    - null
+  - bounds:
+    - null
+    - null
+    colType: time
+    comparisonType: perc_change
+    d3format: ''
+    dateFormat: ''
+    height: ''
+    key: five_year_change
+    label: 5-year change
+    showYAxis: false
+    timeLag: 5
+    timeRatio: ''
+    tooltip: Percent change versus five periods earlier
+    width: ''
+    yAxisBounds:
+    - null
+    - null
+  granularity_sqla: year
+  metrics:
+  - sum__SP_POP_TOTL
+  - sum__SP_RUR_TOTL_ZS
+  time_range: '1990-01-01 : 2015-01-01'
+  viz_type: time_table
+query_context: null
+slice_name: Region Population Time Table
+uuid: 55ad4f1d-debc-42c7-b359-f9bbdb569a10
+version: 1.0.0
+viz_type: time_table

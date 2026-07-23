@@ -31,6 +31,14 @@ metadata:
     - 48bf196c-f5fe-4e6c-b8ed-166e36b6648b
     - fe23db78-c168-4ce2-86b0-38d82bb37d88
     - ed3032d8-7961-4576-8fc4-2a61639a38bf
+    - 4152b06b-7302-4326-8139-d7e285008253
+    - 3bfacf28-5940-40f1-af24-60d24d5be57d
+    - ef13dcad-c918-4367-ab17-a31d56e770e0
+    - 013d4dd9-de3b-49c2-8ad5-319330d7186e
+    - 5c4b004d-4326-45fa-a684-98072029fe30
+    - 1acf135b-2c1f-4ee6-8a11-e4b4be52d1ea
+    - a71ebf2f-338d-466f-a862-48d068832295
+    - 55ad4f1d-debc-42c7-b359-f9bbdb569a10
     scope:
       excluded: []
       rootPath:
@@ -125,10 +133,126 @@ position:
     - GRID_ID
     - ROW-SytNzNA4X
     type: CHART
+  CHART-misc-percent-change:
+    children: []
+    id: CHART-misc-percent-change
+    meta:
+      chartId: 90001
+      height: 69
+      sliceName: Population Percent Change
+      uuid: 4152b06b-7302-4326-8139-d7e285008253
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-migrated-1
+    type: CHART
+  CHART-misc-rose:
+    children: []
+    id: CHART-misc-rose
+    meta:
+      chartId: 90002
+      height: 69
+      sliceName: Population Nightingale Rose
+      uuid: 3bfacf28-5940-40f1-af24-60d24d5be57d
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-migrated-1
+    type: CHART
+  CHART-misc-calendar:
+    children: []
+    id: CHART-misc-calendar
+    meta:
+      chartId: 90003
+      height: 69
+      sliceName: Sales Calendar Heatmap
+      uuid: ef13dcad-c918-4367-ab17-a31d56e770e0
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-migrated-2
+    type: CHART
+  CHART-misc-time-pivot:
+    children: []
+    id: CHART-misc-time-pivot
+    meta:
+      chartId: 90004
+      height: 69
+      sliceName: Sales Period Pivot
+      uuid: 013d4dd9-de3b-49c2-8ad5-319330d7186e
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-migrated-2
+    type: CHART
+  CHART-misc-bullet:
+    children: []
+    id: CHART-misc-bullet
+    meta:
+      chartId: 90005
+      height: 69
+      sliceName: Total Sales Bullet
+      uuid: 5c4b004d-4326-45fa-a684-98072029fe30
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-migrated-3
+    type: CHART
+  CHART-misc-partition:
+    children: []
+    id: CHART-misc-partition
+    meta:
+      chartId: 90006
+      height: 69
+      sliceName: Population Partition
+      uuid: 1acf135b-2c1f-4ee6-8a11-e4b4be52d1ea
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-migrated-3
+    type: CHART
+  CHART-misc-paired-ttest:
+    children: []
+    id: CHART-misc-paired-ttest
+    meta:
+      chartId: 90007
+      height: 69
+      sliceName: Population Paired t-Test
+      uuid: a71ebf2f-338d-466f-a862-48d068832295
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-migrated-4
+    type: CHART
+  CHART-misc-time-table:
+    children: []
+    id: CHART-misc-time-table
+    meta:
+      chartId: 90008
+      height: 69
+      sliceName: Region Population Time Table
+      uuid: 55ad4f1d-debc-42c7-b359-f9bbdb569a10
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-migrated-4
+    type: CHART
   DASHBOARD_VERSION_KEY: v2
   GRID_ID:
     children:
     - ROW-SytNzNA4X
+    - ROW-misc-migrated-1
+    - ROW-misc-migrated-2
+    - ROW-misc-migrated-3
+    - ROW-misc-migrated-4
     id: GRID_ID
     parents:
     - ROOT_ID
@@ -149,6 +273,50 @@ position:
     - CHART-S1WYNz4AVX
     - CHART-explore-160-1
     id: ROW-SytNzNA4X
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    type: ROW
+  ROW-misc-migrated-1:
+    children:
+    - CHART-misc-percent-change
+    - CHART-misc-rose
+    id: ROW-misc-migrated-1
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    type: ROW
+  ROW-misc-migrated-2:
+    children:
+    - CHART-misc-calendar
+    - CHART-misc-time-pivot
+    id: ROW-misc-migrated-2
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    type: ROW
+  ROW-misc-migrated-3:
+    children:
+    - CHART-misc-bullet
+    - CHART-misc-partition
+    id: ROW-misc-migrated-3
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    type: ROW
+  ROW-misc-migrated-4:
+    children:
+    - CHART-misc-paired-ttest
+    - CHART-misc-time-table
+    id: ROW-misc-migrated-4
     meta:
       background: BACKGROUND_TRANSPARENT
     parents:
