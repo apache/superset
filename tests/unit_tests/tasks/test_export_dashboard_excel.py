@@ -295,6 +295,52 @@ def test_eligible_viz_skipped_when_form_data_unusable(
     mocks["ChartDataCommand"].return_value.run.assert_called_once()
 
 
+def test_rebuilt_query_context_payload_carries_query_shape(
+    mocks: dict[str, Any],
+) -> None:
+    # Assert the actual payload handed to ChartDataQueryContextSchema().load for a
+    # rebuilt chart: columns, filters, ordering and granularity must survive so the
+    # exported data matches the chart (not just that a query ran).
+    chart = _chart(10, "Rebuilt", viz_type="table")
+    chart.query_context = None
+    chart.datasource_id = 5
+    chart.datasource_type = "table"
+    chart.params = json.dumps(
+        {
+            "groupby": ["country"],
+            "metrics": ["count"],
+            "granularity_sqla": "ds",
+            "time_range": "Last quarter",
+            "row_limit": 25,
+            "adhoc_filters": [
+                {
+                    "expressionType": "SIMPLE",
+                    "subject": "year",
+                    "operator": ">",
+                    "comparator": 2000,
+                }
+            ],
+        }
+    )
+    mocks["get_charts_in_layout_order"].return_value = [chart]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    _run()
+
+    load_args = mocks["ChartDataQueryContextSchema"].return_value.load.call_args
+    payload = load_args.args[0]
+    query = payload["queries"][0]
+    assert query["columns"] == ["country"]
+    assert query["metrics"] == ["count"]
+    assert query["filters"] == [{"col": "year", "op": ">", "val": 2000}]
+    assert query["orderby"] == [["count", False]]
+    assert query["granularity"] == "ds"
+    assert query["time_range"] == "Last quarter"
+    assert query["row_limit"] == 25
+
+
 @pytest.mark.parametrize(
     ("configured", "expected"),
     [

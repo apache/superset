@@ -103,23 +103,25 @@ def _chart_label(chart: Any) -> str:
     return f"{chart.id} - {chart.slice_name or ''}".strip()
 
 
-def _has_empty_query_context(raw: Any) -> bool:
+def _saved_query_context(raw: Any) -> dict[str, Any] | None:
     """
-    Whether a chart has no usable saved query context to export data from.
+    The chart's saved query context parsed to a dict, or ``None`` when it is
+    missing or unusable.
 
-    Covers a missing/blank value, a string that does not parse as JSON, a value
-    that parses to something other than an object (e.g. ``"null"``), and an
-    object with no queries (e.g. ``"{}"`` or ``{"queries": []}``). All of these
-    are treated the same as a missing context: the chart is skipped and listed
-    under the "no query context" remediation rather than raising mid-export.
+    Returns ``None`` for a blank value, a string that does not parse as JSON, a
+    value that parses to something other than an object (e.g. ``"null"``), and an
+    object with no queries (e.g. ``"{}"`` or ``{"queries": []}``) — all treated
+    the same as a missing context.
     """
     if not raw:
-        return True
+        return None
     try:
         parsed = json.loads(raw)
     except (TypeError, ValueError):
-        return True
-    return not isinstance(parsed, dict) or not parsed.get("queries")
+        return None
+    if not isinstance(parsed, dict) or not parsed.get("queries"):
+        return None
+    return parsed
 
 
 def _rebuild_viz_types() -> set[str]:
@@ -143,8 +145,8 @@ def _resolve_query_context(chart: Any) -> dict[str, Any] | None:
     (``EXCEL_EXPORT_REBUILD_VIZ_TYPES``); other charts return ``None`` so the
     caller lists them for re-saving rather than exporting inaccurate data.
     """
-    if not _has_empty_query_context(chart.query_context):
-        return json.loads(chart.query_context)
+    if saved := _saved_query_context(chart.query_context):
+        return saved
 
     if chart.viz_type not in _rebuild_viz_types() or chart.datasource_id is None:
         return None
@@ -158,6 +160,7 @@ def _resolve_query_context(chart: Any) -> dict[str, Any] | None:
     return build_query_context_from_form_data(
         form_data,
         {"id": chart.datasource_id, "type": chart.datasource_type or "table"},
+        chart.viz_type,
     )
 
 
@@ -209,7 +212,10 @@ def _write_chart_sheets(
     the chart cannot be exported, so the caller can skip it and note it in the
     email.
     """
-    # Copy so a synthesized/shared payload is never mutated in place.
+    # Shallow-copy before setting our own top-level keys so the caller's payload
+    # keeps its original result_format/result_type. (The nested ``queries`` are
+    # mutated in place by apply_dashboard_filter_context below, which is safe here
+    # because each body is freshly built or parsed per chart.)
     json_body = dict(json_body)
     # Override any stale saved values: we always want full JSON results.
     json_body["result_format"] = ChartDataResultFormat.JSON
@@ -265,26 +271,23 @@ def _build_workbook(
     try:
         for chart in get_charts_in_layout_order(dashboard):
             label = _chart_label(chart)
-            as_image = _renders_as_image(chart, mode)
-            # Image charts render from their saved params and don't need a query
-            # context; data (and table) charts still do. Resolve one (saved, or
-            # rebuilt from form data for eligible viz types) and skip cleanly when
-            # none is available rather than failing mid-export.
-            json_body: dict[str, Any] | None = None
-            if not as_image:
-                json_body = _resolve_query_context(chart)
-                if json_body is None:
-                    errored.setdefault(email.ERROR_NO_QUERY_CONTEXT, []).append(label)
-                    continue
             try:
-                if as_image:
+                if _renders_as_image(chart, mode):
+                    # Image charts render from their saved params via the
+                    # webdriver and don't need a query context.
                     _write_chart_image_sheet(
                         writer, chart, dashboard.id, active_data_mask, user
                     )
                 else:
-                    # json_body is always set on the non-image branch (skipped
-                    # above when it could not be resolved).
-                    assert json_body is not None
+                    # Data charts need a query context: use the saved one, or
+                    # rebuild it from form data for eligible viz types. Skip
+                    # cleanly when none is available rather than failing.
+                    json_body = _resolve_query_context(chart)
+                    if json_body is None:
+                        errored.setdefault(email.ERROR_NO_QUERY_CONTEXT, []).append(
+                            label
+                        )
+                        continue
                     _write_chart_sheets(
                         writer, chart, json_body, dashboard.id, active_data_mask
                     )
