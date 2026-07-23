@@ -17,8 +17,21 @@
  * under the License.
  */
 import tinycolor from 'tinycolor2';
-import { ChartProps, getValueFormatter } from '@superset-ui/core';
+import {
+  ChartProps,
+  DataRecord,
+  getMetricLabel,
+  getValueFormatter,
+} from '@superset-ui/core';
+import getCountry, { CountryFieldType } from './countries';
 
+/**
+ * The v1 chart data endpoint returns generic rows keyed by the entity column
+ * name and the metric labels. Rebuild the country/code/name/latitude/longitude
+ * /m1/m2 row shape the renderer consumes — the enrichment the legacy
+ * WorldMapViz.get_data (superset/viz.py) performed server-side via
+ * superset/examples/countries.py.
+ */
 export default function transformProps(chartProps: ChartProps) {
   const {
     width,
@@ -43,6 +56,7 @@ export default function transformProps(chartProps: ChartProps) {
     colorScheme,
     sliceId,
     metric,
+    secondaryMetric,
     yAxisFormat,
     currencyFormat,
   } = formData;
@@ -52,7 +66,40 @@ export default function transformProps(chartProps: ChartProps) {
     columnFormats = {},
     currencyCodeColumn,
   } = datasource;
-  const { data, detected_currency: detectedCurrency } = queriesData[0];
+  const { data: rawData, detected_currency: detectedCurrency } = queriesData[0];
+
+  const metricLabel = getMetricLabel(metric);
+  const secondaryMetricLabel = secondaryMetric
+    ? getMetricLabel(secondaryMetric)
+    : undefined;
+  const fieldtype = (countryFieldtype || 'cca2') as CountryFieldType;
+  const data = ((rawData || []) as DataRecord[]).map(row => {
+    const entityValue = row[entity];
+    const country =
+      typeof entityValue === 'string'
+        ? getCountry(fieldtype, entityValue)
+        : undefined;
+    const m1 = row[metricLabel] as number;
+    // No distinct secondary metric means the bubble size follows the metric,
+    // matching the legacy server-side behavior.
+    const m2 =
+      secondaryMetricLabel !== undefined && secondaryMetricLabel !== metricLabel
+        ? (row[secondaryMetricLabel] as number)
+        : m1;
+    if (!country) {
+      // Legacy sentinel for unmappable values; the renderer filters these out.
+      return { country: 'XXX', code: entityValue, name: entityValue, m1, m2 };
+    }
+    return {
+      country: country.cca3,
+      code: country[fieldtype],
+      name: country.name,
+      latitude: country.lat,
+      longitude: country.lng,
+      m1,
+      m2,
+    };
+  });
 
   const formatter = getValueFormatter(
     metric,

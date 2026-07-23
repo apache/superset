@@ -18,6 +18,7 @@
  */
 import { t } from '@apache-superset/core/translation';
 import { ChartMetadata, ChartPlugin, Behavior } from '@superset-ui/core';
+import buildQuery from './buildQuery';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 import thumbnailDark from './images/thumbnail-dark.png';
@@ -42,7 +43,6 @@ const metadata = new ChartMetadata({
     t('2D'),
     t('Comparison'),
     t('Intensity'),
-    t('Legacy'),
     t('Multi-Dimensions'),
     t('Multi-Layers'),
     t('Multi-Variables'),
@@ -51,7 +51,6 @@ const metadata = new ChartMetadata({
   ],
   thumbnail,
   thumbnailDark,
-  useLegacyApi: true,
   behaviors: [
     Behavior.InteractiveChart,
     Behavior.DrillToDetail,
@@ -64,6 +63,7 @@ export default class WorldMapChartPlugin extends ChartPlugin {
     super({
       loadChart: () => import('./ReactWorldMap'),
       metadata,
+      buildQuery,
       transformProps,
       controlPanel,
     });

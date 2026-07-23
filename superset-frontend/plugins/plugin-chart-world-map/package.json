@@ -1,7 +1,7 @@
 {
-  "name": "@superset-ui/legacy-plugin-chart-world-map",
-  "version": "0.20.3",
-  "description": "Superset Legacy Chart - World Map",
+  "name": "@superset-ui/plugin-chart-world-map",
+  "version": "1.0.0",
+  "description": "Superset Chart - World Map",
   "sideEffects": [
     "*.css"
   ],
@@ -14,7 +14,7 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/apache/superset.git",
-    "directory": "superset-frontend/plugins/legacy-plugin-chart-world-map"
+    "directory": "superset-frontend/plugins/plugin-chart-world-map"
   },
   "keywords": [
     "superset"
@@ -24,7 +24,7 @@
   "bugs": {
     "url": "https://github.com/apache/superset/issues"
   },
-  "homepage": "https://github.com/apache/superset/tree/master/superset-frontend/plugins/legacy-plugin-chart-world-map#readme",
+  "homepage": "https://github.com/apache/superset/tree/master/superset-frontend/plugins/plugin-chart-world-map#readme",
   "publishConfig": {
     "access": "public"
   },
