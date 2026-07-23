@@ -19,10 +19,20 @@
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { FilterInput } from '.';
 
-jest.mock('lodash', () => ({
-  ...jest.requireActual('lodash'),
-  debounce: (fuc: Function) => fuc,
-}));
+jest.mock('lodash', () => {
+  const debounce = <T extends (...args: never[]) => unknown>(func: T) => {
+    const debounced = (...args: Parameters<T>) => func(...args);
+    debounced.cancel = jest.fn();
+    debounced.flush = jest.fn();
+    return debounced;
+  };
+
+  return {
+    __esModule: true,
+    ...jest.requireActual('lodash'),
+    debounce,
+  };
+});
 
 test('Render a FilterInput', async () => {
   const onChangeHandler = jest.fn();
@@ -51,6 +61,27 @@ test('FilterInput auto-focuses when a non-editable element (e.g. a tab) has focu
   } finally {
     document.body.removeChild(button);
   }
+});
+
+test('FilterInput syncs displayed value from external value prop', () => {
+  const onChangeHandler = jest.fn();
+  const { rerender } = render(
+    <FilterInput onChangeHandler={onChangeHandler} value="hello" />,
+  );
+  const input = screen.getByRole('textbox') as HTMLInputElement;
+  expect(input.value).toBe('hello');
+
+  rerender(<FilterInput onChangeHandler={onChangeHandler} value="" />);
+  expect(input.value).toBe('');
+});
+
+test('FilterInput updates immediately on typing despite debounce', async () => {
+  const onChangeHandler = jest.fn();
+  render(<FilterInput onChangeHandler={onChangeHandler} value="" />);
+  const input = screen.getByRole('textbox') as HTMLInputElement;
+
+  await userEvent.type(input, 'abc');
+  expect(input.value).toBe('abc');
 });
 
 test('FilterInput does not steal focus when another input already has focus', () => {
