@@ -306,11 +306,11 @@ pyasn1-modules==0.4.2
     # via google-auth
 pycparser==2.22
     # via cffi
-pydantic==2.11.7
+pydantic==2.13.4
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
-pydantic-core==2.33.2
+pydantic-core==2.46.4
     # via pydantic
 pygeohash==3.2.2
     # via apache-superset (pyproject.toml)
@@ -443,7 +443,7 @@ typing-extensions==4.16.0
     #   selenium
     #   shillelagh
     #   typing-inspection
-typing-inspection==0.4.1
+typing-inspection==0.4.2
     # via pydantic
 tzdata==2025.2
     # via

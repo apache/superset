@@ -738,7 +738,7 @@ pycparser==2.22
     # via
     #   -c requirements/base-constraint.txt
     #   cffi
-pydantic==2.11.7
+pydantic==2.13.4
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -747,7 +747,7 @@ pydantic==2.11.7
     #   mcp
     #   openapi-pydantic
     #   pydantic-settings
-pydantic-core==2.33.2
+pydantic-core==2.46.4
     # via
     #   -c requirements/base-constraint.txt
     #   pydantic
@@ -1066,7 +1066,7 @@ typing-extensions==4.16.0
     #   shillelagh
     #   starlette
     #   typing-inspection
-typing-inspection==0.4.1
+typing-inspection==0.4.2
     # via
     #   -c requirements/base-constraint.txt
     #   mcp
