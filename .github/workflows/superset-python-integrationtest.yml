@@ -53,7 +53,7 @@ jobs:
         mysql+mysqldb://superset:superset@127.0.0.1:13306/superset?charset=utf8mb4&binary_prefix=true
     services:
       mysql:
-        image: mysql:8.0
+        image: ghcr.io/apache/superset/ci/mysql:8.0
         # Authenticated pulls use our higher Docker Hub rate limit. Empty on
         # fork PRs (secrets unavailable) -> runner falls back to anonymous.
         env:
@@ -66,7 +66,7 @@ jobs:
           --health-timeout=5s
           --health-retries=5
       redis:
-        image: redis:7-alpine
+        image: ghcr.io/apache/superset/ci/redis:7-alpine
         options: --entrypoint redis-server
         ports:
           - 16379:6379
@@ -143,7 +143,7 @@ jobs:
       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
     services:
       postgres:
-        image: postgres:17-alpine
+        image: ghcr.io/apache/superset/ci/postgres:17-alpine
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -152,7 +152,7 @@ jobs:
           # GitHub action runner's default installations
           - 15432:5432
       redis:
-        image: redis:7-alpine
+        image: ghcr.io/apache/superset/ci/redis:7-alpine
         ports:
           - 16379:6379
     steps:
@@ -202,7 +202,7 @@ jobs:
         sqlite:///${{ github.workspace }}/.temp/examples.db?check_same_thread=true
     services:
       redis:
-        image: redis:7-alpine
+        image: ghcr.io/apache/superset/ci/redis:7-alpine
         ports:
           - 16379:6379
     steps:
