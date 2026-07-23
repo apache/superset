@@ -771,3 +771,41 @@ def test_csv_export_config_custom_decimal_for_decimal_type(mocker, mock_query) -
     assert "2;56,78" in csv_data
     assert "12.34" not in csv_data
     assert "56.78" not in csv_data
+
+
+def test_sqllab_streaming_does_not_double_mutate_sql(
+    mocker: MockerFixture, mock_query: MagicMock
+) -> None:
+    """Regression test for #40465 review feedback.
+
+    The SQL Lab streaming path reads ``executed_sql``, which was already
+    routed through ``database.mutate_sql_based_on_config`` back at query
+    execution time (``sql_lab.py``). This command must NOT mutate the SQL a
+    second time — a non-idempotent mutator (e.g. one that appends a per-call
+    tag or comment) would otherwise double the transformation on SQL Lab
+    exports while chart exports stayed correct.
+    """
+    _setup_sqllab_mocks(mocker, mock_query)
+
+    mock_result = mocker.MagicMock()
+    mock_result.keys.return_value = ["col1"]
+    mock_result.fetchmany.side_effect = [[]]
+
+    mock_connection = mocker.MagicMock()
+    mock_connection.execution_options.return_value.execute.return_value = mock_result
+    mock_connection.__enter__.return_value = mock_connection
+    mock_connection.__exit__.return_value = None
+
+    mock_engine = mocker.MagicMock()
+    mock_engine.connect.return_value = mock_connection
+    mock_query.database.get_sqla_engine.return_value.__enter__.return_value = (
+        mock_engine
+    )
+
+    command = StreamingSqlResultExportCommand("test_client_123")
+    command.validate()
+    list(command.run()())
+
+    # The SQL Lab command must not touch the mutator — the executed_sql it
+    # forwards has already been mutated at execution time.
+    mock_query.database.mutate_sql_based_on_config.assert_not_called()

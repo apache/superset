@@ -71,6 +71,16 @@ class StreamingCSVExportCommand(BaseStreamingCSVExportCommand):
         catalog = getattr(datasource, "catalog", None)
         schema = getattr(datasource, "schema", None)
 
+        # Apply db-engine-spec / config SQL transforms (e.g. strip trailing
+        # semicolons that Trino rejects) so the chart streaming path matches
+        # what the non-streaming chart-data path already does. See #40465.
+        # This is intentionally applied here rather than in the shared
+        # BaseStreamingCSVExportCommand so the SQL Lab streaming path — which
+        # receives ``executed_sql`` that was already mutated at execution
+        # time — is not double-transformed.
+        if database is not None:
+            sql_query = database.mutate_sql_based_on_config(sql_query)
+
         return sql_query, database, catalog, schema
 
     def _get_row_limit(self) -> int | None:
