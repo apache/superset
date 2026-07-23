@@ -725,7 +725,8 @@ def test_v2_send_to_multiple_channels_uploads_per_channel(
     # 3 channels x 2 files = 6 uploads
     assert upload.call_count == 6
     seen = {
-        (c.kwargs["channel"], c.kwargs["file"].getvalue()) for c in upload.call_args_list
+        (c.kwargs["channel"], c.kwargs["file"].getvalue())
+        for c in upload.call_args_list
     }
     assert seen == {
         ("C12345", b"shot-1"),
