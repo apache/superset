@@ -21,8 +21,8 @@ from sqlalchemy import literal, select
 
 from superset.commands.datasource.list import (
     _apply_owners_filter,
-    _Filters,
     _dataset_schema,
+    _Filters,
     _semantic_view_schema,
     GetCombinedDatasourceListCommand,
 )
@@ -61,7 +61,7 @@ def test_parse_filters_semantic_view_with_dataset_operator() -> None:
 
 
 def test_parse_filters_sql_bool_requires_dataset_operator() -> None:
-    filters = GetCombinedDatasourceListCommand._parse_filters(
+    filters: _Filters = GetCombinedDatasourceListCommand._parse_filters(
         [{"col": "sql", "opr": "eq", "value": True}]
     )
 
@@ -84,7 +84,7 @@ def test_parse_filters_schema() -> None:
 
 
 def test_parse_filters_owners_scalar() -> None:
-    filters = GetCombinedDatasourceListCommand._parse_filters(
+    filters: _Filters = GetCombinedDatasourceListCommand._parse_filters(
         [{"col": "owners", "opr": "rel_m_m", "value": "5"}]
     )
 
@@ -94,7 +94,7 @@ def test_parse_filters_owners_scalar() -> None:
 
 
 def test_parse_filters_owners_list() -> None:
-    filters = GetCombinedDatasourceListCommand._parse_filters(
+    filters: _Filters = GetCombinedDatasourceListCommand._parse_filters(
         [{"col": "owners", "opr": "rel_m_m", "value": ["5", "7"]}]
     )
 
@@ -116,7 +116,7 @@ def test_parse_filters_changed_by() -> None:
 
 
 def test_parse_filters_certified_true() -> None:
-    filters = GetCombinedDatasourceListCommand._parse_filters(
+    filters: _Filters = GetCombinedDatasourceListCommand._parse_filters(
         [{"col": "id", "opr": "dataset_is_certified", "value": True}]
     )
 
@@ -124,7 +124,7 @@ def test_parse_filters_certified_true() -> None:
 
 
 def test_parse_filters_certified_false() -> None:
-    filters = GetCombinedDatasourceListCommand._parse_filters(
+    filters: _Filters = GetCombinedDatasourceListCommand._parse_filters(
         [{"col": "id", "opr": "dataset_is_certified", "value": False}]
     )
 
@@ -132,7 +132,7 @@ def test_parse_filters_certified_false() -> None:
 
 
 def test_parse_filters_certified_non_bool_ignored() -> None:
-    filters = GetCombinedDatasourceListCommand._parse_filters(
+    filters: _Filters = GetCombinedDatasourceListCommand._parse_filters(
         [{"col": "id", "opr": "dataset_is_certified", "value": "false"}]
     )
 
