@@ -408,7 +408,7 @@ sqlalchemy==1.4.54
     #   shillelagh
     #   sqlalchemy-continuum
     #   sqlalchemy-utils
-sqlalchemy-continuum==1.6.0
+sqlalchemy-continuum==1.7.0
     # via apache-superset (pyproject.toml)
 sqlalchemy-utils==0.42.1
     # via
