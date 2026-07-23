@@ -390,7 +390,7 @@ const ResultSet = ({
               // provides.
               redirect(getExportCsvUrl(query.id));
             },
-            confirmText: t('OK'),
+            confirmText: t('Confirm'),
             cancelText: t('Close'),
           });
         }
