@@ -3187,3 +3187,7 @@ for env_var in ENV_VAR_KEYS:
 # users set just LOGO_TARGET_PATH without also overriding the whole theme.
 sync_theme_logo_href(THEME_DEFAULT, LOGO_TARGET_PATH)
 sync_theme_logo_href(THEME_DARK, LOGO_TARGET_PATH)
+
+ASYNC_TASK_MAX_RETRIES = 3
+ASYNC_TASK_RETRY_BACKOFF = True
+ASYNC_TASK_RETRY_BACKOFF_MAX = 60
