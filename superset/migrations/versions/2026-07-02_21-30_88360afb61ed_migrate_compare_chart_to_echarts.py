@@ -16,7 +16,7 @@
 # under the License.
 """migrate_compare_chart_to_echarts
 
-Revision ID: e5f6a7b8c9d0
+Revision ID: 88360afb61ed
 Revises: d4e5f6a7b8c9
 Create Date: 2026-07-02 21:30:00.000000
 
@@ -30,7 +30,7 @@ from superset import db
 from superset.migrations.shared.migrate_viz import MigrateCompareChart
 
 # revision identifiers, used by Alembic.
-revision = "e5f6a7b8c9d0"
+revision = "88360afb61ed"
 down_revision = "d4e5f6a7b8c9"
 
 
