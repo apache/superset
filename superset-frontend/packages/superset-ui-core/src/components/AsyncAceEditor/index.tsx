@@ -127,6 +127,22 @@ export const aceCompletionHighlightStyles = (token: SupersetTheme) => css`
 `;
 
 /**
+ * Theme-aware styling for the "selected word" markers Ace paints on every other
+ * occurrence of the currently selected token. The light `github` theme hardcodes
+ * a near-white box (`rgb(250,250,255)`); in dark mode the recolored token glyphs
+ * sit on it unreadably. Reuse the same dark-aware selection color as
+ * `.ace_selection` so the markers stay legible in every theme.
+ */
+export const aceSelectedWordStyles = (token: SupersetTheme) => css`
+  .ace_editor .ace_marker-layer .ace_selected-word {
+    background-color: ${
+      token.colorEditorSelection ?? token.colorPrimaryBgHover
+    } !important;
+    border: 1px solid ${token.colorBorder} !important;
+  }
+`;
+
+/**
  * Get an async AceEditor with automatical loading of specified ace modules.
  */
 export function AsyncAceEditor(
@@ -393,6 +409,8 @@ export function AsyncAceEditor(
                     token.colorEditorSelection ?? token.colorPrimaryBgHover
                   } !important;
                 }
+
+                ${aceSelectedWordStyles(token)}
 
                 /* Improve active line highlighting */
                 .ace_editor .ace_active-line {

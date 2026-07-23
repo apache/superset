@@ -30,6 +30,7 @@ import {
   JsonEditor,
   ConfigEditor,
   aceCompletionHighlightStyles,
+  aceSelectedWordStyles,
 } from '.';
 
 import type { AceModule, AsyncAceEditorOptions } from './types';
@@ -53,6 +54,19 @@ test('themes the autocomplete completion highlight from the theme', () => {
 
   expect(styles).toContain('.ace_completion-highlight');
   expect(styles).toContain(supersetTheme.colorPrimaryText);
+});
+
+test('themes the selected-word occurrence markers from the theme', () => {
+  // The light `github` theme hardcodes a near-white box for the markers Ace
+  // paints on every other occurrence of the selected token, which makes the
+  // recolored token glyphs unreadable in dark mode. The shared editor overrides
+  // the marker to reuse the dark-aware selection color so it stays legible.
+  const { styles } = aceSelectedWordStyles(supersetTheme);
+
+  expect(styles).toContain('.ace_selected-word');
+  expect(styles).toContain(
+    supersetTheme.colorEditorSelection ?? supersetTheme.colorPrimaryBgHover,
+  );
 });
 
 test('SQLEditor uses fontFamilyCode from theme', async () => {
