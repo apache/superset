@@ -3923,6 +3923,25 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
                 return self.is_viewer(viewer_slc) or self.is_editor(viewer_slc)
 
+            def has_guest_chart_datasource_access() -> bool:
+                # A guest with a chart-scoped token may query the datasource
+                # of a chart listed in the token (matched via form_data's
+                # slice_id). The dataset-allowlist restriction below still
+                # applies when the token carries a ``datasets`` claim.
+                return bool(
+                    is_feature_enabled("EMBEDDED_SUPERSET")
+                    and self.is_guest_user()
+                    and form_data
+                    and (guest_slice_id := form_data.get("slice_id"))
+                    and (
+                        guest_slc := self.session.query(Slice)
+                        .filter(Slice.id == guest_slice_id)
+                        .one_or_none()
+                    )
+                    and self.has_guest_chart_access(guest_slc)
+                    and guest_slc.datasource == datasource
+                )
+
             if not (
                 self.can_access_schema(datasource)
                 or self.can_access("datasource_access", datasource.perm or "")
@@ -4020,6 +4039,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # access if the user is a viewer or editor of the chart
                 # and promiscuous mode is enabled.
                 or has_promiscuous_chart_access()
+                # Chart-scoped guest tokens (e.g. minted by the show_chart
+                # MCP tool) grant access to the referenced chart's datasource.
+                or has_guest_chart_datasource_access()
             ):
                 raise SupersetSecurityException(
                     self.get_datasource_access_error_object(datasource)
@@ -4069,6 +4091,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             )
 
         if chart:
+            if self.is_guest_user():
+                # Guest users with a chart-scoped token may access only the
+                # charts the token lists.
+                if self.has_guest_chart_access(chart):
+                    return
+                raise SupersetSecurityException(
+                    self.get_chart_access_error_object(chart)
+                )
+
             if self.is_admin() or self.is_editor(chart):
                 return
 
@@ -4400,9 +4431,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     @staticmethod
     def validate_guest_token_resources(resources: GuestTokenResources) -> None:
         # pylint: disable=import-outside-toplevel
+        from superset.commands.chart.exceptions import ChartNotFoundError
         from superset.commands.dashboard.embedded.exceptions import (
             EmbeddedDashboardNotFoundError,
         )
+        from superset.daos.chart import ChartDAO
         from superset.daos.dashboard import EmbeddedDashboardDAO
         from superset.models.dashboard import Dashboard
 
@@ -4418,6 +4451,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     # A raw dashboard id must still reference an embedded dashboard;
                     # otherwise a guest token could be scoped to a non-embedded one.
                     raise EmbeddedDashboardNotFoundError()
+            elif resource["type"] == GuestTokenResourceType.CHART.value:
+                chart = ChartDAO.find_by_id_or_uuid(
+                    str(resource["id"]),
+                    skip_base_filter=True,
+                )
+                if not chart:
+                    raise ChartNotFoundError()
 
     def create_guest_access_token(
         self,
@@ -4654,6 +4694,26 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         for resource in dashboards:
             if str(resource["id"]) == str(dashboard.embedded[0].uuid):
+                return True
+        return False
+
+    def has_guest_chart_access(self, chart: "Slice") -> bool:
+        """
+        Return True if the current user is a guest user whose token grants
+        access to the given chart (matched by either id or uuid).
+        """
+        user = self.get_current_guest_user_if_guest()
+        if not user:
+            return False
+
+        charts = [
+            r for r in user.resources if r["type"] == GuestTokenResourceType.CHART
+        ]
+        for resource in charts:
+            resource_id = str(resource["id"])
+            if resource_id == str(chart.id):
+                return True
+            if chart.uuid is not None and resource_id == str(chart.uuid):
                 return True
         return False
 
