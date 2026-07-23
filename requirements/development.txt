@@ -665,7 +665,7 @@ pgsanity==0.2.9
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-pillow==12.2.0
+pillow==12.3.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
