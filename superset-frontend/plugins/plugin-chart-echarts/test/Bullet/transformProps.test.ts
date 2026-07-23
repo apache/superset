@@ -121,6 +121,78 @@ test('keeps distinct labels for duplicate marker and marker-line values', () => 
   expect(markerTooltips[1]).toContain('forecast');
 });
 
+test('keeps the tooltip enabled regardless of the label and legend toggles', () => {
+  const { echartOptions } = transformProps(
+    chartProps({ showLabels: true, showLegend: true }),
+  );
+  expect((echartOptions as any).tooltip.show).not.toBe(false);
+});
+
+test('names the containing range in the measure bar tooltip', () => {
+  const { echartOptions } = transformProps(chartProps());
+  // measure 120 falls within the 100..200 band labelled "mid"
+  expect((echartOptions as any).series[0].tooltip.formatter()).toContain('mid');
+});
+
+test('marks a measure beyond every range as past the last label', () => {
+  const props = new ChartProps({
+    width: 800,
+    height: 200,
+    formData,
+    theme: supersetTheme,
+    queriesData: [{ data: [{ sum__num: 450 }] }],
+    hooks: {},
+  }) as unknown as EchartsBulletChartProps;
+  const { echartOptions } = transformProps(props);
+  expect((echartOptions as any).series[0].tooltip.formatter()).toContain(
+    '&gt; high',
+  );
+});
+
+test('renders range labels inside the top-right corner of their bands', () => {
+  const { echartOptions } = transformProps(chartProps({ showLabels: true }));
+  const { series } = echartOptions as any;
+
+  // band labels live on the markArea items, not on the hover-target points
+  const bandLabels = series[0].markArea.data.map((d: any) => d[0].label);
+  bandLabels.forEach((label: any) => {
+    expect(label.show).toBe(true);
+    expect(label.position).toBe('insideTopRight');
+  });
+  const rangeSeries = series.filter((x: any) => x.symbol === 'rect');
+  rangeSeries.forEach((x: any) => {
+    expect(x.data[0].label).toBeUndefined();
+  });
+
+  // labels hide with the toggle off or when the range has no label
+  const { echartOptions: unlabelled } = transformProps(
+    chartProps({ showLabels: false }),
+  );
+  (unlabelled as any).series[0].markArea.data.forEach((d: any) => {
+    expect(d[0].label.show).toBe(false);
+  });
+});
+
+test('reserves more grid space when the legend wraps onto extra rows', () => {
+  const wide = transformProps(chartProps({ showLegend: true }))
+    .echartOptions as any;
+  const narrow = transformProps(
+    new ChartProps({
+      width: 220,
+      height: 200,
+      formData: { ...formData, showLegend: true },
+      theme: supersetTheme,
+      queriesData: [{ data: [{ sum__num: 120 }] }],
+      hooks: {},
+    }) as unknown as EchartsBulletChartProps,
+  ).echartOptions as any;
+
+  expect(narrow.grid.top).toBeGreaterThan(wide.grid.top);
+  // without a legend the grid keeps its slim top margin
+  const noLegend = transformProps(chartProps()).echartOptions as any;
+  expect(noLegend.grid.top).toBeLessThan(wide.grid.top);
+});
+
 test('sanitizes HTML in metric and marker labels before rendering tooltips', () => {
   const { echartOptions } = transformProps(
     chartProps({

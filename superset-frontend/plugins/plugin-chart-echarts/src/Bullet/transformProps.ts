@@ -24,6 +24,7 @@ import {
   JsonObject,
   sanitizeHtml,
 } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import type { EChartsCoreOption } from 'echarts/core';
 import { Refs } from '../types';
 import { EchartsBulletChartProps, BulletChartTransformedProps } from './types';
@@ -101,30 +102,44 @@ export default function transformProps(
     .map((value, i) => ({ value, label: rangeLabels[i] }))
     .filter(({ value }) => value > axisMin)
     .sort((a, b) => b.value - a.value);
+  // Each band's label sits inside its own top-right corner: the visible strip
+  // of a nested band ends at its threshold, so the label lands inside the
+  // range it names and the rightmost label cannot clip at the chart edge.
   const bands = sortedRanges.map(({ value, label }, i) => ({
     name: label,
     itemStyle: {
       color: bandFills[Math.min(i, bandFills.length - 1)],
     },
-    label: { show: false },
+    label: {
+      show: Boolean(showLabels) && Boolean(label),
+      position: 'insideTopRight',
+      distance: theme.sizeUnit,
+      color: theme.colorTextSecondary,
+      formatter: () => label ?? '',
+    },
     // markArea item: [{start}, {end}]
     coords: [{ xAxis: axisMin }, { xAxis: value }],
   }));
+
+  // Which labeled range a measure falls within, for the bar tooltip. Range
+  // labels render at band edges, so naming the containing band on hover
+  // disambiguates which side of a boundary a value sits on.
+  const ascendingRanges = [...ranges]
+    .map((value, i) => ({ value, label: rangeLabels[i] }))
+    .sort((a, b) => a.value - b.value);
+  const containingRangeLabel = (value: number): string | undefined => {
+    const hit = ascendingRanges.find(range => value <= range.value);
+    if (hit?.label) return hit.label;
+    const last = ascendingRanges[ascendingRanges.length - 1];
+    if (!hit && last?.label) return `> ${last.label}`;
+    return undefined;
+  };
 
   // Resolve by position rather than `indexOf(value)` so duplicate marker or
   // marker-line values each keep their own label instead of collapsing onto
   // the first match.
   const markerLabelAt = (index: number, labels: string[], values: number[]) =>
     labels[index] ? labels[index] : formatter(values[index]);
-
-  // The measure bar spans MEASURE_BAR_FRACTION of the category band
-  // (roughly the grid height), so a percentage symbolOffset lands inside a
-  // tall bar. Compute pixels: half the bar plus a small gap below it.
-  const gridHeight = Math.max(height - theme.sizeUnit * 10, 40);
-  const rowHeight = gridHeight / categories.length;
-  const markerOffsetPx = Math.round(
-    (MEASURE_BAR_FRACTION / 2) * rowHeight + 12,
-  );
 
   const rangeName = (value: number, i: number) =>
     rangeLabels[i]
@@ -133,13 +148,53 @@ export default function transformProps(
   const markerName = (value: number, i: number, labels: string[]) =>
     labels[i] ? `${labels[i]}: ${formatter(value)}` : String(formatter(value));
 
+  // ECharts wraps a top legend onto extra rows but does not push the grid
+  // down to make room, so estimate the wrapped row count from item text
+  // widths and reserve grid space for it.
+  const legendNames = [
+    metricLabel,
+    ...ranges.map(rangeName),
+    ...markers.map((value, i) => markerName(value, i, markerLabels)),
+    ...markerLines.map((value, i) => markerName(value, i, markerLineLabels)),
+  ];
+  const estimateLegendRows = (names: string[]): number => {
+    // legend icon width + icon-text gap + inter-item gap (ECharts defaults)
+    const itemOverhead = 25 + 5 + 10;
+    const avgCharWidth = theme.fontSize * 0.6;
+    const available = Math.max(width - theme.sizeUnit * 4, 1);
+    let rows = 1;
+    let cursor = 0;
+    names.forEach(name => {
+      const itemWidth = itemOverhead + name.length * avgCharWidth;
+      if (cursor > 0 && cursor + itemWidth > available) {
+        rows += 1;
+        cursor = 0;
+      }
+      cursor += itemWidth;
+    });
+    return rows;
+  };
+  const legendRowHeight = theme.fontSize + theme.sizeUnit * 3;
+  const gridTop = showLegend
+    ? estimateLegendRows(legendNames) * legendRowHeight + theme.sizeUnit * 2
+    : theme.sizeUnit * 2;
+
+  // The measure bar spans MEASURE_BAR_FRACTION of the category band
+  // (roughly the grid height), so a percentage symbolOffset lands inside a
+  // tall bar. Compute pixels: half the bar plus a small gap below it.
+  const gridHeight = Math.max(height - gridTop - theme.sizeUnit * 6, 40);
+  const rowHeight = gridHeight / categories.length;
+  const markerOffsetPx = Math.round(
+    (MEASURE_BAR_FRACTION / 2) * rowHeight + 12,
+  );
+
   const echartOptions: EChartsCoreOption = {
     animation: false,
     // Optional legend listing every range, marker and line as a toggleable
     // named entry; each is its own series so ECharts handles the toggling.
     legend: { show: Boolean(showLegend), top: 0 },
     grid: {
-      top: showLegend ? theme.sizeUnit * 10 : theme.sizeUnit * 2,
+      top: gridTop,
       bottom: theme.sizeUnit * 6,
       left: theme.sizeUnit * 2,
       right: theme.sizeUnit * 2,
@@ -162,9 +217,10 @@ export default function transformProps(
       axisTick: { show: false },
       axisLabel: { show: grouped, color: theme.colorTextSecondary },
     },
+    // The tooltip stays on regardless of the label and legend toggles: it is
+    // the only place hover reveals which range a value falls within.
     tooltip: {
       confine: true,
-      show: !showLabels,
     },
     series: [
       {
@@ -177,8 +233,10 @@ export default function transformProps(
           formatter: (params?: { dataIndex?: number }) => {
             const i = params?.dataIndex ?? 0;
             const prefix = grouped ? `${categories[i]} \u2014 ` : '';
+            const band = containingRangeLabel(measures[i]);
+            const bandLine = band ? `<br/>${t('Range')}: ${band}` : '';
             return sanitizeHtml(
-              `${prefix}${metricLabel}: <b>${formatter(measures[i])}</b>`,
+              `${prefix}${metricLabel}: <b>${formatter(measures[i])}</b>${bandLine}`,
             );
           },
         },
@@ -209,15 +267,6 @@ export default function transformProps(
               sanitizeHtml(
                 `${rangeLabels[index] || ''} \u2264 <b>${formatter(value)}</b>`,
               ),
-          },
-          label: {
-            show:
-              Boolean(showLabels) &&
-              Boolean(rangeLabels[index]) &&
-              row === categories.length - 1,
-            position: 'top',
-            color: theme.colorTextSecondary,
-            formatter: () => String(rangeLabels[index] || ''),
           },
         })),
         symbol: 'rect',
