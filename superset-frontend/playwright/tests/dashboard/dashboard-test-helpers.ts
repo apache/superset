@@ -158,9 +158,11 @@ export async function createDashboardWithCharts(
       datasource_id: dataset.id,
       datasource_type: 'table',
       params: JSON.stringify({
+        // Caller params first so the helper-owned datasource/viz_type always win
+        // and a stray key in a spec cannot repoint the chart at another dataset.
+        ...spec.params,
         datasource,
         viz_type: spec.viz_type,
-        ...spec.params,
       }),
     });
     expect(resp.ok()).toBe(true);
