@@ -37,6 +37,7 @@ import {
   MatrixifyFormData,
   DatasourceType,
   ensureIsArray,
+  handleKeyboardActivation,
 } from '@superset-ui/core';
 import {
   ControlStateMapping,
@@ -998,6 +999,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
               tabIndex={0}
               className="action-button"
               onClick={toggleCollapse}
+              onKeyDown={handleKeyboardActivation(toggleCollapse)}
             >
               <Icons.VerticalAlignTopOutlined
                 iconSize="xl"
@@ -1023,9 +1025,11 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
           <div
             className="sidebar"
             onClick={toggleCollapse}
+            onKeyDown={handleKeyboardActivation(toggleCollapse)}
             data-test="open-datasource-tab"
             role="button"
             tabIndex={0}
+            aria-label={t('Open Datasource tab')}
           >
             <span role="button" tabIndex={0} className="action-button">
               <Tooltip title={t('Open Datasource tab')}>

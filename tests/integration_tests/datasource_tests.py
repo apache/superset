@@ -63,27 +63,29 @@ def create_test_table_context(database: Database):
     full_table_name = f"{schema}.test_table" if schema else "test_table"
 
     with database.get_sqla_engine() as engine:
-        engine.execute(
-            text(f"""
-            CREATE TABLE IF NOT EXISTS {full_table_name} AS
-            SELECT 1 as first, 2 as second
-            """)
-        )
-        engine.execute(
-            text(f"""
-            INSERT INTO {full_table_name} (first, second) VALUES (1, 2)
-            """)  # noqa: S608
-        )
-        engine.execute(
-            text(f"""
-            INSERT INTO {full_table_name} (first, second) VALUES (3, 4)
-            """)  # noqa: S608
-        )
+        with engine.begin() as conn:
+            conn.execute(
+                text(f"""
+                CREATE TABLE IF NOT EXISTS {full_table_name} AS
+                SELECT 1 as first, 2 as second
+                """)
+            )
+            conn.execute(
+                text(f"""
+                INSERT INTO {full_table_name} (first, second) VALUES (1, 2)
+                """)  # noqa: S608
+            )
+            conn.execute(
+                text(f"""
+                INSERT INTO {full_table_name} (first, second) VALUES (3, 4)
+                """)  # noqa: S608
+            )
 
     yield db.session
 
     with database.get_sqla_engine() as engine:
-        engine.execute(text(f"DROP TABLE {full_table_name}"))
+        with engine.begin() as conn:
+            conn.execute(text(f"DROP TABLE {full_table_name}"))
 
 
 @contextmanager
@@ -151,17 +153,17 @@ class TestDatasource(SupersetTestCase):
             "row_limit": 1000,
             "row_offset": 0,
         }
+        columns = [
+            TableColumn(column_name="default_dttm", type="DATETIME", is_dttm=True),
+            TableColumn(column_name="additional_dttm", type="DATETIME", is_dttm=True),
+        ]
+        db.session.add_all(columns)
         table = SqlaTable(
             table_name="dummy_sql_table",
             database=database,
             schema=get_example_default_schema(),
             main_dttm_col="default_dttm",
-            columns=[
-                TableColumn(column_name="default_dttm", type="DATETIME", is_dttm=True),
-                TableColumn(
-                    column_name="additional_dttm", type="DATETIME", is_dttm=True
-                ),
-            ],
+            columns=columns,
             sql=sql,
         )
 
@@ -658,12 +660,13 @@ def test_get_samples_with_incorrect_cc(test_client, login_as_admin, virtual_data
     if get_example_database().backend == "sqlite":
         return
 
-    TableColumn(
+    column = TableColumn(
         column_name="DUMMY CC",
         type="VARCHAR(255)",
         table=virtual_dataset,
         expression="INCORRECT SQL",
     )
+    db.session.add(column)
 
     uri = (
         f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table"

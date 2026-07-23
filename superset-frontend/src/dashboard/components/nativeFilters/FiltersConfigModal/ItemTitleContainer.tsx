@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { handleKeyboardActivation } from '@superset-ui/core';
 import { forwardRef, useState } from 'react';
 
 import { t } from '@apache-superset/core/translation';
@@ -139,6 +140,7 @@ const ItemTitleContainer = forwardRef<HTMLDivElement, Props>(
         <ItemTitle
           role="tab"
           key={`item-title-tab-${id}`}
+          tabIndex={0}
           onClick={() => onChange(id)}
           className={classNames.join(' ')}
           aria-selected={isActive}
@@ -166,6 +168,7 @@ const ItemTitleContainer = forwardRef<HTMLDivElement, Props>(
                   e.preventDefault();
                   restoreItem(id);
                 }}
+                onKeyDown={handleKeyboardActivation(() => restoreItem(id))}
               >
                 {t('Undo?')}
               </span>

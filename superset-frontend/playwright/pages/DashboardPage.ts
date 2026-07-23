@@ -17,8 +17,9 @@
  * under the License.
  */
 
-import { Page, Download } from '@playwright/test';
+import { Page, Download, Locator } from '@playwright/test';
 import { Menu } from '../components/core';
+import { NativeFiltersConfigModal } from '../components/modals';
 import { gotoWithRetry } from '../helpers/navigation';
 import { TIMEOUT } from '../utils/constants';
 
@@ -33,6 +34,9 @@ export class DashboardPage {
     DASHBOARD_MENU_TRIGGER: '[data-test="actions-trigger"]',
     // The header-actions-menu is the data-test for the dropdown menu content
     HEADER_ACTIONS_MENU: '[data-test="header-actions-menu"]',
+    FILTER_BAR_SETTINGS: '[data-test="filterbar-orientation-icon"]',
+    APPLY_FILTERS_BUTTON:
+      '[data-test="filter-bar__apply-button"], [data-test="filterbar-action-buttons"] button[type="submit"]',
   } as const;
 
   constructor(page: Page) {
@@ -66,6 +70,15 @@ export class DashboardPage {
   }
 
   /**
+   * Get a chart grid component by its chart ID.
+   */
+  getChart(chartId: number): Locator {
+    return this.page.locator(
+      `[data-test="chart-grid-component"][data-test-chart-id="${chartId}"]`,
+    );
+  }
+
+  /**
    * Wait for all charts on the dashboard to finish loading.
    * Waits until no loading indicators are visible on the page.
    */
@@ -92,6 +105,52 @@ export class DashboardPage {
       undefined,
       { timeout },
     );
+  }
+
+  /**
+   * Gets the Display controls section heading in the filter bar.
+   */
+  getDisplayControlsHeader(): Locator {
+    return this.page.getByRole('heading', {
+      name: 'Display controls',
+      exact: true,
+    });
+  }
+
+  /**
+   * Gets a Display Control heading by name.
+   * @param name - The Display Control name
+   */
+  getDisplayControl(name: string): Locator {
+    return this.page.getByRole('heading', { name, exact: true });
+  }
+
+  /**
+   * Opens the native filters and Display Controls configuration modal.
+   */
+  async openNativeFiltersConfigModal(): Promise<NativeFiltersConfigModal> {
+    await this.page.click(DashboardPage.SELECTORS.FILTER_BAR_SETTINGS);
+    await this.page
+      .getByText('Add or edit filters and controls', { exact: true })
+      .click();
+
+    const modal = new NativeFiltersConfigModal(this.page);
+    await modal.waitForVisible();
+    return modal;
+  }
+
+  /**
+   * Applies pending native filter changes when the Apply button is enabled.
+   */
+  async applyFiltersIfEnabled(): Promise<void> {
+    const applyButton = this.page
+      .locator(DashboardPage.SELECTORS.APPLY_FILTERS_BUTTON)
+      .first();
+    if (!(await applyButton.isEnabled().catch(() => false))) {
+      return;
+    }
+
+    await applyButton.click();
   }
 
   /**

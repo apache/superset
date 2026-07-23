@@ -19,13 +19,13 @@ concurrency:
 
 jobs:
   test-superset-extensions-cli-package:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
     strategy:
       matrix:
         # Full version spread on push (master/release) + nightly; current only
         # on PRs to cut runner cost (cross-version breaks are caught at merge).
-        python-version: ${{ github.event_name == 'pull_request' && fromJSON('["current"]') || fromJSON('["previous", "current", "next"]') }}
+        python-version: ${{ github.event_name == 'pull_request' && fromJSON('["current"]') || fromJSON('["current", "next"]') }}
     defaults:
       run:
         working-directory: superset-extensions-cli

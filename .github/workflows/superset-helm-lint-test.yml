@@ -2,21 +2,24 @@ name: "Helm: lint and test charts"
 
 on:
   pull_request:
-    types: [opened, edited, reopened, synchronize]
+    types: [opened, reopened, synchronize]
     paths:
       - "helm/**"
 
 permissions:
   contents: read
 
-# cancel previous workflow jobs for PRs
+# Serialize runs per PR without cancelling: when a first-time contributor's
+# queued runs are approved together, cancel-in-progress lets an older run
+# cancel a newer one, leaving a permanently-cancelled required check on the
+# head SHA. Queued runs are cheap here, so let them all complete.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   lint-test:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -28,7 +31,7 @@ jobs:
       - name: Set up Helm
         uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
         with:
-          version: v3.16.4
+          version: v3.21.3
 
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
@@ -56,3 +59,9 @@ jobs:
           CT_LINT_CONF: lintconf.yaml
           CT_SINCE: HEAD
           CT_CHART_REPOS: bitnami=https://charts.bitnami.com/bitnami
+
+      - name: Set up helm-unittest
+        run: helm plugin install https://github.com/helm-unittest/helm-unittest --version v1.1.1
+
+      - name: Run helm-unittest
+        run: helm unittest helm/superset

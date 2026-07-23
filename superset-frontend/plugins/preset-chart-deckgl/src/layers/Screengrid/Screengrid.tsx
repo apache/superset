@@ -31,7 +31,6 @@ import {
   ColorSchemeType,
   isPointInBonds,
 } from '../../utilities/utils';
-import sandboxedEval from '../../utils/sandbox';
 import { commonLayerProps, getColorRange } from '../common';
 import TooltipRow from '../../TooltipRow';
 import { GetLayerType, createDeckGLComponent } from '../../factory';
@@ -117,12 +116,7 @@ export const getLayer: GetLayerType<ScreenGridLayer> = function ({
   const fd = formData;
   const appliedScheme = fd.color_scheme;
   const colorScale = CategoricalColorNamespace.getScale(appliedScheme);
-  let data = payload.data.features;
-
-  if (fd.js_data_mutator) {
-    const jsFnMutator = sandboxedEval(fd.js_data_mutator);
-    data = jsFnMutator(data);
-  }
+  const data = payload.data.features;
 
   const colorSchemeType = fd.color_scheme_type as ColorSchemeType & 'default';
   const colorRange = getColorRange({
@@ -225,14 +219,8 @@ const getHighlightLayer: GetLayerType<ScreenGridLayer> = function ({
   filterState,
   payload,
 }) {
-  const fd = formData;
-  let data = payload.data.features;
+  const data = payload.data.features;
 
-  if (fd.js_data_mutator) {
-    // Applying user defined data mutator if defined
-    const jsFnMutator = sandboxedEval(fd.js_data_mutator);
-    data = jsFnMutator(data);
-  }
   const dataInside = data.filter((d: JsonObject) =>
     isPointInBonds(d.position, filterState?.value),
   );

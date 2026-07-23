@@ -132,6 +132,12 @@ class ResultSetColumnType(TypedDict):
 
     query_as: NotRequired[Any]
 
+    # A SQL expression (without an alias) that should be used to select this
+    # column, e.g. for a nested field whose path segments must each be quoted
+    # separately rather than the whole dotted name being quoted as a single
+    # identifier.
+    expression: NotRequired[Any]
+
 
 CacheConfig: TypeAlias = dict[str, Any]
 DbapiDescriptionRow: TypeAlias = tuple[
@@ -219,6 +225,7 @@ class QueryObjectDict(TypedDict, total=False):
     series_limit: int
     series_limit_metric: Metric | None
     group_others_when_limit_reached: bool
+    grouping_sets: list[list[str]]
     to_dttm: datetime | None
     time_shift: str | None
     time_compare_full_range: bool
@@ -338,6 +345,7 @@ class ExplorableData(TypedDict, total=False):
     extra: str | None
     always_filter_main_dttm: bool
     normalize_columns: bool
+    rls_filters: list[dict[str, Any]]
 
 
 VizData: TypeAlias = list[Any] | dict[Any, Any] | None

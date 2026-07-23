@@ -36,6 +36,7 @@ import {
   SupersetClient,
   getClientErrorObject,
   getExtensionsRegistry,
+  handleKeyboardActivation,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { t } from '@apache-superset/core/translation';
@@ -341,18 +342,18 @@ const StyledTableTabs = styled(Tabs)`
   display: flex;
   flex-direction: column;
 
-  .ant-tabs-content-holder {
+  .ant-tabs-body-holder {
     flex: 1;
     min-height: 0;
     overflow: auto;
     padding-top: ${({ theme }) => theme.paddingMD}px;
   }
 
-  .ant-tabs-content {
+  .ant-tabs-body {
     height: 100%;
   }
 
-  .ant-tabs-tabpane-active {
+  .ant-tabs-content-active {
     height: 100%;
   }
 `;
@@ -1760,6 +1761,7 @@ function DatasourceEditor({
             role="button"
             tabIndex={0}
             onClick={onChangeEditMode}
+            onKeyDown={handleKeyboardActivation(onChangeEditMode)}
           >
             {isEditMode ? (
               <Icons.UnlockOutlined

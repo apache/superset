@@ -60,7 +60,7 @@ def _create_standalone(table: sa.Table) -> sa.engine.Engine:
     real ``Table`` object can be created without its parent tables while its
     primary-key constraint remains fully enforced.
     """
-    engine = sa.create_engine("sqlite:///:memory:")
+    engine = sa.create_engine("sqlite:///:memory:", future=True)
     table.create(engine)
     return engine
 

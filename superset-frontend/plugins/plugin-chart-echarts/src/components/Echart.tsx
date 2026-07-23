@@ -121,15 +121,91 @@ use([
   LabelLayout,
 ]);
 
-const loadLocale = async (locale: string) => {
-  let lang;
-  try {
-    lang = await import(`echarts/lib/i18n/lang${locale}`);
-  } catch {
-    // Locale not supported in ECharts
-  }
-  return lang?.default;
+// Explicit per-locale imports rather than a template-literal dynamic
+// import: a computed import makes bundlers build a "context module" over
+// echarts/i18n, and resolving that directory through the echarts package's
+// `exports` map fails intermittently in webpack incremental builds
+// ("Package path ./i18n is exported ... but no valid target file was
+// found"). A static map is also the only thing that lets bundlers
+// code-split exactly the locales listed here. Keys are Superset locales
+// uppercased (see LANGUAGES in superset/config.py); values point at the
+// echarts bundle, whose naming differs for some locales (Slovenian is
+// langSI, Brazilian Portuguese is langPT-br). Only locales that echarts
+// 5.6.0 ships a bundle for are listed — Greek (langEL) and Latvian
+// (langLV) were added in echarts 6 and must stay out until this
+// dependency is upgraded again. Superset locales absent from this map
+// fall back to English.
+//
+// The "-obj" suffix is required and must not be dropped. echarts ships two
+// UMD builds per locale: langXX.js self-registers under echarts' own key and
+// exports nothing, while langXX-obj.js exports the locale object. Importing
+// the plain langXX.js yields an empty object, and registering that erases the
+// locale's `time` section, so every time-axis label crashes echarts'
+// formatTime with "Cannot read properties of null" — it evaluates
+// `month[u - 1]` eagerly for every template, even "{yyyy}". Registering the
+// object ourselves is also what lets Superset locale keys that differ from
+// echarts' own (SL -> SI, PT_BR -> PT-br) resolve at init time.
+type EChartsLocaleOption = Parameters<typeof registerLocale>[1];
+
+const LOCALE_LOADERS: Record<
+  string,
+  () => Promise<{ default: EChartsLocaleOption }>
+> = {
+  AR: () => import('echarts/i18n/langAR-obj.js'),
+  CS: () => import('echarts/i18n/langCS-obj.js'),
+  DE: () => import('echarts/i18n/langDE-obj.js'),
+  EN: () => import('echarts/i18n/langEN-obj.js'),
+  ES: () => import('echarts/i18n/langES-obj.js'),
+  FA: () => import('echarts/i18n/langFA-obj.js'),
+  FI: () => import('echarts/i18n/langFI-obj.js'),
+  FR: () => import('echarts/i18n/langFR-obj.js'),
+  HU: () => import('echarts/i18n/langHU-obj.js'),
+  IT: () => import('echarts/i18n/langIT-obj.js'),
+  JA: () => import('echarts/i18n/langJA-obj.js'),
+  KO: () => import('echarts/i18n/langKO-obj.js'),
+  NL: () => import('echarts/i18n/langNL-obj.js'),
+  PL: () => import('echarts/i18n/langPL-obj.js'),
+  RO: () => import('echarts/i18n/langRO-obj.js'),
+  PT_BR: () => import('echarts/i18n/langPT-br-obj.js'),
+  RU: () => import('echarts/i18n/langRU-obj.js'),
+  SL: () => import('echarts/i18n/langSI-obj.js'),
+  SV: () => import('echarts/i18n/langSV-obj.js'),
+  TH: () => import('echarts/i18n/langTH-obj.js'),
+  TR: () => import('echarts/i18n/langTR-obj.js'),
+  UK: () => import('echarts/i18n/langUK-obj.js'),
+  VI: () => import('echarts/i18n/langVI-obj.js'),
+  ZH: () => import('echarts/i18n/langZH-obj.js'),
 };
+
+const loadLocale = async (locale: string) => {
+  const loader = LOCALE_LOADERS[locale];
+  if (!loader) {
+    // Locale not supported in ECharts
+    return undefined;
+  }
+  try {
+    const localeObj = (await loader()).default;
+    // registerLocale replaces any built-in entry under the same key, so a
+    // partial object would leave echarts formatting against missing data.
+    // Fall back to the built-in locale instead of registering a broken one.
+    return localeObj?.time ? localeObj : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+// Report/thumbnail screenshots use standalone="true" (charts) or 3 (reports);
+// live embeds use 1/2 and keep animation. See superset/utils/screenshots.py.
+export function isReportScreenshotMode(): boolean {
+  try {
+    const standalone = new URLSearchParams(window.location.search).get(
+      'standalone',
+    );
+    return standalone === 'true' || standalone === '3';
+  } catch {
+    return false;
+  }
+}
 
 function Echart(
   {
@@ -278,13 +354,16 @@ function Echart(
         ? theme.echartsOptionsOverridesByChartType?.[vizType] || {}
         : {};
 
-      // Disable animations during auto-refresh to reduce visual noise
-      const animationOverride = isDashboardRefreshing
-        ? {
-            animation: false,
-            animationDuration: 0,
-          }
-        : {};
+      // Disable animation on auto-refresh and screenshots. Screenshots have no
+      // "render finished" signal, so a running draw can be captured mid-frame,
+      // producing partial/blank charts.
+      const animationOverride =
+        isDashboardRefreshing || isReportScreenshotMode()
+          ? {
+              animation: false,
+              animationDuration: 0,
+            }
+          : {};
 
       const themedEchartOptions = mergeEchartsThemeOverrides(
         baseTheme,

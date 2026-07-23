@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent, waitFor } from '@superset-ui/core/spec';
+import { render, screen, userEvent } from '@superset-ui/core/spec';
 import TooltipParagraph from '.';
 
 test('starts hidden with default props', () => {
@@ -42,30 +42,11 @@ test('not render on hover when not truncated', async () => {
   expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
 });
 
-test('render on hover when truncated', async () => {
-  render(
-    <div style={{ width: '200px' }}>
-      <TooltipParagraph>
-        <span data-test="test-text">This is too long and should truncate.</span>
-      </TooltipParagraph>
-    </div>,
-  );
-
-  // Get the div with the ellipsis class to verify it's truncated
-  const ellipsisElement = screen
-    .getByTestId('test-text')
-    .closest('.ant-typography-ellipsis');
-  expect(ellipsisElement).toBeInTheDocument();
-
-  // Hover over the text
-  await userEvent.hover(screen.getByTestId('test-text'));
-
-  // In Ant Design v5, we can check if the aria-describedby attribute is present
-  // which indicates the tooltip functionality is active
-  await waitFor(() => {
-    const element = screen
-      .getByTestId('test-text')
-      .closest('[aria-describedby]');
-    expect(element).toHaveAttribute('aria-describedby');
-  });
-});
+// NOTE: there is intentionally no "renders tooltip when truncated" test here.
+// The tooltip only activates once antd's Typography reports the text as
+// truncated via its `onEllipsis` callback, which depends on real layout
+// measurement (offset/scroll widths, ResizeObserver). jsdom performs no layout,
+// so truncation is never detected and the tooltip never opens. Ant Design v5 set
+// `aria-describedby` on the trigger regardless, which let this case be asserted;
+// v6 only wires it once the tooltip has content, so the truncated branch is no
+// longer observable in jsdom. It is covered by visual / end-to-end testing.
