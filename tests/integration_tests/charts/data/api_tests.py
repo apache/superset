@@ -23,7 +23,7 @@ import unittest
 from contextlib import contextmanager
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 from unittest import mock
 from zipfile import ZipFile
 
