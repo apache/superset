@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import io
 import uuid
 from typing import Any
 from unittest.mock import call, MagicMock, patch
@@ -604,7 +605,8 @@ def test_v2_send_with_single_screenshot_calls_files_upload_v2(
     upload.assert_called_once()
     kwargs = upload.call_args.kwargs
     assert kwargs["channel"] == "C12345"
-    assert kwargs["file"] == b"screenshot-bytes"
+    assert isinstance(kwargs["file"], io.BytesIO)
+    assert kwargs["file"].getvalue() == b"screenshot-bytes"
     assert kwargs["title"] == "test alert"
     assert kwargs["filename"] == "test alert.png"
     assert "test alert" in kwargs["initial_comment"]
@@ -630,7 +632,8 @@ def test_v2_send_with_multiple_screenshots_uploads_each(
     upload = slack_client_mock.return_value.files_upload_v2
     assert upload.call_count == 3
     uploaded_files = [c.kwargs["file"] for c in upload.call_args_list]
-    assert uploaded_files == [b"shot-1", b"shot-2", b"shot-3"]
+    assert all(isinstance(f, io.BytesIO) for f in uploaded_files)
+    assert [f.getvalue() for f in uploaded_files] == [b"shot-1", b"shot-2", b"shot-3"]
     # All three uploads target the same single channel
     for c in upload.call_args_list:
         assert c.kwargs["channel"] == "C12345"
@@ -653,8 +656,35 @@ def test_v2_send_with_csv_calls_files_upload_v2(
     upload = slack_client_mock.return_value.files_upload_v2
     upload.assert_called_once()
     kwargs = upload.call_args.kwargs
-    assert kwargs["file"] == b"col1,col2\n1,2\n"
+    assert isinstance(kwargs["file"], io.BytesIO)
+    assert kwargs["file"].getvalue() == b"col1,col2\n1,2\n"
     assert kwargs["filename"] == "test alert.csv"
+
+
+@patch("superset.reports.notifications.slackv2.g")
+@patch("superset.reports.notifications.slackv2.get_slack_client")
+def test_v2_send_with_csv_wraps_file_in_bytesio(
+    slack_client_mock: MagicMock,
+    flask_global_mock: MagicMock,
+    mock_header_data,
+) -> None:
+    """Regression test: a CSV attachment sent to `files_upload_v2` as raw
+    `bytes` was rendered by Slack as an inline plain-text message instead of a
+    downloadable file. Passing a file-like object (`io.BytesIO`) instead of
+    raw bytes is what makes Slack treat the payload as a binary file upload.
+    """
+    flask_global_mock.logs_context = {}
+    csv_content = b"col1,col2\n1,2\n"
+    content = _make_content(mock_header_data, csv=csv_content)
+    notification = _make_v2_notification(content, target="C12345")
+
+    notification.send()
+
+    upload = slack_client_mock.return_value.files_upload_v2
+    uploaded_file = upload.call_args.kwargs["file"]
+    assert isinstance(uploaded_file, io.BytesIO)
+    assert not isinstance(uploaded_file, (bytes, bytearray))
+    assert uploaded_file.getvalue() == csv_content
 
 
 @patch("superset.reports.notifications.slackv2.g")
@@ -673,7 +703,8 @@ def test_v2_send_with_pdf_calls_files_upload_v2(
     upload = slack_client_mock.return_value.files_upload_v2
     upload.assert_called_once()
     kwargs = upload.call_args.kwargs
-    assert kwargs["file"] == b"%PDF-1.4..."
+    assert isinstance(kwargs["file"], io.BytesIO)
+    assert kwargs["file"].getvalue() == b"%PDF-1.4..."
     assert kwargs["filename"] == "test alert.pdf"
 
 
@@ -693,7 +724,10 @@ def test_v2_send_to_multiple_channels_uploads_per_channel(
     upload = slack_client_mock.return_value.files_upload_v2
     # 3 channels x 2 files = 6 uploads
     assert upload.call_count == 6
-    seen = {(c.kwargs["channel"], c.kwargs["file"]) for c in upload.call_args_list}
+    seen = {
+        (c.kwargs["channel"], c.kwargs["file"].getvalue())
+        for c in upload.call_args_list
+    }
     assert seen == {
         ("C12345", b"shot-1"),
         ("C12345", b"shot-2"),

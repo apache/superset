@@ -14,9 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import io
 import logging
 from collections.abc import Callable, Sequence
-from io import IOBase
 from typing import List, Union
 
 import backoff
@@ -117,7 +117,7 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
 
     def _get_inline_files(
         self,
-    ) -> tuple[Union[str, None], Sequence[Union[str, IOBase, bytes]]]:
+    ) -> tuple[Union[str, None], Sequence[bytes]]:
         if self._content.csv:
             return ("csv", [self._content.csv])
         if self._content.xlsx:
@@ -148,10 +148,11 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
             for channel in channels:
                 if len(files) > 0:
                     for file in files:
+                        file_obj = io.BytesIO(file)
                         _call_slack_api(
                             client.files_upload_v2,
                             channel=channel,
-                            file=file,
+                            file=file_obj,
                             initial_comment=body,
                             title=title,
                             filename=file_name,
