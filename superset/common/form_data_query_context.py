@@ -134,8 +134,7 @@ def orderby_from_form_data(
     set), otherwise fall back to the first metric descending — matching the
     table/pie ``buildQuery`` defaults.
     """
-    order_by_cols = form_data.get("order_by_cols") or []
-    if order_by_cols:
+    if order_by_cols := form_data.get("order_by_cols") or []:
         parsed: list[list[Any]] = []
         for col in order_by_cols:
             if isinstance(col, str):
