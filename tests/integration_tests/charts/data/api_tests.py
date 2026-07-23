@@ -548,7 +548,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         assert str(ms_epoch) not in result["query"]
 
         # assert that converted timestamp is present in query where supported
-        dttm_col: Optional[TableColumn] = None
+        dttm_col: TableColumn | None = None
         for col in table.columns:
             if col.column_name == table.main_dttm_col:
                 dttm_col = col
