@@ -26,6 +26,7 @@ from unittest.mock import Mock, patch
 from urllib import request
 
 import pytest
+import yaml
 from flask import current_app
 from flask_appbuilder.security.sqla.models import Role, User
 from pytest_mock import MockerFixture
@@ -251,6 +252,110 @@ def test_import_dataset(mocker: MockerFixture, session: Session) -> None:
     ]
     assert sqla_table.database.uuid == database.uuid
     assert sqla_table.database.id == database.id
+
+
+def test_export_import_round_trip_preserves_metric_folder_membership(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    A metric (or column) assigned to a custom folder must stay in that folder
+    after the dataset is exported and imported into another workspace.
+
+    Folder leaves reference metrics/columns by UUID. If the export drops the
+    metric/column UUIDs, the importer recreates them with fresh random UUIDs
+    while the ``folders`` JSON still points at the originals — so the metric can
+    no longer be matched to its folder and is re-homed to the default folder.
+    This exercises the full export -> import round trip and asserts the
+    imported metric/column keep the UUIDs the folder leaves reference.
+    """
+    from superset.commands.dataset.export import ExportDatasetsCommand
+    from superset.connectors.sqla.models import SqlMetric
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    # --- source workspace: a dataset with a metric + column pinned to a custom
+    # folder, referenced by UUID ---
+    source_db = Database(database_name="source_db", sqlalchemy_uri="sqlite://")
+    db.session.add(source_db)
+    db.session.flush()
+
+    metric_uuid = uuid.UUID("00000000-0000-0000-0000-0000000000a1")
+    column_uuid = uuid.UUID("00000000-0000-0000-0000-0000000000b2")
+    folder_uuid = uuid.UUID("00000000-0000-0000-0000-0000000000c3")
+
+    sqla_table = SqlaTable(
+        table_name="my_table",
+        database=source_db,
+        columns=[
+            TableColumn(column_name="profit", type="INTEGER", uuid=column_uuid),
+        ],
+        metrics=[
+            SqlMetric(metric_name="cnt", expression="COUNT(*)", uuid=metric_uuid),
+        ],
+        folders=[
+            {
+                "uuid": str(folder_uuid),
+                "type": "folder",
+                "name": "Custom",
+                "children": [
+                    {"uuid": str(metric_uuid)},
+                    {"uuid": str(column_uuid)},
+                ],
+            },
+        ],
+    )
+    db.session.add(sqla_table)
+    db.session.flush()
+
+    # --- export (command-level YAML payload) ---
+    config = yaml.safe_load(ExportDatasetsCommand._file_content(sqla_table))  # pylint: disable=protected-access
+
+    # The exported metric/column must carry their UUIDs so the folder
+    # references survive the round trip.
+    assert config["metrics"][0].get("uuid") == str(metric_uuid)
+    assert any(col.get("uuid") == str(column_uuid) for col in config["columns"])
+
+    # The import schema must accept and preserve those UUIDs; without the schema
+    # fields it would reject them as unknown and the round trip would break.
+    loaded = ImportV1DatasetSchema().load(config)
+    assert loaded["metrics"][0]["uuid"] == metric_uuid
+    assert any(col["uuid"] == column_uuid for col in loaded["columns"])
+
+    # --- import into another workspace ---
+    # Model a separate workspace: drop the source dataset so its UUIDs are free
+    # (a fresh workspace has never seen them), then import against a fresh
+    # database and a brand-new dataset UUID so the importer creates the
+    # metric/column anew from the exported payload.
+    db.session.delete(sqla_table)
+    db.session.flush()
+
+    target_db = Database(database_name="target_db", sqlalchemy_uri="sqlite://")
+    db.session.add(target_db)
+    db.session.flush()
+    config["database_id"] = target_db.id
+    config["uuid"] = str(uuid.uuid4())
+
+    imported = import_dataset(config)
+
+    # The metric/column must be recreated with their original UUIDs so the
+    # folder leaves still resolve to them — i.e. they stay in the custom folder.
+    imported_metric = next(m for m in imported.metrics if m.metric_name == "cnt")
+    assert imported_metric.uuid == metric_uuid
+    imported_column = next(c for c in imported.columns if c.column_name == "profit")
+    assert imported_column.uuid == column_uuid
+
+    # Every UUID referenced by a folder leaf must exist among the imported
+    # metrics/columns; otherwise the item is orphaned back to the default folder.
+    folder_leaf_uuids = {
+        child["uuid"] for folder in imported.folders for child in folder["children"]
+    }
+    child_uuids = {str(m.uuid) for m in imported.metrics} | {
+        str(c.uuid) for c in imported.columns
+    }
+    assert folder_leaf_uuids <= child_uuids
 
 
 def test_import_dataset_no_folder(mocker: MockerFixture, session: Session) -> None:

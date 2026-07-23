@@ -276,6 +276,7 @@ class ImportV1ColumnSchema(Schema):
     description = fields.String(allow_none=True)
     python_date_format = fields.String(allow_none=True)
     datetime_format = fields.String(allow_none=True)
+    uuid = fields.UUID(allow_none=True)
 
 
 class ImportMetricCurrencySchema(Schema):
@@ -318,6 +319,7 @@ class ImportV1MetricSchema(Schema):
     currency = CurrencyField(ImportMetricCurrencySchema, allow_none=True)
     extra = fields.Dict(allow_none=True)
     warning_text = fields.String(allow_none=True)
+    uuid = fields.UUID(allow_none=True)
 
 
 class ImportV1DatasetSchema(Schema):

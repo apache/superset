@@ -615,6 +615,7 @@ class ImportExportMixin(UUIDMixin):
                             recursive=recursive,
                             include_parent_ref=include_parent_ref,
                             include_defaults=include_defaults,
+                            export_uuids=export_uuids,
                         )
                         for child in getattr(self, cld)
                     ],

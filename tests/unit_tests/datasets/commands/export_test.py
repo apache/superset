@@ -41,10 +41,27 @@ def test_export(session: Session) -> None:
     db.session.flush()
 
     columns = [
-        TableColumn(column_name="ds", is_dttm=1, type="TIMESTAMP"),
-        TableColumn(column_name="user_id", type="INTEGER"),
-        TableColumn(column_name="revenue", type="INTEGER"),
-        TableColumn(column_name="expenses", type="INTEGER"),
+        TableColumn(
+            column_name="ds",
+            is_dttm=1,
+            type="TIMESTAMP",
+            uuid=UUID("00000000-0000-0000-0000-000000000006"),
+        ),
+        TableColumn(
+            column_name="user_id",
+            type="INTEGER",
+            uuid=UUID("00000000-0000-0000-0000-000000000007"),
+        ),
+        TableColumn(
+            column_name="revenue",
+            type="INTEGER",
+            uuid=UUID("00000000-0000-0000-0000-000000000008"),
+        ),
+        TableColumn(
+            column_name="expenses",
+            type="INTEGER",
+            uuid=UUID("00000000-0000-0000-0000-000000000009"),
+        ),
         TableColumn(
             column_name="profit",
             type="INTEGER",
@@ -211,6 +228,7 @@ metrics:
   extra:
     warning_markdown: null
   warning_text: null
+  uuid: 00000000-0000-0000-0000-000000000004
 columns:
 - column_name: profit
   verbose_name: null
@@ -226,6 +244,7 @@ columns:
   datetime_format: null
   extra:
     certified_by: User
+  uuid: 00000000-0000-0000-0000-000000000005
 - column_name: ds
   verbose_name: null
   is_dttm: 1
@@ -239,6 +258,7 @@ columns:
   python_date_format: null
   datetime_format: null
   extra: null
+  uuid: 00000000-0000-0000-0000-000000000006
 - column_name: user_id
   verbose_name: null
   is_dttm: false
@@ -252,19 +272,7 @@ columns:
   python_date_format: null
   datetime_format: null
   extra: null
-- column_name: expenses
-  verbose_name: null
-  is_dttm: false
-  is_active: true
-  type: INTEGER
-  advanced_data_type: null
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-  datetime_format: null
-  extra: null
+  uuid: 00000000-0000-0000-0000-000000000007
 - column_name: revenue
   verbose_name: null
   is_dttm: false
@@ -278,6 +286,21 @@ columns:
   python_date_format: null
   datetime_format: null
   extra: null
+  uuid: 00000000-0000-0000-0000-000000000008
+- column_name: expenses
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: INTEGER
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: null
+  uuid: 00000000-0000-0000-0000-000000000009
 version: 1.0.0
 database_uuid: {database.uuid}
 """,
