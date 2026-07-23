@@ -16,10 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default as SelectFilterPlugin } from './Select';
-export { default as RangeFilterPlugin } from './Range';
-export { default as TimeFilterPlugin } from './Time';
-export { default as TimeColumnFilterPlugin } from './TimeColumn';
-export { default as TimeGrainFilterPlugin } from './TimeGrain';
-export { default as CustomFilterPlugin } from './CustomFilter';
-export { default as CustomDateFilterPlugin } from './CustomDateFilter';
+import { QueryFormData } from '@superset-ui/core';
+
+export interface PluginFilterCustomDateFilterQueryFormData extends QueryFormData {
+  groupby: string[];
+  dateRange?: [string, string];
+  granularitySqla?: string;
+  timeGrainSqla?: string;
+  controlType: 'date' | 'datetime' | 'daterange';
+}
+
+export const DEFAULT_FORM_DATA: Partial<PluginFilterCustomDateFilterQueryFormData> =
+  {
+    controlType: 'date',
+  };
