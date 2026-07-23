@@ -52,6 +52,13 @@ import { test, expect, Page } from '@playwright/test';
 const THUMBNAIL_SIZE = 512;
 const RENDERED_CHART_SELECTOR =
   '[data-test="chart-container"]:has(svg, canvas, table):not(:has([data-test="loading-indicator"]))';
+/**
+ * Charts that render plain markup — no svg/canvas/table for the rendered
+ * selector to key on — get a looser signal plus a longer settle.
+ */
+const TEXT_ONLY_VIZ_TYPES = new Set(['big_number_total', 'handlebars']);
+const TEXT_RENDERED_CHART_SELECTOR =
+  '[data-test="chart-container"]:not(:has([data-test="loading-indicator"]))';
 
 /** superset-frontend root, resolved from this spec's location. */
 const FRONTEND_ROOT = path.resolve(__dirname, '..', '..', '..');
@@ -252,13 +259,18 @@ async function renderAndShoot(
   page: Page,
   chart: ExampleChart,
 ): Promise<Buffer> {
-  await page.goto(`/explore/?slice_id=${chart.id}&standalone=1`);
+  // An explicit navigation timeout keeps one hung load from stalling the
+  // whole crawl until the test timeout.
+  await page.goto(`/explore/?slice_id=${chart.id}&standalone=1`, {
+    timeout: 60_000,
+  });
+  const textOnly = TEXT_ONLY_VIZ_TYPES.has(chart.vizType);
   await page
-    .locator(RENDERED_CHART_SELECTOR)
+    .locator(textOnly ? TEXT_RENDERED_CHART_SELECTOR : RENDERED_CHART_SELECTOR)
     .first()
     .waitFor({ state: 'visible', timeout: 60_000 });
-  // Give animations/map tiles a moment to settle before the still
-  await page.waitForTimeout(2_000);
+  // Give animations/map tiles (or text-only chart data) time to settle
+  await page.waitForTimeout(textOnly ? 4_000 : 2_000);
   return page.screenshot();
 }
 
@@ -322,7 +334,7 @@ test.describe('capture viz thumbnails', () => {
   test('crawls example dashboards and refreshes gallery thumbnails', async ({
     page,
   }) => {
-    test.setTimeout(30 * 60_000);
+    test.setTimeout(90 * 60_000);
 
     const vizTypeFilter = process.env.VIZ_TYPES
       ? new Set(process.env.VIZ_TYPES.split(',').map(v => v.trim()))
