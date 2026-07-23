@@ -32,7 +32,7 @@
     "@visx/responsive": "^4.0.0",
     "ace-builds": "^1.44.0",
     "ag-grid-community": "36.0.0",
-    "ag-grid-react": "36.0.0",
+    "ag-grid-react": "36.0.1",
     "brace": "^0.11.1",
     "classnames": "^2.5.1",
     "core-js": "^3.49.0",
