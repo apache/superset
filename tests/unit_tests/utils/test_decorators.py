@@ -36,6 +36,10 @@ class ResponseValues(StrEnum):
     OK = "ok"
 
 
+class WarningError(Exception):
+    status = 400
+
+
 def test_debounce() -> None:
     mock = Mock()
 
@@ -63,7 +67,7 @@ def test_debounce() -> None:
     [
         (ResponseValues.OK, None, "custom.prefix.ok"),
         (ResponseValues.FAIL, ValueError, "custom.prefix.error"),
-        (ResponseValues.WARN, FileNotFoundError, "custom.prefix.warn"),
+        (ResponseValues.WARN, WarningError, "custom.prefix.warning"),
     ],
 )
 def test_statsd_gauge(
@@ -74,7 +78,7 @@ def test_statsd_gauge(
         if response == ResponseValues.FAIL:
             raise ValueError("Error")
         if response == ResponseValues.WARN:
-            raise FileNotFoundError("Not found")
+            raise WarningError("Warning")
         return "OK"
 
     with patch("superset.extensions.stats_logger_manager.instance.gauge") as mock:
@@ -86,7 +90,8 @@ def test_statsd_gauge(
 
         with cm:
             my_func(response_value, 1, 2)
-            mock.assert_called_once_with(expected_result, 1)
+
+        mock.assert_called_once_with(expected_result, 1)
 
 
 def test_statsd_gauge_ignores_configured_exception() -> None:

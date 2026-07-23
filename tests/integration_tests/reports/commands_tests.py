@@ -1945,7 +1945,7 @@ def test_slack_text_fallback_persists_success_for_multiple_recipient_rows(
 @patch("superset.reports.notifications.slack.get_slack_client")
 @patch("superset.commands.report.execute.get_chart_dataframe")
 @patch("superset.reports.notifications.email.send_email_smtp")
-def test_slack_text_fallback_persists_later_recipient_retry_exhaustion(
+def test_slack_text_fallback_persists_later_recipient_ambiguous_failure(
     email_mock,
     dataframe_mock,
     slack_client_mock,
@@ -2013,7 +2013,7 @@ def test_slack_text_fallback_persists_later_recipient_retry_exhaustion(
     ]
     successful_channel = call_channels[0]
     failed_channel = ({"private-a", "private-b"} - {successful_channel}).pop()
-    assert call_channels == [successful_channel, *(failed_channel for _ in range(5))]
+    assert call_channels == [successful_channel, failed_channel]
     log_states = {
         log.state
         for log in db.session.query(ReportExecutionLog)

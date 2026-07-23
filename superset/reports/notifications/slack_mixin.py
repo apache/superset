@@ -15,8 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import math
 import time
 from collections.abc import Callable
+from functools import partial
 from typing import TypeVar
 from urllib.error import HTTPError
 
@@ -24,7 +26,8 @@ import backoff
 import pandas as pd
 from flask import current_app as app
 from flask_babel import gettext as __
-from slack_sdk.errors import SlackApiError
+from slack_sdk import WebClient
+from slack_sdk.errors import SlackApiError, SlackRequestError
 
 from superset.reports.notifications.base import NotificationContent
 from superset.reports.notifications.exceptions import (
@@ -51,15 +54,34 @@ class SlackRetryDeadlineError(Exception):
     """A Slack operation was skipped because the shared send budget expired."""
 
 
+class SlackChannelResponseError(SlackRequestError):
+    """Slack returned malformed channel-specific data before a terminal write."""
+
+
 _SLACK_RETRY_ERRORS = (SlackApiError, *SLACK_TRANSIENT_TRANSPORT_ERRORS)
-_SLACK_CHANNEL_FAILURES = (*_SLACK_RETRY_ERRORS, SlackRetryDeadlineError)
+_SLACK_CHANNEL_FAILURES = (
+    *_SLACK_RETRY_ERRORS,
+    SlackChannelResponseError,
+    SlackRetryDeadlineError,
+)
 
 
-def _give_up_slack_api_retry(ex: Exception) -> bool:
+def _give_up_slack_api_retry(
+    ex: Exception,
+    *,
+    retry_transient_errors: bool = True,
+    retry_transport_errors: bool = False,
+) -> bool:
     if isinstance(ex, HTTPError) and ex.code == 429:
         return True
     if not isinstance(ex, SlackApiError):
-        return not is_retryable_slack_transport_error(ex)
+        if not retry_transient_errors:
+            return True
+        return not (
+            is_transient_slack_transport_error(ex)
+            if retry_transport_errors
+            else is_retryable_slack_transport_error(ex)
+        )
 
     status_code = _get_slack_api_status_code(ex)
     # call_slack_api handles HTTP 429 within the shared monotonic deadline.
@@ -68,6 +90,8 @@ def _give_up_slack_api_retry(ex: Exception) -> bool:
     error_code = _get_slack_api_error_code(ex)
     if status_code == 429:
         return True
+    if not retry_transient_errors:
+        return True
     if _is_transient_slack_api_error(ex, error_code):
         return False
     if status_code is not None and 400 <= status_code < 500:
@@ -75,21 +99,22 @@ def _give_up_slack_api_retry(ex: Exception) -> bool:
     return bool(error_code)
 
 
-def _get_slack_retry_after(ex: SlackApiError | HTTPError) -> float:
+def _get_slack_retry_after(ex: SlackApiError | HTTPError) -> float | None:
     response = getattr(ex, "response", ex)
     headers = getattr(response, "headers", None)
     if headers is None:
-        return 1.0
+        return None
     for name in headers.keys():
         if name.lower() != "retry-after":
             continue
         value = headers.get(name)
         raw_value = value[0] if isinstance(value, list) else value
         try:
-            return max(float(raw_value), 0.0)
+            retry_after = float(raw_value)
+            return max(retry_after, 0.0) if math.isfinite(retry_after) else None
         except (TypeError, ValueError):
-            return 1.0
-    return 1.0
+            return None
+    return None
 
 
 def _get_slack_rate_limit_status(ex: SlackApiError | HTTPError) -> int | None:
@@ -102,19 +127,25 @@ def call_slack_api(
     method: Callable[..., _SlackApiResult],
     *,
     retry_deadline: float | None = None,
+    retry_transient_errors: bool = True,
+    retry_transport_errors: bool = False,
+    retry_rate_limits: bool = True,
     **kwargs: object,
 ) -> _SlackApiResult:
     """Call Slack with bounded retries, optionally sharing an outer deadline."""
-    if retry_deadline is not None:
-        max_time = retry_deadline - time.monotonic()
-        if max_time <= 0:
-            raise SlackRetryDeadlineError("Slack send retry deadline exceeded")
-    else:
-        max_time = None
+    if retry_deadline is None:
+        retry_deadline = time.monotonic() + SLACK_SEND_RETRY_MAX_TIME
+    max_time = retry_deadline - time.monotonic()
+    if max_time <= 0:
+        raise SlackRetryDeadlineError("Slack send retry deadline exceeded")
 
-    max_rate_limit_retries = max(
-        int(app.config.get("SLACK_API_RATE_LIMIT_RETRY_COUNT", 2)),
-        0,
+    max_rate_limit_retries = (
+        max(
+            int(app.config.get("SLACK_API_RATE_LIMIT_RETRY_COUNT", 2)),
+            0,
+        )
+        if retry_rate_limits
+        else 0
     )
     rate_limit_retries = 0
 
@@ -125,12 +156,16 @@ def call_slack_api(
         base=2,
         max_tries=5,
         max_time=max_time,
-        giveup=_give_up_slack_api_retry,
+        giveup=partial(
+            _give_up_slack_api_retry,
+            retry_transient_errors=retry_transient_errors,
+            retry_transport_errors=retry_transport_errors,
+        ),
     )
     def call() -> _SlackApiResult:
         nonlocal rate_limit_retries
         while True:
-            if retry_deadline is not None and time.monotonic() >= retry_deadline:
+            if time.monotonic() >= retry_deadline:
                 raise SlackRetryDeadlineError("Slack send retry deadline exceeded")
             try:
                 return method(**kwargs)
@@ -141,16 +176,49 @@ def call_slack_api(
                 ):
                     raise
                 retry_after = _get_slack_retry_after(ex)
-                if retry_deadline is not None:
-                    remaining = retry_deadline - time.monotonic()
-                    if retry_after >= remaining:
-                        raise SlackRetryDeadlineError(
-                            "Slack send retry deadline exceeded"
-                        ) from ex
+                if retry_after is None:
+                    raise
+                remaining = retry_deadline - time.monotonic()
+                if retry_after >= remaining:
+                    raise SlackRetryDeadlineError(
+                        "Slack send retry deadline exceeded"
+                    ) from ex
                 time.sleep(retry_after)
                 rate_limit_retries += 1
 
     return call()
+
+
+def call_slack_api_with_timeout(
+    client: WebClient,
+    method: Callable[..., _SlackApiResult],
+    *,
+    retry_deadline: float,
+    retry_transient_errors: bool = True,
+    retry_transport_errors: bool = False,
+    retry_rate_limits: bool = True,
+    **kwargs: object,
+) -> _SlackApiResult:
+    """Call Slack with the SDK request timeout capped by the shared budget."""
+    original_timeout = client.timeout
+
+    def call() -> _SlackApiResult:
+        remaining = retry_deadline - time.monotonic()
+        if remaining <= 0:
+            raise SlackRetryDeadlineError("Slack send retry deadline exceeded")
+        client.timeout = min(float(original_timeout), remaining)
+        try:
+            return method(**kwargs)
+        finally:
+            client.timeout = original_timeout
+
+    return call_slack_api(
+        call,
+        retry_deadline=retry_deadline,
+        retry_transient_errors=retry_transient_errors,
+        retry_transport_errors=retry_transport_errors,
+        retry_rate_limits=retry_rate_limits,
+    )
 
 
 def send_to_slack_channels(
@@ -173,6 +241,7 @@ def send_to_slack_channels(
     message = f"Slack delivery failed for the following channels: {details}"
     if any(
         isinstance(error, SlackRetryDeadlineError)
+        or isinstance(error, SlackChannelResponseError)
         or is_transient_slack_transport_error(error)
         or (
             isinstance(error, SlackApiError)

@@ -172,7 +172,9 @@ def _match_slack_channels(
     return resolved, missing
 
 
-def _resolve_slack_channel_targets(targets: list[str]) -> dict[str, Any]:
+def _resolve_slack_channel_targets(
+    targets: list[str],
+) -> dict[str, dict[str, Any]]:
     """Resolve Slack names or IDs, refreshing only a stale cached listing."""
     search_string = ",".join(targets)
     channels, used_cached_channels = _get_slack_channels(search_string)
@@ -1149,6 +1151,7 @@ class BaseReportState:
                 f"Slack v2 upgrade failed: {update_error}"
             ) from update_error
 
+        notification.send_legacy_text()
         if record_upgrade_failure:
             self._filter_warnings.append(
                 "Slack v2 upgrade unavailable; delivered the text-only report "
@@ -1160,7 +1163,7 @@ class BaseReportState:
                     "reports.slack.v1_fallback.system_error"
                 )
                 logger.error(
-                    "Slack v2 upgrade failed with a system error; delivering the "
+                    "Slack v2 upgrade failed with a system error; delivered the "
                     "text-only report through Slack v1 for this execution: %s",
                     update_error,
                     extra={
@@ -1170,11 +1173,10 @@ class BaseReportState:
                 )
             else:
                 logger.warning(
-                    "Slack v2 upgrade unavailable; attempting a text-only Slack v1 "
-                    "fallback for this execution: %s",
+                    "Slack v2 upgrade unavailable; delivered the text-only report "
+                    "through Slack v1 for this execution: %s",
                     update_error,
                 )
-        notification.send_legacy_text()
 
     def _send_notification(
         self,

@@ -490,10 +490,13 @@ def refresh_cached_slack_channels_with_search(
         cache=False,
     )
     try:
-        cache_updated = cache_manager.cache.set(
-            cache_key,
-            refreshed_channels,
-            timeout=cache_timeout,
+        cache_updated = (
+            cache_manager.cache.set(
+                cache_key,
+                refreshed_channels,
+                timeout=cache_timeout,
+            )
+            is not False
         )
     except Exception:  # pylint: disable=broad-exception-caught
         cache_updated = False
