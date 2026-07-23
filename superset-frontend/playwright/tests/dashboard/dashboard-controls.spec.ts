@@ -93,9 +93,12 @@ testWithAssets(
     // one queried for. A `page.on('response')` listener rather than the
     // `waitForPost` helper: those resolve on a single response, and this needs
     // to collect every chart's request and correlate them by slice id. Set up
-    // after the initial load so only the forced requests are recorded. Every
-    // status per chart is retained (not overwritten), so a retried request whose
-    // later attempt succeeds cannot mask an earlier failure.
+    // after the initial load so only the forced requests are recorded. Statuses
+    // accumulate per chart rather than being overwritten, so a failure followed
+    // by a successful retry still surfaces, provided both responses land before
+    // the assertions read the map. That is a defence-in-depth choice more than a
+    // guarantee: the client retries only 502/503/504, so an application-level
+    // failure is never retried away to begin with.
     const forcedStatusesBySliceId = new Map<number, number[]>();
     page.on('response', response => {
       const request = response.request();
@@ -122,30 +125,28 @@ testWithAssets(
     await dashboard.forceRefresh();
 
     // Every chart — identified by slice_id, not merely by request count — must
-    // fire its own forced re-query. Polling on the distinct set (rather than the
-    // raw length) rejects a regression that refreshes one chart twice while
-    // skipping another.
+    // fire its own forced re-query, and no foreign chart may: polling the
+    // distinct set (rather than the raw request count) rejects a regression that
+    // refreshes one chart twice while skipping another. On timeout the diff
+    // names the slice ids that never arrived.
+    const byId = (a: number, b: number) => a - b;
     await expect
-      .poll(() => chartIds.every(id => forcedStatusesBySliceId.has(id)), {
+      .poll(() => [...forcedStatusesBySliceId.keys()].sort(byId), {
+        message:
+          'every dashboard chart should issue its own forced /api/v1/chart/data request',
         timeout: TIMEOUT.API_RESPONSE,
       })
-      .toBe(true);
+      .toEqual([...chartIds].sort(byId));
 
-    // Every forced request the backend served for each chart was accepted — all
-    // attempts, so a failed-then-retried request is not hidden by its retry.
-    for (const chartId of chartIds) {
-      const statuses = forcedStatusesBySliceId.get(chartId) ?? [];
+    // Every forced request recorded for a chart was accepted — all attempts, not
+    // just the last. The poll above already established that the recorded slice
+    // ids are exactly the dashboard's charts, so iterating the map needs no
+    // presence or emptiness guard.
+    for (const [sliceId, statuses] of forcedStatusesBySliceId) {
       expect(
-        statuses.length > 0 && statuses.every(status => status === 200),
-        `chart ${chartId}'s forced /api/v1/chart/data responses should all be 200, got [${statuses}]`,
+        statuses.every(status => status === 200),
+        `chart ${sliceId}'s forced /api/v1/chart/data responses should all be 200, got [${statuses}]`,
       ).toBe(true);
     }
-
-    // The set of refreshed charts matches exactly the charts on the dashboard:
-    // none skipped, none foreign.
-    const byId = (a: number, b: number) => a - b;
-    expect([...forcedStatusesBySliceId.keys()].sort(byId)).toEqual(
-      [...chartIds].sort(byId),
-    );
   },
 );

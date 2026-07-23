@@ -168,17 +168,20 @@ export class DashboardPage {
   }
 
   /**
+   * The dashboard header actions dropdown menu. Call after
+   * {@link openHeaderActionsMenu}, which is what makes the menu visible.
+   */
+  private headerActionsMenu(): Menu {
+    return new Menu(this.page, DashboardPage.SELECTORS.HEADER_ACTIONS_MENU);
+  }
+
+  /**
    * Trigger a dashboard-level force refresh via the header actions menu.
    * Re-runs every chart's query with `force=true`, bypassing the cache.
    */
   async forceRefresh(): Promise<void> {
     await this.openHeaderActionsMenu();
-
-    const menu = new Menu(
-      this.page,
-      DashboardPage.SELECTORS.HEADER_ACTIONS_MENU,
-    );
-    await menu.selectItem('Refresh dashboard');
+    await this.headerActionsMenu().selectItem('Refresh dashboard');
   }
 
   /**
@@ -191,10 +194,7 @@ export class DashboardPage {
   async selectDownloadOption(optionText: string): Promise<Download> {
     await this.openHeaderActionsMenu();
 
-    const menu = new Menu(
-      this.page,
-      DashboardPage.SELECTORS.HEADER_ACTIONS_MENU,
-    );
+    const menu = this.headerActionsMenu();
     const downloadPromise = this.page.waitForEvent('download');
     await menu.selectSubmenuItem('Download', optionText);
     return downloadPromise;
