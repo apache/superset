@@ -75,9 +75,9 @@ const StyledTabsContainer = styled.div<{ isDragging?: boolean }>`
   ${({ isDragging }) =>
     isDragging &&
     `
-    /* Show the drag indicator during drag, over the tab title textarea too */
-    &&,
-    && .editable-title * {
+    /* Show the drag indicator during drag, over the tab title textarea too.
+       The doubled parent outranks the title's own cursor; a single & loses. */
+    && .dragdroppable-tab * {
       cursor: move;
     }
 

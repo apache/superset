@@ -16,8 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { PointerEvent } from 'react';
-import { PointerSensor } from '@dnd-kit/core';
 import { fireEvent, render, screen } from 'spec/helpers/testing-library';
 import TabsRenderer, { TabItem, TabsRendererProps } from './TabsRenderer';
 
@@ -50,10 +48,50 @@ const mockProps: TabsRendererProps = {
   tabBarPaddingLeft: 16,
 };
 
+// Mirrors the tab label markup of Tab.tsx: the title lives in a
+// .dragdroppable-tab container and renders as a textarea via EditableTitle
+const draggableTabProps: TabsRendererProps = {
+  ...mockProps,
+  editMode: true,
+  tabItems: [
+    {
+      ...mockTabItems[0],
+      label: (
+        <div className="dragdroppable-tab">
+          <span className="editable-title">
+            <textarea defaultValue="Tab 1" />
+          </span>
+        </div>
+      ),
+    },
+    mockTabItems[1],
+  ],
+};
+
+// jsdom implements no PointerEvent, so @dnd-kit's PointerSensor never activates
+class MockPointerEvent extends MouseEvent {
+  isPrimary: boolean;
+
+  pointerId: number;
+
+  constructor(type: string, init: PointerEventInit = {}) {
+    super(type, init);
+    this.isPrimary = init.isPrimary ?? true;
+    this.pointerId = init.pointerId ?? 1;
+  }
+}
+
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('TabsRenderer', () => {
+  const { PointerEvent: OriginalPointerEvent } = globalThis;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    globalThis.PointerEvent = MockPointerEvent as typeof PointerEvent;
+  });
+
+  afterEach(() => {
+    globalThis.PointerEvent = OriginalPointerEvent;
   });
 
   test('renders tabs container with correct test attributes', () => {
@@ -202,23 +240,28 @@ describe('TabsRenderer', () => {
     expect(screen.queryByText('Tab 2 Content')).not.toBeInTheDocument(); // Not active
   });
 
-  test('activates dragging when the pointer starts on a tab title input', () => {
-    // Tab titles render a textarea that covers most of the tab in edit mode
-    const textarea = document.createElement('textarea');
-    document.body.appendChild(textarea);
-    const nativeEvent = new MouseEvent('pointerdown', { button: 0 });
-    Object.defineProperty(nativeEvent, 'isPrimary', { value: true });
-    textarea.dispatchEvent(nativeEvent);
+  test('drags from the tab title and shows the drag indicator only then', () => {
+    render(<TabsRenderer {...draggableTabProps} />);
+    const container = screen.getByTestId('dashboard-component-tabs');
+    const title = container.querySelector('textarea') as HTMLTextAreaElement;
 
-    const [activator] = PointerSensor.activators;
-    const onActivation = jest.fn();
-    const activated = activator.handler(
-      { nativeEvent } as unknown as PointerEvent<HTMLElement>,
-      { onActivation },
-    );
+    // At rest the title keeps the text cursor it sets on itself
+    expect(container).not.toHaveStyleRule('cursor', 'move', {
+      target: '.dragdroppable-tab *',
+    });
 
-    expect(nativeEvent.target).toBe(textarea);
-    expect(activated).toBe(true);
-    expect(onActivation).toHaveBeenCalled();
+    // Pressing on the title and moving past the sensor's distance constraint
+    // has to start a drag: the title covers most of the tab, so a tab that
+    // cannot be dragged from there cannot really be dragged at all
+    fireEvent.pointerDown(title, { button: 0, isPrimary: true, clientX: 0 });
+    fireEvent.pointerMove(document, {
+      button: 0,
+      isPrimary: true,
+      clientX: 50,
+    });
+
+    expect(container).toHaveStyleRule('cursor', 'move', {
+      target: '.dragdroppable-tab *',
+    });
   });
 });
