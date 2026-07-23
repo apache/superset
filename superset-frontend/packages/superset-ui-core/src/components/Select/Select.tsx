@@ -332,7 +332,12 @@ const Select = forwardRef(
           const isDisabled = option.disabled;
           const isNew = option.isNewOption;
 
+          // Mirror handleSelectAll, which skips falsy-valued options (e.g. the
+          // <NULL> option whose value is null): they are not bulk-selectable,
+          // so counting them here makes the "Select all" badge overstate what
+          // gets selected.
           if (
+            option.value &&
             (!isDisabled || isSelected) &&
             ((isNew && isSelected) || !isNew)
           ) {
