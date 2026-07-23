@@ -282,7 +282,6 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         if (
             time_grain
             and isinstance(col_type, Date)
-            and not isinstance(col_type, DateTime)
         ):
             return TimestampExpression(f"CAST({expr.name} AS DATE)", col, type_=Date())
         return expr
