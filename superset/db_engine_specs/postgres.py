@@ -279,10 +279,7 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         col_type = getattr(col, "type", None)
         # ``DateTime``/``TIMESTAMP`` are distinct SQLAlchemy types (not subclasses
         # of ``Date``), so this only matches pure ``DATE`` columns.
-        if (
-            time_grain
-            and isinstance(col_type, Date)
-        ):
+        if time_grain and isinstance(col_type, Date):
             return TimestampExpression(f"CAST({expr.name} AS DATE)", col, type_=Date())
         return expr
 
