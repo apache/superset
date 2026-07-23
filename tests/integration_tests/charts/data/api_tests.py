@@ -15,15 +15,20 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from __future__ import annotations
+
 import copy
 import time
 import unittest
 from contextlib import contextmanager
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 from unittest import mock
 from zipfile import ZipFile
+
+if TYPE_CHECKING:
+    from flask.testing import FlaskClient
 
 import pytest
 from flask import g, Response
@@ -1715,10 +1720,10 @@ _NATIVE_FILTER_SELECT_FORM_DATA: dict[str, Any] = {
     _native_filter_options_config(native_filter_timeout=None, data_cache_timeout=3456),
 )
 def test_native_filter_default_uses_data_cache_timeout(
-    test_client,
-    login_as_admin,
-    physical_query_context,
-):
+    test_client: FlaskClient[Any],
+    login_as_admin: Any,
+    physical_query_context: dict[str, Any],
+) -> None:
     physical_query_context["form_data"] = copy.deepcopy(_NATIVE_FILTER_SELECT_FORM_DATA)
     rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
     assert rv.json["result"][0]["cache_timeout"] == 3456
@@ -1729,10 +1734,10 @@ def test_native_filter_default_uses_data_cache_timeout(
     _native_filter_options_config(native_filter_timeout=9999, data_cache_timeout=3456),
 )
 def test_native_filter_uses_native_filter_options_cache_timeout(
-    test_client,
-    login_as_admin,
-    physical_query_context,
-):
+    test_client: FlaskClient[Any],
+    login_as_admin: Any,
+    physical_query_context: dict[str, Any],
+) -> None:
     physical_query_context["form_data"] = copy.deepcopy(_NATIVE_FILTER_SELECT_FORM_DATA)
     rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
     assert rv.json["result"][0]["cache_timeout"] == 9999
@@ -1743,10 +1748,10 @@ def test_native_filter_uses_native_filter_options_cache_timeout(
     _native_filter_options_config(native_filter_timeout=300, data_cache_timeout=3456),
 )
 def test_native_filter_overrides_dataset_timeout(
-    test_client,
-    login_as_admin,
-    physical_query_context,
-):
+    test_client: FlaskClient[Any],
+    login_as_admin: Any,
+    physical_query_context: dict[str, Any],
+) -> None:
     datasource: SqlaTable = (
         db.session.query(SqlaTable)
         .filter(SqlaTable.id == physical_query_context["datasource"]["id"])
@@ -1765,10 +1770,10 @@ def test_native_filter_overrides_dataset_timeout(
     _native_filter_options_config(native_filter_timeout=300, data_cache_timeout=3456),
 )
 def test_standard_chart_uses_dataset_timeout(
-    test_client,
-    login_as_admin,
-    physical_query_context,
-):
+    test_client: FlaskClient[Any],
+    login_as_admin: Any,
+    physical_query_context: dict[str, Any],
+) -> None:
     datasource: SqlaTable = (
         db.session.query(SqlaTable)
         .filter(SqlaTable.id == physical_query_context["datasource"]["id"])
@@ -1793,10 +1798,10 @@ def test_standard_chart_uses_dataset_timeout(
     ),
 )
 def test_native_filter_cache_disabled_semantics(
-    test_client,
-    login_as_admin,
-    physical_query_context,
-):
+    test_client: FlaskClient[Any],
+    login_as_admin: Any,
+    physical_query_context: dict[str, Any],
+) -> None:
     physical_query_context["form_data"] = copy.deepcopy(_NATIVE_FILTER_SELECT_FORM_DATA)
     test_client.post(CHART_DATA_URI, json=physical_query_context)
     rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
@@ -1808,10 +1813,10 @@ def test_native_filter_cache_disabled_semantics(
     _native_filter_options_config(native_filter_timeout=9999, data_cache_timeout=3456),
 )
 def test_false_positive_protection(
-    test_client,
-    login_as_admin,
-    physical_query_context,
-):
+    test_client: FlaskClient[Any],
+    login_as_admin: Any,
+    physical_query_context: dict[str, Any],
+) -> None:
     physical_query_context["form_data"] = {
         "native_filter_id": "TEST",
         "viz_type": "table",
@@ -1827,10 +1832,10 @@ def test_false_positive_protection(
     _native_filter_options_config(native_filter_timeout=300, data_cache_timeout=3456),
 )
 def test_explicit_custom_timeout_wins_over_native_filter(
-    test_client,
-    login_as_admin,
-    physical_query_context,
-):
+    test_client: FlaskClient[Any],
+    login_as_admin: Any,
+    physical_query_context: dict[str, Any],
+) -> None:
     physical_query_context["form_data"] = copy.deepcopy(_NATIVE_FILTER_SELECT_FORM_DATA)
     physical_query_context["custom_cache_timeout"] = CACHE_DISABLED_TIMEOUT
     rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
