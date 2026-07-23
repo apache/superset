@@ -16,6 +16,9 @@
 # under the License.
 
 import warnings
+from email.message import Message
+from http.client import RemoteDisconnected
+from urllib.error import HTTPError, URLError
 
 import pytest
 from slack_sdk.errors import (
@@ -25,14 +28,24 @@ from slack_sdk.errors import (
     SlackRequestError,
     SlackTokenRotationError,
 )
+from slack_sdk.http_retry.builtin_handlers import (
+    ConnectionErrorRetryHandler,
+    RateLimitErrorRetryHandler,
+)
 
+from superset.constants import CACHE_DISABLED_TIMEOUT
+from superset.exceptions import SupersetException
 from superset.utils.slack import (
     _emit_v1_flag_off_deprecation,
     _emit_v1_scope_missing_deprecation,
     _is_transient_slack_api_error,
     _SLACK_V1_DEPRECATION_MESSAGE,
     get_channels_with_search,
+    get_slack_client,
+    refresh_cached_slack_channels_with_search,
     should_use_v2_api,
+    SlackChannelListingClientError,
+    SlackChannelListingError,
     SlackChannelTypes,
     SlackV2ProbeClientError,
     SlackV2ProbeError,
@@ -47,6 +60,38 @@ class MockResponse:
     @property
     def data(self):
         return self._data
+
+
+def test_delivery_client_disables_outcome_unknown_connection_retries(mocker) -> None:
+    mocker.patch.dict(
+        "superset.utils.slack.app.config",
+        {
+            "SLACK_API_TOKEN": "xoxb-test",
+            "SLACK_PROXY": None,
+            "SLACK_API_TIMEOUT": 30,
+            "SLACK_API_RATE_LIMIT_RETRY_COUNT": 2,
+        },
+    )
+
+    delivery_client = get_slack_client(for_delivery=True)
+    discovery_client = get_slack_client()
+
+    assert not any(
+        isinstance(handler, RateLimitErrorRetryHandler)
+        for handler in delivery_client.retry_handlers
+    )
+    assert not any(
+        isinstance(handler, ConnectionErrorRetryHandler)
+        for handler in delivery_client.retry_handlers
+    )
+    assert any(
+        isinstance(handler, ConnectionErrorRetryHandler)
+        for handler in discovery_client.retry_handlers
+    )
+    assert any(
+        isinstance(handler, RateLimitErrorRetryHandler)
+        for handler in discovery_client.retry_handlers
+    )
 
 
 class TestGetChannelsWithSearch:
@@ -171,6 +216,29 @@ The server responded with: missing scope: channels:read"""
         )
 
     @pytest.mark.parametrize(
+        ("error_code", "expected_exception"),
+        [
+            ("invalid_auth", SlackChannelListingClientError),
+            ("service_unavailable", SlackChannelListingError),
+        ],
+    )
+    def test_channel_listing_preserves_slack_error_classification(
+        self,
+        mocker,
+        error_code: str,
+        expected_exception: type[Exception],
+    ) -> None:
+        mock_client = mocker.Mock()
+        mock_client.conversations_list.side_effect = SlackApiError(
+            "listing failed",
+            {"ok": False, "error": error_code},
+        )
+        mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
+
+        with pytest.raises(expected_exception):
+            get_channels_with_search(force=True)
+
+    @pytest.mark.parametrize(
         "types, expected_channel_ids",
         [
             ([SlackChannelTypes.PUBLIC], {"public_channel_id"}),
@@ -229,6 +297,317 @@ The server responded with: missing scope: channels:read"""
         get_channels_with_search(force=True)
 
         assert mock_client.conversations_list.call_args.kwargs["team_id"] == "T123456"
+
+    def test_cache_hit_and_channels_come_from_one_read(self, mocker) -> None:
+        cached_channels = [{"id": "C1", "name": "cached"}]
+        cache_get = mocker.patch(
+            "superset.utils.slack.cache_manager.cache.get",
+            return_value=cached_channels,
+        )
+        channel_fetch = mocker.patch("superset.utils.slack._get_channels")
+        mocker.patch.dict(
+            "superset.utils.slack.app.config", {"SLACK_TEAM_ID": "T123456"}
+        )
+
+        channels, used_cache = get_channels_with_search(return_cache_status=True)
+
+        assert channels == cached_channels
+        assert used_cache is True
+        cache_get.assert_called_once_with("slack_conversations_list_T123456")
+        channel_fetch.assert_not_called()
+
+    def test_disabled_cache_default_search_ignores_stale_entry(self, mocker) -> None:
+        cache_get = mocker.patch(
+            "superset.utils.slack.cache_manager.cache.get",
+            return_value=[{"id": "C0", "name": "stale"}],
+        )
+        cache_set = mocker.patch("superset.utils.slack.cache_manager.cache.set")
+        channel_fetch = mocker.patch(
+            "superset.utils.slack._get_channels",
+            side_effect=[
+                [{"id": "C1", "name": "first"}],
+                [{"id": "C2", "name": "second"}],
+            ],
+        )
+        mocker.patch.dict(
+            "superset.utils.slack.app.config",
+            {"SLACK_CACHE_TIMEOUT": CACHE_DISABLED_TIMEOUT},
+        )
+
+        assert get_channels_with_search() == [{"id": "C1", "name": "first"}]
+        assert get_channels_with_search() == [{"id": "C2", "name": "second"}]
+
+        cache_get.assert_not_called()
+        cache_set.assert_not_called()
+        assert channel_fetch.call_count == 2
+
+    def test_cache_miss_fetches_once_and_reports_live_provenance(self, mocker) -> None:
+        live_channels = [{"id": "C2", "name": "live"}]
+        cache_get = mocker.patch(
+            "superset.utils.slack.cache_manager.cache.get",
+            return_value=None,
+        )
+        channel_fetch = mocker.patch(
+            "superset.utils.slack._get_channels",
+            return_value=live_channels,
+        )
+        cache_set = mocker.patch("superset.utils.slack.cache_manager.cache.set")
+        mocker.patch(
+            "superset.utils.slack._slack_channel_cache_uses_report_session",
+            return_value=False,
+        )
+
+        channels, used_cache = get_channels_with_search(return_cache_status=True)
+
+        assert channels == live_channels
+        assert used_cache is False
+        cache_get.assert_called_once_with("slack_conversations_list")
+        channel_fetch.assert_called_once_with(
+            "slack_conversations_list",
+            team_id=None,
+            cache=False,
+        )
+        cache_set.assert_called_once_with(
+            "slack_conversations_list",
+            live_channels,
+            timeout=mocker.ANY,
+        )
+
+    def test_metastore_cache_miss_fetches_without_cache_write(self, mocker) -> None:
+        live_channels = [{"id": "C2", "name": "live"}]
+        mocker.patch("superset.utils.slack.cache_manager.cache.get", return_value=None)
+        channel_fetch = mocker.patch(
+            "superset.utils.slack._get_channels",
+            return_value=live_channels,
+        )
+        cache_set = mocker.patch("superset.utils.slack.cache_manager.cache.set")
+        mocker.patch(
+            "superset.utils.slack._slack_channel_cache_uses_report_session",
+            return_value=True,
+        )
+
+        channels, used_cache = get_channels_with_search(return_cache_status=True)
+
+        assert channels == live_channels
+        assert used_cache is False
+        channel_fetch.assert_called_once_with(
+            "slack_conversations_list",
+            team_id=None,
+            cache=False,
+        )
+        cache_set.assert_not_called()
+
+    def test_refreshes_cached_channels_once_per_workspace_cooldown(
+        self, mocker
+    ) -> None:
+        refreshed_channels = [{"id": "C2", "name": "new", "is_private": False}]
+        mocker.patch(
+            "superset.utils.slack._slack_channel_cache_uses_report_session",
+            return_value=False,
+        )
+        channel_search = mocker.patch(
+            "superset.utils.slack.get_channels_with_search",
+            return_value=refreshed_channels,
+        )
+        cache_get = mocker.patch(
+            "superset.utils.slack.cache_manager.cache.get",
+            return_value=None,
+        )
+        cache_set = mocker.patch(
+            "superset.utils.slack.cache_manager.cache.set",
+            return_value=True,
+        )
+        mocker.patch.dict(
+            "superset.utils.slack.app.config", {"SLACK_TEAM_ID": "T123456"}
+        )
+
+        assert (
+            refresh_cached_slack_channels_with_search(
+                search_string="new",
+                types=[SlackChannelTypes.PUBLIC],
+                exact_match=True,
+            )
+            == refreshed_channels
+        )
+
+        channel_search.assert_called_once_with(
+            force=True,
+            cache=False,
+        )
+        cache_get.assert_called_once_with(
+            "slack_conversations_list_T123456_refresh_cooldown"
+        )
+        assert cache_set.call_args_list == [
+            mocker.call(
+                "slack_conversations_list_T123456",
+                refreshed_channels,
+                timeout=mocker.ANY,
+            ),
+            mocker.call(
+                "slack_conversations_list_T123456_refresh_cooldown",
+                True,
+                timeout=300,
+            ),
+        ]
+
+    def test_failed_channel_cache_write_does_not_record_cooldown(self, mocker) -> None:
+        refreshed_channels = [{"id": "C2", "name": "new"}]
+        mocker.patch(
+            "superset.utils.slack._slack_channel_cache_uses_report_session",
+            return_value=False,
+        )
+        channel_search = mocker.patch(
+            "superset.utils.slack.get_channels_with_search",
+            return_value=refreshed_channels,
+        )
+        mocker.patch(
+            "superset.utils.slack.cache_manager.cache.get",
+            return_value=None,
+        )
+        cache_set = mocker.patch(
+            "superset.utils.slack.cache_manager.cache.set",
+            return_value=False,
+        )
+
+        assert refresh_cached_slack_channels_with_search(search_string="new") == [
+            {"id": "C2", "name": "new"}
+        ]
+        assert refresh_cached_slack_channels_with_search(search_string="new") == [
+            {"id": "C2", "name": "new"}
+        ]
+
+        assert channel_search.call_count == 2
+        assert cache_set.call_args_list == [
+            mocker.call(
+                "slack_conversations_list",
+                refreshed_channels,
+                timeout=mocker.ANY,
+            ),
+            mocker.call(
+                "slack_conversations_list",
+                refreshed_channels,
+                timeout=mocker.ANY,
+            ),
+        ]
+
+    def test_disabled_cache_refresh_ignores_stale_cooldown(self, mocker) -> None:
+        mocker.patch(
+            "superset.utils.slack._slack_channel_cache_uses_report_session",
+            return_value=False,
+        )
+        cache_get = mocker.patch(
+            "superset.utils.slack.cache_manager.cache.get",
+            return_value=True,
+        )
+        cache_set = mocker.patch("superset.utils.slack.cache_manager.cache.set")
+        channel_search = mocker.patch(
+            "superset.utils.slack.get_channels_with_search",
+            return_value=[{"id": "C2", "name": "new"}],
+        )
+        mocker.patch.dict(
+            "superset.utils.slack.app.config",
+            {"SLACK_CACHE_TIMEOUT": CACHE_DISABLED_TIMEOUT},
+        )
+
+        assert refresh_cached_slack_channels_with_search(search_string="new") == [
+            {"id": "C2", "name": "new"}
+        ]
+        assert refresh_cached_slack_channels_with_search(search_string="new") == [
+            {"id": "C2", "name": "new"}
+        ]
+
+        assert channel_search.call_args_list == [
+            mocker.call(
+                search_string="new",
+                types=None,
+                exact_match=False,
+                force=True,
+                cache=False,
+            ),
+            mocker.call(
+                search_string="new",
+                types=None,
+                exact_match=False,
+                force=True,
+                cache=False,
+            ),
+        ]
+        cache_get.assert_not_called()
+        cache_set.assert_not_called()
+
+    def test_recent_refresh_uses_cached_channels_without_another_force(
+        self, mocker
+    ) -> None:
+        mocker.patch(
+            "superset.utils.slack._slack_channel_cache_uses_report_session",
+            return_value=False,
+        )
+        mocker.patch("superset.utils.slack.cache_manager.cache.get", return_value=True)
+        channel_search = mocker.patch(
+            "superset.utils.slack.get_channels_with_search",
+            return_value=[{"id": "C2", "name": "new"}],
+        )
+
+        assert refresh_cached_slack_channels_with_search(search_string="new") == [
+            {"id": "C2", "name": "new"}
+        ]
+
+        channel_search.assert_called_once_with(
+            search_string="new",
+            types=None,
+            exact_match=False,
+            force=False,
+        )
+
+    def test_session_backed_cache_uses_uncached_refresh(self, mocker) -> None:
+        mocker.patch(
+            "superset.utils.slack._slack_channel_cache_uses_report_session",
+            return_value=True,
+        )
+        cache_get = mocker.patch("superset.utils.slack.cache_manager.cache.get")
+        cache_set = mocker.patch("superset.utils.slack.cache_manager.cache.set")
+        channel_search = mocker.patch(
+            "superset.utils.slack.get_channels_with_search",
+            return_value=[{"id": "C2", "name": "new"}],
+        )
+
+        assert refresh_cached_slack_channels_with_search(search_string="new") == [
+            {"id": "C2", "name": "new"}
+        ]
+
+        channel_search.assert_called_once_with(
+            search_string="new",
+            types=None,
+            exact_match=False,
+            force=True,
+            cache=False,
+        )
+        cache_get.assert_not_called()
+        cache_set.assert_not_called()
+
+    def test_failed_forced_refresh_does_not_record_cooldown(self, mocker) -> None:
+        mocker.patch(
+            "superset.utils.slack._slack_channel_cache_uses_report_session",
+            return_value=False,
+        )
+        channel_search = mocker.patch(
+            "superset.utils.slack.get_channels_with_search",
+            side_effect=SupersetException("Slack listing failed"),
+        )
+        mocker.patch(
+            "superset.utils.slack.cache_manager.cache.get",
+            return_value=None,
+        )
+        cache_set = mocker.patch("superset.utils.slack.cache_manager.cache.set")
+
+        with pytest.raises(SupersetException, match="Slack listing failed"):
+            refresh_cached_slack_channels_with_search(search_string="new")
+
+        channel_search.assert_called_once_with(
+            force=True,
+            cache=False,
+        )
+        cache_set.assert_not_called()
 
     def test_resolves_callable_team_id(self, mocker):
         # SLACK_TEAM_ID may be a callable (e.g. to fetch from a secrets store),
@@ -497,9 +876,10 @@ class TestShouldUseV2Api:
         [
             SlackClientNotConnectedError("transport closed"),
             SlackRequestError("bad request args"),
+            URLError("connection reset"),
         ],
     )
-    def test_returns_false_on_slack_sdk_client_error_from_probe(
+    def test_returns_false_on_slack_client_or_transport_error_from_probe(
         self, exception: Exception, mocker
     ):
         """Non-`SlackApiError` SDK failures (e.g. `SlackClientNotConnectedError`,
@@ -535,6 +915,11 @@ class TestShouldUseV2Api:
                 response={"ok": False, "error": "ratelimited"},
             ),
             SlackClientNotConnectedError("transport closed"),
+            URLError("connection reset"),
+            ConnectionResetError("connection reset"),
+            RemoteDisconnected("connection closed"),
+            TimeoutError("timed out"),
+            HTTPError("https://slack.com", 504, "unavailable", Message(), None),
         ],
     )
     def test_raises_system_error_for_transient_probe_when_requested(
@@ -564,6 +949,7 @@ class TestShouldUseV2Api:
             SlackRequestError("bad request args"),
             SlackClientConfigurationError("invalid client configuration"),
             SlackTokenRotationError("token rotation failed"),
+            HTTPError("https://slack.com", 413, "too large", Message(), None),
         ],
     )
     def test_raises_client_error_for_permanent_probe_failure_when_requested(

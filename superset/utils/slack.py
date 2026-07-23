@@ -19,7 +19,9 @@
 import functools
 import logging
 import warnings
-from typing import Any, Callable, Optional
+from http.client import RemoteDisconnected
+from typing import Any, Callable, Literal, Optional, overload
+from urllib.error import HTTPError, URLError
 
 from flask import current_app as app
 from slack_sdk import WebClient
@@ -31,8 +33,10 @@ from slack_sdk.errors import (
 from slack_sdk.http_retry.builtin_handlers import RateLimitErrorRetryHandler
 
 from superset import feature_flag_manager
+from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.exceptions import SupersetException
 from superset.extensions import cache_manager
+from superset.extensions.metastore_cache import SupersetMetastoreCache
 from superset.reports.schemas import SlackChannelSchema
 from superset.utils import cache as cache_util
 from superset.utils.backports import StrEnum
@@ -81,11 +85,29 @@ class SlackClientError(Exception):
 
 
 class SlackV2ProbeError(SupersetException):
-    """Slack v2 availability probe failed."""
+    """Transient probe failure classified by ``_send`` as a system error.
+
+    ``BaseReportState._send`` catches this through ``SupersetException`` and
+    uses the inherited status code to select ERROR severity.
+    """
 
 
 class SlackV2ProbeClientError(SlackV2ProbeError):
-    """Slack v2 availability failed due to permanent token or client setup."""
+    """Permanent probe failure classified by ``_send`` as a client warning.
+
+    ``BaseReportState._send`` catches this through ``SupersetException`` and
+    uses this status code to select WARNING severity.
+    """
+
+    status = 422
+
+
+class SlackChannelListingError(SupersetException):
+    """Slack channel listing failed due to a transient service condition."""
+
+
+class SlackChannelListingClientError(SlackChannelListingError):
+    """Slack channel listing failed due to permanent token or client setup."""
 
     status = 422
 
@@ -101,6 +123,16 @@ _TRANSIENT_SLACK_API_ERROR_CODES = frozenset(
         "timeout",
     }
 )
+
+SLACK_TRANSIENT_TRANSPORT_ERRORS: tuple[type[Exception], ...] = (
+    SlackClientNotConnectedError,
+    URLError,
+    ConnectionResetError,
+    RemoteDisconnected,
+    TimeoutError,
+)
+
+_SLACK_CHANNEL_REFRESH_COOLDOWN_SECONDS = 300
 
 
 NO_SLACK_RECIPIENTS_MESSAGE = "No recipients saved in the report"
@@ -136,7 +168,22 @@ def _is_transient_slack_api_error(ex: SlackApiError, error_code: str) -> bool:
     )
 
 
-def get_slack_client() -> WebClient:
+def is_transient_slack_transport_error(ex: Exception) -> bool:
+    """Classify raw Slack WebClient transport and external-upload failures."""
+    if isinstance(ex, HTTPError):
+        return ex.code in {408, 429} or 500 <= ex.code < 600
+    return isinstance(ex, SLACK_TRANSIENT_TRANSPORT_ERRORS)
+
+
+def is_retryable_slack_transport_error(ex: Exception) -> bool:
+    """Return whether an application retry cannot duplicate an accepted write."""
+    if isinstance(ex, HTTPError):
+        return is_transient_slack_transport_error(ex)
+    return isinstance(ex, SlackClientNotConnectedError)
+
+
+def get_slack_client(*, for_delivery: bool = False) -> WebClient:
+    """Build a Slack client without nested SDK retries for delivery writes."""
     token: str = app.config["SLACK_API_TOKEN"]
     if callable(token):
         token = token()
@@ -144,11 +191,15 @@ def get_slack_client() -> WebClient:
         token=token,
         proxy=app.config["SLACK_PROXY"],
         timeout=app.config["SLACK_API_TIMEOUT"],
+        retry_handlers=[] if for_delivery else None,
     )
 
     max_retry_count = app.config.get("SLACK_API_RATE_LIMIT_RETRY_COUNT", 2)
-    rate_limit_handler = RateLimitErrorRetryHandler(max_retry_count=max_retry_count)
-    client.retry_handlers.append(rate_limit_handler)
+    if not for_delivery:
+        rate_limit_handler = RateLimitErrorRetryHandler(
+            max_retry_count=max_retry_count,
+        )
+        client.retry_handlers.append(rate_limit_handler)
 
     logger.debug("Slack client configured with %d rate limit retries", max_retry_count)
 
@@ -172,6 +223,16 @@ def get_team_id() -> Optional[str]:
     return team_id or None
 
 
+def _get_slack_channels_cache_key(team_id: Optional[str]) -> str:
+    cache_key = "slack_conversations_list"
+    return f"{cache_key}_{team_id}" if team_id else cache_key
+
+
+def _slack_channel_cache_uses_report_session() -> bool:
+    """Return whether cache writes commit or roll back the report DB session."""
+    return isinstance(cache_manager.cache.cache, SupersetMetastoreCache)
+
+
 def get_channels(
     team_id: Optional[str] = None, **kwargs: Any
 ) -> list[SlackChannelSchema]:
@@ -193,10 +254,24 @@ def get_channels(
     """
     if team_id is None:
         team_id = get_team_id()
-    cache_key = "slack_conversations_list"
-    if team_id:
-        cache_key = f"{cache_key}_{team_id}"
+    cache_key = _get_slack_channels_cache_key(team_id)
     return _get_channels(cache_key, team_id=team_id, **kwargs)
+
+
+def _get_channels_with_cache_status() -> tuple[list[SlackChannelSchema], bool]:
+    """Fetch channels and cache-hit provenance using one cache read."""
+    team_id = get_team_id()
+    cache_key = _get_slack_channels_cache_key(team_id)
+    cache_timeout = app.config["SLACK_CACHE_TIMEOUT"]
+    if cache_timeout == CACHE_DISABLED_TIMEOUT:
+        return _get_channels(cache_key, team_id=team_id, cache=False), False
+    if (cached_channels := cache_manager.cache.get(cache_key)) is not None:
+        return cached_channels, True
+
+    channels = _get_channels(cache_key, team_id=team_id, cache=False)
+    if not _slack_channel_cache_uses_report_session():
+        cache_manager.cache.set(cache_key, channels, timeout=cache_timeout)
+    return channels, False
 
 
 @cache_util.memoized_func(
@@ -254,36 +329,15 @@ def _get_channels(
         raise
 
 
-def get_channels_with_search(
-    search_string: str = "",
-    types: Optional[list[SlackChannelTypes]] = None,
-    exact_match: bool = False,
-    force: bool = False,
+def _filter_slack_channels(
+    channels: list[SlackChannelSchema],
+    *,
+    search_string: str,
+    types: Optional[list[SlackChannelTypes]],
+    exact_match: bool,
 ) -> list[SlackChannelSchema]:
-    """
-    The slack api is paginated but does not include search, so we need to fetch
-    all channels and filter them ourselves
-    This will search by slack name or id
-    """
-    try:
-        channels = get_channels(
-            force=force,
-            cache_timeout=app.config["SLACK_CACHE_TIMEOUT"],
-        )
-    except SlackApiError as ex:
-        # Check if it's a rate limit error
-        status_code = getattr(ex.response, "status_code", None)
-        if status_code == 429:
-            raise SupersetException(
-                f"Slack API rate limit exceeded: {ex}. "
-                "For large workspaces, consider increasing "
-                "SLACK_API_RATE_LIMIT_RETRY_COUNT"
-            ) from ex
-        raise SupersetException(f"Failed to list channels: {ex}") from ex
-    except SlackClientError as ex:
-        raise SupersetException(f"Failed to list channels: {ex}") from ex
-
-    if types and not len(types) == len(SlackChannelTypes):
+    """Filter a complete Slack channel listing by type and target."""
+    if types and len(types) != len(SlackChannelTypes):
         conditions: list[Callable[[SlackChannelSchema], bool]] = []
         if SlackChannelTypes.PUBLIC in types:
             conditions.append(lambda channel: not channel["is_private"])
@@ -294,25 +348,180 @@ def get_channels_with_search(
             channel for channel in channels if any(cond(channel) for cond in conditions)
         ]
 
-    # The search string can be multiple channels separated by commas
-    if search_string:
-        search_array = recipients_string_to_list(search_string)
-        channels = [
-            channel
-            for channel in channels
-            if any(
-                (
-                    search.lower() == channel["name"].lower()
-                    or search.lower() == channel["id"].lower()
-                    if exact_match
-                    else (
-                        search.lower() in channel["name"].lower()
-                        or search.lower() in channel["id"].lower()
-                    )
+    if not search_string:
+        return channels
+
+    search_array = recipients_string_to_list(search_string)
+    return [
+        channel
+        for channel in channels
+        if any(
+            (
+                search.lower() == channel["name"].lower()
+                or search.lower() == channel["id"].lower()
+                if exact_match
+                else (
+                    search.lower() in channel["name"].lower()
+                    or search.lower() in channel["id"].lower()
                 )
-                for search in search_array
             )
-        ]
+            for search in search_array
+        )
+    ]
+
+
+@overload
+def get_channels_with_search(
+    search_string: str = "",
+    types: Optional[list[SlackChannelTypes]] = None,
+    exact_match: bool = False,
+    force: bool = False,
+    cache: bool = True,
+    *,
+    return_cache_status: Literal[False] = False,
+) -> list[SlackChannelSchema]: ...
+
+
+@overload
+def get_channels_with_search(
+    search_string: str = "",
+    types: Optional[list[SlackChannelTypes]] = None,
+    exact_match: bool = False,
+    force: bool = False,
+    cache: bool = True,
+    *,
+    return_cache_status: Literal[True],
+) -> tuple[list[SlackChannelSchema], bool]: ...
+
+
+def get_channels_with_search(
+    search_string: str = "",
+    types: Optional[list[SlackChannelTypes]] = None,
+    exact_match: bool = False,
+    force: bool = False,
+    cache: bool = True,
+    *,
+    return_cache_status: bool = False,
+) -> list[SlackChannelSchema] | tuple[list[SlackChannelSchema], bool]:
+    """
+    The slack api is paginated but does not include search, so we need to fetch
+    all channels and filter them ourselves
+    This will search by slack name or id
+    """
+    used_cache = False
+    cache_timeout = app.config["SLACK_CACHE_TIMEOUT"]
+    cache_enabled = cache and cache_timeout != CACHE_DISABLED_TIMEOUT
+    try:
+        if return_cache_status and cache_enabled and not force:
+            channels, used_cache = _get_channels_with_cache_status()
+        else:
+            channels = get_channels(
+                force=force,
+                cache=cache_enabled,
+                cache_timeout=cache_timeout,
+            )
+    except SlackApiError as ex:
+        error_code = _get_slack_api_error_code(ex)
+        error_class = (
+            SlackChannelListingError
+            if _is_transient_slack_api_error(ex, error_code)
+            else SlackChannelListingClientError
+        )
+        raise error_class(f"Failed to list channels: {ex}") from ex
+    except SLACK_TRANSIENT_TRANSPORT_ERRORS as ex:
+        error_class = (
+            SlackChannelListingError
+            if is_transient_slack_transport_error(ex)
+            else SlackChannelListingClientError
+        )
+        raise error_class(f"Failed to list channels: {ex}") from ex
+    except (SlackSDKClientError, SlackClientError) as ex:
+        raise SlackChannelListingClientError(f"Failed to list channels: {ex}") from ex
+
+    channels = _filter_slack_channels(
+        channels,
+        search_string=search_string,
+        types=types,
+        exact_match=exact_match,
+    )
+    return (channels, used_cache) if return_cache_status else channels
+
+
+def refresh_cached_slack_channels_with_search(
+    search_string: str = "",
+    types: Optional[list[SlackChannelTypes]] = None,
+    exact_match: bool = False,
+) -> list[SlackChannelSchema]:
+    """Refresh stale channels with a best-effort cache-backend cooldown.
+
+    External cache backends record a cooldown only after the refreshed listing
+    is stored successfully. Disabled and metastore-backed caches use an uncached
+    request without a cooldown because metastore writes commit the report
+    transaction. Concurrent workers can still refresh in parallel when the
+    backend cannot provide transaction-safe coordination.
+    """
+    team_id = get_team_id()
+    cache_key = _get_slack_channels_cache_key(team_id)
+    cooldown_key = f"{cache_key}_refresh_cooldown"
+    cache_timeout = app.config["SLACK_CACHE_TIMEOUT"]
+
+    if (
+        _slack_channel_cache_uses_report_session()
+        or cache_timeout == CACHE_DISABLED_TIMEOUT
+    ):
+        return get_channels_with_search(
+            search_string=search_string,
+            types=types,
+            exact_match=exact_match,
+            force=True,
+            cache=False,
+        )
+
+    if cache_manager.cache.get(cooldown_key) is not None:
+        return get_channels_with_search(
+            search_string=search_string,
+            types=types,
+            exact_match=exact_match,
+            force=False,
+        )
+
+    refreshed_channels = get_channels_with_search(
+        force=True,
+        cache=False,
+    )
+    try:
+        cache_updated = cache_manager.cache.set(
+            cache_key,
+            refreshed_channels,
+            timeout=cache_timeout,
+        )
+    except Exception:  # pylint: disable=broad-exception-caught
+        cache_updated = False
+        logger.warning(
+            "Could not cache refreshed Slack channels",
+            exc_info=True,
+        )
+
+    channels = _filter_slack_channels(
+        refreshed_channels,
+        search_string=search_string,
+        types=types,
+        exact_match=exact_match,
+    )
+    if not cache_updated:
+        return channels
+
+    try:
+        cache_manager.cache.set(
+            cooldown_key,
+            True,
+            timeout=_SLACK_CHANNEL_REFRESH_COOLDOWN_SECONDS,
+        )
+    except Exception:  # pylint: disable=broad-exception-caught
+        logger.warning(
+            "Could not record Slack channel refresh cooldown",
+            exc_info=True,
+        )
     return channels
 
 
@@ -373,15 +582,7 @@ def should_use_v2_api(*, raise_on_error: bool = False) -> bool:
                     f"Slack v2 availability probe failed: {error_code or str(ex)}"
                 ) from ex
         return False
-    except SlackSDKClientError as ex:
-        # Non-API SDK failures (e.g. SlackClientNotConnectedError,
-        # SlackRequestError, SlackClientConfigurationError) are not subclasses
-        # of SlackApiError, so without this branch they would escape the probe
-        # raw. The caller runs this probe *before* the mapped Slack send `try`,
-        # so an un-caught probe error aborts the entire recipient loop instead
-        # of failing a single recipient. Treat any probe connection/transport
-        # failure as "v2 unavailable" for text reports. File-bearing reports
-        # request an exception so the command can retain error classification.
+    except SLACK_TRANSIENT_TRANSPORT_ERRORS as ex:
         logger.warning(
             "Slack v2 probe failed (%s: %s).",
             type(ex).__name__,
@@ -390,10 +591,24 @@ def should_use_v2_api(*, raise_on_error: bool = False) -> bool:
         if raise_on_error:
             error_class = (
                 SlackV2ProbeError
-                if isinstance(ex, SlackClientNotConnectedError)
+                if is_transient_slack_transport_error(ex)
                 else SlackV2ProbeClientError
             )
             raise error_class(
+                f"Slack v2 availability probe failed: {type(ex).__name__}: {ex}"
+            ) from ex
+        return False
+    except SlackSDKClientError as ex:
+        # Permanent SDK request/configuration failures are operator-fixable.
+        # Text reports retain v1 compatibility, while file-bearing reports ask
+        # the command to preserve the client-error classification.
+        logger.warning(
+            "Slack v2 probe failed (%s: %s).",
+            type(ex).__name__,
+            ex,
+        )
+        if raise_on_error:
+            raise SlackV2ProbeClientError(
                 f"Slack v2 availability probe failed: {type(ex).__name__}: {ex}"
             ) from ex
         return False

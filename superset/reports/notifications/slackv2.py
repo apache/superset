@@ -15,11 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from collections.abc import Sequence
+import time
+from collections.abc import Callable, Sequence
+from email.message import Message
 from io import IOBase
-from typing import List, Union
+from typing import List, TypeVar, Union
+from urllib.error import HTTPError
 
 from flask import g
+from slack_sdk import WebClient
 from slack_sdk.errors import (
     BotUserAccessError,
     SlackClientConfigurationError,
@@ -38,9 +42,10 @@ from superset.reports.notifications.exceptions import (
     NotificationUnprocessableException,
 )
 from superset.reports.notifications.slack_mixin import (
-    _call_slack_api,
-    _send_to_slack_channels,
+    call_slack_api,
+    send_to_slack_channels,
     SlackMixin,
+    SlackRetryDeadlineError,
 )
 from superset.utils import json
 from superset.utils.decorators import statsd_gauge
@@ -51,6 +56,100 @@ from superset.utils.slack import (
 )
 
 logger = logging.getLogger(__name__)
+
+_SlackPhaseResult = TypeVar("_SlackPhaseResult")
+
+
+def _call_slack_api_phase(
+    client: WebClient,
+    method: Callable[..., _SlackPhaseResult],
+    *,
+    retry_deadline: float,
+    **kwargs: object,
+) -> _SlackPhaseResult:
+    """Call one Slack upload phase with its request timeout capped by the budget."""
+    original_timeout = client.timeout
+
+    def call() -> _SlackPhaseResult:
+        remaining = retry_deadline - time.monotonic()
+        if remaining <= 0:
+            raise SlackRetryDeadlineError("Slack send retry deadline exceeded")
+        client.timeout = min(float(original_timeout), remaining)
+        try:
+            return method(**kwargs)
+        finally:
+            client.timeout = original_timeout
+
+    return call_slack_api(call, retry_deadline=retry_deadline)
+
+
+def _read_upload_data(file: str | IOBase | bytes) -> bytes:
+    """Read a Slack upload input using the SDK's supported single-file forms."""
+    if isinstance(file, str):
+        with open(file, "rb") as readable:
+            return readable.read()
+    if isinstance(file, bytes):
+        return file
+    data = file.read()
+    return data.encode() if isinstance(data, str) else data
+
+
+def _upload_file_to_slack(
+    client: WebClient,
+    *,
+    channel: str,
+    file: str | IOBase | bytes,
+    initial_comment: str,
+    title: str,
+    filename: str,
+    retry_deadline: float,
+) -> None:
+    """Upload one file without replaying completed phases during retries."""
+    data = _read_upload_data(file)
+    upload_url_response = _call_slack_api_phase(
+        client,
+        client.files_getUploadURLExternal,
+        retry_deadline=retry_deadline,
+        filename=filename,
+        length=len(data),
+    )
+    file_id = upload_url_response.get("file_id")
+    upload_url = upload_url_response.get("upload_url")
+    if not isinstance(file_id, str) or not isinstance(upload_url, str):
+        raise SlackRequestError("Slack did not return a file ID and upload URL")
+
+    def upload_file() -> None:
+        remaining = retry_deadline - time.monotonic()
+        if remaining <= 0:
+            raise SlackRetryDeadlineError("Slack send retry deadline exceeded")
+        # files_upload_v2 uses this SDK helper internally. Calling it directly
+        # keeps retries scoped to the raw upload rather than replaying URL creation.
+        result = client._upload_file(  # pylint: disable=protected-access
+            url=upload_url,
+            data=data,
+            logger=logger,
+            timeout=min(float(client.timeout), remaining),
+            proxy=client.proxy,
+            ssl=client.ssl,
+        )
+        if result.status != 200:
+            raise HTTPError(
+                upload_url,
+                result.status,
+                f"Slack external upload failed: {result.body}",
+                Message(),
+                None,
+            )
+
+    call_slack_api(upload_file, retry_deadline=retry_deadline)
+    _call_slack_api_phase(
+        client,
+        client.files_completeUploadExternal,
+        retry_deadline=retry_deadline,
+        files=[{"id": file_id, "title": title}],
+        channel_id=channel,
+        initial_comment=initial_comment,
+    )
 
 
 class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-few-public-methods
@@ -93,7 +192,7 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
     def send(self) -> None:
         global_logs_context = getattr(g, "logs_context", {}) or {}
         try:
-            client = get_slack_client()
+            client = get_slack_client(for_delivery=True)
             title = self._content.name
             body = self._get_body(content=self._content)
 
@@ -105,11 +204,12 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
             file_type, files = self._get_inline_files()
             file_name = f"{title}.{file_type}"
 
-            def send_to_channel(channel: str) -> None:
+            def send_to_channel(channel: str, retry_deadline: float) -> None:
                 if len(files) > 0:
                     for file in files:
-                        _call_slack_api(
-                            client.files_upload_v2,
+                        _upload_file_to_slack(
+                            client,
+                            retry_deadline=retry_deadline,
                             channel=channel,
                             file=file,
                             initial_comment=body,
@@ -117,10 +217,15 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
                             filename=file_name,
                         )
                 else:
-                    _call_slack_api(client.chat_postMessage, channel=channel, text=body)
+                    call_slack_api(
+                        client.chat_postMessage,
+                        retry_deadline=retry_deadline,
+                        channel=channel,
+                        text=body,
+                    )
 
             # files_upload returns SlackResponse as we run it in sync mode.
-            _send_to_slack_channels(channels, send_to_channel)
+            send_to_slack_channels(channels, send_to_channel)
 
             logger.info(
                 "Report sent to slack",
