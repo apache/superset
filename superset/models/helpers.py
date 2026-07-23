@@ -54,7 +54,7 @@ from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.models.mixins import AuditMixin
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import get_locale, lazy_gettext as _
-from jinja2.exceptions import TemplateError
+from jinja2.exceptions import TemplateError, UndefinedError
 from markupsafe import escape, Markup
 from pandas import DateOffset
 from sqlalchemy import and_, Column, or_, UniqueConstraint
@@ -2775,6 +2775,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if template_processor:
             try:
                 sql = template_processor.process_template(sql)
+            except UndefinedError as ex:
+                # Raised when a template references an undefined value, e.g.
+                # indexing into an empty list returned by `filter_values()`
+                # when no dashboard filter is active for that column.
+                raise QueryObjectValidationError(
+                    _(
+                        "Virtual dataset template error: %(msg)s",
+                        msg=str(ex),
+                    )
+                ) from ex
             except (TemplateError, SupersetSyntaxErrorException) as ex:
                 # Extract error message from different exception types
                 if isinstance(ex, TemplateError):
