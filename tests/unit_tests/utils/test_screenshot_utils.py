@@ -639,6 +639,44 @@ class TestTileWaitBudget:
         assert timeouts == [100 * 1000, 50 * 1000, 10 * 1000]
         assert timeouts == sorted(timeouts, reverse=True)
 
+    def test_readiness_wait_uses_budget_recomputed_after_scroll_settle(
+        self, mock_page, monkeypatch
+    ):
+        """Regression test: the readiness-wait timeout must be capped using
+        the budget recomputed *after* the scroll-settle sleep, not the stale
+        value from before it -- otherwise each tile could overrun the total
+        budget by up to one settle interval (flagged in PR review)."""
+        monkeypatch.setattr(
+            "superset.utils.screenshot_utils.TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS",  # noqa: E501
+            1000,
+        )
+        # A single-tile dashboard to keep the scenario simple.
+        mock_page.evaluate.return_value = {
+            "height": 1000,
+            "top": 100,
+            "left": 50,
+            "width": 800,
+        }
+        clock = self._FakeClock()
+        # The scroll-settle sleep itself consumes 950s of wall-clock time,
+        # leaving only 50s of the 1000s budget by the time the readiness
+        # wait is capped.
+        mock_page.wait_for_timeout.side_effect = lambda *args, **kwargs: setattr(
+            clock, "now", clock.now + 950
+        )
+
+        with patch("superset.utils.screenshot_utils.time.monotonic", new=clock):
+            with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+                take_tiled_screenshot(
+                    mock_page, "dashboard", tile_height=2000, load_wait=999
+                )
+
+        timeout = mock_page.wait_for_function.call_args_list[0][1]["timeout"]
+        # Must reflect the post-settle remaining budget (50s), not the
+        # stale pre-settle value (1000s, which would have let load_wait's
+        # full 999s through uncapped).
+        assert timeout == 50 * 1000
+
     def test_budget_exhausted_raises_and_stops_capturing(self, mock_page, monkeypatch):
         """Exhausting the budget aborts cleanly instead of capturing unchecked."""
         monkeypatch.setattr(

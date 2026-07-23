@@ -349,38 +349,41 @@ def take_tiled_screenshot(  # noqa: C901
 
         screenshot_tiles: list[bytes] = []
 
+        def _raise_if_budget_exhausted(elapsed: float, remaining_budget: float) -> None:
+            if remaining_budget > 0:
+                return
+            # A customer-side chart-loading issue (a slow/hung dashboard),
+            # not a Superset system fault, so this is a WARNING rather
+            # than an ERROR -- consistent with #38130/#38441, which
+            # deliberately downgraded screenshot timeout logs the same way.
+            logger.warning(
+                "Tiled screenshot time budget exhausted on tile %s/%s: "
+                "%s/%s tiles captured so far, %.1fs elapsed of a %.1fs "
+                "budget. Aborting instead of capturing remaining tiles "
+                "unchecked.%s",
+                i + 1,
+                num_tiles,
+                len(screenshot_tiles),
+                num_tiles,
+                elapsed,
+                wait_budget_seconds,
+                context_suffix,
+            )
+            raise TiledScreenshotBudgetExceededError(
+                f"Tiled screenshot budget of "
+                f"{wait_budget_seconds:.1f}s exhausted "
+                f"after {len(screenshot_tiles)}/{num_tiles} tiles"
+            )
+
         for i in range(num_tiles):
             # Check the time budget before starting this tile's readiness wait.
             # If it's already exhausted, we can no longer verify this (or any
             # later) tile is actually ready to capture -- fail loudly instead
             # of silently snapshotting a spinner or blank chart, or running
             # past the Celery task time limit and getting SIGKILLed.
-            tile_start = time.monotonic()
-            elapsed = tile_start - start_time
+            elapsed = time.monotonic() - start_time
             remaining_budget = wait_budget_seconds - elapsed
-            if remaining_budget <= 0:
-                # A customer-side chart-loading issue (a slow/hung dashboard),
-                # not a Superset system fault, so this is a WARNING rather
-                # than an ERROR -- consistent with #38130/#38441, which
-                # deliberately downgraded screenshot timeout logs the same way.
-                logger.warning(
-                    "Tiled screenshot time budget exhausted on tile %s/%s: "
-                    "%s/%s tiles captured so far, %.1fs elapsed of a %.1fs "
-                    "budget. Aborting instead of capturing remaining tiles "
-                    "unchecked.%s",
-                    i + 1,
-                    num_tiles,
-                    len(screenshot_tiles),
-                    num_tiles,
-                    elapsed,
-                    wait_budget_seconds,
-                    context_suffix,
-                )
-                raise TiledScreenshotBudgetExceededError(
-                    f"Tiled screenshot budget of "
-                    f"{wait_budget_seconds:.1f}s exhausted "
-                    f"after {len(screenshot_tiles)}/{num_tiles} tiles"
-                )
+            _raise_if_budget_exhausted(elapsed, remaining_budget)
 
             # Calculate scroll position to show this tile's content
             scroll_y = dashboard_top + (i * tile_height)
@@ -395,6 +398,18 @@ def take_tiled_screenshot(  # noqa: C901
             )
             # Wait for scroll to settle and content to load
             page.wait_for_timeout(SCROLL_SETTLE_TIMEOUT_MS)
+
+            # Recompute the remaining budget after the scroll-settle sleep --
+            # which itself consumes real wall-clock time -- rather than
+            # reusing the value from before it, so the readiness-check
+            # timeout below is capped against a fresh number instead of a
+            # stale one that would let each tile overrun the budget by up
+            # to one settle interval.
+            tile_wait_start = time.monotonic()
+            elapsed = tile_wait_start - start_time
+            remaining_budget = wait_budget_seconds - elapsed
+            _raise_if_budget_exhausted(elapsed, remaining_budget)
+
             # Wait for every chart holder visible in the current viewport to reach
             # a terminal state (rendered chart or error/empty state), capped at
             # whatever remains of the total time budget so a slow dashboard
@@ -404,7 +419,6 @@ def take_tiled_screenshot(  # noqa: C901
             # mounted anything yet does not satisfy this check -- unlike checking
             # for the absence of `.loading`, which passes vacuously in that case.
             tile_load_wait = min(load_wait, remaining_budget)
-            tile_wait_start = time.monotonic()
             try:
                 page.wait_for_function(
                     _TILE_READY_CHECK_JS,

@@ -1140,6 +1140,46 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
     @patch("superset.utils.webdriver._browser_manager")
     @patch("superset.utils.webdriver.take_tiled_screenshot")
     @patch("superset.utils.webdriver.app")
+    def test_tiled_path_forwards_non_none_log_context(
+        self, mock_app, mock_take_tiled, mock_browser_manager
+    ):
+        """A caller-supplied log_context reaches take_tiled_screenshot unchanged."""
+        mock_user = MagicMock()
+        mock_user.username = "test_user"
+        mock_app.config = {
+            **self._base_config,
+            "SCREENSHOT_TILED_ENABLED": True,
+            "SCREENSHOT_TILED_CHART_THRESHOLD": 20,
+            "SCREENSHOT_TILED_HEIGHT_THRESHOLD": 5000,
+            "SCREENSHOT_TILED_VIEWPORT_HEIGHT": 600,
+        }
+
+        mock_context, mock_page = self._make_pw_mocks(mock_browser_manager)
+        mock_page.evaluate.side_effect = [25, 6000]
+        mock_take_tiled.return_value = b"tiled_screenshot"
+
+        with patch.object(WebDriverPlaywright, "auth", return_value=mock_context):
+            result = WebDriverPlaywright("chrome").get_screenshot(
+                "http://example.com",
+                "standalone",
+                mock_user,
+                log_context="execution_id=abc-123",
+            )
+
+        assert result == b"tiled_screenshot"
+        mock_take_tiled.assert_called_once_with(
+            mock_page,
+            "standalone",
+            600,
+            load_wait=30,
+            animation_wait=2,
+            log_context="execution_id=abc-123",
+        )
+
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.webdriver._browser_manager")
+    @patch("superset.utils.webdriver.take_tiled_screenshot")
+    @patch("superset.utils.webdriver.app")
     def test_tiled_fallback_triggered_on_empty_bytes(
         self, mock_app, mock_take_tiled, mock_browser_manager
     ):
