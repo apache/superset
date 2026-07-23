@@ -1,0 +1,269 @@
+---
+title: OAuth Configuration
+sidebar_position: 4
+---
+
+# Keycloak
+
+## Complete example: Keycloak with PKCE and group mapping
+
+This example demonstrates a complete Keycloak integration with Superset, including:
+
+* **PKCE** (Proof Key for Code Exchange) on top of a confidential client
+* **Group-to-role mapping**: Keycloak groups are mapped to Superset roles at every login (`AUTH_ROLES_SYNC_AT_LOGIN`)
+* **Access control**: users who authenticate successfully but do not belong to any mapped group are rejected with an explicit message instead of being silently logged in
+* **Single logout** (RP-Initiated Logout): logging out of Superset also terminates the Keycloak SSO session, using `id_token_hint`
+
+## Prerequisites: Keycloak client configuration
+
+### 1. Client settings
+
+Create a confidential OIDC client (e.g. `my_superset_clientid`) with:
+
+* **Valid redirect URIs**: `https://<superset-host>/oauth-authorized/keycloak`
+* **Valid post logout redirect URIs**: `https://<superset-host>` — required for the single-logout redirect to be accepted by Keycloak
+
+### 2. Enable PKCE
+
+Set **Proof Key for Code Exchange Code Challenge Method** to **S256** under:
+
+`Clients -> my_superset_clientid -> Advanced -> Advanced settings`
+
+### 3. Expose group membership in the userinfo response
+
+:::warning
+Keycloak does **not** expose a `groups` claim by default. Without this mapper, every user will be rejected with "no valid groups" even if they are correctly assigned in Keycloak.
+:::
+
+Add a **Group Membership** mapper to the client:
+
+`Clients -> my_superset_clientid -> Client scopes -> my_superset_clientid-dedicated -> Add mapper -> By configuration -> Group Membership`
+
+* **Token Claim Name**: `groups`
+* **Full group path**: **OFF** — otherwise groups are returned as `/my_superset_clientid_admin` (with a leading slash) and the role mapping will silently fail
+* **Add to userinfo**: **ON**
+
+### 4. Create the groups
+
+Make sure the following groups exist in Keycloak and that users are assigned to at least one of them:
+
+* `<my_superset_clientid>_admin`
+* `<my_superset_clientid>_alpha`
+* `<my_superset_clientid>_gamma`
+* `<my_superset_clientid>_public`
+
+The mapping between Keycloak groups and Superset roles is defined by `AUTH_ROLES_MAPPING` in the configuration below. Users who do not belong to any of the mapped groups are shown an explicit access-denied page, without being logged in.
+
+:::note
+This example deliberately renders the access-denied page directly from the OAuth callback instead of using Flask `flash()` messages. Starting with the React-based login page (Superset 6.x lineage), flash messages are no longer displayed anywhere in the UI, so a `flash()` + redirect would fail silently and the user would bounce between Superset and Keycloak (whose SSO session is still active) with no explanation. A directly rendered response works on every Superset version. The `AuthOAuthView` subclassing pattern itself still works on 6.x because the `/oauth-authorized/<provider>` callback route is still served by Flask-AppBuilder — but verify against your target version, as login-flow extension points are being reworked.
+:::
+
+:::note
+The issuer URL format depends on your Keycloak version. Legacy (Wildfly-based, < 17) distributions use `https://<keycloak-host>/auth/realms/<REALM>`, while modern (Quarkus-based) distributions use `https://<keycloak-host>/realms/<REALM>` — without the `/auth` prefix.
+:::
+
+## Kubernetes Secret
+
+Create a Secret containing the OIDC credentials, so they never appear in your Helm values (and therefore never end up in Git):
+
+```bash
+kubectl create secret generic superset-oidc \
+  --namespace superset \
+  --from-literal=CLIENT_ID='my_superset_clientid' \
+  --from-literal=CLIENT_SECRET='xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' \
+  --from-literal=OIDC_ISSUER='https://mykeycloak.youpi.fr/realms/MYREALM'
+```
+
+In a GitOps workflow, prefer provisioning this Secret through your secret management tooling (e.g. External Secrets Operator, Sealed Secrets) rather than creating it imperatively.
+
+## Helm chart configuration
+
+Reference the Secret with `envFromSecret` instead of putting values in `extraSecretEnv`:
+
+```yaml
+envFromSecret: superset-oidc
+
+configOverrides:
+  enable_proxy_fix: |
+    # Required when Superset runs behind an ingress / reverse proxy terminating TLS.
+    # Without it, redirect_uri and the post-logout redirect are generated with
+    # http:// and Keycloak rejects the callback.
+    ENABLE_PROXY_FIX = True
+
+  enable_oauth: |
+    from flask import redirect, request, session
+    from flask_appbuilder import expose
+    from flask_appbuilder.security.manager import AUTH_OAUTH
+    from flask_appbuilder.security.views import AuthOAuthView
+    from flask_login import login_user
+    from superset.security import SupersetSecurityManager
+    import logging
+    import os
+
+    log = logging.getLogger(__name__)
+
+    AUTH_TYPE = AUTH_OAUTH
+    AUTH_USER_REGISTRATION = True
+    AUTH_ROLES_SYNC_AT_LOGIN = True
+    AUTH_USER_REGISTRATION_ROLE = None
+
+    PROVIDER_NAME = 'keycloak'
+    CLIENT_ID = os.getenv('CLIENT_ID')
+    CLIENT_SECRET = os.getenv('CLIENT_SECRET')
+    OIDC_ISSUER = os.getenv('OIDC_ISSUER')
+    OIDC_BASE_URL = f'{OIDC_ISSUER}/protocol/openid-connect'
+    OIDC_AUTH_URL = f'{OIDC_BASE_URL}/auth'
+    OIDC_METADATA_URL = f'{OIDC_ISSUER}/.well-known/openid-configuration'
+    OIDC_TOKEN_URL = f'{OIDC_BASE_URL}/token'
+    OIDC_USERINFO_URL = f'{OIDC_BASE_URL}/userinfo'
+    OIDC_LOGOUT_URL = f'{OIDC_BASE_URL}/logout'
+
+    OAUTH_PROVIDERS = [
+        {
+            'name': PROVIDER_NAME,
+            'token_key': 'access_token',
+            'icon': 'fa-circle-o',
+            'remote_app': {
+                'api_base_url': OIDC_BASE_URL,
+                'access_token_url': OIDC_TOKEN_URL,
+                'authorize_url': OIDC_AUTH_URL,
+                'request_token_url': None,
+                'server_metadata_url': OIDC_METADATA_URL,
+                'client_id': CLIENT_ID,
+                'client_secret': CLIENT_SECRET,
+                'client_kwargs': {
+                    'scope': 'openid email profile',
+                    'code_challenge_method': 'S256',
+                    'response_type': 'code',
+                },
+            },
+        }
+    ]
+
+    # Keycloak group -> Superset role mapping.
+    # Make sure these groups exist in Keycloak (see Prerequisites).
+    AUTH_ROLES_MAPPING = {
+        f'{CLIENT_ID}_admin': ['Admin'],
+        f'{CLIENT_ID}_alpha': ['Alpha'],
+        f'{CLIENT_ID}_gamma': ['Gamma'],
+        f'{CLIENT_ID}_public': ['Public'],
+    }
+
+
+    def access_denied_response(message, login_url):
+        # Rendered directly instead of flash(): the React-based login page
+        # (Superset 6.x) does not display Flask flash messages, so a
+        # flash + redirect fails silently. This works on every version.
+        return (
+            '<html><body style="font-family: sans-serif; text-align: center; margin-top: 10%">'
+            '<h2>Access denied</h2>'
+            f'<p>{message}</p>'
+            f'<p>Contact your administrator, then <a href="{login_url}">try again</a>.</p>'
+            '</body></html>',
+            403,
+        )
+
+
+    class CustomOAuthView(AuthOAuthView):
+        # Override the logout method to also terminate the Keycloak SSO session
+        # (OIDC RP-Initiated Logout). The id_token stored at login time is passed
+        # as id_token_hint so Keycloak can identify the session without prompting.
+        @expose('/logout/', methods=['GET', 'POST'])
+        def logout(self):
+            id_token = session.get('oidc_id_token')
+            super().logout()
+            session.clear()
+            post_logout_redirect_uri = request.url_root.strip('/')
+            logout_url = (
+                f'{OIDC_LOGOUT_URL}'
+                f'?post_logout_redirect_uri={post_logout_redirect_uri}'
+                f'&client_id={CLIENT_ID}'
+            )
+            if id_token:
+                logout_url += f'&id_token_hint={id_token}'
+            return redirect(logout_url)
+
+        # Override the authorized method to handle the OIDC callback and map groups to roles
+        @expose('/oauth-authorized/<provider>')
+        def oauth_authorized(self, provider):
+            # Step 1: exchange the authorization code for an access token
+            try:
+                resp = self.appbuilder.sm.oauth_remotes[provider].authorize_access_token()
+            except Exception as e:
+                log.exception(f'Error fetching access token: {e}')
+                return redirect(self.appbuilder.get_url_for_index)
+
+            # Step 2: fetch user info from the OIDC provider
+            userinfo = self.appbuilder.sm.get_oauth_user_info(provider, resp)
+            role_keys = userinfo.get('role_keys', [])
+            known_groups = [g for g in role_keys if g in AUTH_ROLES_MAPPING]
+
+            # Step 3: if no valid groups, reject the login with an explicit
+            # error page (see access_denied_response for why flash() is not used)
+            if not known_groups:
+                log.warning(
+                    f'No valid groups for user {userinfo.get("username")}, groups received: {role_keys}'
+                )
+                return access_denied_response(
+                    'Your account is not a member of any authorized group.',
+                    self.appbuilder.get_url_for_login,
+                )
+
+            # Step 4: create or retrieve the user in the database with their roles
+            userinfo['role_keys'] = known_groups
+            user = self.appbuilder.sm.auth_user_oauth(userinfo)
+            if user is None:
+                log.warning(
+                    f'auth_user_oauth returned None for user {userinfo.get("username")}'
+                )
+                return access_denied_response(
+                    'Login failed: your account could not be provisioned.',
+                    self.appbuilder.get_url_for_login,
+                )
+
+            # Step 5: keep the id_token for RP-Initiated Logout, log in and redirect
+            session['oidc_id_token'] = resp.get('id_token')
+            login_user(user, remember=False)
+            return redirect(self.appbuilder.get_url_for_index)
+
+
+    class CustomSsoSecurityManager(SupersetSecurityManager):
+        # Override the default OAuth view with our custom one
+        authoauthview = CustomOAuthView
+
+        # Override the method to fetch groups from the userinfo endpoint
+        # and expose them as role_keys for AUTH_ROLES_MAPPING
+        def get_oauth_user_info(self, provider, response):
+            if provider == 'keycloak':
+                me = self.appbuilder.sm.oauth_remotes[provider].get(OIDC_USERINFO_URL)
+                me.raise_for_status()
+                data = me.json()
+                log.info(f'Received userinfo from OIDC provider for user {data.get("preferred_username")}')
+
+                # Requires the "Group Membership" mapper on the Keycloak client
+                # (see Prerequisites), with "Full group path" disabled.
+                groups = data.get('groups', [])
+
+                return {
+                    'username': data.get('preferred_username'),
+                    'email': data.get('email'),
+                    'first_name': data.get('given_name'),
+                    'last_name': data.get('family_name'),
+                    'role_keys': groups,
+                }
+            return {}
+
+
+    # Set our custom security manager
+    CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
+```
+
+## Troubleshooting
+
+| Symptom | Likely cause |
+| --- | --- |
+| Every user is rejected with "no valid groups", log shows `groups received: []` | The **Group Membership** mapper is missing on the Keycloak client, or **Add to userinfo** is disabled |
+| Log shows `groups received: ['/my_superset_clientid_admin']` (leading slash) | **Full group path** is enabled on the mapper — turn it off |
+| Keycloak error `Invalid parameter: redirect_uri` on login | `redirect_uri` was generated as `http://` behind the ingress — set `ENABLE_PROXY_FIX = True`; also check the client's **Valid redirect URIs** |
+| Keycloak error on logout about the redirect URI | The Superset URL is missing from **Valid post logout redirect URIs** on the client |
+| `404` on the token or auth endpoint | Wrong issuer path for your Keycloak version — check the `/auth` prefix (see the note in Prerequisites) |
