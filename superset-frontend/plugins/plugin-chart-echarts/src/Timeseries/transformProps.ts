@@ -26,6 +26,7 @@ import {
   buildCustomFormatters,
   CategoricalColorNamespace,
   CurrencyFormatter,
+  DTTM_ALIAS,
   ensureIsArray,
   tooltipHtml,
   getCustomFormatter,
@@ -307,7 +308,9 @@ export default function transformProps(
     (formData as { rebasePercentChange?: boolean }).rebasePercentChange,
   );
   const rebasedData = rebasePercentChange
-    ? rebaseToPercentChange(forecastRebasedData, xAxisLabel)
+    ? // the same temporal-alias fallback extractSeries applies, so a chart
+      // with no explicit x-axis cannot have its x column rebased as data
+      rebaseToPercentChange(forecastRebasedData, xAxisLabel || DTTM_ALIAS)
     : forecastRebasedData;
   const isHorizontal = orientation === OrientationType.Horizontal;
   const { totalStackedValues, thresholdValues } = extractDataTotalValues(
