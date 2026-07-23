@@ -296,7 +296,12 @@ function Echart(
             }
           : {};
 
+      // Enable ECharts' built-in ARIA descriptions by default for a11y; chart
+      // options may still override this if they need custom aria handling.
+      const ariaDefault = { aria: { enabled: true } };
+
       const themedEchartOptions = mergeEchartsThemeOverrides(
+        ariaDefault,
         baseTheme,
         echartOptions,
         globalOverrides,
