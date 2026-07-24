@@ -18,7 +18,11 @@
  */
 import fetchMock from 'fetch-mock';
 import WS from 'jest-websocket-mock';
-import { parseErrorJson, isFeatureEnabled } from '@superset-ui/core';
+import {
+  parseErrorJson,
+  isFeatureEnabled,
+  SupersetClient,
+} from '@superset-ui/core';
 import * as asyncEvent from 'src/middleware/asyncEvent';
 
 jest.mock('@superset-ui/core', () => ({
@@ -523,6 +527,61 @@ describe('asyncEvent middleware', () => {
 
       expect(fetchMock.callHistory.calls(CACHED_DATA_ENDPOINT)).toHaveLength(1);
       expect(fetchMock.callHistory.calls(EVENTS_ENDPOINT)).toHaveLength(0);
+    });
+
+    test('rejects with AbortError and stops listening when the signal aborts', async () => {
+      await wsServer.connected;
+
+      const controller = new AbortController();
+      const promise = asyncEvent.waitForAsyncData(
+        asyncPendingEvent,
+        controller.signal,
+      );
+      const assertion = expect(promise).rejects.toMatchObject({
+        name: 'AbortError',
+      });
+      controller.abort();
+      await assertion;
+
+      // A late DONE event must not trigger a cached-data fetch: the listener
+      // was removed on abort, so no leak / stray request.
+      wsServer.send(JSON.stringify(asyncDoneEvent));
+      await new Promise(resolve => {
+        setTimeout(resolve, 0);
+      });
+      expect(fetchMock.callHistory.calls(CACHED_DATA_ENDPOINT)).toHaveLength(0);
+    });
+
+    test('rejects immediately if the signal is already aborted', async () => {
+      await wsServer.connected;
+
+      const controller = new AbortController();
+      controller.abort();
+
+      await expect(
+        asyncEvent.waitForAsyncData(asyncPendingEvent, controller.signal),
+      ).rejects.toMatchObject({ name: 'AbortError' });
+    });
+
+    test('forwards the abort signal to the cached-data download', async () => {
+      await wsServer.connected;
+
+      const getSpy = jest.spyOn(SupersetClient, 'get');
+      const controller = new AbortController();
+
+      const promise = asyncEvent.waitForAsyncData(
+        asyncPendingEvent,
+        controller.signal,
+      );
+      wsServer.send(JSON.stringify(asyncDoneEvent));
+      await expect(promise).resolves.toEqual([chartData]);
+
+      // The cached-result download must receive the signal so it can be
+      // cancelled if the caller aborts mid-fetch.
+      expect(getSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ signal: controller.signal }),
+      );
+      getSpy.mockRestore();
     });
   });
 });
