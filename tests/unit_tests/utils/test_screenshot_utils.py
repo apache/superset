@@ -481,11 +481,11 @@ class TestTakeTiledScreenshot:
         lets a slow query be told apart from the race during an incident.
         """
         from superset.utils.screenshot_utils import (
-            _FIND_UNREADY_CHART_HOLDERS_JS,
-            _TILE_READY_CHECK_JS,
+            CHART_HOLDERS_READY_JS,
+            FIND_UNREADY_CHART_HOLDERS_JS,
         )
 
-        for js in (_TILE_READY_CHECK_JS, _FIND_UNREADY_CHART_HOLDERS_JS):
+        for js in (CHART_HOLDERS_READY_JS, FIND_UNREADY_CHART_HOLDERS_JS):
             assert "spinner_mounted" in js
             assert "waiting_on_database" in js
             assert "nothing_mounted" in js
