@@ -24,6 +24,33 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Themes support per-theme editors
+
+Themes now carry a list of **editors** (users, roles, or groups). A new
+`theme_editors` junction table is created by the migration
+`f7e8d9c0b1a2_add_theme_editors_table`. Themes never had owners, so the table
+starts empty and no backfill is performed.
+
+Behavioral changes:
+
+- **Theme creation is no longer admin-only.** Any principal with `can_write`
+  on `Theme` may create a theme; the creator is automatically added as an
+  editor. Theme creation now flows through a new `CreateThemeCommand`.
+- **Editing and deleting a theme requires editorship.** Non-editors receive a
+  `403`. Admins bypass the check and remain able to edit or delete any theme.
+  A non-editor cannot add themselves to a theme's editors via `PUT`.
+- **System themes remain protected** and the system-default/dark theme
+  administration endpoints continue to require an admin plus
+  `ENABLE_UI_THEME_ADMINISTRATION`.
+- **Importing over an existing theme requires editorship** of that theme
+  (admins bypass); importing new themes still only requires `can_write`.
+- Editor subject IDs are intentionally not part of a theme's export, so they
+  are not portable across deployments.
+
+New config key `SUBJECTS_RELATED_TYPES_THEMES` (default `None`, inheriting the
+global `SUBJECTS_RELATED_TYPES`) controls which subject types appear in the
+theme editor picker.
+
 ### Dashboard "Export Data to Excel" requires a Celery worker and S3 bucket
 
 A new dashboard action exports every chart's data to a single multi-sheet

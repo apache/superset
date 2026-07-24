@@ -36,6 +36,24 @@ jest.mock('src/theme/ThemeProvider', () => ({
 
 jest.mock('src/dashboard/util/permissionUtils', () => ({
   isUserAdmin: jest.fn(() => true),
+  isUserEditorOrAdmin: jest.fn(() => true),
+}));
+
+jest.mock('src/utils/getBootstrapData', () => ({
+  __esModule: true,
+  default: () => ({
+    common: {
+      user_subject_id: 1,
+      user_subjects: [1],
+    },
+    user: {
+      userId: 1,
+      firstName: 'Admin',
+      lastName: 'User',
+      email: 'admin@superset.org',
+      roles: { Admin: [] },
+    },
+  }),
 }));
 
 // Mock JsonEditor to avoid direct DOM manipulation in tests
@@ -77,6 +95,7 @@ const mockTheme: ThemeObject = {
     first_name: 'Admin',
     last_name: 'User',
   },
+  editors: [{ id: 1, label: 'Admin User', type: 1 }],
 };
 
 const mockSystemTheme: ThemeObject = {
@@ -91,6 +110,10 @@ const putThemeMockName = 'putTheme';
 
 beforeEach(() => {
   fetchMock.clearHistory().removeRoutes();
+  fetchMock.get('glob:*/api/v1/theme/related/editors*', {
+    result: [],
+    count: 0,
+  });
   fetchMock.get('glob:*/api/v1/theme/1', { result: mockTheme });
   fetchMock.get('glob:*/api/v1/theme/2', { result: mockSystemTheme });
   fetchMock.get('glob:*/api/v1/theme/*', { result: mockTheme });
@@ -337,6 +360,34 @@ test('enables save button when theme name is entered', async () => {
     () => {
       const saveButton = screen.getByRole('button', { name: 'Add' });
       expect(saveButton).toBeEnabled();
+    },
+    { timeout: 10000 },
+  );
+});
+
+test('renders the Editors field with the current user preselected in add mode', async () => {
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={jest.fn()}
+      show
+      canDevelop={false}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  // The Editors form field is rendered.
+  expect(screen.getByText('Editors')).toBeInTheDocument();
+  // The creator (from bootstrap data) is preselected so save can be enabled.
+  const nameInput = screen.getByPlaceholderText('Enter theme name');
+  await userEvent.type(nameInput, 'A Theme');
+  await addValidJsonData();
+
+  await waitFor(
+    () => {
+      expect(screen.getByRole('button', { name: 'Add' })).toBeEnabled();
     },
     { timeout: 10000 },
   );
