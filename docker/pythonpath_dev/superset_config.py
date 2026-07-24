@@ -110,6 +110,7 @@ FEATURE_FLAGS = {
     "ALERT_REPORTS": True,
     "DATASET_FOLDERS": True,
     "ENABLE_EXTENSIONS": True,
+    "MOBILE_CONSUMPTION_MODE": True,
     "SEMANTIC_LAYERS": True,
 }
 EXTENSIONS_PATH = "/app/docker/extensions"

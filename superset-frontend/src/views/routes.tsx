@@ -194,18 +194,36 @@ type Routes = {
   Component: ComponentType<any>;
   Fallback?: ComponentType<any>;
   props?: ComponentProps<any>;
+  /**
+   * Marks a route as usable in the mobile consumption-only experience.
+   * Routes without this flag show the MobileUnsupported screen on small
+   * screens when MOBILE_CONSUMPTION_MODE is enabled.
+   */
+  mobileSupported?: boolean;
 }[];
 
 export const routes: Routes = [
-  { path: RoutePaths.REDIRECT, Component: RedirectWarning },
-  { path: RoutePaths.LOGIN, Component: Login },
-  { path: RoutePaths.REGISTER_ACTIVATION, Component: Register },
-  { path: RoutePaths.REGISTER, Component: Register },
-  { path: RoutePaths.LOGOUT, Component: Login },
-  { path: RoutePaths.HOME, Component: Home },
+  {
+    path: RoutePaths.REDIRECT,
+    Component: RedirectWarning,
+    mobileSupported: true,
+  },
+  { path: RoutePaths.LOGIN, Component: Login, mobileSupported: true },
+  {
+    path: RoutePaths.REGISTER_ACTIVATION,
+    Component: Register,
+    mobileSupported: true,
+  },
+  { path: RoutePaths.REGISTER, Component: Register, mobileSupported: true },
+  { path: RoutePaths.LOGOUT, Component: Login, mobileSupported: true },
+  { path: RoutePaths.HOME, Component: Home, mobileSupported: true },
   { path: RoutePaths.FILE_HANDLER, Component: FileHandler },
-  { path: RoutePaths.DASHBOARD_LIST, Component: DashboardList },
-  { path: RoutePaths.DASHBOARD, Component: Dashboard },
+  {
+    path: RoutePaths.DASHBOARD_LIST,
+    Component: DashboardList,
+    mobileSupported: true,
+  },
+  { path: RoutePaths.DASHBOARD, Component: Dashboard, mobileSupported: true },
   { path: RoutePaths.CHART_ADD, Component: ChartCreation },
   { path: RoutePaths.CHART_LIST, Component: ChartList },
   { path: RoutePaths.DATASET_LIST, Component: DatasetList },
@@ -235,7 +253,7 @@ export const routes: Routes = [
   { path: RoutePaths.ROW_LEVEL_SECURITY, Component: RowLevelSecurityList },
   { path: RoutePaths.TASKS, Component: TaskList },
   { path: RoutePaths.SQLLAB, Component: SqlLab },
-  { path: RoutePaths.USER_INFO, Component: UserInfo },
+  { path: RoutePaths.USER_INFO, Component: UserInfo, mobileSupported: true },
   { path: RoutePaths.ACTION_LOG, Component: ActionLogList },
   { path: RoutePaths.REGISTRATIONS, Component: UserRegistrations },
 ];

@@ -28,6 +28,7 @@ import { styled } from '@apache-superset/core/theme';
 import rison from 'rison';
 import { Collapse, ListViewCard } from '@superset-ui/core/components';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { useIsMobile } from 'src/hooks/useIsMobile';
 import { reject } from 'lodash-es';
 import {
   dangerouslyGetItemDoNotUse,
@@ -147,6 +148,7 @@ export const LoadingCards = ({ cover }: LoadingProps) => (
 );
 
 function Welcome({ user, addDangerToast }: WelcomeProps) {
+  const isNotMobile = !useIsMobile();
   const canReadSavedQueries = userHasPermission(user, 'SavedQuery', 'can_read');
   const userid = user.userId;
   const id = userid!.toString(); // confident that user is not a guest user
@@ -397,24 +399,29 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                       />
                     ),
                 },
-                {
-                  key: 'charts',
-                  label: t('Charts'),
-                  children:
-                    !chartData || isRecentActivityLoading ? (
-                      <LoadingCards cover={checked} />
-                    ) : (
-                      <ChartTable
-                        showThumbnails={checked}
-                        user={user}
-                        mine={chartData}
-                        otherTabData={activityData?.[TableTab.Other]}
-                        otherTabFilters={otherTabFilters}
-                        otherTabTitle={otherTabTitle}
-                      />
-                    ),
-                },
-                ...(canReadSavedQueries
+                // Hide Charts and Saved queries on mobile - consumption-only mode
+                ...(isNotMobile
+                  ? [
+                      {
+                        key: 'charts',
+                        label: t('Charts'),
+                        children:
+                          !chartData || isRecentActivityLoading ? (
+                            <LoadingCards cover={checked} />
+                          ) : (
+                            <ChartTable
+                              showThumbnails={checked}
+                              user={user}
+                              mine={chartData}
+                              otherTabData={activityData?.[TableTab.Other]}
+                              otherTabFilters={otherTabFilters}
+                              otherTabTitle={otherTabTitle}
+                            />
+                          ),
+                      },
+                    ]
+                  : []),
+                ...(isNotMobile && canReadSavedQueries
                   ? [
                       {
                         key: 'saved-queries',

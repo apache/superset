@@ -70,6 +70,12 @@
         "description": "Enable Matrixify feature for matrix-style chart layouts"
       },
       {
+        "name": "MOBILE_CONSUMPTION_MODE",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Serve a consumption-only mobile experience (dashboards, dashboard list, and home page) on small screens; other views show a \"not supported on mobile\" screen. Authoring features are hidden on mobile when enabled."
+      },
+      {
         "name": "OPTIMIZE_SQL",
         "default": false,
         "lifecycle": "development",

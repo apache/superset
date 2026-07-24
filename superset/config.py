@@ -708,6 +708,11 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable Matrixify feature for matrix-style chart layouts
     # @lifecycle: development
     "MATRIXIFY": False,
+    # Serve a consumption-only mobile experience (dashboards, dashboard list,
+    # and home page) on small screens; other views show a "not supported on
+    # mobile" screen. Authoring features are hidden on mobile when enabled.
+    # @lifecycle: development
+    "MOBILE_CONSUMPTION_MODE": False,
     # Try to optimize SQL queries — for now only predicate pushdown is supported
     # @lifecycle: development
     "OPTIMIZE_SQL": False,

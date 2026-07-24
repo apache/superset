@@ -25,7 +25,8 @@ import {
   useRef,
   useState,
 } from 'react';
-import { styled } from '@apache-superset/core/theme';
+import { css, styled } from '@apache-superset/core/theme';
+import { isMobileConsumptionEnabled } from 'src/hooks/useIsMobile';
 import {
   LineEditableTabs,
   TabsProps as AntdTabsProps,
@@ -81,6 +82,58 @@ const StyledTabsContainer = styled.div<{ isDragging?: boolean }>`
       display: none !important;
     }
   `}
+
+  /* Sticky tabs on mobile (consumption mode) */
+  ${({ theme }) =>
+    isMobileConsumptionEnabled() &&
+    css`
+      @media (max-width: ${theme.screenSMMax}px) {
+        .ant-tabs-nav {
+          position: sticky;
+          top: 0;
+          z-index: 100;
+          background-color: ${theme.colorBgContainer};
+          /* breathing room between the tab bar and the first card; padding
+             (not margin) so the gap is part of the opaque sticky bar */
+          padding-bottom: ${theme.sizeUnit * 2}px;
+        }
+
+        /* Scrollability affordance: fade the clipped edge with a
+           theme-colored gradient. antd toggles the ping classes when tabs
+           overflow on that side; restyle its shadow elements as gradients,
+           which read much better than the default shadows on dark themes. */
+        .ant-tabs-nav-wrap:before,
+        .ant-tabs-nav-wrap:after {
+          width: ${theme.sizeUnit * 10}px;
+          box-shadow: none !important;
+          pointer-events: none;
+        }
+        .ant-tabs-nav-wrap-ping-right:after {
+          background: linear-gradient(
+            to right,
+            transparent,
+            ${theme.colorBgContainer}
+          );
+          opacity: 1;
+        }
+        .ant-tabs-nav-wrap-ping-left:before {
+          background: linear-gradient(
+            to left,
+            transparent,
+            ${theme.colorBgContainer}
+          );
+          opacity: 1;
+        }
+
+        /* Swipeable tab bar instead of the overflow dropdown: the "more"
+           menu is a poor touch target and duplicates half-clipped tabs.
+           antd's tab nav supports touch-drag scrolling natively and shows
+           edge shadows (ping classes) when tabs overflow. */
+        .ant-tabs-nav-operations {
+          display: none !important;
+        }
+      }
+    `}
 `;
 
 export interface TabItem {
