@@ -29,6 +29,7 @@ from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, INTERVAL, JSO
 from sqlalchemy.dialects.postgresql.base import PGInspector
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
+from sqlalchemy.sql.expression import ColumnClause
 from sqlalchemy.types import Date, DateTime, String
 
 from superset.constants import TimeGrain
@@ -36,6 +37,7 @@ from superset.db_engine_specs.base import (
     BaseEngineSpec,
     BasicParametersMixin,
     DatabaseCategory,
+    TimestampExpression,
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
@@ -255,6 +257,31 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
     @classmethod
     def epoch_to_dttm(cls) -> str:
         return "(timestamp 'epoch' + {col} * interval '1 second')"
+
+    @classmethod
+    def get_timestamp_expr(
+        cls,
+        col: ColumnClause,
+        pdf: str | None,
+        time_grain: str | None,
+    ) -> TimestampExpression:
+        """
+        Construct a timestamp expression while preserving pure ``DATE`` semantics.
+
+        Applying ``DATE_TRUNC`` to a ``DATE`` column implicitly casts the value to
+        ``TIMESTAMP``, which can trigger unwanted timezone conversion on the client
+        and shift the displayed date by a day. To avoid this, the truncated value is
+        cast back to ``DATE`` when the source column is a pure ``DATE`` type.
+
+        See https://github.com/apache/superset/issues/42254.
+        """
+        expr = super().get_timestamp_expr(col, pdf, time_grain)
+        col_type = getattr(col, "type", None)
+        # ``DateTime``/``TIMESTAMP`` are distinct SQLAlchemy types (not subclasses
+        # of ``Date``), so this only matches pure ``DATE`` columns.
+        if time_grain and isinstance(col_type, Date):
+            return TimestampExpression(f"CAST({expr.name} AS DATE)", col, type_=Date())
+        return expr
 
     @classmethod
     def convert_dttm(
