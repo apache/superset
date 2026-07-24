@@ -62,6 +62,14 @@ const TEXT_ONLY_VIZ_TYPES = new Set([
   'handlebars',
   'pop_kpi',
 ]);
+
+/**
+ * Hover this element just before the screenshot, so charts whose identity
+ * benefits from an interaction (a visible tooltip) capture mid-hover.
+ */
+const HOVER_BEFORE_CAPTURE: Record<string, string> = {
+  cal_heatmap: '[data-test="chart-container"] svg rect[class*=" r"]',
+};
 const TEXT_RENDERED_CHART_SELECTOR =
   '[data-test="chart-container"]:not(:has([data-test="loading-indicator"]))';
 
@@ -110,7 +118,8 @@ const VIZ_TYPE_THUMBNAILS: Record<string, string> = {
   gantt_chart: `${ECHARTS}/Gantt/images/thumbnail.png`,
   gauge_chart: `${ECHARTS}/Gauge/images/thumbnail.png`,
   graph_chart: `${ECHARTS}/Graph/images/thumbnail.png`,
-  handlebars: 'plugins/plugin-chart-handlebars/src/images/thumbnail.png',
+  // handlebars intentionally unmapped: its generic logo represents the
+  // template-anything nature of the chart better than any one example.
   heatmap_v2: `${ECHARTS}/Heatmap/images/thumbnail.png`,
   histogram_v2: `${ECHARTS}/Histogram/images/thumbnail.png`,
   horizon: 'plugins/plugin-chart-horizon/src/images/thumbnail.png',
@@ -143,13 +152,33 @@ const VIZ_TYPE_THUMBNAILS: Record<string, string> = {
  * default, so stale entries degrade gracefully.
  */
 const PREFERRED_SLICES: Record<string, string> = {
+  big_number: 'Sales Year over Year',
+  bubble_v2: 'Life Expectancy VS Rural %',
   bullet: 'Total Sales Bullet',
   cal_heatmap: 'Sales Calendar Heatmap',
+  chord: 'Product Line Chord',
+  echarts_area: 'Sales Stacked Area',
+  echarts_timeseries_bar: 'Sales Stacked Bars',
+  echarts_timeseries_line: 'Monthly Sales Line',
+  echarts_timeseries_smooth: 'Monthly Sales Smooth',
+  echarts_timeseries_step: 'Quarterly Sales Steps',
+  funnel: 'Population Funnel',
+  gauge_chart: 'Rural Population Gauge',
+  heatmap_v2: 'Sales Grid Heatmap',
+  histogram_v2: 'Life Expectancy Histogram',
+  mixed_timeseries: 'Sales Mixed Chart',
   paired_ttest: 'Population Paired t-Test',
   partition: 'Population Partition',
+  pie: 'Product Line Donut',
+  pivot_table_v2: 'Sales Pivot Highlights',
+  radar: 'Game Sales Radar',
   rose: 'Population Nightingale Rose',
+  sunburst_v2: 'Population Sunburst',
+  table: 'Sales Summary Table',
   time_pivot: 'Sales Period Pivot',
-  time_table: 'Region Population Time Table',
+  time_table: 'Product Line Time Table',
+  treemap_v2: 'Population Treemap',
+  waterfall: 'Monthly Sales Waterfall',
 };
 
 /** Gallery example images use a wide aspect, matching the existing art. */
@@ -189,7 +218,7 @@ const EXTRA_CAPTURES: ExtraCapture[] = [
     height: EXAMPLE_HEIGHT,
   },
   {
-    sliceName: 'Region Population Time Table',
+    sliceName: 'Product Line Time Table',
     output: 'src/visualizations/TimeTable/images/example.jpg',
     width: EXAMPLE_WIDTH,
     height: EXAMPLE_HEIGHT,
@@ -263,12 +292,24 @@ function darkSibling(output: string): string {
 async function renderAndShoot(
   page: Page,
   chart: ExampleChart,
+  colorScheme: 'light' | 'dark',
 ): Promise<Buffer> {
   // An explicit navigation timeout keeps one hung load from stalling the
   // whole crawl until the test timeout.
   await page.goto(`/explore/?slice_id=${chart.id}&standalone=1`, {
     timeout: 60_000,
   });
+  // Dashboards render charts on colorBgContainer cards, but the standalone
+  // explore page paints the gray colorBgLayout (via the antd Layout
+  // wrapper); match the dashboard context so thumbnails look like charts
+  // do where users see them.
+  await page
+    .addStyleTag({
+      content: `body, .ant-layout { background: ${
+        colorScheme === 'dark' ? '#141414' : '#ffffff'
+      } !important; }`,
+    })
+    .catch(() => {});
   const textOnly = TEXT_ONLY_VIZ_TYPES.has(chart.vizType);
   await page
     .locator(textOnly ? TEXT_RENDERED_CHART_SELECTOR : RENDERED_CHART_SELECTOR)
@@ -276,6 +317,20 @@ async function renderAndShoot(
     .waitFor({ state: 'visible', timeout: 60_000 });
   // Give animations/map tiles (or text-only chart data) time to settle
   await page.waitForTimeout(textOnly ? 4_000 : 2_000);
+  // Some thumbnails read better mid-interaction (e.g. the calendar heatmap
+  // showing its tooltip); hover the configured element before the still.
+  const hoverSelector = HOVER_BEFORE_CAPTURE[chart.vizType];
+  if (hoverSelector) {
+    // Hover a mid-chart element rather than the first (often an empty
+    // corner cell), falling back to the first when there are few.
+    const cells = page.locator(hoverSelector);
+    const count = await cells.count().catch(() => 0);
+    await cells
+      .nth(Math.floor(count / 2))
+      .hover({ timeout: 5_000 })
+      .catch(() => {});
+    await page.waitForTimeout(500);
+  }
   return page.screenshot();
 }
 
@@ -299,7 +354,7 @@ async function captureChart(
 
   await page.setViewportSize(size);
   await page.emulateMedia({ colorScheme: 'light' });
-  const lightShot = await renderAndShoot(page, chart);
+  const lightShot = await renderAndShoot(page, chart, 'light');
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(outputPath, lightShot);
   // eslint-disable-next-line no-console
@@ -307,7 +362,7 @@ async function captureChart(
 
   if (wantDark) {
     await page.emulateMedia({ colorScheme: 'dark' });
-    const darkShot = await renderAndShoot(page, chart);
+    const darkShot = await renderAndShoot(page, chart, 'dark');
     if (darkShot.equals(lightShot)) {
       // eslint-disable-next-line no-console
       console.log(
