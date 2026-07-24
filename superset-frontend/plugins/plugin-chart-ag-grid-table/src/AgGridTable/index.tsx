@@ -313,6 +313,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
           sortModel,
           filterModel,
           timestamp: Date.now(),
+          serverPagination: true,
         });
       }
 
@@ -365,6 +366,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
               sortModel,
               filterModel,
               timestamp: Date.now(),
+              serverPagination: !!serverPagination,
             };
 
             const stateHash = getColumnStateSignature(
@@ -398,7 +400,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
           }
         }
       }, Constants.SLOW_DEBOUNCE),
-      [onColumnStateChange],
+      [onColumnStateChange, serverPagination],
     );
 
     useEffect(

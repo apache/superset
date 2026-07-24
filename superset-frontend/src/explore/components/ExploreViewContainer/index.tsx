@@ -778,7 +778,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   const previousOwnState = usePrevious(props.ownState);
   useEffect(() => {
     const strip = (s: JsonObject | undefined) =>
-      s && typeof s === 'object' ? omit(s, ['clientView']) : s;
+      omit(s && typeof s === 'object' ? s : {}, ['clientView']);
     if (!isEqual(strip(previousOwnState), strip(props.ownState))) {
       onQuery();
       reRenderChart();
