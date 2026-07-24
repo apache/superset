@@ -1,0 +1,48 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+cache_timeout: null
+certification_details: null
+certified_by: null
+dataset_uuid: e8623bb9-5e00-f531-506a-19607f5f8005
+description: Sales intensity by product line and deal size.
+params:
+  groupby:
+  - deal_size
+  legend_type: continuous
+  linear_color_scheme: superset_seq_1
+  metric:
+    aggregate: SUM
+    column:
+      column_name: sales
+    expressionType: SIMPLE
+    label: SUM(sales)
+    optionName: metric_sales_heat
+  normalize_across: heatmap
+  row_limit: 10000
+  show_legend: true
+  show_values: false
+  time_range: No filter
+  viz_type: heatmap_v2
+  x_axis: product_line
+  xscale_interval: -1
+  y_axis_format: SMART_NUMBER
+  yscale_interval: -1
+query_context: null
+slice_name: Sales Grid Heatmap
+uuid: bb95c672-d4f7-4c39-a6ab-c567137dc15e
+version: 1.0.0
+viz_type: heatmap_v2

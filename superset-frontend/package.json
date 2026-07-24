@@ -78,6 +78,7 @@
     "playwright:debug": "playwright test --debug",
     "playwright:report": "playwright show-report",
     "docs:screenshots": "playwright test --config=playwright/generators/playwright.config.ts docs/",
+    "playwright:thumbnails": "CAPTURE_THUMBNAILS=1 playwright test tests/tools/capture-viz-thumbnails.spec.ts --project chromium",
     "prettier": "npm run _prettier -- --write",
     "prettier-check": "npm run _prettier -- --check",
     "prod": "npm run build",

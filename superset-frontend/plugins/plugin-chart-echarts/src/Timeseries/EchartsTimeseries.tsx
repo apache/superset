@@ -85,12 +85,17 @@ export default function EchartsTimeseries({
   // other option changes) so those don't silently snap it back to the
   // first point.
   const baselineXRef = useRef<number | string | null>(null);
+  // Bumped when the chart finishes rendering before its option was
+  // readable, so the baseline installation below gets another pass.
+  const [optionReadyTick, setOptionReadyTick] = useState(0);
   useEffect(() => {
     if (!rebaseEnabled) return undefined;
     const chart = echartRef.current?.getEchartInstance?.();
     if (!chart) return undefined;
 
-    const option = chart.getOption() as {
+    // getOption() can be undefined/empty right after mount, before the
+    // chart has applied its options (seen on warm explore navigations).
+    const option = (chart.getOption() ?? {}) as {
       series?: { data?: SeriesDataPoint[] }[];
     };
     const baseSeries = (option.series ?? []).map(s =>
@@ -102,7 +107,17 @@ export default function EchartsTimeseries({
     // string for category axes (coercing categories with Number() would
     // turn them into NaN and break snapping/positioning below).
     const xs = Array.from(new Set(baseSeries.flat().map(([x]) => x)));
-    if (xs.length === 0) return undefined;
+    if (xs.length === 0) {
+      // No option applied yet — retry once the chart finishes rendering.
+      const onFinished = () => {
+        chart.off('finished', onFinished);
+        setOptionReadyTick(tick => tick + 1);
+      };
+      chart.on('finished', onFinished);
+      return () => {
+        chart.off('finished', onFinished);
+      };
+    }
     if (typeof xs[0] === 'number') {
       (xs as number[]).sort((a, b) => a - b);
     }
@@ -211,7 +226,7 @@ export default function EchartsTimeseries({
         graphic: [{ id: 'percent-change-baseline', $action: 'remove' }],
       });
     };
-  }, [rebaseEnabled, echartOptions, width, height, theme]);
+  }, [rebaseEnabled, echartOptions, width, height, theme, optionReadyTick]);
   const extraControlRef = useRef<HTMLDivElement>(null);
   const [extraControlHeight, setExtraControlHeight] = useState(0);
   useEffect(() => {

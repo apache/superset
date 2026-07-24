@@ -1,0 +1,68 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+cache_timeout: null
+certification_details: null
+certified_by: null
+dataset_uuid: 53d47c0c-c03d-47f0-b9ac-81225f808283
+description: Regional sales profile for two game genres.
+params:
+  adhoc_filters:
+  - clause: WHERE
+    comparator:
+    - Action
+    - Sports
+    expressionType: SIMPLE
+    operator: IN
+    subject: genre
+  color_scheme: supersetColors
+  groupby:
+  - genre
+  label_type: value
+  metrics:
+  - aggregate: SUM
+    column:
+      column_name: na_sales
+    expressionType: SIMPLE
+    label: North America
+    optionName: metric_radar_na
+  - aggregate: SUM
+    column:
+      column_name: eu_sales
+    expressionType: SIMPLE
+    label: Europe
+    optionName: metric_radar_eu
+  - aggregate: SUM
+    column:
+      column_name: jp_sales
+    expressionType: SIMPLE
+    label: Japan
+    optionName: metric_radar_jp
+  - aggregate: SUM
+    column:
+      column_name: other_sales
+    expressionType: SIMPLE
+    label: Other
+    optionName: metric_radar_other
+  number_format: SMART_NUMBER
+  row_limit: 10
+  show_labels: false
+  viz_type: radar
+query_context: null
+slice_name: Game Sales Radar
+uuid: f67eeb12-6ca8-4ecd-adc2-51ec6ed31554
+version: 1.0.0
+viz_type: radar
