@@ -149,3 +149,23 @@ test('handles empty results without crashing', () => {
   expect(periods).toEqual([]);
   expect((echartOptions as any).series).toEqual([]);
 });
+
+test('area proportion clamps negative cumulatives instead of yielding NaN', () => {
+  // difference-style comparisons can produce negative values
+  const negatives = [
+    { __timestamp: T1, 'sum__num, East': -30, 'sum__num, West': 10 },
+  ];
+  const props = new ChartProps({
+    width: 800,
+    height: 600,
+    formData: { ...formData, roseAreaProportion: true },
+    theme: supersetTheme,
+    queriesData: [{ data: negatives }],
+    hooks: {},
+  }) as unknown as EchartsRoseChartProps;
+  const { echartOptions } = transformProps(props);
+  const { series } = echartOptions as any;
+  series.forEach((s: any) =>
+    s.data.forEach((d: any) => expect(Number.isNaN(d.value)).toBe(false)),
+  );
+});

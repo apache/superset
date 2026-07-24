@@ -92,8 +92,12 @@ export default function transformProps(
     let previousOuter = 0;
     const entries = (datum[time] ?? []).map(entry => {
       cumulative += entry.value;
+      // Area encoding is undefined for a negative cumulative (possible
+      // with difference-style comparisons); clamp the radicand at 0 so a
+      // negative running total collapses to the center rather than
+      // producing a NaN radius.
       const outer = roseAreaProportion
-        ? Math.sqrt(cumulative / maxSum)
+        ? Math.sqrt(Math.max(0, cumulative / maxSum))
         : cumulative;
       const increment = outer - previousOuter;
       previousOuter = outer;
