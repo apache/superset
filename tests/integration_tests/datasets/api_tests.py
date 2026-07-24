@@ -322,6 +322,7 @@ class TestDatasetApi(SupersetTestCase):
             "extra",
             "id",
             "kind",
+            "rls_filters",
             "schema",
             "sql",
             "table_name",
@@ -546,6 +547,7 @@ class TestDatasetApi(SupersetTestCase):
                     "rendered_expression": "4 * 1.4",
                 },
             ],
+            "rls_filters": [],
         }
 
         self.items_to_delete = [dataset]

@@ -40,6 +40,7 @@ from superset.mcp_service.utils.token_utils import (
     get_response_size_bytes,
     INFO_TOOLS,
     truncate_oversized_response,
+    truncate_query_result,
 )
 
 
@@ -749,3 +750,105 @@ class TestTruncateOversizedResponse:
         assert isinstance(result, dict)
         assert len(result["charts"]) == 5
         assert any("form_data" in n for n in notes)
+
+
+class TestTruncateQueryResult:
+    """Tests for ``truncate_query_result`` (data-query row/scalar truncation)."""
+
+    def _rows_response(self, row_field: str, count: int = 200) -> dict[str, Any]:
+        row = {f"col_{i}": f"value_{i}" for i in range(10)}
+        return {
+            "status": "success",
+            row_field: [row] * count,
+            "row_count": count,
+        }
+
+    def test_no_truncation_needed(self) -> None:
+        response = self._rows_response("rows", count=3)
+        result, was_truncated, notes = truncate_query_result(response, 25000)
+        assert was_truncated is False
+        assert notes == []
+        assert result == response
+
+    def test_truncated_result_fits_under_limit(self) -> None:
+        """The final payload (rows + note metadata) must itself fit.
+
+        Regression test: the note is built from the kept row count, but
+        that note text also consumes tokens. The bisection must reserve
+        room for it up front rather than measuring fit on bare rows and
+        appending the note afterward, which could push the final payload
+        back over the limit.
+        """
+        response = self._rows_response("rows")
+        result, was_truncated, notes = truncate_query_result(response, 500)
+        assert was_truncated is True
+        assert isinstance(result, dict)
+        assert estimate_response_tokens(result) <= 500
+        assert result["row_count"] == len(result["rows"])
+        assert result["row_count"] < 200
+
+    def test_single_oversized_row_is_kept_anyway(self) -> None:
+        """A single row that alone exceeds the limit is still returned.
+
+        ``truncate_query_result`` always keeps >=1 row when the original
+        list is non-empty; it is the caller's (middleware) job to reject
+        a still-oversized result rather than ship it silently.
+        """
+        response = {
+            "status": "success",
+            "rows": [{"col": "x" * 5000}] * 3,
+            "row_count": 3,
+        }
+        result, was_truncated, notes = truncate_query_result(response, 50)
+        assert was_truncated is True
+        assert isinstance(result, dict)
+        assert len(result["rows"]) == 1
+        assert notes
+
+    def test_truncates_csv_scalar_field_when_rows_empty(self) -> None:
+        """CSV exports carry their payload in ``csv_data`` with ``data=[]``."""
+        response: dict[str, Any] = {
+            "chart_id": 1,
+            "data": [],
+            "csv_data": "col_0,col_1\n" + ("value,value\n" * 2000),
+            "format": "csv",
+        }
+        result, was_truncated, notes = truncate_query_result(
+            response, 500, tool_name="get_chart_data"
+        )
+        assert was_truncated is True
+        assert isinstance(result, dict)
+        assert len(result["csv_data"]) < len(response["csv_data"])
+        assert estimate_response_tokens(result) <= 500
+        assert any("CSV" in n for n in notes)
+
+    def test_does_not_truncate_excel_binary_field(self) -> None:
+        """excel_data is base64 binary — truncating it would corrupt the file."""
+        response = {
+            "chart_id": 1,
+            "data": [],
+            "excel_data": "QUJDREVGRw==" * 5000,
+            "format": "excel",
+        }
+        result, was_truncated, notes = truncate_query_result(response, 500)
+        assert was_truncated is False
+        assert notes == []
+        assert isinstance(result, dict)
+        assert result["excel_data"] == response["excel_data"]
+
+    def test_get_chart_data_advice_mentions_limit_param(self) -> None:
+        response = self._rows_response("data")
+        _, _, notes = truncate_query_result(response, 500, tool_name="get_chart_data")
+        assert any("'limit' parameter" in n for n in notes)
+        assert not any("LIMIT clause" in n for n in notes)
+
+    def test_query_dataset_advice_mentions_row_limit_param(self) -> None:
+        response = self._rows_response("data")
+        _, _, notes = truncate_query_result(response, 500, tool_name="query_dataset")
+        assert any("'row_limit' parameter" in n for n in notes)
+        assert not any("LIMIT clause" in n for n in notes)
+
+    def test_execute_sql_advice_mentions_limit_clause(self) -> None:
+        response = self._rows_response("rows")
+        _, _, notes = truncate_query_result(response, 500, tool_name="execute_sql")
+        assert any("LIMIT clause" in n for n in notes)

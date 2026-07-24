@@ -56,7 +56,6 @@ from superset.exceptions import (
 )
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
-from superset.sql.parse import sanitize_clause
 from superset.superset_typing import (
     Column,
     Metric,
@@ -413,15 +412,6 @@ class BaseViz:  # pylint: disable=too-many-public-methods
 
         self.from_dttm = from_dttm
         self.to_dttm = to_dttm
-
-        # validate sql filters
-        for param in ("where", "having"):
-            clause = self.form_data.get(param)
-            if clause:
-                engine = self.datasource.database.db_engine_spec.engine
-                sanitized_clause = sanitize_clause(clause, engine)
-                if sanitized_clause != clause:
-                    self.form_data[param] = sanitized_clause
 
         # extras are used to query elements specific to a datasource type
         # for instance the extra where clause that applies only to Tables
