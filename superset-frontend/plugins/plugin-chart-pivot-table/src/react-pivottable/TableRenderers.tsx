@@ -95,7 +95,6 @@ interface SubtotalOptions {
 interface TableRendererProps {
   cols: string[];
   rows: string[];
-  aggregatorName: string;
   tableOptions?: TableOptions;
   subtotalOptions?: SubtotalOptions;
   namesMapping?: Record<string, string>;
@@ -340,7 +339,6 @@ export function TableRenderer(props: TableRendererProps) {
   const {
     cols,
     rows,
-    aggregatorName,
     tableOptions = {},
     subtotalOptions,
     namesMapping: namesMappingProp,
@@ -762,7 +760,6 @@ export function TableRenderer(props: TableRendererProps) {
   }, [
     cols,
     rows,
-    aggregatorName,
     tableOptions,
     subtotalOptions,
     namesMappingProp,
@@ -1109,9 +1106,7 @@ export function TableRenderer(props: TableRendererProps) {
               true,
             )}
           >
-            {t('Total (%(aggregatorName)s)', {
-              aggregatorName: t(aggregatorName),
-            })}
+            {t('Total')}
           </th>
         ) : null;
 
@@ -1126,7 +1121,6 @@ export function TableRenderer(props: TableRendererProps) {
       toggleColKey,
       clickHeaderHandler,
       cols,
-      aggregatorName,
       activeSortColumn,
       sortingOrder,
       collapsedCols,
@@ -1193,11 +1187,7 @@ export function TableRenderer(props: TableRendererProps) {
               true,
             )}
           >
-            {settingsColAttrs.length === 0
-              ? t('Total (%(aggregatorName)s)', {
-                  aggregatorName: t(aggregatorName),
-                })
-              : null}
+            {settingsColAttrs.length === 0 ? t('Total') : null}
           </th>
         </tr>
       );
@@ -1208,7 +1198,6 @@ export function TableRenderer(props: TableRendererProps) {
       clickHeaderHandler,
       rows,
       tableOptions.clickRowHeaderCallback,
-      aggregatorName,
     ],
   );
 
@@ -1464,9 +1453,7 @@ export function TableRenderer(props: TableRendererProps) {
             true,
           )}
         >
-          {t('Total (%(aggregatorName)s)', {
-            aggregatorName: t(aggregatorName),
-          })}
+          {t('Total')}
         </th>
       );
 
@@ -1518,7 +1505,6 @@ export function TableRenderer(props: TableRendererProps) {
       clickHeaderHandler,
       rows,
       tableOptions.clickRowHeaderCallback,
-      aggregatorName,
       onContextMenu,
       allowRenderHtml,
     ],

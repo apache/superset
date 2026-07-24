@@ -71,6 +71,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     engine = "trino"
     engine_name = "Trino"
     allows_alias_to_source_column = False
+    supports_grouping_sets = True
 
     # The full set of columns Trino's "<table>$partitions" exposes for an
     # Iceberg table. The real partition keys are nested in the "partition" ROW,
