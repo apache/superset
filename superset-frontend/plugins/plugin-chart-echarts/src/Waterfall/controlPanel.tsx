@@ -177,6 +177,18 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [
           {
+            name: 'show_x_axis',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show X axis'),
+              renderTrigger: true,
+              default: true,
+              description: t('Show or hide the X axis line, ticks, and labels'),
+            },
+          },
+        ],
+        [
+          {
             name: 'x_axis_label',
             config: {
               type: 'TextControl',
@@ -222,6 +234,20 @@ const config: ControlPanelConfig = {
       label: t('Y Axis'),
       expanded: true,
       controlSetRows: [
+        [
+          {
+            name: 'show_y_axis',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show Y axis'),
+              renderTrigger: true,
+              default: true,
+              description: t(
+                'Show or hide the Y axis line, ticks, gridlines, and labels',
+              ),
+            },
+          },
+        ],
         [
           {
             name: 'y_axis_label',
