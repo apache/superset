@@ -627,7 +627,7 @@ class TestWebDriverPlaywrightErrorHandling:
 
         assert result == []
         mock_logger.exception.assert_called_once_with(
-            "Failed to capture unexpected errors"
+            "Failed to capture unexpected errors%s", ""
         )
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
@@ -820,7 +820,7 @@ class TestWebDriverPlaywrightErrorHandling:
         # not installed) accepting unrelated exceptions.
         assert exc_info.value is timeout
         mock_logger.exception.assert_any_call(
-            "Timed out requesting url %s", "http://example.com"
+            "Timed out requesting url %s%s", "http://example.com", ""
         )
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
@@ -901,9 +901,10 @@ class TestWebDriverPlaywrightErrorHandling:
         assert result == b"fake_screenshot"
         mock_logger.warning.assert_any_call(
             "Could not determine dashboard height for element %s at url %s; "
-            "falling back to standard screenshot behavior",
+            "falling back to standard screenshot behavior.%s",
             "dashboard",
             "http://example.com",
+            "",
         )
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
@@ -970,7 +971,8 @@ class TestWebDriverPlaywrightErrorHandling:
         assert result == b"fallback_screenshot"
         mock_take_tiled.assert_called_once()
         mock_logger.warning.assert_any_call(
-            ("Tiled screenshot failed, falling back to standard screenshot"),
+            "Tiled screenshot failed, falling back to standard screenshot.%s",
+            "",
         )
 
 
@@ -1132,6 +1134,46 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
         ]
         assert animation_waits == [], (
             "No global 2s animation wait_for_timeout should fire on the tiled path"
+        )
+
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.webdriver._browser_manager")
+    @patch("superset.utils.webdriver.take_tiled_screenshot")
+    @patch("superset.utils.webdriver.app")
+    def test_tiled_path_forwards_non_none_log_context(
+        self, mock_app, mock_take_tiled, mock_browser_manager
+    ):
+        """A caller-supplied log_context reaches take_tiled_screenshot unchanged."""
+        mock_user = MagicMock()
+        mock_user.username = "test_user"
+        mock_app.config = {
+            **self._base_config,
+            "SCREENSHOT_TILED_ENABLED": True,
+            "SCREENSHOT_TILED_CHART_THRESHOLD": 20,
+            "SCREENSHOT_TILED_HEIGHT_THRESHOLD": 5000,
+            "SCREENSHOT_TILED_VIEWPORT_HEIGHT": 600,
+        }
+
+        mock_context, mock_page = self._make_pw_mocks(mock_browser_manager)
+        mock_page.evaluate.side_effect = [25, 6000]
+        mock_take_tiled.return_value = b"tiled_screenshot"
+
+        with patch.object(WebDriverPlaywright, "auth", return_value=mock_context):
+            result = WebDriverPlaywright("chrome").get_screenshot(
+                "http://example.com",
+                "standalone",
+                mock_user,
+                log_context="execution_id=abc-123",
+            )
+
+        assert result == b"tiled_screenshot"
+        mock_take_tiled.assert_called_once_with(
+            mock_page,
+            "standalone",
+            600,
+            load_wait=30,
+            animation_wait=2,
+            log_context="execution_id=abc-123",
         )
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
