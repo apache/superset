@@ -185,6 +185,8 @@ export default function transformProps(
     xTicksLayout,
     xAxisTimeFormat,
     showLegend,
+    showXAxis = true,
+    showYAxis = true,
     yAxisLabel,
     xAxisLabel,
     yAxisFormat,
@@ -370,6 +372,7 @@ export default function transformProps(
   }
   axisLabel.formatter = xAxisFormatter;
   axisLabel.hideOverlap = false;
+  axisLabel.show = showXAxis;
 
   const seriesProps: Pick<BarSeriesOption, 'type' | 'stack' | 'emphasis'> = {
     type: 'bar',
@@ -445,12 +448,14 @@ export default function transformProps(
     xAxis: {
       data: xAxisData,
       type: 'category',
-      name: xAxisLabel,
+      name: showXAxis ? xAxisLabel : '',
       nameTextStyle: {
         padding: [theme.sizeUnit * 4, 0, 0, 0],
       },
       nameLocation: 'middle',
       axisLabel,
+      axisLine: { show: showXAxis },
+      axisTick: { show: showXAxis },
     },
     yAxis: {
       ...defaultYAxis,
@@ -459,8 +464,11 @@ export default function transformProps(
         padding: [0, 0, theme.sizeUnit * 5, 0],
       },
       nameLocation: 'middle',
-      name: yAxisLabel,
-      axisLabel: { formatter: defaultFormatter },
+      name: showYAxis ? yAxisLabel : '',
+      axisLabel: { show: showYAxis, formatter: defaultFormatter },
+      axisLine: { show: showYAxis },
+      axisTick: { show: showYAxis },
+      splitLine: { show: showYAxis },
     },
     tooltip: {
       ...getDefaultTooltip(refs),
