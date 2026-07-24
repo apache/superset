@@ -216,6 +216,102 @@ class TestLoggingMiddlewareOnCallTool:
         assert call_kwargs["slice_id"] == 20
         assert call_kwargs["curated_payload"]["dataset_id"] == 30
 
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_on_call_tool_extracts_chart_id_from_response(
+        self, mock_get_user_id, mock_event_logger
+    ) -> None:
+        """generate_chart takes no chart_id as input, so on a successful
+        create the new chart's ID must be pulled from the response body
+        instead -- otherwise every retry logs slice_id=None and a
+        successful attempt can't be told apart from the failed ones.
+        """
+        middleware = LoggingMiddleware()
+        ctx = _make_context(name="generate_chart", params={"dataset_id": 5})
+        response_text = (
+            '{"success": true, "chart": {"id": 123, "slice_name": "My Chart"}}'
+        )
+        original_result = ToolResult(
+            content=[mt.TextContent(type="text", text=response_text)]
+        )
+        call_next = AsyncMock(return_value=original_result)
+
+        await middleware.on_call_tool(ctx, call_next)
+
+        call_kwargs = mock_event_logger.log.call_args[1]
+        assert call_kwargs["slice_id"] == 123
+        assert call_kwargs["curated_payload"]["slice_id"] == 123
+        assert call_kwargs["curated_payload"]["success"] is True
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_on_call_tool_extracts_dashboard_id_from_response(
+        self, mock_get_user_id, mock_event_logger
+    ) -> None:
+        """generate_dashboard likewise creates an ID that only appears in
+        the response, not the input params."""
+        middleware = LoggingMiddleware()
+        ctx = _make_context(name="generate_dashboard", params={"chart_ids": [1, 2]})
+        response_text = '{"success": true, "dashboard": {"id": 456}}'
+        original_result = ToolResult(
+            content=[mt.TextContent(type="text", text=response_text)]
+        )
+        call_next = AsyncMock(return_value=original_result)
+
+        await middleware.on_call_tool(ctx, call_next)
+
+        call_kwargs = mock_event_logger.log.call_args[1]
+        assert call_kwargs["dashboard_id"] == 456
+        assert call_kwargs["curated_payload"]["dashboard_id"] == 456
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_on_call_tool_does_not_extract_id_on_failed_response(
+        self, mock_get_user_id, mock_event_logger
+    ) -> None:
+        """A failed create (error schema response, no exception raised)
+        must not report a chart_id -- nothing was actually persisted."""
+        middleware = LoggingMiddleware()
+        ctx = _make_context(name="generate_chart", params={"dataset_id": 5})
+        response_text = (
+            '{"success": false, "chart": null, '
+            '"error": {"error_type": "validation_error"}}'
+        )
+        original_result = ToolResult(
+            content=[mt.TextContent(type="text", text=response_text)]
+        )
+        call_next = AsyncMock(return_value=original_result)
+
+        await middleware.on_call_tool(ctx, call_next)
+
+        call_kwargs = mock_event_logger.log.call_args[1]
+        assert call_kwargs["curated_payload"]["success"] is False
+        assert call_kwargs["slice_id"] is None
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_on_call_tool_prefers_input_slice_id_over_response(
+        self, mock_get_user_id, mock_event_logger
+    ) -> None:
+        """When chart_id is already known from input params (e.g.
+        update_chart), the response body must not override it."""
+        middleware = LoggingMiddleware()
+        ctx = _make_context(name="update_chart", params={"chart_id": 111})
+        response_text = '{"success": true, "chart": {"id": 999}}'
+        original_result = ToolResult(
+            content=[mt.TextContent(type="text", text=response_text)]
+        )
+        call_next = AsyncMock(return_value=original_result)
+
+        await middleware.on_call_tool(ctx, call_next)
+
+        call_kwargs = mock_event_logger.log.call_args[1]
+        assert call_kwargs["slice_id"] == 111
+
 
 class TestLoggingMiddlewareOnMessage:
     """Tests for LoggingMiddleware.on_message()."""
