@@ -20,7 +20,7 @@ import urllib.request
 from collections.abc import Sequence
 from contextlib import closing
 from datetime import datetime, timedelta, timezone
-from typing import Any, cast, Optional, TYPE_CHECKING, Union
+from typing import Any, Optional, TYPE_CHECKING, Union
 from urllib.error import URLError
 from uuid import UUID
 
@@ -55,6 +55,7 @@ from superset.commands.report.exceptions import (
     ReportScheduleXlsxFailedError,
     ReportScheduleXlsxTimeout,
 )
+from superset.commands.report.slack_upgrade import SlackV1UpgradeCoordinator
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.daos.report import (
     REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
@@ -79,121 +80,26 @@ from superset.reports.notifications.base import NotificationContent
 from superset.reports.notifications.exceptions import (
     NotificationError,
     NotificationParamException,
-    SlackV1NotificationError,
 )
-from superset.reports.notifications.slack import (
-    SLACK_V1_FILE_UPLOAD_MESSAGE,
-    SlackNotification,
-)
+from superset.reports.notifications.slack import SlackNotification
 from superset.subjects.types import SubjectType
 from superset.tasks.utils import get_executor
 from superset.utils import json
 from superset.utils.core import HeaderDataType, override_user
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
-from superset.utils.decorators import logs_context, transaction
+from superset.utils.decorators import (
+    logs_context,
+    transaction,
+)
 from superset.utils.file import sanitize_title
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
-from superset.utils.slack import (
-    get_channels_with_search,
-    NO_SLACK_RECIPIENTS_MESSAGE,
-    parse_slack_recipient_targets,
-    refresh_cached_slack_channels_with_search,
-    SlackChannelListingClientError,
-    SlackChannelTypes,
-)
 from superset.utils.urls import get_url_path
 
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla.models import User
 
 logger = logging.getLogger(__name__)
-
-
-def _get_slack_channels(
-    search_string: str,
-) -> tuple[list[dict[str, Any]], bool]:
-    """Fetch matching Slack channels and same-read cache provenance."""
-    channels, used_cache = get_channels_with_search(
-        search_string=search_string,
-        types=[
-            SlackChannelTypes.PRIVATE,
-            SlackChannelTypes.PUBLIC,
-        ],
-        exact_match=True,
-        force=False,
-        return_cache_status=True,
-    )
-    return (
-        cast(list[dict[str, Any]], channels),
-        used_cache,
-    )
-
-
-def _match_slack_channel(
-    target: str,
-    channels: list[dict[str, Any]],
-) -> dict[str, Any] | None:
-    """Resolve one target with deterministic ID-before-name precedence."""
-    match_groups = (
-        [channel for channel in channels if channel["id"] == target],
-        [
-            channel
-            for channel in channels
-            if channel["name"].casefold() == target.casefold()
-        ],
-        [
-            channel
-            for channel in channels
-            if channel["id"].casefold() == target.casefold()
-        ],
-    )
-    for matches in match_groups:
-        if len(matches) > 1:
-            raise NotificationParamException(
-                f"Slack channel target is ambiguous: {target}"
-            )
-        if matches:
-            return matches[0]
-    return None
-
-
-def _match_slack_channels(
-    targets: list[str],
-    channels: list[dict[str, Any]],
-) -> tuple[dict[str, dict[str, Any]], list[str]]:
-    resolved: dict[str, dict[str, Any]] = {}
-    missing: list[str] = []
-    for target in targets:
-        if channel := _match_slack_channel(target, channels):
-            resolved[target] = channel
-        else:
-            missing.append(target)
-    return resolved, missing
-
-
-def _resolve_slack_channel_targets(
-    targets: list[str],
-) -> dict[str, dict[str, Any]]:
-    """Resolve Slack names or IDs, refreshing only a stale cached listing."""
-    search_string = ",".join(targets)
-    channels, used_cached_channels = _get_slack_channels(search_string)
-    channels_by_target, missing_channels = _match_slack_channels(targets, channels)
-    if missing_channels and used_cached_channels:
-        channels = cast(
-            list[dict[str, Any]],
-            refresh_cached_slack_channels_with_search(
-                search_string=search_string,
-                types=[SlackChannelTypes.PRIVATE, SlackChannelTypes.PUBLIC],
-                exact_match=True,
-            ),
-        )
-        channels_by_target, missing_channels = _match_slack_channels(targets, channels)
-    if missing_channels:
-        raise NotificationParamException(
-            f"Could not find the following channels: {', '.join(missing_channels)}"
-        )
-    return channels_by_target
 
 
 def resolve_executor_user(model: ReportSchedule) -> tuple["User", str]:
@@ -235,10 +141,12 @@ class BaseReportState:
         self._scheduled_dttm = scheduled_dttm
         self._start_dttm: datetime = datetime.now(timezone.utc).replace(tzinfo=None)
         self._execution_id = execution_id
-        self._filter_warnings: list[str] = []
-        self._slack_v2_upgrade_error: (
-            NotificationParamException | UpdateFailedError | None
-        ) = None
+        self._execution_warnings: list[str] = []
+        self._slack_v1_upgrade = SlackV1UpgradeCoordinator(
+            report_schedule,
+            execution_id,
+            self._execution_warnings,
+        )
 
     def update_report_schedule_and_log(
         self,
@@ -271,72 +179,8 @@ class BaseReportState:
         )
 
     def update_report_schedule_slack_v2(self) -> None:
-        """
-        Update the report schedule type and channels for all slack recipients to v2.
-        V2 uses ids instead of names for channels.
-
-        Channel ids for every Slack recipient are resolved first and the
-        recipients are only mutated once all of them resolve. This keeps the
-        upgrade all-or-nothing: a single unresolvable channel can no longer
-        leave the schedule with some recipients already switched to v2 (and
-        persisted by a later error-log commit) while others are untouched.
-        """
-        pending: list[tuple[ReportRecipients, list[str]]] = []
-        try:
-            for recipient in self._report_schedule.recipients:
-                if recipient.type != ReportRecipientType.SLACK:
-                    continue
-                try:
-                    slack_recipients = json.loads(recipient.recipient_config_json)
-                except (TypeError, ValueError) as ex:
-                    raise NotificationParamException(
-                        "Invalid Slack recipient configuration"
-                    ) from ex
-                target = (
-                    slack_recipients.get("target")
-                    if isinstance(slack_recipients, dict)
-                    else None
-                )
-                if not isinstance(target, str):
-                    raise NotificationParamException(NO_SLACK_RECIPIENTS_MESSAGE)
-                # V1 method allowed to use leading `#` in the channel name
-                channels_list = parse_slack_recipient_targets(target.replace("#", ""))
-                if not channels_list:
-                    raise NotificationParamException(NO_SLACK_RECIPIENTS_MESSAGE)
-                pending.append((recipient, channels_list))
-
-            # Resolve one combined ordered target set so a multi-recipient
-            # schedule only traverses the Slack workspace once.
-            all_targets = list(
-                dict.fromkeys(
-                    channel for _, channels_list in pending for channel in channels_list
-                )
-            )
-            channels_by_target = (
-                _resolve_slack_channel_targets(all_targets) if all_targets else {}
-            )
-            resolved: list[tuple[ReportRecipients, str]] = []
-            for recipient, channels_list in pending:
-                channel_ids = ",".join(
-                    channels_by_target[channel]["id"] for channel in channels_list
-                )
-                resolved.append((recipient, json.dumps({"target": channel_ids})))
-        except (NotificationParamException, SlackChannelListingClientError) as ex:
-            msg = f"Failed to update slack recipients to v2: {str(ex)}"
-            logger.warning(msg)
-            raise NotificationParamException(msg) from ex
-        except Exception as ex:
-            # No recipient has been mutated yet, so there is no partial upgrade
-            # to revert; surface the failure so the configuration can be fixed
-            # manually.
-            msg = f"Failed to update slack recipients to v2: {str(ex)}"
-            logger.exception(msg)
-            raise UpdateFailedError(msg) from ex
-
-        # Every Slack recipient resolved; apply the upgrade atomically.
-        for recipient, recipient_config_json in resolved:
-            recipient.type = ReportRecipientType.SLACKV2
-            recipient.recipient_config_json = recipient_config_json
+        """Update every Slack v1 recipient atomically to Slack v2."""
+        self._slack_v1_upgrade.update_recipients()
 
     def create_log(self, error_message: Optional[str] = None) -> None:
         """
@@ -478,7 +322,7 @@ class BaseReportState:
                 self._report_schedule.get_native_filters_params()
             )
             if filter_warnings:
-                self._filter_warnings.extend(filter_warnings)
+                self._execution_warnings.extend(filter_warnings)
             if anchor := dashboard_state.get("anchor"):
                 try:
                     anchor_list = json.loads(anchor)
@@ -522,7 +366,7 @@ class BaseReportState:
             self._report_schedule.get_native_filters_params()
         )
         if filter_warnings:
-            self._filter_warnings.extend(filter_warnings)
+            self._execution_warnings.extend(filter_warnings)
         if native_filter_params and native_filter_params != "()":
             # Preserve any urlParams from extra.dashboard (e.g. standalone=true)
             # set via API even when ALERT_REPORT_TABS is off — same merge
@@ -1126,58 +970,6 @@ class BaseReportState:
             header_data=header_data,
         )
 
-    def _send_slack_v1_fallback(
-        self,
-        notification: SlackNotification,
-        notification_content: NotificationContent,
-        update_error: NotificationParamException | UpdateFailedError,
-        *,
-        record_upgrade_failure: bool,
-    ) -> None:
-        """Deliver a text-only notification after one failed atomic v2 upgrade."""
-        if notification_content.has_attachments:
-            metric_suffix = "error" if update_error.status >= 500 else "warning"
-            app.config["STATS_LOGGER"].gauge(
-                f"reports.slack.send.{metric_suffix}",
-                1,
-            )
-            if isinstance(update_error, UpdateFailedError):
-                raise UpdateFailedError(
-                    f"{SLACK_V1_FILE_UPLOAD_MESSAGE} "
-                    f"Slack v2 upgrade failed: {update_error}"
-                ) from update_error
-            raise NotificationParamException(
-                f"{SLACK_V1_FILE_UPLOAD_MESSAGE} "
-                f"Slack v2 upgrade failed: {update_error}"
-            ) from update_error
-
-        notification.send_legacy_text()
-        if record_upgrade_failure:
-            self._filter_warnings.append(
-                "Slack v2 upgrade unavailable; delivered the text-only report "
-                f"through deprecated Slack v1: {update_error}"
-            )
-            app.config["STATS_LOGGER"].incr("reports.slack.v1_fallback")
-            if isinstance(update_error, UpdateFailedError):
-                app.config["STATS_LOGGER"].incr(
-                    "reports.slack.v1_fallback.system_error"
-                )
-                logger.error(
-                    "Slack v2 upgrade failed with a system error; delivered the "
-                    "text-only report through Slack v1 for this execution: %s",
-                    update_error,
-                    extra={
-                        "execution_id": self._execution_id,
-                        "report_schedule_id": self._report_schedule.id,
-                    },
-                )
-            else:
-                logger.warning(
-                    "Slack v2 upgrade unavailable; delivered the text-only report "
-                    "through Slack v1 for this execution: %s",
-                    update_error,
-                )
-
     def _send_notification(
         self,
         notification_content: NotificationContent,
@@ -1195,38 +987,19 @@ class BaseReportState:
             )
             return
 
-        if self._slack_v2_upgrade_error is not None and isinstance(
-            notification, SlackNotification
-        ):
-            self._send_slack_v1_fallback(
+        if isinstance(notification, SlackNotification):
+            self._slack_v1_upgrade.send(
                 notification,
                 notification_content,
-                self._slack_v2_upgrade_error,
-                record_upgrade_failure=False,
+                update_recipients=self.update_report_schedule_slack_v2,
+                create_upgraded_notification=lambda: create_notification(
+                    recipient,
+                    notification_content,
+                ),
             )
             return
 
-        try:
-            notification.send()
-        except SlackV1NotificationError as ex:
-            if not isinstance(notification, SlackNotification):
-                raise
-            logger.info("Attempting to upgrade the report to Slackv2: %s", str(ex))
-            try:
-                self.update_report_schedule_slack_v2()
-            except (
-                NotificationParamException,
-                UpdateFailedError,
-            ) as update_error:
-                self._slack_v2_upgrade_error = update_error
-                self._send_slack_v1_fallback(
-                    notification,
-                    notification_content,
-                    update_error,
-                    record_upgrade_failure=True,
-                )
-            else:
-                create_notification(recipient, notification_content).send()
+        notification.send()
 
     def _send(
         self,
@@ -1239,7 +1012,7 @@ class BaseReportState:
         :raises: CommandException
         """
         notification_errors: list[SupersetError] = []
-        self._slack_v2_upgrade_error = None
+        self._slack_v1_upgrade.reset()
         for recipient in recipients:
             try:
                 self._send_notification(notification_content, recipient)
@@ -1384,9 +1157,9 @@ class ReportNotTriggeredErrorState(BaseReportState):
                     )
                     return
             self.send()
-            # Include filter warnings in the log if any were collected
+            # Include execution warnings in the log if any were collected
             warning_message = (
-                ";".join(self._filter_warnings) if self._filter_warnings else None
+                ";".join(self._execution_warnings) if self._execution_warnings else None
             )
             self.update_report_schedule_and_log(
                 ReportState.SUCCESS, error_message=warning_message
@@ -1571,9 +1344,9 @@ class ReportSuccessState(BaseReportState):
 
         try:
             self.send()
-            # Include filter warnings in the log if any were collected
+            # Include execution warnings in the log if any were collected
             warning_message = (
-                ";".join(self._filter_warnings) if self._filter_warnings else None
+                ";".join(self._execution_warnings) if self._execution_warnings else None
             )
             self.update_report_schedule_and_log(
                 ReportState.SUCCESS, error_message=warning_message

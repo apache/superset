@@ -41,12 +41,12 @@ from superset.reports.notifications.exceptions import (
     NotificationParamException,
     NotificationUnprocessableException,
 )
-from superset.reports.notifications.slack_mixin import (
+from superset.reports.notifications.slack_mixin import SlackMixin
+from superset.reports.notifications.slack_transport import (
     call_slack_api,
     call_slack_api_with_timeout,
     send_to_slack_channels,
     SlackChannelResponseError,
-    SlackMixin,
     SlackRetryDeadlineError,
 )
 from superset.utils import json
@@ -109,7 +109,7 @@ def _upload_file_to_slack(
     def upload_file() -> None:
         remaining = retry_deadline - time.monotonic()
         if remaining <= 0:
-            raise SlackRetryDeadlineError("Slack send retry deadline exceeded")
+            raise SlackRetryDeadlineError
         # files_upload_v2 uses this SDK helper internally. Calling it directly
         # keeps retries scoped to the raw upload rather than replaying URL creation.
         result = client._upload_file(  # pylint: disable=protected-access
@@ -219,7 +219,6 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
                         text=body,
                     )
 
-            # files_upload returns SlackResponse as we run it in sync mode.
             send_to_slack_channels(channels, send_to_channel)
 
             logger.info(
@@ -239,6 +238,6 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
         except SlackTokenRotationError as ex:
             raise NotificationAuthorizationException(str(ex)) from ex
         except SlackClientError as ex:
-            # this is the base class for all slack client errors
-            # keep it last so that it doesn't interfere with @backoff
+            # SlackClientError is the base class; keep it last so subclasses
+            # retain their more specific notification classification.
             raise NotificationUnprocessableException(str(ex)) from ex

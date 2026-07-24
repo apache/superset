@@ -36,6 +36,16 @@ if TYPE_CHECKING:
     from superset.stats_logger import BaseStatsLogger
 
 
+def record_statsd_gauge_failure(metric_prefix: str, ex: Exception) -> None:
+    """Record a warning or error gauge using the shared exception contract."""
+    suffix = (
+        "warning"
+        if hasattr(ex, "status") and ex.status < 500  # pylint: disable=no-member
+        else "error"
+    )
+    app.config["STATS_LOGGER"].gauge(f"{metric_prefix}.{suffix}", 1)
+
+
 def statsd_gauge(
     metric_prefix: str | None = None,
     *,
@@ -55,12 +65,7 @@ def statsd_gauge(
             except ignored_exceptions:
                 raise
             except Exception as ex:
-                if (
-                    hasattr(ex, "status") and ex.status < 500  # pylint: disable=no-member
-                ):
-                    app.config["STATS_LOGGER"].gauge(f"{metric_prefix_}.warning", 1)
-                else:
-                    app.config["STATS_LOGGER"].gauge(f"{metric_prefix_}.error", 1)
+                record_statsd_gauge_failure(metric_prefix_, ex)
                 raise
 
         return wrapped
