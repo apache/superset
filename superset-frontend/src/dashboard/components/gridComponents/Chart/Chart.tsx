@@ -771,6 +771,7 @@ const Chart = (props: ChartProps) => {
           chartAlert={chart.chartAlert ?? undefined}
           chartId={props.id}
           chartStatus={chartStatus ?? undefined}
+          chartStackTrace={chart.chartStackTrace ?? undefined}
           datasource={datasource}
           dashboardId={props.dashboardId}
           initialValues={EMPTY_OBJECT}

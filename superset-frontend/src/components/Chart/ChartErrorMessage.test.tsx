@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import '@testing-library/jest-dom';
 import { ChartSource } from 'src/types/ChartSource';
 import { useChartOwnerNames } from 'src/hooks/apiResources';
@@ -59,6 +59,22 @@ describe('ChartErrorMessage', () => {
     render(<ChartErrorMessage {...defaultProps} />);
 
     expect(screen.getByText('Data error')).toBeInTheDocument();
+  });
+
+  test('keeps the error expandable when there is no stack trace', async () => {
+    // Regression guard for #31858: a chart error without a stack trace must
+    // still offer a "See more" affordance instead of a flat, unexpandable
+    // card, matching the expandable behavior in Explore.
+    mockUseChartOwnerNames.mockReturnValue({
+      result: null,
+      status: ResourceStatus.Loading,
+      error: null,
+    });
+    render(<ChartErrorMessage {...defaultProps} />);
+
+    // The subtitle is tucked into the collapsible section, not shown inline.
+    expect(screen.queryByText('Test subtitle')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByText('See more'));
     expect(screen.getByText('Test subtitle')).toBeInTheDocument();
   });
 
