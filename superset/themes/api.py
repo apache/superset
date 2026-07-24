@@ -352,6 +352,8 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             return self.response_403()
         except SystemThemeInUseError:
             return self.response_403()
+        except ThemeInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
         except Exception as ex:
             logger.exception("Unexpected error in PUT /theme/%s", pk)
             return self.response_422(message=str(ex))

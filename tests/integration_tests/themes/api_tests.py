@@ -95,6 +95,7 @@ class TestThemeApi(SupersetTestCase):
             "changed_on_delta_humanized",
             "created_by",
             "created_on",
+            "editors",
             "id",
             "is_system",
             "is_system_default",
@@ -227,6 +228,7 @@ class TestThemeApi(SupersetTestCase):
                 "id": theme.created_by.id,
                 "last_name": theme.created_by.last_name,
             },
+            "editors": [],
         }
         data = json.loads(rv.data.decode("utf-8"))
         for key, value in data["result"].items():

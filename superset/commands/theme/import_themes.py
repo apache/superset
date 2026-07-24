@@ -56,6 +56,16 @@ def import_theme(config: dict[str, Any], overwrite: bool = False) -> "Theme | No
             raise ThemeImportError(
                 "Cannot overwrite the active system-default/dark theme via import"
             )
+        # Overwriting an existing theme requires editorship (admins bypass).
+        if (
+            user
+            and not security_manager.is_editor(existing)
+            and not security_manager.is_admin()
+        ):
+            raise ThemeImportError(
+                "A theme already exists and user doesn't have "
+                "permissions to overwrite it"
+            )
         config["id"] = existing.id
     elif not can_write:
         raise ThemeImportError(

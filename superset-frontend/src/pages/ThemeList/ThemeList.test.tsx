@@ -449,6 +449,47 @@ test('shows edit action for all themes when user has permission', async () => {
   expect(editButtons.length).toBe(3);
 });
 
+test('renders an Editors column with a subject pile for each theme', async () => {
+  const themesWithEditors = mockThemes.map(theme => ({
+    ...theme,
+    editors: [{ id: 10, label: 'Jane Doe', type: 1 }],
+  }));
+  (hooks.useListViewResource as jest.Mock).mockReturnValue({
+    state: {
+      loading: false,
+      resourceCollection: themesWithEditors,
+      resourceCount: 3,
+      bulkSelectEnabled: false,
+    },
+    setResourceCollection: jest.fn(),
+    hasPerm: jest.fn().mockReturnValue(true),
+    refreshData: mockRefreshData,
+    fetchData: jest.fn(),
+    toggleBulkSelect: jest.fn(),
+  });
+
+  render(
+    <ThemesList
+      user={mockUser}
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      useQueryParams: true,
+      useTheme: true,
+    },
+  );
+
+  await screen.findByText('Custom Theme');
+
+  // The Editors column header is present...
+  expect(screen.getAllByText('Editors').length).toBeGreaterThan(0);
+  // ...and the SubjectPile renders an avatar with the editor's initials.
+  expect(await screen.findAllByText('JD')).not.toHaveLength(0);
+});
+
 test('shows bulk select button when user has permissions', async () => {
   render(
     <ThemesList
