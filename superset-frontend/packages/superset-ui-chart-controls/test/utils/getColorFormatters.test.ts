@@ -980,3 +980,32 @@ test('should return token name as-is when colorScheme is a string token', () => 
   expect(colorFunction('Carlos')).toEqual('Green');
   expect(colorFunction('Brian')).toEqual('Green');
 });
+
+test('should return solid hex color when useGradient is false or true', () => {
+  const columnConfig = [
+    {
+      operator: Comparator.GreaterThan,
+      targetValue: 50,
+      colorScheme: { r: 0, g: 47, b: 255, a: 1 },
+      column: 'count',
+      useGradient: false,
+    },
+    {
+      operator: Comparator.GreaterThan,
+      targetValue: 50,
+      colorScheme: { r: 255, g: 166, b: 0, a: 1 },
+      column: 'count',
+      useGradient: true,
+    },
+  ];
+  const colorFormatters = getColorFormatters(columnConfig, mockData);
+  expect(colorFormatters.length).toEqual(2);
+
+  // First formatter with useGradient: false should return solid color
+  expect(colorFormatters[0].column).toEqual('count');
+  expect(colorFormatters[0].getColorFromValue(100)).toEqual('#002fff');
+
+  // Second formatter with useGradient: true should return gradient color
+  expect(colorFormatters[1].column).toEqual('count');
+  expect(colorFormatters[1].getColorFromValue(100)).toEqual('#ffa600FF');
+});
