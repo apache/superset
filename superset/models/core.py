@@ -144,6 +144,12 @@ class Theme(AuditMixinNullable, ImportExportMixin, Model):
     is_system_default = Column(Boolean, default=False, nullable=False)
     is_system_dark = Column(Boolean, default=False, nullable=False)
 
+    editors = relationship(
+        "Subject",
+        secondary="theme_editors",
+        passive_deletes=True,
+    )
+
     export_fields = ["theme_name", "json_data"]
 
 
