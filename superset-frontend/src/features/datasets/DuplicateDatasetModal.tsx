@@ -45,6 +45,9 @@ const DuplicateDatasetModal: FunctionComponent<DuplicateDatasetModalProps> = ({
   };
 
   const duplicateDataset = () => {
+    if (disableSave) {
+      return;
+    }
     onDuplicate(newDuplicateDatasetName);
   };
 
