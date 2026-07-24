@@ -51,10 +51,12 @@ from superset.mcp_service.constants import (
     DEFAULT_WARN_THRESHOLD_PCT,
 )
 from superset.mcp_service.utils.token_utils import (
+    DATA_QUERY_TOOLS,
     estimate_response_tokens,
     format_size_limit_error,
     INFO_TOOLS,
     truncate_oversized_response,
+    truncate_query_result,
 )
 from superset.utils.core import get_user_id
 
@@ -840,6 +842,141 @@ class ResponseSizeGuardMiddleware(Middleware):
 
         return truncated
 
+    def _try_truncate_data_query_response(
+        self,
+        tool_name: str,
+        response: Any,
+        estimated_tokens: int,
+    ) -> Any | None:
+        """Attempt to truncate a data-query tool response by dropping tail rows.
+
+        Returns the truncated response if successful, None otherwise.
+        """
+        extracted = self._extract_payload_from_tool_result(response)
+        truncation_target = extracted if extracted is not None else response
+
+        try:
+            truncated, was_truncated, notes = truncate_query_result(
+                truncation_target, self.token_limit, tool_name=tool_name
+            )
+        except Exception as trunc_error:  # noqa: BLE001
+            logger.warning(
+                "Query result truncation failed for %s due to %s: %s",
+                tool_name,
+                type(trunc_error).__name__,
+                trunc_error,
+            )
+            return None
+
+        if not was_truncated:
+            return None
+
+        # Mirror the info-tool path: if truncation couldn't bring the
+        # response back under the limit (e.g. a single row/scalar field
+        # alone exceeds it), fall back to the hard size-limit error instead
+        # of shipping an over-budget response.
+        truncated_tokens = estimate_response_tokens(truncated)
+        if truncated_tokens > self.token_limit:
+            return None
+
+        logger.warning(
+            "Query result for %s truncated from ~%d to ~%d tokens (limit: %d). %s",
+            tool_name,
+            estimated_tokens,
+            truncated_tokens,
+            self.token_limit,
+            "; ".join(notes),
+        )
+
+        try:
+            user_id = get_user_id()
+            event_logger.log(
+                user_id=user_id,
+                action="mcp_response_truncated",
+                curated_payload={
+                    "tool": tool_name,
+                    "original_tokens": estimated_tokens,
+                    "truncated_tokens": truncated_tokens,
+                    "token_limit": self.token_limit,
+                    "truncation_notes": notes,
+                },
+            )
+        except Exception as log_error:  # noqa: BLE001
+            logger.warning("Failed to log truncation event: %s", log_error)
+
+        if extracted is not None and isinstance(truncated, dict):
+            return self._rewrap_as_tool_result(truncated, response)
+
+        return truncated
+
+    def _handle_oversized_response(
+        self,
+        tool_name: str,
+        response: Any,
+        estimated_tokens: int,
+        params: dict[str, Any],
+    ) -> Any:
+        """Attempt truncation for known tool categories; block everything else.
+
+        For info tools (``INFO_TOOLS``) and data-query tools
+        (``DATA_QUERY_TOOLS``), tries dynamic truncation first and returns
+        the truncated result if successful.  Falls through to a hard
+        ``ToolError`` for all other tools, or when truncation cannot reduce
+        the response to fit the limit.
+
+        Raises:
+            ToolError: When the response exceeds the limit and cannot be
+                truncated.
+        """
+        # Info tools: field-level truncation (strings, lists, dicts).
+        if tool_name in INFO_TOOLS:
+            truncated = self._try_truncate_info_response(
+                tool_name, response, estimated_tokens
+            )
+            if truncated is not None:
+                return truncated
+
+        # Data-query tools: row-level truncation.
+        if tool_name in DATA_QUERY_TOOLS:
+            truncated = self._try_truncate_data_query_response(
+                tool_name, response, estimated_tokens
+            )
+            if truncated is not None:
+                return truncated
+
+        # Log the blocked response (user-caused: requested too much data)
+        logger.warning(
+            "Response blocked for %s: ~%d tokens exceeds limit of %d",
+            tool_name,
+            estimated_tokens,
+            self.token_limit,
+        )
+
+        try:
+            user_id = get_user_id()
+            event_logger.log(
+                user_id=user_id,
+                action="mcp_response_size_exceeded",
+                curated_payload={
+                    "tool": tool_name,
+                    "estimated_tokens": estimated_tokens,
+                    "token_limit": self.token_limit,
+                    "params": _sanitize_params(params),
+                },
+            )
+        except Exception as log_error:  # noqa: BLE001
+            logger.warning("Failed to log size exceeded event: %s", log_error)
+
+        raise ToolError(
+            format_size_limit_error(
+                tool_name=tool_name,
+                params=params,
+                estimated_tokens=estimated_tokens,
+                token_limit=self.token_limit,
+                response=None,
+            )
+        )
+
     async def on_call_tool(
         self,
         context: MiddlewareContext,
@@ -886,51 +1023,11 @@ class ResponseSizeGuardMiddleware(Middleware):
                 self.token_limit,
             )
 
-        # Block if over limit
         if estimated_tokens > self.token_limit:
             params = getattr(context.message, "params", {}) or {}
-
-            # For info tools, try dynamic truncation before blocking
-            if tool_name in INFO_TOOLS:
-                truncated = self._try_truncate_info_response(
-                    tool_name, response, estimated_tokens
-                )
-                if truncated is not None:
-                    return truncated
-
-            # Log the blocked response (user-caused: requested too much data)
-            logger.warning(
-                "Response blocked for %s: ~%d tokens exceeds limit of %d",
-                tool_name,
-                estimated_tokens,
-                self.token_limit,
+            return self._handle_oversized_response(
+                tool_name, response, estimated_tokens, params
             )
-
-            # Log to event logger for monitoring
-            try:
-                user_id = get_user_id()
-                event_logger.log(
-                    user_id=user_id,
-                    action="mcp_response_size_exceeded",
-                    curated_payload={
-                        "tool": tool_name,
-                        "estimated_tokens": estimated_tokens,
-                        "token_limit": self.token_limit,
-                        "params": _sanitize_params(params),
-                    },
-                )
-            except Exception as log_error:  # noqa: BLE001
-                logger.warning("Failed to log size exceeded event: %s", log_error)
-
-            error_message = format_size_limit_error(
-                tool_name=tool_name,
-                params=params,
-                estimated_tokens=estimated_tokens,
-                token_limit=self.token_limit,
-                response=None,
-            )
-
-            raise ToolError(error_message)
 
         return response
 

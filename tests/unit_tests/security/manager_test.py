@@ -666,6 +666,99 @@ def test_query_context_modified_tampered(
     assert query_context_modified(query_context)
 
 
+def test_query_context_modified_singular_metric_param(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A chart storing its metric under the singular ``metric`` params key (big
+    number, world map, ...) generates a payload with a plural ``metrics`` list;
+    replaying the chart's own metric is not tampering.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metric": "sum__SP_POP_TOTL",
+        "groupby": [],
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metric": "sum__SP_POP_TOTL",
+    }
+    query_context.queries = [QueryObject(metrics=["sum__SP_POP_TOTL"])]
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_control_specific_column_params(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Charts store their queried columns under control-specific params keys
+    (``entity``/``series`` for bubble, ``groupby`` for most, the temporal
+    column under ``granularity_sqla``); the generated payload carries them in
+    ``columns``, which must not read as tampering.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "entity": "country_name",
+        "series": "region",
+        "granularity_sqla": "year",
+        "x": "sum__SP_RUR_TOTL_ZS",
+        "y": "sum__SP_DYN_LE00_IN",
+        "size": "sum__SP_POP_TOTL",
+    }
+
+    query_context.form_data = {"slice_id": 42}
+    query_context.queries = [
+        QueryObject(
+            columns=["country_name", "region", "year"],
+            metrics=[
+                "sum__SP_RUR_TOTL_ZS",
+                "sum__SP_DYN_LE00_IN",
+                "sum__SP_POP_TOTL",
+            ],
+        )
+    ]
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_novel_values_still_tampered(
+    mocker: MockerFixture,
+) -> None:
+    """
+    The control-specific params equivalence only authorizes exact stored
+    values: a metric or column the chart does not reference anywhere is still
+    rejected, as is an adhoc expression label-spoofing a stored column.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metric": "sum__SP_POP_TOTL",
+        "entity": "country_code",
+        "granularity_sqla": "year",
+    }
+    query_context.form_data = {"slice_id": 42}
+
+    query_context.queries = [QueryObject(metrics=["sum__SH_DYN_AIDS"])]
+    assert query_context_modified(query_context)
+
+    query_context.queries = [QueryObject(columns=["some_other_column"])]
+    assert query_context_modified(query_context)
+
+    query_context.queries = [
+        QueryObject(
+            columns=[
+                {"label": "country_code", "sqlExpression": "(select 1)"},
+            ],
+        )
+    ]
+    assert query_context_modified(query_context)
+
+
 def _native_filter_ctx(
     mocker: MockerFixture,
     queries: list[Any],
