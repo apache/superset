@@ -336,3 +336,29 @@ test('getErrorText', async () => {
     ),
   ).toEqual('Sorry, an unknown error occurred.');
 });
+
+test('getErrorText for a non-JSON 403 response', async () => {
+  // A 403 originating outside Superset (reverse proxy, WAF, SSO gateway)
+  // carries an HTML or plain-text body instead of the API's JSON
+  // `{"message": "Forbidden"}`, so it must fall back to the generic
+  // status-derived text rather than the permission-denied copy.
+  const proxyForbidden = new Response(
+    '<html><head><title>403 Forbidden</title></head><body>Forbidden</body></html>',
+    {
+      status: 403,
+      statusText: 'Forbidden',
+      headers: { 'Content-Type': 'text/html' },
+    },
+  );
+  expect(await getErrorText(proxyForbidden, 'dashboard')).toEqual(
+    'Sorry, there was an error saving this dashboard: Forbidden',
+  );
+
+  const supersetForbidden = new Response(
+    JSON.stringify({ message: 'Forbidden' }),
+    { status: 403, statusText: 'FORBIDDEN' },
+  );
+  expect(await getErrorText(supersetForbidden, 'dashboard')).toEqual(
+    'You do not have permission to edit this dashboard',
+  );
+});

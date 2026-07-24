@@ -298,6 +298,73 @@ describe('dashboardState actions', () => {
         { event: 'dashboard_properties_changed' },
       );
     });
+
+    // The save-error toast mapping lives inline in `onError`, not behind
+    // `getErrorText`, so these exercise the thunk itself. A 403 whose body is
+    // the API's `{"message": "Forbidden"}` shape must surface the
+    // permission-denied copy, while a 403 from outside Superset (reverse proxy,
+    // WAF, SSO gateway) carries a non-JSON body and must fall back to the
+    // generic status-derived toast. See #42239.
+    const findDangerToast = (dispatch: jest.Mock) =>
+      dispatch.mock.calls
+        .map(call => call[0])
+        .find(
+          action =>
+            action?.type === ADD_TOAST &&
+            action.payload.toastType === ToastType.Danger,
+        );
+
+    test('maps a non-JSON 403 save failure to the generic error toast', async () => {
+      const { getState, dispatch } = setup();
+      putStub.mockRestore();
+      putStub = jest.spyOn(SupersetClient, 'put').mockRejectedValue(
+        new Response(
+          '<html><head><title>403 Forbidden</title></head><body>Forbidden</body></html>',
+          {
+            status: 403,
+            statusText: 'Forbidden',
+            headers: { 'Content-Type': 'text/html' },
+          },
+        ),
+      );
+
+      const thunk = saveDashboardRequest(
+        newDashboardData,
+        192,
+        SAVE_TYPE_OVERWRITE,
+      );
+      await thunk(dispatch, getState);
+
+      await waitFor(() =>
+        expect(findDangerToast(dispatch)?.payload.text).toBe(
+          'Sorry, there was an error saving this dashboard: Forbidden',
+        ),
+      );
+    });
+
+    test('maps a Superset JSON 403 save failure to the permission-denied toast', async () => {
+      const { getState, dispatch } = setup();
+      putStub.mockRestore();
+      putStub = jest.spyOn(SupersetClient, 'put').mockRejectedValue(
+        new Response(JSON.stringify({ message: 'Forbidden' }), {
+          status: 403,
+          statusText: 'FORBIDDEN',
+        }),
+      );
+
+      const thunk = saveDashboardRequest(
+        newDashboardData,
+        192,
+        SAVE_TYPE_OVERWRITE,
+      );
+      await thunk(dispatch, getState);
+
+      await waitFor(() =>
+        expect(findDangerToast(dispatch)?.payload.text).toBe(
+          'You do not have permission to edit this dashboard',
+        ),
+      );
+    });
   });
 
   test('fetchCharts returns a Promise that resolves after all refreshes', async () => {
