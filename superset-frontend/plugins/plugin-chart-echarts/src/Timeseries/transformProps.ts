@@ -724,6 +724,41 @@ export default function transformProps(
     }
   }
 
+  // Whenever a Y axis bound is defined, whether explicitly configured or
+  // derived above from the data, clamp series values to those bounds
+  // instead of leaving raw out-of-range values in place. ECharts axis
+  // clipping can otherwise drop an out-of-bounds point (and the line
+  // segments around it) entirely rather than truncating it at the
+  // boundary (see https://github.com/apache/superset/issues/27449).
+  if (yAxisMin !== undefined || yAxisMax !== undefined) {
+    const valueIndex = isHorizontal ? 0 : 1;
+    const clampAxisValue = (
+      value: string | number | null | undefined,
+    ): string | number | null | undefined => {
+      if (typeof value !== 'number' || Number.isNaN(value)) return value;
+      let clamped = value;
+      if (yAxisMin !== undefined) clamped = Math.max(clamped, yAxisMin);
+      if (yAxisMax !== undefined) clamped = Math.min(clamped, yAxisMax);
+      return clamped;
+    };
+    series.forEach(s => {
+      if (!Array.isArray(s.data)) return;
+      const clampedData = (
+        s.data as (string | number | null | undefined)[][]
+      ).map(point => {
+        if (Array.isArray(point)) {
+          const newPoint = [...point];
+          newPoint[valueIndex] = clampAxisValue(newPoint[valueIndex]);
+          return newPoint;
+        }
+        return point;
+      });
+      // Matches the existing pattern used elsewhere in this file for
+      // narrowing the broad, union-typed ECharts `SeriesOption.data` field.
+      (s as any).data = clampedData;
+    });
+  }
+
   // A dashboard-level time grain override (e.g. via a filter or the temporal
   // range control) is delivered in extraFormData and should take precedence
   // over the chart's own time grain when formatting temporal axes/tooltips.
