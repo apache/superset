@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core/translation';
 import { NumberFormatter } from '@superset-ui/core';
 
 /*
@@ -44,7 +45,7 @@ export const findGlobalMax = (
 interface TooltipParams {
   color: string;
   name?: string;
-  value: number[];
+  value: (number | null)[];
 }
 
 interface TooltipMetricValue {
@@ -55,7 +56,7 @@ interface TooltipMetricValue {
 export const renderNormalizedTooltip = (
   params: TooltipParams,
   metrics: string[],
-  getDenormalizedValue: (seriesName: string, value: string) => number,
+  getDenormalizedValue: (seriesName: string, value: string) => number | null,
   metricsWithCustomBounds: Set<string>,
   formatter?: NumberFormatter,
 ): string => {
@@ -73,7 +74,14 @@ export const renderNormalizedTooltip = (
 
     return {
       metric,
-      value: formatter ? formatter(originalValue) : originalValue,
+      // A missing metric stays null; show it plainly rather than running it
+      // through the formatter, which would render a misleading "NaN".
+      value:
+        originalValue == null
+          ? t('N/A')
+          : formatter
+            ? formatter(originalValue)
+            : originalValue,
     };
   });
 
