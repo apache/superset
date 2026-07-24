@@ -346,6 +346,7 @@ interface StateProps {
   table_name?: string;
   vizType?: string;
   standalone: boolean;
+  showDownload: boolean;
   force: boolean;
   chart: ChartState;
   timeout: number;
@@ -914,6 +915,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         form_data={props.form_data}
         ownState={props.ownState}
         standalone={props.standalone}
+        showDownload={props.showDownload}
         force={props.force}
         timeout={props.timeout}
         chart={props.chart}
@@ -1241,6 +1243,7 @@ function mapStateToProps(state: ExploreRootState) {
     table_name: datasource.table_name,
     vizType: form_data.viz_type,
     standalone: !!explore.standalone,
+    showDownload: getUrlParam(URL_PARAMS.showDownload) === true,
     force: !!explore.force,
     chart,
     timeout: common.conf.SUPERSET_WEBSERVER_TIMEOUT,

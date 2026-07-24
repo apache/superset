@@ -113,9 +113,11 @@ jest.mock('../ExploreChartPanel', () => ({
   __esModule: true,
   default: ({
     standalone,
+    showDownload,
     onQuery,
   }: {
     standalone?: boolean;
+    showDownload?: boolean;
     onQuery?: () => void;
   }) => {
     const { useEffect, useRef } = jest.requireActual('react');
@@ -129,7 +131,10 @@ jest.mock('../ExploreChartPanel', () => ({
     }, [onQuery]);
 
     return (
-      <div data-test={standalone ? 'standalone-app' : 'explore-chart-panel'} />
+      <div
+        data-test={standalone ? 'standalone-app' : 'explore-chart-panel'}
+        data-show-download={showDownload ? 'true' : 'false'}
+      />
     );
   },
 }));
@@ -288,6 +293,54 @@ test('renders chart in standalone mode', () => {
   });
   expect(queryByTestId('standalone-app')).toBeInTheDocument();
 });
+
+test('passes show_download URL param to standalone chart panel', () => {
+  const { getByTestId } = renderWithRouter({
+    search: '?standalone=1&show_download=1',
+    initialState: {
+      ...reduxState,
+      explore: { ...reduxState.explore, standalone: true },
+    },
+  });
+
+  expect(getByTestId('standalone-app')).toHaveAttribute(
+    'data-show-download',
+    'true',
+  );
+});
+
+test('does not enable standalone download controls by default', () => {
+  const { getByTestId } = renderWithRouter({
+    search: '?standalone=1',
+    initialState: {
+      ...reduxState,
+      explore: { ...reduxState.explore, standalone: true },
+    },
+  });
+
+  expect(getByTestId('standalone-app')).toHaveAttribute(
+    'data-show-download',
+    'false',
+  );
+});
+
+test.each(['0', 'false'])(
+  'does not enable standalone download controls when show_download=%s',
+  showDownload => {
+    const { getByTestId } = renderWithRouter({
+      search: `?standalone=1&show_download=${showDownload}`,
+      initialState: {
+        ...reduxState,
+        explore: { ...reduxState.explore, standalone: true },
+      },
+    });
+
+    expect(getByTestId('standalone-app')).toHaveAttribute(
+      'data-show-download',
+      'false',
+    );
+  },
+);
 
 test('generates a form_data param with datasource_id when mounting with existing key', async () => {
   const history = createMemoryHistory({
