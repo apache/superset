@@ -419,18 +419,22 @@ class WebDriverPlaywright(WebDriverProxy):
                             log_context=log_context,
                         )
                         if not img:
+                            # _get_screenshot() has no wait/readiness logic at
+                            # all, so falling back to it here would risk
+                            # silently delivering a screenshot of spinners or
+                            # a blank dashboard. Fail the report loudly
+                            # instead of guessing at a "safer" fallback.
                             logger.warning(
-                                (
-                                    "Tiled screenshot failed, "
-                                    "falling back to standard screenshot"
-                                )
+                                "Tiled screenshot failed for url %s and no "
+                                "safe fallback exists; failing the report",
+                                url,
                             )
-                            img = WebDriverPlaywright._get_screenshot(
-                                page, element, element_name
+                            raise PlaywrightTimeout(
+                                f"Tiled screenshot failed for url {url}"
                             )
                         logger.debug(
                             "Tiled screenshot result: %d bytes for url: %s",
-                            len(img) if img else 0,
+                            len(img),
                             url,
                         )
                     else:
