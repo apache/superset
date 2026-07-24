@@ -33,6 +33,7 @@ class DataFusionEngineSpec(BaseEngineSpec):
     }
     default_driver = "flightsql"
     sqlalchemy_uri_placeholder = "datafusion://host:port"
+    supports_file_upload = False
 
     metadata = {
         "description": "DataFusion is a highly performant query engine",
