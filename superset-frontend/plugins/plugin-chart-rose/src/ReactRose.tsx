@@ -69,6 +69,7 @@ export default styled(Rose)`
     .superset-legacy-chart-rose text {
         font-size: ${theme.fontSizeSM}px;
         font-family: ${theme.fontFamily};
+        fill: ${theme.colorText};
         pointer-events: none;
     }
 
