@@ -35,6 +35,7 @@ from superset.mcp_service.chart.chart_utils import (
     analyze_chart_capabilities,
     analyze_chart_semantics,
     generate_chart_name,
+    get_table_chart_type_label,
     map_config_to_form_data,
     validate_chart_dataset,
 )
@@ -43,6 +44,7 @@ from superset.mcp_service.chart.compile import (
     CompileResult,
     validate_and_compile,
 )
+from superset.mcp_service.chart.preview_utils import SUPPORTED_FORM_DATA_PREVIEW_FORMATS
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     CHART_FORM_DATA_EXCLUDED_FIELD_NAMES,
@@ -50,6 +52,7 @@ from superset.mcp_service.chart.schemas import (
     GenerateChartRequest,
     GenerateChartResponse,
     PerformanceMetadata,
+    wrap_sql_adhoc_metrics,
 )
 from superset.mcp_service.utils import sanitize_for_llm_context
 from superset.mcp_service.utils.oauth2_utils import (
@@ -71,11 +74,13 @@ def _sanitize_generate_chart_form_data_for_llm_context(
     form_data: dict[str, Any],
 ) -> dict[str, Any]:
     """Wrap generated-chart form_data before returning it to LLM clients."""
-    return sanitize_for_llm_context(
+    wrapped = sanitize_for_llm_context(
         form_data,
         field_path=("form_data",),
         excluded_field_names=GENERATE_CHART_FORM_DATA_EXCLUDED_FIELD_NAMES,
     )
+    wrap_sql_adhoc_metrics(wrapped)
+    return wrapped
 
 
 __all__ = ["CompileResult", "_compile_chart", "validate_and_compile", "generate_chart"]
@@ -100,19 +105,64 @@ async def generate_chart(  # noqa: C901
     - Set save_chart=True to permanently save the chart
     - LLM clients MUST display returned chart URL to users
     - Use numeric dataset ID or UUID (NOT schema.table_name format)
-    - MUST include chart_type in config (either 'xy' or 'table')
+    - MUST include chart_type in config (one of: 'xy', 'table', 'pie',
+      'pivot_table', 'mixed_timeseries', 'handlebars', 'big_number',
+      'histogram', 'box_plot', 'waterfall')
 
     IMPORTANT: The 'chart_type' field in the config is a DISCRIMINATOR that determines
     which chart configuration schema to use. It MUST be included and MUST match the
-    other fields in your configuration:
+    other fields in your configuration. There are exactly 9 valid chart_type values,
+    listed below. Values such as 'line', 'bar', 'area', and 'scatter' are 'kind'
+    values WITHIN chart_type='xy', not chart_type values themselves:
 
-    - Use chart_type='xy' for charts with x and y axes (line, bar, area, scatter)
-      Required fields: x, y
+    - chart_type='xy' for charts with x and y axes (line, bar, area, scatter).
+      Required fields: y (x is optional — defaults to dataset's primary
+      datetime column). Use 'kind' to pick line/bar/area/scatter
+      (default kind='line').
 
-    - Use chart_type='table' for tabular visualizations
+    - chart_type='table' for tabular visualizations.
       Required fields: columns
 
-    Example usage for XY chart:
+    - chart_type='pie' for pie/donut charts.
+      Required fields: dimension, metric
+
+    - chart_type='pivot_table' for pivot table visualizations.
+      Required fields: rows, metrics (columns is optional, for cross-tabs)
+
+    - chart_type='mixed_timeseries' for dual-axis time-series charts.
+      Required fields: x, y (primary metrics), y_secondary (secondary metrics)
+
+    - chart_type='handlebars' for custom template-based visualizations.
+      Required fields: handlebars_template
+
+    - chart_type='big_number' for single KPI metric displays.
+      Required fields: metric
+
+    - chart_type='histogram' for value-distribution charts.
+      Required fields: column (numeric); optional: bins, groupby, normalize,
+      cumulative
+
+    - chart_type='box_plot' for statistical spread comparisons.
+      Required fields: metrics, distribute_across (the sample axis, e.g. a
+      temporal column); use dimensions to split into one box per value;
+      optional whisker_type ('tukey'|'min_max'|'percentile')
+    - Use chart_type='waterfall' for cumulative increase/decrease breakdowns
+      Required fields: x_axis, metric; optional: breakdown (single category
+      column, alias: groupby), show_total
+
+    Quick lookup — natural-language ask -> chart_type (+ kind if applicable):
+    - "bar chart" / "line chart" / "area chart" / "scatter plot"
+      -> chart_type='xy', kind='bar'/'line'/'area'/'scatter'
+    - "pie chart" / "donut chart" -> chart_type='pie'
+    - "table" / "data grid" -> chart_type='table'
+    - "pivot table" / "cross-tab" -> chart_type='pivot_table'
+    - "compare two metrics over time" -> chart_type='mixed_timeseries'
+    - "single number" / "KPI" / "scorecard" -> chart_type='big_number'
+    - "custom HTML template" -> chart_type='handlebars'
+    - "histogram" / "distribution" -> chart_type='histogram'
+    - "box plot" / "box and whisker" -> chart_type='box_plot'
+
+    Example usage for XY chart (bar/line/area/scatter):
     ```json
     {
         "dataset_id": 123,
@@ -136,6 +186,38 @@ async def generate_chart(  # noqa: C901
                 {"name": "quantity", "aggregate": "SUM"},
                 {"name": "revenue", "aggregate": "SUM", "label": "Total Revenue"}
             ]
+        }
+    }
+    ```
+
+    Example usage for Pie chart:
+    ```json
+    {
+        "dataset_id": 123,
+        "config": {
+            "chart_type": "pie",
+            "dimension": {"name": "product_category"},
+            "metric": {"name": "revenue", "aggregate": "SUM"}
+        }
+    }
+    ```
+
+    Example usage with a custom SQL metric (ratios, conditional aggregations,
+    unit conversions). Pass 'sql_expression' instead of 'name'+'aggregate'.
+    A 'label' is required and serves as the metric's display name:
+    ```json
+    {
+        "dataset_id": 123,
+        "config": {
+            "chart_type": "xy",
+            "x": {"name": "order_date"},
+            "y": [{
+                "sql_expression":
+                    "COUNT(CASE WHEN closed_won THEN 1 END)::numeric / "
+                    "NULLIF(COUNT(*), 0)",
+                "label": "Win Rate"
+            }],
+            "kind": "line"
         }
     }
     ```
@@ -239,7 +321,7 @@ async def generate_chart(  # noqa: C901
         form_data_key = None
         response_warnings: list[str] = form_data.pop("_mcp_warnings", [])
 
-        # Save chart by default (unless save_chart=False)
+        # Persist the chart only when explicitly requested (save_chart=False by default)
         if request.save_chart:
             await ctx.report_progress(2, 5, "Creating chart in database")
             from superset.commands.chart.create import CreateChartCommand
@@ -350,6 +432,20 @@ async def generate_chart(  # noqa: C901
                             "Chart creation failed - no chart ID returned"
                         )
 
+                    # Reload server-generated timestamps (created_on,
+                    # changed_on) so the serializer sees real values.
+                    from superset import db
+
+                    try:
+                        db.session.refresh(chart)
+                    except SQLAlchemyError:
+                        logger.warning(
+                            "Chart %s created but refresh failed; "
+                            "continuing with current values",
+                            chart.id,
+                            exc_info=True,
+                        )
+
                 await ctx.info(
                     "Chart created successfully: chart_id=%s, chart_name=%s"
                     % (
@@ -400,7 +496,7 @@ async def generate_chart(  # noqa: C901
                     )
 
                     execution_time = int((time.time() - start_time) * 1000)
-                    error = ChartGenerationError(
+                    error = compile_result.error_obj or ChartGenerationError(
                         error_type="compile_error",
                         message=(
                             "Chart query failed to execute. The chart was not saved."
@@ -488,7 +584,9 @@ async def generate_chart(  # noqa: C901
             # Generate explore link with cached form_data for preview-only mode
             from superset.mcp_service.chart.chart_utils import generate_explore_link
 
-            explore_url = generate_explore_link(request.dataset_id, form_data)
+            explore_url = generate_explore_link(
+                request.dataset_id, form_data, prefer_permalink=False
+            )
             await ctx.debug("Generated explore link: explore_url=%s" % (explore_url,))
 
             # Extract form_data_key from the explore URL
@@ -530,7 +628,7 @@ async def generate_chart(  # noqa: C901
                     )
 
                     execution_time = int((time.time() - start_time) * 1000)
-                    error = ChartGenerationError(
+                    error = compile_result.error_obj or ChartGenerationError(
                         error_type="compile_error",
                         message=(
                             "Chart query failed to execute. "
@@ -630,11 +728,7 @@ async def generate_chart(  # noqa: C901
                             # For preview-only mode (save_chart=false)
                             # Note: Screenshot-based URL previews are not
                             # supported. Use explore_url to view interactively.
-                            if format_type in [
-                                "ascii",
-                                "table",
-                                "vega_lite",
-                            ]:
+                            if format_type in SUPPORTED_FORM_DATA_PREVIEW_FORMATS:
                                 # Generate preview from form data
                                 from superset.mcp_service.chart.preview_utils import (
                                     generate_preview_from_form_data,
@@ -690,17 +784,18 @@ async def generate_chart(  # noqa: C901
             from superset.models.slice import Slice
 
             # Re-fetch with eager-loaded relationships to avoid detached
-            # instance errors when serialize_chart_object accesses .tags.
-            # The preceding commit may invalidate the session
+            # instance errors when serialize_chart_object accesses .tags
+            # and .editors.  The preceding commit may invalidate the session
             # in multi-tenant environments; on failure, build a minimal
             # chart_data dict from scalar attributes that are already loaded
-            # — relationship fields like tags would trigger lazy-loading on
-            # the same dead session.
+            # — relationship fields (editors, tags) would trigger
+            # lazy-loading on the same dead session.
             try:
                 chart = (
                     ChartDAO.find_by_id(
                         chart.id,
                         query_options=[
+                            joinedload(Slice.editors),
                             joinedload(Slice.tags),
                         ],
                     )
@@ -749,6 +844,7 @@ async def generate_chart(  # noqa: C901
             "capabilities": capabilities.model_dump() if capabilities else None,
             "semantics": semantics.model_dump() if semantics else None,
             "explore_url": explore_url,
+            "chart_type_label": get_table_chart_type_label(form_data.get("viz_type")),
             # Form data fields - REQUIRED for chatbot/external client rendering
             "form_data": _sanitize_generate_chart_form_data_for_llm_context(form_data),
             "form_data_key": form_data_key,
@@ -831,14 +927,9 @@ async def generate_chart(  # noqa: C901
 
         logger.exception("Chart generation failed: %s", str(e))
 
-        # Extract chart_type from different sources for better error context
-        chart_type = "unknown"
-        try:
-            if hasattr(request, "config") and isinstance(request.config, dict):
-                chart_type = request.config.chart_type
-        except (AttributeError, TypeError) as extract_error:
-            # Ignore errors when extracting chart type for error context
-            logger.debug("Could not extract chart type: %s", extract_error)
+        # request.config is always a validated ChartConfig, whose variants all
+        # define chart_type as a discriminator field.
+        chart_type: str = request.config.chart_type
 
         execution_time = int((time.time() - start_time) * 1000)
 

@@ -50,8 +50,55 @@ from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
 )
+from superset.sql.parse import SQLScript
 
 logger = logging.getLogger(__name__)
+
+
+async def _validate_non_destructive_sql(
+    request: ExecuteSqlRequest,
+    ctx: Context,
+    database: Any,
+    sql_preview: str,
+) -> ExecuteSqlResponse | None:
+    """Return an error response when SQL cannot safely be executed."""
+    with event_logger.log_context(action="mcp.execute_sql.ddl_check"):
+        try:
+            sql_to_check: str = request.sql
+            if request.template_params:
+                from superset.jinja_context import get_template_processor
+
+                tp = get_template_processor(database=database)
+                sql_to_check = tp.process_template(
+                    request.sql, **request.template_params
+                )
+
+            script = SQLScript(sql_to_check, database.db_engine_spec.engine)
+            if script.has_destructive():
+                await ctx.error("Destructive DDL blocked: sql_preview=%r" % sql_preview)
+                return ExecuteSqlResponse(
+                    success=False,
+                    error=(
+                        "Destructive DDL statements (DROP, TRUNCATE, ALTER) "
+                        "are not allowed through MCP. Use the Superset SQL "
+                        "Lab UI for administrative database operations."
+                    ),
+                    error_type=SupersetErrorType.DML_NOT_ALLOWED_ERROR.value,
+                )
+        except Exception as parse_err:
+            await ctx.error(
+                "DDL pre-check failed to parse SQL, blocking query: %s" % str(parse_err)
+            )
+            return ExecuteSqlResponse(
+                success=False,
+                error=(
+                    "SQL could not be parsed for security validation. "
+                    "Please check your SQL syntax and try again."
+                ),
+                error_type=SupersetErrorType.INVALID_SQL_ERROR.value,
+            )
+
+    return None
 
 
 @tool(
@@ -100,7 +147,10 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
                 )
                 return ExecuteSqlResponse(
                     success=False,
-                    error=f"Database with ID {request.database_id} not found",
+                    error=(
+                        f"Database with ID {request.database_id} not found."
+                        " Use list_databases to get valid database IDs."
+                    ),
                     error_type=SupersetErrorType.DATABASE_NOT_FOUND_ERROR.value,
                 )
 
@@ -114,7 +164,17 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
                     error_type=SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR.value,
                 )
 
-        # 2. Build QueryOptions and execute query
+        # 2. Block destructive DDL (DROP, TRUNCATE, ALTER)
+        # Fail-closed: if parsing fails, block the query rather than
+        # allowing potentially destructive SQL to bypass the check.
+        # Render Jinja2 templates first so templated SQL can be parsed.
+        validation_error: (
+            ExecuteSqlResponse | None
+        ) = await _validate_non_destructive_sql(request, ctx, database, sql_preview)
+        if validation_error is not None:
+            return validation_error
+
+        # 3. Build QueryOptions and execute query
         cache_opts = CacheOptions(force_refresh=True) if request.force_refresh else None
         options = QueryOptions(
             catalog=request.catalog,
@@ -126,11 +186,11 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
             cache=cache_opts,
         )
 
-        # 3. Execute query
+        # 4. Execute query
         with event_logger.log_context(action="mcp.execute_sql.query_execution"):
             result = database.execute(request.sql, options)
 
-        # 4. Convert to MCP response format
+        # 5. Convert to MCP response format
         with event_logger.log_context(action="mcp.execute_sql.response_conversion"):
             response = _convert_to_response(result)
 

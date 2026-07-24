@@ -90,6 +90,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     filter: list[QueryObjectFilterClause]
     from_dttm: datetime | None
     granularity: str | None
+    grouping_sets: list[list[str]]
     inner_from_dttm: datetime | None
     inner_to_dttm: datetime | None
     is_rowcount: bool
@@ -105,6 +106,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     series_limit: int
     series_limit_metric: Metric | None
     time_offsets: list[str]
+    time_compare_full_range: bool
     time_shift: str | None
     time_range: str | None
     to_dttm: datetime | None
@@ -132,6 +134,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         series_limit: int = 0,
         series_limit_metric: Metric | None = None,
         group_others_when_limit_reached: bool = False,
+        grouping_sets: list[list[str]] | None = None,
         time_range: str | None = None,
         time_shift: str | None = None,
         **kwargs: Any,
@@ -156,12 +159,14 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         self.series_limit = series_limit
         self.series_limit_metric = series_limit_metric
         self.group_others_when_limit_reached = group_others_when_limit_reached
+        self.grouping_sets = grouping_sets or []
         self.time_range = time_range
         self.time_shift = time_shift
         self.from_dttm = kwargs.get("from_dttm")
         self.to_dttm = kwargs.get("to_dttm")
         self.result_type = kwargs.get("result_type")
         self.time_offsets = kwargs.get("time_offsets", [])
+        self.time_compare_full_range = kwargs.get("time_compare_full_range", False)
         self.inner_from_dttm = kwargs.get("inner_from_dttm")
         self.inner_to_dttm = kwargs.get("inner_to_dttm")
         self._rename_deprecated_fields(kwargs)
@@ -408,8 +413,10 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             "series_limit": self.series_limit,
             "series_limit_metric": self.series_limit_metric,
             "group_others_when_limit_reached": self.group_others_when_limit_reached,
+            "grouping_sets": self.grouping_sets,
             "to_dttm": self.to_dttm,
             "time_shift": self.time_shift,
+            "time_compare_full_range": self.time_compare_full_range,
         }
         return query_object_dict
 

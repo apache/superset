@@ -105,7 +105,7 @@ class TestOpenSqlLabWithContext:
     def test_sanitizes_direct_sql_and_title_in_url_and_response(self) -> None:
         mod, saved_modules = _get_tool_module()
         try:
-            request = OpenSqlLabRequest(
+            request: OpenSqlLabRequest = OpenSqlLabRequest(
                 database_id=7,
                 schema="analytics",
                 sql="SELECT * FROM users LIMIT 10",
@@ -143,9 +143,10 @@ class TestOpenSqlLabWithContext:
             assert parsed.path == "/sqllab"
             assert params["dbid"] == ["7"]
             assert params["schema"] == ["analytics"]
-            assert params["title"] == [
-                sanitize_for_llm_context("Review this query", field_path=("title",))
+            assert params["name"] == [
+                sanitize_for_llm_context("Review this query", field_path=("name",))
             ]
+            assert "title" not in params
             assert params["sql"] == [
                 sanitize_for_llm_context(
                     "SELECT * FROM users LIMIT 10",
@@ -158,7 +159,7 @@ class TestOpenSqlLabWithContext:
     def test_sanitizes_generated_dataset_context_sql(self) -> None:
         mod, saved_modules = _get_tool_module()
         try:
-            request = OpenSqlLabRequest(
+            request: OpenSqlLabRequest = OpenSqlLabRequest(
                 database_id=12,
                 schema="public",
                 dataset_in_context="orders",
@@ -202,7 +203,7 @@ class TestOpenSqlLabWithContext:
     def test_sanitizes_dataset_context_without_schema(self) -> None:
         mod, saved_modules = _get_tool_module()
         try:
-            request = OpenSqlLabRequest(
+            request: OpenSqlLabRequest = OpenSqlLabRequest(
                 database_id=12,
                 dataset_in_context="orders",
             )
@@ -243,7 +244,7 @@ class TestOpenSqlLabWithContext:
         try:
             url = (
                 "https://superset.example.com/sqllab?"
-                "dbid=7&schema=analytics&sql=SELECT+1&title=Inspect+query"
+                "dbid=7&schema=analytics&sql=SELECT+1&name=Inspect+query"
             )
 
             response = mod._sanitize_sql_lab_response_for_llm_context(
@@ -261,8 +262,8 @@ class TestOpenSqlLabWithContext:
             assert params["sql"] == [
                 sanitize_for_llm_context("SELECT 1", field_path=("sql",))
             ]
-            assert params["title"] == [
-                sanitize_for_llm_context("Inspect query", field_path=("title",))
+            assert params["name"] == [
+                sanitize_for_llm_context("Inspect query", field_path=("name",))
             ]
             assert response.title == sanitize_for_llm_context(
                 "Inspect query",
@@ -271,10 +272,42 @@ class TestOpenSqlLabWithContext:
         finally:
             _restore_modules(saved_modules)
 
+    def test_whitespace_only_title_is_dropped(self) -> None:
+        """Whitespace-only titles must not produce a blank-looking tab label."""
+        mod, saved_modules = _get_tool_module()
+        try:
+            request: OpenSqlLabRequest = OpenSqlLabRequest(
+                database_id=7,
+                sql="SELECT 1",
+                title="   ",
+            )
+
+            with (
+                patch(
+                    "superset.daos.database.DatabaseDAO.find_by_id",
+                    return_value=Mock(database_name="examples"),
+                ),
+                patch.object(
+                    mod.event_logger, "log_context", return_value=nullcontext()
+                ),
+                patch.object(
+                    mod,
+                    "get_superset_base_url",
+                    return_value="https://superset.example.com",
+                ),
+            ):
+                response = mod.open_sql_lab_with_context(request, _make_mock_ctx())
+
+            params = parse_qs(urlsplit(response.url).query)
+            assert "name" not in params
+            assert response.title is None
+        finally:
+            _restore_modules(saved_modules)
+
     def test_sanitizes_error_and_keeps_empty_url_for_missing_database(self) -> None:
         mod, saved_modules = _get_tool_module()
         try:
-            request = OpenSqlLabRequest(
+            request: OpenSqlLabRequest = OpenSqlLabRequest(
                 database_id=404,
                 schema="analytics",
                 title="Missing database",
@@ -298,7 +331,117 @@ class TestOpenSqlLabWithContext:
                 field_path=("title",),
             )
             assert response.error == sanitize_for_llm_context(
-                "Database with ID 404 not found",
+                "Database with ID 404 not found."
+                " Use list_databases to get valid database IDs.",
+                field_path=("error",),
+            )
+        finally:
+            _restore_modules(saved_modules)
+
+    def test_returns_error_for_invalid_nonexistent_database_id(self) -> None:
+        """DatabaseDAO.find_by_id returning None for an unknown ID must produce
+        a structured not-found error rather than a raw crash."""
+        mod, saved_modules = _get_tool_module()
+        try:
+            request: OpenSqlLabRequest = OpenSqlLabRequest(
+                database_id=999999999, sql="SELECT 1"
+            )
+
+            with (
+                patch(
+                    "superset.daos.database.DatabaseDAO.find_by_id",
+                    return_value=None,
+                ) as mock_find_by_id,
+                patch.object(
+                    mod.event_logger, "log_context", return_value=nullcontext()
+                ),
+            ):
+                response = mod.open_sql_lab_with_context(request, _make_mock_ctx())
+
+            mock_find_by_id.assert_called_once_with(999999999)
+            assert response.url == ""
+            assert response.database_id == 999999999
+            assert response.error == sanitize_for_llm_context(
+                "Database with ID 999999999 not found."
+                " Use list_databases to get valid database IDs.",
+                field_path=("error",),
+            )
+        finally:
+            _restore_modules(saved_modules)
+
+    def test_returns_generic_not_found_error_when_database_access_denied(
+        self,
+    ) -> None:
+        """The tool has no dedicated permission-denied branch: it relies solely
+        on ``DatabaseDAO.find_by_id``, whose base filter (``DatabaseFilter`` in
+        ``superset/databases/filters.py``) scopes query results to databases the
+        requesting user can access. A database that exists but that the current
+        user lacks access to is filtered out of the query and ``find_by_id``
+        returns ``None`` -- indistinguishable, from this tool's perspective,
+        from a genuinely nonexistent ID. This test locks in that fail-closed,
+        non-leaking behavior: no distinct "access denied" message is emitted
+        that would reveal the database's existence to an unauthorized caller.
+        """
+        mod, saved_modules = _get_tool_module()
+        try:
+            request: OpenSqlLabRequest = OpenSqlLabRequest(
+                database_id=42,
+                schema="restricted_schema",
+                title="Query I cannot access",
+            )
+
+            with (
+                patch(
+                    "superset.daos.database.DatabaseDAO.find_by_id",
+                    return_value=None,
+                ) as mock_find_by_id,
+                patch.object(
+                    mod.event_logger, "log_context", return_value=nullcontext()
+                ),
+            ):
+                response = mod.open_sql_lab_with_context(request, _make_mock_ctx())
+
+            mock_find_by_id.assert_called_once_with(42)
+            assert response.url == ""
+            assert response.database_id == 42
+            assert response.schema_name == "restricted_schema"
+            assert response.error == sanitize_for_llm_context(
+                "Database with ID 42 not found."
+                " Use list_databases to get valid database IDs.",
+                field_path=("error",),
+            )
+        finally:
+            _restore_modules(saved_modules)
+
+    def test_returns_error_and_rolls_back_session_on_unexpected_exception(
+        self,
+    ) -> None:
+        """Any unexpected error during DB validation (e.g. a broken connection)
+        must be caught by the outermost handler, roll back the session, and
+        surface a structured error instead of propagating a raw exception."""
+        mod, saved_modules = _get_tool_module()
+        try:
+            request: OpenSqlLabRequest = OpenSqlLabRequest(
+                database_id=7, sql="SELECT 1"
+            )
+
+            with (
+                patch(
+                    "superset.daos.database.DatabaseDAO.find_by_id",
+                    side_effect=RuntimeError("connection reset"),
+                ),
+                patch.object(
+                    mod.event_logger, "log_context", return_value=nullcontext()
+                ),
+                patch.object(mod.db.session, "rollback") as mock_rollback,
+            ):
+                response = mod.open_sql_lab_with_context(request, _make_mock_ctx())
+
+            mock_rollback.assert_called_once()
+            assert response.url == ""
+            assert response.database_id == 7
+            assert response.error == sanitize_for_llm_context(
+                "Failed to generate SQL Lab URL: connection reset",
                 field_path=("error",),
             )
         finally:

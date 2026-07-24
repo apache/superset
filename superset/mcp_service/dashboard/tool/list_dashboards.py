@@ -98,11 +98,18 @@ async def list_dashboards(
         list_dashboards(search="sales", page=1)  # DO NOT DO THIS
 
     Valid filter columns for ``filters[].col``:
-        ``dashboard_title``, ``published``, ``favorite``
+        ``dashboard_title``, ``published``, ``editor``, ``favorite``,
+        ``created_by_fk``, ``changed_by_fk``
 
     Sortable columns for ``order_column``:
         ``id``, ``dashboard_title``, ``slug``, ``published``,
         ``changed_on``, ``created_on``
+
+    To filter by a person (e.g. "dashboards Maxime is working on"), do NOT pass
+    the name as the search parameter — search matches titles and slugs only.
+    Instead, call find_users to resolve the name to a user ID, then pass it as
+    a filter: filters=[{"col": "created_by_fk", "opr": "eq", "value": <id>}]
+    (or "changed_by_fk" for "last modified by").
     """
     request = request or _DEFAULT_LIST_DASHBOARDS_REQUEST.model_copy(deep=True)
     await ctx.info(
@@ -123,6 +130,7 @@ async def list_dashboards(
     )
 
     from superset.daos.dashboard import DashboardDAO
+    from superset.dashboards.filters import DashboardDeletedStateFilter
     from superset.mcp_service.common.schema_discovery import (
         DASHBOARD_SORTABLE_COLUMNS,
         get_all_column_names,
@@ -154,6 +162,7 @@ async def list_dashboards(
         all_columns=all_columns,
         sortable_columns=DASHBOARD_SORTABLE_COLUMNS,
         logger=logger,
+        deleted_state_filter=DashboardDeletedStateFilter,
     )
 
     with event_logger.log_context(action="mcp.list_dashboards.query"):
@@ -166,7 +175,8 @@ async def list_dashboards(
             page=max(request.page - 1, 0),
             page_size=request.page_size,
             created_by_me=request.created_by_me,
-            owned_by_me=request.owned_by_me,
+            edited_by_me=request.edited_by_me,
+            deleted_state=request.deleted_state,
         )
     count = len(result.dashboards) if hasattr(result, "dashboards") else 0
     total_pages = getattr(result, "total_pages", None)

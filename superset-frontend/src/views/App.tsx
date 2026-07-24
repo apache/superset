@@ -16,19 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useMemo } from 'react';
 import {
   BrowserRouter as Router,
   Switch,
   Route,
+  Redirect,
   useLocation,
 } from 'react-router-dom';
+import {
+  createHtmlPortalNode,
+  InPortal,
+  OutPortal,
+  type HtmlPortalNode,
+} from 'react-reverse-portal';
 import { bindActionCreators } from 'redux';
-import { css } from '@apache-superset/core/theme';
-import { Layout, Loading } from '@superset-ui/core/components';
+import { css, useTheme } from '@apache-superset/core/theme';
+import { Flex, Layout, Loading } from '@superset-ui/core/components';
 import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { ErrorBoundary } from 'src/components';
-import Menu from 'src/features/home/Menu';
+import MenuWrapper from 'src/features/home/Menu';
 import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import setupApp from 'src/setup/setupApp';
@@ -38,7 +45,12 @@ import { Logger, LOG_ACTIONS_SPA_NAVIGATION } from 'src/logger/LogUtils';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import { logEvent } from 'src/logger/actions';
 import { store } from 'src/views/store';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import { isUser } from 'src/types/bootstrapTypes';
 import ExtensionsStartup from 'src/extensions/ExtensionsStartup';
+import { Splitter } from 'src/components/Splitter';
+import { ChatFloatingHost, ChatPanelHost, useChat } from 'src/core/chat';
+import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
 import { RootContextProviders } from './RootContextProviders';
 import { ScrollToTop } from './ScrollToTop';
 
@@ -78,44 +90,170 @@ const LocationPathnameLogger = () => {
   return <></>;
 };
 
-const App = () => (
-  <Router basename={applicationRoot()}>
-    <ScrollToTop />
-    <LocationPathnameLogger />
-    <RootContextProviders>
-      <Menu
+const CHAT_PANEL_DEFAULT_WIDTH = 400;
+const CHAT_PANEL_MIN_WIDTH = 280;
+
+const RouteSwitch = () => {
+  const theme = useTheme();
+  return (
+    <Switch>
+      {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
+        <Route path={path} key={path}>
+          <Suspense fallback={<Fallback />}>
+            <ErrorBoundary
+              css={css`
+                margin: ${theme.sizeUnit * 4}px;
+              `}
+            >
+              <Component user={bootstrapData.user} {...props} />
+            </ErrorBoundary>
+          </Suspense>
+        </Route>
+      ))}
+      <Redirect from="/" to="/welcome/" exact />
+    </Switch>
+  );
+};
+
+const layoutCss = css`
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+`;
+
+const contentCss = css`
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  position: relative;
+`;
+
+// Chat panel mode locks the shell (content scrolls inside its panel); every
+// other state page-scrolls so the navbar hides on scroll.
+const lockedShellCss = css`
+  height: 100vh;
+  overflow: hidden;
+`;
+
+const pageScrollShellCss = css`
+  min-height: 100vh;
+`;
+
+const pageScrollContentCss = css`
+  display: flex;
+  flex-direction: column;
+`;
+
+// Renders the app shell and picks the scroll model: in chat panel mode <Layout>
+// sits in a Splitter beside the chat panel; otherwise the page scrolls normally.
+const AppContent = ({
+  layoutPortalNode,
+}: {
+  layoutPortalNode: HtmlPortalNode;
+}) => {
+  const isAuthenticated =
+    isUser(bootstrapData.user) && !bootstrapData.user.isAnonymous;
+  const chatExtensionsEnabled =
+    isFeatureEnabled(FeatureFlag.EnableExtensions) && isAuthenticated;
+  const { open: panelOpen, mode, chat } = useChat();
+  const hasChatExtension = chatExtensionsEnabled && !!chat;
+  const isPanelOpen = hasChatExtension && mode === 'panel' && panelOpen;
+
+  const [storedWidth, setStoredWidth] = useStoredSidebarWidth(
+    'chat:panel',
+    CHAT_PANEL_DEFAULT_WIDTH,
+  );
+
+  const layoutContent = (
+    <Layout css={isPanelOpen ? layoutCss : undefined}>
+      <Layout.Content css={isPanelOpen ? contentCss : pageScrollContentCss}>
+        <OutPortal node={layoutPortalNode} />
+      </Layout.Content>
+    </Layout>
+  );
+
+  const content = isPanelOpen ? (
+    <Splitter
+      lazy
+      onResizeEnd={sizes => {
+        const chatWidth = sizes[sizes.length - 1];
+        if (
+          typeof chatWidth === 'number' &&
+          chatWidth >= CHAT_PANEL_MIN_WIDTH
+        ) {
+          setStoredWidth(chatWidth);
+        }
+      }}
+      css={css`
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+        justify-content: center;
+
+        /*
+         * Splitter.Panel is not a flex container by default, so flex:1 on
+         * children (Layout, ChatPanelHost) has no height effect and
+         * panels collapse. Making them flex columns lets children fill them.
+         */
+        & > .ant-splitter-panel {
+          display: flex !important;
+          flex-direction: column;
+        }
+      `}
+    >
+      <Splitter.Panel>{layoutContent}</Splitter.Panel>
+      <Splitter.Panel size={storedWidth} min={CHAT_PANEL_MIN_WIDTH}>
+        <ChatPanelHost />
+      </Splitter.Panel>
+    </Splitter>
+  ) : (
+    <>
+      {layoutContent}
+      {hasChatExtension && <ChatFloatingHost />}
+    </>
+  );
+
+  return (
+    <Flex vertical css={isPanelOpen ? lockedShellCss : pageScrollShellCss}>
+      <MenuWrapper
         data={bootstrapData.common.menu_data}
         isFrontendRoute={isFrontendRoute}
       />
-      <ExtensionsStartup>
-        <Switch>
-          {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
-            <Route path={path} key={path}>
-              <Suspense fallback={<Fallback />}>
-                <Layout>
-                  <Layout.Content
-                    css={css`
-                      display: flex;
-                      flex-direction: column;
-                    `}
-                  >
-                    <ErrorBoundary
-                      css={css`
-                        margin: 16px;
-                      `}
-                    >
-                      <Component user={bootstrapData.user} {...props} />
-                    </ErrorBoundary>
-                  </Layout.Content>
-                </Layout>
-              </Suspense>
-            </Route>
-          ))}
-        </Switch>
-      </ExtensionsStartup>
-      <ToastContainer />
-    </RootContextProviders>
-  </Router>
-);
+      <ExtensionsStartup>{content}</ExtensionsStartup>
+    </Flex>
+  );
+};
+
+const App = () => {
+  // OutPortal renders this node's bare DOM element in place of <RouteSwitch />.
+  // Pages (e.g. SqlLab) rely on `flex: 1 1 auto` to stretch inside
+  // Layout.Content, which only works if their direct parent is a flex
+  // container; without this the portal's unstyled div collapses to 0 height.
+  const layoutPortalNode = useMemo(
+    () =>
+      createHtmlPortalNode({
+        attributes: {
+          style:
+            'display: flex; flex-direction: column; flex: 1 1 auto; height: 100%; min-height: 0;',
+        },
+      }),
+    [],
+  );
+
+  return (
+    <Router basename={applicationRoot()}>
+      <ScrollToTop />
+      <LocationPathnameLogger />
+      <RootContextProviders>
+        <InPortal node={layoutPortalNode}>
+          <RouteSwitch />
+        </InPortal>
+        <AppContent layoutPortalNode={layoutPortalNode} />
+        <ToastContainer />
+      </RootContextProviders>
+    </Router>
+  );
+};
 
 export default App;

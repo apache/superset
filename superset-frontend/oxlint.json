@@ -23,7 +23,7 @@
   },
   "settings": {
     "react": {
-      "version": "17.0.2"
+      "version": "18.3.1"
     }
   },
   "rules": {
@@ -39,7 +39,7 @@
     // oxlint versions (not actually enforced). Documented here for future
     // maintainers — if/when oxlint adds them, re-enable in the relevant
     // plugin section above.
-    //   import: newline-after-import, no-extraneous-dependencies,
+    //   import: no-extraneous-dependencies,
     //           no-import-module-exports, no-relative-packages,
     //           no-unresolved, no-useless-path-segments
     //   react:  default-props-match-prop-types, destructuring-assignment,
@@ -47,16 +47,11 @@
     //           forbid-prop-types, function-component-definition,
     //           jsx-no-bind, jsx-uses-vars, no-access-state-in-setstate,
     //           no-deprecated, no-did-update-set-state, no-typos,
-    //           no-unstable-nested-components,
     //           no-unused-class-component-methods, no-unused-prop-types,
     //           no-unused-state, prefer-stateless-function, prop-types,
     //           require-default-props, sort-comp, static-property-placement
     //           (prefer-stateless-function / function-component-definition
     //            are represented by react/prefer-function-component below)
-    //   jsx-a11y: interactive-supports-focus,
-    //             no-interactive-element-to-noninteractive-role,
-    //             no-noninteractive-element-interactions,
-    //             no-noninteractive-element-to-interactive-role
     //   typescript: naming-convention
     //   unicorn: prevent-abbreviations
 
@@ -116,27 +111,21 @@
     "no-object-constructor": "error",
 
     // === Import plugin rules ===
-    // TODO: Fix incorrect named imports in Storybook and other files
-    "import/named": "warn",
-    // TODO: Fix duplicate exports in shared-controls and other modules
-    // Temporarily disabled during OXC migration
-    "import/export": "warn",
-    // TODO: Re-enable after fixing default export patterns across codebase
-    // This is temporarily disabled during OXC migration to unblock CI
-    // Tracking issue: [Create issue after PR merge]
-    "import/no-named-as-default": "off",
-    "import/no-named-as-default-member": "off",
+    "import/named": "error",
+    "import/export": "error",
+    "import/no-named-as-default": "error",
+    "import/no-named-as-default-member": "error",
     "import/no-mutable-exports": "error",
     "import/no-amd": "error",
     "import/first": "error",
-    // TODO: Consolidate duplicate imports in DatasetList and other files
-    "import/no-duplicates": "warn",
+    "import/no-duplicates": "error",
     "import/no-absolute-path": "error",
     "import/no-dynamic-require": "error",
     "import/no-webpack-loader-syntax": "error",
     "import/no-self-import": "error",
     "import/no-cycle": "off",
     "import/prefer-default-export": "off",
+    "import/newline-after-import": "error",
 
     // === React plugin rules ===
     "react/jsx-filename-extension": [
@@ -184,6 +173,10 @@
       "error",
       { "button": true, "submit": true, "reset": false }
     ],
+    // TODO: Graduate to "error" after cleanup pass — ~150 violations
+    // across the codebase require hoisting nested component definitions
+    // out of their parent render functions.
+    "react/no-unstable-nested-components": "warn",
 
     // === React Hooks rules ===
     // TODO: Fix conditional hook usage and anonymous component issues
@@ -192,6 +185,7 @@
 
     // === JSX-a11y rules ===
     "jsx-a11y/alt-text": "error",
+    "jsx-a11y/anchor-ambiguous-text": "error",
     "jsx-a11y/anchor-has-content": "error",
     "jsx-a11y/anchor-is-valid": "error",
     "jsx-a11y/aria-activedescendant-has-tabindex": "error",
@@ -199,21 +193,28 @@
     "jsx-a11y/aria-proptypes": "error",
     "jsx-a11y/aria-role": ["error", { "ignoreNonDOM": false }],
     "jsx-a11y/aria-unsupported-elements": "error",
-    "jsx-a11y/click-events-have-key-events": "off",
+    "jsx-a11y/autocomplete-valid": "error",
+    "jsx-a11y/click-events-have-key-events": "error",
+    "jsx-a11y/control-has-associated-label": "error",
     "jsx-a11y/heading-has-content": "error",
     "jsx-a11y/html-has-lang": "error",
     "jsx-a11y/iframe-has-title": "error",
     "jsx-a11y/img-redundant-alt": "error",
+    "jsx-a11y/interactive-supports-focus": "error",
     "jsx-a11y/label-has-associated-control": "error",
     "jsx-a11y/lang": "error",
     "jsx-a11y/media-has-caption": "error",
-    "jsx-a11y/mouse-events-have-key-events": "off",
+    "jsx-a11y/mouse-events-have-key-events": "error",
     "jsx-a11y/no-access-key": "error",
+    "jsx-a11y/no-aria-hidden-on-focusable": "error",
     "jsx-a11y/no-autofocus": ["error", { "ignoreNonDOM": true }],
     "jsx-a11y/no-distracting-elements": "error",
+    "jsx-a11y/no-interactive-element-to-noninteractive-role": "error",
+    "jsx-a11y/no-noninteractive-element-interactions": "error",
+    "jsx-a11y/no-noninteractive-element-to-interactive-role": "error",
     "jsx-a11y/no-noninteractive-tabindex": "error",
     "jsx-a11y/no-redundant-roles": "error",
-    "jsx-a11y/no-static-element-interactions": "off",
+    "jsx-a11y/no-static-element-interactions": "error",
     "jsx-a11y/role-has-required-aria-props": "error",
     "jsx-a11y/role-supports-aria-props": "error",
     "jsx-a11y/scope": "error",
@@ -228,7 +229,14 @@
     "@typescript-eslint/no-non-null-assertion": "off",
     "@typescript-eslint/explicit-function-return-type": "off",
     "@typescript-eslint/explicit-module-boundary-types": "off",
-    "@typescript-eslint/no-unused-vars": "warn",
+    "@typescript-eslint/no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "caughtErrors": "none"
+      }
+    ],
     "@typescript-eslint/prefer-optional-chain": "error",
 
     // === Unicorn rules (bonus coverage) ===
@@ -269,16 +277,39 @@
       }
     ]
   },
+  "overrides": [
+    {
+      "files": [
+        "plugins/plugin-chart-table/src/TableChart.tsx",
+        "plugins/plugin-chart-pivot-table/src/react-pivottable/TableRenderers.tsx"
+      ],
+      "rules": {
+        "jsx-a11y/no-redundant-roles": "off"
+      }
+    },
+    {
+      // The pivot table intentionally exposes `role="grid"` on its <table>
+      // for interactive grid semantics (asserted by tableRenders.test.tsx).
+      "files": [
+        "plugins/plugin-chart-pivot-table/src/react-pivottable/TableRenderers.tsx"
+      ],
+      "rules": {
+        "jsx-a11y/no-noninteractive-element-to-interactive-role": "off"
+      }
+    }
+  ],
   "ignorePatterns": [
     "packages/generator-superset/**/*",
     "cypress-base/**",
-    "node_modules/**",
+    "**/node_modules/**",
     "build/**",
-    "dist/**",
-    "lib/**",
-    "esm/**",
-    "*.min.js",
+    "**/dist/**",
+    "**/lib/**",
+    "**/esm/**",
+    "**/*.min.js",
+    "**/*.d.ts",
     "coverage/**",
+    "storybook-static/**",
     ".git/**",
     "**/*.config.js",
     "**/*.config.ts"

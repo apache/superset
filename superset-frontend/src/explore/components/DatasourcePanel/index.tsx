@@ -16,9 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useContext, useMemo, useState } from 'react';
+import { useContext, useDeferredValue, useMemo, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { DatasourceType, Metric, QueryFormData } from '@superset-ui/core';
+import {
+  DatasourceType,
+  Metric,
+  QueryFormData,
+  handleKeyboardActivation,
+} from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 
@@ -26,12 +31,11 @@ import { ControlConfig } from '@superset-ui/chart-controls';
 import AutoSizer from 'react-virtualized-auto-sizer';
 
 import { matchSorter, rankings } from 'match-sorter';
-import { Constants, Input } from '@superset-ui/core/components';
+import { Input } from '@superset-ui/core/components';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import Control from 'src/explore/components/Control';
-import { useDebounceValue } from 'src/hooks/useDebounceValue';
 import { DndItemType } from '../DndItemType';
 import { DatasourceFolder, DatasourcePanelColumn, DndItemValue } from './types';
 import { DropzoneContext } from '../ExploreContainer';
@@ -160,7 +164,7 @@ export default function DataSourcePanel({
 
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   const [inputValue, setInputValue] = useState('');
-  const searchKeyword = useDebounceValue(inputValue, Constants.FAST_DEBOUNCE);
+  const searchKeyword = useDeferredValue(inputValue);
 
   const filteredColumns = useMemo(() => {
     if (!searchKeyword) {
@@ -291,6 +295,9 @@ export default function DataSourcePanel({
                       role="button"
                       tabIndex={0}
                       onClick={() => setShowSaveDatasetModal(true)}
+                      onKeyDown={handleKeyboardActivation(() =>
+                        setShowSaveDatasetModal(true),
+                      )}
                       className="add-dataset-alert-description"
                     >
                       {t('Create a dataset')}

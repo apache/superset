@@ -32,7 +32,6 @@ import {
   TimeGranularity,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
-import { EchartsTimeseriesChartProps } from '../../src/types';
 import type { SeriesOption } from 'echarts';
 import transformProps from '../../src/Timeseries/transformProps';
 import {
@@ -41,7 +40,11 @@ import {
   EchartsTimeseriesFormData,
 } from '../../src/Timeseries/types';
 import { StackControlsValue, TIMESERIES_CONSTANTS } from '../../src/constants';
-import { LegendOrientation, LegendType } from '../../src/types';
+import {
+  LegendOrientation,
+  LegendType,
+  EchartsTimeseriesChartProps,
+} from '../../src/types';
 import { DEFAULT_FORM_DATA } from '../../src/Timeseries/constants';
 import { createEchartsTimeseriesTestChartProps } from '../helpers';
 import { BASE_TIMESTAMP, createTestData } from './helpers';
@@ -80,6 +83,12 @@ function createTestQueryData(
 }
 
 type YAxisFormatter = (value: number, index: number) => string;
+
+type TooltipFormatterOptions = {
+  tooltip: {
+    formatter: (params: unknown) => string;
+  };
+};
 
 function getYAxisFormatter(
   transformed: ReturnType<typeof transformProps>,
@@ -938,6 +947,46 @@ describe('legend sorting', () => {
   });
 });
 
+test('honors user-selected plain legend type for top orientation when space allows (#39540)', () => {
+  // Regression test for issue #39540: switching the legend type control from
+  // scroll to plain must reach the rendered ECharts config. Horizontal legends
+  // were once unconditionally forced to scroll; scroll should be a fallback
+  // reserved for legends that do not fit the available space.
+  const chartProps = createTestChartProps({
+    formData: {
+      ...formData,
+      legendType: LegendType.Plain,
+      legendOrientation: LegendOrientation.Top,
+      showLegend: true,
+    },
+  });
+
+  const { legend } = transformProps(chartProps).echartOptions as {
+    legend: { show?: boolean; type?: LegendType };
+  };
+
+  expect(legend.show).toBe(true);
+  expect(legend.type).toBe(LegendType.Plain);
+});
+
+test('honors user-selected plain legend type for bottom orientation when space allows (#39540)', () => {
+  const chartProps = createTestChartProps({
+    formData: {
+      ...formData,
+      legendType: LegendType.Plain,
+      legendOrientation: LegendOrientation.Bottom,
+      showLegend: true,
+    },
+  });
+
+  const { legend } = transformProps(chartProps).echartOptions as {
+    legend: { show?: boolean; type?: LegendType };
+  };
+
+  expect(legend.show).toBe(true);
+  expect(legend.type).toBe(LegendType.Plain);
+});
+
 const timeCompareFormData: SqlaFormData = {
   colorScheme: 'bnbColors',
   datasource: '3__table',
@@ -968,11 +1017,9 @@ test('should apply dashed line style to time comparison series with single metri
   const series = (transformed.echartOptions.series as SeriesOption[]) || [];
 
   const mainSeries = series.find(s => s.name === 'sum__num') as
-    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
-    | undefined;
+    (SeriesOption & { lineStyle?: { type?: number[] | string } }) | undefined;
   const comparisonSeries = series.find(s => s.name === '1 week ago') as
-    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
-    | undefined;
+    (SeriesOption & { lineStyle?: { type?: number[] | string } }) | undefined;
 
   expect(mainSeries).toBeDefined();
   expect(comparisonSeries).toBeDefined();
@@ -1013,13 +1060,11 @@ test('should apply dashed line style to time comparison series with metric__offs
   const series = (transformed.echartOptions.series as SeriesOption[]) || [];
 
   const mainSeries = series.find(s => s.name === 'sum__num') as
-    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
-    | undefined;
+    (SeriesOption & { lineStyle?: { type?: number[] | string } }) | undefined;
   const comparisonSeries = series.find(
     s => s.name === 'sum__num__1 week ago',
   ) as
-    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
-    | undefined;
+    (SeriesOption & { lineStyle?: { type?: number[] | string } }) | undefined;
 
   expect(mainSeries).toBeDefined();
   expect(comparisonSeries).toBeDefined();
@@ -1051,8 +1096,7 @@ test('should apply connectNulls to time comparison series', () => {
   const series = (transformed.echartOptions.series as SeriesOption[]) || [];
 
   const comparisonSeries = series.find(s => s.name === '1 week ago') as
-    | (SeriesOption & { connectNulls?: boolean })
-    | undefined;
+    (SeriesOption & { connectNulls?: boolean }) | undefined;
 
   expect(comparisonSeries).toBeDefined();
   expect(comparisonSeries?.connectNulls).toBe(true);
@@ -1444,7 +1488,7 @@ test('x-axis formatter deduplicates consecutive identical labels for coarse time
   const chartProps = createTestChartProps({
     formData: {
       granularity_sqla: 'ds',
-      time_grain_sqla: TimeGranularity.YEAR,
+      timeGrainSqla: TimeGranularity.YEAR,
       xAxisTimeFormat: '%Y',
     },
     queriesData: [
@@ -1471,6 +1515,99 @@ test('x-axis formatter deduplicates consecutive identical labels for coarse time
   expect(label2).toBe('2004');
   expect(label3).toBe('2005');
   expect(label4).toBe('');
+});
+
+test('x-axis dedup keeps the forced min label when the endpoints format identically', () => {
+  // A May→May range renders "May" at both boundaries. ECharts formats labels in
+  // repeated ascending passes; the dedup must reset per pass so the forced min
+  // label isn't blanked by the previous pass's (identical) max label.
+  const data = [
+    { __timestamp: Date.UTC(2003, 4, 1), sales: 100 },
+    { __timestamp: Date.UTC(2004, 0, 1), sales: 200 },
+    { __timestamp: Date.UTC(2005, 4, 1), sales: 300 },
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      granularity_sqla: 'ds',
+      timeGrainSqla: TimeGranularity.MONTH,
+      xAxisTimeFormat: '%b',
+    },
+    queriesData: [
+      createTestQueryData(data, {
+        colnames: ['__timestamp', 'sales'],
+        coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+      }),
+    ],
+  });
+
+  const { formatter } = (transformProps(chartProps).echartOptions.xAxis as any)
+    .axisLabel;
+  const min = Date.UTC(2003, 4, 1);
+  const mid = Date.UTC(2004, 0, 1);
+  const max = Date.UTC(2005, 4, 1);
+
+  // First pass fills the dedup state, ending on the max label ("May").
+  formatter(min);
+  formatter(mid);
+  formatter(max);
+
+  // Second pass restarts at the min; it must not be blanked by the prior "May".
+  expect(formatter(min)).toBe('May');
+});
+
+test('x-axis does not force showMaxLabel when no time grain is set', () => {
+  const data = [
+    { __timestamp: Date.UTC(2003, 0, 6), sales: 100 },
+    { __timestamp: Date.UTC(2004, 5, 15), sales: 200 },
+    { __timestamp: Date.UTC(2005, 4, 31), sales: 300 },
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      granularity_sqla: 'ds',
+      timeGrainSqla: undefined,
+    },
+    queriesData: [
+      createTestQueryData(data, {
+        colnames: ['__timestamp', 'sales'],
+        coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+      }),
+    ],
+  });
+
+  const xAxisResult = transformProps(chartProps).echartOptions.xAxis as any;
+  expect(xAxisResult.axisLabel.showMaxLabel).not.toBe(true);
+  expect(xAxisResult.axisLabel.showMinLabel).not.toBe(true);
+});
+
+test('x-axis forces showMinLabel for time grains so the beginning date stays visible', () => {
+  // When the first data point is not on a coarse boundary (e.g. a mid-year
+  // month), ECharts places its first label on the next "nice" tick and leaves
+  // the axis-min date unlabeled. showMinLabel forces the beginning date to
+  // render, symmetric to showMaxLabel on the trailing edge.
+  const monthData = [
+    { __timestamp: Date.UTC(2003, 4, 1), sales: 100 },
+    { __timestamp: Date.UTC(2003, 5, 1), sales: 200 },
+    { __timestamp: Date.UTC(2003, 6, 1), sales: 300 },
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      granularity_sqla: 'ds',
+      timeGrainSqla: TimeGranularity.MONTH,
+      xAxisTimeFormat: 'smart_date',
+    },
+    queriesData: [
+      createTestQueryData(monthData, {
+        colnames: ['__timestamp', 'sales'],
+        coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+      }),
+    ],
+  });
+
+  const xAxisResult = transformProps(chartProps).echartOptions.xAxis as any;
+  expect(xAxisResult.axisLabel.showMinLabel).toBe(true);
 });
 
 test('numeric x coltype routes through the number formatter (not the time formatter)', () => {
@@ -1540,9 +1677,54 @@ test('xAxisForceCategorical forces Category axis regardless of Numeric coltype',
   });
 
   const { echartOptions } = transformProps(chartProps);
-  const xAxis = echartOptions.xAxis as { type: string };
+  const xAxis = echartOptions.xAxis as {
+    triggerEvent?: boolean;
+    type: string;
+  };
 
   expect(xAxis.type).toBe(AxisType.Category);
+  expect(xAxis.triggerEvent).toBe(true);
+});
+
+test('temporal x coltype forced categorical yields a Category axis with date labels', () => {
+  // Issue #28204: with a temporal x-axis (e.g. weekly grain) the default Time
+  // scale places ticks at "nice" intervals that don't line up with the buckets.
+  // Forcing categorical maps each bucket to a discrete, tick-aligned category
+  // while still formatting the labels as dates rather than raw timestamps.
+  const ts1 = 1745784000000;
+  const ts2 = 1745870400000;
+  const chartProps = createTestChartProps({
+    formData: {
+      metrics: ['metric'],
+      granularity_sqla: 'ds',
+      x_axis: '__timestamp',
+      xAxisForceCategorical: true,
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          { __timestamp: ts1, metric: 10 },
+          { __timestamp: ts2, metric: 20 },
+        ],
+        {
+          colnames: ['__timestamp', 'metric'],
+          coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+        },
+      ),
+    ],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const xAxis = echartOptions.xAxis as {
+    type: string;
+    axisLabel: { formatter: (v: Date) => string };
+  };
+
+  expect(xAxis.type).toBe(AxisType.Category);
+  const label = xAxis.axisLabel.formatter(new Date(ts1));
+  expect(typeof label).toBe('string');
+  expect(label).not.toMatch(/NaN/);
+  expect(label).not.toBe(String(ts1));
 });
 
 test('temporal x coltype wires the time formatter and Time axis', () => {
@@ -1632,4 +1814,167 @@ test('should assign distinct dash patterns for multiple time offsets consistentl
 
   // must be different patterns
   expect(symbol1).not.toEqual(symbol2);
+});
+
+describe('Tooltip with long labels', () => {
+  test('should use axisValue for tooltip when available (richTooltip)', () => {
+    const longLabelData: ChartDataResponseResult[] = [
+      createTestQueryData([
+        {
+          'This is a very long category name that would normally be truncated': 100,
+          __timestamp: 599616000000,
+        },
+        {
+          'Another extremely long category name for testing purposes': 200,
+          __timestamp: 599916000000,
+        },
+      ]),
+    ];
+
+    const chartProps = createTestChartProps({
+      formData: {
+        richTooltip: true,
+      },
+      queriesData: longLabelData,
+    });
+
+    const transformedProps = transformProps(chartProps);
+
+    // Get the tooltip formatter function
+    const tooltipFormatter = (transformedProps.echartOptions as any).tooltip
+      .formatter;
+
+    // Simulate params from ECharts with axisValue containing full label
+    // Use distinct values for axisValue and seriesName to verify axisValue is used
+    const mockParams = [
+      {
+        axisValue:
+          'This is a very long category name that would normally be truncated',
+        value: [599616000000, 100],
+        seriesName: 'Some Series Name',
+      },
+    ];
+
+    // Call the formatter and check it uses the full label from axisValue
+    const result = tooltipFormatter(mockParams);
+    expect(result).toContain(
+      'This is a very long category name that would normally be truncated',
+    );
+  });
+
+  test('should fallback to value when axisValue is not available', () => {
+    const chartProps = createTestChartProps({
+      formData: {
+        richTooltip: true,
+      },
+    });
+
+    const transformedProps = transformProps(chartProps);
+
+    const tooltipFormatter = (transformedProps.echartOptions as any).tooltip
+      .formatter;
+
+    // Simulate params without axisValue
+    const mockParams = [
+      {
+        value: [599616000000, 1],
+        seriesName: 'San Francisco',
+      },
+    ];
+
+    // Should fall back to the x-value (value[xIndex]) and render it in the title
+    const result = tooltipFormatter(mockParams);
+    expect(typeof result).toBe('string');
+    expect(result).toContain('599616000000');
+  });
+
+  test('should handle item tooltips correctly', () => {
+    const chartProps = createTestChartProps({
+      formData: {
+        richTooltip: false,
+      },
+    });
+
+    const transformedProps = transformProps(chartProps);
+
+    const tooltipFormatter = (transformedProps.echartOptions as any).tooltip
+      .formatter;
+
+    // For item tooltips, params is a single object
+    const mockParams = {
+      value: [599616000000, 1],
+      seriesName: 'San Francisco',
+    };
+
+    // The item-tooltip x-value (value[xIndex]) should appear in the title
+    const result = tooltipFormatter(mockParams);
+    expect(typeof result).toBe('string');
+    expect(result).toContain('599616000000');
+  });
+});
+
+test('tooltip time grain wiring: dashboard-level extraFormData time grain overrides the chart-level grain in the tooltip', () => {
+  const ts = Date.UTC(2021, 0, 7);
+  const chartProps = createTestChartProps({
+    formData: {
+      granularity_sqla: 'ds',
+      richTooltip: false,
+      // The chart itself is configured with a Day grain...
+      timeGrainSqla: TimeGranularity.DAY,
+      // ...but a dashboard-level filter/override resolves to Month.
+      extraFormData: { time_grain_sqla: TimeGranularity.MONTH },
+    },
+    queriesData: [
+      createTestQueryData([{ __timestamp: ts, sales: 100 }], {
+        colnames: ['__timestamp', 'sales'],
+        coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+      }),
+    ],
+  });
+
+  const transformedProps = transformProps(chartProps);
+  const tooltipFormatter = (
+    transformedProps.echartOptions as unknown as TooltipFormatterOptions
+  ).tooltip.formatter;
+
+  const result = tooltipFormatter({
+    value: [ts, 100],
+    seriesName: 'sales',
+  });
+
+  // Month grain (the dashboard override) should win, so the tooltip title
+  // reads "Jan 2021" rather than the Day-grain "2021-01-07".
+  expect(result).toContain('Jan');
+  expect(result).toContain('2021');
+  expect(result).not.toContain('2021-01-07');
+});
+
+test('tooltip time grain wiring: chart-level time grain drives the tooltip when there is no dashboard override', () => {
+  const ts = Date.UTC(2021, 0, 7);
+  const chartProps = createTestChartProps({
+    formData: {
+      granularity_sqla: 'ds',
+      richTooltip: false,
+      timeGrainSqla: TimeGranularity.YEAR,
+    },
+    queriesData: [
+      createTestQueryData([{ __timestamp: ts, sales: 100 }], {
+        colnames: ['__timestamp', 'sales'],
+        coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+      }),
+    ],
+  });
+
+  const transformedProps = transformProps(chartProps);
+  const tooltipFormatter = (
+    transformedProps.echartOptions as unknown as TooltipFormatterOptions
+  ).tooltip.formatter;
+
+  const result = tooltipFormatter({
+    value: [ts, 100],
+    seriesName: 'sales',
+  });
+
+  expect(result).toContain('2021');
+  expect(result).not.toContain('2021-01-07');
 });

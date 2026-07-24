@@ -18,15 +18,29 @@ import re
 from typing import Any, Mapping, Union
 
 from marshmallow import fields, post_dump, post_load, pre_load, Schema
-from marshmallow.validate import Length, ValidationError
+from marshmallow.validate import Length, OneOf, ValidationError
 
 from superset import security_manager
+from superset.subjects.schemas import SubjectResponseSchema
 from superset.tags.models import TagType
 from superset.utils import json
+from superset.utils.schema import validate_external_url
 
-get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
-get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
-get_fav_star_ids_schema = {"type": "array", "items": {"type": "integer"}}
+get_delete_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
+get_export_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
+get_fav_star_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
 thumbnail_query_schema = {
     "type": "object",
     "properties": {"force": {"type": "boolean"}},
@@ -45,16 +59,13 @@ screenshot_query_schema = {
     },
 }
 dashboard_title_description = "A title for the dashboard."
+description_description = "A description for the dashboard."
 slug_description = "Unique identifying part for the web address of the dashboard."
-owners_description = (
-    "Owner are users ids allowed to delete or change this dashboard. "
-    "If left empty you will be one of the owners of the dashboard."
+editors_description = (
+    "A list of subject IDs (users, roles, or groups) that can alter the dashboard."
 )
-roles_description = (
-    "Roles is a list which defines access to the dashboard. "
-    "These roles are always applied in addition to restrictions on dataset "
-    "level access. "
-    "If no roles defined then the dashboard is available to all roles."
+viewers_description = (
+    "A list of subject IDs (users, roles, or groups) that can view the dashboard."
 )
 position_json_description = (
     "This json object describes the positioning of the widgets "
@@ -91,7 +102,9 @@ openapi_spec_methods_override = {
     },
     "info": {"get": {"summary": "Get metadata information about this API resource"}},
     "related": {
-        "get": {"description": "Get a list of all possible owners for a dashboard."}
+        "get": {
+            "description": "Get a list of all possible related entities for a dashboard"
+        }
     },
 }
 
@@ -113,6 +126,51 @@ def validate_json_metadata(value: Union[bytes, bytearray, str]) -> None:
     errors = DashboardJSONMetadataSchema().validate(value_obj, partial=False)
     if errors:
         raise ValidationError(errors)
+
+
+# Patterns for CSS constructs that can be abused to execute scripts or pull in
+# remote stylesheets/resources. The custom CSS is stored verbatim and re-served
+# into the dashboard page, so these are rejected at validation time. Ordinary
+# styling (including ``url(...)`` referencing relative paths or ``data:`` image
+# URIs) is left untouched.
+_CSS_SCRIPT_SCHEME = r"(?:javascript|vbscript|livescript|mocha)\s*:"
+_DANGEROUS_CSS_PATTERNS: tuple[tuple[str, "re.Pattern[str]"], ...] = (
+    # Legacy IE dynamic expressions, e.g. ``width: expression(alert(1))``.
+    ("expression(", re.compile(r"expression\s*\(", re.IGNORECASE)),
+    # Inline script schemes anywhere in the declaration.
+    ("script scheme", re.compile(_CSS_SCRIPT_SCHEME, re.IGNORECASE)),
+    # Remote stylesheet imports.
+    ("@import", re.compile(r"@import\b", re.IGNORECASE)),
+    # url(...) pointing at a script scheme. Legitimate image/relative/data URLs
+    # are intentionally not matched here.
+    (
+        "url() with script scheme",
+        re.compile(r"url\(\s*['\"]?\s*" + _CSS_SCRIPT_SCHEME, re.IGNORECASE),
+    ),
+)
+
+
+def validate_css(value: Union[bytes, bytearray, str, None]) -> None:
+    """Reject custom dashboard CSS containing known-dangerous constructs.
+
+    Lightweight input hardening for the user-supplied ``css`` field, which is
+    persisted and re-served into the dashboard page. Blocks ``expression(``,
+    script-scheme URIs (e.g. ``javascript:``), ``@import``, and ``url(...)``
+    referencing a script scheme, while leaving ordinary styling intact.
+
+    CSS escape sequences (e.g. ``\\6a avascript:``) are not expanded before
+    matching, so this validator is a first-line filter and not a complete XSS
+    sanitiser; it should not be treated as a substitute for other defences.
+    """
+    if not value:
+        return
+    if isinstance(value, (bytes, bytearray)):
+        text = value.decode("utf-8", errors="ignore")
+    else:
+        text = value
+    for label, pattern in _DANGEROUS_CSS_PATTERNS:
+        if pattern.search(text):
+            raise ValidationError(f"CSS contains a disallowed construct ({label}).")
 
 
 class SharedLabelsColorsField(fields.Field):
@@ -196,11 +254,6 @@ class UserSchema(Schema):
     last_name = fields.String()
 
 
-class RolesSchema(Schema):
-    id = fields.Int()
-    name = fields.String()
-
-
 class TagSchema(Schema):
     id = fields.Int()
     name = fields.String()
@@ -235,14 +288,15 @@ class DashboardGetResponseSchema(Schema):
     changed_on = fields.DateTime()
     created_by = fields.Nested(UserSchema(exclude=["username"]))
     charts = fields.List(fields.String(metadata={"description": charts_description}))
-    owners = fields.List(fields.Nested(UserSchema(exclude=["username"])))
-    roles = fields.List(fields.Nested(RolesSchema))
+    editors = fields.List(fields.Nested(SubjectResponseSchema))
+    viewers = fields.List(fields.Nested(SubjectResponseSchema))
     tags = fields.Nested(TagSchema, many=True)
     custom_tags = fields.Nested(TagSchema, many=True)
     changed_on_humanized = fields.String(data_key="changed_on_delta_humanized")
     created_on_humanized = fields.String(data_key="created_on_delta_humanized")
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     uuid = fields.UUID(allow_none=True)
+    description = fields.String(allow_none=True)
 
     # pylint: disable=unused-argument
     @post_dump()
@@ -254,9 +308,10 @@ class DashboardGetResponseSchema(Schema):
             serialized["tags"] = serialized.pop("custom_tags")
 
         if security_manager.is_guest_user():
-            del serialized["owners"]
             del serialized["changed_by_name"]
             del serialized["changed_by"]
+            serialized.pop("editors", None)
+            serialized.pop("viewers", None)
         return serialized
 
 
@@ -299,7 +354,7 @@ class DashboardDatasetSchema(Schema):
     health_check_message = fields.Str()
     fetch_values_predicate = fields.Str()
     template_params = fields.Str()
-    owners = fields.List(fields.Dict())
+    editors = fields.List(fields.Nested(SubjectResponseSchema))
     columns = fields.List(fields.Dict())
     column_types = fields.List(fields.Int())
     column_names = fields.List(fields.Str())
@@ -315,8 +370,19 @@ class DashboardDatasetSchema(Schema):
     @post_dump()
     def post_dump(self, serialized: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         if security_manager.is_guest_user():
-            del serialized["owners"]
-            del serialized["database"]
+            serialized.pop("database", None)
+            serialized.pop("editors", None)
+            # Guest users should never receive fields that expose internal
+            # connection or query details.
+            for key in (
+                "sql",
+                "select_star",
+                "perm",
+                "edit_url",
+                "fetch_values_predicate",
+                "template_params",
+            ):
+                serialized.pop(key, None)
         return serialized
 
 
@@ -355,12 +421,18 @@ class DashboardPostSchema(BaseDashboardSchema):
         allow_none=True,
         validate=[Length(1, 255)],
     )
-    owners = fields.List(fields.Integer(metadata={"description": owners_description}))
-    roles = fields.List(fields.Integer(metadata={"description": roles_description}))
+    description = fields.String(
+        metadata={"description": description_description},
+        allow_none=True,
+    )
+    editors = fields.List(fields.Integer(metadata={"description": editors_description}))
+    viewers = fields.List(fields.Integer(metadata={"description": viewers_description}))
     position_json = fields.String(
         metadata={"description": position_json_description}, validate=validate_json
     )
-    css = fields.String(metadata={"description": css_description})
+    css = fields.String(
+        metadata={"description": css_description}, validate=validate_css
+    )
     theme_id = fields.Integer(
         metadata={"description": "Theme ID for the dashboard"}, allow_none=True
     )
@@ -376,7 +448,7 @@ class DashboardPostSchema(BaseDashboardSchema):
         metadata={"description": certification_details_description}, allow_none=True
     )
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
-    external_url = fields.String(allow_none=True)
+    external_url = fields.String(allow_none=True, validate=validate_external_url)
     uuid = fields.UUID(allow_none=True)
 
 
@@ -386,7 +458,9 @@ class DashboardCopySchema(Schema):
         allow_none=True,
         validate=Length(0, 500),
     )
-    css = fields.String(metadata={"description": css_description})
+    css = fields.String(
+        metadata={"description": css_description}, validate=validate_css
+    )
     json_metadata = fields.String(
         metadata={"description": json_metadata_description},
         validate=validate_json_metadata,
@@ -405,23 +479,31 @@ class DashboardPutSchema(BaseDashboardSchema):
         allow_none=True,
         validate=Length(0, 500),
     )
+    description = fields.String(
+        metadata={"description": description_description},
+        allow_none=True,
+    )
     slug = fields.String(
         metadata={"description": slug_description},
         allow_none=True,
         validate=Length(0, 255),
     )
-    owners = fields.List(
-        fields.Integer(metadata={"description": owners_description}, allow_none=True)
+    editors = fields.List(
+        fields.Integer(metadata={"description": editors_description}, allow_none=True)
     )
-    roles = fields.List(
-        fields.Integer(metadata={"description": roles_description}, allow_none=True)
+    viewers = fields.List(
+        fields.Integer(metadata={"description": viewers_description}, allow_none=True)
     )
     position_json = fields.String(
         metadata={"description": position_json_description},
         allow_none=True,
         validate=validate_json,
     )
-    css = fields.String(metadata={"description": css_description}, allow_none=True)
+    css = fields.String(
+        metadata={"description": css_description},
+        allow_none=True,
+        validate=validate_css,
+    )
     theme_id = fields.Integer(
         metadata={"description": "Theme ID for the dashboard"}, allow_none=True
     )
@@ -440,7 +522,7 @@ class DashboardPutSchema(BaseDashboardSchema):
         metadata={"description": certification_details_description}, allow_none=True
     )
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
-    external_url = fields.String(allow_none=True)
+    external_url = fields.String(allow_none=True, validate=validate_external_url)
     tags = fields.List(
         fields.Integer(metadata={"description": tags_description}, allow_none=True)
     )
@@ -512,11 +594,12 @@ class ImportV1DashboardSchema(Schema):
     metadata = fields.Dict()
     version = fields.String(required=True)
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
-    external_url = fields.String(allow_none=True)
+    external_url = fields.String(allow_none=True, validate=validate_external_url)
     certified_by = fields.String(allow_none=True)
     certification_details = fields.String(allow_none=True)
     published = fields.Boolean(allow_none=True)
     tags = fields.List(fields.String(), allow_none=True)
+    roles = fields.List(fields.Raw(), allow_none=True, load_only=True)
     theme_uuid = fields.UUID(allow_none=True)
     theme_id = fields.Integer(allow_none=True)
 
@@ -557,3 +640,30 @@ class CacheScreenshotSchema(Schema):
         fields.List(fields.Str(), validate=lambda x: len(x) == 2), required=False
     )
     permalinkKey = fields.Str(required=False)  # noqa: N815
+
+
+class DashboardExportXlsxPostSchema(Schema):
+    active_data_mask = fields.Dict(
+        keys=fields.Str(),
+        values=fields.Dict(),
+        load_default=dict,
+        metadata={
+            "description": "Live dashboard filter state keyed by native filter id, "
+            "each carrying an extraFormData object."
+        },
+    )
+    mode = fields.String(
+        load_default="data",
+        validate=OneOf(["data", "images"]),
+        metadata={
+            "description": "Export mode: 'data' streams each chart's tabular result "
+            "(default); 'images' embeds non-table charts as rendered images and "
+            "keeps table charts tabular."
+        },
+    )
+
+
+class DashboardExportXlsxResponseSchema(Schema):
+    job_id = fields.String(
+        metadata={"description": "Correlation id for the async export task"}
+    )

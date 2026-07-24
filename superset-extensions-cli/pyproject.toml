@@ -17,7 +17,7 @@
 
 [project]
 name = "apache-superset-extensions-cli"
-version = "0.1.0rc3"
+version = "0.1.0"
 description = "Official command-line interface for building, bundling, and managing Apache Superset extensions"
 readme = "README.md"
 authors = [
@@ -25,7 +25,7 @@ authors = [
 ]
 license = "Apache-2.0"
 license-files = ["LICENSE.txt"]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 keywords = ["superset", "apache", "cli", "extensions", "analytics", "business-intelligence", "development-tools"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -33,7 +33,6 @@ classifiers = [
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Database",

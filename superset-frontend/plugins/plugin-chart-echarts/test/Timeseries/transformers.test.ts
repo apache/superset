@@ -16,20 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CategoricalColorScale, ChartProps } from '@superset-ui/core';
+import {
+  CategoricalColorScale,
+  ChartProps,
+  TimeGranularity,
+} from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { supersetTheme } from '@apache-superset/core/theme';
 import type { SeriesOption } from 'echarts';
 import { EchartsTimeseriesSeriesType } from '../../src';
 import { TIMESERIES_CONSTANTS } from '../../src/constants';
-import { LegendOrientation } from '../../src/types';
+import {
+  LegendOrientation,
+  EchartsTimeseriesChartProps,
+} from '../../src/types';
 import {
   transformSeries,
   transformNegativeLabelsPosition,
   getPadding,
 } from '../../src/Timeseries/transformers';
 import transformProps from '../../src/Timeseries/transformProps';
-import { EchartsTimeseriesChartProps } from '../../src/types';
 import * as seriesUtils from '../../src/utils/series';
 
 // Mock the colorScale function
@@ -235,6 +241,7 @@ function buildTimeseriesChartProps(
       colorScheme: 'bnbColors',
       datasource: '3__table',
       granularity_sqla: 'ds',
+      timeGrainSqla: TimeGranularity.MONTH,
       metric: 'sum__num',
       viz_type: 'my_viz',
       ...overrides,
@@ -263,6 +270,7 @@ test('should configure time axis labels to show max label for last month visibil
     colorScheme: 'bnbColors',
     datasource: '3__table',
     granularity_sqla: 'ds',
+    timeGrainSqla: TimeGranularity.MONTH,
     metric: 'sum__num',
     viz_type: 'my_viz',
   };

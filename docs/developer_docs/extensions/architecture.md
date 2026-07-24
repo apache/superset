@@ -163,10 +163,6 @@ The architecture leverages Webpack's Module Federation to enable dynamic loading
 Extensions configure Webpack to expose their entry points:
 
 ```javascript
-externalsType: 'window',
-externals: {
-  '@apache-superset/core': 'superset',
-},
 plugins: [
   new ModuleFederationPlugin({
     name: 'my_extension',
@@ -178,6 +174,7 @@ plugins: [
       react: { singleton: true, import: false },
       'react-dom': { singleton: true, import: false },
       antd: { singleton: true, import: false },
+      '@apache-superset/core': { singleton: true, import: false },
     },
   }),
 ]
@@ -187,9 +184,7 @@ This configuration does several important things:
 
 **`exposes`** - Declares which modules are available to the host application. Superset always loads extensions by requesting the `./index` module from the remote container — this is a fixed convention, not a configurable value. Extensions must expose exactly `'./index': './src/index.tsx'` and place all API registrations (views, commands, menus, editors, event listeners) in that file. The module is executed as a side effect when the extension loads, so any call to `views.registerView`, `commands.registerCommand`, etc. made at the top level of `index.tsx` will run automatically.
 
-**`externals` and `externalsType`** - Tell Webpack that when the extension imports `@apache-superset/core`, it should use `window.superset` at runtime instead of bundling its own copy. This ensures extensions use the host's implementation of shared packages.
-
-**`shared`** - Prevents duplication of common libraries like React and Ant Design. The `singleton: true` setting ensures only one instance of each library exists, avoiding version conflicts and reducing bundle size.
+**`shared`** - Prevents duplication of common libraries like React and Ant Design, and, for `@apache-superset/core`, is the mechanism that gives each extension an isolated context (see below). The `singleton: true` setting ensures only one *logical* instance of each library exists — for `react`/`react-dom`/`antd` that means the host's actual instance is reused; for `@apache-superset/core` it means the extension's container defers to whatever module the host's loader supplies for it at init time, which is not the same object for every extension (see [Runtime Resolution](#runtime-resolution)).
 
 ### Runtime Resolution
 
@@ -200,25 +195,30 @@ The following diagram illustrates the module loading process:
 Here's what happens at runtime:
 
 1. **Extension Registration**: When an extension is registered, Superset stores its remote entry URL
-2. **Dynamic Loading**: When the extension is activated, the host fetches the remote entry file
-3. **Module Resolution**: The extension imports `@apache-superset/core`, which resolves to `window.superset`
-4. **Execution**: The extension code runs with access to the host's APIs and shared dependencies
+2. **Dynamic Loading**: When the extension is activated, the host fetches the remote entry file, then initializes Module Federation sharing (`__webpack_init_sharing__`) and looks up the extension's container on `window`
+3. **Per-Extension Scope Injection**: Before calling `container.init()`, the loader builds a **per-container copy** of the webpack share scope in which the `@apache-superset/core` entry is replaced with a synthetic module — a copy of the host's own `window.superset` implementations with `extensions.getContext` bound to that one extension's isolated context object. Because Module Federation caches the resolved module per container, every import of `@apache-superset/core` inside that extension resolves to this pre-bound copy for the lifetime of the container, and because each container gets its own independent scope object, extensions loading in parallel cannot see each other's context.
+4. **Execution**: The extension code runs with access to the host's APIs (via its per-extension `@apache-superset/core` instance) and shared dependencies (`react`, `react-dom`, `antd`)
 
 ### Host API Setup
 
-On the Superset side, the APIs are mapped to `window.superset` during application bootstrap:
+On the Superset side, the real implementations backing `@apache-superset/core` (`commands`, `views`, `menus`, `extensions`, etc.) are assigned onto `window.superset` during application bootstrap, once the current user is known:
 
 ```typescript
+// eslint-disable-next-line no-restricted-syntax
 import * as supersetCore from '@apache-superset/core';
+import { commands, views, menus, extensions /* ... */ } from 'src/core';
 
-export default function setupExtensionsAPI() {
-  window.superset = {
-    ...supersetCore,
-  };
-}
+window.superset = {
+  ...supersetCore,
+  commands,
+  views,
+  menus,
+  extensions,
+  // ...
+};
 ```
 
-This function runs before any extensions are loaded, ensuring the APIs are available when extensions import from `@apache-superset/core`.
+This runs before any extensions are loaded. `window.superset` is not itself what an extension's `@apache-superset/core` import resolves to — it is the source object the loader reads from when building each extension's per-container scoped instance (see [Runtime Resolution](#runtime-resolution)), so every extension ends up sharing the same underlying `commands`/`views`/`menus` singletons but with its own `extensions.getContext()`.
 
 ### Benefits
 
@@ -233,7 +233,7 @@ This architecture provides several key benefits:
 
 Now that you understand the architecture, explore:
 
-- **[Dependencies](./dependencies)** - Managing dependencies and understanding API stability
-- **[Quick Start](./quick-start)** - Build your first extension
-- **[Contribution Types](./contribution-types)** - What kinds of extensions you can build
-- **[Development](./development)** - Project structure, APIs, and development workflow
+- **[Dependencies](./dependencies.md)** - Managing dependencies and understanding API stability
+- **[Quick Start](./quick-start.md)** - Build your first extension
+- **[Contribution Types](./contribution-types.md)** - What kinds of extensions you can build
+- **[Development](./development.md)** - Project structure, APIs, and development workflow

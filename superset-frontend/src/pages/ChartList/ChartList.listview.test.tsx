@@ -17,6 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
+import { mockUserSubjectsBootstrapData } from 'spec/helpers/mockBootstrapData';
 import { screen, waitFor, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { isFeatureEnabled } from '@superset-ui/core';
@@ -42,6 +43,10 @@ jest.mock('src/utils/export', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
+
+jest.mock('src/utils/getBootstrapData', () =>
+  mockUserSubjectsBootstrapData([1]),
+);
 
 const mockIsFeatureEnabled = isFeatureEnabled as jest.MockedFunction<
   typeof isFeatureEnabled
@@ -194,7 +199,7 @@ test('renders all required column headers', async () => {
   });
 
   const table = screen.getByTestId('listview-table');
-  const columnHeaders = table.querySelectorAll('[role="columnheader"]');
+  const columnHeaders = within(table).getAllByRole('columnheader');
 
   // All the table headers with default feature flags on
   const expectedHeaders = [
@@ -202,7 +207,7 @@ test('renders all required column headers', async () => {
     'Type',
     'Dataset',
     'On dashboards',
-    'Owners',
+    'Editors',
     'Last modified',
     'Actions',
   ];
@@ -228,7 +233,7 @@ test('sorts table when clicking column headers', async () => {
   const allHeaders = table.querySelectorAll('.ant-table-column-sorters');
 
   const sortableHeaders = Array.from(allHeaders).filter(
-    header => !header.closest('.ant-table-measure-cell-content'),
+    header => !header.closest('.ant-table-measure-row'),
   );
   expect(sortableHeaders).toHaveLength(3);
 
@@ -267,9 +272,10 @@ test('sorts table when clicking column headers', async () => {
       .filter(
         call =>
           call.url.includes('order_column') &&
-          call.url.includes('last_saved_at'),
+          call.url.includes('changed_on_delta_humanized'),
       );
-    expect(lastModifiedSortCalls).toHaveLength(1);
+    const latestCall = lastModifiedSortCalls.at(-1);
+    expect(latestCall?.url).toContain('order_direction:asc');
   });
 });
 
@@ -327,15 +333,17 @@ test('displays chart data correctly in table rows', async () => {
     within(chartRow).getByText(testChart.dashboards[0].dashboard_title),
   ).toBeInTheDocument();
 
-  // Check owners display - find avatar group within the row
+  // Check editors display - find avatar group within the row
   const avatarGroup = chartRow.querySelector(
     '.ant-avatar-group',
   ) as HTMLElement;
   expect(avatarGroup).toBeInTheDocument();
 
-  // Test owner initials for mockCharts[0] (we know it has owners)
-  const ownerInitials = `${testChart.owners[0].first_name[0]}${testChart.owners[0].last_name[0]}`;
-  expect(within(avatarGroup).getByText(ownerInitials)).toBeInTheDocument();
+  // Test editor initials for mockCharts[0] (we know it has editors)
+  const editorLabel = testChart.editors[0].label;
+  const parts = editorLabel.split(' ');
+  const editorInitials = parts.map((p: string) => p[0]).join('');
+  expect(within(avatarGroup).getByText(editorInitials)).toBeInTheDocument();
 
   // Check last modified time within the specific row
   expect(
@@ -563,7 +571,7 @@ test('renders dashboard crosslinks as navigable links', async () => {
       within(crosslinks).getByRole('link', {
         name: new RegExp(dashboard.dashboard_title),
       }),
-    ).toHaveAttribute('href', `/superset/dashboard/${dashboard.id}`);
+    ).toHaveAttribute('href', `/dashboard/${dashboard.id}`);
   });
 });
 
@@ -603,7 +611,7 @@ test('shows tag column when TAGGING_SYSTEM is enabled', async () => {
 
   // Tag should be a link to all_entities page
   const tagLink = within(tag).getByRole('link');
-  expect(tagLink).toHaveAttribute('href', '/superset/all_entities/?id=1');
+  expect(tagLink).toHaveAttribute('href', '/all_entities/?id=1');
   expect(tagLink).toHaveAttribute('target', '_blank');
 });
 

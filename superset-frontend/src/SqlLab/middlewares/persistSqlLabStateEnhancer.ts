@@ -18,7 +18,7 @@
  */
 import type { StoreEnhancer } from 'redux';
 import persistState from 'redux-localstorage';
-import { pickBy } from 'lodash';
+import { pickBy } from 'lodash-es';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { filterUnsavedQueryEditorList } from 'src/SqlLab/components/EditorAutoSync';
 import type {
@@ -37,10 +37,7 @@ import { BYTES_PER_CHAR, KB_STORAGE } from '../constants';
 type SqlLabState = SqlLabRootState['sqlLab'];
 
 type ClearEntityHelperValue =
-  | Table[]
-  | SqlLabState['queries']
-  | QueryEditor[]
-  | UnsavedQueryEditor;
+  Table[] | SqlLabState['queries'] | QueryEditor[] | UnsavedQueryEditor;
 
 interface ClearEntityHelpersMap {
   tables: (tables: Table[]) => ReturnType<typeof emptyTablePersistData>;

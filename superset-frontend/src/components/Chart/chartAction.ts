@@ -42,13 +42,16 @@ import {
   getQuerySettings,
   getChartDataUri,
 } from 'src/explore/exploreUtils';
-import { addDangerToast } from 'src/components/MessageToasts/actions';
+import {
+  addDangerToast,
+  addWarningToast,
+} from 'src/components/MessageToasts/actions';
 import { logEvent } from 'src/logger/actions';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from 'src/logger/LogUtils';
 import { allowCrossDomain as domainShardingEnabled } from 'src/utils/hostNamesConfig';
 import { updateDataMask } from 'src/dataMask/actions';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
-import { ensureAppRoot } from 'src/utils/pathUtils';
+import { ensureAppRoot } from 'src/utils/navigationUtils';
 import { safeStringify } from 'src/utils/safeStringify';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import type { Dispatch, Action, AnyAction } from 'redux';
@@ -697,6 +700,7 @@ export function handleChartDataResponse(
   response: Response,
   json: { result: QueryData[] },
   useLegacyApi?: boolean,
+  signal?: AbortSignal,
 ): Promise<QueryData[]> | QueryData[] {
   if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
     // deal with getChartDataRequest transforming the response data
@@ -709,13 +713,17 @@ export function handleChartDataResponse(
         // Query is running asynchronously and we must await the results.
         // When status is 202, result contains async event data (job_id, channel_id, etc.)
         // which differs from QueryData. We cast through unknown to handle this safely.
+        // The optional signal lets a caller (e.g. StatefulChart) cancel the wait
+        // when its chart is superseded or unmounted, avoiding leaked listeners.
         if (useLegacyApi) {
           return waitForAsyncData(
             result[0] as unknown as Parameters<typeof waitForAsyncData>[0],
+            signal,
           ) as Promise<QueryData[]>;
         }
         return waitForAsyncData(
           result as unknown as Parameters<typeof waitForAsyncData>[0],
+          signal,
         ) as Promise<QueryData[]>;
       default:
         throw new Error(
@@ -781,6 +789,15 @@ export function exploreJSON(
         handleChartDataResponse(response, json, useLegacyApi),
       )
       .then(queriesResponse => {
+        // Drop stale responses: if a newer query has started for this chart,
+        // its controller will have replaced ours in state, so ignore this
+        // response to avoid clobbering newer data with older results.
+        if (key != null) {
+          const currentController = getState().charts?.[key]?.queryController;
+          if (currentController && currentController !== controller) {
+            return undefined;
+          }
+        }
         (queriesResponse as QueryData[]).forEach(
           (resultItem: QueryData & { applied_filters?: JsonObject[] }) =>
             dispatch(
@@ -805,6 +822,12 @@ export function exploreJSON(
               }),
             ),
         );
+        (queriesResponse as QueryData[]).forEach(response => {
+          const { warning } = response as { warning?: string | null };
+          if (warning) {
+            dispatch(addWarningToast(warning, { noDuplicate: true }));
+          }
+        });
         return dispatch(
           chartUpdateSucceeded(queriesResponse as QueryData[], key as number),
         );
@@ -826,12 +849,50 @@ export function exploreJSON(
             );
           }
 
+          // Drop stale failures the same way we drop stale successes,
+          // so a slow earlier request can't mark a newer one as failed.
+          if (key != null) {
+            const currentController = getState().charts?.[key]?.queryController;
+            if (currentController && currentController !== controller) {
+              return undefined;
+            }
+          }
+
           if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
-            // In async mode we just pass the raw error response through
-            return dispatch(
-              chartUpdateFailed(
-                [response as JsonObject],
-                key as string | number,
+            // `waitForAsyncData` rejects with an already-normalized async-event
+            // error object (JOB_STATUS.ERROR) or with an array of client error
+            // objects (cached-data fetch failure). Those carry a usable
+            // `error`/`errors` field and can be passed straight through.
+            // Synchronous HTTP failures — e.g. a QueryObjectValidationError
+            // surfaced by the pre-cache probe in `_run_async` — reject with a
+            // raw response that still needs parsing, otherwise the chart error
+            // banner renders a bare "Data error" with no description.
+            if (Array.isArray(response)) {
+              return dispatch(
+                chartUpdateFailed(
+                  response as JsonObject[],
+                  key as string | number,
+                ),
+              );
+            }
+            if (
+              response != null &&
+              typeof response === 'object' &&
+              !(response instanceof Response) &&
+              ('error' in response || 'errors' in response)
+            ) {
+              return dispatch(
+                chartUpdateFailed(
+                  [response as JsonObject],
+                  key as string | number,
+                ),
+              );
+            }
+            return getClientErrorObject(
+              response as unknown as Parameters<typeof getClientErrorObject>[0],
+            ).then((parsedResponse: JsonObject) =>
+              dispatch(
+                chartUpdateFailed([parsedResponse], key as string | number),
               ),
             );
           }

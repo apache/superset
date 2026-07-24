@@ -167,9 +167,11 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       {image && <ImageContainer image={image} size={size} />}
       <div
         css={(theme: SupersetTheme) => css`
-          max-width: ${containerSize === 'large'
-            ? theme.sizeUnit * 150
-            : theme.sizeUnit * 100}px;
+          max-width: ${
+            containerSize === 'large'
+              ? theme.sizeUnit * 150
+              : theme.sizeUnit * 100
+          }px;
         `}
       >
         {title && <Title size={effectiveTextSize}>{title}</Title>}

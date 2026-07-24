@@ -454,7 +454,7 @@ def print_report(reports: list[MetadataReport], verbose: bool = False) -> None: 
     print("=" * 60)
 
     all_fields = {**REQUIRED_FIELDS, **RECOMMENDED_FIELDS, **OPTIONAL_FIELDS}
-    field_counts: dict[str, int] = {f: 0 for f in all_fields}
+    field_counts: dict[str, int] = dict.fromkeys(all_fields, 0)
 
     for r in reports:
         for field in r.present_fields:

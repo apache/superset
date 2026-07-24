@@ -31,8 +31,8 @@ import { Alert } from '@apache-superset/core/components';
 import { SupersetTheme } from '@apache-superset/core/theme';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  addReport,
   editReport,
+  subscribeReport,
 } from 'src/features/reports/ReportModal/actions';
 import {
   Input,
@@ -51,6 +51,7 @@ import {
   NotificationFormats,
 } from 'src/features/reports/types';
 import { reportSelector } from 'src/views/CRUD/hooks';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import { StyledInputContainer } from 'src/features/alerts/AlertReportModal';
 import { CreationMethod } from './HeaderReportDropdown';
 import {
@@ -74,7 +75,6 @@ interface ReportProps {
   onHide: () => {};
   addDangerToast: (msg: string) => void;
   show: boolean;
-  userId: number;
   userEmail: string;
   ccEmail: string;
   bccEmail: string;
@@ -112,7 +112,6 @@ function ReportModal({
   show = false,
   dashboardId,
   chart,
-  userId,
   userEmail,
   ccEmail,
   bccEmail,
@@ -127,6 +126,7 @@ function ReportModal({
   const defaultNotificationFormat = isTextBasedChart
     ? NotificationFormats.Text
     : NotificationFormats.PNG;
+  const currentUserSubjectId = getBootstrapData()?.common?.user_subject_id;
   const entityName = dashboardName || chartName;
   const initialState: ReportObjectState = useMemo(
     () => ({
@@ -179,26 +179,13 @@ function ReportModal({
   }, [isEditMode, report]);
 
   const onSave = async () => {
-    // Create new Report
-    const newReportValues: Partial<ReportObject> = {
+    const commonFields: Partial<ReportObject> = {
       type: 'Report',
       active: true,
       force_screenshot: false,
       custom_width: currentReport.custom_width,
-      creation_method: creationMethod,
       dashboard: dashboardId,
       chart: chart?.id,
-      owners: [userId],
-      recipients: [
-        {
-          recipient_config_json: {
-            target: userEmail,
-            ccTarget: ccEmail,
-            bccTarget: bccEmail,
-          },
-          type: 'Email',
-        },
-      ],
       name: currentReport.name,
       description: currentReport.description,
       crontab: currentReport.crontab,
@@ -209,12 +196,29 @@ function ReportModal({
     setCurrentReport({ isSubmitting: true, error: undefined });
     try {
       if (isEditMode && currentReport.id) {
+        // Edit path: include all fields, PUT endpoint accepts recipients/editors directly
         await dispatch(
-          editReport(currentReport.id, newReportValues as ReportObject),
+          editReport(currentReport.id, {
+            ...commonFields,
+            creation_method: creationMethod,
+            ...(currentUserSubjectId === undefined
+              ? {}
+              : { editors: [currentUserSubjectId] }),
+            recipients: [
+              {
+                recipient_config_json: {
+                  target: userEmail,
+                  ccTarget: ccEmail,
+                  bccTarget: bccEmail,
+                },
+                type: 'Email',
+              },
+            ],
+          } as ReportObject),
         );
       } else {
-        // Create new report (either not in edit mode, or edit mode without valid ID)
-        await dispatch(addReport(newReportValues as ReportObject));
+        // Subscribe path: creation_method, editors, and recipients are set server-side.
+        await dispatch(subscribeReport(commonFields as ReportObject));
       }
       onHide();
     } catch (e) {
@@ -280,6 +284,10 @@ function ReportModal({
               label: t('Formatted CSV attached in email'),
               value: NotificationFormats.CSV,
             },
+            {
+              label: t('Formatted Excel attached in email'),
+              value: NotificationFormats.XLSX,
+            },
           ]}
         />
       </div>
@@ -294,11 +302,12 @@ function ReportModal({
         <Input
           type="number"
           name="custom_width"
-          value={currentReport?.custom_width || ''}
+          value={currentReport?.custom_width ?? ''}
           placeholder={t('Input custom width in pixels')}
           onChange={(event: ChangeEvent<HTMLInputElement>) => {
+            const parsedWidth = parseInt(event.target.value, 10);
             setCurrentReport({
-              custom_width: parseInt(event.target.value, 10) || null,
+              custom_width: Number.isNaN(parsedWidth) ? null : parsedWidth,
             });
           }}
         />

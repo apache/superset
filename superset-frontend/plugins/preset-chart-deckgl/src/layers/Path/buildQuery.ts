@@ -19,23 +19,39 @@
 import {
   buildQueryContext,
   ensureIsArray,
+  getMetricLabel,
   SqlaFormData,
   QueryFormColumn,
+  QueryFormMetric,
 } from '@superset-ui/core';
 import { addNullFilters, addTooltipColumnsToQuery } from '../buildQueryUtils';
+import { isMetricValue } from '../utils/metricUtils';
 
 export interface DeckPathFormData extends SqlaFormData {
   line_column?: string;
   line_type?: 'polyline' | 'json' | 'geohash';
   metric?: string;
   reverse_long_lat?: boolean;
-  js_columns?: string[];
   tooltip_contents?: unknown[];
   tooltip_template?: string;
+  line_width?:
+    string | { type?: 'fix' | 'metric'; value?: QueryFormMetric | number };
+  line_width_multiplier?: number;
+  min_width?: number;
+  max_width?: number;
+  dimension?: string;
+  breakpoint_metric?: QueryFormMetric;
 }
 
 export default function buildQuery(formData: DeckPathFormData) {
-  const { line_column, metric, js_columns, tooltip_contents } = formData;
+  const {
+    line_column,
+    metric,
+    tooltip_contents,
+    line_width,
+    dimension,
+    breakpoint_metric,
+  } = formData;
 
   if (!line_column) {
     throw new Error('Line column is required for Path charts');
@@ -46,11 +62,10 @@ export default function buildQuery(formData: DeckPathFormData) {
       const columns = ensureIsArray(
         baseQueryObject.columns || [],
       ) as QueryFormColumn[];
-      const metrics = ensureIsArray(baseQueryObject.metrics || []);
+      let metrics = ensureIsArray(baseQueryObject.metrics || []);
       const groupby = ensureIsArray(
         baseQueryObject.groupby || [],
       ) as QueryFormColumn[];
-      const jsColumns = ensureIsArray(js_columns || []);
 
       if (baseQueryObject.metrics?.length || metric) {
         if (metric && !metrics.includes(metric)) {
@@ -63,11 +78,48 @@ export default function buildQuery(formData: DeckPathFormData) {
         columns.push(line_column);
       }
 
-      jsColumns.forEach(col => {
-        if (!columns.includes(col) && !groupby.includes(col)) {
-          columns.push(col);
+      // Include dimension column for categorical color mode
+      if (dimension && !columns.includes(dimension)) {
+        columns.push(dimension);
+      }
+
+      // Add metric if line_width is a metric type
+      const isMetric = isMetricValue(line_width);
+      const rawWidthValue =
+        typeof line_width === 'string'
+          ? line_width
+          : typeof line_width === 'number'
+            ? undefined
+            : line_width?.value;
+      const widthMetric: QueryFormMetric | null =
+        isMetric &&
+        rawWidthValue !== undefined &&
+        typeof rawWidthValue !== 'number'
+          ? (rawWidthValue as QueryFormMetric)
+          : null;
+
+      // ensure metric is not added to metric array twice
+      const existingLabels = new Set(metrics.map(m => getMetricLabel(m)));
+      if (widthMetric && !existingLabels.has(getMetricLabel(widthMetric))) {
+        metrics = [...metrics, widthMetric];
+      }
+
+      // ensure line_column is in groupby when aggregating by width metric
+      if (widthMetric && !groupby.includes(line_column)) {
+        groupby.push(line_column);
+      }
+
+      if (breakpoint_metric) {
+        const breakpointLabel = getMetricLabel(breakpoint_metric);
+        const currentLabels = new Set(metrics.map(m => getMetricLabel(m)));
+        if (!currentLabels.has(breakpointLabel)) {
+          metrics = [...metrics, breakpoint_metric];
         }
-      });
+        // ensure line_column is in groupby when aggregating
+        if (!groupby.includes(line_column)) {
+          groupby.push(line_column);
+        }
+      }
 
       const finalColumns = addTooltipColumnsToQuery(columns, tooltip_contents);
       const finalGroupby = addTooltipColumnsToQuery(groupby, tooltip_contents);

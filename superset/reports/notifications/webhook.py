@@ -32,6 +32,7 @@ from superset.reports.notifications.exceptions import (
 )
 from superset.utils import json
 from superset.utils.decorators import statsd_gauge
+from superset.utils.network import is_safe_host
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +80,18 @@ class WebhookNotification(BaseNotification):
         files = []
         if self._content.csv:
             files.append(("files", ("report.csv", self._content.csv, "text/csv")))
+        if self._content.xlsx:
+            files.append(
+                (
+                    "files",
+                    (
+                        "report.xlsx",
+                        self._content.xlsx,
+                        "application/vnd.openxmlformats-officedocument."
+                        "spreadsheetml.sheet",
+                    ),
+                )
+            )
         if self._content.pdf:
             files.append(
                 ("files", ("report.pdf", self._content.pdf, "application/pdf"))
@@ -93,8 +106,60 @@ class WebhookNotification(BaseNotification):
                 )
         return files
 
+    def _validate_webhook_url(self, url: str) -> None:
+        """
+        Validate the webhook target URL before dispatch.
+
+        Checks that the scheme is HTTP(S) (and HTTPS when required by config),
+        that a hostname is present, and, unless the operator opts out via
+        ``ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS``, that the host does not
+        resolve to a private/internal address.
+
+        :raises NotificationParamException: if any of the above checks fail.
+        """
+        parsed = urlparse(url)
+        scheme = parsed.scheme.lower()
+        if scheme not in ("http", "https"):
+            raise NotificationParamException(
+                "Webhook failed: only HTTP and HTTPS webhook URLs are supported."
+            )
+        if current_app.config["ALERT_REPORTS_WEBHOOK_HTTPS_ONLY"] and scheme != "https":
+            raise NotificationParamException(
+                "Webhook failed: HTTPS is required by config for webhook URLs."
+            )
+        if not parsed.hostname:
+            raise NotificationParamException(
+                "Webhook failed: URL must include a valid hostname."
+            )
+        # Operators with internal webhook targets (chatops bridges, internal
+        # automation, etc.) can opt out of the private-IP block via
+        # ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS.
+        if current_app.config["ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS"]:
+            return
+        if not is_safe_host(parsed.hostname):
+            raise NotificationParamException("Webhook URL target host is not allowed.")
+
     @backoff.on_exception(
-        backoff.expo, NotificationUnprocessableException, factor=10, base=2, max_tries=5
+        backoff.expo,
+        NotificationUnprocessableException,
+        factor=10,
+        base=2,
+        max_tries=5,
+        # Bound total wall-clock retry time. Without max_time, a hanging or
+        # persistently-failing target can stall a worker for minutes per bad
+        # URL, starving sequential report dispatch.
+        #
+        # backoff (see backoff._sync.retry_exception) samples elapsed at the
+        # start of each attempt and checks it against max_time only after that
+        # attempt fails -- so the giveup decision uses the time measured before
+        # the attempt ran, ignoring the attempt's own duration. With each
+        # request carrying timeout=60, a third attempt can begin past the 120s
+        # mark (its start gated by the prior check, which still saw ~60-70s) and
+        # then run its full 60s before the check trips. The loop therefore makes
+        # 3 attempts: total wall-clock is ~180-210s (180s of requests + up to
+        # ~30s of jitter sleeps: <=10s then <=20s), not 120s. factor is kept at
+        # 10 so legitimately-transient 5xx targets are not abandoned early.
+        max_time=120,
     )
     @statsd_gauge("reports.webhook.send")
     def send(self) -> None:
@@ -104,11 +169,7 @@ class WebhookNotification(BaseNotification):
                 is not enabled."
             )
         wh_url = self._get_webhook_url()
-        if current_app.config["ALERT_REPORTS_WEBHOOK_HTTPS_ONLY"]:
-            if urlparse(wh_url).scheme.lower() != "https":
-                raise NotificationParamException(
-                    "Webhook failed: HTTPS is required by config for webhook URLs."
-                )
+        self._validate_webhook_url(wh_url)
         payload = self._get_req_payload()
         files = self._get_files()
 
@@ -121,9 +182,17 @@ class WebhookNotification(BaseNotification):
                     else:
                         data[key] = value
 
-                response = requests.post(wh_url, data=data, files=files, timeout=60)
+                response = requests.post(
+                    wh_url,
+                    data=data,
+                    files=files,
+                    timeout=60,
+                    allow_redirects=False,
+                )
             else:
-                response = requests.post(wh_url, json=payload, timeout=60)
+                response = requests.post(
+                    wh_url, json=payload, timeout=60, allow_redirects=False
+                )
 
             logger.info(
                 "Webhook sent to %s, status code: %s", wh_url, response.status_code
@@ -138,6 +207,14 @@ class WebhookNotification(BaseNotification):
                 raise NotificationParamException(
                     f"Webhook failed with status code {response.status_code}: \
                     {response.text}"
+                )
+            if response.status_code >= 300:
+                # Redirects are intentionally not followed (allow_redirects=False),
+                # so a 3xx means the request never reached the final target. Treat
+                # it as a failure rather than silently reporting success.
+                raise NotificationParamException(
+                    f"Webhook returned an unfollowed redirect "
+                    f"(status code {response.status_code})"
                 )
 
         except requests.exceptions.RequestException as ex:

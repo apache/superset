@@ -57,7 +57,6 @@ from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
 from superset.commands.dashboard.exceptions import DashboardAccessDeniedError
 from superset.commands.dashboard.permalink.get import GetDashboardPermalinkCommand
 from superset.commands.dataset.exceptions import DatasetNotFoundError
-from superset.commands.explore.form_data.create import CreateFormDataCommand
 from superset.commands.explore.form_data.get import GetFormDataCommand
 from superset.commands.explore.form_data.parameters import CommandParameters
 from superset.commands.explore.permalink.get import GetExplorePermalinkCommand
@@ -110,9 +109,9 @@ from superset.views.utils import (
     check_explore_cache_perms,
     check_resource_permissions,
     get_datasource_info,
+    get_explore_redirect_url,
     get_form_data,
     get_viz,
-    loads_request_json,
     redirect_to_login,
     sanitize_datasource_data,
 )
@@ -133,6 +132,16 @@ SqlResults = dict[str, Any]
 
 class Superset(BaseSupersetView):
     """The base views for Superset!"""
+
+    # Flask-AppBuilder's BaseView auto-derives `route_base` from the class
+    # name, which would mount every @expose route under `/superset/...`. That
+    # collides catastrophically with subdirectory deployments: AppRootMiddle-
+    # ware strips the configured root from PATH_INFO and sets SCRIPT_NAME, so
+    # url_for emits `/superset/superset/...` (doubled), and the in-rule
+    # `/superset` prefix no longer matches the post-strip PATH_INFO — making
+    # the routes themselves unreachable. Mount at the root so the application
+    # root applies exactly once via SCRIPT_NAME / basename.
+    route_base = ""
 
     logger = logging.getLogger(__name__)
 
@@ -237,7 +246,7 @@ class Superset(BaseSupersetView):
     @permission_name("explore_json")
     @expose("/explore_json/data/<cache_key>", methods=("GET",))
     @check_resource_permissions(check_explore_cache_perms)
-    @deprecated(eol_version="5.0.0")
+    @deprecated(eol_version="5.0.0", new_target="/api/v1/chart/data/<cache_key>")
     def explore_json_data(self, cache_key: str) -> FlaskResponse:
         """Serves cached result data for async explore_json calls
 
@@ -294,7 +303,7 @@ class Superset(BaseSupersetView):
     )
     @etag_cache()
     @check_resource_permissions(check_datasource_perms)
-    @deprecated(eol_version="5.0.0")
+    @deprecated(eol_version="5.0.0", new_target="/api/v1/chart/data")
     def explore_json(  # noqa: C901
         self, datasource_type: str | None = None, datasource_id: int | None = None
     ) -> FlaskResponse:
@@ -389,40 +398,6 @@ class Superset(BaseSupersetView):
         except SupersetException as ex:
             return json_error_response(utils.error_msg_from_exception(ex), 400)
 
-    @staticmethod
-    def get_redirect_url() -> str:
-        """Assembles the redirect URL to the new endpoint. It also replaces
-        the form_data param with a form_data_key by saving the original content
-        to the cache layer.
-        """
-        redirect_url = request.url.replace("/superset/explore", "/explore")
-        form_data_key = None
-        if request_form_data := request.args.get("form_data"):
-            parsed_form_data = loads_request_json(request_form_data)
-            slice_id = parsed_form_data.get(
-                "slice_id", int(request.args.get("slice_id", 0))
-            )
-            if datasource := parsed_form_data.get("datasource"):
-                datasource_id, datasource_type = datasource.split("__")
-                parameters = CommandParameters(
-                    datasource_id=datasource_id,
-                    datasource_type=datasource_type,
-                    chart_id=slice_id,
-                    form_data=request_form_data,
-                )
-                form_data_key = CreateFormDataCommand(parameters).run()
-        if form_data_key:
-            url = parse.urlparse(redirect_url)
-            query = parse.parse_qs(url.query)
-            query.pop("form_data")
-            query["form_data_key"] = [form_data_key]
-            url = url._replace(query=parse.urlencode(query, True))
-            redirect_url = parse.urlunparse(url)
-
-        # Return a relative URL
-        url = parse.urlparse(redirect_url)
-        return f"{url.path}?{url.query}" if url.query else url.path
-
     @has_access
     @event_logger.log_this
     @expose(
@@ -448,7 +423,18 @@ class Superset(BaseSupersetView):
         key: str | None = None,
     ) -> FlaskResponse:
         if request.method == "GET":
-            return redirect(Superset.get_redirect_url())
+            # Share the form_data → form_data_key cache-and-redirect contract
+            # with `ExploreView.root` via the lifted helper. Helper returns
+            # ``None`` for: empty/non-dict form_data, missing datasource,
+            # malformed datasource, invalid `DatasourceType`,
+            # cache-write failure (loop guard), and "already at target" loop
+            # guard. Falling through to `super().render_app_template()` kills
+            # the typed-entry `/explore/<dst>/<int:dsid>/` GET loop that the
+            # `isinstance(dict)` gate alone missed.
+            redirect_url = get_explore_redirect_url()
+            if redirect_url:
+                return redirect(redirect_url)
+            return super().render_app_template()
 
         initial_form_data = {}
 
@@ -505,6 +491,10 @@ class Superset(BaseSupersetView):
                     datasource_id,
                 )
 
+        # Enforce per-datasource access before rendering its metadata.
+        if datasource:
+            security_manager.raise_for_access(datasource=datasource)
+
         datasource_name = datasource.name if datasource else _("[Missing Dataset]")
         viz_type = form_data.get("viz_type")
         if not viz_type and datasource and datasource.default_endpoint:
@@ -525,7 +515,7 @@ class Superset(BaseSupersetView):
 
         # slc perms
         slice_add_perm = security_manager.can_access("can_write", "Chart")
-        slice_overwrite_perm = security_manager.is_owner(slc) if slc else False
+        slice_overwrite_perm = security_manager.is_editor(slc) if slc else False
         if is_feature_enabled("GRANULAR_EXPORT_CONTROLS"):
             slice_download_perm = security_manager.can_access(
                 "can_export_data", "Superset"
@@ -584,9 +574,6 @@ class Superset(BaseSupersetView):
         except (SupersetException, SQLAlchemyError):
             datasource_data = dummy_datasource_data
 
-        if datasource:
-            datasource_data["owners"] = datasource.owners_data
-
         bootstrap_data = {
             "can_add": slice_add_perm,
             "datasource": sanitize_datasource_data(datasource_data),
@@ -639,7 +626,14 @@ class Superset(BaseSupersetView):
         if action == "saveas":
             if "slice_id" in form_data:
                 form_data.pop("slice_id")  # don't save old slice_id
-            slc = Slice(owners=[g.user] if g.user else [])
+            from superset.subjects.utils import get_user_subject
+
+            editors = []
+            if g.user:
+                subj = get_user_subject(g.user.id)
+                if subj:
+                    editors.append(subj)
+            slc = Slice(editors=editors)
 
         utils.remove_extra_adhoc_filters(form_data)
 
@@ -675,7 +669,7 @@ class Superset(BaseSupersetView):
                 .one(),
             )
             # check edit dashboard permissions
-            dash_overwrite_perm = security_manager.is_owner(dash)
+            dash_overwrite_perm = security_manager.is_editor(dash)
             if not dash_overwrite_perm:
                 return json_error_response(
                     _("You don't have the rights to alter this dashboard"),
@@ -691,9 +685,16 @@ class Superset(BaseSupersetView):
                     status=403,
                 )
 
+            from superset.subjects.utils import get_user_subject
+
+            editors = []
+            if g.user:
+                subj = get_user_subject(g.user.id)
+                if subj:
+                    editors.append(subj)
             dash = Dashboard(
                 dashboard_title=request.args.get("new_dashboard_name"),
-                owners=[g.user] if g.user else [],
+                editors=editors,
             )
 
         if dash and slc not in dash.slices:
@@ -827,7 +828,7 @@ class Superset(BaseSupersetView):
             dashboard_id=dashboard.id,
             dashboard_version="v2",
             dash_edit_perm=(
-                security_manager.is_owner(dashboard)
+                security_manager.is_editor(dashboard)
                 and security_manager.can_access("can_write", "Dashboard")
             ),
             edit_mode=(
@@ -842,6 +843,7 @@ class Superset(BaseSupersetView):
         return self.render_app_template(
             extra_bootstrap_data=bootstrap_payload,
             title=dashboard.dashboard_title,  # dashboard title is always visible
+            dashboard_description=dashboard.description,
             standalone_mode=ReservedUrlParameters.is_standalone_mode(),
         )
 
@@ -853,7 +855,11 @@ class Superset(BaseSupersetView):
     ) -> FlaskResponse:
         try:
             value = GetDashboardPermalinkCommand(key).run()
-        except (DashboardPermalinkGetFailedError, DashboardAccessDeniedError) as ex:
+        except DashboardAccessDeniedError as ex:
+            if not get_current_user():
+                return redirect_to_login()
+            return json_error_response(__("Error: %(msg)s", msg=ex.message), status=404)
+        except DashboardPermalinkGetFailedError as ex:
             return json_error_response(__("Error: %(msg)s", msg=ex.message), status=404)
         if not value:
             return json_error_response(_("permalink state not found"), status=404)
@@ -864,12 +870,11 @@ class Superset(BaseSupersetView):
         )
         if url_params := state.get("urlParams"):
             for param_key, param_val in url_params:
-                if param_key == "native_filters":
-                    # native_filters doesnt need to be encoded here
-                    url = f"{url}&native_filters={param_val}"
-                else:
-                    params = parse.urlencode([(param_key, param_val)])
-                    url = f"{url}&{params}"
+                # URL-encode every param value (including native_filters) so a
+                # value containing '&'/'#'/'=' cannot inject extra parameters
+                # into the redirect target. Flask decodes the value back on read.
+                params = parse.urlencode([(param_key, param_val)])
+                url = f"{url}&{params}"
         if original_params := request.query_string.decode():
             url = f"{url}&{original_params}"
         if hash_ := state.get("anchor", state.get("hash")):

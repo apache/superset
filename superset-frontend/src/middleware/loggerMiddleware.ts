@@ -29,11 +29,12 @@ import {
   LOG_ACTIONS_SPA_NAVIGATION,
 } from '../logger/LogUtils';
 import DebouncedMessageQueue from '../utils/DebouncedMessageQueue';
-import { ensureAppRoot } from '../utils/pathUtils';
+import { ensureAppRoot } from '../utils/navigationUtils';
 import type { DashboardInfo, DashboardLayoutState } from '../dashboard/types';
 import type { QueryEditor } from '../SqlLab/types';
 
-type LogEventSource = 'dashboard' | 'explore' | 'sqlLab' | 'slice';
+type LogEventSource =
+  'dashboard' | 'embedded_dashboard' | 'explore' | 'sqlLab' | 'slice';
 
 interface LogEventData {
   source?: LogEventSource;
@@ -88,7 +89,7 @@ interface LoggerStore {
   dispatch: Dispatch;
 }
 
-const LOG_ENDPOINT = '/superset/log/?explode=events';
+const LOG_ENDPOINT = '/log/?explode=events';
 
 const sendBeacon = (events: LogEventData[]): void => {
   if (events.length <= 0) {
@@ -99,7 +100,7 @@ const sendBeacon = (events: LogEventData[]): void => {
   const [firstEvent] = events;
   const { source, source_id } = firstEvent;
   // backend logs treat these request params as first-class citizens
-  if (source === 'dashboard') {
+  if (source === 'dashboard' || source === 'embedded_dashboard') {
     endpoint += `&dashboard_id=${source_id}`;
   } else if (source === 'slice') {
     endpoint += `&slice_id=${source_id}`;
@@ -130,6 +131,12 @@ const logMessageQueue = new DebouncedMessageQueue<LogEventData>({
   sizeThreshold: MAX_EVENTS_PER_REQUEST,
   delayThreshold: 1000,
 });
+
+// Embedded dashboards are served from `/dashboard/:idOrSlug/embedded/` and
+// `/embedded/:uuid/`. Matching these specific shapes avoids false positives
+// for regular dashboards (e.g. a dashboard whose slug is "embedded").
+const EMBEDDED_ROUTE_REGEX =
+  /\/dashboard\/[^/]+\/embedded(?:[/?#]|$)|\/embedded\/[^/]+\/?/;
 
 let lastEventId: string | number = 0;
 
@@ -162,9 +169,13 @@ const loggerMiddleware: Middleware<
     }
     const path = navPath || window?.location?.href;
 
-    if (dashboardInfo?.id && path?.includes('/dashboard/')) {
+    // Match the actual embedded route patterns (`/dashboard/:idOrSlug/embedded/`
+    // and `/embedded/:uuid/`) rather than any URL containing "/embedded/", which
+    // would misclassify a regular dashboard whose slug is "embedded".
+    const isEmbedded = EMBEDDED_ROUTE_REGEX.test(path ?? '');
+    if (dashboardInfo?.id && (path?.includes('/dashboard/') || isEmbedded)) {
       logMetadata = {
-        source: 'dashboard',
+        source: isEmbedded ? 'embedded_dashboard' : 'dashboard',
         source_id: dashboardInfo.id,
         dashboard_id: dashboardInfo.id,
         ...logMetadata,

@@ -154,7 +154,7 @@ test('accepts custom style props', () => {
   render(<DropdownContainer items={generateItems(2)} style={customStyle} />);
 
   const container = screen.getByTestId('container');
-  expect(container).toHaveStyle('background-color: red');
+  expect(container).toHaveStyle('background-color: rgb(255, 0, 0)');
   expect(container).toHaveStyle('padding: 10px');
 });
 

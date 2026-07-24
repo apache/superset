@@ -66,11 +66,13 @@ from superset.exceptions import (
     OAuth2Error,
     OAuth2RedirectError,
     OAuth2TokenRefreshError,
+    SupersetParseError,
 )
 from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
 from superset.sql.parse import (
     BaseSQLStatement,
     LimitMethod,
+    Partition,
     RLSMethod,
     SQLScript,
     SQLStatement,
@@ -498,6 +500,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     allows_sql_comments = True
     allows_escaped_colons = True
 
+    # Whether the engine supports OFFSET in SQL queries. Defaults to True;
+    # engines like Elasticsearch SQL that do not support OFFSET set this to
+    # False and are expected to implement `fetch_data_with_cursor` for
+    # pagination via another mechanism (e.g. Elasticsearch's cursor API).
+    supports_offset = True
+
     # Whether ORDER BY clause can use aliases created in SELECT
     # that are the same as a source column
     allows_alias_to_source_column = True
@@ -539,6 +547,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # Set this to True on any engine spec where at least one row must be
     # fetched for cursor.description to be populated.
     type_probe_needs_row: bool = False
+    requires_column_value_normalization: bool = False
     try_remove_schema_from_table_name = True  # pylint: disable=invalid-name
     run_multiple_statements_as_one = False
     custom_errors: dict[
@@ -556,6 +565,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # Whether the engine supports file uploads
     # if True, database will be listed as option in the upload file form
     supports_file_upload = True
+
+    # Whether the engine supports SQL GROUPING SETS / ROLLUP / CUBE. When True,
+    # consumers (e.g. the pivot table's non-additive totals) can collapse the
+    # per-rollup-level queries into a single GROUPING SETS query instead of
+    # issuing one query per level. Conservative default of False; engines opt in.
+    supports_grouping_sets = False
 
     # Is the DB engine spec able to change the default schema? This requires implementing  # noqa: E501
     # a custom `adjust_engine_params` method.
@@ -576,6 +591,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     # Does the DB engine spec support cross-catalog queries?
     supports_cross_catalog_queries = False
+
+    # Does the DB engine support schemas? When set to False the schema selector is
+    # hidden in the dataset creation UI and schema is not required for table access.
+    supports_schemas = True
 
     # Does the engine supports OAuth 2.0? This requires logic to be added to one of the
     # the user impersonation methods to handle personal tokens.
@@ -678,7 +697,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         )
         # We need to commit here because we're going to raise an exception, which will
         # revert any non-commited changes.
-        db.session.commit()
+        db.session.commit()  # pylint: disable=consider-using-transaction
 
         # The state is passed to the OAuth2 provider, and sent back to Superset after
         # the user authorizes the access. The redirect endpoint in Superset can then
@@ -1242,6 +1261,26 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             raise cls.get_dbapi_mapped_exception(ex) from ex
 
     @classmethod
+    def fetch_data_with_cursor(
+        cls,
+        database: Database,
+        sql: str,
+        page_index: int,
+        page_size: int,
+    ) -> tuple[list[list[Any]], list[str]]:
+        """
+        Fetch a single page of results via engine-native cursor pagination.
+
+        Only called when ``cls.supports_offset`` is False and a non-first
+        page is requested (see ``superset/views/datasource/utils.py``).
+        Engines that set ``supports_offset = False`` must override this.
+        """
+        raise NotImplementedError(
+            f"{cls.__name__} sets supports_offset=False but does not "
+            "implement fetch_data_with_cursor()"
+        )
+
+    @classmethod
     def expand_data(
         cls, columns: list[ResultSetColumnType], data: list[dict[Any, Any]]
     ) -> tuple[
@@ -1300,6 +1339,38 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return None
 
     @classmethod
+    def normalize_column_values(cls, col_values: list[Any]) -> list[Any]:
+        """
+        Engine-specific hook to normalize column values before PyArrow conversion.
+
+        Called when the initial pa.array() conversion raises an exception, giving
+        the engine a chance to clean up values (e.g. replace sentinel strings with
+        None) before a second conversion attempt.
+
+        :param col_values: Raw Python values for one column
+        :return: Normalized values; return the input list unchanged by default
+        """
+        return col_values
+
+    @classmethod
+    def resolve_column_type(
+        cls, cursor_type: str | None, pa_mapped: str | None
+    ) -> str | None:
+        """
+        Choose the reported column type from the cursor description type and the
+        type inferred by PyArrow.
+
+        The default prefers the cursor description when available.  Override in
+        engine specs where the cursor description is unreliable (e.g. pydruid
+        infers STRING from a None or special-float first row value).
+
+        :param cursor_type: Type string from the cursor description, or None
+        :param pa_mapped: Type string inferred by PyArrow, or None
+        :return: The type string to report for this column
+        """
+        return cursor_type or pa_mapped
+
+    @classmethod
     @deprecated(deprecated_in="3.0")
     def normalize_indexes(cls, indexes: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
@@ -1317,12 +1388,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls,
         database: Database,
         table: Table,
+        partition: Partition | None = None,
     ) -> TableMetadataResponse:
         """
         Returns basic table metadata
 
         :param database: Database instance
         :param table: A Table instance
+        :param partition: Optional partition info used by engines that support
+            partitioned tables (e.g. ODPS). Ignored by engines that don't.
         :return: Basic table metadata
         """
         return get_table_metadata(database, table)
@@ -1365,8 +1439,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param sql: SQL query
         :return: Value of limit clause in query
         """
-        script = SQLScript(sql, engine=cls.engine)
-        return script.statements[-1].get_limit_value()
+        try:
+            script = SQLScript(sql, engine=cls.engine)
+            return script.statements[-1].get_limit_value()
+        except SupersetParseError:
+            # SQL with a malformed LIMIT clause (e.g. LIMIT without a value) is
+            # not parseable in sqlglot 30+, which now requires an expression arg.
+            return None
 
     @classmethod
     def get_cte_query(cls, sql: str) -> str | None:
@@ -1736,7 +1815,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             raise cls.get_dbapi_mapped_exception(ex) from ex
 
         if schema and cls.try_remove_schema_from_table_name:
-            tables = {re.sub(f"^{schema}\\.", "", table) for table in tables}
+            escaped_schema = re.escape(schema)
+            tables = {re.sub(f"^{escaped_schema}\\.", "", table) for table in tables}
         return tables
 
     @classmethod
@@ -1764,7 +1844,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             raise cls.get_dbapi_mapped_exception(ex) from ex
 
         if schema and cls.try_remove_schema_from_table_name:
-            views = {re.sub(f"^{schema}\\.", "", view) for view in views}
+            escaped_schema = re.escape(schema)
+            views = {re.sub(f"^{escaped_schema}\\.", "", view) for view in views}
         return views
 
     @classmethod
@@ -1937,7 +2018,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             fields = cls._get_fields(cols)
 
         full_table_name = cls.quote_table(table, dialect)
-        qry = select(fields).select_from(text(full_table_name))
+        qry = select(*fields if isinstance(fields, list) else fields).select_from(
+            text(full_table_name)
+        )
 
         qry = qry.limit(limit)
         if latest_partition:
@@ -2276,6 +2359,36 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         return 1
 
+    @classmethod
+    def get_column_description_retry_sql(cls, sql: str) -> str | None:
+        """
+        Build a comment-safe fallback query for ``get_columns_description`` to
+        retry with when a zero-row metadata probe unexpectedly comes back with
+        an empty ``cursor.description``.
+
+        Some DB-API drivers only run their own "empty result" metadata
+        fallback -- used to populate ``cursor.description`` when a query
+        legitimately returns zero rows -- when the executed SQL text starts
+        with ``SELECT``/``WITH``. ``SQL_QUERY_MUTATOR`` can prepend comments
+        (e.g. query attribution) ahead of the ``SELECT`` keyword, which
+        defeats that startswith check on those drivers even though the query
+        itself is valid.
+
+        Engine specs affected by this can override this hook to wrap the
+        already-mutated SQL passed in so that the outer statement always
+        starts with a bare ``SELECT``. The original SQL -- including any
+        comments added by ``SQL_QUERY_MUTATOR`` -- is preserved verbatim, so
+        no mutation/audit behavior is lost, and the wrapped query still
+        returns zero rows.
+
+        Returning ``None`` (the default) means the engine doesn't support or
+        need this retry.
+
+        :param sql: The already limited and mutated SQL that was executed
+        :return: A comment-safe SQL string to retry with, or ``None``
+        """
+        return None
+
     @staticmethod
     def pyodbc_rows_to_tuples(data: list[Any]) -> list[tuple[Any, ...]]:
         """
@@ -2428,6 +2541,27 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         return None
 
+    @staticmethod
+    def validate_cancel_query_id(
+        cancel_query_id: str | None,
+        pattern: str = r"^\d+$",
+    ) -> bool:
+        """
+        Validate that a cancel_query_id matches expected format.
+
+        This is a defense-in-depth measure to prevent SQL injection in cancel_query
+        implementations that use string interpolation. While cancel_query_id typically
+        comes from trusted database sources (e.g., CONNECTION_ID()), validation ensures
+        safety even if the data source is compromised.
+
+        :param cancel_query_id: The query identifier to validate
+        :param pattern: Regex pattern to match (default: numeric only)
+        :return: True if valid, False otherwise
+        """
+        if cancel_query_id is None:
+            return False
+        return bool(re.fullmatch(pattern, str(cancel_query_id)))
+
     @classmethod
     def cancel_query(  # pylint: disable=unused-argument
         cls,
@@ -2523,6 +2657,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "disable_ssh_tunneling": cls.disable_ssh_tunneling,
             "supports_dynamic_catalog": cls.supports_dynamic_catalog,
             "supports_oauth2": cls.supports_oauth2,
+            "supports_schemas": cls.supports_schemas,
+            "supports_offset": cls.supports_offset,
         }
 
     @classmethod

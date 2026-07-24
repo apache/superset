@@ -51,6 +51,7 @@ class YDBEngineSpec(BaseEngineSpec):
     disable_ssh_tunneling = False
 
     supports_file_upload = False
+    supports_schemas = False
 
     allows_alias_in_orderby = True
 
@@ -62,7 +63,7 @@ class YDBEngineSpec(BaseEngineSpec):
             DatabaseCategory.TRADITIONAL_RDBMS,
             DatabaseCategory.OPEN_SOURCE,
         ],
-        "pypi_packages": ["ydb-sqlalchemy"],
+        "pypi_packages": ["ydb-sqlalchemy", "ydb-sqlglot-plugin"],
         "connection_string": "ydb://{host}:{port}/{database_name}",
         "default_port": 2135,
         "engine_parameters": [
