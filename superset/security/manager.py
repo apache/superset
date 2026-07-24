@@ -32,6 +32,7 @@ from typing import (
     TYPE_CHECKING,
     Union,
 )
+from urllib.parse import quote
 
 from flask import current_app, Flask, g, has_app_context, Request, Response
 from flask_appbuilder import Model
@@ -165,6 +166,42 @@ def get_extra_editor_subject_ids(resource: Model) -> list[int]:
             subject_ids.append(subject_id)
             seen.add(subject_id)
     return subject_ids
+
+
+def _render_permission_instructions_link(
+    *,
+    datasource_id: str = "",
+    datasource_name: str = "",
+    table_names: str = "",
+) -> Optional[str]:
+    """Render the configured ``PERMISSION_INSTRUCTIONS_LINK``.
+
+    The configured URL may contain ``{datasource_id}``, ``{datasource_name}``,
+    ``{table_names}`` and ``{username}`` placeholders, which are substituted with
+    URL-encoded values so the link can deep-link into an organization's access
+    request system. A URL with no placeholders is returned unchanged, and an
+    empty/unset config returns ``None`` (no link). Unsupplied placeholders are
+    replaced with an empty string.
+    """
+    link = get_conf().get("PERMISSION_INSTRUCTIONS_LINK")
+    if not link:
+        return None
+
+    username = ""
+    user = getattr(g, "user", None)
+    if user is not None and not getattr(user, "is_anonymous", False):
+        username = getattr(user, "username", "") or ""
+
+    for token, value in (
+        ("datasource_id", datasource_id),
+        ("datasource_name", datasource_name),
+        ("table_names", table_names),
+        ("username", username),
+    ):
+        placeholder = "{" + token + "}"
+        if placeholder in link:
+            link = link.replace(placeholder, quote(str(value), safe=""))
+    return link
 
 
 DATABASE_PERM_REGEX = re.compile(r"^\[.+\]\.\(id\:(?P<id>\d+)\)$")
@@ -1805,17 +1842,23 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
 
     @staticmethod
-    def get_datasource_access_link(  # pylint: disable=unused-argument
+    def get_datasource_access_link(
         datasource: "BaseDatasource | Explorable",
     ) -> Optional[str]:
         """
         Return the link for the denied Superset datasource.
 
+        The configured ``PERMISSION_INSTRUCTIONS_LINK`` may template the denied
+        datasource's id/name (and the current username) into the access URL.
+
         :param datasource: The denied Superset datasource
         :returns: The access URL
         """
 
-        return get_conf().get("PERMISSION_INSTRUCTIONS_LINK")
+        return _render_permission_instructions_link(
+            datasource_id=str(datasource.data["id"]),
+            datasource_name=str(datasource.data["name"]),
+        )
 
     def get_datasource_access_error_object(  # pylint: disable=invalid-name
         self, datasource: "BaseDatasource | Explorable"
@@ -1834,6 +1877,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 "link": self.get_datasource_access_link(datasource),
                 "datasource": datasource.data["id"],
                 "datasource_name": datasource.data["name"],
+                # Owner display names give the viewer someone to contact for
+                # access; sorted for a deterministic payload.
+                "owners": sorted(
+                    str(owner) for owner in getattr(datasource, "owners", []) or []
+                ),
             },
         )
 
@@ -1870,17 +1918,32 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             },
         )
 
-    def get_table_access_link(  # pylint: disable=unused-argument
-        self, tables: set["Table"]
-    ) -> Optional[str]:
+    def get_table_access_link(self, tables: set["Table"]) -> Optional[str]:
         """
         Return the access link for the denied SQL tables.
+
+        The configured ``PERMISSION_INSTRUCTIONS_LINK`` may template the denied
+        table names (and the current username) into the access URL.
 
         :param tables: The set of denied SQL tables
         :returns: The access URL
         """
 
-        return get_conf().get("PERMISSION_INSTRUCTIONS_LINK")
+        # Build display names from the raw parts: Table.__str__ URL-encodes
+        # each segment, and the renderer encodes the whole value again, so
+        # using it here would double-encode. Sorted for deterministic links.
+        return _render_permission_instructions_link(
+            table_names=",".join(
+                sorted(
+                    ".".join(
+                        part
+                        for part in (table.catalog, table.schema, table.table)
+                        if part
+                    )
+                    for table in tables
+                )
+            ),
+        )
 
     def get_user_datasources(self) -> list["BaseDatasource"]:
         """

@@ -1992,7 +1992,16 @@ TROUBLESHOOTING_LINK = ""
 WTF_CSRF_TIME_LIMIT = int(timedelta(weeks=1).total_seconds())
 
 # This link should lead to a page with instructions on how to gain access to a
-# Datasource. It will be placed at the bottom of permissions errors.
+# Datasource. It is surfaced as a "Request Access" link on data-permission
+# errors (e.g. when a viewer opens a chart whose dataset they cannot access).
+# The URL may include any of these placeholders, which are substituted with
+# URL-encoded values so the link can deep-link into an access-request system:
+#   {datasource_id}    - id of the denied dataset (datasource errors)
+#   {datasource_name}  - name of the denied dataset (datasource errors)
+#   {table_names}      - comma-separated denied table names (table/SQL errors)
+#   {username}         - the requesting user's username
+# A URL with no placeholders is used as-is. Example:
+#   "https://access.example.com/request?dataset={datasource_id}&user={username}"
 PERMISSION_INSTRUCTIONS_LINK = ""
 
 # Integrate external Blueprints to the app by passing them to your

@@ -19,6 +19,7 @@
 export { BasicErrorAlert } from './BasicErrorAlert';
 export { DatabaseErrorMessage } from './DatabaseErrorMessage';
 export { DatasetNotFoundErrorMessage } from './DatasetNotFoundErrorMessage';
+export { DatasourceSecurityAccessErrorMessage } from './DatasourceSecurityAccessErrorMessage';
 export { ErrorAlert } from './ErrorAlert';
 export { ErrorMessageWithStackTrace } from './ErrorMessageWithStackTrace';
 export { getErrorMessageComponentRegistry } from './getErrorMessageComponentRegistry';
