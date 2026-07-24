@@ -142,6 +142,7 @@ databricks = [
     "databricks-sql-connector>=4.2.6, <4.4.0",
     "databricks-sqlalchemy==1.0.5",
 ]
+datafusion = ["flightsql-dbapi>=0.2.0, <0.3"]
 db2 = ["ibm-db-sa>0.3.8, <=0.4.4"]
 denodo = ["denodo-sqlalchemy>=2.0.5,<2.1.0"]
 dremio = ["sqlalchemy-dremio>=1.2.1, <4"]
