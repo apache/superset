@@ -43,6 +43,8 @@ dependencies = [
     # explicitly to keep fresh ``pip install apache-superset`` working
     # without the ``base.txt`` lock file (#40962).
     "cachetools>=7.1.4, <8",
+    "argon2-cffi>=23.1.0, <26",
+    "bcrypt>=4.0.0, <5",
     "celery>=5.6.3, <6.0.0",
     "click>=8.4.2",
     "click-option-group",

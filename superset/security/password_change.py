@@ -62,7 +62,18 @@ _EXEMPT_VIEW_CLASSES = frozenset(
 )
 
 # Exact endpoint names (function views / Flask built-ins) that are always exempt.
-_EXEMPT_ENDPOINTS = frozenset({"static", "appbuilder.static", "health", "healthcheck"})
+_EXEMPT_ENDPOINTS: frozenset[str] = frozenset(
+    {
+        "static",
+        "appbuilder.static",
+        "health",
+        "healthcheck",
+        # Self-service password change API (AUTH_DB); must stay reachable while
+        # ``password_must_change`` is set, same as ``ResetMyPasswordView``.
+        "CurrentUserRestApi.update_my_password",
+        "CurrentUserRestApi.get_my_password_policy",
+    }
+)
 
 
 def _get_user_attribute(user_id: int) -> Optional[Any]:

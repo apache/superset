@@ -65,6 +65,7 @@ from superset.superset_typing import CacheConfig
 from superset.tasks.types import ExecutorType
 from superset.themes.types import Theme
 from superset.utils import core as utils
+from superset.utils.auth_db_password import AUTH_DB_DEFAULTS
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
 from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
@@ -485,6 +486,17 @@ FAB_API_SWAGGER_UI_SUPERSET_APP_ROOT = False
 # AUTH_LDAP : Is for LDAP
 # AUTH_REMOTE_USER : Is for using REMOTE_USER from web server
 AUTH_TYPE = AUTH_DB
+
+# Consolidated database-auth (AUTH_DB) password and security tuning.
+# ``superset.utils.auth_db_password.get_merged_auth_db_config()`` merges
+# ``AUTH_DB_DEFAULTS`` with any ``AUTH_DB_CONFIG`` dict from
+# ``superset_config`` (partial overrides supported).
+AUTH_DB_CONFIG: dict[str, Any] = dict(AUTH_DB_DEFAULTS)
+
+# How often (seconds) to re-check the session auth stamp against the database on
+# read-only requests (GET/HEAD/OPTIONS). State-changing requests always
+# revalidate. Set to 0 to check on every authenticated request.
+SESSION_AUTH_STAMP_REVALIDATION_SECONDS: int = 300
 
 # Uncomment to setup Full admin role name
 # AUTH_ROLE_ADMIN = 'Admin'

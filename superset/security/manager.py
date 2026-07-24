@@ -33,9 +33,19 @@ from typing import (
     Union,
 )
 
-from flask import current_app, Flask, g, has_app_context, Request, Response
+from flask import (
+    current_app,
+    Flask,
+    g,
+    has_app_context,
+    has_request_context,
+    Request,
+    request,
+    Response,
+)
 from flask_appbuilder import Model
 from flask_appbuilder.api import expose, protect, safe
+from flask_appbuilder.const import LOGMSG_WAR_SEC_LOGIN_FAILED
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.security.sqla.apis import GroupApi, RoleApi, UserApi
 from flask_appbuilder.security.sqla.apis.permission_view_menu.api import (
@@ -89,6 +99,10 @@ from superset.security.guest_token import (
 from superset.sql.parse import process_jinja_sql, Table
 from superset.tasks.utils import get_current_user
 from superset.utils import json
+from superset.utils.auth_db_password_hash import (
+    verify_auth_db_password,
+    verify_fake_auth_db_password,
+)
 from superset.utils.core import (
     DatasourceName,
     DatasourceType,
@@ -1371,6 +1385,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def create_login_manager(self, app: Flask) -> LoginManager:
         lm = super().create_login_manager(app)
         lm.request_loader(self.request_loader)
+        from superset.utils.auth_session_stamp import register_session_auth_stamp_hook
+
+        register_session_auth_stamp_hook(app)
         return lm
 
     def reset_password(self, userid: Union[int, str], password: str) -> None:
@@ -1386,22 +1403,68 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         bypassed. We distinguish the two by comparing the acting user
         (``g.user``) against the target ``userid``: they match for a
         self-service reset and differ for an admin reset.
+
+        On ``AUTH_DB``, the per-user session auth stamp is rotated so every
+        other session for the target account is invalidated — including when an
+        administrator resets a compromised password.
         """
+        # pylint: disable=import-outside-toplevel
+        from flask_appbuilder.const import AUTH_DB
+
         super().reset_password(userid, password)
+
+        try:
+            target_user_id = int(userid)
+        except (TypeError, ValueError):
+            target_user_id = None
 
         acting_user = getattr(g, "user", None)
         acting_user_id = getattr(acting_user, "id", None)
         # ``userid`` arrives as a string (the ``pk`` request arg) on the admin
         # path, so coerce both sides before comparing.
-        is_self_service = acting_user_id is not None and self._same_user(
-            acting_user_id, userid
+        is_self_service = (
+            acting_user_id is not None
+            and target_user_id is not None
+            and self._same_user(acting_user_id, userid)
         )
-        if is_self_service:
+
+        if (
+            current_app.config.get("AUTH_TYPE") == AUTH_DB
+            and target_user_id is not None
+        ):
+            from superset.utils.auth_session_stamp import (
+                bump_user_session_auth_stamp,
+                cache_user_session_auth_stamp,
+                sync_session_auth_stamp_on_login,
+            )
+
+            new_stamp = bump_user_session_auth_stamp(target_user_id)
+            # Refresh the shared cache immediately so other sessions for this
+            # user stop passing the cached-stamp fast path right away, instead
+            # of continuing to validate against the stale stamp until the
+            # cache entry expires.
+            cache_user_session_auth_stamp(target_user_id, new_stamp)
+            if is_self_service and acting_user is not None:
+                sync_session_auth_stamp_on_login(acting_user)
+
+        if is_self_service and target_user_id is not None:
             from superset.security.password_change import (
                 clear_password_must_change,
             )
 
-            clear_password_must_change(int(userid))
+            clear_password_must_change(target_user_id)
+
+        if target_user_id is not None:
+            _log_audit_event(
+                "UserPasswordChanged",
+                {
+                    "user_id": target_user_id,
+                    "initiated_by": "self" if is_self_service else "admin",
+                    "source_ip": (
+                        request.remote_addr if has_request_context() else None
+                    ),
+                },
+            )
 
     @staticmethod
     def _same_user(left: Any, right: Any) -> bool:
@@ -1419,10 +1482,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def on_user_login(self, user: Any) -> None:
         # pylint: disable=import-outside-toplevel
         from superset.security.session_invalidation import stamp_login_time
+        from superset.utils.auth_session_stamp import sync_session_auth_stamp_on_login
 
         # Record the authentication time so outstanding sessions can be
         # invalidated when the account is later disabled.
         stamp_login_time()
+        sync_session_auth_stamp_on_login(user)
         _log_audit_event(
             "UserLoggedIn",
             {"username": user.username, "user_id": user.id},
@@ -4854,6 +4919,35 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return get_conf()["AUTH_ROLE_ADMIN"] in [
             role.name for role in self.get_user_roles()
         ]
+
+    def auth_user_db(self, username: str, password: str) -> User | None:
+        """
+        Authenticate a database user, verifying bcrypt/argon2 and legacy hashes.
+        """
+        if username is None or username == "":
+            return None
+        first_user = self.get_first_user()
+        user = self.find_user(username=username)
+        if user is None:
+            user = self.find_user(email=username)
+        else:
+            # Balance failure and success
+            _ = self.find_user(email=username)
+        if user is None or (not user.is_active):
+            # Balance failure and success: verify against a fake hash using the
+            # same algorithm (and therefore the same cost) as a real AUTH_DB
+            # user, so response time can't be used to enumerate usernames.
+            verify_fake_auth_db_password(password)
+            logger.info(LOGMSG_WAR_SEC_LOGIN_FAILED, username)
+            if first_user:
+                self.noop_user_update(first_user)
+            return None
+        if verify_auth_db_password(user.password, password):
+            self.update_user_auth_stat(user, True)
+            return user
+        self.update_user_auth_stat(user, False)
+        logger.info(LOGMSG_WAR_SEC_LOGIN_FAILED, username)
+        return None
 
     # temporal change to remove the roles view from the security menu,
     # after migrating all views to frontend, we will set FAB_ADD_SECURITY_VIEWS = False

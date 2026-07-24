@@ -33,6 +33,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { capitalize } from 'lodash/fp';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { useDispatch } from 'react-redux';
+import { AuthType } from 'src/constants/auth';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { ensureAppRoot } from 'src/utils/navigationUtils';
 
@@ -51,14 +52,6 @@ type Provider = OAuthProvider | OIDProvider;
 interface LoginForm {
   username: string;
   password: string;
-}
-
-enum AuthType {
-  AuthOID = 0,
-  AuthDB = 1,
-  AuthLDAP = 2,
-  AuthOauth = 4,
-  AuthSAML = 5,
 }
 
 const StyledCard = styled(Card)`

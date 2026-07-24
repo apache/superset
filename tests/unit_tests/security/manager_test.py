@@ -23,6 +23,7 @@ from typing import Any, Optional
 from unittest.mock import MagicMock
 
 import pytest
+from flask_appbuilder.const import AUTH_DB
 from flask_appbuilder.security.sqla.models import Role, User
 from pytest_mock import MockerFixture
 
@@ -2726,8 +2727,10 @@ def test_reset_password_self_service_clears_flag(
     """A user resetting their own password clears the forced-change flag."""
     sm = SupersetSecurityManager(appbuilder)
     # The target user (id 5) is the same as the acting user -> self-service.
-    mock_g = SimpleNamespace(user=SimpleNamespace(id=5))
+    acting_user = SimpleNamespace(id=5)
+    mock_g = SimpleNamespace(user=acting_user)
     mocker.patch("superset.security.manager.g", new=mock_g)
+    mocker.patch.dict(appbuilder.app.config, {"AUTH_TYPE": AUTH_DB})
     # Avoid touching the real DB in the FAB base implementation.
     mocker.patch(
         "flask_appbuilder.security.manager.BaseSecurityManager.reset_password",
@@ -2736,10 +2739,27 @@ def test_reset_password_self_service_clears_flag(
     mock_clear = mocker.patch(
         "superset.security.password_change.clear_password_must_change"
     )
+    mock_bump = mocker.patch(
+        "superset.utils.auth_session_stamp.bump_user_session_auth_stamp"
+    )
+    mock_sync = mocker.patch(
+        "superset.utils.auth_session_stamp.sync_session_auth_stamp_on_login"
+    )
+    mock_audit = mocker.patch("superset.security.manager._log_audit_event")
 
     sm.reset_password(5, "new-password")
 
+    mock_bump.assert_called_once_with(5)
+    mock_sync.assert_called_once_with(acting_user)
     mock_clear.assert_called_once_with(5)
+    mock_audit.assert_called_once_with(
+        "UserPasswordChanged",
+        {
+            "user_id": 5,
+            "initiated_by": "self",
+            "source_ip": None,
+        },
+    )
 
 
 def test_reset_password_admin_does_not_clear_flag(
@@ -2757,6 +2777,7 @@ def test_reset_password_admin_does_not_clear_flag(
     # as FAB passes it from request args).
     mock_g = SimpleNamespace(user=SimpleNamespace(id=1))
     mocker.patch("superset.security.manager.g", new=mock_g)
+    mocker.patch.dict(appbuilder.app.config, {"AUTH_TYPE": AUTH_DB})
     mocker.patch(
         "flask_appbuilder.security.manager.BaseSecurityManager.reset_password",
         return_value=None,
@@ -2764,10 +2785,27 @@ def test_reset_password_admin_does_not_clear_flag(
     mock_clear = mocker.patch(
         "superset.security.password_change.clear_password_must_change"
     )
+    mock_bump = mocker.patch(
+        "superset.utils.auth_session_stamp.bump_user_session_auth_stamp"
+    )
+    mock_sync = mocker.patch(
+        "superset.utils.auth_session_stamp.sync_session_auth_stamp_on_login"
+    )
+    mock_audit = mocker.patch("superset.security.manager._log_audit_event")
 
     sm.reset_password("5", "temp-password")
 
+    mock_bump.assert_called_once_with(5)
+    mock_sync.assert_not_called()
     mock_clear.assert_not_called()
+    mock_audit.assert_called_once_with(
+        "UserPasswordChanged",
+        {
+            "user_id": 5,
+            "initiated_by": "admin",
+            "source_ip": None,
+        },
+    )
 
 
 def test_reset_password_self_service_pk_string_clears_flag(
@@ -2776,8 +2814,10 @@ def test_reset_password_self_service_pk_string_clears_flag(
 ) -> None:
     """Self-service identity holds even if ids arrive as mixed int/str types."""
     sm = SupersetSecurityManager(appbuilder)
-    mock_g = SimpleNamespace(user=SimpleNamespace(id=5))
+    acting_user = SimpleNamespace(id=5)
+    mock_g = SimpleNamespace(user=acting_user)
     mocker.patch("superset.security.manager.g", new=mock_g)
+    mocker.patch.dict(appbuilder.app.config, {"AUTH_TYPE": AUTH_DB})
     mocker.patch(
         "flask_appbuilder.security.manager.BaseSecurityManager.reset_password",
         return_value=None,
@@ -2785,11 +2825,60 @@ def test_reset_password_self_service_pk_string_clears_flag(
     mock_clear = mocker.patch(
         "superset.security.password_change.clear_password_must_change"
     )
+    mock_bump = mocker.patch(
+        "superset.utils.auth_session_stamp.bump_user_session_auth_stamp"
+    )
+    mock_sync = mocker.patch(
+        "superset.utils.auth_session_stamp.sync_session_auth_stamp_on_login"
+    )
+    mock_audit = mocker.patch("superset.security.manager._log_audit_event")
 
     sm.reset_password("5", "new-password")
 
+    mock_bump.assert_called_once_with(5)
+    mock_sync.assert_called_once_with(acting_user)
     # Coerced to int when clearing, regardless of the inbound id type.
     mock_clear.assert_called_once_with(5)
+    mock_audit.assert_called_once_with(
+        "UserPasswordChanged",
+        {
+            "user_id": 5,
+            "initiated_by": "self",
+            "source_ip": None,
+        },
+    )
+
+
+def test_reset_password_refreshes_stamp_cache(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """reset_password (the admin/legacy path) must refresh the shared session
+    stamp cache immediately after rotating the DB stamp, the same way the
+    self-service password-change endpoint does. Otherwise other sessions for
+    the target user keep passing the cached-stamp check until the cache entry
+    expires, even though the DB stamp already changed."""
+    sm = SupersetSecurityManager(appbuilder)
+    mock_g = SimpleNamespace(user=SimpleNamespace(id=1))
+    mocker.patch("superset.security.manager.g", new=mock_g)
+    mocker.patch.dict(appbuilder.app.config, {"AUTH_TYPE": AUTH_DB})
+    mocker.patch(
+        "flask_appbuilder.security.manager.BaseSecurityManager.reset_password",
+        return_value=None,
+    )
+    mocker.patch("superset.security.manager._log_audit_event")
+    mock_bump = mocker.patch(
+        "superset.utils.auth_session_stamp.bump_user_session_auth_stamp",
+        return_value="new-stamp-value",
+    )
+    mock_cache = mocker.patch(
+        "superset.utils.auth_session_stamp.cache_user_session_auth_stamp"
+    )
+
+    sm.reset_password("5", "temp-password")
+
+    mock_bump.assert_called_once_with(5)
+    mock_cache.assert_called_once_with(5, "new-stamp-value")
 
 
 # -----------------------------------------------------------------------------
