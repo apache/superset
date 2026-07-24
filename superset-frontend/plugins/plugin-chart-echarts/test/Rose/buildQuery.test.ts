@@ -17,7 +17,7 @@
  * under the License.
  */
 import { QueryFormData } from '@superset-ui/core';
-import buildQuery from '../src/buildQuery';
+import buildQuery from '../../src/Rose/buildQuery';
 
 const formData: QueryFormData = {
   datasource: '5__table',
