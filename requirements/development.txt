@@ -64,6 +64,10 @@ backoff==2.2.1
     #   apache-superset
 backports-tarfile==1.2.0
     # via jaraco-context
+backports-zstd==1.6.0
+    # via
+    #   -c requirements/base-constraint.txt
+    #   flask-compress
 bcrypt==4.3.0
     # via
     #   -c requirements/base-constraint.txt
@@ -276,7 +280,7 @@ flask-caching==2.3.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-flask-compress==1.17
+flask-compress==1.24
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -665,7 +669,7 @@ pgsanity==0.2.9
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-pillow==12.2.0
+pillow==12.3.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -1168,7 +1172,4 @@ zope-event==5.0
 zope-interface==5.4.0
     # via gevent
 zstandard==0.23.0
-    # via
-    #   -c requirements/base-constraint.txt
-    #   flask-compress
-    #   trino
+    # via trino

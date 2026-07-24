@@ -28,6 +28,8 @@ babel==2.17.0
     # via flask-babel
 backoff==2.2.1
     # via apache-superset (pyproject.toml)
+backports-zstd==1.6.0
+    # via flask-compress
 bcrypt==4.3.0
     # via paramiko
 billiard==4.2.1
@@ -130,7 +132,7 @@ flask-babel==3.1.0
     # via flask-appbuilder
 flask-caching==2.3.1
     # via apache-superset (pyproject.toml)
-flask-compress==1.17
+flask-compress==1.24
     # via apache-superset (pyproject.toml)
 flask-cors==6.0.5
     # via apache-superset (pyproject.toml)
@@ -285,7 +287,7 @@ parsedatetime==2.6
     # via apache-superset (pyproject.toml)
 pgsanity==0.2.9
     # via apache-superset (pyproject.toml)
-pillow==12.2.0
+pillow==12.3.0
     # via apache-superset (pyproject.toml)
 platformdirs==4.3.8
     # via requests-cache
@@ -496,5 +498,3 @@ xlsxwriter==3.2.9
     # via
     #   apache-superset (pyproject.toml)
     #   pandas
-zstandard==0.23.0
-    # via flask-compress
