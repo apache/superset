@@ -18,7 +18,9 @@
  */
 import { type ReactChild } from 'react';
 import fetchMock from 'fetch-mock';
+import { ErrorTypeEnum } from '@superset-ui/core';
 import { table, initialState } from 'src/SqlLab/fixtures';
+import setupErrorMessages from 'src/setup/setupErrorMessages';
 import {
   render,
   waitFor,
@@ -136,6 +138,42 @@ test('renders preview', async () => {
   fireEvent.click(getByText('Data preview'));
   await waitFor(() =>
     expect(fetchMock.callHistory.calls(fetchPreviewEndpoint)).toHaveLength(1),
+  );
+});
+
+test('renders an OAuth2 authorization prompt when metadata errors with OAUTH2_REDIRECT', async () => {
+  // Register the OAuth2 redirect component so ErrorMessageWithStackTrace can
+  // resolve it for the OAUTH2_REDIRECT error type, mirroring app setup.
+  setupErrorMessages();
+  fetchMock.removeRoutes();
+  fetchMock.get(getTableMetadataEndpoint, {
+    status: 403,
+    body: {
+      errors: [
+        {
+          message: 'The database is currently not authenticated',
+          error_type: ErrorTypeEnum.OAUTH2_REDIRECT,
+          level: 'warning',
+          extra: {
+            url: 'https://example.com/oauth2/authorize',
+            tab_id: 'tab-1',
+          },
+        },
+      ],
+    },
+  });
+  fetchMock.get(getExtraTableMetadataEndpoint, {});
+
+  render(<TablePreview {...mockedProps} />, { useRedux: true, initialState });
+
+  // The structured SupersetError must flow through so the OAuth2 redirect link
+  // renders (and the crud-source retry can re-fetch once the dance completes).
+  const authLink = await screen.findByRole('link', {
+    name: 'provide authorization',
+  });
+  expect(authLink).toHaveAttribute(
+    'href',
+    'https://example.com/oauth2/authorize',
   );
 });
 

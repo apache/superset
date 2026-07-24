@@ -34,7 +34,11 @@ import {
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { Icons } from '@superset-ui/core/components/Icons';
 import type { SqlLabRootState } from 'src/SqlLab/types';
-import { CopyToClipboard, FilterableTable } from 'src/components';
+import {
+  CopyToClipboard,
+  ErrorMessageWithStackTrace,
+  FilterableTable,
+} from 'src/components';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {
   tableApiUtil,
@@ -257,14 +261,15 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
   }
 
   if (hasMetadataError || metadataExtrError) {
-    return (
-      <Alert
-        type="warning"
-        message={
-          ((metadataError || metadataExtrError) as ClientErrorObject)?.error
-        }
-      />
-    );
+    // Pass the structured SupersetError through to ErrorMessageWithStackTrace so
+    // that OAuth2 redirect errors (error_type=OAUTH2_REDIRECT) render the
+    // "Authorization needed" link and auto-retry once the OAuth2 dance completes.
+    // The source="crud" value drives the tag-invalidation retry in
+    // OAuth2RedirectMessage.tsx (which invalidates the TableMetadatas tag).
+    const errorPayload = (
+      (metadataError || metadataExtrError) as ClientErrorObject
+    )?.errors?.[0];
+    return <ErrorMessageWithStackTrace error={errorPayload} source="crud" />;
   }
   if (!data) {
     return (
