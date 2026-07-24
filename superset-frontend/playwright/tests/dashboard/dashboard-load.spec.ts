@@ -45,14 +45,6 @@ import {
 
 const ECHARTS_SERIES_COLOR: [number, number, number] = [31, 168, 201];
 
-/**
- * Budget for a chart to get from "dashboard header is up" to "data is painted".
- * Navigation only waits for the header, so the first chart asserted absorbs the
- * whole cold-cache query round-trip — more than the global expect timeout allows
- * on a loaded runner. Charts query in parallel, so this is paid roughly once.
- */
-const CHART_RENDER_TIMEOUT = TIMEOUT.API_RESPONSE * 2;
-
 type ChartOutput = 'big-number' | 'table' | 'echarts';
 type CreatedChart = DashboardLayoutChart & { output: ChartOutput };
 
@@ -89,22 +81,22 @@ async function expectChartOutput(
     const value = chart.locator(
       '.superset-legacy-chart-big-number .header-line',
     );
-    await expect(value).toBeVisible({ timeout: CHART_RENDER_TIMEOUT });
+    await expect(value).toBeVisible({ timeout: TIMEOUT.CHART_RENDER });
     await expect(value).toHaveText(/\d/);
     return;
   }
   if (output === 'table') {
     await expect(
       chart.locator('table tbody tr:not(:has(.dt-no-results))').first(),
-    ).toBeVisible({ timeout: CHART_RENDER_TIMEOUT });
+    ).toBeVisible({ timeout: TIMEOUT.CHART_RENDER });
     return;
   }
 
   const canvas = chart.locator('canvas').first();
-  await expect(canvas).toBeVisible({ timeout: CHART_RENDER_TIMEOUT });
+  await expect(canvas).toBeVisible({ timeout: TIMEOUT.CHART_RENDER });
   await expect
     .poll(() => canvasColorPixelCount(canvas, ECHARTS_SERIES_COLOR), {
-      timeout: CHART_RENDER_TIMEOUT,
+      timeout: TIMEOUT.CHART_RENDER,
       message: 'ECharts canvas should paint the configured data series',
     })
     .toBeGreaterThan(20);
@@ -116,7 +108,7 @@ testWithAssets(
     // Building + loading a multi-chart dashboard chains several slow queries:
     // API setup per chart, then an uncached render for each. A loaded runner has
     // been seen spending ~45s on that chain, which leaves the standard slow
-    // budget no room to actually spend CHART_RENDER_TIMEOUT.
+    // budget no room to actually spend TIMEOUT.CHART_RENDER.
     testWithAssets.setTimeout(TIMEOUT.SLOW_TEST * 2);
 
     // A spread of viz types that all render cleanly from the birth_names dataset,
