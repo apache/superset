@@ -390,13 +390,22 @@ const ChartContextMenu = (
         filters,
       });
 
-      // Since Ant Design's Dropdown does not offer an imperative API
-      // and we can't attach event triggers to charts SVG elements, we
-      // use a hidden span that gets clicked on when receiving click events
-      // from the charts.
-      document.getElementById(`hidden-span-${id}`)?.click();
+      // Some chart libraries (e.g. AG Grid) can dispatch a single logical
+      // right-click as two contextmenu events in quick succession, calling
+      // `open()` twice. Since Ant Design's Dropdown treats a click on an
+      // already-open trigger as a toggle-to-close, re-clicking the hidden
+      // span here on the second call would immediately close the menu we
+      // just opened. Only click it when the menu isn't already visible; the
+      // position/filters update above still applies on every call.
+      if (!visible) {
+        // Ant Design's Dropdown does not offer an imperative API and we
+        // can't attach event triggers to charts' SVG elements, so we use a
+        // hidden span that gets clicked on when receiving click events from
+        // the charts.
+        document.getElementById(`hidden-span-${id}`)?.click();
+      }
     },
-    [id, itemsCount],
+    [id, itemsCount, visible],
   );
 
   useImperativeHandle(

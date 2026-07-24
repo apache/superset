@@ -29,6 +29,7 @@ import {
   getNumberFormatter,
   getTimeFormatter,
   getTimeFormatterForGranularity,
+  normalizeCurrency,
   NumberFormats,
   QueryMode,
   SMART_DATE_ID,
@@ -340,7 +341,12 @@ const processColumns = memoizeOne(function processColumns(
   props: TableChartProps,
 ) {
   const {
-    datasource: { columnFormats, currencyFormats, verboseMap },
+    datasource: {
+      columnFormats,
+      currencyFormats,
+      verboseMap,
+      currencyCodeColumn,
+    },
     rawFormData: {
       table_timestamp_format: tableTimestampFormat,
       metrics: metrics_,
@@ -352,7 +358,12 @@ const processColumns = memoizeOne(function processColumns(
     queriesData,
   } = props;
   const granularity = extractTimegrain(props.rawFormData);
-  const { data: records, colnames, coltypes } = queriesData[0] || {};
+  const {
+    data: records,
+    colnames,
+    coltypes,
+    detected_currency: detectedCurrency,
+  } = queriesData[0] || {};
   // convert `metrics` and `percentMetrics` to the key names in `data.records`
   const metrics = (metrics_ ?? []).map(getMetricLabel);
   const rawPercentMetrics = (percentMetrics_ ?? []).map(getMetricLabel);
@@ -363,13 +374,18 @@ const processColumns = memoizeOne(function processColumns(
   const rawPercentMetricsSet = new Set(rawPercentMetrics);
 
   const columns: DataColumnMeta[] = (colnames || [])
+    .map((key: string, originalIndex: number) => ({ key, originalIndex }))
     .filter(
-      key =>
+      ({ key }) =>
         // if a metric was only added to percent_metrics, they should not show up in the table.
         !(rawPercentMetricsSet.has(key) && !metricsSet.has(key)),
     )
-    .map((key: string, i) => {
-      const dataType = coltypes[i];
+    .map(({ key, originalIndex }) => {
+      // Look up by the column's original position in colnames/coltypes,
+      // not its position after the filter above — those diverge whenever
+      // an earlier column (e.g. a percent-metric-only one) got filtered
+      // out, which would otherwise shift every later column's dataType.
+      const dataType = coltypes[originalIndex];
       const config = columnConfig[key] || {};
       // for the purpose of presentation, only numeric values are treated as metrics
       // because users can also add things like `MAX(str_col)` as a metric.
@@ -431,10 +447,25 @@ const processColumns = memoizeOne(function processColumns(
         // percent metrics have a default format
         formatter = getNumberFormatter(numberFormat || PERCENT_3_POINT);
       } else if (isMetric || (isNumber && (numberFormat || currency))) {
-        formatter = currency?.symbol
+        // Resolve AUTO currency when currency column isn't in query results
+        let resolvedCurrency = currency;
+        if (
+          currency?.symbol === 'AUTO' &&
+          detectedCurrency &&
+          (!currencyCodeColumn || !colnames?.includes(currencyCodeColumn))
+        ) {
+          const normalizedCurrency = normalizeCurrency(detectedCurrency);
+          if (normalizedCurrency) {
+            resolvedCurrency = {
+              ...currency,
+              symbol: normalizedCurrency,
+            };
+          }
+        }
+        formatter = resolvedCurrency?.symbol
           ? new CurrencyFormatter({
               d3Format: numberFormat,
-              currency,
+              currency: resolvedCurrency,
             })
           : getNumberFormatter(numberFormat);
       }
@@ -448,6 +479,7 @@ const processColumns = memoizeOne(function processColumns(
         formatter,
         config,
         description,
+        currencyCodeColumn,
       };
     })
     .sort((a, b) => {
@@ -494,7 +526,7 @@ const transformProps = (
     queriesData = [],
     ownState: serverPaginationData,
     filterState,
-    hooks: { setDataMask = () => {}, onChartStateChange },
+    hooks: { setDataMask = () => {}, onChartStateChange, onContextMenu },
     emitCrossFilters,
     theme,
   } = chartProps;
@@ -700,15 +732,28 @@ const transformProps = (
     );
   }
 
+  // buildQuery.ts can append an "all records" percent-metric denominator
+  // query *and* a totals query, independently of each other, both landing
+  // in extraQueries before the totals one. A fixed totalQuery index would
+  // silently bind to the wrong query's data (or drop the totals query
+  // entirely) whenever both are present, so replicate buildQuery.ts's own
+  // gating condition here to know whether to skip that extra slot.
+  const hasAllRecordsExtraQuery = Boolean(
+    formData.percent_metrics?.length &&
+    (formData.percent_metric_calculation || 'row_limit') === 'all_records',
+  );
+
   let baseQuery;
   let countQuery;
   let rowCount;
   let totalQuery;
   if (serverPagination) {
-    [baseQuery, countQuery, totalQuery] = queriesData;
+    [baseQuery, countQuery] = queriesData;
+    totalQuery = hasAllRecordsExtraQuery ? queriesData[3] : queriesData[2];
     rowCount = (countQuery?.data?.[0]?.rowcount as number) ?? 0;
   } else {
-    [baseQuery, totalQuery] = queriesData;
+    [baseQuery] = queriesData;
+    totalQuery = hasAllRecordsExtraQuery ? queriesData[2] : queriesData[1];
     rowCount = baseQuery?.rowcount ?? 0;
   }
 
@@ -791,12 +836,12 @@ const transformProps = (
 
   // Map saved metric/calculated column labels to their SQL expressions for filter resolution
   const metricSqlExpressions: Record<string, string> = {};
-  chartProps.datasource.metrics.forEach(metric => {
+  (chartProps.datasource?.metrics ?? []).forEach(metric => {
     if (metric.metric_name && metric.expression) {
       metricSqlExpressions[metric.metric_name] = metric.expression;
     }
   });
-  chartProps.datasource.columns.forEach(col => {
+  (chartProps.datasource?.columns ?? []).forEach(col => {
     if (col.column_name && col.expression) {
       metricSqlExpressions[col.column_name] = col.expression;
       if (col.verbose_name && col.verbose_name !== col.column_name) {
@@ -809,7 +854,7 @@ const transformProps = (
   // backed by a dataset (physical or calculated) column can be summed
   // server-side; free-form SQL expression columns are excluded.
   const datasetColumnNames = new Set(
-    chartProps.datasource.columns
+    (chartProps.datasource?.columns ?? [])
       .map(col => col.column_name)
       .filter((name): name is string => Boolean(name)),
   );
@@ -870,6 +915,7 @@ const transformProps = (
     chartState,
     onChartStateChange,
     showNumberedColumn,
+    onContextMenu,
   };
 };
 

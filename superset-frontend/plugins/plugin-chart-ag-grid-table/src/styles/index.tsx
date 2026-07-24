@@ -174,6 +174,7 @@ export const PaginationContainer = styled.div`
     color: ${theme.colorTextBase};
     transform: translateY(-${theme.sizeUnit}px);
     background: ${theme.colorBgBase};
+    flex-shrink: 0;
   `}
 `;
 
@@ -343,6 +344,7 @@ export const StyledChartContainer = styled.div<{
     .dropdown-controls-container {
       display: flex;
       justify-content: flex-end;
+      flex-shrink: 0;
     }
 
     .time-comparison-dropdown {

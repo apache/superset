@@ -17,7 +17,7 @@
  * under the License.
  */
 import '@testing-library/jest-dom';
-import { render, screen, waitFor } from '@superset-ui/core/spec';
+import { render, screen, waitFor, fireEvent } from '@superset-ui/core/spec';
 import { QueryMode, TimeGranularity, SMART_DATE_ID } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
@@ -873,9 +873,24 @@ test('AgGridTableChart emits column state with aggFunc through the debounced sav
     expect(document.querySelector('.ag-container')).toBeInTheDocument();
   });
 
+  // The very first onStateUpdated after mount just reflects the chartState
+  // the grid was initialized with, so it must not trigger a save on its own
+  // (persisting it unconditionally caused a mount -> save -> remount ->
+  // mount loop). Let that initial debounced capture settle before
+  // simulating a real user action - clicking a sortable header - so it
+  // isn't coalesced into the same debounce window and mistaken for the
+  // initial, ignorable capture.
+  await new Promise(resolve => setTimeout(resolve, 1500));
+
+  const sortableHeaderLabel = document.querySelector(
+    '.ag-header-cell-sortable .ag-header-cell-label',
+  );
+  expect(sortableHeaderLabel).toBeTruthy();
+  fireEvent.click(sortableHeaderLabel!);
+
   // The save path is debounced (SLOW_DEBOUNCE = 500ms); wait for a capture.
   await waitFor(() => expect(onChartStateChange).toHaveBeenCalled(), {
-    timeout: 3000,
+    timeout: 5000,
   });
 
   const savedState =

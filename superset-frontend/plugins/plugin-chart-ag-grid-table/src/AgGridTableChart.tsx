@@ -18,8 +18,10 @@
  */
 import { t } from '@apache-superset/core/translation';
 import {
+  BinaryQueryObjectFilterClause,
   DataRecord,
   DataRecordValue,
+  extractTextFromHTML,
   getTimeFormatterForGranularity,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
@@ -28,6 +30,7 @@ import { isEqual } from 'lodash-es';
 
 import {
   CellClickedEvent,
+  CellContextMenuEvent,
   SelectionChangedEvent,
 } from '@superset-ui/core/components/ThemedAgGridReact';
 import {
@@ -37,20 +40,18 @@ import {
   SortByItem,
 } from './types';
 import AgGridDataTable from './AgGridTable';
-import { updateTableOwnState } from './utils/externalAPIs';
+import { updateTableOwnState, ClientViewSnapshot } from './utils/externalAPIs';
 import TimeComparisonVisibility from './AgGridTable/components/TimeComparisonVisibility';
 import { useColDefs } from './utils/useColDefs';
-import { buildSelectionCrossFilterDataMask } from './utils/getCrossFilterDataMask';
+import {
+  buildSelectionCrossFilterDataMask,
+  getCrossFilterDataMask,
+} from './utils/getCrossFilterDataMask';
 import { StyledChartContainer } from './styles';
 import type { FilterState } from './utils/filterStateManager';
-
-const getGridHeight = (height: number, includeSearch: boolean | undefined) => {
-  let calculatedGridHeight = height;
-  if (includeSearch) {
-    calculatedGridHeight -= 16;
-  }
-  return calculatedGridHeight - 80;
-};
+import DateWithFormatter from './utils/DateWithFormatter';
+import { formatColumnValue } from './utils/formatValue';
+import getTimeRangeFromGranularity from './utils/getTimeRangeFromGranularity';
 
 export default function TableChart<D extends DataRecord = DataRecord>(
   props: AgGridTableChartTransformedProps<D> & {},
@@ -88,6 +89,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     metricSqlExpressions,
     rawSummaryColumns,
     showNumberedColumn,
+    onContextMenu,
   } = props;
 
   const [searchOptions, setSearchOptions] = useState<SearchOption[]>([]);
@@ -114,6 +116,27 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     }
   }, [columns]);
 
+  // Tracks the most recently written ownState so that writes triggered
+  // asynchronously (e.g. clientView from AG Grid's onModelUpdated, which can
+  // fire with a stale closure) merge onto the latest known state instead of
+  // a stale render-time serverPaginationData snapshot. updateTableOwnState
+  // replaces ownState wholesale, so merging at write time - rather than at
+  // render time - is what keeps concurrent writers from clobbering one
+  // another's keys.
+  const ownStateRef = useRef(serverPaginationData);
+  useEffect(() => {
+    ownStateRef.current = serverPaginationData;
+  }, [serverPaginationData]);
+
+  const writeOwnState = useCallback(
+    (patch: Record<string, unknown>) => {
+      const nextOwnState = { ...ownStateRef.current, ...patch };
+      ownStateRef.current = nextOwnState;
+      updateTableOwnState(setDataMask, nextOwnState);
+    },
+    [setDataMask],
+  );
+
   // A single effect owns every ownState write derived from render state.
   // updateTableOwnState replaces ownState wholesale, so separate effects that
   // each spread serverPaginationData in the same render would clobber one
@@ -121,7 +144,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   // columns and nudging a re-query for missing totals must be one combined
   // delta.
   useEffect(() => {
-    const nextOwnState = { ...serverPaginationData };
+    const patch: Record<string, unknown> = {};
     let changed = false;
 
     if (serverPagination && serverPaginationData && rowCount !== undefined) {
@@ -132,7 +155,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       // last remaining page.
       const clampedPage = Math.max(0, Math.min(currentPage, totalPages - 1));
       if (clampedPage !== currentPage) {
-        nextOwnState.currentPage = clampedPage;
+        patch.currentPage = clampedPage;
         changed = true;
       }
     }
@@ -140,22 +163,22 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     const primed = (serverPaginationData?.rawSummaryColumns ?? []) as string[];
     const requested = Boolean(serverPaginationData?.totalsRequested);
     if (isRawRecords && showTotals && !isEqual(primed, rawSummaryColumns)) {
-      nextOwnState.rawSummaryColumns = rawSummaryColumns;
+      patch.rawSummaryColumns = rawSummaryColumns;
       changed = true;
     }
     // A renderTrigger toggle re-renders without re-querying; requesting totals
     // through ownState dispatches the standard re-query whose buildQuery
     // carries the totals query for the active mode.
     if (showTotals && totals === undefined && !requested) {
-      nextOwnState.totalsRequested = true;
+      patch.totalsRequested = true;
       changed = true;
     } else if (!showTotals && requested) {
-      nextOwnState.totalsRequested = false;
+      patch.totalsRequested = false;
       changed = true;
     }
 
     if (changed) {
-      updateTableOwnState(setDataMask, nextOwnState);
+      writeOwnState(patch);
     }
   }, [
     serverPagination,
@@ -166,7 +189,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     totals,
     rawSummaryColumns,
     serverPaginationData,
-    setDataMask,
+    writeOwnState,
   ]);
 
   const comparisonColumns = [
@@ -209,8 +232,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       }
 
       // Prepare modified own state for server pagination
-      const modifiedOwnState = {
-        ...serverPaginationData,
+      writeOwnState({
         agGridFilterModel:
           completeFilterState.originalFilterModel &&
           Object.keys(completeFilterState.originalFilterModel).length > 0
@@ -223,14 +245,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         lastFilteredInputPosition: completeFilterState.inputPosition,
         currentPage: 0, // Reset to first page when filtering
         metricSqlExpressions,
-      };
-
-      updateTableOwnState(setDataMask, modifiedOwnState);
+      });
     },
     [
-      setDataMask,
+      writeOwnState,
       serverPagination,
-      serverPaginationData,
       onChartStateChange,
       chartState,
       metricSqlExpressions,
@@ -279,8 +298,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     alignPositiveNegative,
     slice_id,
   });
-
-  const gridHeight = getGridHeight(height, includeSearch);
 
   const isActiveFilterValue = useCallback(
     function isActiveFilterValue(key: string, val: DataRecordValue) {
@@ -348,7 +365,17 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const handleSelectionChanged = useCallback(
     (event: SelectionChangedEvent) => {
-      if (!emitCrossFilters || !activeColumnRef.current) return;
+      // Selection changes triggered by the highlight-sync effect (source
+      // 'api') reflect a filter that was already applied elsewhere (context
+      // menu, dashboard filter, etc.), so re-deriving and re-dispatching a
+      // mask from them here would use a stale activeColumnRef and could
+      // clobber that filter with the wrong column.
+      if (
+        !emitCrossFilters ||
+        !activeColumnRef.current ||
+        event.source === 'api'
+      )
+        return;
 
       const key = activeColumnRef.current;
       const selectedRows = event.api.getSelectedRows();
@@ -368,75 +395,202 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     [emitCrossFilters, setDataMask, timeGrain, timestampFormatter],
   );
 
+  const drillColumns = isUsingTimeComparison
+    ? (filteredColumns as InputColumn[])
+    : (columns as InputColumn[]);
+
+  const handleContextMenu = useCallback(
+    (event: CellContextMenuEvent) => {
+      if (!onContextMenu || isRawRecords || !event.column || !event.data) {
+        return;
+      }
+      const nativeEvent = event.event as MouseEvent | null | undefined;
+      if (!nativeEvent) return;
+      nativeEvent.preventDefault();
+      nativeEvent.stopPropagation();
+
+      const rowData = event.data as Record<string, DataRecordValue>;
+      const key = event.column.getColId();
+      const cellValue = event.value as DataRecordValue;
+      const colDef = event.column.getColDef();
+      const isMetric = Boolean(
+        colDef.context?.isMetric || colDef.context?.isPercentMetric,
+      );
+
+      const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
+      drillColumns.forEach(col => {
+        if (col.isMetric || col.isPercentMetric) return;
+        const dataRecordValue = rowData[col.key];
+
+        if (
+          dataRecordValue == null ||
+          (dataRecordValue instanceof DateWithFormatter &&
+            dataRecordValue.input == null)
+        ) {
+          drillToDetailFilters.push({
+            col: col.key,
+            op: 'IS NULL' as any,
+            val: null,
+          });
+        } else if (col.dataType === GenericDataType.Temporal && timeGrain) {
+          const startTime =
+            dataRecordValue instanceof Date
+              ? dataRecordValue
+              : new Date(dataRecordValue as string | number);
+
+          if (Number.isNaN(startTime.getTime())) {
+            // Malformed temporal value: fall back to an equality filter
+            // instead of building a TEMPORAL_RANGE, since toISOString()
+            // throws on an Invalid Date and would crash the context menu.
+            const sanitizedValue = extractTextFromHTML(dataRecordValue);
+            drillToDetailFilters.push({
+              col: col.key,
+              op: '==',
+              val: sanitizedValue as string | number | boolean,
+              formattedVal: formatColumnValue(col, sanitizedValue)[1],
+            });
+          } else {
+            const [rangeStartTime, rangeEndTime] = getTimeRangeFromGranularity(
+              startTime,
+              timeGrain,
+            );
+            const timeRangeValue = `${rangeStartTime.toISOString()} : ${rangeEndTime.toISOString()}`;
+
+            drillToDetailFilters.push({
+              col: col.key,
+              op: 'TEMPORAL_RANGE',
+              val: timeRangeValue,
+              grain: timeGrain,
+              formattedVal: formatColumnValue(col, dataRecordValue)[1],
+            });
+          }
+        } else {
+          const sanitizedValue = extractTextFromHTML(dataRecordValue);
+          drillToDetailFilters.push({
+            col: col.key,
+            op: '==',
+            val: sanitizedValue as string | number | boolean,
+            formattedVal: formatColumnValue(col, sanitizedValue)[1],
+          });
+        }
+      });
+
+      const isCellValueNull =
+        cellValue == null ||
+        (cellValue instanceof DateWithFormatter && cellValue.input == null);
+
+      onContextMenu(nativeEvent.clientX, nativeEvent.clientY, {
+        drillToDetail: drillToDetailFilters,
+        crossFilter: isMetric
+          ? undefined
+          : getCrossFilterDataMask({
+              key,
+              value: cellValue,
+              filters,
+              timeGrain,
+              isActiveFilterValue,
+              timestampFormatter,
+            }),
+        drillBy: isMetric
+          ? undefined
+          : {
+              filters: [
+                isCellValueNull
+                  ? { col: key, op: 'IS NULL' as any, val: null }
+                  : {
+                      col: key,
+                      op: '==' as any,
+                      val: extractTextFromHTML(cellValue),
+                    },
+              ],
+              groupbyFieldName: 'groupby',
+            },
+      });
+    },
+    [
+      onContextMenu,
+      isRawRecords,
+      drillColumns,
+      timeGrain,
+      filters,
+      isActiveFilterValue,
+      timestampFormatter,
+    ],
+  );
+
   const handleServerPaginationChange = useCallback(
     (pageNumber: number, pageSize: number) => {
-      const modifiedOwnState = {
-        ...serverPaginationData,
+      writeOwnState({
         currentPage: pageNumber,
         pageSize,
         lastFilteredColumn: undefined,
         lastFilteredInputPosition: undefined,
-      };
-      updateTableOwnState(setDataMask, modifiedOwnState);
+      });
     },
-    [setDataMask],
+    [writeOwnState],
   );
 
   const handlePageSizeChange = useCallback(
     (pageSize: number) => {
-      const modifiedOwnState = {
-        ...serverPaginationData,
+      writeOwnState({
         currentPage: 0,
         pageSize,
         lastFilteredColumn: undefined,
         lastFilteredInputPosition: undefined,
-      };
-      updateTableOwnState(setDataMask, modifiedOwnState);
+      });
     },
-    [setDataMask],
+    [writeOwnState],
   );
 
   const handleChangeSearchCol = (searchCol: string) => {
-    if (!isEqual(searchCol, serverPaginationData?.searchColumn)) {
-      const modifiedOwnState = {
-        ...serverPaginationData,
+    if (!isEqual(searchCol, ownStateRef.current?.searchColumn)) {
+      writeOwnState({
         searchColumn: searchCol,
         searchText: '',
         lastFilteredColumn: undefined,
         lastFilteredInputPosition: undefined,
-      };
-      updateTableOwnState(setDataMask, modifiedOwnState);
+      });
     }
   };
 
   const handleSearch = useCallback(
     (searchText: string) => {
-      const modifiedOwnState = {
-        ...serverPaginationData,
+      writeOwnState({
         searchColumn:
-          serverPaginationData?.searchColumn || searchOptions[0]?.value,
+          (ownStateRef.current?.searchColumn as string | undefined) ||
+          searchOptions[0]?.value,
         searchText,
         currentPage: 0, // Reset to first page when searching
         lastFilteredColumn: undefined,
         lastFilteredInputPosition: undefined,
-      };
-      updateTableOwnState(setDataMask, modifiedOwnState);
+      });
     },
-    [setDataMask, searchOptions],
+    [writeOwnState, searchOptions],
   );
 
   const handleSortByChange = useCallback(
     (sortBy: SortByItem[]) => {
       if (!serverPagination) return;
-      const modifiedOwnState = {
-        ...serverPaginationData,
+      writeOwnState({
         sortBy,
         lastFilteredColumn: undefined,
         lastFilteredInputPosition: undefined,
-      };
-      updateTableOwnState(setDataMask, modifiedOwnState);
+      });
     },
-    [setDataMask, serverPagination],
+    [writeOwnState, serverPagination],
+  );
+
+  // Feeds the "Export Current View" menu item (EXPORT_CURRENT_VIEW behavior),
+  // mirroring Table V1's clientView snapshot on ownState. Written through
+  // writeOwnState (rather than spreading serverPaginationData directly)
+  // because onModelUpdated can fire with a stale closure relative to other
+  // ownState writers (e.g. a just-applied filter), and updateTableOwnState
+  // replaces ownState wholesale.
+  const handleClientViewChange = useCallback(
+    (clientView: ClientViewSnapshot) => {
+      writeOwnState({ clientView });
+    },
+    [writeOwnState],
   );
 
   const renderTimeComparisonVisibility = (): JSX.Element => (
@@ -455,9 +609,22 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     .join('|');
 
   return (
-    <StyledChartContainer height={height}>
+    <StyledChartContainer
+      height={height}
+      onContextMenu={event => {
+        // Safety net: AG Grid only calls handleContextMenu (which calls
+        // preventDefault) when it resolves the native contextmenu event to
+        // a cell. If that per-cell resolution ever misses - e.g. a second,
+        // near-duplicate contextmenu event dispatched in quick succession by
+        // some mice's right-button switches - the event still bubbles
+        // through this container, so the browser's native menu is
+        // suppressed here regardless of whether AG Grid's own handler ran.
+        if (!isRawRecords) {
+          event.preventDefault();
+        }
+      }}
+    >
       <AgGridDataTable
-        gridHeight={gridHeight}
         key={descriptionsKey}
         data={data || []}
         colDefsFromProps={colDefs}
@@ -478,8 +645,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         metricColumns={metricColumns}
         id={slice_id}
         handleCellClicked={handleCellClicked}
+        handleCellContextMenu={handleContextMenu}
         handleSelectionChanged={handleSelectionChanged}
         filters={filters}
+        isActiveFilterValue={isActiveFilterValue}
         percentMetrics={percentMetrics}
         serverPageLength={serverPageLength}
         hasServerPageLengthChanged={hasServerPageLengthChanged}
@@ -493,6 +662,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         width={width}
         onColumnStateChange={handleColumnStateChange}
         chartState={chartState}
+        onClientViewChange={handleClientViewChange}
       />
     </StyledChartContainer>
   );

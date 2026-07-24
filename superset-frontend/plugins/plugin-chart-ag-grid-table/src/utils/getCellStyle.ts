@@ -55,29 +55,57 @@ const getCellStyle = (params: CellStyleParams) => {
   let backgroundColor;
   let color;
   if (hasColumnColorFormatters) {
-    columnColorFormatters!
-      .filter(formatter => {
-        const colTitle = formatter?.column?.includes('Main')
-          ? formatter?.column?.replace('Main', '').trim()
-          : formatter?.column;
-        return colTitle === colDef.field;
-      })
-      .forEach(formatter => {
-        const formatterResult =
-          value || value === 0 ? formatter.getColorFromValue(value) : false;
-        if (formatterResult) {
-          if (
-            formatter.objectFormatting === ObjectFormattingEnum.TEXT_COLOR ||
-            formatter.toTextColor
-          ) {
-            color = formatterResult;
-          } else if (
-            formatter.objectFormatting !== ObjectFormattingEnum.CELL_BAR
-          ) {
-            backgroundColor = formatterResult;
-          }
+    const applyFormatter = (
+      formatter: ColorFormatters[number],
+      valueToFormat: typeof value,
+    ) => {
+      const formatterResult =
+        valueToFormat || valueToFormat === 0
+          ? formatter.getColorFromValue(valueToFormat)
+          : false;
+      if (formatterResult) {
+        if (
+          formatter.objectFormatting === ObjectFormattingEnum.TEXT_COLOR ||
+          formatter.toTextColor
+        ) {
+          color = formatterResult;
+        } else if (
+          formatter.objectFormatting !== ObjectFormattingEnum.CELL_BAR
+        ) {
+          backgroundColor = formatterResult;
         }
-      });
+      }
+    };
+
+    // formatter.column can be a legacy display label ("Main colname") for
+    // time-comparison columns rather than the row's actual data key, so
+    // resolve it to the real field id before using it to read row values.
+    const resolveColumnKey = (columnKey: string) =>
+      columnKey.startsWith('Main ')
+        ? columnKey.slice('Main '.length)
+        : columnKey;
+
+    columnColorFormatters!
+      .filter(
+        formatter =>
+          formatter.columnFormatting !== ObjectFormattingEnum.ENTIRE_ROW &&
+          resolveColumnKey(formatter.column) === colDef.field,
+      )
+      .forEach(formatter => applyFormatter(formatter, value));
+
+    // Entire-row formatters apply to every cell in the row, keyed off the
+    // value in the formatter's own column rather than this cell's column.
+    columnColorFormatters!
+      .filter(
+        formatter =>
+          formatter.columnFormatting === ObjectFormattingEnum.ENTIRE_ROW,
+      )
+      .forEach(formatter =>
+        applyFormatter(
+          formatter,
+          node?.data?.[resolveColumnKey(formatter.column)],
+        ),
+      );
   }
 
   if (
