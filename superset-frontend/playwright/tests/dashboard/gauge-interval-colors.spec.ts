@@ -38,8 +38,8 @@ import { testWithAssets, expect } from '../../helpers/fixtures';
 import { apiPostChart, apiPutChart } from '../../helpers/api/chart';
 import { apiPostDashboard } from '../../helpers/api/dashboard';
 import { getDatasetByName } from '../../helpers/api/dataset';
-import { DashboardPage } from '../../pages/DashboardPage';
 import { TIMEOUT } from '../../utils/constants';
+import { DashboardPage } from '../../pages/DashboardPage';
 
 const DATASET_NAME = 'birth_names';
 
