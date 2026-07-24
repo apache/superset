@@ -1825,9 +1825,11 @@ def test_call_slack_api_retries_ratelimited_code_without_http_429() -> None:
     assert method.call_count == 5
 
 
-def test_send_to_slack_channels_shares_one_retry_deadline() -> None:
-    """Later channels do not start an API call after the shared deadline."""
+def test_send_to_slack_channels_reserves_time_for_later_channels() -> None:
+    """One failing channel cannot consume every later channel's API attempt."""
     clock = [0.0]
+    starts: dict[str, float] = {}
+    deadlines: dict[str, float] = {}
     error = SlackApiError(
         message="service unavailable",
         response={"ok": False, "error": "service_unavailable"},
@@ -1835,17 +1837,19 @@ def test_send_to_slack_channels_shares_one_retry_deadline() -> None:
     first_method = MagicMock()
 
     def fail_first_channel() -> None:
-        if first_method.call_count == 5:
-            clock[0] = 151.0
+        clock[0] = 51.0
         raise error
 
     first_method.side_effect = fail_first_channel
     methods = {
         "private-a": first_method,
-        "private-b": MagicMock(side_effect=error),
+        "private-b": MagicMock(return_value={"ok": True}),
+        "private-c": MagicMock(return_value={"ok": True}),
     }
 
     def send(channel: str, retry_deadline: float) -> None:
+        starts[channel] = clock[0]
+        deadlines[channel] = retry_deadline
         call_slack_api(methods[channel], retry_deadline=retry_deadline)
 
     with (
@@ -1853,15 +1857,24 @@ def test_send_to_slack_channels_shares_one_retry_deadline() -> None:
             "superset.reports.notifications.slack_transport.time.monotonic",
             side_effect=lambda: clock[0],
         ),
-        pytest.raises(
-            NotificationTransientError,
-            match="(?s)private-a.*private-b",
-        ),
+        pytest.raises(NotificationTransientError, match="private-a"),
     ):
-        send_to_slack_channels(["private-a", "private-b"], send)
+        send_to_slack_channels(["private-a", "private-b", "private-c"], send)
 
-    assert methods["private-a"].call_count == 5
-    methods["private-b"].assert_not_called()
+    methods["private-a"].assert_called_once_with()
+    methods["private-b"].assert_called_once_with()
+    methods["private-c"].assert_called_once_with()
+    assert deadlines == pytest.approx(
+        {
+            "private-a": 50.0,
+            "private-b": 100.5,
+            "private-c": 150.0,
+        }
+    )
+    assert max(deadlines.values()) == 150.0
+    assert deadlines["private-c"] - starts["private-c"] > (
+        deadlines["private-b"] - starts["private-b"]
+    )
 
 
 @pytest.mark.parametrize(

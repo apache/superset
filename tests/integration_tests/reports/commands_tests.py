@@ -66,6 +66,7 @@ from superset.commands.report.execute import (
     BaseReportState,
 )
 from superset.commands.report.log_prune import AsyncPruneReportScheduleLogCommand
+from superset.daos.report import ReportScheduleDAO
 from superset.exceptions import SupersetException
 from superset.key_value.models import KeyValueEntry
 from superset.models.core import Database
@@ -1995,6 +1996,11 @@ def test_slack_text_fallback_persists_success_for_multiple_recipient_rows(
 @patch("superset.reports.notifications.slack.get_slack_client")
 @patch("superset.commands.report.execute.get_chart_dataframe")
 @patch("superset.reports.notifications.email.send_email_smtp")
+@pytest.mark.parametrize(
+    "error_notification_fails",
+    [False, True],
+    ids=["notification-succeeds", "notification-fails"],
+)
 def test_slack_text_fallback_persists_later_recipient_ambiguous_failure(
     email_mock,
     dataframe_mock,
@@ -2002,8 +2008,9 @@ def test_slack_text_fallback_persists_later_recipient_ambiguous_failure(
     slack_should_use_v2_api_mock,
     get_channels_with_search_mock,
     create_report_slack_chart_with_text,
+    error_notification_fails,
 ):
-    """A later failed recipient does not duplicate an earlier successful send."""
+    """Mixed-outcome errors persist the fallback warning exactly once."""
     dataframe_mock.return_value = pd.DataFrame({"value": [1]})
     original_configs = [
         json.dumps({"target": "private-a"}),
@@ -2035,6 +2042,8 @@ def test_slack_text_fallback_persists_later_recipient_ambiguous_failure(
         return {"ok": True}
 
     slack_client_mock.return_value.chat_postMessage.side_effect = chat_side_effect
+    if error_notification_fails:
+        email_mock.side_effect = RuntimeError("SMTP unavailable")
 
     with (
         patch("time.sleep"),
@@ -2064,13 +2073,32 @@ def test_slack_text_fallback_persists_later_recipient_ambiguous_failure(
     successful_channel = call_channels[0]
     failed_channel = ({"private-a", "private-b"} - {successful_channel}).pop()
     assert call_channels == [successful_channel, failed_channel]
-    log_states = {
-        log.state
-        for log in db.session.query(ReportExecutionLog)
+    execution_logs = (
+        db.session.query(ReportExecutionLog)
         .filter(ReportExecutionLog.report_schedule_id == report_schedule_id)
         .all()
-    }
+    )
+    log_states = {log.state for log in execution_logs}
     assert {ReportState.WORKING, ReportState.ERROR} <= log_states
+    error_messages = [
+        log.error_message or ""
+        for log in execution_logs
+        if log.state == ReportState.ERROR
+    ]
+    warning_messages = [
+        message for message in error_messages if "deprecated Slack v1" in message
+    ]
+    assert len(warning_messages) == 1
+    assert warning_messages[0].count("deprecated Slack v1") == 1
+    assert "service unavailable" in warning_messages[0]
+    last_error_notification = ReportScheduleDAO.find_last_error_notification(
+        persisted_schedule
+    )
+    if error_notification_fails:
+        assert any("SMTP unavailable" in message for message in error_messages)
+        assert last_error_notification is None
+    else:
+        assert last_error_notification is not None
     assert slack_should_use_v2_api_mock.call_count == 1
     assert get_channels_with_search_mock.call_count == 1
     email_mock.assert_called_once()

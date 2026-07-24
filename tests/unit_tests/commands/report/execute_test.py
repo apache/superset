@@ -3458,6 +3458,83 @@ def test_create_log_success_commits(mocker: MockerFixture) -> None:
     mock_db.session.rollback.assert_not_called()
 
 
+def test_create_log_includes_execution_warnings_with_error(
+    mocker: MockerFixture,
+) -> None:
+    """A recipient failure does not hide warnings from successful recipients."""
+    schedule = mocker.Mock(spec=ReportSchedule)
+    schedule.last_value = None
+    schedule.last_value_row_json = None
+    schedule.last_state = ReportState.ERROR
+
+    state = BaseReportState(schedule, datetime.utcnow(), uuid4())
+    state._execution_warnings.append("Slack v1 fallback is deprecated")
+
+    mocker.patch("superset.commands.report.execute.db")
+    mock_log_cls = mocker.patch(
+        "superset.commands.report.execute.ReportExecutionLog",
+        return_value=mocker.Mock(),
+    )
+
+    state.create_log(error_message="Email delivery failed")
+
+    assert mock_log_cls.call_args.kwargs["error_message"] == (
+        "Slack v1 fallback is deprecated;Email delivery failed"
+    )
+
+
+def test_create_log_preserves_error_notification_marker(
+    mocker: MockerFixture,
+) -> None:
+    """Execution warnings do not alter the grace-period lookup marker."""
+    schedule = mocker.Mock(spec=ReportSchedule)
+    schedule.last_value = None
+    schedule.last_value_row_json = None
+    schedule.last_state = ReportState.ERROR
+
+    state = BaseReportState(schedule, datetime.utcnow(), uuid4())
+    state._execution_warnings.append("Slack v1 fallback is deprecated")
+
+    mocker.patch("superset.commands.report.execute.db")
+    mock_log_cls = mocker.patch(
+        "superset.commands.report.execute.ReportExecutionLog",
+        return_value=mocker.Mock(),
+    )
+
+    state.create_log(error_message=REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER)
+
+    assert (
+        mock_log_cls.call_args.kwargs["error_message"]
+        == REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER
+    )
+
+
+def test_create_log_excludes_warnings_from_secondary_error(
+    mocker: MockerFixture,
+) -> None:
+    """A failed error notification does not duplicate the primary warning."""
+    schedule = mocker.Mock(spec=ReportSchedule)
+    schedule.last_value = None
+    schedule.last_value_row_json = None
+    schedule.last_state = ReportState.ERROR
+
+    state = BaseReportState(schedule, datetime.utcnow(), uuid4())
+    state._execution_warnings.append("Slack v1 fallback is deprecated")
+
+    mocker.patch("superset.commands.report.execute.db")
+    mock_log_cls = mocker.patch(
+        "superset.commands.report.execute.ReportExecutionLog",
+        return_value=mocker.Mock(),
+    )
+
+    state.create_log(
+        error_message="Error notification failed",
+        include_execution_warnings=False,
+    )
+
+    assert mock_log_cls.call_args.kwargs["error_message"] == "Error notification failed"
+
+
 def test_success_state_report_sends_and_logs_success(
     mocker: MockerFixture,
 ) -> None:

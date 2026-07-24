@@ -237,12 +237,15 @@ def send_to_slack_channels(
     channels: list[str],
     send_to_channel: Callable[[str, float], None],
 ) -> None:
-    """Send to every channel within one retry deadline and aggregate failures."""
+    """Send within one shared deadline while reserving time for each channel."""
     retry_deadline = time.monotonic() + _get_slack_send_retry_max_time()
     failures: list[tuple[str, Exception]] = []
-    for channel in channels:
+    for index, channel in enumerate(channels):
+        now = time.monotonic()
+        remaining_channels = len(channels) - index
+        channel_deadline = now + max(retry_deadline - now, 0) / remaining_channels
         try:
-            send_to_channel(channel, retry_deadline)
+            send_to_channel(channel, channel_deadline)
         except _SLACK_CHANNEL_FAILURES as ex:
             failures.append((channel, ex))
 

@@ -152,13 +152,18 @@ class BaseReportState:
         self,
         state: ReportState,
         error_message: Optional[str] = None,
+        *,
+        include_execution_warnings: bool = True,
     ) -> None:
         """
         Update the report schedule state et al. and reflect the change in the execution
         log.
         """
         self.update_report_schedule(state)
-        self.create_log(error_message)
+        self.create_log(
+            error_message,
+            include_execution_warnings=include_execution_warnings,
+        )
 
     def update_report_schedule(self, state: ReportState) -> None:
         """
@@ -182,7 +187,12 @@ class BaseReportState:
         """Update every Slack v1 recipient atomically to Slack v2."""
         self._slack_v1_upgrade.update_recipients()
 
-    def create_log(self, error_message: Optional[str] = None) -> None:
+    def create_log(
+        self,
+        error_message: Optional[str] = None,
+        *,
+        include_execution_warnings: bool = True,
+    ) -> None:
         """
         Creates a Report execution log, uses the current computed last_value for Alerts
 
@@ -198,6 +208,15 @@ class BaseReportState:
         still recorded as a distinct row.
         """
         from sqlalchemy.orm.exc import StaleDataError
+
+        log_message: Optional[str]
+        if error_message == REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER:
+            log_message = error_message
+        else:
+            messages = [*self._execution_warnings] if include_execution_warnings else []
+            if error_message:
+                messages.append(error_message)
+            log_message = ";".join(messages) if messages else None
 
         try:
             # Reuse the in-flight WORKING trigger row for this execution, if any,
@@ -225,7 +244,7 @@ class BaseReportState:
             log.value = self._report_schedule.last_value
             log.value_row_json = self._report_schedule.last_value_row_json
             log.state = self._report_schedule.last_state
-            log.error_message = error_message
+            log.error_message = log_message
             db.session.commit()  # pylint: disable=consider-using-transaction
         except StaleDataError as ex:
             # Report schedule was modified or deleted by another process
@@ -1182,13 +1201,7 @@ class ReportNotTriggeredErrorState(BaseReportState):
                     )
                     return
             self.send()
-            # Include execution warnings in the log if any were collected
-            warning_message = (
-                ";".join(self._execution_warnings) if self._execution_warnings else None
-            )
-            self.update_report_schedule_and_log(
-                ReportState.SUCCESS, error_message=warning_message
-            )
+            self.update_report_schedule_and_log(ReportState.SUCCESS, error_message=None)
         except (SupersetErrorsException, Exception) as first_ex:
             error_message = str(first_ex)
             if isinstance(first_ex, SupersetErrorsException):
@@ -1236,7 +1249,9 @@ class ReportNotTriggeredErrorState(BaseReportState):
                 finally:
                     try:
                         self.update_report_schedule_and_log(
-                            ReportState.ERROR, error_message=second_error_message
+                            ReportState.ERROR,
+                            error_message=second_error_message,
+                            include_execution_warnings=False,
                         )
                     except ReportScheduleUnexpectedError:
                         # Logging failed again, log it but don't let it hide first_ex
@@ -1369,13 +1384,7 @@ class ReportSuccessState(BaseReportState):
 
         try:
             self.send()
-            # Include execution warnings in the log if any were collected
-            warning_message = (
-                ";".join(self._execution_warnings) if self._execution_warnings else None
-            )
-            self.update_report_schedule_and_log(
-                ReportState.SUCCESS, error_message=warning_message
-            )
+            self.update_report_schedule_and_log(ReportState.SUCCESS, error_message=None)
         except Exception as ex:  # pylint: disable=broad-except
             try:
                 self.update_report_schedule_and_log(
