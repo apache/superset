@@ -56,6 +56,9 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
     time_groupby_inline = True
     supports_multivalues_insert = True
 
+    # ClickHouse doesn't support IS true/false syntax, use = true/false instead
+    use_equality_for_boolean_filters = True
+
     _time_grain_expressions = {
         None: "{col}",
         "PT1M": "toStartOfMinute(toDateTime({col}))",

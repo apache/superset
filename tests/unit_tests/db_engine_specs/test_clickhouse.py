@@ -303,3 +303,43 @@ def test_base_engine_spec_has_no_column_description_retry_by_default() -> None:
     from superset.db_engine_specs.base import BaseEngineSpec
 
     assert BaseEngineSpec.get_column_description_retry_sql("SELECT 1") is None
+
+
+def test_handle_boolean_filter() -> None:
+    """
+    Test that ClickHouse uses equality operators for boolean filters instead of IS.
+
+    ClickHouse rejects the ``column IS true/false`` form, so boolean filters must
+    render as ``column = true/false``.
+    """
+    from sqlalchemy import Boolean, Column
+
+    from superset.db_engine_specs.clickhouse import ClickHouseBaseEngineSpec
+    from superset.utils.core import FilterOperator
+
+    bool_col = Column("test_col", Boolean)
+
+    result_true = ClickHouseBaseEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_TRUE, True
+    )
+    assert (
+        str(result_true.compile(compile_kwargs={"literal_binds": True}))
+        == "test_col = true"
+    )
+
+    result_false = ClickHouseBaseEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_FALSE, False
+    )
+    assert (
+        str(result_false.compile(compile_kwargs={"literal_binds": True}))
+        == "test_col = false"
+    )
+
+
+def test_use_equality_for_boolean_filters_property() -> None:
+    """
+    Test that ClickHouse has the use_equality_for_boolean_filters property set.
+    """
+    from superset.db_engine_specs.clickhouse import ClickHouseBaseEngineSpec
+
+    assert ClickHouseBaseEngineSpec.use_equality_for_boolean_filters is True
