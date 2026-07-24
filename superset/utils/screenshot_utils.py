@@ -263,6 +263,18 @@ def take_per_chart_screenshots(
         in DOM (layout) order. Empty list if no charts could be captured.
     """
     chart_holders = page.locator(CHART_HOLDER_SELECTOR)
+    # count() reads the DOM at call time without waiting; the dashboard
+    # container can be attached before React has rendered any chart holders.
+    # Wait for the first holder so the count reflects the real layout.
+    try:
+        chart_holders.first.wait_for(state="attached", timeout=load_wait * 1000)
+    except PlaywrightTimeout:
+        logger.warning(
+            "No chart holders appeared within %ss; dashboard may be empty "
+            "or failed to render",
+            load_wait,
+        )
+        return []
     chart_count = chart_holders.count()
     logger.info("Capturing %s charts individually", chart_count)
 

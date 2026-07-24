@@ -486,3 +486,24 @@ class TestTakePerChartScreenshots:
         # Scroll settle wait plus animation wait
         page.wait_for_timeout.assert_any_call(SCROLL_SETTLE_TIMEOUT_MS)
         page.wait_for_timeout.assert_any_call(3000)
+
+    def test_returns_empty_when_no_holders_appear(self):
+        """If no chart holder ever attaches, return [] instead of hanging."""
+        page, _ = self._make_page_with_charts([])
+        page.locator.return_value.first.wait_for.side_effect = PlaywrightTimeout(
+            "no holders"
+        )
+
+        result = take_per_chart_screenshots(page, load_wait=10)
+
+        assert result == []
+
+    def test_waits_for_first_holder_before_counting(self):
+        """The holder count must be taken after the first holder attaches."""
+        page, _ = self._make_page_with_charts([b"chart1"])
+
+        take_per_chart_screenshots(page, load_wait=42)
+
+        page.locator.return_value.first.wait_for.assert_called_once_with(
+            state="attached", timeout=42000
+        )
