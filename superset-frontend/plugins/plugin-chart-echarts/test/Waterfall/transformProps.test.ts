@@ -166,3 +166,45 @@ test('hide totals', () => {
     ['-', '-'],
   ]);
 });
+
+const buildAxes = (extraFormData: Record<string, unknown>) => {
+  const chartProps = new ChartProps({
+    formData: { ...formData, ...extraFormData },
+    width: 800,
+    height: 600,
+    queriesData: [{ data }],
+    theme: supersetTheme,
+  });
+  const transformedProps = transformProps(
+    chartProps as unknown as EchartsWaterfallChartProps,
+  );
+  return {
+    xAxis: transformedProps.echartOptions.xAxis as any,
+    yAxis: transformedProps.echartOptions.yAxis as any,
+  };
+};
+
+test('shows both axes by default', () => {
+  const { xAxis, yAxis } = buildAxes({});
+  expect(xAxis.axisLabel.show).not.toBe(false);
+  expect(xAxis.axisLine.show).not.toBe(false);
+  expect(yAxis.axisLabel.show).not.toBe(false);
+  expect(yAxis.splitLine.show).not.toBe(false);
+});
+
+test('hides the X axis chrome when showXAxis is false', () => {
+  const { xAxis } = buildAxes({ showXAxis: false });
+  expect(xAxis.axisLabel.show).toBe(false);
+  expect(xAxis.axisLine.show).toBe(false);
+  expect(xAxis.axisTick.show).toBe(false);
+  expect(xAxis.name).toBe('');
+});
+
+test('hides the Y axis chrome when showYAxis is false', () => {
+  const { yAxis } = buildAxes({ showYAxis: false });
+  expect(yAxis.axisLabel.show).toBe(false);
+  expect(yAxis.axisLine.show).toBe(false);
+  expect(yAxis.axisTick.show).toBe(false);
+  expect(yAxis.splitLine.show).toBe(false);
+  expect(yAxis.name).toBe('');
+});
