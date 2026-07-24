@@ -722,13 +722,14 @@ const Header = (): JSX.Element => {
                 <Button
                   css={discardBtnStyle}
                   buttonSize="small"
-                  disabled={!hasUnsavedChanges}
                   onClick={discardChanges}
                   buttonStyle="secondary"
                   data-test="discard-changes-button"
-                  aria-label={t('Discard')}
+                  aria-label={
+                    hasUnsavedChanges ? t('Discard') : t('Exit edit mode')
+                  }
                 >
-                  {t('Discard')}
+                  {hasUnsavedChanges ? t('Discard') : t('Exit edit mode')}
                 </Button>
                 <Button
                   css={saveBtnStyle}

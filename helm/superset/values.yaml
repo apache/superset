@@ -277,7 +277,9 @@ httproute:
   # per rule to leave room for traffic splitting (defaults to 1). When
   # `supersetWebsockets.enabled` is true, an extra rule routing
   # `supersetWebsockets.ingress.path` to the `-ws` service is appended
-  # automatically, mirroring the ingress behavior.
+  # automatically, mirroring the ingress behavior. When both `supersetMcp.enabled` and
+  # `supersetMcp.httproute.enabled` are true, an extra rule routing
+  # `supersetMcp.httproute.path` to the `-mcp` service is also appended.
   rules:
     - matches:
         - path:
@@ -987,7 +989,6 @@ supersetWebsockets:
   # -- Set priorityClassName for supersetWebsockets pods
   priorityClassName: ~
 
-
 supersetMcp:
   # -- Enables the Superset MCP Server. To expose it via the shared ingress at /mcp,
   # also set supersetMcp.ingress.enabled=true.
@@ -1015,6 +1016,10 @@ supersetMcp:
     enabled: false
     path: /mcp
     pathType: Prefix
+  httproute:
+    # -- If true, the MCP server will be exposed via the HTTPRoute /mcp subpath
+    enabled: false
+    path: /mcp
   service:
     type: ClusterIP
     annotations: {}
