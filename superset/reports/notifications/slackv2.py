@@ -19,7 +19,7 @@ from collections.abc import Callable, Sequence
 from io import IOBase
 from typing import List, Union
 
-import backoff
+import backon
 from flask import g
 from slack_sdk.errors import (
     BotUserAccessError,
@@ -86,8 +86,8 @@ def _give_up_slack_api_retry(ex: Exception) -> bool:
     return bool(error_code and error_code not in _TRANSIENT_SLACK_API_ERROR_CODES)
 
 
-@backoff.on_exception(
-    backoff.expo,
+@backon.on_exception(
+    backon.expo,
     (SlackApiError, SlackClientNotConnectedError),
     factor=10,
     base=2,
@@ -179,5 +179,5 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
             raise NotificationUnprocessableException(str(ex)) from ex
         except SlackClientError as ex:
             # this is the base class for all slack client errors
-            # keep it last so that it doesn't interfere with @backoff
+            # keep it last so that it doesn't interfere with @backon
             raise NotificationUnprocessableException(str(ex)) from ex

@@ -17,7 +17,7 @@
 import logging
 from typing import Any
 
-import backoff
+import backon
 from flask_appbuilder.api import (
     expose,
     protect,
@@ -238,8 +238,8 @@ class QueryRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.stop_query",
         log_to_statsd=False,
     )
-    @backoff.on_exception(
-        backoff.constant,
+    @backon.on_exception(
+        backon.constant,
         Exception,
         interval=1,
         on_backoff=lambda details: db.session.rollback(),  # pylint: disable=consider-using-transaction

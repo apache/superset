@@ -19,7 +19,7 @@ from collections.abc import Sequence
 from io import IOBase
 from typing import Union
 
-import backoff
+import backon
 from flask import g
 from slack_sdk.errors import (
     BotUserAccessError,
@@ -90,7 +90,7 @@ class SlackNotification(SlackMixin, BaseNotification):  # pylint: disable=too-fe
             return ("pdf", [self._content.pdf])
         return (None, [])
 
-    @backoff.on_exception(backoff.expo, SlackApiError, factor=10, base=2, max_tries=5)
+    @backon.on_exception(backon.expo, SlackApiError, factor=10, base=2, max_tries=5)
     @statsd_gauge("reports.slack.send")
     def send(self) -> None:
         file_type, files = self._get_inline_files()
@@ -138,5 +138,5 @@ class SlackNotification(SlackMixin, BaseNotification):  # pylint: disable=too-fe
             raise NotificationUnprocessableException(str(ex)) from ex
         except SlackClientError as ex:
             # this is the base class for all slack client errors
-            # keep it last so that it doesn't interfere with @backoff
+            # keep it last so that it doesn't interfere with @backon
             raise NotificationUnprocessableException(str(ex)) from ex

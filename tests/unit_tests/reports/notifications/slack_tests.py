@@ -48,15 +48,15 @@ from superset.utils.core import HeaderDataType
 
 @pytest.fixture(autouse=True)
 def _skip_backoff_sleep():
-    """Make any @backoff.on_exception retries instant.
+    """Make any @backon.on_exception retries instant.
 
-    SlackV2Notification.send() retries up to 5 times with `backoff.expo(factor=10,
+    SlackV2Notification.send() retries up to 5 times with `backon.expo(factor=10,
     base=2)` — that's ~150s of real sleep on a persistently-failing send. We
     don't care about the wall-clock waits in unit tests; patching `time.sleep`
-    inside backoff's sync runner keeps the assertion semantics (call_count,
-    raised exception type) without the wait.
+    keeps the assertion semantics (call_count, raised exception type) without
+    the wait.
     """
-    with patch("backoff._sync.time.sleep"):
+    with patch("time.sleep"):
         yield
 
 
@@ -817,7 +817,7 @@ def test_v2_send_retries_on_transient_slack_api_error(
     flask_global_mock: MagicMock,
     mock_header_data,
 ) -> None:
-    """`@backoff.on_exception(NotificationUnprocessableException, max_tries=5)`
+    """`@backon.on_exception(NotificationUnprocessableException, max_tries=5)`
     retries the wrapped exception that send() actually raises.
 
     A persistent Slack rate-limit (or any other transient failure that maps to
@@ -846,7 +846,7 @@ def test_v2_send_retries_then_succeeds_on_transient_failure(
     flask_global_mock: MagicMock,
     mock_header_data,
 ) -> None:
-    """The point of switching backoff to NotificationUnprocessableException is
+    """The point of switching to NotificationUnprocessableException is
     that a *transient* failure now retries and the send ultimately succeeds —
     behavior the old (dead) SlackApiError decorator never delivered. Fail twice,
     then succeed: send() must return normally after exactly 3 attempts and still
@@ -937,7 +937,7 @@ def test_v2_send_does_not_retry_param_errors(
     mock_header_data,
 ) -> None:
     """Non-transient errors (config / auth / malformed) are NOT retried — only
-    NotificationUnprocessableException triggers backoff. A
+    NotificationUnprocessableException triggers retry. A
     NotificationParamException-class failure (BotUserAccessError → 422) hits
     the API exactly once and surfaces immediately.
     """
@@ -994,7 +994,7 @@ def test_give_up_slack_api_retry_retries_on_status_code(
     response = _make_slack_response(status_code, data)
     ex = SlackApiError(message="transient", response=response)
 
-    # give_up == False -> the request WILL be retried by backoff.
+    # give_up == False -> the request WILL be retried by backon.
     assert _give_up_slack_api_retry(ex) is False
 
 
