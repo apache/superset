@@ -44,7 +44,7 @@ def test_exclude_users_filter_no_exclusions(mocker: MockerFixture) -> None:
         mock_current_app,
     )
 
-    engine = create_engine("sqlite://")
+    engine = create_engine("sqlite://", future=True)
     Session = sessionmaker(bind=engine)  # noqa: N806
     session = Session()
     query = session.query(User)

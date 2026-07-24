@@ -2292,6 +2292,99 @@ describe('plugin-chart-table', () => {
       });
     });
 
+    test('should not reset pagination when a cell is clicked and data re-renders (#42010)', async () => {
+      const setDataMask = jest.fn();
+      const data30 = Array.from({ length: 30 }, (_, i) => ({
+        name: `User ${i + 1}`,
+        sum__num: (i + 1) * 100,
+      }));
+      const filteredData = data30.slice(0, 15);
+
+      const props = transformProps({
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          page_length: 10,
+          metrics: ['sum__num'],
+          groupby: ['name'],
+        },
+        queriesData: [
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['name', 'sum__num'],
+            coltypes: [GenericDataType.String, GenericDataType.Numeric],
+            data: data30,
+          },
+        ],
+        hooks: { setDataMask },
+        emitCrossFilters: true,
+      });
+
+      const { container, rerender } = render(
+        <ProviderWrapper>
+          <TableChart
+            {...props}
+            emitCrossFilters
+            setDataMask={setDataMask}
+            sticky={false}
+          />
+        </ProviderWrapper>,
+      );
+
+      expect(screen.getByText('User 1')).toBeInTheDocument();
+      expect(screen.queryByText('User 11')).not.toBeInTheDocument();
+
+      const page2Link = container.querySelector('a[href="#page-1"]')!;
+      expect(page2Link).toBeTruthy();
+      fireEvent.click(page2Link);
+
+      await waitFor(() => {
+        expect(screen.getByText('User 11')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('User 11'));
+      expect(setDataMask).toHaveBeenCalled();
+
+      const filteredProps = transformProps({
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          page_length: 10,
+          metrics: ['sum__num'],
+          groupby: ['name'],
+        },
+        queriesData: [
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['name', 'sum__num'],
+            coltypes: [GenericDataType.String, GenericDataType.Numeric],
+            data: filteredData,
+          },
+        ],
+        hooks: { setDataMask },
+        emitCrossFilters: true,
+      });
+
+      rerender(
+        <ProviderWrapper>
+          <TableChart
+            {...filteredProps}
+            emitCrossFilters
+            setDataMask={setDataMask}
+            sticky={false}
+          />
+        </ProviderWrapper>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('User 11')).toBeInTheDocument();
+        expect(screen.queryByText('User 1')).not.toBeInTheDocument();
+      });
+
+      const activePage = container.querySelector('li.active a')!;
+      expect(activePage).toHaveAttribute('href', '#page-1');
+    });
+
     test('should build columnLabelToNameMap for adhoc columns with custom labels', () => {
       const result = transformProps({
         ...testData.basic,
@@ -2431,6 +2524,56 @@ describe('plugin-chart-table', () => {
       expect(filters[0].col).toBe('name');
       expect(filters[0].val).toEqual(['Michael']);
     });
+  });
+
+  test('does not render "Search by" if there are no search options (server pagination enabled)', () => {
+    const props = transformProps({
+      ...testData.raw,
+      rawFormData: {
+        ...testData.raw.rawFormData,
+        server_pagination: true,
+        include_search: true,
+      },
+      queriesData: [
+        {
+          ...testData.raw.queriesData[0],
+          colnames: ['num'],
+          coltypes: [GenericDataType.Numeric],
+          data: [{ num: 1 }, { num: 2 }],
+        },
+      ],
+    });
+    render(
+      ProviderWrapper({
+        children: <TableChart {...props} sticky={false} />,
+      }),
+    );
+    expect(screen.queryByText('Search by')).not.toBeInTheDocument();
+  });
+
+  test('renders "Search by" if include_search is true and there are search options (server pagination enabled)', () => {
+    const props = transformProps({
+      ...testData.raw,
+      rawFormData: {
+        ...testData.raw.rawFormData,
+        server_pagination: true,
+        include_search: true,
+      },
+      queriesData: [
+        {
+          ...testData.raw.queriesData[0],
+          colnames: ['name'],
+          coltypes: [GenericDataType.String],
+          data: [{ name: 'Michael' }, { name: 'John' }],
+        },
+      ],
+    });
+    render(
+      ProviderWrapper({
+        children: <TableChart {...props} sticky={false} />,
+      }),
+    );
+    expect(screen.queryByText('Search by')).toBeInTheDocument();
   });
 });
 

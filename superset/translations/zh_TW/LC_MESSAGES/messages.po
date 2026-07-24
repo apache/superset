@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-06-23 03:46-0700\n"
+"POT-Creation-Date: 2026-07-17 15:46-0700\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -27,45 +27,6 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
-#, fuzzy, python-format
-msgid ""
-"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
-"Restore it via POST /api/v1/dataset/%(uuid)s/restore before creating a "
-"new dataset over this table, or use a different table name."
-msgstr ""
-"一個軟刪除的資料集 (uuid %(uuid)s) 已引用此資料表。請在此資料表上建立新資料集之前，透過 POST "
-"/api/v1/dataset/%(uuid)s/restore 進行還原，或使用不同的資料表名稱。"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
-#, fuzzy, python-format
-msgid ""
-"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
-"Restore it via POST /api/v1/dataset/%(uuid)s/restore before uploading, or"
-" upload to a different table name."
-msgstr ""
-"一個軟刪除的資料集 (uuid %(uuid)s) 已引用此資料表。請在上傳前透過 POST "
-"/api/v1/dataset/%(uuid)s/restore 進行還原，或上傳至不同的資料表名稱。"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
-#, fuzzy
-msgid ""
-"Cannot delete a database whose only remaining datasets are soft-deleted. "
-"Restore them (POST /api/v1/dataset/<uuid>/restore) and delete them "
-"permanently once a purge capability ships, or remove the underlying rows "
-"out-of-band, before deleting the database."
-msgstr ""
-"無法刪除僅剩軟刪除資料集的資料庫。請先還原它們 (POST "
-"/api/v1/dataset/<uuid>/restore)，待清除功能上線後再永久刪除，或在刪除資料庫之前透過帶外方式移除底層資料列。"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
-#, fuzzy
-msgid ""
-"Dataset cannot be restored because another active dataset already "
-"references the same physical table (same database, catalog, schema, and "
-"table name). Delete the duplicate or rename the table before restoring."
-msgstr "無法還原資料集，因為另一個有效的資料集已引用相同的實體資料表（相同的資料庫、目錄、結構描述和資料表名稱）。請在還原前刪除重複的資料集或重新命名資料表。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -256,6 +217,10 @@ msgid "% of total"
 msgstr "% 顯示總計"
 
 #, python-format
+msgid "%(alertType)s \"%(alertName)s\" triggered successfully"
+msgstr ""
+
+#, python-format
 msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr "出於安全原因，%(dialect)s SQLite 資料庫不能用作數據源。"
 
@@ -264,6 +229,10 @@ msgstr "出於安全原因，%(dialect)s SQLite 資料庫不能用作數據源�
 #, fuzzy, python-format
 msgid "%(label)s file"
 msgstr "%(label)s 檔案"
+
+#, python-format
+msgid "%(name)s.%(extension)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -473,11 +442,6 @@ msgstr "%s 已選定"
 #, fuzzy, python-format
 msgid "%s recipients"
 msgstr "%s 最近"
-
-#, fuzzy, python-format
-msgid "%s record"
-msgid_plural "%s records..."
-msgstr[0] "%s 異常"
 
 #, fuzzy, python-format
 msgid "%s record..."
@@ -1096,6 +1060,26 @@ msgid ""
 "templating syntax"
 msgstr "在查詢中可用的一組参數使用 Jinja 模板語法"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
+msgid ""
+"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before creating a "
+"new dataset over this table, or use a different table name."
+msgstr ""
+"一個軟刪除的資料集 (uuid %(uuid)s) 已引用此資料表。請在此資料表上建立新資料集之前，透過 POST "
+"/api/v1/dataset/%(uuid)s/restore 進行還原，或使用不同的資料表名稱。"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
+msgid ""
+"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before uploading, or"
+" upload to a different table name."
+msgstr ""
+"一個軟刪除的資料集 (uuid %(uuid)s) 已引用此資料表。請在上傳前透過 POST "
+"/api/v1/dataset/%(uuid)s/restore 進行還原，或上傳至不同的資料表名稱。"
+
 msgid "A timeout occurred while executing the query."
 msgstr "查詢超時。"
 
@@ -1104,6 +1088,9 @@ msgstr "生成 CSV 時超時。"
 
 msgid "A timeout occurred while generating a dataframe."
 msgstr "生成數據超時"
+
+msgid "A timeout occurred while generating an Excel file."
+msgstr ""
 
 msgid "A timeout occurred while taking a screenshot."
 msgstr "截圖超時"
@@ -1162,9 +1149,6 @@ msgstr "API 金鑰已成功撤銷"
 #, fuzzy
 msgid "API keys allow scoped programmatic access to Superset."
 msgstr "API 金鑰允許對 Superset 進行有範圍限制的程式化存取。"
-
-msgid "APPLY"
-msgstr "應用"
 
 msgid "APR"
 msgstr "四月"
@@ -1453,6 +1437,9 @@ msgstr "增加必需的控制值以預覽圖表"
 msgid "Add required control values to save chart"
 msgstr "增加必需的控制值以保存圖表"
 
+msgid "Add service credentials"
+msgstr ""
+
 msgid "Add sheet"
 msgstr "增加 sheet 頁"
 
@@ -1525,6 +1512,12 @@ msgid ""
 "Adds color to the chart symbols based on the positive or negative change "
 "from the comparison value."
 msgstr "根據與比較值相比的正負變化，為圖表符號新增顏色。"
+
+msgid "Adhoc metric SQL expression is invalid"
+msgstr ""
+
+msgid "Adhoc metric aggregate is invalid"
+msgstr ""
 
 msgid "Adjust how this database will interact with SQL Lab."
 msgstr "調整此資料庫與 SQL 工具箱的交互方式。"
@@ -2025,6 +2018,10 @@ msgid "An error occurred while fetching function names."
 msgstr "獲取函數名稱時出錯。"
 
 #, python-format
+msgid "An error occurred while fetching row level security subject values: %s"
+msgstr ""
+
+#, python-format
 msgid "An error occurred while fetching schema values: %s"
 msgstr "獲取結構訊息時出錯：%s"
 
@@ -2137,6 +2134,9 @@ msgstr "在後端儲存查詢時出錯。為避免丢失更改，請使用 \"保
 msgid "An error occurred while syncing permissions for %s: %s"
 msgstr "抓取出錯：%ss: %s"
 
+msgid "An error occurred while triggering the report"
+msgstr ""
+
 #, fuzzy
 msgid "An error occurred while updating the extension."
 msgstr "更新值時出錯。"
@@ -2162,6 +2162,11 @@ msgstr "發生了一個錯誤"
 
 msgid "Anchor to"
 msgstr "锚定到"
+
+msgid ""
+"Angle at which the first slice begins, in degrees. 90° starts at the top,"
+" 0°/360° at the right, 270° at the bottom, and 180° at the left."
+msgstr ""
 
 msgid "Angle at which to end progress axis"
 msgstr "進度軸结束的角度"
@@ -2422,6 +2427,9 @@ msgstr "確定要删除選定的圖層嗎？"
 
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "確定要删除選定的圖層嗎？"
+
+msgid "Are you sure you want to delete the selected queries?"
+msgstr ""
 
 #, fuzzy
 msgid "Are you sure you want to delete the selected roles?"
@@ -2967,21 +2975,9 @@ msgstr "使用行名作為排序關鍵字"
 msgid "By value: use metric values as sorting key"
 msgstr "使用度量值作為排序關鍵字"
 
-msgid "CANCEL"
-msgstr "取消"
-
 #, fuzzy
 msgid "CC recipients"
 msgstr "最近"
-
-#, fuzzy
-msgid "COPY QUERY"
-msgstr "複製查詢 URL"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs]
-#, fuzzy
-msgid "Copy query"
-msgstr "複製查詢"
 
 msgid "CREATE TABLE AS"
 msgstr "允許 CREATE TABLE AS"
@@ -3060,10 +3056,6 @@ msgid ""
 msgstr ""
 "CTA（create table as select）只能與最後一條語句為 SELECT 的查詢一起運行。請確保查詢的最後一個語句是 "
 "SELECT。然後再次嘗試運行查詢。"
-
-#, fuzzy
-msgid "CUSTOM"
-msgstr "自定義"
 
 msgid ""
 "CVAS (create view as select) can only be run with a query with a single "
@@ -3167,6 +3159,17 @@ msgstr "無法訪問查詢"
 
 msgid "Cannot delete a database that has datasets attached"
 msgstr "無法删除附加了數據集的資料庫"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid ""
+"Cannot delete a database whose only remaining datasets are soft-deleted. "
+"Restore them (POST /api/v1/dataset/<uuid>/restore) and delete them "
+"permanently once a purge capability ships, or remove the underlying rows "
+"out-of-band, before deleting the database."
+msgstr ""
+"無法刪除僅剩軟刪除資料集的資料庫。請先還原它們 (POST "
+"/api/v1/dataset/<uuid>/restore)，待清除功能上線後再永久刪除，或在刪除資料庫之前透過帶外方式移除底層資料列。"
 
 #, fuzzy
 msgid "Cannot delete system themes"
@@ -3790,6 +3793,9 @@ msgstr "清除表單"
 msgid "Clear local theme"
 msgstr "線性颜色方案"
 
+msgid "Clear search"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -4369,6 +4375,9 @@ msgstr "連接失敗，請檢查您的連接配置"
 msgid "Connection failed, please check your connection settings."
 msgstr "連接失敗，請檢查您的連接配置"
 
+msgid "Connection looks good!"
+msgstr ""
+
 #, fuzzy
 msgid "Contains"
 msgstr "連續式"
@@ -4460,6 +4469,14 @@ msgstr "將分區查詢複製到剪貼簿"
 #, fuzzy
 msgid "Copy permalink to clipboard"
 msgstr "將查詢链接複製到剪貼簿"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs]
+#, fuzzy
+msgid "Copy query"
+msgstr "複製查詢"
+
+msgid "Copy query URL"
+msgstr ""
 
 msgid "Copy query link to your clipboard"
 msgstr "將查詢链接複製到剪貼簿"
@@ -4601,6 +4618,11 @@ msgstr "創建新圖表"
 
 msgid "Create a new chart"
 msgstr "創建新圖表"
+
+msgid ""
+"Create a new tag and assign it to existing entities like charts or "
+"dashboards"
+msgstr ""
 
 #, fuzzy
 msgid "Create and explore dataset"
@@ -4974,6 +4996,11 @@ msgstr "由於參數無效，無法複製儀表板。"
 msgid "Dashboard cannot be favorited."
 msgstr "看板無法更新。"
 
+msgid ""
+"Dashboard cannot be restored because its slug is now used by another "
+"active dashboard. Rename one of the dashboards and retry."
+msgstr ""
+
 #, fuzzy
 msgid "Dashboard cannot be unfavorited."
 msgstr "看板無法更新。"
@@ -5259,6 +5286,14 @@ msgstr "數據集 %(table)s 已存在"
 #, fuzzy
 msgid "Dataset Name"
 msgstr "數據集名稱"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid ""
+"Dataset cannot be restored because another active dataset already "
+"references the same physical table (same database, catalog, schema, and "
+"table name). Delete the duplicate or rename the table before restoring."
+msgstr "無法還原資料集，因為另一個有效的資料集已引用相同的實體資料表（相同的資料庫、目錄、結構描述和資料表名稱）。請在還原前刪除重複的資料集或重新命名資料表。"
 
 msgid "Dataset column delete failed."
 msgstr "數據集列删除失敗。"
@@ -5698,6 +5733,9 @@ msgstr "删除"
 msgid "Delete item"
 msgstr "删除模板"
 
+msgid "Delete query"
+msgstr ""
+
 #, fuzzy
 msgid "Delete role"
 msgstr "删除"
@@ -5993,6 +6031,11 @@ msgstr "顯示名稱"
 msgid "Display all"
 msgstr "顯示名稱"
 
+msgid ""
+"Display charts on a map. For using this plugin, users first have to "
+"create any other chart that can then be placed on the map."
+msgstr ""
+
 #, fuzzy
 msgid "Display column in the chart"
 msgstr "顯示列級别合計"
@@ -6146,9 +6189,6 @@ msgstr "下载"
 
 #, fuzzy
 msgid "Download as Image"
-msgstr "下载為圖片"
-
-msgid "Download as image"
 msgstr "下载為圖片"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
@@ -6402,6 +6442,10 @@ msgstr "啟用郵件報告"
 msgid "ERROR"
 msgstr "錯誤"
 
+#, python-format
+msgid "ERROR: %s"
+msgstr ""
+
 msgid "Edge length"
 msgstr "邊長"
 
@@ -6498,6 +6542,9 @@ msgstr "編輯規則"
 
 msgid "Edit properties"
 msgstr "編輯属性"
+
+msgid "Edit query"
+msgstr ""
 
 #, fuzzy
 msgid "Edit report"
@@ -6609,6 +6656,9 @@ msgstr "需要值"
 #, fuzzy
 msgid "Email link"
 msgstr "詳細訊息"
+
+msgid "Email recipients"
+msgstr ""
 
 msgid "Email reports active"
 msgstr "啟用郵件報告"
@@ -6823,9 +6873,6 @@ msgstr "上傳主憑證"
 msgid "Enter a name for this sheet"
 msgstr "输入此工作表的名稱"
 
-msgid "Enter a new title for the tab"
-msgstr "输入選項卡的新標題"
-
 #, fuzzy
 msgid "Enter a part of the object name"
 msgstr "是否填充對象"
@@ -6908,6 +6955,9 @@ msgstr "請在下方輸入您的帳號和密碼："
 
 msgid "Entity"
 msgstr "實體"
+
+msgid "Entries per page"
+msgstr ""
 
 msgid "Equal Date Sizes"
 msgstr "相同的日期大小"
@@ -7207,6 +7257,9 @@ msgstr "報告名稱"
 msgid "Export as Example"
 msgstr "導出為 Excel"
 
+msgid "Export as PDF"
+msgstr ""
+
 #, fuzzy
 msgid "Export cancelled"
 msgstr "報告失敗"
@@ -7226,11 +7279,17 @@ msgstr "圖片發送失敗，請刷新或重試"
 msgid "Export failed: %s"
 msgstr "報告失敗"
 
+msgid "Export query"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
 msgid "Export screenshot (jpeg)"
 msgstr "匯出截圖 (jpeg)"
+
+msgid "Export screenshot (png)"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Export successful: %s"
@@ -7277,6 +7336,17 @@ msgstr "導出原始 CSV"
 
 msgid "Export to pivoted .CSV"
 msgstr "導出為透視表形式的 CSV"
+
+#, python-format
+msgid ""
+"Exporting semantic views is not supported yet — %s semantic-view row(s) "
+"were skipped."
+msgstr ""
+
+msgid ""
+"Exporting semantic views is not supported yet. Deselect the semantic-view"
+" rows and try again."
+msgstr ""
 
 msgid "Expose database in SQL Lab"
 msgstr "在 SQL 工具箱中展示資料庫"
@@ -7347,15 +7417,6 @@ msgstr "拉伸"
 msgid "FEB"
 msgstr "二月"
 
-#, fuzzy
-msgid "FIT DATA"
-msgstr "編輯數據集"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs]
-#, fuzzy
-msgid "Fit data"
-msgstr "符合資料"
-
 msgid "FRI"
 msgstr "星期五"
 
@@ -7404,6 +7465,11 @@ msgstr "創建報告發生錯誤"
 #, fuzzy, python-format
 msgid "Failed to execute %(query)s"
 msgstr "執行 %(query)s 失敗"
+
+msgid ""
+"Failed to export chart data. Please try again or contact your "
+"administrator."
+msgstr ""
 
 #, fuzzy
 msgid "Failed to fetch API keys"
@@ -7511,6 +7577,10 @@ msgstr "儲存查詢結果失敗，請再試一次。"
 #, fuzzy
 msgid "Failed to tag items"
 msgstr "給對象打標籤失敗"
+
+#, python-format
+msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
+msgstr ""
 
 msgid "Failed to update report"
 msgstr "更新報告失敗"
@@ -7761,6 +7831,11 @@ msgstr "需要名稱"
 msgid "Fit columns dynamically"
 msgstr "對列按字母順序進行排列"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs]
+#, fuzzy
+msgid "Fit data"
+msgstr "符合資料"
+
 msgid ""
 "Fix the trend line to the full time range specified in case filtered "
 "results do not include the start or end dates"
@@ -7893,6 +7968,9 @@ msgstr "強制將所選時間粒度設為 X 軸標籤的最大間隔"
 msgid "Forecast periods"
 msgstr "預测期"
 
+msgid "Forecast requires at least 2 data points"
+msgstr ""
+
 msgid "Foreign key"
 msgstr "外鍵"
 
@@ -7953,6 +8031,9 @@ msgstr "使用貨幣符號作為前綴或後綴來格式化指標或欄位。手
 
 msgid "Formatted CSV attached in email"
 msgstr "郵件中附上格式化好的CSV"
+
+msgid "Formatted Excel attached in email"
+msgstr ""
 
 #, fuzzy
 msgid "Formatted value"
@@ -9038,6 +9119,9 @@ msgstr "索引欄位的標籤。請勿使用現有的欄位名稱。"
 msgid "Label for your query"
 msgstr "為您的查詢設定標籤"
 
+msgid "Label must not be empty."
+msgstr ""
+
 msgid "Label position"
 msgstr "標籤位置"
 
@@ -9368,6 +9452,9 @@ msgstr "線段列"
 #, fuzzy
 msgid "Lines encoding"
 msgstr "線段编碼"
+
+msgid "Link Copied!"
+msgstr ""
 
 #, fuzzy
 msgid "List"
@@ -10435,6 +10522,9 @@ msgstr "没有數據"
 msgid "No data after filtering or data is NULL for the latest time record"
 msgstr "過濾後没有數據，或者最新時間紀錄的數據為NULL"
 
+msgid "No data found"
+msgstr ""
+
 msgid "No data in file"
 msgstr "文件中無數據"
 
@@ -10892,6 +10982,10 @@ msgstr "一個或多個指標重复"
 
 msgid "One or more metrics do not exist"
 msgstr "一個或多個指標不存在"
+
+#, python-format
+msgid "One or more parameters are missing: %(missing)s"
+msgstr ""
 
 msgid "One or more parameters needed to configure a database are missing."
 msgstr "資料庫配置缺少所需的一個或多個参數。"
@@ -11639,6 +11733,13 @@ msgstr "請在 Jinja 巨集中指定 ``%(name)s`` 指標的資料集 ID。"
 msgid "Please use 3 different metric labels"
 msgstr "請在左右軸上選擇不同的指標"
 
+msgid ""
+"Plot each time-shifted series across its full time range instead of "
+"truncating it to the main series. Useful for comparing a partial current "
+"period (e.g. today so far) against complete prior periods (e.g. all of "
+"yesterday)."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
@@ -11801,12 +11902,6 @@ msgstr "主 Y 軸格式"
 #, fuzzy
 msgid "Private"
 msgstr "私鑰"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
-# es, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Private Channels (Bot in channel)"
-msgstr "私人頻道（頻道中的機器人）"
 
 msgid "Private Key"
 msgstr "私鑰"
@@ -12157,15 +12252,12 @@ msgstr "註冊成功"
 msgid "Regular"
 msgstr "常規"
 
-#, fuzzy
 msgid ""
-"Regular filters add where clauses to queries if a user belongs to a role "
-"referenced in the filter, base filters apply filters to all queries "
-"except the roles defined in the filter, and can be used to define what "
-"users can see if no RLS filters within a filter group apply to them."
+"Regular filters add where clauses to queries if a user matches a subject "
+"referenced in the filter. Base filters apply filters to all queries "
+"except the subjects defined in the filter, and can be used to define what"
+" users can see if no RLS filters within a filter group apply to them."
 msgstr ""
-"如果用戶属於過濾器中引用的角色，常規過濾器會向查詢增加 WHERE "
-"子句；基礎過濾器则對所有查詢應用過濾條件，除了過濾器中定義的角色之外。如果在過濾器組内没有適用於用戶的行級安全（RLS）過濾器，基礎過濾器可以用來定義用戶能够看到的内容。"
 
 msgid "Relational"
 msgstr "關係"
@@ -12212,6 +12304,9 @@ msgstr "删除交叉篩選"
 msgid "Remove customization"
 msgstr "可視化類型"
 
+msgid "Remove dependency"
+msgstr ""
+
 #, fuzzy
 msgid "Remove filter"
 msgstr "删除項"
@@ -12219,8 +12314,14 @@ msgstr "删除項"
 msgid "Remove item"
 msgstr "删除項"
 
+msgid "Remove notification method"
+msgstr ""
+
 msgid "Remove query from log"
 msgstr "從日誌中删除查詢"
+
+msgid "Remove sheet"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -12269,6 +12370,9 @@ msgstr "無法更新報表計劃。"
 msgid "Report Schedule delete failed."
 msgstr "報表計劃删除失敗。"
 
+msgid "Report Schedule execute now failed."
+msgstr ""
+
 msgid "Report Schedule execution failed when generating a csv."
 msgstr "在生成 CSV 文件時，報告計劃執行失敗。"
 
@@ -12282,8 +12386,21 @@ msgstr "在生成 CSV 文件時，報告計劃執行失敗。"
 msgid "Report Schedule execution failed when generating a screenshot."
 msgstr "在生成螢幕截圖時，報告計劃執行失敗。"
 
+msgid "Report Schedule execution failed when generating an Excel file."
+msgstr ""
+
 msgid "Report Schedule execution got an unexpected error."
 msgstr "報表計劃執行遇到意外錯誤。"
+
+msgid ""
+"Report Schedule execution requires a Celery backend to be configured. "
+"Please configure a Celery broker (Redis or RabbitMQ) and worker "
+"processes."
+msgstr ""
+
+#, python-format
+msgid "Report Schedule executor user %(username)s was not found."
+msgstr ""
 
 msgid "Report Schedule is still working, refusing to re-compute."
 msgstr "報表計劃仍在運行，拒绝重新計算。"
@@ -13030,15 +13147,14 @@ msgstr "向下捲動到底部以啟用覆寫變更。"
 msgid "Search"
 msgstr "搜索"
 
-#, fuzzy, python-format
-msgid "Search %s records"
-msgstr "搜索 %s 紀錄"
-
 msgid "Search / Filter"
 msgstr "搜索 / 過濾"
 
 msgid "Search Metrics & Columns"
 msgstr "搜索指標和列"
+
+msgid "Search a channel by name, or paste a channel ID"
+msgstr ""
 
 msgid "Search all charts"
 msgstr "搜索所有圖表"
@@ -13095,6 +13211,9 @@ msgstr "搜索 / 過濾"
 msgid "Search metrics by key or label"
 msgstr "搜索指標和列"
 
+msgid "Search records"
+msgstr ""
+
 #, fuzzy
 msgid "Search tags"
 msgstr "選擇標籤"
@@ -13108,6 +13227,9 @@ msgstr "搜尋檢視者"
 
 msgid "Search..."
 msgstr "搜索..."
+
+msgid "Searches all text fields: Name, Description, Database & Schema"
+msgstr ""
 
 msgid "Second"
 msgstr "秒"
@@ -13149,6 +13271,9 @@ msgstr "序列"
 #, python-format
 msgid "See all %(tableName)s"
 msgstr "查看全部 - %(tableName)s"
+
+msgid "See all dashboards"
+msgstr ""
 
 msgid "See less"
 msgstr "查看更少"
@@ -13472,6 +13597,12 @@ msgstr "選擇一個或多個要展示的指標。您可以對某個列使用聚
 msgid "Select operator"
 msgstr "選擇操作符"
 
+msgid "Select or type BCC recipients"
+msgstr ""
+
+msgid "Select or type CC recipients"
+msgstr ""
+
 #, fuzzy
 msgid "Select or type a custom value..."
 msgstr "選擇或输入一個值"
@@ -13483,6 +13614,9 @@ msgstr "選擇或输入貨幣符號"
 #, fuzzy
 msgid "Select or type dataset name"
 msgstr "選擇表或输入數據集名稱"
+
+msgid "Select or type email recipients"
+msgstr ""
 
 #, fuzzy
 msgid "Select page size"
@@ -13736,6 +13870,9 @@ msgstr "語義視圖"
 
 msgid "Send as CSV"
 msgstr "發送為CSV"
+
+msgid "Send as Excel"
+msgstr ""
 
 #, fuzzy
 msgid "Send as PDF"
@@ -13996,6 +14133,9 @@ msgstr "顯示指標名"
 msgid "Show Metric Names"
 msgstr "顯示指標名"
 
+msgid "Show Null Values"
+msgstr ""
+
 msgid "Show Range Filter"
 msgstr "顯示範圍過濾器"
 
@@ -14034,6 +14174,15 @@ msgid ""
 "Show Y-axis on the sparkline. Will display the manually set min/max if "
 "set or min/max values in the data otherwise."
 msgstr "在迷你圖上顯示Y軸。如果設定了手動設定的最小/最大值，则顯示之，否則顯示數據中的最小/最大值。"
+
+msgid "Show a draggable slider to control the visible range of the Y-axis."
+msgstr ""
+
+msgid ""
+"Show a summary row of total aggregations: the selected metrics in "
+"aggregate mode, or the sum of numeric columns in raw records mode. Note "
+"that row limit does not apply to the result."
+msgstr ""
 
 msgid "Show all columns"
 msgstr "顯示所有列"
@@ -14078,6 +14227,9 @@ msgstr "顯示空列"
 #, fuzzy
 msgid "Show entries per page"
 msgstr "顯示指標"
+
+msgid "Show full range for time shift"
+msgstr ""
 
 #, fuzzy
 msgid ""
@@ -14164,6 +14316,11 @@ msgstr "顯示所選指標的總聚合。注意行限制並不應用於结果"
 #, fuzzy
 msgid "Show value"
 msgstr "顯示值"
+
+msgid ""
+"Showcases a metric along with a comparison of value, change, and percent "
+"change for a selected time period."
+msgstr ""
 
 msgid ""
 "Showcases a single metric front-and-center. Big number is best used to "
@@ -14306,6 +14463,9 @@ msgstr "時間序列平滑線是折線圖的變體。没有角度和硬邊，平
 msgid "Solid"
 msgstr "實線"
 
+msgid "Solid background"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -14324,8 +14484,13 @@ msgstr "部分權限無法解析，以 ID 顯示。"
 msgid "Some required filters on other tabs have values and will not be cleared"
 msgstr "其他分頁上的某些必要篩選器已有值，不會被清除"
 
-msgid "Some roles do not exist"
-msgstr "看板"
+msgid "Some tables are not shown. Refine your search."
+msgstr ""
+
+msgid ""
+"Something went wrong loading the dashboard. Check the dev console for "
+"details."
+msgstr ""
 
 #, fuzzy
 msgid "Something went wrong while saving the user info"
@@ -14791,6 +14956,9 @@ msgstr "小計"
 msgid "Success"
 msgstr "成功"
 
+msgid "Success message"
+msgstr ""
+
 #, fuzzy, python-format
 msgid "Successfully changed %s!"
 msgstr "修改數據集成功！"
@@ -14858,6 +15026,9 @@ msgstr "交换數據集"
 
 msgid "Swap rows and columns"
 msgstr "交换組和列"
+
+msgid "Sweep angle"
+msgstr ""
 
 #, fuzzy
 msgid ""
@@ -15052,6 +15223,9 @@ msgstr "無法更新標籤。"
 msgid "Tag created"
 msgstr "標籤已創建"
 
+msgid "Tag description"
+msgstr ""
+
 #, fuzzy
 msgid "Tag name"
 msgstr "標籤名字"
@@ -15194,6 +15368,10 @@ msgstr "文本對齊"
 msgid "Text embedded in email"
 msgstr "郵件中嵌入的文本"
 
+#, python-format
+msgid "The %(key)s in metadata_cache_timeout must be a non-negative integer."
+msgstr ""
+
 #, fuzzy, python-format
 msgid "The %s"
 msgstr "刷新於 %s"
@@ -15311,6 +15489,17 @@ msgid ""
 "associated with more than one category, only the first will be used."
 msgstr "用於分配颜色的源節點類别。如果一個節點與多個類别關聯，则只使用第一個類别"
 
+msgid ""
+"The chart data is too large to download. Please try reducing the date "
+"range, limiting rows, or using fewer columns."
+msgstr ""
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
+msgid "The chart is still loading. Please wait a moment and try again."
+msgstr "圖表仍在載入中。請稍候片刻後再試。"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
 msgid ""
@@ -15318,11 +15507,8 @@ msgid ""
 "the report to point at an active chart."
 msgstr "此報告所指定的圖表已被刪除。請還原該圖表，或更新報告以指向有效的圖表。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
-msgid "The chart is still loading. Please wait a moment and try again."
-msgstr "圖表仍在載入中。請稍候片刻後再試。"
+msgid "The chat failed to load."
+msgstr ""
 
 msgid ""
 "The classic. Great for showing how much of a company each investor gets, "
@@ -15422,6 +15608,9 @@ msgid ""
 "The dashboard this report targets was deleted. Restore the dashboard, or "
 "update the report to point at an active dashboard."
 msgstr "此報告所指定的儀表板已被刪除。請還原該儀表板，或更新報告以指向有效的儀表板。"
+
+msgid "The dashboard you are looking for may have been deleted or moved."
+msgstr ""
 
 msgid "The data source seems to have been deleted"
 msgstr "數據源已經被删除"
@@ -15698,6 +15887,11 @@ msgstr "每組的最大細分數；較低的值首先被删除"
 msgid "The maximum value of metrics. It is an optional configuration"
 msgstr "度量的最大值。這是一個可選配置"
 
+msgid ""
+"The metadata_cache_timeout must be a mapping from string keys to non-"
+"negative integer values."
+msgstr ""
+
 #, python-format
 msgid ""
 "The metadata_params in Extra field is not configured correctly. The key "
@@ -15889,6 +16083,9 @@ msgstr "找不到與這些结果相關聯的查詢。你需要重新運行查詢
 
 msgid "The query contains one or more malformed template parameters."
 msgstr "該查詢包含一個或多個格式不正確的模板参數。"
+
+msgid "The query context datasource does not match the chart datasource"
+msgstr ""
 
 msgid "The query couldn't be loaded"
 msgstr "這個查詢無法被加载"
@@ -16324,6 +16521,9 @@ msgstr "獲取此看板的收藏夹狀態時出現問題：%s。"
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "獲取此看板的收藏夹狀態時出現問題：%s。"
 
+msgid "There was an error generating the permalink."
+msgstr ""
+
 #, fuzzy
 msgid "There was an error loading groups."
 msgstr "您的請求有錯誤"
@@ -16429,6 +16629,10 @@ msgid "There was an issue deleting the selected layers: %s"
 msgstr "删除所選圖層時出現問題：%s"
 
 #, python-format
+msgid "There was an issue deleting the selected queries: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue deleting the selected templates: %s"
 msgstr "删除所選模板時出現問題：%s"
 
@@ -16463,6 +16667,9 @@ msgstr "删除所選圖表時出現問題：%s"
 #, fuzzy
 msgid "There was an issue exporting the selected dashboards"
 msgstr "删除所選看板時出現問題："
+
+msgid "There was an issue exporting the selected queries"
+msgstr ""
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -16633,6 +16840,9 @@ msgid ""
 msgstr ""
 "此設定控制是否應將當前\n"
 "                  檢視中的時間粒度欄位傳遞給包含注釋資料的圖表。"
+
+msgid "This dashboard does not exist"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -17033,9 +17243,8 @@ msgstr "時間格式"
 msgid "Time Grain"
 msgstr "時間粒度（Grain）"
 
-#, fuzzy
-msgid "Time Grain must be specified when using Time Shift."
-msgstr "使用時間比較時，必須指定封閉的時間範圍（有開始和结束）。"
+msgid "Time Grain must be specified when using Time Comparison."
+msgstr ""
 
 msgid "Time Granularity"
 msgstr "時間粒度（Granularity）"
@@ -17340,6 +17549,13 @@ msgstr "總計 (%(aggfunc)s)"
 msgid "Total (%(aggregatorName)s)"
 msgstr "總計 (%(aggregatorName)s)"
 
+msgid ""
+"Total angle covered by the chart, in degrees. 360° draws a full circle "
+"and 180° draws a half donut. When the sweep is 180° or less and the start"
+" angle is a multiple of 90°, the chart is automatically re-centered to "
+"make use of the empty space."
+msgstr ""
+
 #, fuzzy
 msgid "Total color"
 msgstr "點颜色"
@@ -17364,6 +17580,9 @@ msgstr "轉换"
 
 msgid "Transparent"
 msgstr "透明"
+
+msgid "Transparent background"
+msgstr ""
 
 msgid "Transpose pivot"
 msgstr "轉置透視圖"
@@ -17395,6 +17614,9 @@ msgstr "三角形"
 
 msgid "Trigger Alert If..."
 msgstr "達到以下條件觸發警報："
+
+msgid "Trigger now"
+msgstr ""
 
 #, fuzzy
 msgid "True"
@@ -17535,6 +17757,9 @@ msgstr "使用 Slug"
 msgid "URL parameters"
 msgstr "URL 参數"
 
+msgid "UUID to track the execution status"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -17617,6 +17842,10 @@ msgstr "找不到這樣的假期：[%(holiday)s]"
 msgid "Unable to generate download payload"
 msgstr "增加到看板"
 
+#, python-format
+msgid "Unable to generate forecast: %(error)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -17624,6 +17853,12 @@ msgid ""
 "Unable to identify temporal column for date range time comparison.Please "
 "ensure your dataset has a properly configured time column."
 msgstr "無法識別日期範圍時間比較的時間欄位。請確保您的資料集具有正確設定的時間欄位。"
+
+#, python-format
+msgid ""
+"Unable to interpret the time offset: %(offset)s. Use a relative time such"
+" as \"1 month ago\"."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -18675,6 +18910,9 @@ msgstr "是否顯示圖表的圖例（色块分布）"
 msgid "Whether to display bubbles on top of countries"
 msgstr "是否在國家之上展示氣泡"
 
+msgid "Whether to display entries with null values in the hierarchy"
+msgstr ""
+
 #, fuzzy
 msgid "Whether to display in the chart"
 msgstr "是否顯示圖表的圖例（色块分布）"
@@ -18811,8 +19049,10 @@ msgstr "是降序還是升序排序"
 msgid "Whether to sort results by the selected metric in descending order."
 msgstr "是否按所選指標按降序對结果進行排序。"
 
-msgid "Whether to sort tooltip by the selected metric in descending order."
-msgstr "是否按所選指標按降序對结果進行排序。"
+msgid ""
+"Whether to sort tooltip by the selected metric in descending order. On "
+"stacked charts, values are shown in ascending order."
+msgstr ""
 
 #, fuzzy
 msgid "Whether to truncate metrics"
@@ -18988,6 +19228,9 @@ msgstr "Y 軸"
 #, fuzzy
 msgid "Y-axis bounds"
 msgstr "Y 軸界限"
+
+msgid "Y-axis range slider"
+msgstr ""
 
 msgid "Y-scale interval"
 msgstr "Y 軸比例尺間隔"
@@ -19271,6 +19514,31 @@ msgid ""
 " to request modifications or edit access."
 msgstr "您必須是 %s 的編輯者才能進行編輯。請聯絡 %s 的編輯者以請求修改或編輯存取權限。"
 
+msgid ""
+"You must be a chart editor in order to delete. Please reach out to a "
+"chart editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a chart editor in order to edit. Please reach out to a chart "
+"editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a dashboard editor in order to delete. Please reach out to a "
+"dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a dashboard editor in order to edit. Please reach out to a "
+"dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a dataset editor in order to delete. Please reach out to a "
+"dataset editor to request modifications or edit access."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fi, fr, it, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
 # th, tr, uk]
@@ -19354,8 +19622,13 @@ msgstr "圖表已就绪！"
 msgid "Your dashboard is near the size limit."
 msgstr "您的儀表板接近大小限制。"
 
-msgid "Your dashboard is too large. Please reduce its size before saving it."
-msgstr "您的看板太大了。保存前請縮小尺寸。"
+#, python-format
+msgid ""
+"Your dashboard is too large to save: the serialized layout length is %s "
+"but the limit is %s. Reduce the dashboard size (for example, split it "
+"into multiple dashboards) or raise the "
+"SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
+msgstr ""
 
 msgid "Your query could not be saved"
 msgstr "您的查詢無法保存"
@@ -19936,10 +20209,6 @@ msgid "entries"
 msgstr "序列"
 
 #, fuzzy
-msgid "entries per page"
-msgstr "序列"
-
-#, fuzzy
 msgid "error"
 msgstr "錯誤"
 
@@ -20364,6 +20633,9 @@ msgstr "提供授權"
 msgid "quarter"
 msgstr "季度"
 
+msgid "queries"
+msgstr ""
+
 msgid "query"
 msgstr "查詢"
 
@@ -20417,6 +20689,9 @@ msgstr ""
 #, fuzzy
 msgid "seconds"
 msgstr "秒"
+
+msgid "semantic layer"
+msgstr ""
 
 #, fuzzy
 msgid "series"

@@ -386,10 +386,6 @@ def resolve_deck_gl_columns(form_data: dict[str, Any]) -> list[str]:
     for field in ("line_column", "geojson", "dimension"):
         _add(form_data.get(field))
 
-    for col in form_data.get("js_columns") or []:
-        if isinstance(col, str):
-            _add(col)
-
     return columns
 
 

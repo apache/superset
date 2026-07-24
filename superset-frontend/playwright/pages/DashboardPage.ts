@@ -70,6 +70,15 @@ export class DashboardPage {
   }
 
   /**
+   * Get a chart grid component by its chart ID.
+   */
+  getChart(chartId: number): Locator {
+    return this.page.locator(
+      `[data-test="chart-grid-component"][data-test-chart-id="${chartId}"]`,
+    );
+  }
+
+  /**
    * Wait for all charts on the dashboard to finish loading.
    * Waits until no loading indicators are visible on the page.
    */

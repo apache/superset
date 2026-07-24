@@ -100,20 +100,21 @@ const processComparisonTotals = (
     return totals;
   }
   const transformedTotals: DataRecord = {};
+  const mainLabel = t('Main');
   totals.map((totalRecord: DataRecord) =>
     Object.keys(totalRecord).forEach(key => {
       if (totalRecord[key] !== undefined && !key.includes(comparisonSuffix)) {
-        transformedTotals[`Main ${key}`] =
-          parseInt(transformedTotals[`Main ${key}`]?.toString() || '0', 10) +
-          parseInt(totalRecord[key]?.toString() || '0', 10);
+        transformedTotals[`${mainLabel} ${key}`] =
+          parseFloat(
+            transformedTotals[`${mainLabel} ${key}`]?.toString() || '0',
+          ) + parseFloat(totalRecord[key]?.toString() || '0');
         transformedTotals[`# ${key}`] =
-          parseInt(transformedTotals[`# ${key}`]?.toString() || '0', 10) +
-          parseInt(
+          parseFloat(transformedTotals[`# ${key}`]?.toString() || '0') +
+          parseFloat(
             totalRecord[`${key}__${comparisonSuffix}`]?.toString() || '0',
-            10,
           );
         const { valueDifference, percentDifferenceNum } = calculateDifferences(
-          transformedTotals[`Main ${key}`] as number,
+          transformedTotals[`${mainLabel} ${key}`] as number,
           transformedTotals[`# ${key}`] as number,
         );
         transformedTotals[`△ ${key}`] = valueDifference;
@@ -172,6 +173,7 @@ const processComparisonDataRecords = memoizeOne(
     originalData: DataRecord[] | undefined,
     originalColumns: DataColumnMeta[],
     comparisonSuffix: string,
+    mainLabel: string,
   ) {
     // Transform data
     return originalData?.map(originalItem => {
@@ -193,7 +195,7 @@ const processComparisonDataRecords = memoizeOne(
               comparisonValue as number,
             );
 
-          transformedItem[`Main ${origCol.key}`] = originalValue;
+          transformedItem[`${mainLabel} ${origCol.key}`] = originalValue;
           transformedItem[`# ${origCol.key}`] = comparisonValue;
           transformedItem[`△ ${origCol.key}`] = valueDifference;
           transformedItem[`% ${origCol.key}`] = percentDifferenceNum;
@@ -715,6 +717,7 @@ const transformProps = (
     baseQuery?.data,
     columns,
     comparisonSuffix,
+    t('Main'),
   );
 
   const passedData = isUsingTimeComparison ? comparisonData || [] : data;

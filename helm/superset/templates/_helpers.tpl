@@ -761,3 +761,9 @@ app.kubernetes.io/name: {{ include "superset.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/component: worker
 {{- end }}
+
+{{- define "supersetMcp.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "superset.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/component: mcp
+{{- end }}

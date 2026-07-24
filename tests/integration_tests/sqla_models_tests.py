@@ -173,18 +173,22 @@ class TestDatabaseModel(SupersetTestCase):
             "'{{ 'xyz_' + time_grain }}' as time_grain",
             database=get_example_database(),
         )
-        TableColumn(
+        db.session.add(table)
+
+        column = TableColumn(
             column_name="expr",
             expression="case when '{{ current_username() }}' = 'abc' "
             "then 'yes' else 'no' end",
             type="VARCHAR(100)",
             table=table,
         )
-        SqlMetric(
+        metric = SqlMetric(
             metric_name="count_timegrain",
             expression="count('{{ 'bar_' + time_grain }}')",
             table=table,
         )
+        db.session.add(column)
+        db.session.add(metric)
         db.session.commit()
 
         sqla_query = table.get_sqla_query(**base_query_obj)
@@ -212,6 +216,7 @@ class TestDatabaseModel(SupersetTestCase):
         metric = SqlMetric(
             metric_name="count_jinja_metric", expression="count(*)", table=table
         )
+        db.session.add(metric)
         db.session.commit()
 
         base_query_obj = {
@@ -275,6 +280,7 @@ class TestDatabaseModel(SupersetTestCase):
         table = SqlaTable(
             table_name="test_validate_adhoc_sql", database=get_example_database()
         )
+        db.session.add(table)
         db.session.commit()
 
         with pytest.raises(QueryObjectValidationError):
@@ -462,20 +468,23 @@ class TestDatabaseModel(SupersetTestCase):
             database=get_example_database(),
             sql="select 123 as intcol, 'abc' as strcol, 'abc' as mycase",
         )
-        TableColumn(column_name="intcol", type="FLOAT", table=table)
-        TableColumn(column_name="oldcol", type="INT", table=table)
-        TableColumn(
-            column_name="expr",
-            expression="case when 1 then 1 else 0 end",
-            type="INT",
-            table=table,
-        )
-        TableColumn(
-            column_name="mycase",
-            expression="case when 1 then 1 else 0 end",
-            type="INT",
-            table=table,
-        )
+        columns = [
+            TableColumn(column_name="intcol", type="FLOAT", table=table),
+            TableColumn(column_name="oldcol", type="INT", table=table),
+            TableColumn(
+                column_name="expr",
+                expression="case when 1 then 1 else 0 end",
+                type="INT",
+                table=table,
+            ),
+            TableColumn(
+                column_name="mycase",
+                expression="case when 1 then 1 else 0 end",
+                type="INT",
+                table=table,
+            ),
+        ]
+        db.session.add_all(columns)
 
         # make sure the columns have been mapped properly
         assert len(table.columns) == 4
@@ -549,8 +558,10 @@ def text_column_table(app_context: AppContext):
         ),
         database=get_example_database(),
     )
-    TableColumn(column_name="foo", type="VARCHAR(255)", table=table)
-    SqlMetric(metric_name="count", expression="count(*)", table=table)
+    column = TableColumn(column_name="foo", type="VARCHAR(255)", table=table)
+    metric = SqlMetric(metric_name="count", expression="count(*)", table=table)
+    db.session.add(column)
+    db.session.add(metric)
     return table
 
 
@@ -723,13 +734,15 @@ def test_should_generate_closed_and_open_time_filter_range(login_as_admin):
         ),
         database=get_example_database(),
     )
-    TableColumn(
+    column = TableColumn(
         column_name="datetime_col",
         type="TIMESTAMP",
         table=table,
         is_dttm=True,
     )
-    SqlMetric(metric_name="count", expression="count(*)", table=table)
+    db.session.add(column)
+    metric = SqlMetric(metric_name="count", expression="count(*)", table=table)
+    db.session.add(metric)
     result_object = table.query(
         {
             "metrics": ["count"],
@@ -998,24 +1011,26 @@ def test_extra_cache_keys_in_dataset_metrics_and_columns(
     mock_username: Mock,
     mock_user_id: Mock,
 ):
+    columns = [
+        TableColumn(column_name="user", type="VARCHAR(255)"),
+        TableColumn(
+            column_name="username",
+            type="VARCHAR(255)",
+            expression="{{ current_username() }}",
+        ),
+    ]
+    db.session.add_all(columns)
+    metric = SqlMetric(
+        metric_name="variable_profit",
+        expression="SUM(price) * {{ url_param('multiplier') }}",
+    )
+    db.session.add(metric)
     table = SqlaTable(
         table_name="test_has_no_extra_cache_keys_table",
         sql="SELECT 'abc' as user",
         database=get_example_database(),
-        columns=[
-            TableColumn(column_name="user", type="VARCHAR(255)"),
-            TableColumn(
-                column_name="username",
-                type="VARCHAR(255)",
-                expression="{{ current_username() }}",
-            ),
-        ],
-        metrics=[
-            SqlMetric(
-                metric_name="variable_profit",
-                expression="SUM(price) * {{ url_param('multiplier') }}",
-            ),
-        ],
+        columns=columns,
+        metrics=[metric],
     )
     query_obj: dict[str, Any] = {
         "granularity": None,
@@ -1109,6 +1124,7 @@ def test__normalize_prequery_result_type(
             type="TIMESTAMP",
         ),
     }
+    db.session.add_all(columns_by_name.values())
 
     normalized = table._normalize_prequery_result_type(
         row,
@@ -1169,6 +1185,7 @@ def test_generic_metric_filtering_without_chart_flag(login_as_admin):
         type="VARCHAR(255)",
         table=table,
     )
+    db.session.add(col)
     table.columns = [col]
 
     metric = SqlMetric(
@@ -1176,6 +1193,7 @@ def test_generic_metric_filtering_without_chart_flag(login_as_admin):
         expression="COUNT(*)",
         table=table,
     )
+    db.session.add(metric)
     table.metrics = [metric]
 
     db.session.add(table)
@@ -1229,10 +1247,12 @@ def test_column_ordering_without_chart_flag(login_as_admin):
 
     col_a = TableColumn(column_name="col_a", type="VARCHAR(255)", table=table)
     col_b = TableColumn(column_name="col_b", type="VARCHAR(255)", table=table)
+    db.session.add_all([col_a, col_b])
     table.columns = [col_a, col_b]
 
     metric_x = SqlMetric(metric_name="metric_x", expression="COUNT(*)", table=table)
     metric_y = SqlMetric(metric_name="metric_y", expression="SUM(val)", table=table)
+    db.session.add_all([metric_x, metric_y])
     table.metrics = [metric_x, metric_y]
 
     db.session.add(table)

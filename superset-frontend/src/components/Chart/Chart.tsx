@@ -440,6 +440,30 @@ function Chart({
     );
   }
 
+  if (chartStatus === 'stopped') {
+    return (
+      <EmptyState
+        size="large"
+        title={chartAlert || t('Updating chart was stopped')}
+        description={
+          <span>
+            {t('Run a new query using the "Update chart" button or')}{' '}
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={onQuery}
+              onKeyDown={handleKeyboardActivation(() => onQuery?.())}
+            >
+              {t('click here')}
+            </span>
+            .
+          </span>
+        }
+        image="chart.svg"
+      />
+    );
+  }
+
   if (errorMessage && ensureIsArray(queriesResponse).length === 0) {
     return (
       <EmptyState

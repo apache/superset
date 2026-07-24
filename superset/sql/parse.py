@@ -161,6 +161,31 @@ SQLGLOT_DIALECTS = {
 }
 
 
+def has_aggregate(expression: str, engine: str = "base") -> bool:
+    """
+    Return True if the SQL expression contains an aggregate function, ignoring
+    only an aggregate that is *itself* windowed (``SUM(x) OVER (...)``), which
+    doesn't collapse rows and is just as invalid under a GROUP BY as a plain
+    column. A plain aggregate nested inside a windowed one
+    (``SUM(SUM(x)) OVER ()``) still counts.
+
+    Deliberately permissive so a valid query is never wrongly blocked: an
+    aggregate inside a scalar subquery still counts, and it fails open (returns
+    True) on a parse error or an unmodelled function (``exp.Anonymous``) that
+    might itself be an aggregate.
+    """
+    dialect = SQLGLOT_DIALECTS.get(engine)
+    try:
+        parsed = sqlglot.parse_one(f"SELECT {expression}", dialect=dialect)
+    except Exception:
+        return True
+    if parsed.find(exp.Anonymous):
+        return True
+    return any(
+        not isinstance(agg.parent, exp.Window) for agg in parsed.find_all(exp.AggFunc)
+    )
+
+
 class LimitMethod(enum.Enum):
     """
     Limit methods.
