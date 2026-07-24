@@ -36,6 +36,10 @@ class ResponseValues(StrEnum):
     OK = "ok"
 
 
+class WarningError(Exception):
+    status = 400
+
+
 def test_debounce() -> None:
     mock = Mock()
 
@@ -63,7 +67,7 @@ def test_debounce() -> None:
     [
         (ResponseValues.OK, None, "custom.prefix.ok"),
         (ResponseValues.FAIL, ValueError, "custom.prefix.error"),
-        (ResponseValues.WARN, FileNotFoundError, "custom.prefix.warn"),
+        (ResponseValues.WARN, WarningError, "custom.prefix.warning"),
     ],
 )
 def test_statsd_gauge(
@@ -74,7 +78,7 @@ def test_statsd_gauge(
         if response == ResponseValues.FAIL:
             raise ValueError("Error")
         if response == ResponseValues.WARN:
-            raise FileNotFoundError("Not found")
+            raise WarningError("Warning")
         return "OK"
 
     with patch("superset.extensions.stats_logger_manager.instance.gauge") as mock:
@@ -86,7 +90,45 @@ def test_statsd_gauge(
 
         with cm:
             my_func(response_value, 1, 2)
-            mock.assert_called_once_with(expected_result, 1)
+
+        mock.assert_called_once_with(expected_result, 1)
+
+
+def test_statsd_gauge_ignores_configured_exception() -> None:
+    class RoutingSignalError(Exception):
+        pass
+
+    @decorators.statsd_gauge(
+        "custom.prefix",
+        ignored_exceptions=(RoutingSignalError,),
+    )
+    def my_func() -> None:
+        raise RoutingSignalError
+
+    with (
+        patch("superset.extensions.stats_logger_manager.instance.gauge") as mock,
+        pytest.raises(RoutingSignalError),
+    ):
+        my_func()
+
+    mock.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("exception", "expected_metric"),
+    [
+        (ValueError("failure"), "custom.prefix.error"),
+        (WarningError("warning"), "custom.prefix.warning"),
+    ],
+)
+def test_record_statsd_gauge_failure_uses_shared_severity_contract(
+    exception: Exception,
+    expected_metric: str,
+) -> None:
+    with patch("superset.extensions.stats_logger_manager.instance.gauge") as mock:
+        decorators.record_statsd_gauge_failure("custom.prefix", exception)
+
+    mock.assert_called_once_with(expected_metric, 1)
 
 
 @patch("superset.utils.decorators.g")

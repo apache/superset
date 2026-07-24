@@ -15,18 +15,19 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from collections.abc import Callable, Sequence
+import time
+from collections.abc import Sequence
+from email.message import Message
 from io import IOBase
 from typing import List, Union
+from urllib.error import HTTPError
 
-import backoff
 from flask import g
+from slack_sdk import WebClient
 from slack_sdk.errors import (
     BotUserAccessError,
-    SlackApiError,
     SlackClientConfigurationError,
     SlackClientError,
-    SlackClientNotConnectedError,
     SlackObjectFormationError,
     SlackRequestError,
     SlackTokenRotationError,
@@ -41,61 +42,103 @@ from superset.reports.notifications.exceptions import (
     NotificationUnprocessableException,
 )
 from superset.reports.notifications.slack_mixin import SlackMixin
+from superset.reports.notifications.slack_transport import (
+    call_slack_api,
+    call_slack_api_with_timeout,
+    send_to_slack_channels,
+    SlackChannelResponseError,
+    SlackRetryDeadlineError,
+)
 from superset.utils import json
-from superset.utils.core import recipients_string_to_list
 from superset.utils.decorators import statsd_gauge
-from superset.utils.slack import get_slack_client
+from superset.utils.slack import (
+    get_slack_client,
+    NO_SLACK_RECIPIENTS_MESSAGE,
+    parse_slack_recipient_targets,
+)
 
 logger = logging.getLogger(__name__)
 
-_TRANSIENT_SLACK_API_ERROR_CODES = frozenset(
-    {
-        "fatal_error",
-        "internal_error",
-        "ratelimited",
-        "request_timeout",
-        "rollup_error",
-        "service_unavailable",
-        "timeout",
-    }
-)
+
+def _read_upload_data(file: str | IOBase | bytes) -> bytes:
+    """Read a Slack upload input using the SDK's supported single-file forms."""
+    if isinstance(file, str):
+        with open(file, "rb") as readable:
+            return readable.read()
+    if isinstance(file, bytes):
+        return file
+    data = file.read()
+    return data.encode() if isinstance(data, str) else data
 
 
-def _get_slack_api_error_code(ex: SlackApiError) -> str:
-    response = getattr(ex, "response", None)
-    data = getattr(response, "data", None)
-    if not isinstance(data, dict):
-        data = response if isinstance(response, dict) else {}
-    return str(data.get("error") or "")
+def _upload_file_to_slack(
+    client: WebClient,
+    *,
+    channel: str,
+    file: str | IOBase | bytes,
+    initial_comment: str,
+    title: str,
+    filename: str,
+    retry_deadline: float,
+) -> None:
+    """Upload one file without replaying completed phases during retries."""
+    data = _read_upload_data(file)
+    upload_url_response = call_slack_api_with_timeout(
+        client,
+        client.files_getUploadURLExternal,
+        retry_deadline=retry_deadline,
+        retry_transport_errors=True,
+        filename=filename,
+        length=len(data),
+    )
+    try:
+        file_id = upload_url_response.get("file_id")
+        upload_url = upload_url_response.get("upload_url")
+    except (AttributeError, TypeError) as ex:
+        raise SlackChannelResponseError(
+            "Slack did not return valid upload metadata"
+        ) from ex
+    if (
+        not isinstance(file_id, str)
+        or not file_id
+        or not isinstance(upload_url, str)
+        or not upload_url
+    ):
+        raise SlackChannelResponseError("Slack did not return a file ID and upload URL")
 
+    def upload_file() -> None:
+        remaining = retry_deadline - time.monotonic()
+        if remaining <= 0:
+            raise SlackRetryDeadlineError
+        # files_upload_v2 uses this SDK helper internally. Calling it directly
+        # keeps retries scoped to the raw upload rather than replaying URL creation.
+        result = client._upload_file(  # pylint: disable=protected-access
+            url=upload_url,
+            data=data,
+            logger=logger,
+            timeout=min(float(client.timeout), remaining),
+            proxy=client.proxy,
+            ssl=client.ssl,
+        )
+        if result.status != 200:
+            raise HTTPError(
+                upload_url,
+                result.status,
+                f"Slack external upload failed: {result.body}",
+                Message(),
+                None,
+            )
 
-def _get_slack_api_status_code(ex: SlackApiError) -> int | None:
-    response = getattr(ex, "response", None)
-    return getattr(response, "status_code", None)
-
-
-def _give_up_slack_api_retry(ex: Exception) -> bool:
-    if not isinstance(ex, SlackApiError):
-        return False
-
-    status_code = _get_slack_api_status_code(ex)
-    if status_code == 429 or (status_code is not None and 500 <= status_code < 600):
-        return False
-
-    error_code = _get_slack_api_error_code(ex)
-    return bool(error_code and error_code not in _TRANSIENT_SLACK_API_ERROR_CODES)
-
-
-@backoff.on_exception(
-    backoff.expo,
-    (SlackApiError, SlackClientNotConnectedError),
-    factor=10,
-    base=2,
-    max_tries=5,
-    giveup=_give_up_slack_api_retry,
-)
-def _call_slack_api(method: Callable[..., object], **kwargs: object) -> None:
-    method(**kwargs)
+    call_slack_api(upload_file, retry_deadline=retry_deadline)
+    call_slack_api_with_timeout(
+        client,
+        client.files_completeUploadExternal,
+        retry_deadline=retry_deadline,
+        retry_transient_errors=False,
+        files=[{"id": file_id, "title": title}],
+        channel_id=channel,
+        initial_comment=initial_comment,
+    )
 
 
 class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-few-public-methods
@@ -111,9 +154,15 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
         :returns: A list of channel ids: "EID676L"
         :raises NotificationParamException or SlackApiError: If the recipient is not found
         """  # noqa: E501
-        recipient_str = json.loads(self._recipient.recipient_config_json)["target"]
+        try:
+            recipient_str = json.loads(self._recipient.recipient_config_json)["target"]
+        except (KeyError, TypeError, ValueError) as ex:
+            raise NotificationParamException(NO_SLACK_RECIPIENTS_MESSAGE) from ex
 
-        return recipients_string_to_list(recipient_str)
+        if not isinstance(recipient_str, str):
+            raise NotificationParamException(NO_SLACK_RECIPIENTS_MESSAGE)
+
+        return parse_slack_recipient_targets(recipient_str)
 
     def _get_inline_files(
         self,
@@ -132,24 +181,28 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
     def send(self) -> None:
         global_logs_context = getattr(g, "logs_context", {}) or {}
         try:
-            client = get_slack_client()
+            client = get_slack_client(for_delivery=True)
             title = self._content.name
             body = self._get_body(content=self._content)
 
             channels = self._get_channels()
 
             if not channels:
-                raise NotificationParamException("No recipients saved in the report")
+                raise NotificationParamException(NO_SLACK_RECIPIENTS_MESSAGE)
 
             file_type, files = self._get_inline_files()
-            file_name = f"{title}.{file_type}"
 
-            # files_upload returns SlackResponse as we run it in sync mode.
-            for channel in channels:
+            def send_to_channel(channel: str, retry_deadline: float) -> None:
                 if len(files) > 0:
+                    if file_type is None:
+                        raise SlackChannelResponseError(
+                            "Slack upload file type was not provided"
+                        )
+                    file_name = f"{title}.{file_type}"
                     for file in files:
-                        _call_slack_api(
-                            client.files_upload_v2,
+                        _upload_file_to_slack(
+                            client,
+                            retry_deadline=retry_deadline,
                             channel=channel,
                             file=file,
                             initial_comment=body,
@@ -157,7 +210,16 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
                             filename=file_name,
                         )
                 else:
-                    _call_slack_api(client.chat_postMessage, channel=channel, text=body)
+                    call_slack_api_with_timeout(
+                        client,
+                        client.chat_postMessage,
+                        retry_deadline=retry_deadline,
+                        retry_transient_errors=False,
+                        channel=channel,
+                        text=body,
+                    )
+
+            send_to_slack_channels(channels, send_to_channel)
 
             logger.info(
                 "Report sent to slack",
@@ -175,9 +237,7 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
             raise NotificationMalformedException(str(ex)) from ex
         except SlackTokenRotationError as ex:
             raise NotificationAuthorizationException(str(ex)) from ex
-        except (SlackClientNotConnectedError, SlackApiError) as ex:
-            raise NotificationUnprocessableException(str(ex)) from ex
         except SlackClientError as ex:
-            # this is the base class for all slack client errors
-            # keep it last so that it doesn't interfere with @backoff
+            # SlackClientError is the base class; keep it last so subclasses
+            # retain their more specific notification classification.
             raise NotificationUnprocessableException(str(ex)) from ex
