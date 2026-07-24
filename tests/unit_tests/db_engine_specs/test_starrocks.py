@@ -22,6 +22,7 @@ from pytest_mock import MockerFixture
 from sqlalchemy import JSON, types
 from sqlalchemy.engine.url import make_url
 
+from superset.constants import TimeGrain
 from superset.db_engine_specs.starrocks import (
     ARRAY,
     BITMAP,
@@ -231,8 +232,8 @@ def test_get_catalog_names(mocker: MockerFixture) -> None:
     # StarRocks returns rows with keys: ['Catalog', 'Type', 'Comment']
     mock_row_1 = mocker.MagicMock()
     mock_row_1.keys.return_value = ["Catalog", "Type", "Comment"]
-    mock_row_1.__getitem__ = (
-        lambda self, key: "default_catalog" if key == "Catalog" else None
+    mock_row_1.__getitem__ = lambda self, key: (
+        "default_catalog" if key == "Catalog" else None
     )
 
     mock_row_2 = mocker.MagicMock()
@@ -364,3 +365,23 @@ def test_get_prequeries_with_email_prefix_from_user_email_when_effective_user_di
     assert StarRocksEngineSpec.get_prequeries(database) == [
         'EXECUTE AS "alice.doe" WITH NO REVERT;'
     ]
+
+
+def test_time_grain_expressions_inherit_mysql() -> None:
+    """
+    Test that StarRocksEngineSpec inherits MySQL time grain expressions and
+    that the HOUR grain renders to the correct DATE_FORMAT truncation SQL.
+
+    StarRocks does not override _time_grain_expressions, so it reuses MySQL's
+    templates, including the HOUR grain. This asserts the rendered HOUR output
+    (not object identity) to guard against the HOUR-grain truncation regression.
+
+    Regression test for: ECharts HOUR grain generated invalid, over-truncated
+    SQL when the grain expression was normalized or proxied (#36798).
+    """
+    from superset.db_engine_specs.starrocks import StarRocksEngineSpec
+
+    actual = StarRocksEngineSpec._time_grain_expressions[TimeGrain.HOUR].replace(
+        "{col}", "my_col"
+    )
+    assert actual == "DATE_FORMAT(my_col, '%Y-%m-%d %H:00:00')"
