@@ -31,7 +31,7 @@ params:
     label: SUM(sales)
     optionName: metric_sales_pivot
   show_legend: true
-  time_grain_sqla: P1W
+  time_grain_sqla: P1M
   time_range: No filter
   viz_type: time_pivot
   x_axis_format: smart_date

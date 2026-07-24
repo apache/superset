@@ -20,6 +20,7 @@ certified_by: null
 dataset_uuid: a46c986d-8780-4745-91ff-7fefeef69f3c
 description: null
 params:
+  autozoom: false
   color_picker:
     a: 1
     b: 0
@@ -48,8 +49,8 @@ params:
     bearing: -2.3984797349335167
     latitude: 37.789795085160335
     longitude: -122.40632230075536
-    pitch: 54.08961642447763
-    zoom: 13.835465702403654
+    pitch: 50
+    zoom: 13.6
   viz_type: deck_hex
 query_context: null
 slice_name: Deck.gl Hexagons

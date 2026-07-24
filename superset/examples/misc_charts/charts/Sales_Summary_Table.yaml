@@ -17,32 +17,36 @@
 cache_timeout: null
 certification_details: null
 certified_by: null
-dataset_uuid: 69e9de42-fe7f-4948-946a-f7913227aee8
-description: null
+dataset_uuid: e8623bb9-5e00-f531-506a-19607f5f8005
+description: Sales, quantity and order counts by product line.
 params:
-  compare_lag: '10'
-  compare_suffix: o10Y
-  country_fieldtype: cca3
-  entity: country_code
-  granularity_sqla: year
-  groupby: []
-  limit: 25
-  markup_type: markdown
+  groupby:
+  - product_line
   metrics:
-  - sum__SP_POP_TOTL
-  - sum__SP_RUR_TOTL_ZS
-  - sum__SH_DYN_AIDS
-  - sum__SP_DYN_LE00_IN
-  row_limit: 50000
-  secondary_metric: sum__SP_POP_TOTL
-  series: country_name
-  show_bubbles: true
-  since: '2011-01-01'
-  time_range: '2014-01-01 : 2014-01-02'
-  until: '2012-01-01'
-  viz_type: para
+  - aggregate: SUM
+    column:
+      column_name: sales
+    expressionType: SIMPLE
+    label: SUM(sales)
+    optionName: metric_sales_tbl
+  - aggregate: SUM
+    column:
+      column_name: quantity_ordered
+    expressionType: SIMPLE
+    label: SUM(quantity_ordered)
+    optionName: metric_qty_tbl
+  - aggregate: COUNT_DISTINCT
+    column:
+      column_name: order_number
+    expressionType: SIMPLE
+    label: Orders
+    optionName: metric_orders_tbl
+  query_mode: aggregate
+  row_limit: 1000
+  time_range: No filter
+  viz_type: table
 query_context: null
-slice_name: Parallel Coordinates
-uuid: 48bf196c-f5fe-4e6c-b8ed-166e36b6648b
+slice_name: Sales Summary Table
+uuid: 4c3deb29-8057-4111-9f36-33a03c332d21
 version: 1.0.0
-viz_type: para
+viz_type: table

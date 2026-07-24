@@ -18,31 +18,24 @@ cache_timeout: null
 certification_details: null
 certified_by: null
 dataset_uuid: 69e9de42-fe7f-4948-946a-f7913227aee8
-description: null
+description: World population by region and country with the total shown.
 params:
-  compare_lag: '10'
-  compare_suffix: o10Y
-  country_fieldtype: cca3
-  entity: country_code
+  color_scheme: supersetColors
+  columns:
+  - region
+  - country_name
   granularity_sqla: year
-  groupby: []
-  limit: 25
-  markup_type: markdown
-  metrics:
-  - sum__SP_POP_TOTL
-  - sum__SP_RUR_TOTL_ZS
-  - sum__SH_DYN_AIDS
-  - sum__SP_DYN_LE00_IN
+  label_type: key
+  metric: sum__SP_POP_TOTL
+  number_format: SMART_NUMBER
   row_limit: 50000
-  secondary_metric: sum__SP_POP_TOTL
-  series: country_name
-  show_bubbles: true
-  since: '2011-01-01'
+  show_labels: true
+  show_labels_threshold: 3
+  show_total: true
   time_range: '2014-01-01 : 2014-01-02'
-  until: '2012-01-01'
-  viz_type: para
+  viz_type: sunburst_v2
 query_context: null
-slice_name: Parallel Coordinates
-uuid: 48bf196c-f5fe-4e6c-b8ed-166e36b6648b
+slice_name: Population Sunburst
+uuid: 93f675fb-0b7f-4600-bcae-746c66f1f4b2
 version: 1.0.0
-viz_type: para
+viz_type: sunburst_v2

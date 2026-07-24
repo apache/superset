@@ -18,31 +18,37 @@ cache_timeout: null
 certification_details: null
 certified_by: null
 dataset_uuid: 69e9de42-fe7f-4948-946a-f7913227aee8
-description: null
+description: World rural population share on a colored gauge.
 params:
-  compare_lag: '10'
-  compare_suffix: o10Y
-  country_fieldtype: cca3
-  entity: country_code
+  adhoc_filters: []
+  animation: false
+  color_scheme: supersetColors
+  end_angle: -45
+  font_size: 14
   granularity_sqla: year
-  groupby: []
-  limit: 25
-  markup_type: markdown
-  metrics:
-  - sum__SP_POP_TOTL
-  - sum__SP_RUR_TOTL_ZS
-  - sum__SH_DYN_AIDS
-  - sum__SP_DYN_LE00_IN
-  row_limit: 50000
-  secondary_metric: sum__SP_POP_TOTL
-  series: country_name
-  show_bubbles: true
-  since: '2011-01-01'
+  interval_color_indices: 1,2,3
+  intervals: 33,66,100
+  max_val: 100
+  metric:
+    aggregate: AVG
+    column:
+      column_name: SP_RUR_TOTL_ZS
+    expressionType: SIMPLE
+    label: Rural share
+    optionName: metric_rural_gauge
+  min_val: 0
+  number_format: .0f
+  show_axis_tick: true
+  show_pointer: true
+  show_progress: false
+  show_split_line: true
+  split_number: 10
+  start_angle: 225
   time_range: '2014-01-01 : 2014-01-02'
-  until: '2012-01-01'
-  viz_type: para
+  value_formatter: '{value}%'
+  viz_type: gauge_chart
 query_context: null
-slice_name: Parallel Coordinates
-uuid: 48bf196c-f5fe-4e6c-b8ed-166e36b6648b
+slice_name: Rural Population Gauge
+uuid: 3c504d55-0ad2-4b45-95d7-f857e800ee6a
 version: 1.0.0
-viz_type: para
+viz_type: gauge_chart

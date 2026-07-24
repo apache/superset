@@ -28,11 +28,11 @@ params:
   mapbox_style: OpenStreetMap
   point_radius: Auto
   point_radius_unit: Pixels
-  row_limit: 5000
+  row_limit: 50000
   time_range: No filter
-  viewport_latitude: 37.78926922909199
-  viewport_longitude: -122.42613341901688
-  viewport_zoom: 12
+  viewport_latitude: 37.76
+  viewport_longitude: -122.46
+  viewport_zoom: 11.5
   viz_type: point_cluster_map
 query_context: null
 slice_name: Point Cluster Map

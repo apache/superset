@@ -46,6 +46,25 @@ metadata:
     - 0c2ec098-172e-436f-ad89-803e8e939156
     - c50f8942-080d-4bab-8a2a-3889f490d03d
     - c35ddd67-03af-4f99-a316-86665adf89d5
+    - 36b63a1e-3103-428c-b451-d74f9aa3c77d
+    - 216fd61c-8334-40c6-9351-e3e64c0a5ac1
+    - cfab9bd3-2a6b-42f8-bdd9-bd6a9a419b24
+    - 3c504d55-0ad2-4b45-95d7-f857e800ee6a
+    - bb95c672-d4f7-4c39-a6ab-c567137dc15e
+    - a252bf18-7dcd-4728-977f-1453725fd6d2
+    - 7ce4e7a4-8014-4dff-9b71-072f6ba2dfa4
+    - 86e12cd7-1d2b-407b-ad3e-20f11ccbbcc2
+    - f67eeb12-6ca8-4ecd-adc2-51ec6ed31554
+    - 93f675fb-0b7f-4600-bcae-746c66f1f4b2
+    - 049651a5-6b46-4976-a8af-2d539169eea6
+    - 6438d630-b06b-4acc-9536-f97ff99e0249
+    - d7a1bf35-1cf3-4934-8ad7-0c0ba0c7a4ec
+    - e9a1e34c-b4ed-4750-89db-c8c19f4f096a
+    - e14db38f-fb27-41f6-b31f-c8d1a909cc4c
+    - ea2ac891-ed79-48e3-8de6-5dd5f39edf8f
+    - b8075180-6ec9-412a-a3c9-2d4079d44f5d
+    - 4c3deb29-8057-4111-9f36-33a03c332d21
+    - b71548cd-6209-4713-99a8-569167cd8f42
     scope:
       excluded: []
       rootPath:
@@ -244,7 +263,7 @@ position:
     meta:
       chartId: 90008
       height: 69
-      sliceName: Region Population Time Table
+      sliceName: Product Line Time Table
       uuid: 55ad4f1d-debc-42c7-b359-f9bbdb569a10
       width: 6
     parents:
@@ -350,6 +369,272 @@ position:
     - GRID_ID
     - ROW-misc-extra-5
     type: CHART
+  CHART-misc-chord2:
+    children: []
+    id: CHART-misc-chord2
+    meta:
+      chartId: 90020
+      height: 69
+      sliceName: Product Line Chord
+      uuid: 36b63a1e-3103-428c-b451-d74f9aa3c77d
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-thumbs-1
+    type: CHART
+  CHART-misc-bignum:
+    children: []
+    id: CHART-misc-bignum
+    meta:
+      chartId: 90021
+      height: 69
+      sliceName: Sales Year over Year
+      uuid: 216fd61c-8334-40c6-9351-e3e64c0a5ac1
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-thumbs-1
+    type: CHART
+  CHART-misc-funnel:
+    children: []
+    id: CHART-misc-funnel
+    meta:
+      chartId: 90022
+      height: 69
+      sliceName: Population Funnel
+      uuid: cfab9bd3-2a6b-42f8-bdd9-bd6a9a419b24
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-thumbs-2
+    type: CHART
+  CHART-misc-gauge:
+    children: []
+    id: CHART-misc-gauge
+    meta:
+      chartId: 90023
+      height: 69
+      sliceName: Rural Population Gauge
+      uuid: 3c504d55-0ad2-4b45-95d7-f857e800ee6a
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-thumbs-2
+    type: CHART
+  CHART-misc-heat2:
+    children: []
+    id: CHART-misc-heat2
+    meta:
+      chartId: 90024
+      height: 69
+      sliceName: Sales Grid Heatmap
+      uuid: bb95c672-d4f7-4c39-a6ab-c567137dc15e
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-thumbs-3
+    type: CHART
+  CHART-misc-histogram:
+    children: []
+    id: CHART-misc-histogram
+    meta:
+      chartId: 90025
+      height: 69
+      sliceName: Life Expectancy Histogram
+      uuid: a252bf18-7dcd-4728-977f-1453725fd6d2
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-thumbs-3
+    type: CHART
+  CHART-misc-mixed:
+    children: []
+    id: CHART-misc-mixed
+    meta:
+      chartId: 90026
+      height: 69
+      sliceName: Sales Mixed Chart
+      uuid: 7ce4e7a4-8014-4dff-9b71-072f6ba2dfa4
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-thumbs-4
+    type: CHART
+  CHART-misc-donut:
+    children: []
+    id: CHART-misc-donut
+    meta:
+      chartId: 90027
+      height: 69
+      sliceName: Product Line Donut
+      uuid: 86e12cd7-1d2b-407b-ad3e-20f11ccbbcc2
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-thumbs-4
+    type: CHART
+  CHART-misc-radar:
+    children: []
+    id: CHART-misc-radar
+    meta:
+      chartId: 90028
+      height: 69
+      sliceName: Game Sales Radar
+      uuid: f67eeb12-6ca8-4ecd-adc2-51ec6ed31554
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-thumbs-5
+    type: CHART
+  CHART-misc-sunburst:
+    children: []
+    id: CHART-misc-sunburst
+    meta:
+      chartId: 90029
+      height: 69
+      sliceName: Population Sunburst
+      uuid: 93f675fb-0b7f-4600-bcae-746c66f1f4b2
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-thumbs-5
+    type: CHART
+  CHART-misc-area2:
+    children: []
+    id: CHART-misc-area2
+    meta:
+      chartId: 90030
+      height: 69
+      sliceName: Sales Stacked Area
+      uuid: 049651a5-6b46-4976-a8af-2d539169eea6
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-thumbs-6
+    type: CHART
+  CHART-misc-bars:
+    children: []
+    id: CHART-misc-bars
+    meta:
+      chartId: 90031
+      height: 69
+      sliceName: Sales Stacked Bars
+      uuid: 6438d630-b06b-4acc-9536-f97ff99e0249
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-thumbs-6
+    type: CHART
+  CHART-misc-line2:
+    children: []
+    id: CHART-misc-line2
+    meta:
+      chartId: 90032
+      height: 69
+      sliceName: Monthly Sales Line
+      uuid: d7a1bf35-1cf3-4934-8ad7-0c0ba0c7a4ec
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-thumbs-7
+    type: CHART
+  CHART-misc-smooth2:
+    children: []
+    id: CHART-misc-smooth2
+    meta:
+      chartId: 90033
+      height: 69
+      sliceName: Monthly Sales Smooth
+      uuid: e9a1e34c-b4ed-4750-89db-c8c19f4f096a
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-thumbs-7
+    type: CHART
+  CHART-misc-step2:
+    children: []
+    id: CHART-misc-step2
+    meta:
+      chartId: 90034
+      height: 69
+      sliceName: Quarterly Sales Steps
+      uuid: e14db38f-fb27-41f6-b31f-c8d1a909cc4c
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-thumbs-8
+    type: CHART
+  CHART-misc-treemap2:
+    children: []
+    id: CHART-misc-treemap2
+    meta:
+      chartId: 90035
+      height: 69
+      sliceName: Population Treemap
+      uuid: ea2ac891-ed79-48e3-8de6-5dd5f39edf8f
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-thumbs-8
+    type: CHART
+  CHART-misc-waterfall:
+    children: []
+    id: CHART-misc-waterfall
+    meta:
+      chartId: 90036
+      height: 69
+      sliceName: Monthly Sales Waterfall
+      uuid: b8075180-6ec9-412a-a3c9-2d4079d44f5d
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-thumbs-9
+    type: CHART
+  CHART-misc-table2:
+    children: []
+    id: CHART-misc-table2
+    meta:
+      chartId: 90037
+      height: 69
+      sliceName: Sales Summary Table
+      uuid: 4c3deb29-8057-4111-9f36-33a03c332d21
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-thumbs-9
+    type: CHART
+  CHART-misc-pivot2:
+    children: []
+    id: CHART-misc-pivot2
+    meta:
+      chartId: 90038
+      height: 69
+      sliceName: Sales Pivot Highlights
+      uuid: b71548cd-6209-4713-99a8-569167cd8f42
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-thumbs-10
+    type: CHART
   DASHBOARD_VERSION_KEY: v2
   GRID_ID:
     children:
@@ -363,6 +648,16 @@ position:
     - ROW-misc-extra-3
     - ROW-misc-extra-4
     - ROW-misc-extra-5
+    - ROW-misc-thumbs-1
+    - ROW-misc-thumbs-2
+    - ROW-misc-thumbs-3
+    - ROW-misc-thumbs-4
+    - ROW-misc-thumbs-5
+    - ROW-misc-thumbs-6
+    - ROW-misc-thumbs-7
+    - ROW-misc-thumbs-8
+    - ROW-misc-thumbs-9
+    - ROW-misc-thumbs-10
     id: GRID_ID
     parents:
     - ROOT_ID
@@ -479,6 +774,115 @@ position:
     children:
     - CHART-misc-point-cluster
     id: ROW-misc-extra-5
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    type: ROW
+  ROW-misc-thumbs-1:
+    children:
+    - CHART-misc-chord2
+    - CHART-misc-bignum
+    id: ROW-misc-thumbs-1
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    type: ROW
+  ROW-misc-thumbs-2:
+    children:
+    - CHART-misc-funnel
+    - CHART-misc-gauge
+    id: ROW-misc-thumbs-2
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    type: ROW
+  ROW-misc-thumbs-3:
+    children:
+    - CHART-misc-heat2
+    - CHART-misc-histogram
+    id: ROW-misc-thumbs-3
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    type: ROW
+  ROW-misc-thumbs-4:
+    children:
+    - CHART-misc-mixed
+    - CHART-misc-donut
+    id: ROW-misc-thumbs-4
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    type: ROW
+  ROW-misc-thumbs-5:
+    children:
+    - CHART-misc-radar
+    - CHART-misc-sunburst
+    id: ROW-misc-thumbs-5
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    type: ROW
+  ROW-misc-thumbs-6:
+    children:
+    - CHART-misc-area2
+    - CHART-misc-bars
+    id: ROW-misc-thumbs-6
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    type: ROW
+  ROW-misc-thumbs-7:
+    children:
+    - CHART-misc-line2
+    - CHART-misc-smooth2
+    id: ROW-misc-thumbs-7
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    type: ROW
+  ROW-misc-thumbs-8:
+    children:
+    - CHART-misc-step2
+    - CHART-misc-treemap2
+    id: ROW-misc-thumbs-8
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    type: ROW
+  ROW-misc-thumbs-9:
+    children:
+    - CHART-misc-waterfall
+    - CHART-misc-table2
+    id: ROW-misc-thumbs-9
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    type: ROW
+  ROW-misc-thumbs-10:
+    children:
+    - CHART-misc-pivot2
+    id: ROW-misc-thumbs-10
     meta:
       background: BACKGROUND_TRANSPARENT
     parents:

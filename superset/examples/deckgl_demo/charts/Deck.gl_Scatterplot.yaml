@@ -20,6 +20,7 @@ certified_by: null
 dataset_uuid: a46c986d-8780-4745-91ff-7fefeef69f3c
 description: null
 params:
+  autozoom: false
   color_picker:
     a: 0.82
     b: 3
@@ -49,7 +50,7 @@ params:
     latitude: 37.78926922909199
     longitude: -122.42613341901688
     pitch: 4.750411100577438
-    zoom: 12.729132798697304
+    zoom: 13.8
   viz_type: deck_scatter
 query_context: null
 slice_name: Deck.gl Scatterplot
