@@ -249,7 +249,8 @@ test('preserves a null metric instead of plotting it as 0', () => {
   const result = transformProps(missingValueProps as EchartsRadarChartProps);
   const series = result.echartOptions.series as RadarSeriesOption[];
   const value = (series[0].data as RadarSeriesData[])[0].value as (
-    number | null
+    | number
+    | null
   )[];
 
   // Index 1 corresponds to 'SUM(other_sales)', which was null in the datum.
@@ -257,6 +258,46 @@ test('preserves a null metric instead of plotting it as 0', () => {
   // not draw a point at the center. On master this is 0, so this fails.
   expect(value[1]).not.toBe(0);
   expect(value[1] == null).toBe(true);
+});
+
+test('keeps a lone zero metric as 0 instead of NaN when all others are null', () => {
+  // Edge case: when a series' only non-null metric is a real 0, the
+  // per-series max is 0 and `0 / 0` is NaN. The zero must survive
+  // normalization as a plottable 0 while the nulls stay gaps.
+  const props = new ChartProps({
+    formData: {
+      ...formData,
+      columnConfig: {},
+      groupby: ['name'],
+      metrics: ['SUM(jp_sales)', 'SUM(other_sales)', 'SUM(eu_sales)'],
+    },
+    width: 800,
+    height: 600,
+    queriesData: [
+      {
+        data: [
+          {
+            name: 'Series A',
+            'SUM(jp_sales)': null,
+            'SUM(other_sales)': 0,
+            'SUM(eu_sales)': null,
+          },
+        ],
+      },
+    ],
+    theme: supersetTheme,
+  });
+
+  const result = transformProps(props as EchartsRadarChartProps);
+  const series = result.echartOptions.series as RadarSeriesOption[];
+  const value = (series[0].data as RadarSeriesData[])[0].value as (
+    | number
+    | null
+  )[];
+
+  expect(value[0] == null).toBe(true);
+  expect(value[1]).toBe(0);
+  expect(value[2] == null).toBe(true);
 });
 
 test('label formatter renders a missing metric as blank instead of NaN', () => {

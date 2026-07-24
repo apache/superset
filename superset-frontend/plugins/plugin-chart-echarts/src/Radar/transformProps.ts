@@ -295,7 +295,11 @@ export default function transformProps(
       const max = Math.max(
         ...arr.filter((v): v is number => v != null && Number.isFinite(v)),
       );
-      const normalizedValue = Number((value / max).toFixed(decimals));
+      // A series whose only finite value is a real 0 has max === 0, and
+      // dividing by it turns that 0 into NaN. Pass the value through
+      // unscaled instead so the lone zero still plots at the center.
+      const normalizedValue =
+        max === 0 ? value : Number((value / max).toFixed(decimals));
 
       denormalizedSeriesValues[seriesName][String(normalizedValue)] = value;
       return normalizedValue;
