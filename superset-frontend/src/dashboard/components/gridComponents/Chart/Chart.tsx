@@ -320,11 +320,39 @@ const Chart = (props: ChartProps) => {
   );
 
   useLayoutEffect(() => {
-    if (isExpanded && descriptionRef.current) {
-      setDescriptionHeight(descriptionRef.current.offsetHeight);
-    } else {
+    if (!isExpanded || !descriptionRef.current) {
       setDescriptionHeight(0);
+      return undefined;
     }
+
+    let isDescriptionHeightSet = false;
+    const initialHeight = descriptionRef.current.offsetHeight;
+    if (initialHeight > 0) {
+      setDescriptionHeight(initialHeight);
+      isDescriptionHeightSet = true;
+    }
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver(entries => {
+        for (const entry of entries) {
+          if (entry.target === descriptionRef.current) {
+            const height = (entry.target as HTMLElement).offsetHeight;
+            if (height > 0 || !isDescriptionHeightSet) {
+              setDescriptionHeight(height);
+              isDescriptionHeightSet = true;
+            }
+          }
+        }
+      });
+
+      observer.observe(descriptionRef.current);
+
+      return () => {
+        observer.disconnect();
+      };
+    }
+
+    return undefined;
   }, [isExpanded]);
 
   useEffect(
