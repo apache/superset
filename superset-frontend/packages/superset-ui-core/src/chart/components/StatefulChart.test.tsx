@@ -68,9 +68,7 @@ beforeEach(() => {
 
   // Setup default registry mocks
   jest.mocked(getChartMetadataRegistry).mockReturnValue({
-    get: jest.fn().mockReturnValue({
-      useLegacyApi: false,
-    }),
+    get: jest.fn().mockReturnValue({}),
   } as unknown as ReturnType<typeof getChartMetadataRegistry>);
 
   jest.mocked(getChartBuildQueryRegistry).mockReturnValue({
@@ -746,11 +744,10 @@ test('resolves async (202) responses via the injected handleAsyncChartData hook'
   await waitFor(() => {
     expect(handleAsyncChartData).toHaveBeenCalledTimes(1);
   });
-  // Delegates the raw response + job metadata (and useLegacyApi + abort signal)
+  // Delegates the raw response + job metadata (and the abort signal)
   expect(handleAsyncChartData).toHaveBeenCalledWith(
     { status: 202 },
     asyncJob,
-    false,
     expect.any(AbortSignal),
   );
   // Chart renders once the async data resolves
@@ -796,43 +793,6 @@ test('renders synchronous (200) responses that include a response object', async
   });
   // Synchronous path: no async handler needed, single request
   expect(mockChartClient.client.post).toHaveBeenCalledTimes(1);
-});
-
-test('wraps the legacy async body as { result: [body] } for the async handler', async () => {
-  const legacyBody = { job_id: 'j1', channel_id: 'c1', status: 'running' };
-  mockChartClient.client.post.mockResolvedValue({
-    response: { status: 202 } as Response,
-    json: legacyBody,
-  });
-  // Force the legacy API path for this viz type
-  jest.mocked(getChartMetadataRegistry).mockReturnValue({
-    get: jest.fn().mockReturnValue({ useLegacyApi: true }),
-  } as unknown as ReturnType<typeof getChartMetadataRegistry>);
-  const handleAsyncChartData = jest
-    .fn()
-    .mockResolvedValue([{ data: 'legacy result' }]);
-
-  const { getByTestId } = render(
-    <StatefulChart
-      formData={mockFormData}
-      chartType="test_chart"
-      hooks={{ handleAsyncChartData }}
-    />,
-  );
-
-  await waitFor(() => {
-    expect(handleAsyncChartData).toHaveBeenCalledTimes(1);
-  });
-  // Legacy body must be wrapped to match the V1 response signature
-  expect(handleAsyncChartData).toHaveBeenCalledWith(
-    { status: 202 },
-    { result: [legacyBody] },
-    true,
-    expect.any(AbortSignal),
-  );
-  await waitFor(() => {
-    expect(getByTestId('super-chart')).toBeInTheDocument();
-  });
 });
 
 test('does not apply a superseded async response over a newer one', async () => {
@@ -1040,7 +1000,7 @@ test('passes an abort signal to the async handler and aborts it on unmount', asy
   await waitFor(() => {
     expect(handleAsyncChartData).toHaveBeenCalledTimes(1);
   });
-  const signal = handleAsyncChartData.mock.calls[0][3] as AbortSignal;
+  const signal = handleAsyncChartData.mock.calls[0][2] as AbortSignal;
   expect(signal).toBeInstanceOf(AbortSignal);
   expect(signal.aborted).toBe(false);
 

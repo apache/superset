@@ -22,23 +22,17 @@ import {
   Preset,
   VizType,
 } from '@superset-ui/core';
-import CalendarChartPlugin from '@superset-ui/legacy-plugin-chart-calendar';
-import ChordChartPlugin from '@superset-ui/legacy-plugin-chart-chord';
-import CountryMapChartPlugin from '@superset-ui/legacy-plugin-chart-country-map';
-import HorizonChartPlugin from '@superset-ui/legacy-plugin-chart-horizon';
-import PairedTTestChartPlugin from '@superset-ui/legacy-plugin-chart-paired-t-test';
-import ParallelCoordinatesChartPlugin from '@superset-ui/legacy-plugin-chart-parallel-coordinates';
-import PartitionChartPlugin from '@superset-ui/legacy-plugin-chart-partition';
-import RoseChartPlugin from '@superset-ui/legacy-plugin-chart-rose';
+import CalendarChartPlugin from '@superset-ui/plugin-chart-calendar';
+import ChordChartPlugin from '@superset-ui/plugin-chart-chord';
+import CountryMapChartPlugin from '@superset-ui/plugin-chart-country-map';
+import HorizonChartPlugin from '@superset-ui/plugin-chart-horizon';
+import PairedTTestChartPlugin from '@superset-ui/plugin-chart-paired-t-test';
+import ParallelCoordinatesChartPlugin from '@superset-ui/plugin-chart-parallel-coordinates';
+import PartitionChartPlugin from '@superset-ui/plugin-chart-partition';
+import RoseChartPlugin from '@superset-ui/plugin-chart-rose';
 import TableChartPlugin from '@superset-ui/plugin-chart-table';
 import { WordCloudChartPlugin } from '@superset-ui/plugin-chart-word-cloud';
-import WorldMapChartPlugin from '@superset-ui/legacy-plugin-chart-world-map';
-import {
-  BubbleChartPlugin,
-  BulletChartPlugin,
-  CompareChartPlugin,
-  TimePivotChartPlugin,
-} from '@superset-ui/legacy-preset-chart-nvd3';
+import WorldMapChartPlugin from '@superset-ui/plugin-chart-world-map';
 import { DeckGLChartPreset } from '@superset-ui/preset-chart-deckgl';
 import ScatterMapChartPlugin from '@superset-ui/plugin-chart-point-cluster-map';
 import { CartodiagramPlugin } from '@superset-ui/plugin-chart-cartodiagram';
@@ -69,6 +63,8 @@ import {
   BigNumberPeriodOverPeriodChartPlugin,
   EchartsHeatmapChartPlugin,
   EchartsGanttChartPlugin,
+  EchartsTimePivotChartPlugin,
+  EchartsBulletChartPlugin,
 } from '@superset-ui/plugin-chart-echarts';
 import {
   SelectFilterPlugin,
@@ -114,11 +110,9 @@ export default class MainPreset extends Preset {
           key: VizType.BigNumberTotal,
         }),
         new EchartsBoxPlotChartPlugin().configure({ key: VizType.BoxPlot }),
-        new BubbleChartPlugin().configure({ key: VizType.LegacyBubble }),
-        new BulletChartPlugin().configure({ key: VizType.Bullet }),
+        new EchartsBulletChartPlugin().configure({ key: VizType.Bullet }),
         new CalendarChartPlugin().configure({ key: VizType.Calendar }),
         new ChordChartPlugin().configure({ key: VizType.Chord }),
-        new CompareChartPlugin().configure({ key: VizType.Compare }),
         new CountryMapChartPlugin().configure({ key: VizType.CountryMap }),
         new EchartsFunnelChartPlugin().configure({ key: VizType.Funnel }),
         new EchartsSankeyChartPlugin().configure({ key: VizType.Sankey }),
@@ -141,7 +135,7 @@ export default class MainPreset extends Preset {
         new PivotTableChartPluginV2().configure({ key: VizType.PivotTable }),
         new RoseChartPlugin().configure({ key: VizType.Rose }),
         new TableChartPlugin().configure({ key: VizType.Table }),
-        new TimePivotChartPlugin().configure({ key: VizType.TimePivot }),
+        new EchartsTimePivotChartPlugin().configure({ key: VizType.TimePivot }),
         new TimeTableChartPlugin().configure({ key: VizType.TimeTable }),
         new WordCloudChartPlugin().configure({ key: VizType.WordCloud }),
         new WorldMapChartPlugin().configure({ key: VizType.WorldMap }),

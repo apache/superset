@@ -34,19 +34,14 @@ from flask import (
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import _
-from sqlalchemy.exc import NoResultFound
 
-from superset import appbuilder, dataframe, db, result_set, viz
+from superset import appbuilder, dataframe, db, result_set
 from superset.common.db_query_status import QueryStatus
-from superset.daos.datasource import DatasourceDAO
-from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
-    CacheLoadError,
     SerializationError,
     SupersetException,
-    SupersetSecurityException,
 )
-from superset.extensions import cache_manager, security_manager
+from superset.extensions import security_manager
 from superset.legacy import update_time_range
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
@@ -60,7 +55,6 @@ from superset.superset_typing import (
 from superset.utils import json
 from superset.utils.core import DatasourceType
 from superset.utils.decorators import stats_timing
-from superset.viz import BaseViz
 
 logger = logging.getLogger(__name__)
 stats_logger = app.config["STATS_LOGGER"]
@@ -162,24 +156,6 @@ def get_permissions(
     for perm in data_permissions:
         transformed_permissions[perm] = list(data_permissions[perm])
     return roles_permissions, transformed_permissions
-
-
-def get_viz(
-    form_data: FormData,
-    datasource_type: str,
-    datasource_id: int,
-    force: bool = False,
-    force_cached: bool = False,
-) -> BaseViz:
-    viz_type = form_data.get("viz_type", "table")
-    datasource = DatasourceDAO.get_datasource(
-        DatasourceType(datasource_type),
-        datasource_id,
-    )
-    viz_obj = viz.viz_types[viz_type](
-        datasource, form_data=form_data, force=force, force_cached=force_cached
-    )
-    return viz_obj
 
 
 def loads_request_json(request_json_data: str) -> dict[Any, Any]:
@@ -615,81 +591,6 @@ def check_resource_permissions(
         return wrapper
 
     return decorator
-
-
-def check_explore_cache_perms(_self: Any, cache_key: str) -> None:
-    """
-    Loads async explore_json request data from cache and performs access check
-
-    :param _self: the Superset view instance
-    :param cache_key: the cache key passed into /explore_json/data/
-    :raises SupersetSecurityException: If the user cannot access the resource
-    """
-    cached = cache_manager.cache.get(cache_key)
-    if not cached:
-        raise CacheLoadError("Cached data not found")
-
-    check_datasource_perms(_self, form_data=cached["form_data"])
-
-
-def check_datasource_perms(
-    _self: Any,
-    datasource_type: Optional[str] = None,
-    datasource_id: Optional[int] = None,
-    **kwargs: Any,
-) -> None:
-    """
-    Check if user can access a cached response from explore_json.
-
-    This function takes `self` since it must have the same signature as the
-    the decorated method.
-
-    :param datasource_type: The datasource type
-    :param datasource_id: The datasource ID
-    :raises SupersetSecurityException: If the user cannot access the resource
-    """
-
-    form_data = kwargs["form_data"] if "form_data" in kwargs else get_form_data()[0]
-
-    try:
-        datasource_id, datasource_type = get_datasource_info(
-            datasource_id, datasource_type, form_data
-        )
-    except SupersetException as ex:
-        raise SupersetSecurityException(
-            SupersetError(
-                error_type=SupersetErrorType.FAILED_FETCHING_DATASOURCE_INFO_ERROR,
-                level=ErrorLevel.ERROR,
-                message=str(ex),
-            )
-        ) from ex
-
-    if datasource_type is None:
-        raise SupersetSecurityException(
-            SupersetError(
-                error_type=SupersetErrorType.UNKNOWN_DATASOURCE_TYPE_ERROR,
-                level=ErrorLevel.ERROR,
-                message=_("Could not determine datasource type"),
-            )
-        )
-
-    try:
-        viz_obj = get_viz(
-            datasource_type=datasource_type,
-            datasource_id=datasource_id,
-            form_data=form_data,
-            force=False,
-        )
-    except NoResultFound as ex:
-        raise SupersetSecurityException(
-            SupersetError(
-                error_type=SupersetErrorType.UNKNOWN_DATASOURCE_TYPE_ERROR,
-                level=ErrorLevel.ERROR,
-                message=_("Could not find viz object"),
-            )
-        ) from ex
-
-    viz_obj.raise_for_access()
 
 
 def _deserialize_results_payload(

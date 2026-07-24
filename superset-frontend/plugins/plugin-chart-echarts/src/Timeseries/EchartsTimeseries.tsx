@@ -27,6 +27,7 @@ import {
   LegendState,
   ensureIsArray,
 } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/theme';
 import type {
   ECElementEvent,
   ViewRootGroup,
@@ -35,6 +36,11 @@ import type GlobalModel from 'echarts/types/src/model/Global';
 import type ComponentModel from 'echarts/types/src/model/Component';
 import { EchartsHandler, EventHandlers } from '../types';
 import Echart from '../components/Echart';
+import {
+  rebaseSeriesData,
+  snapToNearestX,
+  SeriesDataPoint,
+} from './percentChange';
 import { OrientationType, TimeseriesChartTransformedProps } from './types';
 import { formatSeriesName } from '../utils/series';
 import { ExtraControls } from '../components/ExtraControls';
@@ -63,10 +69,149 @@ export default function EchartsTimeseries({
   onLegendScroll,
 }: TimeseriesChartTransformedProps) {
   const { stack } = formData;
+  const theme = useTheme();
   const echartRef = useRef<EchartsHandler | null>(null);
   // eslint-disable-next-line no-param-reassign
   refs.echartRef = echartRef;
   const clickTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  // Draggable percent-change baseline: when the rebase view is active, a
+  // vertical line is drawn on the plot; dragging it re-indexes every series
+  // to the hovered point via the composable rebase, entirely client-side.
+  const rebaseEnabled = Boolean(
+    (formData as { rebasePercentChange?: boolean }).rebasePercentChange,
+  );
+  // Persists the dragged baseline across effect reruns (e.g. resizes or
+  // other option changes) so those don't silently snap it back to the
+  // first point.
+  const baselineXRef = useRef<number | string | null>(null);
+  useEffect(() => {
+    if (!rebaseEnabled) return undefined;
+    const chart = echartRef.current?.getEchartInstance?.();
+    if (!chart) return undefined;
+
+    const option = chart.getOption() as {
+      series?: { data?: SeriesDataPoint[] }[];
+    };
+    const baseSeries = (option.series ?? []).map(s =>
+      Array.isArray(s.data)
+        ? (s.data.filter(Array.isArray) as SeriesDataPoint[])
+        : [],
+    );
+    // Preserve the axis' native x type: numeric for time/value axes,
+    // string for category axes (coercing categories with Number() would
+    // turn them into NaN and break snapping/positioning below).
+    const xs = Array.from(new Set(baseSeries.flat().map(([x]) => x)));
+    if (xs.length === 0) return undefined;
+    if (typeof xs[0] === 'number') {
+      (xs as number[]).sort((a, b) => a - b);
+    }
+    let baselineX =
+      baselineXRef.current !== null && xs.includes(baselineXRef.current)
+        ? baselineXRef.current
+        : xs[0];
+    baselineXRef.current = baselineX;
+    // Coalesces drag updates to at most one setOption per animation
+    // frame; rebasing every series on every raw pointer-move event
+    // can stutter on large charts.
+    let dragFrame: ReturnType<typeof requestAnimationFrame> | null = null;
+
+    const applyBaseline = (newX: number | string) => {
+      baselineX = newX;
+      baselineXRef.current = newX;
+      chart.setOption({
+        series: baseSeries.map(data => ({
+          data: rebaseSeriesData(data, newX),
+        })),
+      });
+    };
+
+    const drawHandle = () => {
+      // Cap the handle to the plot area so it doesn't run through the
+      // legend above or the axis labels below.
+      let gridRect = { top: 0, height: chart.getHeight() };
+      try {
+        const rect = (
+          chart as unknown as {
+            getModel: () => {
+              getComponent: (
+                type: string,
+                index: number,
+              ) => {
+                coordinateSystem: {
+                  getRect: () => { y: number; height: number };
+                };
+              };
+            };
+          }
+        )
+          .getModel()
+          .getComponent('grid', 0)
+          .coordinateSystem.getRect();
+        gridRect = { top: rect.y, height: rect.height };
+      } catch {
+        // fall back to the full chart height
+      }
+      let px: number;
+      try {
+        [px] = [chart.convertToPixel({ xAxisIndex: 0 }, baselineX) as number];
+      } catch {
+        return;
+      }
+      chart.setOption({
+        graphic: [
+          {
+            id: 'percent-change-baseline',
+            // only group elements support children in the graphic API
+            type: 'group',
+            x: px - 4,
+            y: gridRect.top,
+            cursor: 'ew-resize',
+            draggable: true,
+            z: 100,
+            ondrag(this: { x: number; y: number }) {
+              this.y = gridRect.top;
+              const dataX = chart.convertFromPixel(
+                { xAxisIndex: 0 },
+                this.x + 4,
+              ) as number | string;
+              if (dragFrame !== null) return;
+              dragFrame = requestAnimationFrame(() => {
+                dragFrame = null;
+                const snapped = snapToNearestX(xs, dataX);
+                if (snapped !== undefined && snapped !== baselineX) {
+                  applyBaseline(snapped);
+                }
+              });
+            },
+            ondragend: () => drawHandle(),
+            children: [
+              {
+                type: 'rect',
+                shape: { x: 0, y: 0, width: 8, height: gridRect.height },
+                style: { fill: theme.colorFillSecondary },
+              },
+              {
+                type: 'rect',
+                shape: { x: 3, y: 0, width: 2, height: gridRect.height },
+                style: { fill: theme.colorTextSecondary },
+              },
+            ],
+          },
+        ],
+      });
+    };
+    drawHandle();
+
+    return () => {
+      if (dragFrame !== null) {
+        cancelAnimationFrame(dragFrame);
+      }
+      chart.setOption({
+        graphic: [{ id: 'percent-change-baseline', $action: 'remove' }],
+      });
+    };
+  }, [rebaseEnabled, echartOptions, width, height, theme]);
   const extraControlRef = useRef<HTMLDivElement>(null);
   const [extraControlHeight, setExtraControlHeight] = useState(0);
   useEffect(() => {

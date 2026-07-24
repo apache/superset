@@ -2201,7 +2201,8 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
                 "result": [
                     {
                         "chart_id": slc.id,
-                        "viz_error": "Chart's query context does not exist",
+                        "viz_error": "Chart's query context does not exist. Open the "
+                        "chart in Explore once (or re-save it) to generate it.",
                         "viz_status": None,
                     },
                 ],
@@ -2228,7 +2229,8 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
                 "result": [
                     {
                         "chart_id": slc.id,
-                        "viz_error": "Chart's query context does not exist",
+                        "viz_error": "Chart's query context does not exist. Open the "
+                        "chart in Explore once (or re-save it) to generate it.",
                         "viz_status": None,
                     },
                 ],

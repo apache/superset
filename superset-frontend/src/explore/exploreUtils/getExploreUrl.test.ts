@@ -36,32 +36,11 @@ test('Get ExploreUrl with default params', () => {
   expect(getExploreUrl(params)).toBe('http://localhost/explore/');
 });
 
-test('Get ExploreUrl with endpointType:full', () => {
+test('Get ExploreUrl for any endpoint type resolves to the explore page', () => {
   const params = createParams();
   expect(getExploreUrl({ ...params, endpointType: 'full' })).toBe(
-    'http://localhost/explore_json/',
+    'http://localhost/explore/',
   );
-});
-
-test('Get ExploreUrl with endpointType:full and method:GET', () => {
-  const params = createParams();
-  expect(
-    getExploreUrl({ ...params, endpointType: 'full', method: 'GET' }),
-  ).toBe('http://localhost/explore_json/');
-});
-
-test('Get relative ExploreUrl with endpointType:csv', () => {
-  const params = createParams();
-  expect(
-    getExploreUrl({ ...params, endpointType: 'csv', relative: true }),
-  ).toBe('/explore_json/?csv=true');
-});
-
-test('Get relative ExploreUrl with endpointType:xlsx', () => {
-  const params = createParams();
-  expect(
-    getExploreUrl({ ...params, endpointType: 'xlsx', relative: true }),
-  ).toBe('/explore_json/?xlsx=true');
 });
 
 test('Get relative ExploreUrl with force:true', () => {
@@ -69,11 +48,10 @@ test('Get relative ExploreUrl with force:true', () => {
   expect(
     getExploreUrl({
       ...params,
-      endpointType: 'csv',
       force: true,
       relative: true,
     }),
-  ).toBe('/explore_json/?force=true&csv=true');
+  ).toBe('/explore/?force=true');
 });
 
 test('Get relative ExploreUrl with endpointType:base', () => {

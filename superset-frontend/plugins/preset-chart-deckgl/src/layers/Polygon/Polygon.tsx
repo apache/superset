@@ -47,6 +47,7 @@ import {
 } from '../../utils';
 
 import { commonLayerProps, getColorForBreakpoints } from '../common';
+import { PRIMARY_COLOR } from '../../utilities/controls';
 import getPointsFromPolygon from '../../utils/getPointsFromPolygon';
 import fitViewport, { Viewport } from '../../utils/fitViewport';
 import {
@@ -115,10 +116,12 @@ export const getLayer: GetLayerType<PolygonLayer> = function ({
   emitCrossFilters,
 }) {
   const fd = formData as PolygonFormData;
+  // Default the color pickers when absent so unhydrated sub-slice form data
+  // (as passed by deck.gl Multiple Layers) does not crash the color scalers.
   const fc: { r: number; g: number; b: number; a: number } =
-    fd.fill_color_picker;
+    fd.fill_color_picker ?? PRIMARY_COLOR;
   const sc: { r: number; g: number; b: number; a: number } =
-    fd.stroke_color_picker;
+    fd.stroke_color_picker ?? PRIMARY_COLOR;
   const defaultBreakpointColor = fd.default_breakpoint_color;
   const data = [...payload.data.features];
 

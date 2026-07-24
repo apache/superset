@@ -34,7 +34,7 @@
 
 **/*.geojson @villebro @rusackas
 **/*.ipynb @villebro @rusackas
-/superset-frontend/plugins/legacy-plugin-chart-country-map/ @villebro @rusackas
+/superset-frontend/plugins/plugin-chart-country-map/ @villebro @rusackas
 
 # Notify translation maintainers of changes to translations
 

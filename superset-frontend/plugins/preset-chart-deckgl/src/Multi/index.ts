@@ -29,11 +29,15 @@ const metadata = new ChartMetadata({
   category: t('Map'),
   credits: ['https://uber.github.io/deck.gl'],
   description: t('Compose multiple layers together to form complex visuals.'),
+  // This chart issues no query of its own -- each layer is a saved chart that
+  // fetches its own data client-side. Without this, the empty query response
+  // renders the "No results were returned for this query" state instead of the
+  // map. useLegacyApi previously masked this.
+  enableNoResults: false,
   exampleGallery: [{ url: example, urlDark: exampleDark }],
   name: t('deck.gl Multiple Layers'),
   thumbnail,
   thumbnailDark,
-  useLegacyApi: true,
   tags: [t('deckGL'), t('Multi-Layers')],
 });
 
@@ -41,6 +45,7 @@ export default class MultiChartPlugin extends ChartPlugin {
   constructor() {
     super({
       loadChart: () => import('./Multi'),
+      loadBuildQuery: () => import('./buildQuery'),
       controlPanel,
       metadata,
       transformProps,
