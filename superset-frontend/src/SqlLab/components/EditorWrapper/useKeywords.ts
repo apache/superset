@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect, useMemo, useRef } from 'react';
-import { useStore } from 'react-redux';
+import { useSelector, useStore } from 'react-redux';
 import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import { t } from '@apache-superset/core/translation';
 import { getExtensionsRegistry } from '@superset-ui/core';
@@ -35,6 +35,7 @@ import { schemaEndpoints } from 'src/hooks/apiResources';
 import { api } from 'src/hooks/apiResources/queryApi';
 import { useDatabaseFunctionsQuery } from 'src/hooks/apiResources/databaseFunctions';
 import useEffectEvent from 'src/hooks/useEffectEvent';
+import type { SqlLabRootState } from 'src/SqlLab/types';
 
 type Params = {
   queryEditorId: string | number;
@@ -54,12 +55,21 @@ const getHelperText = (value: string) =>
   };
 
 // Names that aren't simple identifiers (spaces, punctuation, leading digits)
-// must be double-quoted to be valid SQL, with embedded quotes doubled.
+// must be quoted to be valid SQL. The quote characters are dialect-specific
+// (e.g. ANSI double quotes, MySQL/MariaDB backticks, SQL Server square brackets)
+// and are provided by the backend's database engine spec via `engine_information`
+// so the mapping isn't duplicated here. Embedded quote characters are escaped by
+// doubling the closing character.
+type IdentifierQuote = { start: string; end: string };
+const ANSI_QUOTE: IdentifierQuote = { start: '"', end: '"' };
 const SIMPLE_IDENTIFIER_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
-const quoteIdentifier = (identifier: string) =>
+const quoteIdentifier = (
+  identifier: string,
+  { start, end }: IdentifierQuote = ANSI_QUOTE,
+) =>
   SIMPLE_IDENTIFIER_RE.test(identifier)
     ? identifier
-    : `"${identifier.replace(/"/g, '""')}"`;
+    : `${start}${identifier.split(end).join(`${end}${end}`)}${end}`;
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -105,6 +115,16 @@ export function useKeywords(
 
   const store = useStore();
   const apiState = store.getState()[api.reducerPath];
+
+  // Dialect-specific identifier quote characters, provided by the backend's
+  // database engine spec, used to quote non-simple identifiers on insert.
+  const identifierQuote = useSelector<
+    SqlLabRootState,
+    IdentifierQuote | undefined
+  >(
+    ({ sqlLab }) =>
+      sqlLab?.databases?.[dbId ?? '']?.engine_information?.identifier_quote,
+  );
 
   // Normalize catalog for comparison (null/undefined both mean "no catalog")
   const normalizedCatalog = catalog ?? null;
@@ -205,7 +225,7 @@ export function useKeywords(
     () =>
       allCachedTables.map(({ value, label, schema: tableSchema }) => ({
         name: label,
-        value: quoteIdentifier(value),
+        value: quoteIdentifier(value, identifierQuote),
         schema: tableSchema,
         score: TABLE_AUTOCOMPLETE_SCORE,
         meta: 'table',
@@ -214,7 +234,7 @@ export function useKeywords(
         },
         ...getHelperText(value),
       })),
-    [allCachedTables, insertMatch],
+    [allCachedTables, identifierQuote, insertMatch],
   );
 
   const columnKeywords = useMemo(

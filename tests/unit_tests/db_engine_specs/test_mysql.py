@@ -304,3 +304,13 @@ def test_get_datatype_pymysql_fallback():
     finally:
         # Restore original state
         MySQLEngineSpec.type_code_map = original_type_code_map
+
+
+def test_identifier_quote_uses_backticks() -> None:
+    """MySQL/MariaDB quote identifiers with backticks."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    assert MySQLEngineSpec.get_public_information()["identifier_quote"] == {
+        "start": "`",
+        "end": "`",
+    }

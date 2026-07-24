@@ -1165,6 +1165,15 @@ class DatabaseSchemaAccessForFileUploadResponse(Schema):
     )
 
 
+class IdentifierQuoteSchema(Schema):
+    start = fields.String(
+        metadata={"description": "Character that opens a quoted identifier"}
+    )
+    end = fields.String(
+        metadata={"description": "Character that closes a quoted identifier"}
+    )
+
+
 class EngineInformationSchema(Schema):
     supports_file_upload = fields.Boolean(
         metadata={"description": "Users can upload files to the database"}
@@ -1190,6 +1199,12 @@ class EngineInformationSchema(Schema):
                 "Engines like Elasticsearch SQL return False."
             )
         }
+    )
+    identifier_quote = fields.Nested(
+        IdentifierQuoteSchema,
+        metadata={
+            "description": "Characters used to quote identifiers for this dialect"
+        },
     )
 
 
