@@ -104,7 +104,11 @@ def validate_prophet_periods(value: int) -> None:
 #
 # RISON/JSON schemas for query parameters
 #
-get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
+get_delete_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
 
 width_height_schema = {
     "type": "array",
@@ -122,9 +126,17 @@ screenshot_query_schema = {
         "thumb_size": width_height_schema,
     },
 }
-get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
+get_export_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
 
-get_fav_star_ids_schema = {"type": "array", "items": {"type": "integer"}}
+get_fav_star_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
 
 #
 # Column schema descriptions

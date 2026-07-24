@@ -86,12 +86,14 @@ const removeListener = (id: string) => {
 
 const fetchCachedData = async (
   asyncEvent: AsyncEvent,
+  signal?: AbortSignal,
 ): Promise<CachedDataResponse> => {
   let status = 'success';
   let data;
   try {
     const { json } = await SupersetClient.get({
       endpoint: String(asyncEvent.result_url),
+      signal,
     });
     data = 'result' in json ? json.result : json;
   } catch (response) {
@@ -102,32 +104,73 @@ const fetchCachedData = async (
   return { status, data };
 };
 
-export const waitForAsyncData = async (asyncResponse: AsyncEvent) =>
+export const waitForAsyncData = async (
+  asyncResponse: AsyncEvent,
+  signal?: AbortSignal,
+) =>
   new Promise((resolve, reject) => {
     const jobId = asyncResponse.job_id;
+
+    let onAbort: (() => void) | undefined;
+    const cleanup = () => {
+      removeListener(jobId);
+      if (onAbort && signal) {
+        signal.removeEventListener('abort', onAbort);
+      }
+    };
+
+    // Bail immediately if the caller has already aborted (e.g. the chart was
+    // unmounted before the job started), avoiding a leaked listener.
+    if (signal?.aborted) {
+      reject(new DOMException('Aborted', 'AbortError'));
+      return;
+    }
+
     const listener = async (asyncEvent: AsyncEvent) => {
       switch (asyncEvent.status) {
         case JOB_STATUS.DONE: {
-          let { data, status } = await fetchCachedData(asyncEvent); // eslint-disable-line prefer-const
+          // Forward the signal so the cached-result download is cancelled too if
+          // the caller aborts mid-fetch, rather than wasting network/processing.
+          let { data, status } = await fetchCachedData(asyncEvent, signal); // eslint-disable-line prefer-const
           data = ensureIsArray(data);
           if (status === 'success') {
             resolve(data);
           } else {
             reject(data);
           }
+          // Terminal status: the promise is settled, so fully clean up.
+          cleanup();
           break;
         }
         case JOB_STATUS.ERROR: {
           const err = parseErrorJson(asyncEvent);
           reject(err);
+          // Terminal status: the promise is settled, so fully clean up.
+          cleanup();
           break;
         }
         default: {
-          logging.warn('received event with status', asyncEvent.status);
+          // Non-terminal status (e.g., 'pending', 'running'): keep the listener
+          // registered so it can receive the eventual terminal event ('done', 'error').
+          // Only cleanup happens on terminal states or abort.
+          logging.info(
+            'received non-terminal event with status',
+            asyncEvent.status,
+          );
         }
       }
-      removeListener(jobId);
     };
+
+    // When the caller aborts (chart superseded/unmounted), stop listening so the
+    // listener and its retained closure don't leak and keep the poller busy.
+    if (signal) {
+      onAbort = () => {
+        cleanup();
+        reject(new DOMException('Aborted', 'AbortError'));
+      };
+      signal.addEventListener('abort', onAbort, { once: true });
+    }
+
     addListener(jobId, listener);
   });
 

@@ -28,6 +28,8 @@ babel==2.17.0
     # via flask-babel
 backoff==2.2.1
     # via apache-superset (pyproject.toml)
+backports-zstd==1.6.0
+    # via flask-compress
 bcrypt==4.3.0
     # via paramiko
 billiard==4.2.1
@@ -130,7 +132,7 @@ flask-babel==3.1.0
     # via flask-appbuilder
 flask-caching==2.3.1
     # via apache-superset (pyproject.toml)
-flask-compress==1.17
+flask-compress==1.24
     # via apache-superset (pyproject.toml)
 flask-cors==6.0.5
     # via apache-superset (pyproject.toml)
@@ -244,7 +246,7 @@ msgpack==1.2.1
     # via apache-superset (pyproject.toml)
 msgspec==0.19.0
     # via flask-session
-nh3==0.3.5
+nh3==0.3.6
     # via apache-superset (pyproject.toml)
 numexpr==2.10.2
     # via -r requirements/base.in
@@ -285,7 +287,7 @@ parsedatetime==2.6
     # via apache-superset (pyproject.toml)
 pgsanity==0.2.9
     # via apache-superset (pyproject.toml)
-pillow==12.2.0
+pillow==12.3.0
     # via apache-superset (pyproject.toml)
 platformdirs==4.3.8
     # via requests-cache
@@ -300,17 +302,17 @@ pyarrow==24.0.0
     #   -r requirements/base.in
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
-pyasn1==0.6.3
+pyasn1==0.6.4
     # via pyasn1-modules
 pyasn1-modules==0.4.2
     # via google-auth
 pycparser==2.22
     # via cffi
-pydantic==2.11.7
+pydantic==2.13.4
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
-pydantic-core==2.33.2
+pydantic-core==2.46.4
     # via pydantic
 pygeohash==3.2.2
     # via apache-superset (pyproject.toml)
@@ -408,7 +410,7 @@ sqlalchemy==1.4.54
     #   shillelagh
     #   sqlalchemy-continuum
     #   sqlalchemy-utils
-sqlalchemy-continuum==1.6.0
+sqlalchemy-continuum==1.7.0
     # via apache-superset (pyproject.toml)
 sqlalchemy-utils==0.42.1
     # via
@@ -443,7 +445,7 @@ typing-extensions==4.16.0
     #   selenium
     #   shillelagh
     #   typing-inspection
-typing-inspection==0.4.1
+typing-inspection==0.4.2
     # via pydantic
 tzdata==2025.2
     # via
@@ -496,5 +498,3 @@ xlsxwriter==3.2.9
     # via
     #   apache-superset (pyproject.toml)
     #   pandas
-zstandard==0.23.0
-    # via flask-compress

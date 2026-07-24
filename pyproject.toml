@@ -139,7 +139,7 @@ d1 = [
 ]
 databend = ["databend-sqlalchemy>=0.5.5, <1.0"]
 databricks = [
-    "databricks-sql-connector==4.2.6",
+    "databricks-sql-connector>=4.2.6, <4.4.0",
     "databricks-sqlalchemy==1.0.5",
 ]
 db2 = ["ibm-db-sa>0.3.8, <=0.4.4"]
@@ -209,7 +209,7 @@ spark = [
 ]
 tdengine = [
     "taospy>=2.8.9",
-    "taos-ws-py>=0.6.9"
+    "taos-ws-py>=0.7.0"
 ]
 teradata = ["teradatasql>=20.0.0.62"]
 thumbnails = [] # deprecated, will be removed in 7.0
