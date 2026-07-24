@@ -84,7 +84,12 @@ const ConfirmModalStyled = styled.div`
   }
 `;
 
-const StyledSpan = styled.span`
+const StyledSpan = styled.button`
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
   cursor: pointer;
   color: ${({ theme }) => theme.colorPrimaryText};
   &: hover {
@@ -202,8 +207,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
     {
       Cell: ({ row: { original } }: any) => (
         <StyledSpan
-          role="button"
-          tabIndex={0}
+          type="button"
           data-test="datasource-link"
           onClick={() => selectDatasource({ type: 'table', ...original })}
         >

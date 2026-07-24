@@ -295,6 +295,10 @@ export const CustomizationsBadge = ({ chartId }: CustomizationsBadgeProps) => {
       <StyledTag
         ref={triggerRef}
         aria-label={t('Display controls (%s)', customizationsCount)}
+        // Tag doesn't support a polymorphic `as` prop, and this element has
+        // no click action of its own (Tooltip attaches its own hover/focus
+        // handlers to it) - tabIndex + role keep it keyboard-discoverable.
+        // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
         role="button"
         tabIndex={0}
       >

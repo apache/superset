@@ -104,7 +104,13 @@ const SectionContainer = styled.div`
   margin-bottom: ${({ theme }) => theme.sizeUnit * 3}px;
 `;
 
-const SectionHeader = styled.div`
+const SectionHeader = styled.button`
+  appearance: none;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -317,15 +323,8 @@ const FilterControls: FC<FilterControlsProps> = ({
           <SectionContainer>
             {!hideHeader && (
               <SectionHeader
+                type="button"
                 onClick={() => toggleSection('filters')}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    toggleSection('filters');
-                  }
-                }}
-                role="button"
-                tabIndex={0}
               >
                 <Title
                   level={5}
@@ -361,15 +360,8 @@ const FilterControls: FC<FilterControlsProps> = ({
           <SectionContainer>
             {!hideHeader && (
               <SectionHeader
+                type="button"
                 onClick={() => toggleSection('chartCustomization')}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    toggleSection('chartCustomization');
-                  }
-                }}
-                role="button"
-                tabIndex={0}
               >
                 <Title
                   level={5}

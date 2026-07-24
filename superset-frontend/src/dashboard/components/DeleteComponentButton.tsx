@@ -23,7 +23,7 @@ import type { IconType } from '@superset-ui/core/components/Icons/types';
 import IconButton from './IconButton';
 
 type DeleteComponentButtonProps = {
-  onDelete: MouseEventHandler<HTMLDivElement>;
+  onDelete: MouseEventHandler<HTMLButtonElement>;
   iconSize?: IconType['iconSize'];
 };
 

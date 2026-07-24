@@ -88,8 +88,12 @@ const Bar = styled.div<{ width: number }>`
   `}
 `;
 
-const CollapsedBar = styled.div<{ offset: number }>`
+const CollapsedBar = styled.button<{ offset: number }>`
   ${({ theme, offset }) => `
+    appearance: none;
+    border: none;
+    background: none;
+    font: inherit;
     position: absolute;
     top: ${offset}px;
     left: 0;
@@ -262,11 +266,10 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
         width={width}
       >
         <CollapsedBar
+          type="button"
           {...getFilterBarTestId('collapsable')}
           className={cx({ open: !filtersOpen })}
           onClick={openFiltersBar}
-          role="button"
-          tabIndex={0}
           offset={offset}
         >
           <Icons.VerticalAlignTopOutlined

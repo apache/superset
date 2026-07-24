@@ -308,7 +308,7 @@ test('displays chart data correctly in table rows', async () => {
   // Check for favorite star column within the specific row
   const favoriteButton = within(chartRow).getByTestId('fave-unfave-icon');
   expect(favoriteButton).toBeInTheDocument();
-  expect(favoriteButton).toHaveAttribute('role', 'button');
+  expect(favoriteButton.tagName).toBe('BUTTON');
 
   // Check chart name link within the specific row
   const chartLink = within(chartRow).getByTestId(

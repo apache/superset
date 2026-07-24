@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { handleKeyboardActivation } from '@superset-ui/core';
 import { useMemo, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { useTheme } from '@apache-superset/core/theme';
@@ -167,10 +166,15 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
           />
         ))}
         {needShowMoreButton && (
-          <div
-            role="button"
+          <button
+            type="button"
             tabIndex={-1}
             css={{
+              appearance: 'none',
+              border: 'none',
+              background: 'none',
+              font: 'inherit',
+              width: '100%',
               padding: theme.sizeUnit * 2,
               textAlign: 'center',
               cursor: 'pointer',
@@ -181,9 +185,6 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
               },
             }}
             onClick={() => setShowAllColumns(!showAllColumns)}
-            onKeyDown={handleKeyboardActivation(() =>
-              setShowAllColumns(!showAllColumns),
-            )}
           >
             {showAllColumns ? (
               <>
@@ -194,7 +195,7 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
                 <Icons.DownOutlined /> &nbsp; {t('Show all columns')}
               </>
             )}
-          </div>
+          </button>
         )}
       </div>
     </>

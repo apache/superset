@@ -95,7 +95,7 @@ describe('ChartList', () => {
     await screen.findByTestId('chart-list-view');
 
     // Verify New Chart button exists
-    const newChartButton = screen.getByRole('button', { name: /chart/i });
+    const newChartButton = screen.getByRole('button', { name: /chart$/i });
     expect(newChartButton).toBeInTheDocument();
     expect(screen.getByTestId('plus')).toBeInTheDocument();
 

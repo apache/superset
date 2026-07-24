@@ -242,9 +242,7 @@ test('shows cancel button and modal for cancellable tasks', async () => {
   expect(stopIcons.length).toBeGreaterThan(0);
 
   // Click a cancel button to show confirmation modal
-  const cancelButton = stopIcons.find(
-    icon => icon.closest('[role="button"]') !== null,
-  );
+  const cancelButton = stopIcons.find(icon => icon.closest('button') !== null);
   expect(cancelButton).toBeDefined();
   fireEvent.click(cancelButton!);
 
@@ -300,7 +298,7 @@ test('does not show cancel button for completed shared tasks', async () => {
   // No action buttons with stop icons for completed tasks
   const stopIcons = screen.queryAllByRole('img', { name: 'stop' });
   const actionButtons = stopIcons.filter(
-    icon => icon.closest('[role="button"]') !== null,
+    icon => icon.closest('button') !== null,
   );
   expect(actionButtons).toHaveLength(0);
 
