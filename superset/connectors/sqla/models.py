@@ -1528,7 +1528,18 @@ class SqlaTable(
     def dttm_cols(self) -> list[str]:
         l = [c.column_name for c in self.columns if c.is_dttm]  # noqa: E741
         if self.main_dttm_col and self.main_dttm_col not in l:
-            l.append(self.main_dttm_col)
+            # Only treat ``main_dttm_col`` as a datetime column when the column it
+            # points to is actually temporal. A column whose "Is Temporal" flag was
+            # removed must not keep being reported as a datetime column just because
+            # it is still referenced by ``main_dttm_col`` (#30510). When the column
+            # is not present on the dataset, fall back to the legacy behavior of
+            # trusting ``main_dttm_col``.
+            main_dttm_column: TableColumn | None = next(
+                (c for c in self.columns if c.column_name == self.main_dttm_col),
+                None,
+            )
+            if main_dttm_column is None or main_dttm_column.is_dttm:
+                l.append(self.main_dttm_col)
         return l
 
     @property
