@@ -47,6 +47,16 @@ warnings.filterwarnings(
     message=r"authlib\.jose module is deprecated",
 )
 
+# sqlalchemy-redshift's own __init__ still imports pkg_resources (see the
+# equivalent filter and rationale in superset/db_engine_specs/redshift.py).
+# MCP tools that touch a Redshift-backed database trigger this import via a
+# separate process from the main web/worker app, so it needs its own filter
+# here rather than relying on db_engine_specs/redshift.py having been loaded.
+warnings.filterwarnings(
+    "ignore",
+    message=r"pkg_resources is deprecated as an API",
+)
+
 __version__ = "1.0.0"
 
 # Tools are auto-registered when imported by the MCP service
