@@ -94,3 +94,10 @@ def test_fetch_gives_up_after_max_retries() -> None:
             change_detector.fetch_files_github_api("http://api")
 
     assert urlopen_mock.call_count == change_detector.MAX_RETRIES
+
+
+def test_image_tag_compose_changes_trigger_python_tests() -> None:
+    assert change_detector.detect_changes(
+        ["docker-compose-image-tag.yml"],
+        change_detector.PATTERNS["python"],
+    )
