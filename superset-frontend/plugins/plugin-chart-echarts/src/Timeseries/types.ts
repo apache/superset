@@ -66,6 +66,8 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   logAxis: boolean;
   markerEnabled: boolean;
   markerSize: number;
+  maxMarkerSize?: number;
+  minMarkerSize?: number;
   metrics: QueryFormMetric[];
   minorSplitLine: boolean;
   minorTicks: boolean;
@@ -73,6 +75,7 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   orderDesc: boolean;
   rowLimit: number;
   seriesType: EchartsTimeseriesSeriesType;
+  size?: QueryFormMetric;
   stack: StackType;
   stackDimension: string;
   timeCompare?: string[];
