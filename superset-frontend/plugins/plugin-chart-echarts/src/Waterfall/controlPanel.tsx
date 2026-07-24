@@ -16,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { getMetricLabel, QueryFormMetric } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import {
+  columnChoices,
   ControlPanelConfig,
   ControlSubSectionHeader,
   D3_TIME_FORMAT_DOCS,
@@ -37,6 +39,52 @@ const config: ControlPanelConfig = {
         ['time_grain_sqla'],
         ['groupby'],
         ['metric'],
+        [
+          {
+            name: 'x_axis_sort',
+            config: {
+              type: 'SelectControl',
+              label: t('Sort by'),
+              default: null,
+              clearable: true,
+              freeForm: false,
+              description: t(
+                'Column or metric used to order the X-axis categories. ' +
+                  'Pick a dedicated sort column to control the category ' +
+                  'order — for example, to drive a waterfall movement ' +
+                  'narrative. Leave empty to sort by the X-axis value.',
+              ),
+              mapStateToProps: ({ datasource, controls }) => {
+                const choices = columnChoices(datasource);
+                const metric = controls?.metric?.value as
+                  QueryFormMetric | undefined;
+                const metricLabel = metric ? getMetricLabel(metric) : undefined;
+                return {
+                  choices:
+                    metricLabel &&
+                    !choices.some(([value]) => value === metricLabel)
+                      ? [...choices, [metricLabel, metricLabel]]
+                      : choices,
+                };
+              },
+            },
+          },
+        ],
+        [
+          {
+            name: 'x_axis_sort_asc',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Sort ascending'),
+              default: true,
+              description: t(
+                'Whether to sort ascending or descending on the X-axis.',
+              ),
+              visibility: ({ controls }) =>
+                Boolean(controls?.x_axis_sort?.value),
+            },
+          },
+        ],
         ['adhoc_filters'],
         ['row_limit'],
       ],
