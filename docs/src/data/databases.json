@@ -1,16 +1,16 @@
 {
   "generated": "2026-04-17T17:08:35.132Z",
   "statistics": {
-    "totalDatabases": 80,
-    "withDocumentation": 80,
-    "withConnectionString": 80,
-    "withDrivers": 28,
+    "totalDatabases": 81,
+    "withDocumentation": 81,
+    "withConnectionString": 81,
+    "withDrivers": 29,
     "withAuthMethods": 5,
-    "supportsJoins": 74,
-    "supportsSubqueries": 77,
+    "supportsJoins": 75,
+    "supportsSubqueries": 78,
     "supportsDynamicSchema": 29,
     "supportsCatalog": 20,
-    "averageScore": 54,
+    "averageScore": 53,
     "maxScore": 201,
     "byCategory": {
       "Cloud - AWS": [
@@ -20,6 +20,7 @@
       ],
       "Query Engines": [
         "Amazon Athena",
+        "Apache DataFusion",
         "Apache Drill",
         "Apache Hive",
         "Apache Impala",
@@ -94,6 +95,7 @@
         "Vertica"
       ],
       "Apache Projects": [
+        "Apache DataFusion",
         "Apache Doris",
         "Apache Drill",
         "Apache Druid",
@@ -108,6 +110,7 @@
         "Databricks Interactive Cluster"
       ],
       "Open Source": [
+        "Apache DataFusion",
         "Apache Doris",
         "Apache Drill",
         "Apache Druid",
@@ -9698,6 +9701,97 @@
       "supports_dynamic_schema": true,
       "supports_catalog": true,
       "supports_dynamic_catalog": true
+    },
+    "Apache DataFusion": {
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": true,
+        "THIRTY_SECONDS": true,
+        "MINUTE": true,
+        "FIVE_MINUTES": true,
+        "TEN_MINUTES": true,
+        "FIFTEEN_MINUTES": true,
+        "THIRTY_MINUTES": true,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": false,
+        "WEEK_STARTING_MONDAY": false,
+        "WEEK_ENDING_SATURDAY": false,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "module": "superset.db_engine_specs.datafusion",
+      "limit_method": 1,
+      "limit_clause": true,
+      "joins": true,
+      "subqueries": true,
+      "alias_in_select": true,
+      "alias_in_orderby": true,
+      "time_groupby_inline": false,
+      "alias_to_source_column": false,
+      "order_by_not_in_select": true,
+      "expressions_in_orderby": false,
+      "cte_in_subquery": true,
+      "max_column_name": null,
+      "sql_comments": true,
+      "escaped_colons": true,
+      "masked_encrypted_extra": false,
+      "column_type_mapping": false,
+      "function_names": false,
+      "user_impersonation": false,
+      "file_upload": false,
+      "get_extra_table_metadata": false,
+      "dbapi_exception_mapping": false,
+      "custom_errors": false,
+      "dynamic_schema": false,
+      "catalog": false,
+      "dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": false,
+      "get_metrics": false,
+      "where_latest_partition": false,
+      "expand_data": false,
+      "query_cost_estimation": false,
+      "sql_validation": false,
+      "score": 24,
+      "max_score": 201,
+      "documentation": {
+        "description": "DataFusion is a highly performant query engine",
+        "logo": "datafusion.png",
+        "homepage_url": "https://datafusion.apache.org/",
+        "categories": [
+          "Query Engines",
+          "Open Source",
+          "Apache Projects"
+        ],
+        "pypi_packages": [
+          "flightsql-dbapi"
+        ],
+        "connection_string": "datafusion://host:port",
+        "drivers": [
+          {
+            "name": "Arrow Flight SQL (Recommended)",
+            "pypi_package": "flightsql-dbapi",
+            "connection_string": "datafusion://host:port",
+            "is_recommended": true
+          }
+        ],
+        "category": "Apache Projects"
+      },
+      "engine": "datafusion",
+      "engine_name": "Apache DataFusion",
+      "engine_aliases": [],
+      "default_driver": "flightsql",
+      "supports_file_upload": false,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false
     }
   }
 }
