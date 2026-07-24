@@ -1421,11 +1421,15 @@ class TestIsColumnTrulyTemporal:
         column_name: str,
         column_type: str,
         generic_type: GenericDataType,
+        is_dttm: bool = False,
+        python_date_format: str | None = None,
     ):
         """Helper to create a mock dataset with proper db_engine_spec"""
         mock_column = MagicMock()
         mock_column.column_name = column_name
         mock_column.type = column_type
+        mock_column.is_dttm = is_dttm
+        mock_column.python_date_format = python_date_format
 
         mock_db_engine_spec = MagicMock()
         mock_column_spec = ColumnSpec(
@@ -1574,6 +1578,85 @@ class TestIsColumnTrulyTemporal:
         mock_dao.find_by_id_or_uuid.return_value = mock_dataset
 
         result = is_column_truly_temporal("year", 123)
+        assert result is True
+
+    @patch("superset.daos.dataset.DatasetDAO")
+    def test_returns_true_for_varchar_ds_column_with_is_dttm_and_date_format(
+        self, mock_dao
+    ) -> None:
+        """VARCHAR 'ds' column explicitly marked is_dttm with a date format
+        (e.g. Hive/Presto string partition column) should be treated as
+        temporal, mirroring TableColumn.is_temporal in Superset core."""
+        mock_dataset = self._create_mock_dataset(
+            "ds",
+            "VARCHAR",
+            GenericDataType.STRING,
+            is_dttm=True,
+            python_date_format="%Y-%m-%d",
+        )
+        mock_dao.find_by_id_or_uuid.return_value = mock_dataset
+
+        result = is_column_truly_temporal("ds", 123)
+        assert result is True
+
+    @patch("superset.daos.dataset.DatasetDAO")
+    def test_returns_true_for_varchar_ds_column_with_is_dttm_no_date_format(
+        self, mock_dao
+    ) -> None:
+        """VARCHAR column marked is_dttm without a python_date_format is
+        still trusted as temporal -- only NUMERIC columns require a date
+        format before being trusted (guards against name-based
+        misdetection like a plain integer 'year' column)."""
+        mock_dataset = self._create_mock_dataset(
+            "ds", "VARCHAR", GenericDataType.STRING, is_dttm=True
+        )
+        mock_dao.find_by_id_or_uuid.return_value = mock_dataset
+
+        result = is_column_truly_temporal("ds", 123)
+        assert result is True
+
+    @patch("superset.daos.dataset.DatasetDAO")
+    def test_returns_false_for_varchar_column_without_is_dttm(self, mock_dao) -> None:
+        """A plain VARCHAR column not marked temporal stays non-temporal."""
+        mock_dataset = self._create_mock_dataset(
+            "description", "VARCHAR", GenericDataType.STRING, is_dttm=False
+        )
+        mock_dao.find_by_id_or_uuid.return_value = mock_dataset
+
+        result = is_column_truly_temporal("description", 123)
+        assert result is False
+
+    @patch("superset.daos.dataset.DatasetDAO")
+    def test_returns_false_for_numeric_column_with_is_dttm_no_date_format(
+        self, mock_dao
+    ) -> None:
+        """A numeric 'year' column mis-flagged is_dttm=True by naming
+        heuristics, with no python_date_format to parse it, is still
+        rejected to avoid an invalid DATE_TRUNC on a numeric column."""
+        mock_dataset = self._create_mock_dataset(
+            "year", "BIGINT", GenericDataType.NUMERIC, is_dttm=True
+        )
+        mock_dao.find_by_id_or_uuid.return_value = mock_dataset
+
+        result = is_column_truly_temporal("year", 123)
+        assert result is False
+
+    @patch("superset.daos.dataset.DatasetDAO")
+    def test_returns_true_for_numeric_column_with_is_dttm_and_date_format(
+        self, mock_dao
+    ) -> None:
+        """A numeric epoch column explicitly marked is_dttm with a
+        python_date_format (e.g. 'epoch_s') is trusted as temporal."""
+        mock_dataset = self._create_mock_dataset(
+            "created_epoch",
+            "BIGINT",
+            GenericDataType.NUMERIC,
+            is_dttm=True,
+            python_date_format="epoch_s",
+        )
+        mock_dao.find_by_id_or_uuid.return_value = mock_dataset
+
+        result = is_column_truly_temporal("created_epoch", 123)
         assert result is True
 
 
