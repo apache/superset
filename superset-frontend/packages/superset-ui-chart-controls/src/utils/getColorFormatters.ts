@@ -27,6 +27,7 @@ import {
   ConditionalFormattingConfig,
   MultipleValueComparators,
   ResolvedColorFormatterResult,
+  ColorSchemeEnum,
 } from '../types';
 
 export const round = (num: number, precision = 0) =>
@@ -69,6 +70,10 @@ export const getOpacity = (
       2,
     ),
   );
+};
+
+const isSpecialColor = (value: unknown): value is ColorSchemeEnum => {
+  return Object.values(ColorSchemeEnum).includes(value as ColorSchemeEnum);
 };
 
 export const getColorFunction = (
@@ -271,6 +276,9 @@ export const getColorFunction = (
     const { cutoffValue, extremeValue } = compareResult;
 
     if (typeof colorScheme === 'string') {
+      if (isSpecialColor(colorScheme)) {
+        return colorScheme;
+      }
       if (useGradient === false) {
         return colorScheme;
       }

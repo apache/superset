@@ -952,3 +952,31 @@ test('correct column boolean config', () => {
   expect(colorFormatters[3].getColorFromValue(true)).toEqual('#FF0000FF');
   expect(colorFormatters[3].getColorFromValue(false)).toEqual('#FF0000FF');
 });
+
+test('should return hex color when colorScheme is an RGB object', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.None,
+      colorScheme: { r: 255, g: 128, b: 0, a: 1 },
+      column: 'name',
+    },
+    strValues,
+  );
+  expect(colorFunction('Diana')).toEqual('#ff8000FF');
+  expect(colorFunction('Carlos')).toEqual('#ff8000FF');
+  expect(colorFunction('Brian')).toEqual('#ff8000FF');
+});
+
+test('should return token name as-is when colorScheme is a string token', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.None,
+      colorScheme: 'Green',
+      column: 'name',
+    },
+    strValues,
+  );
+  expect(colorFunction('Diana')).toEqual('Green');
+  expect(colorFunction('Carlos')).toEqual('Green');
+  expect(colorFunction('Brian')).toEqual('Green');
+});
