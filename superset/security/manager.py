@@ -37,6 +37,7 @@ from flask import current_app, Flask, g, has_app_context, Request, Response
 from flask_appbuilder import Model
 from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.models.filters import BaseFilter
+from flask_appbuilder.security.manager import AUTH_OAUTH
 from flask_appbuilder.security.sqla.apis import GroupApi, RoleApi, UserApi
 from flask_appbuilder.security.sqla.apis.permission_view_menu.api import (
     PermissionViewMenuApi,
@@ -4858,10 +4859,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     # temporal change to remove the roles view from the security menu,
     # after migrating all views to frontend, we will set FAB_ADD_SECURITY_VIEWS = False
     def register_views(self) -> None:
-        from superset.views.auth import SupersetAuthView, SupersetRegisterUserView
+        from superset.views.auth import (
+            SupersetAuthView,
+            SupersetOAuthView,
+            SupersetRegisterUserView,
+        )
 
         if self.register_superset_auth_view:
-            self.auth_view = self.appbuilder.add_view_no_menu(SupersetAuthView)
+            auth_type = current_app.config["AUTH_TYPE"]
+            if auth_type == AUTH_OAUTH:
+                self.auth_view = self.appbuilder.add_view_no_menu(SupersetOAuthView)
+            else:
+                self.auth_view = self.appbuilder.add_view_no_menu(SupersetAuthView)
         if self.register_superset_registeruser_view:
             self.registeruser_view = self.appbuilder.add_view_no_menu(
                 SupersetRegisterUserView
