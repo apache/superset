@@ -87,6 +87,10 @@ export function getRelatedCharts(
   filter: AppliedNativeFilterType | AppliedCrossFilterType | Filter | undefined,
   slices: Record<string, Slice>,
 ) {
+  // Defensive: a stale filter key can resolve to no filter; nothing is related.
+  if (!filter) {
+    return [];
+  }
   let related: number[] = [];
   if (!filter) {
     return related;

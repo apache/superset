@@ -19,9 +19,11 @@
 import { useMemo } from 'react';
 import { Filter, ChartCustomization } from '@superset-ui/core';
 import { useTheme } from '@apache-superset/core/theme';
-import { useSelector } from 'react-redux';
-import { RootState } from 'src/dashboard/types';
-import { useChartCustomizationFromRedux } from 'src/dashboard/components/nativeFilters/state';
+import {
+  useDashboardSlicesStore,
+  useNativeFiltersStore,
+} from 'src/dashboard/stores';
+import { useChartCustomizations } from 'src/dashboard/components/nativeFilters/state';
 import {
   getRelatedCharts,
   getRelatedChartsForChartCustomization,
@@ -47,29 +49,36 @@ const useFilterFocusHighlightStyles = (chartId: number) => {
     [theme],
   );
 
-  const nativeFilters = useSelector((state: RootState) => state.nativeFilters);
-  const slices =
-    useSelector((state: RootState) => state.sliceEntities.slices) || {};
-  const chartCustomizationItems = useChartCustomizationFromRedux();
+  const filters = useNativeFiltersStore(s => s.filters);
+  const focusedFilterId = useNativeFiltersStore(s => s.focusedFilterId);
+  const hoveredFilterId = useNativeFiltersStore(s => s.hoveredFilterId);
+  const highlightedChartCustomizationId = useNativeFiltersStore(
+    s => s.hoveredChartCustomizationId,
+  );
+  const slices = useDashboardSlicesStore(s => s.slices);
+  const chartCustomizationItems = useChartCustomizations();
 
-  const highlightedFilterId =
-    nativeFilters?.focusedFilterId || nativeFilters?.hoveredFilterId;
-  const highlightedChartCustomizationId = (nativeFilters as any)
-    ?.hoveredChartCustomizationId;
+  const highlightedFilterId = focusedFilterId || hoveredFilterId;
 
   if (!highlightedFilterId && !highlightedChartCustomizationId) {
     return EMPTY;
   }
 
   if (highlightedFilterId) {
-    const relatedCharts = getRelatedCharts(
-      highlightedFilterId as string,
-      nativeFilters.filters[highlightedFilterId as string] as Filter,
-      slices,
-    );
+    // A focused/hovered filter id can briefly outlive its filter (e.g. the
+    // filter was just deleted or edited), leaving filters[id] undefined.
+    // Skip the highlight in that window rather than dereferencing undefined.
+    const highlightedFilter = filters[highlightedFilterId];
+    if (highlightedFilter) {
+      const relatedCharts = getRelatedCharts(
+        highlightedFilterId,
+        highlightedFilter as Filter,
+        slices,
+      );
 
-    if (relatedCharts.includes(chartId)) {
-      return focusedChartStyles;
+      if (relatedCharts.includes(chartId)) {
+        return focusedChartStyles;
+      }
     }
   }
 

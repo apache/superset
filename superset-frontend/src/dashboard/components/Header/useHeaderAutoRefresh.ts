@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback, useEffect, useRef } from 'react';
-import { useSelector, useStore } from 'react-redux';
+import { useStore } from 'react-redux';
 import { ChartState } from 'src/explore/types';
 import {
   LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
@@ -27,7 +27,7 @@ import { useAutoRefreshTabPause } from 'src/dashboard/hooks/useAutoRefreshTabPau
 import { useRealTimeDashboard } from 'src/dashboard/hooks/useRealTimeDashboard';
 import { useAutoRefreshContext } from 'src/dashboard/contexts/AutoRefreshContext';
 import { AutoRefreshStatus } from 'src/dashboard/types/autoRefresh';
-import { RootState } from 'src/dashboard/types';
+import { useDashboardConf } from 'src/dashboard/stores';
 
 // Fallback applied only when the backend does not provide the manual stagger
 // value at all (e.g. an older backend that predates the config key, or it is
@@ -92,14 +92,16 @@ export const useHeaderAutoRefresh = ({
   // - any positive value routes through the staggered branch of fetchCharts
   // A negative or non-finite value is normalized to 0 so a malformed config can
   // never enable staggering implicitly or produce a negative delay.
-  const manualRefreshStaggerMs = useSelector<RootState, number>(state => {
-    const configured = state.dashboardInfo?.common?.conf
-      ?.SUPERSET_DASHBOARD_MANUAL_REFRESH_STAGGER_MS as number | undefined;
-    if (configured == null) {
-      return DEFAULT_MANUAL_REFRESH_STAGGER_MS;
-    }
-    return Number.isFinite(configured) && configured > 0 ? configured : 0;
-  });
+  const dashboardConf = useDashboardConf();
+  const configuredStagger =
+    dashboardConf?.SUPERSET_DASHBOARD_MANUAL_REFRESH_STAGGER_MS as
+      number | undefined;
+  const manualRefreshStaggerMs =
+    configuredStagger == null
+      ? DEFAULT_MANUAL_REFRESH_STAGGER_MS
+      : Number.isFinite(configuredStagger) && configuredStagger > 0
+        ? configuredStagger
+        : 0;
   const { startAutoRefresh, endAutoRefresh, setRefreshInFlight } =
     useAutoRefreshContext();
   const {

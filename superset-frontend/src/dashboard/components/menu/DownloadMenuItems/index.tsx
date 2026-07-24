@@ -17,7 +17,6 @@
  * under the License.
  */
 import { SyntheticEvent } from 'react';
-import { useSelector } from 'react-redux';
 import { logging } from '@apache-superset/core/utils';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -30,7 +29,9 @@ import { MenuItem } from '@superset-ui/core/components/Menu';
 import { parse as parseContentDisposition } from 'content-disposition';
 import { useDownloadScreenshot } from 'src/dashboard/hooks/useDownloadScreenshot';
 import { NATIVE_FILTER_PREFIX } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/utils';
-import { MenuKeys, RootState } from 'src/dashboard/types';
+import { exportDashboardAsExample } from 'src/dashboard/queries';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
+import { MenuKeys } from 'src/dashboard/types';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import handleResourceExport from 'src/utils/export';
@@ -71,7 +72,7 @@ export const useDownloadMenuItems = (
   } = props;
 
   const { addDangerToast, addSuccessToast } = useToasts();
-  const dataMask = useSelector((state: RootState) => state.dataMask);
+  const dataMask = useDataMaskStore(state => state.dataMask);
   const SCREENSHOT_NODE_SELECTOR = '.dashboard';
 
   const buildActiveDataMask = (): Record<string, { extraFormData: object }> =>
@@ -122,13 +123,7 @@ export const useDownloadMenuItems = (
 
   const onExportAsExample = async () => {
     try {
-      const response = await SupersetClient.get({
-        endpoint: `/api/v1/dashboard/${dashboardId}/export_as_example/`,
-        headers: {
-          Accept: 'application/zip',
-        },
-        parseMethod: 'raw',
-      });
+      const response = await exportDashboardAsExample(dashboardId);
 
       // Parse filename from Content-Disposition header
       const disposition = response.headers.get('Content-Disposition');

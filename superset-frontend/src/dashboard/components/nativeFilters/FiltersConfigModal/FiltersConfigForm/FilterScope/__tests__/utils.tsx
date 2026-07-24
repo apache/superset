@@ -22,6 +22,8 @@ import FiltersConfigForm, {
   FilterPanels,
 } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm';
 import { mockStoreWithChartsInTabsAndRoot } from 'spec/fixtures/mockStore';
+import { dashboardLayoutWithChartsInTabsAndRoot } from 'spec/fixtures/mockDashboardLayout';
+import { useDashboardLayoutStore } from 'src/dashboard/stores';
 import { Form, type FormInstance } from '@superset-ui/core/components';
 
 export const createMockedProps = () => ({
@@ -47,6 +49,11 @@ interface MockModalProps {
 }
 
 export const createMockModal = ({ scope, formRef }: MockModalProps) => {
+  // Layout lives in the Zustand store; the filter-scope tree reads it from there.
+  useDashboardLayoutStore
+    .getState()
+    .setLayout(dashboardLayoutWithChartsInTabsAndRoot.present as any);
+
   const MockModalComponent = () => {
     const [form] = Form.useForm();
 

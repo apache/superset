@@ -19,13 +19,24 @@
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import PublishedStatus from '.';
 
+// Mock the submodule directly (not the barrel) to avoid re-evaluating
+// queries/index, whose circular import with dashboardState breaks under jest.
+const mockPublish = jest.fn();
+jest.mock(
+  'src/dashboard/queries/usePublishDashboard/usePublishDashboard',
+  () => ({
+    usePublishDashboard: () => ({ mutate: mockPublish }),
+  }),
+);
+
 const defaultProps = {
   dashboardId: 1,
   isPublished: false,
-  savePublished: jest.fn(),
   userCanEdit: false,
   userCanSave: false,
 };
+
+beforeEach(() => mockPublish.mockClear());
 
 test('renders with unpublished status and readonly permissions', async () => {
   const tooltip =
@@ -39,21 +50,13 @@ test('renders with unpublished status and readonly permissions', async () => {
 test('renders with unpublished status and write permissions', async () => {
   const tooltip =
     /This dashboard is not published, it will not show up in the list of dashboards/;
-  const savePublished = jest.fn();
-  render(
-    <PublishedStatus
-      {...defaultProps}
-      userCanEdit
-      userCanSave
-      savePublished={savePublished}
-    />,
-  );
+  render(<PublishedStatus {...defaultProps} userCanEdit userCanSave />);
   expect(screen.getByText('Draft')).toBeInTheDocument();
   userEvent.hover(screen.getByText('Draft'));
   expect(await screen.findByText(tooltip)).toBeInTheDocument();
-  expect(savePublished).not.toHaveBeenCalled();
+  expect(mockPublish).not.toHaveBeenCalled();
   userEvent.click(screen.getByText('Draft'));
-  expect(savePublished).toHaveBeenCalledTimes(1);
+  expect(mockPublish).toHaveBeenCalledTimes(1);
 });
 
 test('renders with published status and readonly permissions', () => {
@@ -63,20 +66,13 @@ test('renders with published status and readonly permissions', () => {
 
 test('renders with published status and write permissions', async () => {
   const tooltip = /This dashboard is published. Click to make it a draft/;
-  const savePublished = jest.fn();
   render(
-    <PublishedStatus
-      {...defaultProps}
-      isPublished
-      userCanEdit
-      userCanSave
-      savePublished={savePublished}
-    />,
+    <PublishedStatus {...defaultProps} isPublished userCanEdit userCanSave />,
   );
   expect(screen.getByText('Published')).toBeInTheDocument();
   userEvent.hover(screen.getByText('Published'));
   expect(await screen.findByText(tooltip)).toBeInTheDocument();
-  expect(savePublished).not.toHaveBeenCalled();
+  expect(mockPublish).not.toHaveBeenCalled();
   userEvent.click(screen.getByText('Published'));
-  expect(savePublished).toHaveBeenCalledTimes(1);
+  expect(mockPublish).toHaveBeenCalledTimes(1);
 });

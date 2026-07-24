@@ -16,9 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useSelector } from 'react-redux';
 import { useCallback, useMemo } from 'react';
-import { createSelector } from '@reduxjs/toolkit';
+import {
+  useDashboardLayout,
+  useActiveTabs,
+  useNativeFilterConfiguration,
+  useChartCustomizationConfig,
+  useFilterEntries,
+} from 'src/dashboard/stores';
 import {
   Filter,
   Divider,
@@ -29,8 +34,9 @@ import {
   NativeFilterType,
 } from '@superset-ui/core';
 import { FilterElement } from './FilterBar/FilterControls/types';
-import { ActiveTabs, DashboardLayout, RootState } from '../../types';
+import { ActiveTabs, FilterConfigItem } from '../../types';
 import { CHART_TYPE, TAB_TYPE } from '../../util/componentTypes';
+import getChartIdsFromLayout from '../../util/getChartIdsFromLayout';
 import { isChartCustomizationId } from './FiltersConfigModal/utils';
 import {
   migrateChartCustomizationArray,
@@ -41,91 +47,83 @@ const EMPTY_ARRAY: ChartCustomizationConfiguration = [];
 const EMPTY_ACTIVE_TABS: ActiveTabs = [];
 const defaultFilterConfiguration: (Filter | Divider)[] = [];
 
-export const selectFilterConfiguration: (
-  state: RootState,
-) => (Filter | Divider)[] = createSelector(
-  (state: RootState) =>
-    state.dashboardInfo?.metadata?.native_filter_configuration,
-  (nativeFilterConfig): (Filter | Divider)[] => {
-    if (!nativeFilterConfig) {
-      return defaultFilterConfiguration;
-    }
-    return nativeFilterConfig.filter(
-      (
-        filter:
-          Filter | Divider | ChartCustomization | ChartCustomizationDivider,
-      ) =>
-        filter.type !== 'CHART_CUSTOMIZATION' &&
-        filter.type !== 'CHART_CUSTOMIZATION_DIVIDER',
-    ) as (Filter | Divider)[];
-  },
-);
+/** Drops chart-customization entries, keeping only native filters and dividers. */
+function selectFilterConfiguration(
+  nativeFilterConfig: FilterConfigItem[] | undefined,
+): (Filter | Divider)[] {
+  if (!nativeFilterConfig) {
+    return defaultFilterConfiguration;
+  }
+  return nativeFilterConfig.filter(
+    (
+      filter: Filter | Divider | ChartCustomization | ChartCustomizationDivider,
+    ) =>
+      filter.type !== 'CHART_CUSTOMIZATION' &&
+      filter.type !== 'CHART_CUSTOMIZATION_DIVIDER',
+  ) as (Filter | Divider)[];
+}
 
 export function useFilterConfiguration() {
-  return useSelector(selectFilterConfiguration);
+  const nativeFilterConfig = useNativeFilterConfiguration();
+  return useMemo(
+    () => selectFilterConfiguration(nativeFilterConfig),
+    [nativeFilterConfig],
+  );
 }
 
-export const selectChartCustomizationFromRedux: (
-  state: RootState,
-) => (ChartCustomization | ChartCustomizationDivider)[] = createSelector(
-  (state: RootState) => state.nativeFilters?.filters || {},
-  (filtersMap): (ChartCustomization | ChartCustomizationDivider)[] =>
-    Object.values(filtersMap).filter(
-      (
-        item: Filter | Divider | ChartCustomization | ChartCustomizationDivider,
-      ): item is ChartCustomization | ChartCustomizationDivider =>
-        item?.id != null && isChartCustomizationId(item.id),
-    ),
-);
-
-export function useChartCustomizationFromRedux() {
-  return useSelector(selectChartCustomizationFromRedux);
+export function useChartCustomizations() {
+  const filtersMap = useFilterEntries();
+  return useMemo(
+    (): (ChartCustomization | ChartCustomizationDivider)[] =>
+      Object.values(filtersMap).filter(
+        (
+          item:
+            Filter | Divider | ChartCustomization | ChartCustomizationDivider,
+        ): item is ChartCustomization | ChartCustomizationDivider =>
+          item?.id != null && isChartCustomizationId(item.id),
+      ),
+    [filtersMap],
+  );
 }
 
-const selectDashboardChartIds = createSelector(
-  (state: RootState) => state.dashboardLayout?.present,
-  (dashboardLayout): Set<number> =>
-    new Set(
-      Object.values(dashboardLayout)
-        .filter(item => item.type === CHART_TYPE && item.meta?.chartId)
-        .map(item => item.meta.chartId!),
-    ),
-);
+function filterCustomizationsForDashboard(
+  allCustomizations: ChartCustomizationConfiguration,
+  dashboardChartIds: Set<number>,
+): ChartCustomizationConfiguration {
+  const truthyCustomizations = allCustomizations.filter(Boolean);
 
-const selectChartCustomizationConfiguration = createSelector(
-  [
-    (state: RootState) =>
-      state.dashboardInfo?.metadata?.chart_customization_config || EMPTY_ARRAY,
-    selectDashboardChartIds,
-  ],
-  (allCustomizations, dashboardChartIds): ChartCustomizationConfiguration => {
-    const truthyCustomizations = allCustomizations.filter(Boolean);
+  const hasLegacyFormat = truthyCustomizations.some(item =>
+    isLegacyChartCustomizationFormat(item),
+  );
 
-    const hasLegacyFormat = truthyCustomizations.some(item =>
-      isLegacyChartCustomizationFormat(item),
+  const migratedCustomizations = hasLegacyFormat
+    ? migrateChartCustomizationArray(truthyCustomizations)
+    : (truthyCustomizations as ChartCustomizationConfiguration);
+
+  return migratedCustomizations.filter(customization => {
+    if (
+      !customization.chartsInScope ||
+      customization.chartsInScope.length === 0
+    ) {
+      return true;
+    }
+
+    return customization.chartsInScope.some((chartId: number) =>
+      dashboardChartIds.has(chartId),
     );
-
-    const migratedCustomizations = hasLegacyFormat
-      ? migrateChartCustomizationArray(truthyCustomizations)
-      : (truthyCustomizations as ChartCustomizationConfiguration);
-
-    return migratedCustomizations.filter(customization => {
-      if (
-        !customization.chartsInScope ||
-        customization.chartsInScope.length === 0
-      ) {
-        return true;
-      }
-
-      return customization.chartsInScope.some((chartId: number) =>
-        dashboardChartIds.has(chartId),
-      );
-    });
-  },
-);
+  });
+}
 
 export function useChartCustomizationConfiguration() {
-  return useSelector(selectChartCustomizationConfiguration);
+  const allCustomizations = useChartCustomizationConfig() || EMPTY_ARRAY;
+  const dashboardLayout = useDashboardLayout();
+  return useMemo(() => {
+    const dashboardChartIds = new Set(getChartIdsFromLayout(dashboardLayout));
+    return filterCustomizationsForDashboard(
+      allCustomizations,
+      dashboardChartIds,
+    );
+  }, [allCustomizations, dashboardLayout]);
 }
 
 export function useFilterConfigMap() {
@@ -163,12 +161,6 @@ export function useChartCustomizationConfigMap() {
   );
 }
 
-export function useDashboardLayout() {
-  return useSelector<RootState, DashboardLayout>(
-    state => state.dashboardLayout?.present,
-  );
-}
-
 export function useDashboardHasTabs() {
   const dashboardLayout = useDashboardLayout();
   return useMemo(
@@ -183,9 +175,10 @@ export function useDashboardHasTabs() {
 }
 
 function useActiveDashboardTabs(): ActiveTabs {
-  return useSelector<RootState, ActiveTabs>(
-    state => state.dashboardState?.activeTabs ?? EMPTY_ACTIVE_TABS,
-  );
+  // The default active-tab path is seeded at hydration (see getDefaultActiveTabs
+  // + hydrateDashboard), so the store already holds the resolved path here.
+  const activeTabs = useActiveTabs();
+  return activeTabs.length ? activeTabs : EMPTY_ACTIVE_TABS;
 }
 
 function useSelectChartTabParents() {

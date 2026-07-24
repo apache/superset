@@ -212,7 +212,7 @@ in a later major version.
 
 - **`SqlaTable.sql_url` query-string format.** `SqlaTable.sql_url` now URL-encodes `table_name` and joins it as a query parameter rather than concatenating a second `?`. Previously, with `Database.sql_url` returning `/sqllab/?dbid=<id>`, the concatenation produced `/sqllab/?dbid=<id>?table_name=<raw>` — a malformed second `?` that broke the query parser. External code that parsed the legacy `<base>?table_name=<raw>` shape now sees properly percent-encoded values (e.g. `/` → `%2F`, ` ` → `+` or `%20`); decode with `urllib.parse.parse_qsl`.
 
-- **New config flag `EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE` (default `False`).** Share/permalink URLs now substitute `window.location.origin` for the backend-supplied origin so a proxied or subdirectory-deployed Superset never hands the user an unreachable internal hostname. Operators whose reverse proxy correctly forwards `X-Forwarded-Host` *and* who want permalinks to carry the backend's literal origin can opt out by setting `EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE = True` in `superset_config.py`. Default `False` (rewrite is on); flipping the default would regress the dominant proxied/subdir deployment to an unreachable host.
+- **New config flag `EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE` (default `False`).** Share/permalink URLs now substitute `window.location.origin` for the backend-supplied origin so a proxied or subdirectory-deployed Superset never hands the user an unreachable internal hostname. Operators whose reverse proxy correctly forwards `X-Forwarded-Host` _and_ who want permalinks to carry the backend's literal origin can opt out by setting `EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE = True` in `superset_config.py`. Default `False` (rewrite is on); flipping the default would regress the dominant proxied/subdir deployment to an unreachable host.
 
 - [41651](https://github.com/apache/superset/pull/41651): **New do-not-translate standard for translation catalogs.** Strings that must stay identical to the source — icon names (e.g. `bolt`), enum/option values (`step-after`), SQL keywords, API field names (`error_message`), code constants, and example placeholders — are now marked with a `#. do-not-translate` extracted comment. The list lives in the `superset/translations/do-not-translate.txt` registry; `scripts/translations/apply_do_not_translate.py` stamps the marker onto `messages.pot` during `babel_update.sh`, and `pybabel update` propagates it to every `.po`, so the status is consistent across all languages. The AI backfill (`backfill_po.py`) and translators leave these entries untranslated (source fallback). The legacy per-catalog convention (a `# Не переводить` translator comment in the `ru` catalog) is still honored for back-compat but is superseded by this standard; contributors adding new machine-read strings should add the msgid to the registry rather than annotating individual catalogs.
 
@@ -249,7 +249,7 @@ Theme tokens are unaffected — antd 6 removed none of the tokens Superset expos
 
 ### Guest-token RLS rules reject unknown fields
 
-The `rls` rules passed to `POST /api/v1/security/guest_token/` are now validated strictly: a rule may only contain `dataset` and `clause`. Previously unknown fields were silently dropped, so a mistyped or legacy scope key (most commonly `datasource` instead of `dataset`) produced a rule with no `dataset`, which is treated as a *global* rule applied to every dataset the embedded resource can reach. Such a request now returns HTTP 400 identifying the offending field instead of issuing a token with an unintended global rule. Integrators that were sending extra fields in RLS rules must remove them; valid dataset-scoped (`{"dataset": 41, "clause": "..."}`) and global (`{"clause": "..."}`) rules are unaffected.
+The `rls` rules passed to `POST /api/v1/security/guest_token/` are now validated strictly: a rule may only contain `dataset` and `clause`. Previously unknown fields were silently dropped, so a mistyped or legacy scope key (most commonly `datasource` instead of `dataset`) produced a rule with no `dataset`, which is treated as a _global_ rule applied to every dataset the embedded resource can reach. Such a request now returns HTTP 400 identifying the offending field instead of issuing a token with an unintended global rule. Integrators that were sending extra fields in RLS rules must remove them; valid dataset-scoped (`{"dataset": 41, "clause": "..."}`) and global (`{"clause": "..."}`) rules are unaffected.
 
 ### MCP service requires `MCP_JWT_AUDIENCE` when JWT auth is enabled
 
@@ -368,6 +368,19 @@ Deployments that intentionally point webhooks at internal targets (chatops bridg
 
 The Impala engine spec's `cancel_query` issues an HTTP request from the Superset backend to the host configured on the Impala database connection. That host is now validated before the request: if it resolves to a private/internal IP range, the cancel call is refused and a warning is logged. Operators whose Impala cluster runs on an internal network can opt out by setting `IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS = True` in `superset_config.py`. This mirrors the dataset-import and webhook opt-out flags.
 
+### Dashboard state moved from Redux to Zustand + TanStack Query
+
+The dashboard's `dashboardState`, `dashboardLayout`, `dashboardInfo`,
+`sliceEntities`, `nativeFilters`, and `dataMask` state is now held in Zustand
+stores (`src/dashboard/stores`), with dashboard and chart-list data fetched via
+TanStack Query, instead of the Redux store. `charts`, `datasources`, and
+`dashboardFilters` remain in Redux (shared with Explore). Code or third-party
+extensions that read those migrated slices from the Redux store (for example
+`useSelector(state => state.dashboardState)`) must read from the corresponding
+Zustand store instead. The shared `EditableTitle` and `DynamicEditableTitle`
+components also gain optional `onChange`/`onEditingChange` props (additive, no
+change for existing consumers).
+
 ### Map chart renderer and OpenStreetMap migration behavior
 
 The MapLibre migration for deck.gl charts preserves saved non-Mapbox styles on
@@ -405,6 +418,7 @@ Operators can tune or disable the policy via config:
 ### Data uploads bounded by UPLOAD_MAX_FILE_SIZE_BYTES
 
 Single data-file uploads (CSV, Excel, columnar) are now bounded by the `UPLOAD_MAX_FILE_SIZE_BYTES` config option, which defaults to `100 * 1024 * 1024` (100 MB). Files larger than this are rejected with a `413` before their contents are buffered into memory. Set `UPLOAD_MAX_FILE_SIZE_BYTES = None` to disable the check and restore unbounded uploads.
+
 ### Currency symbol position follows the locale when unset
 
 When a chart's currency control leaves the **Prefix or suffix** field empty, the currency symbol position is now derived from the deployment locale's own convention via `Intl.NumberFormat` instead of always defaulting to a suffix. For example, under the default `en-US` locale `USD`, `GBP`, and `EUR` render as a prefix (`$ 1,000`), while eurozone locales such as `fr-FR` render `EUR` as a suffix (`1 000 €`). An explicit Prefix/Suffix selection is always honored and is unaffected.
@@ -530,7 +544,7 @@ SQLALCHEMY_ENCRYPTED_FIELD_ENGINE = "aes"
    ```bash
    superset re-encrypt-secrets --engine aes-gcm
    ```
-   A live instance keeps writing *new* secrets as AES-CBC during the window between step 2 and the restart in step 4; this second pass sweeps those up (it is idempotent, so already-migrated values are skipped).
+   A live instance keeps writing _new_ secrets as AES-CBC during the window between step 2 and the restart in step 4; this second pass sweeps those up (it is idempotent, so already-migrated values are skipped).
 
 Schedule the cutover in a quiet window. Runtime reads use only the single configured engine, so in a multi-worker deployment there is an unavoidable brief decrypt-outage between the migration commit and the last worker restarting with the new config — each migrator run is transactional, but the fleet-wide cutover is not zero-downtime.
 
@@ -620,10 +634,10 @@ A new `BaseEngineSpec.supports_offset` attribute (default `True`) indicates whet
 
 A new feature flag `GRANULAR_EXPORT_CONTROLS` introduces three fine-grained permissions that replace the legacy `can_csv` permission:
 
-| Permission | Controls |
-|---|---|
-| `can_export_data` | CSV, Excel, JSON exports |
-| `can_export_image` | Screenshot/PDF exports |
+| Permission           | Controls                     |
+| -------------------- | ---------------------------- |
+| `can_export_data`    | CSV, Excel, JSON exports     |
+| `can_export_image`   | Screenshot/PDF exports       |
 | `can_copy_clipboard` | Copy-to-clipboard operations |
 
 When the feature flag is enabled, these permissions are enforced on both the frontend (disabled buttons with tooltips) and backend (403 responses from API endpoints). When disabled, legacy `can_csv` behavior is preserved.
@@ -661,14 +675,17 @@ The Kenya country map has been updated to reflect the 47 counties established un
 MCP (Model Context Protocol) tools now include enhanced observability instrumentation for monitoring and debugging:
 
 **Two-layer instrumentation:**
+
 1. **Middleware layer** (`LoggingMiddleware`): Automatically logs all MCP tool calls with `duration_ms` and `success` status in the audit log (Action Log UI, logs table)
 2. **Sub-operation tracking**: All 19 MCP tools include granular `event_logger.log_context()` blocks for tracking individual operations like validation, database writes, and query execution
 
 **Action naming convention:**
+
 - Tool-level logs: `mcp_tool_call` (via middleware)
 - Sub-operation logs: `mcp.{tool_name}.{operation}` (e.g., `mcp.generate_chart.validation`, `mcp.execute_sql.query_execution`)
 
 **Querying MCP logs:**
+
 ```sql
 -- Top slowest MCP operations
 SELECT action, COUNT(*) as calls, AVG(duration_ms) as avg_ms
@@ -703,6 +720,7 @@ A new `DISTRIBUTED_COORDINATION_CONFIG` configuration provides a unified Redis-b
 The distributed coordination is used by the Global Task Framework (GTF) for abort notifications and task completion signaling, and will eventually replace `GLOBAL_ASYNC_QUERIES_CACHE_BACKEND` as the standard signaling backend. Configuring this is recommended for Redis enabled production deployments.
 
 Example configuration in `superset_config.py`:
+
 ```python
 DISTRIBUTED_COORDINATION_CONFIG = {
     "CACHE_TYPE": "RedisCache",
@@ -717,9 +735,11 @@ See `superset/config.py` for complete configuration options.
 ### WebSocket config for GAQ with Docker
 
 [35896](https://github.com/apache/superset/pull/35896) and [37624](https://github.com/apache/superset/pull/37624) updated documentation on how to run and configure Superset with Docker. Specifically for the WebSocket configuration, a new `docker/superset-websocket/config.example.json` was added to the repo, so that users could copy it to create a `docker/superset-websocket/config.json` file. The existing `docker/superset-websocket/config.json` was removed and git-ignored, so if you're using GAQ / WebSocket make sure to:
+
 - Stash/backup your existing `config.json` file, to re-apply it after (will get git-ignored going forward)
 - Update the `volumes` configuration for the `superset-websocket` service in your `docker-compose.override.yml` file, to include the `docker/superset-websocket/config.json` file. For example:
-``` yaml
+
+```yaml
 services:
   superset-websocket:
     volumes:
@@ -732,7 +752,9 @@ services:
 ### Example Data Loading Improvements
 
 #### New Directory Structure
+
 Examples are now organized by name with data and configs co-located:
+
 ```
 superset/examples/
 ├── _shared/              # Shared database & metadata configs
@@ -745,12 +767,14 @@ superset/examples/
 ```
 
 #### Simplified Parquet-based Loading
+
 - Auto-discovery: create `superset/examples/my_dataset/data.parquet` to add a new example
 - Parquet is an Apache project format: compressed (~27% smaller), self-describing schema
 - YAML configs define datasets, charts, and dashboards declaratively
 - Removed Python-based data generation from individual example files
 
 #### Test Data Reorganization
+
 - Moved `big_data.py` to `superset/cli/test_loaders.py` - better reflects its purpose as a test utility
 - Fixed inverted logic for `--load-test-data` flag (now correctly includes .test.yaml files when flag is set)
 - Clarified CLI flags:
@@ -760,6 +784,7 @@ superset/examples/
   - `--load-big-data` / `-b`: Generate synthetic stress-test data
 
 #### Bug Fixes
+
 - Fixed numpy array serialization for PostgreSQL (converts complex types to JSON strings)
 - Fixed KeyError for `allow_csv_upload` field in database configs (now optional with default)
 - Fixed test data loading logic that was incorrectly filtering files
@@ -769,6 +794,7 @@ superset/examples/
 The MCP (Model Context Protocol) service enables AI assistants and automation tools to interact programmatically with Superset.
 
 #### New Features
+
 - MCP service infrastructure with FastMCP framework
 - Tools for dashboards, charts, datasets, SQL Lab, and instance metadata
 - Optional dependency: install with `pip install apache-superset[fastmcp]`
@@ -778,6 +804,7 @@ The MCP (Model Context Protocol) service enables AI assistants and automation to
 #### New Configuration Options
 
 **Development** (single-user, local testing):
+
 ```python
 # superset_config.py
 MCP_DEV_USERNAME = "admin"  # User for MCP authentication
@@ -786,6 +813,7 @@ MCP_SERVICE_PORT = 5008
 ```
 
 **Production** (JWT-based, multi-user):
+
 ```python
 # superset_config.py
 MCP_AUTH_ENABLED = True
@@ -831,12 +859,14 @@ superset mcp run --port 5008 --use-factory-config
 The MCP service runs as a **separate process** from the Superset web server.
 
 **Important**:
+
 - Requires same Python environment and configuration as Superset
 - Shares database connections with main Superset app
 - Can be scaled independently from web server
 - Requires `fastmcp` package (optional dependency)
 
 **Installation**:
+
 ```bash
 # Install with MCP support
 pip install apache-superset[fastmcp]
@@ -850,6 +880,7 @@ Use systemd, supervisord, or Kubernetes to manage the MCP service process.
 See `superset/mcp_service/PRODUCTION.md` for deployment guides.
 
 **Security**:
+
 - Development: Uses `MCP_DEV_USERNAME` for single-user access
 - Production: **MUST** configure JWT authentication
 - See `superset/mcp_service/SECURITY.md` for details
@@ -869,8 +900,10 @@ See `superset/mcp_service/PRODUCTION.md` for deployment guides.
 - [35062](https://github.com/apache/superset/pull/35062): Changed the function signature of `setupExtensions` to `setupCodeOverrides` with options as arguments.
 
 ### Breaking Changes
+
 - [37370](https://github.com/apache/superset/pull/37370): The `APP_NAME` configuration variable no longer controls the browser window/tab title or other frontend branding. Application names should now be configured using the theme system with the `brandAppName` token. The `APP_NAME` config is still used for backend contexts (MCP service, logs, etc.) and serves as a fallback if `brandAppName` is not set.
   - **Migration:**
+
   ```python
   # Before (Superset 5.x)
   APP_NAME = "My Custom App"
@@ -914,16 +947,16 @@ See `superset/mcp_service/PRODUCTION.md` for deployment guides.
 
 Eight M:N association tables move from a synthetic `id INTEGER PRIMARY KEY` to a composite `PRIMARY KEY (fk1, fk2)` on their two foreign-key columns. The surrogate `id` is dropped, and the redundant `UNIQUE (fk1, fk2)` on the two tables that carried one is removed (now subsumed by the PK).
 
-| Table | Composite PK |
-|---|---|
-| `dashboard_roles` | `(dashboard_id, role_id)` |
-| `dashboard_slices` | `(dashboard_id, slice_id)` |
-| `dashboard_user` | `(user_id, dashboard_id)` |
+| Table                  | Composite PK                    |
+| ---------------------- | ------------------------------- |
+| `dashboard_roles`      | `(dashboard_id, role_id)`       |
+| `dashboard_slices`     | `(dashboard_id, slice_id)`      |
+| `dashboard_user`       | `(user_id, dashboard_id)`       |
 | `report_schedule_user` | `(user_id, report_schedule_id)` |
-| `rls_filter_roles` | `(role_id, rls_filter_id)` |
-| `rls_filter_tables` | `(table_id, rls_filter_id)` |
-| `slice_user` | `(user_id, slice_id)` |
-| `sqlatable_user` | `(user_id, table_id)` |
+| `rls_filter_roles`     | `(role_id, rls_filter_id)`      |
+| `rls_filter_tables`    | `(table_id, rls_filter_id)`     |
+| `slice_user`           | `(user_id, slice_id)`           |
+| `sqlatable_user`       | `(user_id, table_id)`           |
 
 **Before upgrading:**
 
@@ -934,6 +967,7 @@ Eight M:N association tables move from a synthetic `id INTEGER PRIMARY KEY` to a
 For large `dashboard_slices` / `report_schedule_user` tables, see the operator runbook in [#39859](https://github.com/apache/superset/pull/39859) — pre-flight inventory queries, per-dialect lock-window sizing, and the duplicate / NULL-FK roll-up — to plan the maintenance window.
 
 ## 6.0.0
+
 - [33055](https://github.com/apache/superset/pull/33055): Upgrades Flask-AppBuilder to 5.0.0. The AUTH_OID authentication type has been deprecated and is no longer available as an option in Flask-AppBuilder. OpenID (OID) is considered a deprecated authentication protocol - if you are using AUTH_OID, you will need to migrate to an alternative authentication method such as OAuth, LDAP, or database authentication before upgrading.
 - [34871](https://github.com/apache/superset/pull/34871): Fixed Jest test hanging issue from Ant Design v5 upgrade. MessageChannel is now mocked in test environment to prevent rc-overflow from causing Jest to hang. Test environment only - no production impact.
 - [34782](https://github.com/apache/superset/pull/34782): Dataset exports now include the dataset ID in their file name (similar to charts and dashboards). If managing assets as code, make sure to rename existing dataset YAMLs to include the ID (and avoid duplicated files).
@@ -942,8 +976,8 @@ For large `dashboard_slices` / `report_schedule_user` tables, see the operator r
   - Change any hex color values to one of: `"success"`, `"processing"`, `"error"`, `"warning"`, `"default"`
   - Custom colors are no longer supported to maintain consistency with Ant Design components
 - [34561](https://github.com/apache/superset/pull/34561) Added tiled screenshot functionality for Playwright-based reports to handle large dashboards more efficiently. When enabled (default: `SCREENSHOT_TILED_ENABLED = True`), dashboards with 20+ charts or height exceeding 5000px will be captured using multiple viewport-sized tiles and combined into a single image. This improves report generation performance and reliability for large dashboards.
-Note: Pillow is now a required dependency (previously optional) to support image processing for tiled screenshots.
-`thumbnails` optional dependency is now deprecated and will be removed in the next major release (7.0).
+  Note: Pillow is now a required dependency (previously optional) to support image processing for tiled screenshots.
+  `thumbnails` optional dependency is now deprecated and will be removed in the next major release (7.0).
 - [33084](https://github.com/apache/superset/pull/33084) The DISALLOWED_SQL_FUNCTIONS configuration now includes additional potentially sensitive database functions across PostgreSQL, MySQL, SQLite, MS SQL Server, and ClickHouse. Existing queries using these functions may now be blocked. Review your SQL Lab queries and dashboards if you encounter "disallowed function" errors after upgrading
 - [34235](https://github.com/apache/superset/pull/34235) CSV exports now use `utf-8-sig` encoding by default to include a UTF-8 BOM, improving compatibility with Excel.
 - [34258](https://github.com/apache/superset/pull/34258) changing the default in Dockerfile to INCLUDE_CHROMIUM="false" (from "true") in the past. This ensures the `lean` layer is lean by default, and people can opt-in to the `chromium` layer by setting the build arg `INCLUDE_CHROMIUM=true`. This is a breaking change for anyone using the `lean` layer, as it will no longer include Chromium by default.

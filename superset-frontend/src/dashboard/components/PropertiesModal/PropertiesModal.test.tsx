@@ -82,7 +82,8 @@ const dashboardInfo = {
   url: '/superset/dashboard/26/',
 };
 
-fetchMock.get('glob:*/api/v1/dashboard/26', {
+// useDashboardQuery appends ?q=<rison-encoded-columns>, so the glob needs the trailing *
+fetchMock.get('glob:*/api/v1/dashboard/26*', {
   body: {
     result: { ...dashboardInfo, json_metadata: mockedJsonMetadata },
   },

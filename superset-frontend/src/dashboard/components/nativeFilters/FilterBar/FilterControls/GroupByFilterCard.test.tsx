@@ -17,7 +17,10 @@
  * under the License.
  */
 import { LabeledValue } from '@superset-ui/core/components';
-import { createLabelSortComparator } from './GroupByFilterCard';
+import {
+  createLabelSortComparator,
+  mapDatasetColumnsToOptions,
+} from './GroupByFilterCard';
 
 const apple: LabeledValue = { value: 'a', label: 'Apple' };
 const banana: LabeledValue = { value: 'b', label: 'Banana' };
@@ -38,4 +41,20 @@ test('preserves source order when sortAscending is unset', () => {
   const compare = createLabelSortComparator(undefined);
   expect(compare(apple, banana)).toBe(0);
   expect(compare(banana, apple)).toBe(0);
+});
+
+test('mapDatasetColumnsToOptions drops non-filterable columns and prefers verbose_name', () => {
+  const options = mapDatasetColumnsToOptions([
+    { column_name: 'region', verbose_name: 'Region', filterable: true },
+    { column_name: 'secret', filterable: false },
+    { column_name: 'amount' },
+  ]);
+  expect(options).toEqual([
+    { label: 'Region', value: 'region' },
+    { label: 'amount', value: 'amount' },
+  ]);
+});
+
+test('mapDatasetColumnsToOptions returns [] for undefined columns', () => {
+  expect(mapDatasetColumnsToOptions(undefined)).toEqual([]);
 });

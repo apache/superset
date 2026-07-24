@@ -25,7 +25,6 @@ import {
   ExtraFormData,
   JsonObject,
   NativeFilterScope,
-  NativeFiltersState,
   NativeFilterTarget,
   ColumnOption,
 } from '@superset-ui/core';
@@ -186,6 +185,7 @@ export type DashboardInfo = {
     shared_label_colors: string[];
     map_label_colors: JsonObject;
     cross_filters_enabled: boolean;
+    filter_bar_orientation?: FilterBarOrientation;
     chart_customization_config?: (
       ChartCustomization | ChartCustomizationDivider
     )[];
@@ -194,8 +194,6 @@ export type DashboardInfo = {
     positions?: JsonObject;
     filter_scopes?: JsonObject;
   };
-  crossFiltersEnabled: boolean;
-  filterBarOrientation: FilterBarOrientation;
   created_on_delta_humanized: string;
   changed_on_delta_humanized: string;
   changed_by?: User;
@@ -240,17 +238,15 @@ export type DatasourcesState = {
 /** Root state of redux */
 export type GetState = () => RootState;
 
+// Only the slices that still live in Redux. The dashboard's own state (layout,
+// info, state, dataMask, nativeFilters, sliceEntities) moved to Zustand, so
+// reading it via `state.X` here would be a bug — leaving it out makes that a
+// compile error rather than a silent `undefined`.
 export type RootState = {
   datasources: DatasourcesState;
-  sliceEntities: SliceEntitiesState;
   charts: ChartsState;
-  dashboardLayout: DashboardLayoutState;
   dashboardFilters: JsonObject;
-  dashboardState: DashboardState;
-  dashboardInfo: DashboardInfo;
-  dataMask: DataMaskStateWithId;
   impressionId: string;
-  nativeFilters: NativeFiltersState;
   user: UserWithPermissionsAndRoles;
   common?: { conf: JsonObject };
   lastModifiedTime: number;

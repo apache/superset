@@ -19,6 +19,7 @@
 import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
+import { useDashboardLayout, useSlices } from 'src/dashboard/stores';
 import { Charts, Layout, RootState } from 'src/dashboard/types';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import {
@@ -38,15 +39,11 @@ export function useFilterScopeTree(
   treeData: [TreeItem];
   layout: Layout;
 } {
-  const layout = useSelector<RootState, Layout>(
-    ({ dashboardLayout: { present } }) => present,
-  );
+  const layout = useDashboardLayout() as Layout;
 
   const charts = useSelector<RootState, Charts>(({ charts }) => charts);
 
-  const sliceEntities = useSelector(
-    (state: RootState) => state.sliceEntities.slices,
-  );
+  const sliceEntities = useSlices();
 
   const tree = {
     children: [],

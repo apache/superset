@@ -49,6 +49,7 @@ import {
   Flex,
 } from '@superset-ui/core/components';
 import { RootState } from 'src/dashboard/types';
+import { useDashboardLayoutStore } from 'src/dashboard/stores';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { simpleFilterToAdhoc } from 'src/utils/simpleFilterToAdhoc';
@@ -488,14 +489,15 @@ export default function DrillByModal({
     additionalConfig,
   );
 
-  const chartName = useSelector<RootState, string | undefined>(state => {
-    const chartLayoutItem = Object.values(state.dashboardLayout.present).find(
+  const dashboardLayout = useDashboardLayoutStore(s => s.layout);
+  const chartName = useMemo(() => {
+    const chartLayoutItem = Object.values(dashboardLayout).find(
       layoutItem => layoutItem.meta?.chartId === formData.slice_id,
     );
     return (
       chartLayoutItem?.meta.sliceNameOverride || chartLayoutItem?.meta.sliceName
     );
-  });
+  }, [dashboardLayout, formData.slice_id]);
 
   useEffect(() => {
     if (drilledFormData) {

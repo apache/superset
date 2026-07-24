@@ -18,7 +18,7 @@
  */
 import type { FormInstance } from '@superset-ui/core/components';
 import { nanoid } from 'nanoid';
-import { getInitialDataMask } from 'src/dataMask/reducer';
+import { getInitialDataMask } from 'src/dataMask/useDataMaskStore';
 import {
   FilterConfiguration,
   NativeFilterType,

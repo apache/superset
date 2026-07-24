@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useDashboardStateStore } from 'src/dashboard/stores';
 import { HYDRATE_DASHBOARD, hydrateDashboard } from './hydrate';
 import {
   DASHBOARD_ROOT_TYPE,
@@ -66,12 +67,16 @@ const hydrate = (
     dashboardState?: Record<string, unknown>;
   } = {},
 ) => {
+  // Stored activeTabs / directPathToChild now live in the Zustand dashboard-state
+  // store (read by hydrateDashboard), not Redux getState — seed them there.
+  if (overrides.dashboardState) {
+    useDashboardStateStore.setState(overrides.dashboardState);
+  }
   const dispatch = jest.fn((action: unknown) => action);
   const getState = () =>
     ({
       user: { roles: {}, userId: 1 },
       common: { conf: {} },
-      dashboardState: overrides.dashboardState ?? {},
     }) as any;
   const action = (
     hydrateDashboard({
@@ -83,7 +88,9 @@ const hydrate = (
       chartStates: null,
     } as any) as any
   )(dispatch, getState);
-  return action;
+  // hydrateDashboard seeds the resolved path into the Zustand store, not the
+  // dispatched Redux action payload.
+  return { action, activeTabs: useDashboardStateStore.getState().activeTabs };
 };
 
 test('seeds the default (first) tab path for a flat ROOT → TABS → TAB layout', () => {
@@ -104,10 +111,10 @@ test('seeds the default (first) tab path for a flat ROOT → TABS → TAB layout
     'TAB-2': layoutItem('TAB-2', TAB_TYPE, [], [DASHBOARD_ROOT_ID, 'TABS-1']),
   };
 
-  const action = hydrate(positionData);
+  const { action, activeTabs } = hydrate(positionData);
 
   expect(action.type).toBe(HYDRATE_DASHBOARD);
-  expect(action.data.dashboardState.activeTabs).toEqual(['TAB-1']);
+  expect(activeTabs).toEqual(['TAB-1']);
 });
 
 test('seeds the recursive default path for nested TABS containers', () => {
@@ -151,10 +158,10 @@ test('seeds the recursive default path for nested TABS containers', () => {
     ),
   };
 
-  const action = hydrate(positionData);
+  const { action, activeTabs } = hydrate(positionData);
 
   expect(action.type).toBe(HYDRATE_DASHBOARD);
-  expect(action.data.dashboardState.activeTabs).toEqual(['TAB-1', 'TAB-1-1']);
+  expect(activeTabs).toEqual(['TAB-1', 'TAB-1-1']);
 });
 
 test('seeds the default tab path for an embedded top-level-TABS layout (hideTab scenario)', () => {
@@ -192,10 +199,10 @@ test('seeds the default tab path for an embedded top-level-TABS layout (hideTab 
     ),
   };
 
-  const action = hydrate(positionData);
+  const { action, activeTabs } = hydrate(positionData);
 
   expect(action.type).toBe(HYDRATE_DASHBOARD);
-  expect(action.data.dashboardState.activeTabs).toEqual(['TAB-Company']);
+  expect(activeTabs).toEqual(['TAB-Company']);
 });
 
 // Precedence: the layout default only applies
@@ -220,46 +227,48 @@ const flatTabsPositionData = {
 };
 
 test('a permalink activeTabs param suppresses the layout default', () => {
-  const action = hydrate(flatTabsPositionData, { activeTabs: ['TAB-2'] });
+  const { activeTabs } = hydrate(flatTabsPositionData, {
+    activeTabs: ['TAB-2'],
+  });
 
-  expect(action.data.dashboardState.activeTabs).toEqual(['TAB-2']);
+  expect(activeTabs).toEqual(['TAB-2']);
 });
 
 test('a non-empty stored redux activeTabs value suppresses the layout default', () => {
-  const action = hydrate(flatTabsPositionData, {
+  const { activeTabs } = hydrate(flatTabsPositionData, {
     dashboardState: { activeTabs: ['TAB-2'] },
   });
 
-  expect(action.data.dashboardState.activeTabs).toEqual(['TAB-2']);
+  expect(activeTabs).toEqual(['TAB-2']);
 });
 
 test('a non-empty directPathToChild (deep link) suppresses the layout default', () => {
-  const action = hydrate(flatTabsPositionData, {
+  const { activeTabs } = hydrate(flatTabsPositionData, {
     dashboardState: { directPathToChild: ['TAB-2'] },
   });
 
-  expect(action.data.dashboardState.activeTabs).toEqual([]);
+  expect(activeTabs).toEqual([]);
 });
 
 test('an empty stored redux activeTabs value still falls through to the layout default', () => {
   // Pins the `.length` guard: a stored `activeTabs: []` is truthy but must
   // not be treated as "already populated" — otherwise it would win over the
   // layout default and regress to the pre-fix `[]`.
-  const action = hydrate(flatTabsPositionData, {
+  const { activeTabs } = hydrate(flatTabsPositionData, {
     dashboardState: { activeTabs: [] },
   });
 
-  expect(action.data.dashboardState.activeTabs).toEqual(['TAB-1']);
+  expect(activeTabs).toEqual(['TAB-1']);
 });
 
 test('a non-empty stored redux value wins over a non-empty directPathToChild', () => {
   // Pins the `||` operand order: stored value is checked before the
   // directPathToChild-gated default branch.
-  const action = hydrate(flatTabsPositionData, {
+  const { activeTabs } = hydrate(flatTabsPositionData, {
     dashboardState: { activeTabs: ['TAB-2'], directPathToChild: ['TAB-1'] },
   });
 
-  expect(action.data.dashboardState.activeTabs).toEqual(['TAB-2']);
+  expect(activeTabs).toEqual(['TAB-2']);
 });
 
 test('a permalink activeTabs: [] (empty but present) wins and seeds []', () => {
@@ -270,7 +279,15 @@ test('a permalink activeTabs: [] (empty but present) wins and seeds []', () => {
   // live Tabs component resolves the default after mount) rather than
   // seeding the layout default — no regression, since that was already
   // today's behavior for such links.
-  const action = hydrate(flatTabsPositionData, { activeTabs: [] });
+  const { activeTabs } = hydrate(flatTabsPositionData, { activeTabs: [] });
 
-  expect(action.data.dashboardState.activeTabs).toEqual([]);
+  expect(activeTabs).toEqual([]);
+});
+
+test('seeds lastModifiedTime as numeric 0, not the changed_on string', () => {
+  // A non-numeric seed makes the Header's Math.max(lastModifiedTime, ...) NaN.
+  hydrate(flatTabsPositionData);
+  const { lastModifiedTime } = useDashboardStateStore.getState();
+  expect(lastModifiedTime).toBe(0);
+  expect(Number.isNaN(Math.max(lastModifiedTime, 1700000000))).toBe(false);
 });

@@ -18,7 +18,7 @@
  */
 
 import { NativeFilterType } from '@superset-ui/core';
-import { getInitialDataMask } from 'src/dataMask/reducer';
+import { getInitialDataMask } from 'src/dataMask/useDataMaskStore';
 import type { NativeFiltersFormItem } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/types';
 import { transformFilterForSave } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/transformers';
 
