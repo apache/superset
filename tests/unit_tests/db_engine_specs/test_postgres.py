@@ -403,3 +403,33 @@ def test_interval_type_mutator() -> None:
     assert mutator(True) is None
     assert mutator([1, 2, 3]) is None
     assert mutator({"days": 1}) is None
+
+
+def test_get_schema_names_excludes_only_actual_system_schemas(
+    mocker: MockerFixture,
+) -> None:
+    """
+    DB Eng Specs (postgres): Test ``get_schema_names``
+
+    User-defined schemas that merely start with ``pg`` (but are not
+    actual Postgres system schemas, which always start with the literal
+    ``pg_``) must not be filtered out. See SIP/issue #30678.
+    """
+    inspector = mocker.MagicMock()
+    inspector.engine.connect().__enter__().execute.return_value = [
+        ("public",),
+        ("pgsql",),
+        ("pgstats",),
+        ("pg_catalog",),
+        ("pg_toast",),
+        ("information_schema",),
+    ]
+
+    schemas = spec.get_schema_names(inspector)
+
+    assert schemas == {
+        "public",
+        "pgsql",
+        "pgstats",
+        "information_schema",
+    }
