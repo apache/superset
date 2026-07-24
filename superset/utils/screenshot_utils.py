@@ -114,6 +114,50 @@ UNREADY_CHART_HOLDERS_JS_BODY = """
     }
 """
 
+# Diagnostic query for every chart holder, including terminal and virtualized
+# states. This is intentionally separate from the readiness predicate so
+# incident logs can distinguish a valid empty/error result from a holder that
+# never mounted or remained loading.
+FIND_CHART_HOLDER_STATES_JS = """
+() => {
+    const holders = document.querySelectorAll(
+        '[data-test="dashboard-component-chart-holder"]'
+    );
+    return Array.from(holders).map(holder => {
+        const chartIdEl = holder.querySelector('[data-test-chart-id]');
+        const chartId = chartIdEl
+            ? chartIdEl.getAttribute('data-test-chart-id')
+            : 'unknown';
+        const r = holder.getBoundingClientRect();
+        if (!(r.top < window.innerHeight && r.bottom > 0)) {
+            return { chartId, state: 'virtualized' };
+        }
+        const hasSliceContainer = holder.querySelector(
+            '[data-test="slice-container"]'
+        ) !== null;
+        const stillLoading = holder.querySelector('.loading') !== null;
+        if (stillLoading && hasSliceContainer) {
+            return { chartId, state: 'spinner_mounted' };
+        }
+        if (stillLoading) {
+            return { chartId, state: 'waiting_on_database' };
+        }
+        if (holder.querySelector('[role="alert"]') !== null) {
+            return { chartId, state: 'error' };
+        }
+        if (holder.querySelector(
+            '.ant-empty, .missing-chart-container'
+        ) !== null) {
+            return { chartId, state: 'empty' };
+        }
+        if (hasSliceContainer) {
+            return { chartId, state: 'rendered' };
+        }
+        return { chartId, state: 'nothing_mounted' };
+    });
+}
+"""
+
 # Predicate for page.wait_for_function: true once every viewport-visible chart
 # holder has reached a terminal state.
 CHART_HOLDERS_READY_JS = (

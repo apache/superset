@@ -1281,9 +1281,14 @@ SUPERSET_CACHE_WARMUP_USER: str | None = None
 # Time before selenium times out after trying to locate an element on the page and wait
 # for that element to load for a screenshot.
 SCREENSHOT_LOCATE_WAIT = int(timedelta(seconds=10).total_seconds())
-# Time before selenium times out after waiting for all DOM class elements named
-# "loading" are gone.
+# Time before screenshot capture times out while waiting for chart readiness.
 SCREENSHOT_LOAD_WAIT = int(timedelta(minutes=1).total_seconds())
+# Upper bound for SCREENSHOT_LOAD_WAIT. This guard prevents an operator override
+# from allowing the browser wait to outlive a report worker's task budget and
+# leaves time for browser cleanup and the cache failure transition. Set this
+# above SCREENSHOT_LOAD_WAIT to preserve the configured wait, or lower it when
+# report tasks have a smaller outer time limit.
+SCREENSHOT_LOAD_WAIT_MAX = int(timedelta(minutes=4).total_seconds())
 # Maximum time (in seconds) selenium waits for an initial page navigation
 # (driver.get) to complete. Without it the navigation blocks indefinitely when
 # the target page never finishes loading (e.g. an unreachable WEBDRIVER_BASEURL),

@@ -482,6 +482,7 @@ class TestTakeTiledScreenshot:
         """
         from superset.utils.screenshot_utils import (
             CHART_HOLDERS_READY_JS,
+            FIND_CHART_HOLDER_STATES_JS,
             FIND_UNREADY_CHART_HOLDERS_JS,
         )
 
@@ -490,6 +491,12 @@ class TestTakeTiledScreenshot:
             assert "waiting_on_database" in js
             assert "nothing_mounted" in js
             assert "slice-container" in js
+
+        assert "rendered" in FIND_CHART_HOLDER_STATES_JS
+        assert "empty" in FIND_CHART_HOLDER_STATES_JS
+        assert "error" in FIND_CHART_HOLDER_STATES_JS
+        assert "virtualized" in FIND_CHART_HOLDER_STATES_JS
+        assert "waiting_on_database" in FIND_CHART_HOLDER_STATES_JS
 
     def test_per_tile_timing_logged_at_debug(self, mock_page):
         """Each tile logs how long it waited for readiness, for profiling."""
