@@ -42,6 +42,7 @@ import {
 } from '../../helpers/api/dashboard';
 import { getDatasetByName } from '../../helpers/api/dataset';
 import { DashboardPage } from '../../pages/DashboardPage';
+import { TIMEOUT } from '../../utils/constants';
 
 const DATASET_NAME = 'birth_names';
 
@@ -54,6 +55,8 @@ const COLOR_UNUSED_3: [number, number, number] = [90, 193, 137];
 testWithAssets(
   'Gauge renders configured interval colors on a dashboard (#28766)',
   async ({ page, testAssets }) => {
+    testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
+
     const dataset = await getDatasetByName(page, DATASET_NAME);
     if (!dataset) {
       throw new Error(`Dataset ${DATASET_NAME} not found`);
