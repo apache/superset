@@ -506,7 +506,7 @@ test('save flow and first dashboard screenshots', async ({ page }) => {
   await expect(saveButton).toBeVisible({ timeout: 10000 });
   await saveButton.click();
 
-  const modal = page.locator('.ant-modal-content').filter({
+  const modal = page.locator('.ant-modal-container').filter({
     has: page.locator('[data-test="save-modal-body"]'),
   });
   await expect(modal).toBeVisible({ timeout: 10000 });

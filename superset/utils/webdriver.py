@@ -240,8 +240,8 @@ class WebDriverPlaywright(WebDriverProxy):
                 alert_div.get_by_role("button").click()
 
                 # wait for modal to show up
-                page.locator(".ant-modal-content").wait_for(state="visible")
-                err_msg_div = page.locator(".ant-modal-content .ant-modal-body")
+                page.locator(".ant-modal-container").wait_for(state="visible")
+                err_msg_div = page.locator(".ant-modal-container .ant-modal-body")
                 #
                 # # collect error message
                 error_messages.append(err_msg_div.text_content())
@@ -250,10 +250,10 @@ class WebDriverPlaywright(WebDriverProxy):
                 error_as_html = err_msg_div.inner_html().replace("'", "\\'")
                 #
                 # # close modal after collecting error messages
-                page.locator(".ant-modal-content .ant-modal-close").click()
+                page.locator(".ant-modal-container .ant-modal-close").click()
                 #
                 # # wait until the modal becomes invisible
-                page.locator(".ant-modal-content").wait_for(state="detached")
+                page.locator(".ant-modal-container").wait_for(state="detached")
                 try:
                     # Even if some errors can't be updated in the screenshot,
                     # keep all the errors in the server log and do not fail the loop
@@ -759,7 +759,7 @@ class WebDriverSelenium(WebDriverProxy):
                     app.config["SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE"],
                 ).until(
                     EC.visibility_of_any_elements_located(
-                        (By.CLASS_NAME, "ant-modal-content")
+                        (By.CLASS_NAME, "ant-modal-container")
                     )
                 )[0]
 
