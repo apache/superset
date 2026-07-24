@@ -217,18 +217,64 @@ All MCP tools return consistent error schemas:
 
 **Error Tracking (Sentry)**:
 
+MCP tool execution runs on the FastMCP/Starlette asyncio stack, not Flask
+request handling, so `FlaskIntegration` alone does **not** capture MCP tool
+errors — it only sees the regular Superset web app's Flask requests. Use the
+vendor-neutral `MCP_ERROR_HOOK` config to forward system-class MCP errors
+(unexpected exceptions — not user errors like bad params or permission
+denials) to Sentry instead:
+
 ```python
 # superset_config.py
 import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
+from sentry_sdk.scrubber import EventScrubber
 
 sentry_sdk.init(
     dsn="https://your-dsn@sentry.io/project-id",
-    integrations=[FlaskIntegration()],
+    integrations=[FlaskIntegration()],  # covers the Flask web app only
     environment="production",
     traces_sample_rate=0.1,  # 10% of transactions
+    # The hook forwards the RAW exception, which may embed connection
+    # strings or tokens in its message — scrub events before they leave
+    # the process. The default EventScrubber covers common secret keys;
+    # add a before_send for anything deployment-specific.
+    event_scrubber=EventScrubber(recursive=True),
+    send_default_pii=False,
 )
+
+
+def _mcp_error_hook(error: Exception, context: dict) -> None:
+    """Forward system-class MCP tool errors to Sentry.
+
+    ``context`` always contains tool_name, mcp_call_id, user_id,
+    error_type, sanitized_message, and duration_ms. Values may be
+    unavailable depending on the capture path: user_id and duration_ms
+    are None on the last-resort path, mcp_call_id is None outside a tool
+    call, and tool_name falls back to "unknown" for non-tool messages.
+    ``error`` is the RAW exception — only ``sanitized_message`` has been
+    scrubbed — hence the event_scrubber/before_send above.
+    """
+    with sentry_sdk.new_scope() as scope:
+        scope.set_tag("mcp.tool", context.get("tool_name"))
+        scope.set_tag("mcp.call_id", context.get("mcp_call_id"))
+        scope.set_user({"id": context.get("user_id")})
+        sentry_sdk.capture_exception(error)
+
+
+MCP_ERROR_HOOK = _mcp_error_hook
 ```
+
+`MCP_ERROR_HOOK` is invoked from `GlobalErrorHandlerMiddleware` (the primary
+capture point, for every system-class error) and from
+`StructuredContentStripperMiddleware`'s last-resort exception handler (for
+errors that slip past the primary handler entirely). Hook failures are
+caught and logged; they never affect the MCP response.
+
+The hook runs synchronously on the asyncio event loop, so a blocking hook
+stalls all in-flight tool handling — hand events to a background transport
+rather than doing network I/O inline. The Sentry SDK already does this:
+`capture_exception` enqueues to a background worker.
 
 **Metrics Export (Prometheus)**:
 

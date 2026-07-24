@@ -43,6 +43,7 @@ from superset.mcp_service.middleware import (
     GlobalErrorHandlerMiddleware,
     RBACToolVisibilityMiddleware,
     ResponseSizeGuardMiddleware,
+    StructuredContentStripperMiddleware,
 )
 
 
@@ -1629,3 +1630,295 @@ class TestRBACToolVisibilityMiddleware:
             result = await middleware.on_list_tools(MagicMock(), call_next)
 
         assert result == tools
+
+
+class TestGlobalErrorHandlerStatsMetrics:
+    """GlobalErrorHandlerMiddleware must NOT emit per-tool outcome
+    counters: it re-raises every failure as ToolError, which the outer
+    LoggingMiddleware catches and counts (classified via __cause__).
+    Emitting here as well would double-count raised errors."""
+
+    @pytest.mark.asyncio
+    async def test_no_stats_emitted_for_system_error(self) -> None:
+        middleware = GlobalErrorHandlerMiddleware()
+        context = MagicMock()
+        context.message.name = "execute_sql"
+        context.method = "tools/call"
+        call_next = AsyncMock(side_effect=OperationalError("db error", {}, Exception()))
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch("superset.mcp_service.middleware.stats_logger_manager") as mock_stats,
+            pytest.raises(ToolError),
+        ):
+            await middleware.on_message(context, call_next)
+
+        mock_stats.instance.incr.assert_not_called()
+        mock_stats.instance.timing.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_no_stats_emitted_for_user_error(self) -> None:
+        middleware = GlobalErrorHandlerMiddleware()
+        context = MagicMock()
+        context.message.name = "list_charts"
+        context.method = "tools/call"
+        call_next = AsyncMock(side_effect=ValueError("bad param"))
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch("superset.mcp_service.middleware.stats_logger_manager") as mock_stats,
+            pytest.raises(ToolError),
+        ):
+            await middleware.on_message(context, call_next)
+
+        mock_stats.instance.incr.assert_not_called()
+        mock_stats.instance.timing.assert_not_called()
+
+
+class TestGlobalErrorHandlerErrorHook:
+    """Test that _handle_error invokes MCP_ERROR_HOOK for system-class
+    errors only, and never lets a raising hook affect the MCP response."""
+
+    @pytest.mark.asyncio
+    async def test_invokes_hook_for_system_error(self) -> None:
+        middleware = GlobalErrorHandlerMiddleware()
+        context = MagicMock()
+        context.message.name = "execute_sql"
+        context.method = "tools/call"
+        error = OperationalError("db error", {}, Exception())
+        call_next = AsyncMock(side_effect=error)
+        mock_hook = MagicMock()
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = mock_hook
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch(
+                "superset.mcp_service.flask_singleton.get_flask_app",
+                return_value=mock_flask_app,
+            ),
+            pytest.raises(ToolError),
+        ):
+            await middleware.on_message(context, call_next)
+
+        mock_hook.assert_called_once()
+        hook_error, hook_context = mock_hook.call_args[0]
+        assert hook_error is error
+        assert hook_context["tool_name"] == "execute_sql"
+        assert hook_context["error_type"] == "OperationalError"
+
+    @pytest.mark.asyncio
+    async def test_does_not_invoke_hook_for_user_error(self) -> None:
+        middleware = GlobalErrorHandlerMiddleware()
+        context = MagicMock()
+        context.message.name = "list_charts"
+        context.method = "tools/call"
+        call_next = AsyncMock(side_effect=ValueError("bad param"))
+        mock_hook = MagicMock()
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = mock_hook
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch(
+                "superset.mcp_service.flask_singleton.get_flask_app",
+                return_value=mock_flask_app,
+            ),
+            pytest.raises(ToolError),
+        ):
+            await middleware.on_message(context, call_next)
+
+        mock_hook.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_no_hook_configured_is_a_noop(self) -> None:
+        """Default config (MCP_ERROR_HOOK=None) must not raise."""
+        middleware = GlobalErrorHandlerMiddleware()
+        context = MagicMock()
+        context.message.name = "execute_sql"
+        context.method = "tools/call"
+        call_next = AsyncMock(side_effect=OperationalError("db error", {}, Exception()))
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = None
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch(
+                "superset.mcp_service.flask_singleton.get_flask_app",
+                return_value=mock_flask_app,
+            ),
+            pytest.raises(ToolError),
+        ):
+            await middleware.on_message(context, call_next)
+
+    @pytest.mark.asyncio
+    async def test_hook_exception_is_swallowed(self) -> None:
+        """A raising MCP_ERROR_HOOK must not affect the MCP response."""
+        middleware = GlobalErrorHandlerMiddleware()
+        context = MagicMock()
+        context.message.name = "execute_sql"
+        context.method = "tools/call"
+        call_next = AsyncMock(side_effect=OperationalError("db error", {}, Exception()))
+        mock_hook = MagicMock(side_effect=RuntimeError("sentry unreachable"))
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = mock_hook
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch(
+                "superset.mcp_service.flask_singleton.get_flask_app",
+                return_value=mock_flask_app,
+            ),
+            pytest.raises(ToolError, match="Database error"),
+        ):
+            await middleware.on_message(context, call_next)
+
+        mock_hook.assert_called_once()
+
+
+class TestGlobalErrorHandlerErrorIdUsesCallId:
+    """Test that the generic 'Internal error' branch uses mcp_call_id
+    instead of a collision-prone f'err_{int(time.time())}' timestamp."""
+
+    @pytest.mark.asyncio
+    async def test_unexpected_error_uses_mcp_call_id(self) -> None:
+        from superset.mcp_service.middleware import _mcp_call_id_var
+
+        middleware = GlobalErrorHandlerMiddleware()
+        context = MagicMock()
+        context.message.name = "list_charts"
+        context.method = "tools/call"
+        call_next = AsyncMock(side_effect=RuntimeError("boom"))
+
+        token = _mcp_call_id_var.set("abc123deadbeef")
+        try:
+            with (
+                patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+                patch("superset.mcp_service.middleware.event_logger"),
+                pytest.raises(ToolError) as exc_info,
+            ):
+                await middleware.on_message(context, call_next)
+        finally:
+            _mcp_call_id_var.reset(token)
+
+        assert "abc123deadbeef" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_falls_back_to_generated_id_when_no_call_id_set(self) -> None:
+        """When no mcp_call_id is in context (e.g. a non-tool-call message
+        path), fall back to a generated ID rather than raising."""
+        from superset.mcp_service.middleware import _mcp_call_id_var
+
+        middleware = GlobalErrorHandlerMiddleware()
+        context = MagicMock()
+        context.message.name = "list_charts"
+        context.method = "tools/call"
+        call_next = AsyncMock(side_effect=RuntimeError("boom"))
+
+        token = _mcp_call_id_var.set(None)
+        try:
+            with (
+                patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+                patch("superset.mcp_service.middleware.event_logger"),
+                pytest.raises(ToolError, match="Error ID: err_"),
+            ):
+                await middleware.on_message(context, call_next)
+        finally:
+            _mcp_call_id_var.reset(token)
+
+
+class TestStructuredContentStripperErrorHook:
+    """Test the last-resort MCP_ERROR_HOOK capture point in
+    StructuredContentStripperMiddleware.on_call_tool's except block."""
+
+    @pytest.mark.asyncio
+    async def test_invokes_hook_for_exception_bypassing_error_handler(self) -> None:
+        """A non-ToolError exception reaching this final catch means it
+        slipped past GlobalErrorHandlerMiddleware entirely — invoke the
+        hook here as the true last-resort capture point."""
+        middleware = StructuredContentStripperMiddleware()
+        context = MagicMock()
+        context.message.name = "list_charts"
+        call_next = AsyncMock(side_effect=RuntimeError("boom"))
+        mock_hook = MagicMock()
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = mock_hook
+
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=mock_flask_app,
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert result.content[0].text.startswith("Error:")
+        mock_hook.assert_called_once()
+        hook_error, hook_context = mock_hook.call_args[0]
+        assert isinstance(hook_error, RuntimeError)
+        assert hook_context["tool_name"] == "list_charts"
+        # The context contract: all keys always present, even on the
+        # last-resort path where user_id/duration_ms are unknown.
+        assert set(hook_context) == {
+            "tool_name",
+            "mcp_call_id",
+            "user_id",
+            "error_type",
+            "sanitized_message",
+            "duration_ms",
+        }
+        assert hook_context["user_id"] is None
+        assert hook_context["duration_ms"] is None
+        assert hook_context["error_type"] == "RuntimeError"
+
+    @pytest.mark.asyncio
+    async def test_does_not_double_invoke_hook_for_tool_error(self) -> None:
+        """ToolError has already been classified and hooked by
+        GlobalErrorHandlerMiddleware — avoid double-reporting the same
+        failure to the error tracker."""
+        middleware = StructuredContentStripperMiddleware()
+        context = MagicMock()
+        context.message.name = "list_charts"
+        call_next = AsyncMock(side_effect=ToolError("already handled"))
+        mock_hook = MagicMock()
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = mock_hook
+
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=mock_flask_app,
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert result.content[0].text.startswith("Error:")
+        mock_hook.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_hostile_str_does_not_escape_last_resort_handler(self) -> None:
+        """The last-resort handler must never propagate — even when the
+        exception's own __str__ raises, it must fall back to the class
+        name rather than letting a formatting error escape to the MCP SDK
+        (the exact encoding failure this handler exists to prevent)."""
+
+        class HostileStrError(Exception):
+            def __str__(self) -> str:
+                raise RuntimeError("hostile __str__")
+
+        middleware = StructuredContentStripperMiddleware()
+        context = MagicMock()
+        context.message.name = "list_charts"
+        call_next = AsyncMock(side_effect=HostileStrError())
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = None
+
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=mock_flask_app,
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert result.content[0].text == "Error: HostileStrError"

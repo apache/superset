@@ -1327,6 +1327,219 @@ class TestChartLookupEagerLoading:
             assert _extract_metrics_load_path(query_options[0]) == ["table", "metrics"]
 
 
+class TestOAuthErrorRouting:
+    """Query-time OAuth errors must reach the dedicated OAuth handlers.
+
+    OAuth2RedirectError/OAuth2Error subclass SupersetException, so without
+    the explicit re-raise ahead of the generic inner handler they would be
+    swallowed into a generic DataError and the client would never see the
+    OAuth redirect message.
+    """
+
+    def _make_chart(self) -> Any:
+        from unittest.mock import MagicMock
+
+        from superset.utils import json as utils_json
+
+        chart = MagicMock()
+        chart.id = 1
+        chart.slice_name = "My Chart"
+        chart.viz_type = "table"
+        chart.query_context = None
+        chart.params = utils_json.dumps(
+            {"viz_type": "table", "metrics": ["count"], "groupby": ["gender"]}
+        )
+        chart.datasource_id = 1
+        chart.datasource_type = "table"
+        return chart
+
+    def _patch_query_path(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        chart: Any,
+        run_error: Exception,
+    ) -> None:
+        """Route the query-execution path into a command that raises."""
+        from unittest.mock import MagicMock
+
+        chart_data_module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        query_context_factory_module = importlib.import_module(
+            "superset.common.query_context_factory"
+        )
+        get_data_command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+
+        validation = MagicMock()
+        validation.is_valid = True
+        validation.warnings = []
+
+        class QueryContextFactory:
+            def create(self, **kwargs: Any) -> object:
+                return object()
+
+        class RaisingChartDataCommand:
+            def __init__(self, query_context: object) -> None:
+                self.query_context = query_context
+
+            def validate(self) -> None:
+                pass
+
+            def run(self) -> dict[str, Any]:
+                raise run_error
+
+        monkeypatch.setattr(
+            chart_data_module,
+            "find_chart_by_identifier",
+            lambda *args, **kwargs: chart,
+        )
+        monkeypatch.setattr(
+            chart_data_module,
+            "validate_chart_dataset",
+            lambda *args, **kwargs: validation,
+        )
+        monkeypatch.setattr(
+            query_context_factory_module,
+            "QueryContextFactory",
+            QueryContextFactory,
+        )
+        monkeypatch.setattr(
+            get_data_command_module,
+            "ChartDataCommand",
+            RaisingChartDataCommand,
+        )
+
+    @pytest.mark.asyncio
+    async def test_oauth2_redirect_error_returns_oauth_redirect_type(
+        self,
+        mcp_server: Any,
+        mock_auth: Any,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        from fastmcp import Client
+
+        from superset.exceptions import OAuth2RedirectError
+        from superset.utils import json as utils_json
+
+        self._patch_query_path(
+            monkeypatch,
+            self._make_chart(),
+            OAuth2RedirectError(
+                "https://example.com/oauth",
+                "tab-1",
+                "https://example.com/redirect",
+            ),
+        )
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 1}}
+            )
+            data = utils_json.loads(result.content[0].text)
+
+        assert data["error_type"] == "OAUTH2_REDIRECT"
+        assert data["error_type"] != "DataError"
+
+    @pytest.mark.asyncio
+    async def test_oauth2_error_returns_oauth_redirect_error_type(
+        self,
+        mcp_server: Any,
+        mock_auth: Any,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        from fastmcp import Client
+
+        from superset.exceptions import OAuth2Error
+        from superset.utils import json as utils_json
+
+        self._patch_query_path(
+            monkeypatch,
+            self._make_chart(),
+            OAuth2Error("token refresh failed"),
+        )
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 1}}
+            )
+            data = utils_json.loads(result.content[0].text)
+
+        assert data["error_type"] == "OAUTH2_REDIRECT_ERROR"
+
+    @pytest.mark.asyncio
+    async def test_oauth2_redirect_on_form_data_key_path(
+        self,
+        mcp_server: Any,
+        mock_auth: Any,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """The unsaved-chart (form_data_key, no identifier) path runs its
+        own command via _query_from_form_data — an OAuth error there must
+        also surface as OAUTH2_REDIRECT, not a generic DataError."""
+        from fastmcp import Client
+
+        from superset.exceptions import OAuth2RedirectError
+        from superset.utils import json as utils_json
+
+        chart_data_module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        get_data_command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+
+        class RaisingChartDataCommand:
+            def __init__(self, query_context: object) -> None:
+                self.query_context = query_context
+
+            def validate(self) -> None:
+                pass
+
+            def run(self) -> dict[str, Any]:
+                raise OAuth2RedirectError(
+                    "https://example.com/oauth",
+                    "tab-1",
+                    "https://example.com/redirect",
+                )
+
+        cached_form_data = utils_json.dumps(
+            {
+                "datasource_id": 1,
+                "datasource_type": "table",
+                "viz_type": "table",
+                "metrics": ["count"],
+                "groupby": ["gender"],
+                "row_limit": 10,
+            }
+        )
+        monkeypatch.setattr(
+            chart_data_module,
+            "get_cached_form_data",
+            lambda *args, **kwargs: cached_form_data,
+        )
+        monkeypatch.setattr(
+            chart_data_module,
+            "build_query_context_from_form_data",
+            lambda *args, **kwargs: object(),
+        )
+        monkeypatch.setattr(
+            get_data_command_module,
+            "ChartDataCommand",
+            RaisingChartDataCommand,
+        )
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data", {"request": {"form_data_key": "cached-key"}}
+            )
+            data = utils_json.loads(result.content[0].text)
+
+        assert data["error_type"] == "OAUTH2_REDIRECT"
+        assert data["error_type"] != "DataError"
+
+
 # ---------------------------------------------------------------------------
 # Tests for _recommend_visualizations
 # ---------------------------------------------------------------------------

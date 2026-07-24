@@ -27,6 +27,7 @@ from typing import Any, Dict
 from pydantic import TypeAdapter
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.extensions import event_logger
 from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
     BoxPlotChartConfig,
@@ -245,4 +246,5 @@ def get_chart_type_schema(
     Returns the JSON Schema for the requested chart type, optionally
     with working examples.
     """
-    return _get_chart_type_schema_impl(chart_type, include_examples)
+    with event_logger.log_context(action="mcp.get_chart_type_schema.lookup"):
+        return _get_chart_type_schema_impl(chart_type, include_examples)

@@ -34,6 +34,7 @@ import pytest
 from fastmcp.exceptions import ToolError
 from fastmcp.tools.tool import ToolResult
 from mcp import types as mt
+from sqlalchemy.exc import OperationalError
 
 from superset.mcp_service.middleware import LoggingMiddleware
 
@@ -578,3 +579,541 @@ class TestMiddlewareChainOrder:
             "on_list_tools must return [] on exception — "
             "ToolError cannot be encoded in a tools/list response."
         )
+
+
+class TestExtractErrorTypeFromResponse:
+    """Tests for LoggingMiddleware._extract_error_type_from_response()."""
+
+    def test_extracts_error_type(self) -> None:
+        """Parses the error_type field out of a structured error response
+        instead of just sniffing for its presence."""
+        result = ToolResult(
+            content=[
+                mt.TextContent(
+                    type="text",
+                    text='{"error": "Chart 999 not found", "error_type": "not_found"}',
+                )
+            ]
+        )
+        assert (
+            LoggingMiddleware._extract_error_type_from_response(result) == "not_found"
+        )
+
+    def test_returns_none_for_non_dict_payload(self) -> None:
+        result = ToolResult(content=[mt.TextContent(type="text", text="[1, 2, 3]")])
+        assert LoggingMiddleware._extract_error_type_from_response(result) is None
+
+    def test_returns_none_for_invalid_json(self) -> None:
+        result = ToolResult(content=[mt.TextContent(type="text", text="not json")])
+        assert LoggingMiddleware._extract_error_type_from_response(result) is None
+
+    def test_returns_none_for_missing_error_type(self) -> None:
+        result = ToolResult(content=[mt.TextContent(type="text", text='{"ok": true}')])
+        assert LoggingMiddleware._extract_error_type_from_response(result) is None
+
+    def test_returns_none_for_non_string_error_type(self) -> None:
+        result = ToolResult(
+            content=[mt.TextContent(type="text", text='{"error_type": 404}')]
+        )
+        assert LoggingMiddleware._extract_error_type_from_response(result) is None
+
+    def test_returns_none_for_empty_content(self) -> None:
+        assert (
+            LoggingMiddleware._extract_error_type_from_response(ToolResult(content=[]))
+            is None
+        )
+
+
+class TestOnCallToolErrorTypeExtraction:
+    """Tests that on_call_tool surfaces the parsed error_type from
+    structured error responses (ChartError, DashboardError, etc.), rather
+    than discarding it after the substring sniff."""
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_logs_error_type_from_structured_response(
+        self, mock_get_user_id, mock_event_logger
+    ) -> None:
+        middleware = LoggingMiddleware()
+        ctx = _make_context(name="get_chart_info")
+
+        error_json = (
+            '{"error": "Chart 999999 not found",'
+            ' "error_type": "not_found",'
+            ' "timestamp": "2026-04-09T00:00:00Z"}'
+        )
+        error_result = ToolResult(
+            content=[mt.TextContent(type="text", text=error_json)]
+        )
+        call_next = AsyncMock(return_value=error_result)
+
+        await middleware.on_call_tool(ctx, call_next)
+
+        payload = mock_event_logger.log.call_args[1]["curated_payload"]
+        assert payload["error_type"] == "not_found"
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_exception_error_type_takes_precedence(
+        self, mock_get_user_id, mock_event_logger
+    ) -> None:
+        """When call_next raises, error_type comes from the exception class
+        (there is no structured response to parse)."""
+        middleware = LoggingMiddleware()
+        ctx = _make_context(name="execute_sql")
+        call_next = AsyncMock(side_effect=ValueError("boom"))
+
+        with pytest.raises(ValueError, match="boom"):
+            await middleware.on_call_tool(ctx, call_next)
+
+        payload = mock_event_logger.log.call_args[1]["curated_payload"]
+        assert payload["error_type"] == "ValueError"
+
+
+class TestOnCallToolStatsMetrics:
+    """Tests that on_call_tool emits per-tool StatsD counters and timing,
+    mirroring the success/warning/error split in base_api.py. This is the
+    single emission point — GlobalErrorHandlerMiddleware must not emit."""
+
+    @patch("superset.mcp_service.middleware.stats_logger_manager")
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_emits_success_counter_and_timing(
+        self, mock_get_user_id, mock_event_logger, mock_stats
+    ) -> None:
+        middleware = LoggingMiddleware()
+        ctx = _make_context(name="list_charts")
+        call_next = AsyncMock(return_value="ok")
+
+        await middleware.on_call_tool(ctx, call_next)
+
+        mock_stats.instance.incr.assert_called_once_with("mcp.tool.list_charts.success")
+        mock_stats.instance.timing.assert_called_once()
+        timing_key, timing_value = mock_stats.instance.timing.call_args[0]
+        assert timing_key == "mcp.tool.list_charts.time"
+        assert isinstance(timing_value, int)
+        assert timing_value >= 0
+
+    @patch("superset.mcp_service.middleware.stats_logger_manager")
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_emits_warning_counter_for_raised_user_error(
+        self, mock_get_user_id, mock_event_logger, mock_stats
+    ) -> None:
+        """A raised user-class error (ValueError) counts as warning,
+        matching base_api.py's 4xx handling."""
+        middleware = LoggingMiddleware()
+        ctx = _make_context(name="execute_sql")
+        call_next = AsyncMock(side_effect=ValueError("boom"))
+
+        with pytest.raises(ValueError, match="boom"):
+            await middleware.on_call_tool(ctx, call_next)
+
+        mock_stats.instance.incr.assert_called_once_with("mcp.tool.execute_sql.warning")
+
+    @patch("superset.mcp_service.middleware.stats_logger_manager")
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_emits_error_counter_for_raised_system_error(
+        self, mock_get_user_id, mock_event_logger, mock_stats
+    ) -> None:
+        """A raised system-class error (RuntimeError) counts as error."""
+        middleware = LoggingMiddleware()
+        ctx = _make_context(name="execute_sql")
+        call_next = AsyncMock(side_effect=RuntimeError("db down"))
+
+        with pytest.raises(RuntimeError, match="db down"):
+            await middleware.on_call_tool(ctx, call_next)
+
+        mock_stats.instance.incr.assert_called_once_with("mcp.tool.execute_sql.error")
+
+    @patch("superset.mcp_service.middleware.stats_logger_manager")
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_unwraps_tool_error_cause_for_classification(
+        self, mock_get_user_id, mock_event_logger, mock_stats
+    ) -> None:
+        """A ToolError wrapping a system error (as raised by
+        GlobalErrorHandlerMiddleware via ``raise ... from error``) must be
+        classified by its __cause__, not by the ToolError wrapper."""
+        middleware = LoggingMiddleware()
+        ctx = _make_context(name="execute_sql")
+        wrapped = ToolError("Database error in execute_sql")
+        wrapped.__cause__ = OperationalError("db error", {}, Exception())
+        call_next = AsyncMock(side_effect=wrapped)
+
+        with pytest.raises(ToolError):
+            await middleware.on_call_tool(ctx, call_next)
+
+        mock_stats.instance.incr.assert_called_once_with("mcp.tool.execute_sql.error")
+        payload = mock_event_logger.log.call_args[1]["curated_payload"]
+        assert payload["error_type"] == "OperationalError"
+
+    @patch("superset.mcp_service.middleware.stats_logger_manager")
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_emits_error_counter_for_structured_error_response(
+        self, mock_get_user_id, mock_event_logger, mock_stats
+    ) -> None:
+        """A tool that returns an error schema (rather than raising) must
+        still increment the error counter, not the success counter."""
+        middleware = LoggingMiddleware()
+        ctx = _make_context(name="get_chart_info")
+        error_result = ToolResult(
+            content=[
+                mt.TextContent(
+                    type="text",
+                    text='{"error": "not found", "error_type": "not_found"}',
+                )
+            ]
+        )
+        call_next = AsyncMock(return_value=error_result)
+
+        await middleware.on_call_tool(ctx, call_next)
+
+        mock_stats.instance.incr.assert_called_once_with(
+            "mcp.tool.get_chart_info.error"
+        )
+
+    @patch("superset.mcp_service.middleware.stats_logger_manager")
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_metric_uses_resolved_tool_name_for_call_tool_proxy(
+        self, mock_get_user_id, mock_event_logger, mock_stats
+    ) -> None:
+        """When invoked via the call_tool search proxy, the metric key
+        must use the real tool name, not the literal 'call_tool'."""
+        middleware = LoggingMiddleware()
+        ctx = _make_context(
+            name="call_tool",
+            params={"name": "list_datasets", "arguments": {}},
+        )
+        call_next = AsyncMock(return_value="ok")
+
+        await middleware.on_call_tool(ctx, call_next)
+
+        mock_stats.instance.incr.assert_called_once_with(
+            "mcp.tool.list_datasets.success"
+        )
+
+    @patch("superset.mcp_service.middleware.logger")
+    @patch("superset.mcp_service.middleware.stats_logger_manager")
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_metrics_failure_does_not_mask_tool_result(
+        self, mock_get_user_id, mock_event_logger, mock_stats, mock_logger
+    ) -> None:
+        """A failing stats backend must not turn a successful tool call
+        into an error — metrics are a side effect only. The swallowed
+        error must still be logged, not silently dropped."""
+        mock_stats.instance.incr.side_effect = RuntimeError("metrics backend down")
+        middleware = LoggingMiddleware()
+        ctx = _make_context(name="list_charts")
+        call_next = AsyncMock(return_value="ok")
+
+        result = await middleware.on_call_tool(ctx, call_next)
+
+        assert result == "ok"
+        warning_messages = [c.args[0] for c in mock_logger.warning.call_args_list]
+        assert any("Failed to emit MCP tool metrics" in m for m in warning_messages)
+
+    @patch("superset.mcp_service.middleware.logger")
+    @patch("superset.mcp_service.middleware.stats_logger_manager")
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_metrics_failure_does_not_mask_tool_exception(
+        self, mock_get_user_id, mock_event_logger, mock_stats, mock_logger
+    ) -> None:
+        """A failing stats backend must not replace the tool's real
+        exception with its own error in the finally block."""
+        mock_stats.instance.incr.side_effect = RuntimeError("metrics backend down")
+        middleware = LoggingMiddleware()
+        ctx = _make_context(name="execute_sql")
+        call_next = AsyncMock(side_effect=ValueError("boom"))
+
+        with pytest.raises(ValueError, match="boom"):
+            await middleware.on_call_tool(ctx, call_next)
+
+        warning_messages = [c.args[0] for c in mock_logger.warning.call_args_list]
+        assert any("Failed to emit MCP tool metrics" in m for m in warning_messages)
+
+
+class TestResolveMetricToolName:
+    """Tests for the StatsD metric-key validation in
+    _resolve_metric_tool_name — client-controlled tool names must never
+    reach a metric key unvalidated."""
+
+    @pytest.mark.asyncio
+    async def test_registered_tool_name_is_used(self) -> None:
+        """A name that resolves in the FastMCP tool registry is used."""
+        ctx = _make_context()
+        ctx.fastmcp_context.fastmcp.get_tool = AsyncMock(return_value=MagicMock())
+
+        result = await LoggingMiddleware._resolve_metric_tool_name(
+            ctx, "call_tool", "list_datasets"
+        )
+
+        assert result == "list_datasets"
+        ctx.fastmcp_context.fastmcp.get_tool.assert_awaited_once_with("list_datasets")
+
+    @pytest.mark.asyncio
+    async def test_unregistered_proxy_name_falls_back_to_call_tool(self) -> None:
+        """A bogus call_tool proxy name must not mint a new metric series."""
+        ctx = _make_context()
+        ctx.fastmcp_context.fastmcp.get_tool = AsyncMock(return_value=None)
+
+        result = await LoggingMiddleware._resolve_metric_tool_name(
+            ctx, "call_tool", "totally_fake_tool_9000"
+        )
+
+        assert result == "call_tool"
+
+    @pytest.mark.asyncio
+    async def test_unregistered_direct_name_falls_back_to_unknown(self) -> None:
+        """A bogus direct tool name must not mint a new metric series."""
+        ctx = _make_context()
+        ctx.fastmcp_context.fastmcp.get_tool = AsyncMock(return_value=None)
+
+        result = await LoggingMiddleware._resolve_metric_tool_name(
+            ctx, "totally_fake_tool_9000", None
+        )
+
+        assert result == "unknown"
+
+    @pytest.mark.asyncio
+    async def test_registry_raise_treated_as_unregistered(self) -> None:
+        """get_tool raising (NotFoundError-style) means unregistered."""
+        ctx = _make_context()
+        ctx.fastmcp_context.fastmcp.get_tool = AsyncMock(
+            side_effect=KeyError("not found")
+        )
+
+        result = await LoggingMiddleware._resolve_metric_tool_name(
+            ctx, "call_tool", "totally_fake_tool_9000"
+        )
+
+        assert result == "call_tool"
+
+    @pytest.mark.asyncio
+    async def test_injection_shaped_name_rejected_without_registry(self) -> None:
+        """With no registry reachable (mocked context), StatsD metadata
+        characters must still never reach the metric key."""
+        ctx = _make_context()  # plain MagicMock — get_tool is not awaitable
+
+        result = await LoggingMiddleware._resolve_metric_tool_name(
+            ctx, "call_tool", "evil\nfake.metric:1|c"
+        )
+
+        assert result == "call_tool"
+
+    @pytest.mark.asyncio
+    async def test_injection_shaped_name_rejected_via_registry(self) -> None:
+        """The production path: a reachable registry that does not know
+        the hostile name must fall back to the constant — the metadata
+        characters never reach the metric key."""
+        ctx = _make_context()
+        ctx.fastmcp_context.fastmcp.get_tool = AsyncMock(return_value=None)
+
+        result = await LoggingMiddleware._resolve_metric_tool_name(
+            ctx, "call_tool", "evil\nfake.metric:1|c"
+        )
+
+        assert result == "call_tool"
+
+    @pytest.mark.asyncio
+    async def test_overlong_name_rejected_without_registry(self) -> None:
+        ctx = _make_context()
+
+        result = await LoggingMiddleware._resolve_metric_tool_name(ctx, "x" * 500, None)
+
+        assert result == "unknown"
+
+    @pytest.mark.asyncio
+    async def test_missing_name_returns_unknown(self) -> None:
+        ctx = _make_context()
+
+        assert (
+            await LoggingMiddleware._resolve_metric_tool_name(ctx, None, None)
+            == "unknown"
+        )
+
+
+class TestChainLevelStatsMetrics:
+    """Drive failures through the REAL middleware chain from
+    build_middleware_list() and assert the exact set of stats calls —
+    pins that per-tool outcome counters are emitted exactly once per call
+    (no double-counting between LoggingMiddleware and
+    GlobalErrorHandlerMiddleware)."""
+
+    @patch("superset.mcp_service.middleware.stats_logger_manager")
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_raised_user_error_counts_warning_exactly_once(
+        self, mock_get_user_id, mock_event_logger, mock_stats
+    ) -> None:
+        from superset.mcp_service.server import build_middleware_list
+
+        middleware_list = build_middleware_list()
+
+        async def failing_tool(context: Any) -> Any:
+            raise ValueError("chart not found")
+
+        chain = failing_tool
+        for mw in reversed(middleware_list):
+            chain = partial(mw, call_next=chain)
+
+        ctx = _make_context(name="get_chart_info")
+        result = await chain(ctx)
+
+        # Stripper (outermost) converts the ToolError to a safe ToolResult
+        assert isinstance(result, ToolResult)
+        assert result.content[0].text.startswith("Error:")
+
+        # Exactly ONE outcome counter for the whole chain: ValueError is a
+        # user error, classified via the ToolError __cause__ unwrap.
+        incr_keys = [c.args[0] for c in mock_stats.instance.incr.call_args_list]
+        assert incr_keys == ["mcp.tool.get_chart_info.warning"]
+        timing_keys = [c.args[0] for c in mock_stats.instance.timing.call_args_list]
+        assert timing_keys == ["mcp.tool.get_chart_info.time"]
+
+    @patch("superset.mcp_service.middleware.stats_logger_manager")
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_raised_system_error_counts_error_exactly_once(
+        self, mock_get_user_id, mock_event_logger, mock_stats
+    ) -> None:
+        from superset.mcp_service.server import build_middleware_list
+
+        middleware_list = build_middleware_list()
+
+        async def failing_tool(context: Any) -> Any:
+            raise RuntimeError("infrastructure down")
+
+        chain = failing_tool
+        for mw in reversed(middleware_list):
+            chain = partial(mw, call_next=chain)
+
+        ctx = _make_context(name="execute_sql")
+        result = await chain(ctx)
+
+        assert isinstance(result, ToolResult)
+        assert result.content[0].text.startswith("Error:")
+
+        incr_keys = [c.args[0] for c in mock_stats.instance.incr.call_args_list]
+        assert incr_keys == ["mcp.tool.execute_sql.error"]
+
+    @patch("superset.mcp_service.middleware.stats_logger_manager")
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_success_counts_success_exactly_once(
+        self, mock_get_user_id, mock_event_logger, mock_stats
+    ) -> None:
+        from superset.mcp_service.server import build_middleware_list
+
+        middleware_list = build_middleware_list()
+
+        async def ok_tool(context: Any) -> Any:
+            return ToolResult(content=[mt.TextContent(type="text", text="ok")])
+
+        chain = ok_tool
+        for mw in reversed(middleware_list):
+            chain = partial(mw, call_next=chain)
+
+        ctx = _make_context(name="list_charts")
+        await chain(ctx)
+
+        incr_keys = [c.args[0] for c in mock_stats.instance.incr.call_args_list]
+        assert incr_keys == ["mcp.tool.list_charts.success"]
+
+    @patch("superset.mcp_service.middleware.stats_logger_manager")
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_structured_error_response_counts_error_exactly_once(
+        self, mock_get_user_id, mock_event_logger, mock_stats
+    ) -> None:
+        """A tool that returns an error schema (no raise) counts one
+        .error through the real chain — not .success, not doubled."""
+        from superset.mcp_service.server import build_middleware_list
+
+        middleware_list = build_middleware_list()
+
+        async def error_returning_tool(context: Any) -> Any:
+            return ToolResult(
+                content=[
+                    mt.TextContent(
+                        type="text",
+                        text='{"error": "not found", "error_type": "not_found"}',
+                    )
+                ]
+            )
+
+        chain = error_returning_tool
+        for mw in reversed(middleware_list):
+            chain = partial(mw, call_next=chain)
+
+        ctx = _make_context(name="get_chart_info")
+        await chain(ctx)
+
+        incr_keys = [c.args[0] for c in mock_stats.instance.incr.call_args_list]
+        assert incr_keys == ["mcp.tool.get_chart_info.error"]
+
+
+class TestAppContextFixForAuditRows:
+    """Regression tests for the has_app_context() skip bug: the DB audit
+    row (event_logger.log) must never be silently dropped just because
+    the per-tool app context has already exited by the time the
+    middleware finally block runs. Both on_call_tool and on_message must
+    wrap the log call in _get_app_context_manager() rather than
+    conditionally skipping it."""
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @patch("superset.mcp_service.middleware._get_app_context_manager")
+    @pytest.mark.asyncio
+    async def test_on_call_tool_uses_app_context_manager(
+        self, mock_get_app_context_manager, mock_get_user_id, mock_event_logger
+    ) -> None:
+        from contextlib import nullcontext
+
+        mock_get_app_context_manager.return_value = nullcontext()
+        middleware = LoggingMiddleware()
+        ctx = _make_context(name="list_charts")
+        call_next = AsyncMock(return_value="ok")
+
+        await middleware.on_call_tool(ctx, call_next)
+
+        mock_get_app_context_manager.assert_called_once()
+        mock_event_logger.log.assert_called_once()
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @patch("superset.mcp_service.middleware._get_app_context_manager")
+    @pytest.mark.asyncio
+    async def test_on_message_uses_app_context_manager(
+        self, mock_get_app_context_manager, mock_get_user_id, mock_event_logger
+    ) -> None:
+        from contextlib import nullcontext
+
+        mock_get_app_context_manager.return_value = nullcontext()
+        middleware = LoggingMiddleware()
+        ctx = _make_context(method="resources/read", name="instance/metadata")
+        call_next = AsyncMock(return_value="resource_data")
+
+        await middleware.on_message(ctx, call_next)
+
+        mock_get_app_context_manager.assert_called_once()
+        mock_event_logger.log.assert_called_once()

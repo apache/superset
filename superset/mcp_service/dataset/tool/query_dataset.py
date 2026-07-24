@@ -408,6 +408,7 @@ async def query_dataset(  # noqa: C901
         )
 
     except SQLAlchemyError as exc:
+        logger.exception("Database error while querying dataset")
         await ctx.error("Database error: %s" % (str(exc),))
         return DatasetError.create(
             error=f"Database error: {exc}",

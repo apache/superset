@@ -87,6 +87,34 @@ MCP_RBAC_ENABLED = True
 #   MCP_DISABLED_TOOLS = {"extensions.myorg.myext.some_tool"}
 MCP_DISABLED_TOOLS: set[str] = set()
 
+# Pluggable error-capture hook, invoked for system-class MCP tool errors
+# (unexpected exceptions — database down, bugs — not user errors like bad
+# params or permission denials). Lets operators forward failures to an
+# external error tracker (e.g. Sentry) without the OSS repo depending on any
+# particular vendor SDK: FlaskIntegration does not see FastMCP tool
+# execution, since it runs on the asyncio/Starlette stack, not a Flask
+# request. See PRODUCTION.md "Error Tracking" for a Sentry wiring example.
+#
+# Signature: hook(error: Exception, context: dict[str, Any]) -> None
+# ``context`` always contains the keys "tool_name", "mcp_call_id",
+# "user_id", "error_type", "sanitized_message", and "duration_ms" — but
+# values may be unavailable depending on the capture path: "user_id" and
+# "duration_ms" are None on the last-resort path
+# (StructuredContentStripperMiddleware), "mcp_call_id" is None outside a
+# tool call, and "tool_name" falls back to "unknown" for non-tool
+# messages. Only "sanitized_message" is scrubbed — the ``error`` argument
+# is the RAW exception and may contain sensitive data (connection
+# strings, tokens); sanitize it before exporting, or report
+# "sanitized_message" instead.
+#
+# The hook runs SYNCHRONOUSLY on the asyncio event loop, so a blocking hook
+# stalls all in-flight tool handling. Do not perform network I/O inline;
+# hand the event to a background transport (the Sentry SDK's
+# capture_exception already queues to a worker thread). Exceptions raised
+# by the hook itself are caught and logged as a warning; they never affect
+# the MCP response.
+MCP_ERROR_HOOK: Callable[[Exception, dict[str, Any]], None] | None = None
+
 # =============================================================================
 # MCP Chart Plugin Filtering
 # =============================================================================
