@@ -81,23 +81,17 @@ const getCellStyle = (params: CellStyleParams) => {
     // time-comparison columns rather than the row's actual data key, so
     // resolve it to the real field id before using it to read row values.
     const resolveColumnKey = (columnKey: string) =>
-      columnKey.includes('Main')
-        ? columnKey.replace('Main', '').trim()
+      columnKey.startsWith('Main ')
+        ? columnKey.slice('Main '.length)
         : columnKey;
 
     columnColorFormatters!
-      .filter(formatter => {
-        if (formatter.columnFormatting) {
-          return formatter.columnFormatting === colDef.field;
-        }
-        return resolveColumnKey(formatter.column) === colDef.field;
-      })
-      .forEach(formatter => {
-        const valueToFormat = formatter.columnFormatting
-          ? node?.data?.[resolveColumnKey(formatter.column)]
-          : value;
-        applyFormatter(formatter, valueToFormat);
-      });
+      .filter(
+        formatter =>
+          formatter.columnFormatting !== ObjectFormattingEnum.ENTIRE_ROW &&
+          resolveColumnKey(formatter.column) === colDef.field,
+      )
+      .forEach(formatter => applyFormatter(formatter, value));
 
     // Entire-row formatters apply to every cell in the row, keyed off the
     // value in the formatter's own column rather than this cell's column.

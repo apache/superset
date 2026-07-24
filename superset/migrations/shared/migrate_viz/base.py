@@ -218,7 +218,7 @@ class MigrateViz:
                 query_context["queries"] = queries_bak
                 if "form_data" in query_context:
                     query_context["form_data"] = form_data_bak
-                    new_query_context = json.dumps(query_context)
+                new_query_context = json.dumps(query_context)
             else:
                 new_query_context = None
 
