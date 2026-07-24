@@ -164,10 +164,6 @@ class MigrateViz:
             clz._migrate()
             clz._post_action()
 
-            # viz_type depends on the migration and should be set after its execution
-            # because a source viz can be mapped to different target viz types
-            slc.viz_type = clz.target_viz_type
-
             backup: Any | dict[str, Any] = {FORM_DATA_BAK_FIELD_NAME: form_data_bak}
 
             query_context = try_load_json(slc.query_context)
@@ -184,9 +180,17 @@ class MigrateViz:
             else:
                 query_context = clz._build_query()
 
-            slc.query_context = json.dumps(query_context)
             backup[QUERIES_BAK_FIELD_NAME] = queries_bak
-            slc.params = json.dumps({**clz.data, **backup})
+            new_params = json.dumps({**clz.data, **backup})
+            new_query_context = json.dumps(query_context)
+
+            # Only mutate the slice once every step above has succeeded, so a
+            # failure never leaves viz_type out of sync with params/query_context.
+            # viz_type depends on the migration and should be set after its execution
+            # because a source viz can be mapped to different target viz types
+            slc.viz_type = clz.target_viz_type
+            slc.query_context = new_query_context
+            slc.params = new_params
 
         except Exception as e:
             logger.warning("Failed to migrate slice %s: %s", slc.id, e)
@@ -195,20 +199,35 @@ class MigrateViz:
     def downgrade_slice(cls, slc: Slice) -> None:
         try:
             form_data = try_load_json(slc.params)
-            if "viz_type" in (
+            if "viz_type" not in (
                 form_data_bak := form_data.get(FORM_DATA_BAK_FIELD_NAME, {})
             ):
-                slc.params = json.dumps(form_data_bak)
-                slc.viz_type = form_data_bak.get("viz_type")
-                query_context = try_load_json(slc.query_context)
-                queries_bak = form_data.get(QUERIES_BAK_FIELD_NAME, {})
-                if queries_bak:
-                    query_context["queries"] = queries_bak
-                    if "form_data" in query_context:
-                        query_context["form_data"] = form_data_bak
-                        slc.query_context = json.dumps(query_context)
-                else:
-                    slc.query_context = None
+                return
+
+            new_params = json.dumps(form_data_bak)
+            new_viz_type = form_data_bak.get("viz_type")
+
+            # Sentinel so a "leave query_context untouched" branch below is
+            # distinguishable from "explicitly set it to None".
+            unchanged = object()
+            new_query_context: Any = unchanged
+
+            query_context = try_load_json(slc.query_context)
+            queries_bak = form_data.get(QUERIES_BAK_FIELD_NAME, {})
+            if queries_bak:
+                query_context["queries"] = queries_bak
+                if "form_data" in query_context:
+                    query_context["form_data"] = form_data_bak
+                    new_query_context = json.dumps(query_context)
+            else:
+                new_query_context = None
+
+            # Only mutate the slice once every step above has succeeded, so a
+            # failure never leaves viz_type out of sync with params/query_context.
+            slc.params = new_params
+            slc.viz_type = new_viz_type
+            if new_query_context is not unchanged:
+                slc.query_context = new_query_context
 
         except Exception as e:
             logger.warning("Failed to downgrade slice %s: %s", slc.id, e)
