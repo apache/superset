@@ -17,6 +17,7 @@
  * under the License.
  */
 export { default as EchartsBoxPlotChartPlugin } from './BoxPlot';
+export { default as EchartsRoseChartPlugin } from './Rose';
 export { default as EchartsTimePivotChartPlugin } from './TimePivot';
 export { default as EchartsBulletChartPlugin } from './Bullet';
 export { default as EchartsTimeseriesChartPlugin } from './Timeseries';
