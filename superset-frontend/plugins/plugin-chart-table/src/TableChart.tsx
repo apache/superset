@@ -408,6 +408,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     filters,
     sticky = true, // whether to use sticky header
     columnColorFormatters,
+    columnUrlLinks,
     allowRearrangeColumns = false,
     allowRenderHtml = true,
     onContextMenu,
@@ -1018,6 +1019,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         Array.isArray(columnColorFormatters) &&
         columnColorFormatters.length > 0;
 
+      const hasColumnUrlLinks = columnUrlLinks?.length;
+
       const hasBasicColorFormatters =
         isUsingTimeComparison &&
         Array.isArray(basicColorFormatters) &&
@@ -1279,6 +1282,30 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             // eslint-disable-next-line react/no-danger
             return <StyledCell {...cellProps} dangerouslySetInnerHTML={html} />;
           }
+
+          let urlLinkHref;
+          let linkTextString;
+          if (hasColumnUrlLinks) {
+            const matchedUrlLink = columnUrlLinks?.find(
+              urlLink => urlLink.column === column.key,
+            );
+            if (matchedUrlLink) {
+              urlLinkHref = matchedUrlLink.getTextFromValues(
+                value as number,
+                row.original,
+              );
+              linkTextString = matchedUrlLink.linkText;
+            }
+          }
+          if (urlLinkHref) {
+            return (
+              <StyledCell {...cellProps}>
+                <a target="_blank" href={urlLinkHref} rel="noreferrer">
+                  {linkTextString}
+                </a>
+              </StyledCell>
+            );
+          }
           // If cellProps renders textContent already, then we don't have to
           // render `Cell`. This saves some time for large tables.
           return (
@@ -1426,6 +1453,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       toggleFilter,
       handleContextMenu,
       allowRearrangeColumns,
+      columnUrlLinks,
     ],
   );
 
