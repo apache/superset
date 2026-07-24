@@ -2079,7 +2079,7 @@ def test_slack_text_fallback_persists_later_recipient_ambiguous_failure(
         .all()
     )
     log_states = {log.state for log in execution_logs}
-    assert {ReportState.WORKING, ReportState.ERROR} <= log_states
+    assert log_states == {ReportState.ERROR}
     error_messages = [
         log.error_message or ""
         for log in execution_logs

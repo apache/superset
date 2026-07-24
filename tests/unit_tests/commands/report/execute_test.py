@@ -3470,15 +3470,15 @@ def test_create_log_includes_execution_warnings_with_error(
     state = BaseReportState(schedule, datetime.utcnow(), uuid4())
     state._execution_warnings.append("Slack v1 fallback is deprecated")
 
-    mocker.patch("superset.commands.report.execute.db")
-    mock_log_cls = mocker.patch(
-        "superset.commands.report.execute.ReportExecutionLog",
-        return_value=mocker.Mock(),
+    mock_db = mocker.patch("superset.commands.report.execute.db")
+    working_log = mocker.Mock()
+    mock_db.session.query.return_value.filter.return_value.first.return_value = (
+        working_log
     )
 
     state.create_log(error_message="Email delivery failed")
 
-    assert mock_log_cls.call_args.kwargs["error_message"] == (
+    assert working_log.error_message == (
         "Slack v1 fallback is deprecated;Email delivery failed"
     )
 
@@ -3495,18 +3495,18 @@ def test_create_log_preserves_error_notification_marker(
     state = BaseReportState(schedule, datetime.utcnow(), uuid4())
     state._execution_warnings.append("Slack v1 fallback is deprecated")
 
-    mocker.patch("superset.commands.report.execute.db")
-    mock_log_cls = mocker.patch(
+    mock_db = mocker.patch("superset.commands.report.execute.db")
+    mock_db.session.query.return_value.filter.return_value.first.return_value = None
+    marker_log = mocker.Mock()
+    mocker.patch(
         "superset.commands.report.execute.ReportExecutionLog",
-        return_value=mocker.Mock(),
+        return_value=marker_log,
     )
 
     state.create_log(error_message=REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER)
 
-    assert (
-        mock_log_cls.call_args.kwargs["error_message"]
-        == REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER
-    )
+    assert marker_log.error_message == REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER
+    mock_db.session.add.assert_called_once_with(marker_log)
 
 
 def test_create_log_excludes_warnings_from_secondary_error(
@@ -3521,10 +3521,12 @@ def test_create_log_excludes_warnings_from_secondary_error(
     state = BaseReportState(schedule, datetime.utcnow(), uuid4())
     state._execution_warnings.append("Slack v1 fallback is deprecated")
 
-    mocker.patch("superset.commands.report.execute.db")
-    mock_log_cls = mocker.patch(
+    mock_db = mocker.patch("superset.commands.report.execute.db")
+    mock_db.session.query.return_value.filter.return_value.first.return_value = None
+    notification_failure_log = mocker.Mock()
+    mocker.patch(
         "superset.commands.report.execute.ReportExecutionLog",
-        return_value=mocker.Mock(),
+        return_value=notification_failure_log,
     )
 
     state.create_log(
@@ -3532,7 +3534,8 @@ def test_create_log_excludes_warnings_from_secondary_error(
         include_execution_warnings=False,
     )
 
-    assert mock_log_cls.call_args.kwargs["error_message"] == "Error notification failed"
+    assert notification_failure_log.error_message == "Error notification failed"
+    mock_db.session.add.assert_called_once_with(notification_failure_log)
 
 
 def test_success_state_report_sends_and_logs_success(
