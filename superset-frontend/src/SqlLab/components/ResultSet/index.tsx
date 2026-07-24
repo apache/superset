@@ -618,7 +618,22 @@ const ResultSet = ({
   }
 
   if (query.state === QueryState.Failed) {
-    const errors = [...(query.extra?.errors || []), ...(query.errors || [])];
+    // A failed query can carry the same error in both `query.errors` (set by
+    // the queryFailed action) and `query.extra.errors` (set by the async
+    // refresh). When falling back to async polling both get populated with
+    // identical errors, so deduplicate to avoid rendering each error twice.
+    const seenErrors = new Set<string>();
+    const errors = [
+      ...(query.extra?.errors || []),
+      ...(query.errors || []),
+    ].filter(error => {
+      const key = JSON.stringify(error);
+      if (seenErrors.has(key)) {
+        return false;
+      }
+      seenErrors.add(key);
+      return true;
+    });
 
     return (
       <ResultlessStyles>
