@@ -72,6 +72,7 @@ const IconButton = forwardRef<HTMLDivElement, IconButtonProps>(
       ref={ref}
       tabIndex={disabled ? -1 : 0}
       role="button"
+      aria-label={label}
       isDisabled={disabled}
       aria-disabled={disabled}
       data-test={dataTest}
