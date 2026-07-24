@@ -288,12 +288,11 @@ export default function Root({ children }) {
       document.addEventListener('copy', handleCopy);
       window.addEventListener('scroll', handleScroll, { passive: true });
 
-      // Watch for color mode changes
       const colorModeObserver = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
           if (mutation.attributeName === 'data-theme') {
             trackEvent('User Preference', 'Color Mode Change',
-              document.documentElement.getAttribute('data-theme'));
+                       document.documentElement.getAttribute('data-theme'));
           }
         });
       });
