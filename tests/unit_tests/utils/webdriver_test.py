@@ -884,6 +884,8 @@ class TestWebDriverPlaywrightErrorHandling:
                 return 1
             if "const target = document.querySelector" in script:
                 return 0
+            if "dashboard-component-chart-holder" in script:
+                return []
             return None
 
         mock_page.evaluate.side_effect = evaluate_side_effect
@@ -1091,8 +1093,10 @@ class TestWebDriverPlaywrightChartReadiness:
             )
 
         assert result == b"screenshot"
-        # No timeout, so the unready-holder diagnostics query never runs.
-        mock_page.evaluate.assert_not_called()
+        # Readiness diagnostics are emitted before polling so a task killed by
+        # an outer limit still leaves useful state in the logs.
+        mock_page.evaluate.assert_called_once()
+        assert "state: 'rendered'" in mock_page.evaluate.call_args.args[0]
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver._browser_manager")
@@ -1163,6 +1167,75 @@ class TestWebDriverPlaywrightChartReadiness:
         # context_suffix is the 5th positional arg (index 4); assert its
         # exact value rather than tuple-element membership via `in`.
         assert mock_logger.warning.call_args.args[4] == " [execution_id=abc-123]"
+
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.webdriver._browser_manager")
+    @patch("superset.utils.webdriver.logger")
+    @patch("superset.utils.webdriver.app")
+    def test_wait_is_capped_below_outer_task_budget(
+        self, mock_app, mock_logger, mock_browser_manager
+    ):
+        """A 600s operator wait is capped, leaving cleanup time before 300s."""
+        mock_user = MagicMock()
+        mock_user.username = "test_user"
+        mock_app.config = {
+            **self._base_config,
+            "SCREENSHOT_LOAD_WAIT": 600,
+            "SCREENSHOT_LOAD_WAIT_MAX": 240,
+        }
+        mock_context, mock_page = self._make_pw_mocks(mock_browser_manager)
+
+        with patch.object(WebDriverPlaywright, "auth", return_value=mock_context):
+            driver = WebDriverPlaywright("chrome")
+            driver.get_screenshot("http://example.com", "test-element", mock_user)
+
+        assert mock_page.wait_for_function.call_args.kwargs["timeout"] == 240_000
+        mock_logger.warning.assert_any_call(
+            "Capping SCREENSHOT_LOAD_WAIT from %ss to %ss so chart readiness "
+            "cannot consume the outer report task budget",
+            600,
+            240,
+        )
+
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.webdriver._browser_manager")
+    @patch("superset.utils.webdriver.logger")
+    @patch("superset.utils.webdriver.app")
+    def test_unready_diagnostics_logged_early_and_at_failure(
+        self, mock_app, mock_logger, mock_browser_manager
+    ):
+        """Unready IDs/states are logged before polling and on timeout."""
+        from superset.utils.webdriver import PlaywrightTimeout
+
+        mock_user = MagicMock()
+        mock_user.username = "test_user"
+        mock_app.config = {**self._base_config}
+        mock_context, mock_page = self._make_pw_mocks(mock_browser_manager)
+        diagnostics = [{"chartId": "17", "state": "waiting_on_database"}]
+        mock_page.evaluate.return_value = diagnostics
+        mock_page.wait_for_function.side_effect = PlaywrightTimeout("timed out")
+
+        with patch.object(WebDriverPlaywright, "auth", return_value=mock_context):
+            driver = WebDriverPlaywright("chrome")
+            with pytest.raises(PlaywrightTimeout):
+                driver.get_screenshot("http://example.com", "test-element", mock_user)
+
+        mock_logger.info.assert_any_call(
+            "Chart holder states before readiness polling at url %s%s: %s",
+            "http://example.com",
+            "",
+            diagnostics,
+        )
+        mock_logger.info.assert_any_call(
+            "Chart holders not ready before polling at url %s%s: %s",
+            "http://example.com",
+            "",
+            diagnostics,
+        )
+        failure_args = mock_logger.warning.call_args.args
+        assert failure_args[5] == diagnostics
+        assert failure_args[6] == diagnostics
+        mock_page.locator.return_value.screenshot.assert_not_called()
 
 
 class TestWebDriverPlaywrightAnimationWaitOrder:
@@ -1253,7 +1326,7 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
         mock_context, mock_page = self._make_pw_mocks(mock_browser_manager)
 
         # Small dashboard: 3 charts, 1000px height — below both thresholds
-        mock_page.evaluate.side_effect = [3, 1000]
+        mock_page.evaluate.side_effect = [3, 1000, []]
 
         call_order: list[str] = []
 
