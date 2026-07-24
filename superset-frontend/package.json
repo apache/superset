@@ -145,7 +145,6 @@
     "@superset-ui/plugin-chart-partition": "file:./plugins/plugin-chart-partition",
     "@superset-ui/plugin-chart-rose": "file:./plugins/plugin-chart-rose",
     "@superset-ui/plugin-chart-world-map": "file:./plugins/plugin-chart-world-map",
-    "@superset-ui/preset-chart-nvd3": "file:./plugins/preset-chart-nvd3",
     "@superset-ui/plugin-chart-ag-grid-table": "file:./plugins/plugin-chart-ag-grid-table",
     "@superset-ui/plugin-chart-cartodiagram": "file:./plugins/plugin-chart-cartodiagram",
     "@superset-ui/plugin-chart-echarts": "file:./plugins/plugin-chart-echarts",
