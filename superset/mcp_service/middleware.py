@@ -260,6 +260,42 @@ class LoggingMiddleware(Middleware):
             dataset_id = params.get("dataset_id")
         return agent_id, user_id, dashboard_id, slice_id, dataset_id, params
 
+    def _extract_output_ids(self, result: ToolResult) -> tuple[int | None, int | None]:
+        """Extract dashboard/chart IDs created by the tool from its response.
+
+        Create-style tools (generate_chart, generate_dashboard) don't take
+        chart_id/dashboard_id as input, so _extract_context_info never sees
+        them and every retry logs slice_id/dashboard_id=None even on the
+        attempt that actually persisted the object. Look at the response
+        body instead, since that's the only place the new ID appears.
+        Supports both flat ("chart_id"/"dashboard_id") and nested
+        ("chart"/"dashboard" objects with an "id" field) response shapes.
+        """
+        from superset.utils.json import loads as json_loads
+
+        try:
+            data = json_loads(result.content[0].text)
+        except (AttributeError, IndexError, ValueError, TypeError):
+            return None, None
+        if not isinstance(data, dict):
+            return None, None
+
+        slice_id = None
+        chart = data.get("chart")
+        if isinstance(chart, dict):
+            slice_id = chart.get("id")
+        if slice_id is None:
+            slice_id = data.get("chart_id")
+
+        dashboard_id = None
+        dashboard = data.get("dashboard")
+        if isinstance(dashboard, dict):
+            dashboard_id = dashboard.get("id")
+        if dashboard_id is None:
+            dashboard_id = data.get("dashboard_id")
+
+        return dashboard_id, slice_id
+
     @staticmethod
     def _resolve_tool_name(tool_name: str | None, params: Any) -> str | None:
         """Resolve the underlying tool name from call_tool proxy arguments.
@@ -299,6 +335,7 @@ class LoggingMiddleware(Middleware):
         start_time = time.time()
         success = False
         error_type: str | None = None
+        result: Any = None
         try:
             result = await call_next(context)
             success = not self._is_error_response(result)
@@ -316,6 +353,14 @@ class LoggingMiddleware(Middleware):
             raise
         finally:
             duration_ms = int((time.time() - start_time) * 1000)
+            # Create-style tools (generate_chart, generate_dashboard) don't
+            # take the new object's ID as input, so it's missing from
+            # params above. On a successful call, pull it from the
+            # response instead so retried creates are distinguishable.
+            if success and isinstance(result, ToolResult):
+                output_dashboard_id, output_slice_id = self._extract_output_ids(result)
+                dashboard_id = dashboard_id or output_dashboard_id
+                slice_id = slice_id or output_slice_id
             payload: dict[str, Any] = {
                 "mcp_call_id": mcp_call_id,
                 "tool": tool_name,
