@@ -48,7 +48,15 @@ from sqlglot.optimizer.scope import (
 )
 
 from superset.exceptions import QueryClauseValidationException, SupersetParseError
-from superset.sql.dialects import DB2, Dremio, Firebolt, OpenSearch, Pinot, Vertica
+from superset.sql.dialects import (
+    DB2,
+    Dremio,
+    Firebolt,
+    OpenSearch,
+    Pinot,
+    Trino,
+    Vertica,
+)
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -153,7 +161,7 @@ SQLGLOT_DIALECTS = {
     "superset": Dialects.SQLITE,
     # "taosws": ???
     "teradatasql": Dialects.TERADATA,
-    "trino": Dialects.TRINO,
+    "trino": Trino,
     "vertica": Vertica,
     # "ydb" is a plugin dialect (ydb-sqlglot-plugin) auto-discovered via entry_points,
     # hence a string name rather than a class reference like the built-in dialects.
