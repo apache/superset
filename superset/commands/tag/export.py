@@ -42,11 +42,9 @@ class ExportTagsCommand(ExportModelsCommand):
         dashboard_ids: Optional[Union[int, List[Union[int, str]]]] = None,
         chart_ids: Optional[Union[int, List[Union[int, str]]]] = None,
     ):
-        self.model_ids = model_ids or []
-        self.export_related = export_related
+        super().__init__(model_ids=model_ids or [], export_related=export_related)
         self.dashboard_ids = dashboard_ids
         self.chart_ids = chart_ids
-        self._models = []
 
     def run(self) -> Iterator[tuple[str, Callable[[], str]]]:
         if not feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
@@ -54,13 +52,11 @@ class ExportTagsCommand(ExportModelsCommand):
 
         yield (
             ExportTagsCommand._file_name(),
-            lambda: ExportTagsCommand._file_content(
-                self.dashboard_ids, self.chart_ids
-            ),
+            lambda: ExportTagsCommand._file_content(self.dashboard_ids, self.chart_ids),
         )
 
     @staticmethod
-    def _file_name() -> str:
+    def _file_name(model: Any = None) -> str:
         return "tags.yaml"
 
     @staticmethod
