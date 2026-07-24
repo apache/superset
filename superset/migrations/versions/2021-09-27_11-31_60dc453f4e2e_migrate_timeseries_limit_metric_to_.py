@@ -47,7 +47,7 @@ class Slice(Base):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     where_clause = and_(
         Slice.viz_type == "pivot_table_v2",

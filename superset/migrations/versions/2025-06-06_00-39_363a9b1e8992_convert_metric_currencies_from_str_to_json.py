@@ -51,7 +51,7 @@ class SqlMetric(Base):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
     currency_configs = session.query(SqlMetric).filter(SqlMetric.currency.isnot(None))
     for metric in paginated_update(
         currency_configs,

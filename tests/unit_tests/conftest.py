@@ -46,7 +46,7 @@ def get_session(mocker: MockerFixture) -> Callable[[], Session]:
     engine = create_engine("sqlite://", future=True)
 
     def get_session():
-        Session_ = sessionmaker(bind=engine)  # pylint: disable=invalid-name  # noqa: N806
+        Session_ = sessionmaker(bind=engine, future=True)  # pylint: disable=invalid-name  # noqa: N806
         in_memory_session = Session_()
 
         # flask calls db.session.remove()

@@ -74,7 +74,7 @@ def duration_by_name(database: Database):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     query = (
         session.query(Slice, Database)

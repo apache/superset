@@ -71,7 +71,7 @@ class Slice(Base):  # type: ignore # pylint: disable=too-few-public-methods
 
 
 def upgrade():
-    session = db.Session(bind=op.get_bind())
+    session = db.Session(bind=op.get_bind(), future=True)
 
     for dashboard in paginated_update(session.query(Dashboard)):
         migrate_dashboard(dashboard)

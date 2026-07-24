@@ -47,7 +47,7 @@ class SqlaTable(Base):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for datasource in session.query(SqlaTable):
         if datasource.extra:

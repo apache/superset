@@ -49,7 +49,7 @@ def upgrade():
     Convert all country names to lowercase
     """
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for slc in session.query(Slice).filter(Slice.viz_type == "country_map").all():
         try:
@@ -69,7 +69,7 @@ def downgrade():
     Convert all country names to sentence case
     """
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for slc in session.query(Slice).filter(Slice.viz_type == "country_map").all():
         try:

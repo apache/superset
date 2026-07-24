@@ -59,7 +59,7 @@ class TableColumn(BaseColumnMixin, Base):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     # Delete the orphaned columns records.
     for record in session.query(DruidColumn).all():

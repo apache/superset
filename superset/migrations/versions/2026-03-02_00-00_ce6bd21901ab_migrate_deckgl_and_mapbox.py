@@ -206,13 +206,13 @@ def _migrate_deckgl_slices(session: Session, *, upgrade: bool) -> None:
 
 def upgrade() -> None:
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
     MigrateMapBox.upgrade(session)
     _migrate_deckgl_slices(session, upgrade=True)
 
 
 def downgrade() -> None:
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
     MigrateMapBox.downgrade(session)
     _migrate_deckgl_slices(session, upgrade=False)

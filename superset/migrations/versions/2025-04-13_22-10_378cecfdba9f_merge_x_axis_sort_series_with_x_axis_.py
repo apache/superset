@@ -58,7 +58,7 @@ timeseries_charts = [
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
     for slc in paginated_update(
         session.query(Slice).filter(Slice.viz_type.in_(timeseries_charts))
     ):
@@ -87,7 +87,7 @@ def upgrade():
 
 def downgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for slc in paginated_update(
         session.query(Slice).filter(Slice.viz_type.in_(timeseries_charts))

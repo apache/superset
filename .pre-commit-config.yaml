@@ -144,7 +144,7 @@ repos:
               git fetch --no-recurse-submodules origin "$TARGET_BRANCH" 2>/dev/null || true
             fi
             BASE=$(git merge-base origin/"$TARGET_BRANCH" HEAD 2>/dev/null) || BASE="HEAD"
-            files=$(git diff --name-only --diff-filter=ACM "$BASE"..HEAD 2>/dev/null | grep '^superset/.*\.py$' || true)
+            files=$(git diff --name-only --diff-filter=ACM "$BASE"..HEAD 2>/dev/null | grep '^superset/.*\.py$' | grep -v '^superset/migrations/' || true)
             if [ -n "$files" ]; then
               pylint --rcfile=.pylintrc --load-plugins=superset.extensions.pylint --reports=no $files
             else

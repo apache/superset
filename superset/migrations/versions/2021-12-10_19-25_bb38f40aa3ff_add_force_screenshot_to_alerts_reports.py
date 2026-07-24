@@ -49,7 +49,7 @@ def upgrade():
         batch_op.add_column(sa.Column("force_screenshot", sa.Boolean(), default=False))
 
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for report in session.query(ReportSchedule).all():
         # Update existing alerts that send chart screenshots so that the cache is

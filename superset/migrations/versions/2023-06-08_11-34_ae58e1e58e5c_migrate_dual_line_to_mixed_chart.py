@@ -36,11 +36,11 @@ down_revision = "4c5da39be729"
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
     MigrateDualLine.upgrade(session)
 
 
 def downgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
     MigrateDualLine.downgrade(session)

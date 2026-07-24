@@ -83,7 +83,7 @@ class SqlaTableUser(Base):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     op.execute(
         insert(DatasetUser).from_select(

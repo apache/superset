@@ -45,7 +45,7 @@ class Slice(Base):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for slc in session.query(Slice).filter(
         or_(Slice.viz_type.like("line"), Slice.viz_type.like("bar"))
@@ -75,7 +75,7 @@ def upgrade():
 
 def downgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for slc in session.query(Slice).filter(
         or_(Slice.viz_type.like("line"), Slice.viz_type.like("bar"))

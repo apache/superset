@@ -95,7 +95,7 @@ def _strip_query_context(slc: Slice) -> bool:
 
 def upgrade() -> None:
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for slc in session.query(Slice).filter(Slice.viz_type == _VIZ_TYPE):
         _strip_params(slc)

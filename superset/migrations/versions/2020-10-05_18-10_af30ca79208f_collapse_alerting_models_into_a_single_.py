@@ -135,7 +135,7 @@ def upgrade():
             ),
         )
     # Migrate data
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
     alerts = session.query(Alert).all()
     for a in alerts:
         if a.sql_observer:
@@ -224,7 +224,7 @@ def downgrade():
     )
 
     # Migrate data
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
     alerts = session.query(Alert).all()
     for a in alerts:
         if a.sql:

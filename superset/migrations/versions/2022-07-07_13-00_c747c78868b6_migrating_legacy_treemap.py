@@ -45,11 +45,11 @@ def upgrade():
         op.execute(text("ALTER TABLE slices MODIFY params MEDIUMTEXT"))
         op.execute(text("ALTER TABLE slices MODIFY query_context MEDIUMTEXT"))
 
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
     MigrateTreeMap.upgrade(session)
 
 
 def downgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
     MigrateTreeMap.downgrade(session)
