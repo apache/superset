@@ -17,7 +17,7 @@
  * under the License.
  */
 import { sections } from '@superset-ui/chart-controls';
-import controlPanel from '../src/controlPanel';
+import controlPanel from '../../src/Rose/controlPanel';
 
 test('includes the legacy timeseries Time section (buildQuery can be is_timeseries)', () => {
   expect(controlPanel.controlPanelSections).toContain(
