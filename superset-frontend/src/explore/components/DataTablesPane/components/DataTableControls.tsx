@@ -20,7 +20,7 @@ import { styled, css, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { GenericDataType } from '@apache-superset/core/common';
 import { useMemo } from 'react';
-import { zip } from 'lodash';
+import { zip } from 'lodash-es';
 import { Select, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import {
@@ -140,6 +140,7 @@ export const TableControls = ({
               iconSize="l"
               aria-label={t('Reload')}
               role="button"
+              tabIndex={0}
               onClick={onReload}
             />
           </Tooltip>

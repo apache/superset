@@ -49,6 +49,7 @@ import {
   ROW_TYPE,
 } from 'src/dashboard/util/componentTypes';
 import findFirstParentContainerId from 'src/dashboard/util/findFirstParentContainer';
+import getDefaultActiveTabs from 'src/dashboard/util/getDefaultActiveTabs';
 import getEmptyLayout from 'src/dashboard/util/getEmptyLayout';
 import getLocationHash from 'src/dashboard/util/getLocationHash';
 import newComponentFactory, {
@@ -80,7 +81,7 @@ interface HydrateChartData {
   form_data: JsonObject;
   description: string;
   description_markeddown: string;
-  owners: { id: number }[];
+  editors: { id: number }[];
   modified: string;
   changed_on: string;
 }
@@ -179,7 +180,7 @@ export const hydrateDashboard =
         datasource: slice.form_data.datasource,
         description: slice.description,
         description_markdown: slice.description_markeddown,
-        owners: slice.owners,
+        editors: slice.editors,
         modified: slice.modified,
         changed_on: new Date(slice.changed_on).getTime(),
       };
@@ -327,6 +328,19 @@ export const hydrateDashboard =
       metadata.cross_filters_enabled as boolean | undefined,
     );
 
+    // precedence: permalink param > stored redux value > layout default.
+    // The layout default only applies to a genuinely fresh load: no permalink
+    // activeTabs, no stored activeTabs, and no deep-link (directPathToChild),
+    // which the live Tabs component resolves on its own.
+    const seededActiveTabs =
+      activeTabs ||
+      (dashboardState?.activeTabs?.length
+        ? dashboardState.activeTabs
+        : undefined) ||
+      (directPathToChild.length
+        ? []
+        : getDefaultActiveTabs(dashboardLayout.present as DashboardLayout));
+
     return dispatch({
       type: HYDRATE_DASHBOARD,
       data: {
@@ -355,7 +369,7 @@ export const hydrateDashboard =
             'Superset',
             roles,
           ),
-          superset_can_csv: findPermission('can_csv', 'Superset', roles),
+          superset_can_download: findPermission('can_csv', 'Superset', roles),
           common: {
             // legacy, please use state.common instead
             conf: common?.conf,
@@ -390,7 +404,7 @@ export const hydrateDashboard =
           lastModifiedTime: dashboard.changed_on,
           isRefreshing: false,
           isFiltersRefreshing: false,
-          activeTabs: activeTabs || dashboardState?.activeTabs || [],
+          activeTabs: seededActiveTabs,
           datasetsStatus:
             dashboardState?.datasetsStatus || ResourceStatus.Loading,
           chartStates: chartStates || dashboardState?.chartStates || {},

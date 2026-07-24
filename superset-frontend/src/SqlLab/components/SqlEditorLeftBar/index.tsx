@@ -39,6 +39,7 @@ import TableExploreTree from '../TableExploreTree';
 
 export interface SqlEditorLeftBarProps {
   queryEditorId: string;
+  collapsed?: boolean;
 }
 
 const LeftBarStyles = styled.div`
@@ -63,7 +64,10 @@ const StyledDivider = styled.div`
   margin: 0 -${({ theme }) => theme.sizeUnit * 2.5}px 0;
 `;
 
-const SqlEditorLeftBar = ({ queryEditorId }: SqlEditorLeftBarProps) => {
+const SqlEditorLeftBar = ({
+  queryEditorId,
+  collapsed = false,
+}: SqlEditorLeftBarProps) => {
   const activeQEId = queryEditorId || EMPTY_STATE_QE_ID;
   const dbSelectorProps = useDatabaseSelector(activeQEId);
   const { db, catalog, schema, onDbChange, onCatalogChange, onSchemaChange } =
@@ -180,29 +184,38 @@ const SqlEditorLeftBar = ({ queryEditorId }: SqlEditorLeftBarProps) => {
     </Flex>
   );
 
+  const dbSelectorTrigger = (
+    <Popover
+      content={popoverContent}
+      open={selectorModalOpen}
+      onOpenChange={open => !open && closeSelectorModal()}
+      placement="bottomLeft"
+      trigger="click"
+    >
+      {/* Wrap in a span so the Popover can attach a ref without relying
+            on findDOMNode (deprecated in React 18+). */}
+      <span>
+        <DatabaseSelector
+          key={`db-selector-${db ? db.id : 'no-db'}:${catalog ?? 'no-catalog'}:${
+            schema ?? 'no-schema'
+          }`}
+          {...dbSelectorProps}
+          emptyState={<EmptyState />}
+          sqlLabMode
+          compactMode={collapsed}
+          onOpenModal={openSelectorModal}
+        />
+      </span>
+    </Popover>
+  );
+
+  if (collapsed) {
+    return dbSelectorTrigger;
+  }
+
   return (
     <LeftBarStyles data-test="sql-editor-left-bar">
-      <Popover
-        content={popoverContent}
-        open={selectorModalOpen}
-        onOpenChange={open => !open && closeSelectorModal()}
-        placement="bottomLeft"
-        trigger="click"
-      >
-        {/* Wrap in a span so the Popover can attach a ref without relying
-            on findDOMNode (deprecated in React 18+). */}
-        <span>
-          <DatabaseSelector
-            key={`db-selector-${db ? db.id : 'no-db'}:${catalog ?? 'no-catalog'}:${
-              schema ?? 'no-schema'
-            }`}
-            {...dbSelectorProps}
-            emptyState={<EmptyState />}
-            sqlLabMode
-            onOpenModal={openSelectorModal}
-          />
-        </span>
-      </Popover>
+      {dbSelectorTrigger}
       <StyledDivider />
       <TableExploreTree queryEditorId={activeQEId} />
       {shouldShowReset && (

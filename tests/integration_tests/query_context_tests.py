@@ -124,6 +124,10 @@ def test_time_offset_comparison_queries_use_chart_row_limit(
     def cache_timeout_fn() -> int:
         return query_context._processor.get_cache_timeout()
 
+    # A non-zero dataset Hour Offset shifts temporal filter bounds (#104810) and
+    # other tests can leave one set on the shared birth_names table; pin it to 0
+    # so the comparison-window literals below stay deterministic.
+    query_context.datasource.offset = 0
     time_offsets_obj = query_context.datasource.processing_time_offsets(
         df, query_object, cache_key_fn, cache_timeout_fn, query_context.force
     )
@@ -1624,7 +1628,7 @@ def test_date_range_timeshift_multiple_periods(app_context, physical_dataset):
 
 @with_feature_flags(DATE_RANGE_TIMESHIFTS_ENABLED=True)
 def test_date_range_timeshift_invalid_format(app_context, physical_dataset):
-    """Test that invalid date range format raises appropriate error."""
+    """Test that an uninterpretable offset fails with a validation error."""
     qc = QueryContextFactory().create(
         datasource={
             "type": physical_dataset.type,
@@ -1661,11 +1665,12 @@ def test_date_range_timeshift_invalid_format(app_context, physical_dataset):
         force=True,
     )
 
-    # Should raise an error for invalid date range format
-    from superset.commands.chart.exceptions import TimeDeltaAmbiguousError
+    # An uninterpretable offset fails the query cleanly instead of leaking
+    # an unhandled TimeDeltaAmbiguousError out of get_df_payload
+    query_payload = qc.get_df_payload(qc.queries[0])
 
-    with pytest.raises(TimeDeltaAmbiguousError):
-        qc.get_df_payload(qc.queries[0])
+    assert query_payload["status"] == QueryStatus.FAILED
+    assert "Unable to interpret the time offset" in query_payload["error"]
 
 
 @with_feature_flags(DATE_RANGE_TIMESHIFTS_ENABLED=True)

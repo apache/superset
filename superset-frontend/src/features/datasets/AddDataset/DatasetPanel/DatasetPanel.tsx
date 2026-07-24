@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { handleKeyboardActivation } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
 import { styled } from '@apache-superset/core/theme';
@@ -26,6 +27,7 @@ import Table, {
   TableSize,
 } from '@superset-ui/core/components/Table';
 import { DatasetObject } from 'src/features/datasets/AddDataset/types';
+import { openInNewTab, stripAppRoot } from 'src/utils/navigationUtils';
 import { ITableColumn } from './types';
 import MessageContent from './MessageContent';
 
@@ -215,33 +217,38 @@ const EXISTING_DATASET_DESCRIPTION = t(
 );
 const VIEW_DATASET = t('View Dataset');
 
-const renderExistingDatasetAlert = (dataset?: DatasetObject) => (
-  <StyledAlert
-    closable={false}
-    type="info"
-    showIcon
-    message={t('This table already has a dataset')}
-    description={
-      <>
-        {EXISTING_DATASET_DESCRIPTION}
-        <span
-          role="button"
-          onClick={() => {
-            window.open(
-              dataset?.explore_url,
-              '_blank',
-              'noreferrer noopener popup=false',
-            );
-          }}
-          tabIndex={0}
-          className="view-dataset-button"
-        >
-          {VIEW_DATASET}
-        </span>
-      </>
+const renderExistingDatasetAlert = (dataset?: DatasetObject) => {
+  const openExplore = () => {
+    if (dataset?.explore_url) {
+      // `explore_url` is router-relative from the backend (rooted under
+      // a subdirectory deployment); strip the root so openInNewTab's
+      // ensureAppRoot re-prefixes it once rather than doubling it.
+      openInNewTab(stripAppRoot(dataset.explore_url));
     }
-  />
-);
+  };
+  return (
+    <StyledAlert
+      closable={false}
+      type="info"
+      showIcon
+      message={t('This table already has a dataset')}
+      description={
+        <>
+          {EXISTING_DATASET_DESCRIPTION}
+          <span
+            role="button"
+            onClick={openExplore}
+            onKeyDown={handleKeyboardActivation(openExplore)}
+            tabIndex={0}
+            className="view-dataset-button"
+          >
+            {VIEW_DATASET}
+          </span>
+        </>
+      }
+    />
+  );
+};
 
 const DatasetPanel = ({
   tableName,

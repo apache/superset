@@ -24,7 +24,7 @@ import {
   MouseEvent as ReactMouseEvent,
 } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { throttle } from 'lodash';
+import { throttle } from 'lodash-es';
 import {
   POPOVER_INITIAL_HEIGHT,
   POPOVER_INITIAL_WIDTH,

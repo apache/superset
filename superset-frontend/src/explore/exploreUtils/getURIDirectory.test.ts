@@ -19,8 +19,12 @@
 import { getURIDirectory } from '.';
 
 test('Cases in which the "explore_json" will be returned', () => {
+  // post `Superset.route_base = ""` collapse the legacy
+  // `/superset/explore_json/` endpoint is gone; `getURIDirectory` now
+  // returns the bare `/explore_json/` path (appRoot is applied at the
+  // outer `ensureAppRoot` layer when `includeAppRoot=true`).
   ['full', 'json', 'csv', 'query', 'results', 'samples'].forEach(name => {
-    expect(getURIDirectory(name)).toBe('/superset/explore_json/');
+    expect(getURIDirectory(name)).toBe('/explore_json/');
   });
 });
 

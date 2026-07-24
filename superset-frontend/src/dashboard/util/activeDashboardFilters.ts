@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'lodash-es';
 import { mapValues, flow, keyBy } from 'lodash/fp';
 import {
   JsonValue,
@@ -100,7 +100,7 @@ export function getAppliedFilterValues(
   // use cached data if possible
   if (!(chartId in appliedFilterValuesByChart)) {
     const applicableFilters = Object.entries(filters || activeFilters).filter(
-      ([, { scope: chartIds }]) => chartIds.includes(chartId),
+      ([, activeFilter]) => activeFilter?.scope?.includes(chartId),
     );
     appliedFilterValuesByChart[chartId] = flow(
       keyBy(

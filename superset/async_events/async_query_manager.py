@@ -198,14 +198,18 @@ class AsyncQueryManager:
                 session["async_channel_id"] = async_channel_id
                 session["async_user_id"] = user_id
 
-                sub = str(user_id) if user_id else None
+                # Conditionally include 'sub' claim only when user_id is present.
+                # RFC 7519 specifies 'sub' as optional; when present it must be
+                # a string, so omit it entirely for guest/anonymous users.
                 now = datetime.now(tz=timezone.utc)
+                payload = {
+                    "channel": async_channel_id,
+                    "exp": now + timedelta(seconds=self._jwt_expiration_seconds),
+                }
+                if user_id is not None:
+                    payload["sub"] = str(user_id)
                 token = jwt.encode(
-                    {
-                        "channel": async_channel_id,
-                        "sub": sub,
-                        "exp": now + timedelta(seconds=self._jwt_expiration_seconds),
-                    },
+                    payload,
                     self._jwt_secret,
                     algorithm="HS256",
                 )
@@ -289,13 +293,16 @@ class AsyncQueryManager:
         from superset import security_manager
 
         job_metadata = self.init_job(channel_id, user_id)
-        self._load_explore_json_into_cache_job.delay(
-            {**job_metadata, "guest_token": guest_user.guest_token}
-            if (guest_user := security_manager.get_current_guest_user_if_guest())
-            else job_metadata,
-            form_data,
-            response_type,
-            force,
+        self._load_explore_json_into_cache_job.apply_async(
+            args=[
+                {**job_metadata, "guest_token": guest_user.guest_token}
+                if (guest_user := security_manager.get_current_guest_user_if_guest())
+                else job_metadata,
+                form_data,
+                response_type,
+                force,
+            ],
+            expires=self._jwt_expiration_seconds,
         )
         return job_metadata
 
@@ -313,11 +320,14 @@ class AsyncQueryManager:
         # this way we can keep the cache key consistent between sync and async command
         # so that it can be looked up consistently
         job_metadata = self.init_job(channel_id, user_id)
-        self._load_chart_data_into_cache_job.delay(
-            {**job_metadata, "guest_token": guest_user.guest_token}
-            if (guest_user := security_manager.get_current_guest_user_if_guest())
-            else job_metadata,
-            form_data,
+        self._load_chart_data_into_cache_job.apply_async(
+            args=[
+                {**job_metadata, "guest_token": guest_user.guest_token}
+                if (guest_user := security_manager.get_current_guest_user_if_guest())
+                else job_metadata,
+                form_data,
+            ],
+            expires=self._jwt_expiration_seconds,
         )
         return job_metadata
 

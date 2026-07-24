@@ -2108,6 +2108,7 @@ def test_get_semantic_view_structure(
     mock_metric.description = "Order count"
 
     mock_view = MagicMock()
+    mock_view.name = "orders"
     mock_view.implementation.get_dimensions.return_value = {mock_dim}
     mock_view.implementation.get_metrics.return_value = {mock_metric}
 
@@ -2120,6 +2121,7 @@ def test_get_semantic_view_structure(
 
     assert response.status_code == 200
     result = response.json["result"]
+    assert result["name"] == "orders"
     assert len(result["dimensions"]) == 1
     assert result["dimensions"][0]["name"] == "order_date"
     assert result["dimensions"][0]["type"] == "timestamp[us]"
@@ -2202,6 +2204,7 @@ def test_get_semantic_view_structure_no_grain(
     mock_dim.grain = None
 
     mock_view = MagicMock()
+    mock_view.name = "customers"
     mock_view.implementation.get_dimensions.return_value = {mock_dim}
     mock_view.implementation.get_metrics.return_value = set()
 

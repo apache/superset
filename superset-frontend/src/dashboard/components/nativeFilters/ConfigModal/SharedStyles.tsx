@@ -53,7 +53,7 @@ export const BaseModalWrapper = styled(StyledModal)<BaseModalWrapperProps>`
   .ant-collapse {
     border-bottom: 0;
 
-    .ant-collapse-item:last-child > .ant-collapse-content {
+    .ant-collapse-item:last-child > .ant-collapse-panel {
       border-radius: 0;
     }
   }

@@ -32,12 +32,10 @@ export interface DeckPathFormData extends SqlaFormData {
   line_type?: 'polyline' | 'json' | 'geohash';
   metric?: string;
   reverse_long_lat?: boolean;
-  js_columns?: string[];
   tooltip_contents?: unknown[];
   tooltip_template?: string;
   line_width?:
-    | string
-    | { type?: 'fix' | 'metric'; value?: QueryFormMetric | number };
+    string | { type?: 'fix' | 'metric'; value?: QueryFormMetric | number };
   line_width_multiplier?: number;
   min_width?: number;
   max_width?: number;
@@ -49,7 +47,6 @@ export default function buildQuery(formData: DeckPathFormData) {
   const {
     line_column,
     metric,
-    js_columns,
     tooltip_contents,
     line_width,
     dimension,
@@ -69,7 +66,6 @@ export default function buildQuery(formData: DeckPathFormData) {
       const groupby = ensureIsArray(
         baseQueryObject.groupby || [],
       ) as QueryFormColumn[];
-      const jsColumns = ensureIsArray(js_columns || []);
 
       if (baseQueryObject.metrics?.length || metric) {
         if (metric && !metrics.includes(metric)) {
@@ -124,12 +120,6 @@ export default function buildQuery(formData: DeckPathFormData) {
           groupby.push(line_column);
         }
       }
-
-      jsColumns.forEach(col => {
-        if (!columns.includes(col) && !groupby.includes(col)) {
-          columns.push(col);
-        }
-      });
 
       const finalColumns = addTooltipColumnsToQuery(columns, tooltip_contents);
       const finalGroupby = addTooltipColumnsToQuery(groupby, tooltip_contents);

@@ -24,13 +24,7 @@ metadata:
   name: {{ template "superset.fullname" . }}-flower
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ template "superset.name" . }}-flower
-    chart: {{ template "superset.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
-    {{- if .Values.extraLabels }}
-      {{- toYaml .Values.extraLabels | nindent 4 }}
-    {{- end }}
+    {{- include "superset.componentLabels" (dict "component" "flower" "root" .) | nindent 4 }}
   {{- if .Values.supersetCeleryFlower.deploymentAnnotations }}
   annotations: {{- toYaml .Values.supersetCeleryFlower.deploymentAnnotations | nindent 4 }}
   {{- end }}
@@ -42,17 +36,16 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: {{ include "superset-config" . | sha256sum }}
+        checksum/config: {{ include "superset.config" . | sha256sum }}
         checksum/secrets: {{ tpl (toJson .Values.extraSecretEnv) . | sha256sum }}
         {{- if .Values.supersetCeleryFlower.podAnnotations }}
           {{- toYaml .Values.supersetCeleryFlower.podAnnotations | nindent 8 }}
         {{- end }}
-      labels:
-        app: "{{ template "superset.name" . }}-flower"
-        release: {{ .Release.Name }}
-        {{- if .Values.extraLabels }}
-          {{- toYaml .Values.extraLabels | nindent 8 }}
+        {{- with .Values.globalPodAnnotations }}
+          {{- toYaml . | nindent 8 }}
         {{- end }}
+      labels:
+        {{- include "supersetCeleryFlower.selectorLabels" . | nindent 8 }}
         {{- if .Values.supersetCeleryFlower.podLabels }}
           {{- toYaml .Values.supersetCeleryFlower.podLabels | nindent 8 }}
         {{- end }}
@@ -68,8 +61,14 @@ spec:
         {{- if .Values.supersetCeleryFlower.podSecurityContext }}
           {{- toYaml .Values.supersetCeleryFlower.podSecurityContext | nindent 8 }}
         {{- end }}
+      {{- if or .Values.supersetCeleryFlower.initContainers .Values.supersetCeleryFlower.extraInitContainers }}
+      initContainers:
       {{- if .Values.supersetCeleryFlower.initContainers }}
-      initContainers: {{-  tpl (toYaml .Values.supersetCeleryFlower.initContainers) . | nindent 6 }}
+      {{-  tpl (toYaml .Values.supersetCeleryFlower.initContainers) . | nindent 6 }}
+      {{- end }}
+      {{- if .Values.supersetCeleryFlower.extraInitContainers }}
+      {{-  tpl (toYaml .Values.supersetCeleryFlower.extraInitContainers) . | nindent 6 }}
+      {{- end }}
       {{- end }}
       {{- with .Values.hostAliases }}
       hostAliases: {{- toYaml . | nindent 6 }}

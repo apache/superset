@@ -37,6 +37,7 @@ import {
   MatrixifyFormData,
   DatasourceType,
   ensureIsArray,
+  handleKeyboardActivation,
 } from '@superset-ui/core';
 import {
   ControlStateMapping,
@@ -45,7 +46,7 @@ import {
 import { styled, css, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
-import { debounce, isEqual, isObjectLike, omit, pick } from 'lodash';
+import { debounce, isEqual, isObjectLike, omit, pick } from 'lodash-es';
 import { Resizable } from 're-resizable';
 import { useHistory } from 'react-router-dom';
 import { Tooltip } from '@superset-ui/core/components';
@@ -893,8 +894,11 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
           setForceQuery: props.actions.setForceQuery,
           postChartFormData: props.actions.postChartFormData,
           updateQueryFormData: props.actions.updateQueryFormData,
-          setControlValue: (controlName: string, value: any, chartId: number) =>
-            props.actions.setControlValue(controlName, value),
+          setControlValue: (
+            controlName: string,
+            value: any,
+            _chartId: number,
+          ) => props.actions.setControlValue(controlName, value),
         }}
         can_overwrite={props.can_overwrite}
         can_download={props.can_download}
@@ -995,6 +999,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
               tabIndex={0}
               className="action-button"
               onClick={toggleCollapse}
+              onKeyDown={handleKeyboardActivation(toggleCollapse)}
             >
               <Icons.VerticalAlignTopOutlined
                 iconSize="xl"
@@ -1020,9 +1025,11 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
           <div
             className="sidebar"
             onClick={toggleCollapse}
+            onKeyDown={handleKeyboardActivation(toggleCollapse)}
             data-test="open-datasource-tab"
             role="button"
             tabIndex={0}
+            aria-label={t('Open Datasource tab')}
           >
             <span role="button" tabIndex={0} className="action-button">
               <Tooltip title={t('Open Datasource tab')}>
@@ -1166,8 +1173,12 @@ function mapStateToProps(state: ExploreRootState) {
 
   const slice_id = form_data.slice_id ?? slice?.slice_id ?? 0; // 0 - unsaved chart
 
-  // exclude clientView from extra_form_data; keep other ownState pieces
-  const ownStateForQuery = omit(dataMask[slice_id]?.ownState, ['clientView']);
+  // exclude clientView and metricSqlExpressions from extra_form_data;
+  // metricSqlExpressions is runtime-only and must not be serialised to chart params
+  const ownStateForQuery = omit(dataMask[slice_id]?.ownState, [
+    'clientView',
+    'metricSqlExpressions',
+  ]);
 
   form_data.extra_form_data = mergeExtraFormData(
     { ...form_data.extra_form_data },

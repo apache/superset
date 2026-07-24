@@ -16,18 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import {
   isUserWithPermissionsAndRoles,
   UndefinedUser,
   UserWithPermissionsAndRoles,
 } from 'src/types/bootstrapTypes';
 import { Dashboard } from 'src/types/Dashboard';
+import Subject from 'src/types/Subject';
 import { findPermission } from 'src/utils/findPermission';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 // this should really be a config value,
 // but is hardcoded in backend logic already, so...
 const ADMIN_ROLE_NAME = 'admin';
+
+const getUserSubjects = (): number[] =>
+  getBootstrapData()?.common?.user_subjects ?? [];
+
+const isUserInEditors = (editors: Subject[] = []): boolean => {
+  const userSubjects = getUserSubjects();
+  return editors.some(editor => userSubjects.includes(editor.id));
+};
 
 export const isUserAdmin = (
   user?: UserWithPermissionsAndRoles | UndefinedUser,
@@ -37,22 +46,21 @@ export const isUserAdmin = (
     role => role.toLowerCase() === ADMIN_ROLE_NAME,
   );
 
-const isUserDashboardOwner = (
-  dashboard: Dashboard,
-  user: UserWithPermissionsAndRoles | UndefinedUser,
-) =>
-  isUserWithPermissionsAndRoles(user) &&
-  [...dashboard.owners, ...(dashboard.extra_owners ?? [])].some(
-    owner => owner.id === user.userId,
-  );
+export const isUserEditorOrAdmin = (
+  user?: UserWithPermissionsAndRoles | UndefinedUser,
+  editors: Subject[] = [],
+): boolean => isUserInEditors(editors) || isUserAdmin(user);
+
+export const isUserDashboardEditor = (dashboard: Dashboard): boolean =>
+  isUserInEditors(dashboard.editors);
 
 export const canUserEditDashboard = (
   dashboard: Dashboard,
   user?: UserWithPermissionsAndRoles | UndefinedUser | null,
 ) =>
   isUserWithPermissionsAndRoles(user) &&
-  (isUserAdmin(user) || isUserDashboardOwner(dashboard, user)) &&
-  findPermission('can_write', 'Dashboard', user?.roles);
+  findPermission('can_write', 'Dashboard', user?.roles) &&
+  (isUserAdmin(user) || isUserDashboardEditor(dashboard));
 
 export function userHasPermission(
   user: UserWithPermissionsAndRoles | UndefinedUser,
@@ -78,6 +86,4 @@ export const canUserSaveAsDashboard = (
 ) =>
   isUserWithPermissionsAndRoles(user) &&
   findPermission('can_write', 'Dashboard', user?.roles) &&
-  (!isFeatureEnabled(FeatureFlag.DashboardRbac) ||
-    isUserAdmin(user) ||
-    isUserDashboardOwner(dashboard, user));
+  (isUserAdmin(user) || isUserDashboardEditor(dashboard));

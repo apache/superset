@@ -151,7 +151,7 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
   if (!isEditMode) {
     svg.style('cursor', 'grab');
   }
-  const backgroundRect = svg
+  svg
     .append('rect')
     .attr('class', 'background')
     .attr('width', width)

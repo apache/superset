@@ -186,6 +186,7 @@ export function DatabaseSelector({
   onSchemaChange,
   schema,
   readOnly = false,
+  compactMode = false,
   sqlLabMode = false,
   onOpenModal,
 }: DatabaseSelectorProps) {
@@ -382,6 +383,7 @@ export function DatabaseSelector({
   });
 
   const catalogOptions = catalogData || EMPTY_CATALOG_OPTIONS;
+  const sqlLabCompactMode = sqlLabMode && compactMode;
 
   function changeDatabase(
     value: { label: string; value: number },
@@ -604,8 +606,8 @@ export function DatabaseSelector({
     >
       {renderDatabaseSelect()}
       {renderError()}
-      {showCatalogSelector && renderCatalogSelect()}
-      {showSchemaSelector && renderSchemaSelect()}
+      {!sqlLabCompactMode && showCatalogSelector && renderCatalogSelect()}
+      {!sqlLabCompactMode && showSchemaSelector && renderSchemaSelect()}
     </DatabaseSelectorWrapper>
   );
 }

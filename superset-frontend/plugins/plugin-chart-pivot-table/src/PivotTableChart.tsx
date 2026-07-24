@@ -28,6 +28,7 @@ import {
   BinaryQueryObjectFilterClause,
   Currency,
   CurrencyFormatter,
+  DataRecord,
   DataRecordValue,
   FeatureFlag,
   getColumnLabel,
@@ -41,12 +42,14 @@ import {
   NumberFormatter,
 } from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/theme';
-import { aggregatorTemplates, PivotTable, sortAs } from './react-pivottable';
+import { PivotTable, sortAs } from './react-pivottable';
 import {
+  DateFormatter,
   FilterType,
   MetricsLayoutEnum,
   PivotTableProps,
   PivotTableStylesProps,
+  QueryData,
   SelectedFiltersType,
 } from './types';
 
@@ -173,50 +176,45 @@ const createCurrencyAwareFormatter = (
   };
 };
 
-const aggregatorsFactory = (formatter: NumberFormatter) => ({
-  Count: aggregatorTemplates.count(formatter),
-  'Count Unique Values': aggregatorTemplates.countUnique(formatter),
-  'List Unique Values': aggregatorTemplates.listUnique(', ', formatter),
-  Sum: aggregatorTemplates.sum(formatter),
-  Average: aggregatorTemplates.average(formatter),
-  Median: aggregatorTemplates.median(formatter),
-  'Sample Variance': aggregatorTemplates.var(1, formatter),
-  'Sample Standard Deviation': aggregatorTemplates.stdev(1, formatter),
-  Minimum: aggregatorTemplates.min(formatter),
-  Maximum: aggregatorTemplates.max(formatter),
-  First: aggregatorTemplates.first(formatter),
-  Last: aggregatorTemplates.last(formatter),
-  'Sum as Fraction of Total': aggregatorTemplates.fractionOf(
-    aggregatorTemplates.sum(),
-    'total',
-    formatter,
-  ),
-  'Sum as Fraction of Rows': aggregatorTemplates.fractionOf(
-    aggregatorTemplates.sum(),
-    'row',
-    formatter,
-  ),
-  'Sum as Fraction of Columns': aggregatorTemplates.fractionOf(
-    aggregatorTemplates.sum(),
-    'col',
-    formatter,
-  ),
-  'Count as Fraction of Total': aggregatorTemplates.fractionOf(
-    aggregatorTemplates.count(),
-    'total',
-    formatter,
-  ),
-  'Count as Fraction of Rows': aggregatorTemplates.fractionOf(
-    aggregatorTemplates.count(),
-    'row',
-    formatter,
-  ),
-  'Count as Fraction of Columns': aggregatorTemplates.fractionOf(
-    aggregatorTemplates.count(),
-    'col',
-    formatter,
-  ),
-});
+const getDrillFilterValue = (
+  value: string,
+  formatter: DateFormatter | undefined,
+): string | number => {
+  if (formatter && value.trim() !== '' && Number.isFinite(Number(value))) {
+    return Number(value);
+  }
+  return value;
+};
+
+const getCrossFilterValue = (
+  value: DataRecordValue,
+  formatter: DateFormatter | undefined,
+): DataRecordValue => {
+  if (
+    formatter &&
+    typeof value === 'string' &&
+    value.trim() !== '' &&
+    Number.isFinite(Number(value))
+  ) {
+    return Number(value);
+  }
+  return value;
+};
+
+const getDrillFilterFormattedValue = (
+  value: string,
+  formatter: DateFormatter | undefined,
+): string => {
+  const valueToFormat: DataRecordValue =
+    value.trim() !== '' && Number.isFinite(Number(value))
+      ? Number(value)
+      : value;
+  return (
+    (formatter as ((value: DataRecordValue) => string) | undefined)?.(
+      valueToFormat,
+    ) || String(value)
+  );
+};
 
 /* If you change this logic, please update the corresponding Python
  * function (https://github.com/apache/superset/blob/master/superset/charts/post_processing.py),
@@ -232,7 +230,6 @@ export default function PivotTableChart(props: PivotTableProps) {
     metrics,
     colOrder,
     rowOrder,
-    aggregateFunction,
     transposePivot,
     combineMetric,
     rowSubtotalPosition,
@@ -341,22 +338,48 @@ export default function PivotTableChart(props: PivotTableProps) {
 
   const unpivotedData = useMemo(
     () =>
-      data.reduce(
-        (acc: Record<string, any>[], record: Record<string, any>) => [
-          ...acc,
-          ...metricNames
-            .map((name: string) => ({
-              ...record,
-              [METRIC_KEY]: name,
-              value: record[name],
-              // Mark currency column for per-cell currency detection in aggregators
-              __currencyColumn: currencyCodeColumn,
-            }))
-            .filter(record => record.value !== null),
-        ],
-        [],
-      ),
-    [data, metricNames, currencyCodeColumn],
+      // `data` is now one entry per rollup level. Tag every record with the
+      // row/column dimension labels of the level that produced it (mirroring
+      // the METRIC_KEY injection used for the full rows/cols below) so
+      // PivotData can slot each pre-computed value without re-aggregating.
+      // buildGroupbyCombinations already applied transposePivot, so the level's
+      // groupby is display-oriented and is not transposed again here.
+      data.flatMap((query: QueryData) => {
+        let levelRows = query.groupby.rows.map(getColumnLabel);
+        let levelCols = query.groupby.columns.map(getColumnLabel);
+        if (metricsLayout === MetricsLayoutEnum.ROWS) {
+          levelRows = combineMetric
+            ? [...levelRows, METRIC_KEY]
+            : [METRIC_KEY, ...levelRows];
+        } else {
+          levelCols = combineMetric
+            ? [...levelCols, METRIC_KEY]
+            : [METRIC_KEY, ...levelCols];
+        }
+        // A DB-computed value can legitimately be null (e.g. AVG over an
+        // empty group, or a 0/0 ratio); keep the record so its row/column key
+        // still gets placed and renders as a blank cell (see `cellValue`'s
+        // formatter in react-pivottable/utilities.ts), instead of dropping
+        // the group from the pivot entirely.
+        return query.data.flatMap((record: DataRecord) =>
+          metricNames.map((name: string) => ({
+            ...record,
+            [METRIC_KEY]: name,
+            value: record[name],
+            // Mark currency column for per-cell currency detection in aggregators
+            __currencyColumn: currencyCodeColumn,
+            // The level this record belongs to (used by PivotData placement).
+            // Namespaced with a `__` prefix (like `__metricKey` below) so it
+            // can't collide with a real dataset column named `rows`/`columns`.
+            __rows: levelRows,
+            __columns: levelCols,
+            // Identify the metric pseudo-dimension so PivotData can feed the
+            // metric-collapsed totals (the opposite "Total" axis + corner).
+            __metricKey: METRIC_KEY,
+          })),
+        );
+      }),
+    [data, metricNames, currencyCodeColumn, metricsLayout, combineMetric],
   );
   const groupbyRows = useMemo(
     () => groupbyRowsRaw.map(getColumnLabel),
@@ -419,10 +442,16 @@ export default function PivotTableChart(props: PivotTableProps) {
                       col,
                       op: 'IS NULL',
                     };
+                  // Resolve the formatter by the header key/label so adhoc
+                  // temporal groupby columns (where `col` is an object, not a
+                  // string) still get epoch coercion, matching physical columns.
+                  const formatter = dateFormatters[key];
                   return {
                     col,
                     op: 'IN',
-                    val: val as (string | number | boolean)[],
+                    val: (val as DataRecordValue[]).map(value =>
+                      getCrossFilterValue(value, formatter),
+                    ) as (string | number | boolean)[],
                   };
                 }),
         },
@@ -436,7 +465,7 @@ export default function PivotTableChart(props: PivotTableProps) {
         },
       });
     },
-    [groupbyColumnsRaw, groupbyRowsRaw, setDataMask],
+    [dateFormatters, groupbyColumnsRaw, groupbyRowsRaw, setDataMask],
   );
 
   const isActiveFilterValue = useCallback(
@@ -492,10 +521,17 @@ export default function PivotTableChart(props: PivotTableProps) {
                         col,
                         op: 'IS NULL' as const,
                       };
+                    // Resolve the formatter by the header key/label so adhoc
+                    // temporal groupby columns (where `col` is an object, not a
+                    // string) still get epoch coercion, matching physical
+                    // columns.
+                    const formatter = dateFormatters[key];
                     return {
                       col,
                       op: 'IN' as const,
-                      val: val as (string | number | boolean)[],
+                      val: (val as DataRecordValue[]).map(value =>
+                        getCrossFilterValue(value, formatter),
+                      ) as (string | number | boolean)[],
                     };
                   }),
           },
@@ -511,7 +547,13 @@ export default function PivotTableChart(props: PivotTableProps) {
         isCurrentValueSelected: isActiveFilterValue(key, val),
       };
     },
-    [groupbyColumnsRaw, groupbyRowsRaw, isActiveFilterValue, selectedFilters],
+    [
+      dateFormatters,
+      groupbyColumnsRaw,
+      groupbyRowsRaw,
+      isActiveFilterValue,
+      selectedFilters,
+    ],
   );
 
   const toggleFilter = useCallback(
@@ -535,7 +577,10 @@ export default function PivotTableChart(props: PivotTableProps) {
       const filtersCopy = { ...filters };
       delete filtersCopy[METRIC_KEY];
 
-      const filtersEntries = Object.entries(filtersCopy);
+      const filtersEntries = Object.entries(filtersCopy) as [
+        string,
+        DataRecordValue,
+      ][];
       if (filtersEntries.length === 0) {
         return;
       }
@@ -637,12 +682,12 @@ export default function PivotTableChart(props: PivotTableProps) {
           colKey.forEach((val, i) => {
             const col = cols[i];
             const formatter = dateFormatters[col];
-            const formattedVal = formatter?.(Number(val)) || String(val);
+            const formattedVal = getDrillFilterFormattedValue(val, formatter);
             if (i > 0) {
               drillToDetailFilters.push({
                 col,
                 op: '==',
-                val,
+                val: getDrillFilterValue(val, formatter),
                 formattedVal,
                 grain: formatter ? timeGrainSqla : undefined,
               });
@@ -653,11 +698,11 @@ export default function PivotTableChart(props: PivotTableProps) {
           rowKey.forEach((val, i) => {
             const col = rows[i];
             const formatter = dateFormatters[col];
-            const formattedVal = formatter?.(Number(val)) || String(val);
+            const formattedVal = getDrillFilterFormattedValue(val, formatter);
             drillToDetailFilters.push({
               col,
               op: '==',
-              val,
+              val: getDrillFilterValue(val, formatter),
               formattedVal,
               grain: formatter ? timeGrainSqla : undefined,
             });
@@ -698,10 +743,8 @@ export default function PivotTableChart(props: PivotTableProps) {
           data={unpivotedData}
           rows={rows}
           cols={cols}
-          aggregatorsFactory={aggregatorsFactory}
           defaultFormatter={defaultFormatter}
           customFormatters={metricFormatters}
-          aggregatorName={aggregateFunction}
           vals={vals}
           colOrder={colOrder}
           rowOrder={rowOrder}

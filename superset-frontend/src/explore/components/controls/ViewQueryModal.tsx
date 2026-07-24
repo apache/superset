@@ -16,12 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC, Fragment, useEffect, useState } from 'react';
+import { FC, Fragment, useCallback, useEffect, useState } from 'react';
 
+import { omit } from 'lodash';
 import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
   getClientErrorObject,
+  JsonObject,
   QueryFormData,
 } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
@@ -33,6 +35,7 @@ import ViewQuery from 'src/explore/components/controls/ViewQuery';
 
 interface Props {
   latestQueryFormData: QueryFormData;
+  ownState?: JsonObject;
 }
 
 type Result = {
@@ -48,38 +51,47 @@ const ViewQueryModalContainer = styled.div`
   gap: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
-const ViewQueryModal: FC<Props> = ({ latestQueryFormData }) => {
+const ViewQueryModal: FC<Props> = ({ latestQueryFormData, ownState }) => {
   const [result, setResult] = useState<Result[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadChartData = (resultType: string) => {
-    setIsLoading(true);
-    getChartDataRequest({
-      formData: latestQueryFormData,
-      resultFormat: 'json',
-      resultType,
-    })
-      .then(({ json }) => {
-        setResult(ensureIsArray(json.result) as Result[]);
-        setIsLoading(false);
-        setError(null);
+  const loadChartData = useCallback(
+    (resultType: string) => {
+      setIsLoading(true);
+      // Strip clientView (client-side row/column snapshot) from ownState before
+      // requesting the query, matching the chart query path in ExploreViewContainer
+      // and Dashboard's activeAllDashboardFilters. clientView is irrelevant to SQL
+      // generation and can bloat the payload (or trigger 413) on large tables.
+      const ownStateForQuery = omit(ownState, ['clientView']) || {};
+      getChartDataRequest({
+        formData: latestQueryFormData,
+        resultFormat: 'json',
+        resultType,
+        ownState: ownStateForQuery,
       })
-      .catch(response => {
-        getClientErrorObject(response).then(({ error, message }) => {
-          setError(
-            error ||
-              message ||
-              response.statusText ||
-              t('Sorry, An error occurred'),
-          );
+        .then(({ json }) => {
+          setResult(ensureIsArray(json.result) as Result[]);
           setIsLoading(false);
+          setError(null);
+        })
+        .catch(response => {
+          getClientErrorObject(response).then(({ error, message }) => {
+            setError(
+              error ||
+                message ||
+                response.statusText ||
+                t('Sorry, An error occurred'),
+            );
+            setIsLoading(false);
+          });
         });
-      });
-  };
+    },
+    [latestQueryFormData, ownState],
+  );
   useEffect(() => {
     loadChartData('query');
-  }, [JSON.stringify(latestQueryFormData)]);
+  }, [loadChartData]);
 
   if (isLoading) {
     return <Loading />;

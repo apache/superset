@@ -22,8 +22,9 @@ import {
   SupersetClient,
   isFeatureEnabled,
   FeatureFlag,
+  handleKeyboardActivation,
 } from '@superset-ui/core';
-import { css, styled, useTheme } from '@apache-superset/core/theme';
+import { css, useTheme } from '@apache-superset/core/theme';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { CellProps } from 'react-table';
 import rison from 'rison';
@@ -55,6 +56,7 @@ import {
 } from 'src/components';
 import { Typography } from '@superset-ui/core/components/Typography';
 import { getUrlParam } from 'src/utils/urlUtils';
+import { ensureAppRoot } from 'src/utils/navigationUtils';
 import { URL_PARAMS } from 'src/constants';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
@@ -69,12 +71,13 @@ import { DatabaseObject } from 'src/features/databases/types';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
-import type Owner from 'src/types/Owner';
+import type User from 'src/types/User';
 import {
   databaseLabel,
   databaseLabelLower,
   databasesLabel,
 } from 'src/features/semanticLayers/label';
+import IconButton from 'src/dashboard/components/IconButton';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DatabaseDeleteRelatedExtension = extensionsRegistry.get(
@@ -90,7 +93,7 @@ const SEMANTIC_LAYERS_FLAG = 'SEMANTIC_LAYERS' as FeatureFlag;
 type ConnectionItem = DatabaseObject & {
   source_type?: 'database' | 'semantic_layer';
   sl_type?: string;
-  changed_by?: Owner;
+  changed_by?: User;
   changed_on_delta_humanized?: string;
 };
 
@@ -109,14 +112,6 @@ interface DatabaseListProps {
     lastName: string;
   };
 }
-
-const Actions = styled.div`
-  .action-button {
-    display: inline-block;
-    height: 100%;
-    color: ${({ theme }) => theme.colorIcon};
-  }
-`;
 
 function BooleanDisplay({ value }: { value: boolean }) {
   return value ? (
@@ -684,21 +679,20 @@ function DatabaseList({
           if (isSemanticLayer) {
             if (!canEdit && !canDelete) return null;
             return (
-              <Actions className="actions">
+              <div className="actions">
                 {canDelete && (
                   <Tooltip
                     id="delete-action-tooltip"
                     title={t('Delete')}
                     placement="bottom"
                   >
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      className="action-button"
+                    <IconButton
                       onClick={() => setSlCurrentlyDeleting(original)}
-                    >
-                      <Icons.DeleteOutlined iconSize="l" />
-                    </span>
+                      onKeyDown={handleKeyboardActivation(() =>
+                        setSlCurrentlyDeleting(original),
+                      )}
+                      icon={<Icons.DeleteOutlined iconSize="l" />}
+                    />
                   </Tooltip>
                 )}
                 {canEdit && (
@@ -707,19 +701,18 @@ function DatabaseList({
                     title={t('Edit')}
                     placement="bottom"
                   >
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      className="action-button"
+                    <IconButton
                       onClick={() =>
                         setSlCurrentlyEditing(original.uuid ?? null)
                       }
-                    >
-                      <Icons.EditOutlined iconSize="l" />
-                    </span>
+                      onKeyDown={handleKeyboardActivation(() =>
+                        setSlCurrentlyEditing(original.uuid ?? null),
+                      )}
+                      icon={<Icons.EditOutlined iconSize="l" />}
+                    />
                   </Tooltip>
                 )}
-              </Actions>
+              </div>
             );
           }
 
@@ -732,22 +725,21 @@ function DatabaseList({
             return null;
           }
           return (
-            <Actions className="actions">
+            <div className="actions">
               {canEdit && (
                 <Tooltip
                   id="edit-action-tooltip"
                   title={t('Edit')}
                   placement="bottom"
                 >
-                  <span
-                    role="button"
+                  <IconButton
                     data-test="database-edit"
-                    tabIndex={0}
-                    className="action-button"
                     onClick={handleEdit}
-                  >
-                    <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
-                  </span>
+                    onKeyDown={handleKeyboardActivation(handleEdit)}
+                    icon={
+                      <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
+                    }
+                  />
                 </Tooltip>
               )}
               {canExport && (
@@ -756,14 +748,12 @@ function DatabaseList({
                   title={t('Export')}
                   placement="bottom"
                 >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
+                  <IconButton
+                    data-test="database-export"
                     onClick={handleExport}
-                  >
-                    <Icons.UploadOutlined iconSize="l" />
-                  </span>
+                    onKeyDown={handleKeyboardActivation(handleExport)}
+                    icon={<Icons.UploadOutlined iconSize="l" />}
+                  />
                 </Tooltip>
               )}
               {canEdit && (
@@ -772,35 +762,29 @@ function DatabaseList({
                   title={t('Sync Permissions')}
                   placement="bottom"
                 >
-                  <span
-                    role="button"
+                  <IconButton
                     data-test="database-sync-perm"
-                    tabIndex={0}
-                    className="action-button"
                     onClick={handleSync}
-                  >
-                    <Icons.SyncOutlined iconSize="l" />
-                  </span>
+                    onKeyDown={handleKeyboardActivation(handleSync)}
+                    icon={<Icons.SyncOutlined iconSize="l" />}
+                  />
                 </Tooltip>
               )}
               {canDelete && (
-                <span
-                  role="button"
-                  tabIndex={0}
-                  className="action-button"
-                  data-test="database-delete"
-                  onClick={handleDelete}
+                <Tooltip
+                  id="delete-action-tooltip"
+                  title={t('Delete %s', databaseLabelLower())}
+                  placement="bottom"
                 >
-                  <Tooltip
-                    id="delete-action-tooltip"
-                    title={t('Delete %s', databaseLabelLower())}
-                    placement="bottom"
-                  >
-                    <Icons.DeleteOutlined iconSize="l" />
-                  </Tooltip>
-                </span>
+                  <IconButton
+                    data-test="database-delete"
+                    onClick={handleDelete}
+                    onKeyDown={handleKeyboardActivation(handleDelete)}
+                    icon={<Icons.DeleteOutlined iconSize="l" />}
+                  />
+                </Tooltip>
               )}
-            </Actions>
+            </div>
           );
         },
         Header: t('Actions'),
@@ -1032,7 +1016,7 @@ function DatabaseList({
                           avatar={<span>•</span>}
                           title={
                             <Typography.Link
-                              href={`/superset/dashboard/${result.id}`}
+                              href={ensureAppRoot(`/dashboard/${result.id}`)}
                               target="_atRiskItem"
                             >
                               {result.title}
@@ -1075,7 +1059,9 @@ function DatabaseList({
                           avatar={<span>•</span>}
                           title={
                             <Typography.Link
-                              href={`/explore/?slice_id=${result.id}`}
+                              href={ensureAppRoot(
+                                `/explore/?slice_id=${result.id}`,
+                              )}
                               target="_atRiskItem"
                             >
                               {result.slice_name}

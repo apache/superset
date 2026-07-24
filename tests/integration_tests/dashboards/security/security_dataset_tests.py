@@ -97,7 +97,7 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
         my_owned_dashboard = create_dashboard_to_db(  # noqa: F405
             dashboard_title="My Dashboard",
             published=False,
-            owners=[user],
+            editors=[user],
         )
 
         not_my_owned_dashboard = create_dashboard_to_db(  # noqa: F405
@@ -132,7 +132,7 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
         admin_user = security_manager.find_user(ADMIN_USERNAME)  # noqa: F405
         gamma_user = security_manager.find_user(GAMMA_USERNAME)  # noqa: F405
         admin_and_draft_dashboard = create_dashboard_to_db(  # noqa: F405
-            dashboard_title="admin_owned_unpublished_dash", owners=[admin_user]
+            dashboard_title="admin_owned_unpublished_dash", editors=[admin_user]
         )
 
         self.login(gamma_user.username)
@@ -183,7 +183,7 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
         """
         admin = self.get_user("admin")
         title = f"title{random_str()}"  # noqa: F405
-        dashboard = create_dashboard_to_db(title, "slug1", owners=[admin])  # noqa: F405
+        dashboard = create_dashboard_to_db(title, "slug1", editors=[admin])  # noqa: F405
 
         self.login(GAMMA_USERNAME)
         arguments = {

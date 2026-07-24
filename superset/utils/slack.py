@@ -16,12 +16,14 @@
 # under the License.
 
 
+import functools
 import logging
-from typing import Callable, Optional
+import warnings
+from typing import Any, Callable, Optional
 
 from flask import current_app as app
 from slack_sdk import WebClient
-from slack_sdk.errors import SlackApiError
+from slack_sdk.errors import SlackApiError, SlackClientError as SlackSDKClientError
 from slack_sdk.http_retry.builtin_handlers import RateLimitErrorRetryHandler
 
 from superset import feature_flag_manager
@@ -34,10 +36,40 @@ from superset.utils.core import recipients_string_to_list
 
 logger = logging.getLogger(__name__)
 
+_SLACK_V1_DEPRECATION_MESSAGE = (
+    "Slack v1 (the legacy `Slack` recipient type and `files.upload` API) is "
+    "deprecated and will be removed in the next major release. Slack retired "
+    "the `files.upload` endpoint in 2025, so v1 file uploads no longer work; "
+    "only text-only `chat_postMessage` sends still succeed. Grant your Slack "
+    "bot the `channels:read` and `groups:read` scopes so existing v1 "
+    "recipients can be auto-upgraded to SlackV2 on "
+    "their next send."
+)
+
+
+# functools.cache gives us a process-lifetime, thread-safe one-shot guard
+# without the read-then-write race that bare module globals would have under
+# multi-threaded WSGI workers. The cached return value (None) is irrelevant —
+# we only care that the body executes at most once per process.
+@functools.cache
+def _emit_v1_flag_off_deprecation() -> None:
+    warnings.warn(_SLACK_V1_DEPRECATION_MESSAGE, DeprecationWarning, stacklevel=3)
+    logger.warning(
+        "ALERT_REPORT_SLACK_V2 is disabled; %s", _SLACK_V1_DEPRECATION_MESSAGE
+    )
+
+
+@functools.cache
+def _emit_v1_scope_missing_deprecation() -> None:
+    warnings.warn(_SLACK_V1_DEPRECATION_MESSAGE, DeprecationWarning, stacklevel=3)
+
 
 class SlackChannelTypes(StrEnum):
     PUBLIC = "public_channel"
     PRIVATE = "private_channel"
+
+
+_SLACK_CONVERSATION_TYPES = ",".join(SlackChannelTypes)
 
 
 class SlackClientError(Exception):
@@ -63,22 +95,63 @@ def get_slack_client() -> WebClient:
     return client
 
 
-@cache_util.memoized_func(
-    key="slack_conversations_list",
-    cache=cache_manager.cache,
-)
-def get_channels() -> list[SlackChannelSchema]:
+def get_team_id() -> Optional[str]:
+    """
+    Return the Slack workspace (team) ID to target, or None.
+
+    On an Enterprise Grid org, an org-scoped token spans multiple workspaces, so
+    workspace-scoped methods such as ``conversations.list`` need a ``team_id`` to
+    indicate which workspace to act on. The value is read from the ``SLACK_TEAM_ID``
+    config var, which may be a string or a callable (mirroring ``SLACK_API_TOKEN``);
+    when it is unset (the default for workspace-level tokens) None is returned and
+    no ``team_id`` is sent, preserving the prior behavior.
+    """
+    team_id = app.config.get("SLACK_TEAM_ID")
+    if callable(team_id):
+        team_id = team_id()
+    return team_id or None
+
+
+def get_channels(
+    team_id: Optional[str] = None, **kwargs: Any
+) -> list[SlackChannelSchema]:
     """
     Retrieves a list of all conversations accessible by the bot
     from the Slack API, and caches results (to avoid rate limits).
 
     The Slack API does not provide search so to apply a search use
     get_channels_with_search instead.
+
+    :param team_id: workspace (team) ID to target, required for org-scoped tokens
+        on an Enterprise Grid org. Defaults to the configured ``SLACK_TEAM_ID``
+        (via get_team_id) when not given. When set it also keys the cache so that
+        distinct workspaces never share cached channel lists; when unset, the
+        legacy cache key is used so that upgrading does not invalidate existing
+        caches.
+    :param kwargs: forwarded to the memoized fetch (``force``, ``cache_timeout``,
+        ``cache``).
     """
+    if team_id is None:
+        team_id = get_team_id()
+    cache_key = "slack_conversations_list"
+    if team_id:
+        cache_key = f"{cache_key}_{team_id}"
+    return _get_channels(cache_key, team_id=team_id, **kwargs)
+
+
+@cache_util.memoized_func(
+    key="{cache_key}",
+    cache=cache_manager.cache,
+)
+def _get_channels(
+    cache_key: str, team_id: Optional[str] = None
+) -> list[SlackChannelSchema]:
     client = get_slack_client()
     channel_schema = SlackChannelSchema()
     channels: list[SlackChannelSchema] = []
-    extra_params = {"types": ",".join(SlackChannelTypes)}
+    extra_params = {"types": _SLACK_CONVERSATION_TYPES}
+    if team_id:
+        extra_params["team_id"] = team_id
     cursor = None
     page_count = 0
 
@@ -183,20 +256,75 @@ def get_channels_with_search(
     return channels
 
 
+_SCOPE_MISSING_ERROR_CODES = frozenset(
+    {"missing_scope", "not_allowed_token_type", "no_permission"}
+)
+
+
 def should_use_v2_api() -> bool:
     if not feature_flag_manager.is_feature_enabled("ALERT_REPORT_SLACK_V2"):
+        _emit_v1_flag_off_deprecation()
         return False
     try:
         client = get_slack_client()
-        client.conversations_list()
+        extra_params = {"types": _SLACK_CONVERSATION_TYPES}
+        team_id = get_team_id()
+        if team_id:
+            extra_params["team_id"] = team_id
+        client.conversations_list(
+            limit=1,
+            exclude_archived=True,
+            **extra_params,
+        )
         logger.info("Slack API v2 is available")
         return True
-    except SlackApiError:
-        # use the v1 api but warn with a deprecation message
+    except SlackApiError as ex:
+        # Only the scope-missing branch is a v1-deprecation signal; other
+        # SlackApiError codes (invalid_auth, ratelimited, server errors, etc.)
+        # are unrelated probe failures and should not be reported as a missing
+        # scope. We still fall back to v1 in both cases so a transient probe
+        # failure doesn't break sends — operators get an actionable log either
+        # way.
+        # `response` is normally a SlackResponse whose payload lives in `.data`,
+        # but the SDK (and our tests) can also hand back a plain dict. Read the
+        # error code in either shape so the scope-missing branch isn't missed.
+        response = getattr(ex, "response", None)
+        data = getattr(response, "data", None)
+        if not isinstance(data, dict):
+            data = response if isinstance(response, dict) else {}
+        error_code = data.get("error", "")
+        if error_code in _SCOPE_MISSING_ERROR_CODES:
+            # The DeprecationWarning fires once per process, but the actionable
+            # log line fires every send so operators see it in their report logs.
+            _emit_v1_scope_missing_deprecation()
+            logger.warning(
+                "Slack bot is missing the `channels:read` and `groups:read` "
+                "scopes; falling back to the deprecated "
+                "v1 API. %s",
+                _SLACK_V1_DEPRECATION_MESSAGE,
+            )
+        else:
+            logger.warning(
+                "Slack v2 probe failed with error %r; falling back to the "
+                "deprecated v1 API for this send. Investigate the underlying "
+                "Slack API error — this is not a missing-scope problem.",
+                error_code or str(ex),
+            )
+        return False
+    except SlackSDKClientError as ex:
+        # Non-API SDK failures (e.g. SlackClientNotConnectedError,
+        # SlackRequestError, SlackClientConfigurationError) are not subclasses
+        # of SlackApiError, so without this branch they would escape the probe
+        # raw. The caller runs this probe *before* the mapped Slack send `try`,
+        # so an un-caught probe error aborts the entire recipient loop instead
+        # of failing a single recipient. Treat any probe connection/transport
+        # failure as "v2 unavailable" and fall back to the deprecated v1 API,
+        # matching the SlackApiError behavior above.
         logger.warning(
-            "Your current Slack scopes are missing `channels:read`. Please add "
-            "this to your Slack app in order to continue using the v1 API. Support "
-            "for the old Slack API will be removed in Superset version 6.0.0."
+            "Slack v2 probe failed to connect (%s: %s); falling back to the "
+            "deprecated v1 API for this send.",
+            type(ex).__name__,
+            ex,
         )
         return False
 

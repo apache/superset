@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { JsonObject, LatestQueryFormData } from '@superset-ui/core';
+import { JsonObject, LatestQueryFormData, QueryData } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import type { ChartStatus, Datasource } from 'src/explore/types';
 
@@ -36,6 +36,7 @@ export interface DataTablesPaneProps {
   errorMessage?: React.ReactNode;
   setForceQuery: SetForceQueryAction;
   canDownload: boolean;
+  queriesResponse?: QueryData[] | null;
 }
 
 export interface ResultsPaneProps {
@@ -47,10 +48,11 @@ export interface ResultsPaneProps {
   setForceQuery?: SetForceQueryAction;
   dataSize?: number;
   // reload OriginalFormattedTimeColumns from localStorage when isVisible is true
-  isVisible: boolean;
+  isVisible?: boolean; // Visibility is managed by the parent tab container
   canDownload: boolean;
   // Optional map of column/metric name -> verbose label
   columnDisplayNames?: Record<string, string>;
+  queriesResponse?: QueryData[] | null;
 }
 
 export interface SamplesPaneProps {

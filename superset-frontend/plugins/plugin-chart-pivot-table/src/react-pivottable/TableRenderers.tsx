@@ -20,13 +20,14 @@
 import {
   ReactNode,
   MouseEvent,
+  SyntheticEvent,
   useState,
   useCallback,
   useRef,
   useMemo,
   useEffect,
 } from 'react';
-import { safeHtmlSpan } from '@superset-ui/core';
+import { safeHtmlSpan, handleKeyboardActivation } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { supersetTheme } from '@apache-superset/core/theme';
 import PropTypes from 'prop-types';
@@ -94,7 +95,6 @@ interface SubtotalOptions {
 interface TableRendererProps {
   cols: string[];
   rows: string[];
-  aggregatorName: string;
   tableOptions?: TableOptions;
   subtotalOptions?: SubtotalOptions;
   namesMapping?: Record<string, string>;
@@ -132,6 +132,7 @@ interface PivotSettings {
   maxColVisible?: number;
   rowAttrSpans?: number[][];
   colAttrSpans?: number[][];
+  visibleRowCount?: number;
 }
 
 const parseLabel = (value: unknown): string | number => {
@@ -154,7 +155,10 @@ function displayCell(value: unknown, allowRenderHtml?: boolean): ReactNode {
 function displayHeaderCell(
   needToggle: boolean,
   ArrowIcon: ReactNode,
-  onArrowClick: ((e: MouseEvent<HTMLSpanElement>) => void) | null,
+  // `SyntheticEvent` (rather than `MouseEvent`) so this callback can also be
+  // used as the keyboard-activation handler via `handleKeyboardActivation`,
+  // which invokes it with a `KeyboardEvent`.
+  onArrowClick: ((e: SyntheticEvent) => void) | null,
   value: unknown,
   namesMapping: Record<string, string>,
   allowRenderHtml?: boolean,
@@ -172,6 +176,9 @@ function displayHeaderCell(
         tabIndex={0}
         className="toggle"
         onClick={onArrowClick || undefined}
+        onKeyDown={
+          onArrowClick ? handleKeyboardActivation(onArrowClick) : undefined
+        }
       >
         {ArrowIcon}
       </span>
@@ -332,7 +339,6 @@ export function TableRenderer(props: TableRendererProps) {
   const {
     cols,
     rows,
-    aggregatorName,
     tableOptions = {},
     subtotalOptions,
     namesMapping: namesMappingProp,
@@ -462,7 +468,7 @@ export function TableRenderer(props: TableRendererProps) {
   );
 
   const toggleRowKey = useCallback(
-    (flatRowKey: string) => (e: MouseEvent<HTMLSpanElement>) => {
+    (flatRowKey: string) => (e: SyntheticEvent) => {
       e.stopPropagation();
       setCollapsedRows(state => ({
         ...state,
@@ -473,7 +479,7 @@ export function TableRenderer(props: TableRendererProps) {
   );
 
   const toggleColKey = useCallback(
-    (flatColKey: string) => (e: MouseEvent<HTMLSpanElement>) => {
+    (flatColKey: string) => (e: SyntheticEvent) => {
       e.stopPropagation();
       setCollapsedCols(state => ({
         ...state,
@@ -754,7 +760,6 @@ export function TableRenderer(props: TableRendererProps) {
   }, [
     cols,
     rows,
-    aggregatorName,
     tableOptions,
     subtotalOptions,
     namesMappingProp,
@@ -797,6 +802,7 @@ export function TableRenderer(props: TableRendererProps) {
     maxColVisible: Math.max(...visibleColKeys.map((k: string[]) => k.length)),
     rowAttrSpans: calcAttrSpans(visibleRowKeys, rowAttrs.length),
     colAttrSpans: calcAttrSpans(visibleColKeys, colAttrs.length),
+    visibleRowCount: visibleRowKeys.length + (colTotals ? 1 : 0),
     allowRenderHtml,
     ...basePivotSettings,
   };
@@ -1046,6 +1052,7 @@ export function TableRenderer(props: TableRendererProps) {
                 onClick={e => {
                   e.stopPropagation();
                 }}
+                onKeyDown={e => e.stopPropagation()}
                 aria-label={
                   activeSortColumn === i
                     ? `Sorted by ${columnName} ${sortingOrder[i] === 'asc' ? 'ascending' : 'descending'}`
@@ -1099,9 +1106,7 @@ export function TableRenderer(props: TableRendererProps) {
               true,
             )}
           >
-            {t('Total (%(aggregatorName)s)', {
-              aggregatorName: t(aggregatorName),
-            })}
+            {t('Total')}
           </th>
         ) : null;
 
@@ -1116,7 +1121,6 @@ export function TableRenderer(props: TableRendererProps) {
       toggleColKey,
       clickHeaderHandler,
       cols,
-      aggregatorName,
       activeSortColumn,
       sortingOrder,
       collapsedCols,
@@ -1183,11 +1187,7 @@ export function TableRenderer(props: TableRendererProps) {
               true,
             )}
           >
-            {settingsColAttrs.length === 0
-              ? t('Total (%(aggregatorName)s)', {
-                  aggregatorName: t(aggregatorName),
-                })
-              : null}
+            {settingsColAttrs.length === 0 ? t('Total') : null}
           </th>
         </tr>
       );
@@ -1198,7 +1198,6 @@ export function TableRenderer(props: TableRendererProps) {
       clickHeaderHandler,
       rows,
       tableOptions.clickRowHeaderCallback,
-      aggregatorName,
     ],
   );
 
@@ -1220,6 +1219,7 @@ export function TableRenderer(props: TableRendererProps) {
         rowTotalCallbacks,
         namesMapping,
         allowRenderHtml: settingsAllowRenderHtml,
+        visibleRowCount,
       } = settings;
 
       const {
@@ -1256,6 +1256,11 @@ export function TableRenderer(props: TableRendererProps) {
         }
         const rowSpan = rowAttrSpans![rowIdx][i];
         if (rowSpan > 0) {
+          const isLastRow = rowIdx + rowSpan === visibleRowCount;
+          let cellClassName = valueCellClassName;
+          if (isLastRow) {
+            cellClassName += ' pvtRowLabelLast';
+          }
           const flatRowKeySlice = flatKey(rowKey.slice(0, i + 1));
           const colSpan =
             1 + (i === settingsRowAttrs.length - 1 ? colIncrSpan : 0);
@@ -1290,7 +1295,7 @@ export function TableRenderer(props: TableRendererProps) {
           return (
             <th
               key={`rowKeyLabel-${i}`}
-              className={valueCellClassName}
+              className={cellClassName}
               style={rowHeaderStyle}
               rowSpan={rowSpan}
               colSpan={colSpan}
@@ -1448,9 +1453,7 @@ export function TableRenderer(props: TableRendererProps) {
             true,
           )}
         >
-          {t('Total (%(aggregatorName)s)', {
-            aggregatorName: t(aggregatorName),
-          })}
+          {t('Total')}
         </th>
       );
 
@@ -1502,7 +1505,6 @@ export function TableRenderer(props: TableRendererProps) {
       clickHeaderHandler,
       rows,
       tableOptions.clickRowHeaderCallback,
-      aggregatorName,
       onContextMenu,
       allowRenderHtml,
     ],

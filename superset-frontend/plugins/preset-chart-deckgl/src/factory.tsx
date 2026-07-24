@@ -17,7 +17,7 @@
  * under the License.
  */
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { isEqual } from 'lodash';
+import { isEqual } from 'lodash-es';
 import type { Layer } from '@deck.gl/core';
 import { getMapboxApiKey } from './utils/mapbox';
 import {

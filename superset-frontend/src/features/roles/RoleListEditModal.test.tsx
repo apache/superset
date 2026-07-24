@@ -252,9 +252,7 @@ describe('RoleListEditModal', () => {
     const mockGet = SupersetClient.get as jest.Mock;
     mockGet.mockImplementation(({ endpoint }) => {
       if (
-        endpoint?.includes(
-          `/api/v1/security/roles/${mockRole.id}/permissions/`,
-        )
+        endpoint?.includes(`/api/v1/security/roles/${mockRole.id}/permissions/`)
       ) {
         // Only return permission id=10, not id=20
         return Promise.resolve({
@@ -298,9 +296,7 @@ describe('RoleListEditModal', () => {
     const mockGet = SupersetClient.get as jest.Mock;
     mockGet.mockImplementation(({ endpoint }) => {
       if (
-        endpoint?.includes(
-          `/api/v1/security/roles/${mockRole.id}/permissions/`,
-        )
+        endpoint?.includes(`/api/v1/security/roles/${mockRole.id}/permissions/`)
       ) {
         return Promise.reject(new Error('network error'));
       }
@@ -333,7 +329,7 @@ describe('RoleListEditModal', () => {
 
   test('fires warning toast when hydration returns zero rows but IDs were expected', async () => {
     const mockGet = SupersetClient.get as jest.Mock;
-    mockGet.mockImplementation(({ endpoint }) =>
+    mockGet.mockImplementation(() =>
       Promise.resolve({ json: { count: 0, result: [] } }),
     );
 
@@ -371,7 +367,9 @@ describe('RoleListEditModal', () => {
     };
 
     mockGet.mockImplementation(({ endpoint }) => {
-      if (endpoint?.includes(`/api/v1/security/roles/${roleA.id}/permissions/`)) {
+      if (
+        endpoint?.includes(`/api/v1/security/roles/${roleA.id}/permissions/`)
+      ) {
         return Promise.resolve({
           json: {
             result: roleA.permission_ids.map(pid => ({
@@ -382,7 +380,9 @@ describe('RoleListEditModal', () => {
           },
         });
       }
-      if (endpoint?.includes(`/api/v1/security/roles/${roleB.id}/permissions/`)) {
+      if (
+        endpoint?.includes(`/api/v1/security/roles/${roleB.id}/permissions/`)
+      ) {
         return Promise.resolve({
           json: {
             result: roleB.permission_ids.map(pid => ({

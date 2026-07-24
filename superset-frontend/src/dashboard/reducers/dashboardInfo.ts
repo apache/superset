@@ -66,8 +66,7 @@ export interface HydrateDashboardInfoAction {
 }
 
 type DashboardInfoReducerAction =
-  | DashboardInfoAction
-  | HydrateDashboardInfoAction;
+  DashboardInfoAction | HydrateDashboardInfoAction;
 
 type DashboardInfoState = Partial<DashboardInfo> & {
   last_modified_time?: number;
@@ -306,6 +305,7 @@ export default function dashboardInfoReducer(
               ...customization,
               targets: customization.targets?.map(target => ({
                 datasetId: target.datasetId,
+                datasourceType: target.datasourceType,
               })),
             }),
           ),

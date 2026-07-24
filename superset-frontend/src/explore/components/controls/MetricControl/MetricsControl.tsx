@@ -19,7 +19,7 @@
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { ensureIsArray, usePrevious } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
-import { isEqual } from 'lodash';
+import { isEqual } from 'lodash-es';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Icons } from '@superset-ui/core/components/Icons';
 import {

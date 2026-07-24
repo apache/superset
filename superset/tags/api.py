@@ -40,7 +40,7 @@ from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.tag import TagDAO
 from superset.exceptions import MissingUserContextException
 from superset.extensions import event_logger
-from superset.tags.filters import UserCreatedTagTypeFilter
+from superset.tags.filters import TagFavoriteFilter, UserCreatedTagTypeFilter
 from superset.tags.models import ObjectType, Tag
 from superset.tags.schemas import (
     delete_tags_schema,
@@ -57,7 +57,7 @@ from superset.views.base_api import (
     RelatedFieldFilter,
     statsd_metrics,
 )
-from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedUsers
 
 logger = logging.getLogger(__name__)
 
@@ -116,11 +116,23 @@ class TagRestApi(BaseSupersetModelRestApi):
     }
 
     related_field_filters = {
-        "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "created_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
     }
     allowed_rel_fields = {"created_by", "changed_by"}
 
-    search_filters = {"type": [UserCreatedTagTypeFilter]}
+    search_columns = [
+        "id",
+        "name",
+        "type",
+        "description",
+        "created_by",
+        "changed_by",
+    ]
+
+    search_filters = {
+        "type": [UserCreatedTagTypeFilter],
+        "id": [TagFavoriteFilter],
+    }
 
     add_model_schema = TagPostSchema()
     edit_model_schema = TagPutSchema()
@@ -617,8 +629,9 @@ class TagRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @parse_rison({"type": "array", "items": {"type": "integer"}})
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".favorite_status",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.favorite_status"
+        ),
         log_to_statsd=False,
     )
     def favorite_status(self, **kwargs: Any) -> Response:
@@ -715,8 +728,9 @@ class TagRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".remove_favorite",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.remove_favorite"
+        ),
         log_to_statsd=False,
     )
     def remove_favorite(self, pk: int) -> Response:

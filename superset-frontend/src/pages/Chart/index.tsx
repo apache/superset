@@ -43,6 +43,7 @@ import { fallbackExploreInitialData } from 'src/explore/fixtures';
 import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { getFormDataWithDashboardContext } from 'src/explore/controlUtils/getFormDataWithDashboardContext';
 import type Chart from 'src/types/Chart';
+import { mapSubjectValuesToIds } from 'src/features/subjects/SubjectPicker';
 
 const isValidResult = (rv: JsonObject): boolean =>
   rv?.result?.form_data && rv?.result?.dataset;
@@ -243,7 +244,9 @@ export default function ExplorePage() {
                 : Promise.reject()
             )
               .then(
-                ({ result: { id, url, owners, form_data: _, ...data } }) => {
+                ({
+                  result: { id, url, editors, viewers, form_data: _, ...data },
+                }) => {
                   if (isStale()) {
                     return;
                   }
@@ -252,7 +255,8 @@ export default function ExplorePage() {
                     datasource: err.extra?.datasource_name,
                     slice_id: id,
                     slice_url: url,
-                    owners: owners?.map(({ id }) => id),
+                    editors: mapSubjectValuesToIds(editors),
+                    viewers: mapSubjectValuesToIds(viewers),
                   };
                   dispatch(
                     hydrateExplore({
@@ -303,8 +307,7 @@ export default function ExplorePage() {
   useEffect(() => {
     const unlisten = history.listen((loc: Location, action: Action) => {
       const saveAction = (loc.state as Record<string, unknown>)?.saveAction as
-        | SaveActionType
-        | undefined;
+        SaveActionType | undefined;
       if (action === 'PUSH' || action === 'POP') {
         setIsLoaded(false);
         loadExploreData(loc, saveAction);

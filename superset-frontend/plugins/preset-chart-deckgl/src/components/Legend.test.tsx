@@ -17,7 +17,7 @@
  * under the License.
  */
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { render, screen } from '@testing-library/react';
+import { createEvent, fireEvent, render, screen } from '@testing-library/react';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import '@testing-library/jest-dom';
 import { supersetTheme, ThemeProvider } from '@apache-superset/core/theme';
@@ -68,4 +68,59 @@ test('leaves labels untouched when no format is provided', () => {
   );
 
   expect(screen.getByText('[1, 81)')).toBeInTheDocument();
+});
+
+test('clicking a legend item toggles the category without triggering anchor navigation', () => {
+  // Regression proof for #33576: the legend items are href="#" anchors, so a
+  // click whose default action is not prevented would navigate to "#" and
+  // scroll the browser window to the top of the page.
+  const toggleCategory = jest.fn();
+  renderWithTheme(
+    <Legend
+      format={null}
+      categories={{
+        Positive: { enabled: true, color: [0, 255, 0] },
+        Negative: { enabled: true, color: [255, 0, 0] },
+      }}
+      toggleCategory={toggleCategory}
+    />,
+  );
+
+  const legendItem = screen.getByRole('button', { name: 'Positive' });
+  const clickEvent = createEvent.click(legendItem);
+  fireEvent(legendItem, clickEvent);
+
+  expect(clickEvent.defaultPrevented).toBe(true);
+  expect(toggleCategory).toHaveBeenCalledTimes(1);
+  expect(toggleCategory).toHaveBeenCalledWith('Positive');
+});
+
+test('ctrl+clicking a legend item toggles the category without opening a new tab', () => {
+  // Regression proof for #34157: legend items are href="#" anchors, so a
+  // ctrl+click whose default action is not prevented would ask the browser
+  // to open the "#" href in a new tab instead of just toggling the layer.
+  const toggleCategory = jest.fn();
+  renderWithTheme(
+    <Legend
+      format={null}
+      categories={{
+        cat1: { enabled: true, color: [255, 0, 0] },
+        cat2: { enabled: false, color: [0, 0, 255] },
+      }}
+      toggleCategory={toggleCategory}
+    />,
+  );
+
+  const legendItem = screen.getByRole('button', { name: 'cat1' });
+  const ctrlClickEvent = createEvent.click(legendItem, {
+    ctrlKey: true,
+  }) as MouseEvent;
+  fireEvent(legendItem, ctrlClickEvent);
+
+  // preventDefault() in the onClick handler is what stops the browser's
+  // native ctrl+click "open link in new tab" behavior on the anchor.
+  expect(ctrlClickEvent.defaultPrevented).toBe(true);
+  expect(ctrlClickEvent.ctrlKey).toBe(true);
+  expect(toggleCategory).toHaveBeenCalledTimes(1);
+  expect(toggleCategory).toHaveBeenCalledWith('cat1');
 });

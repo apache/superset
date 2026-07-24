@@ -18,15 +18,18 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { isEqual } from 'lodash';
 import { ParentSize } from '@visx/responsive';
 import { t } from '@apache-superset/core/translation';
 import {
   QueryFormData,
   QueryData,
+  JsonObject,
   SupersetClientInterface,
   buildQueryContext,
   RequestConfig,
   getClientErrorObject,
+  ensureIsArray,
 } from '../..';
 import { Loading } from '../../components/Loading';
 import ChartClient from '../clients/ChartClient';
@@ -188,6 +191,12 @@ export default function StatefulChart(props: StatefulChartProps) {
   const chartClientRef = useRef<ChartClient>();
   const abortControllerRef = useRef<AbortController>();
 
+  // fetchData is memoized with an empty dep list, so it would otherwise close
+  // over the first render's props. Keep the latest props in a ref so refetches
+  // (triggered by updated filters/formData/overrides) use current values.
+  const propsRef = useRef(props);
+  propsRef.current = props;
+
   // Initialize chart client
   if (!chartClientRef.current) {
     chartClientRef.current = new ChartClient({ client: props.client });
@@ -198,20 +207,48 @@ export default function StatefulChart(props: StatefulChartProps) {
       chartId,
       formData: propsFormData,
       formDataOverrides,
-      onError,
-      onLoad,
       chartType,
       force,
       timeout,
-    } = props;
+      hooks,
+    } = propsRef.current;
 
     // Cancel any in-flight requests
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
 
-    // Create new abort controller
-    abortControllerRef.current = new AbortController();
+    // Create new abort controller (kept in a local so we can detect when this
+    // request has been superseded by a newer one, even across async awaits).
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    // A request is superseded if it was aborted, or if the props changed in a
+    // data-affecting way since it began - including switching between chartId
+    // and direct-formData modes. Props are captured during render but the abort
+    // happens in a passive effect, so the abort signal alone can let a stale
+    // success or error slip through in the render->effect gap. This mirrors the
+    // effect's own refetch decision; render-only changes are intentionally not
+    // treated as superseding.
+    const isSuperseded = () => {
+      if (controller.signal.aborted) {
+        return true;
+      }
+      const latest = propsRef.current;
+      const vizTypeForCompare = latest.formData?.viz_type || latest.chartType;
+      return (
+        latest.chartId !== chartId ||
+        // Deep compare overrides: callers commonly pass a fresh object with the
+        // same contents each render, which should not count as superseding.
+        !isEqual(latest.formDataOverrides, formDataOverrides) ||
+        latest.force !== force ||
+        Boolean(propsFormData) !== Boolean(latest.formData) ||
+        (!!propsFormData &&
+          !!latest.formData &&
+          latest.formData !== propsFormData &&
+          shouldRefetchData(propsFormData, latest.formData, vizTypeForCompare))
+      );
+    };
 
     setStatus('loading');
     setError(undefined);
@@ -223,7 +260,7 @@ export default function StatefulChart(props: StatefulChartProps) {
         // Load formData from chartId
         finalFormData = await chartClientRef.current!.loadFormData(
           { sliceId: chartId },
-          { signal: abortControllerRef.current.signal } as RequestConfig,
+          { signal: controller.signal } as RequestConfig,
         );
       } else if (propsFormData) {
         // Use provided formData
@@ -262,13 +299,11 @@ export default function StatefulChart(props: StatefulChartProps) {
       if (!useLegacyApi && !queryContext.queries) {
         queryContext = { queries: [queryContext] };
       }
-      const endpoint = useLegacyApi
-        ? '/superset/explore_json/'
-        : '/api/v1/chart/data';
+      const endpoint = useLegacyApi ? '/explore_json/' : '/api/v1/chart/data';
 
       const requestConfig: RequestConfig = {
         endpoint,
-        signal: abortControllerRef.current.signal,
+        signal: controller.signal,
         ...(timeout && { timeout: timeout * 1000 }),
       };
 
@@ -286,39 +321,136 @@ export default function StatefulChart(props: StatefulChartProps) {
         };
       }
 
-      const response = await chartClientRef.current!.client.post(requestConfig);
-      let responseData = Array.isArray(response.json)
-        ? response.json
-        : [response.json];
+      const clientResponse =
+        await chartClientRef.current!.client.post(requestConfig);
 
-      // Handle the nested result structure from the new API
-      if (!useLegacyApi && responseData[0]?.result) {
-        responseData = responseData[0].result;
-      }
-
-      setStatus('loaded');
-      setData(responseData);
-      setFormData(finalFormData);
-
-      if (onLoad) {
-        onLoad(responseData);
-      }
-    } catch (err) {
-      // Ignore abort errors
-      if ((err as Error).name === 'AbortError') {
+      // A newer request may have started while the POST was in flight; discard
+      // this stale response so it can't overwrite the newer chart data.
+      if (isSuperseded()) {
         return;
       }
 
-      const parsedError = await getClientErrorObject(
-        err as Parameters<typeof getClientErrorObject>[0],
-      );
-      const errorMessage =
-        parsedError.error || parsedError.message || 'An error occurred';
+      const rawResponse = clientResponse.response as Response | undefined;
 
-      const errorObj = new Error(errorMessage);
+      let responseData: QueryData[];
+      if (rawResponse?.status === 202) {
+        // With GLOBAL_ASYNC_QUERIES the query is dispatched to a Celery worker
+        // and the 202 body is job metadata (channel_id, job_id, result_url),
+        // not chart data. Delegate to the injected handler, which polls the
+        // async event channel and resolves the cached results. Without a
+        // handler we fail loudly rather than rendering the job metadata as if
+        // it were an (empty) result set.
+        if (!hooks?.handleAsyncChartData) {
+          throw new Error(
+            'Received an async chart data response (HTTP 202) but no async ' +
+              'handler was provided, so results cannot be retrieved. Wire up ' +
+              'the async handler or disable GLOBAL_ASYNC_QUERIES for this chart.',
+          );
+        }
+        // The async handler (handleChartDataResponse) expects the V1 chart data
+        // response signature. The legacy endpoint returns a flat body, so wrap
+        // it as { result: [body] } exactly like legacyChartDataRequest does for
+        // the standard chart path; the V1 body is already correctly shaped.
+        const asyncPayload = useLegacyApi
+          ? ({ result: [clientResponse.json] } as JsonObject)
+          : (clientResponse.json as JsonObject);
+        responseData = ensureIsArray(
+          await hooks.handleAsyncChartData(
+            rawResponse,
+            asyncPayload,
+            useLegacyApi,
+            controller.signal,
+          ),
+        );
+
+        // Async results can resolve well after a newer request began polling.
+        if (isSuperseded()) {
+          return;
+        }
+      } else {
+        const rows = (
+          Array.isArray(clientResponse.json)
+            ? clientResponse.json
+            : [clientResponse.json]
+        ) as JsonObject[];
+
+        // Handle the nested result structure from the new API
+        responseData = (
+          !useLegacyApi && rows[0]?.result ? rows[0].result : rows
+        ) as QueryData[];
+      }
+
+      // Don't pair this request's data with newer props or fire a stale onLoad
+      // if it has been superseded (see isSuperseded).
+      if (isSuperseded()) {
+        return;
+      }
+
+      const latestProps = propsRef.current;
+      setStatus('loaded');
+      setData(responseData);
+      // Render the resolved data with the latest formData so a render-only
+      // change made while the request was in flight isn't reverted.
+      setFormData(
+        latestProps.formData
+          ? {
+              ...latestProps.formData,
+              ...latestProps.formDataOverrides,
+              viz_type: finalFormData.viz_type,
+            }
+          : finalFormData,
+      );
+
+      // Read onLoad from the latest props (like setFormData above) so a stale
+      // callback captured at request start isn't invoked.
+      if (latestProps.onLoad) {
+        latestProps.onLoad(responseData);
+      }
+    } catch (err) {
+      // Ignore aborted requests, whether they threw AbortError or were
+      // superseded by a newer request (including the render->effect gap).
+      if ((err as Error)?.name === 'AbortError' || isSuperseded()) {
+        return;
+      }
+
+      // waitForAsyncData rejects with an array of already-parsed client-error
+      // objects; unwrap the first element so its detailed message survives.
+      const rawError = Array.isArray(err) ? err[0] : err;
+
+      let errorMessage: string | undefined;
+      if (
+        rawError &&
+        typeof rawError === 'object' &&
+        !(rawError instanceof Error) &&
+        !(rawError instanceof Response) &&
+        typeof (rawError as { error?: unknown }).error === 'string'
+      ) {
+        // Already a parsed client-error object (e.g. from the async handler);
+        // getClientErrorObject would discard its `error` field, so read it here.
+        const parsed = rawError as { error?: string; message?: string };
+        errorMessage = parsed.error || parsed.message;
+      } else {
+        const parsedError = await getClientErrorObject(
+          rawError as Parameters<typeof getClientErrorObject>[0],
+        );
+        errorMessage = parsedError.error || parsedError.message;
+      }
+
+      const errorObj = new Error(errorMessage || 'An error occurred');
+
+      // The request may have been superseded while its error response was being
+      // parsed above (or in the render->effect gap before its abort ran); don't
+      // set stale error state or call onError in that case.
+      if (isSuperseded()) {
+        return;
+      }
+
       setStatus('error');
       setError(errorObj);
 
+      // Read onError from the latest props so a stale callback captured at
+      // request start isn't invoked.
+      const { onError } = propsRef.current;
       if (onError) {
         onError(errorObj);
       }

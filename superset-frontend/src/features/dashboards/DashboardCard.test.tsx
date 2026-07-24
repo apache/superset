@@ -21,8 +21,12 @@ import { MemoryRouter } from 'react-router-dom';
 import { isFeatureEnabled } from '@superset-ui/core';
 
 import { render, screen } from 'spec/helpers/testing-library';
+import { SubjectType } from 'src/types/Subject';
 
 import DashboardCard from './DashboardCard';
+
+const aliceEditor = { id: 1, label: 'Alice Doe', type: SubjectType.User };
+const bobEditor = { id: 2, label: 'Bob Smith', type: SubjectType.User };
 
 const mockDashboard = {
   id: 1,
@@ -33,12 +37,9 @@ const mockDashboard = {
   url: '/dashboard/1',
   changed_on_utc: '2024-01-01T00:00:00',
   changed_on_delta_humanized: '2 days ago',
-  owners: [
-    { id: 1, name: 'Alice', first_name: 'Alice', last_name: 'Doe' },
-    { id: 2, name: 'Bob', first_name: 'Bob', last_name: 'Smith' },
-  ],
   changed_by_name: 'John Doe',
   changed_by: 'john.doe@example.com',
+  editors: [aliceEditor, bobEditor],
 };
 
 const mockHasPerm = jest.fn().mockReturnValue(true);
@@ -138,7 +139,7 @@ describe('thumbnail URL construction', () => {
       dashboard_title: 'UTC Dashboard',
       published: false,
       url: '/dashboard/2',
-      owners: [],
+      editors: [aliceEditor, bobEditor],
       changed_on_utc: '2024-01-01T00:00:00',
     });
 
@@ -155,7 +156,7 @@ describe('thumbnail URL construction', () => {
       dashboard_title: 'Fallback Dashboard',
       published: false,
       url: '/dashboard/3',
-      owners: [],
+      editors: [aliceEditor, bobEditor],
       changed_on: '2024-06-01T12:00:00',
     });
 
@@ -172,7 +173,7 @@ describe('thumbnail URL construction', () => {
       dashboard_title: 'No Timestamp Dashboard',
       published: false,
       url: '/dashboard/4',
-      owners: [],
+      editors: [aliceEditor, bobEditor],
     });
 
     expect(fetchSpy).not.toHaveBeenCalled();

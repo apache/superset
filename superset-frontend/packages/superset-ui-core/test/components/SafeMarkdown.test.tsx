@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render } from '@testing-library/react';
-import { cloneDeep } from 'lodash';
+import { cloneDeep } from 'lodash-es';
 import { defaultSchema } from 'rehype-sanitize';
 import {
   getOverrideHtmlSchema,
