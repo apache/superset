@@ -146,10 +146,14 @@ export default function transformProps(
     columnFormats = {},
     currencyCodeColumn,
   } = datasource;
-  const { label_map: labelMap, detected_currency: backendDetectedCurrency } =
+  // "raw" because these are keyed by the backend column labels; the maps
+  // returned to the component are re-keyed by the rendered series names below.
+  const { label_map: rawLabelMap, detected_currency: backendDetectedCurrency } =
     queriesData[0] as TimeseriesChartDataResponseResult;
-  const { label_map: labelMapB, detected_currency: backendDetectedCurrencyB } =
-    queriesData[1] as TimeseriesChartDataResponseResult;
+  const {
+    label_map: rawLabelMapB,
+    detected_currency: backendDetectedCurrencyB,
+  } = queriesData[1] as TimeseriesChartDataResponseResult;
   const data1 = (queriesData[0].data || []) as TimeseriesDataRecord[];
   const data2 = (queriesData[1].data || []) as TimeseriesDataRecord[];
   const annotationData = getAnnotationData(chartProps);
@@ -438,6 +442,16 @@ export default function transformProps(
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
   const inverted = invert(verboseMap);
 
+  // The rendered ECharts series names are display names that can diverge from
+  // the backend `label_map` keys: the metric display name is prepended when
+  // dimensions are present, query identifiers may be appended, and verbose
+  // names replace the raw column labels. Cross-filtering and drill lookups in
+  // EchartsMixedTimeseries resolve the clicked series name through the label
+  // map, so expose maps re-keyed by the rendered series names to keep those
+  // lookups working (#41622).
+  const displayLabelMap: Record<string, string[]> = {};
+  const displayLabelMapB: Record<string, string[]> = {};
+
   rawSeriesA.forEach(entry => {
     const entryName = String(entry.name || '');
     const seriesName = inverted[entryName] || entryName;
@@ -457,13 +471,19 @@ export default function transformProps(
       // When no groupby, format as just the entry name with optional query identifier
       displayName = showQueryIdentifiers ? `${entryName} (Query A)` : entryName;
     }
+
+    const labelMapValues = rawLabelMap?.[seriesName];
+    if (labelMapValues) {
+      displayLabelMap[displayName] = labelMapValues;
+    }
+
     const axisFormatterConfig = getAxisFormatterConfig(yAxisIndex);
 
     const seriesFormatter = getFormatter(
       axisFormatterConfig.customFormatters,
       axisFormatterConfig.formatter,
       metrics,
-      labelMap?.[seriesName]?.[0],
+      labelMapValues?.[0],
       !!contributionMode,
     );
 
@@ -514,7 +534,6 @@ export default function transformProps(
   rawSeriesB.forEach(entry => {
     const entryName = String(entry.name || '');
     const seriesEntry = inverted[entryName] || entryName;
-    const seriesName = `${seriesEntry} (1)`;
     const colorScaleKey = getOriginalSeries(seriesEntry, array);
 
     let displayName: string;
@@ -531,13 +550,19 @@ export default function transformProps(
       // When no groupby, format as just the entry name with optional query identifier
       displayName = showQueryIdentifiers ? `${entryName} (Query B)` : entryName;
     }
+
+    const labelMapValuesB = rawLabelMapB?.[seriesEntry];
+    if (labelMapValuesB) {
+      displayLabelMapB[displayName] = labelMapValuesB;
+    }
+
     const axisFormatterConfig = getAxisFormatterConfig(yAxisIndexB);
 
     const seriesFormatter = getFormatter(
       axisFormatterConfig.customFormatters,
       axisFormatterConfig.formatter,
       metricsB,
-      labelMapB?.[seriesName]?.[0],
+      labelMapValuesB?.[0],
       !!contributionMode,
     );
 
@@ -594,21 +619,44 @@ export default function transformProps(
     if (maxSecondary === undefined) maxSecondary = 1;
   }
 
+  // A dashboard-level time grain override (e.g. via a filter or the temporal
+  // range control) is delivered in extraFormData and should take precedence
+  // over the chart's own time grain when formatting temporal axes/tooltips.
+  const resolvedTimeGrain =
+    formData.extraFormData?.time_grain_sqla ?? timeGrainSqla;
+
   const tooltipFormatter =
     xAxisDataType === GenericDataType.Temporal
-      ? getTooltipTimeFormatter(tooltipTimeFormat)
+      ? getTooltipTimeFormatter(tooltipTimeFormat, resolvedTimeGrain)
       : String;
   const xAxisFormatter =
     xAxisDataType === GenericDataType.Temporal
-      ? getXAxisFormatter(xAxisTimeFormat, timeGrainSqla)
+      ? getXAxisFormatter(xAxisTimeFormat, resolvedTimeGrain)
       : String;
 
   const showMaxLabel =
-    xAxisType === AxisType.Time && xAxisLabelRotation === 0 && !!timeGrainSqla;
+    xAxisType === AxisType.Time &&
+    xAxisLabelRotation === 0 &&
+    !!resolvedTimeGrain;
   const deduplicatedFormatter = showMaxLabel
     ? (() => {
         let lastLabel: string | undefined;
+        let lastValue: number | undefined;
         const wrapper = (value: number | string) => {
+          // ECharts formats the labels in repeated ascending passes. Reset the
+          // dedup state when the sequence restarts so a forced boundary label
+          // (e.g. the min date) isn't blanked by the previous pass's last label
+          // when both format identically (e.g. a May-to-May range).
+          if (
+            typeof value === 'number' &&
+            lastValue !== undefined &&
+            value <= lastValue
+          ) {
+            lastLabel = undefined;
+          }
+          if (typeof value === 'number') {
+            lastValue = value;
+          }
           const label =
             typeof xAxisFormatter === 'function'
               ? (xAxisFormatter as Function)(value)
@@ -710,19 +758,21 @@ export default function transformProps(
         ...(showMaxLabel && {
           showMaxLabel: true,
           alignMaxLabel: 'right',
+          showMinLabel: true,
+          alignMinLabel: 'left',
         }),
       },
       minorTick: { show: minorTicks },
       minInterval:
-        xAxisType === AxisType.Time && timeGrainSqla && !forceMaxInterval
-          ? TIMEGRAIN_TO_TIMESTAMP[
-              timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
-            ]
+        xAxisType === AxisType.Time && resolvedTimeGrain && !forceMaxInterval
+          ? (TIMEGRAIN_TO_TIMESTAMP[
+              resolvedTimeGrain as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+            ] ?? 0)
           : 0,
       maxInterval:
-        xAxisType === AxisType.Time && timeGrainSqla && forceMaxInterval
+        xAxisType === AxisType.Time && resolvedTimeGrain && forceMaxInterval
           ? TIMEGRAIN_TO_TIMESTAMP[
-              timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+              resolvedTimeGrain as keyof typeof TIMEGRAIN_TO_TIMESTAMP
             ]
           : undefined,
       ...getMinAndMaxFromBounds(
@@ -809,15 +859,15 @@ export default function transformProps(
           .filter(key => keys.includes(key))
           .forEach(key => {
             const value = forecastValues[key];
-            // if there are no dimensions, key is a verbose name of a metric,
-            // otherwise it is a comma separated string where the first part is metric name
+            // The tooltip key is the rendered series name; resolve it through
+            // the display-keyed maps, whose values lead with the raw metric
+            // label both with and without dimensions. Fall back to the
+            // verbose-name inversion for series absent from the maps.
             let formatterKey;
             if (primarySeries.has(key)) {
-              formatterKey =
-                groupby.length === 0 ? inverted[key] : labelMap[key]?.[0];
+              formatterKey = displayLabelMap[key]?.[0] ?? inverted[key];
             } else {
-              formatterKey =
-                groupbyB.length === 0 ? inverted[key] : labelMapB[key]?.[0];
+              formatterKey = displayLabelMapB[key]?.[0] ?? inverted[key];
             }
             const tooltipFormatter = getFormatter(
               customFormatters,
@@ -912,8 +962,8 @@ export default function transformProps(
     echartOptions: mergedEchartOptions,
     setDataMask,
     emitCrossFilters,
-    labelMap,
-    labelMapB,
+    labelMap: displayLabelMap,
+    labelMapB: displayLabelMapB,
     groupby,
     groupbyB,
     seriesBreakdown: rawSeriesA.length,

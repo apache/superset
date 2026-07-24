@@ -40,6 +40,24 @@ backfill_po = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(backfill_po)
 
 
+@pytest.mark.parametrize(
+    "lang",
+    ["fr", "de", "pt_BR", "zh_TW", "sr_Latn", "eng"],
+)
+def test_is_valid_lang_code_accepts_region_and_script_subtags(lang: str) -> None:
+    """Region (``pt_BR``) and script (``sr_Latn``) subtags are both valid."""
+    assert backfill_po._is_valid_lang_code(lang)
+
+
+@pytest.mark.parametrize(
+    "lang",
+    ["", "e", "EN", "fr_", "fr_br", "fr_BRA", "../etc", "en_US_x", "sr-Latn"],
+)
+def test_is_valid_lang_code_rejects_malformed_and_traversal(lang: str) -> None:
+    """Malformed codes and path-traversal attempts are rejected."""
+    assert not backfill_po._is_valid_lang_code(lang)
+
+
 def test_parse_response_singular_strings() -> None:
     """A flat object of int-keyed strings is returned as-is."""
     text = '{"0": "hola", "1": "mundo"}'
@@ -436,3 +454,101 @@ def test_resilient_translate_propagates_runtime_error(
     monkeypatch.setattr(backfill_po, "translate_batch", _boom)
     with pytest.raises(RuntimeError):
         backfill_po._resilient_translate("m", "fr", [_qitem("Alpha")], {})
+
+
+# --- _is_do_not_translate: never machine-fill literal tokens -------------------
+
+
+def test_is_do_not_translate_registry_msgid() -> None:
+    """A msgid in the do-not-translate registry is protected (icon names,
+    enum values, SQL keywords, API field names, placeholders)."""
+    for msgid in ("bolt", "error_message", "step-after", "GROUP BY"):
+        assert backfill_po._is_do_not_translate(polib.POEntry(msgid=msgid, msgstr=""))
+
+
+def test_load_do_not_translate_strips_whitespace(tmp_path: Path) -> None:
+    """Registry lines are stripped before the blank/comment checks (matching
+    apply_do_not_translate.py), so trailing spaces or indented comments never
+    yield msgids that fail to match catalog entries."""
+    registry = tmp_path / "do-not-translate.txt"
+    registry.write_text(
+        "error_message \n  # indented comment\n\t\nbolt\n", encoding="utf-8"
+    )
+    assert backfill_po._load_do_not_translate(registry) == frozenset(
+        {"error_message", "bolt"}
+    )
+
+
+def test_is_do_not_translate_honors_extracted_marker() -> None:
+    """The standardized `#. do-not-translate` extracted comment
+    (propagated from the .pot) is honored even for a msgid not in the registry."""
+    entry = polib.POEntry(msgid="not-in-registry-token", msgstr="")
+    entry.comment = "do-not-translate"  # polib .comment == `#.`
+    assert backfill_po._is_do_not_translate(entry)
+
+
+def test_is_do_not_translate_honors_translator_comment() -> None:
+    """An explicit do-not-translate translator comment is honored, in any
+    language (e.g. the ru catalog's Cyrillic marker) and phrasing."""
+    for comment in ("Не переводить", "do not translate", "DO-NOT-TRANSLATE"):
+        entry = polib.POEntry(msgid="Some label", msgstr="")
+        entry.tcomment = comment
+        assert backfill_po._is_do_not_translate(entry)
+
+
+def test_is_do_not_translate_allows_normal_entry() -> None:
+    """An ordinary translatable string is not flagged."""
+    entry = polib.POEntry(msgid="Save dashboard", msgstr="")
+    entry.tcomment = "Machine-translated via backfill_po.py (claude-x) [no refs]"
+    assert not backfill_po._is_do_not_translate(entry)
+
+
+def test_backfill_skips_do_not_translate_entries_end_to_end(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """End-to-end: ``backfill`` must never hand a do-not-translate entry to the
+    translator, and must leave it untranslated in the written .po, while normal
+    entries are filled. Guards against the filter being applied at the wrong
+    stage or dropped entirely."""
+    lang = "es"
+    po_dir = tmp_path / lang / "LC_MESSAGES"
+    po_dir.mkdir(parents=True)
+    po_path = po_dir / "messages.po"
+    # One curated DNT msgid, one translator-marked DNT entry, one normal entry.
+    po_path.write_text(
+        'msgid ""\nmsgstr ""\n\n'
+        'msgid "bolt"\nmsgstr ""\n\n'
+        '# Не переводить\nmsgid "Keep me literal"\nmsgstr ""\n\n'
+        'msgid "Save dashboard"\nmsgstr ""\n',
+        encoding="utf-8",
+    )
+    index_path = tmp_path / "translation_index.json"
+    index_path.write_text("{}", encoding="utf-8")
+
+    monkeypatch.setattr(backfill_po, "TRANSLATIONS_DIR", tmp_path)
+
+    seen_msgids: list[str] = []
+
+    def _fake_translate_batch(
+        model: str,
+        target_lang: str,
+        batch: list[dict[str, str]],
+        index: dict[str, object],
+    ) -> dict[int, str]:
+        seen_msgids.extend(it["msgid"] for it in batch)
+        return {i: f"T:{it['msgid']}" for i, it in enumerate(batch)}
+
+    monkeypatch.setattr(backfill_po, "translate_batch", _fake_translate_batch)
+
+    backfill_po.backfill(lang, index_path=index_path, mark_fuzzy=False)
+
+    # DNT entries never reached the translator …
+    assert "bolt" not in seen_msgids
+    assert "Keep me literal" not in seen_msgids
+    assert seen_msgids == ["Save dashboard"]
+
+    # … and stay untranslated in the written file, while the normal one is filled.
+    written = polib.pofile(str(po_path))
+    assert written.find("bolt").msgstr == ""
+    assert written.find("Keep me literal").msgstr == ""
+    assert written.find("Save dashboard").msgstr == "T:Save dashboard"

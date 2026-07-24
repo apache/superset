@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, fireEvent } from 'spec/helpers/testing-library';
 import '@testing-library/jest-dom';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
@@ -85,4 +85,23 @@ test('shows loading spinner for client-side errors without errors array when dat
 
   expect(screen.getByRole('status')).toBeInTheDocument();
   expect(screen.queryByText(/Some client-side error/)).not.toBeInTheDocument();
+});
+
+test('shows the stop message and a re-run affordance when the query was stopped', () => {
+  const onQuery = jest.fn();
+  render(
+    <Chart
+      {...baseProps}
+      chartStatus="stopped"
+      chartAlert="Updating chart was stopped"
+      onQuery={onQuery}
+    />,
+  );
+
+  expect(screen.getByText('Updating chart was stopped')).toBeInTheDocument();
+
+  const rerun = screen.getByText('click here');
+  fireEvent.click(rerun);
+  fireEvent.keyDown(rerun, { key: 'Enter' });
+  expect(onQuery).toHaveBeenCalledTimes(2);
 });

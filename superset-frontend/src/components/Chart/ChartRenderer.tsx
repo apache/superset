@@ -56,6 +56,7 @@ import type { Dispatch } from 'redux';
 import ChartContextMenu, {
   ChartContextMenuRef,
 } from './ChartContextMenu/ChartContextMenu';
+import { handleChartDataResponse } from './chartAction';
 
 // Types for filter values
 type FilterValue = string | number | boolean | null | undefined;
@@ -162,6 +163,15 @@ interface ChartHooks {
   setDataMask: (dataMask: DataMask) => void;
   onLegendScroll: (legendIndex: number) => void;
   onChartStateChange?: (chartState: AgGridChartState) => void;
+  // Resolve async (HTTP 202 / GLOBAL_ASYNC_QUERIES) chart-data responses for
+  // self-contained chart components in superset-ui-core (e.g. StatefulChart),
+  // which cannot import app-level async-event middleware.
+  handleAsyncChartData?: (
+    response: Response,
+    json: JsonObject,
+    useLegacyApi?: boolean,
+    signal?: AbortSignal,
+  ) => Promise<QueryData[]> | QueryData[];
 }
 
 const BLANK = {};
@@ -183,7 +193,6 @@ function ChartRendererComponent({
   onFilterMenuClose = () => BLANK,
   initialValues = BLANK,
   setControlValue = () => {},
-  triggerRender = false,
   ...restProps
 }: ChartRendererProps): JSX.Element | null {
   const {
@@ -386,6 +395,10 @@ function ChartRendererComponent({
       setDataMask: setDataMaskCallback,
       onLegendScroll: handleLegendScroll,
       onChartStateChange,
+      // Lets self-contained chart components in superset-ui-core (e.g.
+      // StatefulChart) resolve async (202) chart-data responses without
+      // depending on app-level async-event middleware.
+      handleAsyncChartData: handleChartDataResponse,
     }),
     [
       handleAddFilter,

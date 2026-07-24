@@ -161,6 +161,31 @@ SQLGLOT_DIALECTS = {
 }
 
 
+def has_aggregate(expression: str, engine: str = "base") -> bool:
+    """
+    Return True if the SQL expression contains an aggregate function, ignoring
+    only an aggregate that is *itself* windowed (``SUM(x) OVER (...)``), which
+    doesn't collapse rows and is just as invalid under a GROUP BY as a plain
+    column. A plain aggregate nested inside a windowed one
+    (``SUM(SUM(x)) OVER ()``) still counts.
+
+    Deliberately permissive so a valid query is never wrongly blocked: an
+    aggregate inside a scalar subquery still counts, and it fails open (returns
+    True) on a parse error or an unmodelled function (``exp.Anonymous``) that
+    might itself be an aggregate.
+    """
+    dialect = SQLGLOT_DIALECTS.get(engine)
+    try:
+        parsed = sqlglot.parse_one(f"SELECT {expression}", dialect=dialect)
+    except Exception:
+        return True
+    if parsed.find(exp.Anonymous):
+        return True
+    return any(
+        not isinstance(agg.parent, exp.Window) for agg in parsed.find_all(exp.AggFunc)
+    )
+
+
 class LimitMethod(enum.Enum):
     """
     Limit methods.
@@ -2093,16 +2118,39 @@ def process_jinja_sql(
 
 def sanitize_clause(clause: str, engine: str) -> str:
     """
-    Make sure the SQL clause is valid.
+    Validate a SQL clause and return it unchanged.
+
+    The clause is parsed to ensure it is a single, well-formed statement. We
+    intentionally return the *original* text rather than a re-rendered version:
+    round-tripping user SQL through SQLGlot's dialect generator can silently
+    alter semantics. For example, the Postgres dialect (borrowed by several
+    engines) rewrites ``ROUND(AVG(x), n)`` to ``ROUND(CAST(AVG(x) AS DECIMAL),
+    n)``, which rounds the value to an integer before the explicit ``ROUND`` on
+    engines whose unqualified ``DECIMAL`` defaults to scale 0 (see #36113).
+
+    Comments are the one exception: a trailing line comment can comment out
+    surrounding SQL once the clause is embedded into a larger query (e.g.
+    wrapped in parentheses), so any clause that contains comments is re-rendered
+    to normalize them into a safe form. That re-rendering uses the *base* dialect
+    rather than the engine dialect, so it normalizes comments without re-applying
+    the engine-specific rewrites (e.g. the Postgres ``ROUND``/``CAST`` rewrite
+    from #36113) that we deliberately avoid above. A trailing statement
+    terminator is likewise stripped, since callers embed the clause inside a
+    larger fragment (``WHERE (...)``) where a stray ``;`` would produce invalid
+    SQL.
     """
     try:
         statement = SQLStatement(clause, engine)
+        parsed = statement._parsed  # pylint: disable=protected-access
+        if not any(node.comments for node in parsed.walk()):
+            return clause.rstrip().rstrip(";").rstrip()
+
         return _normalized_generator(
-            SQLGLOT_DIALECTS.get(engine),
+            None,
             pretty=False,
             comments=True,
         ).generate(
-            statement._parsed,  # pylint: disable=protected-access
+            parsed,
             copy=True,
         )
     except SupersetParseError as ex:

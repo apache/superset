@@ -33,10 +33,19 @@ from superset import security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import SupersetMarshmallowValidationError
 from superset.models.sql_types import parse_currency_string
+from superset.subjects.schemas import SubjectResponseSchema
 from superset.utils import json
 
-get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
-get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
+get_delete_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
+get_export_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
 get_drill_info_schema = {
     "type": "object",
     "properties": {
@@ -162,7 +171,7 @@ class DatasetPostSchema(Schema):
     schema = fields.String(allow_none=True, validate=Length(0, 250))
     table_name = fields.String(required=True, allow_none=False, validate=Length(1, 250))
     sql = fields.String(allow_none=True)
-    owners = fields.List(fields.Integer())
+    editors = fields.List(fields.Integer())
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
     normalize_columns = fields.Boolean(load_default=False)
@@ -190,7 +199,7 @@ class DatasetPutSchema(Schema):
     cache_timeout = fields.Integer(allow_none=True)
     is_sqllab_view = fields.Boolean(allow_none=True)
     template_params = fields.String(allow_none=True)
-    owners = fields.List(fields.Integer())
+    editors = fields.List(fields.Integer())
     columns = fields.List(fields.Nested(DatasetColumnsPutSchema))
     metrics = fields.List(fields.Nested(DatasetMetricsPutSchema))
     folders = fields.List(fields.Nested(FolderSchema), required=False)
@@ -448,7 +457,7 @@ class DatasetDrillInfoSchema(Schema):
     id = fields.Integer()
     columns = fields.List(fields.Nested(DatasetColumnDrillInfoSchema))
     table_name = fields.String()
-    owners = fields.List(fields.Nested(UserSchema))
+    editors = fields.List(fields.Nested(SubjectResponseSchema))
     created_by = fields.Nested(UserSchema)
     created_on_humanized = fields.String()
     changed_by = fields.Nested(UserSchema)

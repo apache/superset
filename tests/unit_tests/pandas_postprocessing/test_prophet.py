@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
+from importlib import import_module
 from importlib.util import find_spec
 from unittest.mock import patch
 
@@ -25,6 +26,8 @@ from superset.exceptions import InvalidPostProcessingError
 from superset.utils.core import DTTM_ALIAS
 from superset.utils.pandas_postprocessing import prophet
 from tests.unit_tests.fixtures.dataframes import prophet_df
+
+prophet_module = import_module("superset.utils.pandas_postprocessing.prophet")
 
 
 def test_prophet_valid():
@@ -187,6 +190,40 @@ def test_prophet_incorrect_time_grain():
         )
 
 
+def test_prophet_missing_time_grain_raises_readable_error():
+    """
+    Regression for SC-113749: when the ``prophet`` post-processing operation is
+    dispatched with an options dict that lacks ``time_grain`` (e.g. a saved or
+    dashboard chart whose Time Grain was cleared, so the frontend drops the
+    ``undefined`` key during ``JSON.stringify``), the call must raise a readable
+    ``InvalidPostProcessingError`` rather than a raw ``TypeError`` about a
+    missing positional argument. This mirrors the real dispatch in
+    ``QueryObject.exec_post_processing`` which invokes the operation with
+    ``**options`` and no ``time_grain`` key.
+    """
+    options = {
+        "periods": 3,
+        "confidence_interval": 0.9,
+        "index": DTTM_ALIAS,
+    }
+    with pytest.raises(InvalidPostProcessingError, match="Time grain missing"):
+        prophet(prophet_df, **options)
+
+
+def test_prophet_explicit_none_time_grain_raises_readable_error():
+    """
+    Passing ``time_grain=None`` explicitly (the resolved value when no grain is
+    determinable) must also surface the graceful "Time grain missing" error.
+    """
+    with pytest.raises(InvalidPostProcessingError, match="Time grain missing"):
+        prophet(
+            df=prophet_df,
+            time_grain=None,
+            periods=3,
+            confidence_interval=0.9,
+        )
+
+
 def test_prophet_insufficient_data():
     single_row_df = pd.DataFrame(
         {
@@ -207,9 +244,7 @@ def test_prophet_fit_error():
     if find_spec("prophet") is None:
         pytest.skip("prophet not installed")
 
-    with patch(
-        "superset.utils.pandas_postprocessing.prophet._prophet_fit_and_predict"
-    ) as mock_fit:
+    with patch.object(prophet_module, "_prophet_fit_and_predict") as mock_fit:
         mock_fit.side_effect = InvalidPostProcessingError(
             "Unable to generate forecast: Dataframe has fewer than 2 non-NaN rows."
         )

@@ -31,6 +31,7 @@ from superset.sql.parse import (
     BaseSQLStatement,
     CTASMethod,
     extract_tables_from_statement,
+    has_aggregate,
     JinjaSQLResult,
     KQLTokenType,
     KustoKQLStatement,
@@ -437,6 +438,69 @@ WHERE
   NOT col IN (1, 2)
         """.strip()
     )
+
+
+def test_format_oracle_group_by_keeps_explicit_expressions() -> None:
+    """
+    Test that formatting Oracle SQL doesn't rewrite ``GROUP BY`` to ordinals.
+
+    Oracle doesn't support positional grouping (``GROUP BY 1, 2``) and fails
+    with ``ORA-00979: not a GROUP BY expression``. sqlglot < 27.21.0 rewrote
+    ``GROUP BY`` expressions that matched aliased projections into ordinals
+    when generating Oracle SQL, breaking chart queries.
+
+    Regression test for https://github.com/apache/superset/issues/35414,
+    fixed by upgrading sqlglot.
+    """
+    sql = (
+        "SELECT TRUNC(CAST(order_date AS DATE), 'MONTH') AS __timestamp, "
+        'region AS region, SUM(sales) AS "SUM(sales)" '
+        "FROM orders "
+        "GROUP BY TRUNC(CAST(order_date AS DATE), 'MONTH'), region "
+        'ORDER BY "SUM(sales)" DESC'
+    )
+    formatted = SQLStatement(sql, engine="oracle").format()
+
+    # pretty-formatting puts each `GROUP BY` item on its own line
+    group_by_clause = formatted.split("GROUP BY")[1].split("ORDER BY")[0]
+    group_by_items = [
+        line.strip().rstrip(",") for line in group_by_clause.strip().splitlines()
+    ]
+    assert group_by_items == [
+        "TRUNC(CAST(order_date AS DATE), 'MONTH')",
+        "region",
+    ]
+    # no item should have been replaced by a positional reference
+    assert not any(item.isdigit() for item in group_by_items)
+
+
+def test_format_oracle_group_by_keeps_explicit_expressions_subquery() -> None:
+    """
+    Test that formatting an Oracle chart query doesn't rewrite ``GROUP BY``
+    to ordinals when the aggregated column comes from a virtual dataset
+    subquery.
+
+    This mirrors the query shape SQLAlchemy generates for a bar chart with a
+    dimension and a ``COUNT(*)`` metric on a virtual dataset, which is the
+    reproduction reported in
+    https://github.com/apache/superset/issues/28327 (``ORA-00979: not a
+    GROUP BY expression``). Fixed by the same sqlglot upgrade that resolved
+    https://github.com/apache/superset/issues/35414.
+    """
+    sql = (
+        "SELECT bar AS bar, COUNT(*) AS count "
+        "FROM (SELECT 'foo' AS bar FROM dual) AS virtual_table "
+        "GROUP BY bar"
+    )
+    formatted = SQLStatement(sql, engine="oracle").format()
+
+    group_by_clause = formatted.split("GROUP BY")[1]
+    group_by_items = [
+        line.strip().rstrip(",") for line in group_by_clause.strip().splitlines()
+    ]
+    assert group_by_items == ["bar"]
+    # no item should have been replaced by a positional reference
+    assert not any(item.isdigit() for item in group_by_items)
 
 
 def test_split_no_dialect() -> None:
@@ -1306,6 +1370,33 @@ def test_with_clause_containing_union_all_is_not_mutating_oracle() -> None:
     SELECT * FROM SET2
     """
     assert not SQLScript(sql, "oracle").has_mutation()
+
+
+@pytest.mark.parametrize("engine", ["clickhouse", "clickhousedb"])
+def test_clickhouse_parametric_aggregate_parses_and_is_read_only(engine: str) -> None:
+    """
+    Regression for #37285: ClickHouse parametric aggregate functions use a
+    double pair of parentheses — ``groupConcat(', ')(part_name)`` — where the
+    first list holds the aggregate's parameters and the second its arguments.
+
+    Older sqlglot versions choked on the second parenthesized list, so SQL
+    Lab either mangled the query sent to the database or, with DDL/DML
+    disallowed, refused to run it because it "could not be parsed to confirm
+    it is a read-only query". The sqlglot bump to >=30 fixed the parsing;
+    pinning the reporter's verbatim query guards against a future
+    dialect-specific regression. Both ClickHouse engine specs are exercised
+    since each resolves the sqlglot dialect independently.
+    """
+    sql = """
+    select
+      groupConcat(', ')(part_name) as concatenated
+    from system.parts
+    """
+    script = SQLScript(sql, engine)  # Must not raise.
+    assert not script.has_mutation(), (
+        f"Parametric aggregate misclassified as mutating on {engine!r}; "
+        "this would block the query on connections without DDL/DML allowed."
+    )
 
 
 def test_get_settings() -> None:
@@ -3132,7 +3223,8 @@ def test_is_valid_cvas(sql: str, engine: str, expected: bool) -> None:
     "sql, expected, engine",
     [
         ("col = 1", "col = 1", "base"),
-        ("1=\t\n1", "1 = 1", "base"),
+        # Comment-free clauses are returned verbatim (no semantic round-trip).
+        ("1=\t\n1", "1=\t\n1", "base"),
         ("(col = 1)", "(col = 1)", "base"),  # Compact format without newlines
         (
             "(col1 = 1) AND (col2 = 2)",
@@ -3156,6 +3248,10 @@ def test_is_valid_cvas(sql: str, engine: str, expected: bool) -> None:
         ),  # Block comments preserved
         ("col = 'col1 = 1) AND (col2 = 2'", "col = 'col1 = 1) AND (col2 = 2'", "base"),
         ("col = 'select 1; select 2'", "col = 'select 1; select 2'", "base"),
+        # Trailing statement terminators are stripped so the clause stays valid
+        # once embedded inside a larger fragment (e.g. ``WHERE (...)``).
+        ("col = 1;", "col = 1", "base"),
+        ("col = 1 ; ", "col = 1", "base"),
         ("col = 'abc -- comment'", "col = 'abc -- comment'", "base"),
         ("col1 = 1) AND (col2 = 2)", QueryClauseValidationException, "base"),
         ("(col1 = 1) AND (col2 = 2", QueryClauseValidationException, "base"),
@@ -3215,6 +3311,63 @@ def test_sanitize_clause(sql: str, expected: str | Exception, engine: str) -> No
     else:
         with pytest.raises(expected):
             sanitize_clause(sql, engine)
+
+
+@pytest.mark.parametrize(
+    "engine",
+    ["postgresql", "redshift", "cockroachdb", "netezza", "hana", "base", "mysql"],
+)
+def test_sanitize_clause_preserves_aggregation_semantics(engine: str) -> None:
+    """
+    Regression test for https://github.com/apache/superset/issues/36113.
+
+    `sanitize_clause` must not silently rewrite a user-authored expression. The
+    Postgres SQLGlot dialect (which several engines borrow) rewrites
+    ``ROUND(AVG(x), n)`` to ``ROUND(CAST(AVG(x) AS DECIMAL), n)`` at generation
+    time. On engines whose unqualified ``DECIMAL`` defaults to scale 0 (e.g.
+    Redshift, Netezza) the injected cast rounds the aggregate to an integer
+    *before* the explicit ``ROUND``, producing wrong results.
+
+    The clause must be returned unchanged regardless of the engine dialect.
+    """
+    clause = "ROUND(AVG(col), 4)"
+    sanitized = sanitize_clause(clause, engine)
+    assert "CAST" not in sanitized.upper(), (
+        f"sanitize_clause injected a cast for engine {engine!r}: {sanitized!r}"
+    )
+    assert sanitized == clause
+
+
+@pytest.mark.parametrize(
+    "engine",
+    ["postgresql", "redshift", "cockroachdb", "netezza", "hana", "base", "mysql"],
+)
+def test_sanitize_clause_preserves_aggregation_semantics_with_comment(
+    engine: str,
+) -> None:
+    """
+    Regression test for https://github.com/apache/superset/issues/36113.
+
+    A clause that contains a comment takes the re-rendering branch of
+    ``sanitize_clause``. That branch must normalize comments using the *base*
+    dialect rather than the engine dialect, so it must not re-apply the Postgres
+    ``ROUND(AVG(x), n)`` -> ``ROUND(CAST(AVG(x) AS DECIMAL), n)`` rewrite that
+    truncates results on engines where ``DECIMAL`` defaults to scale 0.
+    """
+    clause = "ROUND(AVG(col), 4) /* precise_count_distinct=true */"
+    sanitized = sanitize_clause(clause, engine)
+    assert "CAST" not in sanitized.upper(), (
+        f"sanitize_clause injected a cast for engine {engine!r}: {sanitized!r}"
+    )
+    # The comment-handling branch must preserve the user-authored expression and
+    # comment payload, not just avoid the cast (otherwise dropping the comment or
+    # rewriting the clause entirely would still pass the assertion above).
+    assert "ROUND(AVG(col), 4)" in sanitized, (
+        f"sanitize_clause rewrote the clause for engine {engine!r}: {sanitized!r}"
+    )
+    assert "precise_count_distinct=true" in sanitized, (
+        f"sanitize_clause dropped the comment for engine {engine!r}: {sanitized!r}"
+    )
 
 
 @pytest.mark.parametrize(
@@ -3968,6 +4121,274 @@ def test_kustokql_statement_check_tables_present() -> None:
         ),
         ("'test'", [(KQLTokenType.STRING, "'test'")]),
         ("```test```", [(KQLTokenType.STRING, "```test```")]),
+        # Double-quoted strings
+        ('"hello"', [(KQLTokenType.STRING, '"hello"')]),
+        # Single-quoted string with escaped quote
+        (
+            "'it\\'s a test'",
+            [(KQLTokenType.STRING, "'it\\'s a test'")],
+        ),
+        # Double-quoted string with escaped quote
+        (
+            '"say \\"hi\\""',
+            [(KQLTokenType.STRING, '"say \\"hi\\""')],
+        ),
+        # Semicolon token
+        (
+            "a; b",
+            [
+                (KQLTokenType.WORD, "a"),
+                (KQLTokenType.SEMICOLON, ";"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "b"),
+            ],
+        ),
+        # Semicolon inside string is not a SEMICOLON token
+        (
+            "'a;b'",
+            [(KQLTokenType.STRING, "'a;b'")],
+        ),
+        # Numbers
+        (
+            "42",
+            [(KQLTokenType.NUMBER, "42")],
+        ),
+        # Other/punctuation tokens
+        (
+            "()",
+            [
+                (KQLTokenType.OTHER, "("),
+                (KQLTokenType.OTHER, ")"),
+            ],
+        ),
+        # Empty input
+        ("", []),
+        # ARRAY bracket pattern used in Kusto engine spec
+        (
+            'ARRAY(["age"])',
+            [
+                (KQLTokenType.WORD, "ARRAY"),
+                (KQLTokenType.OTHER, "("),
+                (KQLTokenType.OTHER, "["),
+                (KQLTokenType.STRING, '"age"'),
+                (KQLTokenType.OTHER, "]"),
+                (KQLTokenType.OTHER, ")"),
+            ],
+        ),
+        # Mixed identifiers, operators, and strings
+        (
+            "tbl | where name == 'Alice' | take 5",
+            [
+                (KQLTokenType.WORD, "tbl"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "|"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "where"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "name"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "="),
+                (KQLTokenType.OTHER, "="),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.STRING, "'Alice'"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "|"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "take"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.NUMBER, "5"),
+            ],
+        ),
+        # Underscore in identifiers
+        (
+            "my_table",
+            [(KQLTokenType.WORD, "my_table")],
+        ),
+        # Identifiers starting with underscore
+        (
+            "_col1",
+            [(KQLTokenType.WORD, "_col1")],
+        ),
+        # Multiline string with semicolons and quotes
+        (
+            "```select 'x'; drop```",
+            [(KQLTokenType.STRING, "```select 'x'; drop```")],
+        ),
+        # Adjacent strings without whitespace
+        (
+            "'a''b'",
+            [
+                (KQLTokenType.STRING, "'a'"),
+                (KQLTokenType.STRING, "'b'"),
+            ],
+        ),
+        # Dot operator
+        (
+            "db.table",
+            [
+                (KQLTokenType.WORD, "db"),
+                (KQLTokenType.OTHER, "."),
+                (KQLTokenType.WORD, "table"),
+            ],
+        ),
+        # Bracket-quoted identifier (KQL style)
+        (
+            '["column name"]',
+            [
+                (KQLTokenType.OTHER, "["),
+                (KQLTokenType.STRING, '"column name"'),
+                (KQLTokenType.OTHER, "]"),
+            ],
+        ),
+        # Whitespace variants (tab, newline)
+        (
+            "a\t\nb",
+            [
+                (KQLTokenType.WORD, "a"),
+                (KQLTokenType.WHITESPACE, "\t\n"),
+                (KQLTokenType.WORD, "b"),
+            ],
+        ),
+        # Summarize with count aggregation
+        (
+            "T | summarize count() by State",
+            [
+                (KQLTokenType.WORD, "T"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "|"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "summarize"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "count"),
+                (KQLTokenType.OTHER, "("),
+                (KQLTokenType.OTHER, ")"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "by"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "State"),
+            ],
+        ),
+        # Aliased aggregation with avg
+        (
+            "T | summarize avg_val = avg(price) by category",
+            [
+                (KQLTokenType.WORD, "T"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "|"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "summarize"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "avg_val"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "="),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "avg"),
+                (KQLTokenType.OTHER, "("),
+                (KQLTokenType.WORD, "price"),
+                (KQLTokenType.OTHER, ")"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "by"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "category"),
+            ],
+        ),
+        # Multiple aggregations with dcount
+        (
+            "T | summarize cnt = count(), uniq = dcount(user_id)",
+            [
+                (KQLTokenType.WORD, "T"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "|"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "summarize"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "cnt"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "="),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "count"),
+                (KQLTokenType.OTHER, "("),
+                (KQLTokenType.OTHER, ")"),
+                (KQLTokenType.OTHER, ","),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "uniq"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "="),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "dcount"),
+                (KQLTokenType.OTHER, "("),
+                (KQLTokenType.WORD, "user_id"),
+                (KQLTokenType.OTHER, ")"),
+            ],
+        ),
+        # Summarize with bin time bucketing
+        (
+            "T | summarize count() by bin(ts, 1h)",
+            [
+                (KQLTokenType.WORD, "T"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "|"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "summarize"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "count"),
+                (KQLTokenType.OTHER, "("),
+                (KQLTokenType.OTHER, ")"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "by"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "bin"),
+                (KQLTokenType.OTHER, "("),
+                (KQLTokenType.WORD, "ts"),
+                (KQLTokenType.OTHER, ","),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.NUMBER, "1"),
+                (KQLTokenType.WORD, "h"),
+                (KQLTokenType.OTHER, ")"),
+            ],
+        ),
+        (
+            "T | summarize dcountif(user_id, status == 'active') by region",
+            [
+                (KQLTokenType.WORD, "T"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "|"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "summarize"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "dcountif"),
+                (KQLTokenType.OTHER, "("),
+                (KQLTokenType.WORD, "user_id"),
+                (KQLTokenType.OTHER, ","),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "status"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "="),
+                (KQLTokenType.OTHER, "="),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.STRING, "'active'"),
+                (KQLTokenType.OTHER, ")"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "by"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "region"),
+            ],
+        ),
+        (
+            "T | project tostring(value)",
+            [
+                (KQLTokenType.WORD, "T"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "|"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "project"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "tostring"),
+                (KQLTokenType.OTHER, "("),
+                (KQLTokenType.WORD, "value"),
+                (KQLTokenType.OTHER, ")"),
+            ],
+        ),
     ],
 )
 def test_tokenize_kql(kql: str, expected: list[tuple[KQLTokenType, str]]) -> None:
@@ -4276,3 +4697,29 @@ def test_backtick_fallback_logs_warning(caplog: pytest.LogCaptureFixture) -> Non
         record.levelname == "WARNING" and "MySQL dialect" in record.getMessage()
         for record in caplog.records
     )
+
+
+@pytest.mark.parametrize(
+    "expression,expected",
+    [
+        ("GREATEST(confirmed, predicted)", False),
+        ("MAX(GREATEST(a, b))", True),
+        ("SUM(x)", True),
+        ("COUNT(*)", True),
+        ("SUM(x) OVER (PARTITION BY y)", False),
+        ("ROW_NUMBER() OVER ()", False),
+        ("SUM(SUM(x)) OVER ()", True),
+        ("a + b", False),
+        (")(", True),
+        ("MY_CUSTOM_AGG(x)", True),
+        ("a - (SELECT AVG(b) FROM t)", True),
+    ],
+)
+def test_has_aggregate(expression: str, expected: bool) -> None:
+    """
+    ``has_aggregate`` detects any aggregate that is not itself directly windowed
+    -- one nested inside a windowed aggregate or a subquery still counts -- and
+    fails open (returns True) when the expression can't be parsed or uses a
+    function sqlglot can't model.
+    """
+    assert has_aggregate(expression) is expected

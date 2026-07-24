@@ -40,6 +40,7 @@ from superset.mcp_service.utils.token_utils import (
     get_response_size_bytes,
     INFO_TOOLS,
     truncate_oversized_response,
+    truncate_query_result,
 )
 
 
@@ -258,7 +259,7 @@ class TestGenerateSizeReductionSuggestions:
             token_limit=25000,
         )
         assert any("filter" in s.lower() for s in suggestions)
-        assert not any("owner" in s.lower() for s in suggestions)
+        assert not any("editor" in s.lower() for s in suggestions)
         assert any("non-user attributes" in s for s in suggestions)
 
     def test_tool_specific_suggestions_execute_sql(self) -> None:
@@ -677,3 +678,177 @@ class TestTruncateOversizedResponse:
         assert isinstance(result, dict)
         assert result["id"] == 1  # Scalar fields preserved
         assert len(notes) > 0
+
+    @staticmethod
+    def _build_large_dashboard_response() -> dict[str, Any]:
+        """A dashboard with 463 charts and 48 native_filters, shared by the
+        default- and custom-max_list_items regression tests below."""
+        return {
+            "id": 1,
+            "dashboard_title": "x" * 2000,  # forces Phase 2 to trigger
+            "charts": [{"id": i, "slice_name": f"chart_{i}"} for i in range(463)],
+            "native_filters": [{"id": i, "name": f"filter_{i}"} for i in range(48)],
+        }
+
+    def test_large_dashboard_respects_default_max_list_items(self) -> None:
+        """Regression test for the Medialab large-dashboard report.
+
+        A dashboard with 463 charts and 48 native_filters should have
+        native_filters (48 items) left untouched under the new default cap
+        of 100, while charts (463 items) is truncated to 100 — a clear
+        improvement over the old flat 30-item cap, which truncated both.
+        """
+        response: dict[str, Any] = self._build_large_dashboard_response()
+        result: Any
+        was_truncated: bool
+        notes: list[str]
+        result, was_truncated, notes = truncate_oversized_response(response, 3000)
+        assert was_truncated is True
+        assert isinstance(result, dict)
+        assert len(result["charts"]) == 100
+        assert len(result["native_filters"]) == 48
+        assert any("charts" in n and "463" in n for n in notes)
+        assert not any("native_filters" in n for n in notes)
+
+    def test_large_dashboard_respects_custom_max_list_items(self) -> None:
+        """A custom max_list_items below both list sizes should truncate both fields."""
+        response: dict[str, Any] = self._build_large_dashboard_response()
+        result: Any
+        was_truncated: bool
+        notes: list[str]
+        result, was_truncated, notes = truncate_oversized_response(
+            response, 3000, max_list_items=30
+        )
+        assert was_truncated is True
+        assert isinstance(result, dict)
+        assert len(result["charts"]) == 30
+        assert len(result["native_filters"]) == 30
+        assert any("charts" in n and "30" in n for n in notes)
+        assert any("native_filters" in n and "30" in n for n in notes)
+
+    def test_custom_max_list_items_below_phase_four_survives_phase_four(self) -> None:
+        """A max_list_items below Phase 4's hardcoded 10 should not be widened.
+
+        Phase 2 truncates ``charts`` to 5 first; the response is still over
+        budget because of the oversized ``form_data`` dict, so truncation
+        proceeds to Phase 4, whose ``_truncate_lists(..., max_items=10)``
+        call only shrinks lists larger than 10 — it must leave the
+        already-smaller 5-item list untouched rather than re-expanding it.
+        """
+        response: dict[str, Any] = {
+            "id": 1,
+            "charts": [{"id": i, "slice_name": f"chart_{i}"} for i in range(300)],
+            "form_data": {f"key_{i}": f"val_{i}" for i in range(50)},
+        }
+        result: Any
+        was_truncated: bool
+        notes: list[str]
+        result, was_truncated, notes = truncate_oversized_response(
+            response, 200, max_list_items=5
+        )
+        assert was_truncated is True
+        assert isinstance(result, dict)
+        assert len(result["charts"]) == 5
+        assert any("form_data" in n for n in notes)
+
+
+class TestTruncateQueryResult:
+    """Tests for ``truncate_query_result`` (data-query row/scalar truncation)."""
+
+    def _rows_response(self, row_field: str, count: int = 200) -> dict[str, Any]:
+        row = {f"col_{i}": f"value_{i}" for i in range(10)}
+        return {
+            "status": "success",
+            row_field: [row] * count,
+            "row_count": count,
+        }
+
+    def test_no_truncation_needed(self) -> None:
+        response = self._rows_response("rows", count=3)
+        result, was_truncated, notes = truncate_query_result(response, 25000)
+        assert was_truncated is False
+        assert notes == []
+        assert result == response
+
+    def test_truncated_result_fits_under_limit(self) -> None:
+        """The final payload (rows + note metadata) must itself fit.
+
+        Regression test: the note is built from the kept row count, but
+        that note text also consumes tokens. The bisection must reserve
+        room for it up front rather than measuring fit on bare rows and
+        appending the note afterward, which could push the final payload
+        back over the limit.
+        """
+        response = self._rows_response("rows")
+        result, was_truncated, notes = truncate_query_result(response, 500)
+        assert was_truncated is True
+        assert isinstance(result, dict)
+        assert estimate_response_tokens(result) <= 500
+        assert result["row_count"] == len(result["rows"])
+        assert result["row_count"] < 200
+
+    def test_single_oversized_row_is_kept_anyway(self) -> None:
+        """A single row that alone exceeds the limit is still returned.
+
+        ``truncate_query_result`` always keeps >=1 row when the original
+        list is non-empty; it is the caller's (middleware) job to reject
+        a still-oversized result rather than ship it silently.
+        """
+        response = {
+            "status": "success",
+            "rows": [{"col": "x" * 5000}] * 3,
+            "row_count": 3,
+        }
+        result, was_truncated, notes = truncate_query_result(response, 50)
+        assert was_truncated is True
+        assert isinstance(result, dict)
+        assert len(result["rows"]) == 1
+        assert notes
+
+    def test_truncates_csv_scalar_field_when_rows_empty(self) -> None:
+        """CSV exports carry their payload in ``csv_data`` with ``data=[]``."""
+        response: dict[str, Any] = {
+            "chart_id": 1,
+            "data": [],
+            "csv_data": "col_0,col_1\n" + ("value,value\n" * 2000),
+            "format": "csv",
+        }
+        result, was_truncated, notes = truncate_query_result(
+            response, 500, tool_name="get_chart_data"
+        )
+        assert was_truncated is True
+        assert isinstance(result, dict)
+        assert len(result["csv_data"]) < len(response["csv_data"])
+        assert estimate_response_tokens(result) <= 500
+        assert any("CSV" in n for n in notes)
+
+    def test_does_not_truncate_excel_binary_field(self) -> None:
+        """excel_data is base64 binary — truncating it would corrupt the file."""
+        response = {
+            "chart_id": 1,
+            "data": [],
+            "excel_data": "QUJDREVGRw==" * 5000,
+            "format": "excel",
+        }
+        result, was_truncated, notes = truncate_query_result(response, 500)
+        assert was_truncated is False
+        assert notes == []
+        assert isinstance(result, dict)
+        assert result["excel_data"] == response["excel_data"]
+
+    def test_get_chart_data_advice_mentions_limit_param(self) -> None:
+        response = self._rows_response("data")
+        _, _, notes = truncate_query_result(response, 500, tool_name="get_chart_data")
+        assert any("'limit' parameter" in n for n in notes)
+        assert not any("LIMIT clause" in n for n in notes)
+
+    def test_query_dataset_advice_mentions_row_limit_param(self) -> None:
+        response = self._rows_response("data")
+        _, _, notes = truncate_query_result(response, 500, tool_name="query_dataset")
+        assert any("'row_limit' parameter" in n for n in notes)
+        assert not any("LIMIT clause" in n for n in notes)
+
+    def test_execute_sql_advice_mentions_limit_clause(self) -> None:
+        response = self._rows_response("rows")
+        _, _, notes = truncate_query_result(response, 500, tool_name="execute_sql")
+        assert any("LIMIT clause" in n for n in notes)

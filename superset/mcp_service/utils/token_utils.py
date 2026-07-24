@@ -51,6 +51,8 @@ from typing import Any, Dict, List, Union
 from pydantic import BaseModel
 from typing_extensions import TypeAlias
 
+from superset.mcp_service.constants import DEFAULT_MAX_LIST_ITEMS
+
 logger = logging.getLogger(__name__)
 
 # Type alias for MCP tool responses (Pydantic models, dicts, lists, strings, bytes)
@@ -467,10 +469,24 @@ INFO_TOOLS = frozenset(
     }
 )
 
+# Data-query tools that return tabular results.  When the response exceeds the
+# token limit, these tools are truncated by dropping tail rows rather than
+# raising a hard ToolError.  A truncation note is appended so the caller
+# knows the result is partial and how to narrow the query.
+DATA_QUERY_TOOLS = frozenset(
+    {
+        "execute_sql",
+        "query_dataset",
+        "get_chart_data",
+    }
+)
+
+# Data field names used by the three query tools (in priority order).
+# ``rows`` is used by execute_sql; ``data`` by query_dataset and get_chart_data.
+_DATA_ROW_FIELDS = ("rows", "data")
+
 # Maximum character length for string fields before truncation
 _MAX_STRING_CHARS = 500
-# Maximum items to keep in list fields before truncation
-_MAX_LIST_ITEMS = 30
 # Maximum keys to keep when summarizing large dict fields
 _MAX_DICT_KEYS = 20
 
@@ -538,6 +554,7 @@ def _truncate_lists(data: Dict[str, Any], notes: List[str], max_items: int) -> b
     metadata is communicated through the *notes* list and top-level response
     fields ``_response_truncated`` / ``_truncation_notes``.
     """
+    max_items = max(1, max_items)
     changed = False
     for key, value in data.items():
         if isinstance(value, list) and len(value) > max_items:
@@ -601,13 +618,15 @@ def _is_under_limit(data: Dict[str, Any], token_limit: int) -> bool:
 def truncate_oversized_response(
     response: ToolResponse,
     token_limit: int,
+    # Configurable via MCP_RESPONSE_SIZE_CONFIG["max_list_items"]
+    max_list_items: int = DEFAULT_MAX_LIST_ITEMS,
 ) -> tuple[ToolResponse, bool, list[str]]:
     """
     Dynamically truncate large fields in a response to fit within the token limit.
 
     Applies five progressive phases of truncation:
     1. Truncate long top-level string fields
-    2. Truncate large list fields to _MAX_LIST_ITEMS
+    2. Truncate large list fields to max_list_items (configurable)
     3. Recursively truncate strings in nested structures (list items, nested dicts)
     4. Aggressively reduce lists to 10 items and summarize large dicts
     5. Replace all collections with empty values
@@ -615,6 +634,7 @@ def truncate_oversized_response(
     Args:
         response: The tool response (Pydantic model, dict, or other).
         token_limit: Maximum estimated tokens allowed.
+        max_list_items: Maximum items to keep in list fields during Phase 2.
 
     Returns:
         A tuple of (possibly-truncated response, was_truncated, list of notes).
@@ -637,7 +657,7 @@ def truncate_oversized_response(
         return data, was_truncated, notes
 
     # Phase 2: Truncate large list fields
-    was_truncated |= _truncate_lists(data, notes, _MAX_LIST_ITEMS)
+    was_truncated |= _truncate_lists(data, notes, max_list_items)
     if _is_under_limit(data, token_limit):
         return data, was_truncated, notes
 
@@ -657,6 +677,234 @@ def truncate_oversized_response(
     was_truncated |= _replace_collections_with_summaries(data, notes)
 
     return data, was_truncated, notes
+
+
+def _bisect_row_limit(
+    data: Dict[str, Any],
+    row_field: str,
+    original_rows: List[Any],
+    token_limit: int,
+) -> int:
+    """Binary-search for the largest row prefix that keeps data under limit.
+
+    Mutates ``data[row_field]`` during the search and leaves it at the final
+    kept count on return.  Returns the number of rows kept (>= 1 if the
+    original list was non-empty).
+    """
+    from superset.utils import json as utils_json
+
+    lo, hi = 0, len(original_rows)
+    while lo < hi:
+        mid = (lo + hi + 1) // 2
+        data[row_field] = original_rows[:mid]
+        if estimate_token_count(utils_json.dumps(data)) <= token_limit:
+            lo = mid
+        else:
+            hi = mid - 1
+
+    kept = lo
+    if kept == 0 and original_rows:
+        # Even a single row is too large — keep it anyway so the caller gets
+        # at least some data rather than an empty list.
+        kept = 1
+
+    data[row_field] = original_rows[:kept]
+    return kept
+
+
+def _bisect_string_length(
+    data: Dict[str, Any],
+    field: str,
+    original_value: str,
+    token_limit: int,
+) -> int:
+    """Binary-search for the largest string prefix that keeps data under limit.
+
+    Mutates ``data[field]`` during the search and leaves it at the final
+    kept length on return.
+    """
+    from superset.utils import json as utils_json
+
+    lo, hi = 0, len(original_value)
+    while lo < hi:
+        mid = (lo + hi + 1) // 2
+        data[field] = original_value[:mid]
+        if estimate_token_count(utils_json.dumps(data)) <= token_limit:
+            lo = mid
+        else:
+            hi = mid - 1
+
+    kept = lo
+    if kept == 0 and original_value:
+        kept = 1
+
+    data[field] = original_value[:kept]
+    return kept
+
+
+# Row-truncation advice, keyed by tool name. ``get_chart_data`` and
+# ``query_dataset`` cap output via a row/page-size parameter, not a SQL
+# clause, so the generic "Add a LIMIT clause" wording is wrong for them.
+_ROW_LIMIT_ADVICE = {
+    "get_chart_data": "Use the 'limit' parameter to restrict rows returned.",
+    "query_dataset": "Use the 'row_limit' parameter to restrict rows returned.",
+}
+_DEFAULT_ROW_LIMIT_ADVICE = (
+    "Add a LIMIT clause or reduce selected columns to get all rows."
+)
+
+
+def _truncate_rows_field(
+    data: Dict[str, Any],
+    row_field: str,
+    token_limit: int,
+    advice: str,
+) -> list[str] | None:
+    """Try to bisect ``data[row_field]`` down to fit the limit.
+
+    Returns the truncation notes on success, or ``None`` if no rows were
+    (or could be) dropped, in which case ``data`` is left unmodified.
+    """
+    original_rows: list[Any] = data[row_field]
+    original_count = len(original_rows)
+    if not original_rows:
+        return None
+
+    # Reserve space for the truncation-note metadata *before* bisecting so
+    # the search already accounts for it, rather than measuring fit on bare
+    # row data and finding out only afterward that appending the note
+    # pushed the payload back over the limit. The placeholder uses
+    # original_count for both halves of "X of Y rows", which is the
+    # longest the real note can ever be (kept <= original_count).
+    placeholder_note = (
+        f"Result truncated: {original_count} of {original_count} rows returned "
+        f"(limit ~{token_limit:,} tokens). {advice}"
+    )
+    data["_response_truncated"] = True
+    data["_truncation_notes"] = [placeholder_note]
+
+    kept = _bisect_row_limit(data, row_field, original_rows, token_limit)
+
+    if kept < original_count:
+        notes = [
+            f"Result truncated: {kept} of {original_count} rows returned "
+            f"(limit ~{token_limit:,} tokens). {advice}"
+        ]
+        data["_truncation_notes"] = notes
+        if "row_count" in data:
+            data["row_count"] = kept
+        return notes
+
+    # Reserving headroom turned out not to be needed after all — no rows
+    # were actually dropped, so undo the placeholder metadata.
+    del data["_response_truncated"]
+    del data["_truncation_notes"]
+    return None
+
+
+def _truncate_csv_data_field(
+    data: Dict[str, Any],
+    token_limit: int,
+    advice: str,
+) -> list[str] | None:
+    """Try to bisect the scalar ``csv_data`` field down to fit the limit.
+
+    Used when there are no rows to trim — e.g. a CSV export where ``data``
+    is empty and the actual payload lives in ``csv_data``. ``excel_data``
+    is base64-encoded binary and is intentionally left alone: cutting it
+    would produce a corrupt file, so oversized Excel exports still fall
+    through to the hard size-limit error.
+
+    Returns the truncation notes on success, or ``None`` if nothing could
+    be trimmed, in which case ``data`` is left unmodified.
+    """
+    csv_data = data.get("csv_data")
+    if not isinstance(csv_data, str) or not csv_data:
+        return None
+
+    original_len = len(csv_data)
+    # Same reservation trick as ``_truncate_rows_field``, keyed on the
+    # character count rather than a row count.
+    placeholder_note = (
+        f"CSV content truncated: kept {original_len:,} of {original_len:,} "
+        f"characters (limit ~{token_limit:,} tokens). {advice}"
+    )
+    data["_response_truncated"] = True
+    data["_truncation_notes"] = [placeholder_note]
+
+    kept_len = _bisect_string_length(data, "csv_data", csv_data, token_limit)
+    if kept_len < original_len:
+        notes = [
+            f"CSV content truncated: kept {kept_len:,} of {original_len:,} "
+            f"characters (limit ~{token_limit:,} tokens). {advice}"
+        ]
+        data["_truncation_notes"] = notes
+        return notes
+
+    del data["_response_truncated"]
+    del data["_truncation_notes"]
+    return None
+
+
+def truncate_query_result(
+    response: ToolResponse,
+    token_limit: int,
+    tool_name: str | None = None,
+) -> tuple[ToolResponse, bool, list[str]]:
+    """Truncate a data-query tool response to fit within the token limit.
+
+    Unlike ``truncate_oversized_response`` (which targets info-tool dict
+    fields), this function targets the rows/data list directly: it performs
+    a binary search to find the largest prefix of rows that keeps the
+    serialised payload under the limit, then records a truncation note so
+    the caller knows the result is partial.
+
+    Handles both dict responses and Pydantic models (e.g. ExecuteSqlResponse,
+    QueryDatasetResponse, GetChartDataResponse) that contain a ``rows`` or
+    ``data`` field. Note that summary/column-level statistics (e.g.
+    ``summary``, per-column ``null_count``/``unique_count``, ``insights``)
+    describe the pre-truncation dataset and are not recomputed here; callers
+    rely on ``_truncation_notes`` and the true ``total_rows`` to catch this.
+
+    Args:
+        response: The tool response containing tabular row data.
+        token_limit: Maximum estimated tokens allowed.
+        tool_name: Name of the calling tool, used to tailor the truncation
+            advice (e.g. ``limit`` vs. ``row_limit`` vs. SQL ``LIMIT``).
+
+    Returns:
+        A tuple of (possibly-truncated response, was_truncated, list of notes).
+    """
+    from superset.utils import json as utils_json
+
+    advice = _ROW_LIMIT_ADVICE.get(tool_name or "", _DEFAULT_ROW_LIMIT_ADVICE)
+
+    if hasattr(response, "model_dump"):
+        data = response.model_dump()
+    elif isinstance(response, dict):
+        data = dict(response)
+    else:
+        return response, False, []
+
+    # Find which field holds the row list.
+    row_field: str | None = None
+    for field in _DATA_ROW_FIELDS:
+        if field in data and isinstance(data[field], list):
+            row_field = field
+            break
+
+    if row_field is None:
+        # No recognised row field — fall back to generic field truncation.
+        return truncate_oversized_response(response, token_limit)
+
+    if estimate_token_count(utils_json.dumps(data)) <= token_limit:
+        return data, False, []
+
+    notes = _truncate_rows_field(data, row_field, token_limit, advice)
+    if notes is None:
+        notes = _truncate_csv_data_field(data, token_limit, advice)
+
+    return data, notes is not None, notes or []
 
 
 def format_size_limit_error(

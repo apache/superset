@@ -36,7 +36,7 @@ from sqlalchemy import (  # noqa: E402
     String,
     Text,
 )
-from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
+from sqlalchemy.orm import declarative_base  # noqa: E402
 
 from superset import db  # noqa: E402
 from superset.utils import json  # noqa: E402
@@ -68,37 +68,33 @@ class Database(Base):
 
 
 def replace(source, target):
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
+    with db.Session(bind=op.get_bind()) as session:
+        with session.begin():
+            query = (
+                session.query(Slice, Database)
+                .join(Table, Slice.datasource_id == Table.id)
+                .join(Database, Table.database_id == Database.id)
+                .filter(Slice.datasource_type == "table")
+                .all()
+            )
 
-    query = (
-        session.query(Slice, Database)
-        .join(Table, Slice.datasource_id == Table.id)
-        .join(Database, Table.database_id == Database.id)
-        .filter(Slice.datasource_type == "table")
-        .all()
-    )
+            for slc, database in query:
+                try:
+                    engine = create_engine(database.sqlalchemy_uri, future=True)
 
-    for slc, database in query:
-        try:
-            engine = create_engine(database.sqlalchemy_uri)
+                    if engine.dialect.identifier_preparer._double_percents:
+                        params = json.loads(slc.params)
 
-            if engine.dialect.identifier_preparer._double_percents:
-                params = json.loads(slc.params)
+                        if "adhoc_filters" in params:
+                            for filt in params["adhoc_filters"]:
+                                if "sqlExpression" in filt:
+                                    filt["sqlExpression"] = filt[
+                                        "sqlExpression"
+                                    ].replace(source, target)
 
-                if "adhoc_filters" in params:
-                    for filt in params["adhoc_filters"]:
-                        if "sqlExpression" in filt:
-                            filt["sqlExpression"] = filt["sqlExpression"].replace(
-                                source, target
-                            )
-
-                    slc.params = json.dumps(params, sort_keys=True)
-        except Exception:  # noqa: S110
-            pass
-
-    session.commit()
-    session.close()
+                            slc.params = json.dumps(params, sort_keys=True)
+                except Exception:  # noqa: S110
+                    pass
 
 
 def upgrade():

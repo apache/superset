@@ -24,11 +24,14 @@ from typing import Any, Dict, Optional, Sequence
 from fastmcp.server.auth.providers.jwt import JWTVerifier
 from flask import Flask
 
+from superset.constants import CHANGE_ME_GUEST_TOKEN_JWT_SECRET
 from superset.mcp_service.composite_token_verifier import CompositeTokenVerifier
 from superset.mcp_service.constants import (
+    DEFAULT_MAX_LIST_ITEMS,
     DEFAULT_TOKEN_LIMIT,
     DEFAULT_WARN_THRESHOLD_PCT,
 )
+from superset.mcp_service.guest_token_verifier import GuestTokenVerifier
 from superset.mcp_service.jwt_verifier import DetailedJWTVerifier, MCPJWTVerifier
 
 logger = logging.getLogger(__name__)
@@ -146,6 +149,31 @@ MCP_API_KEY_ENABLED: bool | None = None
 # deployments that manage keys elsewhere can override this to point at their
 # own key-management UI without forking the auth code.
 MCP_API_KEY_CREATE_URL = "/profile/"
+
+# Accept Superset embedded guest tokens on the MCP transport (opt-in, default
+# False). Requires the EMBEDDED_SUPERSET flag and the shared core
+# GUEST_TOKEN_JWT_* config. See SECURITY.md "Embedded Guest Authentication".
+MCP_EMBEDDED_GUEST_AUTH_ENABLED: bool = False
+
+# The only tools an embedded guest may call (default-deny, regardless of RBAC).
+# Guest data is further scoped to the token's dashboards by the chart/dashboard
+# filters and redacted by the data-model privacy gate. Sync with
+# _DEFAULT_GUEST_ALLOWED_TOOLS in auth.py.
+MCP_GUEST_ALLOWED_TOOLS: set[str] = {
+    "get_dashboard_info",
+    "get_dashboard_layout",
+    "list_dashboards",
+    "list_charts",
+    "get_chart_info",
+    "get_chart_data",
+    "get_chart_preview",
+}
+
+# Hook to restrict which MCP tools a principal may call, independent of RBAC.
+# Given the current user, return an allow-list (only these tools are callable) or
+# None if the principal is not restricted. Defaults to restricting embedded guests
+# to MCP_GUEST_ALLOWED_TOOLS; set a callable to add other restricted principals.
+MCP_RESTRICTED_TOOL_POLICY: Callable[[Any], frozenset[str] | None] | None = None
 
 
 # Session configuration for local development
@@ -295,6 +323,12 @@ MCP_CACHE_CONFIG: dict[str, Any] = {
 # - token_limit: Maximum estimated tokens per response (default: 25,000)
 # - excluded_tools: Tools to skip checking (e.g., streaming tools)
 # - warn_threshold_pct: Log warnings above this % of limit (default: 80%)
+# - max_list_items: Cap applied to list fields (e.g. ``charts``,
+#   ``native_filters``) during Phase 2 of dynamic truncation for the "info"
+#   tools (get_chart_info, get_dataset_info, get_dashboard_info,
+#   get_instance_info) when a response exceeds token_limit (default: 100).
+#   Operators with tenants that have unusually large dashboards (hundreds of
+#   charts/filters) can raise this value to return more complete responses.
 #
 # Token Estimation:
 # -----------------
@@ -305,6 +339,7 @@ MCP_RESPONSE_SIZE_CONFIG: dict[str, Any] = {
     "enabled": True,  # Enabled by default to protect LLM clients
     "token_limit": DEFAULT_TOKEN_LIMIT,
     "warn_threshold_pct": DEFAULT_WARN_THRESHOLD_PCT,
+    "max_list_items": DEFAULT_MAX_LIST_ITEMS,
     "excluded_tools": [  # Tools to skip size checking
         "health_check",  # Always small
         "generate_explore_link",  # Returns URLs
@@ -346,14 +381,17 @@ MCP_RESPONSE_SIZE_CONFIG: dict[str, Any] = {
 #
 # Summary Mode (include_schemas):
 # --------------------------------
-# When include_schemas=False (default), search results omit inputSchema
-# entirely and include a lightweight "parameters_hint" field listing
-# top-level parameter names (e.g. "page, page_size, search, filters").
-# This reduces per-search token cost by ~80% vs compact mode while still
-# conveying what parameters a tool accepts.  Full schemas remain available
-# when invoking the tool via call_tool.
-# - Set include_schemas=True to restore full inputSchema in search results.
-# - compact_schemas is ignored when include_schemas=False (no schema to
+# When include_schemas=False, search results omit inputSchema entirely and
+# include a lightweight "parameters_hint" field listing top-level parameter
+# names (e.g. "page, page_size, search, filters"). This reduces per-search
+# token cost by ~80% vs compact mode while still conveying what parameters
+# a tool accepts. Full schemas remain available when invoking the tool via
+# call_tool.
+# - include_schemas defaults to True: search results carry full inputSchema
+#   so LLMs can see structured/discriminated-union configs (e.g. chart
+#   generation) without a second round trip. Set include_schemas=False to
+#   switch to summary mode if search_tools response size becomes a problem
+#   again; compact_schemas is ignored when include_schemas=False (no schema to
 #   compact); max_description_length still applies in summary mode.
 # =============================================================================
 MCP_TOOL_SEARCH_CONFIG: dict[str, Any] = {
@@ -408,8 +446,9 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
     """
     auth_enabled = app.config.get("MCP_AUTH_ENABLED", False)
     api_key_enabled = get_mcp_api_key_enabled(app, startup_warning=True)
+    guest_enabled = _is_mcp_guest_auth_enabled(app)
 
-    if not (auth_enabled or api_key_enabled):
+    if not (auth_enabled or api_key_enabled or guest_enabled):
         return None
 
     # When JWT auth is enabled, an audience must be configured so issued tokens
@@ -435,7 +474,7 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
 
         if not (jwks_uri or public_key or secret):
             logger.warning("MCP_AUTH_ENABLED is True but no JWT keys/secret configured")
-            if not api_key_enabled:
+            if not (api_key_enabled or guest_enabled):
                 return None
         else:
             try:
@@ -448,45 +487,117 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
             except Exception:
                 # Do not log the exception — it may contain secrets (e.g., key material)
                 logger.error("Failed to create MCP JWT verifier")
-                if not api_key_enabled:
+                if not (api_key_enabled or guest_enabled):
                     return None
 
-    if api_key_enabled:
-        return _build_composite_verifier(app, jwt_verifier)
+    # A composite verifier is needed whenever API-key OR guest auth is on, so
+    # those token types are recognized before (or instead of) the JWT verifier.
+    if api_key_enabled or guest_enabled:
+        return _build_composite_verifier(
+            app,
+            jwt_verifier,
+            api_key_enabled=api_key_enabled,
+            guest_enabled=guest_enabled,
+        )
 
     return jwt_verifier
 
 
-def _build_composite_verifier(app: Flask, jwt_verifier: Any) -> CompositeTokenVerifier:
-    """Build a CompositeTokenVerifier with API key prefixes from config."""
-    if required_scopes := app.config.get("MCP_REQUIRED_SCOPES", []):
-        logger.warning(
-            "MCP_REQUIRED_SCOPES is configured but API key tokens bypass "
-            "scope enforcement. API key holders gain access regardless of "
-            "MCP_REQUIRED_SCOPES=%r. Enforce per-key authorization via FAB "
-            "roles/RBAC instead.",
-            required_scopes,
-        )
-    raw_prefixes: str | Sequence[str] = app.config.get("FAB_API_KEY_PREFIXES", ["sst_"])
-    # Normalize: a plain string (e.g. "sst_") would iterate as characters;
-    # wrap it in a list so CompositeTokenVerifier receives a proper sequence.
-    # Guard against non-iterable config values (e.g. None, integers) that
-    # would raise TypeError and cause _create_auth_provider to fail open.
-    if isinstance(raw_prefixes, str):
-        api_key_prefixes: list[str] = [raw_prefixes]
-    else:
-        try:
-            api_key_prefixes = list(raw_prefixes)
-        except TypeError:
+def _is_mcp_guest_auth_enabled(app: Flask) -> bool:
+    """Return True when embedded guest auth should be active for the MCP transport.
+
+    Requires the opt-in ``MCP_EMBEDDED_GUEST_AUTH_ENABLED`` config AND the
+    ``EMBEDDED_SUPERSET`` feature flag — guest tokens only exist, and
+    ``is_guest_user`` only returns True, when embedding is enabled.
+    """
+    if not app.config.get("MCP_EMBEDDED_GUEST_AUTH_ENABLED", False):
+        return False
+    with app.app_context():
+        # Deferred: is_feature_enabled isn't bound until app init completes.
+        from superset import is_feature_enabled
+
+        if not is_feature_enabled("EMBEDDED_SUPERSET"):
             logger.warning(
-                "FAB_API_KEY_PREFIXES must be a string or list; using default"
+                "MCP_EMBEDDED_GUEST_AUTH_ENABLED is True but the EMBEDDED_SUPERSET "
+                "feature flag is disabled; embedded guest auth for MCP will not be "
+                "enabled. Enable EMBEDDED_SUPERSET to accept guest tokens over MCP."
             )
-            api_key_prefixes = ["sst_"]
-    logger.info("API key auth enabled for MCP")
+            return False
+    return True
+
+
+def _validate_guest_config(app: Flask) -> None:
+    """Hard-fail on the default GUEST_TOKEN_JWT_SECRET; warn on an unset audience."""
+    if app.config.get("GUEST_TOKEN_JWT_SECRET") == CHANGE_ME_GUEST_TOKEN_JWT_SECRET:
+        # MCPAuthConfigError specifically: the bootstrap re-raises this type to
+        # refuse startup but swallows others. See _create_auth_provider.
+        raise MCPAuthConfigError(
+            "MCP_EMBEDDED_GUEST_AUTH_ENABLED is set but GUEST_TOKEN_JWT_SECRET is "
+            "the insecure default; refusing to wire guest auth. Set a strong "
+            "GUEST_TOKEN_JWT_SECRET shared with the guest-token minting service."
+        )
+    if not app.config.get("GUEST_TOKEN_JWT_AUDIENCE"):
+        # Don't interpolate the fallback host: CodeQL flags logging config-derived
+        # values as clear-text secrets, and the warning alone suffices.
+        logger.warning(
+            "MCP embedded guest auth enabled but GUEST_TOKEN_JWT_AUDIENCE is unset; "
+            "audience validation falls back to the request URL host. Set "
+            "GUEST_TOKEN_JWT_AUDIENCE consistently across the web and MCP services."
+        )
+
+
+def _build_composite_verifier(
+    app: Flask,
+    jwt_verifier: Any,
+    *,
+    api_key_enabled: bool = True,
+    guest_enabled: bool = False,
+) -> CompositeTokenVerifier:
+    """Build a CompositeTokenVerifier wiring API-key and/or guest verification.
+
+    ``api_key_prefixes`` is left empty when API-key auth is disabled (e.g. a
+    guest-only deployment) so API-key tokens are not silently accepted.
+    """
+    api_key_prefixes: list[str] = []
+    if api_key_enabled:
+        if required_scopes := app.config.get("MCP_REQUIRED_SCOPES", []):
+            logger.warning(
+                "MCP_REQUIRED_SCOPES is configured but API key tokens bypass "
+                "scope enforcement. API key holders gain access regardless of "
+                "MCP_REQUIRED_SCOPES=%r. Enforce per-key authorization via FAB "
+                "roles/RBAC instead.",
+                required_scopes,
+            )
+        raw_prefixes: str | Sequence[str] = app.config.get(
+            "FAB_API_KEY_PREFIXES", ["sst_"]
+        )
+        # Normalize: a plain string (e.g. "sst_") would iterate as characters;
+        # wrap it in a list so CompositeTokenVerifier receives a proper sequence.
+        # Guard against non-iterable config values (e.g. None, integers) that
+        # would raise TypeError and cause _create_auth_provider to fail open.
+        if isinstance(raw_prefixes, str):
+            api_key_prefixes = [raw_prefixes]
+        else:
+            try:
+                api_key_prefixes = list(raw_prefixes)
+            except TypeError:
+                logger.warning(
+                    "FAB_API_KEY_PREFIXES must be a string or list; using default"
+                )
+                api_key_prefixes = ["sst_"]
+        logger.info("API key auth enabled for MCP")
+
+    guest_verifier: GuestTokenVerifier | None = None
+    if guest_enabled:
+        _validate_guest_config(app)
+        guest_verifier = GuestTokenVerifier(app=app)
+        logger.info("Embedded guest token auth enabled for MCP")
+
     return CompositeTokenVerifier(
         jwt_verifier=jwt_verifier,
         api_key_prefixes=api_key_prefixes,
         app=app,
+        guest_verifier=guest_verifier,
     )
 
 
@@ -587,6 +698,8 @@ def get_mcp_config(app_config: dict[str, Any] | None = None) -> dict[str, Any]:
         "MCP_DISABLED_TOOLS": set(MCP_DISABLED_TOOLS),
         "MCP_DISABLED_CHART_PLUGINS": MCP_DISABLED_CHART_PLUGINS,
         "MCP_CHART_PLUGIN_ENABLED_FUNC": MCP_CHART_PLUGIN_ENABLED_FUNC,
+        "MCP_EMBEDDED_GUEST_AUTH_ENABLED": MCP_EMBEDDED_GUEST_AUTH_ENABLED,
+        "MCP_GUEST_ALLOWED_TOOLS": set(MCP_GUEST_ALLOWED_TOOLS),
         **MCP_SESSION_CONFIG,
         **MCP_CSRF_CONFIG,
     }

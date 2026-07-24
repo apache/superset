@@ -35,6 +35,7 @@ if TYPE_CHECKING:
 from superset.commands.exceptions import CommandException
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
+from superset.mcp_service import guest_scope
 from superset.mcp_service.chart.chart_helpers import (
     build_query_context_from_form_data,
     build_query_dicts_from_form_data,
@@ -101,9 +102,22 @@ _VIZ_CATEGORY: dict[str, str] = {
     "box_plot": "box_plot",
     "world_map": "map",
     "pivot_table_v2": "table",
+    # Own category: cumulative-flow semantics differ from a plain bar, like
+    # funnel/gauge carry distinct categories.
+    "waterfall": "waterfall",
 }
 
 _MAX_RECOMMENDATIONS = 4
+
+
+def _coerce_row_limit(value: Any, default: int) -> int:
+    """Coerce a row_limit (which may arrive as a str from chart.params) to int,
+    falling back to ``default`` when it is missing or non-numeric — downstream
+    apply_max_row_limit compares it against an int."""
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
 
 
 def _recommend_visualizations(
@@ -363,6 +377,9 @@ async def get_chart_data(  # noqa: C901
             subqueryload(Slice.table).subqueryload(SqlaTable.metrics),
         ]
 
+        # Guest-scoped by ChartFilter; guest_dashboard_id authorizes the data
+        # query (None for non-guests).
+        guest_dashboard_id: int | None = None
         with event_logger.log_context(action="mcp.get_chart_data.chart_lookup"):
             await ctx.debug("Looking up chart: identifier=%s" % (request.identifier,))
             if request.identifier is None:
@@ -373,6 +390,8 @@ async def get_chart_data(  # noqa: C901
             chart = find_chart_by_identifier(
                 request.identifier, query_options=chart_query_options
             )
+            if chart is not None:
+                guest_dashboard_id = guest_scope.guest_dashboard_id(chart)
 
         if not chart:
             await ctx.warning("Chart not found: identifier=%s" % (request.identifier,))
@@ -395,21 +414,23 @@ async def get_chart_data(  # noqa: C901
         )
         logger.info("Getting data for chart %s: %s", chart.id, chart.slice_name)
 
-        # Validate the chart's dataset is accessible before retrieving data
-        validation_result = validate_chart_dataset(chart, check_access=True)
-        if not validation_result.is_valid:
-            await ctx.warning(
-                "Chart found but dataset is not accessible: %s"
-                % (validation_result.error,)
-            )
-            return ChartError(
-                error=validation_result.error
-                or "Chart's dataset is not accessible. Dataset may have been deleted.",
-                error_type="DatasetNotAccessible",
-            )
-        # Log any warnings (e.g., virtual dataset warnings)
-        for warning in validation_result.warnings:
-            await ctx.warning("Dataset warning: %s" % (warning,))
+        # Skip the dataset RBAC pre-check for guests (see guest_scope.is_guest_read).
+        if not guest_scope.is_guest_read():
+            validation_result = validate_chart_dataset(chart, check_access=True)
+            if not validation_result.is_valid:
+                await ctx.warning(
+                    "Chart found but dataset is not accessible: %s"
+                    % (validation_result.error,)
+                )
+                return ChartError(
+                    error=validation_result.error
+                    or "Chart's dataset is not accessible. "
+                    "Dataset may have been deleted.",
+                    error_type="DatasetNotAccessible",
+                )
+            # Log any warnings (e.g., virtual dataset warnings)
+            for warning in validation_result.warnings:
+                await ctx.warning("Dataset warning: %s" % (warning,))
 
         start_time = time.time()
 
@@ -508,10 +529,11 @@ async def get_chart_data(  # noqa: C901
                 from superset.common.query_context_factory import QueryContextFactory
 
                 factory = QueryContextFactory()
-                row_limit = (
-                    request.limit
-                    or form_data.get("row_limit")
-                    or current_app.config["ROW_LIMIT"]
+                # row_limit from chart.params may be a str; coerce for
+                # apply_max_row_limit's int comparison.
+                row_limit = _coerce_row_limit(
+                    request.limit or form_data.get("row_limit"),
+                    current_app.config["ROW_LIMIT"],
                 )
 
                 # Handle different chart types that have different form_data
@@ -603,6 +625,11 @@ async def get_chart_data(  # noqa: C901
                     request.force_refresh,
                 )
             )
+
+            # For an embedded guest, attach the dashboard context so
+            # raise_for_access authorizes the data query.
+            if guest_dashboard_id is not None:
+                guest_scope.authorize_query(query_context, guest_dashboard_id, chart)
 
             # Execute the query
             with event_logger.log_context(action="mcp.get_chart_data.query_execution"):

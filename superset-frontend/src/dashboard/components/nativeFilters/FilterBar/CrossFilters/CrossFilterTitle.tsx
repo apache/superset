@@ -63,9 +63,11 @@ const CrossFilterChartTitle = (props: {
       <Tooltip title={titleIsTruncated ? title : null}>
         <span
           css={css`
-            max-width: ${orientation === FilterBarOrientation.Vertical
-              ? `${theme.sizeUnit * 45}px`
-              : `${theme.sizeUnit * 15}px`};
+            max-width: ${
+              orientation === FilterBarOrientation.Vertical
+                ? `${theme.sizeUnit * 45}px`
+                : `${theme.sizeUnit * 15}px`
+            };
             line-height: 1.4;
             ${ellipsisCss}
           `}
@@ -80,6 +82,7 @@ const CrossFilterChartTitle = (props: {
           data-test="cross-filters-highlight-emitter"
           role="button"
           tabIndex={0}
+          aria-label={t('Locate the chart')}
           onClick={onHighlightFilterSource}
         />
       </Tooltip>

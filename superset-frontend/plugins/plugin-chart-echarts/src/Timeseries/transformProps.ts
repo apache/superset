@@ -724,13 +724,19 @@ export default function transformProps(
     }
   }
 
+  // A dashboard-level time grain override (e.g. via a filter or the temporal
+  // range control) is delivered in extraFormData and should take precedence
+  // over the chart's own time grain when formatting temporal axes/tooltips.
+  const resolvedTimeGrain =
+    formData.extraFormData?.time_grain_sqla ?? timeGrainSqla;
+
   const tooltipFormatter =
     xAxisDataType === GenericDataType.Temporal
-      ? getTooltipTimeFormatter(tooltipTimeFormat)
+      ? getTooltipTimeFormatter(tooltipTimeFormat, resolvedTimeGrain)
       : String;
   const xAxisFormatter =
     xAxisDataType === GenericDataType.Temporal
-      ? getXAxisFormatter(xAxisTimeFormat, timeGrainSqla)
+      ? getXAxisFormatter(xAxisTimeFormat, resolvedTimeGrain)
       : xAxisDataType === GenericDataType.Numeric
         ? getNumberFormatter(xAxisNumberFormat)
         : String;
@@ -871,11 +877,28 @@ export default function transformProps(
   // "2005" appears twice with Year grain). Wrap the formatter to suppress
   // consecutive duplicate labels.
   const showMaxLabel =
-    xAxisType === AxisType.Time && xAxisLabelRotation === 0 && !!timeGrainSqla;
+    xAxisType === AxisType.Time &&
+    xAxisLabelRotation === 0 &&
+    !!resolvedTimeGrain;
   const deduplicatedFormatter = showMaxLabel
     ? (() => {
         let lastLabel: string | undefined;
+        let lastValue: number | undefined;
         const wrapper = (value: number | string) => {
+          // ECharts formats the labels in repeated ascending passes. Reset the
+          // dedup state when the sequence restarts so a forced boundary label
+          // (e.g. the min date) isn't blanked by the previous pass's last label
+          // when both format identically (e.g. a May-to-May range).
+          if (
+            typeof value === 'number' &&
+            lastValue !== undefined &&
+            value <= lastValue
+          ) {
+            lastLabel = undefined;
+          }
+          if (typeof value === 'number') {
+            lastValue = value;
+          }
           const label =
             typeof xAxisFormatter === 'function'
               ? (xAxisFormatter as Function)(value)
@@ -913,25 +936,29 @@ export default function transformProps(
       formatter: deduplicatedFormatter,
       rotate: xAxisLabelRotation,
       interval: xAxisLabelInterval,
-      // Force last label on non-rotated time axes to prevent
-      // hideOverlap from hiding it. Skipped when rotated to
-      // avoid phantom labels at the axis boundary.
+      // Force the boundary labels on non-rotated time axes so the first
+      // and last dates stay visible: hideOverlap can hide the last label,
+      // and a min date that falls between "nice" ticks otherwise renders
+      // no beginning label. Skipped when rotated to avoid phantom labels
+      // at the axis boundary.
       ...(showMaxLabel && {
         showMaxLabel: true,
         alignMaxLabel: 'right',
+        showMinLabel: true,
+        alignMinLabel: 'left',
       }),
     },
     minorTick: { show: minorTicks },
     minInterval:
-      xAxisType === AxisType.Time && timeGrainSqla && !forceMaxInterval
-        ? TIMEGRAIN_TO_TIMESTAMP[
-            timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
-          ]
+      xAxisType === AxisType.Time && resolvedTimeGrain && !forceMaxInterval
+        ? (TIMEGRAIN_TO_TIMESTAMP[
+            resolvedTimeGrain as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+          ] ?? 0)
         : 0,
     maxInterval:
-      xAxisType === AxisType.Time && timeGrainSqla && forceMaxInterval
+      xAxisType === AxisType.Time && resolvedTimeGrain && forceMaxInterval
         ? TIMEGRAIN_TO_TIMESTAMP[
-            timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+            resolvedTimeGrain as keyof typeof TIMEGRAIN_TO_TIMESTAMP
           ]
         : undefined,
     ...getMinAndMaxFromBounds(

@@ -24,7 +24,7 @@ import downloadAsImageOptimized, {
 
 jest.mock('dom-to-image-more', () => ({
   __esModule: true,
-  default: { toJpeg: jest.fn() },
+  default: { toJpeg: jest.fn(), toPng: jest.fn() },
 }));
 
 jest.mock('src/components/MessageToasts/actions', () => ({
@@ -36,6 +36,7 @@ jest.mock('@apache-superset/core/translation', () => ({
 }));
 
 const mockToJpeg = domToImage.toJpeg as jest.Mock;
+const mockToPng = domToImage.toPng as jest.Mock;
 const mockAddWarningToast = addWarningToast as jest.Mock;
 
 // document.fonts.ready is not implemented in jsdom; provide a resolved promise
@@ -81,6 +82,7 @@ function attachMockApi(
 beforeEach(() => {
   jest.clearAllMocks();
   mockToJpeg.mockResolvedValue('data:image/jpeg;base64,test');
+  mockToPng.mockResolvedValue('data:image/png;base64,test');
 });
 
 afterEach(() => {
@@ -645,6 +647,55 @@ test('ag-grid path uses theme colorBgContainer as background', async () => {
     expect.any(HTMLElement),
     expect.objectContaining({ bgcolor: '#1a1a2e' }),
   );
+
+  cleanup();
+  jest.useRealTimers();
+});
+
+test('ag-grid path exports PNG (transparent) via toPng when format is png', async () => {
+  jest.useFakeTimers();
+  const { container, agContainer, cleanup } = buildAgGridElement();
+  attachMockApi(agContainer);
+
+  const theme = { colorBgContainer: '#1a1a2e' } as any;
+  const handler = downloadAsImageOptimized('div', 'My Chart', false, theme, {
+    format: 'png',
+    backgroundType: 'transparent',
+  });
+  const exportPromise = handler(syntheticEventFor(container));
+  await jest.runAllTimersAsync();
+  await exportPromise;
+
+  // format=png must route to toPng (not toJpeg) with a transparent background
+  expect(mockToPng).toHaveBeenCalledWith(
+    expect.any(HTMLElement),
+    expect.objectContaining({ bgcolor: 'transparent' }),
+  );
+  expect(mockToJpeg).not.toHaveBeenCalled();
+
+  cleanup();
+  jest.useRealTimers();
+});
+
+test('ag-grid path exports PNG (solid) via toPng using theme background', async () => {
+  jest.useFakeTimers();
+  const { container, agContainer, cleanup } = buildAgGridElement();
+  attachMockApi(agContainer);
+
+  const theme = { colorBgContainer: '#1a1a2e' } as any;
+  const handler = downloadAsImageOptimized('div', 'My Chart', false, theme, {
+    format: 'png',
+    backgroundType: 'solid',
+  });
+  const exportPromise = handler(syntheticEventFor(container));
+  await jest.runAllTimersAsync();
+  await exportPromise;
+
+  expect(mockToPng).toHaveBeenCalledWith(
+    expect.any(HTMLElement),
+    expect.objectContaining({ bgcolor: '#1a1a2e' }),
+  );
+  expect(mockToJpeg).not.toHaveBeenCalled();
 
   cleanup();
   jest.useRealTimers();

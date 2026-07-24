@@ -32,6 +32,7 @@ import {
   NativeFilterDivider,
   ChartCustomizationsFormItem,
 } from '../types';
+import { buildNativeFilterTarget } from './buildTarget';
 
 type FilterFormInput =
   | NativeFiltersFormItem
@@ -47,9 +48,7 @@ type NativeFilterFormOrSaved = NativeFiltersFormItem | Filter;
 function isCustomizationType(
   formInputs: FilterFormInput,
 ): formInputs is
-  | ChartCustomizationsFormItem
-  | ChartCustomization
-  | ChartCustomizationDivider {
+  ChartCustomizationsFormItem | ChartCustomization | ChartCustomizationDivider {
   return (
     'type' in formInputs &&
     (formInputs.type === ChartCustomizationType.ChartCustomization ||
@@ -88,20 +87,7 @@ function transformDivider(
 function buildFilterTarget(
   formInputs: NativeFiltersFormItem,
 ): Partial<NativeFilterTarget> {
-  const target: Partial<NativeFilterTarget> = {};
-
-  if (formInputs.dataset) {
-    target.datasetId =
-      typeof formInputs.dataset === 'object'
-        ? formInputs.dataset.value
-        : formInputs.dataset;
-  }
-
-  if (formInputs.dataset && formInputs.column) {
-    target.column = { name: formInputs.column };
-  }
-
-  return target;
+  return buildNativeFilterTarget(formInputs);
 }
 
 function transformFormInput(

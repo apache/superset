@@ -497,17 +497,26 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             engine_context_manager = app.config["ENGINE_CONTEXT_MANAGER"]
             with engine_context_manager(self, catalog, schema):
                 with check_for_oauth2(self):
+                    prequeries = self.db_engine_spec.get_prequeries(
+                        database=self,
+                        catalog=catalog,
+                        schema=schema,
+                    )
+                    # Prequeries attach a per-call ``connect`` listener below
+                    # (and remove it on exit). SQLAlchemy's listener collection
+                    # is an unlocked deque, so mutating it on an engine shared
+                    # via ``_ENGINE_CACHE`` races with concurrent connection
+                    # checkouts iterating the same deque ("RuntimeError: deque
+                    # mutated during iteration", surfacing as 500s). Request a
+                    # private, uncached engine whenever prequeries are present
+                    # so the listener add/remove never touches a shared object.
                     engine = self._get_sqla_engine(
                         catalog=catalog,
                         schema=schema,
                         nullpool=nullpool,
                         source=source,
                         sqlalchemy_uri=sqlalchemy_uri,
-                    )
-                    prequeries = self.db_engine_spec.get_prequeries(
-                        database=self,
-                        catalog=catalog,
-                        schema=schema,
+                        cacheable=not prequeries,
                     )
                     if prequeries:
                         # SQLAlchemy connect event: runs prequeries on every new
@@ -528,6 +537,14 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                             yield engine
                         finally:
                             sqla.event.remove(engine, "connect", run_prequeries)
+                            # The engine is private (cacheable=False above), so
+                            # nothing else can hold a reference: dispose it to
+                            # release its pool immediately. With the default
+                            # nullpool=True this is a no-op safety net; it
+                            # matters if a caller ever passes nullpool=False,
+                            # where each private engine would otherwise keep a
+                            # short-lived QueuePool alive until GC.
+                            engine.dispose()
                     else:
                         yield engine
 
@@ -538,6 +555,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         nullpool: bool = True,
         source: utils.QuerySource | None = None,
         sqlalchemy_uri: str | None = None,
+        cacheable: bool = True,
     ) -> Engine:
         sqlalchemy_url = make_url_safe(
             sqlalchemy_uri if sqlalchemy_uri else self.sqlalchemy_uri_decrypted
@@ -610,9 +628,13 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         # cache on ``not nullpool`` would leave it dormant everywhere it
         # actually matters. Unsaved instances (``self.id is None``) are
         # excluded so two distinct in-memory ``Database`` objects with the
-        # same URI can't collide on a shared cache entry.
+        # same URI can't collide on a shared cache entry. Callers that need to
+        # mutate the engine's event listeners (``get_sqla_engine`` with
+        # prequeries) pass ``cacheable=False`` for a private engine: listener
+        # registration on a shared engine races with concurrent connection
+        # checkouts iterating the same unlocked listener deque.
         cache_key: tuple[int, str, str] | None = None
-        if self.id is not None:
+        if cacheable and self.id is not None:
             cache_key = (
                 self.id,
                 str(sqlalchemy_url),
@@ -622,6 +644,8 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                 if cached := _ENGINE_CACHE.get(cache_key):
                     return cached
         try:
+            if "future" not in engine_kwargs:
+                engine_kwargs["future"] = True
             engine = create_engine(sqlalchemy_url, **engine_kwargs)
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
@@ -838,9 +862,10 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
                 # Fetch results from last statement if requested
                 if fetch_last_result and i == len(script.statements) - 1:
-                    # Capture cursor.description while it's still valid
-                    description = cursor.description
                     rows = self.db_engine_spec.fetch_data(cursor)
+                    # Some asynchronous DB-API drivers expose placeholder metadata
+                    # until fetching waits for the operation to finish.
+                    description = cursor.description
                 else:
                     # Consume results without storing
                     cursor.fetchall()
@@ -1188,7 +1213,6 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                 table.table,
                 meta,
                 schema=table.schema or None,
-                autoload=True,
                 autoload_with=engine,
             )
 

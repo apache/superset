@@ -21,13 +21,13 @@ permissions:
 
 jobs:
   frontend-build:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
     outputs:
       should-run: ${{ steps.check.outputs.frontend }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
@@ -51,7 +51,7 @@ jobs:
           git show -s --format=raw HEAD
           docker buildx build \
             -t $TAG \
-            --cache-from=type=registry,ref=apache/superset-cache:3.10-slim-trixie \
+            --cache-from=type=registry,ref=apache/superset-cache:3.11-slim-trixie \
             --target superset-node-ci \
             .
 
@@ -74,7 +74,7 @@ jobs:
       matrix:
         shard: [1, 2, 3, 4, 5, 6, 7, 8]
       fail-fast: false
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     steps:
       - name: Download Docker Image Artifact
@@ -104,13 +104,13 @@ jobs:
   report-coverage:
     needs: [sharded-jest-tests]
     if: needs.frontend-build.outputs.should-run == 'true'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     permissions:
       id-token: write
     steps:
       - name: Checkout Code
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
@@ -146,7 +146,7 @@ jobs:
   lint-frontend:
     needs: frontend-build
     if: needs.frontend-build.outputs.should-run == 'true'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     steps:
       - name: Download Docker Image Artifact
@@ -171,7 +171,7 @@ jobs:
   validate-frontend:
     needs: frontend-build
     if: needs.frontend-build.outputs.should-run == 'true'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     steps:
       - name: Download Docker Image Artifact
@@ -191,7 +191,7 @@ jobs:
   test-storybook:
     needs: frontend-build
     if: needs.frontend-build.outputs.should-run == 'true'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 25
     steps:
       - name: Download Docker Image Artifact
