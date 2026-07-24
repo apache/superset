@@ -72,10 +72,16 @@ const StyledTabsContainer = styled.div<{ isDragging?: boolean }>`
     }
   }
 
-  /* Hide ink-bar during drag */
   ${({ isDragging }) =>
     isDragging &&
     `
+    /* Show the drag indicator during drag, over the tab title textarea too.
+       The doubled parent outranks the title's own cursor; a single & loses. */
+    && .dragdroppable-tab * {
+      cursor: move;
+    }
+
+    /* Hide ink-bar during drag */
     .ant-tabs-card > .ant-tabs-nav .ant-tabs-ink-bar,
     .ant-tabs > .ant-tabs-nav .ant-tabs-ink-bar {
       display: none !important;
