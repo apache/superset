@@ -30,6 +30,7 @@ import { t } from '@apache-superset/core/translation';
 import {
   BaseFormData,
   Behavior,
+  BinaryQueryObjectFilterClause,
   Column,
   ContextMenuFilters,
   ensureIsArray,
@@ -43,6 +44,7 @@ import {
   Popover,
   Icons,
 } from '@superset-ui/core/components';
+import { Radio } from '@superset-ui/core/components/Radio';
 import { debounce } from 'lodash-es';
 import { FixedSizeList as List } from 'react-window';
 import { InputRef } from 'antd';
@@ -53,6 +55,15 @@ import { Dataset } from '../types';
 const SUBMENU_HEIGHT = 200;
 const SHOW_COLUMNS_SEARCH_THRESHOLD = 10;
 
+enum DrillByFilterScope {
+  XAxis = 'x-axis',
+  Series = 'series',
+  All = 'all',
+}
+
+const formatFilterValues = (filters: BinaryQueryObjectFilterClause[]) =>
+  filters.map(filter => filter.formattedVal ?? String(filter.val)).join(', ');
+
 export interface DrillBySubmenuProps {
   drillByConfig?: ContextMenuFilters['drillBy'];
   formData: BaseFormData & { [key: string]: any };
@@ -61,7 +72,11 @@ export interface DrillBySubmenuProps {
   onCloseMenu?: () => void;
   openNewModal?: boolean;
   excludedColumns?: Column[];
-  onDrillBy?: (column: Column, dataset: Dataset) => void;
+  onDrillBy?: (
+    column: Column,
+    dataset: Dataset,
+    drillByConfig?: ContextMenuFilters['drillBy'],
+  ) => void;
   dataset?: Dataset;
   isLoadingDataset?: boolean;
 }
@@ -83,6 +98,7 @@ export const DrillBySubmenu = ({
   const [searchInput, setSearchInput] = useState('');
   const [debouncedSearchInput, setDebouncedSearchInput] = useState('');
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const [filterScope, setFilterScope] = useState(DrillByFilterScope.All);
   const ref = useRef<InputRef>(null);
   const menuItemRef = useRef<HTMLDivElement>(null);
 
@@ -92,18 +108,53 @@ export const DrillBySubmenu = ({
   );
   const showSearch = columns.length > SHOW_COLUMNS_SEARCH_THRESHOLD;
 
+  const seriesFilters = useMemo(
+    () => ensureIsArray(drillByConfig?.filters),
+    [drillByConfig?.filters],
+  );
+  const xAxisFilters = useMemo(
+    () => ensureIsArray(drillByConfig?.xAxisFilters),
+    [drillByConfig?.xAxisFilters],
+  );
+  // Both the clicked x-axis value and the clicked series can scope the
+  // drilled data; when both are available the user picks which to apply
+  const showScopeSelector = seriesFilters.length > 0 && xAxisFilters.length > 0;
+
+  const effectiveDrillByConfig = useMemo(():
+    ContextMenuFilters['drillBy'] | undefined => {
+    if (!drillByConfig) {
+      return undefined;
+    }
+    let filters = [...xAxisFilters, ...seriesFilters];
+    if (showScopeSelector && filterScope === DrillByFilterScope.XAxis) {
+      filters = xAxisFilters;
+    } else if (showScopeSelector && filterScope === DrillByFilterScope.Series) {
+      filters = seriesFilters;
+    }
+    const config = { ...drillByConfig, filters };
+    // the x-axis filters have been folded into `filters` above
+    delete config.xAxisFilters;
+    return config;
+  }, [
+    drillByConfig,
+    filterScope,
+    seriesFilters,
+    showScopeSelector,
+    xAxisFilters,
+  ]);
+
   const handleSelection = useCallback(
     (event: React.MouseEvent, column: Column) => {
       onClick(event);
-      onSelection(column, drillByConfig);
+      onSelection(column, effectiveDrillByConfig);
       if (openNewModal && onDrillBy && dataset) {
-        onDrillBy(column, dataset);
+        onDrillBy(column, dataset, effectiveDrillByConfig);
       }
       setPopoverOpen(false);
       onCloseMenu();
     },
     [
-      drillByConfig,
+      effectiveDrillByConfig,
       onClick,
       onSelection,
       openNewModal,
@@ -121,9 +172,10 @@ export const DrillBySubmenu = ({
         ref.current?.input?.focus({ preventScroll: true });
       }, 100);
     } else {
-      // Reset search input when menu is closed
+      // Reset search input and filter scope when menu is closed
       setSearchInput('');
       setDebouncedSearchInput('');
+      setFilterScope(DrillByFilterScope.All);
     }
     return () => {
       if (timeoutId) clearTimeout(timeoutId);
@@ -227,6 +279,55 @@ export const DrillBySubmenu = ({
       `}
       onClick={e => e.stopPropagation()}
     >
+      {showScopeSelector && (
+        <div
+          data-test="drill-by-scope-selector"
+          css={css`
+            margin-bottom: ${theme.sizeUnit * 2}px;
+            padding-bottom: ${theme.sizeUnit * 2}px;
+            border-bottom: 1px solid ${theme.colorSplit};
+          `}
+        >
+          <div
+            css={css`
+              color: ${theme.colorTextSecondary};
+              margin-bottom: ${theme.sizeUnit}px;
+            `}
+          >
+            {t('Filter by')}
+          </div>
+          <Radio.Group
+            value={filterScope}
+            onChange={e => setFilterScope(e.target.value)}
+            css={css`
+              display: flex;
+              flex-direction: column;
+              .ant-radio-wrapper {
+                margin-inline-end: 0;
+                span:last-of-type {
+                  overflow: hidden;
+                  text-overflow: ellipsis;
+                  white-space: nowrap;
+                }
+              }
+            `}
+          >
+            <Radio
+              value={DrillByFilterScope.XAxis}
+              title={formatFilterValues(xAxisFilters)}
+            >
+              {formatFilterValues(xAxisFilters)}
+            </Radio>
+            <Radio
+              value={DrillByFilterScope.Series}
+              title={formatFilterValues(seriesFilters)}
+            >
+              {formatFilterValues(seriesFilters)}
+            </Radio>
+            <Radio value={DrillByFilterScope.All}>{t('Both')}</Radio>
+          </Radio.Group>
+        </div>
+      )}
       {showSearch && (
         <Input
           ref={ref}
