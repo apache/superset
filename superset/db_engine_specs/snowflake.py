@@ -20,20 +20,22 @@ import logging
 import re
 from datetime import datetime
 from re import Pattern
-from typing import Any, Optional, TYPE_CHECKING, TypedDict
+from typing import Any, cast, Optional, TYPE_CHECKING, TypedDict
 from urllib import parse
 
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
-from flask import current_app as app
+from flask import current_app as app, has_request_context
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from sqlalchemy import text, types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
+from sqlalchemy.exc import DatabaseError as SqlalchemyDatabaseError
 
+from superset import is_feature_enabled, security_manager
 from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import (
@@ -44,11 +46,60 @@ from superset.db_engine_specs.base import (
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.sql_lab import Query
+from superset.superset_typing import (
+    OAuth2ClientConfig,
+    OAuth2State,
+)
 from superset.utils import json
 from superset.utils.core import get_user_agent, QuerySource
+from superset.utils.oauth2 import encode_oauth2_state, generate_code_challenge
 
 if TYPE_CHECKING:
     from superset.models.core import Database
+
+try:
+    from snowflake.connector.errors import DatabaseError
+except ImportError:
+    # Use a distinct sentinel type when snowflake is not installed to avoid
+    # matching unrelated exception types (using `Exception` would be too broad).
+    class _SnowflakeDatabaseError(Exception):
+        """Sentinel type to stand in for snowflake.connector.errors.DatabaseError."""
+
+        pass
+
+    DatabaseError = _SnowflakeDatabaseError
+
+
+class CustomSnowflakeAuthErrorMeta(type):
+    """
+    Metaclass whose ``__instancecheck__`` matches Snowflake's invalid/expired
+    OAuth access-token error, so ``CustomSnowflakeAuthError`` can be used as the
+    ``oauth2_exception`` that triggers the OAuth2 re-auth dance.
+
+    This is only honored via ``isinstance()`` (the path used by
+    ``BaseEngineSpec.needs_oauth2()``); ``except`` clauses do not call
+    ``__instancecheck__``, so it must not be relied on for exception catching.
+    """
+
+    def __instancecheck__(cls, instance: object) -> bool:
+        """
+        Match Snowflake's invalid/expired OAuth token error, whether it arrives
+        wrapped by SQLAlchemy (e.g. ``Engine``-based execution) or as the raw
+        DBAPI exception — ``BaseEngineSpec.execute()`` runs against a bare
+        cursor and never wraps it, so both shapes must be handled here.
+        """
+        orig: object = instance
+        if isinstance(instance, SqlalchemyDatabaseError):
+            orig = cast(SqlalchemyDatabaseError, instance).orig
+
+        return isinstance(orig, DatabaseError) and "Invalid OAuth access token" in str(
+            orig
+        )
+
+
+class CustomSnowflakeAuthError(DatabaseError, metaclass=CustomSnowflakeAuthErrorMeta):
+    """Snowflake OAuth error type matched via the metaclass above (see note there)."""
+
 
 # Regular expressions to catch custom errors
 OBJECT_DOES_NOT_EXIST_REGEX = re.compile(
@@ -191,6 +242,113 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             {},
         ),
     }
+
+    # OAuth 2.0 support
+    supports_oauth2: bool = True
+    oauth2_exception: type[Exception] = CustomSnowflakeAuthError
+
+    @classmethod
+    def is_oauth2_enabled(cls) -> bool:
+        """
+        Return whether OAuth2 authentication is enabled.
+        """
+
+        # When alerts or reports connect to the database in the background,
+        # OAuth2 authentication fails; therefore, OAuth2 authentication is disabled
+        # for background execution.
+        if not has_request_context():
+            return False
+
+        return (
+            cls.supports_oauth2
+            and cls.engine_name in app.config["DATABASE_OAUTH2_CLIENTS"]
+        )
+
+    @classmethod
+    def get_oauth2_config(cls) -> OAuth2ClientConfig | None:
+        """
+        Build the DB engine spec level OAuth2 client config.
+        """
+        if not cls.is_oauth2_enabled():
+            return None
+
+        return super().get_oauth2_config()
+
+    @classmethod
+    def impersonate_user(
+        cls,
+        database: Database,
+        username: str | None,
+        user_token: str | None,
+        url: URL,
+        engine_kwargs: dict[str, Any],
+    ) -> tuple[URL, dict[str, Any]]:
+        """
+        Modify URL and/or engine kwargs to impersonate a different user.
+        """
+        connect_args: dict[str, Any] = engine_kwargs.setdefault("connect_args", {})
+
+        # When test_connection is executed (i.e., when validate_default_parameters is
+        # set to True in connect_args), authentication via OAuth is not performed.
+        #
+        # ``database.is_oauth2_enabled()`` returns True for a database-level OAuth2
+        # client (``encrypted_extra.oauth2_client_info``) regardless of request
+        # context, unlike the app-config-based check in ``is_oauth2_enabled()``
+        # above. Background executions (alerts/reports) have no per-user token, so
+        # ``has_request_context()`` must be checked explicitly here too, or OAuth
+        # gets switched on with no token to send.
+        if (
+            not connect_args.get("validate_default_parameters", False)
+            and has_request_context()
+            and database.is_oauth2_enabled()
+        ):
+            url = url.update_query_dict({"authenticator": "oauth"})
+            connect_args["authenticator"] = "oauth"
+
+            if user_token:
+                if username is not None:
+                    user = security_manager.find_user(username=username)
+                    if user and user.email:
+                        if is_feature_enabled("IMPERSONATE_WITH_EMAIL_PREFIX"):
+                            url = url.set(username=user.email.split("@")[0])
+                        else:
+                            url = url.set(username=user.email)
+
+                url = url.update_query_dict({"token": user_token})
+
+        return url, engine_kwargs
+
+    @classmethod
+    def get_oauth2_authorization_uri(
+        cls,
+        config: OAuth2ClientConfig,
+        state: OAuth2State,
+        code_verifier: str | None = None,  # pylint: disable=unused-argument
+    ) -> str:
+        """
+        Return URI for initial OAuth2 request.
+        """
+        uri = config["authorization_request_uri"]
+        # When calling the Snowflake OAuth authorization endpoint for a custom client,
+        # specify only the query parameters documented in the URL below.
+        # Adding unsupported parameters
+        # (e.g., `prompt` as used in BaseEngineSpec.get_oauth2_authorization_uri)
+        # will cause an error.
+        # https://docs.snowflake.com/user-guide/oauth-custom#query-parameters
+        params: dict[str, str] = {
+            "scope": config["scope"],
+            "response_type": "code",
+            "state": encode_oauth2_state(state),
+            "redirect_uri": config["redirect_uri"],
+            "client_id": config["id"],
+        }
+
+        # Add PKCE parameters (RFC 7636) if code_verifier is provided
+        if code_verifier:
+            params["code_challenge"] = generate_code_challenge(code_verifier)
+            params["code_challenge_method"] = "S256"
+
+        return parse.urljoin(uri, "?" + parse.urlencode(params))
 
     @staticmethod
     def get_extra_params(
@@ -440,6 +598,18 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         database: "Database",
         params: dict[str, Any],
     ) -> None:
+        # To use OAuth authentication, a database connection must first be created using
+        # another authenticator (typically key-pair authentication)
+        # with “Impersonate logged in user” enabled.
+        # Key-pair authentication is used for connection tests,
+        # while OAuth authentication is used when executing actual queries,
+        # such as in SQL Lab or dashboards.
+        # Therefore, when using OAuth authentication, the key-pair authentication
+        # settings are not loaded, and the connection is established using OAuth only.
+        connect_args: dict[str, Any] = params.get("connect_args") or {}
+        if connect_args.get("authenticator") == "oauth":
+            return
+
         if not database.encrypted_extra:
             return
         try:
