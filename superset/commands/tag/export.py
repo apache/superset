@@ -23,33 +23,52 @@ from collections.abc import Iterator
 import yaml
 from superset.daos.chart import ChartDAO
 from superset.daos.dashboard import DashboardDAO
+from superset.daos.tag import TagDAO
 from superset.extensions import feature_flag_manager
 from superset.tags.models import TagType
+from superset.commands.export.models import ExportModelsCommand
 from superset.commands.tag.exceptions import TagNotFoundError
 
 
-# pylint: disable=too-few-public-methods
-class ExportTagsCommand:
+class ExportTagsCommand(ExportModelsCommand):
+    dao = TagDAO
     not_found = TagNotFoundError
 
+    def __init__(
+        self,
+        model_ids: Optional[list[int]] = None,
+        export_related: bool = True,
+        *,
+        dashboard_ids: Optional[Union[int, List[Union[int, str]]]] = None,
+        chart_ids: Optional[Union[int, List[Union[int, str]]]] = None,
+    ):
+        super().__init__(model_ids=model_ids or [], export_related=export_related)
+        self.dashboard_ids = dashboard_ids
+        self.chart_ids = chart_ids
+
+    def run(self) -> Iterator[tuple[str, Callable[[], str]]]:
+        if not feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+            return
+
+        yield (
+            ExportTagsCommand._file_name(),
+            lambda: ExportTagsCommand._file_content(self.dashboard_ids, self.chart_ids),
+        )
+
     @staticmethod
-    def _file_name() -> str:
-        # Use the model to determine the filename
+    def _file_name(model: Any = None) -> str:
         return "tags.yaml"
 
     @staticmethod
     def _merge_tags(
         dashboard_tags: List[dict[str, Any]], chart_tags: List[dict[str, Any]]
     ) -> List[dict[str, Any]]:
-        # Create a dictionary to prevent duplicates based on tag name
         tags_dict = {tag["tag_name"]: tag for tag in dashboard_tags}
 
-        # Add chart tags, preserving unique tag names
         for tag in chart_tags:
             if tag["tag_name"] not in tags_dict:
                 tags_dict[tag["tag_name"]] = tag
 
-        # Return merged tags as a list
         return list(tags_dict.values())
 
     @staticmethod
@@ -62,13 +81,9 @@ class ExportTagsCommand:
         dashboard_tags = []
         chart_tags = []
 
-        # Fetch dashboard tags if provided
         if dashboard_ids:
-            # Ensure dashboard_ids is a list
             if isinstance(dashboard_ids, int):
-                dashboard_ids = [
-                    dashboard_ids
-                ]  # Convert single int to list for consistency
+                dashboard_ids = [dashboard_ids]
 
             dashboards = [
                 dashboard
@@ -88,11 +103,9 @@ class ExportTagsCommand:
                 ]
                 dashboard_tags.extend(filtered_tags)
 
-        # Fetch chart tags if provided
         if chart_ids:
-            # Ensure chart_ids is a list
             if isinstance(chart_ids, int):
-                chart_ids = [chart_ids]  # Convert single int to list for consistency
+                chart_ids = [chart_ids]
 
             charts = [
                 chart
@@ -109,11 +122,9 @@ class ExportTagsCommand:
                 ]
                 chart_tags.extend(filtered_tags)
 
-        # Merge the tags from both dashboards and charts
         merged_tags = ExportTagsCommand._merge_tags(dashboard_tags, chart_tags)
         payload["tags"].extend(merged_tags)
 
-        # Convert to YAML format
         file_content = yaml.safe_dump(payload, sort_keys=False)
         return file_content
 
