@@ -20,7 +20,15 @@ import functools
 import logging
 import warnings
 from http.client import RemoteDisconnected
-from typing import Any, Callable, Literal, Optional, overload
+from typing import (
+    Any,
+    Callable,
+    Literal,
+    NotRequired,
+    Optional,
+    overload,
+    TypedDict,
+)
 from urllib.error import HTTPError, URLError
 
 from flask import current_app as app
@@ -55,10 +63,9 @@ _SLACK_V1_DEPRECATION_MESSAGE = (
 )
 
 
-# functools.cache gives us a process-lifetime, thread-safe one-shot guard
-# without the read-then-write race that bare module globals would have under
-# multi-threaded WSGI workers. The cached return value (None) is irrelevant —
-# we only care that the body executes at most once per process.
+# functools.cache suppresses repeated calls after the first one completes.
+# Concurrent first calls may both emit, which is acceptable for a deprecation
+# warning and avoids managing additional process-local synchronization.
 @functools.cache
 def _emit_v1_flag_off_deprecation() -> None:
     warnings.warn(_SLACK_V1_DEPRECATION_MESSAGE, DeprecationWarning, stacklevel=3)
@@ -78,6 +85,15 @@ class SlackChannelTypes(StrEnum):
 
 
 _SLACK_CONVERSATION_TYPES = ",".join(SlackChannelTypes)
+
+
+class SlackChannel(TypedDict):
+    """Normalized Slack channel fields used for report-recipient resolution."""
+
+    id: str
+    name: str
+    is_private: bool
+    is_member: NotRequired[bool]
 
 
 class SlackClientError(Exception):
@@ -143,7 +159,8 @@ def parse_slack_recipient_targets(target: str) -> list[str]:
     return list(dict.fromkeys(recipients_string_to_list(target)))
 
 
-def _get_slack_api_error_data(ex: SlackApiError) -> dict[str, Any]:
+def get_slack_api_error_data(ex: SlackApiError) -> dict[str, Any]:
+    """Return a Slack API error payload across SDK response representations."""
     response = getattr(ex, "response", None)
     data = getattr(response, "data", None)
     if not isinstance(data, dict):
@@ -151,16 +168,19 @@ def _get_slack_api_error_data(ex: SlackApiError) -> dict[str, Any]:
     return data
 
 
-def _get_slack_api_error_code(ex: SlackApiError) -> str:
-    return str(_get_slack_api_error_data(ex).get("error") or "")
+def get_slack_api_error_code(ex: SlackApiError) -> str:
+    """Return Slack's application-level error code, if present."""
+    return str(get_slack_api_error_data(ex).get("error") or "")
 
 
-def _get_slack_api_status_code(ex: SlackApiError) -> int | None:
+def get_slack_api_status_code(ex: SlackApiError) -> int | None:
+    """Return the HTTP status carried by a Slack API error, if present."""
     return getattr(getattr(ex, "response", None), "status_code", None)
 
 
-def _is_transient_slack_api_error(ex: SlackApiError, error_code: str) -> bool:
-    status_code = _get_slack_api_status_code(ex)
+def is_transient_slack_api_error(ex: SlackApiError, error_code: str) -> bool:
+    """Return whether Slack reported a retryable API or HTTP condition."""
+    status_code = get_slack_api_status_code(ex)
     return bool(
         status_code in {408, 429}
         or (status_code is not None and 500 <= status_code < 600)
@@ -234,8 +254,12 @@ def _slack_channel_cache_uses_report_session() -> bool:
 
 
 def get_channels(
-    team_id: Optional[str] = None, **kwargs: Any
-) -> list[SlackChannelSchema]:
+    team_id: Optional[str] = None,
+    *,
+    force: bool = False,
+    cache_timeout: int | None = None,
+    cache: bool = True,
+) -> list[SlackChannel]:
     """
     Retrieves a list of all conversations accessible by the bot
     from the Slack API, and caches results (to avoid rate limits).
@@ -249,41 +273,84 @@ def get_channels(
         distinct workspaces never share cached channel lists; when unset, the
         legacy cache key is used so that upgrading does not invalidate existing
         caches.
-    :param kwargs: forwarded to the memoized fetch (``force``, ``cache_timeout``,
-        ``cache``).
+    Cache reads and writes are best-effort; a backend failure does not replace
+    successfully fetched Slack data.
     """
     if team_id is None:
         team_id = get_team_id()
-    cache_key = _get_slack_channels_cache_key(team_id)
-    return _get_channels(cache_key, team_id=team_id, **kwargs)
+    channels, _ = _get_channels_safely(
+        team_id=team_id,
+        force=force,
+        cache=cache,
+        cache_timeout=cache_timeout,
+        write_metastore_cache=True,
+    )
+    return channels
 
 
-def _get_channels_with_cache_status() -> tuple[list[SlackChannelSchema], bool]:
-    """Fetch channels and cache-hit provenance using one cache read."""
-    team_id = get_team_id()
+def _get_channels_safely(
+    *,
+    team_id: str | None,
+    force: bool,
+    cache: bool,
+    write_metastore_cache: bool,
+    cache_timeout: int | None = None,
+) -> tuple[list[SlackChannel], bool]:
+    """Fetch channels with best-effort cache access and hit provenance."""
     cache_key = _get_slack_channels_cache_key(team_id)
-    cache_timeout = app.config["SLACK_CACHE_TIMEOUT"]
-    if cache_timeout == CACHE_DISABLED_TIMEOUT:
-        return _get_channels(cache_key, team_id=team_id, cache=False), False
-    if (cached_channels := cache_manager.cache.get(cache_key)) is not None:
-        return cached_channels, True
+    effective_timeout = (
+        app.config["SLACK_CACHE_TIMEOUT"] if cache_timeout is None else cache_timeout
+    )
+    cache_enabled = cache and effective_timeout != CACHE_DISABLED_TIMEOUT
+
+    if cache_enabled and not force:
+        try:
+            cached_channels = cache_manager.cache.get(cache_key)
+        except Exception:  # pylint: disable=broad-exception-caught
+            cached_channels = None
+            logger.warning(
+                "Could not read cached Slack channels; fetching from Slack",
+                exc_info=True,
+            )
+        if cached_channels is not None:
+            return cached_channels, True
 
     channels = _get_channels(cache_key, team_id=team_id, cache=False)
-    if not _slack_channel_cache_uses_report_session():
-        cache_manager.cache.set(cache_key, channels, timeout=cache_timeout)
+    if cache_enabled and (
+        write_metastore_cache or not _slack_channel_cache_uses_report_session()
+    ):
+        try:
+            cache_manager.cache.set(
+                cache_key,
+                channels,
+                timeout=effective_timeout,
+            )
+        except Exception:  # pylint: disable=broad-exception-caught
+            logger.warning(
+                "Could not cache Slack channels",
+                exc_info=True,
+            )
     return channels, False
+
+
+def _get_channels_with_cache_status() -> tuple[list[SlackChannel], bool]:
+    """Fetch channels and cache-hit provenance using one cache read."""
+    return _get_channels_safely(
+        team_id=get_team_id(),
+        force=False,
+        cache=True,
+        write_metastore_cache=False,
+    )
 
 
 @cache_util.memoized_func(
     key="{cache_key}",
     cache=cache_manager.cache,
 )
-def _get_channels(
-    cache_key: str, team_id: Optional[str] = None
-) -> list[SlackChannelSchema]:
+def _get_channels(cache_key: str, team_id: Optional[str] = None) -> list[SlackChannel]:
     client = get_slack_client()
     channel_schema = SlackChannelSchema()
-    channels: list[SlackChannelSchema] = []
+    channels: list[SlackChannel] = []
     extra_params = {"types": _SLACK_CONVERSATION_TYPES}
     if team_id:
         extra_params["team_id"] = team_id
@@ -330,15 +397,15 @@ def _get_channels(
 
 
 def _filter_slack_channels(
-    channels: list[SlackChannelSchema],
+    channels: list[SlackChannel],
     *,
     search_string: str,
     types: Optional[list[SlackChannelTypes]],
     exact_match: bool,
-) -> list[SlackChannelSchema]:
+) -> list[SlackChannel]:
     """Filter a complete Slack channel listing by type and target."""
     if types and len(types) != len(SlackChannelTypes):
-        conditions: list[Callable[[SlackChannelSchema], bool]] = []
+        conditions: list[Callable[[SlackChannel], bool]] = []
         if SlackChannelTypes.PUBLIC in types:
             conditions.append(lambda channel: not channel["is_private"])
         if SlackChannelTypes.PRIVATE in types:
@@ -357,12 +424,12 @@ def _filter_slack_channels(
         for channel in channels
         if any(
             (
-                search.lower() == channel["name"].lower()
-                or search.lower() == channel["id"].lower()
+                search.casefold() == channel["name"].casefold()
+                or search.casefold() == channel["id"].casefold()
                 if exact_match
                 else (
-                    search.lower() in channel["name"].lower()
-                    or search.lower() in channel["id"].lower()
+                    search.casefold() in channel["name"].casefold()
+                    or search.casefold() in channel["id"].casefold()
                 )
             )
             for search in search_array
@@ -379,7 +446,7 @@ def get_channels_with_search(
     cache: bool = True,
     *,
     return_cache_status: Literal[False] = False,
-) -> list[SlackChannelSchema]: ...
+) -> list[SlackChannel]: ...
 
 
 @overload
@@ -391,7 +458,7 @@ def get_channels_with_search(
     cache: bool = True,
     *,
     return_cache_status: Literal[True],
-) -> tuple[list[SlackChannelSchema], bool]: ...
+) -> tuple[list[SlackChannel], bool]: ...
 
 
 def get_channels_with_search(
@@ -402,7 +469,7 @@ def get_channels_with_search(
     cache: bool = True,
     *,
     return_cache_status: bool = False,
-) -> list[SlackChannelSchema] | tuple[list[SlackChannelSchema], bool]:
+) -> list[SlackChannel] | tuple[list[SlackChannel], bool]:
     """
     The slack api is paginated but does not include search, so we need to fetch
     all channels and filter them ourselves
@@ -421,10 +488,10 @@ def get_channels_with_search(
                 cache_timeout=cache_timeout,
             )
     except SlackApiError as ex:
-        error_code = _get_slack_api_error_code(ex)
+        error_code = get_slack_api_error_code(ex)
         error_class = (
             SlackChannelListingError
-            if _is_transient_slack_api_error(ex, error_code)
+            if is_transient_slack_api_error(ex, error_code)
             else SlackChannelListingClientError
         )
         raise error_class(f"Failed to list channels: {ex}") from ex
@@ -451,7 +518,7 @@ def refresh_cached_slack_channels_with_search(
     search_string: str = "",
     types: Optional[list[SlackChannelTypes]] = None,
     exact_match: bool = False,
-) -> list[SlackChannelSchema]:
+) -> list[SlackChannel]:
     """Refresh stale channels with a best-effort cache-backend cooldown.
 
     External cache backends record a cooldown only after the refreshed listing
@@ -477,12 +544,22 @@ def refresh_cached_slack_channels_with_search(
             cache=False,
         )
 
-    if cache_manager.cache.get(cooldown_key) is not None:
-        return get_channels_with_search(
+    try:
+        refresh_is_recent = cache_manager.cache.get(cooldown_key) is not None
+    except Exception:  # pylint: disable=broad-exception-caught
+        refresh_is_recent = False
+        logger.warning(
+            "Could not read Slack channel refresh cooldown; refreshing from Slack",
+            exc_info=True,
+        )
+
+    if refresh_is_recent:
+        channels, _ = _get_channels_with_cache_status()
+        return _filter_slack_channels(
+            channels,
             search_string=search_string,
             types=types,
             exact_match=exact_match,
-            force=False,
         )
 
     refreshed_channels = get_channels_with_search(
@@ -558,7 +635,7 @@ def should_use_v2_api(*, raise_on_error: bool = False) -> bool:
         # failures also fall back for text-only reports, while file-bearing
         # reports request an exception so monitoring retains the system/client
         # classification.
-        error_code = _get_slack_api_error_code(ex)
+        error_code = get_slack_api_error_code(ex)
         if error_code in _SCOPE_MISSING_ERROR_CODES:
             # The DeprecationWarning fires once per process, but the actionable
             # log line fires every send so operators see it in their report logs.
@@ -578,7 +655,7 @@ def should_use_v2_api(*, raise_on_error: bool = False) -> bool:
             if raise_on_error:
                 error_class = (
                     SlackV2ProbeError
-                    if _is_transient_slack_api_error(ex, error_code)
+                    if is_transient_slack_api_error(ex, error_code)
                     else SlackV2ProbeClientError
                 )
                 raise error_class(

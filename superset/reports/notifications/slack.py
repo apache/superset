@@ -36,10 +36,10 @@ from superset.reports.notifications.exceptions import (
     NotificationUnprocessableException,
     SlackV1NotificationError,
 )
-from superset.reports.notifications.slack_mixin import (
+from superset.reports.notifications.slack_mixin import SlackMixin
+from superset.reports.notifications.slack_transport import (
     call_slack_api_with_timeout,
     send_to_slack_channels,
-    SlackMixin,
 )
 from superset.utils import json
 from superset.utils.decorators import statsd_gauge
@@ -65,7 +65,7 @@ SLACK_V1_FILE_UPLOAD_MESSAGE = (
 # fail before attempting the retired v1 upload; only text-only
 # `chat_postMessage` sends still work here. When the Slack bot has the
 # `channels:read` and `groups:read` scopes, existing v1 recipients are
-# auto-upgraded to SlackV2 on first send via `update_report_schedule_slack_v2`.
+# auto-upgraded to SlackV2 on their first eligible send.
 class SlackNotification(SlackMixin, BaseNotification):  # pylint: disable=too-few-public-methods
     """
     Sends a slack notification for a report recipient
@@ -133,8 +133,8 @@ class SlackNotification(SlackMixin, BaseNotification):  # pylint: disable=too-fe
         except SlackTokenRotationError as ex:
             raise NotificationAuthorizationException(str(ex)) from ex
         except SlackClientError as ex:
-            # this is the base class for all slack client errors
-            # keep it last so that it doesn't interfere with @backoff
+            # SlackClientError is the base class; keep it last so subclasses
+            # retain their more specific notification classification.
             raise NotificationUnprocessableException(str(ex)) from ex
 
     @statsd_gauge("reports.slack.send")

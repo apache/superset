@@ -114,6 +114,23 @@ def test_statsd_gauge_ignores_configured_exception() -> None:
     mock.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    ("exception", "expected_metric"),
+    [
+        (ValueError("failure"), "custom.prefix.error"),
+        (WarningError("warning"), "custom.prefix.warning"),
+    ],
+)
+def test_record_statsd_gauge_failure_uses_shared_severity_contract(
+    exception: Exception,
+    expected_metric: str,
+) -> None:
+    with patch("superset.extensions.stats_logger_manager.instance.gauge") as mock:
+        decorators.record_statsd_gauge_failure("custom.prefix", exception)
+
+    mock.assert_called_once_with(expected_metric, 1)
+
+
 @patch("superset.utils.decorators.g")
 def test_context_decorator(flask_g_mock) -> None:
     @decorators.logs_context()

@@ -38,10 +38,11 @@ from superset.exceptions import SupersetException
 from superset.utils.slack import (
     _emit_v1_flag_off_deprecation,
     _emit_v1_scope_missing_deprecation,
-    _is_transient_slack_api_error,
     _SLACK_V1_DEPRECATION_MESSAGE,
+    get_channels,
     get_channels_with_search,
     get_slack_client,
+    is_transient_slack_api_error,
     refresh_cached_slack_channels_with_search,
     should_use_v2_api,
     SlackChannelListingClientError,
@@ -150,6 +151,20 @@ class TestGetChannelsWithSearch:
 
         # Assert that the result is a list with a single channel dictionary
         assert result == [{"name": "general", "id": "C12345"}]
+
+    def test_exact_match_uses_unicode_casefolding(self, mocker) -> None:
+        mock_client = mocker.Mock()
+        mock_client.conversations_list.return_value = MockResponse(
+            {
+                "channels": [{"name": "Straße", "id": "C12345"}],
+                "response_metadata": {"next_cursor": None},
+            }
+        )
+        mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
+
+        result = get_channels_with_search(search_string="STRASSE", exact_match=True)
+
+        assert result == [{"name": "Straße", "id": "C12345"}]
 
     def test_handle_exact_match_search_string_multiple_channels(self, mocker):
         mock_data = {
@@ -373,6 +388,105 @@ The server responded with: missing scope: channels:read"""
             timeout=mocker.ANY,
         )
 
+    def test_cache_read_failure_falls_back_to_live_channels(self, mocker) -> None:
+        live_channels = [{"id": "C2", "name": "live"}]
+        mocker.patch(
+            "superset.utils.slack.cache_manager.cache.get",
+            side_effect=ConnectionError("Redis unavailable"),
+        )
+        channel_fetch = mocker.patch(
+            "superset.utils.slack._get_channels",
+            return_value=live_channels,
+        )
+        cache_set = mocker.patch("superset.utils.slack.cache_manager.cache.set")
+        logger = mocker.patch("superset.utils.slack.logger")
+        mocker.patch(
+            "superset.utils.slack._slack_channel_cache_uses_report_session",
+            return_value=False,
+        )
+
+        channels, used_cache = get_channels_with_search(return_cache_status=True)
+
+        assert channels == live_channels
+        assert used_cache is False
+        channel_fetch.assert_called_once()
+        cache_set.assert_called_once()
+        logger.warning.assert_called_once()
+
+    def test_default_search_cache_read_failure_uses_live_channels(self, mocker) -> None:
+        live_channels = [{"id": "C2", "name": "live"}]
+        mocker.patch(
+            "superset.utils.slack.cache_manager.cache.get",
+            side_effect=ConnectionError("Redis unavailable"),
+        )
+        channel_fetch = mocker.patch(
+            "superset.utils.slack._get_channels",
+            return_value=live_channels,
+        )
+        cache_set = mocker.patch("superset.utils.slack.cache_manager.cache.set")
+        logger = mocker.patch("superset.utils.slack.logger")
+        mocker.patch(
+            "superset.utils.slack._slack_channel_cache_uses_report_session",
+            return_value=False,
+        )
+
+        assert get_channels_with_search() == live_channels
+
+        channel_fetch.assert_called_once()
+        cache_set.assert_called_once()
+        logger.warning.assert_called_once()
+
+    def test_forced_search_cache_write_failure_preserves_live_channels(
+        self, mocker
+    ) -> None:
+        live_channels = [{"id": "C2", "name": "live"}]
+        cache_get = mocker.patch("superset.utils.slack.cache_manager.cache.get")
+        channel_fetch = mocker.patch(
+            "superset.utils.slack._get_channels",
+            return_value=live_channels,
+        )
+        mocker.patch(
+            "superset.utils.slack.cache_manager.cache.set",
+            side_effect=ConnectionError("Redis unavailable"),
+        )
+        logger = mocker.patch("superset.utils.slack.logger")
+        mocker.patch(
+            "superset.utils.slack._slack_channel_cache_uses_report_session",
+            return_value=False,
+        )
+
+        assert get_channels_with_search(force=True) == live_channels
+
+        cache_get.assert_not_called()
+        channel_fetch.assert_called_once()
+        logger.warning.assert_called_once()
+
+    def test_cache_write_failure_preserves_live_channels(self, mocker) -> None:
+        live_channels = [{"id": "C2", "name": "live"}]
+        mocker.patch(
+            "superset.utils.slack.cache_manager.cache.get",
+            return_value=None,
+        )
+        mocker.patch(
+            "superset.utils.slack._get_channels",
+            return_value=live_channels,
+        )
+        mocker.patch(
+            "superset.utils.slack.cache_manager.cache.set",
+            side_effect=ConnectionError("Redis unavailable"),
+        )
+        logger = mocker.patch("superset.utils.slack.logger")
+        mocker.patch(
+            "superset.utils.slack._slack_channel_cache_uses_report_session",
+            return_value=False,
+        )
+
+        channels, used_cache = get_channels_with_search(return_cache_status=True)
+
+        assert channels == live_channels
+        assert used_cache is False
+        logger.warning.assert_called_once()
+
     def test_metastore_cache_miss_fetches_without_cache_write(self, mocker) -> None:
         live_channels = [{"id": "C2", "name": "live"}]
         mocker.patch("superset.utils.slack.cache_manager.cache.get", return_value=None)
@@ -396,6 +510,31 @@ The server responded with: missing scope: channels:read"""
             cache=False,
         )
         cache_set.assert_not_called()
+
+    def test_forced_warmup_writes_metastore_channel_cache(self, mocker) -> None:
+        live_channels = [{"id": "C2", "name": "live"}]
+        channel_fetch = mocker.patch(
+            "superset.utils.slack._get_channels",
+            return_value=live_channels,
+        )
+        cache_set = mocker.patch("superset.utils.slack.cache_manager.cache.set")
+        mocker.patch(
+            "superset.utils.slack._slack_channel_cache_uses_report_session",
+            return_value=True,
+        )
+
+        assert get_channels(force=True, cache_timeout=123) == live_channels
+
+        channel_fetch.assert_called_once_with(
+            "slack_conversations_list",
+            team_id=None,
+            cache=False,
+        )
+        cache_set.assert_called_once_with(
+            "slack_conversations_list",
+            live_channels,
+            timeout=123,
+        )
 
     @pytest.mark.parametrize("cache_set_result", [True, None])
     def test_refreshes_cached_channels_once_per_workspace_cooldown(
@@ -544,21 +683,65 @@ The server responded with: missing scope: channels:read"""
             return_value=False,
         )
         mocker.patch("superset.utils.slack.cache_manager.cache.get", return_value=True)
-        channel_search = mocker.patch(
-            "superset.utils.slack.get_channels_with_search",
-            return_value=[{"id": "C2", "name": "new"}],
+        cached_channels = mocker.patch(
+            "superset.utils.slack._get_channels_with_cache_status",
+            return_value=(
+                [{"id": "C2", "name": "new", "is_private": False}],
+                True,
+            ),
         )
 
         assert refresh_cached_slack_channels_with_search(search_string="new") == [
-            {"id": "C2", "name": "new"}
+            {"id": "C2", "name": "new", "is_private": False}
         ]
 
-        channel_search.assert_called_once_with(
-            search_string="new",
-            types=None,
-            exact_match=False,
-            force=False,
+        cached_channels.assert_called_once_with()
+
+    def test_refresh_cooldown_read_failure_uses_live_channels(self, mocker) -> None:
+        refreshed_channels = [{"id": "C2", "name": "new", "is_private": False}]
+        mocker.patch(
+            "superset.utils.slack._slack_channel_cache_uses_report_session",
+            return_value=False,
         )
+        mocker.patch(
+            "superset.utils.slack.cache_manager.cache.get",
+            side_effect=ConnectionError("Redis unavailable"),
+        )
+        channel_search = mocker.patch(
+            "superset.utils.slack.get_channels_with_search",
+            return_value=refreshed_channels,
+        )
+        logger = mocker.patch("superset.utils.slack.logger")
+
+        assert refresh_cached_slack_channels_with_search(search_string="new") == [
+            {"id": "C2", "name": "new", "is_private": False}
+        ]
+
+        channel_search.assert_called_once_with(force=True, cache=False)
+        logger.warning.assert_called_once()
+
+    def test_recent_refresh_survives_channel_cache_read_failure(self, mocker) -> None:
+        live_channels = [{"id": "C2", "name": "new", "is_private": False}]
+        mocker.patch(
+            "superset.utils.slack._slack_channel_cache_uses_report_session",
+            return_value=False,
+        )
+        cache_get = mocker.patch(
+            "superset.utils.slack.cache_manager.cache.get",
+            side_effect=[True, ConnectionError("Redis unavailable")],
+        )
+        channel_fetch = mocker.patch(
+            "superset.utils.slack._get_channels",
+            return_value=live_channels,
+        )
+        mocker.patch("superset.utils.slack.cache_manager.cache.set")
+
+        assert refresh_cached_slack_channels_with_search(search_string="new") == [
+            {"id": "C2", "name": "new", "is_private": False}
+        ]
+
+        assert cache_get.call_count == 2
+        channel_fetch.assert_called_once()
 
     def test_session_backed_cache_uses_uncached_refresh(self, mocker) -> None:
         mocker.patch(
@@ -695,9 +878,9 @@ The server responded with: missing scope: channels:read"""
 def _reset_v1_warning_caches():
     """Each test sees fresh once-per-process warning state.
 
-    The deprecation emitters are wrapped in `functools.cache` to give
-    thread-safe one-shot semantics in production. Tests need them to fire
-    again, so we clear the cache before and after each case.
+    The deprecation emitters use `functools.cache` to suppress calls after the
+    first one completes. Tests need them to fire again, so we clear the cache
+    before and after each case.
     """
     _emit_v1_flag_off_deprecation.cache_clear()
     _emit_v1_scope_missing_deprecation.cache_clear()
@@ -830,7 +1013,7 @@ class TestShouldUseV2Api:
             response=MockResponse({"ok": False}, status_code=status_code),
         )
 
-        assert _is_transient_slack_api_error(error, "") is True
+        assert is_transient_slack_api_error(error, "") is True
 
     @pytest.mark.parametrize(
         "error_code",

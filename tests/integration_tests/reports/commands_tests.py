@@ -1479,7 +1479,7 @@ def test_email_dashboard_report_schedule_force_screenshot(
 
 
 @pytest.mark.usefixtures("create_report_slack_chart")
-@patch("superset.commands.report.execute.get_channels_with_search")
+@patch("superset.reports.notifications.slack_channel_resolver.get_channels_with_search")
 @patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
 @patch("superset.reports.notifications.slackv2.get_slack_client")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
@@ -1538,7 +1538,7 @@ def test_slack_chart_report_schedule_converts_to_v2(
             statsd_mock.assert_called_once_with("reports.slack.send.ok", 1)
 
 
-@patch("superset.commands.report.execute.get_channels_with_search")
+@patch("superset.reports.notifications.slack_channel_resolver.get_channels_with_search")
 @patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
 @patch("superset.reports.notifications.slackv2.get_slack_client")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
@@ -1599,7 +1599,7 @@ def test_slack_chart_report_schedule_converts_to_v2_channel_with_hash(
     cleanup_report_schedule(report_schedule)
 
 
-@patch("superset.commands.report.execute.get_channels_with_search")
+@patch("superset.reports.notifications.slack_channel_resolver.get_channels_with_search")
 @patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
 @patch("superset.reports.notifications.slackv2.get_slack_client")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
@@ -1904,7 +1904,7 @@ def test_slack_chart_report_schedule_with_text(
     "load_birth_names_dashboard_with_slices", "create_report_slack_chart_with_text"
 )
 @patch(
-    "superset.commands.report.execute.get_channels_with_search",
+    "superset.reports.notifications.slack_channel_resolver.get_channels_with_search",
     return_value=([], False),
 )
 @patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
@@ -1988,7 +1988,7 @@ def test_slack_text_fallback_persists_success_for_multiple_recipient_rows(
     "load_birth_names_dashboard_with_slices", "create_report_slack_chart_with_text"
 )
 @patch(
-    "superset.commands.report.execute.get_channels_with_search",
+    "superset.reports.notifications.slack_channel_resolver.get_channels_with_search",
     return_value=([], False),
 )
 @patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
@@ -2152,7 +2152,7 @@ def test_report_schedule_success_grace(create_alert_slack_chart_success):
 
 
 @pytest.mark.usefixtures("create_alert_slack_chart_grace")
-@patch("superset.commands.report.execute.get_channels_with_search")
+@patch("superset.reports.notifications.slack_channel_resolver.get_channels_with_search")
 @patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
 @patch("superset.reports.notifications.slackv2.get_slack_client")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
@@ -2359,7 +2359,7 @@ def test_slack_chart_alert_no_attachment(email_mock, create_alert_email_chart):
     "load_birth_names_dashboard_with_slices",
     "create_report_slack_chart",
 )
-@patch("superset.commands.report.execute.get_channels_with_search")
+@patch("superset.reports.notifications.slack_channel_resolver.get_channels_with_search")
 @patch("superset.utils.slack.WebClient")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
 def test_slack_token_callable_chart_report(

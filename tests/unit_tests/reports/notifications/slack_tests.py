@@ -18,12 +18,14 @@
 import uuid
 from email.message import Message
 from http.client import RemoteDisconnected
+from inspect import signature
 from typing import Any, TYPE_CHECKING
 from unittest.mock import ANY, call, MagicMock, patch
 from urllib.error import HTTPError, URLError
 
 import pandas as pd
 import pytest
+from slack_sdk import WebClient
 from slack_sdk.errors import (
     BotUserAccessError,
     SlackApiError,
@@ -45,13 +47,16 @@ from superset.reports.notifications.exceptions import (
     NotificationUnprocessableException,
     SlackV1NotificationError,
 )
-from superset.reports.notifications.slack_mixin import (
+from superset.reports.notifications.slack_transport import (
     _give_up_slack_api_retry,
     call_slack_api,
     send_to_slack_channels,
     SlackRetryDeadlineError,
 )
-from superset.reports.notifications.slackv2 import SlackV2Notification
+from superset.reports.notifications.slackv2 import (
+    _upload_file_to_slack,
+    SlackV2Notification,
+)
 from superset.utils.core import HeaderDataType
 from superset.utils.slack import SlackV2ProbeClientError, SlackV2ProbeError
 
@@ -61,13 +66,11 @@ if TYPE_CHECKING:
 
 @pytest.fixture(autouse=True)
 def _skip_backoff_sleep():
-    """Make any @backoff.on_exception retries instant.
+    """Make phase-level Slack retry waits instant.
 
-    SlackV2Notification.send() retries up to 5 times with `backoff.expo(factor=10,
-    base=2)` — that's ~150s of real sleep on a persistently-failing send. We
-    don't care about the wall-clock waits in unit tests; patching `time.sleep`
-    inside backoff's sync runner keeps the assertion semantics (call_count,
-    raised exception type) without the wait.
+    Classified API and transport failures can use exponential backoff, while
+    terminal writes avoid retries for ambiguous outcomes. Unit tests care about
+    attempts and error classification rather than wall-clock delays.
     """
     with patch("time.sleep"):
         yield
@@ -860,6 +863,19 @@ def _configure_v2_upload_client(client: MagicMock) -> MagicMock:
     return client
 
 
+def test_private_upload_helper_matches_installed_sdk_contract() -> None:
+    """The justified private SDK call must remain bindable across allowed versions."""
+    signature(WebClient._upload_file).bind(  # pylint: disable=protected-access
+        object(),
+        url="https://files.slack.com/upload",
+        data=b"report",
+        logger=MagicMock(),
+        timeout=30,
+        proxy=None,
+        ssl=None,
+    )
+
+
 @patch("superset.reports.notifications.slackv2.g")
 @patch("superset.reports.notifications.slackv2.get_slack_client")
 def test_v2_send_with_single_screenshot_uses_three_phase_upload(
@@ -969,7 +985,7 @@ def test_raw_http_rate_limit_respects_zero_retry_config(mocker) -> None:
     )
     method = MagicMock(side_effect=error)
     mocker.patch.dict(
-        "superset.reports.notifications.slack_mixin.app.config",
+        "superset.reports.notifications.slack_transport.app.config",
         {"SLACK_API_RATE_LIMIT_RETRY_COUNT": 0},
     )
 
@@ -991,14 +1007,14 @@ def test_raw_http_rate_limit_respects_shared_deadline(mocker) -> None:
     )
     method = MagicMock(side_effect=error)
     clock = [0.0]
-    sleep = mocker.patch("superset.reports.notifications.slack_mixin.time.sleep")
+    sleep = mocker.patch("superset.reports.notifications.slack_transport.time.sleep")
     sleep.side_effect = lambda duration: clock.__setitem__(0, clock[0] + duration)
     mocker.patch(
-        "superset.reports.notifications.slack_mixin.time.monotonic",
+        "superset.reports.notifications.slack_transport.time.monotonic",
         side_effect=lambda: clock[0],
     )
     mocker.patch.dict(
-        "superset.reports.notifications.slack_mixin.app.config",
+        "superset.reports.notifications.slack_transport.app.config",
         {"SLACK_API_RATE_LIMIT_RETRY_COUNT": 2},
     )
 
@@ -1154,7 +1170,7 @@ def test_v2_upload_does_not_start_completion_after_deadline(
     client = _configure_v2_upload_client(slack_client_mock.return_value)
     clock = [0.0]
     mocker.patch(
-        "superset.reports.notifications.slack_mixin.time.monotonic",
+        "superset.reports.notifications.slack_transport.time.monotonic",
         side_effect=lambda: clock[0],
     )
     mocker.patch(
@@ -1177,6 +1193,31 @@ def test_v2_upload_does_not_start_completion_after_deadline(
     client.files_getUploadURLExternal.assert_called_once()
     client._upload_file.assert_called_once()
     client.files_completeUploadExternal.assert_not_called()
+
+
+def test_raw_upload_timeout_is_clamped_to_remaining_deadline(mocker) -> None:
+    client = _configure_v2_upload_client(MagicMock())
+    client.timeout = 300
+    mocker.patch(
+        "superset.reports.notifications.slack_transport.time.monotonic",
+        return_value=0.0,
+    )
+    mocker.patch(
+        "superset.reports.notifications.slackv2.time.monotonic",
+        return_value=140.0,
+    )
+
+    _upload_file_to_slack(
+        client,
+        channel="C12345",
+        file=b"screenshot",
+        initial_comment="report",
+        title="Report",
+        filename="report.png",
+        retry_deadline=150.0,
+    )
+
+    assert client._upload_file.call_args.kwargs["timeout"] == 10.0
 
 
 @patch("superset.reports.notifications.slackv2.g")
@@ -1534,7 +1575,7 @@ def test_v2_text_send_clamps_timeout_to_shared_deadline(
 
     clock = iter([0.0, 140.0])
     with patch(
-        "superset.reports.notifications.slack_mixin.time.monotonic",
+        "superset.reports.notifications.slack_transport.time.monotonic",
         side_effect=lambda: next(clock, 140.0),
     ):
         if send_fails:
@@ -1629,9 +1670,9 @@ def test_v2_send_does_not_retry_param_errors(
     flask_global_mock: MagicMock,
     mock_header_data,
 ) -> None:
-    """Non-transient errors (config / auth / malformed) are NOT retried — only
-    NotificationUnprocessableException triggers backoff. A
-    NotificationParamException-class failure (BotUserAccessError → 422) hits
+    """Non-transient configuration and authorization errors are not retried.
+
+    A NotificationParamException-class failure (BotUserAccessError → 422) hits
     the API exactly once and surfaces immediately.
     """
     flask_global_mock.logs_context = {}
@@ -1657,7 +1698,7 @@ def _make_slack_response(
 
     The existing retry tests pass ``SlackApiError(response={...})`` — a plain
     dict, which has no ``status_code`` attribute. That makes
-    ``_get_slack_api_status_code`` return ``None`` and the ``429 / 5xx → retry``
+    ``get_slack_api_status_code`` return ``None`` and the ``429 / 5xx → retry``
     branch in ``_give_up_slack_api_retry`` is never exercised. The real SDK hands
     back a ``SlackResponse`` with a populated ``status_code``, so we mirror that
     here to cover the status-code branch faithfully.
@@ -1726,14 +1767,14 @@ def test_call_slack_api_rate_limit_retries_respect_shared_deadline(mocker) -> No
         side_effect=SlackApiError(message="rate limited", response=response)
     )
     clock = [0.0]
-    sleep = mocker.patch("superset.reports.notifications.slack_mixin.time.sleep")
+    sleep = mocker.patch("superset.reports.notifications.slack_transport.time.sleep")
     sleep.side_effect = lambda duration: clock.__setitem__(0, clock[0] + duration)
     mocker.patch(
-        "superset.reports.notifications.slack_mixin.time.monotonic",
+        "superset.reports.notifications.slack_transport.time.monotonic",
         side_effect=lambda: clock[0],
     )
     mocker.patch.dict(
-        "superset.reports.notifications.slack_mixin.app.config",
+        "superset.reports.notifications.slack_transport.app.config",
         {"SLACK_API_RATE_LIMIT_RETRY_COUNT": 2},
     )
 
@@ -1760,7 +1801,7 @@ def test_call_slack_api_rate_limit_budget_spans_server_error_retries(mocker) -> 
     )
     method = MagicMock(side_effect=[rate_limit_error, server_error, rate_limit_error])
     mocker.patch.dict(
-        "superset.reports.notifications.slack_mixin.app.config",
+        "superset.reports.notifications.slack_transport.app.config",
         {"SLACK_API_RATE_LIMIT_RETRY_COUNT": 1},
     )
 
@@ -1809,7 +1850,7 @@ def test_send_to_slack_channels_shares_one_retry_deadline() -> None:
 
     with (
         patch(
-            "superset.reports.notifications.slack_mixin.time.monotonic",
+            "superset.reports.notifications.slack_transport.time.monotonic",
             side_effect=lambda: clock[0],
         ),
         pytest.raises(
@@ -1868,7 +1909,7 @@ def test_call_slack_api_checks_monotonic_deadline_before_each_retry() -> None:
 
     with (
         patch(
-            "superset.reports.notifications.slack_mixin.time.monotonic",
+            "superset.reports.notifications.slack_transport.time.monotonic",
             side_effect=lambda: clock[0],
         ),
         pytest.raises(SlackRetryDeadlineError, match="deadline exceeded"),
@@ -1895,7 +1936,7 @@ def test_call_slack_api_without_explicit_deadline_is_still_bounded() -> None:
 
     with (
         patch(
-            "superset.reports.notifications.slack_mixin.time.monotonic",
+            "superset.reports.notifications.slack_transport.time.monotonic",
             side_effect=lambda: clock[0],
         ),
         pytest.raises(SlackRetryDeadlineError, match="deadline exceeded"),
@@ -1903,6 +1944,55 @@ def test_call_slack_api_without_explicit_deadline_is_still_bounded() -> None:
         call_slack_api(method)
 
     method.assert_called_once_with()
+
+
+@pytest.mark.parametrize(
+    ("configured_budget", "request_timeout", "expected_budget"),
+    [
+        (150, 30, 150),
+        (150, 300, 301),
+        (600, 300, 600),
+    ],
+)
+def test_send_deadline_respects_total_budget_and_request_timeout(
+    mocker,
+    configured_budget: int,
+    request_timeout: int,
+    expected_budget: int,
+) -> None:
+    """The total budget is configurable and cannot neutralize request timeout."""
+    mocker.patch.dict(
+        "superset.reports.notifications.slack_transport.app.config",
+        {
+            "SLACK_SEND_RETRY_MAX_TIME": configured_budget,
+            "SLACK_API_TIMEOUT": request_timeout,
+        },
+    )
+    monotonic = mocker.patch(
+        "superset.reports.notifications.slack_transport.time.monotonic",
+        return_value=10.0,
+    )
+    send = MagicMock()
+
+    send_to_slack_channels(["C1"], send)
+
+    send.assert_called_once_with("C1", 10.0 + expected_budget)
+    assert monotonic.called
+
+
+def test_deadline_error_names_operator_setting() -> None:
+    """Expired sends identify the config knob that controls the total budget."""
+    with (
+        patch(
+            "superset.reports.notifications.slack_transport.time.monotonic",
+            return_value=151.0,
+        ),
+        pytest.raises(
+            SlackRetryDeadlineError,
+            match="SLACK_SEND_RETRY_MAX_TIME",
+        ),
+    ):
+        call_slack_api(MagicMock(), retry_deadline=150.0)
 
 
 @patch("superset.reports.notifications.slackv2.g")
@@ -1929,7 +2019,7 @@ def test_v2_send_uses_configured_application_rate_limit_budget(
     )
 
     with (
-        patch("superset.reports.notifications.slack_mixin.time.sleep"),
+        patch("superset.reports.notifications.slack_transport.time.sleep"),
         pytest.raises(NotificationError, match="C12345"),
     ):
         notification.send()
@@ -2062,7 +2152,7 @@ def test_v2_send_handles_missing_logs_context(
 @patch("superset.reports.notifications.slack.g")
 @patch("superset.utils.slack.get_slack_client")
 @patch("superset.reports.notifications.slack.get_slack_client")
-@patch("superset.commands.report.execute.get_channels_with_search")
+@patch("superset.reports.notifications.slack_channel_resolver.get_channels_with_search")
 def test_auto_upgrade_round_trip_v1_to_v2(
     get_channels_with_search_mock: MagicMock,
     v1_client_mock: MagicMock,
