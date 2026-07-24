@@ -564,6 +564,42 @@ class TestIsErrorResponse:
         assert call_kwargs["curated_payload"]["tool"] == "get_chart_info"
 
 
+class TestExtractOutputIds:
+    """Tests for LoggingMiddleware._extract_output_ids()."""
+
+    def test_returns_none_for_non_json_body(self) -> None:
+        """A malformed/non-JSON response body must not raise -- the
+        defensive try/except should fall back to (None, None)."""
+        middleware = LoggingMiddleware()
+        result = ToolResult(
+            content=[mt.TextContent(type="text", text="not valid json {{{")]
+        )
+        assert middleware._extract_output_ids(result) == (None, None)
+
+    def test_returns_none_for_empty_content(self) -> None:
+        """A ToolResult with no content items must not raise."""
+        middleware = LoggingMiddleware()
+        assert middleware._extract_output_ids(ToolResult(content=[])) == (
+            None,
+            None,
+        )
+
+    def test_returns_none_for_non_dict_json_body(self) -> None:
+        """A JSON body that parses but isn't an object (e.g. a bare
+        list) must not raise and must yield no IDs."""
+        middleware = LoggingMiddleware()
+        result = ToolResult(content=[mt.TextContent(type="text", text="[1, 2, 3]")])
+        assert middleware._extract_output_ids(result) == (None, None)
+
+    def test_extracts_both_ids_from_flat_response(self) -> None:
+        middleware = LoggingMiddleware()
+        response_text = '{"chart_id": 123, "dashboard_id": 456}'
+        result = ToolResult(
+            content=[mt.TextContent(type="text", text=response_text)]
+        )
+        assert middleware._extract_output_ids(result) == (456, 123)
+
+
 class TestMiddlewareChainOrder:
     """Test that the middleware order from server.py logs failures correctly.
 

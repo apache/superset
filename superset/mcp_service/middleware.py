@@ -359,8 +359,10 @@ class LoggingMiddleware(Middleware):
             # response instead so retried creates are distinguishable.
             if success and isinstance(result, ToolResult):
                 output_dashboard_id, output_slice_id = self._extract_output_ids(result)
-                dashboard_id = dashboard_id or output_dashboard_id
-                slice_id = slice_id or output_slice_id
+                if dashboard_id is None:
+                    dashboard_id = output_dashboard_id
+                if slice_id is None:
+                    slice_id = output_slice_id
             payload: dict[str, Any] = {
                 "mcp_call_id": mcp_call_id,
                 "tool": tool_name,
