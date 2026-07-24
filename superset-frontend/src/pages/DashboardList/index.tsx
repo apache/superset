@@ -365,7 +365,7 @@ function DashboardList(props: DashboardListProps) {
         Header: '',
         id: 'id',
         disableSortBy: true,
-        size: 'xs',
+        size: 'sm',
         hidden: !user?.userId,
       },
       {
@@ -397,6 +397,7 @@ function DashboardList(props: DashboardListProps) {
         ),
         Header: t('Name'),
         accessor: 'dashboard_title',
+        size: 'xxxl',
         id: 'dashboard_title',
       },
       {
