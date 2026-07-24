@@ -32,11 +32,20 @@ A new dashboard action exports every chart's data to a single multi-sheet
 requires a running Celery worker and a configured SMTP transport, since the task
 emails the requesting user a pre-signed download link. New config keys:
 `EXCEL_EXPORT_S3_BUCKET`, `EXCEL_EXPORT_S3_KEY_PREFIX`,
-`EXCEL_EXPORT_LINK_TTL_SECONDS`, `EXCEL_EXPORT_S3_CLIENT_KWARGS`, and
-`EXCEL_EXPORT_TABLE_VIZ_TYPES`.
+`EXCEL_EXPORT_LINK_TTL_SECONDS`, `EXCEL_EXPORT_S3_CLIENT_KWARGS`,
+`EXCEL_EXPORT_TABLE_VIZ_TYPES`, and `EXCEL_EXPORT_REBUILD_VIZ_TYPES`.
 
 The feature depends on `boto3`, which is **not** installed by default; install it
 with `pip install apache-superset[excel-export]`.
+
+Charts store their `query_context` only once they have been (re-)saved in
+Explore, so older charts may have none. For a conservative allowlist of viz types
+(`EXCEL_EXPORT_REBUILD_VIZ_TYPES`, default `table`, `big_number_total`,
+`big_number`, `pie`) the export rebuilds a query context from the chart's saved
+form data so those charts still export. The rebuild is a generic single-query
+mapping and does **not** reproduce plugin post-processing (pivot, rolling,
+forecast) or multi-query charts, so any chart of another type without a saved
+query context is skipped and listed in the email for the user to re-save.
 
 A second mode, **Export Images to Excel**, embeds non-table charts as rendered
 images (which viz types stay tabular is controlled by

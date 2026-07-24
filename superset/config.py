@@ -1510,6 +1510,16 @@ EXCEL_EXPORT_S3_CLIENT_KWARGS: dict[str, Any] = {}
 # a rendered image. Set to None to fall back to the built-in default.
 EXCEL_EXPORT_TABLE_VIZ_TYPES: set[str] | None = None
 
+# Viz types whose data export may synthesize a query context from the chart's
+# saved form data when no ``query_context`` was persisted (older charts store
+# ``params`` but not a query context). Restricted to viz types whose data maps
+# faithfully to a single plain query; charts of any other type without a saved
+# query context are skipped and listed for the user to re-save in Explore. The
+# rebuild does not reproduce plugin post-processing (pivot, rolling, forecast) or
+# multi-query charts, so keep this conservative. Set to None to fall back to the
+# built-in default.
+EXCEL_EXPORT_REBUILD_VIZ_TYPES: set[str] | None = None
+
 # ---------------------------------------------------
 # Time grain configurations
 # ---------------------------------------------------

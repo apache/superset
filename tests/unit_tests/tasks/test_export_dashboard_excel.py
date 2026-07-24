@@ -182,6 +182,184 @@ def test_chart_without_query_context_is_skipped(mocks: dict[str, Any]) -> None:
     }
 
 
+@pytest.mark.parametrize(
+    "raw_context",
+    [
+        "",  # blank
+        "null",  # parses to None
+        "{}",  # object with no queries
+        '{"queries": []}',  # object with an empty queries list
+        "not valid json",  # unparseable
+    ],
+)
+def test_chart_with_empty_query_context_is_skipped(
+    mocks: dict[str, Any], raw_context: str
+) -> None:
+    # A present-but-empty/unusable query context is treated the same as a
+    # missing one: the chart is listed under "no query context" and the export
+    # continues, rather than raising mid-export and landing in the general bucket.
+    good = _chart(10, "Good")
+    empty = _chart(20, "Empty")
+    empty.query_context = raw_context
+    mocks["get_charts_in_layout_order"].return_value = [good, empty]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    _run()
+
+    _, kwargs = mocks["email"].build_success_email.call_args
+    assert kwargs["errored"] == {mocks["email"].ERROR_NO_QUERY_CONTEXT: ["20 - Empty"]}
+    # The empty chart is skipped before any query runs; only the good one runs.
+    mocks["ChartDataCommand"].return_value.run.assert_called_once()
+
+
+def test_empty_query_context_rebuilt_from_form_data_for_eligible_viz(
+    mocks: dict[str, Any],
+) -> None:
+    # An eligible viz type (table) with no saved query context is rebuilt from
+    # its form data and exported instead of being skipped.
+    good = _chart(10, "Good")
+    rebuilt = _chart(20, "Rebuilt", viz_type="table")
+    rebuilt.query_context = None
+    rebuilt.params = json.dumps({"groupby": ["country"], "metrics": ["count"]})
+    rebuilt.datasource_id = 5
+    rebuilt.datasource_type = "table"
+    mocks["get_charts_in_layout_order"].return_value = [good, rebuilt]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    _run()
+
+    _, kwargs = mocks["email"].build_success_email.call_args
+    assert kwargs["errored"] == {}
+    # Both charts ran a query (the saved one and the rebuilt one).
+    assert mocks["ChartDataCommand"].return_value.run.call_count == 2
+
+
+def test_empty_query_context_ineligible_viz_is_skipped(
+    mocks: dict[str, Any],
+) -> None:
+    # A viz type outside the rebuild allowlist (mixed_timeseries — a multi-query
+    # chart the generic rebuild can't reproduce) is skipped, not exported wrong.
+    good = _chart(10, "Good")
+    ineligible = _chart(20, "Ineligible", viz_type="mixed_timeseries")
+    ineligible.query_context = None
+    ineligible.params = json.dumps({"groupby": ["x"], "metrics": ["count"]})
+    ineligible.datasource_id = 5
+    mocks["get_charts_in_layout_order"].return_value = [good, ineligible]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    _run()
+
+    _, kwargs = mocks["email"].build_success_email.call_args
+    assert kwargs["errored"] == {
+        mocks["email"].ERROR_NO_QUERY_CONTEXT: ["20 - Ineligible"]
+    }
+    mocks["ChartDataCommand"].return_value.run.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    ("params", "datasource_id"),
+    [
+        ("not valid json", 5),  # params don't parse → cannot rebuild
+        ("null", 5),  # params parse to a non-object → cannot rebuild
+        ('{"groupby": ["x"]}', None),  # no datasource to point the query at
+    ],
+)
+def test_eligible_viz_skipped_when_form_data_unusable(
+    mocks: dict[str, Any], params: str, datasource_id: int | None
+) -> None:
+    # Even for an allowlisted viz type, a rebuild is only attempted when the form
+    # data is a usable object and a datasource is known; otherwise the chart is
+    # skipped rather than raising.
+    good = _chart(10, "Good")
+    bad = _chart(20, "Bad", viz_type="table")
+    bad.query_context = None
+    bad.params = params
+    bad.datasource_id = datasource_id
+    bad.datasource_type = "table"
+    mocks["get_charts_in_layout_order"].return_value = [good, bad]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    _run()
+
+    _, kwargs = mocks["email"].build_success_email.call_args
+    assert kwargs["errored"] == {mocks["email"].ERROR_NO_QUERY_CONTEXT: ["20 - Bad"]}
+    # Only the good chart ran a query; the unusable one never reached execution.
+    mocks["ChartDataCommand"].return_value.run.assert_called_once()
+
+
+def test_rebuilt_query_context_payload_carries_query_shape(
+    mocks: dict[str, Any],
+) -> None:
+    # Assert the actual payload handed to ChartDataQueryContextSchema().load for a
+    # rebuilt chart: columns, filters, ordering and granularity must survive so the
+    # exported data matches the chart (not just that a query ran).
+    chart = _chart(10, "Rebuilt", viz_type="table")
+    chart.query_context = None
+    chart.datasource_id = 5
+    chart.datasource_type = "table"
+    chart.params = json.dumps(
+        {
+            "groupby": ["country"],
+            "metrics": ["count"],
+            "granularity_sqla": "ds",
+            "time_range": "Last quarter",
+            "row_limit": 25,
+            "adhoc_filters": [
+                {
+                    "expressionType": "SIMPLE",
+                    "subject": "year",
+                    "operator": ">",
+                    "comparator": 2000,
+                }
+            ],
+        }
+    )
+    mocks["get_charts_in_layout_order"].return_value = [chart]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    _run()
+
+    load_args = mocks["ChartDataQueryContextSchema"].return_value.load.call_args
+    payload = load_args.args[0]
+    query = payload["queries"][0]
+    assert query["columns"] == ["country"]
+    assert query["metrics"] == ["count"]
+    assert query["filters"] == [{"col": "year", "op": ">", "val": 2000}]
+    assert query["orderby"] == [["count", False]]
+    assert query["granularity"] == "ds"
+    assert query["time_range"] == "Last quarter"
+    assert query["row_limit"] == 25
+
+
+@pytest.mark.parametrize(
+    ("configured", "expected"),
+    [
+        (None, {"table", "big_number_total", "big_number", "pie"}),  # default
+        (set(), set()),  # explicit empty set disables rebuild entirely
+        ({"table"}, {"table"}),  # explicit override
+    ],
+)
+def test_rebuild_viz_types_respects_explicit_empty_set(
+    configured: set[str] | None, expected: set[str]
+) -> None:
+    from superset.tasks import export_dashboard_excel as module
+
+    fake_app = mock.MagicMock()
+    fake_app.config.get.return_value = configured
+    with mock.patch.object(module, "current_app", fake_app):
+        assert module._rebuild_viz_types() == expected
+
+
 def test_chart_query_error_grouped_as_general_export_continues(
     mocks: dict[str, Any],
 ) -> None:
