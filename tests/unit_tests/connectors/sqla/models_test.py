@@ -31,10 +31,12 @@ from superset.connectors.sqla.models import (
 )
 from superset.daos.dataset import DatasetDAO
 from superset.daos.exceptions import DatasourceNotFound
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2RedirectError,
     SupersetDisallowedSQLFunctionException,
     SupersetDisallowedSQLTableException,
+    SupersetParseError,
     SupersetSecurityException,
 )
 from superset.models.core import Database
@@ -1264,3 +1266,86 @@ def test_validate_stored_expression_rejects_subquery_around_jinja(
             None,
             "(SELECT password FROM ab_user LIMIT 1) {# x #}",
         )
+
+
+def test_get_sqla_col_validates_stored_expression_at_query_time(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A stored calculated-column expression must be validated at the query sink,
+    not only at save time. ``get_sqla_col`` routes the expression through
+    ``validate_adhoc_subquery`` so a disallowed sub-query is rejected even when
+    it reaches the query with the save-time check bypassed (templating, the
+    create path, or older data). Locks in the query-time gate.
+    """
+    tc = TableColumn(
+        column_name="leak",
+        expression="(SELECT password FROM ab_user LIMIT 1)",
+    )
+    tc.table = mocker.MagicMock()
+    tc.table.database.backend = "sqlite"
+    spy = mocker.patch(
+        "superset.models.helpers.validate_adhoc_subquery",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                message="Sub-queries are not allowed in stored expressions.",
+                error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        ),
+    )
+    with pytest.raises(SupersetSecurityException):
+        tc.get_sqla_col()
+    spy.assert_called_once()
+
+
+def test_get_timestamp_expression_validates_stored_expression_at_query_time(
+    mocker: MockerFixture,
+) -> None:
+    """
+    The timestamp-expression sink must enforce the same query-time gate as
+    ``get_sqla_col``: a stored datetime column expression is routed through
+    ``validate_adhoc_subquery`` before it reaches ``literal_column``, so a
+    disallowed sub-query is rejected on the time-grained query path too.
+    """
+    tc = TableColumn(
+        column_name="ds",
+        expression="(SELECT ts FROM ab_user LIMIT 1)",
+    )
+    tc.table = mocker.MagicMock()
+    tc.table.database.backend = "sqlite"
+    spy = mocker.patch(
+        "superset.models.helpers.validate_adhoc_subquery",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                message="Sub-queries are not allowed in stored expressions.",
+                error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        ),
+    )
+    with pytest.raises(SupersetSecurityException):
+        tc.get_timestamp_expression(time_grain=None)
+    spy.assert_called_once()
+
+
+def test_get_sqla_col_falls_back_when_stored_expression_unparseable(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A stored expression using dialect-specific syntax that sqlglot cannot parse
+    (e.g. ``DATE_ADD(ds, 1)`` on MySQL) pre-dates the query-time gate and went
+    to the query unparsed. A parse failure must fall back to the raw expression
+    rather than break the query; a genuine sub-query still parses and is caught.
+    """
+    tc = TableColumn(column_name="ds", expression="DATE_ADD(ds, 1)")
+    tc.table = mocker.MagicMock()
+    tc.table.database.backend = "mysql"
+    mocker.patch(
+        "superset.models.helpers.validate_adhoc_subquery",
+        side_effect=SupersetParseError("DATE_ADD(ds, 1)", "mysql"),
+    )
+    literal = mocker.patch("superset.connectors.sqla.models.literal_column")
+    tc.get_sqla_col()
+    # The raw expression reaches ``literal_column`` unchanged; no exception.
+    assert literal.call_args.args[0] == "DATE_ADD(ds, 1)"

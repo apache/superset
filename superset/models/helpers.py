@@ -106,6 +106,7 @@ from superset.exceptions import (
     SupersetDisallowedSQLTableException,
     SupersetErrorException,
     SupersetErrorsException,
+    SupersetParseError,
     SupersetSecurityException,
     SupersetSyntaxErrorException,
 )
@@ -263,6 +264,31 @@ def validate_adhoc_subquery(
     # unnecessary round-tripping through sqlglot can alter dialect-specific
     # syntax.
     return parsed_statement.format() if rls_applied else sql
+
+
+def validate_stored_expression_at_query_time(
+    expression: str,
+    database: Database,
+    catalog: str | None,
+    schema: str,
+    engine: str,
+) -> str:
+    """
+    Validate a stored column/metric expression at the point of use, applying the
+    same sub-query policy and RLS injection as adhoc expressions. The save-time
+    check can be deferred past (Jinja templating, the create path, older data),
+    so the query sink is the reliable place to enforce it.
+
+    Stored expressions can contain dialect-specific syntax sqlglot cannot parse
+    (e.g. ``DATE_ADD(ds, 1)`` on MySQL); such expressions pre-date this gate and
+    went straight to the query unparsed, so a parse failure falls back to the raw
+    expression rather than breaking the query. A genuine sub-query still parses
+    and is caught.
+    """
+    try:
+        return validate_adhoc_subquery(expression, database, catalog, schema, engine)
+    except SupersetParseError:
+        return expression
 
 
 def json_to_dict(json_str: str) -> dict[Any, Any]:
@@ -3445,6 +3471,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
             return ValidationResultDict(valid=True, errors=[])
 
+    def _validate_stored_expression(self, expression: str) -> str:
+        return validate_stored_expression_at_query_time(
+            expression,
+            self.database,
+            self.catalog,
+            self.schema or "",
+            self.db_engine_spec.engine,
+        )
+
     def get_timestamp_expression(
         self,
         column: dict[str, Any],
@@ -3468,6 +3503,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         if template_processor:
             expression = template_processor.process_template(column["column_name"])
+            expression = self._validate_stored_expression(expression)
             col = sa.literal_column(expression, type_=type_)
 
         time_expr = self.db_engine_spec.get_timestamp_expr(col, None, time_grain)
@@ -3488,6 +3524,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if expression := tbl_column.expression:
             if template_processor:
                 expression = template_processor.process_template(expression)
+            expression = self._validate_stored_expression(expression)
             col = literal_column(expression, type_=type_)
         else:
             col = sa.column(tbl_column.column_name, type_=type_)
