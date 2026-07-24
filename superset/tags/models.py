@@ -235,7 +235,7 @@ class ObjectUpdater:
         connection: Connection,
         target: Dashboard | FavStar | Slice | Query | SqlaTable,
     ) -> None:
-        with Session(bind=connection, future=True) as session:  # pylint: disable=disallowed-name
+        with Session(bind=connection) as session:  # pylint: disable=disallowed-name
             # add `editor:` tags
             cls._add_editors(session, target)
 
@@ -253,7 +253,7 @@ class ObjectUpdater:
         connection: Connection,
         target: Dashboard | FavStar | Slice | Query | SqlaTable,
     ) -> None:
-        with Session(bind=connection, future=True) as session:  # pylint: disable=disallowed-name
+        with Session(bind=connection) as session:  # pylint: disable=disallowed-name
             # Fetch current editor tags
             existing_tags = (
                 session.query(TaggedObject)
@@ -292,7 +292,7 @@ class ObjectUpdater:
         connection: Connection,
         target: Dashboard | FavStar | Slice | Query | SqlaTable,
     ) -> None:
-        with Session(bind=connection, future=True) as session:  # pylint: disable=disallowed-name
+        with Session(bind=connection) as session:  # pylint: disable=disallowed-name
             # delete row from `tagged_objects`
             session.query(TaggedObject).filter(
                 TaggedObject.object_type == cls.object_type,
@@ -345,7 +345,7 @@ class FavStarUpdater:
     def after_insert(
         cls, _mapper: Mapper, connection: Connection, target: FavStar
     ) -> None:
-        with Session(bind=connection, future=True) as session:  # pylint: disable=disallowed-name
+        with Session(bind=connection) as session:  # pylint: disable=disallowed-name
             name = f"favorited_by:{target.user_id}"
             tag = get_tag(name, session, TagType.favorited_by)
             tagged_object = TaggedObject(
@@ -360,7 +360,7 @@ class FavStarUpdater:
     def after_delete(
         cls, _mapper: Mapper, connection: Connection, target: FavStar
     ) -> None:
-        with Session(bind=connection, future=True) as session:  # pylint: disable=disallowed-name
+        with Session(bind=connection) as session:  # pylint: disable=disallowed-name
             name = f"favorited_by:{target.user_id}"
             query = (
                 session.query(TaggedObject.id)
