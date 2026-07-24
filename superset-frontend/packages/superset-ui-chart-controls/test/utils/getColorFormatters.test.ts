@@ -1009,3 +1009,19 @@ test('should return solid hex color when useGradient is false or true', () => {
   expect(colorFormatters[1].column).toEqual('count');
   expect(colorFormatters[1].getColorFromValue(100)).toEqual('#ffa600FF');
 });
+
+test('should return hex color when colorScheme is an RGB object', () => {
+  const config = {
+    operator: Comparator.GreaterThan,
+    targetValue: 50,
+    colorScheme: { r: 255, g: 0, b: 0, a: 1 },
+    useGradient: true,
+  };
+
+  const columnValues = [10, 50, 100];
+
+  const alpha = false;
+  const colorFunction = getColorFunction(config, columnValues, alpha);
+
+  expect(colorFunction(100)).toEqual('#ff0000');
+});
