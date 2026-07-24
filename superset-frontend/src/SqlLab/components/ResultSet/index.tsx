@@ -627,7 +627,11 @@ const ResultSet = ({
       ...(query.extra?.errors || []),
       ...(query.errors || []),
     ].filter(error => {
-      const key = JSON.stringify(error);
+      // json-bigint parsing can leave native BigInt values in payloads,
+      // which JSON.stringify rejects; serialize them as strings.
+      const key = JSON.stringify(error, (_, value) =>
+        typeof value === 'bigint' ? value.toString() : value,
+      );
       if (seenErrors.has(key)) {
         return false;
       }
