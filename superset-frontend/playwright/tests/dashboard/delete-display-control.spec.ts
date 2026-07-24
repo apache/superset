@@ -175,6 +175,7 @@ testWithAssets(
     await dashboardPage.gotoById(dashboardId);
     await dashboardPage.waitForLoad({ timeout: 30000 });
     await dashboardPage.waitForChartsToLoad({ timeout: 8000 }).catch(() => {});
+    const filterBar = await dashboardPage.getFilterBar();
 
     // Both the Gender filter and the Time grain Display Control should render.
     await expect(dashboardPage.getDisplayControlsHeader()).toBeVisible();
@@ -184,7 +185,7 @@ testWithAssets(
     await shot('01-initial-bar');
 
     // 4. Open the filters config modal via the settings gear.
-    const modal = await dashboardPage.openNativeFiltersConfigModal();
+    const modal = await filterBar.openNativeFiltersConfigModal();
     await shot('02-modal-open');
 
     // 5. Delete the "Time grain" Display Control in the modal sidebar.
@@ -210,7 +211,7 @@ testWithAssets(
     );
 
     // 7. Click Apply Filters.
-    await dashboardPage.applyFiltersIfEnabled();
+    await filterBar.applyIfEnabled();
     await dashboardPage.waitForChartsToLoad({ timeout: 8000 }).catch(() => {});
     await page.waitForTimeout(1500);
     await shot('05-after-apply');

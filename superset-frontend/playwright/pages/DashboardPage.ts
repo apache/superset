@@ -20,7 +20,6 @@
 import { Page, Download, Locator } from '@playwright/test';
 import { Menu } from '../components/core';
 import { DashboardFilterBar } from '../components/dashboard';
-import { NativeFiltersConfigModal } from '../components/modals';
 import { gotoWithRetry } from '../helpers/navigation';
 import { TIMEOUT } from '../utils/constants';
 
@@ -36,7 +35,6 @@ export class DashboardPage {
     DASHBOARD_MENU_TRIGGER: '[data-test="actions-trigger"]',
     // The header-actions-menu is the data-test for the dropdown menu content
     HEADER_ACTIONS_MENU: '[data-test="header-actions-menu"]',
-    FILTER_BAR_SETTINGS: '[data-test="filterbar-orientation-icon"]',
   } as const;
 
   constructor(page: Page) {
@@ -120,29 +118,9 @@ export class DashboardPage {
   /**
    * Gets the dashboard native-filter bar component.
    */
-  getFilterBar(): DashboardFilterBar {
+  async getFilterBar(): Promise<DashboardFilterBar> {
+    await this.filterBar.waitForVisible();
     return this.filterBar;
-  }
-
-  /**
-   * Opens the native filters and Display Controls configuration modal.
-   */
-  async openNativeFiltersConfigModal(): Promise<NativeFiltersConfigModal> {
-    await this.page.click(DashboardPage.SELECTORS.FILTER_BAR_SETTINGS);
-    await this.page
-      .getByText('Add or edit filters and controls', { exact: true })
-      .click();
-
-    const modal = new NativeFiltersConfigModal(this.page);
-    await modal.waitForVisible();
-    return modal;
-  }
-
-  /**
-   * Applies pending native filter changes when the Apply button is enabled.
-   */
-  async applyFiltersIfEnabled(): Promise<void> {
-    await this.filterBar.applyIfEnabled();
   }
 
   /**

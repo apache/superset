@@ -149,7 +149,7 @@ testWithAssets(
     await dashboardPage.gotoById(dashboardId);
     await dashboardPage.waitForLoad({ timeout: TIMEOUT.SLOW_TEST });
     await dashboardPage.waitForChartsToLoad();
-    const filterBar = dashboardPage.getFilterBar();
+    const filterBar = await dashboardPage.getFilterBar();
 
     // The Gender select should be visible in the filter bar
     await filterBar.selectOption('boy');

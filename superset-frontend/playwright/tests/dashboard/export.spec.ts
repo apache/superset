@@ -39,7 +39,7 @@ const downloads: { delete: () => Promise<void> }[] = [];
 
 test.describe('Dashboard Export', () => {
   // Dashboard with multiple charts needs extra time for cold-cache CI runs:
-  // waitForLoad (10s) + waitForChartsToLoad (15s) + menu + download + toast
+  // waitForLoad (15s) + waitForChartsToLoad (30s) + menu + download + toast
   test.setTimeout(60_000);
 
   test.beforeEach(async ({ page }) => {
@@ -49,7 +49,7 @@ test.describe('Dashboard Export', () => {
     await dashboardPage.gotoBySlug('world_health');
     await dashboardPage.waitForLoad({ timeout: TIMEOUT.PAGE_LOAD });
     // Wait for charts to finish loading - Download menu may be disabled while loading
-    await dashboardPage.waitForChartsToLoad({ timeout: 30_000 });
+    await dashboardPage.waitForChartsToLoad({ timeout: TIMEOUT.CHART_LOAD });
   });
 
   test.afterEach(async () => {

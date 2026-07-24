@@ -37,7 +37,12 @@ export const TIMEOUT = {
   /**
    * Page navigation and load timeouts
    */
-  PAGE_LOAD: 10000, // 10s for page transitions (login → welcome, dataset → explore)
+  PAGE_LOAD: 15000, // 15s for page transitions (login → welcome, dataset → explore)
+
+  /**
+   * Dashboard chart loading after navigation
+   */
+  CHART_LOAD: 30000, // 30s for cold-cache chart rendering
 
   /**
    * Form and UI element load timeouts

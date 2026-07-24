@@ -19,22 +19,35 @@
 
 import { Page } from '@playwright/test';
 import { Button, Select } from '../core';
+import { NativeFiltersConfigModal } from '../modals';
 
 /**
  * Dashboard native-filter bar component.
  */
 export class DashboardFilterBar {
   private static readonly SELECTORS = {
+    ROOT: '[data-test="filter-bar"]',
     FILTER_VALUE: '[data-test="form-item-value"]',
-    APPLY_BUTTON:
-      '[data-test="filter-bar__apply-button"], [data-test="filterbar-action-buttons"] button[type="submit"]',
+    APPLY_BUTTON: '[data-test="filter-bar__apply-button"]',
     CLEAR_BUTTON: '[data-test="filter-bar__clear-button"]',
+    SETTINGS_BUTTON: '[data-test="filterbar-orientation-icon"]',
   } as const;
 
   constructor(private readonly page: Page) {}
 
   /**
-   * Selects an option in a native filter by its zero-based position.
+   * Waits for the filter bar to become visible.
+   */
+  async waitForVisible(options?: { timeout?: number }): Promise<void> {
+    await this.page
+      .locator(DashboardFilterBar.SELECTORS.ROOT)
+      .waitFor({ state: 'visible', ...options });
+  }
+
+  /**
+   * Selects an option in a native filter.
+   * @param optionText - The option text to select.
+   * @param index - The zero-based position of the filter.
    */
   async selectOption(optionText: string, index = 0): Promise<void> {
     const select = new Select(
@@ -78,10 +91,21 @@ export class DashboardFilterBar {
     ).click();
   }
 
+  /**
+   * Opens the native filters and Display Controls configuration modal.
+   */
+  async openNativeFiltersConfigModal(): Promise<NativeFiltersConfigModal> {
+    await this.page.click(DashboardFilterBar.SELECTORS.SETTINGS_BUTTON);
+    await this.page
+      .getByText('Add or edit filters and controls', { exact: true })
+      .click();
+
+    const modal = new NativeFiltersConfigModal(this.page);
+    await modal.waitForVisible();
+    return modal;
+  }
+
   private getApplyButton(): Button {
-    return new Button(
-      this.page,
-      this.page.locator(DashboardFilterBar.SELECTORS.APPLY_BUTTON).first(),
-    );
+    return new Button(this.page, DashboardFilterBar.SELECTORS.APPLY_BUTTON);
   }
 }
