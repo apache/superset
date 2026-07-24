@@ -86,7 +86,7 @@ class DataFusionEngineSpec(BaseEngineSpec):
 
         if isinstance(sqla_type, types.Date):
             return f"TO_DATE('{dttm.date().isoformat()}', 'YYYY-MM-DD')"
-        if isinstance(sqla_type, types.TIMESTAMP):
+        if isinstance(sqla_type, types.DateTime):
             dttm_formatted = dttm.isoformat(sep=" ", timespec="milliseconds")
             return f"""TO_TIMESTAMP('{dttm_formatted}', 'YYYY-MM-DD HH24:MI:SS.FFF')"""
         return None

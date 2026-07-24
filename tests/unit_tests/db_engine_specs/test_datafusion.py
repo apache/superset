@@ -28,6 +28,10 @@ from tests.unit_tests.fixtures.common import dttm  # noqa: F401
     [
         ("Date", "TO_DATE('2019-01-02', 'YYYY-MM-DD')"),
         (
+            "DateTime",
+            "TO_TIMESTAMP('2019-01-02 03:04:05.678', 'YYYY-MM-DD HH24:MI:SS.FFF')",
+        ),
+        (
             "TimeStamp",
             "TO_TIMESTAMP('2019-01-02 03:04:05.678', 'YYYY-MM-DD HH24:MI:SS.FFF')",
         ),
