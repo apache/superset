@@ -32,8 +32,10 @@ from superset.utils.oauth2 import (
     encode_oauth2_state,
     generate_code_challenge,
     generate_code_verifier,
+    get_access_token_for_database,
     get_oauth2_access_token,
     get_oauth2_redirect_uri,
+    get_upstream_provider_token,
     refresh_oauth2_token,
 )
 
@@ -495,6 +497,138 @@ def test_get_oauth2_access_token_lock_not_acquired_no_error_log(
 
     assert result is None
     assert not any(record.levelno >= logging.ERROR for record in caplog.records)
+
+
+# ---- Upstream provider token tests ----
+
+
+def test_get_upstream_provider_token_valid(mocker: MockerFixture) -> None:
+    """
+    Test `get_upstream_provider_token` returns the access token when it is valid.
+    """
+    db = mocker.patch("superset.utils.oauth2.db")
+    token = mocker.MagicMock()
+    token.access_token = "valid-token"  # noqa: S105
+    token.access_token_expiration = datetime(2024, 1, 2)
+    db.session.query().filter_by().one_or_none.return_value = token
+
+    with freeze_time("2024-01-01"):
+        result = get_upstream_provider_token("keycloak", 1)
+
+    assert result == "valid-token"
+
+
+def test_get_upstream_provider_token_expired_no_refresh(mocker: MockerFixture) -> None:
+    """
+    Test `get_upstream_provider_token` deletes the record and returns None when
+    the token is expired and there is no refresh token.
+    """
+    db = mocker.patch("superset.utils.oauth2.db")
+    token = mocker.MagicMock()
+    token.access_token = "expired-token"  # noqa: S105
+    token.access_token_expiration = datetime(2024, 1, 1)
+    token.refresh_token = None
+    db.session.query().filter_by().one_or_none.return_value = token
+
+    with freeze_time("2024-01-02"):
+        result = get_upstream_provider_token("keycloak", 1)
+
+    assert result is None
+    db.session.delete.assert_called_once_with(token)
+    db.session.commit.assert_called_once()
+
+
+def test_get_upstream_provider_token_expired_calls_refresh(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test `get_upstream_provider_token` calls the refresh path when the token
+    is expired but a refresh token is present.
+    """
+    db = mocker.patch("superset.utils.oauth2.db")
+    token = mocker.MagicMock()
+    token.access_token = "expired-token"  # noqa: S105
+    token.access_token_expiration = datetime(2024, 1, 1)
+    token.refresh_token = "refresh-tok"  # noqa: S105
+    db.session.query().filter_by().one_or_none.return_value = token
+
+    refresh_mock = mocker.patch(
+        "superset.utils.oauth2._refresh_upstream_provider_token",
+        return_value="new-token",
+    )
+
+    with freeze_time("2024-01-02"):
+        result = get_upstream_provider_token("keycloak", 1)
+
+    assert result == "new-token"
+    refresh_mock.assert_called_once_with(token, "keycloak")
+
+
+# ---- get_access_token_for_database tests ----
+
+
+def test_get_access_token_for_database_upstream_provider(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that `get_access_token_for_database` uses the upstream provider token
+    when ``oauth2_upstream_provider`` is set in extra.
+    """
+    database = mocker.MagicMock()
+    database.get_extra.return_value = {
+        "oauth2_upstream_provider": "keycloak",
+    }
+
+    upstream_mock = mocker.patch(
+        "superset.utils.oauth2.get_upstream_provider_token",
+        return_value="upstream-token",
+    )
+
+    result = get_access_token_for_database(database, user_id=1)
+
+    assert result == "upstream-token"
+    upstream_mock.assert_called_once_with("keycloak", 1)
+    database.get_oauth2_config.assert_not_called()
+
+
+def test_get_access_token_for_database_db_specific_oauth2(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that `get_access_token_for_database` falls back to database-specific
+    OAuth2 when no upstream provider is configured.
+    """
+    database = mocker.MagicMock()
+    database.get_extra.return_value = {}
+    database.get_oauth2_config.return_value = {"id": "client-id"}
+    database.id = 42
+    database.db_engine_spec = mocker.MagicMock()
+
+    oauth2_mock = mocker.patch(
+        "superset.utils.oauth2.get_oauth2_access_token",
+        return_value="db-token",
+    )
+
+    result = get_access_token_for_database(database, user_id=1)
+
+    assert result == "db-token"
+    oauth2_mock.assert_called_once_with(
+        {"id": "client-id"}, 42, 1, database.db_engine_spec
+    )
+
+
+def test_get_access_token_for_database_no_oauth(mocker: MockerFixture) -> None:
+    """
+    Test that `get_access_token_for_database` returns None when neither upstream
+    provider nor database-specific OAuth2 is configured.
+    """
+    database = mocker.MagicMock()
+    database.get_extra.return_value = {}
+    database.get_oauth2_config.return_value = None
+
+    result = get_access_token_for_database(database, user_id=1)
+
+    assert result is None
 
 
 def test_get_oauth2_redirect_uri_from_config(mocker: MockerFixture) -> None:
