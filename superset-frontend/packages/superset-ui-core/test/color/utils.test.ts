@@ -22,6 +22,8 @@ import {
   addAlpha,
   hexToRgb,
   rgbToHex,
+  rgbaToHex,
+  forceHexAlpha,
 } from '@superset-ui/core';
 
 describe('color utils', () => {
@@ -104,6 +106,42 @@ describe('color utils', () => {
     });
     test('convert rgb to hex - black', () => {
       expect(rgbToHex(0, 0, 0)).toBe('#000000');
+    });
+  });
+  describe('rgbaToHex', () => {
+    test('omits the alpha channel for opaque colors', () => {
+      expect(rgbaToHex({ r: 255, g: 0, b: 0 })).toBe('#ff0000');
+      expect(rgbaToHex({ r: 255, g: 0, b: 0, a: 1 })).toBe('#ff0000');
+    });
+    test('appends the alpha channel for translucent colors', () => {
+      expect(rgbaToHex({ r: 0, g: 150, b: 0, a: 0.2 })).toBe('#00960033');
+      expect(rgbaToHex({ r: 0, g: 0, b: 0, a: 0.5 })).toBe('#00000080');
+    });
+    test('fully transparent colors keep an explicit 00 alpha', () => {
+      expect(rgbaToHex({ r: 255, g: 255, b: 255, a: 0 })).toBe('#ffffff00');
+    });
+    test('zero-pads single-digit channels', () => {
+      expect(rgbaToHex({ r: 1, g: 2, b: 3 })).toBe('#010203');
+    });
+    test('rounds fractional channel values', () => {
+      expect(rgbaToHex({ r: 254.6, g: 0.4, b: 0 })).toBe('#ff0000');
+    });
+  });
+  describe('forceHexAlpha', () => {
+    test('appends 60% alpha to a 6-digit hex string', () => {
+      expect(forceHexAlpha('#ff0000')).toBe('#ff000099');
+    });
+    test('adds the # prefix when missing', () => {
+      expect(forceHexAlpha('ff0000')).toBe('#ff000099');
+    });
+    test('replaces the existing alpha on an 8-digit hex string', () => {
+      expect(forceHexAlpha('#ff000033')).toBe('#ff000099');
+    });
+    test('converts an RGBColor object using 60% alpha', () => {
+      expect(forceHexAlpha({ r: 255, g: 0, b: 0 })).toBe('#ff000099');
+    });
+    test('overrides the alpha of a translucent RGBColor object', () => {
+      expect(forceHexAlpha({ r: 0, g: 150, b: 0, a: 0.2 })).toBe('#00960099');
     });
   });
 });

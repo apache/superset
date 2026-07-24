@@ -17,6 +17,7 @@
  * under the License.
  */
 import tinycolor from 'tinycolor2';
+import { type RGBColor } from '@superset-ui/core/components';
 
 const rgbRegex = /^rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/;
 export function getContrastingColor(color: string, thresholds = 186) {
@@ -120,3 +121,30 @@ export function rgbToHex(red: number, green: number, blue: number) {
 
   return `#${r}${g}${b}`;
 }
+
+export function rgbaToHex(rgb: RGBColor): string {
+  const { r, g, b, a = 1 } = rgb;
+  const toHex = (value: number) => {
+    const hex = Math.round(value).toString(16);
+    return hex.length === 1 ? `0${hex}` : hex;
+  };
+  const hexColor = `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+  if (a !== 1) {
+    return `${hexColor}${toHex(Math.round(a * 255))}`;
+  }
+  return hexColor;
+}
+
+export const forceHexAlpha = (color: string | RGBColor): string => {
+  if (typeof color === 'object' && color !== null) {
+    return rgbaToHex({ ...color, a: 0.6 });
+  }
+
+  const hex = color.startsWith('#') ? color : `#${color}`;
+
+  if (hex.length === 9) {
+    return `${hex.slice(0, -2)}99`;
+  }
+
+  return `${hex}99`;
+};

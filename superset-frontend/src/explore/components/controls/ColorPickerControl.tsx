@@ -16,62 +16,140 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getCategoricalSchemeRegistry } from '@superset-ui/core';
+import { useMemo } from 'react';
+import { getCategoricalSchemeRegistry, rgbaToHex } from '@superset-ui/core';
 import {
   ColorPicker,
   type RGBColor,
   type ColorValue,
 } from '@superset-ui/core/components';
 import ControlHeader from '../ControlHeader';
+import { useTheme } from '@apache-superset/core/theme';
+
+const SPECIAL_COLORS = {
+  Red: { r: 150, g: 0, b: 0, a: 0.2 },
+  Green: { r: 0, g: 150, b: 0, a: 0.2 },
+} as const;
+
+type SpecialColorKey = keyof typeof SPECIAL_COLORS;
+export type ColorPickerValue = RGBColor | SpecialColorKey | string;
 
 export interface ColorPickerControlProps {
-  onChange?: (color: RGBColor) => void;
-  value?: RGBColor;
+  onChange?: (color: ColorPickerValue) => void;
+  value?: ColorPickerValue;
   name?: string;
   label?: string;
   description?: string;
   renderTrigger?: boolean;
   hovered?: boolean;
   warning?: string;
+  presets?: { label: string; colors: string[] }[];
 }
 
-function rgbToHex(rgb: RGBColor): string {
-  const { r, g, b, a = 1 } = rgb;
-  const toHex = (value: number) => {
-    const hex = Math.round(value).toString(16);
-    return hex.length === 1 ? `0${hex}` : hex;
-  };
+const getReverseThemeColorMap = (
+  themeColors: Record<string, any>,
+): Record<string, string> => {
+  const reverseMap: Record<string, string> = {};
+  if (!themeColors) return reverseMap;
 
-  const hexColor = `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+  Object.entries(themeColors).forEach(([name, value]) => {
+    if (typeof value === 'string') {
+      reverseMap[value.toLowerCase()] = name;
+    }
+  });
 
-  if (a !== undefined && a !== 1) {
-    return `${hexColor}${toHex(Math.round(a * 255))}`;
+  return reverseMap;
+};
+
+function toDisplayHex(
+  value: ColorPickerValue | undefined,
+  themeColors: Record<string, string>,
+): string | undefined {
+  if (!value) return undefined;
+
+  if (typeof value === 'string') {
+    if (value in SPECIAL_COLORS) {
+      return rgbaToHex(SPECIAL_COLORS[value as SpecialColorKey]).toLowerCase();
+    }
+    if (themeColors && value in themeColors) {
+      return themeColors[value].toLowerCase();
+    }
+    return value.toLowerCase();
   }
 
-  return hexColor;
+  return rgbaToHex(value).toLowerCase();
 }
 
 export default function ColorPickerControl({
   onChange,
   value,
+  presets: customPresets,
   ...headerProps
 }: ColorPickerControlProps) {
   const categoricalScheme = getCategoricalSchemeRegistry().get();
-  const presetColors = categoricalScheme?.colors.slice(0, 9) || [];
+  const defaultPresets = categoricalScheme?.colors.slice(0, 9) || [];
+  const theme = useTheme();
+
+  const themeColors = useMemo<Record<string, string>>(
+    () => (theme as any)?.colors || theme || {},
+    [theme],
+  );
+
+  const reverseMap = useMemo(
+    () => getReverseThemeColorMap(themeColors),
+    [themeColors],
+  );
+
+  const presets = useMemo(() => {
+    if (customPresets) {
+      return customPresets.map(item => ({
+        label: item.label,
+        colors: item.colors.map(color => {
+          if (color in SPECIAL_COLORS) {
+            return rgbaToHex(
+              SPECIAL_COLORS[color as SpecialColorKey],
+            ).toLowerCase();
+          }
+          if (themeColors && color in themeColors) {
+            return themeColors[color].toLowerCase();
+          }
+          return String(color).toLowerCase();
+        }),
+      }));
+    }
+
+    return [
+      {
+        label: 'Theme colors',
+        colors: defaultPresets.map(c => String(c).toLowerCase()),
+      },
+    ];
+  }, [customPresets, themeColors, defaultPresets]);
 
   const handleChange = (color: ColorValue) => {
-    if (onChange) {
-      const rgb = color.toRgb();
-      onChange({
-        r: rgb.r,
-        g: rgb.g,
-        b: rgb.b,
-        a: rgb.a,
-      });
+    if (!onChange) return;
+
+    const rgb = color.toRgb();
+    const hex = rgbaToHex(rgb).toLowerCase();
+
+    const specialEntry = Object.entries(SPECIAL_COLORS).find(
+      ([, rgba]) => rgbaToHex(rgba).toLowerCase() === hex,
+    );
+
+    if (specialEntry) {
+      onChange(specialEntry[0] as SpecialColorKey);
+      return;
     }
+
+    if (reverseMap[hex]) {
+      onChange(reverseMap[hex]);
+      return;
+    }
+
+    onChange(rgb);
   };
 
-  const hexValue = value ? rgbToHex(value) : undefined;
+  const hexValue = toDisplayHex(value, themeColors);
 
   return (
     <div>
@@ -79,7 +157,7 @@ export default function ColorPickerControl({
       <ColorPicker
         value={hexValue}
         onChangeComplete={handleChange}
-        presets={[{ label: 'Theme colors', colors: presetColors }]}
+        presets={presets}
         showText
       />
     </div>
