@@ -3460,6 +3460,11 @@ CalHeatMap.prototype = {
     this.tip.destroy();
     this.legendTip.destroy();
 
+    // init() can fail validation before creating the calendar root.
+    if (!this.root) {
+      return null;
+    }
+
     this.root
       .transition()
       .duration(this.options.animationDuration)

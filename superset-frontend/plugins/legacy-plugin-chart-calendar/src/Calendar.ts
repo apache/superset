@@ -95,6 +95,7 @@ function Calendar(element: HTMLElement, props: CalendarProps) {
 
   const tooltipClassName = getCalendarTooltipClassName(element);
   const instances: CalHeatMapInstance[] = [];
+  calendarInstances.set(element, instances);
 
   const container = d3Select(element)
     .classed('superset-legacy-chart-calendar', true)
@@ -136,6 +137,7 @@ function Calendar(element: HTMLElement, props: CalendarProps) {
     const legendColors = legend.map(x => colorScale(x));
 
     const cal = new CalHeatMap();
+    instances.push(cal);
     cal.init({
       start: convertUTCTimestampToLocal(data.start),
       data: timestamps,
@@ -166,12 +168,7 @@ function Calendar(element: HTMLElement, props: CalendarProps) {
       timeFormatter,
       subDomainTextFormat,
     });
-    instances.push(cal);
   });
-
-  if (instances.length > 0) {
-    calendarInstances.set(element, instances);
-  }
 }
 
 Calendar.displayName = 'Calendar';

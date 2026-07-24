@@ -23,6 +23,11 @@ import {
   removeDisconnectedCalendarTooltips,
 } from '../src/tooltip';
 
+const createSVGPointDescriptor = Object.getOwnPropertyDescriptor(
+  window.SVGSVGElement.prototype,
+  'createSVGPoint',
+);
+
 function createCalendarTooltip(className: string) {
   const tooltip = document.createElement('div');
   tooltip.className = `d3-tip ${CALENDAR_TOOLTIP_CLASS} ${className}`;
@@ -30,7 +35,40 @@ function createCalendarTooltip(className: string) {
   return tooltip;
 }
 
+function installCreateSVGPointMock() {
+  Object.defineProperty(window.SVGSVGElement.prototype, 'createSVGPoint', {
+    configurable: true,
+    value: () => ({
+      matrixTransform: () => ({ x: 0, y: 0 }),
+    }),
+  });
+}
+
+function restoreCreateSVGPointMock() {
+  if (createSVGPointDescriptor) {
+    Object.defineProperty(
+      window.SVGSVGElement.prototype,
+      'createSVGPoint',
+      createSVGPointDescriptor,
+    );
+  } else {
+    delete window.SVGSVGElement.prototype.createSVGPoint;
+  }
+}
+
+function flushPendingTimersIfNeeded() {
+  try {
+    jest.runOnlyPendingTimers();
+  } catch {
+    // Ignore tests that did not opt into fake timers.
+  }
+}
+
 afterEach(() => {
+  flushPendingTimersIfNeeded();
+  jest.useRealTimers();
+  jest.resetModules();
+  restoreCreateSVGPointMock();
   document.body.innerHTML = '';
 });
 
@@ -123,6 +161,9 @@ test('reused calendar owners are re-armed for disconnected tooltip cleanup', () 
 });
 
 test('CalHeatMap tags tips per instance without removing other mounted calendars', () => {
+  jest.useFakeTimers();
+  installCreateSVGPointMock();
+
   const firstCalendar = document.createElement('div');
   const secondCalendar = document.createElement('div');
   document.body.append(firstCalendar, secondCalendar);
@@ -130,15 +171,17 @@ test('CalHeatMap tags tips per instance without removing other mounted calendars
   const firstClassName = getCalendarTooltipClassName(firstCalendar);
   const secondClassName = getCalendarTooltipClassName(secondCalendar);
 
-  Object.defineProperty(window.SVGSVGElement.prototype, 'createSVGPoint', {
-    configurable: true,
-    value: () => ({
-      matrixTransform: () => ({ x: 0, y: 0 }),
-    }),
+  let CalHeatMap: typeof import('../src/vendor/cal-heatmap').default;
+  jest.isolateModules(() => {
+    // eslint-disable-next-line global-require
+    CalHeatMap = require('../src/vendor/cal-heatmap').default;
   });
 
-  // eslint-disable-next-line global-require
-  const CalHeatMap = require('../src/vendor/cal-heatmap').default;
+  const partiallyInitializedHeatmap = new CalHeatMap();
+  expect(() => partiallyInitializedHeatmap.destroy()).not.toThrow();
+  expect(document.querySelectorAll(`.${CALENDAR_TOOLTIP_CLASS}`)).toHaveLength(
+    0,
+  );
 
   const firstHeatmap = new CalHeatMap();
   firstHeatmap.init({
@@ -167,7 +210,11 @@ test('CalHeatMap tags tips per instance without removing other mounted calendars
   expect(document.querySelectorAll(`.${secondClassName}`)).toHaveLength(2);
 
   firstHeatmap.destroy();
+  flushPendingTimersIfNeeded();
 
   expect(document.querySelectorAll(`.${firstClassName}`)).toHaveLength(0);
   expect(document.querySelectorAll(`.${secondClassName}`)).toHaveLength(2);
+
+  secondHeatmap.destroy();
+  flushPendingTimersIfNeeded();
 });

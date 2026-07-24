@@ -54,5 +54,8 @@ export function removeDisconnectedCalendarTooltips() {
 }
 
 export function scheduleCalendarTooltipCleanup() {
+  // Wait for reactify's passive-effect cleanup to detach the owner before checking
+  // isConnected. Removing a tip node does not reset d3-tip's internal pointer;
+  // redraws separately destroy their prior CalHeatMap instances before reuse.
   window.setTimeout(removeDisconnectedCalendarTooltips, 0);
 }
