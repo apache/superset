@@ -35,18 +35,14 @@
  */
 import type { Locator } from '@playwright/test';
 import { testWithAssets, expect } from '../../helpers/fixtures';
-import { apiPostChart, apiPutChart } from '../../helpers/api/chart';
-import {
-  apiPostDashboard,
-  buildSingleRowDashboardLayout,
-  type DashboardLayoutChart,
-} from '../../helpers/api/dashboard';
-import { getDatasetByName } from '../../helpers/api/dataset';
-import { extractIdFromResponse } from '../../helpers/api/assertions';
+import { type DashboardLayoutChart } from '../../helpers/api/dashboard';
 import { TIMEOUT } from '../../utils/constants';
 import { DashboardPage } from '../../pages/DashboardPage';
+import {
+  createDashboardWithCharts,
+  sliceIdFromChartDataUrl,
+} from './dashboard-test-helpers';
 
-const DATASET_NAME = 'birth_names';
 const ECHARTS_SERIES_COLOR: [number, number, number] = [31, 168, 201];
 
 type ChartOutput = 'big-number' | 'table' | 'echarts';
@@ -112,14 +108,8 @@ testWithAssets(
     // Building + loading a multi-chart dashboard chains several slow queries.
     testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
 
-    const dataset = await getDatasetByName(page, DATASET_NAME);
-    if (!dataset) {
-      throw new Error(`Dataset ${DATASET_NAME} not found`);
-    }
-    const datasetId = dataset.id;
-    const datasource = `${datasetId}__table`;
-
-    // A spread of viz types that all render cleanly from the birth_names dataset.
+    // A spread of viz types that all render cleanly from the birth_names dataset,
+    // each paired with the terminal output it should paint.
     const chartSpecs: {
       viz_type: string;
       output: ChartOutput;
@@ -128,14 +118,12 @@ testWithAssets(
       {
         viz_type: 'big_number_total',
         output: 'big-number',
-        params: { datasource, viz_type: 'big_number_total', metric: 'count' },
+        params: { metric: 'count' },
       },
       {
         viz_type: 'table',
         output: 'table',
         params: {
-          datasource,
-          viz_type: 'table',
           query_mode: 'aggregate',
           groupby: ['name'],
           metrics: ['count'],
@@ -146,8 +134,6 @@ testWithAssets(
         viz_type: 'echarts_timeseries_line',
         output: 'echarts',
         params: {
-          datasource,
-          viz_type: 'echarts_timeseries_line',
           x_axis: 'ds',
           xAxisForceCategorical: true,
           time_grain_sqla: 'P1Y',
@@ -160,49 +146,23 @@ testWithAssets(
       },
     ];
 
-    // Parallel-safe suffix so chart/dashboard names never collide across workers.
-    const uniqueSuffix = `${Date.now()}_${testWithAssets.info().parallelIndex}`;
-
-    // Create each chart via the API.
-    const charts: CreatedChart[] = [];
-    for (const spec of chartSpecs) {
-      const sliceName = `load_smoke_${spec.viz_type}_${uniqueSuffix}`;
-      const resp = await apiPostChart(page, {
-        slice_name: sliceName,
-        viz_type: spec.viz_type,
-        datasource_id: datasetId,
-        datasource_type: 'table',
-        params: JSON.stringify(spec.params),
+    const { dashboardId, charts: createdCharts } =
+      await createDashboardWithCharts(page, testAssets, testWithAssets.info(), {
+        datasetName: 'birth_names',
+        chartNamePrefix: 'load_smoke',
+        dashboardTitlePrefix: 'load_smoke',
+        chartSpecs,
       });
-      expect(resp.ok()).toBe(true);
-      const chartId = await extractIdFromResponse(resp);
-      testAssets.trackChart(chartId);
-      charts.push({ id: chartId, sliceName, output: spec.output });
-    }
+    // Pair each created chart back to the output it should paint (same order).
+    const charts: CreatedChart[] = createdCharts.map((chart, index) => ({
+      ...chart,
+      output: chartSpecs[index].output,
+    }));
     const chartIds = charts.map(chart => chart.id);
 
-    // Lay all charts out in a single row.
-    const positionJson = buildSingleRowDashboardLayout(charts);
-
-    const dashResp = await apiPostDashboard(page, {
-      dashboard_title: `load_smoke_${uniqueSuffix}`,
-      published: true,
-      position_json: JSON.stringify(positionJson),
-    });
-    expect(dashResp.ok()).toBe(true);
-    const dashboardId = await extractIdFromResponse(dashResp);
-    testAssets.trackDashboard(dashboardId);
-
-    // Associate every chart with the dashboard so they actually render.
-    for (const chartId of chartIds) {
-      await apiPutChart(page, chartId, { dashboards: [dashboardId] });
-    }
-
     // Record the real chart-data round-trips the dashboard makes on load,
-    // keyed by the chart each one queried for. The chart-data POST carries its
-    // slice id in the encoded `form_data={"slice_id":<id>}` query param (see
-    // chartAction.ts), so parsing it lets us prove every chart queried — not
-    // just that some chart did.
+    // keyed by the chart each one queried for, so we can prove every chart
+    // queried — not just that some chart did.
     const chartDataStatusBySliceId = new Map<number, number>();
     page.on('response', response => {
       const request = response.request();
@@ -212,17 +172,9 @@ testWithAssets(
       ) {
         return;
       }
-      const formData = new URL(response.url()).searchParams.get('form_data');
-      if (!formData) {
-        return;
-      }
-      try {
-        const sliceId = JSON.parse(formData).slice_id;
-        if (typeof sliceId === 'number') {
-          chartDataStatusBySliceId.set(sliceId, response.status());
-        }
-      } catch {
-        // Not a slice-id form_data payload; ignore.
+      const sliceId = sliceIdFromChartDataUrl(response.url());
+      if (sliceId !== undefined) {
+        chartDataStatusBySliceId.set(sliceId, response.status());
       }
     });
 
