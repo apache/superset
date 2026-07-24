@@ -16,10 +16,17 @@
 # under the License.
 """Tests for superset/commands/dataset/importers/v1/utils.py temporal helpers."""
 
+import logging
 from unittest.mock import patch
 
 import pandas as pd
 import pytest
+from jsonpath_ng import parse
+from marshmallow import Schema
+from marshmallow.exceptions import ValidationError
+
+from superset.constants import PASSWORD_MASK
+from superset.utils import json
 
 
 class TestConvertTemporalColumns:
@@ -117,3 +124,62 @@ class TestConvertTemporalColumns:
 
         call_args = mock_logger.warning.call_args[0]
         assert call_args[1] == 2  # 2 out-of-bounds, 1 pre-existing null
+
+
+class TestLoadConfigs:
+    def test_load_configs_caught_exception_and_log_redacted_configs(self) -> None:
+        logging.basicConfig(level=logging.DEBUG)
+        from superset.commands.importers.v1.utils import (
+            load_configs,
+        )
+
+        with (
+            patch("superset.db") as mock_db,
+            patch("yaml.safe_load") as mock_yaml_safe_load,
+            patch("superset.commands.importers.v1.utils.logger") as mock_logger,
+        ):
+            mock_yaml_safe_load.return_value = {
+                "masked_encrypted_extra": json.dumps(
+                    {"oauth2_client_info": {"secret": "MASKED"}}
+                ),
+                "ssh_tunnel": {},
+            }
+            mock_db.session.query.return_value = {"uuid-1": "SECRET_TO_BE_SEEN"}
+
+            class RaiseValidationSchema(Schema):
+                def load(self, value):
+                    raise ValidationError("Exception when validating config")
+
+            failed_schema = RaiseValidationSchema()
+
+            load_configs(
+                contents={"file1/": "here is some content"},
+                schemas={
+                    "file1/": failed_schema,
+                },
+                passwords={"file1/": "PASSWORD"},
+                exceptions=[],
+                ssh_tunnel_passwords={"file1/": "SECRET_SSH_TUNNEL_PASSWORD"},
+                ssh_tunnel_private_keys={"file1/": "SECRET_SSH_TUNNEL_PRIVATE_KEY"},
+                ssh_tunnel_priv_key_passwords={
+                    "file1/": "SECRET_SSH_TUNNEL_PRIV_KEY_PASSWORD"
+                },
+                encrypted_extra_secrets={
+                    "file1/": {
+                        "$.oauth2_client_info.secret": "SECRET_OAUTH2_CLIENT_INFO"
+                    }
+                },
+            )
+
+            logged_config = mock_logger.debug.call_args[0][1]
+
+            for redacted_field in [
+                "$.password",
+                "$.ssh_tunnel.password",
+                "$.ssh_tunnel.private_key",
+                "$.ssh_tunnel.private_key_password",
+                "$.masked_encrypted_extra",
+            ]:
+                jsonpath_expr = parse(redacted_field)
+                for match in jsonpath_expr.find(logged_config):
+                    assert match.value == PASSWORD_MASK
