@@ -43,11 +43,55 @@ def test_convert_dttm(
 
 
 def test_epoch_to_dttm() -> None:
-    assert DataFusionEngineSpec.epoch_to_dttm() == "from_unixtime({col})"
+    assert DataFusionEngineSpec.epoch_to_dttm().format(col="ts") == "from_unixtime(ts)"
 
 
-def test_time_grain_expressions() -> None:
-    time_grains = DataFusionEngineSpec._time_grain_expressions
-    assert time_grains is not None
-    assert None in time_grains
-    assert time_grains[None] == "{col}"
+@pytest.mark.parametrize(
+    "time_grain,expected",
+    [
+        (None, "ts"),
+        ("PT1S", "DATE_TRUNC('second', ts)"),
+        (
+            "PT5S",
+            "DATE_TRUNC('minute', ts) + INTERVAL '5 seconds' * "
+            "FLOOR(EXTRACT(SECOND FROM ts) / 5)",
+        ),
+        (
+            "PT30S",
+            "DATE_TRUNC('minute', ts) + INTERVAL '30 seconds' * "
+            "FLOOR(EXTRACT(SECOND FROM ts) / 30)",
+        ),
+        ("PT1M", "DATE_TRUNC('minute', ts)"),
+        (
+            "PT5M",
+            "DATE_TRUNC('hour', ts) + INTERVAL '5 minutes' * "
+            "FLOOR(EXTRACT(MINUTE FROM ts) / 5)",
+        ),
+        (
+            "PT10M",
+            "DATE_TRUNC('hour', ts) + INTERVAL '10 minutes' * "
+            "FLOOR(EXTRACT(MINUTE FROM ts) / 10)",
+        ),
+        (
+            "PT15M",
+            "DATE_TRUNC('hour', ts) + INTERVAL '15 minutes' * "
+            "FLOOR(EXTRACT(MINUTE FROM ts) / 15)",
+        ),
+        (
+            "PT30M",
+            "DATE_TRUNC('hour', ts) + INTERVAL '30 minutes' * "
+            "FLOOR(EXTRACT(MINUTE FROM ts) / 30)",
+        ),
+        ("PT1H", "DATE_TRUNC('hour', ts)"),
+        ("P1D", "DATE_TRUNC('day', ts)"),
+        ("P1W", "DATE_TRUNC('week', ts)"),
+        ("P1M", "DATE_TRUNC('month', ts)"),
+        ("P3M", "DATE_TRUNC('quarter', ts)"),
+        ("P1Y", "DATE_TRUNC('year', ts)"),
+    ],
+)
+def test_time_grain_expressions(time_grain: str | None, expected: str) -> None:
+    assert (
+        DataFusionEngineSpec._time_grain_expressions[time_grain].format(col="ts")
+        == expected
+    )
