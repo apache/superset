@@ -688,7 +688,6 @@ function main() {
     // formerly the legacy-* plugins; they keep old color patterns and
     // eager t() calls pending modernization
     /plugins\/plugin-chart-(calendar|chord|country-map|horizon|paired-t-test|parallel-coordinates|partition|rose|world-map)\//,
-    /plugins\/preset-chart-nvd3\//,
     /plugin-chart-point-cluster-map\/src\/controlPanel/, // Data visualization color choices
     /\/vendor\//, // Third-party vendor code
     /spec\/fixtures\//, // Test fixtures
