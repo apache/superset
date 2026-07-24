@@ -1097,8 +1097,8 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
             if template_processor:
                 try:
                     expression = template_processor.process_template(expression)
-                except SupersetSyntaxErrorException as ex:
-                    msg = str(ex)
+                except (TemplateError, SupersetSyntaxErrorException) as ex:
+                    msg = getattr(ex, "message", str(ex))
                     raise QueryObjectValidationError(
                         _(
                             "Error in jinja expression in column expression: %(msg)s",
@@ -1144,8 +1144,8 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
             if template_processor:
                 try:
                     expression = template_processor.process_template(expression)
-                except SupersetSyntaxErrorException as ex:
-                    msg = str(ex)
+                except (TemplateError, SupersetSyntaxErrorException) as ex:
+                    msg = getattr(ex, "message", str(ex))
                     raise QueryObjectValidationError(
                         _(
                             "Error in jinja expression in datetime column: %(msg)s",
@@ -1239,8 +1239,8 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
         if template_processor:
             try:
                 expression = template_processor.process_template(expression)
-            except SupersetSyntaxErrorException as ex:
-                msg = str(ex)
+            except (TemplateError, SupersetSyntaxErrorException) as ex:
+                msg = getattr(ex, "message", str(ex))
                 raise QueryObjectValidationError(
                     _(
                         "Error in jinja expression in metric expression: %(msg)s",
@@ -1769,11 +1769,11 @@ class SqlaTable(
             return sql_expression
         try:
             return template_processor.process_template(sql_expression)
-        except SupersetSyntaxErrorException as ex:
+        except (TemplateError, SupersetSyntaxErrorException) as ex:
             raise QueryObjectValidationError(
                 _(
                     "Error in jinja expression in adhoc column: %(msg)s",
-                    msg=str(ex),
+                    msg=getattr(ex, "message", str(ex)),
                 )
             ) from ex
 
