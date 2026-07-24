@@ -1549,7 +1549,7 @@ class Log(Model):  # pylint: disable=too-few-public-methods
 
     id = Column(Integer, primary_key=True)
     action = Column(String(512))
-    user_id = Column(Integer, ForeignKey("ab_user.id"))
+    user_id = Column(Integer, ForeignKey("ab_user.id", ondelete="SET NULL"))
     dashboard_id = Column(Integer)
     slice_id = Column(Integer)
     json = Column(utils.MediumText())
@@ -1570,7 +1570,7 @@ class FavStar(UUIDMixin, Model):
     __tablename__ = "favstar"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("ab_user.id"))
+    user_id = Column(Integer, ForeignKey("ab_user.id", ondelete="CASCADE"))
     class_name = Column(String(50))
     obj_id = Column(Integer)
     dttm = Column(DateTime, default=datetime.utcnow)
