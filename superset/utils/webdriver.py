@@ -21,7 +21,7 @@ import atexit
 import logging
 from abc import ABC, abstractmethod
 from enum import Enum
-from time import sleep
+from time import monotonic, sleep
 from typing import Any, TYPE_CHECKING
 
 from flask import current_app as app
@@ -291,25 +291,91 @@ class WebDriverPlaywright(WebDriverProxy):
             )
             return None
 
+        overall_started = monotonic()
+        stage_started = overall_started
+        current_stage = "initialization"
+        stage_failed = False
+        context_suffix = f" context={log_context}" if log_context else ""
+
+        def begin_stage(stage: str) -> None:
+            nonlocal current_stage, stage_failed, stage_started
+            timestamp = monotonic()
+            if not stage_failed:
+                logger.info(
+                    "Playwright screenshot stage completed: stage=%s "
+                    "stage_elapsed=%.2fs total_elapsed=%.2fs%s",
+                    current_stage,
+                    timestamp - stage_started,
+                    timestamp - overall_started,
+                    context_suffix,
+                )
+            current_stage = stage
+            stage_failed = False
+            stage_started = timestamp
+            logger.info(
+                "Playwright screenshot stage started: stage=%s "
+                "total_elapsed=%.2fs%s",
+                current_stage,
+                timestamp - overall_started,
+                context_suffix,
+            )
+
+        def log_stage_exception() -> None:
+            nonlocal stage_failed
+            stage_failed = True
+            timestamp = monotonic()
+            logger.warning(
+                "Playwright screenshot failed: stage=%s stage_elapsed=%.2fs "
+                "total_elapsed=%.2fs%s",
+                current_stage,
+                timestamp - stage_started,
+                timestamp - overall_started,
+                context_suffix,
+                exc_info=True,
+            )
+
         browser_args = app.config["WEBDRIVER_OPTION_ARGS"]
-        browser = _browser_manager.get_browser(browser_args)
+        begin_stage("browser_acquisition")
+        try:
+            browser = _browser_manager.get_browser(browser_args)
+        except Exception:
+            log_stage_exception()
+            raise
         pixel_density = app.config["WEBDRIVER_WINDOW"].get("pixel_density", 1)
         viewport_height = self._window[1]
         viewport_width = self._window[0]
-        context = browser.new_context(
-            bypass_csp=True,
-            viewport={
-                "height": viewport_height,
-                "width": viewport_width,
-            },
-            device_scale_factor=pixel_density,
-        )
-        context.set_default_timeout(app.config["SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT"])
+        begin_stage("browser_context_creation")
+        try:
+            context = browser.new_context(
+                bypass_csp=True,
+                viewport={
+                    "height": viewport_height,
+                    "width": viewport_width,
+                },
+                device_scale_factor=pixel_density,
+            )
+            context.set_default_timeout(
+                app.config["SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT"]
+            )
+        except Exception:
+            log_stage_exception()
+            raise
         if user:
-            self.auth(user, context)
-        page = context.new_page()
+            begin_stage("machine_authentication")
+            try:
+                self.auth(user, context)
+            except Exception:
+                log_stage_exception()
+                raise
+        begin_stage("page_creation")
+        try:
+            page = context.new_page()
+        except Exception:
+            log_stage_exception()
+            raise
         img: bytes | None = None
         try:
+            begin_stage("navigation")
             try:
                 page.goto(
                     url,
@@ -327,6 +393,7 @@ class WebDriverPlaywright(WebDriverProxy):
             page.wait_for_timeout(selenium_headstart * 1000)
             element: Locator
             try:
+                begin_stage("dashboard_element_discovery")
                 try:
                     # page didn't load
                     logger.debug(
@@ -338,6 +405,7 @@ class WebDriverPlaywright(WebDriverProxy):
                     logger.exception("Timed out requesting url %s", url)
                     raise
 
+                begin_stage("chart_container_discovery")
                 try:
                     # chart containers didn't render
                     logger.debug("Wait for chart containers to draw at url: %s", url)
@@ -363,6 +431,7 @@ class WebDriverPlaywright(WebDriverProxy):
                             unexpected_errors,
                         )
                 # Detect large dashboards and use tiled screenshots if enabled
+                begin_stage("tiling_decision")
                 tiled_enabled = app.config.get("SCREENSHOT_TILED_ENABLED", False)
 
                 if tiled_enabled:
@@ -410,6 +479,7 @@ class WebDriverPlaywright(WebDriverProxy):
                         page.set_viewport_size(
                             {"height": tile_height, "width": viewport_width}
                         )
+                        begin_stage("tiled_readiness_and_capture")
                         img = take_tiled_screenshot(
                             page,
                             element_name,
@@ -444,6 +514,7 @@ class WebDriverPlaywright(WebDriverProxy):
                         )
                         # Standard screenshot captures the full element including
                         # below-the-fold content, so wait for all spinners globally.
+                        begin_stage("readiness")
                         try:
                             logger.debug(
                                 "Waiting for all spinners to clear at url: %s "
@@ -476,6 +547,7 @@ class WebDriverPlaywright(WebDriverProxy):
                             url,
                             user.username if user else "None",
                         )
+                        begin_stage("capture")
                         img = WebDriverPlaywright._get_screenshot(
                             page, element, element_name
                         )
@@ -492,6 +564,7 @@ class WebDriverPlaywright(WebDriverProxy):
                     )
                     # Standard screenshot captures the full element including
                     # below-the-fold content, so wait for all spinners globally.
+                    begin_stage("readiness")
                     try:
                         logger.debug(
                             "Waiting for all spinners to clear at url: %s "
@@ -523,6 +596,7 @@ class WebDriverPlaywright(WebDriverProxy):
                         url,
                         user.username if user else "None",
                     )
+                    begin_stage("capture")
                     img = WebDriverPlaywright._get_screenshot(
                         page, element, element_name
                     )
@@ -535,11 +609,35 @@ class WebDriverPlaywright(WebDriverProxy):
             except PlaywrightTimeout:
                 raise
             except PlaywrightError:
+                stage_failed = True
+                timestamp = monotonic()
                 logger.exception(
-                    "Encountered an unexpected error when requesting url %s", url
+                    "Encountered an unexpected Playwright error: stage=%s "
+                    "stage_elapsed=%.2fs total_elapsed=%.2fs%s",
+                    current_stage,
+                    timestamp - stage_started,
+                    timestamp - overall_started,
+                    context_suffix,
                 )
+        except Exception:
+            log_stage_exception()
+            raise
         finally:
-            context.close()
+            begin_stage("browser_context_close")
+            try:
+                context.close()
+            except Exception:
+                log_stage_exception()
+                raise
+            timestamp = monotonic()
+            logger.info(
+                "Playwright screenshot stage completed: stage=%s "
+                "stage_elapsed=%.2fs total_elapsed=%.2fs%s",
+                current_stage,
+                timestamp - stage_started,
+                timestamp - overall_started,
+                context_suffix,
+            )
         return img
 
 

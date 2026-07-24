@@ -21,6 +21,7 @@ import logging
 from datetime import datetime
 from enum import Enum
 from io import BytesIO
+from time import monotonic
 from typing import cast, TYPE_CHECKING, TypedDict
 
 from flask import current_app as app
@@ -308,24 +309,64 @@ class BaseScreenshot:
                 cache_payload.computing()
                 self.cache.set(cache_key, cache_payload.to_dict())
                 image = None
+                lifecycle_started = monotonic()
                 # Assuming all sorts of things can go wrong with Selenium
                 try:
-                    logger.info("trying to generate screenshot")
+                    logger.info(
+                        "Screenshot lifecycle stage started: stage=capture "
+                        "elapsed=0.00s context=%s",
+                        cache_key,
+                    )
                     with event_logger.log_context(
                         f"screenshot.compute.{self.thumbnail_type}"
                     ):
-                        image = self.get_screenshot(user=user, window_size=window_size)
+                        image = self.get_screenshot(
+                            user=user,
+                            window_size=window_size,
+                            log_context=cache_key,
+                        )
+                    logger.info(
+                        "Screenshot lifecycle stage completed: stage=capture "
+                        "elapsed=%.2fs context=%s",
+                        monotonic() - lifecycle_started,
+                        cache_key,
+                    )
                 except Exception as ex:  # pylint: disable=broad-except
                     logger.warning(
-                        "Failed at generating thumbnail %s", ex, exc_info=True
+                        "Failed at generating thumbnail during stage=capture "
+                        "elapsed=%.2fs context=%s: %s",
+                        monotonic() - lifecycle_started,
+                        cache_key,
+                        ex,
+                        exc_info=True,
                     )
                     cache_payload.error()
                 if image and window_size != thumb_size:
+                    resize_started = monotonic()
                     try:
+                        logger.info(
+                            "Screenshot lifecycle stage started: stage=resize "
+                            "elapsed=%.2fs context=%s",
+                            resize_started - lifecycle_started,
+                            cache_key,
+                        )
                         image = self.resize_image(image, thumb_size=thumb_size)
+                        logger.info(
+                            "Screenshot lifecycle stage completed: stage=resize "
+                            "stage_elapsed=%.2fs elapsed=%.2fs context=%s",
+                            monotonic() - resize_started,
+                            monotonic() - lifecycle_started,
+                            cache_key,
+                        )
                     except Exception as ex:  # pylint: disable=broad-except
                         logger.warning(
-                            "Failed at resizing thumbnail %s", ex, exc_info=True
+                            "Failed at resizing thumbnail during stage=resize "
+                            "stage_elapsed=%.2fs elapsed=%.2fs context=%s: %s",
+                            monotonic() - resize_started,
+                            monotonic() - lifecycle_started,
+                            cache_key,
+                            ex,
+                            exc_info=True,
                         )
                         cache_payload.error()
                         image = None
@@ -341,10 +382,21 @@ class BaseScreenshot:
                     # the timestamp recorded when the actual failure occurred above.
                     cache_payload.error()
 
-                logger.info("Caching thumbnail: %s", cache_key)
+                cache_started = monotonic()
+                logger.info(
+                    "Screenshot lifecycle stage started: stage=cache "
+                    "elapsed=%.2fs context=%s",
+                    cache_started - lifecycle_started,
+                    cache_key,
+                )
                 self.cache.set(cache_key, cache_payload.to_dict())
                 logger.info(
-                    "Updated thumbnail cache; Status: %s", cache_payload.get_status()
+                    "Screenshot lifecycle stage completed: stage=cache "
+                    "stage_elapsed=%.2fs elapsed=%.2fs status=%s context=%s",
+                    monotonic() - cache_started,
+                    monotonic() - lifecycle_started,
+                    cache_payload.get_status(),
+                    cache_key,
                 )
         except LockAlreadyHeldException:
             logger.info(
