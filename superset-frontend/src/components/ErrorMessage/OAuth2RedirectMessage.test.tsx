@@ -231,6 +231,7 @@ describe('OAuth2RedirectMessage Component', () => {
         { type: 'Schemas', id: 'LIST' },
         { type: 'Catalogs', id: 'LIST' },
         'Tables',
+        'TableMetadatas',
       ]);
     });
   });
