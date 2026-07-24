@@ -688,9 +688,7 @@ const config: ControlPanelConfig = {
               type: 'ConditionalFormattingControl',
               renderTrigger: true,
               label: t('Custom conditional formatting'),
-              description: t(
-                'Apply conditional color formatting to numeric columns',
-              ),
+              description: t('Apply conditional color formatting to columns'),
               shouldMapStateToProps() {
                 return true;
               },
@@ -719,12 +717,15 @@ const config: ControlPanelConfig = {
                 const chartStatus = chart?.chartStatus;
                 const { colnames, coltypes } =
                   chart?.queriesResponse?.[0] ?? {};
-                const numericColumns =
+                const eligibleColumns =
                   Array.isArray(colnames) && Array.isArray(coltypes)
                     ? colnames
                         .filter(
                           (colname: string, index: number) =>
-                            coltypes[index] === GenericDataType.Numeric,
+                            coltypes[index] === GenericDataType.Numeric ||
+                            (!hasTimeComparison &&
+                              (coltypes[index] === GenericDataType.String ||
+                                coltypes[index] === GenericDataType.Boolean)),
                         )
                         .map((colname: string) => ({
                           value: colname,
@@ -737,10 +738,10 @@ const config: ControlPanelConfig = {
                     : [];
                 const columnOptions = hasTimeComparison
                   ? processComparisonColumns(
-                      numericColumns || [],
+                      eligibleColumns || [],
                       ensureIsArray(timeCompareValue)[0]?.toString() || '',
                     )
-                  : numericColumns;
+                  : eligibleColumns;
 
                 return {
                   removeIrrelevantConditions: chartStatus === 'success',
