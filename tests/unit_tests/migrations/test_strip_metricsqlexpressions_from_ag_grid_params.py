@@ -73,7 +73,7 @@ def _contaminated_query_context() -> str:
 
 @pytest.fixture
 def engine():
-    engine = create_engine("sqlite:///:memory:")
+    engine = create_engine("sqlite:///:memory:", future=True)
     migration.Base.metadata.create_all(engine)
     return engine
 

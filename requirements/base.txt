@@ -244,7 +244,7 @@ msgpack==1.2.1
     # via apache-superset (pyproject.toml)
 msgspec==0.19.0
     # via flask-session
-nh3==0.3.5
+nh3==0.3.6
     # via apache-superset (pyproject.toml)
 numexpr==2.10.2
     # via -r requirements/base.in
@@ -306,11 +306,11 @@ pyasn1-modules==0.4.2
     # via google-auth
 pycparser==2.22
     # via cffi
-pydantic==2.11.7
+pydantic==2.13.4
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
-pydantic-core==2.33.2
+pydantic-core==2.46.4
     # via pydantic
 pygeohash==3.2.2
     # via apache-superset (pyproject.toml)
@@ -408,7 +408,7 @@ sqlalchemy==1.4.54
     #   shillelagh
     #   sqlalchemy-continuum
     #   sqlalchemy-utils
-sqlalchemy-continuum==1.6.0
+sqlalchemy-continuum==1.7.0
     # via apache-superset (pyproject.toml)
 sqlalchemy-utils==0.42.1
     # via
@@ -443,7 +443,7 @@ typing-extensions==4.16.0
     #   selenium
     #   shillelagh
     #   typing-inspection
-typing-inspection==0.4.1
+typing-inspection==0.4.2
     # via pydantic
 tzdata==2025.2
     # via

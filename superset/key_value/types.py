@@ -88,6 +88,23 @@ class PickleKeyValueCodec(KeyValueCodec):
         return pickle.loads(value)  # noqa: S301
 
 
+class BinaryKeyValueCodec(KeyValueCodec):
+    """Identity codec for raw bytes; stored as-is, no transformation applied.
+
+    JSON has no binary type, so a caller transporting this codec's value
+    over a JSON transport (e.g. a REST API) must carry it as a base64
+    string on the wire. That base64 encoding/decoding is a transport
+    concern handled by the REST layer around this codec, not something
+    this codec's `encode`/`decode` does itself.
+    """
+
+    def encode(self, value: bytes) -> bytes:
+        return value
+
+    def decode(self, value: bytes) -> bytes:
+        return value
+
+
 class MarshmallowKeyValueCodec(JsonKeyValueCodec):
     def __init__(self, schema: Schema):
         self.schema = schema

@@ -29,7 +29,6 @@ import {
   getColorForBreakpoints,
   getColorRange,
 } from '../common';
-import sandboxedEval from '../../utils/sandbox';
 import { createDeckGLComponent, GetLayerType } from '../../factory';
 import TooltipRow from '../../TooltipRow';
 import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
@@ -65,12 +64,7 @@ export const getLayer: GetLayerType<GridLayer> = function ({
   const fd = formData;
   const appliedScheme = fd.color_scheme;
   const colorScale = CategoricalColorNamespace.getScale(appliedScheme);
-  let data = payload.data.features;
-
-  if (fd.js_data_mutator) {
-    const jsFnMutator = sandboxedEval(fd.js_data_mutator);
-    data = jsFnMutator(data);
-  }
+  const data = payload.data.features;
 
   const colorBreakpoints = fd.color_breakpoints;
 
@@ -132,13 +126,7 @@ export const getHighlightLayer: GetLayerType<GridLayer> = function ({
   filterState,
 }) {
   const fd = formData;
-  let data = payload.data.features;
-
-  if (fd.js_data_mutator) {
-    // Applying user defined data mutator if defined
-    const jsFnMutator = sandboxedEval(fd.js_data_mutator);
-    data = jsFnMutator(data);
-  }
+  const data = payload.data.features;
 
   const aggFunc = getAggFunc(fd.js_agg_function, p => p.weight);
 

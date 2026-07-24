@@ -166,7 +166,11 @@ extra_description = markdown(
     "the default catalog when running queries and creating datasets.",
     True,
 )
-get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
+get_export_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
 sqlalchemy_uri_description = markdown(
     "Refer to the "
     "[SqlAlchemy docs]"
@@ -1178,6 +1182,14 @@ class EngineInformationSchema(Schema):
     )
     supports_schemas = fields.Boolean(
         metadata={"description": "The database uses schemas to organize tables"}
+    )
+    supports_offset = fields.Boolean(
+        metadata={
+            "description": (
+                "The database supports OFFSET in SQL queries. "
+                "Engines like Elasticsearch SQL return False."
+            )
+        }
     )
 
 
