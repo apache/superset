@@ -156,35 +156,41 @@
 
     {% block tail_js %}
       {#
-        Expose the language pack on window BEFORE the entry bundle loads,
-        so module-level `const X = t('...')` calls across webpack-split
-        chunks all find a configured translator on first access. The
-        bootstrap div is the single source of truth; we parse it once and
-        stash the pack on a global that the translator reads lazily.
-        See upstream issue #35330.
-
-        Trade-off: this ships the full Jed pack inline in every full-page
-        HTML response (only for non-English locales; English injects null)
-        rather than via the separately-cacheable `/language_pack/` fetch.
-        That synchronous availability is the whole point — the async fetch
-        can't guarantee the pack is configured before a code-split chunk
-        evaluates. Acceptable for an SPA where hard reloads are rare.
+        Load the language pack BEFORE the entry bundle so module-level
+        `const X = t('...')` calls across webpack-split chunks all find a
+        configured translator on first access (upstream issue #35330). The
+        script sets window.__SUPERSET_LANGUAGE_PACK__ and is content-addressed
+        (/language_pack/<lang>/<version>/script.js), so browsers cache it as
+        immutable across page loads and cache-bust automatically whenever
+        translations change. English emits no tag at all. If the script fails
+        to load, preamble.ts falls back to the async language pack fetch.
       #}
-      <script nonce="{{ macros.get_nonce() }}">
-        (function () {
-          try {
-            var el = document.getElementById('app');
-            if (!el) return;
-            var data = JSON.parse(el.getAttribute('data-bootstrap') || '{}');
-            var pack = data && data.common && data.common.language_pack;
-            if (pack) {
-              window.__SUPERSET_LANGUAGE_PACK__ = pack;
+      {% if language_pack_src %}
+        <script src="{{ language_pack_src }}" nonce="{{ macros.get_nonce() }}"></script>
+      {% endif %}
+      {#
+        Operators can still supply a pack directly in the bootstrap payload
+        via COMMON_BOOTSTRAP_OVERRIDES_FUNC (the historical #35330
+        workaround). When one is present, stash it on window here instead of
+        emitting the versioned script tag, so early chunks see the override.
+      #}
+      {% if language_pack_inline %}
+        <script nonce="{{ macros.get_nonce() }}">
+          (function () {
+            try {
+              var el = document.getElementById('app');
+              if (!el) return;
+              var data = JSON.parse(el.getAttribute('data-bootstrap') || '{}');
+              var pack = data && data.common && data.common.language_pack;
+              if (pack) {
+                window.__SUPERSET_LANGUAGE_PACK__ = pack;
+              }
+            } catch (e) {
+              /* swallow: fall back to async fetch in preamble.ts */
             }
-          } catch (e) {
-            /* swallow: fall back to async fetch in preamble.ts */
-          }
-        })();
-      </script>
+          })();
+        </script>
+      {% endif %}
       {% if entry %}
         {{ js_bundle(assets_prefix, entry) }}
       {% endif %}

@@ -65,12 +65,14 @@ export default function initPreamble(): Promise<void> {
     setupClient({ appRoot: applicationRoot() });
 
     // Load language pack before rendering.
-    // Prefer the bootstrap-injected pack (stashed on window by the inline
-    // script in spa.html, sourced from common.language_pack) so
-    // module-level `const X = t('...')` calls in code-split chunks all
-    // see a configured translator. Fall back to the async fetch only
-    // when the bootstrap payload didn't carry the pack (e.g. embedded
-    // or a legacy entry that doesn't extend spa.html). See issue #35330.
+    // Prefer the pack already on hand: either an operator-supplied
+    // common.language_pack (COMMON_BOOTSTRAP_OVERRIDES_FUNC) or the
+    // window global set by the versioned script tag spa.html loads
+    // before this bundle. Either way, module-level `const X = t('...')`
+    // calls in code-split chunks all see a configured translator. Fall
+    // back to the async fetch only when neither is present (e.g. the
+    // script tag failed to load, or a legacy entry that doesn't extend
+    // spa.html). See issue #35330.
     if (lang !== 'en') {
       const bootstrapPack =
         (bootstrapData.common as { language_pack?: LanguagePack })

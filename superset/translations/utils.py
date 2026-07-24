@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import hashlib
 import json
 import logging
 import os
@@ -24,7 +25,39 @@ logger = logging.getLogger(__name__)
 # Global caching for JSON language packs
 ALL_LANGUAGE_PACKS: dict[str, dict[str, Any]] = {"en": {}}
 
+# Global caching for language pack content hashes, used to build
+# content-addressed (cache-busting) asset URLs
+ALL_LANGUAGE_PACK_VERSIONS: dict[str, str] = {}
+
 DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def get_language_pack_filename(locale: str) -> str:
+    """Resolve the on-disk JSON pack for a locale (empty pack for English)"""
+    if not locale or locale == "en":
+        # Forcing a dummy, quasi-empty language pack for English since the file
+        # in the en directory contains data with empty mappings
+        return DIR + "/empty_language_pack.json"
+    return DIR + f"/{locale}/LC_MESSAGES/messages.json"
+
+
+def get_language_pack_version(locale: str) -> Optional[str]:
+    """Get/cache a short content hash of the language pack file
+
+    The hash is embedded in the pack's asset URL so browsers can cache it
+    as immutable and pick up a fresh copy whenever translations change.
+    Returns None when the pack file cannot be read.
+    """
+    version = ALL_LANGUAGE_PACK_VERSIONS.get(locale)
+    if not version:
+        try:
+            with open(get_language_pack_filename(locale), "rb") as f:
+                version = hashlib.sha256(f.read()).hexdigest()[:12]
+            ALL_LANGUAGE_PACK_VERSIONS[locale] = version
+        except OSError:
+            logger.warning("No language pack file to version for locale %s", locale)
+            return None
+    return version
 
 
 def get_language_pack(locale: str) -> Optional[dict[str, Any]]:
@@ -37,11 +70,7 @@ def get_language_pack(locale: str) -> Optional[dict[str, Any]]:
     """
     pack = ALL_LANGUAGE_PACKS.get(locale)
     if not pack:
-        filename = DIR + f"/{locale}/LC_MESSAGES/messages.json"
-        if not locale or locale == "en":
-            # Forcing a dummy, quasy-empty language pack for English since the file
-            # in the en directory is contains data with empty mappings
-            filename = DIR + "/empty_language_pack.json"
+        filename = get_language_pack_filename(locale)
         try:
             with open(filename, encoding="utf8") as f:
                 pack = json.load(f)

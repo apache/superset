@@ -22,7 +22,7 @@ import logging
 import os
 import re
 from datetime import datetime
-from typing import Any, Callable, cast
+from typing import Any, Callable, cast, Optional
 from urllib import parse
 
 from flask import (
@@ -82,6 +82,7 @@ from superset.superset_typing import (
     FlaskResponse,
 )
 from superset.tasks.utils import get_current_user
+from superset.translations.utils import get_language_pack, get_language_pack_version
 from superset.utils import core as utils, json
 from superset.utils.cache import etag_cache
 from superset.utils.core import (
@@ -128,6 +129,13 @@ PARAMETER_MISSING_ERR = __(
 )
 
 SqlResults = dict[str, Any]
+
+# Matches the locale codes Superset actually ships: a 2-3 letter language
+# subtag, optionally followed by a 2-letter region subtag ("pt_BR") or a
+# 4-letter script subtag ("sr_Latn").
+LANGUAGE_CODE_RE: re.Pattern[str] = re.compile(
+    r"^[a-z]{2,3}(_[A-Z]{2}|_[A-Z][a-z]{3})?$"
+)
 
 
 class Superset(BaseSupersetView):
@@ -920,7 +928,7 @@ class Superset(BaseSupersetView):
     @expose("/language_pack/<lang>/")
     def language_pack(self, lang: str) -> FlaskResponse:
         # Only allow expected language formats like "en", "pt_BR", etc.
-        if not re.match(r"^[a-z]{2,3}(_[A-Z]{2})?$", lang):
+        if not LANGUAGE_CODE_RE.match(lang):
             abort(400, "Invalid language code")
 
         base_dir = os.path.join(os.path.dirname(__file__), "..", "translations")
@@ -932,6 +940,52 @@ class Superset(BaseSupersetView):
         return json_error_response(
             "Language pack doesn't exist on the server", status=404
         )
+
+    @expose("/language_pack/<lang>/<version>/script.js")
+    def language_pack_script(self, lang: str, version: str) -> FlaskResponse:
+        """Serve the language pack as a content-addressed classic script.
+
+        spa.html loads this BEFORE the entry bundle so translations are
+        configured synchronously (no race with code-split chunks), while the
+        versioned URL lets browsers cache the pack as immutable and pick up a
+        fresh copy whenever translations change.
+
+        Deliberately unauthenticated: translation catalogs are static, public
+        content shipped in the Superset repo, contain no user or tenant data,
+        and must load for anonymous principals (login page, embedded).
+        """
+        # Only allow expected language formats like "en", "pt_BR", etc.
+        if not LANGUAGE_CODE_RE.match(lang):
+            abort(400, "Invalid language code")
+        if not re.match(r"^[0-9a-f]{12}$", version):
+            abort(400, "Invalid language pack version")
+
+        current_version: Optional[str] = get_language_pack_version(lang)
+        if current_version is None:
+            return json_error_response(
+                "Language pack doesn't exist on the server", status=404
+            )
+        pack: Optional[dict[str, Any]] = get_language_pack(lang)
+        if pack is None:
+            return json_error_response(
+                "Language pack doesn't exist on the server", status=404
+            )
+
+        response: Response = Response(
+            f"window.__SUPERSET_LANGUAGE_PACK__ = {json.dumps(pack)};",
+            mimetype="application/javascript; charset=utf-8",
+        )
+        if version == current_version:
+            # Content-addressed URL: safe to cache forever.
+            response.cache_control.public = True
+            response.cache_control.max_age = 31536000
+            response.cache_control.immutable = True
+        else:
+            # Stale or unknown version (e.g. HTML rendered before an upgrade):
+            # serve the current pack but keep caches from pinning it under the
+            # wrong address.
+            response.cache_control.no_cache = True
+        return response
 
     @event_logger.log_this
     @expose("/welcome/")
