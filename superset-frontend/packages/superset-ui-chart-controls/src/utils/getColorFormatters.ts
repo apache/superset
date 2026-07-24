@@ -72,9 +72,8 @@ export const getOpacity = (
   );
 };
 
-const isSpecialColor = (value: unknown): value is ColorSchemeEnum => {
-  return Object.values(ColorSchemeEnum).includes(value as ColorSchemeEnum);
-};
+const isSpecialColor = (value: unknown): value is ColorSchemeEnum =>
+  Object.values(ColorSchemeEnum).includes(value as ColorSchemeEnum);
 
 export const getColorFunction = (
   {
