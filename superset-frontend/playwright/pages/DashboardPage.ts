@@ -18,7 +18,7 @@
  */
 
 import { Page, Download, Locator } from '@playwright/test';
-import { Menu } from '../components/core';
+import { Button, Menu } from '../components/core';
 import { NativeFiltersConfigModal } from '../components/modals';
 import { gotoWithRetry } from '../helpers/navigation';
 import { TIMEOUT } from '../utils/constants';
@@ -184,5 +184,122 @@ export class DashboardPage {
     const downloadPromise = this.page.waitForEvent('download');
     await menu.selectSubmenuItem('Download', optionText);
     return downloadPromise;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Drill to detail
+  //
+  // Charts that implement the DRILL_TO_DETAIL behavior expose two entry points:
+  // the chart's "More Options" header menu, and a right-click context menu on
+  // the chart body (a cell, the big-number value, or a canvas data point). Both
+  // open the same DrillDetailModal, which renders the underlying sample rows for
+  // the (optionally filtered) chart by calling the `/datasource/samples` API.
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Locator for a chart card on the dashboard by its visualization type, e.g.
+   * `table`, `pie`, `big_number_total`.
+   */
+  chartByVizType(vizType: string): Locator {
+    return this.page.locator(`[data-test-viz-type="${vizType}"]`);
+  }
+
+  /**
+   * Open the "Drill to detail" item from a chart's "More Options" header menu.
+   * This is the whole-chart entry point (no row-level filters applied).
+   */
+  async openDrillToDetailFromMenu(vizType: string): Promise<void> {
+    const moreOptions = new Button(
+      this.page,
+      this.chartByVizType(vizType).getByLabel('More Options', { exact: true }),
+    );
+    await moreOptions.click();
+    await this.page
+      .getByRole('menuitem', { name: 'Drill to detail', exact: true })
+      .click();
+  }
+
+  /**
+   * The DrillDetailModal dialog (titled "Drill to detail: <chart name>").
+   */
+  drillModal(): Locator {
+    return this.page.getByRole('dialog', { name: /^Drill to detail:/ });
+  }
+
+  /**
+   * Close the drill-to-detail modal if it is open (idempotent).
+   */
+  async closeDrillModal(): Promise<void> {
+    const close = this.page.locator('[data-test="close-drilltodetail-modal"]');
+    if (await close.count()) {
+      await close.first().click();
+      await this.drillModal().waitFor({ state: 'hidden' });
+    }
+  }
+
+  /**
+   * The applied-filter value tags inside the drill modal (`<col>=<val>`).
+   */
+  drillFilterValues(): Locator {
+    return this.page.locator('[data-test="filter-val"]');
+  }
+
+  /**
+   * Click the plain "Drill to detail" item in an open chart context menu
+   * (whole chart, no row-level filter).
+   */
+  async contextMenuDrillToDetail(): Promise<void> {
+    await this.page
+      .getByRole('menuitem', { name: 'Drill to detail', exact: true })
+      .click();
+  }
+
+  /**
+   * The "Drill to detail by" submenu parent (title) in an open context menu.
+   * Targeted by its submenu-title element rather than role+name because antd
+   * appends the arrow-icon name ("right") to the accessible name, and the leaf
+   * items ("Drill to detail by boy") would otherwise match a role+name lookup.
+   */
+  private drillBySubmenuTitle(): Locator {
+    return this.page.locator('.ant-dropdown-menu-submenu-title', {
+      hasText: 'Drill to detail by',
+    });
+  }
+
+  /** The "Drill to detail by" submenu popup (its leaf value items live here). */
+  private drillBySubmenu(): Locator {
+    return this.page.locator('.chart-context-submenu');
+  }
+
+  /**
+   * From an open chart context menu, hover the "Drill to detail by" submenu and
+   * click the entry for a specific value (e.g. "boy", "1965", "all").
+   */
+  async contextMenuDrillToDetailBy(value: string): Promise<void> {
+    await this.drillBySubmenuTitle().hover();
+    await this.drillBySubmenu()
+      .getByRole('menuitem', {
+        name: `Drill to detail by ${value}`,
+        exact: true,
+      })
+      .click();
+  }
+
+  /**
+   * From an open chart context menu, hover "Drill to detail by" and return the
+   * concrete values offered by the submenu (e.g. ["1965", "boy"]), skipping the
+   * aggregate "all" entry. Used by canvas charts where the value under the
+   * cursor is data-dependent: the test drills by whatever the menu actually
+   * offers and asserts that same value round-trips into the modal, which keeps
+   * the assertion independent of exact pixel/slice geometry.
+   */
+  async drillByOfferedValues(): Promise<string[]> {
+    await this.drillBySubmenuTitle().hover();
+    const items = this.drillBySubmenu().locator('[role="menuitem"]');
+    await items.first().waitFor();
+    const labels = await items.allInnerTexts();
+    return labels
+      .map(l => l.replace(/^Drill to detail by\s*/i, '').trim())
+      .filter(v => v.length > 0 && v.toLowerCase() !== 'all');
   }
 }
