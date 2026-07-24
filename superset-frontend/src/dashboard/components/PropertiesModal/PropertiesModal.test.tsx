@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -39,6 +40,30 @@ jest.mock('@superset-ui/core', () => ({
     get: () => ['#FFFFFF', '#000000'],
     getDefaultKey: () => 'supersetColors',
   })),
+}));
+
+// Mock the Advanced JSON editor (Ace-based, not drivable in jsdom) with a plain
+// textarea so a direct JSON edit can be simulated. Keeps the "JSON Metadata"
+// label so the existing "should open advance" test still passes.
+jest.mock('./sections/AdvancedSection', () => ({
+  __esModule: true,
+  default: ({
+    jsonMetadata,
+    onJsonMetadataChange,
+  }: {
+    jsonMetadata: string;
+    onJsonMetadataChange: (value: string) => void;
+  }) => (
+    <div>
+      <span>JSON Metadata</span>
+      <textarea
+        aria-label="JSON metadata editor"
+        data-test="mock-json-editor"
+        value={jsonMetadata}
+        onChange={e => onJsonMetadataChange(e.target.value)}
+      />
+    </div>
+  ),
 }));
 
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
@@ -257,6 +282,56 @@ describe('PropertiesModal', () => {
       // Check that the Advanced settings section is expanded by looking for its content
       expect(screen.getByText('JSON Metadata')).toBeInTheDocument();
     });
+  });
+
+  test('preserves a refresh_frequency edited in the JSON editor on save (#42116)', async () => {
+    // Save (onlyApply: false) PUTs to the API before calling onSubmit, so the
+    // request must be mocked or onSubmit is never reached.
+    const put = jest.spyOn(SupersetCore.SupersetClient, 'put');
+    put.mockResolvedValue({
+      json: {
+        result: {
+          dashboard_title: 'dashboard_title',
+          slug: 'slug',
+          json_metadata: 'json_metadata',
+          editors: 'editors',
+        },
+      },
+    } as any);
+    mockedIsFeatureEnabled.mockReturnValue(false);
+    const props = createProps();
+    const propsWithDashboardInfo = {
+      ...props,
+      dashboardInfo: {
+        ...dashboardInfo,
+        json_metadata: mockedJsonMetadata,
+      },
+    };
+    render(<PropertiesModal {...propsWithDashboardInfo} />, {
+      useRedux: true,
+    });
+    await screen.findByTestId('dashboard-edit-properties-form');
+
+    // Expand the Advanced settings panel so the (mocked) JSON editor mounts.
+    const advancedHeader = screen
+      .getByText('Advanced settings')
+      .closest('.ant-collapse-header');
+    await userEvent.click(advancedHeader!);
+
+    // Edit refresh_frequency directly in the JSON editor without touching the
+    // Refresh dropdown (the reproduction of #42116).
+    const editor = await screen.findByTestId('mock-json-editor');
+    fireEvent.change(editor, {
+      target: { value: JSON.stringify({ refresh_frequency: 30 }) },
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(props.onSubmit).toHaveBeenCalledTimes(1);
+    });
+    const submitted = JSON.parse(props.onSubmit.mock.calls[0][0].jsonMetadata);
+    expect(submitted.refresh_frequency).toBe(30);
   });
 
   test('should close modal', async () => {
