@@ -1744,8 +1744,17 @@ class DeckGLMultiLayer(BaseViz):
         features: dict[str, list[Any]] = {}
         self.applied_filters = []
         self.rejected_filters = []
+        accessible_slices: list[Slice] = []
 
         for layer_index, slc in enumerate(slices):
+            # Each child layer runs against its own datasource, so apply the
+            # same datasource access check per layer; skip any layer the current
+            # user cannot access so its data and metadata are neither queried
+            # nor returned.
+            if not security_manager.can_access_datasource(slc.datasource):
+                continue
+            accessible_slices.append(slc)
+
             form_data = slc.form_data
             form_data = self._apply_layer_filtering(form_data, layer_index)
 
@@ -1779,7 +1788,7 @@ class DeckGLMultiLayer(BaseViz):
         return {
             "features": features,
             "mapboxApiKey": current_app.config["MAPBOX_API_KEY"],
-            "slices": [slc.data for slc in slices if slc.data is not None],
+            "slices": [slc.data for slc in accessible_slices if slc.data is not None],
         }
 
     @deprecated(deprecated_in="3.0")

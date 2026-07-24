@@ -1746,9 +1746,12 @@ class TestDeckGLMultiLayer(SupersetTestCase):
         ]
 
     @with_config({"MAPBOX_API_KEY": "test_key"})
+    @patch("superset.viz.security_manager.raise_for_access")
     @patch("superset.viz.viz_types")
     @patch("superset.db.session")
-    def test_get_data_with_layer_filtering(self, mock_db_session, mock_viz_types):
+    def test_get_data_with_layer_filtering(
+        self, mock_db_session, mock_viz_types, mock_raise_for_access
+    ):
         """Test get_data method with layer filtering enabled."""
         datasource = self.get_datasource_mock()
 
@@ -1815,9 +1818,12 @@ class TestDeckGLMultiLayer(SupersetTestCase):
         assert result["mapboxApiKey"] == "test_key"
 
     @with_config({"MAPBOX_API_KEY": "test_key"})
+    @patch("superset.viz.security_manager.raise_for_access")
     @patch("superset.viz.viz_types")
     @patch("superset.db.session")
-    def test_get_data_filters_none_data_slices(self, mock_db_session, mock_viz_types):
+    def test_get_data_filters_none_data_slices(
+        self, mock_db_session, mock_viz_types, mock_raise_for_access
+    ):
         """Test get_data method filters out slices with None data."""
         datasource = self.get_datasource_mock()
 
@@ -1853,12 +1859,14 @@ class TestDeckGLMultiLayer(SupersetTestCase):
         assert result["slices"][0] == slice_1.data
 
     @with_config({"MAPBOX_API_KEY": "test_key"})
+    @patch("superset.viz.security_manager.raise_for_access")
     @patch("superset.viz.viz_types")
     @patch("superset.db.session")
     def test_get_payload_includes_subslice_filter_metadata(
         self,
         mock_db_session,
         mock_viz_types,
+        mock_raise_for_access,
     ):
         """Test deck.gl multi-layer payload includes child filter metadata."""
         datasource = self.get_datasource_mock()
