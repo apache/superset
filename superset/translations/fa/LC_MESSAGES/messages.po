@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-07-17 15:46-0700\n"
+"POT-Creation-Date: 2026-07-21 13:03-0700\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -136,9 +136,6 @@ msgstr "جزئیات"
 msgid " near '%(highlight)s'"
 msgstr "نزدیک به '%(highlight)s'"
 
-msgid " source code of Superset's sandboxed parser"
-msgstr "کد منبع تجزیه‌کننده‌ی محافظت‌شده‌ی Superset"
-
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
 "                      coincides with the chronological ordering. If the\n"
@@ -243,6 +240,24 @@ msgstr "%(name)s.csv"
 #, python-format
 msgid "%(name)s.pdf"
 msgstr "%(name)s.pdf"
+
+#, python-format
+msgid "%(num)d hour"
+msgid_plural "%(num)d hours"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(num)d minute"
+msgid_plural "%(num)d minutes"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(num)d second"
+msgid_plural "%(num)d seconds"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "%(object)s does not exist in this database."
@@ -851,18 +866,6 @@ msgstr "بزرگتر یا برابر"
 msgid "A Big Number"
 msgstr "یک عدد بزرگ"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "A JavaScript function that generates a label configuration object"
-msgstr "یک تابع جاوا اسکریپت که یک شیء پیکربندی برچسب تولید می‌کند"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "A JavaScript function that generates an icon configuration object"
-msgstr "یک تابع جاوا اسکریپت که یک شیء پیکربندی آیکون تولید می‌کند"
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy, python-brace-format
@@ -876,6 +879,9 @@ msgstr ""
 "گزینه‌های کنترلی را با اولویت بالاتر بازنویسی می‌کند. (مثلاً { title: { "
 "text: \"My Chart\" }, tooltip: { trigger: \"item\" } }). جزئیات: "
 "https://echarts.apache.org/en/option.html. "
+
+msgid "A TTL is required for ephemeral state."
+msgstr ""
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -1282,6 +1288,12 @@ msgstr "رنگی برای تغییرات مثبت/منفی اضافه کنید"
 #, fuzzy
 msgid "Add colors to cell bars for +/- for all columns"
 msgstr "رنگ‌ها را به نوارهای سلول برای + و - اضافه کنید"
+
+msgid ""
+"Add columns to filter by. When typing or pasting filter values, commas "
+"will separate values into multiple entries. To include a comma within a "
+"value, wrap it in double quotes: \"San Francisco, CA\""
+msgstr ""
 
 msgid "Add cross-filter"
 msgstr "فیلتر متقاطع اضافه کنید"
@@ -1746,6 +1758,9 @@ msgstr ""
 "میانه و دو ربع داخلی را به نمایش می‌گذارد. شاخک‌های اطراف هر جعبه حداقل، "
 "حداکثر، دامنه و دو ربع خارجی را بصری‌سازی می‌کنند."
 
+msgid "Also overwrite all assets (charts, datasets and databases)"
+msgstr ""
+
 msgid "Altered"
 msgstr "ویرایش شده"
 
@@ -1985,6 +2000,11 @@ msgstr "هنگام دریافت مقادیر کاربر، خطایی رخ داد
 msgid "An error occurred while formatting SQL"
 msgstr "یک خطا در حین بارگذاری SQL رخ داد."
 
+msgid ""
+"An error occurred while generating the file. Please try again, or contact"
+" your administrator if the problem persists."
+msgstr ""
+
 #, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr "هنگام وارد کردن %s خطایی رخ داد: %s"
@@ -2070,6 +2090,9 @@ msgstr "هنگام به‌روز رسانی مقدار، خطایی رخ داد.
 
 msgid "An error occurred while upserting the value."
 msgstr "هنگام به‌روز رسانی مقدار، خطایی رخ داد."
+
+msgid "An export for this dashboard is already in progress."
+msgstr ""
 
 msgid "An unexpected error occurred"
 msgstr "یک خطای غیرمنتظره رخ داد"
@@ -3815,6 +3838,12 @@ msgstr "رنگ بر اساس"
 msgid "Color Metric"
 msgstr "معیار رنگ"
 
+msgid "Color Range End"
+msgstr ""
+
+msgid "Color Range Start"
+msgstr ""
+
 msgid "Color Scheme"
 msgstr "طرح رنگ"
 
@@ -5334,27 +5363,6 @@ msgstr ""
 "مقدار پیش‌فرض به‌طور خودکار تنظیم می‌شود زمانی که \"انتخاب اولین مقدار "
 "فیلتر به‌طور پیش‌فرض\" تیک زده شده باشد."
 
-msgid ""
-"Define a function that receives the input and outputs the content for a "
-"tooltip"
-msgstr ""
-"یک تابع تعریف کنید که ورودی را دریافت کرده و محتوا را برای یک راهنما "
-"(Tooltip) خروجی دهد."
-
-msgid "Define a function that returns a URL to navigate to when user clicks"
-msgstr "یک تابع تعریف کنید که آدرسی را برای هدایت کاربر پس از کلیک بازگرداند."
-
-msgid ""
-"Define a javascript function that receives the data array used in the "
-"visualization and is expected to return a modified version of that array."
-" This can be used to alter properties of the data, filter, or enrich the "
-"array."
-msgstr ""
-"یک تابع جاوااسکریپت تعریف کنید که آرایه داده‌های استفاده شده در تجسم را "
-"دریافت کرده و انتظار می‌رود نسخه‌ای تغییریافته از آن آرایه را بازگرداند. "
-"این می‌تواند برای تغییر ویژگی‌های داده، فیلتر کردن یا غنی‌سازی آرایه "
-"استفاده شود."
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -5979,6 +5987,9 @@ msgstr "نقطه‌دار"
 msgid "Download"
 msgstr "دانلود"
 
+msgid "Download Excel file"
+msgstr ""
+
 msgid "Download as Image"
 msgstr "دانلود به عنوان تصویر"
 
@@ -6521,21 +6532,9 @@ msgstr "پیش‌بینی را فعال کنید"
 msgid "Enable graph roaming"
 msgstr "فعال‌سازی جست‌و‌خیز گراف"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Enable icon JavaScript mode"
-msgstr "فعال‌سازی حالت JavaScript برای نماد"
-
 #, fuzzy
 msgid "Enable icons"
 msgstr "ستون‌های جدول"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Enable label JavaScript mode"
-msgstr "فعال‌سازی حالت JavaScript برای برچسب"
 
 #, fuzzy
 msgid "Enable labels"
@@ -6558,18 +6557,6 @@ msgstr "فعال‌سازی گسترش ردیف در اسکیماها"
 
 msgid "Enable server side pagination of results (experimental feature)"
 msgstr "فعال‌سازی صفحه‌بندی سمت سرور نتایج (ویژگی آزمایشی)"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Enables custom icon configuration via JavaScript"
-msgstr "امکان پیکربندی سفارشی نماد از طریق JavaScript را فراهم می‌کند"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Enables custom label configuration via JavaScript"
-msgstr "امکان پیکربندی سفارشی برچسب از طریق JavaScript را فراهم می‌کند"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
@@ -6920,6 +6907,9 @@ msgstr "گزارش هفتگی"
 msgid "Excel XML Export"
 msgstr "گزارش هفتگی"
 
+msgid "Excel export is not configured on this server."
+msgstr ""
+
 msgid "Excel file format cannot be determined"
 msgstr "فرمت فایل اکسل قابل شناسایی نیست"
 
@@ -7010,6 +7000,12 @@ msgstr "تمام داده‌ها را پاک کنید"
 #, fuzzy
 msgid "Export Current View"
 msgstr "برعکس کردن صفحه فعلی"
+
+msgid "Export Data to Excel"
+msgstr ""
+
+msgid "Export Images to Excel"
+msgstr ""
 
 #, fuzzy
 msgid "Export YAML"
@@ -7117,6 +7113,12 @@ msgstr "عبارت SQL"
 msgid "Expression cannot be empty"
 msgstr "نمی‌تواند خالی باشد"
 
+#, python-format
+msgid ""
+"Extension '%(extension_id)s' has exceeded its persistent storage quota of"
+" %(quota)d bytes."
+msgstr ""
+
 #, fuzzy
 msgid "Extensions"
 msgstr "ابعاد"
@@ -7139,9 +7141,6 @@ msgstr "کنترل‌های اضافی"
 
 msgid "Extra Parameters"
 msgstr "پارامترهای اضافی"
-
-msgid "Extra data for JS"
-msgstr "داده‌های اضافی برای JS"
 
 #, python-brace-format
 msgid ""
@@ -7623,11 +7622,6 @@ msgstr ""
 
 msgid "For further instructions, consult the"
 msgstr "برای دستورالعمل‌های بیشتر، با مشورت کنید"
-
-msgid ""
-"For more information about objects are in context in the scope of this "
-"function, refer to the"
-msgstr "برای اطلاعات بیشتر درباره اشیایی که در زمینه این تابع وجود دارند، به"
 
 #, fuzzy
 msgid ""
@@ -8113,10 +8107,6 @@ msgid "ISO 8601"
 msgstr "استاندارد ISO ۸۶۰۱"
 
 #, fuzzy
-msgid "Icon JavaScript config generator"
-msgstr "ژنراتور ابزارک جاوااسکریپت"
-
-#, fuzzy
 msgid "Icon URL"
 msgstr "کنترل"
 
@@ -8170,6 +8160,9 @@ msgstr ""
 #, fuzzy
 msgid "If table already exists"
 msgstr "برچسب قبلاً وجود دارد"
+
+msgid "If you did not request this, you can ignore this email."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -8671,15 +8664,6 @@ msgstr "ژوئن"
 msgid "January"
 msgstr "ژانویه"
 
-msgid "JavaScript data interceptor"
-msgstr "اینترسپتور داده‌های جاوااسکریپت"
-
-msgid "JavaScript onClick href"
-msgstr "جاوااسکریپت onClick href"
-
-msgid "JavaScript tooltip generator"
-msgstr "ژنراتور ابزارک جاوااسکریپت"
-
 msgid "Jinja templating"
 msgstr "قالب‌سازی جینجا"
 
@@ -8724,10 +8708,6 @@ msgstr "برچسب"
 
 msgid "Label Contents"
 msgstr "محتویات برچسب"
-
-#, fuzzy
-msgid "Label JavaScript config generator"
-msgstr "ژنراتور ابزارک جاوااسکریپت"
 
 msgid "Label Line"
 msgstr "برچسب خط"
@@ -8958,6 +8938,15 @@ msgstr "نوع افسانه"
 msgid "Legend type"
 msgstr "نوع افسانه"
 
+msgid "Length in cm (12345678cm => 123.46km)"
+msgstr ""
+
+msgid "Length in cm (12345cm => 123.45m)"
+msgstr ""
+
+msgid "Length in m (12345m => 12.35km)"
+msgstr ""
+
 #, fuzzy
 msgid "Less Than"
 msgstr "کمتراز (<)"
@@ -9108,9 +9097,6 @@ msgstr "لیست مقادیر منحصر به فرد"
 msgid "List Users"
 msgstr "عدد را تقسیم کن"
 
-msgid "List of extra columns made available in JavaScript functions"
-msgstr "فهرست ستون‌های اضافی که در توابع جاوااسکریپت در دسترس قرار می‌گیرند"
-
 msgid "List of n+1 values for bucketing metric into n buckets."
 msgstr "لیست n+۱ مقدار برای دسته بندی معیار به n سطل."
 
@@ -9242,6 +9228,11 @@ msgstr "طول جغرافیایی نمای پیش‌فرض"
 
 msgid "Lower Threshold"
 msgstr "آستانه پایین"
+
+msgid ""
+"Lower bound of the color scale. When both start and end are set, the "
+"legend uses this fixed range instead of the automatic data range."
+msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "آستانه پایین باید کمتر از آستانه بالا باشد."
@@ -11930,6 +11921,13 @@ msgstr "درخواست فیلد داده‌ گم‌شده."
 msgid "Request timed out"
 msgstr "درخواست زمان زیادی طول کشید"
 
+#, python-format
+msgid ""
+"Requested page would return %(requested_size)d bytes, exceeding the "
+"maximum allowed list payload size of %(max_size)d bytes. Reduce page_size"
+" and try again."
+msgstr ""
+
 msgid "Required"
 msgstr "مورد نیاز"
 
@@ -14229,6 +14227,12 @@ msgstr "اجرا را متوقف کنید (Ctrl + x)"
 msgid "Stopped an unsafe database connection"
 msgstr "اتصال غیر ایمن به پایگاه داده متوقف شد"
 
+#, python-format
+msgid ""
+"Storage key exceeds the maximum allowed length of %(max_length)d "
+"characters."
+msgstr ""
+
 msgid "Stream"
 msgstr "جریان"
 
@@ -14478,6 +14482,13 @@ msgstr "محدوده_زمانی"
 
 msgid "THU"
 msgstr "پنج‌شنبه"
+
+msgid "TTL must be a positive integer."
+msgstr ""
+
+#, python-format
+msgid "TTL must not exceed %(max_ttl)d seconds."
+msgstr ""
 
 msgid "TUE"
 msgstr "سه‌شنبه"
@@ -14783,6 +14794,9 @@ msgstr ""
 "GLOBAL_TASK_FRAMEWORK=True را در پرچم‌های ویژگی خود تنظیم کنید. برای "
 "جزئیات پیکربندی به https://superset.apache.org/docs/configuration/async-"
 "queries-celery مراجعه کنید."
+
+msgid "The SQL query mutator removed all executable statements from this query."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
@@ -15107,6 +15121,19 @@ msgstr ""
 #, fuzzy
 msgid "The feature property to use for point labels"
 msgstr "خاصیت ویژگی برای استفاده در برچسب‌های نقطه"
+
+msgid "The following charts could not be exported:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because an error occurred while "
+"exporting them:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because they have no saved query "
+"context. To include them, open each chart in Explore and re-save."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -16319,6 +16346,10 @@ msgstr ""
 "این ایمیل قبلاً با یک حساب کاربری مرتبط شده است. لطفاً آدرس دیگری انتخاب "
 "کنید."
 
+#, python-format
+msgid "This export was requested on %(when)s UTC."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -16365,9 +16396,6 @@ msgstr "این پوشه فقط از ستون‌ها پشتیبانی می‌کن
 #, fuzzy
 msgid "This folder only supports metrics"
 msgstr "این پوشه فقط از معیارها پشتیبانی می‌کند"
-
-msgid "This functionality is disabled in your environment for security reasons."
-msgstr "این قابلیت به دلایل امنیتی در محیط شما غیرفعال است."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -16447,6 +16475,10 @@ msgstr ""
 #, fuzzy
 msgid "This link cannot be followed because its address is unsafe."
 msgstr "این پیوند قابل دنبال کردن نیست زیرا آدرس آن ناامن است."
+
+#, python-format
+msgid "This link expires in %(duration)s (%(when)s UTC)."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -16942,9 +16974,8 @@ msgstr "مجموع (%(aggregatorName)s)"
 
 msgid ""
 "Total angle covered by the chart, in degrees. 360° draws a full circle "
-"and 180° draws a half donut. When the sweep is 180° or less and the start"
-" angle is a multiple of 90°, the chart is automatically re-centered to "
-"make use of the empty space."
+"and 180° draws a half donut. Partial arcs are automatically re-centered "
+"and scaled to make use of the available space."
 msgstr ""
 
 #, fuzzy
@@ -17493,6 +17524,11 @@ msgstr "بارگذاری یک فایل الزامی است"
 msgid "Upper Threshold"
 msgstr "آستانه بالا"
 
+msgid ""
+"Upper bound of the color scale. When both start and end are set, the "
+"legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
 msgid "Upper threshold must be greater than lower threshold"
 msgstr "آستانه بالا باید بزرگ‌تر از آستانه پایین باشد."
 
@@ -17729,6 +17765,10 @@ msgstr "مقدار نمی‌تواند بیشتر از %s باشد."
 
 msgid "Value difference between the time periods"
 msgstr "تفاوت ارزش بین دوره‌های زمانی"
+
+#, python-format
+msgid "Value exceeds the maximum allowed size of %(max_size)d bytes."
+msgstr ""
 
 msgid "Value format"
 msgstr "فرمت مقدار"
@@ -18196,6 +18236,12 @@ msgid ""
 msgstr ""
 "هنگامی که ستون‌های زمانی ثانویه فیلتر می‌شوند، همان فیلتر را به ستون "
 "تاریخ و زمان اصلی اعمال کنید."
+
+msgid ""
+"When typing or pasting filter values, commas will separate values into "
+"multiple entries. To include a comma within a value, wrap it in double "
+"quotes: \"San Francisco, CA\""
+msgstr ""
 
 msgid ""
 "When unchecked, colors from the selected color scheme will be used for "
@@ -18965,6 +19011,14 @@ msgstr "چارت شما به روز نیست"
 msgid "Your chart is ready to go!"
 msgstr "نمودار شما آماده است!"
 
+#, python-format
+msgid "Your dashboard export could not be completed: %(title)s"
+msgstr ""
+
+#, python-format
+msgid "Your dashboard export is ready: %(title)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -18977,6 +19031,17 @@ msgid ""
 "but the limit is %s. Reduce the dashboard size (for example, split it "
 "into multiple dashboards) or raise the "
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
+msgstr ""
+
+msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgstr ""
+
+#, python-format
+msgid "Your export of \"%(title)s\" could not be completed."
+msgstr ""
+
+#, python-format
+msgid "Your export of \"%(title)s\" is ready."
 msgstr ""
 
 msgid "Your query could not be saved"

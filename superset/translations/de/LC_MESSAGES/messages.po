@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-07-17 15:46-0700\n"
+"POT-Creation-Date: 2026-07-21 13:03-0700\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -129,9 +129,6 @@ msgstr " finden Sie weitere Informationen."
 msgid " near '%(highlight)s'"
 msgstr " in der Nähe von '%(highlight)s'"
 
-msgid " source code of Superset's sandboxed parser"
-msgstr " Quellcode des Sandbox-Parsers von Superset"
-
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
 "                      coincides with the chronological ordering. If the\n"
@@ -232,6 +229,24 @@ msgstr "%(name)s.csv"
 #, python-format
 msgid "%(name)s.pdf"
 msgstr "%(name)s.pdf"
+
+#, python-format
+msgid "%(num)d hour"
+msgid_plural "%(num)d hours"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(num)d minute"
+msgid_plural "%(num)d minutes"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(num)d second"
+msgid_plural "%(num)d seconds"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "%(object)s does not exist in this database."
@@ -807,16 +822,6 @@ msgstr ">= (Größer oder gleich)"
 msgid "A Big Number"
 msgstr "Eine Große Zahl"
 
-msgid "A JavaScript function that generates a label configuration object"
-msgstr ""
-"Eine JavaScript-Funktion, die ein Objekt zur Konfiguration von "
-"Beschriftungen generiert"
-
-msgid "A JavaScript function that generates an icon configuration object"
-msgstr ""
-"Eine JavaScript-Funktion, die ein Objekt zur Konfiguration von Symbolen "
-"generiert"
-
 #, python-brace-format
 msgid ""
 "A JavaScript object that adheres to the ECharts options specification, "
@@ -828,6 +833,9 @@ msgstr ""
 "und andere Steuerelementoptionen mit höherer Priorität überschreibt. (z. "
 "B. { title: { text: \"Mein Diagramm\" }, tooltip: { trigger: \"item\" } "
 "}). Details: https://echarts.apache.org/en/option.html. "
+
+msgid "A TTL is required for ephemeral state."
+msgstr ""
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr ""
@@ -1208,6 +1216,12 @@ msgstr "Farbe für positive/negative Veränderung hinzufügen"
 
 msgid "Add colors to cell bars for +/- for all columns"
 msgstr "Farben zu den Zellenbalken für +/- für alle Spalten hinzufügen"
+
+msgid ""
+"Add columns to filter by. When typing or pasting filter values, commas "
+"will separate values into multiple entries. To include a comma within a "
+"value, wrap it in double quotes: \"San Francisco, CA\""
+msgstr ""
 
 msgid "Add cross-filter"
 msgstr "Kreuzfilter hinzufügen"
@@ -1664,6 +1678,9 @@ msgstr ""
 "Quartile dar. Die sogenannten „Whisker“ um jede Box visualisieren die "
 "Min-, Max-, Range- und äußeren 2 Quartile."
 
+msgid "Also overwrite all assets (charts, datasets and databases)"
+msgstr ""
+
 msgid "Altered"
 msgstr "Geändert"
 
@@ -1907,6 +1924,11 @@ msgstr "Beim Abrufen der Benutzerprofile ist ein Fehler aufgetreten: %s"
 msgid "An error occurred while formatting SQL"
 msgstr "Beim Formatieren der SQL-Anweisung ist ein Fehler aufgetreten"
 
+msgid ""
+"An error occurred while generating the file. Please try again, or contact"
+" your administrator if the problem persists."
+msgstr ""
+
 #, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr "Beim Importieren von %s ist ein Fehler aufgetreten: %s"
@@ -1992,6 +2014,9 @@ msgstr "Beim Upsert der Erweiterung ist ein Fehler aufgetreten."
 
 msgid "An error occurred while upserting the value."
 msgstr "Beim Erhöhen des Werts ist ein Fehler aufgetreten."
+
+msgid "An export for this dashboard is already in progress."
+msgstr ""
 
 msgid "An unexpected error occurred"
 msgstr "Ein unerwarteter Fehler ist aufgetreten"
@@ -3617,6 +3642,12 @@ msgstr "Einfärben nach y-Achse"
 msgid "Color Metric"
 msgstr "Farbmetrik"
 
+msgid "Color Range End"
+msgstr ""
+
+msgid "Color Range Start"
+msgstr ""
+
 msgid "Color Scheme"
 msgstr "Farbschema"
 
@@ -5035,29 +5066,6 @@ msgstr ""
 "Standardwert wird automatisch festgelegt, wenn „Erstes Element als "
 "Standard“ aktiviert ist"
 
-msgid ""
-"Define a function that receives the input and outputs the content for a "
-"tooltip"
-msgstr ""
-"Definieren Sie eine Funktion, die die Eingabe empfängt und den Inhalt für"
-" einen Tooltip ausgibt"
-
-msgid "Define a function that returns a URL to navigate to when user clicks"
-msgstr ""
-"Definieren Sie eine Funktion, die eine URL zurückgibt, zu der navigiert "
-"wird, wenn der/die Benutzer*in klickt"
-
-msgid ""
-"Define a javascript function that receives the data array used in the "
-"visualization and is expected to return a modified version of that array."
-" This can be used to alter properties of the data, filter, or enrich the "
-"array."
-msgstr ""
-"Definieren Sie eine JavaScript-Funktion, die das in der Visualisierung "
-"verwendete Daten-Array empfängt und eine geänderte Version dieses Arrays "
-"zurückgibt. Dies kann verwendet werden, um Eigenschaften der Daten zu "
-"ändern, zu filtern oder das Array anzureichern."
-
 msgid "Define color breakpoints for the data"
 msgstr "Definieren Sie Farb-Trennpunkte für die Daten"
 
@@ -5642,6 +5650,9 @@ msgstr "Gepunktet"
 msgid "Download"
 msgstr "Herunterladen"
 
+msgid "Download Excel file"
+msgstr ""
+
 msgid "Download as Image"
 msgstr "Als Bild herunterladen"
 
@@ -6144,14 +6155,8 @@ msgstr "Aktivieren von Prognosen"
 msgid "Enable graph roaming"
 msgstr "Graph-Roaming aktivieren"
 
-msgid "Enable icon JavaScript mode"
-msgstr "JavaScript-Modus für Symbole aktivieren"
-
 msgid "Enable icons"
 msgstr "Symbole aktivieren"
-
-msgid "Enable label JavaScript mode"
-msgstr "JavaScript-Modus für Beschriftungen aktivieren"
 
 msgid "Enable labels"
 msgstr "Beschriftungen aktivieren"
@@ -6172,16 +6177,6 @@ msgid "Enable server side pagination of results (experimental feature)"
 msgstr ""
 "Aktivieren der serverseitigen Paginierung der Ergebnisse (experimentelle "
 "Funktion)"
-
-msgid "Enables custom icon configuration via JavaScript"
-msgstr ""
-"Ermöglicht die benutzerdefinierte Konfiguration von Symbolen über "
-"JavaScript"
-
-msgid "Enables custom label configuration via JavaScript"
-msgstr ""
-"Ermöglicht die benutzerdefinierte Konfiguration von Beschriftungen über "
-"JavaScript"
 
 msgid "Enables rendering of icons for GeoJSON points"
 msgstr "Ermöglicht die Darstellung von Symbolen für GeoJSON-Punkte"
@@ -6487,6 +6482,9 @@ msgstr "Excel Export"
 msgid "Excel XML Export"
 msgstr "Excel XML-Export"
 
+msgid "Excel export is not configured on this server."
+msgstr ""
+
 msgid "Excel file format cannot be determined"
 msgstr "Excel-Dateiformat kann nicht bestimmt werden"
 
@@ -6570,6 +6568,12 @@ msgstr "Alle Daten exportieren"
 
 msgid "Export Current View"
 msgstr "Aktuelle Ansicht exportieren"
+
+msgid "Export Data to Excel"
+msgstr ""
+
+msgid "Export Images to Excel"
+msgstr ""
 
 msgid "Export YAML"
 msgstr "YAML exportieren"
@@ -6665,6 +6669,12 @@ msgstr "Ausdrücke"
 msgid "Expression cannot be empty"
 msgstr "Ausdruck darf nicht leer sein"
 
+#, python-format
+msgid ""
+"Extension '%(extension_id)s' has exceeded its persistent storage quota of"
+" %(quota)d bytes."
+msgstr ""
+
 msgid "Extensions"
 msgstr "Module"
 
@@ -6682,9 +6692,6 @@ msgstr "Zusätzliche Bedienelemente"
 
 msgid "Extra Parameters"
 msgstr "Zusätzliche Parameter"
-
-msgid "Extra data for JS"
-msgstr "Zusätzliche Daten für JS"
 
 #, python-brace-format
 msgid ""
@@ -7113,13 +7120,6 @@ msgstr ""
 
 msgid "For further instructions, consult the"
 msgstr "Weitere Anweisungen finden Sie in der"
-
-msgid ""
-"For more information about objects are in context in the scope of this "
-"function, refer to the"
-msgstr ""
-"Weitere Informationen zu Objekten im Kontext dieser Funktion finden Sie "
-"im Abschnitt"
 
 msgid ""
 "For regular filters, these are the subjects (users, roles, groups) this "
@@ -7567,9 +7567,6 @@ msgstr "ISO-3166-2-Codes"
 msgid "ISO 8601"
 msgstr "ISO 8601"
 
-msgid "Icon JavaScript config generator"
-msgstr "Symbol-JavaScript-Konfigurationsgenerator"
-
 msgid "Icon URL"
 msgstr "Symbol-URL"
 
@@ -7621,6 +7618,9 @@ msgstr ""
 
 msgid "If table already exists"
 msgstr "Wenn die Tabelle bereits existiert"
+
+msgid "If you did not request this, you can ignore this email."
+msgstr ""
 
 msgid "If you don't save, changes will be lost."
 msgstr "Wenn Sie nicht speichern, gehen die Änderungen verloren."
@@ -8074,15 +8074,6 @@ msgstr "JUN"
 msgid "January"
 msgstr "Januar"
 
-msgid "JavaScript data interceptor"
-msgstr "JavaScript-Daten-Interceptor"
-
-msgid "JavaScript onClick href"
-msgstr "JavaScript onClick href"
-
-msgid "JavaScript tooltip generator"
-msgstr "JavaScript-Tooltip-Generator"
-
 msgid "Jinja templating"
 msgstr "Jinja Vorlagen"
 
@@ -8123,9 +8114,6 @@ msgstr "Beschriftung"
 
 msgid "Label Contents"
 msgstr "Beschriftungsinhalt"
-
-msgid "Label JavaScript config generator"
-msgstr "Beschriftung JavaScript-Konfigurationsgenerator"
 
 msgid "Label Line"
 msgstr "Beschriftungslinie"
@@ -8334,6 +8322,15 @@ msgstr "Legendentyp"
 msgid "Legend type"
 msgstr "Legendentyp"
 
+msgid "Length in cm (12345678cm => 123.46km)"
+msgstr ""
+
+msgid "Length in cm (12345cm => 123.45m)"
+msgstr ""
+
+msgid "Length in m (12345m => 12.35km)"
+msgstr ""
+
 msgid "Less Than"
 msgstr "Kleiner als"
 
@@ -8469,11 +8466,6 @@ msgstr "Eindeutige Werte auflisten"
 msgid "List Users"
 msgstr "Benutzer*innen auflisten"
 
-msgid "List of extra columns made available in JavaScript functions"
-msgstr ""
-"Liste der zusätzlichen Spalten, die in JavaScript-Funktionen zur "
-"Verfügung gestellt werden"
-
 msgid "List of n+1 values for bucketing metric into n buckets."
 msgstr "Liste der n+1-Werte für das Bucketing der Metrik in n Buckets."
 
@@ -8591,6 +8583,11 @@ msgstr "Längengrad des Standardansichtfensters"
 
 msgid "Lower Threshold"
 msgstr "Unterer Schwellenwert"
+
+msgid ""
+"Lower bound of the color scale. When both start and end are set, the "
+"legend uses this fixed range instead of the automatic data range."
+msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "Unterer Schwellenwert muss niedriger sein als der obere Schwellenwert"
@@ -11110,6 +11107,13 @@ msgstr "Datenfeld fehlt in Abfrage."
 msgid "Request timed out"
 msgstr "Zeitüberschreitung der Anforderung"
 
+#, python-format
+msgid ""
+"Requested page would return %(requested_size)d bytes, exceeding the "
+"maximum allowed list payload size of %(max_size)d bytes. Reduce page_size"
+" and try again."
+msgstr ""
+
 msgid "Required"
 msgstr "Erforderlich"
 
@@ -13212,6 +13216,12 @@ msgstr "Ausführung abbrechen (Strg + x)"
 msgid "Stopped an unsafe database connection"
 msgstr "Eine unsichere Datenbankverbindung wurde beendet"
 
+#, python-format
+msgid ""
+"Storage key exceeds the maximum allowed length of %(max_length)d "
+"characters."
+msgstr ""
+
 msgid "Stream"
 msgstr "Stream"
 
@@ -13425,6 +13435,13 @@ msgstr "TEMPORAL_RANGE"
 
 msgid "THU"
 msgstr "DO"
+
+msgid "TTL must be a positive integer."
+msgstr ""
+
+#, python-format
+msgid "TTL must not exceed %(max_ttl)d seconds."
+msgstr ""
 
 msgid "TUE"
 msgstr "DI"
@@ -13713,6 +13730,9 @@ msgstr ""
 "Feature-Flags GLOBAL_TASK_FRAMEWORK=True, um @task zu verwenden. Weitere "
 "Informationen zur Konfiguration finden Sie unter "
 "https://superset.apache.org/docs/configuration/async-queries-celery."
+
+msgid "The SQL query mutator removed all executable statements from this query."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
@@ -14032,6 +14052,19 @@ msgstr ""
 
 msgid "The feature property to use for point labels"
 msgstr "Die zu verwendende Objekt-Eigenschaft für Punktbeschriftungen"
+
+msgid "The following charts could not be exported:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because an error occurred while "
+"exporting them:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because they have no saved query "
+"context. To include them, open each chart in Explore and re-save."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -15234,6 +15267,10 @@ msgstr ""
 "Diese E-Mail-Adresse ist bereits mit einem Konto verknüpft. Bitte wählen "
 "Sie eine andere."
 
+#, python-format
+msgid "This export was requested on %(when)s UTC."
+msgstr ""
+
 msgid "This feature is experimental and may change or have limitations"
 msgstr ""
 "Diese Funktion befindet sich noch in der Testphase und kann sich ändern "
@@ -15270,9 +15307,6 @@ msgstr "Dieser Ordner unterstützt ausschließlich Spalten"
 
 msgid "This folder only supports metrics"
 msgstr "Dieser Ordner unterstützt ausschließlich Metriken"
-
-msgid "This functionality is disabled in your environment for security reasons."
-msgstr "Diese Funktion ist in Ihrer Umgebung aus Sicherheitsgründen deaktiviert."
 
 msgid ""
 "This is a default columns folder. Its name cannot be changed or removed. "
@@ -15337,6 +15371,10 @@ msgstr ""
 #, fuzzy
 msgid "This link cannot be followed because its address is unsafe."
 msgstr "Diesem Link kann nicht gefolgt werden, da seine Adresse unsicher ist."
+
+#, python-format
+msgid "This link expires in %(duration)s (%(when)s UTC)."
+msgstr ""
 
 msgid ""
 "This link will take you to an external website. We cannot guarantee the "
@@ -15798,9 +15836,8 @@ msgstr "Insgesamt (%(aggregatorName)s)"
 
 msgid ""
 "Total angle covered by the chart, in degrees. 360° draws a full circle "
-"and 180° draws a half donut. When the sweep is 180° or less and the start"
-" angle is a multiple of 90°, the chart is automatically re-centered to "
-"make use of the empty space."
+"and 180° draws a half donut. Partial arcs are automatically re-centered "
+"and scaled to make use of the available space."
 msgstr ""
 
 msgid "Total color"
@@ -16305,6 +16342,11 @@ msgstr "Das Hochladen einer Datei ist erforderlich"
 msgid "Upper Threshold"
 msgstr "Oberer Schwellenwert"
 
+msgid ""
+"Upper bound of the color scale. When both start and end are set, the "
+"legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
 msgid "Upper threshold must be greater than lower threshold"
 msgstr "Oberer Schwellenwert muss größer sein als der untere Schwellenwert"
 
@@ -16533,6 +16575,10 @@ msgstr "Der Wert kann nicht höher sein als %s"
 
 msgid "Value difference between the time periods"
 msgstr "Wertdifferenz zwischen den Zeiträumen"
+
+#, python-format
+msgid "Value exceeds the maximum allowed size of %(max_size)d bytes."
+msgstr ""
 
 msgid "Value format"
 msgstr "Wertformat"
@@ -16995,6 +17041,12 @@ msgid ""
 msgstr ""
 "Wenn die sekundären Zeitspalten gefiltert sind, wenden Sie denselben "
 "Filter auf die Haupt-Zeitspalte an."
+
+msgid ""
+"When typing or pasting filter values, commas will separate values into "
+"multiple entries. To include a comma within a value, wrap it in double "
+"quotes: \"San Francisco, CA\""
+msgstr ""
 
 msgid ""
 "When unchecked, colors from the selected color scheme will be used for "
@@ -17746,6 +17798,14 @@ msgstr "Ihr Diagramm ist nicht aktuell"
 msgid "Your chart is ready to go!"
 msgstr "Ihr Chart ist startklar!"
 
+#, python-format
+msgid "Your dashboard export could not be completed: %(title)s"
+msgstr ""
+
+#, python-format
+msgid "Your dashboard export is ready: %(title)s"
+msgstr ""
+
 msgid "Your dashboard is near the size limit."
 msgstr "Ihr Dashboard hat fast die maximale Größe erreicht."
 
@@ -17755,6 +17815,17 @@ msgid ""
 "but the limit is %s. Reduce the dashboard size (for example, split it "
 "into multiple dashboards) or raise the "
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
+msgstr ""
+
+msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgstr ""
+
+#, python-format
+msgid "Your export of \"%(title)s\" could not be completed."
+msgstr ""
+
+#, python-format
+msgid "Your export of \"%(title)s\" is ready."
 msgstr ""
 
 msgid "Your query could not be saved"

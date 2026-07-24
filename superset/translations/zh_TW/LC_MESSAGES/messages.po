@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-07-17 15:46-0700\n"
+"POT-Creation-Date: 2026-07-21 13:03-0700\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -128,12 +128,6 @@ msgstr "詳細訊息"
 #, fuzzy, python-format
 msgid " near '%(highlight)s'"
 msgstr " 在 '%(highlight)s' 附近"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid " source code of Superset's sandboxed parser"
-msgstr " Superset 沙箱解析器的原始碼"
 
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
@@ -246,6 +240,21 @@ msgstr "%(name)s.csv"
 #, fuzzy, python-format
 msgid "%(name)s.pdf"
 msgstr "%(name)s.pdf"
+
+#, python-format
+msgid "%(num)d hour"
+msgid_plural "%(num)d hours"
+msgstr[0] ""
+
+#, python-format
+msgid "%(num)d minute"
+msgid_plural "%(num)d minutes"
+msgstr[0] ""
+
+#, python-format
+msgid "%(num)d second"
+msgid_plural "%(num)d seconds"
+msgstr[0] ""
 
 #, python-format
 msgid "%(object)s does not exist in this database."
@@ -890,18 +899,6 @@ msgstr "大於等於（>=）"
 msgid "A Big Number"
 msgstr "大數字"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "A JavaScript function that generates a label configuration object"
-msgstr "一個生成標籤配置物件的 JavaScript 函數"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "A JavaScript function that generates an icon configuration object"
-msgstr "一個生成圖示配置物件的 JavaScript 函數"
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy, python-brace-format
@@ -914,6 +911,9 @@ msgstr ""
 "一個符合 ECharts 選項規格的 JavaScript 物件，以更高優先順序覆蓋其他控制選項。（例如：{ title: { text: "
 "\"My Chart\" }, tooltip: { trigger: \"item\" } "
 "}）。詳細資訊：https://echarts.apache.org/en/option.html。 "
+
+msgid "A TTL is required for ephemeral state."
+msgstr ""
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -1346,6 +1346,12 @@ msgstr "為正/負變化新增顏色"
 #, fuzzy
 msgid "Add colors to cell bars for +/- for all columns"
 msgstr "為所有欄位的儲存格條新增 +/- 顏色"
+
+msgid ""
+"Add columns to filter by. When typing or pasting filter values, commas "
+"will separate values into multiple entries. To include a comma within a "
+"value, wrap it in double quotes: \"San Francisco, CA\""
+msgstr ""
 
 #, fuzzy
 msgid "Add cross-filter"
@@ -1814,6 +1820,9 @@ msgstr ""
 "也稱為框須圖，該可視化比較了一個相關指標在多個組中的分布。中間的框强調平均值、中值和内部 2 "
 "個四分位數。每個框週围的触須可視化了最小值、最大值、範圍和外部 2 個四分區。"
 
+msgid "Also overwrite all assets (charts, datasets and databases)"
+msgstr ""
+
 msgid "Altered"
 msgstr "已更改"
 
@@ -2072,6 +2081,11 @@ msgstr "獲取用戶訊息出錯：%s"
 msgid "An error occurred while formatting SQL"
 msgstr "創建數據源時發生錯誤"
 
+msgid ""
+"An error occurred while generating the file. Please try again, or contact"
+" your administrator if the problem persists."
+msgstr ""
+
 #, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr "導入時出錯 %s: %s"
@@ -2155,6 +2169,9 @@ msgstr "更新值時出錯。"
 #, fuzzy
 msgid "An error occurred while upserting the value."
 msgstr "更新值時出錯。"
+
+msgid "An export for this dashboard is already in progress."
+msgstr ""
 
 #, fuzzy
 msgid "An unexpected error occurred"
@@ -3950,6 +3967,12 @@ msgstr "颜色"
 msgid "Color Metric"
 msgstr "颜色指標"
 
+msgid "Color Range End"
+msgstr ""
+
+msgid "Color Range Start"
+msgstr ""
+
 msgid "Color Scheme"
 msgstr "配色方案"
 
@@ -5566,21 +5589,6 @@ msgid ""
 "default\" is checked"
 msgstr "當勾選 \"預設選擇第一個過濾值\" 時，將自動設定預設值。"
 
-msgid ""
-"Define a function that receives the input and outputs the content for a "
-"tooltip"
-msgstr "定義一個函數，該函數接收输入並输出用於工具提示的内容"
-
-msgid "Define a function that returns a URL to navigate to when user clicks"
-msgstr "定義一個函數，該函數返回用戶點擊時導航至的 URL 地址"
-
-msgid ""
-"Define a javascript function that receives the data array used in the "
-"visualization and is expected to return a modified version of that array."
-" This can be used to alter properties of the data, filter, or enrich the "
-"array."
-msgstr "定義一個 JavaScript 函數，該函數接收用於可視化的數據數組，並期望返回該數組的修改版本。這可以用來改變數據的属性、進行過濾或丰富數組。"
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -6187,6 +6195,9 @@ msgstr "點線"
 msgid "Download"
 msgstr "下载"
 
+msgid "Download Excel file"
+msgstr ""
+
 #, fuzzy
 msgid "Download as Image"
 msgstr "下载為圖片"
@@ -6739,21 +6750,9 @@ msgstr "啟用預测中"
 msgid "Enable graph roaming"
 msgstr "啟用圖形漫游"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Enable icon JavaScript mode"
-msgstr "啟用圖示 JavaScript 模式"
-
 #, fuzzy
 msgid "Enable icons"
 msgstr "表的列"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Enable label JavaScript mode"
-msgstr "啟用標籤 JavaScript 模式"
 
 #, fuzzy
 msgid "Enable labels"
@@ -6776,18 +6775,6 @@ msgstr "在模式中啟用行展開功能"
 
 msgid "Enable server side pagination of results (experimental feature)"
 msgstr "支持服務器端结果分頁(實驗功能)"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Enables custom icon configuration via JavaScript"
-msgstr "透過 JavaScript 啟用自訂圖示設定"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
-# lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Enables custom label configuration via JavaScript"
-msgstr "透過 JavaScript 啟用自訂標籤設定"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
@@ -7147,6 +7134,9 @@ msgstr "週報"
 msgid "Excel XML Export"
 msgstr "週報"
 
+msgid "Excel export is not configured on this server."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -7248,6 +7238,12 @@ msgstr "清除所有"
 #, fuzzy
 msgid "Export Current View"
 msgstr "反轉當前頁"
+
+msgid "Export Data to Excel"
+msgstr ""
+
+msgid "Export Images to Excel"
+msgstr ""
 
 #, fuzzy
 msgid "Export YAML"
@@ -7362,6 +7358,12 @@ msgstr "SQL 表達式"
 msgid "Expression cannot be empty"
 msgstr "不能為空"
 
+#, python-format
+msgid ""
+"Extension '%(extension_id)s' has exceeded its persistent storage quota of"
+" %(quota)d bytes."
+msgstr ""
+
 #, fuzzy
 msgid "Extensions"
 msgstr "维度"
@@ -7384,9 +7386,6 @@ msgstr "額外控件"
 
 msgid "Extra Parameters"
 msgstr "額外参數"
-
-msgid "Extra data for JS"
-msgstr "給 JS 的額外數據"
 
 #, python-brace-format
 msgid ""
@@ -7892,11 +7891,6 @@ msgstr "用於 Trino，描述嵌套的行類型的完整的模式，使用點號
 
 msgid "For further instructions, consult the"
 msgstr "更深入的了解，請查看"
-
-msgid ""
-"For more information about objects are in context in the scope of this "
-"function, refer to the"
-msgstr "要了解在此函數作用域中上下文中的對象的更多訊息，請参阅"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, tr]
 #, fuzzy
@@ -8429,10 +8423,6 @@ msgid "ISO 8601"
 msgstr "ISO 8601"
 
 #, fuzzy
-msgid "Icon JavaScript config generator"
-msgstr "JS 提示生成器"
-
-#, fuzzy
 msgid "Icon URL"
 msgstr "控件"
 
@@ -8483,6 +8473,9 @@ msgstr "如果保持空白，將不會被儲存並從清單中移除。若要移
 #, fuzzy
 msgid "If table already exists"
 msgstr "標籤已存在"
+
+msgid "If you did not request this, you can ignore this email."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -9016,19 +9009,6 @@ msgstr "六月"
 msgid "January"
 msgstr "一月"
 
-msgid "JavaScript data interceptor"
-msgstr "JS 數據拦截器"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
-# uk]
-#, fuzzy
-msgid "JavaScript onClick href"
-msgstr "JavaScript onClick href"
-
-msgid "JavaScript tooltip generator"
-msgstr "JS 提示生成器"
-
 #, fuzzy
 msgid "Jinja templating"
 msgstr "Jinja 模板"
@@ -9079,10 +9059,6 @@ msgstr "標籤"
 #, fuzzy
 msgid "Label Contents"
 msgstr "標籤内容"
-
-#, fuzzy
-msgid "Label JavaScript config generator"
-msgstr "JS 提示生成器"
 
 msgid "Label Line"
 msgstr "標籤線"
@@ -9325,6 +9301,15 @@ msgstr "圖例類型"
 msgid "Legend type"
 msgstr "圖例類型"
 
+msgid "Length in cm (12345678cm => 123.46km)"
+msgstr ""
+
+msgid "Length in cm (12345cm => 123.45m)"
+msgstr ""
+
+msgid "Length in m (12345m => 12.35km)"
+msgstr ""
+
 #, fuzzy
 msgid "Less Than"
 msgstr "小於（<）"
@@ -9478,9 +9463,6 @@ msgstr "列出唯一值"
 msgid "List Users"
 msgstr "數字"
 
-msgid "List of extra columns made available in JavaScript functions"
-msgstr "在 JavaScript 函數中可用的額外列列表"
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
@@ -9625,6 +9607,11 @@ msgstr "預設視口經度"
 #, fuzzy
 msgid "Lower Threshold"
 msgstr "閥值下限"
+
+msgid ""
+"Lower bound of the color scale. When both start and end are set, the "
+"legend uses this fixed range instead of the automatic data range."
+msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "閥值下限必須比閥值上限小"
@@ -12492,6 +12479,13 @@ msgstr "請求丢失的數據欄位。"
 msgid "Request timed out"
 msgstr "請求超時"
 
+#, python-format
+msgid ""
+"Requested page would return %(requested_size)d bytes, exceeding the "
+"maximum allowed list payload size of %(max_size)d bytes. Reduce page_size"
+" and try again."
+msgstr ""
+
 msgid "Required"
 msgstr "必填"
 
@@ -14853,6 +14847,12 @@ msgstr "停止運行 (Ctrl + x)"
 msgid "Stopped an unsafe database connection"
 msgstr "已停止不安全的資料庫連接"
 
+#, python-format
+msgid ""
+"Storage key exceeds the maximum allowed length of %(max_length)d "
+"characters."
+msgstr ""
+
 #, fuzzy
 msgid "Stream"
 msgstr "直方圖"
@@ -15120,6 +15120,13 @@ msgstr "時間範圍"
 
 msgid "THU"
 msgstr "星期四"
+
+msgid "TTL must be a positive integer."
+msgstr ""
+
+#, python-format
+msgid "TTL must not exceed %(max_ttl)d seconds."
+msgstr ""
 
 msgid "TUE"
 msgstr "星期二"
@@ -15429,6 +15436,9 @@ msgstr ""
 "全域任務框架未啟用。請在功能旗標中設定 GLOBAL_TASK_FRAMEWORK=True 以使用 @task。請參閱 "
 "https://superset.apache.org/docs/configuration/async-queries-celery "
 "以取得設定詳情。"
+
+msgid "The SQL query mutator removed all executable statements from this query."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
@@ -15759,6 +15769,19 @@ msgstr "應用程式啟動時的地圖範圍。FIT DATA 自動設定範圍，使
 #, fuzzy
 msgid "The feature property to use for point labels"
 msgstr "用於點標籤的要素屬性"
+
+msgid "The following charts could not be exported:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because an error occurred while "
+"exporting them:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because they have no saved query "
+"context. To include them, open each chart in Explore and re-save."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -16931,6 +16954,10 @@ msgid ""
 "one."
 msgstr "此電子郵件已與一個帳戶關聯。請選擇其他電子郵件。"
 
+#, python-format
+msgid "This export was requested on %(when)s UTC."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -16980,9 +17007,6 @@ msgstr "此資料夾僅支援欄位"
 #, fuzzy
 msgid "This folder only supports metrics"
 msgstr "此資料夾僅支援指標"
-
-msgid "This functionality is disabled in your environment for security reasons."
-msgstr "出於安全考慮，此功能在您的環境中被禁用。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -17052,6 +17076,10 @@ msgstr "這個 JSON 對象描述了部件在看板中的位置。它是動態生
 #, fuzzy
 msgid "This link cannot be followed because its address is unsafe."
 msgstr "此連結無法開啟，因為其地址不安全。"
+
+#, python-format
+msgid "This link expires in %(duration)s (%(when)s UTC)."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -17551,9 +17579,8 @@ msgstr "總計 (%(aggregatorName)s)"
 
 msgid ""
 "Total angle covered by the chart, in degrees. 360° draws a full circle "
-"and 180° draws a half donut. When the sweep is 180° or less and the start"
-" angle is a multiple of 90°, the chart is automatically re-centered to "
-"make use of the empty space."
+"and 180° draws a half donut. Partial arcs are automatically re-centered "
+"and scaled to make use of the available space."
 msgstr ""
 
 #, fuzzy
@@ -18141,6 +18168,11 @@ msgstr "需要名稱"
 msgid "Upper Threshold"
 msgstr "閥值上限"
 
+msgid ""
+"Upper bound of the color scale. When both start and end are set, the "
+"legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
 #, fuzzy
 msgid "Upper threshold must be greater than lower threshold"
 msgstr "閥值上限必須大於閥值下限"
@@ -18377,6 +18409,10 @@ msgstr "值不能超過 %s"
 #, fuzzy
 msgid "Value difference between the time periods"
 msgstr "時間段之間的值差異"
+
+#, python-format
+msgid "Value exceeds the maximum allowed size of %(max_size)d bytes."
+msgstr ""
 
 msgid "Value format"
 msgstr "數值格式"
@@ -18835,6 +18871,12 @@ msgid ""
 "When the secondary temporal columns are filtered, apply the same filter "
 "to the main datetime column."
 msgstr "當對次要時間列進行篩選時，將相同的篩選條件應用到主日期時間列。"
+
+msgid ""
+"When typing or pasting filter values, commas will separate values into "
+"multiple entries. To include a comma within a value, wrap it in double "
+"quotes: \"San Francisco, CA\""
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, es,
 # fa, fr, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -19616,6 +19658,14 @@ msgstr "不是最新的"
 msgid "Your chart is ready to go!"
 msgstr "圖表已就绪！"
 
+#, python-format
+msgid "Your dashboard export could not be completed: %(title)s"
+msgstr ""
+
+#, python-format
+msgid "Your dashboard export is ready: %(title)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -19628,6 +19678,17 @@ msgid ""
 "but the limit is %s. Reduce the dashboard size (for example, split it "
 "into multiple dashboards) or raise the "
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
+msgstr ""
+
+msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgstr ""
+
+#, python-format
+msgid "Your export of \"%(title)s\" could not be completed."
+msgstr ""
+
+#, python-format
+msgid "Your export of \"%(title)s\" is ready."
 msgstr ""
 
 msgid "Your query could not be saved"

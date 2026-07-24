@@ -325,9 +325,8 @@ const config: ControlPanelConfig = {
               description: t(
                 'Total angle covered by the chart, in degrees. ' +
                   '360° draws a full circle and 180° draws a half donut. ' +
-                  'When the sweep is 180° or less and the start angle is a ' +
-                  'multiple of 90°, the chart is automatically re-centered ' +
-                  'to make use of the empty space.',
+                  'Partial arcs are automatically re-centered and scaled ' +
+                  'to make use of the available space.',
               ),
               renderTrigger: true,
               default: DEFAULT_FORM_DATA.sweptAngle,
