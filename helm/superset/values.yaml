@@ -98,13 +98,13 @@ envFromSecrets: []
 # -- Extra environment variables that will be passed into pods
 extraEnv: {}
   # Different gunicorn settings, refer to the gunicorn documentation
-  # https://docs.gunicorn.org/en/stable/settings.html#
+  # https://gunicorn.org/reference/settings/
   # These variables are used as Flags at the gunicorn startup
-  # https://github.com/apache/superset/blob/master/docker/run-server.sh#L22
+  # https://github.com/apache/superset/blob/master/docker/entrypoints/run-server.sh#L22
   # Extend timeout to allow long running queries.
   # GUNICORN_TIMEOUT: 300
   # Increase the gunicorn worker amount, can improve performance drastically
-  # See: https://docs.gunicorn.org/en/stable/design.html#how-many-workers
+  # See: https://gunicorn.org/design/#how-many-workers
   # SERVER_WORKER_AMOUNT: 4
   # WORKER_MAX_REQUESTS: 0
   # WORKER_MAX_REQUESTS_JITTER: 0
