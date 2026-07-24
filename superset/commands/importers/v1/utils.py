@@ -230,7 +230,11 @@ def load_configs(
                     prefix,
                     exc.messages,
                 )
-                logger.debug("Config content that failed validation: %s", config)
+                # Log field names only; full values can be huge (e.g. inline
+                # example data) and drown out the validation error above.
+                logger.debug(
+                    "Config fields present in %s: %s", file_name, sorted(config)
+                )
                 exc.messages = {file_name: exc.messages}
                 exceptions.append(exc)
 
