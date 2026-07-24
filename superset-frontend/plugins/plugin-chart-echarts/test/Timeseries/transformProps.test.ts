@@ -911,40 +911,38 @@ describe('legend sorting', () => {
       'Boston',
     ]);
   });
+});
 
-  test('falls back to scroll for zoomable top legends when toolbox space reduces available width', () => {
-    const narrowLegendData = [
-      createTestQueryData(
-        createTestData(
-          [
-            {
-              Alpha: 1,
-              Beta: 2,
-              Gamma: 3,
-            },
-          ],
-          { intervalMs: 300000000 },
-        ),
+test('honors an explicit List selection for zoomable top legends even when toolbox space reduces available width', () => {
+  const narrowLegendData = [
+    createTestQueryData(
+      createTestData(
+        [
+          {
+            Alpha: 1,
+            Beta: 2,
+            Gamma: 3,
+          },
+        ],
+        { intervalMs: 300000000 },
       ),
-    ];
-    const chartProps = createTestChartProps({
-      width: 190 + TIMESERIES_CONSTANTS.legendTopRightOffset,
-      formData: {
-        ...formData,
-        legendType: LegendType.Plain,
-        legendOrientation: LegendOrientation.Top,
-        showLegend: true,
-        zoomable: true,
-      },
-      queriesData: narrowLegendData,
-    });
-
-    const transformed = transformProps(chartProps);
-
-    expect((transformed.echartOptions.legend as any).type).toBe(
-      LegendType.Scroll,
-    );
+    ),
+  ];
+  const chartProps = createTestChartProps({
+    width: 190 + TIMESERIES_CONSTANTS.legendTopRightOffset,
+    formData: {
+      ...formData,
+      legendType: LegendType.Plain,
+      legendOrientation: LegendOrientation.Top,
+      showLegend: true,
+      zoomable: true,
+    },
+    queriesData: narrowLegendData,
   });
+
+  const transformed = transformProps(chartProps);
+
+  expect((transformed.echartOptions.legend as any).type).toBe(LegendType.Plain);
 });
 
 test('honors user-selected plain legend type for top orientation when space allows (#39540)', () => {

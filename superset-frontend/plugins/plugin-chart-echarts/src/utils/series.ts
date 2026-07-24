@@ -60,11 +60,9 @@ const DEFAULT_LEGEND_ICON_WIDTH = 25;
 const LEGEND_ICON_LABEL_GAP = 5;
 const LEGEND_HORIZONTAL_SIDE_GUTTER = 16;
 const LEGEND_HORIZONTAL_ROW_HEIGHT = 24;
-const LEGEND_HORIZONTAL_MAX_ROWS = 2;
-const LEGEND_HORIZONTAL_MAX_HEIGHT_RATIO = 0.25;
+// Cap the reserved horizontal legend margin so an overflowing legend can't eat the plot.
+const MAX_LEGEND_MARGIN_RATIO = 0.4;
 const LEGEND_VERTICAL_SIDE_GUTTER = 16;
-const LEGEND_VERTICAL_ROW_HEIGHT = 24;
-const LEGEND_VERTICAL_MAX_WIDTH_RATIO = 0.4;
 const LEGEND_SELECTOR_GAP = 10;
 const LEGEND_MARGIN_GUTTER = 45;
 // ECharts does not expose pre-render measurements for plain legends, so these
@@ -78,10 +76,6 @@ type LegendDataItem =
 export type LegendLayoutResult = {
   effectiveMargin?: number;
   effectiveType: LegendType;
-};
-
-const SCROLL_LEGEND_LAYOUT: LegendLayoutResult = {
-  effectiveType: LegendType.Scroll,
 };
 
 function getLegendLabel(item: LegendDataItem): string {
@@ -265,37 +259,30 @@ function getHorizontalPlainLegendLayout({
     showSelectors,
     theme,
   );
+  const rowsForMargin = Number.isFinite(rowCount)
+    ? rowCount
+    : legendLabels.length;
   const requiredMargin =
     defaultLegendPadding[orientation] +
-    Math.max(0, rowCount - 1) * LEGEND_HORIZONTAL_ROW_HEIGHT;
-  const maxLegendHeight =
+    Math.max(0, rowsForMargin - 1) * LEGEND_HORIZONTAL_ROW_HEIGHT;
+  const boundedMargin =
     availableHeight > 0
-      ? availableHeight * LEGEND_HORIZONTAL_MAX_HEIGHT_RATIO
-      : Infinity;
-
-  if (
-    !Number.isFinite(rowCount) ||
-    rowCount > LEGEND_HORIZONTAL_MAX_ROWS ||
-    requiredMargin > maxLegendHeight
-  ) {
-    return SCROLL_LEGEND_LAYOUT;
-  }
+      ? Math.min(requiredMargin, availableHeight * MAX_LEGEND_MARGIN_RATIO)
+      : requiredMargin;
 
   return {
-    effectiveMargin: Math.max(currentMargin, requiredMargin),
+    effectiveMargin: Math.max(currentMargin, boundedMargin),
     effectiveType: LegendType.Plain,
   };
 }
 
 function getVerticalPlainLegendLayout({
-  availableHeight,
   availableWidth,
   currentMargin,
   legendLabels,
   showSelectors,
   theme,
 }: {
-  availableHeight: number;
   availableWidth: number;
   currentMargin: number;
   legendLabels: string[];
@@ -309,17 +296,6 @@ function getVerticalPlainLegendLayout({
     };
   }
 
-  const selectorHeight = showSelectors
-    ? LEGEND_VERTICAL_ROW_HEIGHT + LEGEND_SELECTOR_GAP
-    : 0;
-  const effectiveAvailableHeight = Math.max(
-    availableHeight - LEGEND_VERTICAL_SIDE_GUTTER - selectorHeight,
-    0,
-  );
-  const rowsPerColumn = Math.floor(
-    (effectiveAvailableHeight + DEFAULT_LEGEND_ITEM_GAP) /
-      (LEGEND_VERTICAL_ROW_HEIGHT + DEFAULT_LEGEND_ITEM_GAP),
-  );
   const requiredSelectorMargin = showSelectors
     ? ESTIMATED_LEGEND_SELECTOR_WIDTH + LEGEND_VERTICAL_SIDE_GUTTER
     : 0;
@@ -329,21 +305,13 @@ function getVerticalPlainLegendLayout({
       requiredSelectorMargin,
     ),
   );
-  const maxLegendWidth =
+  const boundedMargin =
     availableWidth > 0
-      ? availableWidth * LEGEND_VERTICAL_MAX_WIDTH_RATIO
-      : Infinity;
-
-  if (
-    rowsPerColumn <= 0 ||
-    legendLabels.length > rowsPerColumn ||
-    requiredMargin > maxLegendWidth
-  ) {
-    return SCROLL_LEGEND_LAYOUT;
-  }
+      ? Math.min(requiredMargin, availableWidth * MAX_LEGEND_MARGIN_RATIO)
+      : requiredMargin;
 
   return {
-    effectiveMargin: Math.max(currentMargin, requiredMargin),
+    effectiveMargin: Math.max(currentMargin, boundedMargin),
     effectiveType: LegendType.Plain,
   };
 }
@@ -400,7 +368,6 @@ export function getLegendLayoutResult({
   }
 
   return getVerticalPlainLegendLayout({
-    availableHeight: resolvedAvailableHeight,
     availableWidth: resolvedAvailableWidth,
     currentMargin: resolvedLegendMargin,
     legendLabels,
