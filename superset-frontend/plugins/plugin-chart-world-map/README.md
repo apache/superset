@@ -17,10 +17,10 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-## @superset-ui/legacy-plugin-chart-world-map
+## @superset-ui/plugin-chart-world-map
 
-[![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-world-map.svg?style=flat)](https://www.npmjs.com/package/@superset-ui/legacy-plugin-chart-world-map)
-[![Libraries.io](https://img.shields.io/librariesio/release/npm/%40superset-ui%2Flegacy-plugin-chart-world-map?style=flat)](https://libraries.io/npm/@superset-ui%2Flegacy-plugin-chart-world-map)
+[![Version](https://img.shields.io/npm/v/@superset-ui/plugin-chart-world-map.svg?style=flat)](https://www.npmjs.com/package/@superset-ui/plugin-chart-world-map)
+[![Libraries.io](https://img.shields.io/librariesio/release/npm/%40superset-ui%2Fplugin-chart-world-map?style=flat)](https://libraries.io/npm/@superset-ui%2Fplugin-chart-world-map)
 
 This plugin provides World Map for Superset.
 
@@ -30,7 +30,7 @@ Configure `key`, which can be any `string`, and register the plugin. This `key` 
 lookup this chart throughout the app.
 
 ```js
-import WorldmapChartPlugin from '@superset-ui/legacy-plugin-chart-world-map';
+import WorldmapChartPlugin from '@superset-ui/plugin-chart-world-map';
 
 new WorldmapChartPlugin().configure({ key: 'world-map' }).register();
 ```
