@@ -313,8 +313,7 @@ class WebDriverPlaywright(WebDriverProxy):
             stage_failed = False
             stage_started = timestamp
             logger.info(
-                "Playwright screenshot stage started: stage=%s "
-                "total_elapsed=%.2fs%s",
+                "Playwright screenshot stage started: stage=%s total_elapsed=%.2fs%s",
                 current_stage,
                 timestamp - overall_started,
                 context_suffix,
