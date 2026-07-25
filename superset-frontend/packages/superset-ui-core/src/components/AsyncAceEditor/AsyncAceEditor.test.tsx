@@ -16,9 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { createRef } from 'react';
+import { createRef, type ReactNode } from 'react';
 import { render, screen, waitFor } from '@superset-ui/core/spec';
-import { supersetTheme } from '@apache-superset/core/theme';
+import {
+  supersetTheme,
+  ThemeProvider,
+  type SupersetTheme,
+} from '@apache-superset/core/theme';
 import type AceEditor from 'react-ace';
 import {
   AsyncAceEditor,
@@ -64,8 +68,60 @@ test('themes the selected-word occurrence markers from the theme', () => {
   const { styles } = aceSelectedWordStyles(supersetTheme);
 
   expect(styles).toContain('.ace_selected-word');
-  expect(styles).toContain(
-    supersetTheme.colorEditorSelection ?? supersetTheme.colorPrimaryBgHover,
+  // The default theme leaves `colorEditorSelection` unset, so the marker uses
+  // the documented `colorPrimaryBgHover` fallback.
+  expect(styles).toContain(supersetTheme.colorPrimaryBgHover);
+});
+
+// Collect every CSS rule the render injected: emotion's Global styles land in
+// <style> tags (non-speedy in test) while Ace's bundled theme uses the CSSOM,
+// so read both to reliably observe what actually reached the document.
+function getInjectedCss(): string {
+  const fromTags = Array.from(document.querySelectorAll('style'))
+    .map(tag => tag.textContent ?? '')
+    .join('\n');
+  const fromSheets = Array.from(document.styleSheets)
+    .map(sheet => {
+      try {
+        return Array.from(sheet.cssRules)
+          .map(rule => rule.cssText)
+          .join('\n');
+      } catch {
+        return '';
+      }
+    })
+    .join('\n');
+  return `${fromTags}\n${fromSheets}`;
+}
+
+test('wires the dark-aware selected-word marker into the editor Global styles', async () => {
+  // Guards the actual regression: Ace's bundled `github` theme already injects
+  // a near-white `.ace-github ... .ace_selected-word` rule, so the fix is only
+  // effective if the editor's own Global block also emits a `.ace_selected-word`
+  // override driven by the theme. Render with a distinctive `colorEditorSelection`
+  // and assert that value reaches the injected selected-word rule — this fails if
+  // the `${aceSelectedWordStyles(token)}` interpolation is dropped from <Global>.
+  const markerColor = '#010203';
+  const darkTheme: SupersetTheme = {
+    ...supersetTheme,
+    colorEditorSelection: markerColor,
+  };
+
+  const { container } = render(<SQLEditor />, {
+    wrapper: ({ children }: { children?: ReactNode }) => (
+      <ThemeProvider theme={darkTheme}>{children}</ThemeProvider>
+    ),
+  });
+
+  await waitFor(() => {
+    expect(container.querySelector('[id="ace-editor"]')).toBeInTheDocument();
+  });
+
+  const css = getInjectedCss();
+  // The dark-aware color is tied specifically to the selected-word marker
+  // (not just the plain `.ace_selection`), so the occurrence markers inherit it.
+  expect(css).toMatch(
+    new RegExp(`\\.ace_selected-word[^}]*${markerColor}`, 'i'),
   );
 });
 

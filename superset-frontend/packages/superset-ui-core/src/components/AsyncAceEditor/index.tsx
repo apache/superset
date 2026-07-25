@@ -114,6 +114,14 @@ export type AsyncAceEditorOptions = {
 };
 
 /**
+ * Dark-aware color for text selection in the editor. Shared so the plain
+ * selection and the "selected word" occurrence markers always match, falling
+ * back to `colorPrimaryBgHover` on themes that don't define the token.
+ */
+export const editorSelectionColor = (token: SupersetTheme) =>
+  token.colorEditorSelection ?? token.colorPrimaryBgHover;
+
+/**
  * Theme-aware styling for the matched-prefix highlight in the autocomplete
  * popup. Ace ships a hardcoded `color: #000` that is invisible on the dark
  * popup, so the override needs `!important` to win. Lives in the shared editor
@@ -135,9 +143,7 @@ export const aceCompletionHighlightStyles = (token: SupersetTheme) => css`
  */
 export const aceSelectedWordStyles = (token: SupersetTheme) => css`
   .ace_editor .ace_marker-layer .ace_selected-word {
-    background-color: ${
-      token.colorEditorSelection ?? token.colorPrimaryBgHover
-    } !important;
+    background-color: ${editorSelectionColor(token)} !important;
     border: 1px solid ${token.colorBorder} !important;
   }
 `;
@@ -405,9 +411,7 @@ export function AsyncAceEditor(
                 }
                 /* Adjust selection color */
                 .ace_editor .ace_selection {
-                  background-color: ${
-                    token.colorEditorSelection ?? token.colorPrimaryBgHover
-                  } !important;
+                  background-color: ${editorSelectionColor(token)} !important;
                 }
 
                 ${aceSelectedWordStyles(token)}
