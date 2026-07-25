@@ -1825,8 +1825,8 @@ def test_call_slack_api_retries_ratelimited_code_without_http_429() -> None:
     assert method.call_count == 5
 
 
-def test_send_to_slack_channels_reserves_time_for_later_channels() -> None:
-    """One failing channel cannot consume every later channel's API attempt."""
+def test_send_to_slack_channels_gives_each_channel_a_full_budget() -> None:
+    """A failing channel cannot reduce the retry budget of later channels."""
     clock = [0.0]
     starts: dict[str, float] = {}
     deadlines: dict[str, float] = {}
@@ -1837,7 +1837,7 @@ def test_send_to_slack_channels_reserves_time_for_later_channels() -> None:
     first_method = MagicMock()
 
     def fail_first_channel() -> None:
-        clock[0] = 51.0
+        clock[0] = 151.0
         raise error
 
     first_method.side_effect = fail_first_channel
@@ -1866,15 +1866,43 @@ def test_send_to_slack_channels_reserves_time_for_later_channels() -> None:
     methods["private-c"].assert_called_once_with()
     assert deadlines == pytest.approx(
         {
-            "private-a": 50.0,
-            "private-b": 100.5,
+            "private-a": 150.0,
+            "private-b": 301.0,
+            "private-c": 301.0,
+        }
+    )
+    assert {
+        channel: deadlines[channel] - starts[channel] for channel in deadlines
+    } == pytest.approx(
+        {
+            "private-a": 150.0,
+            "private-b": 150.0,
             "private-c": 150.0,
         }
     )
-    assert max(deadlines.values()) == 150.0
-    assert deadlines["private-c"] - starts["private-c"] > (
-        deadlines["private-b"] - starts["private-b"]
+
+
+def test_send_to_slack_channels_preserves_timeout_for_high_fanout(mocker) -> None:
+    """Every channel starts with more budget than one configured request."""
+    mocker.patch.dict(
+        "superset.reports.notifications.slack_transport.app.config",
+        {
+            "SLACK_SEND_RETRY_MAX_TIME": 150,
+            "SLACK_API_TIMEOUT": 30,
+        },
     )
+    mocker.patch(
+        "superset.reports.notifications.slack_transport.time.monotonic",
+        return_value=10.0,
+    )
+    budgets: list[float] = []
+
+    def send(_channel: str, retry_deadline: float) -> None:
+        budgets.append(retry_deadline - 10.0)
+
+    send_to_slack_channels([f"C{index}" for index in range(10)], send)
+
+    assert budgets == [150.0] * 10
 
 
 @pytest.mark.parametrize(
@@ -1967,13 +1995,13 @@ def test_call_slack_api_without_explicit_deadline_is_still_bounded() -> None:
         (600, 300, 600),
     ],
 )
-def test_send_deadline_respects_total_budget_and_request_timeout(
+def test_send_deadline_respects_channel_budget_and_request_timeout(
     mocker,
     configured_budget: int,
     request_timeout: int,
     expected_budget: int,
 ) -> None:
-    """The total budget is configurable and cannot neutralize request timeout."""
+    """Each channel budget is configurable and cannot neutralize request timeout."""
     mocker.patch.dict(
         "superset.reports.notifications.slack_transport.app.config",
         {
@@ -1994,7 +2022,7 @@ def test_send_deadline_respects_total_budget_and_request_timeout(
 
 
 def test_deadline_error_names_operator_setting() -> None:
-    """Expired sends identify the config knob that controls the total budget."""
+    """Expired sends identify the config knob that controls channel budgets."""
     with (
         patch(
             "superset.reports.notifications.slack_transport.time.monotonic",

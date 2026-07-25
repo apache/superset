@@ -46,7 +46,7 @@ _SlackApiResult = TypeVar("_SlackApiResult")
 
 _SLACK_RETRY_DEADLINE_MESSAGE = (
     "Slack send retry deadline exceeded; increase SLACK_SEND_RETRY_MAX_TIME "
-    "for multi-channel or large-file reports"
+    "for slow-channel or large-file reports"
 )
 
 
@@ -70,7 +70,7 @@ _SLACK_CHANNEL_FAILURES = (
 
 
 def _get_slack_send_retry_max_time() -> float:
-    """Return the effective total send budget in seconds."""
+    """Return the effective per-channel send budget in seconds."""
     configured_budget = float(app.config["SLACK_SEND_RETRY_MAX_TIME"])
     request_timeout = float(app.config.get("SLACK_API_TIMEOUT", 30))
     return max(
@@ -237,13 +237,11 @@ def send_to_slack_channels(
     channels: list[str],
     send_to_channel: Callable[[str, float], None],
 ) -> None:
-    """Send within one shared deadline while reserving time for each channel."""
-    retry_deadline = time.monotonic() + _get_slack_send_retry_max_time()
+    """Send to each channel with an independent application retry deadline."""
+    retry_max_time = _get_slack_send_retry_max_time()
     failures: list[tuple[str, Exception]] = []
-    for index, channel in enumerate(channels):
-        now = time.monotonic()
-        remaining_channels = len(channels) - index
-        channel_deadline = now + max(retry_deadline - now, 0) / remaining_channels
+    for channel in channels:
+        channel_deadline = time.monotonic() + retry_max_time
         try:
             send_to_channel(channel, channel_deadline)
         except _SLACK_CHANNEL_FAILURES as ex:

@@ -96,6 +96,33 @@ SLACK_TEAM_ID = "T01234567"
 This defaults to `None` and only needs to be set when using an org-scoped token;
 it is accepted but ignored for standard workspace-level tokens.
 
+#### Slack delivery timeouts and retries
+
+Slack delivery uses a request timeout and an application retry budget:
+
+```python
+# Timeout for one Slack API request, in seconds
+SLACK_API_TIMEOUT = 30
+
+# Retry budget for each destination channel across its files and upload phases
+SLACK_SEND_RETRY_MAX_TIME = 150
+
+# Number of explicit HTTP 429 responses retried using Slack's Retry-After value
+SLACK_API_RATE_LIMIT_RETRY_COUNT = 2
+```
+
+Each channel receives an independent `SLACK_SEND_RETRY_MAX_TIME` budget, so a
+slow or unavailable channel does not reduce the time available to later
+channels. The effective per-channel budget is at least one second longer than
+`SLACK_API_TIMEOUT`. Increase it for large files or slow Slack workspaces.
+
+To avoid posting the same report twice, Superset does not replay terminal
+`chat.postMessage` or `files.completeUploadExternal` operations after ambiguous
+server or transport failures. Explicit Slack HTTP 429 responses remain
+retryable. These delivery settings and semantics apply to Slack v2 reports and
+legacy text-only Slack delivery, independently of the
+`ALERT_REPORT_SLACK_V2` feature flag.
+
 ### Webhook integration
 
 Superset can send alert and report notifications to any HTTP endpoint — useful for chat platforms, incident management tools, or custom automation.

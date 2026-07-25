@@ -16,10 +16,8 @@
 # under the License.
 import logging
 import time
-from collections.abc import Sequence
 from email.message import Message
-from io import IOBase
-from typing import List, Union
+from typing import List
 from urllib.error import HTTPError
 
 from flask import g
@@ -60,29 +58,18 @@ from superset.utils.slack import (
 logger = logging.getLogger(__name__)
 
 
-def _read_upload_data(file: str | IOBase | bytes) -> bytes:
-    """Read a Slack upload input using the SDK's supported single-file forms."""
-    if isinstance(file, str):
-        with open(file, "rb") as readable:
-            return readable.read()
-    if isinstance(file, bytes):
-        return file
-    data = file.read()
-    return data.encode() if isinstance(data, str) else data
-
-
 def _upload_file_to_slack(
     client: WebClient,
     *,
     channel: str,
-    file: str | IOBase | bytes,
+    file: bytes,
     initial_comment: str,
     title: str,
     filename: str,
     retry_deadline: float,
 ) -> None:
     """Upload one file without replaying completed phases during retries."""
-    data = _read_upload_data(file)
+    data = file
     upload_url_response = call_slack_api_with_timeout(
         client,
         client.files_getUploadURLExternal,
@@ -166,7 +153,7 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
 
     def _get_inline_files(
         self,
-    ) -> tuple[Union[str, None], Sequence[Union[str, IOBase, bytes]]]:
+    ) -> tuple[str | None, list[bytes]]:
         if self._content.csv:
             return ("csv", [self._content.csv])
         if self._content.xlsx:
