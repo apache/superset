@@ -296,8 +296,9 @@ class SupersetTestCase(TestCase):
         return login(self.client, username, password)
 
     def get_bearer_auth_header(
-        self, username=ADMIN_USERNAME, password=DEFAULT_PASSWORD
-    ):
+        self, username: str = ADMIN_USERNAME, password: str = DEFAULT_PASSWORD
+    ) -> dict[str, str]:
+        """Return an Authorization header with a login access token."""
         response = self.client.post(
             "/api/v1/security/login",
             json={"username": username, "password": password, "provider": "db"},

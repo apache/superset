@@ -26,7 +26,6 @@ import pytest
 from flask import current_app
 from flask_appbuilder.security.sqla.models import Role, User
 from pytest_mock import MockerFixture
-from werkzeug.exceptions import Unauthorized
 
 from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import Database, SqlaTable
@@ -2637,8 +2636,7 @@ def test_request_loader_rejects_invalid_guest_token_before_bearer(
     mocker.patch.object(sm, "get_guest_user_from_request", return_value=None)
     verify_jwt = mocker.patch("superset.security.manager.verify_jwt_in_request")
 
-    with pytest.raises(Unauthorized):
-        sm.request_loader(request)
+    assert sm.request_loader(request) is None
 
     verify_jwt.assert_not_called()
 

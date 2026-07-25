@@ -307,9 +307,7 @@ class TestDatasetApi(SupersetTestCase):
 
         try:
             client = self.create_app().test_client()
-            arguments = {
-                "filters": [{"col": "id", "opr": "eq", "value": dataset.id}]
-            }
+            arguments = {"filters": [{"col": "id", "opr": "eq", "value": dataset.id}]}
             uri = f"api/v1/dataset/?q={rison.dumps(arguments)}"
             rv = client.get(uri, headers=headers)
             assert rv.status_code == 200

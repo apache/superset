@@ -68,7 +68,6 @@ from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 from sqlalchemy.sql import exists
-from werkzeug.exceptions import Unauthorized
 
 from superset.constants import RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -1226,16 +1225,16 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if guest_user := self.get_guest_user_from_request(request):
                 return guest_user
             if raw_guest_token is not None:
-                raise Unauthorized("Invalid guest token")
+                return None
 
         if request.headers.get("Authorization", "").lower().startswith("bearer "):
             try:
                 verify_jwt_in_request()
                 user = self.load_user(get_jwt_identity())
-            except Exception as ex:  # pylint: disable=broad-except
-                raise Unauthorized("Invalid authorization token") from ex
+            except Exception:  # pylint: disable=broad-except
+                return None
             if user is None:
-                raise Unauthorized("Invalid authorization token")
+                return None
             g.user = user
             return user
         return None
