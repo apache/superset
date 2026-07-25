@@ -134,6 +134,9 @@ const setup = async (
 test('should render the markdown component', async () => {
   await setup();
   expect(screen.getByTestId('dashboard-markdown-editor')).toBeInTheDocument();
+  expect(
+    screen.getByTestId('dashboard-component-chart-holder'),
+  ).not.toHaveAttribute('data-test-chart-id');
 });
 
 test('should render the markdown content in preview mode by default', async () => {
