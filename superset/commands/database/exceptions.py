@@ -80,7 +80,7 @@ class DatabaseExtraValidationError(ValidationError):
                 _(
                     "The metadata_params in Extra field "
                     "is not configured correctly. The key "
-                    "%{key}s is invalid.",
+                    "%(key)s is invalid.",
                     key=key,
                 )
             ],
