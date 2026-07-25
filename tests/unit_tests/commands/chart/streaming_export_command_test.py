@@ -92,9 +92,9 @@ def test_csv_generation_with_small_dataset(mocker: MockerFixture) -> None:
     """Test CSV generation with a small dataset."""
     mock_db, query_context, datasource = _setup_chart_mocks(mocker)
 
-    mock_result_proxy = mocker.MagicMock()
-    mock_result_proxy.keys.return_value = ["col1", "col2", "col3"]
-    mock_result_proxy.fetchmany.side_effect = [
+    mock_cursor = mocker.MagicMock()
+    mock_cursor.description = [("col1",), ("col2",), ("col3",)]
+    mock_cursor.fetchmany.side_effect = [
         [
             ("row1_val1", "row1_val2", "row1_val3"),
             ("row2_val1", "row2_val2", "row2_val3"),
@@ -103,17 +103,11 @@ def test_csv_generation_with_small_dataset(mocker: MockerFixture) -> None:
         [],
     ]
 
-    mock_connection = mocker.MagicMock()
-    mock_connection.execution_options.return_value.execute.return_value = (
-        mock_result_proxy
-    )
-    mock_connection.__enter__.return_value = mock_connection
-    mock_connection.__exit__.return_value = None
+    mock_conn = mocker.MagicMock()
+    mock_conn.cursor.return_value = mock_cursor
 
-    mock_engine = mocker.MagicMock()
-    mock_engine.connect.return_value = mock_connection
-    datasource.database.get_sqla_engine.return_value.__enter__.return_value = (
-        mock_engine
+    datasource.database.get_raw_connection.return_value.__enter__.return_value = (
+        mock_conn
     )
 
     command = StreamingCSVExportCommand(query_context, chunk_size=2)
@@ -136,22 +130,18 @@ def test_csv_generation_with_special_characters(mocker: MockerFixture) -> None:
     """Test CSV generation properly escapes special characters."""
     mock_db, query_context, datasource = _setup_chart_mocks(mocker)
 
-    mock_result = mocker.MagicMock()
-    mock_result.keys.return_value = ["name", "description"]
-    mock_result.fetchmany.side_effect = [
+    mock_cursor = mocker.MagicMock()
+    mock_cursor.description = [("name",), ("description",)]
+    mock_cursor.fetchmany.side_effect = [
         [("John, Jr.", 'Quote"Test'), ("Line\nBreak", "Comma,Value")],
         [],
     ]
 
-    mock_connection = mocker.MagicMock()
-    mock_connection.execution_options.return_value.execute.return_value = mock_result
-    mock_connection.__enter__.return_value = mock_connection
-    mock_connection.__exit__.return_value = None
+    mock_conn = mocker.MagicMock()
+    mock_conn.cursor.return_value = mock_cursor
 
-    mock_engine = mocker.MagicMock()
-    mock_engine.connect.return_value = mock_connection
-    datasource.database.get_sqla_engine.return_value.__enter__.return_value = (
-        mock_engine
+    datasource.database.get_raw_connection.return_value.__enter__.return_value = (
+        mock_conn
     )
 
     command = StreamingCSVExportCommand(query_context, chunk_size=10)
@@ -169,22 +159,18 @@ def test_streaming_with_null_values(mocker: MockerFixture) -> None:
     """Test CSV generation handles NULL values correctly."""
     mock_db, query_context, datasource = _setup_chart_mocks(mocker)
 
-    mock_result = mocker.MagicMock()
-    mock_result.keys.return_value = ["col1", "col2", "col3"]
-    mock_result.fetchmany.side_effect = [
+    mock_cursor = mocker.MagicMock()
+    mock_cursor.description = [("col1",), ("col2",), ("col3",)]
+    mock_cursor.fetchmany.side_effect = [
         [("value1", None, "value3"), (None, "value2", None)],
         [],
     ]
 
-    mock_connection = mocker.MagicMock()
-    mock_connection.execution_options.return_value.execute.return_value = mock_result
-    mock_connection.__enter__.return_value = mock_connection
-    mock_connection.__exit__.return_value = None
+    mock_conn = mocker.MagicMock()
+    mock_conn.cursor.return_value = mock_cursor
 
-    mock_engine = mocker.MagicMock()
-    mock_engine.connect.return_value = mock_connection
-    datasource.database.get_sqla_engine.return_value.__enter__.return_value = (
-        mock_engine
+    datasource.database.get_raw_connection.return_value.__enter__.return_value = (
+        mock_conn
     )
 
     command = StreamingCSVExportCommand(query_context, chunk_size=10)
@@ -199,12 +185,12 @@ def test_streaming_with_null_values(mocker: MockerFixture) -> None:
 
 
 def test_streaming_execution_options_enabled(mocker: MockerFixture) -> None:
-    """Test that streaming execution options are enabled."""
+    """Test that get_raw_connection is used for streaming (not get_sqla_engine)."""
     mock_db, query_context, datasource = _setup_chart_mocks(mocker)
 
-    mock_result_proxy = mocker.MagicMock()
-    mock_result_proxy.keys.return_value = ["col1", "col2", "col3"]
-    mock_result_proxy.fetchmany.side_effect = [
+    mock_cursor = mocker.MagicMock()
+    mock_cursor.description = [("col1",), ("col2",), ("col3",)]
+    mock_cursor.fetchmany.side_effect = [
         [
             ("row1_val1", "row1_val2", "row1_val3"),
             ("row2_val1", "row2_val2", "row2_val3"),
@@ -213,17 +199,11 @@ def test_streaming_execution_options_enabled(mocker: MockerFixture) -> None:
         [],
     ]
 
-    mock_connection = mocker.MagicMock()
-    mock_execution_options = mocker.MagicMock()
-    mock_connection.execution_options.return_value = mock_execution_options
-    mock_execution_options.execute.return_value = mock_result_proxy
-    mock_connection.__enter__.return_value = mock_connection
-    mock_connection.__exit__.return_value = None
+    mock_conn = mocker.MagicMock()
+    mock_conn.cursor.return_value = mock_cursor
 
-    mock_engine = mocker.MagicMock()
-    mock_engine.connect.return_value = mock_connection
-    datasource.database.get_sqla_engine.return_value.__enter__.return_value = (
-        mock_engine
+    datasource.database.get_raw_connection.return_value.__enter__.return_value = (
+        mock_conn
     )
 
     command = StreamingCSVExportCommand(query_context)
@@ -231,26 +211,25 @@ def test_streaming_execution_options_enabled(mocker: MockerFixture) -> None:
     generator = csv_generator_callable()
     list(generator)
 
-    mock_connection.execution_options.assert_called_once_with(stream_results=True)
+    # Verify get_raw_connection is used (not get_sqla_engine)
+    datasource.database.get_raw_connection.assert_called_once_with(
+        catalog=None, schema=None
+    )
 
 
 def test_empty_result_set(mocker: MockerFixture) -> None:
     """Test CSV generation with empty result set."""
     mock_db, query_context, datasource = _setup_chart_mocks(mocker)
 
-    mock_result = mocker.MagicMock()
-    mock_result.keys.return_value = ["col1", "col2"]
-    mock_result.fetchmany.side_effect = [[]]
+    mock_cursor = mocker.MagicMock()
+    mock_cursor.description = [("col1",), ("col2",)]
+    mock_cursor.fetchmany.side_effect = [[]]
 
-    mock_connection = mocker.MagicMock()
-    mock_connection.execution_options.return_value.execute.return_value = mock_result
-    mock_connection.__enter__.return_value = mock_connection
-    mock_connection.__exit__.return_value = None
+    mock_conn = mocker.MagicMock()
+    mock_conn.cursor.return_value = mock_cursor
 
-    mock_engine = mocker.MagicMock()
-    mock_engine.connect.return_value = mock_connection
-    datasource.database.get_sqla_engine.return_value.__enter__.return_value = (
-        mock_engine
+    datasource.database.get_raw_connection.return_value.__enter__.return_value = (
+        mock_conn
     )
 
     command = StreamingCSVExportCommand(query_context)
@@ -264,35 +243,91 @@ def test_empty_result_set(mocker: MockerFixture) -> None:
 
 
 def test_catalog_and_schema_passed_to_engine(mocker: MockerFixture) -> None:
-    """Test that catalog and schema are forwarded to get_sqla_engine.
-
-    Prequeries (e.g. SET search_path for PostgreSQL) are now run automatically
-    via a connect event listener registered inside get_sqla_engine, not by the
-    streaming command itself.
-    """
+    """Test that catalog and schema are forwarded to get_raw_connection."""
     mock_db, query_context, datasource = _setup_chart_mocks(
         mocker, catalog="my_catalog", schema="my_schema"
     )
 
-    mock_result = mocker.MagicMock()
-    mock_result.keys.return_value = ["col1"]
-    mock_result.fetchmany.side_effect = [[("val",)], []]
+    mock_cursor = mocker.MagicMock()
+    mock_cursor.description = [("col1",)]
+    mock_cursor.fetchmany.side_effect = [[("val",)], []]
 
-    mock_connection = mocker.MagicMock()
-    mock_connection.execution_options.return_value.execute.return_value = mock_result
-    mock_connection.__enter__.return_value = mock_connection
-    mock_connection.__exit__.return_value = None
+    mock_conn = mocker.MagicMock()
+    mock_conn.cursor.return_value = mock_cursor
 
-    mock_engine = mocker.MagicMock()
-    mock_engine.connect.return_value = mock_connection
-    datasource.database.get_sqla_engine.return_value.__enter__.return_value = (
-        mock_engine
+    datasource.database.get_raw_connection.return_value.__enter__.return_value = (
+        mock_conn
     )
 
     command = StreamingCSVExportCommand(query_context)
     list(command.run()())
 
-    datasource.database.get_sqla_engine.assert_called_once_with(
+    datasource.database.get_raw_connection.assert_called_once_with(
         catalog="my_catalog",
         schema="my_schema",
     )
+
+
+def test_sql_mutation_applied_before_execution(mocker: MockerFixture) -> None:
+    """Test that mutate_sql_based_on_config is called before executing SQL.
+
+    Regression test for #40465: the streaming export path was executing raw
+    SQL without applying SQL_QUERY_MUTATOR config, leaving trailing semicolons
+    unstripped for engines like Trino that reject them.
+    """
+    mock_db, query_context, datasource = _setup_chart_mocks(mocker)
+    datasource.database.mutate_sql_based_on_config.return_value = "SELECT 1 LIMIT 10"
+
+    mock_cursor = mocker.MagicMock()
+    mock_cursor.description = [("col1",)]
+    mock_cursor.fetchmany.side_effect = [[(1,)], []]
+
+    mock_conn = mocker.MagicMock()
+    mock_conn.cursor.return_value = mock_cursor
+
+    datasource.database.get_raw_connection.return_value.__enter__.return_value = (
+        mock_conn
+    )
+
+    command = StreamingCSVExportCommand(query_context)
+    list(command.run()())
+
+    # SQL mutation must be called before execution
+    datasource.database.mutate_sql_based_on_config.assert_called_once_with(
+        "SELECT * FROM test"
+    )
+    # The mutated SQL (not the original) should be sent to the cursor
+    mock_cursor.execute.assert_called_once_with("SELECT 1 LIMIT 10")
+
+
+def test_get_raw_connection_used_instead_of_get_sqla_engine(
+    mocker: MockerFixture,
+) -> None:
+    """Test that get_raw_connection is used for proper user impersonation.
+
+    Regression test for #40465: the streaming export path used
+    get_sqla_engine() directly, bypassing user impersonation. This meant
+    all streaming CSV exports ran as the service principal instead of the
+    logged-in user, breaking audit trails and potentially bypassing
+    per-user authorization (Ranger, OPA, RLS views).
+    """
+    mock_db, query_context, datasource = _setup_chart_mocks(mocker)
+
+    mock_cursor = mocker.MagicMock()
+    mock_cursor.description = [("col1",)]
+    mock_cursor.fetchmany.side_effect = [[("val",)], []]
+
+    mock_conn = mocker.MagicMock()
+    mock_conn.cursor.return_value = mock_cursor
+
+    datasource.database.get_raw_connection.return_value.__enter__.return_value = (
+        mock_conn
+    )
+
+    command = StreamingCSVExportCommand(query_context)
+    list(command.run()())
+
+    # Must use get_raw_connection (handles impersonation, SSH, OAuth2)
+    datasource.database.get_raw_connection.assert_called_once()
+    # Must NOT use get_sqla_engine directly (bypasses impersonation)
+    datasource.database.get_sqla_engine.assert_not_called()
