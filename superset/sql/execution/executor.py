@@ -62,15 +62,18 @@ import logging
 import time
 import uuid
 from datetime import datetime
-from typing import Any, TYPE_CHECKING
+from typing import Any, NoReturn, TYPE_CHECKING
 
 from flask import current_app as app, g, has_app_context
+from flask_babel import gettext as __
 
 from superset import db
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2Error,
     OAuth2RedirectError,
+    SupersetErrorException,
+    SupersetParseError,
     SupersetSecurityException,
     SupersetTimeoutException,
 )
@@ -87,10 +90,100 @@ if TYPE_CHECKING:
         StatementResult,
     )
 
+    from superset.db_engine_specs.base import BaseEngineSpec
     from superset.models.core import Database
     from superset.result_set import SupersetResultSet
 
 logger = logging.getLogger(__name__)
+
+
+def _raise_all_statements_stripped() -> NoReturn:
+    """Raise a clean error for a mutator that stripped a query down to nothing."""
+    raise SupersetErrorException(
+        SupersetError(
+            message=__(
+                "The SQL query mutator removed all executable "
+                "statements from this query."
+            ),
+            error_type=SupersetErrorType.INVALID_SQL_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+    )
+
+
+def _has_executable_statements(sql: str, engine: str) -> bool:
+    """Best-effort check that mutated SQL still contains executable statements."""
+    try:
+        return bool(SQLScript(sql, engine=engine).statements)
+    except SupersetParseError:
+        # A mutator may emit engine-specific SQL our parser can't handle; the
+        # database itself is the authority on validity in that case.
+        return True
+
+
+def build_statement_blocks(
+    parsed_script: SQLScript,
+    db_engine_spec: type[BaseEngineSpec],
+    database: Database,
+) -> tuple[SQLScript, list[str]]:
+    """
+    Build the SQL blocks to execute from a parsed script, applying
+    ``SQL_QUERY_MUTATOR`` according to ``MUTATE_AFTER_SPLIT``.
+
+    Some databases (like BigQuery and Kusto) do not persist state across multiple
+    statements if they're run separately (especially when using `NullPool`), so the
+    query runs as a single joined block when the engine spec requires it; otherwise
+    each statement becomes its own block. Shared by the sync (``sql_lab``) and
+    async (``celery_task``) SQL Lab paths so the
+    ``run_multiple_statements_as_one`` × ``MUTATE_AFTER_SPLIT`` matrix behaves
+    identically in both.
+
+    Returns the (possibly re-parsed) script and the blocks to execute.
+
+    :raises SupersetErrorException: if the mutator strips the query down to
+        nothing executable (e.g. only comments/whitespace)
+    """
+    blocks: list[str]
+    if db_engine_spec.run_multiple_statements_as_one:
+        if app.config["MUTATE_AFTER_SPLIT"]:
+            # These engines never actually execute statements individually, so
+            # the per-block mutation call at execution time (whose `is_split` is
+            # always `False` here) would never fire. Mutate each statement here,
+            # before joining them into the single block this engine requires, so
+            # `MUTATE_AFTER_SPLIT=True` still applies the mutator per statement.
+            joined_block = ";\n".join(
+                database.mutate_sql_based_on_config(
+                    statement.format(comments=db_engine_spec.allows_sql_comments),
+                    is_split=True,
+                )
+                for statement in parsed_script.statements
+            )
+            if not _has_executable_statements(joined_block, db_engine_spec.engine):
+                _raise_all_statements_stripped()
+            blocks = [joined_block]
+        else:
+            blocks = [parsed_script.format(comments=db_engine_spec.allows_sql_comments)]
+    else:
+        if not app.config["MUTATE_AFTER_SPLIT"]:
+            # `MUTATE_AFTER_SPLIT=False` means the mutator should see the whole,
+            # un-split query, but this engine executes statements individually.
+            # Mutate the whole block up front and re-parse it, so the
+            # per-statement split below (and the per-block mutation call at
+            # execution time, which is a no-op here since its `is_split=True` no
+            # longer matches the config) operate on the already-mutated SQL.
+            mutated_sql: str = database.mutate_sql_based_on_config(
+                parsed_script.format(comments=db_engine_spec.allows_sql_comments),
+                is_split=False,
+            )
+            parsed_script = SQLScript(mutated_sql, engine=db_engine_spec.engine)
+            if not parsed_script.statements:
+                _raise_all_statements_stripped()
+        blocks = [
+            statement.format(comments=db_engine_spec.allows_sql_comments)
+            for statement in parsed_script.statements
+        ]
+
+    return parsed_script, blocks
 
 
 def execute_sql_with_cursor(
@@ -101,6 +194,7 @@ def execute_sql_with_cursor(
     log_query_fn: Any | None = None,
     check_stopped_fn: Any | None = None,
     execute_fn: Any | None = None,
+    is_split: bool = True,
 ) -> list[tuple[str, SupersetResultSet | None, float, int]]:
     """
     Execute SQL statements with a cursor and return all result sets.
@@ -119,6 +213,10 @@ def execute_sql_with_cursor(
     :param execute_fn: Optional custom execute function. If not provided, uses
         database.db_engine_spec.execute(cursor, sql, database). Custom function
         should accept (cursor, sql) and handle execution.
+    :param is_split: Whether `statements` are individual split-out statements (True)
+        or a single un-split block (False, e.g. when the engine spec runs multiple
+        statements as one). Passed to the SQL mutator so `MUTATE_AFTER_SPLIT` can
+        decide whether to fire.
     :returns: List of (statement_sql, result_set, execution_time_ms, rowcount) tuples
         Returns empty list if stopped. Raises exception on error (fail-fast).
     """
@@ -140,8 +238,23 @@ def execute_sql_with_cursor(
         # Apply SQL mutation
         stmt_sql = database.mutate_sql_based_on_config(
             statement,
-            is_split=True,
+            is_split=is_split,
         )
+        if not _has_executable_statements(stmt_sql, database.db_engine_spec.engine):
+            # A `SQL_QUERY_MUTATOR` that strips a statement down to nothing
+            # executable (whitespace or comments only) would otherwise be sent
+            # to the database engine as an empty query, surfacing a confusing
+            # engine-specific error instead of a clean one.
+            raise SupersetErrorException(
+                SupersetError(
+                    message=__(
+                        "The SQL query mutator removed all executable "
+                        "statements from this query."
+                    ),
+                    error_type=SupersetErrorType.INVALID_SQL_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            )
 
         # Log query
         if log_query_fn:

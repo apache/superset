@@ -44,8 +44,8 @@ import { Tooltip, EditableTitle, Icons } from '@superset-ui/core/components';
 import { useSelector } from 'react-redux';
 import SliceHeaderControls from 'src/dashboard/components/SliceHeaderControls';
 import { SliceHeaderControlsProps } from 'src/dashboard/components/SliceHeaderControls/types';
-import FiltersBadge from 'src/dashboard/components/FiltersBadge';
-import CustomizationsBadge from 'src/dashboard/components/CustomizationsBadge';
+import MemoizedFiltersBadge from 'src/dashboard/components/FiltersBadge';
+import MemoizedCustomizationsBadge from 'src/dashboard/components/CustomizationsBadge';
 import { RootState } from 'src/dashboard/types';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
@@ -333,11 +333,11 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                 </Tooltip>
               )}
               {!uiConfig.hideChartControls && (
-                <CustomizationsBadge chartId={slice.slice_id} />
+                <MemoizedCustomizationsBadge chartId={slice.slice_id} />
               )}
 
               {!uiConfig.hideChartControls && (
-                <FiltersBadge chartId={slice.slice_id} />
+                <MemoizedFiltersBadge chartId={slice.slice_id} />
               )}
 
               {showRowLimitWarning && (

@@ -644,6 +644,8 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                 if cached := _ENGINE_CACHE.get(cache_key):
                     return cached
         try:
+            if "future" not in engine_kwargs:
+                engine_kwargs["future"] = True
             engine = create_engine(sqlalchemy_url, **engine_kwargs)
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
@@ -860,9 +862,10 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
                 # Fetch results from last statement if requested
                 if fetch_last_result and i == len(script.statements) - 1:
-                    # Capture cursor.description while it's still valid
-                    description = cursor.description
                     rows = self.db_engine_spec.fetch_data(cursor)
+                    # Some asynchronous DB-API drivers expose placeholder metadata
+                    # until fetching waits for the operation to finish.
+                    description = cursor.description
                 else:
                     # Consume results without storing
                     cursor.fetchall()
@@ -1210,7 +1213,6 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                 table.table,
                 meta,
                 schema=table.schema or None,
-                autoload=True,
                 autoload_with=engine,
             )
 

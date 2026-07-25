@@ -128,6 +128,11 @@ def user_can_view_data_model_metadata() -> bool:
     try:
         from superset import security_manager
 
+        # Deny guests unconditionally: a PUBLIC_ROLE_LIKE=Gamma guest carries
+        # can_get_drill_info on Dataset, which would otherwise pass the check below.
+        if security_manager.is_guest_user():
+            return False
+
         return any(
             security_manager.can_access(permission_name, "Dataset")
             for permission_name in (

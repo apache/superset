@@ -19,7 +19,12 @@
 /* eslint-disable camelcase */
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { isDefined, ensureIsArray, DatasourceType } from '@superset-ui/core';
+import {
+  isDefined,
+  ensureIsArray,
+  DatasourceType,
+  handleKeyboardActivation,
+} from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import type { editors } from '@apache-superset/core';
 import { styled } from '@apache-superset/core/theme';
@@ -498,6 +503,10 @@ function AdhocMetricEditPopover({
                           handleDatasetModal?.(true);
                           onClose();
                         }}
+                        onKeyDown={handleKeyboardActivation(() => {
+                          handleDatasetModal?.(true);
+                          onClose();
+                        })}
                       >
                         {t('Create a dataset')}
                       </span>

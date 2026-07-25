@@ -36,6 +36,7 @@ import {
   SupersetClient,
   getClientErrorObject,
   getExtensionsRegistry,
+  handleKeyboardActivation,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { t } from '@apache-superset/core/translation';
@@ -276,9 +277,7 @@ interface CollectionTabTitleProps {
 
 interface ColumnCollectionTableProps {
   columns: Column[];
-  datasource: DatasourceObject;
   onColumnsChange: (columns: Column[]) => void;
-  onDatasourceChange: (datasource: DatasourceObject) => void;
   editableColumnName?: boolean;
   showExpression?: boolean;
   allowAddItem?: boolean;
@@ -343,18 +342,18 @@ const StyledTableTabs = styled(Tabs)`
   display: flex;
   flex-direction: column;
 
-  .ant-tabs-content-holder {
+  .ant-tabs-body-holder {
     flex: 1;
     min-height: 0;
     overflow: auto;
     padding-top: ${({ theme }) => theme.paddingMD}px;
   }
 
-  .ant-tabs-content {
+  .ant-tabs-body {
     height: 100%;
   }
 
-  .ant-tabs-tabpane-active {
+  .ant-tabs-content-active {
     height: 100%;
   }
 `;
@@ -493,9 +492,7 @@ function FormContainer({ children }: FormContainerProps): JSX.Element {
 
 function ColumnCollectionTable({
   columns,
-  datasource,
   onColumnsChange,
-  onDatasourceChange,
   editableColumnName = false,
   showExpression = false,
   allowAddItem = false,
@@ -1764,6 +1761,7 @@ function DatasourceEditor({
             role="button"
             tabIndex={0}
             onClick={onChangeEditMode}
+            onKeyDown={handleKeyboardActivation(onChangeEditMode)}
           >
             {isEditMode ? (
               <Icons.UnlockOutlined
@@ -2416,9 +2414,7 @@ function DatasourceEditor({
               columns={databaseColumns}
               filterTerm={columnSearchTerm}
               filterFields={['column_name']}
-              datasource={datasource}
               onColumnsChange={cols => setColumns({ databaseColumns: cols })}
-              onDatasourceChange={onDatasourceChange}
             />
             {metadataLoading && <Loading />}
           </StyledTableTabWrapper>
@@ -2457,8 +2453,6 @@ function DatasourceEditor({
                     'as the alias in the SQL query.',
                 ),
               }}
-              onDatasourceChange={onDatasourceChange}
-              datasource={datasource}
               editableColumnName
               showExpression
               allowAddItem
@@ -2544,7 +2538,6 @@ function DatasourceEditor({
       isEditMode,
       datasource,
       setColumns,
-      onDatasourceChange,
       metadataLoading,
       calculatedColumns,
       columnSearchTerm,

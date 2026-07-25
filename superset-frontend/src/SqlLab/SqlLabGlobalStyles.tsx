@@ -32,14 +32,14 @@ export const SqlLabGlobalStyles = () => (
         min-height: max(
           100vh,
           ${theme.sizeUnit * 125}px
-        ); // Set a min height so the gutter is always visible when resizing
+        ); /* Set a min height so the gutter is always visible when resizing */
         overflow: hidden;
       }
 
-      // The tab label is a flex node (icon menu + title + status icon). antd's
-      // overflow dropdown styles each menu item for a plain-text label, so the
-      // nested flex defeats its ellipsis and very long names render blank. Cap
-      // the item width and let the title truncate inside it.
+      /* The tab label is a flex node (icon menu + title + status icon). antd's */
+      /* overflow dropdown styles each menu item for a plain-text label, so the */
+      /* nested flex defeats its ellipsis and very long names render blank. Cap */
+      /* the item width and let the title truncate inside it. */
       .${SQLLAB_TAB_OVERFLOW_POPUP_CLASS} {
         .ant-tabs-dropdown-menu-item {
           max-width: ${theme.sizeUnit * 80}px;

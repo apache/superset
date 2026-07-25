@@ -24,6 +24,7 @@ from typing import Any, Callable
 from zipfile import is_zipfile, ZipFile
 
 from flask import request, Response, send_file
+from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.api.schemas import get_item_schema
 from flask_appbuilder.const import API_RESULT_RES_KEY, API_SELECT_COLUMNS_RIS_KEY
@@ -83,11 +84,22 @@ from superset.datasets.schemas import (
     GetOrCreateDatasetSchema,
     openapi_spec_methods_override,
 )
-from superset.exceptions import SupersetSyntaxErrorException, SupersetTemplateException
+from superset.exceptions import (
+    SupersetSyntaxErrorException,
+    SupersetTemplateException,
+)
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
 from superset.utils import json
 from superset.utils.core import parse_boolean_string, sanitize_cookie_token
+from superset.versioning.api_helpers import (
+    current_entity_etag_uuid,
+    current_entity_version_info,
+    get_version_endpoint,
+    list_versions_endpoint,
+)
+from superset.versioning.etag import set_version_etag
+from superset.versioning.schemas import VersionListItemSchema
 from superset.views.base import DatasourceFilter
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
@@ -137,6 +149,9 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "get_or_create_dataset",
         "warm_up_cache",
         "get_drill_info",
+        "list_versions",
+        "get_version",
+        "activity",
     }
     list_columns = [
         "id",
@@ -347,6 +362,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         DatasetRelatedObjectsResponse,
         DatasetDuplicateSchema,
         GetOrCreateDatasetSchema,
+        VersionListItemSchema,
     )
 
     openapi_spec_methods = openapi_spec_methods_override
@@ -354,6 +370,52 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
 
     list_outer_default_load = True
     show_outer_default_load = True
+
+    def get_list_headless(self, **kwargs: Any) -> Response:
+        response = super().get_list_headless(**kwargs)
+        # TODO: Double-serialization note: `response.json` deserializes the
+        # response body back from bytes (produced by
+        # `super().get_list_headless()`), and then `self.response(200, **payload)`
+        # re-serializes it. For large dataset lists this is noticeable overhead.
+        # A follow-up improvement: override `_get_list_response_object` (or the
+        # equivalent Flask-AppBuilder hook) instead of `get_list_headless`, so the
+        # RLS data can be injected *before* the response is built rather than
+        # after. The current approach is functional; this TODO is an
+        # optimization to revisit.
+        if response.status_code == 200:
+            try:
+                payload = response.json
+                if payload and API_RESULT_RES_KEY in payload:
+                    dataset_ids = [
+                        item["id"]
+                        for item in payload[API_RESULT_RES_KEY]
+                        if "id" in item
+                    ]
+                    rls_map = DatasetDAO.get_rls_filters_for_datasets(dataset_ids)
+                    can_read_rls = security_manager.can_access(
+                        "can_read", "RowLevelSecurity"
+                    )
+                    for item in payload[API_RESULT_RES_KEY]:
+                        filters = rls_map.get(item.get("id"), [])
+                        if can_read_rls:
+                            item["rls_filters"] = filters
+                        else:
+                            item["rls_filters"] = [
+                                {
+                                    "id": f["id"],
+                                    "name": f["name"],
+                                    "filter_type": f["filter_type"],
+                                    "group_key": f.get("group_key"),
+                                }
+                                for f in filters
+                            ]
+                    response = self.response(200, **payload)
+            except Exception:  # noqa: BLE001
+                logger.warning(
+                    "Failed to annotate dataset list with RLS info",
+                    exc_info=True,
+                )
+        return response
 
     @expose("/", methods=("POST",))
     @protect()
@@ -466,6 +528,55 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                         type: number
                       result:
                         $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
+                      old_version:
+                        type: integer
+                        nullable: true
+                        description: >-
+                          0-based version_number of the live row before this
+                          update (null if the dataset had no prior history).
+                          Matches the ``version_number`` field of the list
+                          versions endpoint. Unstable under retention
+                          pruning — see ``old_transaction_id`` for a stable
+                          identifier.
+                      new_version:
+                        type: integer
+                        nullable: true
+                        description: >-
+                          0-based version_number of the newly-live row after
+                          this update. Can equal ``old_version`` when no
+                          versioned column changed, or when retention
+                          pruning dropped an older closed row in the same
+                          commit.
+                      old_transaction_id:
+                        type: integer
+                        nullable: true
+                        description: >-
+                          Continuum transaction_id of the live row before
+                          this update. Stable across retention pruning.
+                      new_transaction_id:
+                        type: integer
+                        nullable: true
+                        description: >-
+                          Continuum transaction_id of the live row after
+                          this update. When this differs from
+                          ``old_transaction_id`` the update produced a new
+                          version row (regardless of whether ``new_version``
+                          changed).
+                      old_version_uuid:
+                        type: string
+                        format: uuid
+                        nullable: true
+                        description: >-
+                          Deterministic version_uuid of the live row before
+                          this update. Null when version capture is disabled
+                          or the dataset has no version rows yet.
+                      new_version_uuid:
+                        type: string
+                        format: uuid
+                        nullable: true
+                        description: >-
+                          Deterministic version_uuid of the live row after
+                          this update. Null when version capture is disabled.
             400:
               $ref: '#/components/responses/400'
             401:
@@ -489,17 +600,68 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
+
+        # Live version identifiers before the update (empty + query-free when
+        # ``ENABLE_VERSIONING_CAPTURE`` is off).
+        old_info = current_entity_version_info(SqlaTable, pk)
+
         try:
+            # Two commands, two commits, two Continuum transactions for an
+            # ``override_columns`` save — deliberately NOT merged into one
+            # transaction. A single-transaction design was attempted and
+            # reverted: ``DBEventLogger`` writes request logs through the
+            # SHARED scoped session and calls ``commit()`` /
+            # ``rollback()`` on it mid-request (superset/utils/log.py),
+            # so any save held uncommitted across a logged sub-action can
+            # be committed half-done (Postgres/MySQL) or rolled back
+            # entirely on a transient logger failure (SQLite's
+            # "database is locked"). Until the event logger gets its own
+            # session, per-command commit boundaries are the only shape
+            # whose failure modes are honest. Consequence the
+            # version-history UI must tolerate: one logical save can
+            # surface as two version transactions stamped the same second.
             changed_model = UpdateDatasetCommand(pk, item, override_columns).run()
+            # Capture the post-update identifiers BEFORE the refresh:
+            # RefreshDatasetCommand commits its own transaction, so reading
+            # afterwards would attribute the refresh's version to the
+            # user's update (and old→new would span two transactions).
+            new_info = current_entity_version_info(
+                SqlaTable, changed_model.id, changed_model.uuid
+            )
+            etag_version_uuid = new_info.version_uuid
             if override_columns:
                 RefreshDatasetCommand(pk).run()
-            response = self.response(200, id=changed_model.id, result=item)
+                # The ETag must reflect the entity's *current live* version,
+                # which after the refresh is the refresh's transaction —
+                # re-read it rather than reusing the pre-refresh uuid.
+                etag_version_uuid = current_entity_etag_uuid(
+                    SqlaTable, changed_model.id, changed_model.uuid
+                )
+            response = self.response(
+                200,
+                id=changed_model.id,
+                result=item,
+                old_version=old_info.version,
+                new_version=new_info.version,
+                old_transaction_id=old_info.transaction_id,
+                new_transaction_id=new_info.transaction_id,
+                old_version_uuid=old_info.version_uuid,
+                new_version_uuid=new_info.version_uuid,
+            )
+            set_version_etag(response, etag_version_uuid)
         except DatasetNotFoundError:
             response = self.response_404()
         except DatasetForbiddenError:
             response = self.response_403()
         except DatasetInvalidError as ex:
             response = self.response_422(message=ex.normalized_messages())
+        except DatasetRefreshFailedError as ex:
+            logger.exception(
+                "Error refreshing dataset during update %s: %s",
+                self.__class__.__name__,
+                str(ex),
+            )
+            response = self.response_422(message=str(ex))
         except DatasetUpdateFailedError as ex:
             logger.error(
                 "Error updating model %s: %s",
@@ -1438,7 +1600,24 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             except SupersetTemplateException as ex:
                 return self.response(ex.status, message=str(ex))
 
-        return self.response(200, **response)
+        detailed_rls = DatasetDAO.get_rls_filters_for_dataset(table.id)
+        if security_manager.can_access("can_read", "RowLevelSecurity"):
+            response[API_RESULT_RES_KEY]["rls_filters"] = detailed_rls
+        else:
+            response[API_RESULT_RES_KEY]["rls_filters"] = [
+                {
+                    "id": f["id"],
+                    "name": f["name"],
+                    "filter_type": f["filter_type"],
+                    "group_key": f.get("group_key"),
+                }
+                for f in detailed_rls
+            ]
+
+        return set_version_etag(
+            self.response(200, **response),
+            current_entity_etag_uuid(SqlaTable, table.id, table.uuid),
+        )
 
     @expose("/<int:pk>/drill_info/", methods=("GET",))
     @protect()
@@ -1583,3 +1762,193 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 raise template_exception from ex
 
         return data
+
+    @expose("/<uuid_str>/versions/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.list_versions",
+        log_to_statsd=False,
+    )
+    def list_versions(self, uuid_str: str) -> Response:
+        """List version history for a dataset.
+        ---
+        get:
+          summary: Return the version history for a dataset
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Dataset UUID
+          responses:
+            200:
+              description: Version history ordered by oldest first
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/VersionListItemSchema'
+                      count:
+                        type: integer
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        return list_versions_endpoint(self, SqlaTable, uuid_str)
+
+    @expose(
+        "/<uuid_str>/versions/<version_uuid_str>/",
+        methods=("GET",),
+    )
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_version",  # noqa: E501
+        log_to_statsd=False,
+    )
+    def get_version(self, uuid_str: str, version_uuid_str: str) -> Response:
+        """Return the dataset's state at a specific version.
+        ---
+        get:
+          summary: Read-only snapshot of the dataset at a given version
+          description: >-
+            Returns the dataset's scalar fields plus reconstructed
+            ``columns`` and ``metrics`` lists as they were at the target
+            version. Does not modify live state.
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Dataset UUID
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: version_uuid_str
+            description: Version UUID as returned by the list endpoint
+          responses:
+            200:
+              description: Snapshot of the dataset at the target version
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+                        description: >-
+                          The dataset's scalar fields at the target version
+                          (entity-specific keys), plus `columns` / `metrics`
+                          as they were at that version, plus a `_version`
+                          block with the version-level metadata.
+                        properties:
+                          _version:
+                            $ref: '#/components/schemas/VersionListItemSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        return get_version_endpoint(self, SqlaTable, uuid_str, version_uuid_str)
+
+    @expose("/<uuid_str>/activity/", methods=("GET",))
+    @protect()
+    @safe
+    @permission_name("get")
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.activity",
+        log_to_statsd=False,
+    )
+    def activity(self, uuid_str: str) -> Response:
+        """Return the activity stream for a dataset.
+        ---
+        get:
+          summary: Activity stream — dataset's own edits only.
+            Datasets have no transitive layer in V2 — chart and
+            dashboard edits that touch this dataset do NOT appear here.
+            ``?include=self`` and ``?include=all`` return the dataset's
+            own edits; ``?include=related`` returns an empty stream
+            (a dataset has no related entities to fan out to).
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Dataset UUID
+          - in: query
+            schema:
+              type: string
+              format: date-time
+            name: since
+          - in: query
+            schema:
+              type: string
+              format: date-time
+            name: until
+          - in: query
+            schema:
+              type: string
+              enum: [self, related, all]
+              default: all
+            name: include
+          - in: query
+            schema:
+              type: string
+            name: q
+            description: >-
+              Case-insensitive search over the full history (summary,
+              entity name, kind, path, values) — applied before
+              pagination, so `count` reflects the matches.
+          - in: query
+            schema:
+              type: integer
+              minimum: 0
+              default: 0
+            name: page
+          - in: query
+            schema:
+              type: integer
+              minimum: 1
+              maximum: 200
+              default: 25
+            name: page_size
+          responses:
+            200:
+              description: Activity stream ordered newest-first
+              content:
+                application/json:
+                  schema: ActivityResponseSchema
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.versioning.activity import activity_endpoint
+
+        return activity_endpoint(self, SqlaTable, uuid_str, request.args)

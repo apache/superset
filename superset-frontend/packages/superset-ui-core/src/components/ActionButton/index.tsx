@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { handleKeyboardActivation } from '../../utils';
 import type { ReactElement, ReactNode } from 'react';
 import { Tooltip, type TooltipPlacement } from '@superset-ui/core/components';
 import { css, useTheme } from '@apache-superset/core/theme';
@@ -55,6 +56,7 @@ export const ActionButton = ({
       className="action-button"
       data-test={label}
       onClick={onClick}
+      onKeyDown={onClick ? handleKeyboardActivation(onClick) : undefined}
     >
       {icon}
     </span>

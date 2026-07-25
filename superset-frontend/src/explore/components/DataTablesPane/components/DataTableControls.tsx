@@ -140,6 +140,7 @@ export const TableControls = ({
               iconSize="l"
               aria-label={t('Reload')}
               role="button"
+              tabIndex={0}
               onClick={onReload}
             />
           </Tooltip>

@@ -21,8 +21,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from superset import db
-from superset.subjects.models import Subject
+from superset.daos.subject import SubjectDAO
 from superset.subjects.types import SubjectType
 from superset.subjects.utils import get_user_label
 
@@ -33,22 +32,23 @@ def sync_user_subject(user: Any) -> None:
     """Create or update the Subject row for a User."""
     if not user or not getattr(user, "id", None):
         return
-    subject = db.session.query(Subject).filter_by(user_id=user.id).first()
+    subject = SubjectDAO.find_one_or_none(user_id=user.id)
     if subject:
         subject.label = get_user_label(user)
         subject.secondary_label = getattr(user, "email", None)
         subject.extra_search = getattr(user, "email", None)
         subject.active = getattr(user, "active", True)
     else:
-        subject = Subject(
-            label=get_user_label(user),
-            secondary_label=getattr(user, "email", None),
-            extra_search=getattr(user, "email", None),
-            active=getattr(user, "active", True),
-            type=SubjectType.USER,
-            user_id=user.id,
+        SubjectDAO.create(
+            attributes={
+                "label": get_user_label(user),
+                "secondary_label": getattr(user, "email", None),
+                "extra_search": getattr(user, "email", None),
+                "active": getattr(user, "active", True),
+                "type": SubjectType.USER,
+                "user_id": user.id,
+            }
         )
-        db.session.add(subject)
         logger.debug("Created Subject for user %s (id=%s)", user.username, user.id)
 
 
@@ -56,17 +56,18 @@ def sync_role_subject(role: Any) -> None:
     """Create or update the Subject row for a Role."""
     if not role or not getattr(role, "id", None):
         return
-    subject = db.session.query(Subject).filter_by(role_id=role.id).first()
+    subject = SubjectDAO.find_one_or_none(role_id=role.id)
     if subject:
         subject.label = role.name
     else:
-        subject = Subject(
-            label=role.name,
-            active=True,
-            type=SubjectType.ROLE,
-            role_id=role.id,
+        SubjectDAO.create(
+            attributes={
+                "label": role.name,
+                "active": True,
+                "type": SubjectType.ROLE,
+                "role_id": role.id,
+            }
         )
-        db.session.add(subject)
         logger.debug("Created Subject for role %s (id=%s)", role.name, role.id)
 
 
@@ -101,44 +102,42 @@ def sync_group_subject(group: Any) -> None:
     """Create or update the Subject row for a Group."""
     if not group or not getattr(group, "id", None):
         return
-    subject = db.session.query(Subject).filter_by(group_id=group.id).first()
+    subject = SubjectDAO.find_one_or_none(group_id=group.id)
     label, secondary_label, extra_search = _group_subject_fields(group)
     if subject:
         subject.label = label
         subject.secondary_label = secondary_label
         subject.extra_search = extra_search
     else:
-        subject = Subject(
-            label=label,
-            secondary_label=secondary_label,
-            extra_search=extra_search,
-            active=True,
-            type=SubjectType.GROUP,
-            group_id=group.id,
+        SubjectDAO.create(
+            attributes={
+                "label": label,
+                "secondary_label": secondary_label,
+                "extra_search": extra_search,
+                "active": True,
+                "type": SubjectType.GROUP,
+                "group_id": group.id,
+            }
         )
-        db.session.add(subject)
         logger.debug("Created Subject for group %s (id=%s)", group.name, group.id)
 
 
 def delete_user_subject(user_id: int) -> None:
     """Delete the Subject row for a User."""
-    subject = db.session.query(Subject).filter_by(user_id=user_id).first()
-    if subject:
-        db.session.delete(subject)
+    if subject := SubjectDAO.find_one_or_none(user_id=user_id):
+        SubjectDAO.delete([subject])
         logger.debug("Deleted Subject for user id=%s", user_id)
 
 
 def delete_role_subject(role_id: int) -> None:
     """Delete the Subject row for a Role."""
-    subject = db.session.query(Subject).filter_by(role_id=role_id).first()
-    if subject:
-        db.session.delete(subject)
+    if subject := SubjectDAO.find_one_or_none(role_id=role_id):
+        SubjectDAO.delete([subject])
         logger.debug("Deleted Subject for role id=%s", role_id)
 
 
 def delete_group_subject(group_id: int) -> None:
     """Delete the Subject row for a Group."""
-    subject = db.session.query(Subject).filter_by(group_id=group_id).first()
-    if subject:
-        db.session.delete(subject)
+    if subject := SubjectDAO.find_one_or_none(group_id=group_id):
+        SubjectDAO.delete([subject])
         logger.debug("Deleted Subject for group id=%s", group_id)

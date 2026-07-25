@@ -669,6 +669,99 @@ def test_query_context_modified_tampered(
     assert query_context_modified(query_context)
 
 
+def test_query_context_modified_singular_metric_param(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A chart storing its metric under the singular ``metric`` params key (big
+    number, world map, ...) generates a payload with a plural ``metrics`` list;
+    replaying the chart's own metric is not tampering.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metric": "sum__SP_POP_TOTL",
+        "groupby": [],
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metric": "sum__SP_POP_TOTL",
+    }
+    query_context.queries = [QueryObject(metrics=["sum__SP_POP_TOTL"])]
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_control_specific_column_params(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Charts store their queried columns under control-specific params keys
+    (``entity``/``series`` for bubble, ``groupby`` for most, the temporal
+    column under ``granularity_sqla``); the generated payload carries them in
+    ``columns``, which must not read as tampering.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "entity": "country_name",
+        "series": "region",
+        "granularity_sqla": "year",
+        "x": "sum__SP_RUR_TOTL_ZS",
+        "y": "sum__SP_DYN_LE00_IN",
+        "size": "sum__SP_POP_TOTL",
+    }
+
+    query_context.form_data = {"slice_id": 42}
+    query_context.queries = [
+        QueryObject(
+            columns=["country_name", "region", "year"],
+            metrics=[
+                "sum__SP_RUR_TOTL_ZS",
+                "sum__SP_DYN_LE00_IN",
+                "sum__SP_POP_TOTL",
+            ],
+        )
+    ]
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_novel_values_still_tampered(
+    mocker: MockerFixture,
+) -> None:
+    """
+    The control-specific params equivalence only authorizes exact stored
+    values: a metric or column the chart does not reference anywhere is still
+    rejected, as is an adhoc expression label-spoofing a stored column.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metric": "sum__SP_POP_TOTL",
+        "entity": "country_code",
+        "granularity_sqla": "year",
+    }
+    query_context.form_data = {"slice_id": 42}
+
+    query_context.queries = [QueryObject(metrics=["sum__SH_DYN_AIDS"])]
+    assert query_context_modified(query_context)
+
+    query_context.queries = [QueryObject(columns=["some_other_column"])]
+    assert query_context_modified(query_context)
+
+    query_context.queries = [
+        QueryObject(
+            columns=[
+                {"label": "country_code", "sqlExpression": "(select 1)"},
+            ],
+        )
+    ]
+    assert query_context_modified(query_context)
+
+
 def _native_filter_ctx(
     mocker: MockerFixture,
     queries: list[Any],
@@ -2898,3 +2991,40 @@ def test_query_context_modified_orderby_non_bool_direction_blocked(
     query_context.queries = []
 
     assert query_context_modified(query_context)
+
+
+def test_validate_guest_token_resources_rejects_non_embedded_int_id(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """A raw int dashboard id must reference an embedded dashboard, else a guest
+    token could be scoped to a non-embedded dashboard."""
+    from superset.commands.dashboard.embedded.exceptions import (
+        EmbeddedDashboardNotFoundError,
+    )
+    from superset.security.guest_token import GuestTokenResourceType
+
+    sm = SupersetSecurityManager(appbuilder)
+    non_embedded = MagicMock()
+    non_embedded.embedded = []  # not embedded
+    mocker.patch("superset.models.dashboard.Dashboard.get", return_value=non_embedded)
+
+    with pytest.raises(EmbeddedDashboardNotFoundError):
+        sm.validate_guest_token_resources(
+            [{"type": GuestTokenResourceType.DASHBOARD, "id": 5}]
+        )
+
+
+def test_validate_guest_token_resources_accepts_embedded_int_id(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """A raw int id for an embedded dashboard is accepted."""
+    from superset.security.guest_token import GuestTokenResourceType
+
+    sm = SupersetSecurityManager(appbuilder)
+    embedded_dash = MagicMock()
+    embedded_dash.embedded = [MagicMock()]  # embedded
+    mocker.patch("superset.models.dashboard.Dashboard.get", return_value=embedded_dash)
+
+    sm.validate_guest_token_resources(
+        [{"type": GuestTokenResourceType.DASHBOARD, "id": 5}]
+    )

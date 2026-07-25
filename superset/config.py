@@ -25,6 +25,7 @@ at the end of this file.
 # pylint: disable=too-many-lines
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import logging
@@ -224,6 +225,20 @@ SUPERSET_WEBSERVER_TIMEOUT = int(timedelta(minutes=1).total_seconds())
 # please check PR #9886
 SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT = 0
 SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE = None
+
+# Manual dashboard refresh can stagger chart data requests across this many
+# milliseconds so they do not all hit the backend at the same instant. This
+# defaults to 0, which preserves the original behavior where every chart
+# request fires at the same time when the user clicks the Refresh dashboard
+# button. Set a positive value to opt in to staggering; the frontend then
+# uses the larger of this value and the dashboard's stagger_time metadata,
+# which itself defaults to 5000 ms when it is not set explicitly. A dashboard
+# with stagger_refresh set to false in its metadata skips staggering on the
+# manual refresh path entirely, even when this value is positive.
+# If the backend does not provide this value at all (an older backend that
+# predates the key, or it is set to None), the frontend falls back to a
+# built-in default of 5000 ms.
+SUPERSET_DASHBOARD_MANUAL_REFRESH_STAGGER_MS: int = 0
 
 SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 65535
 CUSTOM_SECURITY_MANAGER = None
@@ -454,6 +469,13 @@ LOGO_RIGHT_TEXT: Callable[[], str] | str = ""
 FAB_API_SWAGGER_UI = utils.cast_to_boolean(
     os.environ.get("SUPERSET_ENABLE_SWAGGER_UI", False)
 )
+
+# Enables an APPLICATION_ROOT-aware Swagger UI and OpenAPI spec, for Superset
+# deployments served behind a URL prefix (reverse proxy). When True, the spec
+# is exposed at ``/api/<version>/_openapi`` and the Swagger UI resolves it
+# through APPLICATION_ROOT. Defaults to False (standard FAB Swagger UI).
+# ex: http://localhost:8080/<prefix>/swagger/v1
+FAB_API_SWAGGER_UI_SUPERSET_APP_ROOT = False
 
 # ----------------------------------------------------
 # AUTHENTICATION CONFIG
@@ -915,9 +937,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable drill-to-detail functionality in charts
     # @lifecycle: deprecated
     "DRILL_TO_DETAIL": True,
-    # Allow JavaScript in chart controls. WARNING: XSS security vulnerability!
-    # @lifecycle: deprecated
-    "ENABLE_JAVASCRIPT_CONTROLS": False,
 }
 
 # ------------------------------
@@ -1131,6 +1150,9 @@ def sync_theme_logo_href(
 #
 # Enable UI-based theme administration for admins
 ENABLE_UI_THEME_ADMINISTRATION = True  # Allows admins to set system themes via UI
+
+# Default theme mode for sessions without a saved user preference.
+THEME_DEFAULT_MODE: Literal["default", "dark", "system"] = "system"
 
 # Maximum number of font URLs allowed per theme.
 THEME_FONTS_MAX_URLS: int = 15
@@ -1348,8 +1370,57 @@ EXPLORE_FORM_DATA_CACHE_CONFIG: CacheConfig = {
     "CODEC": JsonKeyValueCodec(),
 }
 
+# Extension Tier 2: Ephemeral State - Server-side cache with TTL.
+# Short-lived KV storage that automatically expires. Not guaranteed to
+# survive server restarts. Use for temporary state like job progress,
+# intermediate results, or cross-request state. Can be replaced by any
+# `Flask-Caching` backend (e.g. RedisCache for production).
+EXTENSIONS_EPHEMERAL_STORAGE: CacheConfig = {
+    "CACHE_TYPE": "SupersetMetastoreCache",
+    # Maximum TTL (in seconds) that clients may request. Requests exceeding
+    # this value are rejected. Defaults to 7 days.
+    "MAX_TTL": int(timedelta(days=7).total_seconds()),
+    # Maximum size (in bytes) of a single stored value. Requests exceeding
+    # this value are rejected. Defaults to 100 KB.
+    "MAX_VALUE_SIZE": 100 * 1024,
+    # The following parameter only applies to `MetastoreCache`:
+    # How should entries be serialized/deserialized?
+    "CODEC": JsonKeyValueCodec(),
+}
+
+# Extension Tier 3: Persistent State - Database storage.
+# Durable KV storage backed by a dedicated database table (`extension_storage`).
+# Survives server restarts, cache evictions, and browser clears.
+EXTENSIONS_PERSISTENT_STORAGE: dict[str, Any] = {
+    # Maximum storage quota per extension in bytes (default: 100 MB)
+    "QUOTA_PER_EXTENSION": 100 * 1024 * 1024,
+    # Maximum size (in bytes) of a single stored value. Requests exceeding
+    # this value are rejected. Defaults to 1 MB.
+    "MAX_VALUE_SIZE": 1024 * 1024,
+    # Maximum combined value size (in bytes) that a single `list()` page may
+    # return. Requests whose page would exceed this are rejected rather than
+    # silently truncated. Defaults to 10 MB.
+    # NOTE: this response is consumed as JSON by the browser (REST API and
+    # frontend SDK), not just backend code — raising this substantially
+    # above the default risks client-side memory/parse-time issues.
+    "MAX_LIST_PAYLOAD_SIZE": 10 * 1024 * 1024,
+}
+
 # store cache keys by datasource UID (via CacheKey) for custom processing/invalidation
 STORE_CACHE_KEYS_IN_METADATA_DB = False
+
+# Cache timeout (in seconds) specifically for native dashboard filter option queries.
+# Native filter queries use `DATA_CACHE_CONFIG` as their backend, but their TTL can be
+# configured independently here because they often require fresher data (e.g., for
+# datasets whose visible values change frequently, including RLS-constrained datasets).
+#
+# Valid values:
+#   None : Preserve the existing cache timeout resolution chain.
+#   -1   : Completely disable cache writes for native filter options.
+#   0    : Passed directly to the underlying cache backend. Backend-specific
+#          behavior may vary. Do not use 0 to disable caching; use -1 instead.
+#   >0   : Cache filter options for the specified number of seconds.
+NATIVE_FILTER_OPTIONS_CACHE_TIMEOUT: int | None = None
 
 # CORS Options
 # NOTE: enabling this requires installing the cors-related python dependencies
@@ -1359,7 +1430,11 @@ CORS_OPTIONS: dict[Any, Any] = {
     "origins": [
         "https://tile.openstreetmap.org",
         "https://tile.osm.ch",
-    ]
+    ],
+    # Make the entity-version-history `ETag` header readable by cross-origin
+    # browser clients. Without this, `fetch()` callers cannot read the header
+    # even when CORS is otherwise permissive.
+    "expose_headers": ["ETag"],
 }
 
 # Sanitizes the HTML content used in markdowns to allow its rendering in a safe manner.
@@ -1413,6 +1488,27 @@ CSV_STREAMING_ROW_THRESHOLD = 100000
 # method.
 # note: index option should not be overridden
 EXCEL_EXPORT: dict[str, Any] = {}
+
+# ---------------------------------------------------
+# Dashboard "Export Data to Excel" (async, S3-backed)
+# ---------------------------------------------------
+# Destination S3 bucket for generated dashboard .xlsx exports. The feature is
+# disabled until this is set: the export endpoint returns 501 when it is None.
+EXCEL_EXPORT_S3_BUCKET: str | None = None
+# Key prefix for export objects: {prefix}{dashboard_id}/{job_id}.xlsx
+EXCEL_EXPORT_S3_KEY_PREFIX = "dashboard-exports/"
+# Lifetime (seconds) of the pre-signed download URL emailed to the user (24h).
+# Note: AWS S3 caps pre-signed URL lifetime at 7 days (604800 seconds); larger
+# values are rejected by S3, so keep this at or below that when using AWS.
+EXCEL_EXPORT_LINK_TTL_SECONDS = 86400
+# Extra kwargs passed to boto3.client("s3", ...) — e.g. region_name, or an
+# endpoint_url for S3-compatible stores (MinIO/LocalStack). Credentials
+# otherwise resolve through the standard boto3 chain.
+EXCEL_EXPORT_S3_CLIENT_KWARGS: dict[str, Any] = {}
+# Viz types treated as tables in the "Export Images to Excel" mode: these charts
+# stay tabular (one worksheet of data) while every other viz type is embedded as
+# a rendered image. Set to None to fall back to the built-in default.
+EXCEL_EXPORT_TABLE_VIZ_TYPES: set[str] | None = None
 
 # ---------------------------------------------------
 # Time grain configurations
@@ -1539,6 +1635,21 @@ DATETIME_FORMAT_DETECTION_SAMPLE_SIZE = 1000
 # The limit for the Superset Meta DB when the feature flag ENABLE_SUPERSET_META_DB is on
 SUPERSET_META_DB_LIMIT: int | None = 1000
 
+# Master switch for entity-version-history capture. Ships defaulted ``False``
+# so the versioning infrastructure (schema + Continuum wiring) lands inert:
+# no save writes shadow rows or a ``version_transaction``/``version_changes``
+# record, while the /versions/ endpoints stay available read-only (returning
+# empty). Set to ``True`` in ``superset_config.py`` (or via the env var of the
+# same name) to enable the before-flush listeners that drive capture.
+# Capture is activated by flipping this default to on once validated in
+# production. It is an operational escape hatch — for use when a
+# versioning-induced regression needs a 30-second recovery instead of
+# revert-and-redeploy — not a feature flag, and remains as the permanent
+# kill-switch.
+ENABLE_VERSIONING_CAPTURE: bool = utils.parse_boolean_string(
+    os.environ.get("ENABLE_VERSIONING_CAPTURE", "false")
+)
+
 # Adds a warning message on sqllab save query and schedule query modals.
 SQLLAB_SAVE_WARNING_MESSAGE = None
 SQLLAB_SCHEDULE_WARNING_MESSAGE = None
@@ -1591,6 +1702,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         "superset.tasks.thumbnails",
         "superset.tasks.cache",
         "superset.tasks.slack",
+        "superset.tasks.export_dashboard_excel",
     )
     result_backend = "db+sqlite:///celery_results.sqlite"
     worker_prefetch_multiplier = 1
@@ -2178,6 +2290,9 @@ def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument  # noqa: 
 # An example use case is if data has role based access controls, and you want to apply
 # a SET ROLE statement alongside every user query. Changing this variable maintains
 # functionality for both the SQL_Lab and Charts.
+# This applies consistently in SQL Lab: with MUTATE_AFTER_SPLIT = True the mutator runs
+# on each individual statement, and with MUTATE_AFTER_SPLIT = False it runs once on the
+# un-split query block.
 MUTATE_AFTER_SPLIT = False
 
 
@@ -2306,6 +2421,11 @@ SLACK_PROXY = None
 # ignored for workspace-level tokens, so leaving it as None preserves the default
 # single-workspace behavior.
 SLACK_TEAM_ID: Callable[[], str] | str | None = None
+# How long the fetched channel list is cached. The Alerts & Reports recipient
+# picker serves channels from this cache, so on very large workspaces (tens of
+# thousands of channels) schedule the ``slack.cache_channels`` Celery task to
+# warm the cache ahead of the TTL — enumerating that many channels inside a
+# single interactive request will otherwise hit Slack rate limits and time out.
 SLACK_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
 
 # Maximum number of retries when Slack API returns rate limit errors
@@ -2993,20 +3113,50 @@ TASKS_ABORT_CHANNEL_PREFIX = "gtf:abort:"
 # -------------------------------------------------------------------
 # Don't add config values below this line since local configs won't be
 # able to override them.
+
+
+def _config_fingerprint(source: bytes | None) -> str:
+    """
+    A short digest of the config file's bytes, as read at import time.
+
+    Auto-reloaders (e.g. werkzeug's) re-import this module when the config
+    file changes, and on some filesystems (notably macOS Docker mounts) the
+    re-read can race the write and observe stale content while still
+    "loading successfully". Logging the digest of the exact bytes that were
+    executed (rather than reopening the file afterward, which can observe
+    different bytes than the ones that were actually loaded) makes that skew
+    diagnosable: compare it against ``md5 <path>`` on the host.
+    """
+    if source is None:
+        return "unreadable"
+    return hashlib.md5(source).hexdigest()[:12]  # noqa: S324
+
+
 if CONFIG_PATH_ENV_VAR in os.environ:
     # Explicitly import config module that is not necessarily in pythonpath; useful
     # for case where app is being executed via pex.
     cfg_path = os.environ[CONFIG_PATH_ENV_VAR]
     try:
         module = sys.modules[__name__]
+        with open(cfg_path, "rb") as fh:
+            config_source = fh.read()
         spec = importlib.util.spec_from_file_location("superset_config", cfg_path)
         override_conf = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(override_conf)
+        # Execute the exact bytes that were just read, rather than letting the
+        # loader re-read the file, so the fingerprint below always matches
+        # what was actually loaded into `override_conf`.
+        exec(  # noqa: S102
+            compile(config_source, cfg_path, "exec"), override_conf.__dict__
+        )
         for key in dir(override_conf):
             if key.isupper():
                 setattr(module, key, getattr(override_conf, key))
 
-        click.secho(f"Loaded your LOCAL configuration at [{cfg_path}]", fg="cyan")
+        click.secho(
+            f"Loaded your LOCAL configuration at [{cfg_path}] "
+            f"(md5:{_config_fingerprint(config_source)})",
+            fg="cyan",
+        )
     except Exception:
         logger.exception(
             "Failed to import config for %s=%s", CONFIG_PATH_ENV_VAR, cfg_path
@@ -3018,8 +3168,15 @@ elif importlib.util.find_spec("superset_config"):
         import superset_config
         from superset_config import *  # noqa: F403, F401
 
+        try:
+            with open(superset_config.__file__, "rb") as fh:
+                config_source = fh.read()
+        except OSError:
+            config_source = None
+
         click.secho(
-            f"Loaded your LOCAL configuration at [{superset_config.__file__}]",
+            f"Loaded your LOCAL configuration at [{superset_config.__file__}] "
+            f"(md5:{_config_fingerprint(config_source)})",
             fg="cyan",
         )
     except Exception:

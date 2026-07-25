@@ -106,8 +106,12 @@ async def _validate_chart_dataset_access(
     Logs any non-fatal warnings (e.g., virtual dataset warnings) via ctx.
     """
     from superset.daos.chart import ChartDAO
+    from superset.mcp_service import guest_scope
 
     if not result.id:
+        return None
+    # Guests read via the dashboard context, not dataset RBAC; skip the perm-check.
+    if guest_scope.is_guest_read():
         return None
     chart = ChartDAO.find_by_id(result.id)
     if not chart:
@@ -314,6 +318,8 @@ async def get_chart_info(
     ]
 
     with event_logger.log_context(action="mcp.get_chart_info.lookup"):
+        # Resolution is guest-scoped by ChartFilter; the dataset perm-check below
+        # skips guests internally.
         tool = ModelGetInfoCore(
             dao_class=ChartDAO,
             output_schema=ChartInfo,
@@ -323,7 +329,6 @@ async def get_chart_info(
             logger=logger,
             query_options=eager_options,
         )
-
         result = tool.run_tool(request.identifier)
 
     if isinstance(result, ChartInfo):
@@ -346,7 +351,7 @@ async def get_chart_info(
             "is_unsaved_state=%s" % (result.slice_name, result.is_unsaved_state)
         )
 
-        # Validate the chart's dataset is accessible
+        # Validate the chart's dataset is accessible (skips guests internally).
         dataset_error = await _validate_chart_dataset_access(result, ctx)
         if dataset_error is not None:
             return dataset_error

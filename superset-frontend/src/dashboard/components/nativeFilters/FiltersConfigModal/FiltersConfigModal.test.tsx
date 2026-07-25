@@ -1060,7 +1060,7 @@ test('shows info tooltips beside value-filter options and reveals tooltip text o
   // query the portal node by class and require non-empty text content so an empty
   // tooltip render does not pass.
   await waitFor(() => {
-    const tooltip = document.querySelector('.ant-tooltip-inner');
+    const tooltip = document.querySelector('.ant-tooltip-container');
     expect(tooltip).toBeInTheDocument();
     expect(tooltip?.textContent?.trim()).toBeTruthy();
   });
@@ -1080,7 +1080,9 @@ test('numerical range filter — Range Type selector lets the user pick a displa
   // ensures the post-click assertion proves a state change rather than passing on
   // the default selection.
   expect(
-    document.querySelector('.ant-select-selection-item[title="Slider"]'),
+    document.querySelector(
+      '.ant-select-content-has-value[title="Slider"], .ant-select-selection-item[title="Slider"]',
+    ),
   ).not.toBeInTheDocument();
 
   await userEvent.click(rangeTypeCombobox);
@@ -1093,7 +1095,9 @@ test('numerical range filter — Range Type selector lets the user pick a displa
   // the picked option's label.
   await waitFor(() => {
     expect(
-      document.querySelector('.ant-select-selection-item[title="Slider"]'),
+      document.querySelector(
+        '.ant-select-content-has-value[title="Slider"], .ant-select-selection-item[title="Slider"]',
+      ),
     ).toBeInTheDocument();
   });
 }, 30000);

@@ -142,6 +142,7 @@ export const ChartsScopingListPanel = ({
       </AddButtonContainer>
       <FilterTitle
         role="button"
+        tabIndex={0}
         onClick={() => setCurrentChartId(undefined)}
         className={activeChartId === undefined ? 'active' : ''}
       >

@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from io import BytesIO
 
 import pandas as pd
 import pytest
@@ -23,6 +24,7 @@ from sqlalchemy.orm.session import Session
 
 from superset.charts.client_processing import apply_client_processing, pivot_df, table
 from superset.common.chart_data import ChartDataResultFormat
+from superset.utils import excel
 from superset.utils.core import GenericDataType
 from tests.conftest import with_config
 
@@ -2834,6 +2836,100 @@ def test_apply_client_processing_csv_format_default_na_behavior():
     assert (
         "Alice," in lines[2]
     )  # Second data row should have empty last_name (NA converted to null)
+
+
+def _assert_xlsx_client_processing(index: bool) -> None:
+    """Assert XLSX post-processing preserves columns and configured index."""
+    source_df = pd.DataFrame(
+        {
+            "city": ["Paris", "London"],
+            "value": [10, 20],
+        },
+        index=pd.Index(["row-1", "row-2"], name="row"),
+    )
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.XLSX,
+                "data": excel.df_to_excel(source_df, index=index),
+            }
+        ]
+    }
+    form_data = {
+        "viz_type": "table",
+        "columns": ["city", "value"],
+        "metrics": [],
+    }
+
+    processed_result = apply_client_processing(result, form_data)
+    query = processed_result["queries"][0]
+    output_df = pd.read_excel(
+        BytesIO(query["data"]),
+        index_col=0 if index else None,
+    )
+    expected_df = source_df if index else source_df.reset_index(drop=True)
+
+    pd.testing.assert_frame_equal(output_df, expected_df, check_names=False)
+    assert query["colnames"] == ["city", "value"]
+    if index:
+        assert query["indexnames"] == ["row-1", "row-2"]
+    else:
+        assert query["indexnames"] == [0, 1]
+    assert query["rowcount"] == 2
+
+
+@with_config({"EXCEL_EXPORT": {"index": True}})
+def test_apply_client_processing_xlsx_format_with_index() -> None:
+    """XLSX post-processing should preserve an exported index."""
+    _assert_xlsx_client_processing(index=True)
+
+
+@with_config({"EXCEL_EXPORT": {"index": False}})
+def test_apply_client_processing_xlsx_format_without_index() -> None:
+    """XLSX post-processing should not shift columns when index is omitted."""
+    _assert_xlsx_client_processing(index=False)
+
+
+@with_config({"EXCEL_EXPORT": {}})
+def test_apply_client_processing_xlsx_format_without_index_default_config() -> None:
+    """XLSX post-processing derives omitted index from the payload."""
+    _assert_xlsx_client_processing(index=False)
+
+
+@with_config({"EXCEL_EXPORT": {"index": False}})
+def test_apply_client_processing_xlsx_format_pivot_table_groupby_columns() -> None:
+    """XLSX post-processing should preserve pivot groupby columns."""
+    source_df = pd.DataFrame(
+        {
+            "city": ["Paris", "Paris", "London"],
+            "segment": ["Consumer", "Corporate", "Consumer"],
+            "value": [10, 20, 30],
+        },
+    )
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.XLSX,
+                "data": excel.df_to_excel(source_df, index=False),
+            }
+        ]
+    }
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyColumns": ["segment"],
+        "groupbyRows": ["city"],
+        "metrics": ["value"],
+    }
+
+    processed_result = apply_client_processing(result, form_data)
+    query = processed_result["queries"][0]
+    output_df = pd.read_excel(BytesIO(query["data"]), index_col=0)
+
+    assert query["rowcount"] == 2
+    assert query["indexnames"] == [("London",), ("Paris",)]
+    assert set(output_df.index) == {"London", "Paris"}
+    assert "value Consumer" in output_df.columns
+    assert "value Corporate" in output_df.columns
 
 
 @with_config({"CSV_EXPORT": {"sep": ";", "decimal": ","}})

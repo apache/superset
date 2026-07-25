@@ -21,6 +21,7 @@ import {
   FeatureFlag,
   isFeatureEnabled,
   SupersetClient,
+  handleKeyboardActivation,
 } from '@superset-ui/core';
 import { useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
@@ -519,6 +520,9 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
                     tabIndex={0}
                     className="action-button"
                     onClick={() => openCancelModal(original)}
+                    onKeyDown={handleKeyboardActivation(() =>
+                      openCancelModal(original),
+                    )}
                   >
                     <Icons.StopOutlined iconSize="l" />
                   </span>

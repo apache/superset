@@ -64,7 +64,7 @@ def engine() -> Engine:
     ``deleted_at`` and its index, so only the columns that participate in
     the test are seeded.
     """
-    engine = create_engine("sqlite:///:memory:")
+    engine = create_engine("sqlite:///:memory:", future=True)
     md = MetaData()
     Table(
         TABLE_NAME,
@@ -85,7 +85,7 @@ def _indexes(engine: Engine) -> set[str]:
 
 
 def test_upgrade_adds_deleted_at_column_and_index(engine: Engine) -> None:
-    with engine.connect() as conn:
+    with engine.begin() as conn:
         ctx = MigrationContext.configure(conn)
         with Operations.context(ctx):
             migration.upgrade()
@@ -97,7 +97,7 @@ def test_upgrade_adds_deleted_at_column_and_index(engine: Engine) -> None:
 
 
 def test_downgrade_drops_deleted_at_column_and_index(engine: Engine) -> None:
-    with engine.connect() as conn:
+    with engine.begin() as conn:
         ctx = MigrationContext.configure(conn)
         with Operations.context(ctx):
             migration.upgrade()
@@ -120,7 +120,7 @@ def test_downgrade_preserves_soft_deleted_row_data(engine: Engine) -> None:
     hard-delete, restore, or rename BEFORE downgrading. See the
     "Rollback note" in ``UPDATING.md``.
     """
-    with engine.connect() as conn:
+    with engine.begin() as conn:
         ctx = MigrationContext.configure(conn)
         with Operations.context(ctx):
             migration.upgrade()
@@ -170,7 +170,7 @@ def test_upgrade_is_idempotent(engine: Engine) -> None:
     idempotent skip-if-exists; running ``upgrade()`` twice must not
     raise.
     """
-    with engine.connect() as conn:
+    with engine.begin() as conn:
         ctx = MigrationContext.configure(conn)
         with Operations.context(ctx):
             migration.upgrade()
@@ -181,7 +181,7 @@ def test_downgrade_is_idempotent(engine: Engine) -> None:
     """``drop_columns`` / ``drop_index`` are skip-if-not-exists; running
     ``downgrade()`` twice must not raise.
     """
-    with engine.connect() as conn:
+    with engine.begin() as conn:
         ctx = MigrationContext.configure(conn)
         with Operations.context(ctx):
             migration.upgrade()

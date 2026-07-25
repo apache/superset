@@ -243,11 +243,15 @@ async def my_tool(request: MyRequest, ctx: Context) -> MyResponse:
     # g.user is set automatically before this runs
     ...
 
-# Public tool (no auth) - use sparingly
+# Public tool (no auth) - use sparingly, and add the tool name to
+# ALLOWED_UNPROTECTED in app.py (e.g. generate_bug_report)
 @tool(protect=False)
-async def health_check(ctx: Context) -> dict:
+async def public_status(ctx: Context) -> dict:
     return {"status": "healthy"}
 ```
+
+Note: `health_check` is a protected, authenticated tool (`@tool(tags=["core"], ...)`,
+no `protect=False`) — it is not an example of a public tool.
 
 **Authentication priority order** (in `auth.py`):
 1. JWT context (per-request ContextVar from FastMCP). Also resolves a verified
@@ -462,7 +466,16 @@ MCP_RBAC_ENABLED = True          # Enable permission checking (default: True)
 # Embedded guest auth (opt-in; requires the EMBEDDED_SUPERSET feature flag).
 # Reuses core GUEST_TOKEN_JWT_* config — no MCP-specific guest secret/audience.
 MCP_EMBEDDED_GUEST_AUTH_ENABLED = False
-MCP_GUEST_DENIED_TOOLS = {"find_users", "get_instance_info"}  # tools guests cannot call
+# Default-deny: the ONLY tools a guest may call (everything else is denied).
+MCP_GUEST_ALLOWED_TOOLS = {
+    "get_dashboard_info", "get_dashboard_layout", "list_dashboards",
+    "list_charts", "get_chart_info", "get_chart_data", "get_chart_preview",
+}
+# Principal-agnostic extension point: given the current user, return an allow-list
+# (only these tools are callable) or None if unrestricted. Defaults to restricting
+# embedded guests to MCP_GUEST_ALLOWED_TOOLS; override to add other restricted
+# principals without touching the enforcement path.
+MCP_RESTRICTED_TOOL_POLICY = None  # Callable[[user], frozenset[str] | None]
 
 
 # Response Caching (optional, uses in-memory store by default; Redis when MCP_STORE_CONFIG enabled)

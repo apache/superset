@@ -18,7 +18,11 @@
  */
 import { useMemo, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import {
+  isFeatureEnabled,
+  FeatureFlag,
+  handleKeyboardActivation,
+} from '@superset-ui/core';
 import {
   Actions,
   createErrorHandler,
@@ -219,6 +223,7 @@ function TagList(props: TagListProps) {
                         tabIndex={0}
                         className="action-button"
                         onClick={confirmDelete}
+                        onKeyDown={handleKeyboardActivation(confirmDelete)}
                       >
                         <Icons.DeleteOutlined
                           data-test="dashboard-list-trash-icon"
@@ -240,6 +245,7 @@ function TagList(props: TagListProps) {
                     tabIndex={0}
                     className="action-button"
                     onClick={handleEdit}
+                    onKeyDown={handleKeyboardActivation(handleEdit)}
                   >
                     <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
                   </span>

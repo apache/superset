@@ -29,6 +29,8 @@ import {
   Tooltip,
   Button,
   ModalTrigger,
+  RlsBadge,
+  type RlsFilterSummary,
 } from '@superset-ui/core/components';
 import {
   ChangeDatasourceModal,
@@ -67,6 +69,7 @@ interface ExtendedDatasource extends Datasource {
   extra?: string;
   health_check_message?: string;
   cache_timeout?: number | null;
+  rls_filters?: RlsFilterSummary[];
   database?: {
     id: number;
     database_name: string;
@@ -221,7 +224,6 @@ const preventRouterLinkWhileMetaClicked = (evt: React.MouseEvent) => {
 export default function DatasourceControl({
   actions,
   onChange = () => {},
-  value = null,
   datasource,
   form_data,
   isEditable = true,
@@ -489,6 +491,9 @@ export default function DatasourceControl({
         )}
         {extra?.warning_markdown && (
           <WarningIconWithTooltip warningMarkdown={extra.warning_markdown} />
+        )}
+        {datasource.rls_filters && datasource.rls_filters.length > 0 && (
+          <RlsBadge rlsFilters={datasource.rls_filters} />
         )}
         <Dropdown
           popupRender={() =>

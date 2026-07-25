@@ -39,6 +39,7 @@ import {
   HeaderContainer,
   LabelsContainer,
 } from 'src/explore/components/controls/OptionControls';
+import { arrayMove } from '@dnd-kit/sortable';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Modal } from '@superset-ui/core/components';
 import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterControl/AdhocFilterPopoverTrigger';
@@ -321,20 +322,22 @@ function AdhocFilterControl({
     [values, onChange],
   );
 
-  const moveLabel = useCallback((dragIndex: number, hoverIndex: number) => {
-    setValues(prevValues => {
-      const newValues = [...prevValues];
-      [newValues[hoverIndex], newValues[dragIndex]] = [
-        newValues[dragIndex],
-        newValues[hoverIndex],
-      ];
-      return newValues;
-    });
-  }, []);
+  const moveLabel = useCallback(
+    (dragIndex: number, hoverIndex: number) => {
+      // @dnd-kit fires the reorder once at drag-end with the final indices, so
+      // this must be a full arrayMove, not an adjacent swap. Commit immediately
+      // rather than deferring to onDropLabel, whose render-time closure would
+      // persist the stale pre-move values.
+      const newValues = arrayMove(values, dragIndex, hoverIndex);
+      setValues(newValues);
+      onChange?.(newValues);
+    },
+    [values, onChange],
+  );
 
-  const onDropLabel = useCallback(() => {
-    onChange?.(values);
-  }, [onChange, values]);
+  // Reorder now commits through moveLabel; keep a no-op so the sortable's
+  // drop hook does not re-commit stale, pre-move values.
+  const onDropLabel = useCallback(() => {}, []);
 
   const onNewFilter = useCallback(
     (newFilter: FilterOption | AdhocFilter) => {

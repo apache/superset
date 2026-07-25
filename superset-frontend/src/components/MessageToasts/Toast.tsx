@@ -35,7 +35,7 @@ const ToastContainer = styled.div`
     align-items: flex-start;
     gap: ${theme.sizeUnit * 2}px;
 
-    // Content container for icon and text
+    /* Content container for icon and text */
     .toast__content {
       display: flex;
       align-items: flex-start;

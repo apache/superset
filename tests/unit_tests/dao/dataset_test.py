@@ -358,3 +358,68 @@ def test_has_active_logical_duplicate_never_bypasses_visibility(
         DatasetDAO.has_active_logical_duplicate(model)
 
     bypass_spy.assert_not_called()
+
+
+def test_override_columns_preserves_pks_and_ignores_payload_id(
+    session: Session,
+) -> None:
+    """``_override_columns`` matches by natural key (column_name): a
+    name-matched column keeps its live PK even when the payload carries a
+    different ``id``, unchanged columns' ids survive a metadata refresh (so
+    chart references by id stay valid), removed columns are deleted, and new
+    columns are inserted."""
+    from superset import db
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+    database = Database(database_name="ov_db", sqlalchemy_uri="sqlite://")
+    table = SqlaTable(table_name="ov_t", schema="main", database=database)
+    table.columns = [TableColumn(column_name="a"), TableColumn(column_name="b")]
+    db.session.add_all([database, table])
+    db.session.flush()
+    a_id = next(c.id for c in table.columns if c.column_name == "a")
+
+    # Keep "a" (payload carries a bogus id + a real change), drop "b", add "c".
+    DatasetDAO._override_columns(
+        table,
+        [
+            {"column_name": "a", "id": a_id + 9999, "verbose_name": "A!"},
+            {"column_name": "c"},
+        ],
+    )
+    db.session.flush()
+
+    # Query fresh (new columns are added by FK, not via the relationship).
+    cols = db.session.query(TableColumn).filter_by(table_id=table.id).all()
+    by_name = {c.column_name: c for c in cols}
+    # "b" removed, "c" inserted, "a" retained.
+    assert set(by_name) == {"a", "c"}
+    # "a" kept its original PK (payload id ignored) and took the change — this
+    # is the property charts depend on across a metadata refresh.
+    assert by_name["a"].id == a_id
+    assert by_name["a"].verbose_name == "A!"
+
+
+def test_override_columns_rename_flushes_delete_before_insert(
+    session: Session,
+) -> None:
+    """A rename (old name removed, new name added) works: the removed column is
+    flushed out before the new one is inserted, so it can't collide on
+    ``UNIQUE(table_id, column_name)`` mid-flush (the MySQL case-insensitive
+    edge; SQLite here just confirms the path is intact)."""
+    from superset import db
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+    database = Database(database_name="ov_db2", sqlalchemy_uri="sqlite://")
+    table = SqlaTable(table_name="ov_t2", schema="main", database=database)
+    table.columns = [TableColumn(column_name="old")]
+    db.session.add_all([database, table])
+    db.session.flush()
+
+    DatasetDAO._override_columns(table, [{"column_name": "new"}])
+    db.session.flush()
+    cols = db.session.query(TableColumn).filter_by(table_id=table.id).all()
+    assert [c.column_name for c in cols] == ["new"]

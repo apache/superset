@@ -44,6 +44,9 @@ spec:
         {{- if .Values.supersetWebsockets.podAnnotations }}
           {{- toYaml .Values.supersetWebsockets.podAnnotations | nindent 8 }}
         {{- end }}
+        {{- with .Values.globalPodAnnotations }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
       labels:
         {{- include "supersetWebsockets.selectorLabels" . | nindent 8 }}
         {{- if .Values.supersetWebsockets.podLabels }}
@@ -61,6 +64,15 @@ spec:
         {{- if .Values.supersetWebsockets.podSecurityContext }}
           {{- toYaml .Values.supersetWebsockets.podSecurityContext | nindent 8 }}
         {{- end }}
+      {{- if or .Values.supersetWebsockets.initContainers .Values.supersetWebsockets.extraInitContainers }}
+      initContainers:
+      {{- if .Values.supersetWebsockets.initContainers }}
+      {{- tpl (toYaml .Values.supersetWebsockets.initContainers) . | nindent 6 }}
+      {{- end }}
+      {{- if .Values.supersetWebsockets.extraInitContainers }}
+      {{- tpl (toYaml .Values.supersetWebsockets.extraInitContainers) . | nindent 6 }}
+      {{- end }}
+      {{- end }}
       {{- with .Values.hostAliases }}
       hostAliases: {{- toYaml . | nindent 6 }}
       {{- end }}

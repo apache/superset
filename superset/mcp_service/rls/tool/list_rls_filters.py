@@ -65,6 +65,16 @@ async def list_rls_filters(
     if ctx is None:
         raise RuntimeError("FastMCP context is required for list_rls_filters")
 
+    from superset import security_manager
+
+    # An RLS clause exposes tables/columns and roles; deny guests explicitly so
+    # it holds even with MCP_RBAC_ENABLED off.
+    if security_manager.is_guest_user():
+        return RlsFilterError(
+            error="RLS filters are not available to embedded guests.",
+            error_type="Forbidden",
+        )
+
     request = request or _DEFAULT_LIST_RLS_FILTERS_REQUEST.model_copy(deep=True)
 
     await ctx.info(

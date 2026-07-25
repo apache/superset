@@ -17,9 +17,16 @@
 
 """Tests for MCP server EventStore creation."""
 
+from collections.abc import Awaitable, Callable
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 import pytest
+from starlette.requests import Request
+from starlette.responses import Response
+
+# A Starlette-style ASGI endpoint, matching FastMCP's custom_route contract.
+Endpoint = Callable[[Request], Awaitable[Response]]
 
 
 def test_create_event_store_returns_none_when_no_redis_url():
@@ -160,6 +167,59 @@ def test_create_event_store_returns_none_when_redis_store_fails():
         result = create_event_store(config)
 
         assert result is None
+
+
+@pytest.mark.asyncio
+async def test_register_health_endpoint_registers_get_health() -> None:
+    """/health is registered as an HTTP GET custom route on the MCP instance."""
+    from superset.mcp_service.server import _register_health_endpoint
+
+    captured: dict[str, object] = {}
+
+    def custom_route(path: str, methods: list[str]) -> Callable[[Endpoint], Endpoint]:
+        captured["path"] = path
+        captured["methods"] = methods
+
+        def decorator(fn: Endpoint) -> Endpoint:
+            captured["fn"] = fn
+            return fn
+
+        return decorator
+
+    mcp_instance = MagicMock()
+    mcp_instance.custom_route = custom_route
+
+    _register_health_endpoint(mcp_instance)
+
+    assert captured["path"] == "/health"
+    assert captured["methods"] == ["GET"]
+
+
+@pytest.mark.asyncio
+async def test_health_endpoint_returns_ok() -> None:
+    """The /health handler returns 200 with a JSON status body."""
+    from superset.mcp_service.server import _register_health_endpoint
+    from superset.utils import json
+
+    captured: dict[str, object] = {}
+
+    def custom_route(path: str, methods: list[str]) -> Callable[[Endpoint], Endpoint]:
+        def decorator(fn: Endpoint) -> Endpoint:
+            captured["fn"] = fn
+            return fn
+
+        return decorator
+
+    mcp_instance = MagicMock()
+    mcp_instance.custom_route = custom_route
+
+    _register_health_endpoint(mcp_instance)
+
+    handler = cast(Callable[..., Awaitable[Response]], captured["fn"])
+    response = await handler(MagicMock(spec=Request))
+
+    assert response.status_code == 200
+    assert json.loads(response.body) == {"status": "ok"}
 
 
 def test_create_auth_provider_uses_default_factory_for_mcp_api_key_only() -> None:

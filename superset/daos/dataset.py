@@ -23,9 +23,11 @@ from typing import Any, Dict, List
 import dateutil.parser
 from sqlalchemy import or_, select
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Query
+from sqlalchemy.orm import joinedload, Query
 
 from superset.connectors.sqla.models import (
+    RLSFilterTables,
+    RowLevelSecurityFilter,
     SqlaTable,
     SqlMetric,
     TableColumn,
@@ -35,7 +37,7 @@ from superset.extensions import db
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.sql.parse import Table
+from superset.sql.parse import SQLScript, Table
 from superset.utils.core import DatasourceType
 from superset.views.base import DatasourceFilter
 
@@ -435,6 +437,113 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         return super().update(item, attributes)
 
     @classmethod
+    def _validate_column_date_formats(
+        cls, property_columns: list[dict[str, Any]]
+    ) -> None:
+        for column in property_columns:
+            if column.get("python_date_format") is None:
+                continue
+            if not DatasetDAO.validate_python_date_format(column["python_date_format"]):
+                raise ValueError(
+                    "python_date_format is an invalid date/timestamp format."
+                )
+
+    @classmethod
+    def _override_columns(
+        cls, model: SqlaTable, property_columns: list[dict[str, Any]]
+    ) -> None:
+        """Replace columns by natural key (``column_name``) — update in place
+        rather than delete-and-reinsert.
+
+        SPIKE (full-Continuum): the previous
+        delete-and-reinsert pattern produced overlapping shadow rows in
+        ``table_columns_version`` (the same ``column_name`` had a DELETE
+        shadow at tx N alongside an INSERT shadow at tx N for a fresh PK).
+        Continuum's ``Reverter`` couldn't unwind this on restore: its flush
+        ordering inserts the historical row before deleting the live one,
+        hitting the ``UNIQUE (table_id, column_name)`` constraint mid-flush
+        (ADR-004 Failure 1).
+
+        The natural-key upsert keeps PKs stable across metadata refresh.
+        Continuum captures only real field changes; new columns get plain
+        INSERT shadows; removed columns get plain DELETE shadows. No
+        natural-key collisions, so Reverter can restore cleanly.
+
+        Behaviour change vs. the previous implementation: PKs of unchanged
+        columns are preserved. Charts that reference columns by their
+        ``id`` continue to work across a metadata refresh — previously
+        such references would be invalidated.
+        """
+        existing_by_name = {c.column_name: c for c in model.columns}
+        incoming_by_name = {p["column_name"]: p for p in property_columns}
+
+        # Identity is the natural key here, never the payload's ``id``:
+        # setattr-ing an incoming ``id`` onto a name-matched row would
+        # rewrite a live primary key, and a renamed column whose payload
+        # still carries its old ``id`` would INSERT with a live PK while
+        # the old-named row is deleted in the same flush — INSERTs flush
+        # before DELETEs, so that collides on the PK / UNIQUE(table_id,
+        # column_name) constraints. ``table_id`` is pinned to *model*.
+        protected_keys = ("id", "table_id")
+
+        # Update columns present in both: in-place setattr.
+        for name, col in existing_by_name.items():
+            if name in incoming_by_name:
+                for key, value in incoming_by_name[name].items():
+                    if key not in protected_keys:
+                        setattr(col, key, value)
+
+        # Insert columns present only in incoming.
+        # Delete columns present only in existing, and flush the deletes BEFORE
+        # inserting new ones. SQLAlchemy's unit of work orders INSERTs before
+        # DELETEs within a single flush, so without this intermediate flush an
+        # incoming column whose name case-insensitively matches a removed column
+        # (a case-only rename under a case-insensitive collation, e.g. MySQL)
+        # would collide on ``UNIQUE(table_id, column_name)`` mid-flush.
+        deleted_any = False
+        for name, col in existing_by_name.items():
+            if name not in incoming_by_name:
+                db.session.delete(col)
+                deleted_any = True
+        if deleted_any:
+            db.session.flush()
+
+        # Insert columns present only in incoming.
+        for name, properties in incoming_by_name.items():
+            if name not in existing_by_name:
+                cleaned = {
+                    key: value
+                    for key, value in properties.items()
+                    if key not in protected_keys
+                }
+                db.session.add(TableColumn(**{**cleaned, "table_id": model.id}))
+
+    @classmethod
+    def _upsert_columns(
+        cls, model: SqlaTable, property_columns: list[dict[str, Any]]
+    ) -> None:
+        columns_by_id = {column.id: column for column in model.columns}
+        property_columns_by_id = {
+            properties["id"]: properties
+            for properties in property_columns
+            if "id" in properties
+        }
+
+        for properties in property_columns:
+            if "id" not in properties:
+                db.session.add(TableColumn(**{**properties, "table_id": model.id}))
+
+        for properties in property_columns_by_id.values():
+            col = columns_by_id[properties["id"]]
+            for key, value in properties.items():
+                setattr(col, key, value)
+
+        ids_to_keep = property_columns_by_id.keys()
+        for col in model.columns:
+            if col.id not in ids_to_keep:
+                db.session.delete(col)
+
+    @classmethod
     def update_columns(
         cls,
         model: SqlaTable,
@@ -449,64 +558,15 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         - If a column Dict does not have an `id` then we create a new metric.
         - If there are extra columns on the metadata db that are not defined on the List
         then we delete.
+
+        Uses individual ORM operations (not bulk) so that SQLAlchemy-Continuum
+        can capture each row change in the version history.
         """
-
-        for column in property_columns:
-            if (
-                "python_date_format" in column
-                and column["python_date_format"] is not None
-            ):
-                if not DatasetDAO.validate_python_date_format(
-                    column["python_date_format"]
-                ):
-                    raise ValueError(
-                        "python_date_format is an invalid date/timestamp format."
-                    )
-
+        cls._validate_column_date_formats(property_columns)
         if override_columns:
-            db.session.query(TableColumn).filter(
-                TableColumn.table_id == model.id
-            ).delete(synchronize_session="fetch")
-
-            db.session.bulk_insert_mappings(
-                TableColumn,
-                [
-                    {**properties, "table_id": model.id}
-                    for properties in property_columns
-                ],
-            )
+            cls._override_columns(model, property_columns)
         else:
-            columns_by_id = {column.id: column for column in model.columns}
-
-            property_columns_by_id = {
-                properties["id"]: properties
-                for properties in property_columns
-                if "id" in properties
-            }
-
-            db.session.bulk_insert_mappings(
-                TableColumn,
-                [
-                    {**properties, "table_id": model.id}
-                    for properties in property_columns
-                    if "id" not in properties
-                ],
-            )
-
-            db.session.bulk_update_mappings(
-                TableColumn,
-                [
-                    {**columns_by_id[properties["id"]].__dict__, **properties}
-                    for properties in property_columns_by_id.values()
-                ],
-            )
-
-            db.session.query(TableColumn).filter(
-                TableColumn.id.in_(
-                    {column.id for column in model.columns}
-                    - property_columns_by_id.keys()
-                )
-            ).delete(synchronize_session="fetch")
+            cls._upsert_columns(model, property_columns)
 
     @classmethod
     def update_metrics(
@@ -522,6 +582,9 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         - If a metric Dict does not have an `id` then we create a new metric.
         - If there are extra metrics on the metadata db that are not defined on the List
         then we delete.
+
+        Uses individual ORM operations (not bulk) so that SQLAlchemy-Continuum
+        can capture each row change in the version history.
         """
 
         metrics_by_id = {metric.id: metric for metric in model.metrics}
@@ -532,28 +595,22 @@ class DatasetDAO(BaseDAO[SqlaTable]):
             if "id" in properties
         }
 
-        db.session.bulk_insert_mappings(
-            SqlMetric,
-            [
-                {**properties, "table_id": model.id}
-                for properties in property_metrics
-                if "id" not in properties
-            ],
-        )
+        # Insert new metrics
+        for properties in property_metrics:
+            if "id" not in properties:
+                db.session.add(SqlMetric(**{**properties, "table_id": model.id}))
 
-        db.session.bulk_update_mappings(
-            SqlMetric,
-            [
-                {**metrics_by_id[properties["id"]].__dict__, **properties}
-                for properties in property_metrics_by_id.values()
-            ],
-        )
+        # Update existing metrics
+        for properties in property_metrics_by_id.values():
+            metric = metrics_by_id[properties["id"]]
+            for key, value in properties.items():
+                setattr(metric, key, value)
 
-        db.session.query(SqlMetric).filter(
-            SqlMetric.id.in_(
-                {metric.id for metric in model.metrics} - property_metrics_by_id.keys()
-            )
-        ).delete(synchronize_session="fetch")
+        # Delete removed metrics
+        ids_to_keep = property_metrics_by_id.keys()
+        for metric in model.metrics:
+            if metric.id not in ids_to_keep:
+                db.session.delete(metric)
 
     @classmethod
     def find_dataset_column(cls, dataset_id: int, column_id: int) -> TableColumn | None:
@@ -610,6 +667,358 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         # Add custom fields
         filterable.update(DATASET_CUSTOM_FIELDS)
         return filterable
+
+    @staticmethod
+    def get_rls_filters_for_datasets(
+        dataset_ids: list[int],
+    ) -> dict[int, list[dict[str, Any]]]:
+        """
+        Return a mapping of dataset_id -> list of RLS filter summaries
+        for the given dataset IDs. Only returns datasets that have at least
+        one RLS filter attached. For virtual datasets, also includes RLS
+        filters from physical tables referenced in the dataset's SQL.
+        """
+
+        if not dataset_ids:
+            return {}
+
+        # Get direct RLS filters for all requested datasets
+        rows = (
+            db.session.query(
+                RLSFilterTables.c.table_id,
+                RowLevelSecurityFilter.id,
+                RowLevelSecurityFilter.name,
+                RowLevelSecurityFilter.filter_type,
+                RowLevelSecurityFilter.group_key,
+            )
+            .join(
+                RowLevelSecurityFilter,
+                RLSFilterTables.c.rls_filter_id == RowLevelSecurityFilter.id,
+            )
+            .filter(RLSFilterTables.c.table_id.in_(dataset_ids))
+            .all()
+        )
+
+        result: dict[int, list[dict[str, Any]]] = {}
+        for table_id, rls_id, name, filter_type, group_key in rows:
+            result.setdefault(table_id, []).append(
+                {
+                    "id": rls_id,
+                    "name": name,
+                    "filter_type": filter_type,
+                    "group_key": group_key,
+                }
+            )
+
+        # For virtual datasets, also check underlying physical tables
+        virtual_datasets = (
+            db.session.query(
+                SqlaTable.id, SqlaTable.sql, SqlaTable.schema, SqlaTable.database_id
+            )
+            .filter(SqlaTable.id.in_(dataset_ids), SqlaTable.sql.isnot(None))  # type: ignore[attr-defined,unused-ignore]
+            .all()
+        )
+
+        if virtual_datasets:
+            inherited = DatasetDAO._get_inherited_rls_for_virtual_datasets(
+                virtual_datasets
+            )
+            for ds_id, filters in inherited.items():
+                existing_ids = {f["id"] for f in result.get(ds_id, [])}
+                for f in filters:
+                    if f["id"] not in existing_ids:
+                        existing_ids.add(f["id"])
+                        result.setdefault(ds_id, []).append(f)
+
+        return result
+
+    @staticmethod
+    def _parse_tables_from_virtual_datasets(
+        virtual_datasets: list[tuple[int, str, str | None, int]],
+        db_engines: dict[int, str] | None = None,
+    ) -> tuple[dict[int, set[Table]], dict[int, int]]:
+        """
+        Parse SQL from virtual datasets and return:
+        - ds_to_tables: mapping of dataset_id -> set of referenced Table objects
+          (with schema/catalog preserved from the SQL, unqualified refs resolved
+          to the virtual dataset's own schema)
+        - ds_db_map: mapping of dataset_id -> database_id
+        """
+        if db_engines is None:
+            db_engines = {}
+        ds_to_tables: dict[int, set[Table]] = {}
+        ds_db_map: dict[int, int] = {}
+        for ds_id, sql, default_schema, database_id in virtual_datasets:
+            ds_db_map[ds_id] = database_id
+            engine = db_engines.get(database_id, "")
+            try:
+                parsed = SQLScript(sql, engine=engine)
+                table_refs: set[Table] = set()
+                for statement in parsed.statements:
+                    for table_ref in statement.tables:
+                        # Qualify unqualified references with the virtual dataset's
+                        # own schema so we match the correct physical dataset.
+                        table_refs.add(table_ref.qualify(schema=default_schema))
+                if table_refs:
+                    ds_to_tables[ds_id] = table_refs
+            except Exception:  # noqa: BLE001
+                logger.warning(
+                    "Failed to parse SQL for virtual dataset %d", ds_id, exc_info=True
+                )
+        return ds_to_tables, ds_db_map
+
+    @staticmethod
+    def _fetch_physical_rls_map(
+        all_tables: set[Table],
+        db_ids: set[int],
+    ) -> tuple[dict[tuple[str, str | None, int], int], dict[int, list[dict[str, Any]]]]:
+        """
+        Look up physical datasets matching the given Table objects and database IDs,
+        then fetch their RLS filters.
+
+        Returns:
+        - physical_map: (table_name, schema, database_id) -> physical dataset id
+        - phys_rls: physical dataset id -> list of RLS filter summaries
+        """
+
+        all_table_names = {t.table for t in all_tables}
+        physical_tables = (
+            db.session.query(
+                SqlaTable.id,
+                SqlaTable.table_name,
+                SqlaTable.schema,
+                SqlaTable.database_id,
+            )
+            .filter(
+                SqlaTable.table_name.in_(all_table_names),
+                SqlaTable.database_id.in_(db_ids),
+                SqlaTable.sql.is_(None),
+            )
+            .all()
+        )
+
+        physical_map: dict[tuple[str, str | None, int], int] = {}
+        physical_ids: set[int] = set()
+        for phys_id, table_name, schema, db_id in physical_tables:
+            physical_map[(table_name, schema, db_id)] = phys_id
+            physical_ids.add(phys_id)
+
+        if not physical_ids:
+            return physical_map, {}
+
+        rls_rows = (
+            db.session.query(
+                RLSFilterTables.c.table_id,
+                RowLevelSecurityFilter.id,
+                RowLevelSecurityFilter.name,
+                RowLevelSecurityFilter.filter_type,
+                RowLevelSecurityFilter.group_key,
+            )
+            .join(
+                RowLevelSecurityFilter,
+                RLSFilterTables.c.rls_filter_id == RowLevelSecurityFilter.id,
+            )
+            .filter(RLSFilterTables.c.table_id.in_(physical_ids))
+            .all()
+        )
+
+        phys_rls: dict[int, list[dict[str, Any]]] = {}
+        for table_id, rls_id, name, filter_type, group_key in rls_rows:
+            phys_rls.setdefault(table_id, []).append(
+                {
+                    "id": rls_id,
+                    "name": name,
+                    "filter_type": filter_type,
+                    "group_key": group_key,
+                }
+            )
+        return physical_map, phys_rls
+
+    @staticmethod
+    def _fetch_db_engines(
+        db_ids: set[int],
+    ) -> dict[int, str]:
+        """Return a mapping of database_id -> backend engine string."""
+        if not db_ids:
+            return {}
+        db_objs = (
+            db.session.query(Database)
+            .filter(Database.id.in_(db_ids))  # type: ignore[attr-defined,unused-ignore]
+            .all()
+        )
+        engines: dict[int, str] = {}
+        for database_obj in db_objs:
+            try:
+                engines[database_obj.id] = database_obj.backend
+            except Exception:  # noqa: BLE001
+                engines[database_obj.id] = ""
+        return engines
+
+    @staticmethod
+    def _get_inherited_rls_for_virtual_datasets(
+        virtual_datasets: list[tuple[int, str, str | None, int]],
+    ) -> dict[int, list[dict[str, Any]]]:
+        """
+        For virtual datasets, parse their SQL to find referenced physical
+        tables and return any RLS filters attached to those tables.
+
+        Each tuple is (dataset_id, sql, schema, database_id).
+        """
+        unique_db_ids = {row[3] for row in virtual_datasets}
+        db_engines = DatasetDAO._fetch_db_engines(unique_db_ids)
+
+        ds_to_tables, ds_db_map = DatasetDAO._parse_tables_from_virtual_datasets(
+            virtual_datasets, db_engines=db_engines
+        )
+
+        if not ds_to_tables:
+            return {}
+
+        all_table_refs: set[Table] = set()
+        db_ids: set[int] = set()
+        for ds_id, table_refs in ds_to_tables.items():
+            all_table_refs.update(table_refs)
+            db_ids.add(ds_db_map[ds_id])
+
+        physical_map, phys_rls = DatasetDAO._fetch_physical_rls_map(
+            all_table_refs, db_ids
+        )
+
+        result: dict[int, list[dict[str, Any]]] = {}
+        for ds_id, table_refs in ds_to_tables.items():
+            database_id = ds_db_map[ds_id]
+            seen_filter_ids: set[int] = set()
+            for table_ref in table_refs:
+                phys_id = physical_map.get(
+                    (table_ref.table, table_ref.schema, database_id)
+                )
+                if phys_id and phys_id in phys_rls:
+                    for f in phys_rls[phys_id]:
+                        if f["id"] not in seen_filter_ids:
+                            seen_filter_ids.add(f["id"])
+                            result.setdefault(ds_id, []).append(f)
+
+        return result
+
+    @staticmethod
+    def get_rls_filters_for_dataset(dataset_id: int) -> list[dict[str, Any]]:
+        """
+        Return full RLS filter details (including roles) for a single dataset.
+        For virtual datasets, also includes RLS filters from physical tables
+        referenced in the dataset's SQL.
+        """
+
+        # Direct RLS filters on this dataset — eager-load subjects to avoid N+1
+        filters = (
+            db.session.query(RowLevelSecurityFilter)
+            .options(joinedload(RowLevelSecurityFilter.subjects))
+            .join(
+                RLSFilterTables,
+                RLSFilterTables.c.rls_filter_id == RowLevelSecurityFilter.id,
+            )
+            .filter(RLSFilterTables.c.table_id == dataset_id)
+            .all()
+        )
+
+        result = [
+            {
+                "id": f.id,
+                "name": f.name,
+                "filter_type": f.filter_type,
+                "group_key": f.group_key,
+                "clause": f.clause,
+                "roles": [{"id": s.id, "name": s.label} for s in f.subjects],
+            }
+            for f in filters
+        ]
+
+        # For virtual datasets, also check underlying physical tables
+        dataset = (
+            db.session.query(SqlaTable.sql, SqlaTable.schema, SqlaTable.database_id)
+            .filter(SqlaTable.id == dataset_id)
+            .one_or_none()
+        )
+        if dataset and dataset.sql:
+            try:
+                engine = ""
+                database_obj = (
+                    db.session.query(Database)
+                    .filter(Database.id == dataset.database_id)
+                    .one_or_none()
+                )
+                if database_obj:
+                    engine = database_obj.backend
+                parsed = SQLScript(dataset.sql, engine=engine)
+                table_refs: set[Table] = set()
+                for statement in parsed.statements:
+                    for table_ref in statement.tables:
+                        table_refs.add(table_ref.qualify(schema=dataset.schema))
+
+                if table_refs:
+                    # Build filter conditions that respect schema
+                    all_table_names = {t.table for t in table_refs}
+                    physical_tables = (
+                        db.session.query(
+                            SqlaTable.id,
+                            SqlaTable.table_name,
+                            SqlaTable.schema,
+                        )
+                        .filter(
+                            SqlaTable.table_name.in_(all_table_names),
+                            SqlaTable.database_id == dataset.database_id,
+                            SqlaTable.sql.is_(None),
+                        )
+                        .all()
+                    )
+                    # Only select physical tables whose schema matches
+                    physical_ids = [
+                        row.id
+                        for row in physical_tables
+                        if any(
+                            t.table == row.table_name and t.schema == row.schema
+                            for t in table_refs
+                        )
+                    ]
+
+                    if physical_ids:
+                        inherited_filters = (
+                            db.session.query(RowLevelSecurityFilter)
+                            .options(joinedload(RowLevelSecurityFilter.subjects))
+                            .join(
+                                RLSFilterTables,
+                                RLSFilterTables.c.rls_filter_id
+                                == RowLevelSecurityFilter.id,
+                            )
+                            .filter(RLSFilterTables.c.table_id.in_(physical_ids))
+                            .all()
+                        )
+
+                        existing_ids = {f["id"] for f in result}
+                        for f in inherited_filters:
+                            if f.id not in existing_ids:
+                                existing_ids.add(f.id)
+                                result.append(
+                                    {
+                                        "id": f.id,
+                                        "name": f.name,
+                                        "filter_type": f.filter_type,
+                                        "group_key": f.group_key,
+                                        "clause": f.clause,
+                                        "roles": [
+                                            {"id": s.id, "name": s.label}
+                                            for s in f.subjects
+                                        ],
+                                        "inherited": True,
+                                    }
+                                )
+            except Exception:  # noqa: BLE001
+                logger.warning(
+                    "Failed to resolve inherited RLS for virtual dataset %d",
+                    dataset_id,
+                    exc_info=True,
+                )
+
+        return result
 
 
 class DatasetColumnDAO(BaseDAO[TableColumn]):

@@ -47,7 +47,6 @@ import {
 } from '../../utils';
 
 import { commonLayerProps, getColorForBreakpoints } from '../common';
-import sandboxedEval from '../../utils/sandbox';
 import getPointsFromPolygon from '../../utils/getPointsFromPolygon';
 import fitViewport, { Viewport } from '../../utils/fitViewport';
 import {
@@ -121,13 +120,7 @@ export const getLayer: GetLayerType<PolygonLayer> = function ({
   const sc: { r: number; g: number; b: number; a: number } =
     fd.stroke_color_picker;
   const defaultBreakpointColor = fd.default_breakpoint_color;
-  let data = [...payload.data.features];
-
-  if (fd.js_data_mutator) {
-    // Applying user defined data mutator if defined
-    const jsFnMutator = sandboxedEval(fd.js_data_mutator);
-    data = jsFnMutator(data);
-  }
+  const data = [...payload.data.features];
 
   const colorSchemeType = fd.color_scheme_type;
 

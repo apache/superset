@@ -987,6 +987,57 @@ def _orderby_modified(
     return False
 
 
+#: Chart params keys that hold the metrics a chart renders. Different chart
+#: types store their metrics under control-specific keys (``metric`` for
+#: big number, ``x``/``y``/``size`` for bubble, and so on); a guest requesting
+#: the exact stored value reads nothing beyond what the chart already shows.
+_STORED_METRIC_PARAMS = (
+    "metrics",
+    "metric",
+    "percent_metrics",
+    "secondary_metric",
+    "series_limit_metric",
+    "timeseries_limit_metric",
+    "x",
+    "y",
+    "size",
+)
+
+#: Chart params keys that hold the columns/group-bys a chart renders, across
+#: the control names chart types use for them (``entity``/``series`` for
+#: bubble and world map, ``granularity_sqla`` for the temporal axis, etc.).
+_STORED_COLUMN_PARAMS = (
+    "columns",
+    "groupby",
+    "all_columns",
+    "entity",
+    "series",
+    "series_columns",
+    "x_axis",
+    "granularity_sqla",
+)
+
+
+def _stored_param_values(params: dict[str, Any], keys: tuple[str, ...]) -> set[str]:
+    """
+    Frozen values stored under any of the given chart params keys.
+
+    Scalar-valued controls (``metric``, ``entity``, ...) contribute their single
+    value; list-valued controls contribute each element. Matching stays exact
+    (via ``freeze_value``) — no label or expression equivalence is applied.
+    """
+    values: set[str] = set()
+    for key in keys:
+        value = params.get(key)
+        if value is None or value == "":
+            continue
+        items = value if isinstance(value, (list, tuple)) else [value]
+        values.update(
+            freeze_value(item) for item in items if item is not None and item != ""
+        )
+    return values
+
+
 def _columns_metrics_modified(
     query_context: "QueryContext",
     form_data: dict[str, Any],
@@ -998,19 +1049,20 @@ def _columns_metrics_modified(
     chart exposes. Each requested set must be a subset of the values stored on
     the chart (params and, when present, the stored query context).
     """
-    for key, equivalent in [
-        ("metrics", ["metrics"]),
-        ("columns", ["columns", "groupby"]),
-        ("groupby", ["columns", "groupby"]),
+    for key, stored_params_keys, equivalent in [
+        ("metrics", _STORED_METRIC_PARAMS, ["metrics"]),
+        ("columns", _STORED_COLUMN_PARAMS, ["columns", "groupby"]),
+        ("groupby", _STORED_COLUMN_PARAMS, ["columns", "groupby"]),
     ]:
         requested_values = {freeze_value(value) for value in form_data.get(key) or []}
-        stored_values = {
-            freeze_value(value) for value in stored_chart.params_dict.get(key) or []
-        }
-        # ``form_data`` values are checked against ``params_dict`` alone;
-        # ``query_context`` values are checked below against the fuller set that
-        # also includes the stored query context. This asymmetry is intentional:
-        # each requested source is compared to its corresponding stored source.
+        # Stored params are read across every control name that can hold a
+        # metric or column for some chart type: charts whose query is built
+        # from e.g. ``metric``/``entity``/``groupby`` never store a literal
+        # ``metrics``/``columns`` key, yet their generated payload uses those,
+        # and a guest replaying the chart's own values is not tampering.
+        stored_values = _stored_param_values(
+            stored_chart.params_dict, stored_params_keys
+        )
         if not requested_values.issubset(stored_values):
             return True
 
@@ -1149,6 +1201,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "PermissionViewMenu",
         "ViewMenu",
         "User",
+        "Subject",
         # FAB registers ApiKeyApi when FAB_API_KEY_ENABLED=True
         "ApiKey",
     } | USER_MODEL_VIEWS
@@ -3702,7 +3755,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 client_id=shortid()[:10],
                 user_id=get_user_id(),
             )
-            self.session.expunge(query)
+            # This ephemeral Query must never be persisted; with
+            # cascade_backrefs=False it is not added to the session in the
+            # first place, so only expunge if something else added it.
+            if query in self.session:
+                self.session.expunge(query)
 
         if database and table or query:
             if query:
@@ -4409,6 +4466,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     embedded = EmbeddedDashboardDAO.find_by_id(str(resource["id"]))
                     if not embedded:
                         raise EmbeddedDashboardNotFoundError()
+                elif not dashboard.embedded:
+                    # A raw dashboard id must still reference an embedded dashboard;
+                    # otherwise a guest token could be scoped to a non-embedded one.
+                    raise EmbeddedDashboardNotFoundError()
 
     def create_guest_access_token(
         self,

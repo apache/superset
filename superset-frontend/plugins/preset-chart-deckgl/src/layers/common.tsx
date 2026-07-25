@@ -40,7 +40,6 @@ import {
 import { Layer, PickingInfo, Color } from '@deck.gl/core';
 import { ScaleLinear } from 'd3-scale';
 import { ColorBreakpointType } from '../types';
-import sandboxedEval from '../utils/sandbox';
 import { TooltipProps } from '../components/Tooltip';
 import { getCrossFilterDataMask } from '../utils/crossFiltersDataMask';
 import { COLOR_SCHEME_TYPES, ColorSchemeType } from '../utilities/utils';
@@ -68,11 +67,7 @@ export function commonLayerProps({
 }) {
   const fd = formData;
   let onHover;
-  let tooltipContentGenerator = setTooltipContent;
-  if (fd.js_tooltip) {
-    tooltipContentGenerator = sandboxedEval(fd.js_tooltip);
-  }
-  if (tooltipContentGenerator) {
+  if (setTooltipContent) {
     let currentTooltipContent: ReactNode = null;
 
     const isCustomTooltip = (content: ReactNode): boolean =>
@@ -81,7 +76,7 @@ export function commonLayerProps({
 
     onHover = (o: JsonObject) => {
       if (o.picked) {
-        currentTooltipContent = tooltipContentGenerator(o);
+        currentTooltipContent = setTooltipContent(o);
       }
 
       if (
@@ -102,13 +97,7 @@ export function commonLayerProps({
   }
 
   let onClick;
-  if (fd.js_onclick_href) {
-    onClick = (o: any) => {
-      const href = sandboxedEval(fd.js_onclick_href)(o);
-      window.open(href);
-      return true;
-    };
-  } else if (fd.table_filter && onSelect !== undefined) {
+  if (fd.table_filter && onSelect !== undefined) {
     onClick = (o: any) => {
       onSelect(o.object[fd.line_column]);
       return true;

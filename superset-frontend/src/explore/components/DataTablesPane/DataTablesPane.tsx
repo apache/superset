@@ -18,7 +18,11 @@
  */
 import { useCallback, useEffect, useMemo, useState, MouseEvent } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import {
+  isFeatureEnabled,
+  FeatureFlag,
+  handleKeyboardActivation,
+} from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import Tabs from '@superset-ui/core/components/Tabs';
@@ -65,15 +69,15 @@ const SouthPane = styled.div`
       height: 100%;
     }
 
-    .ant-tabs-content-holder {
+    .ant-tabs-body-holder {
+      height: 100%;
+    }
+
+    .ant-tabs-body {
       height: 100%;
     }
 
     .ant-tabs-content {
-      height: 100%;
-    }
-
-    .ant-tabs-tabpane {
       height: 100%;
       position: relative;
 
@@ -187,6 +191,9 @@ export const DataTablesPane = ({
             role="button"
             tabIndex={0}
             onClick={() => handleCollapseChange(false)}
+            onKeyDown={handleKeyboardActivation(() =>
+              handleCollapseChange(false),
+            )}
           >
             {caretIcon}
           </span>
@@ -195,6 +202,9 @@ export const DataTablesPane = ({
             role="button"
             tabIndex={0}
             onClick={() => handleCollapseChange(true)}
+            onKeyDown={handleKeyboardActivation(() =>
+              handleCollapseChange(true),
+            )}
           >
             {caretIcon}
           </span>

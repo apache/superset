@@ -228,6 +228,21 @@ const SaveModal = ({
   const history = useHistory();
   const theme = useTheme();
 
+  const isCurrentUserOwner = useCallback((): boolean => {
+    const userId = user?.userId;
+    if (userId === undefined) {
+      return false;
+    }
+    // The Slice type declares `owners` as `number[]`, but the explore
+    // bootstrap payload can carry owners as API `Owner` objects (`{ id }`)
+    // instead, so normalize to the numeric id before comparing.
+    return Boolean(
+      slice?.owners?.some((owner: number | { id?: number }) =>
+        typeof owner === 'number' ? owner === userId : owner?.id === userId,
+      ),
+    );
+  }, [slice, user]);
+
   const canOverwriteSlice = useCallback((): boolean => {
     const userSubjects = getBootstrapData()?.common?.user_subjects ?? [];
     const canEditSlice = Boolean(
@@ -238,10 +253,13 @@ const SaveModal = ({
 
     return (
       !!slice &&
-      (can_overwrite || isUserAdmin(user) || canEditSlice) &&
+      (can_overwrite ||
+        isUserAdmin(user) ||
+        canEditSlice ||
+        isCurrentUserOwner()) &&
       !slice?.is_managed_externally
     );
-  }, [can_overwrite, slice, user]);
+  }, [can_overwrite, slice, user, isCurrentUserOwner]);
 
   const [newSliceName, setNewSliceName] = useState<string | undefined>(
     sliceName,

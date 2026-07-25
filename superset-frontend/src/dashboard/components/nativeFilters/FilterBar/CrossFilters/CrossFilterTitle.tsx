@@ -82,6 +82,7 @@ const CrossFilterChartTitle = (props: {
           data-test="cross-filters-highlight-emitter"
           role="button"
           tabIndex={0}
+          aria-label={t('Locate the chart')}
           onClick={onHighlightFilterSource}
         />
       </Tooltip>

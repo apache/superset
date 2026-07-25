@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { handleKeyboardActivation } from '@superset-ui/core';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Button } from '@superset-ui/core/components';
 import { Tag } from 'src/components';
@@ -47,6 +48,7 @@ export const LayerTreeItem: FC<LayerTreeItemProps> = ({
       <span
         className="layer-tree-item-type"
         onClick={onEditTag}
+        onKeyDown={handleKeyboardActivation(onEditTag)}
         role="button"
         tabIndex={0}
       >
@@ -55,6 +57,7 @@ export const LayerTreeItem: FC<LayerTreeItemProps> = ({
       <span
         className="layer-tree-item-title"
         onClick={onEditTag}
+        onKeyDown={handleKeyboardActivation(onEditTag)}
         role="button"
         tabIndex={0}
       >

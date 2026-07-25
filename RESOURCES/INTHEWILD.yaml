@@ -168,6 +168,11 @@ categories:
       url: https://www.now.vn/
       contributors: ["@davidkohcw"]
 
+    - name: Pattern
+      url: https://www.pattern.com
+      contributors: ["@alephys26", "@hladush", "@sanketjadhavSF"]
+      logo: pattern_logo.png
+
     - name: Qunar
       url: https://www.qunar.com/
       contributors: ["@flametest"]
@@ -641,7 +646,7 @@ categories:
 
     - name: Région Hauts-de-France (France)
       url: https://www.geo2france.fr/
-      logo: geo2france.svg
+      logo: geo2france.png
 
     - name: Rennes Métropole (France)
       url: https://metropole.rennes.fr/

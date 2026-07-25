@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient, handleKeyboardActivation } from '@superset-ui/core';
 import { useCallback, useMemo, useState } from 'react';
 import { ConfirmStatusChange, Tooltip } from '@superset-ui/core/components';
 import {
@@ -209,6 +209,7 @@ function RowLevelSecurityList(props: RLSProps) {
                     tabIndex={0}
                     className="action-button"
                     onClick={handleEdit}
+                    onKeyDown={handleKeyboardActivation(handleEdit)}
                   >
                     <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
                   </span>
@@ -236,6 +237,7 @@ function RowLevelSecurityList(props: RLSProps) {
                         tabIndex={0}
                         className="action-button"
                         onClick={confirmDelete}
+                        onKeyDown={handleKeyboardActivation(confirmDelete)}
                       >
                         <Icons.DeleteOutlined
                           data-test="rls-list-trash-icon"

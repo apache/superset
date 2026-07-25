@@ -27,7 +27,8 @@ export const Tooltip = forwardRef<TooltipRef, TooltipProps>(
     <AntdTooltip
       ref={ref}
       styles={{
-        body: { overflow: 'hidden', textOverflow: 'ellipsis' },
+        // antd v6 renamed the inner content slot `body` -> `container`
+        container: { overflow: 'hidden', textOverflow: 'ellipsis' },
         root: overlayStyle ?? {},
       }}
       {...props}
