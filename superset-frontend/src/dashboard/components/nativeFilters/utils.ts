@@ -22,6 +22,7 @@ import {
   Behavior,
   ChartCustomization,
   DataMaskStateWithId,
+  DatasourceType,
   EXTRA_FORM_DATA_APPEND_KEYS,
   EXTRA_FORM_DATA_OVERRIDE_KEYS,
   ExtraFormData,
@@ -46,6 +47,7 @@ const getDefaultRowLimit = (): number => {
 
 export const getFormData = ({
   datasetId,
+  datasourceType,
   dependencies = {},
   groupby,
   defaultDataMask,
@@ -62,6 +64,7 @@ export const getFormData = ({
 }: (Partial<Filter> | Partial<ChartCustomization>) & {
   dashboardId: number;
   datasetId?: number;
+  datasourceType?: DatasourceType;
   dependencies?: object;
   groupby?: string;
   adhoc_filters?: AdhocFilter[];
@@ -76,7 +79,8 @@ export const getFormData = ({
     sortMetric?: string;
   } = {};
   if (datasetId) {
-    otherProps.datasource = `${datasetId}__table`;
+    const dsType = datasourceType || DatasourceType.Table;
+    otherProps.datasource = `${datasetId}__${dsType}`;
   }
   if (groupby) {
     otherProps.groupby = [groupby];

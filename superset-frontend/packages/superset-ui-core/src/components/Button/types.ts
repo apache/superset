@@ -31,14 +31,20 @@ export type { AntdButtonProps, ButtonType, ButtonVariantType, ButtonColorType };
 export type OnClickHandler = MouseEventHandler<HTMLElement>;
 
 export type ButtonStyle =
-  | 'primary'
-  | 'secondary'
-  | 'tertiary'
-  | 'danger'
-  | 'link'
-  | 'dashed';
+  'primary' | 'secondary' | 'tertiary' | 'danger' | 'link' | 'dashed';
 
 export type ButtonSize = 'default' | 'small' | 'xsmall';
+
+export type ButtonStyleConfig = {
+  controlHeight?: number;
+  paddingInline?: number;
+  fontSize?: number;
+  fontWeight?: number;
+  ctaMinWidth?: number;
+  ctaMinHeight?: number;
+  iconGap?: number;
+  borderRadius?: number;
+};
 
 export type ButtonProps = Omit<AntdButtonProps, 'css'> & {
   placement?: TooltipPlacement;
@@ -49,4 +55,5 @@ export type ButtonProps = Omit<AntdButtonProps, 'css'> & {
   cta?: boolean;
   showMarginRight?: boolean;
   icon?: ReactNode;
+  styleConfig?: ButtonStyleConfig;
 };

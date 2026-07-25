@@ -294,6 +294,46 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [
+          {
+            name: 'startAngle',
+            config: {
+              type: 'NumberControl',
+              min: 0,
+              max: 360,
+              step: 10,
+              label: t('Start angle'),
+              description: t(
+                'Angle at which the first slice begins, in degrees. ' +
+                  '90° starts at the top, 0°/360° at the right, ' +
+                  '270° at the bottom, and 180° at the left.',
+              ),
+              renderTrigger: true,
+              default: DEFAULT_FORM_DATA.startAngle,
+            },
+          },
+        ],
+        [
+          {
+            name: 'sweptAngle',
+            config: {
+              type: 'NumberControl',
+              min: 10,
+              max: 360,
+              step: 10,
+              label: t('Sweep angle'),
+              description: t(
+                'Total angle covered by the chart, in degrees. ' +
+                  '360° draws a full circle and 180° draws a half donut. ' +
+                  'When the sweep is 180° or less and the start angle is a ' +
+                  'multiple of 90°, the chart is automatically re-centered ' +
+                  'to make use of the empty space.',
+              ),
+              renderTrigger: true,
+              default: DEFAULT_FORM_DATA.sweptAngle,
+            },
+          },
+        ],
       ],
     },
   ],

@@ -21,11 +21,7 @@ import { LegendOrientation, LegendType } from '../types';
 import { getLegendLayoutResult, LegendLayoutResult } from './series';
 
 type LegendDataItem =
-  | string
-  | number
-  | null
-  | undefined
-  | { name?: string | number | null };
+  string | number | null | undefined | { name?: string | number | null };
 
 export type ResolvedLegendLayout = {
   effectiveLegendMargin?: string | number | null;

@@ -27,7 +27,7 @@ import {
 } from 'react';
 
 import { useDispatch, useSelector } from 'react-redux';
-import { uniqWith } from 'lodash';
+import { uniqWith } from 'lodash-es';
 import cx from 'classnames';
 import { t } from '@apache-superset/core/translation';
 import {

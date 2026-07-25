@@ -105,7 +105,7 @@ class ExportTagsCommand:
                 filtered_tags = [
                     {"tag_name": tag.name, "description": tag.description}
                     for tag in tags
-                    if "type:" not in tag.name and "owner:" not in tag.name
+                    if "type:" not in tag.name and "editor:" not in tag.name
                 ]
                 chart_tags.extend(filtered_tags)
 

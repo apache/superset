@@ -17,7 +17,14 @@
  * under the License.
  */
 
-import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import {
+  SyntheticEvent,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { t } from '@apache-superset/core/translation';
 import {
   BinaryQueryObjectFilterClause,
@@ -28,6 +35,7 @@ import {
   isDefined,
   ContextMenuFilters,
   AdhocFilter,
+  handleKeyboardActivation,
 } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
 import { css, useTheme } from '@apache-superset/core/theme';
@@ -554,6 +562,12 @@ export default function DrillByModal({
           items={breadcrumbItems}
           itemRender={(route, _, routes, paths) => {
             const isLastElement = routes.indexOf(route) === routes.length - 1;
+            // `route.onClick` is typed by antd as a `MouseEventHandler`, but
+            // the underlying handler ignores its argument, so it's safe to
+            // broaden it to an optional `SyntheticEvent` callback here to
+            // reuse it as the keyboard-activation handler below.
+            const onRouteClick = route.onClick as
+              ((event?: SyntheticEvent) => void) | undefined;
             return isLastElement ? (
               <span data-test="drill-by-breadcrumb-item">
                 {route.title}
@@ -564,7 +578,8 @@ export default function DrillByModal({
                 data-test="drill-by-breadcrumb-item"
                 role="button"
                 tabIndex={0}
-                onClick={route.onClick}
+                onClick={onRouteClick}
+                onKeyDown={handleKeyboardActivation(() => onRouteClick?.())}
                 css={css`
                   cursor: pointer;
                 `}

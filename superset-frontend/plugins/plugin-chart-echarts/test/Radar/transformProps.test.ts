@@ -24,6 +24,7 @@ import {
   EchartsRadarChartProps,
   EchartsRadarFormData,
 } from '../../src/Radar/types';
+import { LegendOrientation } from '../../src/types';
 
 interface RadarIndicator {
   name: string;
@@ -200,5 +201,60 @@ describe('legend sorting', () => {
       'Mark sales',
       'Arnold sales',
     ]);
+  });
+});
+
+describe('radar center positioning', () => {
+  const getCenter = (overrides: Partial<EchartsRadarFormData> = {}) => {
+    const props = new ChartProps({
+      formData: {
+        ...formData,
+        showLegend: true,
+        legendMargin: 100,
+        ...overrides,
+      },
+      width: 800,
+      height: 600,
+      queriesData,
+      theme: supersetTheme,
+    });
+    const result = transformProps(props as EchartsRadarChartProps);
+    const { center } = result.echartOptions.radar as {
+      center: [string, string];
+    };
+    return {
+      x: parseFloat(center[0]),
+      y: parseFloat(center[1]),
+    };
+  };
+
+  test('keeps the center when the legend is hidden', () => {
+    const { x, y } = getCenter({ showLegend: false });
+    expect(x).toBe(50);
+    expect(y).toBe(50);
+  });
+
+  test('shifts the center right (away from the legend) when legend is on the left', () => {
+    const { x, y } = getCenter({ legendOrientation: LegendOrientation.Left });
+    expect(x).toBeGreaterThan(50);
+    expect(y).toBe(50);
+  });
+
+  test('shifts the center left (away from the legend) when legend is on the right', () => {
+    const { x, y } = getCenter({ legendOrientation: LegendOrientation.Right });
+    expect(x).toBeLessThan(50);
+    expect(y).toBe(50);
+  });
+
+  test('shifts the center down (away from the legend) when legend is on the top', () => {
+    const { x, y } = getCenter({ legendOrientation: LegendOrientation.Top });
+    expect(x).toBe(50);
+    expect(y).toBeGreaterThan(50);
+  });
+
+  test('shifts the center up (away from the legend) when legend is on the bottom', () => {
+    const { x, y } = getCenter({ legendOrientation: LegendOrientation.Bottom });
+    expect(x).toBe(50);
+    expect(y).toBeLessThan(50);
   });
 });

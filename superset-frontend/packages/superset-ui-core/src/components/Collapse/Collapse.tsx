@@ -52,10 +52,10 @@ const StyledCollapse = styled((props: CollapseProps) => (
       `
         border-bottom: 1px solid ${theme.colorBorderSecondary};
       `}
-    .ant-collapse-content {
+    .ant-collapse-panel {
       color: ${({ theme }) => theme.colorText};
 
-      .ant-collapse-content-box {
+      .ant-collapse-body {
         .loading.inline {
           margin: ${({ theme }) => theme.sizeUnit * 12}px auto;
           display: block;

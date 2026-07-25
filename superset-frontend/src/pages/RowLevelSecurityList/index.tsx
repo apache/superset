@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient, handleKeyboardActivation } from '@superset-ui/core';
 import { useCallback, useMemo, useState } from 'react';
 import { ConfirmStatusChange, Tooltip } from '@superset-ui/core/components';
 import {
@@ -30,13 +30,21 @@ import {
 } from 'src/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { SubjectPile } from 'src/features/subjects/SubjectPile';
+import { SUBJECT_OPTION_FILTER_PROPS } from 'src/features/subjects/SubjectSelectLabel';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import rison from 'rison';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import RowLevelSecurityModal from 'src/features/rls/RowLevelSecurityModal';
 import { RLSObject } from 'src/features/rls/types';
-import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
+import type Subject from 'src/types/Subject';
+import {
+  createErrorHandler,
+  createFetchRelated,
+  createFetchSubjects,
+} from 'src/views/CRUD/utils';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
+import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 
 interface RLSProps {
   addDangerToast: (msg: string) => void;
@@ -139,6 +147,20 @@ function RowLevelSecurityList(props: RLSProps) {
         id: 'filter_type',
       },
       {
+        Cell: ({
+          row: {
+            original: { subjects: subjectsList },
+          },
+        }: {
+          row: { original: { subjects?: Subject[] } };
+        }) => <SubjectPile subjects={subjectsList || []} />,
+        Header: t('Subjects'),
+        accessor: 'subjects',
+        size: 'xl',
+        id: 'subjects',
+        disableSortBy: true,
+      },
+      {
         accessor: 'group_key',
         Header: t('Group Key'),
         size: 'lg',
@@ -187,6 +209,7 @@ function RowLevelSecurityList(props: RLSProps) {
                     tabIndex={0}
                     className="action-button"
                     onClick={handleEdit}
+                    onKeyDown={handleKeyboardActivation(handleEdit)}
                   >
                     <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
                   </span>
@@ -214,6 +237,7 @@ function RowLevelSecurityList(props: RLSProps) {
                         tabIndex={0}
                         className="action-button"
                         onClick={confirmDelete}
+                        onKeyDown={handleKeyboardActivation(confirmDelete)}
                       >
                         <Icons.DeleteOutlined
                           data-test="rls-list-trash-icon"
@@ -282,6 +306,27 @@ function RowLevelSecurityList(props: RLSProps) {
           { label: t('Regular'), value: 'Regular' },
           { label: t('Base'), value: 'Base' },
         ],
+      },
+      {
+        Header: t('Subject'),
+        key: 'subject',
+        id: 'subjects',
+        input: 'select',
+        operator: FilterOperator.RelationManyMany,
+        unfilteredLabel: t('All'),
+        fetchSelects: createFetchSubjects(
+          'rowlevelsecurity',
+          createErrorHandler(errMsg =>
+            t(
+              'An error occurred while fetching row level security subject values: %s',
+              errMsg,
+            ),
+          ),
+          user,
+        ),
+        optionFilterProps: SUBJECT_OPTION_FILTER_PROPS,
+        paginate: true,
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       {
         Header: t('Group Key'),

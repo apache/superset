@@ -159,10 +159,10 @@ export const fallbackExploreInitialData: ExplorePageInitialData = {
     column_formats: {},
     verbose_map: {},
     main_dttm_col: '',
-    owners: [],
     datasource_name: '',
     name: '',
     description: null,
+    editors: [],
   },
   slice: null,
 };

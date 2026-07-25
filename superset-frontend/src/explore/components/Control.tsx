@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ReactNode, useCallback, useState, useEffect } from 'react';
-import { isEqual } from 'lodash';
+import { isEqual } from 'lodash-es';
 import {
   ControlType,
   ControlComponentProps as BaseControlComponentProps,

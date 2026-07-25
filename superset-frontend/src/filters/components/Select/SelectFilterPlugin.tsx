@@ -18,7 +18,7 @@
  */
 /* eslint-disable no-param-reassign */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { t } from '@apache-superset/core/translation';
+import { t, tn } from '@apache-superset/core/translation';
 import {
   AppSection,
   DataMask,
@@ -28,10 +28,9 @@ import {
   JsonObject,
   finestTemporalGrainFormatter,
 } from '@superset-ui/core';
-import { tn } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
-import { debounce, isUndefined } from 'lodash';
+import { debounce, isUndefined } from 'lodash-es';
 import { useImmerReducer } from 'use-immer';
 import {
   FormItem,
@@ -44,6 +43,7 @@ import {
 import {
   hasOption,
   propertyComparator,
+  stripSurroundingQuotes,
 } from '@superset-ui/core/components/Select/utils';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
@@ -315,23 +315,36 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
   const uniqueOptions = useMemo(() => {
     const allOptions = new Set(data.map(el => el[col]));
-    return [...allOptions].map((value: string) => ({
+    const baseOptions = [...allOptions].map((value: string) => ({
       label: labelFormatter(value, datatype),
       value,
       isNewOption: false,
     }));
-  }, [data, datatype, col, labelFormatter]);
+    if (creatable !== false && filterState.value) {
+      ensureIsArray(filterState.value)
+        .filter(v => v != null && !hasOption(v, baseOptions, true))
+        .forEach(v => {
+          baseOptions.push({ label: String(v), value: v, isNewOption: true });
+        });
+    }
+    return baseOptions;
+  }, [data, datatype, col, labelFormatter, creatable, filterState.value]);
 
   const options = useMemo(() => {
-    if (search && !multiSelect && !hasOption(search, uniqueOptions, true)) {
-      uniqueOptions.unshift({
-        label: search,
-        value: search,
-        isNewOption: true,
-      });
+    const unquotedSearch = stripSurroundingQuotes(search);
+    if (
+      unquotedSearch &&
+      !searchAllOptions &&
+      creatable !== false &&
+      !hasOption(unquotedSearch, uniqueOptions, true)
+    ) {
+      return [
+        { label: unquotedSearch, value: unquotedSearch, isNewOption: true },
+        ...uniqueOptions,
+      ];
     }
     return uniqueOptions;
-  }, [multiSelect, search, uniqueOptions]);
+  }, [search, uniqueOptions, creatable, searchAllOptions]);
 
   const sortComparator = useCallback(
     (a: LabeledValue, b: LabeledValue) => {
@@ -539,6 +552,19 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     [debouncedLikeChange],
   );
 
+  const getSelectPopupContainer = useCallback(
+    (trigger: HTMLElement) => {
+      if (showOverflow) {
+        return (parentRef?.current as HTMLElement) || document.body;
+      }
+      if (appSection === AppSection.FilterConfigModal) {
+        return (trigger?.parentNode as HTMLElement) || document.body;
+      }
+      return document.body;
+    },
+    [appSection, parentRef, showOverflow],
+  );
+
   const likeInputPlaceholder = useMemo(() => {
     switch (operatorType) {
       case SelectFilterOperatorType.Contains:
@@ -571,6 +597,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
                 { value: 'false', label: t('is') },
               ]}
               onChange={handleExclusionToggle}
+              getPopupContainer={getSelectPopupContainer}
             />
           )}
           {isLikeOperator ? (
@@ -592,15 +619,11 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
               allowClear
               autoClearSearchValue
               allowNewOptions={!searchAllOptions && creatable !== false}
+              allowNewOptionsOnPaste={multiSelect && searchAllOptions}
               allowSelectAll={!searchAllOptions}
               value={multiSelect ? filterState.value || [] : filterState.value}
               disabled={isDisabled}
-              getPopupContainer={
-                showOverflow
-                  ? () => (parentRef?.current as HTMLElement) || document.body
-                  : (trigger: HTMLElement) =>
-                      (trigger?.parentNode as HTMLElement) || document.body
-              }
+              getPopupContainer={getSelectPopupContainer}
               showSearch={showSearch}
               mode={multiSelect ? 'multiple' : 'single'}
               placeholder={placeholderText}

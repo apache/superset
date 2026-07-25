@@ -125,6 +125,14 @@ describe('DatasourceModal', () => {
     await waitFor(() => {
       expect(onDatasourceSave).toHaveBeenCalled();
     });
+    const putCall = fetchMock.callHistory
+      .calls()
+      .find(
+        call =>
+          call.url.includes('/api/v1/dataset/7') &&
+          call.options?.method === 'put',
+      );
+    expect(JSON.parse(putCall?.options?.body as string).editors).toEqual([1]);
   });
 
   test('should render error dialog', async () => {

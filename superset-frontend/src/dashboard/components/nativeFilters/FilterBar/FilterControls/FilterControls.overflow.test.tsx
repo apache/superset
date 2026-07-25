@@ -37,8 +37,7 @@ import FilterControls from './FilterControls';
 const dropdownContainerProps: DropdownContainerProps[] = [];
 const callbackRef: {
   current:
-    | ((s: { overflowed: string[]; notOverflowed: string[] }) => void)
-    | null;
+    ((s: { overflowed: string[]; notOverflowed: string[] }) => void) | null;
 } = { current: null };
 
 // Mock the DropdownContainer subpath rather than the barrel

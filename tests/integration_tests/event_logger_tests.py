@@ -68,15 +68,15 @@ class TestEventLogger(unittest.TestCase):
             time.sleep(0.05)
             return 1
 
-        with app.test_request_context("/superset/dashboard/1/?myparam=foo"):
+        with app.test_request_context("/dashboard/1/?myparam=foo"):
             result = test_func()
             payload = mock_log.call_args[1]
             assert result == 1
             assert payload["records"] == [
                 {
                     "myparam": "foo",
-                    "path": "/superset/dashboard/1/",
-                    "url_rule": "/superset/dashboard/<dashboard_id_or_slug>/",
+                    "path": "/dashboard/1/",
+                    "url_rule": "/dashboard/<dashboard_id_or_slug>/",
                     "object_ref": test_func.__qualname__,
                 }
             ]

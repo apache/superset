@@ -27,7 +27,7 @@ import {
   useState,
   isValidElement,
 } from 'react';
-import { isEqual } from 'lodash';
+import { isEqual } from 'lodash-es';
 import { Map as MapLibreMap } from 'react-map-gl/maplibre';
 import { Map as MapboxMap } from 'react-map-gl/mapbox';
 import mapboxgl from 'mapbox-gl';

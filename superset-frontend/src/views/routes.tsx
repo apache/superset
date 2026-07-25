@@ -26,6 +26,8 @@ import {
 } from 'react';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { stripAppRoot } from 'src/utils/navigationUtils';
+import { RoutePaths } from './routePaths';
 
 // not lazy loaded since this is the home page.
 import Home from 'src/pages/Home';
@@ -189,158 +191,58 @@ const RedirectWarning = lazy(
 
 type Routes = {
   path: string;
-  Component: ComponentType;
-  Fallback?: ComponentType;
+  Component: ComponentType<any>;
+  Fallback?: ComponentType<any>;
   props?: ComponentProps<any>;
 }[];
 
 export const routes: Routes = [
+  { path: RoutePaths.REDIRECT, Component: RedirectWarning },
+  { path: RoutePaths.LOGIN, Component: Login },
+  { path: RoutePaths.REGISTER_ACTIVATION, Component: Register },
+  { path: RoutePaths.REGISTER, Component: Register },
+  { path: RoutePaths.LOGOUT, Component: Login },
+  { path: RoutePaths.HOME, Component: Home },
+  { path: RoutePaths.FILE_HANDLER, Component: FileHandler },
+  { path: RoutePaths.DASHBOARD_LIST, Component: DashboardList },
+  { path: RoutePaths.DASHBOARD, Component: Dashboard },
+  { path: RoutePaths.CHART_ADD, Component: ChartCreation },
+  { path: RoutePaths.CHART_LIST, Component: ChartList },
+  { path: RoutePaths.DATASET_LIST, Component: DatasetList },
+  { path: RoutePaths.DATABASE_LIST, Component: DatabaseList },
+  { path: RoutePaths.SAVED_QUERIES, Component: SavedQueryList },
+  { path: RoutePaths.CSS_TEMPLATES, Component: CssTemplateList },
+  { path: RoutePaths.THEMES, Component: ThemeList },
+  { path: RoutePaths.ANNOTATION_LAYERS, Component: AnnotationLayerList },
+  { path: RoutePaths.ANNOTATION_LIST, Component: AnnotationList },
+  { path: RoutePaths.QUERY_HISTORY, Component: QueryHistoryList },
+  { path: RoutePaths.ALERTS, Component: AlertReportList },
   {
-    path: '/redirect/',
-    Component: RedirectWarning,
-  },
-  {
-    path: '/login/',
-    Component: Login,
-  },
-  {
-    path: '/register/activation/:activationHash',
-    Component: Register,
-  },
-  {
-    path: '/register/',
-    Component: Register,
-  },
-  {
-    path: '/logout/',
-    Component: Login,
-  },
-  {
-    path: '/superset/welcome/',
-    Component: Home,
-  },
-  {
-    path: '/superset/file-handler',
-    Component: FileHandler,
-  },
-  {
-    path: '/dashboard/list/',
-    Component: DashboardList,
-  },
-  {
-    path: '/superset/dashboard/:idOrSlug/',
-    Component: Dashboard,
-  },
-  {
-    path: '/chart/add',
-    Component: ChartCreation,
-  },
-  {
-    path: '/chart/list/',
-    Component: ChartList,
-  },
-  {
-    path: '/tablemodelview/list/',
-    Component: DatasetList,
-  },
-  {
-    path: '/databaseview/list/',
-    Component: DatabaseList,
-  },
-  {
-    path: '/savedqueryview/list/',
-    Component: SavedQueryList,
-  },
-  {
-    path: '/csstemplatemodelview/list/',
-    Component: CssTemplateList,
-  },
-  {
-    path: '/theme/list/',
-    Component: ThemeList,
-  },
-  {
-    path: '/annotationlayer/list/',
-    Component: AnnotationLayerList,
-  },
-  {
-    path: '/annotationlayer/:annotationLayerId/annotation/',
-    Component: AnnotationList,
-  },
-  {
-    path: '/sqllab/history/',
-    Component: QueryHistoryList,
-  },
-  {
-    path: '/alert/list/',
+    path: RoutePaths.REPORTS,
     Component: AlertReportList,
+    props: { isReportEnabled: true },
   },
+  { path: RoutePaths.ALERT_LOG, Component: ExecutionLogList },
   {
-    path: '/report/list/',
-    Component: AlertReportList,
-    props: {
-      isReportEnabled: true,
-    },
-  },
-  {
-    path: '/alert/:alertId/log/',
+    path: RoutePaths.REPORT_LOG,
     Component: ExecutionLogList,
+    props: { isReportEnabled: true },
   },
-  {
-    path: '/report/:alertId/log/',
-    Component: ExecutionLogList,
-    props: {
-      isReportEnabled: true,
-    },
-  },
-  {
-    path: '/explore/',
-    Component: Chart,
-  },
-  {
-    path: '/superset/explore/p',
-    Component: Chart,
-  },
-  {
-    path: '/dataset/add/',
-    Component: DatasetCreation,
-  },
-  {
-    path: '/dataset/:datasetId',
-    Component: DatasetCreation,
-  },
-  {
-    path: '/rowlevelsecurity/list',
-    Component: RowLevelSecurityList,
-  },
-  {
-    path: '/tasks/list/',
-    Component: TaskList,
-  },
-  {
-    path: '/sqllab/',
-    Component: SqlLab,
-  },
-  { path: '/user_info/', Component: UserInfo },
-  {
-    path: '/actionlog/list',
-    Component: ActionLogList,
-  },
-  {
-    path: '/registrations/',
-    Component: UserRegistrations,
-  },
+  { path: RoutePaths.EXPLORE, Component: Chart },
+  { path: RoutePaths.EXPLORE_PERMALINK, Component: Chart },
+  { path: RoutePaths.DATASET_ADD, Component: DatasetCreation },
+  { path: RoutePaths.DATASET, Component: DatasetCreation },
+  { path: RoutePaths.ROW_LEVEL_SECURITY, Component: RowLevelSecurityList },
+  { path: RoutePaths.TASKS, Component: TaskList },
+  { path: RoutePaths.SQLLAB, Component: SqlLab },
+  { path: RoutePaths.USER_INFO, Component: UserInfo },
+  { path: RoutePaths.ACTION_LOG, Component: ActionLogList },
+  { path: RoutePaths.REGISTRATIONS, Component: UserRegistrations },
 ];
 
 if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
-  routes.push({
-    path: '/superset/all_entities/',
-    Component: AllEntities,
-  });
-  routes.push({
-    path: '/superset/tags/',
-    Component: Tags,
-  });
+  routes.push({ path: RoutePaths.ALL_ENTITIES, Component: AllEntities });
+  routes.push({ path: RoutePaths.TAGS, Component: Tags });
 }
 
 const user = getBootstrapData()?.user;
@@ -350,33 +252,18 @@ const isAdmin = isUserAdmin(user);
 
 if (isAdmin) {
   routes.push(
-    {
-      path: '/roles/',
-      Component: RolesList,
-    },
-    {
-      path: '/users/',
-      Component: UsersList,
-    },
-    {
-      path: '/list_groups/',
-      Component: GroupsList,
-    },
+    { path: RoutePaths.ROLES, Component: RolesList },
+    { path: RoutePaths.USERS, Component: UsersList },
+    { path: RoutePaths.GROUPS, Component: GroupsList },
   );
 
   if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
-    routes.push({
-      path: '/extensions/list/',
-      Component: Extensions,
-    });
+    routes.push({ path: RoutePaths.EXTENSIONS, Component: Extensions });
   }
 }
 
 if (authRegistrationEnabled) {
-  routes.push({
-    path: '/registrations/',
-    Component: UserRegistrations,
-  });
+  routes.push({ path: RoutePaths.REGISTRATIONS, Component: UserRegistrations });
 }
 
 const frontEndRoutes: Record<string, boolean> = routes
@@ -391,7 +278,16 @@ const frontEndRoutes: Record<string, boolean> = routes
 
 export const isFrontendRoute = (path?: string): boolean => {
   if (path) {
-    const basePath = path.split(/[?#]/)[0]; // strip out query params and link bookmarks
+    // Strip query / hash, then strip the application-root segment so menu URLs
+    // emitted by the backend (`url_for(...)` → `/<appRoot>/<route>`) match
+    // against the route table, which is keyed by post-basename paths.
+    //
+    // Note: this is a literal dictionary lookup, not a path-pattern match —
+    // parameterised routes such as `/dashboard/:idOrSlug/` are NOT matched
+    // by a concrete `/dashboard/123/` URL. Callers relying on that behaviour
+    // (e.g., the brand-link SPA-route check in `Menu.tsx`) accept a
+    // full-page-reload fallback for those URLs.
+    const basePath = stripAppRoot(path.split(/[?#]/)[0]);
     return !!frontEndRoutes[basePath];
   }
   return false;

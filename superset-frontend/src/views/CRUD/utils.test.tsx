@@ -639,9 +639,9 @@ test('getFilterValues', () => {
       undefined,
       [
         {
-          id: 'owners',
-          operator: 'rel_m_m',
-          value: `${userId}`,
+          id: 'id',
+          operator: 'is_editable',
+          value: true,
         },
       ],
     ],
@@ -652,9 +652,9 @@ test('getFilterValues', () => {
       undefined,
       [
         {
-          id: 'owners',
-          operator: 'rel_m_m',
-          value: `${userId}`,
+          id: 'id',
+          operator: 'is_editable',
+          value: true,
         },
       ],
     ],

@@ -974,7 +974,7 @@ def test_get_catalog_names(mocker: MockerFixture) -> None:
 
     database = mocker.MagicMock()
     inspector = mocker.MagicMock()
-    inspector.bind.execute.return_value = []
+    inspector.engine.connect().__enter__().execute.return_value = []
 
     mocker.patch(
         "superset.db_engine_specs.base.BaseEngineSpec.get_catalog_names",

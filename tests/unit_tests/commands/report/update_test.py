@@ -51,7 +51,7 @@ def _make_model(
     model.name = "test_schedule"
     model.crontab = "0 9 * * *"
     model.last_state = "noop"
-    model.owners = []
+    model.editors = []
     return model
 
 
@@ -65,7 +65,7 @@ def _setup_mocks(mocker: MockerFixture, model: Mock) -> None:
         return_value=True,
     )
     mocker.patch(
-        "superset.commands.report.update.security_manager.raise_for_ownership",
+        "superset.commands.report.update.security_manager.raise_for_editorship",
     )
     mocker.patch(
         "superset.commands.report.update.DatabaseDAO.find_by_id",
@@ -79,10 +79,8 @@ def _setup_mocks(mocker: MockerFixture, model: Mock) -> None:
         UpdateReportScheduleCommand,
         "validate_report_frequency",
     )
-    mocker.patch.object(
-        UpdateReportScheduleCommand,
-        "compute_owners",
-        return_value=[],
+    mocker.patch(
+        "superset.commands.report.update.compute_subjects",
     )
 
 
@@ -424,15 +422,15 @@ def test_deactivation_from_non_working_does_not_reset(mocker: MockerFixture) -> 
     assert "last_state" not in cmd._properties
 
 
-# --- Ownership check ---
+# --- Editorship check ---
 
 
-def test_ownership_check_raises_forbidden(mocker: MockerFixture) -> None:
-    """Non-owner should get ReportScheduleForbiddenError."""
+def test_editorship_check_raises_forbidden(mocker: MockerFixture) -> None:
+    """Non-editor should get ReportScheduleForbiddenError."""
     model = _make_model(mocker, model_type=ReportScheduleType.REPORT, database_id=None)
     _setup_mocks(mocker, model)
     mocker.patch(
-        "superset.commands.report.update.security_manager.raise_for_ownership",
+        "superset.commands.report.update.security_manager.raise_for_editorship",
         side_effect=SupersetSecurityException(
             SupersetError(
                 message="Forbidden",

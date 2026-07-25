@@ -181,6 +181,23 @@ value in milliseconds in the JSON Metadata field:
 Here, the entire dashboard will refresh at once if periodic refresh is on. The stagger time of 2.5
 seconds is ignored.
 
+The manual **Refresh dashboard** button can also stagger its chart requests, controlled by the
+`SUPERSET_DASHBOARD_MANUAL_REFRESH_STAGGER_MS` server config in `superset_config.py`. This defaults
+to `0`, which preserves the original behavior where every chart request fires at the same time when
+the button is clicked. To opt in to staggering, set a positive number of milliseconds; the window
+then becomes the larger of this value and the per-dashboard `stagger_time` metadata, which itself
+defaults to `5000` milliseconds when it is not set explicitly. Setting `stagger_refresh` to `false`
+in a dashboard's JSON Metadata also disables staggering on the manual-refresh path, so its charts
+fire all at once even when the server config is positive. If the backend does not provide a value at
+all, for example an older backend that predates this config or a value explicitly set to `None`, the
+frontend falls back to a built-in default of `5000` milliseconds.
+
+```python
+# superset_config.py
+# 0 (the default) fires every chart at once; set a positive value to stagger.
+SUPERSET_DASHBOARD_MANUAL_REFRESH_STAGGER_MS = 0
+```
+
 **Why does ‘flask fab’ or superset freeze/hang/not responding when started (my home directory is
 NFS mounted)?**
 
@@ -321,8 +338,8 @@ This can be used, for example, to convert UTC time to local time.
 Superset uses [Scarf](https://about.scarf.sh/) by default to collect basic telemetry data upon installing and/or running Superset. This data helps the maintainers of Superset better understand which versions of Superset are being used, in order to prioritize patch/minor releases and security fixes.
 We use the [Scarf Gateway](https://docs.scarf.sh/gateway/) to sit in front of container registries, the [scarf-js](https://about.scarf.sh/package-sdks) package to track `npm` installations, and a Scarf pixel to gather anonymous analytics on Superset page views.
 Scarf purges PII and provides aggregated statistics. Superset users can easily opt out of analytics in various ways documented [here](https://docs.scarf.sh/gateway/#do-not-track) and [here](https://docs.scarf.sh/package-analytics/#as-a-user-of-a-package-using-scarf-js-how-can-i-opt-out-of-analytics).
-Superset maintainers can also opt out of telemetry data collection by setting the `SCARF_ANALYTICS` environment variable to `false` in the Superset container (or anywhere Superset/webpack are run).
-Additional opt-out instructions for Docker users are available on the [Docker Installation](/admin-docs/installation/docker-compose) page.
+You can also opt out of the analytics pixel by setting the `SCARF_ANALYTICS` environment variable to `false`. This is read at runtime, so setting it on the Superset container (for example via `extraEnv` in the Helm chart, or `docker/.env` for Docker Compose) disables the pixel on the pre-built images without rebuilding the frontend. Note that this only disables the page-view pixel; the Scarf Gateway (container registry) and `scarf-js` (`npm`) channels are opted out separately, as described above.
+Additional opt-out instructions are available on the [Docker Compose](/admin-docs/installation/docker-compose) and [Kubernetes](/admin-docs/installation/kubernetes) installation pages.
 
 ## Does Superset have an archive panel or trash bin from which a user can recover deleted assets?
 

@@ -1177,6 +1177,11 @@ class TestUpdateChartValidationGate:
     )
     @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
     @patch("superset.db.session")
+    @patch(
+        "superset.mcp_service.chart.validation.dataset_validator"
+        ".DatasetValidator.validate_against_dataset",
+        new=Mock(return_value=(True, None)),
+    )
     @pytest.mark.asyncio
     async def test_preview_path_validation_failure_skips_cache(
         self,
@@ -1240,6 +1245,11 @@ class TestUpdateChartValidationGate:
     )
     @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
     @patch("superset.db.session")
+    @patch(
+        "superset.mcp_service.chart.validation.dataset_validator"
+        ".DatasetValidator.validate_against_dataset",
+        new=Mock(return_value=(True, None)),
+    )
     @pytest.mark.asyncio
     async def test_persist_path_validation_failure_skips_db_write(
         self,
@@ -1288,6 +1298,237 @@ class TestUpdateChartValidationGate:
             error = result.structured_content["error"]
             assert error["error_code"] == "CHART_VALIDATION_FAILED"
             mock_update_cmd_cls.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# Column normalization in update_chart
+# ---------------------------------------------------------------------------
+
+
+class TestUpdateChartColumnNormalization:
+    """Column names are normalized to dataset canonical case before validation."""
+
+    @staticmethod
+    def _mock_chart(datasource_id: int | None = 10) -> Mock:
+        chart = Mock()
+        chart.id = 1
+        chart.datasource_id = datasource_id
+        chart.slice_name = "Existing"
+        chart.viz_type = "table"
+        chart.uuid = "abc-123"
+        chart.params = '{"viz_type": "table", "datasource": "10__table"}'
+        chart.datasource = Mock()
+        return chart
+
+    @patch.object(update_chart_module, "validate_and_compile")
+    @patch.object(update_chart_module, "_create_preview_url", new_callable=Mock)
+    @patch("superset.mcp_service.auth.check_chart_data_access", new_callable=Mock)
+    @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
+    @patch("superset.db.session")
+    @patch(
+        "superset.mcp_service.chart.validation.dataset_validator"
+        ".DatasetValidator.validate_against_dataset",
+        new=Mock(return_value=(True, None)),
+    )
+    @patch(
+        "superset.mcp_service.chart.validation.dataset_validator"
+        ".DatasetValidator.normalize_column_names",
+    )
+    @pytest.mark.asyncio
+    async def test_normalization_called_with_guarded_datasource_id(
+        self,
+        mock_normalize,
+        mock_db_session,
+        mock_find_by_id,
+        mock_check_access,
+        mock_create_preview,
+        mock_validate,
+        mcp_server,
+    ):
+        """normalize_column_names receives the locally-guarded datasource_id, not
+        chart.datasource_id re-accessed from the ORM object (which could raise on
+        mock/partial objects)."""
+        from superset.mcp_service.chart.compile import CompileResult
+
+        chart = self._mock_chart(datasource_id=10)
+        mock_find_by_id.return_value = chart
+        mock_check_access.return_value = DatasetValidationResult(
+            is_valid=True, dataset_id=10, dataset_name="ds", warnings=[]
+        )
+        mock_validate.return_value = CompileResult(
+            success=True, error=None, error_code=None, tier="validation", error_obj=None
+        )
+        mock_create_preview.return_value = ("http://example.com/explore", None, [])
+
+        # normalize_column_names returns the config unchanged
+        def _passthrough(config, dataset_id):
+            return config
+
+        mock_normalize.side_effect = _passthrough
+
+        request = {
+            "identifier": 1,
+            "config": {
+                "chart_type": "xy",
+                "x": {"name": "ds"},
+                "y": [{"name": "num_boys", "aggregate": "SUM"}],
+                "kind": "line",
+            },
+        }
+
+        async with Client(mcp) as client:
+            await client.call_tool("update_chart", {"request": request})
+
+        mock_normalize.assert_called_once()
+        _, call_dataset_id = mock_normalize.call_args.args
+        assert call_dataset_id == 10  # guarded local var, not re-read from ORM
+
+    @patch.object(update_chart_module, "validate_and_compile")
+    @patch.object(update_chart_module, "_create_preview_url", new_callable=Mock)
+    @patch("superset.mcp_service.auth.check_chart_data_access", new_callable=Mock)
+    @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
+    @patch("superset.db.session")
+    @patch(
+        "superset.mcp_service.chart.validation.dataset_validator"
+        ".DatasetValidator.validate_against_dataset",
+        new=Mock(return_value=(True, None)),
+    )
+    @patch(
+        "superset.mcp_service.chart.validation.dataset_validator"
+        ".DatasetValidator.normalize_column_names",
+    )
+    @pytest.mark.asyncio
+    async def test_normalization_exception_is_caught_gracefully(
+        self,
+        mock_normalize,
+        mock_db_session,
+        mock_find_by_id,
+        mock_check_access,
+        mock_create_preview,
+        mock_validate,
+        mcp_server,
+    ):
+        """A normalization failure must not propagate — chart update continues."""
+        from superset.mcp_service.chart.compile import CompileResult
+
+        chart = self._mock_chart(datasource_id=10)
+        mock_find_by_id.return_value = chart
+        mock_check_access.return_value = DatasetValidationResult(
+            is_valid=True, dataset_id=10, dataset_name="ds", warnings=[]
+        )
+        mock_validate.return_value = CompileResult(
+            success=True, error=None, error_code=None, tier="validation", error_obj=None
+        )
+        mock_create_preview.return_value = ("http://example.com/explore", None, [])
+        mock_normalize.side_effect = ValueError("DB connection failed")
+
+        request = {
+            "identifier": 1,
+            "config": {
+                "chart_type": "xy",
+                "x": {"name": "ds"},
+                "y": [{"name": "num_boys", "aggregate": "SUM"}],
+                "kind": "line",
+            },
+        }
+
+        async with Client(mcp) as client:
+            # Should not raise; normalization failure is a warning only
+            await client.call_tool("update_chart", {"request": request})
+
+        # Normalization failed but tool still attempted the update path
+        mock_normalize.assert_called_once()
+
+    @patch(
+        "superset.mcp_service.chart.validation.dataset_validator"
+        ".DatasetValidator.normalize_column_names",
+    )
+    def test_normalization_skipped_when_no_datasource_id(self, mock_normalize):
+        """normalize_column_names is never called when chart has no datasource_id."""
+        from superset.mcp_service.chart.schemas import XYChartConfig
+
+        chart = self._mock_chart(datasource_id=None)
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="ds"),
+            y=[ColumnRef(name="num_boys", aggregate="SUM")],
+            kind="line",
+        )
+
+        # Simulate the guard from update_chart
+        chart_datasource_id = getattr(chart, "datasource_id", None)
+        if config is not None and chart_datasource_id is not None:
+            from superset.mcp_service.chart.validation.dataset_validator import (
+                DatasetValidator,
+            )
+
+            DatasetValidator.normalize_column_names(config, chart_datasource_id)
+
+        mock_normalize.assert_not_called()
+
+    @patch.object(update_chart_module, "validate_and_compile")
+    @patch.object(update_chart_module, "_create_preview_url", new_callable=Mock)
+    @patch("superset.mcp_service.auth.check_chart_data_access", new_callable=Mock)
+    @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
+    @patch("superset.db.session")
+    @patch(
+        "superset.mcp_service.chart.validation.dataset_validator"
+        ".DatasetValidator.validate_against_dataset",
+        new=Mock(return_value=(True, None)),
+    )
+    @patch(
+        "superset.mcp_service.chart.validation.dataset_validator"
+        ".DatasetValidator.normalize_column_names",
+    )
+    @pytest.mark.asyncio
+    async def test_normalization_uses_request_dataset_id_when_rebinding(
+        self,
+        mock_normalize,
+        mock_db_session,
+        mock_find_by_id,
+        mock_check_access,
+        mock_create_preview,
+        mock_validate,
+        mcp_server,
+    ):
+        """When dataset_id is in the request, normalization must use it — not the
+        chart's current datasource — so column names are resolved against the
+        target schema after rebind."""
+        from superset.mcp_service.chart.compile import CompileResult
+
+        chart = self._mock_chart(datasource_id=10)
+        mock_find_by_id.return_value = chart
+        mock_check_access.return_value = DatasetValidationResult(
+            is_valid=True, dataset_id=99, dataset_name="new_ds", warnings=[]
+        )
+        mock_validate.return_value = CompileResult(
+            success=True, error=None, error_code=None, tier="validation", error_obj=None
+        )
+        mock_create_preview.return_value = ("http://example.com/explore", None, [])
+
+        def _passthrough(config, dataset_id):
+            return config
+
+        mock_normalize.side_effect = _passthrough
+
+        request = {
+            "identifier": 1,
+            "dataset_id": 99,
+            "config": {
+                "chart_type": "xy",
+                "x": {"name": "ds"},
+                "y": [{"name": "num_boys", "aggregate": "SUM"}],
+                "kind": "line",
+            },
+        }
+
+        async with Client(mcp) as client:
+            await client.call_tool("update_chart", {"request": request})
+
+        mock_normalize.assert_called_once()
+        _, call_dataset_id = mock_normalize.call_args.args
+        # Must use the request's dataset_id (99), not the chart's current one (10)
+        assert call_dataset_id == 99
 
 
 # ---------------------------------------------------------------------------
@@ -1480,8 +1721,9 @@ class TestUpdateChartDatasetIdIntegration:
         "superset.commands.chart.update.UpdateChartCommand",
         new_callable=Mock,
     )
-    @patch(
-        "superset.mcp_service.chart.tool.update_chart._validate_update_against_dataset",
+    @patch.object(
+        update_chart_module,
+        "_validate_update_against_dataset",
         return_value=None,
     )
     @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)

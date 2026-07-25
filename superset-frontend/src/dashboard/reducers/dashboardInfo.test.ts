@@ -258,7 +258,13 @@ test('CLEAR_ALL_CHART_CUSTOMIZATIONS filters out null entries before mapping', (
         null,
         {
           id: 'CUSTOM-1',
-          targets: [{ datasetId: 1, column: { name: 'status' } }],
+          targets: [
+            {
+              datasetId: 1,
+              datasourceType: 'semantic_view',
+              column: { name: 'status' },
+            },
+          ],
           chartsInScope: [10],
         },
         null,
@@ -272,7 +278,9 @@ test('CLEAR_ALL_CHART_CUSTOMIZATIONS filters out null entries before mapping', (
   const config = result.metadata?.chart_customization_config;
   expect(config).toHaveLength(1);
   expect(config![0].id).toBe('CUSTOM-1');
-  expect(config![0].targets).toEqual([{ datasetId: 1 }]);
+  expect(config![0].targets).toEqual([
+    { datasetId: 1, datasourceType: 'semantic_view' },
+  ]);
 });
 
 test('CLEAR_ALL_CHART_CUSTOMIZATIONS filters out undefined entries before mapping', () => {
@@ -283,7 +291,13 @@ test('CLEAR_ALL_CHART_CUSTOMIZATIONS filters out undefined entries before mappin
         undefined,
         {
           id: 'CUSTOM-1',
-          targets: [{ datasetId: 1, column: { name: 'status' } }],
+          targets: [
+            {
+              datasetId: 1,
+              datasourceType: 'semantic_view',
+              column: { name: 'status' },
+            },
+          ],
           chartsInScope: [10],
         },
         undefined,
@@ -297,5 +311,7 @@ test('CLEAR_ALL_CHART_CUSTOMIZATIONS filters out undefined entries before mappin
   const config = result.metadata?.chart_customization_config;
   expect(config).toHaveLength(1);
   expect(config![0].id).toBe('CUSTOM-1');
-  expect(config![0].targets).toEqual([{ datasetId: 1 }]);
+  expect(config![0].targets).toEqual([
+    { datasetId: 1, datasourceType: 'semantic_view' },
+  ]);
 });

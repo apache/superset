@@ -633,6 +633,35 @@ function processFile(filepath) {
 }
 
 /**
+ * Application source trees that must be authored in TypeScript. Matches the
+ * top-level `src/` directory as well as each package/plugin `src/` directory.
+ */
+const TS_ONLY_SOURCE_PATTERN =
+  /^(src|packages\/[^/]+\/src|plugins\/[^/]+\/src)\//;
+
+/**
+ * Enforce the TypeScript-only frontend convention: no `.js`/`.jsx` files may be
+ * added under the application source trees (including test files). Build
+ * artifacts and root-level config files (e.g. `.storybook/preview.jsx`,
+ * `webpack.config.js`) live outside these trees and are intentionally allowed.
+ *
+ * @param {string[]} candidateFiles paths relative to `superset-frontend/`
+ */
+function checkTypeScriptOnlySource(candidateFiles) {
+  candidateFiles.forEach(file => {
+    if (TS_ONLY_SOURCE_PATTERN.test(file) && /\.(js|jsx)$/.test(file)) {
+      // eslint-disable-next-line no-console
+      console.error(
+        `${RED}✗${RESET} ${file}: frontend source must be TypeScript. ` +
+          `Rename to .ts/.tsx (the codebase is mid-migration to full ` +
+          `TypeScript; no new .js/.jsx files in src/).`,
+      );
+      errorCount += 1;
+    }
+  });
+}
+
+/**
  * Main function
  */
 function main() {
@@ -665,6 +694,22 @@ function main() {
     /\/theme\/utils/, // Theme utility functions legitimately work with colors
     /packages\/superset-ui-core\/src\/color\/index\.ts/, // Core brand color constants
   ];
+
+  // Enforce TypeScript-only source. Run this on the raw file list (before the
+  // ignore patterns below strip out tests/stories) so that e.g. a new
+  // `*.test.jsx` is still rejected.
+  const tsOnlyCandidates =
+    args.length === 0
+      ? glob.sync('{src,packages/*/src,plugins/*/src}/**/*.{js,jsx}', {
+          ignore: [
+            '**/node_modules/**',
+            '**/esm/**',
+            '**/lib/**',
+            '**/dist/**',
+          ],
+        })
+      : args.map(f => f.replace(/^superset-frontend\//, ''));
+  checkTypeScriptOnlySource(tsOnlyCandidates);
 
   // If no files specified, check all
   if (files.length === 0) {
@@ -706,21 +751,22 @@ function main() {
   if (files.length === 0) {
     // eslint-disable-next-line no-console
     console.log('No files to check.');
-    return;
+  } else {
+    // eslint-disable-next-line no-console
+    console.log(
+      `Checking ${files.length} files for Superset custom rules...\n`,
+    );
+
+    files.forEach(file => {
+      // Resolve the file path
+      const resolvedPath = path.resolve(file);
+      if (fs.existsSync(resolvedPath)) {
+        processFile(resolvedPath);
+      } else if (fs.existsSync(file)) {
+        processFile(file);
+      }
+    });
   }
-
-  // eslint-disable-next-line no-console
-  console.log(`Checking ${files.length} files for Superset custom rules...\n`);
-
-  files.forEach(file => {
-    // Resolve the file path
-    const resolvedPath = path.resolve(file);
-    if (fs.existsSync(resolvedPath)) {
-      processFile(resolvedPath);
-    } else if (fs.existsSync(file)) {
-      processFile(file);
-    }
-  });
 
   // eslint-disable-next-line no-console
   console.log(`\n${errorCount} errors, ${warningCount} warnings`);
@@ -740,4 +786,5 @@ module.exports = {
   checkNoFaIcons,
   checkI18nTemplates,
   checkUntranslatedStrings,
+  checkTypeScriptOnlySource,
 };

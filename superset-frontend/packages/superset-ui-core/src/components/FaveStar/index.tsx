@@ -60,6 +60,7 @@ export const FaveStar = ({
       className="fave-unfave-icon"
       data-test="fave-unfave-icon"
       role="button"
+      tabIndex={0}
     >
       {isStarred ? (
         <Icons.StarFilled

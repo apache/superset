@@ -154,18 +154,13 @@ class CategoricalColorScale extends ExtensibleFunction {
         this.incrementColorRange();
       }
 
-      if (
-        // feature flag to be deprecated (will become standard behaviour)
-        isFeatureEnabled(FeatureFlag.AvoidColorsCollision) &&
-        this.isColorUsed(color)
-      ) {
+      if (this.isColorUsed(color)) {
         // fallback to least used color
         color = this.getNextAvailableColor(cleanedValue, color);
       }
     }
 
     if (
-      isFeatureEnabled(FeatureFlag.AvoidColorsCollision) &&
       source === LabelsColorMapSource.Dashboard &&
       (forcedColor || isExistingLabel)
     ) {
@@ -396,17 +391,24 @@ class CategoricalColorScale extends ExtensibleFunction {
   /**
    * Returns the current unknown value, which defaults to "implicit".
    */
-  unknown(): string | { name: 'implicit' };
+  unknown(): { name: 'implicit' };
 
   /**
    * Sets the output value of the scale for unknown input values and returns this scale.
    * The implicit value enables implicit domain construction. scaleImplicit can be used as a convenience to set the implicit value.
    *
+   * The signatures mirror d3's `ScaleOrdinal.unknown` so this class remains
+   * assignable to `ScaleOrdinal<{ toString(): string }, string>`.
+   *
    * @param value Unknown value to be used or scaleImplicit to set implicit scale generation.
    */
-  unknown(value: string | { name: 'implicit' }): this;
+  unknown<NewUnknown>(
+    value: NewUnknown,
+  ): NewUnknown extends { name: 'implicit' }
+    ? ScaleOrdinal<{ toString(): string }, string>
+    : ScaleOrdinal<{ toString(): string }, string, NewUnknown>;
 
-  unknown(value?: string | { name: 'implicit' }): unknown {
+  unknown(value?: unknown): unknown {
     if (typeof value === 'undefined') {
       return this.scale.unknown();
     }

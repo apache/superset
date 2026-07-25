@@ -1,7 +1,5 @@
 # Notify all committers of DB migration changes, per SIP-59
 
-# https://github.com/apache/superset/issues/13351
-
 /superset/migrations/ @mistercrunch @michael-s-molina @betodealmeida @eschutho @sadpandajoe
 
 # Notify some committers of changes in the components
@@ -12,33 +10,35 @@
 
 # Notify Helm Chart maintainers about changes in it
 
-/helm/superset/ @craig-rueda @dpgaspar @villebro @nytai @michael-s-molina @mistercrunch @rusackas @Antonio-RiveroMartnez
+/helm/superset/ @dpgaspar @villebro @nytai @michael-s-molina @mistercrunch @rusackas @Antonio-RiveroMartnez @hainenber
 
 # Notify E2E test maintainers of changes
 
-/superset-frontend/cypress-base/ @sadpandajoe @geido @eschutho @rusackas @betodealmeida @mistercrunch
+/superset-frontend/playwright/ @sadpandajoe @geido @eschutho @rusackas @mistercrunch
+/superset-frontend/cypress-base/ @sadpandajoe @geido @eschutho @rusackas @mistercrunch
 
 # Notify PMC members of changes to GitHub Actions
 
-/.github/ @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @craig-rueda @kgabryje @dpgaspar @sadpandajoe @hainenber
+/.github/ @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @kgabryje @sha174n @dpgaspar @sadpandajoe @hainenber
 
 # Notify PMC members of changes to CI-executed scripts (supply-chain risk:
 # scripts/ files run directly in CI workflows and can execute arbitrary code)
 
-/scripts/ @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @craig-rueda @kgabryje @dpgaspar @sadpandajoe @hainenber
+/scripts/ @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @kgabryje @dpgaspar @sha174n @sadpandajoe @hainenber
 
 # Notify PMC members of changes to required GitHub Actions
 
-/.asf.yaml @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @craig-rueda @kgabryje @dpgaspar @Antonio-RiveroMartnez
+/.asf.yaml @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @kgabryje @dpgaspar @sha174n @Antonio-RiveroMartnez
 
 # Maps are a finicky contribution process we care about
 
 **/*.geojson @villebro @rusackas
+**/*.ipynb @villebro @rusackas
 /superset-frontend/plugins/legacy-plugin-chart-country-map/ @villebro @rusackas
 
 # Notify translation maintainers of changes to translations
 
-/superset/translations/ @sfirke @rusackas
+/superset/translations/ @sfirke @rusackas @villebro @sadpandajoe @hainenber
 
 # Notify PMC members of changes to extension-related files
 

@@ -414,19 +414,13 @@ const getLineColumnFilters = ({
   if (!path) throw new Error('Position of picked data is required');
 
   // Preferred path: emit on a dimension column the user selected. The value
-  // can land either directly on the picked feature (groupby/excluded keys are
-  // spread by addPropertiesToFeature) or under extraProps when it overlaps
-  // with js_columns (addJsColumnsToExtraProps).
+  // lands directly on the picked feature (groupby/excluded keys are spread
+  // by addPropertiesToFeature).
   if (formData.cross_filter_column) {
     const col = formData.cross_filter_column;
     const obj = data.object ?? {};
-    const extraProps = (obj.extraProps ?? {}) as Record<string, unknown>;
-    const dimensionVal = (obj[col] ?? extraProps[col]) as
-      | string
-      | number
-      | boolean
-      | null
-      | undefined;
+    const dimensionVal = obj[col] as
+      string | number | boolean | null | undefined;
 
     if (dimensionVal == null) {
       throw new Error(
@@ -484,11 +478,7 @@ const getGeojsonFilters = ({
       unknown
     >;
     const dimensionVal = properties[col] as
-      | string
-      | number
-      | boolean
-      | null
-      | undefined;
+      string | number | boolean | null | undefined;
 
     if (dimensionVal == null) {
       throw new Error(

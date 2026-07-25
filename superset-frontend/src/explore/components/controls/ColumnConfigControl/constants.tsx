@@ -61,6 +61,7 @@ const d3NumberFormat: ControlFormItemSpec<'Select'> = {
 };
 
 const d3TimeFormat: ControlFormItemSpec<'Select'> = {
+  allowNewOptions: true,
   controlType: 'Select',
   label: t('D3 format'),
   description: D3_TIME_FORMAT_DOCS,

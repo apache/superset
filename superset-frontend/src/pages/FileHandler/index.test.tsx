@@ -124,8 +124,8 @@ const consumerPromises: Promise<void>[] = [];
 // MessageChannel mock in jsDomWithFetchAPI forces React to schedule via setTimeout.
 const setupLaunchQueue = (fileHandle: MockFileHandle | null = null) => {
   let savedConsumer:
-    | ((params: { files?: MockFileHandle[] }) => void | Promise<void>)
-    | null = null;
+    ((params: { files?: MockFileHandle[] }) => void | Promise<void>) | null =
+    null;
   (window as unknown as Window & { launchQueue: LaunchQueue }).launchQueue = {
     setConsumer: (consumer: (params: { files?: MockFileHandle[] }) => void) => {
       savedConsumer = consumer;
@@ -201,7 +201,7 @@ test('shows error when launchQueue is not supported', async () => {
     expect(mockAddDangerToast).toHaveBeenCalledWith(
       'File handling is not supported in this browser. Please use a modern browser like Chrome or Edge.',
     );
-    expect(mockHistoryPush).toHaveBeenCalledWith('/superset/welcome/');
+    expect(mockHistoryPush).toHaveBeenCalledWith('/welcome/');
   });
 });
 
@@ -221,7 +221,7 @@ test('redirects when no files are provided', async () => {
   await triggerConsumer({ files: [] });
 
   await waitFor(() => {
-    expect(mockHistoryPush).toHaveBeenCalledWith('/superset/welcome/');
+    expect(mockHistoryPush).toHaveBeenCalledWith('/welcome/');
   });
 });
 
@@ -326,7 +326,7 @@ test('shows error for unsupported file type', async () => {
     expect(mockAddDangerToast).toHaveBeenCalledWith(
       'Unsupported file type. Please use CSV, Excel, or Columnar files.',
     );
-    expect(mockHistoryPush).toHaveBeenCalledWith('/superset/welcome/');
+    expect(mockHistoryPush).toHaveBeenCalledWith('/welcome/');
   });
 });
 
@@ -378,7 +378,7 @@ test('handles errors during file processing', async () => {
     expect(mockAddDangerToast).toHaveBeenCalledWith(
       'Failed to open file. Please try again.',
     );
-    expect(mockHistoryPush).toHaveBeenCalledWith('/superset/welcome/');
+    expect(mockHistoryPush).toHaveBeenCalledWith('/welcome/');
   });
 });
 
@@ -402,7 +402,7 @@ test('modal close redirects to welcome page', async () => {
   await userEvent.click(screen.getByRole('button', { name: 'Close' }));
 
   await waitFor(() => {
-    expect(mockHistoryPush).toHaveBeenCalledWith('/superset/welcome/');
+    expect(mockHistoryPush).toHaveBeenCalledWith('/welcome/');
   });
 });
 

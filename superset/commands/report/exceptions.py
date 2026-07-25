@@ -16,6 +16,7 @@
 # under the License.
 
 import math
+from typing import Optional
 
 from flask_babel import lazy_gettext as _
 
@@ -196,12 +197,52 @@ class ReportScheduleCsvFailedError(CommandException):
     message = _("Report Schedule execution failed when generating a csv.")
 
 
+class ReportScheduleXlsxFailedError(CommandException):
+    """Raised when generating the Excel (xlsx) attachment for a report fails."""
+
+    message = _("Report Schedule execution failed when generating an Excel file.")
+
+
 class ReportScheduleDataFrameFailedError(CommandException):
     message = _("Report Schedule execution failed when generating a dataframe.")
 
 
+class ReportScheduleExecutorNotFoundError(CommandException):
+    """Raised when the configured report executor user cannot be resolved."""
+
+    # 5xx (not 4xx): a missing executor user is a server-side misconfiguration,
+    # not a malformed client request. The status drives get_logger_from_status,
+    # which marks the Celery task FAILURE for 5xx — keeping the executor problem
+    # visible to ops task-state alerting. A 4xx would log a WARNING and leave the
+    # task non-FAILURE, hiding the misconfiguration from that signal.
+    status = 500
+
+    def __init__(self, username: str = "", exception: Optional[Exception] = None):
+        super().__init__(
+            _(
+                "Report Schedule executor user %(username)s was not found.",
+                username=f'"{username}"' if username else "(unknown)",
+            ),
+            exception,
+        )
+
+
 class ReportScheduleExecuteUnexpectedError(CommandException):
     message = _("Report Schedule execution got an unexpected error.")
+
+
+class ReportScheduleTargetChartDeletedError(CommandException):
+    message = _(
+        "The chart this report targets was deleted. Restore the chart, or "
+        "update the report to point at an active chart."
+    )
+
+
+class ReportScheduleTargetDashboardDeletedError(CommandException):
+    message = _(
+        "The dashboard this report targets was deleted. Restore the "
+        "dashboard, or update the report to point at an active dashboard."
+    )
 
 
 class ReportSchedulePreviousWorkingError(CommandException):
@@ -275,6 +316,13 @@ class ReportScheduleCsvTimeout(CommandException):
     message = _("A timeout occurred while generating a csv.")
 
 
+class ReportScheduleXlsxTimeout(CommandException):
+    """Raised when generating the Excel (xlsx) attachment for a report times out."""
+
+    status: int = 408
+    message = _("A timeout occurred while generating an Excel file.")
+
+
 class ReportScheduleDataFrameTimeout(CommandException):
     status = 408
     message = _("A timeout occurred while generating a dataframe.")
@@ -336,3 +384,21 @@ class ReportScheduleUserEmailNotFoundError(ValidationError):
             ),
             field_name="recipients",
         )
+
+
+class ReportScheduleExecuteNowFailedError(CommandException):
+    """Command exception raised when a report schedule fails to execute immediately."""
+
+    message = _("Report Schedule execute now failed.")
+
+
+class ReportScheduleCeleryNotConfiguredError(CommandException):
+    """Command exception raised when a report schedule is executed but
+    Celery is not configured.
+    """
+
+    status = 503
+    message = _(
+        "Report Schedule execution requires a Celery backend to be configured. "
+        "Please configure a Celery broker (Redis or RabbitMQ) and worker processes."
+    )
