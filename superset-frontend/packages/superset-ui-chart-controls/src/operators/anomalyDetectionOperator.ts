@@ -24,7 +24,7 @@ import { PostProcessingFactory } from './types';
 
 export const anomalyDetectionOperator: PostProcessingFactory<
   PostProcessingAnomalyDetection
-> = (formData, queryObject) => {
+> = (formData, _queryObject) => {
   const xAxisLabel = getXAxisLabel(formData);
   if (formData.anomalyDetectionEnabled && xAxisLabel) {
     const method: string = formData.anomalyDetectionMethod || 'zscore';

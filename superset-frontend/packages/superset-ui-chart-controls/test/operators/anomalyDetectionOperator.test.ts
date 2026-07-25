@@ -189,3 +189,90 @@ test('should do anomalyDetectionOperator with prophet method', () => {
     },
   });
 });
+
+test('should skip anomalyDetectionOperator for prophet without temporal column', () => {
+  expect(
+    anomalyDetectionOperator(
+      {
+        ...formData,
+        time_grain_sqla: undefined,
+        x_axis: 'ds',
+        anomalyDetectionEnabled: true,
+        anomalyDetectionMethod: 'prophet',
+      },
+      queryObject,
+    ),
+  ).toEqual(undefined);
+});
+
+test('should use default method zscore when anomalyDetectionMethod is not set', () => {
+  expect(
+    anomalyDetectionOperator(
+      {
+        ...formData,
+        granularity_sqla: 'time_column',
+        anomalyDetectionEnabled: true,
+        anomalyDetectionRollingWindow: '14',
+        anomalyDetectionSensitivity: '3.0',
+      },
+      queryObject,
+    ),
+  ).toEqual({
+    operation: 'anomaly_detection',
+    options: {
+      method: 'zscore',
+      rolling_window: 14,
+      sensitivity: 3.0,
+      index: DTTM_ALIAS,
+    },
+  });
+});
+
+test('should use default rolling_window and sensitivity when not set', () => {
+  expect(
+    anomalyDetectionOperator(
+      {
+        ...formData,
+        granularity_sqla: 'time_column',
+        anomalyDetectionEnabled: true,
+        anomalyDetectionMethod: 'zscore',
+      },
+      queryObject,
+    ),
+  ).toEqual({
+    operation: 'anomaly_detection',
+    options: {
+      method: 'zscore',
+      rolling_window: 14,
+      sensitivity: 3.0,
+      index: DTTM_ALIAS,
+    },
+  });
+});
+
+test('should use default confidence_interval for prophet when not set', () => {
+  expect(
+    anomalyDetectionOperator(
+      {
+        ...formData,
+        granularity_sqla: 'time_column',
+        anomalyDetectionEnabled: true,
+        anomalyDetectionMethod: 'prophet',
+        anomalyDetectionSeasonalityYearly: null,
+        anomalyDetectionSeasonalityWeekly: null,
+        anomalyDetectionSeasonalityDaily: null,
+      },
+      queryObject,
+    ),
+  ).toEqual({
+    operation: 'anomaly_detection',
+    options: {
+      method: 'prophet',
+      index: DTTM_ALIAS,
+      confidence_interval: 0.8,
+      yearly_seasonality: null,
+      weekly_seasonality: null,
+      daily_seasonality: null,
+    },
+  });
+});
