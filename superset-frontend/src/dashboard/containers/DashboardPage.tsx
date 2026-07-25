@@ -67,8 +67,19 @@ import SyncDashboardState, {
   getDashboardContextLocalStorage,
 } from '../components/SyncDashboardState';
 import { AutoRefreshProvider } from '../contexts/AutoRefreshContext';
-import { SupersetApiError } from '@superset-ui/core';
+import { Filter, PartialFilters, SupersetApiError } from '@superset-ui/core';
 import { RoutePaths } from 'src/views/routePaths';
+import {
+  parseRisonFilters,
+  risonFiltersToExtraFormDataFilters,
+  getRisonFilterParam,
+  prettifyRisonFilterUrl,
+  injectRisonFiltersIntelligently,
+  updateUrlWithUnmatchedFilters,
+  RISON_UNMATCHED_DATAMASK_ID,
+} from '../util/risonFilters';
+
+type NativeFilterConfigEntry = Partial<Filter> & { id: string };
 
 export const DashboardPageIdContext = createContext('');
 
@@ -216,7 +227,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         dataMask = await getFilterValue(id, nativeFilterKeyValue);
       }
       if (isOldRison) {
-          // Normalize legacy `currentState` → `filterState`. Pre-2021 URLs stored
+        // Normalize legacy `currentState` → `filterState`. Pre-2021 URLs stored
         // per-filter selections under `currentState`; modern dataMask uses
         // `filterState`. Without this copy the filter panel shows no active
         // selections even though extraFormData still applies the query filter.
