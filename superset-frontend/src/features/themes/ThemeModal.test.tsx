@@ -393,6 +393,36 @@ test('renders the Editors field with the current user preselected in add mode', 
   );
 });
 
+test('allows save with no editors (editors are optional, like charts)', async () => {
+  // A theme with an empty editors list is valid (admin-only, same as
+  // legacy/system themes). Save must not be blocked by missing editors.
+  const themeWithoutEditors: ThemeObject = {
+    ...mockTheme,
+    editors: [],
+  };
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={jest.fn()}
+      show
+      canDevelop={false}
+      theme={themeWithoutEditors}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  await screen.findByDisplayValue('Test Theme');
+
+  await waitFor(
+    () => {
+      expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+    },
+    { timeout: 10000 },
+  );
+});
+
 test('validates JSON format and enables save button', async () => {
   render(
     <ThemeModal
