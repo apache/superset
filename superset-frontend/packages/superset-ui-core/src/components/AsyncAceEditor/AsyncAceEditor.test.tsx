@@ -71,6 +71,13 @@ test('themes the selected-word occurrence markers from the theme', () => {
   // The default theme leaves `colorEditorSelection` unset, so the marker uses
   // the documented `colorPrimaryBgHover` fallback.
   expect(styles).toContain(supersetTheme.colorPrimaryBgHover);
+  // The override also restyles the marker border from the theme...
+  expect(styles).toContain(supersetTheme.colorBorder);
+  // ...and carries `!important`, which is what lets it win over Ace's bundled
+  // non-important `.ace-github .ace_marker-layer .ace_selected-word` near-white
+  // rule regardless of stylesheet order (the effective-cascade guarantee that
+  // jsdom cannot verify by computed style).
+  expect(styles).toContain('!important');
 });
 
 // Collect every CSS rule the render injected: emotion's Global styles land in
