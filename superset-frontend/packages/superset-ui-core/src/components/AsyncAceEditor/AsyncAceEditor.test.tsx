@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { createRef, type ReactNode } from 'react';
+import { createRef } from 'react';
 import { render, screen, waitFor } from '@superset-ui/core/spec';
 import {
   supersetTheme,
@@ -107,11 +107,14 @@ test('wires the dark-aware selected-word marker into the editor Global styles', 
     colorEditorSelection: markerColor,
   };
 
-  const { container } = render(<SQLEditor />, {
-    wrapper: ({ children }: { children?: ReactNode }) => (
-      <ThemeProvider theme={darkTheme}>{children}</ThemeProvider>
-    ),
-  });
+  // The shared `render` helper injects its own default `SupersetThemeProvider`,
+  // so nest the dark theme around the editor itself: the innermost emotion
+  // `ThemeProvider` is what the editor's `useTheme()` resolves.
+  const { container } = render(
+    <ThemeProvider theme={darkTheme}>
+      <SQLEditor />
+    </ThemeProvider>,
+  );
 
   await waitFor(() => {
     expect(container.querySelector('[id="ace-editor"]')).toBeInTheDocument();
