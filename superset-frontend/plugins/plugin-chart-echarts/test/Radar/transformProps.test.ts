@@ -249,8 +249,7 @@ test('preserves a null metric instead of plotting it as 0', () => {
   const result = transformProps(missingValueProps as EchartsRadarChartProps);
   const series = result.echartOptions.series as RadarSeriesOption[];
   const value = (series[0].data as RadarSeriesData[])[0].value as (
-    | number
-    | null
+    number | null
   )[];
 
   // Index 1 corresponds to 'SUM(other_sales)', which was null in the datum.
@@ -291,8 +290,7 @@ test('keeps a lone zero metric as 0 instead of NaN when all others are null', ()
   const result = transformProps(props as EchartsRadarChartProps);
   const series = result.echartOptions.series as RadarSeriesOption[];
   const value = (series[0].data as RadarSeriesData[])[0].value as (
-    | number
-    | null
+    number | null
   )[];
 
   expect(value[0] == null).toBe(true);
