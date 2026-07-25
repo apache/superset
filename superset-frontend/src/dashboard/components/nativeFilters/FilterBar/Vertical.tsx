@@ -45,6 +45,7 @@ import Header from './Header';
 import FilterControls from './FilterControls/FilterControls';
 import CrossFiltersVertical from './CrossFilters/Vertical';
 import crossFiltersSelector from './CrossFilters/selectors';
+import UrlFiltersVertical from './UrlFilters/Vertical';
 
 enum SectionType {
   Filters = 'filters',
@@ -327,6 +328,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
           ) : (
             <div css={tabPaneStyle} onScroll={onScroll}>
               <>
+                <UrlFiltersVertical />
                 <CrossFiltersVertical hideHeader={hasOnlyOneSectionType} />
                 {filterControls}
               </>
