@@ -89,7 +89,7 @@ const parseInterval = (label: string) => {
 export type LegendProps = {
   format: string | null;
   forceCategorical?: boolean;
-  position?: null | 'tl' | 'tr' | 'bl' | 'br';
+  position?: null | 'none' | 'tl' | 'tr' | 'bl' | 'br';
   categories: Record<string, { enabled: boolean; color: Color | undefined }>;
   toggleCategory?: (key: string) => void;
   showSingleCategory?: (key: string) => void;
@@ -98,7 +98,7 @@ export type LegendProps = {
 const Legend = ({
   format: d3Format = null,
   forceCategorical = false,
-  position,
+  position = 'tr',
   categories: categoriesObject = {},
   toggleCategory = () => {},
   showSingleCategory = () => {},
@@ -137,11 +137,15 @@ const Legend = ({
   };
 
   // Hide the legend when there are no categories, or when Legend Position is
-  // "None". The control's "None" choice has a null value, but the Select can
-  // round-trip it as undefined (or an empty string), so treat every falsy
-  // position as "hidden" rather than strictly matching null. Valid corner
-  // values ('tl'/'tr'/'bl'/'br') are truthy and fall through to render.
-  if (Object.keys(categoriesObject).length === 0 || !position) {
+  // "None". "None" is the 'none' sentinel from the control; null/'' are also
+  // treated as hidden so charts saved under the older null-valued choice keep
+  // working. An unset position (undefined) keeps the 'tr' default so layers
+  // without a Legend Position control (e.g. Hex, Path) still show their legend.
+  if (
+    Object.keys(categoriesObject).length === 0 ||
+    !position ||
+    position === 'none'
+  ) {
     return null;
   }
 

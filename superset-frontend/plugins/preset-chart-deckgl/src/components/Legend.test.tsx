@@ -131,10 +131,9 @@ test('ctrl+clicking a legend item toggles the category without opening a new tab
 });
 
 // Regression proof for the "Legend Position: None" control not hiding the
-// legend. The control's "None" choice has a null value, but the modernized
-// Select can hand it back as undefined or an empty string, so the legend must
-// hide for any falsy position rather than strictly matching null.
-test.each([null, undefined, ''])(
+// legend. "None" is the 'none' sentinel; null and '' also hide so charts saved
+// under the older null-valued choice keep working.
+test.each(['none', null, ''])(
   'renders nothing when Legend Position is None (position=%p)',
   position => {
     renderWithTheme(
@@ -154,6 +153,20 @@ test('renders the legend for a valid corner position', () => {
     <Legend
       format={null}
       position="tr"
+      categories={{ Alpha: { enabled: true, color: [0, 0, 0] } }}
+    />,
+  );
+
+  expect(screen.getByText('Alpha')).toBeInTheDocument();
+});
+
+test('falls back to the top-right default when position is unset', () => {
+  // Layers without a Legend Position control (e.g. Hex, Path) pass an
+  // undefined position; the legend must still render at the default corner.
+  renderWithTheme(
+    <Legend
+      format={null}
+      position={undefined}
       categories={{ Alpha: { enabled: true, color: [0, 0, 0] } }}
     />,
   );
