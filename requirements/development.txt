@@ -276,7 +276,7 @@ flask-babel==3.1.0
     # via
     #   -c requirements/base-constraint.txt
     #   flask-appbuilder
-flask-caching==2.3.1
+flask-caching==2.4.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -341,7 +341,7 @@ geopy==2.4.1
     #   apache-superset
 gevent==26.4.0
     # via apache-superset
-google-api-core==2.23.0
+google-api-core==2.33.0
     # via
     #   google-cloud-bigquery
     #   google-cloud-core
@@ -362,7 +362,7 @@ google-auth-oauthlib==1.2.1
     # via
     #   pandas-gbq
     #   pydata-google-auth
-google-cloud-bigquery==3.42.1
+google-cloud-bigquery==3.42.2
     # via
     #   apache-superset
     #   pandas-gbq
@@ -795,7 +795,7 @@ pyopenssl==26.3.0
     #   -c requirements/base-constraint.txt
     #   google-auth
     #   shillelagh
-pyparsing==3.2.3
+pyparsing==3.3.2
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
