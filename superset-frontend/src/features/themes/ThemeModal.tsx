@@ -389,13 +389,11 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
 
     const hasValidName = Boolean(currentTheme?.theme_name?.trim());
     const hasValidJsonData = Boolean(currentTheme?.json_data?.trim());
-    const hasEditors = Boolean(currentTheme?.editors?.length);
 
     // Block save only on ERRORS (not warnings)
-    // Errors: JSON syntax errors, empty themes, no editors
+    // Errors: JSON syntax errors, empty themes
     // Warnings: Unknown tokens, null values (non-blocking)
-    const canSave =
-      hasValidName && hasValidJsonData && hasEditors && !validation.hasErrors;
+    const canSave = hasValidName && hasValidJsonData && !validation.hasErrors;
 
     setDisableSave(!canSave);
   };
@@ -577,7 +575,7 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
             />
           </Form.Item>
 
-          <Form.Item label={t('Editors')} required={!isReadOnly}>
+          <Form.Item label={t('Editors')}>
             <SubjectPicker
               relatedUrl="/api/v1/theme/related/editors"
               ariaLabel={t('Editors')}
