@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import atexit
 import logging
+import time
 from abc import ABC, abstractmethod
 from enum import Enum
 from time import sleep
@@ -43,7 +44,8 @@ from superset.extensions import machine_auth_provider_factory
 from superset.utils.retries import retry_call
 from superset.utils.screenshot_utils import (
     CHART_HOLDERS_READY_JS,
-    FIND_UNREADY_CHART_HOLDERS_JS,
+    FIND_CHART_HOLDER_STATES_JS,
+    resolve_screenshot_task_budget_seconds,
     take_tiled_screenshot,
 )
 
@@ -56,6 +58,11 @@ PLAYWRIGHT_INSTALL_MESSAGE = (
     "and enable WebGL/DeckGL screenshot support, install Playwright with: "
     "pip install playwright && playwright install chromium"
 )
+
+
+class ScreenshotTaskBudgetExceededError(RuntimeError):
+    """Raised when no safe task budget remains before screenshot capture."""
+
 
 if TYPE_CHECKING:
     from typing import Any
@@ -285,6 +292,7 @@ class WebDriverPlaywright(WebDriverProxy):
         url: str,
         load_wait: int,
         log_context: str | None = None,
+        screenshot_started_at: float | None = None,
     ) -> None:
         """
         Wait for every viewport-visible chart holder to reach a terminal state
@@ -307,30 +315,93 @@ class WebDriverPlaywright(WebDriverProxy):
         design and must not block this wait.
         """
         context_suffix = f" [{log_context}]" if log_context else ""
+        ready_states = {"rendered", "empty", "error", "virtualized"}
+        initial_chart_holder_states = page.evaluate(FIND_CHART_HOLDER_STATES_JS)
+        initial_unready_chart_holders = [
+            holder
+            for holder in initial_chart_holder_states
+            if holder.get("state") not in ready_states
+        ]
+        logger.info(
+            "Chart holder states before readiness polling at url %s%s: %s",
+            url,
+            context_suffix,
+            initial_chart_holder_states,
+        )
+        if initial_unready_chart_holders:
+            logger.info(
+                "Chart holders not ready before polling at url %s%s: %s",
+                url,
+                context_suffix,
+                initial_unready_chart_holders,
+            )
+        task_budget = resolve_screenshot_task_budget_seconds(log_context)
+        elapsed = (
+            max(0.0, time.monotonic() - screenshot_started_at)
+            if task_budget is not None and screenshot_started_at is not None
+            else 0.0
+        )
+        remaining_budget = task_budget - elapsed if task_budget is not None else None
+        effective_load_wait = (
+            min(float(load_wait), remaining_budget)
+            if remaining_budget is not None
+            else float(load_wait)
+        )
+        if effective_load_wait <= 0:
+            logger.warning(
+                "Screenshot task budget exhausted before chart readiness wait "
+                "at url %s%s (%.2fs elapsed of %.2fs safe budget); unready chart "
+                "holders (chart id, state): %s; all chart holder states: %s. "
+                "Aborting before capture so cleanup and cache error transition "
+                "can complete.",
+                url,
+                context_suffix,
+                elapsed,
+                task_budget,
+                initial_unready_chart_holders,
+                initial_chart_holder_states,
+            )
+            raise ScreenshotTaskBudgetExceededError(
+                f"Screenshot task budget of {task_budget:.2f}s exhausted "
+                "before chart readiness"
+            )
         logger.debug(
             "Waiting for all chart holders to reach a terminal state at "
-            "url: %s (SCREENSHOT_LOAD_WAIT=%ss)%s",
+            "url: %s (SCREENSHOT_LOAD_WAIT=%ss, effective_wait=%.2fs, "
+            "task_budget=%s, elapsed=%.2fs)%s",
             url,
             load_wait,
+            effective_load_wait,
+            task_budget,
+            elapsed,
             context_suffix,
         )
         try:
             page.wait_for_function(
                 CHART_HOLDERS_READY_JS,
-                timeout=load_wait * 1000,
+                timeout=effective_load_wait * 1000,
             )
         except PlaywrightTimeout:
-            unready_chart_holders = page.evaluate(FIND_UNREADY_CHART_HOLDERS_JS)
+            chart_holder_states = page.evaluate(FIND_CHART_HOLDER_STATES_JS)
+            unready_chart_holders = [
+                holder
+                for holder in chart_holder_states
+                if holder.get("state") not in ready_states
+            ]
             logger.warning(
                 "Timed out waiting for %s chart container(s) to become ready "
-                "at url %s (SCREENSHOT_LOAD_WAIT=%ss)%s; unready chart "
-                "holders (chart id, state): %s. Aborting screenshot rather "
+                "at url %s (SCREENSHOT_LOAD_WAIT=%ss, effective_wait=%.2fs)%s; "
+                "unready chart "
+                "holders (chart id, state): %s; all chart holder states: %s. "
+                "Aborting screenshot rather "
                 "than capturing a blank or partially-loaded dashboard.",
                 len(unready_chart_holders),
                 url,
                 load_wait,
+                effective_load_wait,
                 context_suffix,
                 unready_chart_holders,
+                chart_holder_states,
             )
             raise
         logger.debug("All chart holders ready at url: %s%s", url, context_suffix)
@@ -342,6 +413,7 @@ class WebDriverPlaywright(WebDriverProxy):
         user: User | None = None,
         log_context: str | None = None,
     ) -> bytes | None:
+        screenshot_started_at = time.monotonic()
         if not PLAYWRIGHT_AVAILABLE:
             logger.info(
                 "Playwright not available - falling back to Selenium. "
@@ -510,6 +582,7 @@ class WebDriverPlaywright(WebDriverProxy):
                             url,
                             self._screenshot_load_wait,
                             log_context=log_context,
+                            screenshot_started_at=screenshot_started_at,
                         )
                         if selenium_animation_wait > 0:
                             logger.debug(
@@ -544,6 +617,7 @@ class WebDriverPlaywright(WebDriverProxy):
                         url,
                         self._screenshot_load_wait,
                         log_context=log_context,
+                        screenshot_started_at=screenshot_started_at,
                     )
                     if selenium_animation_wait > 0:
                         logger.debug(
