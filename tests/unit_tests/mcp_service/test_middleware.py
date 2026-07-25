@@ -1922,3 +1922,32 @@ class TestStructuredContentStripperErrorHook:
             result = await middleware.on_call_tool(context, call_next)
 
         assert result.content[0].text == "Error: HostileStrError"
+
+    @pytest.mark.asyncio
+    async def test_client_facing_text_is_sanitized(self) -> None:
+        """An exception bypassing GlobalErrorHandlerMiddleware must not
+        leak raw internals to the client — the last-resort response text
+        goes through the same sanitizer as every other error path."""
+        middleware = StructuredContentStripperMiddleware()
+        context = MagicMock()
+        context.message.name = "execute_sql"
+        # Connection string with embedded credentials — must be redacted.
+        call_next = AsyncMock(
+            side_effect=ValueError(
+                "connect failed: postgresql://user:s3cret@db.internal:5432/prod"
+            )
+        )
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = None
+
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=mock_flask_app,
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        text = result.content[0].text
+        assert text.startswith("Error:")
+        assert "s3cret" not in text
+        assert "db.internal" not in text
+        assert "[REDACTED]" in text
