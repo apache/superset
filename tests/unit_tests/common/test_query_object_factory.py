@@ -154,19 +154,20 @@ class TestQueryObjectFactory:
         assert query_object.columns == ["name", "gender"]
         assert not hasattr(query_object, "groupby")
 
-    def test_deprecated_groupby_does_not_overwrite_columns(
+    def test_deprecated_groupby_overwrites_columns(
         self,
         query_object_factory: QueryObjectFactory,
         raw_query_context: dict[str, Any],
     ):
-        """When both groupby and columns are present, columns takes precedence."""
+        """A truthy deprecated groupby overrides an already-present columns,
+        matching the historical QueryObject._rename_deprecated_fields precedence."""
         raw_query_object = raw_query_context["queries"][0]
         raw_query_object["columns"] = ["state"]
         raw_query_object["groupby"] = ["name", "gender"]
         query_object = query_object_factory.create(
             raw_query_context["result_type"], **raw_query_object
         )
-        assert query_object.columns == ["state"]
+        assert query_object.columns == ["name", "gender"]
 
     def test_deprecated_groupby_empty_list_is_ignored(
         self,
