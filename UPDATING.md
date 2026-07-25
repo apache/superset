@@ -24,6 +24,15 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Dataset exports now include metric/column `uuid` fields
+
+Exported dataset YAML now carries a `uuid` for each metric and column so that
+custom folder assignments (which reference metrics/columns by UUID) survive an
+import into another workspace. As with `folders` and `currency_code_column`,
+these files fail schema validation (`Unknown field: uuid`) when imported into
+Superset releases that predate this change; regenerate or hand-edit exports for
+older targets in mixed-version fleets.
+
 ### Dashboard "Export Data to Excel" requires a Celery worker and S3 bucket
 
 A new dashboard action exports every chart's data to a single multi-sheet

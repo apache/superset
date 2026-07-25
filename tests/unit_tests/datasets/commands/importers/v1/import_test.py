@@ -301,8 +301,8 @@ def test_export_import_round_trip_preserves_metric_folder_membership(
                 "type": "folder",
                 "name": "Custom",
                 "children": [
-                    {"uuid": str(metric_uuid)},
-                    {"uuid": str(column_uuid)},
+                    {"uuid": str(metric_uuid), "type": "metric"},
+                    {"uuid": str(column_uuid), "type": "column"},
                 ],
             },
         ],
@@ -341,21 +341,86 @@ def test_export_import_round_trip_preserves_metric_folder_membership(
     imported = import_dataset(config)
 
     # The metric/column must be recreated with their original UUIDs so the
-    # folder leaves still resolve to them — i.e. they stay in the custom folder.
+    # typed folder leaves still resolve to them — i.e. they stay in the custom
+    # folder rather than being re-homed to the default one.
     imported_metric = next(m for m in imported.metrics if m.metric_name == "cnt")
     assert imported_metric.uuid == metric_uuid
     imported_column = next(c for c in imported.columns if c.column_name == "profit")
     assert imported_column.uuid == column_uuid
 
-    # Every UUID referenced by a folder leaf must exist among the imported
-    # metrics/columns; otherwise the item is orphaned back to the default folder.
-    folder_leaf_uuids = {
-        child["uuid"] for folder in imported.folders for child in folder["children"]
+    # The whole folder structure round-trips, and its metric/column leaves point
+    # at UUIDs that exist among the imported children.
+    assert imported.folders == [
+        {
+            "uuid": str(folder_uuid),
+            "type": "folder",
+            "name": "Custom",
+            "children": [
+                {"uuid": str(metric_uuid), "type": "metric"},
+                {"uuid": str(column_uuid), "type": "column"},
+            ],
+        },
+    ]
+
+
+def test_import_dataset_clone_with_duplicate_child_uuid_gets_fresh_uuid(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Cloning a dataset by importing its config under a new dataset UUID must not
+    fail when the original — and its metric/column UUIDs — still exist.
+
+    Metric/column UUIDs are globally unique but matched only within their parent
+    on import, so an unchanged child UUID under a *new* dataset would otherwise
+    violate the unique constraint on INSERT. The importer drops the colliding
+    UUID and lets a fresh one be assigned, so the clone imports cleanly (the
+    pre-uuid-export behavior for that workflow).
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    metric_uuid = "00000000-0000-0000-0000-0000000000d4"
+    column_uuid = "00000000-0000-0000-0000-0000000000e5"
+    config = {
+        "table_name": "my_table",
+        "uuid": str(uuid.uuid4()),
+        "metrics": [
+            {"metric_name": "cnt", "expression": "COUNT(*)", "uuid": metric_uuid},
+        ],
+        "columns": [
+            {"column_name": "profit", "type": "INTEGER", "uuid": column_uuid},
+        ],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
     }
-    child_uuids = {str(m.uuid) for m in imported.metrics} | {
-        str(c.uuid) for c in imported.columns
-    }
-    assert folder_leaf_uuids <= child_uuids
+
+    original = import_dataset(copy.deepcopy(config))
+    assert str(original.metrics[0].uuid) == metric_uuid
+    assert str(original.columns[0].uuid) == column_uuid
+
+    # Clone: same child UUIDs, but a new dataset UUID and name (as a user editing
+    # the exported config to duplicate the dataset would produce).
+    clone_config = copy.deepcopy(config)
+    clone_config["table_name"] = "my_table_clone"
+    clone_config["uuid"] = str(uuid.uuid4())
+
+    clone = import_dataset(clone_config)
+
+    # The clone imports without hitting the unique constraint, and its children
+    # receive fresh UUIDs while the original keeps its own.
+    assert clone.id != original.id
+    assert [m.metric_name for m in clone.metrics] == ["cnt"]
+    assert [c.column_name for c in clone.columns] == ["profit"]
+    assert str(clone.metrics[0].uuid) != metric_uuid
+    assert str(clone.columns[0].uuid) != column_uuid
+    assert str(original.metrics[0].uuid) == metric_uuid
+    assert str(original.columns[0].uuid) == column_uuid
 
 
 def test_import_dataset_no_folder(mocker: MockerFixture, session: Session) -> None:

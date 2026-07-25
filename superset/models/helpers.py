@@ -518,6 +518,21 @@ class ImportExportMixin(UUIDMixin):
 
         if not obj:
             is_new_obj = True
+            # A child ``uuid`` is globally unique, but the match above is scoped
+            # to this ``parent``. Cloning a config into a new parent (e.g.
+            # importing a dataset under an edited uuid while the original still
+            # exists) would treat an unchanged child uuid as new here and hit
+            # the ``uuid`` unique constraint on INSERT. Drop the incoming uuid
+            # so ``UUIDMixin`` assigns a fresh one, reverting to the
+            # pre-uuid-export behavior for that clone.
+            if (
+                parent is not None
+                and dict_rep.get("uuid") is not None
+                and db.session.query(cls.uuid)
+                .filter(cls.uuid == dict_rep["uuid"])
+                .first()
+            ):
+                del dict_rep["uuid"]
             # Create new DB object
             obj = cls(**dict_rep)
             logger.debug("Importing new %s %s", obj.__tablename__, str(obj))

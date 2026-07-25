@@ -95,8 +95,8 @@ class TestExportDatasetsCommand(SupersetTestCase):
         type_map = {
             column.column_name: str(column.type) for column in example_dataset.columns
         }
-        # column/metric UUIDs are now exported so folder references survive an
-        # import; they are assigned dynamically, so build lookups by name.
+        # column/metric UUIDs are exported so folder references survive import;
+        # they are assigned dynamically, so build lookups by name.
         column_uuid_map = {
             column.column_name: str(column.uuid) for column in example_dataset.columns
         }
