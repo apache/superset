@@ -149,9 +149,8 @@ testWithAssets(
     await dashboardPage.gotoById(dashboardId);
     await dashboardPage.waitForLoad({ timeout: TIMEOUT.SLOW_TEST });
     await dashboardPage.waitForChartsToLoad();
-    const filterBar = await dashboardPage.getFilterBar();
+    const filterBar = await dashboardPage.waitForFilterBar();
 
-    // The Gender select should be visible in the filter bar
     await filterBar.selectOption('boy');
 
     // Wait for chart data to come back after Apply

@@ -116,10 +116,10 @@ export class DashboardPage {
   }
 
   /**
-   * Gets the dashboard native-filter bar component.
+   * Waits for and returns the dashboard native-filter bar component.
    */
-  async getFilterBar(): Promise<DashboardFilterBar> {
-    await this.filterBar.waitForVisible();
+  async waitForFilterBar(): Promise<DashboardFilterBar> {
+    await this.filterBar.waitForReady();
     return this.filterBar;
   }
 

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { Page } from '@playwright/test';
+import { Locator, Page } from '@playwright/test';
 import { Button, Select } from '../core';
 import { NativeFiltersConfigModal } from '../modals';
 
@@ -36,12 +36,13 @@ export class DashboardFilterBar {
   constructor(private readonly page: Page) {}
 
   /**
-   * Waits for the filter bar to become visible.
+   * Waits for the filter bar controls to become interactive.
    */
-  async waitForVisible(options?: { timeout?: number }): Promise<void> {
-    await this.page
-      .locator(DashboardFilterBar.SELECTORS.ROOT)
-      .waitFor({ state: 'visible', ...options });
+  async waitForReady(options?: { timeout?: number }): Promise<void> {
+    await this.getApplyButton().element.waitFor({
+      state: 'visible',
+      ...options,
+    });
   }
 
   /**
@@ -52,7 +53,7 @@ export class DashboardFilterBar {
   async selectOption(optionText: string, index = 0): Promise<void> {
     const select = new Select(
       this.page,
-      this.page
+      this.root
         .locator(DashboardFilterBar.SELECTORS.FILTER_VALUE)
         .nth(index)
         .getByRole('combobox'),
@@ -74,7 +75,8 @@ export class DashboardFilterBar {
    */
   async applyIfEnabled(): Promise<void> {
     const applyButton = this.getApplyButton();
-    if (!(await applyButton.isEnabled().catch(() => false))) {
+    await applyButton.element.waitFor({ state: 'visible' });
+    if (await applyButton.isDisabled()) {
       return;
     }
 
@@ -87,7 +89,7 @@ export class DashboardFilterBar {
   async clearAll(): Promise<void> {
     await new Button(
       this.page,
-      DashboardFilterBar.SELECTORS.CLEAR_BUTTON,
+      this.root.locator(DashboardFilterBar.SELECTORS.CLEAR_BUTTON),
     ).click();
   }
 
@@ -95,7 +97,9 @@ export class DashboardFilterBar {
    * Opens the native filters and Display Controls configuration modal.
    */
   async openNativeFiltersConfigModal(): Promise<NativeFiltersConfigModal> {
-    await this.page.click(DashboardFilterBar.SELECTORS.SETTINGS_BUTTON);
+    await this.root
+      .locator(DashboardFilterBar.SELECTORS.SETTINGS_BUTTON)
+      .click();
     await this.page
       .getByText('Add or edit filters and controls', { exact: true })
       .click();
@@ -106,6 +110,13 @@ export class DashboardFilterBar {
   }
 
   private getApplyButton(): Button {
-    return new Button(this.page, DashboardFilterBar.SELECTORS.APPLY_BUTTON);
+    return new Button(
+      this.page,
+      this.root.locator(DashboardFilterBar.SELECTORS.APPLY_BUTTON),
+    );
+  }
+
+  private get root(): Locator {
+    return this.page.locator(DashboardFilterBar.SELECTORS.ROOT);
   }
 }

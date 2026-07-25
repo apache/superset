@@ -175,7 +175,7 @@ testWithAssets(
     await dashboardPage.gotoById(dashboardId);
     await dashboardPage.waitForLoad({ timeout: 30000 });
     await dashboardPage.waitForChartsToLoad({ timeout: 8000 }).catch(() => {});
-    const filterBar = await dashboardPage.getFilterBar();
+    const filterBar = await dashboardPage.waitForFilterBar();
 
     // Both the Gender filter and the Time grain Display Control should render.
     await expect(dashboardPage.getDisplayControlsHeader()).toBeVisible();
