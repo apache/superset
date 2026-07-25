@@ -38,45 +38,51 @@ import {
   expect,
   type TestAssets,
 } from '../../helpers/fixtures';
-import { apiPost } from '../../helpers/api/requests';
-import { apiPostDashboard } from '../../helpers/api/dashboard';
+import { apiPostChart } from '../../helpers/api/chart';
+import { getDatasetByName } from '../../helpers/api/dataset';
+import { extractIdFromResponse } from '../../helpers/api/assertions';
 import { DashboardPage } from '../../pages/DashboardPage';
-import type { Page } from '@playwright/test';
+import { createTestDashboard } from './dashboard-test-helpers';
+import type { Page, TestInfo } from '@playwright/test';
 
 const DATASET_NAME = 'birth_names';
 
-async function findDatasetIdByName(page: Page, name: string): Promise<number> {
-  const rison = `(filters:!((col:table_name,opr:eq,value:'${name}')))`;
-  const resp = await page.request.get(`api/v1/dataset/?q=${rison}`);
-  const body = await resp.json();
-  if (!body.result?.length) {
-    throw new Error(`Dataset ${name} not found`);
-  }
-  return body.result[0].id;
-}
+/**
+ * How long one click on the markdown component gets to bring up the ace editor
+ * before the retry loop tries again, and how long the whole loop gets. The
+ * per-attempt budget is deliberately short: the failure mode is a swallowed
+ * click, and retrying is cheaper than waiting out the full budget once.
+ */
+const MARKDOWN_EDIT_ATTEMPT_TIMEOUT = 2000;
+const MARKDOWN_EDIT_TOTAL_TIMEOUT = 20000;
+
+/** Downward drag distance for the resize assertion — several grid rows. */
+const RESIZE_DELTA_PX = 150;
 
 /** Create a hermetic chart from birth_names, NOT placed on any dashboard. */
 async function createChart(
   page: Page,
   testAssets: TestAssets,
+  testInfo: TestInfo,
 ): Promise<string> {
-  const datasetId = await findDatasetIdByName(page, DATASET_NAME);
-  const sliceName = `edit_mode_chart_${Date.now()}_${Math.floor(
-    performance.now(),
-  )}`;
-  const resp = await apiPost(page, 'api/v1/chart/', {
+  const dataset = await getDatasetByName(page, DATASET_NAME);
+  if (!dataset) {
+    throw new Error(`Dataset ${DATASET_NAME} not found`);
+  }
+  const sliceName = `edit_mode_chart_${Date.now()}_${testInfo.parallelIndex}`;
+  const resp = await apiPostChart(page, {
     slice_name: sliceName,
     viz_type: 'big_number_total',
-    datasource_id: datasetId,
+    datasource_id: dataset.id,
     datasource_type: 'table',
     params: JSON.stringify({
-      datasource: `${datasetId}__table`,
+      datasource: `${dataset.id}__table`,
       viz_type: 'big_number_total',
       metric: 'count',
     }),
   });
   expect(resp.ok()).toBe(true);
-  testAssets.trackChart((await resp.json()).id);
+  testAssets.trackChart(await extractIdFromResponse(resp));
   return sliceName;
 }
 
@@ -84,40 +90,37 @@ async function createChart(
 async function createDashboard(
   page: Page,
   testAssets: TestAssets,
+  testInfo: TestInfo,
 ): Promise<number> {
-  const resp = await apiPostDashboard(page, {
-    dashboard_title: `edit_mode_${Date.now()}_${Math.floor(performance.now())}`,
+  const { id } = await createTestDashboard(page, testAssets, testInfo, {
+    prefix: 'edit_mode',
     published: true,
   });
-  expect(resp.ok()).toBe(true);
-  const body = await resp.json();
-  const id: number = body.result?.id ?? body.id;
-  testAssets.trackDashboard(id);
   return id;
 }
 
 testWithAssets(
   'edit mode: add a chart to the dashboard via drag-and-drop',
-  async ({ page, testAssets }) => {
-    const sliceName = await createChart(page, testAssets);
-    const dashboardId = await createDashboard(page, testAssets);
+  async ({ page, testAssets }, testInfo) => {
+    const sliceName = await createChart(page, testAssets, testInfo);
+    const dashboardId = await createDashboard(page, testAssets, testInfo);
 
     const dashboard = new DashboardPage(page);
     await dashboard.gotoById(dashboardId);
     await dashboard.waitForLoad();
     await dashboard.enterEditMode();
 
-    await expect(dashboard.chartHolders()).toHaveCount(0);
+    await expect(dashboard.getChartHolders()).toHaveCount(0);
     await dashboard.addChartByName(sliceName);
-    await expect(dashboard.chartHolders()).toHaveCount(1);
+    await expect(dashboard.getChartHolders()).toHaveCount(1);
   },
 );
 
 testWithAssets(
   'edit mode: remove an added chart from the dashboard',
-  async ({ page, testAssets }) => {
-    const sliceName = await createChart(page, testAssets);
-    const dashboardId = await createDashboard(page, testAssets);
+  async ({ page, testAssets }, testInfo) => {
+    const sliceName = await createChart(page, testAssets, testInfo);
+    const dashboardId = await createDashboard(page, testAssets, testInfo);
 
     const dashboard = new DashboardPage(page);
     await dashboard.gotoById(dashboardId);
@@ -125,20 +128,20 @@ testWithAssets(
     await dashboard.enterEditMode();
 
     await dashboard.addChartByName(sliceName);
-    await expect(dashboard.chartHolders()).toHaveCount(1);
+    await expect(dashboard.getChartHolders()).toHaveCount(1);
 
     await dashboard.deleteChartHolder();
-    await expect(dashboard.chartHolders()).toHaveCount(0);
+    await expect(dashboard.getChartHolders()).toHaveCount(0);
   },
 );
 
 testWithAssets(
   'edit mode: add a markdown component via drag-and-drop',
-  async ({ page, testAssets }) => {
+  async ({ page, testAssets }, testInfo) => {
     // Heaviest edit-mode flow (drag + ace edit + commit + mouse resize); give it
     // extra headroom so it stays reliable when the suite runs in parallel.
     testWithAssets.slow();
-    const dashboardId = await createDashboard(page, testAssets);
+    const dashboardId = await createDashboard(page, testAssets, testInfo);
 
     const dashboard = new DashboardPage(page);
     await dashboard.gotoById(dashboardId);
@@ -146,7 +149,7 @@ testWithAssets(
     await dashboard.enterEditMode();
 
     await dashboard.addLayoutElement('Text / Markdown');
-    const editor = dashboard.markdownEditors().first();
+    const editor = dashboard.getMarkdownEditors().first();
     await expect(editor).toBeVisible();
 
     // Enter edit mode by focusing the component. The markdown enters edit on a
@@ -154,39 +157,34 @@ testWithAssets(
     // can be missed under load; retry until the ace editor appears. Click the
     // rendered "Header 1" heading element specifically (never the trailing
     // hyperlink in the default content), so a stray click can't navigate away.
-    const aceContent = editor.locator('.ace_content');
+    const aceContent = dashboard.getMarkdownAceContent(editor);
     const heading = editor.locator('h1', { hasText: 'Header 1' });
     await expect(async () => {
       if (await aceContent.isVisible()) return;
       await heading.click();
-      await expect(aceContent).toBeVisible({ timeout: 2000 });
-    }).toPass({ timeout: 20000 });
+      await expect(aceContent).toBeVisible({
+        timeout: MARKDOWN_EDIT_ATTEMPT_TIMEOUT,
+      });
+    }).toPass({ timeout: MARKDOWN_EDIT_TOTAL_TIMEOUT });
     await expect(aceContent).toContainText('Header 1');
     await expect(aceContent).toContainText('markdown formatting');
 
     // Replace the content and confirm the edit is reflected.
-    const aceInput = editor.locator('.ace_text-input');
+    const aceInput = dashboard.getMarkdownAceInput(editor);
     await aceInput.press('ControlOrMeta+a');
     await aceInput.press('Delete');
-    await aceInput.type('Test resize');
+    await aceInput.pressSequentially('Test resize');
     await expect(aceContent).toContainText('Test resize');
 
     // Commit by clicking outside the component; the preview keeps the text.
-    const boxBefore = await editor.boundingBox();
-    await page.locator('[data-test="editable-title-input"]').first().click();
+    await dashboard.blurToDashboardTitle();
     await expect(editor).toContainText('Test resize');
 
     // Resize via the bottom handle and confirm the component grew taller.
-    const handle = editor.locator('.resizable-container-handle--bottom').last();
-    const hb = await handle.boundingBox();
-    expect(hb).not.toBeNull();
-    if (hb && boxBefore) {
-      await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
-      await page.mouse.down();
-      await page.mouse.move(hb.x + hb.width / 2, hb.y + 150, { steps: 10 });
-      await page.mouse.up();
-      const boxAfter = await editor.boundingBox();
-      expect(boxAfter!.height).toBeGreaterThan(boxBefore.height);
-    }
+    const { heightBefore, heightAfter } = await dashboard.resizeComponent(
+      editor,
+      RESIZE_DELTA_PX,
+    );
+    expect(heightAfter).toBeGreaterThan(heightBefore);
   },
 );

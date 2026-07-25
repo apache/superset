@@ -62,6 +62,8 @@ interface TestDashboardResult {
 interface CreateTestDashboardOptions {
   /** Prefix for generated name (default: 'test_dashboard') */
   prefix?: string;
+  /** Publish the dashboard on creation (default: false, the API default) */
+  published?: boolean;
 }
 
 /**
@@ -86,6 +88,7 @@ export async function createTestDashboard(
 
   const response = await apiPostDashboard(page, {
     dashboard_title: name,
+    ...(options?.published !== undefined && { published: options.published }),
   });
 
   if (!response.ok()) {

@@ -20,6 +20,14 @@
 import { Locator, Page } from '@playwright/test';
 
 /**
+ * Unconditional pause between drag events, letting react-dnd's HTML5 backend
+ * commit its monitor state before the next event fires. Deliberately not in
+ * `TIMEOUT`: that object holds wait *ceilings* (a wait may finish sooner),
+ * whereas this is a fixed sleep that always costs what it says.
+ */
+const REACT_DND_SETTLE_MS = 50;
+
+/**
  * Drives an HTML5 drag-and-drop using synthetic native drag events.
  *
  * The dashboard grid uses react-dnd with the HTML5 backend
@@ -54,11 +62,11 @@ export async function html5DragAndDrop(
   // react-dnd's HTML5 backend commits monitor state (the active drag source) on a
   // microtask after dragstart; a short settle avoids a race where dragover/drop
   // fire before the backend considers a drag to be in progress.
-  await page.waitForTimeout(50);
+  await page.waitForTimeout(REACT_DND_SETTLE_MS);
   // dragenter must precede dragover for react-dnd to register the hover target.
   await target.dispatchEvent('dragenter', { dataTransfer });
   await target.dispatchEvent('dragover', { dataTransfer });
-  await page.waitForTimeout(50);
+  await page.waitForTimeout(REACT_DND_SETTLE_MS);
   await target.dispatchEvent('drop', { dataTransfer });
   await source.dispatchEvent('dragend', { dataTransfer });
 

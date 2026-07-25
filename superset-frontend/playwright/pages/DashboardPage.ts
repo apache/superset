@@ -24,6 +24,17 @@ import { gotoWithRetry } from '../helpers/navigation';
 import { html5DragAndDrop } from '../helpers/dnd';
 import { TIMEOUT } from '../utils/constants';
 
+/** Tabs of the dashboard builder side pane, by their rendered label. */
+type BuilderTab = 'Charts' | 'Layout elements';
+
+/**
+ * Built-in draggable layout elements, by their rendered label (see
+ * `src/dashboard/components/gridComponents/new/`). Extension-provided elements
+ * carry dynamic names and are not covered here.
+ */
+type LayoutElementLabel =
+  'Tabs' | 'Row' | 'Column' | 'Header' | 'Text / Markdown' | 'Divider';
+
 /**
  * Dashboard Page object for interacting with dashboards.
  */
@@ -42,12 +53,16 @@ export class DashboardPage {
     BUILDER_PANE: '[data-test="dashboard-builder-sidepane"]',
     CHARTS_SEARCH: '[data-test="dashboard-charts-filter-search-input"]',
     CHART_CARD: '[data-test="chart-card"]',
-    GRID_CONTENT: '[data-test="grid-content"]',
     EMPTY_DROPTARGET: '[data-test="grid-content"] .empty-droptarget',
     NEW_COMPONENT: '[data-test="new-component"]',
     CHART_HOLDER: '[data-test="dashboard-component-chart-holder"]',
     DELETE_COMPONENT: '[data-test="dashboard-delete-component-button"]',
     MARKDOWN_EDITOR: '[data-test="dashboard-markdown-editor"]',
+    EDITABLE_TITLE: '[data-test="editable-title-input"]',
+    // Ace exposes no data-test hooks; these are its own stable DOM classes.
+    ACE_CONTENT: '.ace_content',
+    ACE_TEXT_INPUT: '.ace_text-input',
+    RESIZE_HANDLE_BOTTOM: '.resizable-container-handle--bottom',
   } as const;
 
   constructor(page: Page) {
@@ -241,14 +256,16 @@ export class DashboardPage {
    * Switch the builder side pane to one of its tabs.
    * @param tab - 'Charts' (existing slices) or 'Layout elements' (new components)
    */
-  async openBuilderTab(tab: 'Charts' | 'Layout elements'): Promise<void> {
+  private async openBuilderTab(tab: BuilderTab): Promise<void> {
     await this.builderTabs().clickTab(tab);
   }
 
   /**
    * Locator for chart-holder components currently placed on the grid.
+   * Markdown components are chart holders too — use
+   * {@link getMarkdownEditors} when the assertion must exclude them.
    */
-  chartHolders(): Locator {
+  getChartHolders(): Locator {
     return this.page.locator(DashboardPage.SELECTORS.CHART_HOLDER);
   }
 
@@ -274,7 +291,7 @@ export class DashboardPage {
    * Requires edit mode to be active.
    * @param label - The new-component label, e.g. 'Text / Markdown'
    */
-  async addLayoutElement(label: string): Promise<void> {
+  async addLayoutElement(label: LayoutElementLabel): Promise<void> {
     await this.openBuilderTab('Layout elements');
     const source = this.page
       .locator(DashboardPage.SELECTORS.NEW_COMPONENT)
@@ -285,19 +302,17 @@ export class DashboardPage {
   }
 
   /**
-   * The grid drop target. Prefers the empty droptarget (empty grid) and falls
-   * back to the grid content container.
+   * The grid's empty drop target, which the grid renders while in edit mode.
    */
   private dropTarget(): Locator {
     return this.page.locator(DashboardPage.SELECTORS.EMPTY_DROPTARGET).first();
   }
 
   /**
-   * Hover a placed chart-holder and click its delete button (edit mode).
-   * @param index - Which chart holder to delete (default 0)
+   * Hover the first placed chart-holder and click its delete button (edit mode).
    */
-  async deleteChartHolder(index = 0): Promise<void> {
-    const holder = this.chartHolders().nth(index);
+  async deleteChartHolder(): Promise<void> {
+    const holder = this.getChartHolders().first();
     await holder.hover();
     const deleteButton = new Button(
       this.page,
@@ -309,7 +324,86 @@ export class DashboardPage {
   /**
    * Locator for markdown editor components on the grid.
    */
-  markdownEditors(): Locator {
+  getMarkdownEditors(): Locator {
     return this.page.locator(DashboardPage.SELECTORS.MARKDOWN_EDITOR);
+  }
+
+  /**
+   * The rendered ace document inside a markdown component. Present only once
+   * the component has entered its editing state.
+   *
+   * Exposed as a locator rather than routed through the `AceEditor` component:
+   * that component reads and writes through `ace.edit(...)` in page context,
+   * which both bypasses the real keystroke path under test and gives up
+   * web-first retries on assertions.
+   *
+   * @param markdownEditor - A locator from {@link getMarkdownEditors}
+   */
+  getMarkdownAceContent(markdownEditor: Locator): Locator {
+    return markdownEditor.locator(DashboardPage.SELECTORS.ACE_CONTENT);
+  }
+
+  /**
+   * Ace's hidden textarea inside a markdown component — the element that
+   * receives keystrokes.
+   *
+   * @param markdownEditor - A locator from {@link getMarkdownEditors}
+   */
+  getMarkdownAceInput(markdownEditor: Locator): Locator {
+    return markdownEditor.locator(DashboardPage.SELECTORS.ACE_TEXT_INPUT);
+  }
+
+  /**
+   * Click the dashboard title, moving focus off whichever grid component holds
+   * it. Committing a markdown edit needs a click on a neutral target, and the
+   * title is the one always-present element that changes nothing when clicked.
+   */
+  async blurToDashboardTitle(): Promise<void> {
+    await this.page
+      .locator(DashboardPage.SELECTORS.EDITABLE_TITLE)
+      .first()
+      .click();
+  }
+
+  /**
+   * Drag a grid component's bottom resize handle down by `deltaY` pixels.
+   * Requires edit mode. Uses the mouse because the resize handle is driven by
+   * `react-resizable`, which tracks real pointer movement.
+   *
+   * @param component - The grid component to resize
+   * @param deltaY - Pixels to drag downwards (positive grows the component)
+   * @returns The component's height before and after the drag
+   */
+  async resizeComponent(
+    component: Locator,
+    deltaY: number,
+  ): Promise<{ heightBefore: number; heightAfter: number }> {
+    const boxBefore = await component.boundingBox();
+    if (!boxBefore) {
+      throw new Error('Cannot resize a component that is not visible');
+    }
+
+    const handle = component
+      .locator(DashboardPage.SELECTORS.RESIZE_HANDLE_BOTTOM)
+      .last();
+    const handleBox = await handle.boundingBox();
+    if (!handleBox) {
+      throw new Error('Resize handle is not visible');
+    }
+
+    const startX = handleBox.x + handleBox.width / 2;
+    const startY = handleBox.y + handleBox.height / 2;
+    await this.page.mouse.move(startX, startY);
+    await this.page.mouse.down();
+    // Multiple steps so react-resizable sees a drag rather than a teleport.
+    await this.page.mouse.move(startX, startY + deltaY, { steps: 10 });
+    await this.page.mouse.up();
+
+    const boxAfter = await component.boundingBox();
+    if (!boxAfter) {
+      throw new Error('Component disappeared during resize');
+    }
+
+    return { heightBefore: boxBefore.height, heightAfter: boxAfter.height };
   }
 }
