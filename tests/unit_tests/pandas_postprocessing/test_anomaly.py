@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pandas as pd
@@ -381,3 +381,90 @@ def test_anomaly_detection_prophet_not_installed():
     with patch.dict("sys.modules", {"prophet": None}):
         with pytest.raises(InvalidPostProcessingError, match="prophet"):
             anomaly_detection(df=df, method="prophet", confidence_interval=0.8)
+
+
+def _make_prophet_sys_modules_patch(is_anomaly_mask: list[bool]) -> MagicMock:
+    """
+    Return a sys.modules patch dict that injects a fake prophet module.
+    The mock Prophet class produces forecasts where masked indices are anomalous.
+    """
+    n = len(is_anomaly_mask)
+    # yhat_lower/upper: anomaly positions get bounds that exclude the data value
+    forecast = pd.DataFrame(
+        {
+            "yhat": [1.0] * n,
+            "yhat_lower": [999.0 if m else 0.5 for m in is_anomaly_mask],
+            "yhat_upper": [999.0 if m else 1.5 for m in is_anomaly_mask],
+        }
+    )
+    mock_model = MagicMock()
+    mock_model.predict.return_value = forecast
+
+    mock_prophet_cls = MagicMock(return_value=mock_model)
+
+    mock_prophet_module = MagicMock()
+    mock_prophet_module.Prophet = mock_prophet_cls
+    return mock_prophet_module
+
+
+def test_detect_anomalies_prophet_body():
+    """Execute _detect_anomalies_prophet body via a mocked prophet module."""
+    from superset.utils.pandas_postprocessing.anomaly import _detect_anomalies_prophet
+
+    dates = pd.date_range("2020-01-01", periods=10, freq="D")
+    values = [1.0] * 10
+    values[5] = 50.0
+    df = pd.DataFrame({DTTM_ALIAS: dates, "metric": values})
+
+    mask = [False] * 10
+    mask[5] = True  # value=50 < yhat_lower=999 → anomaly
+    mock_prophet_module = _make_prophet_sys_modules_patch(mask)
+
+    with patch.dict("sys.modules", {"prophet": mock_prophet_module}):
+        result = _detect_anomalies_prophet(
+            df=df,
+            column="metric",
+            index=DTTM_ALIAS,
+            confidence_interval=0.8,
+            yearly_seasonality=False,
+            weekly_seasonality=False,
+            daily_seasonality=False,
+        )
+
+    assert result.iloc[5]
+    assert not result.iloc[0]
+    mock_prophet_module.Prophet.assert_called_once_with(
+        interval_width=0.8,
+        yearly_seasonality=False,
+        weekly_seasonality=False,
+        daily_seasonality=False,
+    )
+
+
+def test_detect_anomalies_prophet_tz_aware():
+    """Cover the tz_convert branch when timestamps are timezone-aware."""
+    from superset.utils.pandas_postprocessing.anomaly import _detect_anomalies_prophet
+
+    dates = pd.date_range("2020-01-01", periods=10, freq="D", tz="UTC")
+    df = pd.DataFrame({DTTM_ALIAS: dates, "metric": [1.0] * 10})
+
+    mock_prophet_module = _make_prophet_sys_modules_patch([False] * 10)
+
+    with patch.dict("sys.modules", {"prophet": mock_prophet_module}):
+        result = _detect_anomalies_prophet(
+            df=df,
+            column="metric",
+            index=DTTM_ALIAS,
+            confidence_interval=0.8,
+            yearly_seasonality=False,
+            weekly_seasonality=False,
+            daily_seasonality=False,
+        )
+
+    assert len(result) == 10
+    assert not result.any()
+
+
+def test_parse_seasonality_non_int_string():
+    """Cover the except branch: non-numeric value passes through unchanged."""
+    assert _parse_seasonality("fourier_order") == "fourier_order"
