@@ -329,7 +329,7 @@ pyopenssl==26.3.0
     # via
     #   -r requirements/base.in
     #   shillelagh
-pyparsing==3.2.3
+pyparsing==3.3.2
     # via apache-superset (pyproject.toml)
 pysocks==1.7.1
     # via urllib3
