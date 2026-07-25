@@ -169,3 +169,27 @@ test('area proportion clamps negative cumulatives instead of yielding NaN', () =
     s.data.forEach((d: any) => expect(Number.isNaN(d.value)).toBe(false)),
   );
 });
+
+test('renders when __timestamp is serialized as a non-epoch string', () => {
+  // some backends/date formats return ISO-ish timestamps rather than epoch
+  // millis; a parseInt round-trip on the key would strand every period
+  const isoRecords = [
+    { __timestamp: '2021-01-01', 'sum__num, East': 30, 'sum__num, West': 10 },
+    { __timestamp: '2021-02-01', 'sum__num, East': 10, 'sum__num, West': 10 },
+  ];
+  const props = new ChartProps({
+    width: 800,
+    height: 600,
+    formData,
+    theme: supersetTheme,
+    queriesData: [{ data: isoRecords }],
+    hooks: {},
+  }) as unknown as EchartsRoseChartProps;
+  const { echartOptions, periods, seriesNames } = transformProps(props);
+  const { series } = echartOptions as any;
+
+  // both periods survive and both series get their values
+  expect(periods).toHaveLength(2);
+  expect(seriesNames).toEqual(['East', 'West']);
+  expect(series[0].data.map((d: any) => d.value)).toEqual([30, 10]);
+});

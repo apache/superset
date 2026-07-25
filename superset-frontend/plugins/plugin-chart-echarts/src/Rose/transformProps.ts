@@ -69,17 +69,26 @@ export default function transformProps(
   const timeFormat = getTimeFormatter(dateTimeFormat);
   const colorFn = CategoricalColorNamespace.getScale(colorScheme);
 
-  const times = Object.keys(datum)
-    .map(t => parseInt(t, 10))
-    .sort((a, b) => a - b);
-  const seriesNames = (datum[times[0]] ?? []).map(entry =>
+  // Sort the period keys by their numeric timestamp when numeric, but look
+  // entries up by the ORIGINAL key: a parseInt round-trip would silently
+  // drop every period if `__timestamp` is ever serialized as anything but
+  // a plain epoch number (an ISO string, say), leaving a blank chart.
+  const periodKeys = Object.keys(datum).sort((a, b) => {
+    const na = Number(a);
+    const nb = Number(b);
+    if (Number.isNaN(na) || Number.isNaN(nb)) {
+      return a < b ? -1 : a > b ? 1 : 0;
+    }
+    return na - nb;
+  });
+  const seriesNames = (datum[periodKeys[0]] ?? []).map(entry =>
     displayName(entry.name),
   );
 
   // The largest per-period sum sets the full radius, like the legacy
   // renderer's maxRadius/maxSum proportion.
-  const sums = times.map(time =>
-    (datum[time] ?? []).reduce((acc, entry) => acc + entry.value, 0),
+  const sums = periodKeys.map(key =>
+    (datum[key] ?? []).reduce((acc, entry) => acc + entry.value, 0),
   );
   const maxSum = Math.max(...sums, 0) || 1;
 
@@ -87,10 +96,13 @@ export default function transformProps(
   // stacked outer radius is sqrt(cumsum/maxSum) on a [0, 1] radius axis;
   // each series plots the increment between consecutive outer radii. In
   // radius mode the raw values stack linearly and the axis normalizes.
-  const periods: RosePeriod[] = times.map(time => {
+  const periods: RosePeriod[] = periodKeys.map(key => {
+    const periodEntries = datum[key] ?? [];
+    // the raw timestamp rides along on each entry; fall back to the key
+    const time = Number(periodEntries[0]?.time ?? key);
     let cumulative = 0;
     let previousOuter = 0;
-    const entries = (datum[time] ?? []).map(entry => {
+    const entries = periodEntries.map(entry => {
       cumulative += entry.value;
       // Area encoding is undefined for a negative cumulative (possible
       // with difference-style comparisons); clamp the radicand at 0 so a
