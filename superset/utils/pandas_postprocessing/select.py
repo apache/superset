@@ -16,12 +16,14 @@
 # under the License.
 from typing import Optional
 
+from flask_babel import gettext as _
 from pandas import DataFrame
 
+from superset.exceptions import InvalidPostProcessingError
 from superset.utils.pandas_postprocessing.utils import validate_column_args
 
 
-@validate_column_args("columns", "drop", "rename")
+@validate_column_args("columns", "exclude", "rename")
 def select(
     df: DataFrame,
     columns: Optional[list[str]] = None,
@@ -36,8 +38,9 @@ def select(
     :param columns: Columns which to select from the DataFrame, in the desired order.
                     If left undefined, all columns will be selected. If columns are
                     renamed, the original column name should be referenced here.
-    :param exclude: columns to exclude from selection. If columns are renamed, the new
-                    column name should be referenced here.
+    :param exclude: columns to exclude from selection. Applied after `columns` and
+                    before `rename`, so the original column name should be referenced
+                    here, and the column must survive the `columns` selection.
     :param rename: columns which to rename, mapping source column to target column.
                    For instance, `{'y': 'y2'}` will rename the column `y` to
                    `y2`.
@@ -48,6 +51,13 @@ def select(
     if columns:
         df_select = df_select[columns]
     if exclude:
+        # `exclude` is validated against the incoming DataFrame by the decorator, but
+        # a preceding `columns` selection may already have removed the column. Reject
+        # that as a validation error instead of letting pandas raise a bare KeyError.
+        if any(column not in df_select.columns for column in exclude):
+            raise InvalidPostProcessingError(
+                _("Referenced columns not available in DataFrame.")
+            )
         df_select = df_select.drop(exclude, axis=1)
     if rename is not None:
         df_select = df_select.rename(columns=rename)

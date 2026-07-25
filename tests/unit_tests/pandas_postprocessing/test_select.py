@@ -53,3 +53,18 @@ def test_select():
     # select renamed column by new name
     with pytest.raises(InvalidPostProcessingError):
         select(df=timeseries_df, columns=["label_new"], rename={"label": "label_new"})
+
+
+def test_select_invalid_exclude():
+    # excluding a column that does not exist is a validation error, not a
+    # pandas KeyError bubbling up as a 500
+    with pytest.raises(InvalidPostProcessingError):
+        select(df=timeseries_df, exclude=["abc"])
+
+    # excluding a column already removed by `columns` is also a validation error
+    with pytest.raises(InvalidPostProcessingError):
+        select(df=timeseries_df, columns=["y"], exclude=["label"])
+
+    # excluding a column kept by `columns` still works
+    post_df = select(df=timeseries_df, columns=["y", "label"], exclude=["label"])
+    assert post_df.columns.tolist() == ["y"]
