@@ -274,7 +274,6 @@ const ChartHolder = ({
             chartHolderRef.current = el;
           }}
           data-test="dashboard-component-chart-holder"
-          data-test-chart-id={chartId}
           style={focusHighlightStyles}
           css={isFullSize ? fullSizeStyle : undefined}
           className={cx(

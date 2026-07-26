@@ -43,6 +43,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from superset.extensions import machine_auth_provider_factory
 from superset.utils.retries import retry_call
 from superset.utils.screenshot_utils import (
+    CHART_CONTAINER_READY_JS,
     CHART_HOLDERS_READY_JS,
     FIND_CHART_HOLDER_STATES_JS,
     resolve_screenshot_task_budget_seconds,
@@ -291,6 +292,7 @@ class WebDriverPlaywright(WebDriverProxy):
         page: Page,
         url: str,
         load_wait: int,
+        element_name: str,
         log_context: str | None = None,
         screenshot_started_at: float | None = None,
     ) -> None:
@@ -322,12 +324,17 @@ class WebDriverPlaywright(WebDriverProxy):
             for holder in initial_chart_holder_states
             if holder.get("state") not in ready_states
         ]
-        logger.info(
+        logger.debug(
             "Chart holder states before readiness polling at url %s%s: %s",
             url,
             context_suffix,
             initial_chart_holder_states,
         )
+        if element_name == "standalone" and not initial_chart_holder_states:
+            logger.warning(
+                "dashboard capture proceeding with zero chart holders — "
+                "readiness gate inactive"
+            )
         if initial_unready_chart_holders:
             logger.info(
                 "Chart holders not ready before polling at url %s%s: %s",
@@ -347,7 +354,7 @@ class WebDriverPlaywright(WebDriverProxy):
             if remaining_budget is not None
             else float(load_wait)
         )
-        if effective_load_wait <= 0:
+        if remaining_budget is not None and effective_load_wait <= 0:
             logger.warning(
                 "Screenshot task budget exhausted before chart readiness wait "
                 "at url %s%s (%.2fs elapsed of %.2fs safe budget); unready chart "
@@ -376,9 +383,14 @@ class WebDriverPlaywright(WebDriverProxy):
             elapsed,
             context_suffix,
         )
+        readiness_predicate = (
+            CHART_CONTAINER_READY_JS
+            if element_name == "chart-container"
+            else CHART_HOLDERS_READY_JS
+        )
         try:
             page.wait_for_function(
-                CHART_HOLDERS_READY_JS,
+                readiness_predicate,
                 timeout=effective_load_wait * 1000,
             )
         except PlaywrightTimeout:
@@ -581,6 +593,7 @@ class WebDriverPlaywright(WebDriverProxy):
                             page,
                             url,
                             self._screenshot_load_wait,
+                            element_name,
                             log_context=log_context,
                             screenshot_started_at=screenshot_started_at,
                         )
@@ -616,6 +629,7 @@ class WebDriverPlaywright(WebDriverProxy):
                         page,
                         url,
                         self._screenshot_load_wait,
+                        element_name,
                         log_context=log_context,
                         screenshot_started_at=screenshot_started_at,
                     )
