@@ -1110,6 +1110,14 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             time_expr = time_expr.replace("{col}", cls.epoch_to_dttm())
         elif pdf == "epoch_ms":
             time_expr = time_expr.replace("{col}", cls.epoch_ms_to_dttm())
+        elif pdf == "%Y":
+            # a bare four-digit year (e.g. the `year` column on the `video_game_sales`
+            # example dataset) has no native date type to lean on; without this the
+            # column value is passed straight into the grain function below, which
+            # every engine interprets as something other than a calendar year (SQLite
+            # reads a bare integer as a Julian day number, for instance), silently
+            # producing NULL for every row.
+            time_expr = time_expr.replace("{col}", cls.year_to_dttm())
 
         return TimestampExpression(time_expr, col, type_=col.type)
 
@@ -1325,6 +1333,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return: SQL Expression
         """
         return cls.epoch_to_dttm().replace("{col}", "({col}/1000)")
+
+    @classmethod
+    def year_to_dttm(cls) -> str:
+        """
+        SQL expression that converts a bare four-digit year value to the January 1st
+        datetime of that year, for use in a query. The reference column should be
+        denoted as `{col}` in the return expression, e.g. "MAKE_DATE({col}, 1, 1)"
+
+        :return: SQL Expression
+        """
+        raise NotImplementedError()
 
     @classmethod
     def get_datatype(cls, type_code: Any) -> str | None:
