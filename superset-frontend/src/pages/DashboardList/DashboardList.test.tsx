@@ -19,6 +19,7 @@
 import fetchMock from 'fetch-mock';
 import { isFeatureEnabled } from '@superset-ui/core';
 import { mockUserSubjectsBootstrapData } from 'spec/helpers/mockBootstrapData';
+import { mockAntdWithDesktopBreakpoint } from 'spec/helpers/mobileTestUtils';
 import {
   screen,
   selectPillOption,
@@ -51,13 +52,7 @@ jest.mock('src/utils/getBootstrapData', () =>
 );
 
 // Mock useBreakpoint to return desktop breakpoints (prevents mobile rendering)
-jest.mock('antd', () => ({
-  ...jest.requireActual('antd'),
-  Grid: {
-    ...jest.requireActual('antd').Grid,
-    useBreakpoint: () => ({ xs: true, sm: true, md: true, lg: true, xl: true }),
-  },
-}));
+jest.mock('antd', () => mockAntdWithDesktopBreakpoint());
 
 const mockIsFeatureEnabled = isFeatureEnabled as jest.MockedFunction<
   typeof isFeatureEnabled

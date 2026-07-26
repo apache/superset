@@ -23,6 +23,7 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
+import { mockAntdWithDesktopBreakpoint } from 'spec/helpers/mobileTestUtils';
 import { isFeatureEnabled, getExtensionsRegistry } from '@superset-ui/core';
 import Welcome from 'src/pages/Home';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
@@ -147,13 +148,7 @@ jest.mock('@superset-ui/core', () => ({
 }));
 
 // Mock useBreakpoint to return desktop breakpoints (prevents mobile rendering)
-jest.mock('antd', () => ({
-  ...jest.requireActual('antd'),
-  Grid: {
-    ...jest.requireActual('antd').Grid,
-    useBreakpoint: () => ({ xs: true, sm: true, md: true, lg: true, xl: true }),
-  },
-}));
+jest.mock('antd', () => mockAntdWithDesktopBreakpoint());
 
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 

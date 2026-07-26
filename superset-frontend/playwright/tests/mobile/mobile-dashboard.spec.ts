@@ -23,6 +23,7 @@ import { test, expect, devices } from '@playwright/test';
 // the MOBILE_CONSUMPTION_MODE feature flag to be enabled in the target
 // environment (FEATURE_FLAGS = {"MOBILE_CONSUMPTION_MODE": True}).
 import { TIMEOUT } from '../../utils/constants';
+import { URL } from '../../utils/urls';
 
 /**
  * Mobile dashboard viewing tests verify that dashboards can be viewed
@@ -42,7 +43,7 @@ test.describe('Mobile Dashboard Viewing', () => {
 
   test.beforeEach(async ({ page }) => {
     // Navigate to dashboard list to find a dashboard
-    await page.goto('dashboard/list/');
+    await page.goto(URL.DASHBOARD_LIST);
     await page.waitForLoadState('networkidle');
   });
 
@@ -118,7 +119,7 @@ test.describe('Mobile Dashboard Interaction', () => {
       userAgent: mobileViewport.userAgent,
     });
 
-    await page.goto('dashboard/list/');
+    await page.goto(URL.DASHBOARD_LIST);
     await page.waitForLoadState('networkidle');
 
     const cards = page.locator('[data-test="styled-card"]');
@@ -133,7 +134,7 @@ test.describe('Mobile Dashboard Interaction', () => {
 
   test('dashboard loads and shows charts on mobile', async ({ page }) => {
     // Navigate to dashboard list
-    await page.goto('dashboard/list/');
+    await page.goto(URL.DASHBOARD_LIST);
     await page.waitForLoadState('networkidle');
 
     // Click first dashboard
@@ -169,7 +170,7 @@ test.describe('Mobile Dashboard Interaction', () => {
 
   test('dashboard header shows hamburger menu on mobile', async ({ page }) => {
     // Navigate to dashboard list
-    await page.goto('dashboard/list/');
+    await page.goto(URL.DASHBOARD_LIST);
     await page.waitForLoadState('networkidle');
 
     // Click first dashboard
@@ -197,7 +198,7 @@ test.describe('Mobile Dashboard Interaction', () => {
 
   test('refresh dashboard works from mobile menu', async ({ page }) => {
     // Navigate to dashboard list
-    await page.goto('dashboard/list/');
+    await page.goto(URL.DASHBOARD_LIST);
     await page.waitForLoadState('networkidle');
 
     // Click first dashboard
@@ -245,7 +246,7 @@ test.describe('Mobile Filter Drawer', () => {
 
   test('filter button appears on dashboards with filters', async ({ page }) => {
     // Navigate to dashboard list
-    await page.goto('dashboard/list/');
+    await page.goto(URL.DASHBOARD_LIST);
     await page.waitForLoadState('networkidle');
 
     // Click first dashboard
@@ -285,7 +286,7 @@ test.describe('Mobile Filter Drawer', () => {
 
   test('filter drawer opens when filter button is tapped', async ({ page }) => {
     // Navigate to dashboard list
-    await page.goto('dashboard/list/');
+    await page.goto(URL.DASHBOARD_LIST);
     await page.waitForLoadState('networkidle');
 
     // Click first dashboard

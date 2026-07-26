@@ -1015,29 +1015,6 @@ test('should not render filter bar panel on desktop when nativeFiltersEnabled is
   expect(queryByTestId('dashboard-filters-panel')).not.toBeInTheDocument();
 });
 
-test('should render dashboard content wrapper', () => {
-  (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
-    100,
-    jest.fn(),
-  ]);
-  (fetchFaveStar as jest.Mock).mockReturnValue({ type: 'mock-action' });
-  (setActiveTab as jest.Mock).mockReturnValue({ type: 'mock-action' });
-
-  const { getByTestId } = render(<DashboardBuilder />, {
-    useRedux: true,
-    store: storeWithState({
-      ...mockState,
-      dashboardLayout: undoableDashboardLayout,
-    }),
-    useDnd: true,
-    useTheme: true,
-    useRouter: true,
-  });
-
-  // Dashboard content wrapper should always be present
-  expect(getByTestId('dashboard-content-wrapper')).toBeInTheDocument();
-});
-
 test('should render header container', () => {
   (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
     100,

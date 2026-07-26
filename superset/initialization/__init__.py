@@ -1143,7 +1143,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         @self.superset_app.context_processor
         def get_common_bootstrap_data() -> dict[str, Any]:
             # Import here to avoid circular imports
-            from superset.extensions import feature_flag_manager
             from superset.utils import json
             from superset.views.base import common_bootstrap_payload
 
