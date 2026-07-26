@@ -29,24 +29,30 @@ Tests verify that:
 """
 
 import logging
+from types import TracebackType
 
 from starlette.requests import ClientDisconnect
 
 from superset.mcp_service.server import MCPTransportDisconnectFilter
+
+_SysExcInfo = (
+    tuple[type[BaseException], BaseException, TracebackType | None]
+    | tuple[None, None, None]
+)
 
 
 def _make_record(
     name: str,
     level: int,
     msg: str,
-    exc_info: tuple | None = None,
+    exc_info: _SysExcInfo | None = None,
 ) -> logging.LogRecord:
     return logging.getLogger(name).makeRecord(
         name, level, "test_file.py", 1, msg, (), exc_info
     )
 
 
-def _get_client_disconnect_exc_info() -> tuple:
+def _get_client_disconnect_exc_info() -> _SysExcInfo:
     try:
         raise ClientDisconnect()
     except ClientDisconnect:
@@ -55,7 +61,7 @@ def _get_client_disconnect_exc_info() -> tuple:
         return sys.exc_info()
 
 
-def _get_value_error_exc_info() -> tuple:
+def _get_value_error_exc_info() -> _SysExcInfo:
     try:
         raise ValueError("boom")
     except ValueError:
