@@ -1242,6 +1242,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             "columns.column_name",
             "columns.verbose_name",
             "columns.groupby",
+            "drill_through_chart_id",
         ]
         dataset_schema = DatasetDrillInfoSchema()
 
