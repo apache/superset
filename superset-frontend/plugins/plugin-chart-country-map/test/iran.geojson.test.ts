@@ -57,7 +57,8 @@ test('every Iranian province has its own distinct ISO 3166-2 code', () => {
 
   // Tehran and Alborz were split into separate provinces in 2010, but the
   // GeoJSON still assigned both the same ISO code (IR-07), which used to
-  // make it impossible to distinguish them on the Country Map chart.
+  // make it impossible to distinguish them on the Country Map chart. Alborz
+  // now uses its pre-2020 ISO 3166-2 code, IR-32.
   expect(isoByName.get('Tehran')).toBe('IR-07');
-  expect(isoByName.get('Alborz')).not.toBe(isoByName.get('Tehran'));
+  expect(isoByName.get('Alborz')).toBe('IR-32');
 });
