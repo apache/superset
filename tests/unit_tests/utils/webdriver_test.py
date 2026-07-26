@@ -578,6 +578,105 @@ class TestWebDriverPlaywrightFallback:
         assert "Web event %s not detected" in exception_call
 
 
+@patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
+@patch("superset.utils.webdriver._browser_manager")
+@patch("superset.utils.webdriver.logger")
+@patch("superset.utils.webdriver.app")
+def test_playwright_screenshot_emits_correlated_stage_markers(
+    mock_app, mock_logger, mock_browser_manager
+):
+    mock_app.config = {
+        "WEBDRIVER_OPTION_ARGS": [],
+        "WEBDRIVER_WINDOW": {"pixel_density": 1},
+        "SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT": 30000,
+        "SCREENSHOT_PLAYWRIGHT_WAIT_EVENT": "networkidle",
+        "SCREENSHOT_SELENIUM_HEADSTART": 0,
+        "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 0,
+        "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
+        "SCREENSHOT_TILED_ENABLED": False,
+        "SCREENSHOT_LOCATE_WAIT": 10,
+        "SCREENSHOT_LOAD_WAIT": 10,
+    }
+    mock_browser = MagicMock()
+    mock_context = MagicMock()
+    mock_page = MagicMock()
+    mock_element = MagicMock()
+    mock_browser_manager.get_browser.return_value = mock_browser
+    mock_browser.new_context.return_value = mock_context
+    mock_context.new_page.return_value = mock_page
+    mock_page.locator.return_value = mock_element
+    mock_element.screenshot.return_value = b"screenshot"
+
+    with patch.object(WebDriverPlaywright, "auth", return_value=mock_context):
+        result = WebDriverPlaywright("chrome").get_screenshot(
+            "https://example.test/dashboard?secret=do-not-log",
+            "dashboard",
+            MagicMock(),
+            log_context="task-or-cache-key",
+        )
+
+    assert result == b"screenshot"
+    stage_calls = [
+        call
+        for call in mock_logger.info.call_args_list
+        if call.args and call.args[0].startswith("Playwright screenshot stage")
+    ]
+    started_stages = [
+        call.args[1] for call in stage_calls if "stage started" in call.args[0]
+    ]
+    assert started_stages == [
+        "browser_acquisition",
+        "browser_context_creation",
+        "machine_authentication",
+        "page_creation",
+        "navigation",
+        "dashboard_element_discovery",
+        "chart_container_discovery",
+        "tiling_decision",
+        "readiness",
+        "capture",
+        "browser_context_close",
+    ]
+    assert all(
+        any("task-or-cache-key" in str(arg) for arg in call.args)
+        for call in stage_calls
+    )
+    assert all("secret=do-not-log" not in str(call.args) for call in stage_calls)
+
+
+@patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
+@patch("superset.utils.webdriver._browser_manager")
+@patch("superset.utils.webdriver.logger")
+@patch("superset.utils.webdriver.app")
+def test_playwright_screenshot_exception_logs_current_stage_and_elapsed(
+    mock_app, mock_logger, mock_browser_manager
+):
+    mock_app.config = {
+        "WEBDRIVER_OPTION_ARGS": [],
+        "SCREENSHOT_LOCATE_WAIT": 10,
+        "SCREENSHOT_LOAD_WAIT": 10,
+    }
+    error = RuntimeError("browser unavailable")
+    mock_browser_manager.get_browser.side_effect = error
+
+    with pytest.raises(RuntimeError) as exc_info:
+        WebDriverPlaywright("chrome").get_screenshot(
+            "https://example.test/dashboard?secret=do-not-log",
+            "dashboard",
+            log_context="task-id",
+        )
+
+    assert exc_info.value is error
+    mock_logger.warning.assert_called_once()
+    warning_call = mock_logger.warning.call_args
+    assert warning_call.args[1] == "browser_acquisition"
+    assert warning_call.args[-1] == " context=task-id"
+    assert "stage_elapsed=%.2fs" in warning_call.args[0]
+    assert "total_elapsed=%.2fs" in warning_call.args[0]
+    assert warning_call.kwargs == {"exc_info": True}
+    assert "secret=do-not-log" not in str(warning_call)
+
+
 class TestWebDriverConstantsWithImportError:
     """Test module-level constants behavior with import errors."""
 
