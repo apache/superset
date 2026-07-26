@@ -85,6 +85,12 @@ def _suppress_third_party_warnings() -> None:
     )
 
 
+def _downgrade_to_warning(record: logging.LogRecord) -> None:
+    """Mutate *record* in place to WARNING level."""
+    record.levelno = logging.WARNING
+    record.levelname = "WARNING"
+
+
 class FastMCPValidationFilter(logging.Filter):
     """Downgrade FastMCP's user-error logs from ERROR to WARNING.
 
@@ -108,8 +114,7 @@ class FastMCPValidationFilter(logging.Filter):
         if record.levelno != logging.ERROR:
             return True
         if "Error validating tool" in record.getMessage():
-            record.levelno = logging.WARNING
-            record.levelname = "WARNING"
+            _downgrade_to_warning(record)
         return True
 
 
@@ -144,12 +149,16 @@ class MCPTransportDisconnectFilter(logging.Filter):
             return True
         if record.name == "mcp.server.streamable_http":
             if record.exc_info and isinstance(record.exc_info[1], ClientDisconnect):
-                record.levelno = logging.WARNING
-                record.levelname = "WARNING"
+                _downgrade_to_warning(record)
         elif record.name == "mcp.server.lowlevel.server":
+            # NOTE: This matches the literal log message from the mcp SDK's
+            # lowlevel/server.py (``_handle_message``, line ~689 in the
+            # ``mcp==1.24.0`` pinned in requirements/development.txt):
+            # ``logger.error(f"Received exception from stream: {message}")``.
+            # If the SDK changes this f-string's wording, this filter will
+            # stop working silently.
             if record.getMessage() == "Received exception from stream: ":
-                record.levelno = logging.WARNING
-                record.levelname = "WARNING"
+                _downgrade_to_warning(record)
         return True
 
 
