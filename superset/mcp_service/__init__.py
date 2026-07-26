@@ -55,6 +55,8 @@ warnings.filterwarnings(
 warnings.filterwarnings(
     "ignore",
     message=r"pkg_resources is deprecated as an API",
+    category=UserWarning,
+    module=r"sqlalchemy_redshift(?:\..*)?",
 )
 
 __version__ = "1.0.0"

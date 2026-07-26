@@ -85,11 +85,17 @@ def _suppress_third_party_warnings() -> None:
         message=r"authlib\.jose module is deprecated",
     )
     # Same treatment for the pkg_resources warning suppressed at package
-    # init time — covers late imports triggered by a Redshift-backed
-    # database connection opened after tool execution begins.
+    # init time. Confirmed non-redundant: warnings.filters can be reset
+    # between the package import and this call (e.g. pytest's warnings
+    # plugin resets it around every test -- test_suppress_third_party_warnings
+    # below fails without this line, proving the reset scenario is real,
+    # not hypothetical), so re-registering here is load-bearing, not
+    # belt-and-suspenders.
     warnings.filterwarnings(
         "ignore",
         message=r"pkg_resources is deprecated as an API",
+        category=UserWarning,
+        module=r"sqlalchemy_redshift(?:\..*)?",
     )
 
 

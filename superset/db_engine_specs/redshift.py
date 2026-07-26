@@ -47,6 +47,11 @@ from superset.utils import json
 # UserWarning, not DeprecationWarning -- don't add category=DeprecationWarning
 # here, it would silently stop matching.
 #
+# Scoped to the sqlalchemy_redshift module (via stacklevel=2 in setuptools'
+# own warn() call, the warning is attributed to whatever imports
+# pkg_resources, i.e. sqlalchemy_redshift/__init__.py) so this doesn't also
+# swallow the same deprecation warning from unrelated dependencies.
+#
 # The same filter is also registered unconditionally in
 # SupersetAppInitializer.configure_logging() (superset/initialization/
 # __init__.py), before it dispatches to the (deployment-replaceable)
@@ -58,6 +63,8 @@ from superset.utils import json
 warnings.filterwarnings(
     "ignore",
     message=r"pkg_resources is deprecated as an API",
+    category=UserWarning,
+    module=r"sqlalchemy_redshift(?:\..*)?",
 )
 
 logger = logging.getLogger()

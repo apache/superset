@@ -1312,6 +1312,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         warnings.filterwarnings(
             "ignore",
             message=r"pkg_resources is deprecated as an API",
+            category=UserWarning,
+            module=r"sqlalchemy_redshift(?:\..*)?",
         )
 
         self.config["LOGGING_CONFIGURATOR"].configure_logging(
