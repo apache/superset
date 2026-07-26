@@ -320,7 +320,7 @@ export const buildV1ChartDataPayload = async ({
 }: BuildV1ChartDataPayloadParams): Promise<
   ReturnType<typeof buildQueryContext>
 > => {
-  const defaultBuildQuery = (buildQueryFormData: QueryFormData) =>
+  const defaultBuildQuery = (buildQueryFormData: QueryFormData, _options?: unknown,) =>
     buildQueryContext(buildQueryFormData, baseQueryObject => [
       {
         ...baseQueryObject,
@@ -339,7 +339,7 @@ export const buildV1ChartDataPayload = async ({
       result_type: resultType,
     } as QueryFormData,
     {
-      ownState,
+      ...(ownState !== undefined ? { ownState } : {}),
       hooks: {
         setDataMask: setDataMask ?? (() => {}),
         setCachedChanges: () => {},
