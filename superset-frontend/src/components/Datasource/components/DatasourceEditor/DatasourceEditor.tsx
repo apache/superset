@@ -398,7 +398,7 @@ const StyledTableTabWrapper = styled.div`
       width: 30%;
     }
 
-     .datasource-label-cell {
+    .datasource-label-cell {
       width: 20%;
     }
 
