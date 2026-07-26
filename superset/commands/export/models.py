@@ -47,7 +47,7 @@ class ExportModelsCommand(BaseCommand):
 
     @staticmethod
     def _file_content(model: Model) -> str:
-        raise NotImplementedError("Subclasses MUST implement _export")
+        raise NotImplementedError("Subclasses MUST implement _file_content")
 
     @staticmethod
     def _export(
