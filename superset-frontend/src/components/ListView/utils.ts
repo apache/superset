@@ -242,11 +242,23 @@ export function useListViewState({
       (renderCard ? defaultViewMode : 'table'),
   );
 
-  // Update viewMode when forceViewMode changes (e.g., screen resize)
+  // Update viewMode when forceViewMode changes (e.g., screen resize). When
+  // forceViewMode is cleared (e.g., resizing from mobile back to desktop),
+  // fall back to the persisted query param or the default view instead of
+  // leaving the view stuck in the previously forced mode.
   useEffect(() => {
     if (forceViewMode) {
       setViewMode(forceViewMode);
+    } else {
+      setViewMode(
+        (query.viewMode as ViewModeType) ||
+          (renderCard ? defaultViewMode : 'table'),
+      );
     }
+    // Only react to forceViewMode transitions; query.viewMode, renderCard, and
+    // defaultViewMode are read for their current values, not to retrigger
+    // this effect on every change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [forceViewMode]);
 
   const columnsWithFilter = useMemo(

@@ -245,82 +245,67 @@ test.describe('Mobile Filter Drawer', () => {
   });
 
   test('filter button appears on dashboards with filters', async ({ page }) => {
-    // Navigate to dashboard list
-    await page.goto(URL.DASHBOARD_LIST);
+    // Navigate directly to the World Bank's Health dashboard, which this
+    // spec's fixtures require and which is known to have native filters
+    // configured, rather than an arbitrary first card from the list.
+    await page.goto('dashboard/world_health/');
     await page.waitForLoadState('networkidle');
 
-    // Click first dashboard
-    const cards = page.locator('[data-test="styled-card"]');
-    const cardCount = await cards.count();
+    // Give filters time to load
+    await page.waitForTimeout(2000);
 
-    if (cardCount > 0) {
-      await cards.first().click();
+    // Check for filter button (only visible if dashboard has filters)
+    const filterButton = page
+      .locator('[data-test="filter-icon"]')
+      .or(
+        page
+          .locator('[aria-label="Filters"]')
+          .or(page.locator('.mobile-filter-button')),
+      );
 
-      // Wait for dashboard
-      await page.waitForURL(url => /\/dashboard\/(?!list)/.test(url.pathname), {
-        timeout: TIMEOUT.PAGE_LOAD,
-      });
+    const filterCount = await filterButton.count();
 
-      // Give filters time to load
-      await page.waitForTimeout(2000);
+    test.skip(
+      filterCount === 0,
+      'world_health dashboard fixture has no native filters configured; ' +
+        'cannot verify the mobile filter button.',
+    );
 
-      // Check for filter button (only visible if dashboard has filters)
-      const filterButton = page
-        .locator('[data-test="filter-icon"]')
-        .or(
-          page
-            .locator('[aria-label="Filters"]')
-            .or(page.locator('.mobile-filter-button')),
-        );
-
-      const filterCount = await filterButton.count();
-
-      // The test passes whether filters exist or not
-      // If filters exist, button should be visible
-      // If no filters, that's also valid
-      if (filterCount > 0) {
-        await expect(filterButton.first()).toBeVisible();
-      }
-    }
+    await expect(filterButton.first()).toBeVisible();
   });
 
   test('filter drawer opens when filter button is tapped', async ({ page }) => {
-    // Navigate to dashboard list
-    await page.goto(URL.DASHBOARD_LIST);
+    // Navigate directly to the World Bank's Health dashboard, which this
+    // spec's fixtures require and which is known to have native filters
+    // configured, rather than an arbitrary first card from the list.
+    await page.goto('dashboard/world_health/');
     await page.waitForLoadState('networkidle');
 
-    // Click first dashboard
-    const cards = page.locator('[data-test="styled-card"]');
-    const cardCount = await cards.count();
+    // Give filters time to load
+    await page.waitForTimeout(2000);
 
-    if (cardCount > 0) {
-      await cards.first().click();
+    // Check for filter button
+    const filterButton = page
+      .locator('[data-test="filter-icon"]')
+      .or(page.locator('[aria-label="Filters"]'));
 
-      // Wait for dashboard
-      await page.waitForURL(url => /\/dashboard\/(?!list)/.test(url.pathname), {
-        timeout: TIMEOUT.PAGE_LOAD,
-      });
+    const filterCount = await filterButton.count();
 
-      // Give filters time to load
-      await page.waitForTimeout(2000);
+    test.skip(
+      filterCount === 0,
+      'world_health dashboard fixture has no native filters configured; ' +
+        'cannot verify the mobile filter drawer.',
+    );
 
-      // Check for filter button
-      const filterButton = page
-        .locator('[data-test="filter-icon"]')
-        .or(page.locator('[aria-label="Filters"]'));
+    await filterButton.first().click();
 
-      if ((await filterButton.count()) > 0) {
-        await filterButton.first().click();
+    // Filter drawer should open
+    const drawer = page
+      .locator('.ant-drawer-open')
+      .or(page.locator('[data-test="filter-bar"]'));
 
-        // Filter drawer should open
-        const drawer = page
-          .locator('.ant-drawer-open')
-          .or(page.locator('[data-test="filter-bar"]'));
-
-        await expect(drawer.first()).toBeVisible({
-          timeout: TIMEOUT.FORM_LOAD,
-        });
-      }
-    }
+    await expect(drawer.first()).toBeVisible({
+      timeout: TIMEOUT.FORM_LOAD,
+    });
   });
 });

@@ -24,9 +24,17 @@
  * mocking the latter causes circular dependency issues with ActionButton during
  * jest.requireActual evaluation. Since Grid is re-exported from antd, mocking
  * antd at the source works correctly.
+ *
+ * Note: FeatureFlag is imported from the '@superset-ui/core/utils' submodule
+ * rather than the '@superset-ui/core' package root. The package root barrel
+ * transitively pulls in the theme module, which imports 'antd'. Consuming
+ * test files call `jest.mock('antd', () => mockAntdWithDesktopBreakpoint())`
+ * before importing this file, so if loading this file triggered an 'antd'
+ * require before `mockAntdWithDesktopBreakpoint` were defined, the mock
+ * factory would throw.
  */
 
-import { FeatureFlag } from '@superset-ui/core';
+import { FeatureFlag } from '@superset-ui/core/utils';
 
 /**
  * Standard mobile breakpoint values (below md breakpoint)
@@ -83,25 +91,36 @@ export const mockAntdWithDesktopBreakpoint = () => ({
 });
 
 /**
- * Mocks window.matchMedia so `(max-width: ...)` queries match, simulating
- * a mobile viewport for the useIsMobile hook. Returns a cleanup function
- * restoring the previous matchMedia. Mobile behavior requires BOTH this
- * AND the MOBILE_CONSUMPTION_MODE flag (see enableMobileConsumptionFlag).
+ * Mocks window.matchMedia to simulate a narrow mobile viewport (375px wide
+ * by default) for the useIsMobile hook. A `max-width: Npx` query only
+ * matches when the simulated viewport width is at or below N, mirroring
+ * real browser media-query evaluation; queries for narrower breakpoints
+ * than the simulated viewport correctly report no match, instead of every
+ * `max-width` query matching regardless of its threshold.
+ * Returns a cleanup function restoring the previous matchMedia. Mobile
+ * behavior requires BOTH this AND the MOBILE_CONSUMPTION_MODE flag (see
+ * enableMobileConsumptionFlag).
  */
-export const mockMobileMatchMedia = () => {
+export const mockMobileMatchMedia = (viewportWidth = 375) => {
   const previous = window.matchMedia;
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
-    value: jest.fn().mockImplementation((query: string) => ({
-      matches: query.includes('max-width'),
-      media: query,
-      onchange: null,
-      addListener: jest.fn(),
-      removeListener: jest.fn(),
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-      dispatchEvent: jest.fn(),
-    })),
+    value: jest.fn().mockImplementation((query: string) => {
+      const maxWidthMatch = query.match(/max-width:\s*(\d+(?:\.\d+)?)px/);
+      const matches = maxWidthMatch
+        ? viewportWidth <= Number(maxWidthMatch[1])
+        : false;
+      return {
+        matches,
+        media: query,
+        onchange: null,
+        addListener: jest.fn(),
+        removeListener: jest.fn(),
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        dispatchEvent: jest.fn(),
+      };
+    }),
   });
   return () => {
     Object.defineProperty(window, 'matchMedia', {
