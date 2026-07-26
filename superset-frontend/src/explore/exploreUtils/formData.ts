@@ -128,7 +128,7 @@ export const generateExploreUrl = async (
 
   // Add dashboard_page_id if provided
   const finalUrl = options?.dashboardPageId
-    ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}dashboard_page_id=${options.dashboardPageId}`
+    ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}dashboard_page_id=${encodeURIComponent(options.dashboardPageId)}`
     : baseUrl;
 
   return finalUrl;
