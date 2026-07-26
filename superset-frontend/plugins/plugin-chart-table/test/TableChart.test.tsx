@@ -2334,7 +2334,13 @@ describe('plugin-chart-table', () => {
       expect(screen.getByText('User 1')).toBeInTheDocument();
       expect(screen.queryByText('User 11')).not.toBeInTheDocument();
 
-      const page2Link = screen.getByRole('button', { name: '2' });
+      // The pagination bar is styled `visibility: hidden` until sticky
+      // height is measured, which jsdom never reports, so it must be
+      // queried with `hidden: true` even though it's functionally present.
+      const page2Link = screen.getByRole('button', {
+        name: '2',
+        hidden: true,
+      });
       expect(page2Link).toBeTruthy();
       fireEvent.click(page2Link);
 
