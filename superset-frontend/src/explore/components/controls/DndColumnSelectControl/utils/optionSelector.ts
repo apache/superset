@@ -89,6 +89,13 @@ export class OptionSelector {
     [this.values[a], this.values[b]] = [this.values[b], this.values[a]];
   }
 
+  /**
+   * Moves a value from one index to another, mutating `values` in place.
+   * No-ops on identical or out-of-range indices.
+   *
+   * @param from - original index
+   * @param to - destination index
+   */
   reorder(from: number, to: number) {
     // Guard against no-op and out-of-range indices. A fast drag can resolve to
     // stale/identical endpoints; without this an out-of-range `from` splices
