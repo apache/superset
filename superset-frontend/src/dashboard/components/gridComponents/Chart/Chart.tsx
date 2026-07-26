@@ -537,7 +537,8 @@ const Chart = (props: ChartProps) => {
         actualRowCount = (queriesResponse![0] as JsonObject).rowcount as number;
       } else {
         actualRowCount = (exportFormData as JsonObject)?.row_limit as
-          number | undefined;
+          | number
+          | undefined;
       }
 
       // Handle streaming CSV exports based on row threshold

@@ -47,7 +47,8 @@ const StyledDiv = styled.div<{ isDisabled?: boolean }>`
   padding: ${({ theme }) => theme.paddingXXS}px;
   border-radius: ${({ theme }) => theme.borderRadiusXS}px;
 
-  ${({ isDisabled, theme }) => (isDisabled ? disabledCss : activeCss({ theme }))}
+  ${({ isDisabled, theme }) =>
+    isDisabled ? disabledCss : activeCss({ theme })}
 `;
 
 const StyledSpan = styled.span`

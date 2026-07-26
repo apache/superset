@@ -41,7 +41,11 @@ export enum ChartStatusType {
 }
 
 export type ChartStatus =
-  'loading' | 'rendered' | 'failed' | 'stopped' | 'success';
+  | 'loading'
+  | 'rendered'
+  | 'failed'
+  | 'stopped'
+  | 'success';
 
 export interface ChartState {
   id: number;

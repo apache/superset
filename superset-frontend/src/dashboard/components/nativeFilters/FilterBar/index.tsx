@@ -469,7 +469,8 @@ const FilterBar: FC<FiltersBarProps> = ({
       );
       const pendingItems = (
         Object.values(pendingChartCustomizations).filter(Boolean) as (
-          ChartCustomization | ChartCustomizationDivider
+          | ChartCustomization
+          | ChartCustomizationDivider
         )[]
       ).filter(item => existingCustomizationIds.has(item.id));
 

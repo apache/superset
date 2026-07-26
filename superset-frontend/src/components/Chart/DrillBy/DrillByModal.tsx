@@ -567,7 +567,8 @@ export default function DrillByModal({
             // broaden it to an optional `SyntheticEvent` callback here to
             // reuse it as the keyboard-activation handler below.
             const onRouteClick = route.onClick as
-              ((event?: SyntheticEvent) => void) | undefined;
+              | ((event?: SyntheticEvent) => void)
+              | undefined;
             return isLastElement ? (
               <span data-test="drill-by-breadcrumb-item">
                 {route.title}

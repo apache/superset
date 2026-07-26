@@ -188,21 +188,17 @@ export const EmptyFolderDropZone = styled.div<{
     margin-left: ${depth * FOLDER_INDENTATION_WIDTH + ITEM_INDENTATION_WIDTH}px;
     padding: ${theme.paddingLG}px;
     border: 2px dashed
-      ${
-        isOver
-          ? isForbidden
-            ? theme.colorError
-            : theme.colorPrimary
-          : 'transparent'
-      };
-    border-radius: ${theme.borderRadius}px;
-    background: ${
-      isOver
+      ${isOver
         ? isForbidden
-          ? theme.colorErrorBg
-          : theme.colorPrimaryBg
-        : 'transparent'
-    };
+          ? theme.colorError
+          : theme.colorPrimary
+        : 'transparent'};
+    border-radius: ${theme.borderRadius}px;
+    background: ${isOver
+      ? isForbidden
+        ? theme.colorErrorBg
+        : theme.colorPrimaryBg
+      : 'transparent'};
     text-align: center;
     transition: all 0.2s ease-in-out;
     cursor: ${isOver && isForbidden ? 'not-allowed' : 'default'};

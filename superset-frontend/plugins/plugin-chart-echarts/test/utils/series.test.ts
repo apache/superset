@@ -67,7 +67,11 @@ const {
     chartHeight: number;
     chartWidth: number;
     legendItems?: (
-      string | number | null | undefined | { name?: string | number | null }
+      | string
+      | number
+      | null
+      | undefined
+      | { name?: string | number | null }
     )[];
     legendMargin?: string | number | null;
     orientation: LegendOrientation;
@@ -90,7 +94,11 @@ const {
     chartHeight: number;
     chartWidth: number;
     legendItems?: (
-      string | number | null | undefined | { name?: string | number | null }
+      | string
+      | number
+      | null
+      | undefined
+      | { name?: string | number | null }
     )[];
     legendMargin?: string | number | null;
     orientation: LegendOrientation;
