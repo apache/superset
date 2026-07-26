@@ -709,7 +709,8 @@ class TestWebDriverPlaywrightErrorHandling:
         # positive terminal-state check instead (same predicate as the tiled
         # path, #42119).
         assert "dashboard-component-chart-holder" in js
-        assert "slice-container" in js
+        assert ".slice_container" in js
+        assert "data-test" not in js
         assert call_kwargs["timeout"] == 60 * 1000
         # Guard against reintroducing the old snapshot-based approach
         loading_locator_calls = [
