@@ -447,14 +447,21 @@ function Chart({
         description={
           <span>
             {t('Run a new query using the "Update chart" button or')}{' '}
-            <span
-              role="button"
-              tabIndex={0}
+            <button
+              type="button"
               onClick={onQuery}
-              onKeyDown={handleKeyboardActivation(() => onQuery?.())}
+              css={css`
+                appearance: none;
+                border: none;
+                background: none;
+                padding: 0;
+                font: inherit;
+                cursor: pointer;
+                text-decoration: underline;
+              `}
             >
               {t('click here')}
-            </span>
+            </button>
             .
           </span>
         }
