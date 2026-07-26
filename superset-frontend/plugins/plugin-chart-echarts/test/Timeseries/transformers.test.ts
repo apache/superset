@@ -29,6 +29,7 @@ import { TIMESERIES_CONSTANTS } from '../../src/constants';
 import {
   LegendOrientation,
   EchartsTimeseriesChartProps,
+  ForecastSeriesEnum,
 } from '../../src/types';
 import {
   transformSeries,
@@ -126,6 +127,33 @@ describe('transformSeries', () => {
 
     // OpacityEnum.NonTransparent = 1 (not dimmed)
     expect((result as any).itemStyle.opacity).toBe(1);
+  });
+
+  test('should use scatter plotType for anomaly series', () => {
+    const anomalySeries = { name: `metric${ForecastSeriesEnum.Anomaly}` };
+    const result = transformSeries(anomalySeries, mockColorScale, 'test-key', {
+      timeShiftColor: false,
+    });
+    expect((result as any)?.type).toBe('scatter');
+  });
+
+  test('should use theme colorError for anomaly series itemStyle', () => {
+    const anomalySeries = { name: `metric${ForecastSeriesEnum.Anomaly}` };
+    const result = transformSeries(anomalySeries, mockColorScale, 'test-key', {
+      timeShiftColor: false,
+      theme: supersetTheme,
+    });
+    expect((result as any)?.itemStyle.color).toBe(supersetTheme.colorError);
+  });
+
+  test('should set showSymbol=true and enlarged symbolSize for anomaly series', () => {
+    const anomalySeries = { name: `metric${ForecastSeriesEnum.Anomaly}` };
+    const result = transformSeries(anomalySeries, mockColorScale, 'test-key', {
+      timeShiftColor: false,
+      markerSize: 6,
+    });
+    expect((result as any)?.showSymbol).toBe(true);
+    expect((result as any)?.symbolSize).toBeGreaterThanOrEqual(10);
   });
 });
 
