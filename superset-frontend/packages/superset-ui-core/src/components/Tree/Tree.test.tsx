@@ -32,7 +32,7 @@ const treeData = [
 ];
 
 describe('Tree Component', () => {
-  it('expands and collapses parent node', async () => {
+  test('expands and collapses parent node', async () => {
     render(<Tree treeData={treeData} defaultExpandAll={false} />);
 
     expect(screen.queryByText('Child 1')).not.toBeInTheDocument();

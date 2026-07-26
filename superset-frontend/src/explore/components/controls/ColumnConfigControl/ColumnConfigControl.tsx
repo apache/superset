@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { handleKeyboardActivation } from '@superset-ui/core';
 import { useMemo, useState } from 'react';
-import { t } from '@superset-ui/core';
-import { useTheme } from '@apache-superset/core/ui';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { t } from '@apache-superset/core/translation';
+import { useTheme } from '@apache-superset/core/theme';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   COLUMN_NAME_ALIASES,
   ControlComponentProps,
@@ -82,6 +83,7 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
     });
   }
   const theme = useTheme();
+
   const columnConfigs = useMemo(() => {
     const configs: Record<string, ColumnConfigInfo> = {};
     colnames?.forEach((col, idx) => {
@@ -100,6 +102,7 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
   const [showAllColumns, setShowAllColumns] = useState(false);
 
   const getColumnInfo = (col: string) => columnConfigs[col] || {};
+
   const setColumnConfig = (col: string, config: T) => {
     if (onChange) {
       // Only keep configs for known columns
@@ -178,6 +181,9 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
               },
             }}
             onClick={() => setShowAllColumns(!showAllColumns)}
+            onKeyDown={handleKeyboardActivation(() =>
+              setShowAllColumns(!showAllColumns),
+            )}
           >
             {showAllColumns ? (
               <>

@@ -38,7 +38,7 @@ describe('Timer', () => {
     status: 'warning',
   };
 
-  it('should render correctly', async () => {
+  test('should render correctly', async () => {
     const screen = render(<Timer {...mockProps} />);
     const node = screen.getByRole('timer');
     let text = node.textContent || '';

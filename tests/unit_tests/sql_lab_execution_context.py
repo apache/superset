@@ -18,6 +18,7 @@
 
 import pytest
 
+from superset.sql.parse import CTASMethod
 from superset.sqllab.sqllab_execution_context import (
     CreateTableAsSelect,
     SqlJsonExecutionContext,
@@ -97,6 +98,6 @@ def test_create_table_as_select():
         "tmp_table_name": "temp_table",
     }
     ctas = CreateTableAsSelect.create_from(query_params)
-    assert ctas.ctas_method == "TABLE"
+    assert ctas.ctas_method == CTASMethod.TABLE
     assert ctas.target_schema_name == "public"
     assert ctas.target_table_name == "temp_table"

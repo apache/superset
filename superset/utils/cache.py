@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import inspect
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 from typing import Any, Callable
 
@@ -31,14 +31,15 @@ from superset import db
 from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.extensions import cache_manager
 from superset.models.cache import CacheKey
-from superset.utils.hashing import md5_sha_from_dict
+from superset.utils.cache_manager import configurable_hash_method
+from superset.utils.hashing import hash_from_dict
 from superset.utils.json import json_int_dttm_ser
 
 logger = logging.getLogger(__name__)
 
 
 def generate_cache_key(values_dict: dict[str, Any], key_prefix: str = "") -> str:
-    hash_str = md5_sha_from_dict(values_dict, default=json_int_dttm_ser)
+    hash_str = hash_from_dict(values_dict, default=json_int_dttm_ser)
     cache_key = f"{key_prefix}{hash_str}"
 
     if logger.isEnabledFor(logging.DEBUG):
@@ -72,7 +73,9 @@ def set_and_log_cache(
     if timeout == CACHE_DISABLED_TIMEOUT:
         return
     try:
-        dttm = datetime.utcnow().isoformat().split(".")[0]
+        dttm: str = (
+            datetime.now(timezone.utc).replace(tzinfo=None).isoformat().split(".")[0]
+        )
         value = {**cache_value, "dttm": dttm}
         cache_instance.set(cache_key, value, timeout=timeout)
         stats_logger = app.config["STATS_LOGGER"]
@@ -225,7 +228,9 @@ def etag_cache(  # noqa: C901
 
             # Check if the cache is stale. Default the content_changed_time to now
             # if we don't know when it was last modified.
-            content_changed_time = datetime.utcnow()
+            content_changed_time: datetime = datetime.now(timezone.utc).replace(
+                tzinfo=None
+            )
             if get_last_modified:
                 content_changed_time = get_last_modified(*args, **kwargs)
                 if (
@@ -273,7 +278,7 @@ def etag_cache(  # noqa: C901
         wrapper.uncached = f  # type: ignore
         wrapper.cache_timeout = timeout  # type: ignore
         wrapper.make_cache_key = cache._memoize_make_cache_key(  # type: ignore # pylint: disable=protected-access
-            make_name=None, timeout=timeout
+            make_name=None, timeout=timeout, hash_method=configurable_hash_method
         )
 
         return wrapper

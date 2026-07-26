@@ -24,18 +24,16 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import datetime, timedelta
-from typing import Any, Callable, cast, Literal, TYPE_CHECKING
+from typing import Any, Callable, cast, Literal
 
 from flask import g, has_request_context, request
 from flask_appbuilder.const import API_URI_RIS_KEY
+from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.extensions import stats_logger_manager
 from superset.utils import json
 from superset.utils.core import get_user_id, LoggerLevel, to_int
-
-if TYPE_CHECKING:
-    pass
 
 logger = logging.getLogger(__name__)
 
@@ -196,11 +194,14 @@ class AbstractEventLogger(ABC):
         if user_id is None and has_request_context():
             try:
                 actual_user = g.get("user", None)
-                if actual_user is not None:
+                # Guest/anonymous users (e.g. embedded dashboards) are never
+                # DB-mapped, so adding them to the session always fails.
+                # This is expected and not worth logging.
+                if actual_user is not None and sa_inspect(actual_user, raiseerr=False):
                     db.session.add(actual_user)
                     user_id = get_user_id()
             except Exception as ex:
-                logging.warning("Failed to add user to db session: %s", ex)
+                logger.debug("Failed to add user to db session: %s", ex)
                 user_id = None
         payload = collect_request_payload()
         if object_ref:
@@ -387,6 +388,13 @@ class DBEventLogger(AbstractEventLogger):
         from superset.models.core import Log
 
         records = kwargs.get("records", [])
+        curated_payload = kwargs.get("curated_payload")
+
+        # If no records but curated_payload exists, use it as a single record
+        # This enables MCP middleware logging which passes curated_payload
+        if not records and curated_payload:
+            records = [curated_payload]
+
         logs = []
         for record in records:
             json_string: str | None
@@ -415,7 +423,7 @@ class DBEventLogger(AbstractEventLogger):
             logging.exception(ex)
             # Rollback to clean up the session state
             try:
-                db.session.rollback()
+                db.session.rollback()  # pylint: disable=consider-using-transaction
             except Exception:  # pylint: disable=broad-except
                 # If rollback also fails, just continue - don't let issues crash the app
                 logging.error(

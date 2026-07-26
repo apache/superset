@@ -29,8 +29,8 @@ import {
 
 import Fuse from 'fuse.js';
 import cx from 'classnames';
+import { t } from '@apache-superset/core/translation';
 import {
-  t,
   ChartMetadata,
   chartLabelWeight,
   chartLabelExplanations,
@@ -41,7 +41,7 @@ import {
   SupersetTheme,
   useTheme,
   isThemeDark,
-} from '@apache-superset/core/ui';
+} from '@apache-superset/core/theme';
 import { Input, Collapse, Tooltip, Label } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
@@ -124,7 +124,7 @@ const LeftPane = styled.div`
       padding-bottom: ${({ theme }) => theme.sizeUnit}px;
     }
 
-    .ant-collapse-content .ant-collapse-content-box {
+    .ant-collapse-panel .ant-collapse-body {
       display: flex;
       flex-direction: column;
       padding: 0 ${({ theme }) => theme.sizeUnit * 2}px;
@@ -214,7 +214,7 @@ const IconsPane = styled.div`
   justify-content: space-evenly;
   grid-gap: ${({ theme }) => theme.sizeUnit * 2}px;
   justify-items: center;
-  // for some reason this padding doesn't seem to apply at the bottom of the container. Why is a mystery.
+  /* for some reason this padding doesn't seem to apply at the bottom of the container. Why is a mystery. */
   padding: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
@@ -778,7 +778,11 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
           suffix={
             <InputIconAlignment>
               {searchInputValue && (
-                <Icons.CloseOutlined iconSize="m" onClick={stopSearching} />
+                <Icons.CloseOutlined
+                  iconSize="m"
+                  onClick={stopSearching}
+                  aria-label={t('Clear search')}
+                />
               )}
             </InputIconAlignment>
           }

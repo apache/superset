@@ -77,6 +77,19 @@ export type SelectOptionsType = Exclude<AntdProps['options'], undefined>;
 
 export interface BaseSelectProps extends AntdExposedProps {
   /**
+   * Whether the select is searchable. antd 6 also accepts a `SearchConfig`
+   * object here, but Superset's Select manages search behavior itself
+   * (filtering, sorting, "create option" handling), so only the boolean
+   * form is supported — an object would be silently discarded.
+   */
+  showSearch?: boolean;
+  /**
+   * Separators used to tokenize pasted text into multiple values.
+   * antd 6 also accepts a function form, but Superset's paste handling
+   * only supports the array form.
+   */
+  tokenSeparators?: string[];
+  /**
    * Optional CSS class name to apply to the select container
    */
   className?: string;
@@ -87,6 +100,18 @@ export interface BaseSelectProps extends AntdExposedProps {
    * False by default.
    * */
   allowNewOptions?: boolean;
+  /**
+   * Accept values pasted into the Select even when they are not part of the
+   * currently loaded options and `allowNewOptions` is false. Useful for
+   * selects whose full option set is searched server-side and only partially
+   * loaded on the client (e.g. dashboard filters with "Dynamically search all
+   * filter values"), where a pasted value can legitimately exist in the
+   * dataset but fall outside the loaded page.
+   * Only applies to multi-select paste; single-select paste resolves through
+   * `allowNewOptions` and ignores this flag.
+   * False by default.
+   * */
+  allowNewOptionsOnPaste?: boolean;
   /**
    * It adds the aria-label tag for accessibility standards.
    * Must be plain English and localized.

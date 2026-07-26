@@ -65,6 +65,9 @@ export { default as GanttTransformProps } from './Gantt/transformProps';
 
 export { DEFAULT_FORM_DATA as TimeseriesDefaultFormData } from './Timeseries/constants';
 
+export * from './utils/eChartOptionsSchema';
+export * from './utils/safeEChartOptionsParser';
+
 export * from './types';
 
 /**

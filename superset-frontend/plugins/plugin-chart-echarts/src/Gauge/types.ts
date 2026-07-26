@@ -77,8 +77,7 @@ export const DEFAULT_FORM_DATA: Partial<EchartsGaugeFormData> = {
   valueFormatter: '{value}',
 };
 
-export interface EchartsGaugeChartProps
-  extends BaseChartProps<EchartsGaugeFormData> {
+export interface EchartsGaugeChartProps extends BaseChartProps<EchartsGaugeFormData> {
   formData: EchartsGaugeFormData;
 }
 

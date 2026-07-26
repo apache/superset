@@ -1,0 +1,1 @@
+{"schema":{"properties":{"datasource_id":{"description":"The datasource identifier","type":"integer"},"datasource_type":{"description":"The datasource type","type":"integer"}},"type":"object","title":"ChartGetDatasourceObjectDataResponse"},"schemaType":"response"}

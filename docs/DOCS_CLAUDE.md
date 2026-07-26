@@ -31,8 +31,9 @@ You are currently in the `/docs` subdirectory of the Apache Superset repository.
 ├── superset-frontend/             # React/TypeScript frontend
 └── docs/                         # Documentation site (YOU ARE HERE)
     ├── docs/                     # Main documentation content
-    ├── developer_portal/         # Developer guides (currently disabled)
-    ├── components/               # Component playground (currently disabled)
+    ├── admin_docs/               # Admin-focused guides
+    ├── developer_docs/           # Developer guides
+    ├── components/               # Component playground
     └── docusaurus.config.ts      # Site configuration
 ```
 
@@ -46,12 +47,19 @@ yarn build                # Build production site
 yarn serve                # Serve built site locally
 
 # Version Management (USE THESE, NOT docusaurus commands)
-yarn version:add:docs <version>              # Add new docs version
-yarn version:add:developer_portal <version>  # Add developer portal version  
+# The add scripts auto-run `generate:smart` so auto-gen content (database
+# pages, API reference, component pages) is fresh before snapshotting.
+# For maximum-detail databases.json, drop the `database-diagnostics`
+# artifact from Python-Integration CI at src/data/databases.json before
+# cutting. See README.md "Before You Cut".
+yarn version:add:user_docs <version>              # Add new docs version
+yarn version:add:admin_docs <version>        # Add admin docs version
+yarn version:add:developer_docs <version>    # Add developer docs version
 yarn version:add:components <version>        # Add components version
-yarn version:remove:docs <version>           # Remove docs version
-yarn version:remove:developer_portal <version> # Remove developer portal version
-yarn version:remove:components <version>      # Remove components version
+yarn version:remove:user_docs <version>           # Remove docs version
+yarn version:remove:admin_docs <version>     # Remove admin docs version
+yarn version:remove:developer_docs <version> # Remove developer docs version
+yarn version:remove:components <version>     # Remove components version
 
 # Quality Checks
 yarn typecheck            # TypeScript validation
@@ -95,15 +103,14 @@ docs/
     └── [security guides]
 ```
 
-### Developer Portal (`/developer_portal`) - Currently Disabled
-When enabled, contains developer-focused content:
-- API documentation
-- Architecture guides
-- CLI tools
-- Code examples
+### Admin Docs (`/admin_docs`)
+Admin-focused content: installation, configuration, security.
 
-### Component Playground (`/components`) - Currently Disabled
-When enabled, provides interactive component examples for UI development.
+### Developer Docs (`/developer_docs`)
+Developer-focused content: API documentation, architecture guides, CLI tools, code examples.
+
+### Component Playground (`/components`)
+Interactive component examples for UI development.
 
 ## 📝 Documentation Standards
 
@@ -221,17 +228,20 @@ Versions are managed through `versions-config.json`:
 
 ```bash
 # ✅ CORRECT - Updates both Docusaurus and versions-config.json
-yarn version:add:docs 6.1.0
+yarn version:add:user_docs 6.1.0
 
 # ❌ WRONG - Only updates Docusaurus, breaks version dropdown
 yarn docusaurus docs:version 6.1.0
 ```
 
 ### Version Files Created
-When versioning, these files are created:
-- `versioned_docs/version-X.X.X/` - Snapshot of current docs
-- `versioned_sidebars/version-X.X.X-sidebars.json` - Sidebar config
-- `versions.json` - List of all versions
+When versioning, these files are created (per section, with the
+section's plugin id as prefix):
+- `<section>_versioned_docs/version-X.X.X/` - Snapshot of current docs
+- `<section>_versioned_sidebars/version-X.X.X-sidebars.json` - Sidebar config
+- `<section>_versions.json` - List of all versions
+
+Section plugin ids: `user_docs`, `admin_docs`, `developer_docs`, `components`.
 
 ## 🎨 Styling and Theming
 
@@ -379,7 +389,7 @@ Docusaurus includes Algolia DocSearch integration configured in `docusaurus.conf
 
 ## 🚫 Common Pitfalls to Avoid
 
-1. **Never use `yarn docusaurus docs:version`** - Use `yarn version:add:docs` instead
+1. **Never use `yarn docusaurus docs:version`** - Use `yarn version:add:user_docs` instead
 2. **Don't edit versioned docs directly** - Edit current docs and create new version
 3. **Avoid absolute paths in links** - Use relative paths for maintainability
 4. **Don't forget frontmatter** - Every doc needs title and description
@@ -409,14 +419,14 @@ yarn eslint
 ### Version Issues
 If versions don't appear in dropdown:
 1. Check `versions-config.json` includes the version
-2. Verify version files exist in `versioned_docs/`
+2. Verify version files exist in `<section>_versioned_docs/`
 3. Restart dev server
 
 ## 📚 Resources
 
 - [Docusaurus Documentation](https://docusaurus.io/docs)
 - [MDX Documentation](https://mdxjs.com/)
-- [Superset Contributing Guide](../CONTRIBUTING.md)
+- [Superset Developer Docs](https://superset.apache.org/developer-docs/)
 - [Main Superset Documentation](https://superset.apache.org/docs/intro)
 
 ## 📖 Real Examples and Patterns

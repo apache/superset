@@ -16,8 +16,7 @@
     "src/**/*.js",
     "src/**/*.jsx",
     "src/**/*.test.*",
-    "src/**/*.stories.*"
-  ],
+    "src/**/*.stories.*"],
   "references": [
     { "path": "../../packages/superset-core" },
     { "path": "../../packages/superset-ui-core" },

@@ -1,0 +1,1 @@
+{"schema":{"properties":{"force":{"type":"boolean"},"thumb_size":{"items":{"type":"integer"},"type":"array"},"window_size":{"items":{"type":"integer"},"type":"array"}},"type":"object","title":"screenshot_query_schema"},"schemaType":"response"}

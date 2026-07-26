@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { Progress as AntdProgress } from 'antd';
 import { ProgressProps } from 'antd/es/progress/progress';
 
@@ -29,10 +29,10 @@ const ProgressBar = styled(({ striped, ...props }: ProgressBarProps) => (
   <AntdProgress data-test="progress-bar" {...props} />
 ))`
   position: static;
-  .ant-progress-inner {
+  .ant-progress-rail {
     position: static;
   }
-  .ant-progress-bg {
+  .ant-progress-track {
     position: static;
     ${({ striped }) =>
       striped &&

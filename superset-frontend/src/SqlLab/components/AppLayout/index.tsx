@@ -16,14 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useSelector } from 'react-redux';
-import { noop } from 'lodash';
+import { useDispatch, useSelector } from 'react-redux';
+import { noop } from 'lodash-es';
 import type { SqlLabRootState } from 'src/SqlLab/types';
-import { styled } from '@apache-superset/core';
+import { css, styled } from '@apache-superset/core/theme';
 import { useComponentDidUpdate } from '@superset-ui/core';
 import { Grid } from '@superset-ui/core/components';
-import ExtensionsManager from 'src/extensions/ExtensionsManager';
-import { useExtensionsContext } from 'src/extensions/ExtensionsContext';
+import { useViews } from 'src/core';
 import { Splitter } from 'src/components/Splitter';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
@@ -31,11 +30,16 @@ import {
   SQL_EDITOR_LEFTBAR_WIDTH,
   SQL_EDITOR_RIGHTBAR_WIDTH,
 } from 'src/SqlLab/constants';
+import { ViewLocations } from 'src/SqlLab/contributions';
+import ViewListExtension from 'src/components/ViewListExtension';
+import { toggleLeftBar } from 'src/SqlLab/actions/sqlLab';
 
 import SqlEditorLeftBar from '../SqlEditorLeftBar';
-import { ViewContribution } from 'src/SqlLab/contributions';
+import StatusBar from '../StatusBar';
 
 const StyledContainer = styled.div`
+  display: flex;
+  flex-direction: column;
   height: 100%;
 
   & .ant-splitter-panel:not(.sqllab-body):not(.queryPane) {
@@ -50,7 +54,11 @@ const StyledContainer = styled.div`
 
 const StyledSidebar = styled.div`
   position: relative;
-  padding: ${({ theme }) => theme.sizeUnit * 2.5}px;
+  padding: ${({ theme }) => theme.sizeUnit * 2.5}px 0;
+  margin: 0 ${({ theme }) => theme.sizeUnit * 2.5}px;
+  flex: 1;
+  height: 100%;
+  background-color: ${({ theme }) => theme.colorBgBase};
 `;
 
 const ContentWrapper = styled.div`
@@ -58,7 +66,8 @@ const ContentWrapper = styled.div`
   overflow: auto;
 `;
 
-const AppLayout: React.FC = ({ children }) => {
+const AppLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
+  const dispatch = useDispatch();
   const queryEditorId = useSelector<SqlLabRootState, string>(
     ({ sqlLab: { tabHistory } }) => tabHistory.slice(-1)[0],
   );
@@ -84,20 +93,24 @@ const AppLayout: React.FC = ({ children }) => {
   const onSidebarChange = (sizes: number[]) => {
     const [updatedWidth, _, possibleRightWidth] = sizes;
     setLeftWidth(updatedWidth);
+    dispatch(toggleLeftBar(updatedWidth === 0));
 
     if (typeof possibleRightWidth === 'number') {
       setRightWidth(possibleRightWidth);
     }
   };
-  const contributions =
-    ExtensionsManager.getInstance().getViewContributions(
-      ViewContribution.RightSidebar,
-    ) || [];
-  const { getView } = useExtensionsContext();
+  const viewItems = useViews(ViewLocations.sqllab.rightSidebar) || [];
 
   return (
     <StyledContainer>
-      <Splitter lazy onResizeEnd={onSidebarChange} onResize={noop}>
+      <Splitter
+        css={css`
+          flex: 1;
+        `}
+        lazy
+        onResizeEnd={onSidebarChange}
+        onResize={noop}
+      >
         <Splitter.Panel
           collapsible={{
             start: true,
@@ -115,7 +128,7 @@ const AppLayout: React.FC = ({ children }) => {
           </StyledSidebar>
         </Splitter.Panel>
         <Splitter.Panel className="sqllab-body">{children}</Splitter.Panel>
-        {contributions.length > 0 && (
+        {viewItems.length > 0 && (
           <Splitter.Panel
             collapsible={{
               start: true,
@@ -126,11 +139,12 @@ const AppLayout: React.FC = ({ children }) => {
             min={SQL_EDITOR_RIGHTBAR_WIDTH}
           >
             <ContentWrapper>
-              {contributions.map(contribution => getView(contribution.id))}
+              <ViewListExtension viewId={ViewLocations.sqllab.rightSidebar} />
             </ContentWrapper>
           </Splitter.Panel>
         )}
       </Splitter>
+      <StatusBar />
     </StyledContainer>
   );
 };

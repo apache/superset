@@ -228,7 +228,11 @@ class WebDriverPool:
     def _destroy_driver(self, pooled_driver: PooledWebDriver) -> None:
         """Safely destroy a WebDriver instance"""
         try:
-            WebDriverSelenium.destroy(pooled_driver.driver)
+            try:
+                pooled_driver.driver.close()
+            except Exception:  # pylint: disable=broad-except  # noqa: S110
+                pass
+            pooled_driver.driver.quit()
             self._stats["destroyed"] += 1
             logger.debug("Destroyed WebDriver instance")
         except Exception as e:

@@ -20,7 +20,7 @@ import { validateMapboxStylesUrl } from '@superset-ui/core';
 import './setup';
 
 describe('validateMapboxStylesUrl', () => {
-  it('should validate mapbox style URLs', () => {
+  test('should validate mapbox style URLs', () => {
     expect(
       validateMapboxStylesUrl('mapbox://styles/mapbox/streets-v9'),
     ).toEqual(false);
@@ -43,7 +43,7 @@ describe('validateMapboxStylesUrl', () => {
     'https://superset.apache.org/',
     'mapbox://tileset/mapbox/streets-v9',
   ].forEach(value => {
-    it(`should not validate ${value}`, () => {
+    test(`should not validate ${value}`, () => {
       expect(validateMapboxStylesUrl(value)).toEqual(
         'is expected to be a Mapbox/OSM URL (eg. mapbox://styles/...) or a tile server URL (eg. tile://http...)',
       );

@@ -1,0 +1,1 @@
+{"schema":{"properties":{"id":{"type":"integer"},"name":{"type":"string"},"type":{"enum":[1,2,3,4]}},"type":"object","title":"Tag"},"schemaType":"response"}

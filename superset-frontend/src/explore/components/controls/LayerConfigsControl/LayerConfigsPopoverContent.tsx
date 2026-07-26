@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { JsonValue, t } from '@superset-ui/core';
-import { css, styled, useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { JsonValue } from '@superset-ui/core';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 // eslint-disable-next-line no-restricted-imports
 import { Button } from '@superset-ui/core/components/Button';
 import { Form } from '@superset-ui/core/components/Form';
@@ -63,7 +64,6 @@ export const StyledCloseButton = styled(Button)`
     color: ${theme.colorPrimaryText};
     font-size: ${theme.fontSizeSM}px;
     font-weight: ${theme.fontWeightStrong};
-    text-transform: uppercase;
     min-width: ${theme.sizeUnit * 36};
     min-height: ${theme.sizeUnit * 8};
     box-shadow: none;
@@ -112,7 +112,6 @@ export const StyledSaveButton = styled(Button)`
     color: ${theme.colorTextLightSolid};
     font-size: ${theme.fontSizeSM}px;
     font-weight: ${theme.fontWeightStrong};
-    text-transform: uppercase;
     min-width: ${theme.sizeUnit * 36};
     min-height: ${theme.sizeUnit * 8};
     box-shadow: none;
@@ -302,8 +301,7 @@ export const LayerConfigsPopoverContent: FC<
       const wfsParser = new WfsDataParser();
       try {
         let requestParams: RequestParams1_1_0 | RequestParams2_0_0 = {} as
-          | RequestParams1_1_0
-          | RequestParams2_0_0;
+          RequestParams1_1_0 | RequestParams2_0_0;
         if (conf.version.startsWith('1.')) {
           requestParams = {
             version: conf.version as RequestParams1_1_0['version'],

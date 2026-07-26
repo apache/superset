@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import { t } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import { EmptyState } from '@superset-ui/core/components';
 import { Link } from 'react-router-dom';
 
@@ -94,7 +94,8 @@ export const MessageContent = (props: MessageContentProps) => {
     <StyledContainer>
       <StyledEmptyState
         image={currentImage}
-        size="large"
+        size="medium"
+        textSize="large"
         title={currentTitle}
         description={currentDescription}
       />

@@ -1,0 +1,31 @@
+---
+id: reportschedulerestapi-post
+title: "ReportScheduleRestApi.post"
+description: ""
+sidebar_label: "ReportScheduleRestApi.post"
+hide_title: true
+hide_table_of_contents: true
+schema: true
+sample: {"active":true,"chart":0,"context_markdown":"string","crontab":"*/5 * * * *","custom_width":1000,"dashboard":0,"database":0,"description":"Daily sales dashboard to marketing","email_subject":"[Report]  Report name: Dashboard or chart name","extra":{},"force_screenshot":true,"grace_period":14400,"log_retention":90,"name":"Daily dashboard email","owners":[0],"recipients":[{"recipient_config_json":{"bccTarget":"string","ccTarget":"string","target":"string"},"type":"Email"}],"report_format":"PDF","selected_tabs":[0],"sql":"SELECT value FROM time_series_table","timezone":"Africa/Abidjan","type":"Alert","validator_config_json":{"op":"<","threshold":0},"validator_type":"not null","working_timeout":3600}
+custom_edit_url: null
+---
+
+import Schema from "@theme/Schema";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"ReportScheduleRestApi.post"}
+>
+</Heading>
+
+
+
+
+
+<Schema
+  {...require("./reportschedulerestapi-post.Schema.json")}
+>
+
+</Schema>

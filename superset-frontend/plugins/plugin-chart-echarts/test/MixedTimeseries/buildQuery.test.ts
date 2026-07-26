@@ -106,7 +106,8 @@ test('should compile query object A', () => {
     row_offset: undefined,
     series_columns: ['foo'],
     series_limit: 5,
-    series_limit_metric: undefined,
+    series_limit_metric: 'count',
+    order_desc: true,
     group_others_when_limit_reached: false,
     url_params: {},
     custom_params: {},
@@ -167,6 +168,7 @@ test('should compile query object B', () => {
     series_columns: [],
     series_limit: 0,
     series_limit_metric: undefined,
+    order_desc: false,
     group_others_when_limit_reached: false,
     url_params: {},
     custom_params: {},
@@ -373,4 +375,36 @@ test('ensure correct pivot columns', () => {
       },
     },
   });
+});
+
+test('preserves order_desc and series_limit_metric for both queries', () => {
+  // Regression for sc-107146: toggling "Sort Descending" off in a Mixed Chart
+  // updated the displayed SQL but not the rendered result. The backend
+  // series-limit subquery picks the top-N series from `order_desc`, so dropping
+  // it (as `normalizeOrderBy` does) made the sort direction silently ignored.
+  const ascendingFormData = {
+    ...formDataMixedChart,
+    order_desc: false,
+    order_desc_b: false,
+    timeseries_limit_metric_b: 'count',
+  };
+  const { queries } = buildQuery(ascendingFormData);
+
+  // Query A: ascending sort by its explicit sort metric must survive.
+  expect(queries[0]).toEqual(
+    expect.objectContaining({
+      order_desc: false,
+      series_limit_metric: 'count',
+      orderby: [['count', true]],
+    }),
+  );
+
+  // Query B: the `_b` query must independently keep its own direction/metric.
+  expect(queries[1]).toEqual(
+    expect.objectContaining({
+      order_desc: false,
+      series_limit_metric: 'count',
+      orderby: [['count', true]],
+    }),
+  );
 });

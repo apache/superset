@@ -1,0 +1,1 @@
+{"schema":{"properties":{"id":{"type":"integer"},"slice_name":{"maxLength":250,"nullable":true,"type":"string"},"viz_type":{"maxLength":250,"nullable":true,"type":"string"}},"type":"object","title":"ReportScheduleRestApi.get.Slice"},"schemaType":"response"}

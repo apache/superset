@@ -21,8 +21,9 @@ import { useState, useEffect, useRef, Key, FC } from 'react';
 import { Table as AntTable } from 'antd';
 import { ColumnsType, TableProps as AntTableProps } from 'antd/es/table';
 import { PaginationProps } from 'antd/es/pagination';
-import { t, logging } from '@superset-ui/core';
-import { useTheme, styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { logging } from '@apache-superset/core/utils';
+import { useTheme, styled } from '@apache-superset/core/theme';
 import { Loading } from '@superset-ui/core/components';
 import { RowSelectionType } from 'antd/es/table/interface';
 import InteractiveTableUtils from './utils/InteractiveTableUtils';
@@ -197,7 +198,7 @@ const StyledTable = styled(AntTable as FC<AntTableProps>)<{ height?: number }>(
       scrollbar-color: ${theme.colorFillSecondary} ${theme.colorFillQuaternary};
     }
 
-    .ant-spin-nested-loading .ant-spin .ant-spin-dot {
+    .ant-spin .ant-spin-dot {
       width: ${theme.sizeXXL}px;
       height: unset;
     }
@@ -294,6 +295,7 @@ export function Table<RecordType extends object>(
     onRow,
     allowHTML = false,
     childrenColumnName,
+    expandable: expandableProp,
     ...rest
   } = props;
 
@@ -426,6 +428,7 @@ export function Table<RecordType extends object>(
     bordered,
     expandable: {
       childrenColumnName,
+      ...expandableProp,
     },
   };
 

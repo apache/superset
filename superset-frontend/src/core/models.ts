@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { core as coreType } from '@apache-superset/core';
+import { common as coreType } from '@apache-superset/core';
 
 export class Table implements coreType.Table {
   name: string;
@@ -106,8 +106,4 @@ export class Disposable implements coreType.Disposable {
   dispose(): any {
     this.dispose();
   }
-}
-
-export class ExtensionContext implements coreType.ExtensionContext {
-  disposables: coreType.Disposable[] = [];
 }

@@ -16,11 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, legacyValidateInteger } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { legacyValidateInteger } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   D3_FORMAT_DOCS,
   D3_TIME_FORMAT_OPTIONS,
+  DEFAULT_TIME_FORMAT,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
 
@@ -80,7 +82,7 @@ const config: ControlPanelConfig = {
     {
       label: t('Chart Options'),
       expanded: true,
-      tabOverride: 'customize',
+      description: t('Options'),
       controlSetRows: [
         ['linear_color_scheme'],
         [
@@ -136,6 +138,40 @@ const config: ControlPanelConfig = {
           },
         ],
         [
+          {
+            name: 'color_range_start',
+            config: {
+              type: 'TextControl',
+              isInt: true,
+              validators: [legacyValidateInteger],
+              renderTrigger: true,
+              default: undefined,
+              label: t('Color Range Start'),
+              description: t(
+                'Lower bound of the color scale. When both start and end are ' +
+                  'set, the legend uses this fixed range instead of the ' +
+                  'automatic data range.',
+              ),
+            },
+          },
+          {
+            name: 'color_range_end',
+            config: {
+              type: 'TextControl',
+              isInt: true,
+              validators: [legacyValidateInteger],
+              renderTrigger: true,
+              default: undefined,
+              label: t('Color Range End'),
+              description: t(
+                'Upper bound of the color scale. When both start and end are ' +
+                  'set, the legend uses this fixed range instead of the ' +
+                  'automatic data range.',
+              ),
+            },
+          },
+        ],
+        [
           'y_axis_format',
           {
             name: 'x_axis_time_format',
@@ -144,7 +180,7 @@ const config: ControlPanelConfig = {
               freeForm: true,
               label: t('Time Format'),
               renderTrigger: true,
-              default: 'smart_date',
+              default: DEFAULT_TIME_FORMAT,
               choices: D3_TIME_FORMAT_OPTIONS,
               description: D3_FORMAT_DOCS,
             },
@@ -180,7 +216,6 @@ const config: ControlPanelConfig = {
             config: {
               type: 'CheckboxControl',
               label: t('Show Metric Names'),
-              renderTrigger: true,
               default: true,
               description: t('Whether to display the metric name as a title'),
             },

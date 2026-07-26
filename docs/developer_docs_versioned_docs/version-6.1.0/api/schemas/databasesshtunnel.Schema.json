@@ -1,0 +1,1 @@
+{"schema":{"properties":{"id":{"description":"SSH Tunnel ID (for updates)","nullable":true,"type":"integer"},"password":{"type":"string"},"private_key":{"type":"string"},"private_key_password":{"type":"string"},"server_address":{"type":"string"},"server_port":{"type":"integer"},"username":{"type":"string"}},"type":"object","title":"DatabaseSSHTunnel"},"schemaType":"response"}

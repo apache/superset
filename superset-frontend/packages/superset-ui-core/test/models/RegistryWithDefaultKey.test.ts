@@ -26,23 +26,23 @@ describe('RegistryWithDefaultKey', () => {
     registry = new RegistryWithDefaultKey();
   });
 
-  it('exists', () => {
+  test('exists', () => {
     expect(RegistryWithDefaultKey).toBeDefined();
   });
 
   describe('new RegistryWithDefaultKey(config)', () => {
-    it('returns a class that extends from Registry', () => {
+    test('returns a class that extends from Registry', () => {
       expect(registry).toBeInstanceOf(Registry);
     });
   });
 
   describe('.clear()', () => {
-    it('also resets default key', () => {
+    test('also resets default key', () => {
       registry.setDefaultKey('abc');
       registry.clear();
       expect(registry.getDefaultKey()).toBeUndefined();
     });
-    it('returns itself', () => {
+    test('returns itself', () => {
       expect(registry.clear()).toBe(registry);
     });
   });
@@ -54,51 +54,51 @@ describe('RegistryWithDefaultKey', () => {
         .registerValue('def', 200)
         .setDefaultKey('abc');
     });
-    it('.get() returns value from default key', () => {
+    test('.get() returns value from default key', () => {
       expect(registry.get()).toEqual(100);
     });
-    it('.get(key) returns value from specified key', () => {
+    test('.get(key) returns value from specified key', () => {
       expect(registry.get('def')).toEqual(200);
     });
-    it('returns undefined if no key was given and there is no default key', () => {
+    test('returns undefined if no key was given and there is no default key', () => {
       registry.clearDefaultKey();
       expect(registry.get()).toBeUndefined();
     });
   });
 
   describe('.getDefaultKey()', () => {
-    it('returns defaultKey', () => {
+    test('returns defaultKey', () => {
       registry.setDefaultKey('abc');
       expect(registry.getDefaultKey()).toEqual('abc');
     });
   });
 
   describe('.setDefaultKey(key)', () => {
-    it('set the default key', () => {
+    test('set the default key', () => {
       registry.setDefaultKey('abc');
       expect(registry.defaultKey).toEqual('abc');
     });
-    it('returns itself', () => {
+    test('returns itself', () => {
       expect(registry.setDefaultKey('ghi')).toBe(registry);
     });
   });
 
   describe('.clearDefaultKey()', () => {
-    it('set the default key to undefined', () => {
+    test('set the default key to undefined', () => {
       registry.clearDefaultKey();
       expect(registry.defaultKey).toBeUndefined();
     });
-    it('returns itself', () => {
+    test('returns itself', () => {
       expect(registry.clearDefaultKey()).toBe(registry);
     });
   });
 
   describe('config.defaultKey', () => {
     describe('when not set', () => {
-      it(`After creation, default key is undefined`, () => {
+      test(`After creation, default key is undefined`, () => {
         expect(registry.defaultKey).toBeUndefined();
       });
-      it('.clear() reset defaultKey to undefined', () => {
+      test('.clear() reset defaultKey to undefined', () => {
         registry.setDefaultKey('abc');
         registry.clear();
         expect(registry.getDefaultKey()).toBeUndefined();
@@ -108,10 +108,10 @@ describe('RegistryWithDefaultKey', () => {
       const registry2 = new RegistryWithDefaultKey({
         initialDefaultKey: 'def',
       });
-      it(`After creation, default key is undefined`, () => {
+      test(`After creation, default key is undefined`, () => {
         expect(registry2.defaultKey).toEqual('def');
       });
-      it('.clear() reset defaultKey to this config.defaultKey', () => {
+      test('.clear() reset defaultKey to this config.defaultKey', () => {
         registry2.setDefaultKey('abc');
         registry2.clear();
         expect(registry2.getDefaultKey()).toEqual('def');
@@ -128,28 +128,28 @@ describe('RegistryWithDefaultKey', () => {
         registry2.clear();
       });
       describe('.registerValue(key, value)', () => {
-        it('sets the default key to this key if default key is not set', () => {
+        test('sets the default key to this key if default key is not set', () => {
           registry2.registerValue('abc', 100);
           expect(registry2.getDefaultKey()).toEqual('abc');
         });
-        it('does not modify the default key if already set', () => {
+        test('does not modify the default key if already set', () => {
           registry2.setDefaultKey('def').registerValue('abc', 100);
           expect(registry2.getDefaultKey()).toEqual('def');
         });
-        it('returns itself', () => {
+        test('returns itself', () => {
           expect(registry2.registerValue('ghi', 300)).toBe(registry2);
         });
       });
       describe('.registerLoader(key, loader)', () => {
-        it('sets the default key to this key if default key is not set', () => {
+        test('sets the default key to this key if default key is not set', () => {
           registry2.registerLoader('abc', () => 100);
           expect(registry2.getDefaultKey()).toEqual('abc');
         });
-        it('does not modify the default key if already set', () => {
+        test('does not modify the default key if already set', () => {
           registry2.setDefaultKey('def').registerLoader('abc', () => 100);
           expect(registry2.getDefaultKey()).toEqual('def');
         });
-        it('returns itself', () => {
+        test('returns itself', () => {
           expect(registry2.registerLoader('ghi', () => 300)).toBe(registry2);
         });
       });
@@ -162,26 +162,26 @@ describe('RegistryWithDefaultKey', () => {
         registry2.clear();
       });
       describe('.registerValue(key, value)', () => {
-        it('does not modify default key', () => {
+        test('does not modify default key', () => {
           registry2.registerValue('abc', 100);
           expect(registry2.defaultKey).toBeUndefined();
           registry2.setDefaultKey('def');
           registry2.registerValue('ghi', 300);
           expect(registry2.defaultKey).toEqual('def');
         });
-        it('returns itself', () => {
+        test('returns itself', () => {
           expect(registry2.registerValue('ghi', 300)).toBe(registry2);
         });
       });
       describe('.registerLoader(key, loader)', () => {
-        it('does not modify default key', () => {
+        test('does not modify default key', () => {
           registry2.registerValue('abc', () => 100);
           expect(registry2.defaultKey).toBeUndefined();
           registry2.setDefaultKey('def');
           registry2.registerValue('ghi', () => 300);
           expect(registry2.defaultKey).toEqual('def');
         });
-        it('returns itself', () => {
+        test('returns itself', () => {
           expect(registry2.registerLoader('ghi', () => 300)).toBe(registry2);
         });
       });

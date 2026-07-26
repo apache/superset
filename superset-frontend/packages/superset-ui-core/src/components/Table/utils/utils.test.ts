@@ -46,12 +46,12 @@ test('withinRange unsupported negative numbers', async () => {
 test('withinRange invalid inputs', async () => {
   // Invalid inputs should return falsy and not throw an error
   // We need ts-ignore here to be able to pass invalid values and pass linting
-  // @ts-ignore
+  // @ts-expect-error
   expect(withinRange(null, 60, undefined)).toBeFalsy();
-  // @ts-ignore
+  // @ts-expect-error
   expect(withinRange([], 'hello', {})).toBeFalsy();
-  // @ts-ignore
+  // @ts-expect-error
   expect(withinRange([], undefined, {})).toBeFalsy();
-  // @ts-ignore
+  // @ts-expect-error
   expect(withinRange([], 'hello', {})).toBeFalsy();
 });

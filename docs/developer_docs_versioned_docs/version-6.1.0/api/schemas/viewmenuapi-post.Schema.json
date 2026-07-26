@@ -1,0 +1,1 @@
+{"schema":{"properties":{"name":{"maxLength":250,"type":"string"}},"required":["name"],"type":"object","title":"ViewMenuApi.post"},"schemaType":"response"}

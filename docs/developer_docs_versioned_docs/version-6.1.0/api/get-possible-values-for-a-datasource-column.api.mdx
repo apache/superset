@@ -1,0 +1,68 @@
+---
+id: get-possible-values-for-a-datasource-column
+title: "Get possible values for a datasource column"
+description: "Get possible values for a datasource column"
+sidebar_label: "Get possible values for a datasource column"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFV21v3DYM/isCMWAJ5tbN1gGFin5IszR9Q1s0V2xDHKQ6m3dWakuuJF+TGf7vAyXbZ99dhrYZmk+2aYrkQ/G1gUoYUaJDY4GfNZChTY2snNQKOMxyZO66QqYXLBNOWF2bFCECSX8r4XKIQIkSgcP6/wUdgQgMfq6lwQy4MzVGYNMcSwG8Ac/AwToj1RLaNtqlWGak1uX4Lapl9jWKpXK4RHOTZhLb6051UZeKOc2W6NhKFDVattBmtyWB+8J/fYsDzonZVlpZtPT/1wcP6JFq5VA5ehVVVchUkJXxpSVTm5G8yugKjZPhtEFbF/6UdFh6klb4duFveEN1tO2UNUnV5XxKmWtdoFBjkp5fYuqgPW+jniSMEdfk3U2eCPBKlFWBYzPPmva8JebpTRyy19I6H3rSOqnSsftHd0NSH97KXyVaK5a4MzL/E8FwEJ6KjNF1o3WcvVArUciMrXOLVUavZIYZ7AA6OhuwHNwtlg9K1C7XRv6DGWeHtctRuU4/G2J6B5DxwYDkt7tF8kybucwyVJz9rWuWafWzY7lYIavQlNJaQuQ0E2mK1jKXS8sMdqVmB8BBXkD38G7RvdGOLXStMs6oanUhhNkAgWUaLVPaMbySFFzbiAYZpOX3u86iF8qhUaJgFs0KDUNjtOHsULFa4VWFKaHzRKbTtDY3xOEz4UQR+Lxyi2ltpLv29e/yC5Wccyq5Tiyp68EfQ/+wcB7B1b1UZ3jq7QtdsRBqSdX9w/vXEEEh5lisP7tw4ZDWpmD3/mInxzOWQO5cxeO40Kkocm0df/Tg0aNYVDJeHcTrjhU3G42znVBk1sahzMXNqLm0cSiFcQIsSRLF2L3nLIHDLv38hXH2FIVBw346PDo6Pj29mL19dfwmAV+7O0Tvrl2u1QjTQBhQybLSxvXRZROVqL5VsScD+f4S3R7ZwX4g9CgozFFkaOyTZsMBCXCWQOeEBNgvXZ5fOP0JVZuo/URVRiq31wO6TzG+t78/dtFLsRKnPrhGbpoQ1wGglSVPDd4RX4R0bIEuzb1zfrBrmol/eP/NNiOFHPWxD5YmOGnmffQxnGjpQQ57nKgAkowZAG64r2PSBd4v9HKPWPcfAyXcNE1P0LFKWyvnBY5buxgNfH2Pj6BEl+sMOCyRnO7nLg7/u+voPn3xCZlfG7runbcGm3he02+W4QoLXZWoXFfGfDQFQU1ltNOpLloexw2JanlD+dVuSTuqrdNlLyKClTBSzItQa3sx9J7hQvg5ypsJEaCqSypr3Sc9fF2byn8+m71jg5w2ArJmKm/Au2XcaajP9C8My4a9eEdCCMtUyE5Xdec9d+vH375Gn1J3CSB9pW5g7gPzmTalIHkv/5xBN0r7gdT/haHDeNBtRIcvDC4M2vx7hbQ04i90gDOxvq7QWB+GTjpqYmMSxU7gWx0El1hXCt86uy3h2wJ/onvorQ6vXFwVQvpZxEdX0yXFGYhKkiEHdHq8O/HtJY1vLk+DXj5dZoKdEAGFUoiVM2iaubD4wRRtS+TPNRrqsufrcA1bpbT0ngFfiMLiFqZh4oC99918uc9uXD53eqDfPNR1bytwgAg+4fWO5dTvfd9r1A2L6e3MktntjPrKnfU7jByHgV/yQj/xFxs4DtMUfSfsz26NjZThQwE/Oabko1VhFM9DCnYvo1V1alfTBI7QoNrBTN/UwW+S/wL8k99G
+sidebar_class_name: "get api-method"
+info_path: developer-docs/api/superset
+custom_edit_url: null
+hide_send_button: true
+show_extensions: true
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get possible values for a datasource column"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/datasource/{datasource_type}/{datasource_id}/column/{column_name}/values/"}
+  context={"endpoint"}
+>
+
+</MethodEndpoint>
+
+
+
+Get possible values for a datasource column
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  {...require("./get-possible-values-for-a-datasource-column.ParamsDetails.json")}
+>
+
+</ParamsDetails>
+
+<RequestSchema
+  {...require("./get-possible-values-for-a-datasource-column.RequestSchema.json")}
+>
+
+</RequestSchema>
+
+<StatusCodes
+  {...require("./get-possible-values-for-a-datasource-column.StatusCodes.json")}
+>
+
+</StatusCodes>

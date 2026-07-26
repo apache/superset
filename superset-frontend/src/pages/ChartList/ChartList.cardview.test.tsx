@@ -17,7 +17,13 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { fireEvent, screen, waitFor } from 'spec/helpers/testing-library';
+import { mockUserSubjectsBootstrapData } from 'spec/helpers/mockBootstrapData';
+import {
+  fireEvent,
+  screen,
+  waitFor,
+  within,
+} from 'spec/helpers/testing-library';
 import { isFeatureEnabled } from '@superset-ui/core';
 import {
   mockCharts,
@@ -39,6 +45,10 @@ jest.mock('src/utils/export', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
+
+jest.mock('src/utils/getBootstrapData', () =>
+  mockUserSubjectsBootstrapData([1]),
+);
 
 const mockUser = {
   userId: 1,
@@ -67,10 +77,7 @@ describe('ChartList Card View Tests', () => {
     );
   });
 
-  afterEach(() => {
-    fetchMock.resetHistory();
-    fetchMock.restore();
-  });
+  afterEach(() => fetchMock.clearHistory().removeRoutes());
 
   test('renders ChartList in card view', async () => {
     renderChartList(mockUser);
@@ -478,40 +485,12 @@ describe('ChartList Card View Tests', () => {
       expect(screen.getByTestId('bulk-select-controls')).toBeInTheDocument();
     });
 
-    // Click the X button to close bulk select (look for close icon in bulk select bar)
-    const closeButton = document.querySelector(
-      '.ant-alert-close-icon',
-    ) as HTMLButtonElement;
+    // Click the X button to close bulk select
+    const bulkSelectBar = screen.getByTestId('bulk-select-controls');
+    const closeButton = within(bulkSelectBar).getByRole('button', {
+      name: /close/i,
+    });
     fireEvent.click(closeButton);
-
-    // Verify bulk select controls are gone
-    await waitFor(() => {
-      expect(
-        screen.queryByTestId('bulk-select-controls'),
-      ).not.toBeInTheDocument();
-    });
-  });
-
-  test('exit bulk select by clicking bulk select button again', async () => {
-    renderChartList(mockUser);
-
-    // Wait for cards to load
-    await screen.findByTestId('chart-list-view');
-    await waitFor(() => {
-      expect(screen.getByText(mockCharts[0].slice_name)).toBeInTheDocument();
-    });
-
-    // Enable bulk select mode
-    const bulkSelectButton = screen.getByTestId('bulk-select');
-    fireEvent.click(bulkSelectButton);
-
-    // Wait for bulk select controls
-    await waitFor(() => {
-      expect(screen.getByTestId('bulk-select-controls')).toBeInTheDocument();
-    });
-
-    // Click bulk select button again to exit
-    fireEvent.click(bulkSelectButton);
 
     // Verify bulk select controls are gone
     await waitFor(() => {

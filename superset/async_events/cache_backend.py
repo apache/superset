@@ -14,7 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict, List, Optional, Tuple
+from __future__ import annotations
+
+from typing import Any
 
 import redis
 from flask_caching.backends.rediscache import RedisCache, RedisSentinelCache
@@ -28,15 +30,17 @@ class RedisCacheBackend(RedisCache):
         self,
         host: str,
         port: int,
-        password: Optional[str] = None,
+        password: str | None = None,
         db: int = 0,
         default_timeout: int = 300,
-        key_prefix: Optional[str] = None,
+        key_prefix: str | None = None,
         ssl: bool = False,
-        ssl_certfile: Optional[str] = None,
-        ssl_keyfile: Optional[str] = None,
+        ssl_certfile: str | None = None,
+        ssl_keyfile: str | None = None,
         ssl_cert_reqs: str = "required",
-        ssl_ca_certs: Optional[str] = None,
+        ssl_ca_certs: str | None = None,
+        socket_timeout: float | None = None,
+        socket_connect_timeout: float | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(
@@ -48,25 +52,86 @@ class RedisCacheBackend(RedisCache):
             key_prefix=key_prefix,
             **kwargs,
         )
-        self._cache = redis.Redis(
-            host=host,
-            port=port,
-            password=password,
-            db=db,
-            ssl=ssl,
-            ssl_certfile=ssl_certfile,
-            ssl_keyfile=ssl_keyfile,
-            ssl_cert_reqs=ssl_cert_reqs,
-            ssl_ca_certs=ssl_ca_certs,
+        # redis-py 8 defaults to a 5s socket timeout and RESP3 on the wire
+        # (previously: no timeout, RESP2). Pin the pre-upgrade behavior
+        # explicitly so bumping the library doesn't silently introduce new
+        # timeouts or require RESP3 server support; socket_timeout/
+        # connect_timeout stay operator-configurable. Built as a single
+        # dict (rather than mixed explicit kwargs + **kwargs) because
+        # combining both against redis.Redis's many @overloads defeats
+        # mypy's overload resolution.
+        connection_kwargs: dict[str, Any] = {
+            "host": host,
+            "port": port,
+            "password": password,
+            "db": db,
+            "ssl": ssl,
+            "ssl_certfile": ssl_certfile,
+            "ssl_keyfile": ssl_keyfile,
+            "ssl_cert_reqs": ssl_cert_reqs,
+            "ssl_ca_certs": ssl_ca_certs,
+            "socket_timeout": socket_timeout,
+            "socket_connect_timeout": socket_connect_timeout,
+            "protocol": 2,
             **kwargs,
-        )
+        }
+        self._cache = redis.Redis(**connection_kwargs)
+
+    def set(
+        self,
+        name: str,
+        value: Any,
+        ex: int | None = None,
+        px: int | None = None,
+        nx: bool = False,
+        xx: bool = False,
+    ) -> bool | None:
+        """
+        Set the value at key ``name``.
+
+        :param name: Key name
+        :param value: Value to set
+        :param ex: Expire time in seconds
+        :param px: Expire time in milliseconds
+        :param nx: If True, set only if key does not exist
+        :param xx: If True, set only if key already exists
+        :returns: True if set successfully, None if nx/xx condition not met
+        """
+        return self._cache.set(name, value, ex=ex, px=px, nx=nx, xx=xx)
+
+    def delete(self, *names: str) -> int:
+        """
+        Delete one or more keys.
+
+        :param names: Key names to delete
+        :returns: Number of keys deleted
+        """
+        return self._cache.delete(*names)
+
+    def publish(self, channel: str, message: str) -> int:
+        """
+        Publish a message to a Redis pub/sub channel.
+
+        :param channel: The channel name to publish to
+        :param message: The message to publish
+        :returns: Number of subscribers that received the message
+        """
+        return self._cache.publish(channel, message)
+
+    def pubsub(self) -> redis.client.PubSub:
+        """
+        Create a pub/sub subscription object.
+
+        :returns: PubSub object for subscribing to channels
+        """
+        return self._cache.pubsub()
 
     def xadd(
         self,
         stream_name: str,
-        event_data: Dict[str, Any],
+        event_data: dict[str, Any],
         event_id: str = "*",
-        maxlen: Optional[int] = None,
+        maxlen: int | None = None,
     ) -> str:
         return self._cache.xadd(stream_name, event_data, event_id, maxlen)
 
@@ -75,13 +140,13 @@ class RedisCacheBackend(RedisCache):
         stream_name: str,
         start: str = "-",
         end: str = "+",
-        count: Optional[int] = None,
-    ) -> List[Any]:
+        count: int | None = None,
+    ) -> list[Any]:
         count = count or self.MAX_EVENT_COUNT
         return self._cache.xrange(stream_name, start, end, count)
 
     @classmethod
-    def from_config(cls, config: Dict[str, Any]) -> "RedisCacheBackend":
+    def from_config(cls, config: dict[str, Any]) -> RedisCacheBackend:
         kwargs = {
             "host": config.get("CACHE_REDIS_HOST", "localhost"),
             "port": config.get("CACHE_REDIS_PORT", 6379),
@@ -94,6 +159,10 @@ class RedisCacheBackend(RedisCache):
             "ssl_keyfile": config.get("CACHE_REDIS_SSL_KEYFILE", None),
             "ssl_cert_reqs": config.get("CACHE_REDIS_SSL_CERT_REQS", "required"),
             "ssl_ca_certs": config.get("CACHE_REDIS_SSL_CA_CERTS", None),
+            "socket_timeout": config.get("CACHE_REDIS_SOCKET_TIMEOUT", None),
+            "socket_connect_timeout": config.get(
+                "CACHE_REDIS_SOCKET_CONNECT_TIMEOUT", None
+            ),
         }
 
         # Handle username separately as it's optional for Redis authentication.
@@ -108,26 +177,35 @@ class RedisSentinelCacheBackend(RedisSentinelCache):
 
     def __init__(  # pylint: disable=too-many-arguments
         self,
-        sentinels: List[Tuple[str, int]],
+        sentinels: list[tuple[str, int]],
         master: str,
-        password: Optional[str] = None,
-        sentinel_password: Optional[str] = None,
+        password: str | None = None,
+        sentinel_password: str | None = None,
         db: int = 0,
         default_timeout: int = 300,
         key_prefix: str = "",
         ssl: bool = False,
-        ssl_certfile: Optional[str] = None,
-        ssl_keyfile: Optional[str] = None,
+        ssl_certfile: str | None = None,
+        ssl_keyfile: str | None = None,
         ssl_cert_reqs: str = "required",
-        ssl_ca_certs: Optional[str] = None,
+        ssl_ca_certs: str | None = None,
+        socket_timeout: float | None = None,
+        socket_connect_timeout: float | None = None,
         **kwargs: Any,
     ) -> None:
         # Sentinel dont directly support SSL
         # Initialize Sentinel without SSL parameters
         self._sentinel = Sentinel(
             sentinels,
+            # See the matching comment in RedisCacheBackend.__init__: pin the
+            # pre-redis-py-8 defaults (no socket timeout, RESP2) explicitly
+            # for the sentinel-node connections too, so this bump doesn't
+            # silently change connection behavior.
             sentinel_kwargs={
                 "password": sentinel_password,
+                "socket_timeout": socket_timeout,
+                "socket_connect_timeout": socket_connect_timeout,
+                "protocol": 2,
             },
             **{
                 k: v
@@ -144,7 +222,7 @@ class RedisSentinelCacheBackend(RedisSentinelCache):
         )
 
         # Prepare SSL-related arguments for master_for method
-        master_kwargs = {
+        master_kwargs: dict[str, Any] = {
             "password": password,
             "ssl": ssl,
             "ssl_certfile": ssl_certfile if ssl else None,
@@ -163,6 +241,12 @@ class RedisSentinelCacheBackend(RedisSentinelCache):
         # Filter out None values from master_kwargs
         master_kwargs = {k: v for k, v in master_kwargs.items() if v is not None}
 
+        # Added after the None-filtering above: these must be forwarded even
+        # when None (that's the explicit override), unlike the SSL args.
+        master_kwargs["socket_timeout"] = socket_timeout
+        master_kwargs["socket_connect_timeout"] = socket_connect_timeout
+        master_kwargs["protocol"] = 2
+
         # Initialize Redis master connection
         self._cache = self._sentinel.master_for(master, **master_kwargs)
 
@@ -177,12 +261,61 @@ class RedisSentinelCacheBackend(RedisSentinelCache):
             **kwargs,
         )
 
+    def set(
+        self,
+        name: str,
+        value: Any,
+        ex: int | None = None,
+        px: int | None = None,
+        nx: bool = False,
+        xx: bool = False,
+    ) -> bool | None:
+        """
+        Set the value at key ``name``.
+
+        :param name: Key name
+        :param value: Value to set
+        :param ex: Expire time in seconds
+        :param px: Expire time in milliseconds
+        :param nx: If True, set only if key does not exist
+        :param xx: If True, set only if key already exists
+        :returns: True if set successfully, None if nx/xx condition not met
+        """
+        return self._cache.set(name, value, ex=ex, px=px, nx=nx, xx=xx)
+
+    def delete(self, *names: str) -> int:
+        """
+        Delete one or more keys.
+
+        :param names: Key names to delete
+        :returns: Number of keys deleted
+        """
+        return self._cache.delete(*names)
+
+    def publish(self, channel: str, message: str) -> int:
+        """
+        Publish a message to a Redis pub/sub channel.
+
+        :param channel: The channel name to publish to
+        :param message: The message to publish
+        :returns: Number of subscribers that received the message
+        """
+        return self._cache.publish(channel, message)
+
+    def pubsub(self) -> redis.client.PubSub:
+        """
+        Create a pub/sub subscription object.
+
+        :returns: PubSub object for subscribing to channels
+        """
+        return self._cache.pubsub()
+
     def xadd(
         self,
         stream_name: str,
-        event_data: Dict[str, Any],
+        event_data: dict[str, Any],
         event_id: str = "*",
-        maxlen: Optional[int] = None,
+        maxlen: int | None = None,
     ) -> str:
         return self._cache.xadd(stream_name, event_data, event_id, maxlen)
 
@@ -191,13 +324,13 @@ class RedisSentinelCacheBackend(RedisSentinelCache):
         stream_name: str,
         start: str = "-",
         end: str = "+",
-        count: Optional[int] = None,
-    ) -> List[Any]:
+        count: int | None = None,
+    ) -> list[Any]:
         count = count or self.MAX_EVENT_COUNT
         return self._cache.xrange(stream_name, start, end, count)
 
     @classmethod
-    def from_config(cls, config: Dict[str, Any]) -> "RedisSentinelCacheBackend":
+    def from_config(cls, config: dict[str, Any]) -> RedisSentinelCacheBackend:
         kwargs = {
             "sentinels": config.get("CACHE_REDIS_SENTINELS", [("127.0.0.1", 26379)]),
             "master": config.get("CACHE_REDIS_SENTINEL_MASTER", "mymaster"),
@@ -210,5 +343,9 @@ class RedisSentinelCacheBackend(RedisSentinelCache):
             "ssl_keyfile": config.get("CACHE_REDIS_SSL_KEYFILE", None),
             "ssl_cert_reqs": config.get("CACHE_REDIS_SSL_CERT_REQS", "required"),
             "ssl_ca_certs": config.get("CACHE_REDIS_SSL_CA_CERTS", None),
+            "socket_timeout": config.get("CACHE_REDIS_SOCKET_TIMEOUT", None),
+            "socket_connect_timeout": config.get(
+                "CACHE_REDIS_SOCKET_CONNECT_TIMEOUT", None
+            ),
         }
         return cls(**kwargs)

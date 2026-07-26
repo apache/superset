@@ -24,13 +24,7 @@ metadata:
   name: {{ template "superset.fullname" . }}-extra-config
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ template "superset.name" . }}
-    chart: {{ template "superset.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
-    {{- if .Values.extraLabels }}
-      {{- toYaml .Values.extraLabels | nindent 4 }}
-    {{- end }}
+    {{- include "superset.labels" . | nindent 4 }}
 data:
   {{- range $path, $config := .Values.extraConfigs }}
   {{ $path }}: |

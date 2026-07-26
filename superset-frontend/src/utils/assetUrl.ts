@@ -23,6 +23,28 @@ import { staticAssetsPrefix } from 'src/utils/getBootstrapData';
  * defined in the bootstrap data
  * @param path A string path to a resource
  */
-export function assetUrl(path: string) {
+export function assetUrl(path: string): string {
   return `${staticAssetsPrefix()}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
+/**
+ * Returns the path prepended with the staticAssetsPrefix if the string is a relative path else it returns
+ * the string as is.
+ *
+ * Idempotent — a path that already begins with the static-assets prefix at a
+ * segment boundary is returned unchanged, mirroring the dedupe pattern used by
+ * `ensureAppRoot` in pathUtils.ts and `SupersetClient.getUrl`.
+ *
+ * @param url_or_path A url or relative path to a resource
+ */
+export function ensureStaticPrefix(url_or_path: string): string {
+  if (!url_or_path.startsWith('/')) return url_or_path;
+  const prefix = staticAssetsPrefix();
+  if (
+    prefix &&
+    (url_or_path === prefix || url_or_path.startsWith(`${prefix}/`))
+  ) {
+    return url_or_path;
+  }
+  return assetUrl(url_or_path);
 }

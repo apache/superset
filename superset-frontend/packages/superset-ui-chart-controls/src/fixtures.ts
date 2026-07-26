@@ -17,7 +17,7 @@
  * under the License.
  */
 import { DatasourceType } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { Dataset } from './types';
 
 export const TestDataset: Dataset = {
@@ -138,7 +138,7 @@ export const TestDataset: Dataset = {
   ],
   name: 'public.birth_names',
   order_by_choices: [],
-  owners: [
+  editors: [
     {
       first_name: 'admin',
       id: 1,

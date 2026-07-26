@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsArray, t } from '@superset-ui/core';
-import { cloneDeep } from 'lodash';
+import { t } from '@apache-superset/core/translation';
+import { ensureIsArray } from '@superset-ui/core';
+import { cloneDeep } from 'lodash-es';
 import {
   ControlPanelsContainerProps,
   ControlPanelConfig,
@@ -317,14 +318,25 @@ function createAdvancedAnalyticsSection(
 ): ControlPanelSectionConfig {
   const aaWithSuffix = cloneDeep(sections.advancedAnalyticsControls);
   aaWithSuffix.label = label;
+  // `time_compare_full_range` is only wired into the regular timeseries query
+  // builder, not the mixed-timeseries one, so drop it here to avoid showing a
+  // control that has no effect.
+  aaWithSuffix.controlSetRows = aaWithSuffix.controlSetRows
+    .map(row =>
+      row.filter(
+        control =>
+          (control as CustomControlItem)?.name !== 'time_compare_full_range',
+      ),
+    )
+    .filter(row => row.length > 0);
   if (!controlSuffix) {
     return aaWithSuffix;
   }
   aaWithSuffix.controlSetRows.forEach(row =>
-    row.forEach((control: CustomControlItem) => {
-      if (control?.name) {
-        // eslint-disable-next-line no-param-reassign
-        control.name = `${control.name}${controlSuffix}`;
+    row.forEach(control => {
+      const item = control as CustomControlItem;
+      if (item?.name) {
+        item.name = `${item.name}${controlSuffix}`;
       }
     }),
   );
@@ -504,6 +516,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        ['echart_options'],
       ],
     },
   ],

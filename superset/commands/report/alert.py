@@ -37,6 +37,7 @@ from superset.commands.report.exceptions import (
     AlertQueryMultipleRowsError,
     AlertQueryTimeout,
     AlertValidatorConfigError,
+    ReportScheduleExecutorNotFoundError,
 )
 from superset.reports.models import ReportSchedule, ReportScheduleValidatorType
 from superset.tasks.utils import get_executor
@@ -59,14 +60,17 @@ class AlertCommand(BaseCommand):
         self._report_schedule = report_schedule
         self._execution_id = execution_id
         self._result: float | None = None
+        self._info_message: str | None = None
 
-    def run(self) -> bool:
+    def run(self) -> tuple[bool, str | None]:
         """
         Executes an alert SQL query and validates it.
         Will set the report_schedule.last_value or last_value_row_json
         with the query result
 
-        :return: bool, if the alert triggered or not
+        :return: tuple[bool, str | None] - (triggered, message)
+            - triggered: True if alert condition was met
+            - message: Optional info message explaining why alert didn't trigger
         :raises AlertQueryError: SQL query is not valid
         :raises AlertQueryInvalidTypeError: The output from the SQL query
         is not an allowed type
@@ -79,20 +83,47 @@ class AlertCommand(BaseCommand):
 
         if self._is_validator_not_null:
             self._report_schedule.last_value_row_json = str(self._result)
-            return self._result not in (0, None, np.nan)
+            is_null_or_nan = self._result is None or pd.isna(self._result)
+            triggered = bool(self._result != 0 and not is_null_or_nan)
+            if not triggered:
+                logger.debug(
+                    "Alert not triggered for report_schedule_id=%s, "
+                    "execution_id=%s, result=%s, message=%s",
+                    self._report_schedule.id,
+                    self._execution_id,
+                    self._result,
+                    self._info_message,
+                )
+            return (triggered, self._info_message)
         self._report_schedule.last_value = self._result
         try:
-            operator = json.loads(self._report_schedule.validator_config_json)["op"]
-            threshold = json.loads(self._report_schedule.validator_config_json)[
-                "threshold"
-            ]
-            return OPERATOR_FUNCTIONS[operator](self._result, threshold)  # type: ignore
+            config = json.loads(self._report_schedule.validator_config_json)
+            operator = config["op"]
+            threshold = config["threshold"]
+            # Return False for None results to prevent false alert triggers
+            if self._result is None:
+                logger.debug(
+                    "Alert not triggered (NULL result) for report_schedule_id=%s, "
+                    "execution_id=%s, message=%s",
+                    self._report_schedule.id,
+                    self._execution_id,
+                    self._info_message,
+                )
+                return (False, self._info_message)
+            triggered = OPERATOR_FUNCTIONS[operator](self._result, threshold)
+            return (triggered, None)
         except (KeyError, json.JSONDecodeError) as ex:
             raise AlertValidatorConfigError() from ex
 
     def _validate_not_null(self, rows: np.recarray[Any, Any]) -> None:
         self._validate_result(rows)
-        self._result = rows[0][1]
+        value = rows[0][1]
+        # Normalize NULL/NaN to None for consistency with _validate_operator
+        if value is None or pd.isna(value):
+            self._result = None
+            self._info_message = "Query returned NULL value"
+            return
+        self._result = value
 
     @staticmethod
     def _validate_result(rows: np.recarray[Any, Any]) -> None:
@@ -117,11 +148,16 @@ class AlertCommand(BaseCommand):
 
     def _validate_operator(self, rows: np.recarray[Any, Any]) -> None:
         self._validate_result(rows)
-        if rows[0][1] in (0, None, np.nan):
+
+        if rows[0][1] is None or pd.isna(rows[0][1]):
+            self._result = None
+            self._info_message = "Query returned NULL value"
+            return
+
+        if rows[0][1] == 0:
             self._result = 0.0
             return
         try:
-            # Check if it's float or if we can convert it
             self._result = float(rows[0][1])
             return
         except (AssertionError, TypeError, ValueError) as ex:
@@ -158,6 +194,7 @@ class AlertCommand(BaseCommand):
             database=self._report_schedule.database
         )
         rendered_sql = sql_template.process_template(self._report_schedule.sql)
+
         try:
             limited_rendered_sql = self._report_schedule.database.apply_limit_to_sql(
                 rendered_sql, ALERT_SQL_LIMIT
@@ -175,6 +212,13 @@ class AlertCommand(BaseCommand):
                 model=self._report_schedule,
             )
             user = security_manager.find_user(username)
+            # A deleted/disabled executor user makes find_user return None. Raise
+            # the dedicated error so the handler below re-surfaces it instead of
+            # masking it as an opaque AlertQueryError (or letting the missing user
+            # surface as a NoneType error from the downstream auth flow).
+            if user is None:
+                raise ReportScheduleExecutorNotFoundError(username)
+
             with override_user(user):
                 start = default_timer()
                 df = self._report_schedule.database.get_df(sql=limited_rendered_sql)
@@ -188,6 +232,10 @@ class AlertCommand(BaseCommand):
         except SoftTimeLimitExceeded as ex:
             logger.warning("A timeout occurred while executing the alert query: %s", ex)
             raise AlertQueryTimeout() from ex
+        except ReportScheduleExecutorNotFoundError:
+            # A missing executor user is a configuration problem, not a transient
+            # query error; surface the typed error rather than masking it.
+            raise
         except Exception as ex:
             logger.warning("An error occurred when running alert query")
             # The exception message here can reveal to much information to malicious
@@ -212,7 +260,14 @@ class AlertCommand(BaseCommand):
             self._result = None
             return
         if df.empty and self._is_validator_operator:
-            self._result = 0.0
+            logger.debug(
+                "Alert query returned empty result for report_schedule_id=%s, "
+                "execution_id=%s.",
+                self._report_schedule.id,
+                self._execution_id,
+            )
+            self._result = None
+            self._info_message = "Query returned no rows (empty result set)"
             return
         rows = df.to_records()
         if self._is_validator_not_null:

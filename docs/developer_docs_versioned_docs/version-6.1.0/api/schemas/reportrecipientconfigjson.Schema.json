@@ -1,0 +1,1 @@
+{"schema":{"properties":{"bccTarget":{"type":"string"},"ccTarget":{"type":"string"},"target":{"type":"string"}},"type":"object","title":"ReportRecipientConfigJSON"},"schemaType":"response"}

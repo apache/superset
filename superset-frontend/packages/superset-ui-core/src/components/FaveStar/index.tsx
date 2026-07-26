@@ -19,8 +19,8 @@
 
 import { useCallback, useEffect, MouseEvent } from 'react';
 
-import { t } from '@superset-ui/core';
-import { css, styled, useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Tooltip } from '../Tooltip';
 import type { FaveStarProps } from './types';
@@ -60,6 +60,7 @@ export const FaveStar = ({
       className="fave-unfave-icon"
       data-test="fave-unfave-icon"
       role="button"
+      tabIndex={0}
     >
       {isStarred ? (
         <Icons.StarFilled

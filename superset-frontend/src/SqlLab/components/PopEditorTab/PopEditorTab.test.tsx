@@ -17,7 +17,7 @@
  * under the License.
  */
 import { MemoryRouter } from 'react-router-dom';
-import { render, waitFor } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import { initialState } from 'src/SqlLab/fixtures';
 import { Store } from 'redux';
@@ -57,7 +57,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
 });
 
 let replaceState = jest.spyOn(window.history, 'replaceState');
@@ -78,7 +78,7 @@ test('should handle id', async () => {
   setup('/sqllab?id=1');
   await waitFor(() =>
     expect(
-      fetchMock.calls(`glob:*/api/v1/sqllab/permalink/kv:${id}`),
+      fetchMock.callHistory.calls(`glob:*/api/v1/sqllab/permalink/kv:${id}`),
     ).toHaveLength(1),
   );
   expect(replaceState).toHaveBeenCalledWith(
@@ -86,7 +86,7 @@ test('should handle id', async () => {
     expect.anything(),
     '/sqllab',
   );
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
 });
 test('should handle permalink', async () => {
   const key = '9sadkfl';
@@ -98,7 +98,7 @@ test('should handle permalink', async () => {
   setup('/sqllab/p/9sadkfl');
   await waitFor(() =>
     expect(
-      fetchMock.calls(`glob:*/api/v1/sqllab/permalink/${key}`),
+      fetchMock.callHistory.calls(`glob:*/api/v1/sqllab/permalink/${key}`),
     ).toHaveLength(1),
   );
   expect(replaceState).toHaveBeenCalledWith(
@@ -106,12 +106,14 @@ test('should handle permalink', async () => {
     expect.anything(),
     '/sqllab',
   );
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
 });
 test('should handle savedQueryId', async () => {
   setup('/sqllab?savedQueryId=1');
   await waitFor(() =>
-    expect(fetchMock.calls('glob:*/api/v1/saved_query/1')).toHaveLength(1),
+    expect(
+      fetchMock.callHistory.calls('glob:*/api/v1/saved_query/1'),
+    ).toHaveLength(1),
   );
   expect(replaceState).toHaveBeenCalledWith(
     expect.anything(),
@@ -133,5 +135,26 @@ test('should handle custom url params', () => {
     expect.anything(),
     expect.anything(),
     '/sqllab?custom_value=str&extra_attr1=true',
+  );
+});
+test('should clear loading state when saved query fetch fails', async () => {
+  fetchMock.removeRoutes();
+  fetchMock.get('glob:*/api/v1/database/*', {});
+  fetchMock.get('glob:*/api/v1/saved_query/999', 404);
+  render(
+    <MemoryRouter initialEntries={['/sqllab?savedQueryId=999']}>
+      <LocationProvider>
+        <PopEditorTab>
+          <div data-test="sql-editor">Editor content</div>
+        </PopEditorTab>
+      </LocationProvider>
+    </MemoryRouter>,
+    {
+      useRedux: true,
+      initialState,
+    },
+  );
+  await waitFor(() =>
+    expect(screen.getByText('Editor content')).toBeInTheDocument(),
   );
 });

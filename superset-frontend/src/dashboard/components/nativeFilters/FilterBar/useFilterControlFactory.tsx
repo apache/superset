@@ -37,7 +37,10 @@ export const useFilterControlFactory = (
   onClearAllComplete?: (filterId: string) => void,
 ) => {
   const filters = useFilters();
-  const filterValues = useMemo(() => Object.values(filters), [filters]);
+  const filterValues = useMemo(
+    () => Object.values(filters) as (Filter | Divider)[],
+    [filters],
+  );
   const filtersWithValues: (Filter | Divider)[] = useMemo(
     () =>
       filterValues.map(filter => ({

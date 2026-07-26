@@ -1,0 +1,31 @@
+---
+title: Greenplum
+sidebar_label: Greenplum
+description: "VMware Greenplum is a massively parallel processing (MPP) database built on PostgreSQL."
+hide_title: true
+---
+
+{/*
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+*/}
+
+import { DatabasePage } from '@site/src/components/databases';
+
+export const databaseInfo = {"engine":"greenplum","engine_name":"Greenplum","module":"greenplum","documentation":{"description":"VMware Greenplum is a massively parallel processing (MPP) database built on PostgreSQL.","logo":"greenplum.png","homepage_url":"https://greenplum.org/","pypi_packages":["psycopg2","sqlalchemy-greenplum","psycopg2"],"connection_string":"greenplum://{username}:{password}@{host}:{port}/{database}","default_port":5432,"parameters":{"username":"Database username","password":"Database password","host":"Greenplum coordinator host","port":"Default 5432","database":"Database name"},"notes":"The psycopg2 library comes bundled with Superset Docker images.","connection_examples":[{"description":"Basic connection","connection_string":"postgresql://{username}:{password}@{host}:{port}/{database}"},{"description":"With SSL required","connection_string":"postgresql://{username}:{password}@{host}:{port}/{database}?sslmode=require"}],"docs_url":"https://docs.vmware.com/en/VMware-Greenplum/","sqlalchemy_docs_url":"https://docs.sqlalchemy.org/en/13/dialects/postgresql.html","categories":["TRADITIONAL_RDBMS","OPEN_SOURCE"]},"time_grains":{"SECOND":true,"FIVE_SECONDS":true,"THIRTY_SECONDS":true,"MINUTE":true,"FIVE_MINUTES":true,"TEN_MINUTES":true,"FIFTEEN_MINUTES":true,"THIRTY_MINUTES":true,"HALF_HOUR":false,"HOUR":true,"SIX_HOURS":false,"DAY":true,"WEEK":true,"WEEK_STARTING_SUNDAY":false,"WEEK_STARTING_MONDAY":false,"WEEK_ENDING_SATURDAY":false,"WEEK_ENDING_SUNDAY":false,"MONTH":true,"QUARTER":true,"QUARTER_YEAR":false,"YEAR":true},"score":94,"max_score":201,"joins":true,"subqueries":true,"supports_dynamic_schema":true,"supports_catalog":true,"supports_dynamic_catalog":true,"ssh_tunneling":true,"supports_file_upload":true,"query_cancelation":true,"query_cost_estimation":true,"sql_validation":false,"user_impersonation":false};
+
+<DatabasePage name="Greenplum" database={databaseInfo} />

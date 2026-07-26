@@ -16,9 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { handleKeyboardActivation } from '@superset-ui/core';
 import { useState } from 'react';
-import { t } from '@superset-ui/core';
-import { useTheme, Alert } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
+import { useTheme } from '@apache-superset/core/theme';
 import {
   Icons,
   Modal,
@@ -34,6 +36,7 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({
   description,
   descriptionDetails,
   descriptionDetailsCollapsed = true,
+  messagePre = false,
   descriptionPre = true,
   compact = false,
   children,
@@ -68,13 +71,20 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({
     );
   };
   const preStyle = {
-    whiteSpace: 'pre-wrap',
+    whiteSpace: 'pre-wrap' as const,
     fontFamily: theme.fontFamilyCode,
     margin: `${theme.sizeUnit}px 0`,
   };
   const renderDescription = () => (
     <div>
-      {message && <div>{message}</div>}
+      {message &&
+        (messagePre ? (
+          <Typography.Paragraph style={preStyle}>
+            {message}
+          </Typography.Paragraph>
+        ) : (
+          <div>{message}</div>
+        ))}
       {description && (
         <Typography.Paragraph
           style={descriptionPre ? preStyle : {}}
@@ -94,6 +104,7 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({
             role="button"
             tabIndex={0}
             onClick={toggleDescription}
+            onKeyDown={handleKeyboardActivation(toggleDescription)}
             style={{ textDecoration: 'underline', cursor: 'pointer' }}
           >
             {isDescriptionVisible ? t('See less') : t('See more')}
@@ -118,7 +129,12 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({
     return (
       <>
         <Tooltip title={`${errorType}: ${message}`}>
-          <span role="button" onClick={() => setShowModal(true)} tabIndex={0}>
+          <span
+            role="button"
+            onClick={() => setShowModal(true)}
+            onKeyDown={handleKeyboardActivation(() => setShowModal(true))}
+            tabIndex={0}
+          >
             {renderTrigger()}
           </span>
         </Tooltip>

@@ -18,12 +18,14 @@
 
 import json  # noqa: TID251
 from unittest.mock import MagicMock
+from urllib.parse import parse_qs, urlparse
 from uuid import UUID
 
 import pytest
 from freezegun import freeze_time
 from pytest_mock import MockerFixture
 
+from superset.app import SupersetApp
 from superset.common.db_query_status import QueryStatus
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.errors import ErrorLevel, SupersetErrorType
@@ -55,6 +57,9 @@ def test_execute_query(mocker: MockerFixture, app: None) -> None:
 
     cursor = mocker.MagicMock()
     SupersetResultSet = mocker.patch("superset.sql_lab.SupersetResultSet")  # noqa: N806
+
+    # Mock db.session.refresh to avoid AttributeError during session refresh
+    mocker.patch("superset.sql_lab.db.session.refresh", return_value=None)
 
     execute_query(query, cursor=cursor, log_params={})
 
@@ -189,6 +194,215 @@ def test_execute_sql_statement_within_payload_limit(mocker: MockerFixture, app) 
         )
 
 
+def test_execute_sql_statements_mutates_before_split_by_default(
+    mocker: MockerFixture, app: SupersetApp
+) -> None:
+    """
+    With the default `MUTATE_AFTER_SPLIT=False`, `execute_sql_statements` should
+    mutate the whole, un-split query once before splitting it into individual
+    statement blocks, for engines that execute statements individually rather
+    than as one. Regression guard for issue #30169.
+    """
+    query = mocker.MagicMock()
+    query.limit = 1
+    query.database = mocker.MagicMock()
+    query.database.cache_timeout = 100
+    query.status = "RUNNING"
+    query.select_as_cta = False
+    query.database.allow_run_async = True
+    query.database.db_engine_spec.engine = "sqlite"
+    query.database.db_engine_spec.run_multiple_statements_as_one = False
+    query.database.db_engine_spec.allows_sql_comments = True
+
+    mutate_mock = mocker.patch.object(
+        query.database,
+        "mutate_sql_based_on_config",
+        side_effect=lambda sql, **kw: sql,
+    )
+
+    mocker.patch("superset.sql_lab.get_query", return_value=query)
+    mocker.patch("sys.getsizeof", return_value=10000000)
+    mocker.patch(
+        "superset.sql_lab._serialize_payload",
+        side_effect=lambda payload, use_msgpack: "serialized_payload",
+    )
+    mocker.patch("superset.sql_lab.db.session.refresh", return_value=None)
+    mocker.patch("superset.sql_lab.results_backend", return_value=True)
+
+    execute_sql_statements(
+        query_id=1,
+        rendered_query="SELECT 1; SELECT 2;",
+        return_results=True,
+        store_results=True,
+        start_time=None,
+        expand_data=False,
+        log_params={},
+    )
+
+    is_split_values = [
+        call.kwargs.get("is_split") for call in mutate_mock.call_args_list
+    ]
+    # The mutator is called once on the whole, un-split query before splitting...
+    assert is_split_values[0] is False
+    first_call_sql = mutate_mock.call_args_list[0].args[0]
+    assert "1" in first_call_sql
+    assert "2" in first_call_sql
+    # Both statements are present in a single, un-split call.
+    assert first_call_sql.count("SELECT") == 2
+    # ...and once again per already-split statement (a no-op when
+    # `MUTATE_AFTER_SPLIT=False`, since `is_split=True` won't match the config).
+    assert all(value is True for value in is_split_values[1:])
+    assert len(is_split_values) == 3
+
+
+def test_execute_sql_statements_mutates_per_statement_when_run_as_one(
+    mocker: MockerFixture, app: SupersetApp
+) -> None:
+    """
+    Engines that always run statements as a single block (e.g. BigQuery, Kusto)
+    never see `is_split=True` in the per-block mutation call further down, so with
+    `MUTATE_AFTER_SPLIT=True` the mutator must instead be applied to each
+    statement up front, before they're joined into that single block.
+    """
+    mocker.patch.dict(app.config, {"MUTATE_AFTER_SPLIT": True})
+
+    query = mocker.MagicMock()
+    query.limit = 1
+    query.database = mocker.MagicMock()
+    query.database.cache_timeout = 100
+    query.status = "RUNNING"
+    query.select_as_cta = False
+    query.database.allow_run_async = True
+    query.database.db_engine_spec.engine = "bigquery"
+    query.database.db_engine_spec.run_multiple_statements_as_one = True
+    query.database.db_engine_spec.allows_sql_comments = True
+
+    mutate_mock = mocker.patch.object(
+        query.database,
+        "mutate_sql_based_on_config",
+        side_effect=lambda sql, **kw: sql,
+    )
+
+    mocker.patch("superset.sql_lab.get_query", return_value=query)
+    mocker.patch("sys.getsizeof", return_value=10000000)
+    mocker.patch(
+        "superset.sql_lab._serialize_payload",
+        side_effect=lambda payload, use_msgpack: "serialized_payload",
+    )
+    mocker.patch("superset.sql_lab.db.session.refresh", return_value=None)
+    mocker.patch("superset.sql_lab.results_backend", return_value=True)
+
+    execute_sql_statements(
+        query_id=1,
+        rendered_query="SELECT 1; SELECT 2;",
+        return_results=True,
+        store_results=True,
+        start_time=None,
+        expand_data=False,
+        log_params={},
+    )
+
+    is_split_values = [
+        call.kwargs.get("is_split") for call in mutate_mock.call_args_list
+    ]
+    # Mutated once per statement before joining into the single block...
+    assert is_split_values[0] is True
+    assert is_split_values[1] is True
+    first_call_sql = mutate_mock.call_args_list[0].args[0]
+    second_call_sql = mutate_mock.call_args_list[1].args[0]
+    assert "1" in first_call_sql
+    assert "2" in second_call_sql
+    # ...and the later per-block call is a no-op (`is_split=False` never matches
+    # `MUTATE_AFTER_SPLIT=True`), so the mutator isn't applied a second time.
+    assert is_split_values[2] is False
+    assert len(is_split_values) == 3
+
+
+def test_execute_sql_statements_raises_when_mutator_strips_all_statements(
+    mocker: MockerFixture, app: SupersetApp
+) -> None:
+    """
+    A `SQL_QUERY_MUTATOR` that strips a query down to nothing (e.g. only
+    comments/whitespace) must raise a clean error instead of silently
+    producing an empty block list.
+    """
+    query = mocker.MagicMock()
+    query.limit = 1
+    query.database = mocker.MagicMock()
+    query.database.cache_timeout = 100
+    query.status = "RUNNING"
+    query.select_as_cta = False
+    query.database.allow_run_async = True
+    query.database.db_engine_spec.engine = "sqlite"
+    query.database.db_engine_spec.run_multiple_statements_as_one = False
+    query.database.db_engine_spec.allows_sql_comments = True
+
+    mocker.patch.object(
+        query.database,
+        "mutate_sql_based_on_config",
+        side_effect=lambda sql, **kw: "-- just a comment",
+    )
+
+    mocker.patch("superset.sql_lab.get_query", return_value=query)
+    mocker.patch("superset.sql_lab.db.session.refresh", return_value=None)
+    mocker.patch("superset.sql_lab.results_backend", return_value=True)
+
+    with pytest.raises(SupersetErrorException):
+        execute_sql_statements(
+            query_id=1,
+            rendered_query="SELECT 1;",
+            return_results=True,
+            store_results=True,
+            start_time=None,
+            expand_data=False,
+            log_params={},
+        )
+
+
+def test_execute_sql_statements_raises_when_mutator_strips_single_block(
+    mocker: MockerFixture, app: SupersetApp
+) -> None:
+    """
+    The empty-statement guard must also cover engines that run all statements
+    as one block: with `MUTATE_AFTER_SPLIT=True` the per-statement mutator
+    outputs are joined into a single block, and a comment-only/empty result
+    must raise a clean error instead of reaching execution as an empty block.
+    """
+    mocker.patch.dict(app.config, {"MUTATE_AFTER_SPLIT": True})
+
+    query = mocker.MagicMock()
+    query.limit = 1
+    query.database = mocker.MagicMock()
+    query.database.cache_timeout = 100
+    query.status = "RUNNING"
+    query.select_as_cta = False
+    query.database.allow_run_async = True
+    query.database.db_engine_spec.engine = "bigquery"
+    query.database.db_engine_spec.run_multiple_statements_as_one = True
+    query.database.db_engine_spec.allows_sql_comments = True
+
+    mocker.patch.object(
+        query.database,
+        "mutate_sql_based_on_config",
+        side_effect=lambda sql, **kw: "-- just a comment",
+    )
+
+    mocker.patch("superset.sql_lab.get_query", return_value=query)
+    mocker.patch("superset.sql_lab.db.session.refresh", return_value=None)
+    mocker.patch("superset.sql_lab.results_backend", return_value=True)
+
+    with pytest.raises(SupersetErrorException):
+        execute_sql_statements(
+            query_id=1,
+            rendered_query="SELECT 1; SELECT 2;",
+            return_results=True,
+            store_results=True,
+            start_time=None,
+            expand_data=False,
+            log_params={},
+        )
+
+
 @freeze_time("2021-04-01T00:00:00Z")
 def test_get_sql_results_oauth2(mocker: MockerFixture, app) -> None:
     """
@@ -201,6 +415,13 @@ def test_get_sql_results_oauth2(mocker: MockerFixture, app) -> None:
         "superset.db_engine_specs.base.uuid4",
         return_value=UUID("fb11f528-6eba-4a8a-837e-6b0d39ee9187"),
     )
+    mocker.patch(
+        "superset.db_engine_specs.base.generate_code_verifier",
+        return_value="xkBPVZoFChVcy3VZ2l5u7d0FZPTU-olO7HtsAOok2IUGigyoZ62tG_oldy2xg9_HdqPKrWUmKZLmU-CUqz_SQ",
+    )
+    mocker.patch("superset.daos.key_value.KeyValueDAO.delete_expired_entries")
+    mocker.patch("superset.daos.key_value.KeyValueDAO.create_entry")
+    mocker.patch("superset.db_engine_specs.base.db.session.commit")
 
     g = mocker.patch("superset.db_engine_specs.base.g")
     g.user = mocker.MagicMock()
@@ -212,7 +433,7 @@ def test_get_sql_results_oauth2(mocker: MockerFixture, app) -> None:
         sqlalchemy_uri="sqlite://",
         encrypted_extra=json.dumps(oauth2_client_info),
     )
-    database.db_engine_spec.oauth2_exception = OAuth2Error  # type: ignore
+    database.db_engine_spec.oauth2_exception = OAuth2Error
     get_sqla_engine = mocker.patch.object(database, "get_sqla_engine")
     get_sqla_engine().__enter__().raw_connection.side_effect = OAuth2Error(
         "OAuth2 required"
@@ -222,22 +443,39 @@ def test_get_sql_results_oauth2(mocker: MockerFixture, app) -> None:
     mocker.patch("superset.sql_lab.get_query", return_value=query)
 
     payload = get_sql_results(query_id=1, rendered_query="SELECT 1")
-    assert payload == {
-        "status": QueryStatus.FAILED,
-        "error": "You don't have permission to access the data.",
-        "errors": [
-            {
-                "message": "You don't have permission to access the data.",
-                "error_type": SupersetErrorType.OAUTH2_REDIRECT,
-                "level": ErrorLevel.WARNING,
-                "extra": {
-                    "url": "https://abcd1234.snowflakecomputing.com/oauth/authorize?scope=refresh_token+session%3Arole%3AUSERADMIN&access_type=offline&include_granted_scopes=false&response_type=code&state=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9%252EeyJleHAiOjE2MTcyMzU1MDAsImRhdGFiYXNlX2lkIjoxLCJ1c2VyX2lkIjo0MiwiZGVmYXVsdF9yZWRpcmVjdF91cmkiOiJodHRwOi8vbG9jYWxob3N0L2FwaS92MS9kYXRhYmFzZS9vYXV0aDIvIiwidGFiX2lkIjoiZmIxMWY1MjgtNmViYS00YThhLTgzN2UtNmIwZDM5ZWU5MTg3In0%252E7nLkei6-V8sVk_Pgm8cFhk0tnKRKayRE1Vc7RxuM9mw&redirect_uri=http%3A%2F%2Flocalhost%2Fapi%2Fv1%2Fdatabase%2Foauth2%2F&client_id=my_client_id&prompt=consent",
-                    "tab_id": "fb11f528-6eba-4a8a-837e-6b0d39ee9187",
-                    "redirect_uri": "http://localhost/api/v1/database/oauth2/",
-                },
-            }
-        ],
-    }
+    assert payload["status"] == QueryStatus.FAILED
+    assert payload["error"] == "You don't have permission to access the data."
+    assert len(payload["errors"]) == 1
+
+    error = payload["errors"][0]
+    assert error["message"] == "You don't have permission to access the data."
+    assert error["error_type"] == SupersetErrorType.OAUTH2_REDIRECT
+    assert error["level"] == ErrorLevel.WARNING
+    assert error["extra"]["tab_id"] == "fb11f528-6eba-4a8a-837e-6b0d39ee9187"
+    assert error["extra"]["redirect_uri"] == "http://localhost/api/v1/database/oauth2/"
+
+    # Parse the OAuth2 authorization URL and verify components individually,
+    # since the JWT state and PKCE code_challenge are computed deterministically
+    # from mocked inputs but their exact encoding depends on library internals.
+    url = urlparse(error["extra"]["url"])
+    assert url.scheme == "https"
+    assert url.netloc == "abcd1234.snowflakecomputing.com"
+    assert url.path == "/oauth/authorize"
+
+    params = parse_qs(url.query)
+    assert params["scope"] == ["refresh_token session:role:USERADMIN"]
+    assert params["response_type"] == ["code"]
+    assert params["redirect_uri"] == ["http://localhost/api/v1/database/oauth2/"]
+    assert params["client_id"] == ["my_client_id"]
+    assert params["code_challenge_method"] == ["S256"]
+
+    # Verify PKCE code_challenge matches the mocked code_verifier
+    from superset.utils.oauth2 import generate_code_challenge
+
+    expected_code_challenge = generate_code_challenge(
+        "xkBPVZoFChVcy3VZ2l5u7d0FZPTU-olO7HtsAOok2IUGigyoZ62tG_oldy2xg9_HdqPKrWUmKZLmU-CUqz_SQ"
+    )
+    assert params["code_challenge"] == [expected_code_challenge]
 
 
 def test_apply_rls(mocker: MockerFixture) -> None:
@@ -260,8 +498,18 @@ def test_apply_rls(mocker: MockerFixture) -> None:
 
     get_predicates_for_table.assert_has_calls(
         [
-            mocker.call(Table("t1", "public", "examples"), database, "examples"),
-            mocker.call(Table("t2", "public", "examples"), database, "examples"),
+            mocker.call(
+                Table("t1", "public", "examples"),
+                database,
+                "examples",
+                exclude_dataset_id=None,
+            ),
+            mocker.call(
+                Table("t2", "public", "examples"),
+                database,
+                "examples",
+                exclude_dataset_id=None,
+            ),
         ]
     )
 
@@ -301,3 +549,30 @@ def test_get_predicates_for_table(mocker: MockerFixture) -> None:
 
     table = Table("t1", "public", "examples")
     assert get_predicates_for_table(table, database, "examples") == ["c1 = 1"]
+    dataset.get_sqla_row_level_filters.assert_called_once_with(
+        include_global_guest_rls=False
+    )
+
+
+def test_get_predicates_for_table_excludes_self(mocker: MockerFixture) -> None:
+    """
+    When ``exclude_dataset_id`` is supplied, the lookup query must add an
+    ``id != exclude_dataset_id`` filter so a virtual dataset whose
+    ``table_name`` matches a table referenced inside its own SQL doesn't get
+    its own RLS injected into the inner SQL (would double-apply on top of the
+    outer WHERE). Regression test for the physical→virtual conversion bug.
+    """
+    database = mocker.MagicMock()
+    db = mocker.patch("superset.utils.rls.db")
+    db.session.query().filter().one_or_none.return_value = None
+
+    table = Table("orders", "public", "examples")
+    assert (
+        get_predicates_for_table(table, database, "examples", exclude_dataset_id=42)
+        == []
+    )
+    # The filter call should have received four base filters plus the exclusion
+    # filter, i.e. five total positional args inside and_().
+    filter_call = db.session.query().filter.call_args
+    and_clause = filter_call.args[0]
+    assert len(and_clause.clauses) == 5

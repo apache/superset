@@ -17,23 +17,22 @@
  * under the License.
  */
 import { useState, useEffect } from 'react';
-import { t } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
-import { debounce } from 'lodash';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
+import { debounce } from 'lodash-es';
 import {
   Badge,
-  ConfigEditor,
   InfoTooltip,
   ModalTrigger,
   Tooltip,
   Constants,
 } from '@superset-ui/core/components';
+import { EditorHost } from 'src/core/editors';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 
-const StyledConfigEditor = styled(ConfigEditor)`
-  &.ace_editor {
-    border: 1px solid ${({ theme }) => theme.colorBorder};
-  }
+const EditorOutline = styled.div`
+  border: 1px solid ${({ theme }) => theme.colorBorder};
+  border-radius: ${({ theme }) => theme.borderRadius}px;
 `;
 
 const StyledParagraph = styled.p`
@@ -87,16 +86,16 @@ const TemplateParamsEditor = ({
         </a>{' '}
         {t('syntax.')}
       </StyledParagraph>
-      <StyledConfigEditor
-        mode={language}
-        minLines={25}
-        maxLines={50}
-        onChange={debounce(onChange, Constants.FAST_DEBOUNCE)}
-        width="100%"
-        editorProps={{ $blockScrolling: true }}
-        enableLiveAutocompletion
-        value={code}
-      />
+      <EditorOutline>
+        <EditorHost
+          id={`template-params-${queryEditorId}`}
+          height="360px"
+          onChange={debounce(onChange, Constants.FAST_DEBOUNCE)}
+          language={language === 'yaml' ? 'yaml' : 'json'}
+          width="100%"
+          value={code}
+        />
+      </EditorOutline>
     </div>
   );
 

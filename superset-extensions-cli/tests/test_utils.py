@@ -20,7 +20,7 @@ from __future__ import annotations
 import json
 
 import pytest
-from superset_extensions_cli.utils import read_json, read_toml
+from superset_extensions_cli.utils import read_json, read_toml, write_json, write_toml
 
 
 # Read JSON Tests
@@ -269,3 +269,32 @@ def test_read_toml_with_permission_denied(isolated_filesystem):
             toml_file.chmod(0o644)
         except (OSError, PermissionError):
             pass
+
+
+# Write JSON Tests
+@pytest.mark.unit
+def test_write_json_round_trip(isolated_filesystem):
+    """Test write_json then read_json round-trip preserves content."""
+    data = {"name": "test-extension", "version": "2.0.0", "nested": {"key": "value"}}
+    json_file = isolated_filesystem / "output.json"
+
+    write_json(json_file, data)
+    result = read_json(json_file)
+
+    assert result == data
+
+
+# Write TOML Tests
+@pytest.mark.unit
+def test_write_toml_round_trip(isolated_filesystem):
+    """Test write_toml then read_toml round-trip preserves content."""
+    data = {
+        "project": {"name": "test-package", "version": "1.0.0"},
+        "tool": {"apache_superset_extensions": {"build": {"include": ["src/**/*.py"]}}},
+    }
+    toml_file = isolated_filesystem / "output.toml"
+
+    write_toml(toml_file, data)
+    result = read_toml(toml_file)
+
+    assert result == data

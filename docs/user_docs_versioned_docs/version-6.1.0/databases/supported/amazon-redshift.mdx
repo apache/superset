@@ -1,0 +1,31 @@
+---
+title: Amazon Redshift
+sidebar_label: Amazon Redshift
+description: "Amazon Redshift is a fully managed data warehouse service."
+hide_title: true
+---
+
+{/*
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+*/}
+
+import { DatabasePage } from '@site/src/components/databases';
+
+export const databaseInfo = {"engine":"amazon_redshift","engine_name":"Amazon Redshift","module":"redshift","documentation":{"description":"Amazon Redshift is a fully managed data warehouse service.","logo":"redshift.png","homepage_url":"https://aws.amazon.com/redshift/","categories":["CLOUD_AWS","ANALYTICAL_DATABASES","PROPRIETARY"],"pypi_packages":["sqlalchemy-redshift"],"connection_string":"redshift+psycopg2://{username}:{password}@{host}:5439/{database}","default_port":5439,"parameters":{"username":"Database username","password":"Database password","host":"AWS Endpoint","port":"Default 5439","database":"Database name"},"drivers":[{"name":"psycopg2","pypi_package":"psycopg2","connection_string":"redshift+psycopg2://{username}:{password}@{host}:5439/{database}","is_recommended":true},{"name":"redshift_connector","pypi_package":"redshift_connector","connection_string":"redshift+redshift_connector://{username}:{password}@{host}:5439/{database}","is_recommended":false,"notes":"Supports IAM-based credentials for clusters and serverless."}],"authentication_methods":[{"name":"IAM Credentials (Cluster)","description":"Use IAM-based temporary database credentials for Redshift clusters","requirements":"IAM role must have redshift:GetClusterCredentials permission","connection_string":"redshift+redshift_connector://","engine_parameters":{"connect_args":{"iam":true,"database":"<database>","cluster_identifier":"<cluster_identifier>","db_user":"<db_user>"}}},{"name":"IAM Role (Serverless)","description":"Authenticate using the IAM role attached to the environment (EC2 instance profile, ECS task role, etc.). No credentials needed.","requirements":"The attached IAM role must have redshift-serverless:GetCredentials and redshift-serverless:GetWorkgroup permissions.","connection_string":"redshift+redshift_connector://","engine_parameters":{"connect_args":{"iam":true,"is_serverless":true,"serverless_acct_id":"<aws account number>","serverless_work_group":"<redshift work group>","database":"<database>","user":"IAMR:<superset iam role name>"}}},{"name":"IAM Access Key (Serverless)","description":"Authenticate using explicit AWS access key and secret. Suitable for local development or CI environments without an attached IAM role.","requirements":"The IAM user must have redshift-serverless:GetCredentials and redshift-serverless:GetWorkgroup permissions.","connection_string":"redshift+redshift_connector://","engine_parameters":{"connect_args":{"iam":true,"is_serverless":true,"serverless_acct_id":"<aws account number>","serverless_work_group":"<redshift work group>","database":"<database>","host":"<endpoint>","port":5439,"region":"<aws region>","access_key_id":"<aws access key id>","secret_access_key":"<aws secret access key>"}}}],"custom_errors":[{"regex_name":"CONNECTION_ACCESS_DENIED_REGEX","message_template":"Either the username \"%(username)s\" or the password is incorrect.","error_type":"CONNECTION_ACCESS_DENIED_ERROR","category":"Authentication","description":"Access denied","issue_codes":[1014,1015],"invalid_fields":["username","password"]},{"regex_name":"CONNECTION_INVALID_HOSTNAME_REGEX","message_template":"The hostname \"%(hostname)s\" cannot be resolved.","error_type":"CONNECTION_INVALID_HOSTNAME_ERROR","category":"Connection","description":"Invalid hostname","issue_codes":[1007],"invalid_fields":["host"]},{"regex_name":"CONNECTION_PORT_CLOSED_REGEX","message_template":"Port %(port)s on hostname \"%(hostname)s\" refused the connection.","error_type":"CONNECTION_PORT_CLOSED_ERROR","category":"Connection","description":"Port closed or refused","issue_codes":[1008],"invalid_fields":["host","port"]},{"regex_name":"CONNECTION_HOST_DOWN_REGEX","message_template":"The host \"%(hostname)s\" might be down, and can't be reached on port %(port)s.","error_type":"CONNECTION_HOST_DOWN_ERROR","category":"Connection","description":"Host unreachable","issue_codes":[1009],"invalid_fields":["host","port"]},{"regex_name":"CONNECTION_UNKNOWN_DATABASE_REGEX","message_template":"We were unable to connect to your database named \"%(database)s\". Please verify your database name and try again.","error_type":"CONNECTION_UNKNOWN_DATABASE_ERROR","category":"Connection","description":"Unknown database","issue_codes":[1015],"invalid_fields":["database"]}]},"time_grains":{"SECOND":true,"FIVE_SECONDS":true,"THIRTY_SECONDS":true,"MINUTE":true,"FIVE_MINUTES":true,"TEN_MINUTES":true,"FIFTEEN_MINUTES":true,"THIRTY_MINUTES":true,"HALF_HOUR":false,"HOUR":true,"SIX_HOURS":false,"DAY":true,"WEEK":true,"WEEK_STARTING_SUNDAY":false,"WEEK_STARTING_MONDAY":false,"WEEK_ENDING_SATURDAY":false,"WEEK_ENDING_SUNDAY":false,"MONTH":true,"QUARTER":true,"QUARTER_YEAR":false,"YEAR":true},"score":44,"max_score":201,"joins":true,"subqueries":true,"supports_dynamic_schema":false,"supports_catalog":false,"supports_dynamic_catalog":false,"ssh_tunneling":true,"supports_file_upload":true,"query_cancelation":true,"query_cost_estimation":false,"sql_validation":false,"user_impersonation":false};
+
+<DatabasePage name="Amazon Redshift" database={databaseInfo} />

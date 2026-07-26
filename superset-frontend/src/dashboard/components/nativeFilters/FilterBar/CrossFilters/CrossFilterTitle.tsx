@@ -17,8 +17,9 @@
  * under the License.
  */
 
-import { t, useCSSTextTruncation } from '@superset-ui/core';
-import { css, styled, useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { useCSSTextTruncation } from '@superset-ui/core';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { Tooltip } from '@superset-ui/core/components';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -62,9 +63,11 @@ const CrossFilterChartTitle = (props: {
       <Tooltip title={titleIsTruncated ? title : null}>
         <span
           css={css`
-            max-width: ${orientation === FilterBarOrientation.Vertical
-              ? `${theme.sizeUnit * 45}px`
-              : `${theme.sizeUnit * 15}px`};
+            max-width: ${
+              orientation === FilterBarOrientation.Vertical
+                ? `${theme.sizeUnit * 45}px`
+                : `${theme.sizeUnit * 15}px`
+            };
             line-height: 1.4;
             ${ellipsisCss}
           `}
@@ -79,6 +82,7 @@ const CrossFilterChartTitle = (props: {
           data-test="cross-filters-highlight-emitter"
           role="button"
           tabIndex={0}
+          aria-label={t('Locate the chart')}
           onClick={onHighlightFilterSource}
         />
       </Tooltip>

@@ -27,12 +27,13 @@ import { useResizeDetector } from 'react-resize-detector';
 import { useEffect, useRef, useState, useCallback, CSSProperties } from 'react';
 import { VariableSizeGrid as Grid } from 'react-window';
 import { safeHtmlSpan } from '@superset-ui/core';
-import { useTheme, styled } from '@apache-superset/core/ui';
+import { useTheme, styled } from '@apache-superset/core/theme';
 
 import { TableSize, ETableAction } from './index';
 
-export interface VirtualTableProps<RecordType>
-  extends AntTableProps<RecordType> {
+export interface VirtualTableProps<
+  RecordType,
+> extends AntTableProps<RecordType> {
   height?: number;
   allowHTML?: boolean;
 }
@@ -60,7 +61,7 @@ const StyledTable = styled(AntTable)(
       text-overflow: ellipsis;
     }
 
-    .ant-spin-nested-loading .ant-spin .ant-spin-dot {
+    .ant-spin .ant-spin-dot {
       width: ${theme.sizeUnit * 12}px;
       height: unset;
     }
@@ -83,8 +84,8 @@ const VirtualTable = <RecordType extends object>(
     allowHTML = false,
   } = props;
   const [tableWidth, setTableWidth] = useState<number>(0);
-  const onResize = useCallback((width: number) => {
-    setTableWidth(width);
+  const onResize = useCallback((width?: number) => {
+    setTableWidth(width ?? 0);
   }, []);
   const { ref } = useResizeDetector({ onResize });
   const theme = useTheme();

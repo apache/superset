@@ -138,3 +138,90 @@ class TestQueryObjectFactory:
             **raw_query_object,
         )
         assert query_object.metric_names == ["SUM", "num_girls", "num_boys"]
+
+    def test_deprecated_groupby_renamed_to_columns(
+        self,
+        query_object_factory: QueryObjectFactory,
+        raw_query_context: dict[str, Any],
+    ):
+        """groupby in stored query_context should be silently renamed to columns."""
+        raw_query_object = raw_query_context["queries"][0]
+        raw_query_object.pop("columns", None)
+        raw_query_object["groupby"] = ["name", "gender"]
+        query_object = query_object_factory.create(
+            raw_query_context["result_type"], **raw_query_object
+        )
+        assert query_object.columns == ["name", "gender"]
+        assert not hasattr(query_object, "groupby")
+
+    def test_deprecated_groupby_does_not_overwrite_columns(
+        self,
+        query_object_factory: QueryObjectFactory,
+        raw_query_context: dict[str, Any],
+    ):
+        """When both groupby and columns are present, columns takes precedence."""
+        raw_query_object = raw_query_context["queries"][0]
+        raw_query_object["columns"] = ["state"]
+        raw_query_object["groupby"] = ["name", "gender"]
+        query_object = query_object_factory.create(
+            raw_query_context["result_type"], **raw_query_object
+        )
+        assert query_object.columns == ["state"]
+
+    def test_deprecated_groupby_empty_list_is_ignored(
+        self,
+        query_object_factory: QueryObjectFactory,
+        raw_query_context: dict[str, Any],
+    ):
+        """groupby=[] is falsy — popped but columns should default to []."""
+        raw_query_object = raw_query_context["queries"][0]
+        raw_query_object.pop("columns", None)
+        raw_query_object["groupby"] = []
+        query_object = query_object_factory.create(
+            raw_query_context["result_type"], **raw_query_object
+        )
+        assert query_object.columns == []
+        assert not hasattr(query_object, "groupby")
+
+    def test_deprecated_granularity_sqla_renamed_to_granularity(
+        self,
+        query_object_factory: QueryObjectFactory,
+        raw_query_context: dict[str, Any],
+    ):
+        """granularity_sqla in stored query_context should be renamed to granularity."""
+        raw_query_object = raw_query_context["queries"][0]
+        raw_query_object.pop("granularity", None)
+        raw_query_object["granularity_sqla"] = "ds"
+        query_object = query_object_factory.create(
+            raw_query_context["result_type"], **raw_query_object
+        )
+        assert query_object.granularity == "ds"
+
+    def test_deprecated_timeseries_limit_renamed_to_series_limit(
+        self,
+        query_object_factory: QueryObjectFactory,
+        raw_query_context: dict[str, Any],
+    ):
+        """timeseries_limit should be renamed to series_limit."""
+        raw_query_object = raw_query_context["queries"][0]
+        raw_query_object.pop("series_limit", None)
+        raw_query_object["timeseries_limit"] = 5
+        query_object = query_object_factory.create(
+            raw_query_context["result_type"], **raw_query_object
+        )
+        assert query_object.series_limit == 5
+
+    def test_deprecated_timeseries_limit_zero_is_not_renamed(
+        self,
+        query_object_factory: QueryObjectFactory,
+        raw_query_context: dict[str, Any],
+    ):
+        """timeseries_limit=0 is falsy — popped; series_limit defaults to 0."""
+        raw_query_object = raw_query_context["queries"][0]
+        raw_query_object.pop("series_limit", None)
+        raw_query_object["timeseries_limit"] = 0
+        query_object = query_object_factory.create(
+            raw_query_context["result_type"], **raw_query_object
+        )
+        # 0 is falsy so it does not propagate — QueryObject default is also 0
+        assert query_object.series_limit == 0

@@ -20,9 +20,12 @@
 import {
   isUrlExternal,
   parseUrl,
+  rewritePermalinkOrigin,
   toQueryString,
   getDashboardUrlParams,
+  getUrlParam,
 } from './urlUtils';
+import { URL_PARAMS } from '../constants';
 
 test('isUrlExternal', () => {
   expect(isUrlExternal('http://google.com')).toBeTruthy();
@@ -102,15 +105,10 @@ test('toQueryString should handle special characters in keys and values', () => 
 });
 
 test('getDashboardUrlParams should exclude edit parameter by default', () => {
-  // Mock window.location.search to include edit parameter
-  const originalLocation = window.location;
-  Object.defineProperty(window, 'location', {
-    value: {
-      ...originalLocation,
-      search: '?edit=true&standalone=false&expand_filters=1',
-    },
-    writable: true,
-  });
+  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+    ...window.location,
+    search: '?edit=true&standalone=false&expand_filters=1',
+  } as Location);
 
   const urlParams = getDashboardUrlParams(['edit']);
   const paramNames = urlParams.map(([key]) => key);
@@ -119,20 +117,14 @@ test('getDashboardUrlParams should exclude edit parameter by default', () => {
   expect(paramNames).toContain('standalone');
   expect(paramNames).toContain('expand_filters');
 
-  // Restore original location
-  window.location = originalLocation;
+  locationSpy.mockRestore();
 });
 
 test('getDashboardUrlParams should exclude multiple parameters when provided', () => {
-  // Mock window.location.search with multiple parameters
-  const originalLocation = window.location;
-  Object.defineProperty(window, 'location', {
-    value: {
-      ...originalLocation,
-      search: '?edit=true&standalone=false&debug=true&test=value',
-    },
-    writable: true,
-  });
+  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+    ...window.location,
+    search: '?edit=true&standalone=false&debug=true&test=value',
+  } as Location);
 
   const urlParams = getDashboardUrlParams(['edit', 'debug']);
   const paramNames = urlParams.map(([key]) => key);
@@ -142,6 +134,165 @@ test('getDashboardUrlParams should exclude multiple parameters when provided', (
   expect(paramNames).toContain('standalone');
   expect(paramNames).toContain('test');
 
-  // Restore original location
-  window.location = originalLocation;
+  locationSpy.mockRestore();
+});
+
+test('getUrlParam reads from window.location.search by default', () => {
+  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+    ...window.location,
+    search: '?dashboard_page_id=from-window',
+  } as Location);
+
+  expect(getUrlParam(URL_PARAMS.dashboardPageId)).toBe('from-window');
+
+  locationSpy.mockRestore();
+});
+
+test('getUrlParam uses provided search string instead of window.location.search (Safari race condition fix)', () => {
+  // Simulate Safari race condition: window.location.search is stale (empty),
+  // but the correct search string is passed in from React Router's useLocation()
+  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+    ...window.location,
+    search: '',
+  } as Location);
+
+  // Without the search override, window.location.search is stale — returns null (the bug)
+  expect(getUrlParam(URL_PARAMS.dashboardPageId)).toBeNull();
+
+  // With the search override (the fix), returns the correct value
+  expect(
+    getUrlParam(URL_PARAMS.dashboardPageId, '?dashboard_page_id=correct-id'),
+  ).toBe('correct-id');
+
+  locationSpy.mockRestore();
+});
+
+const originalLocationForRewriteTests = window.location;
+
+const setBrowsingOriginForRewriteTests = (origin: string) => {
+  Object.defineProperty(window, 'location', {
+    value: { ...originalLocationForRewriteTests, origin },
+    writable: true,
+    configurable: true,
+  });
+};
+
+const restoreLocationForRewriteTests = () => {
+  Object.defineProperty(window, 'location', {
+    value: originalLocationForRewriteTests,
+    writable: true,
+    configurable: true,
+  });
+};
+
+test('rewritePermalinkOrigin replaces backend host with browsing origin', () => {
+  // Reproduces the docker-light share-embed bug: the backend returns the
+  // internal container hostname; the iframe must use the browsing origin
+  // instead.
+  setBrowsingOriginForRewriteTests('http://localhost:9004');
+  expect(
+    rewritePermalinkOrigin(
+      'http://superset-light:8088/superset/explore/p/abc/',
+    ),
+  ).toBe('http://localhost:9004/superset/explore/p/abc/');
+  restoreLocationForRewriteTests();
+});
+
+test('rewritePermalinkOrigin preserves query string and hash', () => {
+  setBrowsingOriginForRewriteTests('http://localhost:9004');
+  expect(
+    rewritePermalinkOrigin(
+      'http://superset-light:8088/superset/explore/p/abc/?standalone=1&height=400#x',
+    ),
+  ).toBe(
+    'http://localhost:9004/superset/explore/p/abc/?standalone=1&height=400#x',
+  );
+  restoreLocationForRewriteTests();
+});
+
+test('rewritePermalinkOrigin is a no-op when origins already match', () => {
+  setBrowsingOriginForRewriteTests('https://superset.example.com');
+  expect(
+    rewritePermalinkOrigin(
+      'https://superset.example.com/superset/dashboard/p/xyz/',
+    ),
+  ).toBe('https://superset.example.com/superset/dashboard/p/xyz/');
+  restoreLocationForRewriteTests();
+});
+
+test('rewritePermalinkOrigin returns input unchanged when URL cannot be parsed', () => {
+  setBrowsingOriginForRewriteTests('http://localhost:9004');
+  expect(rewritePermalinkOrigin('not a url')).toBe('not a url');
+  expect(rewritePermalinkOrigin('/relative/path')).toBe('/relative/path');
+  restoreLocationForRewriteTests();
+});
+
+test('rewritePermalinkOrigin returns input unchanged when window.location.origin is missing', () => {
+  // Some test setups stub window.location to a minimal shape with no
+  // origin (e.g., ShareMenuItems tests). The rewrite must no-op rather
+  // than producing "undefined/..." URLs.
+  Object.defineProperty(window, 'location', {
+    value: { href: '' },
+    writable: true,
+    configurable: true,
+  });
+  expect(
+    rewritePermalinkOrigin('http://superset.com/superset/dashboard/p/x/'),
+  ).toBe('http://superset.com/superset/dashboard/p/x/');
+  restoreLocationForRewriteTests();
+});
+
+// M5 opt-OUT: when the Flask config `EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE`
+// is True the frontend must hand back the backend-supplied URL untouched —
+// proxied/subdir deployments stay on the default (rewrite enabled), but
+// operators whose reverse proxy correctly forwards `X-Forwarded-Host` AND who
+// want backend literal origins can opt out without touching the call sites.
+// The `cachedBootstrapData` lives at module scope, so the fixture has to
+// jest.resetModules() AFTER installing the `#app` data-bootstrap shape and
+// dynamic-import `urlUtils` to pick up the new value.
+async function withRewriteFlag<T>(
+  flagValue: boolean,
+  body: (
+    rewriteFn: (typeof import('./urlUtils'))['rewritePermalinkOrigin'],
+  ) => Promise<T> | T,
+): Promise<T> {
+  const previousBody = document.body.innerHTML;
+  const bootstrapData = {
+    common: {
+      application_root: '',
+      static_assets_prefix: '',
+      conf: { EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE: flagValue },
+    },
+  };
+  document.body.innerHTML = `<div id="app" data-bootstrap='${JSON.stringify(
+    bootstrapData,
+  )}'></div>`;
+  jest.resetModules();
+  try {
+    const fresh = await import('./urlUtils');
+    return await body(fresh.rewritePermalinkOrigin);
+  } finally {
+    document.body.innerHTML = previousBody;
+    jest.resetModules();
+  }
+}
+
+test('rewritePermalinkOrigin is a no-op when EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE is true', async () => {
+  setBrowsingOriginForRewriteTests('http://localhost:9004');
+  await withRewriteFlag(true, rewrite => {
+    expect(rewrite('http://superset-light:8088/superset/explore/p/abc/')).toBe(
+      'http://superset-light:8088/superset/explore/p/abc/',
+    );
+  });
+  restoreLocationForRewriteTests();
+});
+
+test('rewritePermalinkOrigin still rewrites when EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE is false (default)', async () => {
+  setBrowsingOriginForRewriteTests('http://localhost:9004');
+  await withRewriteFlag(false, rewrite => {
+    expect(rewrite('http://superset-light:8088/superset/explore/p/abc/')).toBe(
+      'http://localhost:9004/superset/explore/p/abc/',
+    );
+  });
+  restoreLocationForRewriteTests();
 });

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ChartProps } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 import { HeatmapChartProps, HeatmapFormData } from '../../src/Heatmap/types';
 import transformProps from '../../src/Heatmap/transformProps';
 
@@ -290,5 +290,238 @@ describe('Heatmap transformProps', () => {
     expect(xAxisData).toEqual(['A', 'B', 'C']);
     // Y-axis: numbers sorted numerically (1, 2, 10 NOT 1, 10, 2)
     expect(yAxisData).toEqual([1, 2, 10]);
+  });
+
+  test('should include rank as 4th dimension when normalized is true', () => {
+    const dataWithRank = [
+      { day_of_week: 'Monday', hour: 9, count: 10, rank: 0.33 },
+      { day_of_week: 'Monday', hour: 14, count: 15, rank: 0.67 },
+      { day_of_week: 'Wednesday', hour: 11, count: 8, rank: 0.17 },
+      { day_of_week: 'Friday', hour: 16, count: 20, rank: 1.0 },
+    ];
+
+    const chartProps = createChartProps({ normalized: true }, dataWithRank);
+
+    const result = transformProps(chartProps as HeatmapChartProps);
+
+    const seriesData = (result.echartOptions.series as any)[0].data;
+
+    // Each data point should be [xIndex, yIndex, metricValue, rankValue]
+    expect(Array.isArray(seriesData)).toBe(true);
+    expect(seriesData.length).toBe(4);
+
+    // Check that data points have 4 dimensions when normalized
+    seriesData.forEach((point: any) => {
+      expect(Array.isArray(point)).toBe(true);
+      expect(point.length).toBe(4);
+      // First two should be indices (numbers)
+      expect(typeof point[0]).toBe('number');
+      expect(typeof point[1]).toBe('number');
+      // Third should be the metric value
+      expect(typeof point[2]).toBe('number');
+      // Fourth should be the rank value
+      expect(typeof point[3]).toBe('number');
+      expect(point[3]).toBeGreaterThanOrEqual(0);
+      expect(point[3]).toBeLessThanOrEqual(1);
+    });
+
+    // visualMap should use dimension 3 (4th element) for coloring
+    expect((result.echartOptions.visualMap as any).dimension).toBe(3);
+  });
+
+  test('should use 3 dimensions when normalized is false', () => {
+    const chartProps = createChartProps({ normalized: false });
+    const result = transformProps(chartProps as HeatmapChartProps);
+
+    const seriesData = (result.echartOptions.series as any)[0].data;
+
+    // Each data point should be [xIndex, yIndex, metricValue]
+    seriesData.forEach((point: any) => {
+      expect(point.length).toBe(3);
+    });
+
+    // visualMap should use dimension 2 (3rd element) for coloring
+    expect((result.echartOptions.visualMap as any).dimension).toBe(2);
+  });
+
+  test('should always hide legend regardless of showLegend setting', () => {
+    // Test with showLegend: true
+    const chartPropsWithLegend = createChartProps({ showLegend: true });
+    const resultWithLegend = transformProps(
+      chartPropsWithLegend as HeatmapChartProps,
+    );
+    expect((resultWithLegend.echartOptions.legend as any).show).toBe(false);
+
+    // Test with showLegend: false
+    const chartPropsWithoutLegend = createChartProps({ showLegend: false });
+    const resultWithoutLegend = transformProps(
+      chartPropsWithoutLegend as HeatmapChartProps,
+    );
+    expect((resultWithoutLegend.echartOptions.legend as any).show).toBe(false);
+  });
+
+  test('tooltip formatter should display actual axis values, not indices', () => {
+    const chartProps = createChartProps({
+      sortXAxis: 'alpha_asc',
+      sortYAxis: 'alpha_asc',
+    });
+    const result = transformProps(chartProps as HeatmapChartProps);
+
+    const tooltipFormatter = (result.echartOptions.tooltip as any).formatter;
+    expect(typeof tooltipFormatter).toBe('function');
+
+    // Simulate tooltip data: [xIndex, yIndex, value]
+    // With alpha_asc sorting: xAxis = ['Friday', 'Monday', 'Thursday', 'Tuesday', 'Wednesday']
+    // yAxis = [9, 10, 11, 14, 15, 16]
+    // So index [1, 2, 15] should map to 'Monday' and hour 11
+    const mockParams = {
+      value: [1, 2, 15],
+    };
+
+    const tooltipHtml = tooltipFormatter(mockParams);
+
+    // Tooltip should contain the actual day name 'Monday', not the index '1'
+    expect(tooltipHtml).toContain('Monday');
+    // Tooltip should contain the actual hour '11', not the index '2'
+    expect(tooltipHtml).toContain('11');
+    // Should not contain raw indices
+    expect(tooltipHtml).not.toMatch(/\b1\s*\(/);
+    expect(tooltipHtml).not.toMatch(/\(\s*2\b/);
+  });
+
+  test('tooltip formatter should work with different sort orders', () => {
+    // Test with descending sort
+    const chartProps = createChartProps({
+      sortXAxis: 'alpha_desc',
+      sortYAxis: 'alpha_desc',
+    });
+    const result = transformProps(chartProps as HeatmapChartProps);
+
+    const tooltipFormatter = (result.echartOptions.tooltip as any).formatter;
+
+    // With alpha_desc sorting: xAxis = ['Wednesday', 'Tuesday', 'Thursday', 'Monday', 'Friday']
+    // yAxis = [16, 15, 14, 11, 10, 9]
+    // So index [4, 5, 20] should map to 'Friday' and hour 9
+    const mockParams = {
+      value: [4, 5, 20],
+    };
+
+    const tooltipHtml = tooltipFormatter(mockParams);
+
+    expect(tooltipHtml).toContain('Friday');
+    expect(tooltipHtml).toContain('9');
+  });
+
+  test('tooltip formatter should work with value-based sorting', () => {
+    const chartProps = createChartProps({
+      sortXAxis: 'value_asc',
+      sortYAxis: 'value_asc',
+    });
+    const result = transformProps(chartProps as HeatmapChartProps);
+
+    const tooltipFormatter = (result.echartOptions.tooltip as any).formatter;
+
+    // With value_asc sorting on X: ['Wednesday', 'Tuesday', 'Thursday', 'Friday', 'Monday']
+    // With value_asc sorting on Y: [11, 9, 10, 14, 15, 16]
+    // So index [0, 0, 8] should map to 'Wednesday' and hour 11
+    const mockParams = {
+      value: [0, 0, 8],
+    };
+
+    const tooltipHtml = tooltipFormatter(mockParams);
+
+    expect(tooltipHtml).toContain('Wednesday');
+    expect(tooltipHtml).toContain('11');
+  });
+
+  test('tooltip percentage calculation should use actual values, not indices', () => {
+    const testData = [
+      { day_of_week: 'Monday', hour: 9, count: 10 },
+      { day_of_week: 'Monday', hour: 10, count: 20 },
+      { day_of_week: 'Tuesday', hour: 9, count: 30 },
+    ];
+
+    // Test normalizeAcross: 'x'
+    const chartPropsX = createChartProps(
+      {
+        sortXAxis: 'alpha_asc',
+        showPercentage: true,
+        normalizeAcross: 'x',
+      },
+      testData,
+    );
+    const resultX = transformProps(chartPropsX as HeatmapChartProps);
+    const tooltipFormatterX = (resultX.echartOptions.tooltip as any).formatter;
+
+    // With alpha_asc: xAxis = ['Monday', 'Tuesday'], yAxis = [9, 10]
+    // Monday total = 30, Tuesday total = 30
+    // Point [0, 0, 10] = Monday/9 with value 10
+    // Percentage should be 10/30 = 33.33%, not based on index
+    const mockParamsX = {
+      value: [0, 0, 10],
+    };
+
+    const tooltipHtmlX = tooltipFormatterX(mockParamsX);
+    expect(tooltipHtmlX).toContain('33.33%');
+
+    // Test normalizeAcross: 'y'
+    const chartPropsY = createChartProps(
+      {
+        sortXAxis: 'alpha_asc',
+        showPercentage: true,
+        normalizeAcross: 'y',
+      },
+      testData,
+    );
+    const resultY = transformProps(chartPropsY as HeatmapChartProps);
+    const tooltipFormatterY = (resultY.echartOptions.tooltip as any).formatter;
+
+    // Hour 9 total = 40 (10 + 30)
+    // Point [0, 0, 10] = Monday/9 with value 10
+    // Percentage should be 10/40 = 25%
+    const mockParamsY = {
+      value: [0, 0, 10],
+    };
+
+    const tooltipHtmlY = tooltipFormatterY(mockParamsY);
+    expect(tooltipHtmlY).toContain('25.00%');
+  });
+
+  test('tooltip formatter should handle numeric axes correctly', () => {
+    const numericData = [
+      { year: 2020, quarter: 1, revenue: 100 },
+      { year: 2021, quarter: 2, revenue: 150 },
+      { year: 2022, quarter: 3, revenue: 200 },
+    ];
+
+    const chartProps = createChartProps(
+      {
+        sortXAxis: 'alpha_asc',
+        sortYAxis: 'alpha_asc',
+        xAxis: 'year',
+        groupby: ['quarter'],
+        metric: 'revenue',
+      },
+      numericData,
+    );
+
+    (chartProps as any).queriesData[0].colnames = [
+      'year',
+      'quarter',
+      'revenue',
+    ];
+
+    const result = transformProps(chartProps as HeatmapChartProps);
+    const tooltipFormatter = (result.echartOptions.tooltip as any).formatter;
+
+    // With alpha_asc: xAxis = [2020, 2021, 2022], yAxis = [1, 2, 3]
+    // Index [1, 1, 150] should map to year 2021 and quarter 2
+    const mockParams = {
+      value: [1, 1, 150],
+    };
+
+    const tooltipHtml = tooltipFormatter(mockParams);
+
+    expect(tooltipHtml).toContain('2021 (2)');
   });
 });

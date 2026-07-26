@@ -1,0 +1,31 @@
+---
+title: Presto
+sidebar_label: Presto
+description: "Presto is a distributed SQL query engine for big data."
+hide_title: true
+---
+
+{/*
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+*/}
+
+import { DatabasePage } from '@site/src/components/databases';
+
+export const databaseInfo = {"engine":"presto","engine_name":"Presto","module":"presto","documentation":{"description":"Presto is a distributed SQL query engine for big data.","logo":"presto-og.png","homepage_url":"https://prestodb.io/","categories":["QUERY_ENGINES","OPEN_SOURCE"],"pypi_packages":["pyhive"],"install_instructions":"pip install \"apache-superset[presto]\"","connection_string":"presto://{hostname}:{port}/{database}","default_port":8080,"parameters":{"hostname":"Presto coordinator hostname","port":"Presto coordinator port (default 8080)","database":"Catalog name"},"drivers":[{"name":"PyHive","pypi_package":"pyhive","connection_string":"presto://{hostname}:{port}/{database}","is_recommended":true}],"custom_errors":[{"regex_name":"COLUMN_DOES_NOT_EXIST_REGEX","message_template":"We can't seem to resolve the column \"%(column_name)s\" at line %(location)s.","error_type":"COLUMN_DOES_NOT_EXIST_ERROR","category":"Query","description":"Column not found","issue_codes":[1003,1004]},{"regex_name":"TABLE_DOES_NOT_EXIST_REGEX","message_template":"The table \"%(table_name)s\" does not exist. A valid table must be used to run this query.","error_type":"TABLE_DOES_NOT_EXIST_ERROR","category":"Query","description":"Table not found","issue_codes":[1003,1005]},{"regex_name":"SCHEMA_DOES_NOT_EXIST_REGEX","message_template":"The schema \"%(schema_name)s\" does not exist. A valid schema must be used to run this query.","error_type":"SCHEMA_DOES_NOT_EXIST_ERROR","category":"Query","description":"Schema not found","issue_codes":[1003,1016]},{"regex_name":"CONNECTION_ACCESS_DENIED_REGEX","message_template":"Either the username \"%(username)s\" or the password is incorrect.","error_type":"CONNECTION_ACCESS_DENIED_ERROR","category":"Authentication","description":"Access denied","issue_codes":[1014,1015]},{"regex_name":"CONNECTION_INVALID_HOSTNAME_REGEX","message_template":"The hostname \"%(hostname)s\" cannot be resolved.","error_type":"CONNECTION_INVALID_HOSTNAME_ERROR","category":"Connection","description":"Invalid hostname","issue_codes":[1007]},{"regex_name":"CONNECTION_HOST_DOWN_REGEX","message_template":"The host \"%(hostname)s\" might be down, and can't be reached on port %(port)s.","error_type":"CONNECTION_HOST_DOWN_ERROR","category":"Connection","description":"Host unreachable","issue_codes":[1009]},{"regex_name":"CONNECTION_PORT_CLOSED_REGEX","message_template":"Port %(port)s on hostname \"%(hostname)s\" refused the connection.","error_type":"CONNECTION_PORT_CLOSED_ERROR","category":"Connection","description":"Port closed or refused","issue_codes":[1008]},{"regex_name":"CONNECTION_UNKNOWN_DATABASE_ERROR","message_template":"Unable to connect to catalog named \"%(catalog_name)s\".","error_type":"CONNECTION_UNKNOWN_DATABASE_ERROR","category":"Connection","description":"Unknown database","issue_codes":[1015]}]},"time_grains":{"SECOND":true,"FIVE_SECONDS":true,"THIRTY_SECONDS":true,"MINUTE":true,"FIVE_MINUTES":true,"TEN_MINUTES":true,"FIFTEEN_MINUTES":true,"THIRTY_MINUTES":false,"HALF_HOUR":true,"HOUR":true,"SIX_HOURS":true,"DAY":true,"WEEK":true,"WEEK_STARTING_SUNDAY":true,"WEEK_STARTING_MONDAY":true,"WEEK_ENDING_SATURDAY":true,"WEEK_ENDING_SUNDAY":true,"MONTH":true,"QUARTER":true,"QUARTER_YEAR":false,"YEAR":true},"score":159,"max_score":201,"joins":true,"subqueries":true,"supports_dynamic_schema":true,"supports_catalog":true,"supports_dynamic_catalog":true,"ssh_tunneling":true,"supports_file_upload":true,"query_cancelation":true,"query_cost_estimation":true,"sql_validation":true,"user_impersonation":true};
+
+<DatabasePage name="Presto" database={databaseInfo} />

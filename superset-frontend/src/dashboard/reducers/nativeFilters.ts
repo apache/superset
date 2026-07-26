@@ -31,8 +31,9 @@ import {
 import {
   Divider,
   Filter,
-  FilterConfiguration,
   NativeFiltersState,
+  ChartCustomization,
+  ChartCustomizationDivider,
 } from '@superset-ui/core';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
@@ -44,12 +45,18 @@ export function getInitialState({
   filterConfig,
   state: prevState,
 }: {
-  filterConfig?: FilterConfiguration;
+  filterConfig?: Array<
+    Filter | Divider | ChartCustomization | ChartCustomizationDivider
+  >;
   state?: ExtendedNativeFiltersState;
 }): ExtendedNativeFiltersState {
   const state: Partial<ExtendedNativeFiltersState> = {};
-  const filters: Record<string, Filter | Divider> = {};
+
   if (filterConfig) {
+    const filters = { ...prevState?.filters } as Record<
+      string,
+      Filter | Divider | ChartCustomization | ChartCustomizationDivider
+    >;
     filterConfig.forEach(filter => {
       const { id } = filter;
       filters[id] = filter;
@@ -58,6 +65,7 @@ export function getInitialState({
   } else {
     state.filters = prevState?.filters ?? {};
   }
+
   state.focusedFilterId = undefined;
   state.hoveredChartCustomizationId = undefined;
   return state as ExtendedNativeFiltersState;
@@ -65,15 +73,27 @@ export function getInitialState({
 
 function handleFilterChangesComplete(
   state: ExtendedNativeFiltersState,
-  filters: Filter[],
+  filters: Array<
+    Filter | Divider | ChartCustomization | ChartCustomizationDivider
+  >,
+  deletedIds: string[] = [],
 ) {
-  const modifiedFilters = { ...state.filters };
+  // Native filters and chart customizations share this map, but each save path
+  // only reports its own domain. Merge the incoming changes into the existing
+  // map (instead of rebuilding from scratch) so, e.g., saving a chart
+  // customization doesn't drop native filters and vice versa. Deletions are
+  // applied explicitly via deletedIds.
+  const newFilters: Record<
+    string,
+    Filter | Divider | ChartCustomization | ChartCustomizationDivider
+  > = { ...state.filters };
+
   filters.forEach(filter => {
+    const existingFilter = state.filters[filter.id];
     if (filter.chartsInScope != null && filter.tabsInScope != null) {
-      modifiedFilters[filter.id] = filter;
+      newFilters[filter.id] = filter;
     } else {
-      const existingFilter = modifiedFilters[filter.id];
-      modifiedFilters[filter.id] = {
+      newFilters[filter.id] = {
         ...filter,
         chartsInScope: filter.chartsInScope ?? existingFilter?.chartsInScope,
         tabsInScope: filter.tabsInScope ?? existingFilter?.tabsInScope,
@@ -81,9 +101,13 @@ function handleFilterChangesComplete(
     }
   });
 
+  deletedIds.forEach(id => {
+    delete newFilters[id];
+  });
+
   return {
     ...state,
-    filters: modifiedFilters,
+    filters: newFilters,
   } as ExtendedNativeFiltersState;
 }
 
@@ -94,16 +118,45 @@ export default function nativeFilterReducer(
   action: AnyFilterAction,
 ) {
   switch (action.type) {
-    case HYDRATE_DASHBOARD:
+    case HYDRATE_DASHBOARD: {
+      const incomingFilters = action.data.nativeFilters.filters;
+      const existingFilters = state.filters;
+
+      type FilterType =
+        Filter | Divider | ChartCustomization | ChartCustomizationDivider;
+      const mergedFilters: Record<string, FilterType> = {};
+
+      Object.entries(incomingFilters).forEach(([id, incomingFilter]) => {
+        const filter = incomingFilter as FilterType;
+        const existingFilter = existingFilters[id];
+        if (
+          filter.chartsInScope == null &&
+          existingFilter?.chartsInScope != null
+        ) {
+          mergedFilters[id] = {
+            ...filter,
+            chartsInScope: existingFilter.chartsInScope,
+            tabsInScope: existingFilter.tabsInScope,
+          };
+        } else {
+          mergedFilters[id] = filter;
+        }
+      });
+
       return {
-        filters: action.data.nativeFilters.filters,
+        filters: mergedFilters,
       };
+    }
 
     case SET_IN_SCOPE_STATUS_OF_FILTERS:
       return getInitialState({ filterConfig: action.filterConfig, state });
 
     case SET_NATIVE_FILTERS_CONFIG_COMPLETE:
-      return handleFilterChangesComplete(state, action.filterChanges);
+      return handleFilterChangesComplete(
+        state,
+        action.filterChanges,
+        action.deletedIds,
+      );
 
     case SET_FOCUSED_NATIVE_FILTER:
       return {
@@ -152,6 +205,7 @@ export default function nativeFilterReducer(
           },
         },
       };
+
     // TODO handle SET_FILTER_CONFIG_FAIL action
     default:
       return state;

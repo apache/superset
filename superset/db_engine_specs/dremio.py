@@ -24,8 +24,8 @@ from packaging.version import Version
 from sqlalchemy import types
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
-from superset.utils.hashing import md5_sha_from_str
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
+from superset.utils.hashing import hash_from_str
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -50,6 +50,40 @@ class DremioEngineSpec(BaseEngineSpec):
         "UseEncryption=true&"
         "disableCertificateVerification=true"
     )
+
+    metadata = {
+        "description": (
+            "Dremio is a data lakehouse platform for fast, self-service analytics."
+        ),
+        "logo": "dremio.png",
+        "homepage_url": "https://www.dremio.com/",
+        "categories": [DatabaseCategory.QUERY_ENGINES, DatabaseCategory.PROPRIETARY],
+        "pypi_packages": ["sqlalchemy_dremio"],
+        "connection_string": (
+            "dremio+flight://data.dremio.cloud:443/?Token={token}&UseEncryption=true"
+        ),
+        "parameters": {
+            "token": "Personal Access Token (PAT) or API token",
+        },
+        "drivers": [
+            {
+                "name": "Arrow Flight (Recommended)",
+                "pypi_package": "sqlalchemy_dremio",
+                "connection_string": (
+                    "dremio+flight://data.dremio.cloud:443/"
+                    "?Token={token}&UseEncryption=true"
+                ),
+                "is_recommended": True,
+            },
+            {
+                "name": "ODBC",
+                "pypi_package": "sqlalchemy_dremio",
+                "connection_string": "dremio+pyodbc://{token}@{host}:31010/dremio",
+                "is_recommended": False,
+                "notes": "Requires Dremio ODBC drivers installed.",
+            },
+        ],
+    }
 
     _time_grain_expressions = {
         None: "{col}",
@@ -104,4 +138,4 @@ class DremioEngineSpec(BaseEngineSpec):
         :param label: Expected expression label
         :return: Conditionally mutated label
         """
-        return f"{label}_{md5_sha_from_str(label)[:6]}"
+        return f"{label}_{hash_from_str(label)[:6]}"

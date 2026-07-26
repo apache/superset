@@ -1,0 +1,41 @@
+---
+id: database
+title: "Database"
+description: "Database"
+custom_edit_url: null
+---
+
+Manage database connections and metadata.
+
+| Method | Endpoint | Path |
+|--------|----------|------|
+| `GET` | [Get a list of databases](./get-a-list-of-databases) | `/api/v1/database/` |
+| `POST` | [Create a new database](./create-a-new-database) | `/api/v1/database/` |
+| `GET` | [Get metadata information about this API resource (database--info)](./get-metadata-information-about-this-api-resource-database-info) | `/api/v1/database/_info` |
+| `DELETE` | [Delete a database](./delete-a-database) | `/api/v1/database/{pk}` |
+| `GET` | [Get a database](./get-a-database) | `/api/v1/database/{pk}` |
+| `PUT` | [Change a database](./change-a-database) | `/api/v1/database/{pk}` |
+| `GET` | [Get all catalogs from a database](./get-all-catalogs-from-a-database) | `/api/v1/database/{pk}/catalogs/` |
+| `GET` | [Get a database connection info](./get-a-database-connection-info) | `/api/v1/database/{pk}/connection` |
+| `GET` | [Get function names supported by a database](./get-function-names-supported-by-a-database) | `/api/v1/database/{pk}/function_names/` |
+| `GET` | [Get charts and dashboards count associated to a database](./get-charts-and-dashboards-count-associated-to-a-database) | `/api/v1/database/{pk}/related_objects/` |
+| `GET` | [The list of the database schemas where to upload information](./the-list-of-the-database-schemas-where-to-upload-information) | `/api/v1/database/{pk}/schemas_access_for_file_upload/` |
+| `GET` | [Get all schemas from a database](./get-all-schemas-from-a-database) | `/api/v1/database/{pk}/schemas/` |
+| `GET` | [Get database select star for table (database-pk-select-star-table-name)](./get-database-select-star-for-table-database-pk-select-star-table-name) | `/api/v1/database/{pk}/select_star/{table_name}/` |
+| `GET` | [Get database select star for table (database-pk-select-star-table-name-schema-name)](./get-database-select-star-for-table-database-pk-select-star-table-name-schema-name) | `/api/v1/database/{pk}/select_star/{table_name}/{schema_name}/` |
+| `POST` | [Re-sync all permissions for a database connection](./re-sync-all-permissions-for-a-database-connection) | `/api/v1/database/{pk}/sync_permissions/` |
+| `GET` | [Get table extra metadata (database-pk-table-extra-table-name-schema-name)](./get-table-extra-metadata-database-pk-table-extra-table-name-schema-name) | `/api/v1/database/{pk}/table_extra/{table_name}/{schema_name}/` |
+| `GET` | [Get table metadata](./get-table-metadata) | `/api/v1/database/{pk}/table_metadata/` |
+| `GET` | [Get table extra metadata (database-pk-table-metadata-extra)](./get-table-extra-metadata-database-pk-table-metadata-extra) | `/api/v1/database/{pk}/table_metadata/extra/` |
+| `GET` | [Get database table metadata](./get-database-table-metadata) | `/api/v1/database/{pk}/table/{table_name}/{schema_name}/` |
+| `GET` | [Get a list of tables for given database](./get-a-list-of-tables-for-given-database) | `/api/v1/database/{pk}/tables/` |
+| `POST` | [Upload a file to a database table](./upload-a-file-to-a-database-table) | `/api/v1/database/{pk}/upload/` |
+| `POST` | [Validate arbitrary SQL](./validate-arbitrary-sql) | `/api/v1/database/{pk}/validate_sql/` |
+| `GET` | [Get names of databases currently available](./get-names-of-databases-currently-available) | `/api/v1/database/available/` |
+| `GET` | [Download database(s) and associated dataset(s) as a zip file](./download-database-s-and-associated-dataset-s-as-a-zip-file) | `/api/v1/database/export/` |
+| `POST` | [Import database(s) with associated datasets](./import-database-s-with-associated-datasets) | `/api/v1/database/import/` |
+| `GET` | [Receive personal access tokens from OAuth2](./receive-personal-access-tokens-from-o-auth-2) | `/api/v1/database/oauth2/` |
+| `GET` | [Get related fields data (database-related-column-name)](./get-related-fields-data-database-related-column-name) | `/api/v1/database/related/{column_name}` |
+| `POST` | [Test a database connection](./test-a-database-connection) | `/api/v1/database/test_connection/` |
+| `POST` | [Upload a file and returns file metadata](./upload-a-file-and-returns-file-metadata) | `/api/v1/database/upload_metadata/` |
+| `POST` | [Validate database connection parameters](./validate-database-connection-parameters) | `/api/v1/database/validate_parameters/` |

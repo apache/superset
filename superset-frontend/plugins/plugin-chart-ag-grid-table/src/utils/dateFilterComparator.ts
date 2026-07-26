@@ -17,25 +17,53 @@
  * under the License.
  */
 
-const dateFilterComparator = (filterDate: Date, cellValue: Date) => {
+/**
+ * Timezone-safe date comparator for AG Grid date filters.
+ *
+ * This comparator normalizes both dates to UTC midnight before comparison,
+ * fixing the off-by-one day bug that occurs when:
+ * - User's timezone differs from UTC
+ * - Data is stored in UTC but filtered in local time
+ * - Midnight boundary crossing due to timezone offset
+ *
+ * Bug references:
+ * - AG Grid Issue #8611: UTC Date Editor Problem
+ * - AG Grid Issue #3921: DateFilter timezone regression
+ *
+ */
+const dateFilterComparator = (
+  filterDate: Date,
+  cellValue: Date | null | undefined,
+) => {
+  if (cellValue == null) {
+    return -1;
+  }
+
   const cellDate = new Date(cellValue);
-  cellDate.setHours(0, 0, 0, 0);
-  if (Number.isNaN(cellDate?.getTime())) return -1;
+  if (Number.isNaN(cellDate.getTime())) {
+    return -1;
+  }
 
-  const cellDay = cellDate.getDate();
-  const cellMonth = cellDate.getMonth();
-  const cellYear = cellDate.getFullYear();
+  // Filter date from AG Grid uses local timezone (what the user selected)
+  const filterUTC = Date.UTC(
+    filterDate.getFullYear(),
+    filterDate.getMonth(),
+    filterDate.getDate(),
+  );
 
-  const filterDay = filterDate.getDate();
-  const filterMonth = filterDate.getMonth();
-  const filterYear = filterDate.getFullYear();
+  // Cell data is in UTC - extract UTC components to compare actual dates
+  const cellUTC = Date.UTC(
+    cellDate.getUTCFullYear(),
+    cellDate.getUTCMonth(),
+    cellDate.getUTCDate(),
+  );
 
-  if (cellYear < filterYear) return -1;
-  if (cellYear > filterYear) return 1;
-  if (cellMonth < filterMonth) return -1;
-  if (cellMonth > filterMonth) return 1;
-  if (cellDay < filterDay) return -1;
-  if (cellDay > filterDay) return 1;
+  if (cellUTC < filterUTC) {
+    return -1;
+  }
+  if (cellUTC > filterUTC) {
+    return 1;
+  }
 
   return 0;
 };

@@ -41,7 +41,7 @@ export default function messageToastsReducer(
     case ADD_TOAST: {
       const { payload: toast } = action;
       const result = toasts.slice();
-      if (!toast.noDuplicate || !result.find(x => x.text === toast.text)) {
+      if (!toast.noDuplicate || !result.some(x => x.text === toast.text)) {
         return [toast, ...toasts];
       }
       return toasts;

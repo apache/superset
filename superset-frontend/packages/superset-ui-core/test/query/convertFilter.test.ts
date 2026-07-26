@@ -19,7 +19,7 @@
 import { convertFilter } from '@superset-ui/core';
 
 describe('convertFilter', () => {
-  it('should handle unary filter', () => {
+  test('should handle unary filter', () => {
     expect(
       convertFilter({
         expressionType: 'SIMPLE',
@@ -33,7 +33,7 @@ describe('convertFilter', () => {
     });
   });
 
-  it('should convert binary filter', () => {
+  test('should convert binary filter', () => {
     expect(
       convertFilter({
         expressionType: 'SIMPLE',
@@ -49,7 +49,7 @@ describe('convertFilter', () => {
     });
   });
 
-  it('should convert set filter', () => {
+  test('should convert set filter', () => {
     expect(
       convertFilter({
         expressionType: 'SIMPLE',

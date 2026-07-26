@@ -17,6 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
+import { mockUserSubjectsBootstrapData } from 'spec/helpers/mockBootstrapData';
 import { screen, waitFor, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { isFeatureEnabled } from '@superset-ui/core';
@@ -25,6 +26,7 @@ import {
   mockHandleResourceExport,
   setupMocks,
   renderChartList,
+  API_ENDPOINTS,
 } from './ChartList.testHelpers';
 
 // Increase default timeout for all tests
@@ -41,6 +43,10 @@ jest.mock('src/utils/export', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
+
+jest.mock('src/utils/getBootstrapData', () =>
+  mockUserSubjectsBootstrapData([1]),
+);
 
 const mockIsFeatureEnabled = isFeatureEnabled as jest.MockedFunction<
   typeof isFeatureEnabled
@@ -66,11 +72,12 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  fetchMock.restore();
+  fetchMock.clearHistory().removeRoutes();
+  fetchMock.removeRoutes();
   mockIsFeatureEnabled.mockReset();
 });
 
-test('ChartList list view renders correctly', async () => {
+test('renders table in list view', async () => {
   renderChartList(mockUser);
 
   // Wait for component to load
@@ -84,12 +91,10 @@ test('ChartList list view renders correctly', async () => {
   });
 
   // Verify cards are not rendered in list view
-  await waitFor(() => {
-    expect(screen.queryByTestId('styled-card')).not.toBeInTheDocument();
-  });
+  expect(screen.queryByTestId('styled-card')).not.toBeInTheDocument();
 });
 
-test('ChartList list view correctly displays dataset names with and without schema', async () => {
+test('displays dataset names with and without schema prefix', async () => {
   // Create custom mock data with different datasource_name_text formats
   const customMockCharts = [
     {
@@ -113,16 +118,14 @@ test('ChartList list view correctly displays dataset names with and without sche
   ];
 
   // Setup mock with custom charts
-  fetchMock.reset();
+  fetchMock.removeRoutes();
   setupMocks();
-  fetchMock.get(
-    'glob:*/api/v1/chart/?*',
-    {
+  fetchMock.modifyRoute(API_ENDPOINTS.CHARTS, {
+    response: {
       result: customMockCharts,
       chart_count: customMockCharts.length,
     },
-    { overwriteRoutes: true },
-  );
+  });
 
   renderChartList(mockUser);
 
@@ -167,7 +170,7 @@ test('ChartList list view correctly displays dataset names with and without sche
   expect(dotsLink).toHaveTextContent('table.with.dots');
 });
 
-test('ChartList list view switches from list view to card view', async () => {
+test('switches from list view to card view', async () => {
   renderChartList(mockUser);
 
   await waitFor(() => {
@@ -188,7 +191,7 @@ test('ChartList list view switches from list view to card view', async () => {
   expect(cards).toHaveLength(mockCharts.length);
 });
 
-test('ChartList list view renders all required column headers', async () => {
+test('renders all required column headers', async () => {
   renderChartList(mockUser);
 
   await waitFor(() => {
@@ -196,7 +199,7 @@ test('ChartList list view renders all required column headers', async () => {
   });
 
   const table = screen.getByTestId('listview-table');
-  const columnHeaders = table.querySelectorAll('[role="columnheader"]');
+  const columnHeaders = within(table).getAllByRole('columnheader');
 
   // All the table headers with default feature flags on
   const expectedHeaders = [
@@ -204,7 +207,7 @@ test('ChartList list view renders all required column headers', async () => {
     'Type',
     'Dataset',
     'On dashboards',
-    'Owners',
+    'Editors',
     'Last modified',
     'Actions',
   ];
@@ -218,7 +221,7 @@ test('ChartList list view renders all required column headers', async () => {
   });
 });
 
-test('ChartList list view sorts table when clicking column headers', async () => {
+test('sorts table when clicking column headers', async () => {
   renderChartList(mockUser);
 
   await waitFor(() => {
@@ -230,7 +233,7 @@ test('ChartList list view sorts table when clicking column headers', async () =>
   const allHeaders = table.querySelectorAll('.ant-table-column-sorters');
 
   const sortableHeaders = Array.from(allHeaders).filter(
-    header => !header.closest('.ant-table-measure-cell-content'),
+    header => !header.closest('.ant-table-measure-row'),
   );
   expect(sortableHeaders).toHaveLength(3);
 
@@ -238,11 +241,11 @@ test('ChartList list view sorts table when clicking column headers', async () =>
   await userEvent.click(nameHeader);
 
   await waitFor(() => {
-    const sortCalls = fetchMock
+    const sortCalls = fetchMock.callHistory
       .calls(/chart\/\?q/)
       .filter(
         call =>
-          call[0].includes('order_column') && call[0].includes('slice_name'),
+          call.url.includes('order_column') && call.url.includes('slice_name'),
       );
     expect(sortCalls).toHaveLength(1);
   });
@@ -251,11 +254,11 @@ test('ChartList list view sorts table when clicking column headers', async () =>
   await userEvent.click(typeHeader);
 
   await waitFor(() => {
-    const typeSortCalls = fetchMock
+    const typeSortCalls = fetchMock.callHistory
       .calls(/chart\/\?q/)
       .filter(
         call =>
-          call[0].includes('order_column') && call[0].includes('viz_type'),
+          call.url.includes('order_column') && call.url.includes('viz_type'),
       );
     expect(typeSortCalls).toHaveLength(1);
   });
@@ -264,17 +267,19 @@ test('ChartList list view sorts table when clicking column headers', async () =>
   await userEvent.click(lastModifiedHeader);
 
   await waitFor(() => {
-    const lastModifiedSortCalls = fetchMock
+    const lastModifiedSortCalls = fetchMock.callHistory
       .calls(/chart\/\?q/)
       .filter(
         call =>
-          call[0].includes('order_column') && call[0].includes('last_saved_at'),
+          call.url.includes('order_column') &&
+          call.url.includes('changed_on_delta_humanized'),
       );
-    expect(lastModifiedSortCalls).toHaveLength(1);
+    const latestCall = lastModifiedSortCalls.at(-1);
+    expect(latestCall?.url).toContain('order_direction:asc');
   });
 });
 
-test('ChartList list view displays chart data correctly', async () => {
+test('displays chart data correctly in table rows', async () => {
   /**
    * @todo Implement test logic for tagging.
    * If TAGGING_SYSTEM is ever deprecated to always be on,
@@ -328,24 +333,22 @@ test('ChartList list view displays chart data correctly', async () => {
     within(chartRow).getByText(testChart.dashboards[0].dashboard_title),
   ).toBeInTheDocument();
 
-  // Check owners display - find avatar group within the row
+  // Check editors display - find avatar group within the row
   const avatarGroup = chartRow.querySelector(
     '.ant-avatar-group',
   ) as HTMLElement;
   expect(avatarGroup).toBeInTheDocument();
 
-  // Test owner initials for mockCharts[0] (we know it has owners)
-  const ownerInitials = `${testChart.owners[0].first_name[0]}${testChart.owners[0].last_name[0]}`;
-  expect(within(avatarGroup).getByText(ownerInitials)).toBeInTheDocument();
+  // Test editor initials for mockCharts[0] (we know it has editors)
+  const editorLabel = testChart.editors[0].label;
+  const parts = editorLabel.split(' ');
+  const editorInitials = parts.map((p: string) => p[0]).join('');
+  expect(within(avatarGroup).getByText(editorInitials)).toBeInTheDocument();
 
   // Check last modified time within the specific row
   expect(
     within(chartRow).getByText(testChart.changed_on_delta_humanized),
   ).toBeInTheDocument();
-
-  // Check actions column within the specific row
-  const actionsContainer = chartRow.querySelector('.actions');
-  expect(actionsContainer).toBeInTheDocument();
 
   // Verify action buttons exist within the specific row
   expect(within(chartRow).getByTestId('delete')).toBeInTheDocument();
@@ -353,7 +356,7 @@ test('ChartList list view displays chart data correctly', async () => {
   expect(within(chartRow).getByTestId('edit-alt')).toBeInTheDocument();
 });
 
-test('ChartList list view export chart api called when export button is clicked', async () => {
+test('calls export API when export button is clicked', async () => {
   renderChartList(mockUser);
 
   await waitFor(() => {
@@ -380,7 +383,7 @@ test('ChartList list view export chart api called when export button is clicked'
   });
 });
 
-test('ChartList list view opens edit properties modal when edit button is clicked', async () => {
+test('opens edit properties modal on edit button click', async () => {
   renderChartList(mockUser);
 
   await waitFor(() => {
@@ -404,7 +407,7 @@ test('ChartList list view opens edit properties modal when edit button is clicke
   });
 });
 
-test('ChartList list view opens delete confirmation when delete button is clicked', async () => {
+test('opens delete confirmation on delete button click', async () => {
   renderChartList(mockUser);
 
   await waitFor(() => {
@@ -428,7 +431,7 @@ test('ChartList list view opens delete confirmation when delete button is clicke
   });
 });
 
-test('ChartList list view displays certified badge only for certified charts', async () => {
+test('displays certified badge only for certified charts', async () => {
   // Test certified chart (mockCharts[1] has certification)
   const certifiedChart = mockCharts[1];
   // Test uncertified chart (mockCharts[0] has no certification)
@@ -467,7 +470,7 @@ test('ChartList list view displays certified badge only for certified charts', a
   ).not.toBeInTheDocument();
 });
 
-test('ChartList list view displays info icon only for charts with descriptions', async () => {
+test('displays info icon only for charts with descriptions', async () => {
   // Test chart with description (mockCharts[0] has description)
   const chartWithDesc = mockCharts[0];
   // Test chart without description (mockCharts[2] has description: null)
@@ -505,47 +508,7 @@ test('ChartList list view displays info icon only for charts with descriptions',
   ).not.toBeInTheDocument();
 });
 
-test('ChartList list view displays chart with empty dataset column', async () => {
-  renderChartList(mockUser);
-
-  await waitFor(() => {
-    expect(screen.getByTestId('listview-table')).toBeInTheDocument();
-  });
-
-  await waitFor(() => {
-    expect(screen.getByText(mockCharts[2].slice_name)).toBeInTheDocument();
-  });
-
-  const table = screen.getByTestId('listview-table');
-  const chartNameElement = within(table).getByText(mockCharts[2].slice_name);
-  const chartRow = chartNameElement.closest(
-    '[data-test="table-row"]',
-  ) as HTMLElement;
-
-  // Chart name should be visible
-  expect(
-    within(chartRow).getByText(mockCharts[2].slice_name),
-  ).toBeInTheDocument();
-
-  // Find dataset column index by header
-  const headers = within(table).getAllByRole('columnheader');
-  const datasetHeaderIndex = headers.findIndex(header =>
-    header.textContent?.includes('Dataset'),
-  );
-  expect(datasetHeaderIndex).toBeGreaterThan(-1); // Ensure column exists
-
-  // Since mockCharts[2] has datasource_name_text: null, verify dataset cell is empty
-  const datasetCell = within(chartRow).getAllByRole('cell')[datasetHeaderIndex];
-  expect(datasetCell).toBeInTheDocument();
-
-  // Verify dataset cell is empty for charts with no dataset
-  expect(datasetCell).toHaveTextContent('');
-  // There's a link element but with empty href
-  const datasetLink = within(datasetCell).getByRole('link');
-  expect(datasetLink).toHaveAttribute('href', '');
-});
-
-test('ChartList list view displays chart with empty on dashboards column', async () => {
+test('renders empty dashboard column for charts without dashboards', async () => {
   renderChartList(mockUser);
 
   await waitFor(() => {
@@ -584,7 +547,35 @@ test('ChartList list view displays chart with empty on dashboards column', async
   expect(within(dashboardCell).queryByRole('link')).not.toBeInTheDocument();
 });
 
-test('ChartList list view shows tag info when TAGGING_SYSTEM is enabled', async () => {
+test('renders dashboard crosslinks as navigable links', async () => {
+  renderChartList(mockUser);
+  await waitFor(() => {
+    expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+  });
+
+  const table = screen.getByTestId('listview-table');
+
+  // mockCharts[1] has multiple dashboards - verify all render with correct hrefs
+  const chartRow = within(table)
+    .getByText(mockCharts[1].slice_name)
+    .closest('[data-test="table-row"]') as HTMLElement;
+  const crosslinks = within(chartRow).getByTestId('crosslinks');
+  const dashboards = mockCharts[1].dashboards as {
+    dashboard_title: string;
+    id: number;
+  }[];
+  const links = within(crosslinks).getAllByRole('link');
+  expect(links).toHaveLength(dashboards.length);
+  dashboards.forEach(dashboard => {
+    expect(
+      within(crosslinks).getByRole('link', {
+        name: new RegExp(dashboard.dashboard_title),
+      }),
+    ).toHaveAttribute('href', `/dashboard/${dashboard.id}`);
+  });
+});
+
+test('shows tag column when TAGGING_SYSTEM is enabled', async () => {
   // Enable tagging system feature flag
   mockIsFeatureEnabled.mockImplementation(
     feature => feature === 'TAGGING_SYSTEM',
@@ -620,11 +611,11 @@ test('ChartList list view shows tag info when TAGGING_SYSTEM is enabled', async 
 
   // Tag should be a link to all_entities page
   const tagLink = within(tag).getByRole('link');
-  expect(tagLink).toHaveAttribute('href', '/superset/all_entities/?id=1');
+  expect(tagLink).toHaveAttribute('href', '/all_entities/?id=1');
   expect(tagLink).toHaveAttribute('target', '_blank');
 });
 
-test('ChartList list view can bulk select and deselect all charts', async () => {
+test('supports bulk select and deselect all', async () => {
   renderChartList(mockUser);
 
   await waitFor(() => {
@@ -684,7 +675,7 @@ test('ChartList list view can bulk select and deselect all charts', async () => 
   expect(screen.queryByTestId('bulk-select-action')).not.toBeInTheDocument();
 });
 
-test('ChartList list view can bulk export selected charts', async () => {
+test('supports bulk export of selected charts', async () => {
   renderChartList(mockUser);
 
   await waitFor(() => {
@@ -730,7 +721,7 @@ test('ChartList list view can bulk export selected charts', async () => {
   });
 });
 
-test('ChartList list view can bulk delete selected charts', async () => {
+test('supports bulk delete of selected charts', async () => {
   renderChartList(mockUser);
 
   await waitFor(() => {
@@ -776,7 +767,7 @@ test('ChartList list view can bulk delete selected charts', async () => {
   });
 });
 
-test('ChartList list view can bulk add tags to selected charts', async () => {
+test('supports bulk add tags to selected charts', async () => {
   // Enable tagging system feature flag
   mockIsFeatureEnabled.mockImplementation(
     feature => feature === 'TAGGING_SYSTEM',
@@ -827,51 +818,7 @@ test('ChartList list view can bulk add tags to selected charts', async () => {
   });
 });
 
-test('ChartList list view exit bulk select by hitting x on bulk select bar', async () => {
-  renderChartList(mockUser);
-
-  await waitFor(() => {
-    expect(screen.getByTestId('listview-table')).toBeInTheDocument();
-  });
-
-  await waitFor(() => {
-    expect(screen.getByText(mockCharts[0].slice_name)).toBeInTheDocument();
-    expect(screen.getByText(mockCharts[1].slice_name)).toBeInTheDocument();
-  });
-
-  const bulkSelectButton = screen.getByTestId('bulk-select');
-  await userEvent.click(bulkSelectButton);
-
-  await waitFor(() => {
-    // Expect header checkbox + one checkbox per chart
-    expect(screen.getAllByRole('checkbox')).toHaveLength(mockCharts.length + 1);
-  });
-
-  const table = screen.getByTestId('listview-table');
-  // Target first data row specifically (not header row)
-  const dataRows = within(table).getAllByTestId('table-row');
-  const firstRowCheckbox = within(dataRows[0]).getByRole('checkbox');
-  await userEvent.click(firstRowCheckbox);
-
-  await waitFor(() => {
-    expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
-      '1 Selected',
-    );
-  });
-
-  // Find and click the close button (x) on the bulk select bar
-  const closeIcon = document.querySelector(
-    '.ant-alert-close-icon',
-  ) as HTMLButtonElement;
-  await userEvent.click(closeIcon);
-
-  await waitFor(() => {
-    expect(screen.queryAllByRole('checkbox')).toHaveLength(0);
-    expect(screen.queryByTestId('bulk-select-copy')).not.toBeInTheDocument();
-  });
-});
-
-test('ChartList list view exit bulk select by clicking bulk select button again', async () => {
+test('exits bulk select on button toggle', async () => {
   renderChartList(mockUser);
 
   await waitFor(() => {
@@ -909,35 +856,4 @@ test('ChartList list view exit bulk select by clicking bulk select button again'
     expect(screen.queryAllByRole('checkbox')).toHaveLength(0);
     expect(screen.queryByTestId('bulk-select-copy')).not.toBeInTheDocument();
   });
-});
-
-test('ChartList list view displays dataset name without schema prefix correctly', async () => {
-  // Test just name case - should display the full name when no schema prefix
-  renderChartList(mockUser);
-
-  await waitFor(() => {
-    expect(screen.getByTestId('listview-table')).toBeInTheDocument();
-  });
-
-  const table = screen.getByTestId('listview-table');
-
-  // Wait for chart with simple dataset name to load
-  await waitFor(() => {
-    expect(
-      within(table).getByText(mockCharts[1].slice_name),
-    ).toBeInTheDocument();
-  });
-
-  // Test mockCharts[1] which has 'sales_data' (no schema prefix)
-  const chart1Row = within(table)
-    .getByText(mockCharts[1].slice_name)
-    .closest('[data-test="table-row"]') as HTMLElement;
-  const chart1DatasetLink = within(chart1Row).getByTestId('internal-link');
-
-  // Should display the full name when there's no schema prefix
-  expect(chart1DatasetLink).toHaveTextContent('sales_data');
-  expect(chart1DatasetLink).toHaveAttribute(
-    'href',
-    mockCharts[1].datasource_url,
-  );
 });

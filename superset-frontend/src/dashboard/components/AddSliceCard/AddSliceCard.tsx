@@ -29,12 +29,14 @@ import {
   FC,
 } from 'react';
 
-import { t, isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
-import { css } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import { css } from '@apache-superset/core/theme';
 import { Tooltip, ImageLoader } from '@superset-ui/core/components';
 import { GenericLink, usePluginContext } from 'src/components';
 import { assetUrl } from 'src/utils/assetUrl';
 import { Theme } from '@emotion/react';
+import { datasetLabel } from 'src/features/semanticLayers/label';
 
 const FALLBACK_THUMBNAIL_URL = assetUrl(
   '/static/assets/images/chart-card-fallback.svg',
@@ -172,8 +174,7 @@ const AddSliceCard: FC<{
   datasourceUrl?: string;
   datasourceName?: string;
   innerRef?:
-    | RefObject<HTMLDivElement>
-    | ((node: HTMLDivElement | null) => void);
+    RefObject<HTMLDivElement> | ((node: HTMLDivElement | null) => void);
   isSelected?: boolean;
   lastModified?: string;
   sliceName: string;
@@ -217,7 +218,7 @@ const AddSliceCard: FC<{
           color: ${theme.colorText};
 
           &:hover {
-            //background: ${theme.colorFillTertiary};
+            /* background: ${theme.colorFillTertiary}; */
           }
 
           opacity: ${isSelected ? 0.4 : 'unset'};
@@ -282,7 +283,7 @@ const AddSliceCard: FC<{
             >
               <MetadataItem label={t('Viz type')} value={vizName} />
               <MetadataItem
-                label={t('Dataset')}
+                label={datasetLabel()}
                 value={
                   datasourceUrl ? (
                     <GenericLink to={datasourceUrl}>

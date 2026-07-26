@@ -52,6 +52,7 @@ def test_report_for_dashboard_with_tabs(
     with create_dashboard_report(
         dashboard=tabbed_dashboard,
         extra={
+            "anchor": "TAB-L1B",
             "activeTabs": ["TAB-L1B", "TAB-L2BB"],
             "urlParams": [["native_filters", "()"]],
         },
@@ -95,7 +96,8 @@ def test_report_with_header_data(
     with create_dashboard_report(
         dashboard=tabbed_dashboard,
         extra={
-            "active_tabs": ["TAB-L1B", "TAB-L2BB"],
+            "anchor": "TAB-L1B",
+            "activeTabs": ["TAB-L1B", "TAB-L2BB"],
             "urlParams": [["native_filters", "()"]],
         },
         name="test report tabbed dashboard",
@@ -112,7 +114,7 @@ def test_report_with_header_data(
         assert dashboard_screenshot_mock.call_count == 1
         url = dashboard_screenshot_mock.call_args.args[0]
 
-        assert url.endswith(f"/superset/dashboard/p/{permalink_key}/")
+        assert url.endswith(f"/dashboard/p/{permalink_key}/")
         assert send_email_smtp_mock.call_count == 1
         header_data = send_email_smtp_mock.call_args.kwargs["header_data"]
         assert header_data.get("dashboard_id") == dashboard.id

@@ -16,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useSelector, useDispatch } from 'react-redux';
-import { t, JsonObject, VizType } from '@superset-ui/core';
+import { useSelector } from 'react-redux';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
+import { t } from '@apache-superset/core/translation';
+import { VizType } from '@superset-ui/core';
 import {
   createCtasDatasource,
   addInfoToast,
@@ -44,7 +46,7 @@ const ExploreCtasResultsButton = ({
   const errorMessage = useSelector(
     (state: SqlLabRootState) => state.sqlLab.errorMessage,
   );
-  const dispatch = useDispatch<(dispatch: any) => Promise<JsonObject>>();
+  const dispatch = useAppDispatch();
 
   const buildVizOptions = {
     table_name: table,
@@ -55,7 +57,7 @@ const ExploreCtasResultsButton = ({
 
   const visualize = () => {
     dispatch(createCtasDatasource(buildVizOptions))
-      .then((data: { table_id: number }) => {
+      .then(data => {
         const formData = {
           datasource: `${data.table_id}__table`,
           metrics: ['count'],

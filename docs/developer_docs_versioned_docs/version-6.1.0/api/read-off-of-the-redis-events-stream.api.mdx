@@ -1,0 +1,68 @@
+---
+id: read-off-of-the-redis-events-stream
+title: "Read off of the Redis events stream"
+description: "Reads off of the Redis events stream, using the user's JWT token and optional query params for last event received."
+sidebar_label: "Read off of the Redis events stream"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVmFv2zYQ/SvEYcASTImTYQMCFf3gZWmbLOiC2EEHRIFLS2eLKUWqJOXEE/TfhyMtWUqcFl0H7JMt8vj43vHxeDVkaFMjSie0ghiukWeW6cWC6QVzObJrzIRluELlLLPOIC8iVlmhln66smh+tOziw5Q5/QkV4ypj2qNxyT5XaNas5IYXli20YZJbF8CYwRTFCrNDiMBHoENjIb6tn1C6pDXnv3cL2Hztt06lQOUgAkFRfiuIQPECIQbaaCYyiMCmORYc4hrcuqQp64xQS2iauwgM2lIri5bmfz46op9UK0fAcQ28LKVIOREZ3VtiU/fwSqNLNE6E1QZtJf0q4bCwzwPSnCuFklg9JxMBGqONHazfxOj5PaaOYjYD3Bi+pu8XoO71/KVdAstZZeTOaeu4q+zOKTrpIapQDpdooNkye4nqrgh85EUpsZ+722GW2t23ybm9C6K3M63W7Uhf4na0VbYd6QQdN3cNMRzabmzXKu28SpCWWP9ydPwdJinQWr7EXW78coa6hXCjeOVybcTfmMVsXLkcldvszwx+roTBDHYI6i8k9F+/y+7/gZJz5dBQmbBoVmiYP+SYjRWrFD6WmDrMwiDTaVqZF3S94Y7LEOc3t5hWRri1t9P9A9nqju6640tyUDjYM1/QrtG6cSngLoLHg1RnOPE0QxWSXC0hhvTm+hIikHyOcvtpdWVSEpFWRrKDv9jbsylLIHeujEcjqVMuc21dfHJ0cjLipRitjkecNp55R40SYEmSKMYO3rEExpuD8amP2W/IDRr2w/j09GwymU3//OPsfQLQRB2pq7XLterR6gY6YqIotXHeEWidTVSi2mrHXnfDh0t0e8SDfRv7KKzJkWdo7Ov6iYYEYpbARkcC7CfG0xStnflHoknUfqJKI5TbazkdkuH29vf7Ki/4ik/8SfeUDga3x6CV9fe0FcgfuHBsgS7Nvb5vV1cPJMbtN3t6XqT1Y3tkddA59TI/hhUN/ZDmV4kKPDPueMfxSQY2QVriodTLPQrdfwVk4AJdrqnULdH5R9PlEMMuBZQZf6eCk0Mp3Kkfnt6mS5pmGa5Q6rKg4heQ/LkEoLo02ulUyyYejWqCauKazNY8QzutrNNFCxHBihvB5xLb59HD0P8MF9w/AZ4mVXxVFXRbN5/0Y+meDvHfTadXrMNpIiA2Q7xO7zNyk1B2aI66BqYNO78iENIyBNmZqs16H934dqItPRMqmkGkL0A1zL0/3mhTcMK7+DBtWxNyb5iFrnB60fSQP7iZwYVBm/9bEOoS1EIHOQP2VYnGeic54ag294fIOyFudRxSYl3B/Yuw6bCoU/xKo/g0Y73H5n9qNDepcfjoRqXkQvnOJjRD4T7dAi8FJeAYIujdKYiA7Bf8dQt1PecWb4xsGhoO3afvXYUlg2cQL7i0+IUMfLWv3Un2E64H7e2Ky4qifIVor5d/8iIIpcvTCsvGaYq+brarnr34gzrz9owMRl1D75nvbLb5Q+hts6fWPey6DhGhFlJtCCT88YHvuf4BD4xMxw==
+sidebar_class_name: "get api-method"
+info_path: developer-docs/api/superset
+custom_edit_url: null
+hide_send_button: true
+show_extensions: true
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Read off of the Redis events stream"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/async_event/"}
+  context={"endpoint"}
+>
+
+</MethodEndpoint>
+
+
+
+Reads off of the Redis events stream, using the user's JWT token and optional query params for last event received.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  {...require("./read-off-of-the-redis-events-stream.ParamsDetails.json")}
+>
+
+</ParamsDetails>
+
+<RequestSchema
+  {...require("./read-off-of-the-redis-events-stream.RequestSchema.json")}
+>
+
+</RequestSchema>
+
+<StatusCodes
+  {...require("./read-off-of-the-redis-events-stream.StatusCodes.json")}
+>
+
+</StatusCodes>

@@ -31,7 +31,7 @@ describe('FilterScope TreeSelection', () => {
   let formRef: { current: FormInstance | null };
 
   beforeEach(() => {
-    jest.useFakeTimers();
+    jest.useFakeTimers({ advanceTimers: true });
     formRef = { current: null };
   });
 

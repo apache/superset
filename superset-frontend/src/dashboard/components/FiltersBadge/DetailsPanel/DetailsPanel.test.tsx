@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/// <reference types="@emotion/jest" />
 import { RefObject } from 'react';
 import {
   fireEvent,
@@ -214,6 +215,22 @@ test('Close popover with ESC or ENTER', async () => {
   // Close with Enter
   fireEvent.keyDown(activeElement, { key: 'Enter', code: 'Enter' });
   expect(props.setPopoverVisible).toHaveBeenCalledWith(false);
+});
+
+test('Popover container suppresses default browser focus outline', () => {
+  const props = createProps();
+  render(
+    <DetailsPanel {...props}>
+      <div>Content</div>
+    </DetailsPanel>,
+    { useRedux: true },
+  );
+
+  const menu = screen.getByRole('menu');
+  expect(menu).toHaveStyleRule('outline', 'none', { target: ':focus' });
+  expect(menu).toHaveStyleRule('outline', 'none', {
+    target: ':focus-visible',
+  });
 });
 
 test('Arrow key navigation switches focus between indicators', () => {

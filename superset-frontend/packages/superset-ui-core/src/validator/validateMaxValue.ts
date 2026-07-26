@@ -16,9 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '../translation';
+import { t } from '@apache-superset/core/translation';
 
-export default function validateMaxValue(v: unknown, max: number) {
+export default function validateMaxValue(
+  v: unknown,
+  max: number,
+): string | false {
   if (Number(v) > +max) {
     return t('Value cannot exceed %s', max);
   }

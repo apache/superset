@@ -1,0 +1,1 @@
+{"parameters":[{"description":"The dataset pk for this column","in":"path","name":"pk","required":true,"schema":{"type":"integer"}},{"description":"The metric id for this dataset","in":"path","name":"metric_id","required":true,"schema":{"type":"integer"}}]}

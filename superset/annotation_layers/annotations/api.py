@@ -18,7 +18,13 @@ import logging
 from typing import Any
 
 from flask import request, Response
-from flask_appbuilder.api import expose, permission_name, protect, rison, safe
+from flask_appbuilder.api import (
+    expose,
+    permission_name,
+    protect,
+    rison as parse_rison,
+    safe,
+)
 from flask_appbuilder.api.schemas import get_item_schema, get_list_schema
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
@@ -129,7 +135,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @permission_name("get")
-    @rison(get_list_schema)
+    @parse_rison(get_list_schema)
     def get_list(  # pylint: disable=arguments-differ
         self, pk: int, **kwargs: Any
     ) -> Response:
@@ -189,7 +195,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @permission_name("get")
-    @rison(get_item_schema)
+    @parse_rison(get_item_schema)
     def get(  # pylint: disable=arguments-differ
         self, pk: int, annotation_id: int, **kwargs: Any
     ) -> Response:
@@ -440,7 +446,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_delete_ids_schema)
+    @parse_rison(get_delete_ids_schema)
     def bulk_delete(self, **kwargs: Any) -> Response:
         """Bulk delete annotation layers.
         ---

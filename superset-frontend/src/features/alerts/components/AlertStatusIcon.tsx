@@ -16,17 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
-import { SupersetTheme, useTheme, css } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { SupersetTheme, useTheme, css } from '@apache-superset/core/theme';
 import { Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { AlertState } from '../types';
 
-function getStatusColor(
-  status: string,
-  isReportEnabled: boolean,
-  theme: SupersetTheme,
-) {
+function getStatusColor(status: string, theme: SupersetTheme) {
   switch (status) {
     case AlertState.Working:
       return theme.colorPrimaryText;
@@ -35,7 +31,12 @@ function getStatusColor(
     case AlertState.Success:
       return theme.colorSuccessText;
     case AlertState.Noop:
-      return theme.colorSuccessText;
+      // "Not triggered" is the default state for a report/alert that has not
+      // run yet (and for an alert that ran without its condition matching).
+      // Neither is a success, so use a neutral color instead of the green
+      // success color, which previously made an unexecuted report look like it
+      // had succeeded. See issue #29622.
+      return theme.colorTextSecondary;
     case AlertState.Grace:
       return theme.colorErrorText;
     default:
@@ -51,6 +52,9 @@ export default function AlertStatusIcon({
   isReportEnabled: boolean;
 }) {
   const theme = useTheme();
+  const noopLabel = isReportEnabled
+    ? t('Report not yet run')
+    : t('Nothing triggered');
   const lastStateConfig = {
     icon: Icons.CheckOutlined,
     label: '',
@@ -79,8 +83,8 @@ export default function AlertStatusIcon({
       lastStateConfig.status = AlertState.Error;
       break;
     case AlertState.Noop:
-      lastStateConfig.icon = Icons.CheckOutlined;
-      lastStateConfig.label = t('Nothing triggered');
+      lastStateConfig.icon = Icons.CalendarOutlined;
+      lastStateConfig.label = noopLabel;
       lastStateConfig.status = AlertState.Noop;
       break;
     case AlertState.Grace:
@@ -89,8 +93,8 @@ export default function AlertStatusIcon({
       lastStateConfig.status = AlertState.Grace;
       break;
     default:
-      lastStateConfig.icon = Icons.CheckOutlined;
-      lastStateConfig.label = t('Nothing triggered');
+      lastStateConfig.icon = Icons.CalendarOutlined;
+      lastStateConfig.label = noopLabel;
       lastStateConfig.status = AlertState.Noop;
   }
   const Icon = lastStateConfig.icon;
@@ -111,11 +115,7 @@ export default function AlertStatusIcon({
       >
         <Icon
           iconSize="m"
-          iconColor={getStatusColor(
-            lastStateConfig.status,
-            isReportEnabled,
-            theme,
-          )}
+          iconColor={getStatusColor(lastStateConfig.status, theme)}
         />
       </span>
     </Tooltip>

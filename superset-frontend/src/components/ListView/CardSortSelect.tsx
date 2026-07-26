@@ -16,20 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useMemo } from 'react';
-import { t } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
-import { FormLabel, Select } from '@superset-ui/core/components';
-import { SELECT_WIDTH } from './utils';
+import { useRef, useState } from 'react';
+import { t } from '@apache-superset/core/translation';
+import type { SelectOption } from './types';
 import { CardSortSelectOption, SortColumn } from './types';
-
-const SortContainer = styled.div`
-  display: inline-flex;
-  font-size: ${({ theme }) => theme.fontSizeSM}px;
-  align-items: center;
-  text-align: left;
-  width: ${SELECT_WIDTH}px;
-`;
+import CompactFilterTrigger from './Filters/CompactFilterTrigger';
+import CompactSelectPanel from './Filters/CompactSelectPanel';
+import type { FilterHandler } from './Filters/types';
 
 interface CardViewSelectSortProps {
   onChange: (value: SortColumn[]) => void;
@@ -42,6 +35,8 @@ export const CardSortSelect = ({
   onChange,
   options,
 }: CardViewSelectSortProps) => {
+  const panelRef = useRef<FilterHandler>(null);
+
   const defaultSort =
     (initialSort &&
       options.find(
@@ -50,44 +45,41 @@ export const CardSortSelect = ({
       )) ||
     options[0];
 
-  const [value, setValue] = useState({
+  const [currentValue, setCurrentValue] = useState<SelectOption>({
     label: defaultSort.label,
     value: defaultSort.value,
   });
 
-  const formattedOptions = useMemo(
-    () => options.map(option => ({ label: option.label, value: option.value })),
-    [options],
-  );
+  const selectOptions = options.map(o => ({ label: o.label, value: o.value }));
 
-  const handleOnChange = (selected: { label: string; value: string }) => {
-    setValue(selected);
-    const originalOption = options.find(
-      ({ value }) => value === selected.value,
-    );
-    if (originalOption) {
-      const sortBy = [
-        {
-          id: originalOption.id,
-          desc: originalOption.desc,
-        },
-      ];
-      onChange(sortBy);
+  const handleSelect = (option: SelectOption | undefined) => {
+    if (!option) return;
+    const original = options.find(o => o.value === option.value);
+    if (original) {
+      setCurrentValue({ label: original.label, value: original.value });
+      onChange([{ id: original.id, desc: original.desc }]);
     }
   };
 
   return (
-    <SortContainer>
-      <Select
-        ariaLabel={t('Sort')}
-        header={<FormLabel>{t('Sort')}</FormLabel>}
-        labelInValue
-        onChange={handleOnChange}
-        options={formattedOptions}
-        showSearch
-        value={value}
-        data-test="card-sort-select"
-      />
-    </SortContainer>
+    <span data-test="card-sort-select">
+      <CompactFilterTrigger
+        label={t('Sort')}
+        hasValue={false}
+        onClear={() => {}}
+        tooltipTitle={String(currentValue.label)}
+      >
+        {({ isOpen, onClose }) => (
+          <CompactSelectPanel
+            ref={panelRef}
+            selects={selectOptions}
+            value={currentValue}
+            onSelect={handleSelect}
+            isOpen={isOpen}
+            onClose={onClose}
+          />
+        )}
+      </CompactFilterTrigger>
+    </span>
   );
 };

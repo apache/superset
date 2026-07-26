@@ -28,7 +28,7 @@ import {
 import { ForecastSeriesEnum } from '../../src/types';
 
 describe('extractForecastSeriesContext', () => {
-  it('should extract the correct series name and type', () => {
+  test('should extract the correct series name and type', () => {
     expect(extractForecastSeriesContext('abcd')).toEqual({
       name: 'abcd',
       type: ForecastSeriesEnum.Observation,
@@ -49,7 +49,7 @@ describe('extractForecastSeriesContext', () => {
 });
 
 describe('reorderForecastSeries', () => {
-  it('should reorder the forecast series and preserve values', () => {
+  test('should reorder the forecast series and preserve values', () => {
     const input: SeriesOption[] = [
       { id: `series${ForecastSeriesEnum.Observation}`, data: [10, 20, 30] },
       { id: `series${ForecastSeriesEnum.ForecastTrend}`, data: [15, 25, 35] },
@@ -65,16 +65,16 @@ describe('reorderForecastSeries', () => {
     expect(reorderForecastSeries(input)).toEqual(expectedOutput);
   });
 
-  it('should handle an empty array', () => {
+  test('should handle an empty array', () => {
     expect(reorderForecastSeries([])).toEqual([]);
   });
 
-  it('should not reorder if no relevant series are present', () => {
+  test('should not reorder if no relevant series are present', () => {
     const input: SeriesOption[] = [{ id: 'some-other-series' }];
     expect(reorderForecastSeries(input)).toEqual(input);
   });
 
-  it('should handle undefined ids', () => {
+  test('should handle undefined ids', () => {
     const input: SeriesOption[] = [
       { id: `series${ForecastSeriesEnum.ForecastLower}` },
       { id: undefined },
@@ -90,7 +90,7 @@ describe('reorderForecastSeries', () => {
 });
 
 describe('rebaseForecastDatum', () => {
-  it('should subtract lower confidence level from upper value', () => {
+  test('should subtract lower confidence level from upper value', () => {
     expect(
       rebaseForecastDatum([
         {
@@ -146,7 +146,7 @@ describe('rebaseForecastDatum', () => {
     ]);
   });
 
-  it('should rename all series based on verboseMap but leave __timestamp alone', () => {
+  test('should rename all series based on verboseMap but leave __timestamp alone', () => {
     expect(
       rebaseForecastDatum(
         [
@@ -341,4 +341,73 @@ test('formatForecastTooltipSeries should format forecast with only confidence ba
       formatter,
     }),
   ).toEqual(['<img>qwerty', '(7, 15)']);
+});
+
+test('formatForecastTooltipSeries should show forecast trend equal to zero', () => {
+  expect(
+    formatForecastTooltipSeries({
+      seriesName: 'qwerty',
+      marker: '<img>',
+      observation: 10,
+      forecastTrend: 0,
+      forecastLower: 5,
+      forecastUpper: 7,
+      formatter,
+    }),
+  ).toEqual(['<img>qwerty', '10, ŷ = 0 (5, 12)']);
+});
+
+test('formatForecastTooltipSeries should show confidence band when lower bound is zero', () => {
+  expect(
+    formatForecastTooltipSeries({
+      seriesName: 'qwerty',
+      marker: '<img>',
+      observation: 10,
+      forecastTrend: 5,
+      forecastLower: 0,
+      forecastUpper: 7,
+      formatter,
+    }),
+  ).toEqual(['<img>qwerty', '10, ŷ = 5 (0, 7)']);
+});
+
+test('formatForecastTooltipSeries should show confidence band when band height is zero', () => {
+  expect(
+    formatForecastTooltipSeries({
+      seriesName: 'qwerty',
+      marker: '<img>',
+      observation: 10,
+      forecastTrend: 5,
+      forecastLower: 4,
+      forecastUpper: 0,
+      formatter,
+    }),
+  ).toEqual(['<img>qwerty', '10, ŷ = 5 (4, 4)']);
+});
+
+test('formatForecastTooltipSeries should show forecast trend and band all at zero', () => {
+  expect(
+    formatForecastTooltipSeries({
+      seriesName: 'qwerty',
+      marker: '<img>',
+      forecastTrend: 0,
+      forecastLower: 0,
+      forecastUpper: 0,
+      formatter,
+    }),
+  ).toEqual(['<img>qwerty', 'ŷ = 0 (0, 0)']);
+});
+
+test('formatForecastTooltipSeries should skip non-finite forecast values', () => {
+  expect(
+    formatForecastTooltipSeries({
+      seriesName: 'qwerty',
+      marker: '<img>',
+      observation: 10,
+      forecastTrend: NaN,
+      forecastLower: Infinity,
+      forecastUpper: -Infinity,
+      formatter,
+    }),
+  ).toEqual(['<img>qwerty', '10']);
 });

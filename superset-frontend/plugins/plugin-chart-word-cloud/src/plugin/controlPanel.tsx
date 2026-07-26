@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, validateNonEmpty } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   getStandardizedControls,
@@ -34,6 +35,22 @@ const config: ControlPanelConfig = {
         ['adhoc_filters'],
         ['row_limit'],
         ['sort_by_metric'],
+        [
+          {
+            name: 'sort_by_series',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Sort by series'),
+              default: true,
+              description: t(
+                'Sort results by series name in ascending order. ' +
+                  'When combined with "Sort by metric", this acts as a tiebreaker ' +
+                  'for equal metric values. Adding this sort may reduce query ' +
+                  'performance on some databases.',
+              ),
+            },
+          },
+        ],
       ],
     },
     {

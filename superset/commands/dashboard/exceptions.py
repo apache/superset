@@ -20,6 +20,7 @@ from flask_babel import lazy_gettext as _
 from marshmallow.validate import ValidationError
 
 from superset.commands.exceptions import (
+    CommandException,
     CommandInvalidError,
     CreateFailedError,
     DeleteFailedError,
@@ -62,8 +63,29 @@ class DashboardNativeFiltersUpdateFailedError(UpdateFailedError):
     message = _("Dashboard native filters could not be patched.")
 
 
+class DashboardChartCustomizationsUpdateFailedError(UpdateFailedError):
+    message = _("Dashboard chart customizations could not be updated.")
+
+
 class DashboardColorsConfigUpdateFailedError(UpdateFailedError):
     message = _("Dashboard color configuration could not be updated.")
+
+
+class DashboardRestoreFailedError(UpdateFailedError):
+    # Restore semantically clears ``deleted_at``; it is an UPDATE, not a new
+    # row. ``UpdateFailedError`` is the nearest typed middle-tier base in the
+    # codebase. A dedicated ``RestoreFailedError`` in
+    # ``superset/commands/exceptions.py`` would be more precise across the
+    # entity rollouts; extracting it there is left as a cross-entity follow-up.
+    message = _("Dashboard could not be restored.")
+
+
+class DashboardSlugConflictError(CommandException):
+    status = 422
+    message = _(
+        "Dashboard cannot be restored because its slug is now used by "
+        "another active dashboard. Rename one of the dashboards and retry."
+    )
 
 
 class DashboardDeleteFailedError(DeleteFailedError):

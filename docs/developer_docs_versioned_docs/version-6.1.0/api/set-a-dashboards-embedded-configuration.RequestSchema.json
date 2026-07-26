@@ -1,0 +1,1 @@
+{"title":"Body","body":{"content":{"application/json":{"schema":{"properties":{"allowed_domains":{"items":{"type":"string"},"type":"array"}},"required":["allowed_domains"],"type":"object","title":"EmbeddedDashboardConfig"},"example":{"allowed_domains":["string"]}}},"description":"The embedded configuration to set","required":true}}

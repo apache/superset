@@ -16,12 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// Type augmentation for dayjs plugins
+import 'dayjs/plugin/utc';
 import {
   CustomSeriesOption,
   CustomSeriesRenderItem,
   EChartsCoreOption,
   LineSeriesOption,
 } from 'echarts';
+import { t } from '@apache-superset/core/translation';
 import {
   AxisType,
   CategoricalColorNamespace,
@@ -29,11 +32,10 @@ import {
   DataRecordValue,
   getColumnLabel,
   getNumberFormatter,
-  t,
   tooltipHtml,
 } from '@superset-ui/core';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
 import {
   Cartesian2dCoordSys,
@@ -41,8 +43,13 @@ import {
   EchartsGanttFormData,
 } from './types';
 import { DEFAULT_FORM_DATA, TIMESERIES_CONSTANTS } from '../constants';
-import { Refs } from '../types';
-import { getLegendProps, groupData } from '../utils/series';
+import { LegendOrientation, Refs } from '../types';
+import {
+  getHorizontalLegendAvailableWidth,
+  getLegendProps,
+  groupData,
+} from '../utils/series';
+import { resolveLegendLayout } from '../utils/legendLayout';
 import {
   getTooltipTimeFormatter,
   getXAxisFormatter,
@@ -244,7 +251,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
   }
 
   const padding = getPadding(
-    showLegend && seriesMap.size > 1,
+    showLegend,
     legendOrientation,
     false,
     zoomable,
@@ -343,6 +350,40 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
       if (!legendSort) return 0;
       return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
     });
+  const { legendLayout, effectiveLegendType } = resolveLegendLayout({
+    availableWidth:
+      legendOrientation === LegendOrientation.Top ||
+      legendOrientation === LegendOrientation.Bottom
+        ? getHorizontalLegendAvailableWidth({
+            chartWidth: width,
+            orientation: legendOrientation,
+            padding,
+            zoomable,
+          })
+        : undefined,
+    chartHeight: height,
+    chartWidth: width,
+    legendItems: legendData,
+    legendMargin,
+    orientation: legendOrientation,
+    show: showLegend,
+    theme,
+    type: legendType,
+  });
+  if (legendLayout.effectiveMargin !== undefined) {
+    const adjustedPadding = getPadding(
+      showLegend,
+      legendOrientation,
+      false,
+      zoomable,
+      legendLayout.effectiveMargin,
+      !!xAxisTitle,
+      'Left',
+      convertInteger(yAxisTitleMargin),
+      convertInteger(xAxisTitleMargin),
+    );
+    Object.assign(padding, adjustedPadding);
+  }
 
   const tooltipFormatterMap = {
     [GenericDataType.Numeric]: tooltipValuesFormatter,
@@ -372,12 +413,13 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     },
     legend: {
       ...getLegendProps(
-        legendType,
+        effectiveLegendType,
         legendOrientation,
         showLegend,
         theme,
         zoomable,
         legendState,
+        padding,
       ),
       data: legendData,
     },

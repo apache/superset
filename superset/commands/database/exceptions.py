@@ -118,6 +118,33 @@ class DatabaseUploadFailed(CommandException):
     message = _("Database upload file failed")
 
 
+class DatabaseUploadFileTooLarge(CommandException):
+    status = 413
+    message = _("Database upload file exceeds the maximum allowed size.")
+
+
+class DatabaseUploadSoftDeletedDatasetExistsError(DatabaseUploadFailed):
+    """The upload targets a table whose dataset sits soft-deleted in the trash.
+
+    Creating a new dataset over the same physical table would make an active
+    twin of the hidden row and permanently block its restore, so the upload
+    is refused before any file data is written. The message names only
+    executable recoveries (restore, or a different table name) — there is no
+    hard-delete/purge API surface until the purge work lands.
+    """
+
+    def __init__(self, dataset_uuid: str) -> None:
+        super().__init__(
+            _(
+                "A soft-deleted dataset (uuid %(uuid)s) already references "
+                "this table. Restore it via POST "
+                "/api/v1/dataset/%(uuid)s/restore before uploading, or upload "
+                "to a different table name.",
+                uuid=dataset_uuid,
+            )
+        )
+
+
 class DatabaseUploadSaveMetadataFailed(CommandException):
     status = 500
     message = _("Database upload file failed, while saving metadata")
@@ -149,6 +176,21 @@ class MissingOAuth2TokenError(DatabaseUpdateFailedError):
 
 class DatabaseDeleteDatasetsExistFailedError(DeleteFailedError):
     message = _("Cannot delete a database that has datasets attached")
+
+
+class DatabaseDeleteSoftDeletedDatasetsExistFailedError(
+    DatabaseDeleteDatasetsExistFailedError
+):
+    # Subclasses the live-datasets error so the existing API handler catches
+    # both; only the message differs, telling the operator that the blockers
+    # are hidden (soft-deleted) rows even though their dataset list looks empty.
+    message = _(
+        "Cannot delete a database whose only remaining datasets are "
+        "soft-deleted. Restore them (POST /api/v1/dataset/<uuid>/restore) "
+        "and delete them permanently once a purge capability ships, or "
+        "remove the underlying rows out-of-band, before deleting the "
+        "database."
+    )
 
 
 class DatabaseDeleteFailedError(DeleteFailedError):

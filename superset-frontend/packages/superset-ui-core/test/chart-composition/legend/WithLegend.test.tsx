@@ -25,13 +25,14 @@ let renderChart = jest.fn();
 let renderLegend = jest.fn();
 
 // TODO: rewrite to rtl
+/* oxlint-disable-next-line jest/no-disabled-tests */
 describe.skip('WithLegend', () => {
   beforeEach(() => {
     renderChart = jest.fn(() => <div className="chart" />);
     renderLegend = jest.fn(() => <div className="legend" />);
   });
 
-  it('sets className', () => {
+  test('sets className', () => {
     const { container } = render(
       <WithLegend
         className="test-class"
@@ -42,7 +43,7 @@ describe.skip('WithLegend', () => {
     expect(container.querySelectorAll('.test-class')).toHaveLength(1);
   });
 
-  it('renders when renderLegend is not set', () => {
+  test('renders when renderLegend is not set', () => {
     const { container } = render(
       <WithLegend
         debounceTime={1}
@@ -61,7 +62,7 @@ describe.skip('WithLegend', () => {
     }, 100);
   });
 
-  it('renders', () => {
+  test('renders', () => {
     const { container } = render(
       <WithLegend
         debounceTime={1}
@@ -82,7 +83,7 @@ describe.skip('WithLegend', () => {
     }, 100);
   });
 
-  it('renders without width or height', () => {
+  test('renders without width or height', () => {
     const { container } = render(
       <WithLegend
         debounceTime={1}
@@ -101,7 +102,7 @@ describe.skip('WithLegend', () => {
     }, 100);
   });
 
-  it('renders legend on the left', () => {
+  test('renders legend on the left', () => {
     const { container } = render(
       <WithLegend
         debounceTime={1}
@@ -121,7 +122,7 @@ describe.skip('WithLegend', () => {
     }, 100);
   });
 
-  it('renders legend on the right', () => {
+  test('renders legend on the right', () => {
     const { container } = render(
       <WithLegend
         debounceTime={1}
@@ -141,7 +142,7 @@ describe.skip('WithLegend', () => {
     }, 100);
   });
 
-  it('renders legend on the top', () => {
+  test('renders legend on the top', () => {
     const { container } = render(
       <WithLegend
         debounceTime={1}
@@ -161,7 +162,7 @@ describe.skip('WithLegend', () => {
     }, 100);
   });
 
-  it('renders legend on the bottom', () => {
+  test('renders legend on the bottom', () => {
     const { container } = render(
       <WithLegend
         debounceTime={1}
@@ -181,7 +182,7 @@ describe.skip('WithLegend', () => {
     }, 100);
   });
 
-  it('renders legend with justifyContent set', () => {
+  test('renders legend with justifyContent set', () => {
     const { container } = render(
       <WithLegend
         debounceTime={1}

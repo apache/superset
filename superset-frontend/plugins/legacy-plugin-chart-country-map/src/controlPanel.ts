@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, validateNonEmpty } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   D3_FORMAT_OPTIONS,
@@ -68,6 +69,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        ['currency_format'],
         ['linear_color_scheme'],
       ],
     },

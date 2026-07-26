@@ -94,7 +94,7 @@ class SlackMixin:
         # need to truncate the data
         for i in range(len(df) - 1):
             truncated_df = df[: i + 1].fillna("")
-            truncated_row = pd.Series({k: "..." for k in df.columns})
+            truncated_row = pd.Series(dict.fromkeys(df.columns, "..."))
             truncated_df = pd.concat(
                 [truncated_df, truncated_row.to_frame().T], ignore_index=True
             )
@@ -104,7 +104,7 @@ class SlackMixin:
             if len(message) > MAXIMUM_MESSAGE_SIZE:
                 # Decrement i and build a message that is under the limit
                 truncated_df = df[:i].fillna("")
-                truncated_row = pd.Series({k: "..." for k in df.columns})
+                truncated_row = pd.Series(dict.fromkeys(df.columns, "..."))
                 truncated_df = pd.concat(
                     [truncated_df, truncated_row.to_frame().T], ignore_index=True
                 )

@@ -1,0 +1,13 @@
+---
+id: datasources
+title: "Datasources"
+description: "Datasources"
+custom_edit_url: null
+---
+
+Query datasource metadata and column values.
+
+| Method | Endpoint | Path |
+|--------|----------|------|
+| `GET` | [Get possible values for a datasource column](./get-possible-values-for-a-datasource-column) | `/api/v1/datasource/{datasource_type}/{datasource_id}/column/{column_name}/values/` |
+| `POST` | [Validate a SQL expression against a datasource](./validate-a-sql-expression-against-a-datasource) | `/api/v1/datasource/{datasource_type}/{datasource_id}/validate_expression/` |

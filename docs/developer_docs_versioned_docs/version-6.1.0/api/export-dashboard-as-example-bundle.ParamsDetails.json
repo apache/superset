@@ -1,0 +1,1 @@
+{"parameters":[{"description":"The dashboard id","in":"path","name":"pk","required":true,"schema":{"type":"integer"}},{"description":"Whether to include Parquet data files","in":"query","name":"export_data","schema":{"default":true,"type":"boolean"}},{"description":"Limit data export to this many rows per dataset","in":"query","name":"sample_rows","schema":{"type":"integer"}}]}

@@ -25,6 +25,11 @@ import {
   defaultQueryEditor,
   extraQueryEditor3,
 } from 'src/SqlLab/fixtures';
+import { ViewLocations } from 'src/SqlLab/contributions';
+import {
+  registerToolbarAction,
+  cleanupExtensions,
+} from 'spec/helpers/extensionTestHelpers';
 
 const mockedProps = {
   queryEditorId: defaultQueryEditor.id,
@@ -81,7 +86,11 @@ const setup = (overrides = {}) => (
   <QueryHistory {...mockedProps} {...overrides} />
 );
 
-afterEach(() => fetchMock.reset());
+afterEach(() => {
+  fetchMock.clearHistory().removeRoutes();
+  cleanupExtensions();
+  mockedIsFeatureEnabled.mockReset();
+});
 
 test('Renders an empty state for query history', () => {
   render(setup(), { useRedux: true, initialState });
@@ -102,7 +111,7 @@ test('fetches the query history when the persistence mode is enabled', async () 
   fetchMock.get(editorQueryApiRoute, fakeApiResult);
   render(setup(), { useRedux: true, initialState });
   await waitFor(() =>
-    expect(fetchMock.calls(editorQueryApiRoute).length).toBe(1),
+    expect(fetchMock.callHistory.calls(editorQueryApiRoute).length).toBe(1),
   );
   const queryResultText = screen.getByText(fakeApiResult.result[0].rows);
   expect(queryResultText).toBeInTheDocument();
@@ -127,7 +136,7 @@ test('fetches the query history by the tabViewId', async () => {
     },
   });
   await waitFor(() =>
-    expect(fetchMock.calls(editorQueryApiRoute).length).toBe(1),
+    expect(fetchMock.callHistory.calls(editorQueryApiRoute).length).toBe(1),
   );
   const queryResultText = screen.getByText(fakeApiResult.result[0].rows);
   expect(queryResultText).toBeInTheDocument();
@@ -213,7 +222,7 @@ test('displays multiple queries with newest query first', async () => {
   const { container } = render(setup(), { useRedux: true, initialState });
 
   await waitFor(() =>
-    expect(fetchMock.calls(editorQueryApiRoute).length).toBe(1),
+    expect(fetchMock.callHistory.calls(editorQueryApiRoute).length).toBe(1),
   );
 
   expect(screen.getByTestId('listview-table')).toBeVisible();
@@ -241,4 +250,45 @@ test('displays multiple queries with newest query first', async () => {
   expect(secondDataRow).toHaveTextContent('443');
 
   isFeatureEnabledMock.mockClear();
+});
+
+test('renders contributed toolbar action in queryHistory slot', () => {
+  registerToolbarAction(
+    ViewLocations.sqllab.queryHistory,
+    'test-history-action',
+    'History Action',
+    jest.fn(),
+  );
+
+  const stateWithQueries = {
+    ...initialState,
+    sqlLab: {
+      ...initialState.sqlLab,
+      queries: {
+        testQuery: {
+          id: 'testQuery',
+          sqlEditorId: defaultQueryEditor.id,
+          sql: 'SELECT 1',
+          state: QueryState.Success,
+          startDttm: Date.now(),
+          endDttm: Date.now() + 100,
+          progress: 100,
+          rows: 1,
+          cached: false,
+          changed_on: new Date().toISOString(),
+          db: 'main',
+          dbId: 1,
+        },
+      },
+    },
+  };
+
+  render(setup(), {
+    useRedux: true,
+    initialState: stateWithQueries,
+  });
+
+  expect(
+    screen.getByRole('button', { name: 'History Action' }),
+  ).toBeInTheDocument();
 });

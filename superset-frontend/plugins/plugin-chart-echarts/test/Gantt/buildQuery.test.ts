@@ -39,7 +39,7 @@ describe('Gantt buildQuery', () => {
     ],
   };
 
-  it('should build query', () => {
+  test('should build query', () => {
     const queryContext = buildQuery(formData);
     const [query] = queryContext.queries;
     expect(query.metrics).toStrictEqual(['tooltip_metric']);

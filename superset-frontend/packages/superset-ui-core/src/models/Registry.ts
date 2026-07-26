@@ -36,9 +36,7 @@ export interface ItemWithLoader<T> {
 type InclusiveLoaderResult<V> = V | Promise<V>;
 
 export type RegistryValue<V, W extends InclusiveLoaderResult<V>> =
-  | V
-  | W
-  | undefined;
+  V | W | undefined;
 
 export type RegistryEntry<V, W extends InclusiveLoaderResult<V>> = {
   key: string;

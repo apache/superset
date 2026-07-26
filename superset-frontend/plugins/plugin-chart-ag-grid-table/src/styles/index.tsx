@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, styled } from '@apache-superset/core/ui';
+import { css, styled } from '@apache-superset/core/theme';
 import { Select } from '@superset-ui/core/components';
 
 /* Components for AgGridTable */
@@ -74,7 +74,6 @@ export const FilterIconWrapper = styled.div<{ isFilterActive?: boolean }>`
 
   padding: 3px 4px;
   overflow: hidden;
-  cursor: pointer;
   border-radius: 4px;
 
   ${({ isFilterActive }) =>
@@ -287,14 +286,14 @@ export const StyledChartContainer = styled.div<{
     .dt-is-filter {
       cursor: pointer;
       :hover {
-        background-color: ${theme.colorPrimaryBgHover};
+        background-color: ${theme.colorFillContentHover};
       }
     }
 
     .dt-is-active-filter {
       background: ${theme.colorPrimaryBg};
       :hover {
-        background-color: ${theme.colorPrimaryBgHover};
+        background-color: ${theme.colorFillContentHover};
       }
     }
 
@@ -307,6 +306,17 @@ export const StyledChartContainer = styled.div<{
       overflow: visible;
       white-space: normal;
       height: auto;
+    }
+
+    .ag-cell {
+      color: var(--ag-cell-value-color, inherit);
+    }
+
+    .ag-row-hover .ag-cell {
+      color: var(
+        --ag-cell-value-hover-color,
+        var(--ag-cell-value-color, inherit)
+      );
     }
 
     .ag-container {
@@ -351,6 +361,18 @@ export const StyledChartContainer = styled.div<{
       font-size: ${theme.fontSizeSM}px;
     }
 
+    /*
+     * AG Grid 34+ adds the row-entrance-animation class 'ag-opacity-zero'
+     * (opacity: 0) to a newly inserted row and removes it on the next frame to
+     * fade the row in. Under AG Grid 36 that class is never removed from the
+     * pinned bottom row, so the "Show summary" totals row renders fully (correct
+     * values in the DOM) but stays permanently transparent. Force pinned rows
+     * opaque so the summary row is visible.
+     */
+    .ag-row-pinned {
+      opacity: 1 !important;
+    }
+
     .ag-spanned-row {
       font-size: ${theme.fontSizeSM}px;
       font-weight: ${theme.fontWeightStrong};
@@ -368,7 +390,7 @@ export const StyledChartContainer = styled.div<{
       margin-right: ${theme.sizeUnit * 2}px;
     }
 
-    .ant-popover-inner {
+    .ant-popover-container {
       padding: 0px;
     }
 
@@ -406,6 +428,12 @@ export const StyledChartContainer = styled.div<{
 
       &::placeholder {
         color: ${theme.colorTextQuaternary};
+      }
+    }
+
+    .ag-header-center {
+      .ag-header-cell-label {
+        justify-content: center;
       }
     }
   `}

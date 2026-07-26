@@ -32,7 +32,7 @@ import {
 
 describe('Color Schemes', () => {
   describe('categorical', () => {
-    it('returns an array of CategoricalScheme', () => {
+    test('returns an array of CategoricalScheme', () => {
       [
         CategoricalAirbnb,
         CategoricalEcharts,
@@ -50,7 +50,7 @@ describe('Color Schemes', () => {
     });
   });
   describe('sequential', () => {
-    it('returns an array of SequentialScheme', () => {
+    test('returns an array of SequentialScheme', () => {
       [SequentialCommon, SequentialD3].forEach(group => {
         expect(group).toBeInstanceOf(Array);
         group.forEach(scheme =>

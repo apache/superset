@@ -28,6 +28,7 @@ export default function isEqualColumns(
   return (
     a.datasource.columnFormats === b.datasource.columnFormats &&
     a.datasource.currencyFormats === b.datasource.currencyFormats &&
+    a.datasource.currencyCodeColumn === b.datasource.currencyCodeColumn &&
     a.datasource.verboseMap === b.datasource.verboseMap &&
     a.formData.tableTimestampFormat === b.formData.tableTimestampFormat &&
     a.formData.timeGrainSqla === b.formData.timeGrainSqla &&
@@ -36,6 +37,8 @@ export default function isEqualColumns(
     isEqualArray(a.formData.metrics, b.formData.metrics) &&
     isEqualArray(a.queriesData?.[0]?.colnames, b.queriesData?.[0]?.colnames) &&
     isEqualArray(a.queriesData?.[0]?.coltypes, b.queriesData?.[0]?.coltypes) &&
+    a.queriesData?.[0]?.detected_currency ===
+      b.queriesData?.[0]?.detected_currency &&
     JSON.stringify(a.formData.extraFilters || null) ===
       JSON.stringify(b.formData.extraFilters || null) &&
     JSON.stringify(a.formData.extraFormData || null) ===

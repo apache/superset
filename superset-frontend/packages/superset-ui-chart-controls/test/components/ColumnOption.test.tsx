@@ -18,7 +18,7 @@
  */
 import '@testing-library/jest-dom';
 import { render } from '@superset-ui/core/spec';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { ColumnOption, ColumnOptionProps } from '../../src';
 
 jest.mock('@superset-ui/chart-controls/components/SQLPopover', () => ({

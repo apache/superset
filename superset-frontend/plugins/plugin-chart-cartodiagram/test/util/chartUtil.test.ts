@@ -55,7 +55,7 @@ describe('chartUtil', () => {
   };
 
   describe('simplifyConfig', () => {
-    it('removes the refs property from a feature', () => {
+    test('removes the refs property from a feature', () => {
       const simplifiedConfig = simplifyConfig(configA);
       const propKeys = Object.keys(simplifiedConfig.features[0].properties);
 
@@ -64,12 +64,12 @@ describe('chartUtil', () => {
   });
 
   describe('isChartConfigEqual', () => {
-    it('returns true, if configurations are equal', () => {
+    test('returns true, if configurations are equal', () => {
       const isEqual = isChartConfigEqual(configA, structuredClone(configA));
       expect(isEqual).toBe(true);
     });
 
-    it('returns false if configurations are not equal', () => {
+    test('returns false if configurations are not equal', () => {
       const isEqual = isChartConfigEqual(configA, configB);
       expect(isEqual).toBe(false);
     });

@@ -79,10 +79,10 @@ describe('AnnotationLayer type guards', () => {
     showLabel: false,
   };
   describe('isFormulaAnnotationLayer', () => {
-    it('should return true when it is the correct type', () => {
+    test('should return true when it is the correct type', () => {
       expect(isFormulaAnnotationLayer(formulaAnnotationLayer)).toEqual(true);
     });
-    it('should return false otherwise', () => {
+    test('should return false otherwise', () => {
       expect(isFormulaAnnotationLayer(eventAnnotationLayer)).toEqual(false);
       expect(isFormulaAnnotationLayer(intervalAnnotationLayer)).toEqual(false);
       expect(isFormulaAnnotationLayer(timeseriesAnnotationLayer)).toEqual(
@@ -92,10 +92,10 @@ describe('AnnotationLayer type guards', () => {
   });
 
   describe('isEventAnnotationLayer', () => {
-    it('should return true when it is the correct type', () => {
+    test('should return true when it is the correct type', () => {
       expect(isEventAnnotationLayer(eventAnnotationLayer)).toEqual(true);
     });
-    it('should return false otherwise', () => {
+    test('should return false otherwise', () => {
       expect(isEventAnnotationLayer(formulaAnnotationLayer)).toEqual(false);
       expect(isEventAnnotationLayer(intervalAnnotationLayer)).toEqual(false);
       expect(isEventAnnotationLayer(timeseriesAnnotationLayer)).toEqual(false);
@@ -103,10 +103,10 @@ describe('AnnotationLayer type guards', () => {
   });
 
   describe('isIntervalAnnotationLayer', () => {
-    it('should return true when it is the correct type', () => {
+    test('should return true when it is the correct type', () => {
       expect(isIntervalAnnotationLayer(intervalAnnotationLayer)).toEqual(true);
     });
-    it('should return false otherwise', () => {
+    test('should return false otherwise', () => {
       expect(isIntervalAnnotationLayer(formulaAnnotationLayer)).toEqual(false);
       expect(isIntervalAnnotationLayer(eventAnnotationLayer)).toEqual(false);
       expect(isIntervalAnnotationLayer(timeseriesAnnotationLayer)).toEqual(
@@ -116,12 +116,12 @@ describe('AnnotationLayer type guards', () => {
   });
 
   describe('isTimeseriesAnnotationLayer', () => {
-    it('should return true when it is the correct type', () => {
+    test('should return true when it is the correct type', () => {
       expect(isTimeseriesAnnotationLayer(timeseriesAnnotationLayer)).toEqual(
         true,
       );
     });
-    it('should return false otherwise', () => {
+    test('should return false otherwise', () => {
       expect(isTimeseriesAnnotationLayer(formulaAnnotationLayer)).toEqual(
         false,
       );
@@ -133,10 +133,10 @@ describe('AnnotationLayer type guards', () => {
   });
 
   describe('isTableAnnotationLayer', () => {
-    it('should return true when it is the correct type', () => {
+    test('should return true when it is the correct type', () => {
       expect(isTableAnnotationLayer(tableAnnotationLayer)).toEqual(true);
     });
-    it('should return false otherwise', () => {
+    test('should return false otherwise', () => {
       expect(isTableAnnotationLayer(formulaAnnotationLayer)).toEqual(false);
     });
   });

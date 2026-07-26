@@ -29,8 +29,8 @@ Embedding is done by inserting an iframe, containing a Superset page, into the h
 
 ## Prerequisites
 
-* Activate the feature flag `EMBEDDED_SUPERSET`
-* Set a strong password in configuration variable `GUEST_TOKEN_JWT_SECRET` (see configuration file config.py). Be aware that its default value must be changed in production.
+- Activate the feature flag `EMBEDDED_SUPERSET`
+- Set a strong password in configuration variable `GUEST_TOKEN_JWT_SECRET` (see configuration file config.py). Be aware that its default value must be changed in production.
 
 ## Embedding a Dashboard
 
@@ -48,21 +48,30 @@ embedDashboard({
   supersetDomain: "https://superset.example.com",
   mountPoint: document.getElementById("my-superset-container"), // any html element that can contain an iframe
   fetchGuestToken: () => fetchGuestTokenFromBackend(),
-  dashboardUiConfig: { // dashboard UI config: hideTitle, hideTab, hideChartControls, filters.visible, filters.expanded (optional), urlParams (optional)
-      hideTitle: true,
-      filters: {
-          expanded: true,
-      },
-      urlParams: {
-          foo: 'value1',
-          bar: 'value2',
-          // ...
-      }
+  dashboardUiConfig: {
+    // dashboard UI config: hideTitle, hideTab, hideChartControls, filters.visible, filters.expanded (optional), urlParams (optional)
+    hideTitle: true,
+    filters: {
+      expanded: true,
+    },
+    urlParams: {
+      foo: "value1",
+      bar: "value2",
+      // themeMode: 'dark', // set the initial theme: 'dark' | 'system' | 'default' (default: 'default')
+      // ...
+    },
   },
-    // optional additional iframe sandbox attributes
-  iframeSandboxExtras: ['allow-top-navigation', 'allow-popups-to-escape-sandbox'],
+  // optional additional iframe sandbox attributes
+  iframeSandboxExtras: [
+    "allow-top-navigation",
+    "allow-popups-to-escape-sandbox",
+  ],
+  // optional Permissions Policy features
+  iframeAllowExtras: ["clipboard-write", "fullscreen"],
   // optional config to enforce a particular referrerPolicy
-  referrerPolicy: "same-origin"
+  referrerPolicy: "same-origin",
+  // optional callback to customize permalink URLs
+  resolvePermalinkUrl: ({ key }) => `https://my-app.com/analytics/share/${key}`,
 });
 ```
 
@@ -93,7 +102,7 @@ Guest tokens can have Row Level Security rules which filter data for the user ca
 
 The agent making the `POST` request must be authenticated with the `can_grant_guest_token` permission.
 
-Within your app, using the Guest Token will then allow authentication to your Superset instance via creating an Anonymous user object.  This guest anonymous user will default to the public role as per this setting `GUEST_ROLE_NAME = "Public"`.
+Within your app, using the Guest Token will then allow authentication to your Superset instance via creating an Anonymous user object. This guest anonymous user will default to the public role as per this setting `GUEST_ROLE_NAME = "Public"`.
 
 The user parameters in the example below are optional and are provided as a means of passing user attributes that may be accessed in jinja templates inside your charts.
 
@@ -106,13 +115,13 @@ Example `POST /security/guest_token` payload:
     "first_name": "Stan",
     "last_name": "Lee"
   },
-  "resources": [{
-    "type": "dashboard",
-    "id": "abc123"
-  }],
-  "rls": [
-    { "clause": "publisher = 'Nintendo'" }
-  ]
+  "resources": [
+    {
+      "type": "dashboard",
+      "id": "abc123"
+    }
+  ],
+  "rls": [{ "clause": "publisher = 'Nintendo'" }]
 }
 ```
 
@@ -148,16 +157,59 @@ In this example, the configuration file includes the following setting:
 GUEST_TOKEN_JWT_AUDIENCE="superset"
 ```
 
+### Setting the Initial Theme Mode
+
+Use the `themeMode` URL parameter to control the embedded dashboard's initial colour scheme:
+
+```js
+embedDashboard({
+  id: "abc123",
+  supersetDomain: "https://superset.example.com",
+  mountPoint: document.getElementById("my-superset-container"),
+  fetchGuestToken: () => fetchGuestTokenFromBackend(),
+  dashboardUiConfig: {
+    urlParams: {
+      themeMode: "dark", // 'dark' | 'system' | 'default' (default: 'default')
+    },
+  },
+});
+```
+
+The supported values are:
+
+| Value     | Behaviour                                                 |
+| --------- | --------------------------------------------------------- |
+| `default` | Light theme (Superset default)                            |
+| `dark`    | Dark theme                                                |
+| `system`  | Follows the user's OS preference (`prefers-color-scheme`) |
+
+The theme can also be changed at runtime via `embeddedDashboard.setThemeMode(mode)`.
 
 ### Sandbox iframe
 
 The Embedded SDK creates an iframe with [sandbox](https://developer.mozilla.org/es/docs/Web/HTML/Element/iframe#sandbox) mode by default
 which applies certain restrictions to the iframe's content.
 To pass additional sandbox attributes you can use `iframeSandboxExtras`:
+
 ```js
-  // optional additional iframe sandbox attributes
-  iframeSandboxExtras: ['allow-top-navigation', 'allow-popups-to-escape-sandbox']
+// optional additional iframe sandbox attributes
+iframeSandboxExtras: ["allow-top-navigation", "allow-popups-to-escape-sandbox"];
 ```
+
+### Permissions Policy
+
+To enable specific browser features within the embedded iframe, use `iframeAllowExtras` to set the iframe's [Permissions Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Permissions_Policy) (the `allow` attribute):
+
+```js
+// optional Permissions Policy features
+iframeAllowExtras: ["clipboard-write", "fullscreen"];
+```
+
+Common permissions you might need:
+
+- `clipboard-write` - Required for "Copy permalink to clipboard" functionality
+- `fullscreen` - Required for fullscreen chart viewing
+- `camera`, `microphone` - If your dashboards include media capture features
 
 ### Enforcing a ReferrerPolicy on the request triggered by the iframe
 
@@ -166,3 +218,42 @@ By default, the Embedded SDK creates an `iframe` element without a `referrerPoli
 This can be an issue as during the embedded enablement for a dashboard it's possible to specify which domain(s) are allowed to embed the dashboard, and this validation happens throuth the `Referrer` header. That said, in case the hosting app has a more restrictive policy that would omit this header, this validation would fail.
 
 Use the `referrerPolicy` parameter in the `embedDashboard` method to specify [a particular policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Referrer-Policy) that works for your implementation.
+
+### Customizing Permalink URLs
+
+When users click share buttons inside an embedded dashboard, Superset generates permalinks using Superset's domain. If you want to use your own domain and URL format for these permalinks, you can provide a `resolvePermalinkUrl` callback:
+
+```js
+embedDashboard({
+  id: "abc123",
+  supersetDomain: "https://superset.example.com",
+  mountPoint: document.getElementById("my-superset-container"),
+  fetchGuestToken: () => fetchGuestTokenFromBackend(),
+
+  // Customize permalink URLs
+  resolvePermalinkUrl: ({ key }) => {
+    // key: the permalink key (e.g., "xyz789")
+    return `https://my-app.com/analytics/share/${key}`;
+  },
+});
+```
+
+To restore the dashboard state from a permalink in your app:
+
+```js
+// In your route handler for /analytics/share/:key
+const permalinkKey = routeParams.key;
+
+embedDashboard({
+  id: "abc123",
+  supersetDomain: "https://superset.example.com",
+  mountPoint: document.getElementById("my-superset-container"),
+  fetchGuestToken: () => fetchGuestTokenFromBackend(),
+  resolvePermalinkUrl: ({ key }) => `https://my-app.com/analytics/share/${key}`,
+  dashboardUiConfig: {
+    urlParams: {
+      permalink_key: permalinkKey, // Restores filters, tabs, chart states, and scrolls to anchor
+    },
+  },
+});
+```

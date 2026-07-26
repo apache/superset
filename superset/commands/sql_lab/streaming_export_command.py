@@ -87,12 +87,12 @@ class StreamingSqlResultExportCommand(BaseStreamingCSVExportCommand):
                 status=403,
             ) from ex
 
-    def _get_sql_and_database(self) -> tuple[str, Any]:
+    def _get_sql_and_database(self) -> tuple[str, Any, str | None, str | None]:
         """
-        Get the SQL query and database for SQL Lab export.
+        Get the SQL query, database, catalog, and schema for SQL Lab export.
 
         Returns:
-            Tuple of (sql_query, database_object)
+            Tuple of (sql_query, database_object, catalog, schema)
         """
         assert self._query is not None
 
@@ -103,7 +103,7 @@ class StreamingSqlResultExportCommand(BaseStreamingCSVExportCommand):
         # Get the SQL query
         sql = select_sql or executed_sql
 
-        return sql, database
+        return sql, database, self._query.catalog, self._query.schema
 
     def _get_row_limit(self) -> int | None:
         """

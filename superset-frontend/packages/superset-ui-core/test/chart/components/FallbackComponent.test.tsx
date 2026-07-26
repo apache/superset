@@ -19,18 +19,19 @@
 
 import { render } from '@superset-ui/core/spec';
 import '@testing-library/jest-dom';
-import { FallbackProps } from 'react-error-boundary';
 
-import FallbackComponent from '../../../src/chart/components/FallbackComponent';
+import FallbackComponent, {
+  Props as FallbackComponentProps,
+} from '../../../src/chart/components/FallbackComponent';
 
-const setup = (props: Partial<FallbackProps> & FallbackProps['error']) =>
+const setup = (props: FallbackComponentProps) =>
   render(<FallbackComponent {...props} />);
 
 const ERROR = new Error('CaffeineOverLoadException');
 
 test('renders error only', () => {
   const { getByText } = setup({ error: ERROR });
-  expect(getByText('Error: CaffeineOverLoadException')).toBeInTheDocument();
+  expect(getByText('CaffeineOverLoadException')).toBeInTheDocument();
 });
 
 test('renders when nothing is given', () => {

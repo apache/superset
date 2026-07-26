@@ -1,0 +1,1 @@
+{"schema":{"properties":{"value":{"description":"Any type of JSON supported text.","type":"string"}},"required":["value"],"type":"object","title":"TemporaryCachePutSchema"},"schemaType":"response"}

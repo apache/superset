@@ -52,7 +52,7 @@ const MockChildren = () => {
 };
 
 test('renders with default props', () => {
-  render(<DndSelectLabel {...defaultProps} />, { useDnd: true });
+  render(<DndSelectLabel {...defaultProps} />, { useDndKit: true });
   expect(screen.getByText('Drop columns here or click')).toBeInTheDocument();
 });
 
@@ -60,7 +60,7 @@ test('renders ghost button when empty', () => {
   const ghostButtonText = 'Ghost button text';
   render(
     <DndSelectLabel {...defaultProps} ghostButtonText={ghostButtonText} />,
-    { useDnd: true },
+    { useDndKit: true },
   );
   expect(screen.getByText(ghostButtonText)).toBeInTheDocument();
 });
@@ -69,13 +69,13 @@ test('renders values', () => {
   const values = 'Values';
   const valuesRenderer = () => <span>{values}</span>;
   render(<DndSelectLabel {...defaultProps} valuesRenderer={valuesRenderer} />, {
-    useDnd: true,
+    useDndKit: true,
   });
   expect(screen.getByText(values)).toBeInTheDocument();
 });
 
 test('Handles ghost button click', () => {
-  render(<DndSelectLabel {...defaultProps} />, { useDnd: true });
+  render(<DndSelectLabel {...defaultProps} />, { useDndKit: true });
   userEvent.click(screen.getByText('Drop columns here or click'));
   expect(defaultProps.onClickGhostButton).toHaveBeenCalled();
 });
@@ -86,7 +86,6 @@ test('updates dropValidator on changes', () => {
       <DndSelectLabel {...defaultProps} />
       <MockChildren />
     </ExploreContainer>,
-    { useDnd: true },
   );
   expect(getByTestId(`mock-result-${defaultProps.name}`)).toHaveTextContent(
     'false',

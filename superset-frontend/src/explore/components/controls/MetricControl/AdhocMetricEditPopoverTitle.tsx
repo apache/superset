@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { handleKeyboardActivation } from '@superset-ui/core';
 import {
   ChangeEventHandler,
   FocusEvent,
@@ -25,8 +26,8 @@ import {
   FC,
 } from 'react';
 
-import { t } from '@superset-ui/core';
-import { styled, useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import { Input, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 
@@ -64,7 +65,10 @@ const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
   const handleMouseOver = useCallback(() => setIsHovered(true), []);
   const handleMouseOut = useCallback(() => setIsHovered(false), []);
   const handleClick = useCallback(() => setIsEditMode(true), []);
-  const handleBlur = useCallback(() => setIsEditMode(false), []);
+  const handleBlur = useCallback(() => {
+    setIsHovered(false);
+    setIsEditMode(false);
+  }, []);
 
   const handleKeyPress = useCallback(
     (ev: KeyboardEvent<HTMLInputElement>) => {
@@ -115,7 +119,9 @@ const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
         data-test="AdhocMetricEditTitle#trigger"
         onMouseOver={handleMouseOver}
         onMouseOut={handleMouseOut}
+        onFocus={handleMouseOver}
         onClick={handleClick}
+        onKeyDown={handleKeyboardActivation(handleClick)}
         onBlur={handleBlur}
         role="button"
         tabIndex={0}

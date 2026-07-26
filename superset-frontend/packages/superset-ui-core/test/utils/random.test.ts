@@ -20,11 +20,11 @@
 import { seed, seedRandom } from '@superset-ui/core';
 
 describe('random', () => {
-  it('seeded random should return the same value', () => {
+  test('seeded random should return the same value', () => {
     expect(seedRandom()).toEqual(0.7237953289342797);
   });
 
-  it('should allow update seed', () => {
+  test('should allow update seed', () => {
     const a = seed('abc');
     const b = seed('abc');
     expect(a()).toEqual(b());

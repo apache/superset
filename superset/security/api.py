@@ -19,14 +19,22 @@ from typing import Any
 
 from flask import current_app, request, Response
 from flask_appbuilder import expose
-from flask_appbuilder.api import rison, safe, SQLAInterface
+from flask_appbuilder.api import rison as parse_rison, safe, SQLAInterface
 from flask_appbuilder.api.schemas import get_list_schema
 from flask_appbuilder.security.decorators import permission_name, protect
 from flask_appbuilder.security.sqla.models import RegisterUser, Role
 from flask_wtf.csrf import generate_csrf
-from marshmallow import EXCLUDE, fields, post_load, Schema, ValidationError
+from marshmallow import (
+    EXCLUDE,
+    fields,
+    post_load,
+    RAISE,
+    Schema,
+    validate,
+    ValidationError,
+)
 from sqlalchemy import asc, desc
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import selectinload
 
 from superset.commands.dashboard.embedded.exceptions import (
     EmbeddedDashboardNotFoundError,
@@ -34,7 +42,11 @@ from superset.commands.dashboard.embedded.exceptions import (
 from superset.commands.exceptions import ForbiddenError
 from superset.exceptions import SupersetGenericErrorException
 from superset.extensions import db, event_logger
-from superset.security.guest_token import GuestTokenResourceType
+from superset.security.guest_token import (
+    build_guest_token_audit_payload,
+    GuestTokenResourceType,
+)
+from superset.utils.core import get_user_id
 from superset.views.base_api import (
     BaseSupersetApi,
     BaseSupersetModelRestApi,
@@ -74,8 +86,33 @@ class ResourceSchema(PermissiveSchema):
         return data
 
 
-class RlsRuleSchema(PermissiveSchema):
-    dataset = fields.Integer()
+class RlsRuleSchema(Schema):
+    """
+    Schema for a single row-level security rule attached to a guest token.
+
+    Unlike the other guest-token schemas, this one rejects unknown fields
+    instead of silently dropping them. A rule is scoped to a dataset only when
+    it carries a valid positive integer ``dataset`` key; a rule with no
+    ``dataset`` is treated as global and its ``clause`` is applied to every
+    dataset the embedded resource can reach (see ``get_guest_rls_filters``).
+    Silently excluding an unexpected field -- most commonly a mistyped or
+    legacy scope key such as ``datasource`` -- would therefore turn an intended
+    dataset-scoped rule into a global one without any feedback to the caller.
+    Raising on unknown fields surfaces the mistake as an HTTP 400 before a
+    token is ever issued and keeps the accepted payload aligned with the
+    documented ``RlsRule`` contract (``dataset`` and ``clause``).
+
+    For the same reason ``dataset`` is constrained to strict, positive
+    integers: a falsy value such as ``0`` (or ``false``, which marshmallow
+    coerces to ``0``) would pass a bare ``Integer`` field but then read as
+    falsy in ``get_guest_rls_filters``, silently widening a scoped rule to
+    every dataset.
+    """
+
+    class Meta:  # pylint: disable=too-few-public-methods
+        unknown = RAISE
+
+    dataset = fields.Integer(strict=True, validate=validate.Range(min=1))
     clause = fields.String(required=True)  # todo other options?
 
 
@@ -83,6 +120,18 @@ class GuestTokenCreateSchema(PermissiveSchema):
     user = fields.Nested(UserSchema)
     resources = fields.List(fields.Nested(ResourceSchema), required=True)
     rls = fields.List(fields.Nested(RlsRuleSchema), required=True)
+    datasets = fields.List(
+        fields.Integer(),
+        load_default=None,
+        allow_none=True,
+        metadata={
+            "description": (
+                "Optional allowlist of dataset IDs the guest may access. "
+                "When omitted all datasets linked to the embedded dashboard "
+                "are accessible, preserving the default behaviour."
+            )
+        },
+    )
 
 
 class RoleResponseSchema(PermissiveSchema):
@@ -187,7 +236,19 @@ class SecurityRestApi(BaseSupersetApi):
             # make sure username doesn't reference an existing user
             # check rls rules for validity?
             token = self.appbuilder.sm.create_guest_access_token(
-                body["user"], body["resources"], body["rls"]
+                body.get("user", {}),
+                body["resources"],
+                body["rls"],
+                **({"datasets": body["datasets"]} if "datasets" in body else {}),
+            )
+            logger.info(
+                "Guest token issued: %s",
+                build_guest_token_audit_payload(
+                    issuer_user_id=get_user_id(),
+                    source_ip=request.remote_addr,
+                    body=body,
+                    token=token,
+                ),
             )
             return self.response(200, token=token)
         except EmbeddedDashboardNotFoundError as error:
@@ -214,7 +275,7 @@ class RoleRestAPI(BaseSupersetApi):
     @event_logger.log_this
     @protect()
     @safe
-    @rison(get_list_schema)
+    @parse_rison(get_list_schema)
     @statsd_metrics
     @permission_name("list_roles")
     def get_list(self, **kwargs: Any) -> Response:
@@ -298,7 +359,9 @@ class RoleRestAPI(BaseSupersetApi):
             page_size = args.get("page_size", 10)
 
             query = db.session.query(Role).options(
-                joinedload(Role.permissions), joinedload(Role.user)
+                selectinload(Role.permissions),
+                selectinload(Role.user),
+                selectinload(Role.groups),
             )
 
             filters = args.get("filters", [])
@@ -318,6 +381,8 @@ class RoleRestAPI(BaseSupersetApi):
             if "name" in filter_dict:
                 query = query.filter(Role.name.ilike(f"%{filter_dict['name']}%"))
 
+            total_count = query.count()
+
             roles = (
                 query.order_by(order_by).offset(page * page_size).limit(page_size).all()
             )
@@ -334,13 +399,17 @@ class RoleRestAPI(BaseSupersetApi):
                     }
                     for role in roles
                 ],
-                count=query.count(),
+                count=total_count,
                 ids=[role.id for role in roles],
             )
         except ForbiddenError as e:
             return self.response_403(message=str(e))
-        except Exception as e:
-            return self.response_500(message=str(e))
+        except Exception:
+            # Log the full error server-side for operator visibility, but return
+            # a generic message so internal details (ORM/driver error text, SQL
+            # fragments, schema names) are not echoed back to the caller.
+            logger.exception("Unexpected error in RoleRestAPI.get_list")
+            return self.response_500(message="An unexpected error occurred")
 
 
 class UserRegistrationsRestAPI(BaseSupersetModelRestApi):
@@ -351,6 +420,11 @@ class UserRegistrationsRestAPI(BaseSupersetModelRestApi):
     resource_name = "security/user_registrations"
     datamodel = SQLAInterface(RegisterUser)
     allow_browser_login = True
+    # NOTE: registration_hash is intentionally excluded from both list_columns
+    # and search_columns. It is a bearer token for the
+    # /register/activation/<hash> flow; exposing it in API responses (and thus
+    # logs/caches) or allowing it to be filtered on would let a holder activate
+    # the pending account.
     list_columns = [
         "id",
         "username",
@@ -358,5 +432,11 @@ class UserRegistrationsRestAPI(BaseSupersetModelRestApi):
         "first_name",
         "last_name",
         "registration_date",
-        "registration_hash",
+    ]
+    search_columns = [
+        "username",
+        "email",
+        "first_name",
+        "last_name",
+        "registration_date",
     ]

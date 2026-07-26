@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ChartProps, SqlaFormData } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 import transformProps from '../../src/Graph/transformProps';
 import { DEFAULT_GRAPH_SERIES_OPTION } from '../../src/Graph/constants';
 import { EchartsGraphChartProps } from '../../src/Graph/types';
@@ -58,7 +58,7 @@ const chartPropsConfig = {
 };
 
 describe('EchartsGraph transformProps', () => {
-  it('should transform chart props for viz without category', () => {
+  test('should transform chart props for viz without category', () => {
     const chartProps = new ChartProps(chartPropsConfig);
     expect(transformProps(chartProps as EchartsGraphChartProps)).toEqual(
       expect.objectContaining({
@@ -169,7 +169,7 @@ describe('EchartsGraph transformProps', () => {
     );
   });
 
-  it('should transform chart props for viz with category and falsy normalization', () => {
+  test('should transform chart props for viz with category and falsy normalization', () => {
     const formData: SqlaFormData = {
       colorScheme: 'bnbColors',
       datasource: '3__table',
@@ -313,7 +313,7 @@ describe('legend sorting', () => {
       queriesData,
     });
 
-  it('sort legend by data', () => {
+  test('sort legend by data', () => {
     const chartProps = getChartProps({
       legendSort: null,
     });
@@ -326,7 +326,7 @@ describe('legend sorting', () => {
     ]);
   });
 
-  it('sort legend by label ascending', () => {
+  test('sort legend by label ascending', () => {
     const chartProps = getChartProps({
       legendSort: 'asc',
     });
@@ -339,7 +339,7 @@ describe('legend sorting', () => {
     ]);
   });
 
-  it('sort legend by label descending', () => {
+  test('sort legend by label descending', () => {
     const chartProps = getChartProps({
       legendSort: 'desc',
     });

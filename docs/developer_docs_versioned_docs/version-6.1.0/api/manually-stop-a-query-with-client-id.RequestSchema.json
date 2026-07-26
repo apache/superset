@@ -1,0 +1,1 @@
+{"title":"Body","body":{"content":{"application/json":{"schema":{"properties":{"client_id":{"type":"string"}},"type":"object","title":"StopQuerySchema"},"example":{"client_id":"string"}}},"description":"Stop query schema","required":true}}

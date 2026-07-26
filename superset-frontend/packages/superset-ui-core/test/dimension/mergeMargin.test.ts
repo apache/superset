@@ -20,7 +20,7 @@
 import { mergeMargin } from '@superset-ui/core';
 
 describe('mergeMargin(margin1, margin2, mode?)', () => {
-  it('combines two given margin', () => {
+  test('combines two given margin', () => {
     expect(
       mergeMargin(
         {
@@ -44,7 +44,7 @@ describe('mergeMargin(margin1, margin2, mode?)', () => {
     });
   });
   describe('default values', () => {
-    it('works if margin1 is not defined', () => {
+    test('works if margin1 is not defined', () => {
       expect(
         mergeMargin(undefined, {
           top: 2,
@@ -59,7 +59,7 @@ describe('mergeMargin(margin1, margin2, mode?)', () => {
         right: 1,
       });
     });
-    it('works if margin2 is not defined', () => {
+    test('works if margin2 is not defined', () => {
       expect(
         mergeMargin(
           {
@@ -77,7 +77,7 @@ describe('mergeMargin(margin1, margin2, mode?)', () => {
         right: 2,
       });
     });
-    it('use 0 for the side that is not specified', () => {
+    test('use 0 for the side that is not specified', () => {
       expect(mergeMargin({}, {})).toEqual({
         top: 0,
         left: 0,
@@ -87,7 +87,7 @@ describe('mergeMargin(margin1, margin2, mode?)', () => {
     });
   });
   describe('mode', () => {
-    it('if mode=expand, returns the larger margin for each side', () => {
+    test('if mode=expand, returns the larger margin for each side', () => {
       expect(
         mergeMargin(
           {
@@ -111,7 +111,7 @@ describe('mergeMargin(margin1, margin2, mode?)', () => {
         right: 2,
       });
     });
-    it('if mode=shrink, returns the smaller margin for each side', () => {
+    test('if mode=shrink, returns the smaller margin for each side', () => {
       expect(
         mergeMargin(
           {
@@ -135,7 +135,7 @@ describe('mergeMargin(margin1, margin2, mode?)', () => {
         right: 1,
       });
     });
-    it('expand by default', () => {
+    test('expand by default', () => {
       expect(
         mergeMargin(
           {
@@ -159,7 +159,7 @@ describe('mergeMargin(margin1, margin2, mode?)', () => {
       });
     });
   });
-  it('works correctly for negative margins', () => {
+  test('works correctly for negative margins', () => {
     expect(
       mergeMargin(
         {
@@ -182,12 +182,12 @@ describe('mergeMargin(margin1, margin2, mode?)', () => {
       right: -1,
     });
   });
-  it('if there are NaN or null, use another value', () => {
+  test('if there are NaN or null, use another value', () => {
     expect(
       mergeMargin(
         {
           top: 10,
-          // @ts-ignore to let us pass `null` for testing
+          // @ts-expect-error to let us pass `null` for testing
           left: null,
           bottom: 20,
           right: NaN,

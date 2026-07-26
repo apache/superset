@@ -27,7 +27,7 @@ describe('Treemap buildQuery', () => {
     viz_type: 'my_chart',
   };
 
-  it('should build query fields from form data', () => {
+  test('should build query fields from form data', () => {
     const queryContext = buildQuery(formData);
     const [query] = queryContext.queries;
     expect(query.metrics).toEqual(['foo']);

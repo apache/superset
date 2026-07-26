@@ -223,3 +223,60 @@ def test_detect_column_format_expression_column(
 
     assert detected_format is None
     mock_dataset.database.get_df.assert_not_called()
+
+
+def test_detect_column_format_query_has_no_is_not_null(
+    mock_dataset: MagicMock, mock_column: MagicMock
+) -> None:
+    """The sampling query must not include a WHERE IS NOT NULL predicate.
+
+    detect_datetime_format() already calls dropna(), so filtering NULLs
+    in SQL is redundant. Worse, on engines like ClickHouse the predicate
+    forces a full table scan even with LIMIT, triggering max_rows_to_read
+    errors on large tables.
+    """
+    sample_data = pd.DataFrame(
+        {"date_column": ["2023-01-01", "2023-01-02", "2023-01-03"]}
+    )
+    mock_dataset.database.get_df.return_value = sample_data
+
+    captured_sql: list[str] = []
+    original_get_df = mock_dataset.database.get_df
+
+    def capture_sql(sql: str, schema: str) -> pd.DataFrame:
+        captured_sql.append(sql)
+        return original_get_df.return_value
+
+    mock_dataset.database.get_df.side_effect = capture_sql
+
+    detector = DatetimeFormatDetector(sample_size=100)
+    detector.detect_column_format(mock_dataset, mock_column)
+
+    assert len(captured_sql) == 1
+    assert "IS NOT NULL" not in captured_sql[0], (
+        f"Query should not contain IS NOT NULL predicate, got: {captured_sql[0]}"
+    )
+
+
+def test_detect_column_format_with_leading_null_samples(
+    mock_dataset: MagicMock, mock_column: MagicMock
+) -> None:
+    """Leading NULL values are ignored during format detection."""
+    sample_data = pd.DataFrame(
+        {
+            "date_column": [
+                None,
+                None,
+                "2023-01-01",
+                "2023-01-02",
+                "2023-01-03",
+            ]
+        }
+    )
+    mock_dataset.database.get_df.return_value = sample_data
+
+    detector = DatetimeFormatDetector(sample_size=5)
+    detected_format = detector.detect_column_format(mock_dataset, mock_column)
+
+    assert detected_format == "%Y-%m-%d"
+    mock_dataset.database.get_df.assert_called_once()

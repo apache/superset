@@ -1,0 +1,1 @@
+{"parameters":[{"description":"The dataset ID","in":"path","name":"pk","required":true,"schema":{"type":"integer"}}]}

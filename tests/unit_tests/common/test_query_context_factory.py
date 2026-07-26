@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
 from superset.common.query_context_factory import QueryContextFactory
@@ -372,6 +373,8 @@ class TestQueryContextFactory:
         """Test _apply_granularity when no granularity is set"""
         query_object = Mock(spec=QueryObject)
         query_object.granularity = None
+        query_object.from_dttm = None
+        query_object.to_dttm = None
         query_object.columns = ["ds", "other_col"]
         query_object.post_processing = []
         query_object.filter = []
@@ -383,6 +386,135 @@ class TestQueryContextFactory:
         self.factory._apply_granularity(query_object, form_data, datasource)
 
         assert query_object.columns == ["ds", "other_col"]
+
+    def test_apply_granularity_uses_main_datetime_for_bounded_expression_axis(
+        self,
+    ) -> None:
+        """A bounded expression-axis query retains its physical time subject."""
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = None
+        query_object.from_dttm = datetime(2024, 1, 1, tzinfo=timezone.utc)
+        query_object.to_dttm = datetime(2024, 1, 31, tzinfo=timezone.utc)
+        query_object.time_range = None
+        query_object.columns = [
+            {
+                "expressionType": "SQL",
+                "sqlExpression": "value / 10",
+                "label": "value_bucket",
+            }
+        ]
+        query_object.post_processing = []
+        query_object.filter = []
+
+        form_data = {"x_axis": query_object.columns[0]}
+        datasource = Mock()
+        datasource.main_dttm_col = "ds"
+        datasource.columns = [{"column_name": "ds", "is_dttm": True}]
+
+        self.factory._apply_granularity(query_object, form_data, datasource)
+
+        assert query_object.granularity == "ds"
+        assert query_object.columns[0]["sqlExpression"] == "value / 10"
+
+    def test_apply_granularity_preserves_physical_temporal_axis(self) -> None:
+        """A bounded physical temporal axis is not replaced by the main column."""
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = None
+        query_object.from_dttm = datetime(2024, 1, 1, tzinfo=timezone.utc)
+        query_object.to_dttm = datetime(2024, 1, 31, tzinfo=timezone.utc)
+        query_object.columns = ["event_end"]
+        query_object.post_processing = []
+        query_object.filter = []
+
+        datasource = Mock()
+        datasource.main_dttm_col = "ds"
+        datasource.columns = [
+            {"column_name": "ds", "is_dttm": True},
+            {"column_name": "event_end", "is_dttm": True},
+        ]
+
+        self.factory._apply_granularity(
+            query_object,
+            {"x_axis": "event_end"},
+            datasource,
+        )
+
+        assert query_object.granularity is None
+        assert query_object.columns == ["event_end"]
+
+    def test_inferred_granularity_preserves_independent_temporal_filter(self) -> None:
+        """Inferring the filter subject does not remove another temporal filter."""
+        expression = {
+            "expressionType": "SQL",
+            "sqlExpression": "value / 10",
+            "label": "value_bucket",
+        }
+        temporal_filter = {
+            "col": "event_end",
+            "op": "TEMPORAL_RANGE",
+            "val": "2024-01-10 : 2024-01-20",
+        }
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = None
+        query_object.from_dttm = datetime(2024, 1, 1, tzinfo=timezone.utc)
+        query_object.to_dttm = datetime(2024, 1, 31, tzinfo=timezone.utc)
+        query_object.time_range = "2024-01-01 : 2024-01-31"
+        query_object.columns = [expression]
+        query_object.post_processing = []
+        query_object.filter = [temporal_filter]
+
+        datasource = Mock()
+        datasource.main_dttm_col = "ds"
+        datasource.columns = [
+            {"column_name": "ds", "is_dttm": True},
+            {"column_name": "event_end", "is_dttm": True},
+        ]
+
+        self.factory._apply_granularity(
+            query_object,
+            {"x_axis": expression},
+            datasource,
+        )
+
+        assert query_object.granularity == "ds"
+        assert query_object.filter == [temporal_filter]
+
+    def test_granularity_not_inferred_from_another_temporal_filter(self) -> None:
+        """A lone temporal filter remains the only time-filter subject."""
+        expression = {
+            "expressionType": "SQL",
+            "sqlExpression": "value / 10",
+            "label": "value_bucket",
+        }
+        temporal_filter = {
+            "col": "event_end",
+            "op": "TEMPORAL_RANGE",
+            "val": "2024-01-10 : 2024-01-20",
+        }
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = None
+        query_object.from_dttm = datetime(2024, 1, 10, tzinfo=timezone.utc)
+        query_object.to_dttm = datetime(2024, 1, 20, tzinfo=timezone.utc)
+        query_object.time_range = None
+        query_object.columns = [expression]
+        query_object.post_processing = []
+        query_object.filter = [temporal_filter]
+
+        datasource = Mock()
+        datasource.main_dttm_col = "ds"
+        datasource.columns = [
+            {"column_name": "ds", "is_dttm": True},
+            {"column_name": "event_end", "is_dttm": True},
+        ]
+
+        self.factory._apply_granularity(
+            query_object,
+            {"x_axis": expression},
+            datasource,
+        )
+
+        assert query_object.granularity is None
+        assert query_object.filter == [temporal_filter]
 
     def test_apply_granularity_x_axis_not_temporal(self):
         """Test _apply_granularity when x_axis is not a temporal column"""
@@ -436,3 +568,109 @@ class TestQueryContextFactory:
         self.factory._apply_filters(query_object)
 
         assert query_object.filter[0]["val"] == "value"
+
+    def test_add_currency_column_no_form_data(self):
+        """Test _add_currency_column when form_data is None."""
+        query_object = Mock(spec=QueryObject)
+        query_object.columns = ["col1"]
+        datasource = Mock()
+
+        self.factory._add_currency_column(query_object, None, datasource)
+
+        assert query_object.columns == ["col1"]
+
+    def test_add_currency_column_no_columns(self):
+        """Test _add_currency_column when query_object has no columns."""
+        query_object = Mock(spec=QueryObject)
+        query_object.columns = []
+        form_data = {
+            "viz_type": "pivot_table_v2",
+            "currency_format": {"symbol": "AUTO"},
+        }
+        datasource = Mock()
+        datasource.currency_code_column = "currency_code"
+
+        self.factory._add_currency_column(query_object, form_data, datasource)
+
+        assert query_object.columns == []
+
+    def test_add_currency_column_unsupported_viz_type(self):
+        """Test _add_currency_column with unsupported viz type."""
+        query_object = Mock(spec=QueryObject)
+        query_object.columns = ["col1"]
+        form_data = {"viz_type": "pie", "currency_format": {"symbol": "AUTO"}}
+        datasource = Mock()
+        datasource.currency_code_column = "currency_code"
+
+        self.factory._add_currency_column(query_object, form_data, datasource)
+
+        assert query_object.columns == ["col1"]
+
+    def test_add_currency_column_symbol_not_auto(self):
+        """Test _add_currency_column when symbol is not AUTO."""
+        query_object = Mock(spec=QueryObject)
+        query_object.columns = ["col1"]
+        form_data = {"viz_type": "pivot_table_v2", "currency_format": {"symbol": "USD"}}
+        datasource = Mock()
+        datasource.currency_code_column = "currency_code"
+
+        self.factory._add_currency_column(query_object, form_data, datasource)
+
+        assert query_object.columns == ["col1"]
+
+    def test_add_currency_column_no_currency_column_on_datasource(self):
+        """Test _add_currency_column when datasource has no currency column."""
+        query_object = Mock(spec=QueryObject)
+        query_object.columns = ["col1"]
+        form_data = {
+            "viz_type": "pivot_table_v2",
+            "currency_format": {"symbol": "AUTO"},
+        }
+        datasource = Mock()
+        datasource.currency_code_column = None
+
+        self.factory._add_currency_column(query_object, form_data, datasource)
+
+        assert query_object.columns == ["col1"]
+
+    def test_add_currency_column_already_in_query(self):
+        """Test _add_currency_column when currency column already exists."""
+        query_object = Mock(spec=QueryObject)
+        query_object.columns = ["col1", "currency_code"]
+        form_data = {
+            "viz_type": "pivot_table_v2",
+            "currency_format": {"symbol": "AUTO"},
+        }
+        datasource = Mock()
+        datasource.currency_code_column = "currency_code"
+
+        self.factory._add_currency_column(query_object, form_data, datasource)
+
+        assert query_object.columns == ["col1", "currency_code"]
+
+    def test_add_currency_column_adds_column_for_pivot_table(self):
+        """Test _add_currency_column adds column for pivot_table_v2 viz type"""
+        query_object = Mock(spec=QueryObject)
+        query_object.columns = ["col1"]
+        form_data = {
+            "viz_type": "pivot_table_v2",
+            "currency_format": {"symbol": "AUTO"},
+        }
+        datasource = Mock()
+        datasource.currency_code_column = "currency_code"
+
+        self.factory._add_currency_column(query_object, form_data, datasource)
+
+        assert query_object.columns == ["col1", "currency_code"]
+
+    def test_add_currency_column_skips_table_viz_type(self):
+        """Test _add_currency_column does not add column for table viz type."""
+        query_object = Mock(spec=QueryObject)
+        query_object.columns = ["col1"]
+        form_data = {"viz_type": "table", "currency_format": {"symbol": "AUTO"}}
+        datasource = Mock()
+        datasource.currency_code_column = "currency_code"
+
+        self.factory._add_currency_column(query_object, form_data, datasource)
+
+        assert query_object.columns == ["col1"]

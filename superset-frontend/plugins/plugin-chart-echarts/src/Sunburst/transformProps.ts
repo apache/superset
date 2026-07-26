@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core/translation';
 import {
   CategoricalColorNamespace,
   DataRecordValue,
@@ -26,7 +27,6 @@ import {
   getTimeFormatter,
   getValueFormatter,
   NumberFormats,
-  t,
   tooltipHtml,
   ValueFormatter,
 } from '@superset-ui/core';
@@ -170,7 +170,7 @@ export default function transformProps(
     emitCrossFilters,
     datasource,
   } = chartProps;
-  const { data = [] } = queriesData[0];
+  const { data = [], detected_currency: detectedCurrency } = queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
   const {
     groupby = [],
@@ -186,12 +186,16 @@ export default function transformProps(
     showLabels,
     showLabelsThreshold,
     showTotal,
+    // Default to true so charts saved before this control existed keep
+    // showing null values instead of silently hiding them on upgrade.
+    showNullValues = true,
     sliceId,
   } = formData;
   const {
     currencyFormats = {},
     columnFormats = {},
     verboseMap = {},
+    currencyCodeColumn,
   } = datasource;
   const refs: Refs = {};
   const primaryValueFormatter = getValueFormatter(
@@ -200,6 +204,10 @@ export default function transformProps(
     columnFormats,
     numberFormat,
     currencyFormat,
+    undefined,
+    data,
+    currencyCodeColumn,
+    detectedCurrency,
   );
   const secondaryValueFormatter = secondaryMetric
     ? getValueFormatter(
@@ -208,6 +216,10 @@ export default function transformProps(
         columnFormats,
         numberFormat,
         currencyFormat,
+        undefined,
+        data,
+        currencyCodeColumn,
+        detectedCurrency,
       )
     : undefined;
 
@@ -242,6 +254,7 @@ export default function transformProps(
     columnLabels,
     metricLabel,
     secondaryMetricLabel,
+    !showNullValues,
   );
   const totalValue = treeData.reduce(
     (result, treeNode) => result + treeNode.value,
@@ -276,8 +289,6 @@ export default function transformProps(
   }
   const labelProps = {
     color: theme.colorText,
-    textBorderColor: theme.colorBgBase,
-    textBorderWidth: 1,
   };
   const traverse = (
     treeNodes: TreeNode[],
@@ -380,6 +391,7 @@ export default function transformProps(
             text: t('Total: %s', primaryValueFormatter(totalValue)),
             fontSize: 16,
             fontWeight: 'bold',
+            fill: theme.colorText,
           },
           z: 10,
         }

@@ -24,9 +24,7 @@ for input parameters, making MCP tools more flexible for different clients.
 
 from __future__ import annotations
 
-import asyncio
 import logging
-from functools import wraps
 from typing import Any, Callable, List, Type, TypeVar
 
 from pydantic import BaseModel, ValidationError
@@ -221,9 +219,6 @@ def parse_json_or_model(
     try:
         return model_class.model_validate(parsed_value)
     except ValidationError:
-        logger.error(
-            "Failed to validate %s against %s", param_name, model_class.__name__
-        )
         raise
 
 
@@ -272,7 +267,7 @@ def parse_json_or_model_list(
             else:
                 validated_items.append(model_class.model_validate(item))
         except ValidationError:
-            logger.error(
+            logger.debug(
                 "Failed to validate %s[%s] against %s",
                 param_name,
                 i,
@@ -381,75 +376,3 @@ def json_or_model_list_validator(
         return parse_json_or_model_list(v, model_class, field_name)
 
     return validator
-
-
-def parse_request(
-    request_class: Type[BaseModel],
-) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-    """
-    Decorator to handle Claude Code bug where requests are double-serialized as strings.
-
-    Automatically parses string requests to Pydantic models before calling
-    the tool function. Also modifies the function's type annotations to accept
-    str | RequestModel to pass FastMCP validation.
-
-    See: https://github.com/anthropics/claude-code/issues/5504
-
-    Args:
-        request_class: The Pydantic model class for the request
-
-    Returns:
-        Decorator function that wraps the tool function
-
-    Usage:
-        @mcp.tool
-        @mcp_auth_hook
-        @parse_request(ListChartsRequest)
-        async def list_charts(
-            request: ListChartsRequest, ctx: Context  # Keep clean type hint
-        ) -> ChartList:
-            # Decorator handles string conversion and type annotation
-            await ctx.info(f"Listing charts: page={request.page}")
-            ...
-
-    Note:
-        - Works with both async and sync functions
-        - Request must be the first positional argument
-        - Modifies __annotations__ to accept str | RequestModel for FastMCP
-        - Function implementation can use clean RequestModel type hint
-        - If request is already a model instance, it passes through unchanged
-        - Handles JSON string parsing with helpful error messages
-    """
-
-    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
-        if asyncio.iscoroutinefunction(func):
-
-            @wraps(func)
-            async def async_wrapper(request: Any, *args: Any, **kwargs: Any) -> Any:
-                # Parse if string, otherwise pass through
-                # (parse_json_or_model handles both)
-                parsed_request = parse_json_or_model(request, request_class, "request")
-                return await func(parsed_request, *args, **kwargs)
-
-            wrapper = async_wrapper
-        else:
-
-            @wraps(func)
-            def sync_wrapper(request: Any, *args: Any, **kwargs: Any) -> Any:
-                # Parse if string, otherwise pass through
-                # (parse_json_or_model handles both)
-                parsed_request = parse_json_or_model(request, request_class, "request")
-                return func(parsed_request, *args, **kwargs)
-
-            wrapper = sync_wrapper
-
-        # Modify the wrapper's annotations to accept str | RequestModel
-        # This allows FastMCP to accept string inputs while keeping the
-        # original function's type hints clean
-        if hasattr(wrapper, "__annotations__"):
-            # Create union type: str | RequestModel
-            wrapper.__annotations__["request"] = str | request_class
-
-        return wrapper
-
-    return decorator

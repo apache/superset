@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useCallback, useMemo, useEffect, useRef } from 'react';
+import { ClientErrorObject } from '@superset-ui/core';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { toQueryString } from 'src/utils/urlUtils';
 import { api, JsonResponse } from './queryApi';
@@ -55,7 +56,7 @@ export type FetchTablesQueryParams = {
   schema?: string;
   forceRefresh?: boolean;
   onSuccess?: (data: Data, isRefetched: boolean) => void;
-  onError?: (error: Response) => void;
+  onError?: (error: ClientErrorObject) => void;
 };
 
 export type FetchTableMetadataQueryParams = {
@@ -95,7 +96,9 @@ type TableMetadataResponse = {
 
 export type TableExtendedMetadata = Record<string, string>;
 
-type Params = Omit<FetchTablesQueryParams, 'forceRefresh'>;
+type Params = Omit<FetchTablesQueryParams, 'forceRefresh'> & {
+  supportsSchemas?: boolean;
+};
 
 const tableApi = api.injectEndpoints({
   endpoints: builder => ({
@@ -165,7 +168,14 @@ export const {
 } = tableApi;
 
 export function useTables(options: Params) {
-  const { dbId, catalog, schema, onSuccess, onError } = options || {};
+  const {
+    dbId,
+    catalog,
+    schema,
+    supportsSchemas = true,
+    onSuccess,
+    onError,
+  } = options || {};
   const isMountedRef = useRef(false);
   const { currentData: schemaOptions, isFetching } = useSchemas({
     dbId,
@@ -176,9 +186,9 @@ export function useTables(options: Params) {
     [schemaOptions],
   );
 
-  const enabled = Boolean(
-    dbId && schema && !isFetching && schemaOptionsMap.has(schema),
-  );
+  const enabled = supportsSchemas
+    ? Boolean(dbId && schema && !isFetching && schemaOptionsMap.has(schema))
+    : Boolean(dbId);
 
   const result = useTablesQuery(
     { dbId, catalog, schema, forceRefresh: false },
@@ -192,7 +202,7 @@ export function useTables(options: Params) {
     onSuccess?.(data, isRefetched);
   });
 
-  const handleOnError = useEffectEvent((error: Response) => {
+  const handleOnError = useEffectEvent((error: ClientErrorObject) => {
     onError?.(error);
   });
 
@@ -204,7 +214,7 @@ export function useTables(options: Params) {
             handleOnSuccess(data, true);
           }
           if (isError) {
-            handleOnError(error as Response);
+            handleOnError(error as ClientErrorObject);
           }
         },
       );
@@ -227,7 +237,7 @@ export function useTables(options: Params) {
           handleOnSuccess(currentData, false);
         }
         if (isError) {
-          handleOnError(error as Response);
+          handleOnError(error as ClientErrorObject);
         }
       }
     } else {

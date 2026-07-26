@@ -29,13 +29,13 @@ const createProps = (overrides: Record<string, any> = {}) => ({
 });
 
 describe('Chart editable title', () => {
-  it('renders chart title', () => {
+  test('renders chart title', () => {
     const props = createProps();
     render(<DynamicEditableTitle {...props} />);
     expect(screen.getByText('Chart title')).toBeVisible();
   });
 
-  it('renders placeholder', () => {
+  test('renders placeholder', () => {
     const props = createProps({
       title: '',
     });
@@ -43,7 +43,7 @@ describe('Chart editable title', () => {
     expect(screen.getByText('Add the name of the chart')).toBeVisible();
   });
 
-  it('click, edit and save title', async () => {
+  test('click, edit and save title', async () => {
     const props = createProps();
     render(<DynamicEditableTitle {...props} />);
     const textboxElement = screen.getByRole('textbox');
@@ -54,7 +54,7 @@ describe('Chart editable title', () => {
     expect(props.onSave).toHaveBeenCalled();
   });
 
-  it('renders in non-editable mode', async () => {
+  test('renders in non-editable mode', async () => {
     const props = createProps({ canEdit: false });
     render(<DynamicEditableTitle {...props} />);
     const titleElement = screen.getByLabelText('Chart title');

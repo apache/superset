@@ -18,7 +18,7 @@
  */
 import rison from 'rison';
 import fetchMock from 'fetch-mock';
-import { act, renderHook } from '@testing-library/react-hooks';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import {
   createWrapper,
   defaultStore as store,
@@ -66,7 +66,7 @@ const fakeApiResult = {
 };
 
 afterEach(() => {
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
   act(() => {
     store.dispatch(api.util.resetApiState());
   });
@@ -76,17 +76,14 @@ test('returns api response mapping camelCase keys', async () => {
   const editorId = '23';
   const editorQueryApiRoute = `glob:*/api/v1/query/?q=*`;
   fetchMock.get(editorQueryApiRoute, fakeApiResult);
-  const { result, waitFor } = renderHook(
-    () => useEditorQueriesQuery({ editorId }),
-    {
-      wrapper: createWrapper({
-        useRedux: true,
-        store,
-      }),
-    },
-  );
+  const { result } = renderHook(() => useEditorQueriesQuery({ editorId }), {
+    wrapper: createWrapper({
+      useRedux: true,
+      store,
+    }),
+  });
   await waitFor(() =>
-    expect(fetchMock.calls(editorQueryApiRoute).length).toBe(1),
+    expect(fetchMock.callHistory.calls(editorQueryApiRoute).length).toBe(1),
   );
   const expectedResult = {
     ...fakeApiResult,
@@ -94,7 +91,7 @@ test('returns api response mapping camelCase keys', async () => {
   };
 
   // Check if the URL contains the expected rison-encoded parameters
-  const actualUrl = fetchMock.calls(editorQueryApiRoute)[0][0];
+  const actualUrl = fetchMock.callHistory.calls(editorQueryApiRoute)[0].url;
   expect(actualUrl).toContain('/api/v1/query/?q=');
 
   // Extract and decode the query parameter
@@ -124,14 +121,14 @@ test('merges paginated results', async () => {
   const editorId = '23';
   const editorQueryApiRoute = `glob:*/api/v1/query/?q=*`;
   fetchMock.get(editorQueryApiRoute, fakeApiResult);
-  const { waitFor } = renderHook(() => useEditorQueriesQuery({ editorId }), {
+  renderHook(() => useEditorQueriesQuery({ editorId }), {
     wrapper: createWrapper({
       useRedux: true,
       store,
     }),
   });
   await waitFor(() =>
-    expect(fetchMock.calls(editorQueryApiRoute).length).toBe(1),
+    expect(fetchMock.callHistory.calls(editorQueryApiRoute).length).toBe(1),
   );
   const { result: paginatedResult } = renderHook(
     () => useEditorQueriesQuery({ editorId, pageIndex: 1 }),
@@ -143,11 +140,11 @@ test('merges paginated results', async () => {
     },
   );
   await waitFor(() =>
-    expect(fetchMock.calls(editorQueryApiRoute).length).toBe(2),
+    expect(fetchMock.callHistory.calls(editorQueryApiRoute).length).toBe(2),
   );
 
   // Check the second call has page=1
-  const secondUrl = fetchMock.calls(editorQueryApiRoute)[1][0];
+  const secondUrl = fetchMock.callHistory.calls(editorQueryApiRoute)[1].url;
   expect(secondUrl).toContain('/api/v1/query/?q=');
 
   // Extract and decode the query parameter

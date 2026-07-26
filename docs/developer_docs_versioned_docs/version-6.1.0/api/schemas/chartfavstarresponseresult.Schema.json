@@ -1,0 +1,1 @@
+{"schema":{"properties":{"id":{"description":"The Chart id","type":"integer"},"value":{"description":"The FaveStar value","type":"boolean"}},"type":"object","title":"ChartFavStarResponseResult"},"schemaType":"response"}

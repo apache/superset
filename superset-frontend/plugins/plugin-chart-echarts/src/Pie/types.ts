@@ -35,6 +35,8 @@ export type EchartsPieFormData = QueryFormData &
     donut: boolean;
     defaultValue?: string[] | null;
     groupby: QueryFormColumn[];
+    startAngle: number;
+    sweptAngle: number;
     innerRadius: number;
     labelLine: boolean;
     labelType: EchartsPieLabelType;
@@ -61,12 +63,11 @@ export enum EchartsPieLabelType {
   Template = 'template',
 }
 
-export interface EchartsPieChartProps
-  extends BaseChartProps<EchartsPieFormData> {
+export interface EchartsPieChartProps extends BaseChartProps<EchartsPieFormData> {
   formData: EchartsPieFormData;
 }
 
-// @ts-ignore
+// @ts-expect-error
 export const DEFAULT_FORM_DATA: EchartsPieFormData = {
   ...DEFAULT_LEGEND_FORM_DATA,
   donut: false,
@@ -84,6 +85,8 @@ export const DEFAULT_FORM_DATA: EchartsPieFormData = {
   dateFormat: 'smart_date',
   roseType: null,
   thresholdForOther: 0,
+  startAngle: 90,
+  sweptAngle: 360,
 };
 
 export type PieChartTransformedProps =
@@ -100,3 +103,36 @@ export interface PieChartDataItem {
   };
   isOther?: boolean;
 }
+
+interface ChartPadding {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+}
+
+export interface TotalValuePaddingProps {
+  chartPadding: ChartPadding;
+  donut: boolean;
+  width: number;
+  height: number;
+  sweptAngle: number;
+  startAngle: number;
+}
+
+export interface PaddingResult {
+  top?: string;
+  left?: string;
+}
+
+/**
+ * Semicircular chart layout type.
+ *
+ * - `'top'`    — arc at the top, center shifted downwards.
+ * - `'bottom'` — arc at the bottom, center shifted upwards.
+ * - `'left'`   — arc on the left, center shifted to the right.
+ * - `'right'`  — arc on the right, center shifted to the left.
+ * - `'none'`   — full circle (no recentering).
+ * @see getHalfDonut
+ */
+export type HalfDonut = 'top' | 'bottom' | 'left' | 'right' | 'none';

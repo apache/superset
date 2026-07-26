@@ -1,0 +1,31 @@
+---
+title: Apache Druid
+sidebar_label: Apache Druid
+description: "Apache Druid is a high performance real-time analytics database."
+hide_title: true
+---
+
+{/*
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+*/}
+
+import { DatabasePage } from '@site/src/components/databases';
+
+export const databaseInfo = {"engine":"apache_druid","engine_name":"Apache Druid","module":"druid","documentation":{"description":"Apache Druid is a high performance real-time analytics database.","logo":"druid.png","homepage_url":"https://druid.apache.org/","categories":["APACHE_PROJECTS","TIME_SERIES","OPEN_SOURCE"],"pypi_packages":["pydruid"],"connection_string":"druid://{username}:{password}@{host}:{port}/druid/v2/sql","default_port":9088,"parameters":{"username":"Database username","password":"Database password","host":"IP address or URL of the host","port":"Default 9088"},"ssl_configuration":{"custom_certificate":"Add certificate in Root Certificate field. pydruid will automatically use https.","disable_ssl_verification":{"engine_params":{"connect_args":{"scheme":"https","ssl_verify_cert":false}}}},"advanced_features":{"aggregations":"Define common aggregations in datasource edit view under List Druid Column tab.","post_aggregations":"Create metrics with postagg as Metric Type and provide valid JSON post-aggregation definition."},"notes":"A native Druid connector ships with Superset (behind DRUID_IS_ACTIVE flag) but SQLAlchemy connector via pydruid is preferred.","compatible_databases":[{"name":"Imply","description":"Imply is a fully-managed cloud platform and enterprise distribution built on Apache Druid. It provides real-time analytics with enterprise security and support.","logo":"imply.png","homepage_url":"https://imply.io/","categories":["TIME_SERIES","CLOUD_DATA_WAREHOUSES","HOSTED_OPEN_SOURCE"],"pypi_packages":["pydruid"],"connection_string":"druid://{username}:{password}@{host}/druid/v2/sql","docs_url":"https://docs.imply.io/"}]},"time_grains":{"SECOND":true,"FIVE_SECONDS":true,"THIRTY_SECONDS":true,"MINUTE":true,"FIVE_MINUTES":true,"TEN_MINUTES":true,"FIFTEEN_MINUTES":true,"THIRTY_MINUTES":true,"HALF_HOUR":false,"HOUR":true,"SIX_HOURS":true,"DAY":true,"WEEK":true,"WEEK_STARTING_SUNDAY":true,"WEEK_STARTING_MONDAY":false,"WEEK_ENDING_SATURDAY":true,"WEEK_ENDING_SUNDAY":false,"MONTH":true,"QUARTER":true,"QUARTER_YEAR":false,"YEAR":true},"score":47,"max_score":201,"joins":false,"subqueries":true,"supports_dynamic_schema":false,"supports_catalog":false,"supports_dynamic_catalog":false,"ssh_tunneling":true,"supports_file_upload":true,"query_cancelation":false,"query_cost_estimation":false,"sql_validation":false,"user_impersonation":false};
+
+<DatabasePage name="Apache Druid" database={databaseInfo} />

@@ -24,8 +24,8 @@ import {
   ChangeEvent,
 } from 'react';
 
-import { t } from '@superset-ui/core';
-import { useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { useTheme } from '@apache-superset/core/theme';
 import {
   Input,
   InfoTooltip,
@@ -42,6 +42,7 @@ interface SearchHeaderProps extends BaseFilter {
   onSubmit: (val: string) => void;
   name: string;
   toolTipDescription: string | undefined;
+  autoComplete?: string;
 }
 
 function SearchFilter(
@@ -51,6 +52,7 @@ function SearchFilter(
     initialValue,
     toolTipDescription,
     onSubmit,
+    autoComplete = 'off',
   }: SearchHeaderProps,
   ref: RefObject<FilterHandler>,
 ) {
@@ -91,6 +93,7 @@ function SearchFilter(
         allowClear
         data-test="filters-search"
         placeholder={t('Type a value')}
+        autoComplete={autoComplete}
         name={name}
         value={value}
         onChange={handleChange}

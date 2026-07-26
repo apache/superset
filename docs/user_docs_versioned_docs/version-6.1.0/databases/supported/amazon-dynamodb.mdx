@@ -1,0 +1,31 @@
+---
+title: Amazon DynamoDB
+sidebar_label: Amazon DynamoDB
+description: "Amazon DynamoDB is a serverless NoSQL database with SQL via PartiQL."
+hide_title: true
+---
+
+{/*
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+*/}
+
+import { DatabasePage } from '@site/src/components/databases';
+
+export const databaseInfo = {"engine":"amazon_dynamodb","engine_name":"Amazon DynamoDB","module":"dynamodb","documentation":{"description":"Amazon DynamoDB is a serverless NoSQL database with SQL via PartiQL.","logo":"aws.png","homepage_url":"https://aws.amazon.com/dynamodb/","categories":["CLOUD_AWS","SEARCH_NOSQL","PROPRIETARY"],"pypi_packages":["pydynamodb"],"connection_string":"dynamodb://{aws_access_key_id}:{aws_secret_access_key}@dynamodb.{region}.amazonaws.com:443?connector=superset","parameters":{"aws_access_key_id":"AWS access key ID","aws_secret_access_key":"AWS secret access key","region":"AWS region (e.g., us-east-1)"},"notes":"Uses PartiQL for SQL queries. Requires connector=superset parameter.","docs_url":"https://github.com/passren/PyDynamoDB"},"time_grains":{"SECOND":true,"FIVE_SECONDS":false,"THIRTY_SECONDS":false,"MINUTE":true,"FIVE_MINUTES":false,"TEN_MINUTES":false,"FIFTEEN_MINUTES":false,"THIRTY_MINUTES":false,"HALF_HOUR":false,"HOUR":true,"SIX_HOURS":false,"DAY":true,"WEEK":true,"WEEK_STARTING_SUNDAY":true,"WEEK_STARTING_MONDAY":true,"WEEK_ENDING_SATURDAY":true,"WEEK_ENDING_SUNDAY":true,"MONTH":true,"QUARTER":true,"QUARTER_YEAR":false,"YEAR":true},"score":32,"max_score":201,"joins":true,"subqueries":true,"supports_dynamic_schema":false,"supports_catalog":false,"supports_dynamic_catalog":false,"ssh_tunneling":true,"supports_file_upload":true,"query_cancelation":false,"query_cost_estimation":false,"sql_validation":false,"user_impersonation":false};
+
+<DatabasePage name="Amazon DynamoDB" database={databaseInfo} />

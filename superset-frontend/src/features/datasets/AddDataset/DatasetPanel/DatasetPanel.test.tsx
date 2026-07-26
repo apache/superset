@@ -23,6 +23,7 @@ import DatasetPanel, {
   COLUMN_TITLE,
 } from 'src/features/datasets/AddDataset/DatasetPanel/DatasetPanel';
 import { exampleColumns, exampleDataset } from './fixtures';
+import { ITableColumn } from './types';
 import {
   SELECT_MESSAGE,
   CREATE_MESSAGE,
@@ -173,5 +174,27 @@ describe('DatasetPanel', () => {
         /this table already has a dataset associated with it. you can only associate one dataset with a table./i,
       ),
     ).toBeVisible();
+  });
+
+  test('sorts the column list by name when sorting by Column Name', () => {
+    const sorter = tableColumnDefinition[0].sorter as (
+      a: ITableColumn,
+      b: ITableColumn,
+    ) => number;
+    const sorted = [...exampleColumns].sort(sorter);
+    expect(sorted.map(c => c.name)).toEqual([
+      'birth_date',
+      'height_in_inches',
+      'name',
+    ]);
+  });
+
+  test('sorts the column list by type when sorting by Datatype', () => {
+    const sorter = tableColumnDefinition[1].sorter as (
+      a: ITableColumn,
+      b: ITableColumn,
+    ) => number;
+    const sorted = [...exampleColumns].sort(sorter);
+    expect(sorted.map(c => c.type)).toEqual(['DATE', 'NUMBER', 'STRING']);
   });
 });

@@ -25,7 +25,7 @@ describe('getMultipleTextDimension(input)', () => {
     beforeEach(addDummyFill);
     afterEach(removeDummyFill);
 
-    it('takes an array of text as argument', () => {
+    test('takes an array of text as argument', () => {
       expect(
         getMultipleTextDimensions({
           texts: [SAMPLE_TEXT[0], SAMPLE_TEXT[1], ''],
@@ -45,7 +45,7 @@ describe('getMultipleTextDimension(input)', () => {
         },
       ]);
     });
-    it('handles empty text', () => {
+    test('handles empty text', () => {
       expect(
         getMultipleTextDimensions({
           texts: ['', ''],
@@ -61,7 +61,7 @@ describe('getMultipleTextDimension(input)', () => {
         },
       ]);
     });
-    it('handles duplicate text', () => {
+    test('handles duplicate text', () => {
       expect(
         getMultipleTextDimensions({
           texts: [SAMPLE_TEXT[0], SAMPLE_TEXT[0]],
@@ -77,7 +77,7 @@ describe('getMultipleTextDimension(input)', () => {
         },
       ]);
     });
-    it('accepts provided class via className', () => {
+    test('accepts provided class via className', () => {
       expect(
         getMultipleTextDimensions({
           texts: [SAMPLE_TEXT[0], SAMPLE_TEXT[1]],
@@ -94,7 +94,7 @@ describe('getMultipleTextDimension(input)', () => {
         },
       ]);
     });
-    it('accepts provided style.font', () => {
+    test('accepts provided style.font', () => {
       expect(
         getMultipleTextDimensions({
           texts: [SAMPLE_TEXT[0], SAMPLE_TEXT[1]],
@@ -113,7 +113,7 @@ describe('getMultipleTextDimension(input)', () => {
         },
       ]);
     });
-    it('accepts provided style.fontFamily', () => {
+    test('accepts provided style.fontFamily', () => {
       expect(
         getMultipleTextDimensions({
           texts: [SAMPLE_TEXT[0], SAMPLE_TEXT[1]],
@@ -132,7 +132,7 @@ describe('getMultipleTextDimension(input)', () => {
         },
       ]);
     });
-    it('accepts provided style.fontSize', () => {
+    test('accepts provided style.fontSize', () => {
       expect(
         getMultipleTextDimensions({
           texts: [SAMPLE_TEXT[0], SAMPLE_TEXT[1]],
@@ -151,7 +151,7 @@ describe('getMultipleTextDimension(input)', () => {
         },
       ]);
     });
-    it('accepts provided style.fontStyle', () => {
+    test('accepts provided style.fontStyle', () => {
       expect(
         getMultipleTextDimensions({
           texts: [SAMPLE_TEXT[0], SAMPLE_TEXT[1]],
@@ -170,7 +170,7 @@ describe('getMultipleTextDimension(input)', () => {
         },
       ]);
     });
-    it('accepts provided style.fontWeight', () => {
+    test('accepts provided style.fontWeight', () => {
       expect(
         getMultipleTextDimensions({
           texts: [SAMPLE_TEXT[0], SAMPLE_TEXT[1]],
@@ -189,7 +189,7 @@ describe('getMultipleTextDimension(input)', () => {
         },
       ]);
     });
-    it('accepts provided style.letterSpacing', () => {
+    test('accepts provided style.letterSpacing', () => {
       expect(
         getMultipleTextDimensions({
           texts: [SAMPLE_TEXT[0], SAMPLE_TEXT[1]],
@@ -209,7 +209,7 @@ describe('getMultipleTextDimension(input)', () => {
       ]);
     });
   });
-  it('cleans up DOM', async () => {
+  test('cleans up DOM', async () => {
     getMultipleTextDimensions({
       texts: [SAMPLE_TEXT[0], SAMPLE_TEXT[1]],
     });

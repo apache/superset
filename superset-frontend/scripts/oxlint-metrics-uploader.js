@@ -17,7 +17,8 @@
  * under the License.
  */
 const { execSync } = require('child_process');
-const { google } = require('googleapis');
+const { GoogleAuth } = require('google-auth-library');
+const googleSheets = require('@googleapis/sheets');
 
 const { SPREADSHEET_ID } = process.env;
 const SERVICE_ACCOUNT_KEY = JSON.parse(process.env.SERVICE_ACCOUNT_KEY || '{}');
@@ -25,11 +26,11 @@ const SERVICE_ACCOUNT_KEY = JSON.parse(process.env.SERVICE_ACCOUNT_KEY || '{}');
 // Only set up Google Sheets if we have credentials
 let sheets;
 if (SERVICE_ACCOUNT_KEY.client_email) {
-  const auth = new google.auth.GoogleAuth({
+  const auth = new GoogleAuth({
     credentials: SERVICE_ACCOUNT_KEY,
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
   });
-  sheets = google.sheets({ version: 'v4', auth });
+  sheets = googleSheets.sheets({ version: 'v4', auth });
 }
 
 const DATETIME = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
@@ -133,9 +134,11 @@ async function runOxlintAndProcess() {
     console.log('Running minimal ESLint for custom rules...');
     let eslintOutput = '[]';
     try {
-      // Run ESLint and capture output directly
+      // Run ESLint and capture output directly.
+      // Flat config (eslint.config.minimal.js) is explicitly selected via
+      // --config; ESLint v9+/v10 no longer support eslintrc or --no-eslintrc.
       eslintOutput = execSync(
-        'npx eslint --no-eslintrc --config .eslintrc.minimal.js --no-inline-config --format json src',
+        'npx eslint --config eslint.config.minimal.js --no-inline-config --format json src',
         {
           encoding: 'utf8',
           maxBuffer: 50 * 1024 * 1024,

@@ -191,7 +191,7 @@ def create_test_extension_structure(
         Dictionary with expected paths and metadata
     """
     extension_path = base_path / id_
-    expected_files = ["extension.json"]
+    expected_files = ["extension.json", ".gitignore"]
     expected_dirs: list[str] = []
 
     if include_frontend:

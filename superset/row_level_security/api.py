@@ -19,7 +19,7 @@ import logging
 from typing import Any
 
 from flask import request, Response
-from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
@@ -27,11 +27,13 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.exceptions import (
     DatasourceNotFoundValidationError,
-    RolesNotFoundValidationError,
 )
 from superset.commands.security.create import CreateRLSRuleCommand
 from superset.commands.security.delete import DeleteRLSRuleCommand
-from superset.commands.security.exceptions import RLSRuleNotFoundError
+from superset.commands.security.exceptions import (
+    RLSDatasourceForbiddenError,
+    RLSRuleNotFoundError,
+)
 from superset.commands.security.update import UpdateRLSRuleCommand
 from superset.connectors.sqla.models import RowLevelSecurityFilter
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
@@ -44,6 +46,11 @@ from superset.row_level_security.schemas import (
     RLSPutSchema,
     RLSShowSchema,
 )
+from superset.subjects.exceptions import SubjectsNotFoundValidationError
+from superset.subjects.filters import (
+    FilterRelatedSubjects,
+    subject_type_filter,
+)
 from superset.views.base import DatasourceFilter
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
@@ -52,10 +59,9 @@ from superset.views.base_api import (
     statsd_metrics,
 )
 from superset.views.filters import (
-    BaseFilterRelatedRoles,
     BaseFilterRelatedUsers,
-    FilterRelatedOwners,
     FilterRelatedTables,
+    FilterRelatedUsers,
 )
 
 logger = logging.getLogger(__name__)
@@ -79,8 +85,10 @@ class RLSRestApi(BaseSupersetModelRestApi):
         "filter_type",
         "tables.id",
         "tables.table_name",
-        "roles.id",
-        "roles.name",
+        "subjects.id",
+        "subjects.label",
+        "subjects.secondary_label",
+        "subjects.type",
         "clause",
         "changed_on_delta_humanized",
         "changed_by.first_name",
@@ -100,7 +108,7 @@ class RLSRestApi(BaseSupersetModelRestApi):
         "description",
         "filter_type",
         "tables",
-        "roles",
+        "subjects",
         "group_key",
         "clause",
     ]
@@ -111,8 +119,10 @@ class RLSRestApi(BaseSupersetModelRestApi):
         "tables.id",
         "tables.schema",
         "tables.table_name",
-        "roles.id",
-        "roles.name",
+        "subjects.id",
+        "subjects.label",
+        "subjects.secondary_label",
+        "subjects.type",
         "group_key",
         "clause",
     ]
@@ -121,7 +131,7 @@ class RLSRestApi(BaseSupersetModelRestApi):
         "description",
         "filter_type",
         "tables",
-        "roles",
+        "subjects",
         "group_key",
         "clause",
         "created_by",
@@ -134,14 +144,23 @@ class RLSRestApi(BaseSupersetModelRestApi):
     add_model_schema = RLSPostSchema()
     edit_model_schema = RLSPutSchema()
 
-    allowed_rel_fields = {"tables", "roles", "created_by", "changed_by"}
+    allowed_rel_fields = {"tables", "subjects", "created_by", "changed_by"}
+    text_field_rel_fields = {
+        "subjects": "label",
+    }
+    extra_fields_rel_fields = {
+        "subjects": ["type", "active", "secondary_label", "img"],
+    }
     related_field_filters = {
         "tables": RelatedFieldFilter("table_name", FilterRelatedTables),
-        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "subjects": RelatedFieldFilter("label", FilterRelatedSubjects),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
     }
     base_related_field_filters = {
         "tables": [["id", DatasourceFilter, lambda: []]],
-        "roles": [["id", BaseFilterRelatedRoles, lambda: []]],
+        "subjects": [
+            ["id", subject_type_filter("SUBJECTS_RELATED_TYPES_RLS"), lambda: []]
+        ],
         "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
     }
 
@@ -185,6 +204,8 @@ class RLSRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
             422:
@@ -200,9 +221,9 @@ class RLSRestApi(BaseSupersetModelRestApi):
         try:
             new_model = CreateRLSRuleCommand(item).run()
             return self.response(201, id=new_model.id, result=item)
-        except RolesNotFoundValidationError as ex:
+        except SubjectsNotFoundValidationError as ex:
             logger.error(
-                "Role not found while creating RLS rule %s: %s",
+                "Subject not found while creating RLS rule %s: %s",
                 self.__class__.__name__,
                 str(ex),
                 exc_info=True,
@@ -216,6 +237,13 @@ class RLSRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
+        except RLSDatasourceForbiddenError as ex:
+            logger.warning(
+                "Forbidden datasource while creating RLS rule %s: %s",
+                self.__class__.__name__,
+                str(ex),
+            )
+            return self.response_403()
         except SQLAlchemyError as ex:
             logger.error(
                 "Error creating RLS rule %s: %s",
@@ -286,9 +314,9 @@ class RLSRestApi(BaseSupersetModelRestApi):
         try:
             new_model = UpdateRLSRuleCommand(pk, item).run()
             return self.response(200, id=new_model.id, result=item)
-        except RolesNotFoundValidationError as ex:
+        except SubjectsNotFoundValidationError as ex:
             logger.error(
-                "Role not found while updating RLS rule %s: %s",
+                "Subject not found while updating RLS rule %s: %s",
                 self.__class__.__name__,
                 str(ex),
                 exc_info=True,
@@ -302,6 +330,13 @@ class RLSRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
+        except RLSDatasourceForbiddenError as ex:
+            logger.warning(
+                "Forbidden datasource while updating RLS rule %s: %s",
+                self.__class__.__name__,
+                str(ex),
+            )
+            return self.response_403()
         except SQLAlchemyError as ex:
             logger.error(
                 "Error updating RLS rule %s: %s",
@@ -317,7 +352,7 @@ class RLSRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_delete_ids_schema)
+    @parse_rison(get_delete_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
         log_to_statsd=False,

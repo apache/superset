@@ -1,0 +1,1 @@
+{"title":"Body","body":{"content":{"application/json":{"schema":{"properties":{"group_ids":{"description":"List of group ids","items":{"type":"integer"},"type":"array"}},"required":["group_ids"],"type":"object","title":"RoleGroupPutSchema"},"example":{"group_ids":[1]}}},"description":"Update role groups schema","required":true}}

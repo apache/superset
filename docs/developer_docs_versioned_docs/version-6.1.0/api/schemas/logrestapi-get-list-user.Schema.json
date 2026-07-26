@@ -1,0 +1,1 @@
+{"schema":{"properties":{"first_name":{"maxLength":64,"type":"string"},"last_name":{"maxLength":64,"type":"string"},"username":{"maxLength":128,"type":"string"}},"required":["first_name","last_name","username"],"type":"object","title":"LogRestApi.get_list.User"},"schemaType":"response"}

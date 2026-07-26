@@ -23,14 +23,13 @@ import UserRegistrations from '.';
 
 const userRegistrationsEndpoint = 'glob:*/security/user_registrations/?*';
 
-const mockUserRegistrations = new Array(5).fill(undefined).map((_, i) => ({
+const mockUserRegistrations = Array.from({ length: 5 }, (_, i) => ({
   id: i,
   username: `user${i}`,
   first_name: `User${i}`,
   last_name: `Test${i}`,
   email: `user${i}@test.com`,
   registration_date: new Date(2025, 2, 25, 11, 4, 32 + i).toISOString(),
-  registration_hash: `hash${i}`,
 }));
 
 fetchMock.get(userRegistrationsEndpoint, {
@@ -50,7 +49,13 @@ describe('UserRegistrations', () => {
   });
   test('fetches and renders user registrations', async () => {
     expect(await screen.findByText('User registrations')).toBeVisible();
-    const calls = fetchMock.calls(userRegistrationsEndpoint);
+    const calls = fetchMock.callHistory.calls(userRegistrationsEndpoint);
     expect(calls.length).toBeGreaterThan(0);
+  });
+
+  test('does not expose the registration hash', async () => {
+    expect(await screen.findByText('User registrations')).toBeVisible();
+    // The activation hash is a bearer token and must not be shown in the UI.
+    expect(screen.queryByText('Registration hash')).not.toBeInTheDocument();
   });
 });

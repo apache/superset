@@ -1,0 +1,68 @@
+---
+id: get-table-metadata
+title: "Get table metadata"
+description: "Metadata associated with the table (columns, indexes, etc.)"
+sidebar_label: "Get table metadata"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFV9tu3DYQ/RVi0Acblb12kQKGgjy4qeOkzcWIN2gBy3BoaXbFWCIVcrReV9C/F0NR2mvcIGugT5LI4cw5w7mpgQxdalVFymiI4R2SzCRJIZ0zqZKEmbhXlAvKUZC8LVDspaaoS+0ioXSGc3SRQEoP9yGCSlpZIqF1EF81a6rHOQpWfSsdCpVBBIqXK0k5RKBlifx1BxFY/ForixnEZGuMwKU5lhLiBuihYimlCadooW2jDSseo9cWDHyt0T4sLISt/7ThyCo93Wbig3+RRfBHdzISaiK0IVFJ5zATGU5kXVDYFfeqKMQtitph9g1gAcEuUFJJsjDTb2EJ298DJog+iuaavegqox063v/l6IgfqdGEmvhVVlWhUskYR18cI26W9FXWVGhJdafTonaEXvXClrn9gilBG0EZAnPrZiUtKbbitmy30dpKBKSowD5YzuZkZR/3HwOhyw5lGwHOZVmx9BrEVUzrINqW7W4Lzf6QUHpibOmdw3aeHR3v4L0SnZNT3Bo0m/5a4jQchE9a1pQbq/7BLBanNeWoKdgXQ7ps4bV8sGPy7P9l8t6QmJhaZ7HgosPY0XEls+hMbVMUmUHnMwTnytE2UoMOtvLrTpH9BIzeaELLee7QztAKtNbYWJxqUWucV5gyO78oTJrW9hs39YqzupPzxh2mtVX04Kv1l3uC+Oqa05rklCs4/B7KNVxHMD9ITYaXHlxX3gvJiQDpp49vIYJC3mKx+Owczd+1LcTB3+L8bCwSyImqeDQqTCqL3DiKT45OTkayUqPZ8ajvDqPjka9nN32ujBIQSZJoIQ5eiwROQ7h598fiN5QWrfjp9OXLs8vLm/GHP8/eJwBcLQPEiwfKjV4COSwMMFVZGUt9rLhEJ7ovbuLFsHw4RdpjHGIXLlGnIUeZoXUvmjVGCcQigcAqAfGzkGmKzt2QuUPdJno/0ZVVmvZ6hIccgnv7+8uc/5Azeenvfon3yuLiiox2TH2gK++lIjFBSnPPdleuzQrhuP8W63fJzD/319l0rMee9OfuRMsP9sDzRHeofSntEa/5IwiZAg8LM91j0f3nwAFeIuUmgximSH5uoRxi2ODTVHftOiV2nE/CLglqy37d6h5YT7+3vC0ynGFhqhI1hXT219YpaipryKSmaOPRqGFVbdxwZLYb2l7WjkzZq4hgJq1iqC5UIK+G30P7DzAhAtR1yekdPvnhOMVX9b8ejy/EoKeNgNGs6hv4boC77OoU7/FEIYwVby58qzZ2TclWV4XzXrr1o0Zfq3xn7kj6itXArQ+YV76Zcoz/Ne7HFg7ubheGSutJtxEfvrE4sejyH1XS8uw0MR2dFfR1hdbh8qixtMSx08nNjjuXOCqlbyFh+jpHChPdMGKsOWipGe04swdGhHMaVYVUfhjxwdiEvLgCWSnGfcwo+pYQQeyH9dX0gAg4krpQuYKmYdlPtmhbXu6GTP9roByfyyCeyMLhI+z2PobRY1+szPZbcd/hw2LEn8miZhGfXt9v8AnG+0ewDVP+06D7sYn/EXyLwX8B8HpRXHa4vI3fv60owqLUD8sQenTVHbTXXIp8J/Fguo3TNEXf1PojGwPaStk/P+P05rF1aSobkjy8sPatcJqmk+haUzug8/2ZAbbtv+faR+o=
+sidebar_class_name: "get api-method"
+info_path: developer-docs/api/superset
+custom_edit_url: null
+hide_send_button: true
+show_extensions: true
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get table metadata"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/database/{pk}/table_metadata/"}
+  context={"endpoint"}
+>
+
+</MethodEndpoint>
+
+
+
+Metadata associated with the table (columns, indexes, etc.)
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  {...require("./get-table-metadata.ParamsDetails.json")}
+>
+
+</ParamsDetails>
+
+<RequestSchema
+  {...require("./get-table-metadata.RequestSchema.json")}
+>
+
+</RequestSchema>
+
+<StatusCodes
+  {...require("./get-table-metadata.StatusCodes.json")}
+>
+
+</StatusCodes>

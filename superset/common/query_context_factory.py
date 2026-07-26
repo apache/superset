@@ -45,6 +45,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
     def create(  # pylint: disable=too-many-arguments
         self,
         *,
+        current_slice: Slice | None = None,
         datasource: DatasourceDict,
         queries: list[dict[str, Any]],
         form_data: dict[str, Any] | None = None,
@@ -59,7 +60,9 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             datasource_model_instance = self._convert_to_model(datasource)
 
         slice_ = None
-        if form_data and form_data.get("slice_id") is not None:
+        if isinstance(current_slice, Slice):
+            slice_ = current_slice
+        elif form_data and form_data.get("slice_id") is not None:
             slice_ = self._get_slice(form_data.get("slice_id"))
 
         result_type = result_type or ChartDataResultType.FULL
@@ -122,6 +125,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         self._apply_granularity(query_object, form_data, datasource)
         self._apply_filters(query_object)
         self._add_tooltip_columns(query_object, form_data)
+        self._add_currency_column(query_object, form_data, datasource)
         return query_object
 
     def _add_tooltip_columns(
@@ -197,6 +201,39 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                         tooltip_columns.append(column_name)
         return tooltip_columns
 
+    def _add_currency_column(
+        self,
+        query_object: QueryObject,
+        form_data: dict[str, Any] | None,
+        datasource: Explorable,
+    ) -> None:
+        """
+        Add currency_code_column to the query for pivot_table_v2 cell-level formatting.
+
+        When currency_format.symbol is 'AUTO', injects the datasource's
+        currency_code_column into query columns for per-cell currency formatting.
+        """
+        if not form_data or not query_object.columns:
+            return
+
+        if form_data.get("viz_type") != "pivot_table_v2":
+            return
+
+        currency_format = form_data.get("currency_format", {})
+        if not (
+            isinstance(currency_format, dict)
+            and currency_format.get("symbol") == "AUTO"
+        ):
+            return
+
+        currency_column = getattr(datasource, "currency_code_column", None)
+        if not currency_column:
+            return
+
+        existing_columns = self._get_existing_column_names(query_object.columns)
+        if currency_column not in existing_columns:
+            query_object.columns.append(currency_column)
+
     def _apply_granularity(  # noqa: C901
         self,
         query_object: QueryObject,
@@ -209,6 +246,26 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             if (column["is_dttm"] if isinstance(column, dict) else column.is_dttm)
         }
         x_axis = form_data and form_data.get("x_axis")
+        temporal_range_filters = [
+            filter_
+            for filter_ in query_object.filter
+            if filter_["op"] == "TEMPORAL_RANGE"
+        ]
+
+        should_infer_filter_granularity: bool = (
+            is_adhoc_column(x_axis)  # type: ignore
+            and query_object.granularity is None
+            and bool(query_object.from_dttm or query_object.to_dttm)
+            and (bool(query_object.time_range) or not temporal_range_filters)
+            and (main_dttm_col := getattr(datasource, "main_dttm_col", None))
+            in temporal_columns
+        )
+        if should_infer_filter_granularity:
+            # The inferred column supplies the time-filter subject. It must not be
+            # treated as an explicitly selected granularity, which would rewrite
+            # the x-axis or remove an independent temporal filter below.
+            query_object.granularity = main_dttm_col
+            return
 
         if granularity := query_object.granularity:
             filter_to_remove = None

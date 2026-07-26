@@ -7,12 +7,6 @@ on:
 
   # Manual trigger for testing
   workflow_dispatch:
-    inputs:
-      max_age_hours:
-        description: 'Maximum age in hours before cleanup'
-        required: false
-        default: '48'
-        type: string
 
 # Common environment variables
 env:
@@ -30,21 +24,14 @@ jobs:
 
     permissions:
       contents: read
+      issues: write        # delete orphaned showtime label definitions (label CRUD is the issues API)
       pull-requests: write
 
     steps:
       - name: Install Superset Showtime
         run: pip install superset-showtime
 
-      - name: Cleanup expired environments
+      - name: Cleanup expired environments and orphaned labels
         run: |
-          MAX_AGE="${{ github.event.inputs.max_age_hours || '48' }}"
-
-          # Validate max_age is numeric
-          if [[ ! "$MAX_AGE" =~ ^[0-9]+$ ]]; then
-            echo "❌ Invalid max_age_hours format: $MAX_AGE (must be numeric)"
-            exit 1
-          fi
-
-          echo "Cleaning up environments older than ${MAX_AGE}h"
-          python -m showtime cleanup --older-than "${MAX_AGE}h"
+          echo "Cleaning up environments respecting TTL labels, and pruning orphaned 🎪 labels"
+          python -m showtime cleanup --respect-ttl --force

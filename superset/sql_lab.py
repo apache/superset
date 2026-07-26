@@ -18,6 +18,7 @@
 import dataclasses
 import logging
 import sys
+import traceback
 import uuid
 from contextlib import closing
 from datetime import datetime
@@ -45,6 +46,7 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2RedirectError,
     SupersetDisallowedSQLFunctionException,
+    SupersetDisallowedSQLTableException,
     SupersetDMLNotAllowedException,
     SupersetErrorException,
     SupersetErrorsException,
@@ -55,6 +57,7 @@ from superset.exceptions import (
 from superset.extensions import celery_app, event_logger
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
+from superset.sql.execution.executor import build_statement_blocks
 from superset.sql.parse import BaseSQLStatement, CTASMethod, SQLScript, Table
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sqllab.utils import write_ipc_buffer
@@ -121,6 +124,9 @@ def handle_query_error(
 
     db.session.commit()
     payload.update({"status": query.status, "error": msg, "errors": errors_payload})
+    if app.config.get("SHOW_STACKTRACE"):
+        if stacktrace := traceback.format_exc():
+            payload["stacktrace"] = stacktrace
     if troubleshooting_link := app.config["TROUBLESHOOTING_LINK"]:
         payload["link"] = troubleshooting_link
     return payload
@@ -191,7 +197,7 @@ def get_sql_results(  # pylint: disable=too-many-arguments
                     log_params=log_params,
                 )
             except Exception as ex:  # pylint: disable=broad-except
-                logger.debug("Query %d: %s", query_id, ex)
+                logger.exception("Query %d: %s", query_id, ex)
                 stats_logger = app.config["STATS_LOGGER"]
                 stats_logger.incr("error_sqllab_unhandled")
                 query = get_query(query_id=query_id)
@@ -266,6 +272,19 @@ def execute_query(  # pylint: disable=too-many-statements, too-many-locals  # no
                 log_params,
             )
         db.session.commit()
+        # Eagerly reload query attributes so no lazy-load triggers a new
+        # metadata DB connection during the (potentially long) cursor
+        # execution. With NullPool each lazy-load opens a fresh connection
+        # that stays idle for the query duration; if the query runs longer
+        # than the DB's idle_in_transaction_session_timeout the connection
+        # is killed, leaving the query stuck in "running" state forever.
+        db.session.expire_on_commit = False
+        try:
+            db.session.refresh(query)
+            _ = query.database
+            db.session.commit()
+        finally:
+            db.session.expire_on_commit = True
         with event_logger.log_context(
             action="execute_sql",
             database=database,
@@ -411,13 +430,38 @@ def execute_sql_statements(  # noqa: C901
     ):
         raise SupersetDisallowedSQLFunctionException(disallowed_functions)
 
+    disallowed_tables = app.config["DISALLOWED_SQL_TABLES"].get(
+        db_engine_spec.engine,
+        set(),
+    )
+    rls_enabled = is_feature_enabled("RLS_IN_SQLLAB")
+
+    # Resolve the effective per-query schema once and share it between the
+    # denylist check and RLS injection, but only when a control below needs it.
+    # Going through the query-aware ``get_default_schema_for_query`` (rather than
+    # the static ``get_default_schema``) resolves an unqualified reference to the
+    # schema the engine actually uses at runtime -- engines without dynamic-schema
+    # support ignore the request's selected schema -- so both controls match the
+    # execution path instead of a schema that may never apply.
+    effective_schema = ""
+    if disallowed_tables or rls_enabled:
+        effective_schema = database.get_default_schema_for_query(query)
+
+    if disallowed_tables:
+        # Report only the denylisted tables actually referenced in the query,
+        # honoring schema-qualified entries (e.g. ``information_schema.tables``).
+        found_tables = parsed_script.get_disallowed_tables(
+            disallowed_tables, effective_schema
+        )
+        if found_tables:
+            raise SupersetDisallowedSQLTableException(found_tables)
+
     if parsed_script.has_mutation() and not database.allow_dml:
         raise SupersetDMLNotAllowedException()
 
-    if is_feature_enabled("RLS_IN_SQLLAB"):
-        default_schema = query.database.get_default_schema_for_query(query)
+    if rls_enabled:
         for statement in parsed_script.statements:
-            apply_rls(query.database, query.catalog, default_schema, statement)
+            apply_rls(query.database, query.catalog, effective_schema, statement)
 
     if query.select_as_cta:
         # CTAS is valid when the last statement is a SELECT, while CVAS is valid when
@@ -442,16 +486,13 @@ def execute_sql_statements(  # noqa: C901
     for statement in parsed_script.statements:
         apply_limit(query, statement)
 
-    # some databases (like BigQuery and Kusto) do not persist state across mmultiple
-    # statements if they're run separately (especially when using `NullPool`), so we run
-    # the query as a single block.
-    if db_engine_spec.run_multiple_statements_as_one:
-        blocks = [parsed_script.format(comments=db_engine_spec.allows_sql_comments)]
-    else:
-        blocks = [
-            statement.format(comments=db_engine_spec.allows_sql_comments)
-            for statement in parsed_script.statements
-        ]
+    # Build the execution blocks, applying `SQL_QUERY_MUTATOR` per
+    # `MUTATE_AFTER_SPLIT` (shared with the async path in `celery_task` so the
+    # `run_multiple_statements_as_one` × `MUTATE_AFTER_SPLIT` matrix behaves
+    # identically in both).
+    parsed_script, blocks = build_statement_blocks(
+        parsed_script, db_engine_spec, database
+    )
 
     with database.get_raw_connection(
         catalog=query.catalog,
@@ -485,8 +526,15 @@ def execute_sql_statements(  # noqa: C901
             query.set_extra_json_key("progress", msg)
             db.session.commit()
 
-            # Hook to allow environment-specific mutation (usually comments) to the SQL
-            query.executed_sql = database.mutate_sql_based_on_config(block)
+            # Hook to allow environment-specific mutation (usually comments) to the SQL.
+            # `is_split` reflects whether this block is an individual statement: when
+            # the engine runs everything as one block the SQL is not split, otherwise
+            # each block is a single split-out statement. This lets `MUTATE_AFTER_SPLIT`
+            # decide correctly whether the mutator fires here.
+            query.executed_sql = database.mutate_sql_based_on_config(
+                block,
+                is_split=not db_engine_spec.run_multiple_statements_as_one,
+            )
 
             try:
                 result_set = execute_query(query, cursor, log_params)

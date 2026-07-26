@@ -27,12 +27,7 @@ import type {
 export type OnClickHandler = MouseEventHandler<HTMLElement>;
 
 export type LabelType =
-  | 'success'
-  | 'warning'
-  | 'error'
-  | 'info'
-  | 'default'
-  | 'primary';
+  'success' | 'warning' | 'error' | 'info' | 'default' | 'primary';
 
 export interface LabelProps extends HTMLAttributes<HTMLSpanElement> {
   key?: string;

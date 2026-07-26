@@ -27,7 +27,7 @@ from sqlalchemy import types
 from sqlalchemy.engine.reflection import Inspector
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.errors import SupersetErrorType
 
 if TYPE_CHECKING:
@@ -43,6 +43,19 @@ class SqliteEngineSpec(BaseEngineSpec):
 
     disable_ssh_tunneling = True
     supports_multivalues_insert = True
+
+    metadata = {
+        "description": "SQLite is a self-contained, serverless SQL database engine.",
+        "logo": "sqlite.png",
+        "homepage_url": "https://www.sqlite.org/",
+        "categories": [
+            DatabaseCategory.TRADITIONAL_RDBMS,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
+        "pypi_packages": [],
+        "connection_string": "sqlite:///path/to/file.db?check_same_thread=false",
+        "notes": "No additional library needed. SQLite is bundled with Python.",
+    }
 
     _time_grain_expressions = {
         None: "{col}",
