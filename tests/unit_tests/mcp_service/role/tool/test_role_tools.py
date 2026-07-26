@@ -17,6 +17,7 @@
 
 """Unit tests for list_roles and get_role_info MCP tools."""
 
+from types import SimpleNamespace
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -101,6 +102,31 @@ async def test_list_roles_basic(mock_list, mcp_server):
     assert len(data["roles"]) == 1
     assert data["roles"][0]["id"] == 1
     assert "Admin" in data["roles"][0]["name"]
+
+
+@patch("superset.daos.role.RoleDAO.list")
+@pytest.mark.asyncio
+async def test_list_roles_does_not_read_role_permissions(mock_list, mcp_server):
+    """list_roles should avoid permissions traversal to prevent N+1 loading."""
+
+    class RoleWithExplodingPermissions:
+        id = 1
+        name = "Admin"
+
+        @property
+        def permissions(self) -> list[object]:
+            raise AssertionError("list_roles should not read role permissions")
+
+    mock_list.return_value = ([RoleWithExplodingPermissions()], 1)
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool("list_roles", {})
+
+    data = json.loads(result.content[0].text)
+    assert data["roles"] is not None
+    assert len(data["roles"]) == 1
+    assert data["roles"][0]["id"] == 1
+    assert "permissions" not in data["roles"][0]
 
 
 @patch("superset.daos.role.RoleDAO.list")
@@ -270,6 +296,29 @@ async def test_get_role_info_returns_id_name_and_permissions(mock_find, mcp_serv
     assert "Gamma" in data["name"]
     assert len(data["permissions"]) == 1
     assert "can_read on Chart" in data["permissions"][0]
+
+
+@patch("superset.daos.role.RoleDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_get_role_info_serializes_permission_view_permissions(
+    mock_find, mcp_server
+):
+    """get_role_info serializes FAB PermissionView objects as strings."""
+    permission_view = SimpleNamespace(
+        permission=SimpleNamespace(name="can_read"),
+        view_menu=SimpleNamespace(name="Dashboard"),
+    )
+    role = SimpleNamespace(id=6, name="Gamma", permissions=[permission_view])
+    mock_find.return_value = role
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool("get_role_info", {"request": {"identifier": 6}})
+
+    data = json.loads(result.content[0].text)
+    assert data["id"] == 6
+    assert "Gamma" in data["name"]
+    assert len(data["permissions"]) == 1
+    assert "can_read on Dashboard" in data["permissions"][0]
 
 
 @patch("superset.daos.role.RoleDAO.find_by_id")

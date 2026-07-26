@@ -18,7 +18,12 @@
  */
 
 import { type ReactNode } from 'react';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import {
+  OSM_TILE_ATTRIBUTION,
+  OSM_TILE_STYLE_URL,
+} from '@superset-ui/core/utils/mapStyles';
 
 // Capture the most recent viewport props passed to the Map component
 let lastMapProps: Record<string, unknown> = {};
@@ -91,6 +96,7 @@ const defaultProps = {
 
 beforeEach(() => {
   lastMapProps = {};
+  document.body.innerHTML = '';
   jest.clearAllMocks();
   mockFitBounds.mockImplementation(
     (
@@ -181,6 +187,65 @@ test('passes globalOpacity to ScatterPlotOverlay', () => {
   const overlay = container.querySelector('[data-testid="scatter-overlay"]');
   expect(overlay).not.toBeNull();
   expect(overlay!.getAttribute('data-opacity')).toBe('0.5');
+});
+
+test('converts OSM raster tile templates into MapLibre style objects', () => {
+  render(<MapLibre {...defaultProps} mapStyle={OSM_TILE_STYLE_URL} />);
+
+  expect(lastMapProps.mapStyle).toEqual({
+    version: 8,
+    sources: {
+      'osm-raster-tiles': {
+        type: 'raster',
+        tiles: [OSM_TILE_STYLE_URL],
+        tileSize: 256,
+        attribution: OSM_TILE_ATTRIBUTION,
+      },
+    },
+    layers: [
+      {
+        id: 'osm-raster-layer',
+        type: 'raster',
+        source: 'osm-raster-tiles',
+        minzoom: 0,
+        maxzoom: 22,
+      },
+    ],
+  });
+});
+
+test('keeps the missing Mapbox key signal for saved Mapbox charts', () => {
+  render(
+    <MapLibre
+      {...defaultProps}
+      mapProvider="mapbox"
+      mapStyle="mapbox://styles/mapbox/dark-v11"
+    />,
+  );
+
+  expect(
+    screen.getByText(
+      'Mapbox requires a MAPBOX_API_KEY to be configured on the server.',
+    ),
+  ).toBeInTheDocument();
+  expect(lastMapProps.mapStyle).toBeUndefined();
+});
+
+test('passes Mapbox styles through when a key exists', () => {
+  document.body.innerHTML = `<div id="app" data-bootstrap='${JSON.stringify({
+    common: { conf: { MAPBOX_API_KEY: 'pk.test' } },
+  })}'></div>`;
+
+  render(
+    <MapLibre
+      {...defaultProps}
+      mapProvider="mapbox"
+      mapStyle="mapbox://styles/mapbox/dark-v11"
+    />,
+  );
+
+  expect(lastMapProps.mapStyle).toBe('mapbox://styles/mapbox/dark-v11');
+  expect(lastMapProps.mapboxAccessToken).toBe('pk.test');
 });
 
 test('handles undefined bounds gracefully', () => {

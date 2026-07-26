@@ -14,12 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
 from flask_appbuilder import Model
 from jinja2.exceptions import TemplateError
 from pytest_mock import MockerFixture
+from sqlalchemy.dialects import sqlite
 
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -29,7 +31,9 @@ from superset.exceptions import (
     SupersetTemplateException,
 )
 from superset.models import sql_lab as sql_lab_module
+from superset.models.core import Database
 from superset.models.sql_lab import Query, SavedQuery
+from superset.superset_typing import AdhocColumn
 
 
 @pytest.mark.parametrize(
@@ -133,3 +137,96 @@ def test_sql_tables_mixin_invalid_sql_returns_empty_list(
         else klass(database=MagicMock())
     )
     assert instance.sql_tables == []
+
+
+def _query_with_column(column: dict[str, Any]) -> Query:
+    """Build an unsaved-dataset ``Query`` exposing a single result column."""
+    query = Query(
+        database=Database(database_name="db", sqlalchemy_uri="sqlite://"),
+        database_id=1,
+        sql="SELECT ds FROM t",
+    )
+    query.extra = {"columns": [column]}
+    return query
+
+
+def _compile(column_element) -> str:
+    return str(
+        column_element.compile(
+            dialect=sqlite.dialect(),
+            compile_kwargs={"literal_binds": True},
+        )
+    )
+
+
+def test_adhoc_column_to_sqla_applies_time_grain_for_unsaved_dataset() -> None:
+    """
+    Selecting a time grain on a chart backed by an unsaved SQL Lab query must
+    wrap the temporal column in the engine's time-grain expression.
+
+    Regression test for issue #38529: the ``Query`` datasource previously
+    emitted the raw column without applying the requested grain because the
+    temporal metadata from the query result columns was never consulted.
+    """
+    query = _query_with_column(
+        {"column_name": "ds", "is_dttm": True, "type": "TIMESTAMP"}
+    )
+
+    col: AdhocColumn = {
+        "sqlExpression": "ds",
+        "label": "ds",
+        "isColumnReference": True,
+        "timeGrain": "P1D",
+        "columnType": "BASE_AXIS",
+    }
+
+    result, _ = query.adhoc_column_to_sqla(col)
+
+    # SQLite's P1D (DAY) grain wraps the column in ``DATETIME(..., 'start of day')``.
+    compiled = _compile(result)
+    assert "DATETIME" in compiled
+    assert "start of day" in compiled
+    assert "ds" in compiled
+
+
+def test_adhoc_column_to_sqla_skips_time_grain_without_base_axis() -> None:
+    """
+    The grain must only be applied for the base axis column; a temporal column
+    with a ``timeGrain`` but no ``BASE_AXIS`` type is emitted as the raw column.
+    """
+    query = _query_with_column(
+        {"column_name": "ds", "is_dttm": True, "type": "TIMESTAMP"}
+    )
+
+    col: AdhocColumn = {
+        "sqlExpression": "ds",
+        "label": "ds",
+        "isColumnReference": True,
+        "timeGrain": "P1D",
+    }
+
+    result, _ = query.adhoc_column_to_sqla(col)
+
+    assert "start of day" not in _compile(result)
+
+
+def test_adhoc_column_to_sqla_skips_time_grain_for_non_temporal_column() -> None:
+    """
+    A non-temporal column must not be wrapped in a time-grain expression even
+    when a ``timeGrain`` is requested for the base axis.
+    """
+    query = _query_with_column(
+        {"column_name": "ds", "is_dttm": False, "type": "VARCHAR"}
+    )
+
+    col: AdhocColumn = {
+        "sqlExpression": "ds",
+        "label": "ds",
+        "isColumnReference": True,
+        "timeGrain": "P1D",
+        "columnType": "BASE_AXIS",
+    }
+
+    result, _ = query.adhoc_column_to_sqla(col)
+
+    assert "start of day" not in _compile(result)

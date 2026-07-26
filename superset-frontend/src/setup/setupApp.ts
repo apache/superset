@@ -22,6 +22,7 @@ import {
   SupersetClient,
   getClientErrorObject,
   ClientErrorObject,
+  sanitizeHtml,
 } from '@superset-ui/core';
 import setupErrorMessages from 'src/setup/setupErrorMessages';
 
@@ -41,7 +42,7 @@ function showApiMessage(resp: ClientErrorObject) {
   const severity = resp.severity || 'info';
   $(template)
     .addClass(`alert-${severity}`)
-    .append(resp.message || '')
+    .append(sanitizeHtml(resp.message || ''))
     .appendTo($('#alert-container'));
 }
 

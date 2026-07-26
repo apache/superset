@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 import re
+import warnings
 from re import Pattern
 from typing import Any
 
@@ -32,6 +33,23 @@ from superset.models.core import Database
 from superset.models.sql_lab import Query
 from superset.sql.parse import Table
 from superset.utils import json
+
+# sqlalchemy-redshift's own __init__ still imports pkg_resources (#36082);
+# the pinned range (see pyproject.toml) can't move to the pkg_resources-free
+# 1.0.0 release without SQLAlchemy 2.0 (apache/superset#39750 was closed for
+# this reason). Database._get_sqla_engine() (superset/models/core.py) always
+# reads self.db_engine_spec -- which imports every db_engine_specs module,
+# including this one, via load_engine_specs() -- before it calls
+# create_engine(), which is what triggers SQLAlchemy's lazy "redshift://"
+# dialect entry-point loading that actually imports sqlalchemy_redshift. So
+# by the time that import happens, this filter is already registered.
+# Setuptools 80.x (pinned in requirements/base.txt) raises this as a plain
+# UserWarning, not DeprecationWarning -- don't add category=DeprecationWarning
+# here, it would silently stop matching.
+warnings.filterwarnings(
+    "ignore",
+    message=r"pkg_resources is deprecated as an API",
+)
 
 logger = logging.getLogger()
 
@@ -346,6 +364,11 @@ class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         :param cancel_query_id: Redshift PID
         :return: True if query cancelled successfully, False otherwise
         """
+        # Validate cancel_query_id to prevent SQL injection
+        # Redshift pg_backend_pid() returns an integer
+        if not cls.validate_cancel_query_id(cancel_query_id, r"^\d+$"):
+            return False
+
         try:
             logger.info("Killing Redshift PID:%s", str(cancel_query_id))
             cursor.execute(

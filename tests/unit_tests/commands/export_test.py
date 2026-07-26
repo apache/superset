@@ -38,7 +38,11 @@ def test_export_assets_command(mocker: MockerFixture) -> None:
     ExportDatabasesCommand.return_value.run.return_value = [
         (
             "metadata.yaml",
-            lambda: "version: 1.0.0\ntype: Database\ntimestamp: '2022-01-01T00:00:00+00:00'\n",  # noqa: E501
+            lambda: (
+                "version: 1.0.0\n"
+                "type: Database\n"
+                "timestamp: '2022-01-01T00:00:00+00:00'\n"
+            ),
         ),
         ("databases/example.yaml", lambda: "<DATABASE CONTENTS>"),
     ]
@@ -48,7 +52,11 @@ def test_export_assets_command(mocker: MockerFixture) -> None:
     ExportDatasetsCommand.return_value.run.return_value = [
         (
             "metadata.yaml",
-            lambda: "version: 1.0.0\ntype: Dataset\ntimestamp: '2022-01-01T00:00:00+00:00'\n",  # noqa: E501
+            lambda: (
+                "version: 1.0.0\n"
+                "type: Dataset\n"
+                "timestamp: '2022-01-01T00:00:00+00:00'\n"
+            ),
         ),
         ("datasets/example/dataset.yaml", lambda: "<DATASET CONTENTS>"),
     ]
@@ -58,7 +66,9 @@ def test_export_assets_command(mocker: MockerFixture) -> None:
     ExportChartsCommand.return_value.run.return_value = [
         (
             "metadata.yaml",
-            lambda: "version: 1.0.0\ntype: Slice\ntimestamp: '2022-01-01T00:00:00+00:00'\n",  # noqa: E501
+            lambda: (
+                "version: 1.0.0\ntype: Slice\ntimestamp: '2022-01-01T00:00:00+00:00'\n"
+            ),
         ),
         ("charts/pie.yaml", lambda: "<CHART CONTENTS>"),
     ]
@@ -68,7 +78,11 @@ def test_export_assets_command(mocker: MockerFixture) -> None:
     ExportDashboardsCommand.return_value.run.return_value = [
         (
             "metadata.yaml",
-            lambda: "version: 1.0.0\ntype: Dashboard\ntimestamp: '2022-01-01T00:00:00+00:00'\n",  # noqa: E501
+            lambda: (
+                "version: 1.0.0\n"
+                "type: Dashboard\n"
+                "timestamp: '2022-01-01T00:00:00+00:00'\n"
+            ),
         ),
         ("dashboards/sales.yaml", lambda: "<DASHBOARD CONTENTS>"),
     ]
@@ -78,7 +92,11 @@ def test_export_assets_command(mocker: MockerFixture) -> None:
     ExportSavedQueriesCommand.return_value.run.return_value = [
         (
             "metadata.yaml",
-            lambda: "version: 1.0.0\ntype: SavedQuery\ntimestamp: '2022-01-01T00:00:00+00:00'\n",  # noqa: E501
+            lambda: (
+                "version: 1.0.0\n"
+                "type: SavedQuery\n"
+                "timestamp: '2022-01-01T00:00:00+00:00'\n"
+            ),
         ),
         ("queries/example/metric.yaml", lambda: "<SAVED QUERY CONTENTS>"),
     ]

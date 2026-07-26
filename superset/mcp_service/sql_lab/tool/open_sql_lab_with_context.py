@@ -94,6 +94,8 @@ def open_sql_lab_with_context(
     """Generate SQL Lab URL with pre-populated sql and context.
 
     Pass the sql parameter to pre-fill the editor. Returns URL for direct navigation.
+    The URL scheme matches the configured instance URL (HTTPS in production/staging,
+    HTTP in local development).
     """
     try:
         from superset.daos.database import DatabaseDAO

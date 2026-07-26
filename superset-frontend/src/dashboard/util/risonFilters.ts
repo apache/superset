@@ -23,6 +23,7 @@ import {
   DataMaskStateWithId,
 } from '@superset-ui/core';
 import rison from 'rison';
+import { navigateWithState } from 'src/utils/navigationUtils';
 
 /**
  * Synthetic dataMask key for URL Rison filters that don't match any native
@@ -238,7 +239,17 @@ export function prettifyRisonFilterUrl(): void {
     const prettifiedUrl = `${beforeRison}${separator}f=${risonValue}${afterRison}`;
 
     if (prettifiedUrl !== currentUrl) {
-      window.history.replaceState(window.history.state, '', prettifiedUrl);
+      // Route through navigateWithState so the navigationUtils guards
+      // (`assertSafeNavigationUrl` scheme/userinfo barriers + the
+      // CodeQL-recognised inline sanitisers) apply at the
+      // `window.history.replaceState` sink. The URL constructor inside
+      // `navigateWithState` is conservative about re-encoding: sub-delims
+      // like `(`, `)`, `:`, `!` (the meaningful Rison glyphs) survive,
+      // so the prettification's visual win is preserved for every
+      // character the prettifier actually targets.
+      navigateWithState(prettifiedUrl, window.history.state ?? {}, {
+        replace: true,
+      });
     }
   } catch (error) {
     console.warn('Failed to prettify Rison URL:', error);
@@ -262,11 +273,7 @@ export function risonFiltersToString(filters: RisonFilter[]): string {
   }
 
   type RisonValue =
-    | string
-    | number
-    | boolean
-    | (string | number)[]
-    | Record<string, unknown>;
+    string | number | boolean | (string | number)[] | Record<string, unknown>;
   const risonObject: Record<string, RisonValue> = {};
   const notObject: Record<string, RisonValue> = {};
 
@@ -351,12 +358,11 @@ export function updateUrlWithUnmatchedFilters(
     // With a real `BrowserRouter`, `history.replace` would do this too — but
     // under a `createMemoryHistory` (used in tests, or in some embedded
     // contexts) it does not, and we'd leak the stale URL into the next
-    // `getRisonFilterParam()` call.
-    window.history.replaceState(
-      window.history.state,
-      '',
-      currentUrl.toString(),
-    );
+    // `getRisonFilterParam()` call. Routed through navigateWithState so the
+    // navigationUtils scheme/userinfo barriers gate the sink.
+    navigateWithState(currentUrl.toString(), window.history.state ?? {}, {
+      replace: true,
+    });
     if (history) {
       history.replace({
         pathname: currentUrl.pathname,

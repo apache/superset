@@ -19,6 +19,7 @@
 
 import Layout from '@theme/Layout';
 import { Avatar, Card, Col, Collapse, Row, Typography } from 'antd';
+import { load } from 'js-yaml';
 import BlurredSection from '../components/BlurredSection';
 import SectionHeader from '../components/SectionHeader';
 import DataSet from '../../../RESOURCES/INTHEWILD.yaml';
@@ -36,7 +37,7 @@ interface DataSetType {
   categories: Record<string, Organization[]>;
 }
 
-const typedDataSet = DataSet as DataSetType;
+const typedDataSet = load(DataSet) as DataSetType;
 
 const ContributorAvatars = ({ contributors }: { contributors?: string[] }) => {
   if (!contributors?.length) return null;

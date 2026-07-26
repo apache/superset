@@ -65,6 +65,7 @@ from tests.unit_tests.fixtures.common import dttm  # noqa: F401
         ("TINYTEXT", TINYTEXT, None, GenericDataType.STRING, False),
         ("MEDIUMTEXT", MEDIUMTEXT, None, GenericDataType.STRING, False),
         ("LONGTEXT", LONGTEXT, None, GenericDataType.STRING, False),
+        ("var_string", types.VARCHAR, None, GenericDataType.STRING, False),
         # Temporal
         ("DATE", types.Date, None, GenericDataType.TEMPORAL, True),
         ("DATETIME", types.DateTime, None, GenericDataType.TEMPORAL, True),

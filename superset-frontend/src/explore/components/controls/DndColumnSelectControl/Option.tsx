@@ -58,6 +58,7 @@ export default function Option({
             text-align: center;
           `}
           role="button"
+          tabIndex={0}
           data-test="remove-control-button"
           onClick={onClickClose}
         >

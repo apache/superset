@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { handleKeyboardActivation } from '@superset-ui/core';
 import { useMemo, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { useTheme } from '@apache-superset/core/theme';
@@ -180,6 +181,9 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
               },
             }}
             onClick={() => setShowAllColumns(!showAllColumns)}
+            onKeyDown={handleKeyboardActivation(() =>
+              setShowAllColumns(!showAllColumns),
+            )}
           >
             {showAllColumns ? (
               <>

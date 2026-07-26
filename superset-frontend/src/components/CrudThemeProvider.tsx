@@ -78,7 +78,9 @@ export default function CrudThemeProvider({
   }, [theme?.json_data, hasThemeConfigOverride]);
 
   useEffect(() => {
-    if (!dashboardTheme || !fontUrls?.length) return undefined;
+    if (hasThemeConfigOverride || !dashboardTheme || !fontUrls?.length) {
+      return undefined;
+    }
 
     // JSON.stringify provides safe escaping to prevent CSS injection
     const css = fontUrls
@@ -92,7 +94,7 @@ export default function CrudThemeProvider({
     return () => {
       style.remove();
     };
-  }, [dashboardTheme, fontUrls]);
+  }, [dashboardTheme, fontUrls, hasThemeConfigOverride]);
 
   if (!dashboardTheme || hasThemeConfigOverride) {
     return <>{children}</>;

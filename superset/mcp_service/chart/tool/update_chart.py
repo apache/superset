@@ -77,10 +77,11 @@ def _validation_error_response(message: str, details: str) -> GenerateChartRespo
 
 def _missing_config_or_name_error() -> GenerateChartResponse:
     return _validation_error_response(
-        message="Either 'config' or 'chart_name' must be provided.",
+        message="Either 'config', 'chart_name', or 'dataset_id' must be provided.",
         details=(
-            "Either 'config' or 'chart_name' must be provided. "
-            "Use config for visualization changes, chart_name for renaming."
+            "Either 'config', 'chart_name', or 'dataset_id' must be provided. "
+            "Use config for visualization changes, chart_name for renaming, "
+            "dataset_id to rebind the chart to a different dataset."
         ),
     )
 
@@ -102,12 +103,19 @@ def _build_update_payload(
     """Build the update payload for a chart update.
 
     Returns a dict payload on success, or a GenerateChartResponse error
-    when neither config nor chart_name is provided.
+    when neither config nor chart_name nor dataset_id is provided.
     ``parsed_config`` is the pre-parsed chart config from the caller.
     """
+    effective_dataset_id = (
+        request.dataset_id
+        if request.dataset_id is not None
+        else (chart.datasource_id if chart.datasource_id else None)
+    )
+
     if parsed_config is not None:
-        dataset_id = chart.datasource_id if chart.datasource_id else None
-        new_form_data = map_config_to_form_data(parsed_config, dataset_id=dataset_id)
+        new_form_data = map_config_to_form_data(
+            parsed_config, dataset_id=effective_dataset_id
+        )
         new_form_data.pop("_mcp_warnings", None)
 
         chart_name = (
@@ -116,13 +124,27 @@ def _build_update_payload(
             else chart.slice_name or generate_chart_name(parsed_config)
         )
 
-        return {
+        payload: dict[str, Any] = {
             "slice_name": chart_name,
             "viz_type": new_form_data["viz_type"],
             "params": json.dumps(new_form_data),
             # Clear stale query_context so get_chart_data uses the updated params.
             "query_context": None,
         }
+        if request.dataset_id is not None:
+            payload["datasource_id"] = request.dataset_id
+            payload["datasource_type"] = "table"
+        return payload
+
+    # Dataset-only update: rebind chart to a different dataset without changing viz
+    if request.dataset_id is not None:
+        payload = {
+            "datasource_id": request.dataset_id,
+            "datasource_type": "table",
+        }
+        if request.chart_name:
+            payload["slice_name"] = request.chart_name
+        return payload
 
     # Name-only update: keep existing visualization, just rename
     if not request.chart_name:
@@ -152,13 +174,20 @@ def _build_preview_form_data(
             )
             existing_form_data = {}
 
+    effective_dataset_id = (
+        request.dataset_id
+        if request.dataset_id is not None
+        else (chart.datasource_id if chart.datasource_id else None)
+    )
+
     if parsed_config is not None:
-        dataset_id = chart.datasource_id if chart.datasource_id else None
-        new_form_data = map_config_to_form_data(parsed_config, dataset_id=dataset_id)
+        new_form_data = map_config_to_form_data(
+            parsed_config, dataset_id=effective_dataset_id
+        )
         new_form_data.pop("_mcp_warnings", None)
         merged = {**existing_form_data, **new_form_data}
     else:
-        if not request.chart_name:
+        if not request.chart_name and request.dataset_id is None:
             return _missing_config_or_name_error()
         merged = dict(existing_form_data)
 
@@ -168,8 +197,8 @@ def _build_preview_form_data(
         merged["slice_name"] = chart.slice_name
 
     merged["slice_id"] = chart.id
-    if chart.datasource_id:
-        merged["datasource"] = f"{chart.datasource_id}__table"
+    if effective_dataset_id:
+        merged["datasource"] = f"{effective_dataset_id}__table"
 
     return merged
 
@@ -178,27 +207,39 @@ def _validate_update_against_dataset(
     parsed_config: Any,
     form_data: dict[str, Any],
     chart: Any,
+    dataset_id: int | None = None,
+    run_compile_check: bool = True,
 ) -> GenerateChartResponse | None:
     """Run Tier 1 (schema) + Tier 2 (compile) validation against the chart's
     dataset. Returns ``None`` on success, or a :class:`GenerateChartResponse`
     error envelope on failure that callers should return as-is.
+
+    When ``dataset_id`` is provided, validates against that dataset instead of
+    the chart's existing datasource (used when rebinding to a new dataset).
+    Pass ``run_compile_check=False`` to skip the Tier 2 live-query check (used
+    for dataset-only rebinds where no new chart config is provided).
     """
     from superset.daos.dataset import DatasetDAO
 
-    dataset = getattr(chart, "datasource", None)
-    if dataset is None and getattr(chart, "datasource_id", None) is not None:
-        dataset = DatasetDAO.find_by_id(chart.datasource_id)
+    if dataset_id is not None:
+        dataset = DatasetDAO.find_by_id(dataset_id)
+    else:
+        dataset = getattr(chart, "datasource", None)
+        if dataset is None and getattr(chart, "datasource_id", None) is not None:
+            dataset = DatasetDAO.find_by_id(chart.datasource_id)
     if dataset is None:
+        missing_id = (
+            dataset_id
+            if dataset_id is not None
+            else getattr(chart, "datasource_id", None)
+        )
         return GenerateChartResponse.model_validate(
             {
                 "chart": None,
                 "error": {
                     "error_type": "DatasetNotAccessible",
-                    "message": "Chart's dataset is not accessible",
-                    "details": (
-                        f"Dataset {getattr(chart, 'datasource_id', None)} "
-                        "is missing or inaccessible."
-                    ),
+                    "message": "Dataset is not accessible",
+                    "details": (f"Dataset {missing_id} is missing or inaccessible."),
                 },
                 "success": False,
                 "schema_version": "2.0",
@@ -207,7 +248,7 @@ def _validate_update_against_dataset(
         )
 
     compile_result = validate_and_compile(
-        parsed_config, form_data, dataset, run_compile_check=True
+        parsed_config, form_data, dataset, run_compile_check=run_compile_check
     )
     if compile_result.success:
         return None
@@ -239,12 +280,18 @@ def _validate_update_against_dataset(
 
 
 def _create_preview_url(
-    chart: Any, form_data: dict[str, Any]
+    chart: Any,
+    form_data: dict[str, Any],
+    datasource_id: int | None = None,
 ) -> tuple[str, str | None, list[str]]:
     """Cache form_data and return (explore_url, form_data_key, warnings).
 
     The URL includes both ``slice_id`` and ``form_data_key`` so that when the
     user clicks Save in Explore, the edits overwrite the original chart.
+
+    When ``datasource_id`` is provided, uses that datasource for the form_data
+    cache instead of the chart's existing datasource (used when rebinding to a
+    new dataset).
     """
     from superset.commands.explore.form_data.parameters import CommandParameters
     from superset.mcp_service.commands.create_form_data import MCPCreateFormDataCommand
@@ -252,7 +299,11 @@ def _create_preview_url(
 
     base_url = get_superset_base_url()
 
-    if not chart.datasource_id:
+    effective_datasource_id = (
+        datasource_id if datasource_id is not None else chart.datasource_id
+    )
+
+    if not effective_datasource_id:
         warning = (
             "Chart has no datasource; the preview URL shows the saved chart "
             "state, not the pending changes. Open the URL and apply the "
@@ -267,7 +318,7 @@ def _create_preview_url(
 
     cmd_params = CommandParameters(
         datasource_type=DatasourceType.TABLE,
-        datasource_id=chart.datasource_id,
+        datasource_id=effective_datasource_id,
         chart_id=chart.id,
         tab_id=None,
         form_data=json.dumps(form_data),
@@ -420,6 +471,31 @@ async def update_chart(  # noqa: C901
         # config is already a typed ChartConfig | None (validated by Pydantic)
         parsed_config = request.config
 
+        # Normalize column case to match dataset canonical names
+        # (mirrors generate_chart pipeline layer 4)
+        # When rebinding to a new dataset, normalize against the target dataset —
+        # not the chart's current datasource — so canonical names are resolved
+        # against the schema that will actually be used after the update.
+        effective_norm_dataset_id = (
+            request.dataset_id
+            if request.dataset_id is not None
+            else getattr(chart, "datasource_id", None)
+        )
+        if parsed_config is not None and effective_norm_dataset_id is not None:
+            from superset.mcp_service.chart.validation.dataset_validator import (
+                DatasetValidator,
+                NORMALIZATION_EXCEPTIONS,
+            )
+
+            try:
+                parsed_config = DatasetValidator.normalize_column_names(
+                    parsed_config, effective_norm_dataset_id
+                )
+            except NORMALIZATION_EXCEPTIONS as e:
+                logger.warning(
+                    "Column normalization failed for chart %s: %s", chart.id, e
+                )
+
         if not request.generate_preview:
             from superset.commands.chart.update import UpdateChartCommand
 
@@ -433,12 +509,29 @@ async def update_chart(  # noqa: C901
 
             # Validate before persisting — catches bad column refs and runtime
             # SQL errors so we don't commit a chart that can't be queried.
-            # Renames (no parsed_config) skip validation since form_data is
-            # untouched.
+            # Renames (no parsed_config and no dataset_id) skip validation since
+            # form_data is untouched and no rebind is requested.
             if parsed_config is not None and new_form_data is not None:
                 with event_logger.log_context(action="mcp.update_chart.validation"):
                     validation_error = _validate_update_against_dataset(
-                        parsed_config, new_form_data, chart
+                        parsed_config,
+                        new_form_data,
+                        chart,
+                        dataset_id=request.dataset_id,
+                    )
+                if validation_error is not None:
+                    return validation_error
+            elif request.dataset_id is not None:
+                # Dataset-only rebind: verify the target dataset exists before
+                # writing. Skip compile check — there is no new chart config to
+                # execute against the new dataset.
+                with event_logger.log_context(action="mcp.update_chart.validation"):
+                    validation_error = _validate_update_against_dataset(
+                        None,
+                        {},
+                        chart,
+                        dataset_id=request.dataset_id,
+                        run_compile_check=False,
                     )
                 if validation_error is not None:
                     return validation_error
@@ -459,14 +552,30 @@ async def update_chart(  # noqa: C901
             if parsed_config is not None:
                 with event_logger.log_context(action="mcp.update_chart.validation"):
                     validation_error = _validate_update_against_dataset(
-                        parsed_config, preview_or_error, chart
+                        parsed_config,
+                        preview_or_error,
+                        chart,
+                        dataset_id=request.dataset_id,
+                    )
+                if validation_error is not None:
+                    return validation_error
+            elif request.dataset_id is not None:
+                # Dataset-only rebind: verify the target dataset exists before
+                # caching. Skip compile check — no new config to execute.
+                with event_logger.log_context(action="mcp.update_chart.validation"):
+                    validation_error = _validate_update_against_dataset(
+                        None,
+                        {},
+                        chart,
+                        dataset_id=request.dataset_id,
+                        run_compile_check=False,
                     )
                 if validation_error is not None:
                     return validation_error
 
             with event_logger.log_context(action="mcp.update_chart.preview_link"):
                 explore_url, form_data_key, warnings = _create_preview_url(
-                    chart, preview_or_error
+                    chart, preview_or_error, datasource_id=request.dataset_id
                 )
 
         chart_for_analysis = updated_chart if saved else chart

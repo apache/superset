@@ -197,6 +197,7 @@ function generateCellFormData(
   // If we have metrics from the matrix, use them; otherwise keep original
   if (metrics.length > 0) {
     cellFormData.metrics = metrics;
+    cellFormData.metric = metrics[0];
   }
 
   return cellFormData;

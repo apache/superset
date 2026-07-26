@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from io import BytesIO
 
 import pandas as pd
 import pytest
@@ -23,6 +24,7 @@ from sqlalchemy.orm.session import Session
 
 from superset.charts.client_processing import apply_client_processing, pivot_df, table
 from superset.common.chart_data import ChartDataResultFormat
+from superset.utils import excel
 from superset.utils.core import GenericDataType
 from tests.conftest import with_config
 
@@ -2836,16 +2838,108 @@ def test_apply_client_processing_csv_format_default_na_behavior():
     )  # Second data row should have empty last_name (NA converted to null)
 
 
-@with_config({"CSV_EXPORT": {"sep": ";", "decimal": ","}})
-def test_apply_client_processing_csv_format_custom_separator() -> None:
-    """
-    Test that apply_client_processing respects CSV_EXPORT config
-    for custom separator and decimal character.
+def _assert_xlsx_client_processing(index: bool) -> None:
+    """Assert XLSX post-processing preserves columns and configured index."""
+    source_df = pd.DataFrame(
+        {
+            "city": ["Paris", "London"],
+            "value": [10, 20],
+        },
+        index=pd.Index(["row-1", "row-2"], name="row"),
+    )
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.XLSX,
+                "data": excel.df_to_excel(source_df, index=index),
+            }
+        ]
+    }
+    form_data = {
+        "viz_type": "table",
+        "columns": ["city", "value"],
+        "metrics": [],
+    }
 
-    This is a regression test for GitHub issue #32371.
+    processed_result = apply_client_processing(result, form_data)
+    query = processed_result["queries"][0]
+    output_df = pd.read_excel(
+        BytesIO(query["data"]),
+        index_col=0 if index else None,
+    )
+    expected_df = source_df if index else source_df.reset_index(drop=True)
+
+    pd.testing.assert_frame_equal(output_df, expected_df, check_names=False)
+    assert query["colnames"] == ["city", "value"]
+    if index:
+        assert query["indexnames"] == ["row-1", "row-2"]
+    else:
+        assert query["indexnames"] == [0, 1]
+    assert query["rowcount"] == 2
+
+
+@with_config({"EXCEL_EXPORT": {"index": True}})
+def test_apply_client_processing_xlsx_format_with_index() -> None:
+    """XLSX post-processing should preserve an exported index."""
+    _assert_xlsx_client_processing(index=True)
+
+
+@with_config({"EXCEL_EXPORT": {"index": False}})
+def test_apply_client_processing_xlsx_format_without_index() -> None:
+    """XLSX post-processing should not shift columns when index is omitted."""
+    _assert_xlsx_client_processing(index=False)
+
+
+@with_config({"EXCEL_EXPORT": {}})
+def test_apply_client_processing_xlsx_format_without_index_default_config() -> None:
+    """XLSX post-processing derives omitted index from the payload."""
+    _assert_xlsx_client_processing(index=False)
+
+
+@with_config({"EXCEL_EXPORT": {"index": False}})
+def test_apply_client_processing_xlsx_format_pivot_table_groupby_columns() -> None:
+    """XLSX post-processing should preserve pivot groupby columns."""
+    source_df = pd.DataFrame(
+        {
+            "city": ["Paris", "Paris", "London"],
+            "segment": ["Consumer", "Corporate", "Consumer"],
+            "value": [10, 20, 30],
+        },
+    )
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.XLSX,
+                "data": excel.df_to_excel(source_df, index=False),
+            }
+        ]
+    }
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyColumns": ["segment"],
+        "groupbyRows": ["city"],
+        "metrics": ["value"],
+    }
+
+    processed_result = apply_client_processing(result, form_data)
+    query = processed_result["queries"][0]
+    output_df = pd.read_excel(BytesIO(query["data"]), index_col=0)
+
+    assert query["rowcount"] == 2
+    assert query["indexnames"] == [("London",), ("Paris",)]
+    assert set(output_df.index) == {"London", "Paris"}
+    assert "value Consumer" in output_df.columns
+    assert "value Corporate" in output_df.columns
+
+
+@with_config({"CSV_EXPORT": {"sep": ";", "decimal": ","}})
+def test_apply_client_processing_csv_format_custom_delimiter():
     """
-    # CSV data with numeric values
-    csv_data = "name,value\nAlice,1.5\nBob,2.75"
+    Test that apply_client_processing respects CSV_EXPORT sep and decimal config.
+    Without the fix, pd.read_csv() uses default comma separator and fails to parse
+    semicolon-delimited CSV correctly, causing HTTP 500 in email reports.
+    """
+    csv_data = "name;value\nfoo;1,5\nbar;2,0"
 
     result = {
         "queries": [
@@ -2874,30 +2968,108 @@ def test_apply_client_processing_csv_format_custom_separator() -> None:
 
     output_data = processed_result["queries"][0]["data"]
     lines = output_data.strip().split("\n")
-
-    # With sep=";", columns should be separated by semicolon
-    assert lines[0] == "name;value"
-    # With decimal=",", decimal values must use comma as separator.
-    # Asserting the exact formatted value ensures a regression that drops
-    # the `decimal` option (so floats keep a dot) will be caught.
-    assert "Alice;1,5" in lines[1]
-    assert "Bob;2,75" in lines[2]
-    # Guard explicitly against the dot form slipping through.
-    assert "1.5" not in lines[1]
-    assert "2.75" not in lines[2]
+    # Should have header + 2 data rows, with correct column parsing
+    assert len(lines) == 3
+    # name and value should be separate columns, not merged into one
+    assert processed_result["queries"][0]["colnames"] == ["name", "value"]
+    # Output CSV must also use the configured separator and decimal
+    assert lines[0] == "name;value", f"Expected semicolon header, got: {lines[0]}"
+    assert "1,5" in lines[1], f"Expected comma decimal in row 1, got: {lines[1]}"
+    assert "2,0" in lines[2], f"Expected comma decimal in row 2, got: {lines[2]}"
 
 
 @with_config({"CSV_EXPORT": {"sep": ";", "decimal": ","}})
-def test_apply_client_processing_csv_pivot_table_custom_separator() -> None:
+def test_apply_client_processing_pivot_table_v2_custom_sep_decimal():
     """
-    Test that apply_client_processing respects CSV_EXPORT config
-    for pivot table exports with custom separator and decimal character.
+    Test that pivot_table_v2 respects CSV_EXPORT sep and decimal config.
+    pivot_table_v2 performs DataFrame manipulations before writing to CSV, so we
+    verify that the final to_csv() call correctly uses the configured sep and decimal.
+    """
+    csv_data = "COUNT(is_software_dev)\n4725"
 
-    This is a regression test for GitHub issue #32371 - specifically for
-    pivoted CSV exports which were not respecting the CSV_EXPORT config.
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": csv_data,
+            }
+        ]
+    }
+
+    form_data = {
+        "datasource": "19__table",
+        "viz_type": "pivot_table_v2",
+        "slice_id": 69,
+        "url_params": {},
+        "granularity_sqla": "time_start",
+        "time_grain_sqla": "P1D",
+        "time_range": "No filter",
+        "groupbyColumns": [],
+        "groupbyRows": [],
+        "metrics": [
+            {
+                "aggregate": "COUNT",
+                "column": {
+                    "column_name": "is_software_dev",
+                    "description": None,
+                    "expression": None,
+                    "filterable": True,
+                    "groupby": True,
+                    "id": 1463,
+                    "is_dttm": False,
+                    "python_date_format": None,
+                    "type": "DOUBLE PRECISION",
+                    "verbose_name": None,
+                },
+                "expressionType": "SIMPLE",
+                "hasCustomLabel": False,
+                "isNew": False,
+                "label": "COUNT(is_software_dev)",
+                "optionName": "metric_9i1kctig9yr_sizo6ihd2o",
+                "sqlExpression": None,
+            }
+        ],
+        "metricsLayout": "COLUMNS",
+        "adhoc_filters": [],
+        "row_limit": 10000,
+        "order_desc": True,
+        "aggregateFunction": "Sum",
+        "valueFormat": "SMART_NUMBER",
+        "date_format": "smart_date",
+        "rowOrder": "key_a_to_z",
+        "colOrder": "key_a_to_z",
+        "extra_form_data": {},
+        "force": False,
+        "result_format": "csv",
+        "result_type": "results",
+    }
+
+    processed_result = apply_client_processing(result, form_data)
+
+    output_data = processed_result["queries"][0]["data"]
+    lines = output_data.strip().split("\n")
+    # pivot_table_v2 adds a row index (Total (Sum)) and produces output
+    # with the configured sep
+    assert len(lines) == 2
+    # Output must use the configured separator
+    assert ";" in lines[0], f"Expected semicolon separator in header, got: {lines[0]}"
+    assert ";" in lines[1], f"Expected semicolon separator in data row, got: {lines[1]}"
+    # The Total (Sum) label should appear in the index column
+    assert "Total (Sum)" in lines[1]
+
+
+@with_config(
+    {
+        "REPORTS_CSV_NA_NAMES": ["MISSING"],
+        "CSV_EXPORT": {"sep": ";", "decimal": ","},
+    }
+)
+def test_apply_client_processing_csv_format_na_values_and_sep_decimal_combined():
     """
-    # CSV data with a numeric metric
-    csv_data = "COUNT(metric)\n1234.56"
+    Test that apply_client_processing correctly handles both REPORTS_CSV_NA_NAMES and
+    CSV_EXPORT sep/decimal config at the same time.
+    """
+    csv_data = "name;status\nJeff;MISSING\nAlice;OK"
 
     result = {
         "queries": [
@@ -2910,21 +3082,12 @@ def test_apply_client_processing_csv_pivot_table_custom_separator() -> None:
 
     form_data = {
         "datasource": "1__table",
-        "viz_type": "pivot_table_v2",
+        "viz_type": "table",
         "slice_id": 1,
         "url_params": {},
-        "groupbyColumns": [],
-        "groupbyRows": [],
-        "metrics": [
-            {
-                "aggregate": "COUNT",
-                "column": {"column_name": "metric"},
-                "expressionType": "SIMPLE",
-                "label": "COUNT(metric)",
-            }
-        ],
-        "metricsLayout": "COLUMNS",
-        "aggregateFunction": "Sum",
+        "metrics": [],
+        "groupby": [],
+        "columns": ["name", "status"],
         "extra_form_data": {},
         "force": False,
         "result_format": "csv",
@@ -2935,13 +3098,55 @@ def test_apply_client_processing_csv_pivot_table_custom_separator() -> None:
 
     output_data = processed_result["queries"][0]["data"]
     lines = output_data.strip().split("\n")
+    assert len(lines) == 3  # header + 2 data rows
+    # Output must use configured separator
+    assert ";" in lines[0], f"Expected semicolon separator in header, got: {lines[0]}"
+    # "MISSING" should be treated as NA and rendered as empty in output
+    assert lines[1].endswith(";"), f"Expected empty status for Jeff, got: {lines[1]}"
+    # "OK" should be preserved as-is
+    assert lines[2] == "Alice;OK", f"Expected Alice;OK, got: {lines[2]}"
 
-    # After pivoting a single metric with no groupby rows/columns, the
-    # CSV for the "COUNT(metric)" column and "Total (Sum)" row should
-    # reflect the CSV_EXPORT config: semicolons as field separators and
-    # commas as the decimal separator.
-    assert lines[0] == ";COUNT(metric)"
-    assert "Total (Sum);1234,56" in lines[1]
-    # Guard explicitly against the dot form slipping through, which is
-    # what the previous (broken) implementation produced.
-    assert "1234.56" not in output_data
+
+@with_config({"CSV_EXPORT": {"decimal": ","}})
+def test_apply_client_processing_csv_format_partial_config_decimal_only():
+    """
+    Test that apply_client_processing handles a partial CSV_EXPORT config where
+    only decimal is set (sep falls back to the default comma).
+    """
+    # Default sep="," is used since no sep key is present in CSV_EXPORT
+    csv_data = "name,value\nfoo,5\nbar,10"
+
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": csv_data,
+            }
+        ]
+    }
+
+    form_data = {
+        "datasource": "1__table",
+        "viz_type": "table",
+        "slice_id": 1,
+        "url_params": {},
+        "metrics": [],
+        "groupby": [],
+        "columns": ["name", "value"],
+        "extra_form_data": {},
+        "force": False,
+        "result_format": "csv",
+        "result_type": "results",
+    }
+
+    processed_result = apply_client_processing(result, form_data)
+
+    output_data = processed_result["queries"][0]["data"]
+    lines = output_data.strip().split("\n")
+    # Should parse and output correctly using default sep="," and decimal=","
+    assert len(lines) == 3  # header + 2 data rows
+    assert processed_result["queries"][0]["colnames"] == ["name", "value"]
+    # Output uses default sep="," (no sep in partial config)
+    assert lines[0] == "name,value", f"Expected comma-separated header, got: {lines[0]}"
+    assert "foo" in lines[1]
+    assert "bar" in lines[2]

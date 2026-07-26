@@ -780,4 +780,75 @@ describe('SupersetClientClass', () => {
       expect(authSpy).toHaveBeenCalledTimes(0);
     });
   });
+
+  describe('.postBlob()', () => {
+    const protocol = 'https:';
+    const host = 'host';
+    const mockPostBlobEndpoint = '/api/v1/chart/data';
+    const mockPostBlobUrl = `${protocol}//${host}${mockPostBlobEndpoint}`;
+    const postBlobPayload = { form_data: '{"viz_type":"table"}' };
+
+    let authSpy: jest.SpyInstance;
+    let client: SupersetClientClass;
+
+    beforeEach(async () => {
+      fetchMock.removeRoute(LOGIN_GLOB);
+      fetchMock.get(LOGIN_GLOB, { result: 1234 }, { name: LOGIN_GLOB });
+
+      client = new SupersetClientClass({ protocol, host });
+      await client.init();
+      authSpy = jest.spyOn(SupersetClientClass.prototype, 'ensureAuth');
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    test('calls ensureAuth and delegates to post with raw parseMethod', async () => {
+      const mockResponse = new Response('csv data', { status: 200 });
+      const postSpy = jest
+        .spyOn(client, 'post')
+        .mockResolvedValue(mockResponse);
+
+      const response = await client.postBlob(
+        mockPostBlobEndpoint,
+        postBlobPayload,
+      );
+
+      expect(authSpy).toHaveBeenCalledTimes(1);
+      expect(postSpy).toHaveBeenCalledWith({
+        endpoint: mockPostBlobEndpoint,
+        postPayload: postBlobPayload,
+        parseMethod: 'raw',
+        stringify: false,
+      });
+      expect(response).toBe(mockResponse);
+    });
+
+    test('passes payload in request body', async () => {
+      fetchMock.post(mockPostBlobUrl, {
+        status: 200,
+        body: 'csv data',
+      });
+
+      await client.postBlob(mockPostBlobEndpoint, postBlobPayload);
+
+      const fetchRequest = fetchMock.callHistory.calls(mockPostBlobUrl)[0]
+        .options as CallApi;
+      const formData = fetchRequest.body as FormData;
+
+      expect(formData.get('form_data')).toBe(postBlobPayload.form_data);
+    });
+
+    test('rejects when response is not ok', async () => {
+      fetchMock.post(mockPostBlobUrl, {
+        status: 413,
+        body: 'Payload Too Large',
+      });
+
+      await expect(
+        client.postBlob(mockPostBlobEndpoint, postBlobPayload),
+      ).rejects.toMatchObject({ status: 413 });
+    });
+  });
 });

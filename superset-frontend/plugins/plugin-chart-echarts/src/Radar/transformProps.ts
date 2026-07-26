@@ -126,7 +126,7 @@ export default function transformProps(
     ...DEFAULT_RADAR_FORM_DATA,
     ...formData,
   };
-  const { setDataMask = () => {}, onContextMenu } = hooks;
+  const { setDataMask = () => {}, onContextMenu } = hooks ?? {};
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(numberFormat);
   const denormalizedSeriesValues: SeriesNormalizedMap = {};
@@ -140,7 +140,7 @@ export default function transformProps(
 
   const metricLabels = metrics.map(getMetricLabel);
 
-  const metricsWithCustomBounds = new Set(
+  const metricsWithCustomBounds = new Set<string>(
     metricLabels.filter(metricLabel => {
       const config = columnConfig?.[metricLabel];
       const hasMax = !!isDefined(config?.radarMetricMaxValue);
@@ -331,10 +331,16 @@ export default function transformProps(
     type: legendType,
   });
 
+  const chartPadding = getChartPadding(
+    showLegend,
+    legendOrientation,
+    effectiveLegendMargin,
+  );
+
   const series: RadarSeriesOption[] = [
     {
       type: 'radar',
-      ...getChartPadding(showLegend, legendOrientation, effectiveLegendMargin),
+      ...chartPadding,
       animation: false,
       emphasis: {
         label: {
@@ -358,7 +364,17 @@ export default function transformProps(
       metricLabels,
       getDenormalizedSeriesValue,
       metricsWithCustomBounds,
+      numberFormatter,
     );
+
+  const centerX = width
+    ? ((width + chartPadding.left - chartPadding.right) / 2 / width) * 100
+    : 50;
+  const centerY = height
+    ? ((height + chartPadding.top - chartPadding.bottom) / 2 / height) * 100
+    : 50;
+
+  const radarCenter: [string, string] = [`${centerX}%`, `${centerY}%`];
 
   const echartOptions: EChartsCoreOption = {
     grid: {
@@ -389,6 +405,7 @@ export default function transformProps(
           color: theme.colorSplit,
         },
       },
+      center: radarCenter,
       splitArea: {
         show: true,
         areaStyle: {

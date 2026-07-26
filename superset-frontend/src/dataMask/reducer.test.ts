@@ -121,6 +121,38 @@ test('when user edits a filter without changing targets, their selection is pres
   );
 });
 
+test('when a required range filter was cleared to [null, null], modifying it applies the new default instead of the cleared state', () => {
+  // Regression for the PR #40470 review: [null, null] is a range filter's
+  // canonical "cleared" value. It must count as "no value" so the empty state
+  // does not wipe a newly-defined default — consistent with `loadedHasValue`
+  // in fillNativeFilters.
+  const initialState: DataMaskStateWithId = {
+    'NATIVE_FILTER-1': {
+      id: 'NATIVE_FILTER-1',
+      ...getInitialDataMask('NATIVE_FILTER-1'),
+      filterState: { value: [null, null] },
+    },
+  };
+
+  const oldFilters = {
+    'NATIVE_FILTER-1': createFilter('NATIVE_FILTER-1', 'col_a', {
+      enableEmptyFilter: true,
+    }),
+  };
+
+  const modifiedFilter: Filter = {
+    ...createFilter('NATIVE_FILTER-1', 'col_a', { enableEmptyFilter: true }),
+    defaultDataMask: { filterState: { value: [10, 20] } },
+  };
+
+  const action = createModifyAction(modifiedFilter, oldFilters);
+
+  const result = reducer(initialState, action);
+
+  // The cleared [null, null] state must not be preserved; the new default wins.
+  expect(result['NATIVE_FILTER-1']?.filterState?.value).toEqual([10, 20]);
+});
+
 // Runtime data from the server can contain null entries in
 // chart_customization_config even though the TS type does not include | null
 // yet. These helpers build HYDRATE_DASHBOARD actions that mirror that reality.

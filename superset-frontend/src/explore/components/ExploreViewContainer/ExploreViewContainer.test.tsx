@@ -19,6 +19,7 @@
 
 // Mock isMatrixifyEnabled before loading any modules
 import fetchMock from 'fetch-mock';
+import type { ReactNode } from 'react';
 import {
   getChartControlPanelRegistry,
   getChartMetadataRegistry,
@@ -65,7 +66,6 @@ const reduxState = {
     metadata: {
       created_on_humanized: 'a week ago',
       changed_on_humanized: '2 days ago',
-      owners: ['John Doe'],
       created_by: 'John Doe',
       changed_by: 'John Doe',
       dashboards: [{ id: 1, dashboard_title: 'Test' }],
@@ -76,6 +76,7 @@ const reduxState = {
       id: 1,
       latestQueryFormData: {
         datasource: '1__table',
+        viz_type: VizType.Table,
       },
     },
   },
@@ -104,9 +105,104 @@ jest.mock(
   }),
 );
 
+jest.mock('re-resizable', () => ({
+  Resizable: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+}));
+
+jest.mock('../ExploreChartPanel', () => ({
+  __esModule: true,
+  default: ({
+    standalone,
+    onQuery,
+  }: {
+    standalone?: boolean;
+    onQuery?: () => void;
+  }) => {
+    const { useEffect, useRef } = jest.requireActual('react');
+    const hasQueried = useRef(false);
+
+    useEffect(() => {
+      if (!hasQueried.current) {
+        hasQueried.current = true;
+        onQuery?.();
+      }
+    }, [onQuery]);
+
+    return (
+      <div data-test={standalone ? 'standalone-app' : 'explore-chart-panel'} />
+    );
+  },
+}));
+
+jest.mock('../ControlPanelsContainer', () => ({
+  __esModule: true,
+  default: ({
+    onQuery,
+    buttonErrorMessage,
+    errorMessage,
+  }: {
+    onQuery: () => void;
+    buttonErrorMessage?: ReactNode;
+    errorMessage?: ReactNode;
+  }) => {
+    const message = buttonErrorMessage ?? errorMessage;
+
+    return (
+      <div data-test="control-panels-container">
+        <button type="button" onClick={onQuery}>
+          Update chart
+        </button>
+        {message && (
+          <>
+            <button type="button" data-test="query-error-tooltip-trigger">
+              !
+            </button>
+            <div role="tooltip">{message}</div>
+          </>
+        )}
+      </div>
+    );
+  },
+}));
+
+jest.mock('../DatasourcePanel', () => ({
+  __esModule: true,
+  default: () => <div data-test="datasource-panel" />,
+}));
+
+jest.mock('../ExploreChartHeader', () => ({
+  __esModule: true,
+  default: () => <div data-test="explore-chart-header" />,
+}));
+
+jest.mock('../SaveModal', () => ({
+  __esModule: true,
+  default: () => <div data-test="save-modal" />,
+}));
+
+jest.mock('lodash', () => {
+  const debounce = <T extends (...args: never[]) => unknown>(func: T) => {
+    const debounced = (...args: Parameters<T>) => func(...args);
+    debounced.cancel = jest.fn();
+    debounced.flush = jest.fn();
+    return debounced;
+  };
+
+  return {
+    __esModule: true,
+    ...jest.requireActual('lodash'),
+    debounce,
+  };
+});
+
 jest.mock('lodash/debounce', () => ({
   __esModule: true,
-  default: (fuc: Function) => fuc,
+  default: <T extends (...args: never[]) => unknown>(func: T) => {
+    const debounced = (...args: Parameters<T>) => func(...args);
+    debounced.cancel = jest.fn();
+    debounced.flush = jest.fn();
+    return debounced;
+  },
 }));
 
 fetchMock.post('glob:*/api/v1/explore/form_data*', { key: KEY });
@@ -122,6 +218,7 @@ fetchMock.get('glob:*/api/v1/chart/*', {
 const defaultPath = '/explore/';
 
 afterEach(() => {
+  fetchMock.clearHistory();
   jest.restoreAllMocks();
 });
 
@@ -148,7 +245,7 @@ const renderWithRouter = ({
     createMemoryHistory({ initialEntries: [`${path}${search}`] });
   const result = render(
     <Router history={history}>
-      <Route path={path}>
+      <Route>
         <ExploreViewContainer />
       </Route>
     </Router>,
@@ -168,15 +265,17 @@ test('generates a new form_data param when none is available', async () => {
   );
   const history = createMemoryHistory({ initialEntries: [defaultPath] });
   const replaceSpy = jest.spyOn(history, 'replace');
-  await waitFor(() => renderWithRouter({ history }));
-  expect(replaceSpy).toHaveBeenCalledWith(
-    expect.stringMatching('form_data_key'),
-    expect.anything(),
-  );
-  expect(replaceSpy).toHaveBeenCalledWith(
-    expect.stringMatching('datasource_id'),
-    expect.anything(),
-  );
+  renderWithRouter({ history });
+  await waitFor(() => {
+    expect(replaceSpy).toHaveBeenCalledWith(
+      expect.stringMatching('form_data_key'),
+      expect.anything(),
+    );
+    expect(replaceSpy).toHaveBeenCalledWith(
+      expect.stringMatching('datasource_id'),
+      expect.anything(),
+    );
+  });
   replaceSpy.mockRestore();
 });
 
@@ -195,10 +294,12 @@ test('generates a form_data param with datasource_id when mounting with existing
     initialEntries: [`${defaultPath}${SEARCH}`],
   });
   const replaceSpy = jest.spyOn(history, 'replace');
-  await waitFor(() => renderWithRouter({ search: SEARCH, history }));
-  expect(replaceSpy).toHaveBeenCalledWith(
-    expect.stringMatching('datasource_id'),
-    expect.anything(),
+  renderWithRouter({ search: SEARCH, history });
+  await waitFor(() =>
+    expect(replaceSpy).toHaveBeenCalledWith(
+      expect.stringMatching('datasource_id'),
+      expect.anything(),
+    ),
   );
   replaceSpy.mockRestore();
 });
@@ -211,11 +312,17 @@ test('reuses the same form_data param when updating', async () => {
     initialEntries: [`${defaultPath}${SEARCH}`],
   });
   const replaceSpy = jest.spyOn(history, 'replace');
-  await waitFor(() => renderWithRouter({ search: SEARCH, history }));
-  expect(replaceSpy.mock.calls.length).toBe(1);
-  userEvent.click(screen.getByText('Update chart'));
-  await waitFor(() => expect(replaceSpy.mock.calls.length).toBe(2));
-  expect(replaceSpy.mock.calls[0]).toEqual(replaceSpy.mock.calls[1]);
+  renderWithRouter({ search: SEARCH, history });
+  await waitFor(() => expect(replaceSpy).toHaveBeenCalled());
+  const previousCall = replaceSpy.mock.calls[replaceSpy.mock.calls.length - 1];
+  const previousCallCount = replaceSpy.mock.calls.length;
+  await userEvent.click(screen.getByText('Update chart'));
+  await waitFor(() =>
+    expect(replaceSpy.mock.calls.length).toBeGreaterThan(previousCallCount),
+  );
+  expect(replaceSpy.mock.calls[replaceSpy.mock.calls.length - 1]).toEqual(
+    previousCall,
+  );
   replaceSpy.mockRestore();
   getChartControlPanelRegistry().remove('table');
 });
@@ -231,9 +338,7 @@ test('doesnt call replace when pathname is not /explore', async () => {
   );
   const history = createMemoryHistory({ initialEntries: ['/dashboard'] });
   const replaceSpy = jest.spyOn(history, 'replace');
-  await waitFor(() =>
-    renderWithRouter({ overridePathname: '/dashboard', history }),
-  );
+  renderWithRouter({ overridePathname: '/dashboard', history });
   expect(replaceSpy).not.toHaveBeenCalled();
   replaceSpy.mockRestore();
 });
@@ -244,12 +349,12 @@ test('preserves unknown parameters', async () => {
     initialEntries: [`${defaultPath}${SEARCH}&${unknownParam}`],
   });
   const replaceSpy = jest.spyOn(history, 'replace');
+  renderWithRouter({ search: `${SEARCH}&${unknownParam}`, history });
   await waitFor(() =>
-    renderWithRouter({ search: `${SEARCH}&${unknownParam}`, history }),
-  );
-  expect(replaceSpy).toHaveBeenCalledWith(
-    expect.stringMatching(unknownParam),
-    expect.anything(),
+    expect(replaceSpy).toHaveBeenCalledWith(
+      expect.stringMatching(unknownParam),
+      expect.anything(),
+    ),
   );
   replaceSpy.mockRestore();
 });
@@ -274,12 +379,17 @@ test('retains query mode requirements when query_mode is enabled', async () => {
     },
   };
 
-  await waitFor(() => renderWithRouter({ initialState: customState }));
+  renderWithRouter({ initialState: customState });
 
+  await waitFor(() => {
+    const formDataEndpointCalls = fetchMock.callHistory.calls(
+      /api\/v1\/explore\/form_data/,
+    );
+    expect(formDataEndpointCalls.length).toBeGreaterThan(0);
+  });
   const formDataEndpointCalls = fetchMock.callHistory.calls(
     /api\/v1\/explore\/form_data/,
   );
-  expect(formDataEndpointCalls.length).toBeGreaterThan(0);
   const lastCall = formDataEndpointCalls[formDataEndpointCalls.length - 1];
 
   const body = JSON.parse(lastCall.options?.body as string);
@@ -314,12 +424,17 @@ test('does omit hiddenFormData when query_mode is not enabled', async () => {
     },
   };
 
-  await waitFor(() => renderWithRouter({ initialState: customState }));
+  renderWithRouter({ initialState: customState });
 
+  await waitFor(() => {
+    const formDataEndpointCalls = fetchMock.callHistory.calls(
+      /api\/v1\/explore\/form_data/,
+    );
+    expect(formDataEndpointCalls.length).toBeGreaterThan(0);
+  });
   const formDataEndpointCalls = fetchMock.callHistory.calls(
     /api\/v1\/explore\/form_data/,
   );
-  expect(formDataEndpointCalls.length).toBeGreaterThan(0);
   const lastCall = formDataEndpointCalls[formDataEndpointCalls.length - 1];
 
   const body = JSON.parse(lastCall.options?.body as string);

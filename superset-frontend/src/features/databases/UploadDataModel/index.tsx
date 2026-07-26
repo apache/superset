@@ -359,7 +359,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
 
   const loadSchemaOptions = useMemo(
     () =>
-      (input = '', page: number, pageSize: number) => {
+      (_input = '', _page: number, _pageSize: number) => {
         if (!currentDatabaseId) {
           return Promise.resolve({ data: [], totalCount: 0 });
         }
@@ -439,13 +439,10 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   const appendFormData = (formData: FormData, data: Record<string, any>) => {
     const allFieldsNotInType = getAllFieldsNotInType();
     Object.entries(data).forEach(([key, value]) => {
-      if (
-        !(
-          allFieldsNotInType.includes(key) ||
-          (NonNullFields.includes(key) &&
-            (value === undefined || value === null))
-        )
-      ) {
+      if (!(
+        allFieldsNotInType.includes(key) ||
+        (NonNullFields.includes(key) && (value === undefined || value === null))
+      )) {
         formData.append(key, value);
       }
     });
@@ -563,7 +560,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     }
   }, [show]);
 
-  const validateUpload = (_: any, value: string) => {
+  const validateUpload = (_: any, _value: string) => {
     if (fileList.length === 0) {
       return Promise.reject(t('Uploading a file is required'));
     }
@@ -578,8 +575,11 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     return Promise.resolve();
   };
 
-  const validateDatabase = (_: any, value: string) => {
-    if (!currentDatabaseId) {
+  const validateDatabase = (
+    _: any,
+    value: { value: number; label: string } | null | undefined,
+  ) => {
+    if (!value?.value) {
       return Promise.reject(t('Selecting a database is required'));
     }
     return Promise.resolve();

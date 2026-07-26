@@ -22,7 +22,7 @@ import { SafeMarkdown } from '@superset-ui/core/components';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import Handlebars from 'handlebars';
 import { useMemo, useState } from 'react';
-import { isPlainObject } from 'lodash';
+import { isPlainObject } from 'lodash-es';
 import Helpers from 'just-handlebars-helpers';
 import HandlebarsGroupBy from 'handlebars-group-by';
 
@@ -116,3 +116,22 @@ Handlebars.registerHelper('parseJson', (jsonString: string) => {
 
 Helpers.registerHelpers(Handlebars);
 HandlebarsGroupBy.register(Handlebars);
+
+// `just-handlebars-helpers` registers a `formatDate` helper that lazily
+// resolves `moment` via `global.moment` / `require('moment/min/moment-with-locales')`.
+// The bundled viewer switched to dayjs and never satisfies that lookup, so the
+// original helper throws "... is not a function" (see #32960). Re-register a
+// dayjs-backed `formatDate` with the same `{{formatDate formatString date [locale]}}`
+// signature so existing templates keep rendering.
+Handlebars.registerHelper('formatDate', (formatString, date, localeString) => {
+  const format = typeof formatString === 'string' ? formatString : '';
+  const instance = dayjs(date ?? new Date());
+  // Handlebars always passes its options object as the final argument, so a
+  // locale is only present when the caller supplied an explicit string.
+  // Note: `extendedDayjs` only loads the `en` locale, so passing a non-English
+  // locale here quietly falls back to English unless that locale bundle has
+  // been imported elsewhere; dayjs's instance `.locale()` is a no-op otherwise.
+  return typeof localeString === 'string'
+    ? instance.locale(localeString).format(format)
+    : instance.format(format);
+});

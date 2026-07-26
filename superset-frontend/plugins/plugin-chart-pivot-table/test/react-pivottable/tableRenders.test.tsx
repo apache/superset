@@ -22,7 +22,10 @@ import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { supersetTheme, ThemeProvider } from '@apache-superset/core/theme';
 import { TableRenderer } from '../../src/react-pivottable/TableRenderers';
-import { aggregatorTemplates } from '../../src/react-pivottable/utilities';
+import {
+  aggregatorTemplates,
+  groupingValueSort,
+} from '../../src/react-pivottable/utilities';
 
 jest.mock(
   'react-icons/fa',
@@ -51,6 +54,53 @@ const SAMPLE_DATA = [
   { color: 'blue', shape: 'square', value: 20 },
   { color: 'red', shape: 'circle', value: 30 },
   { color: 'red', shape: 'square', value: 40 },
+];
+
+/**
+ * Pre-aggregated, per-level data matching the multi-query contract: every record
+ * is tagged with the rollup level (rows/columns) that produced it, and the
+ * database has already computed each value. PivotData places these verbatim.
+ * Here `value` is a count, so leaf cells are 1, row/col totals are 2, grand
+ * total is 4.
+ */
+const TAGGED_COUNT_DATA = [
+  // leaf cells (full detail)
+  {
+    color: 'blue',
+    shape: 'circle',
+    value: 1,
+    __rows: ['color'],
+    __columns: ['shape'],
+  },
+  {
+    color: 'blue',
+    shape: 'square',
+    value: 1,
+    __rows: ['color'],
+    __columns: ['shape'],
+  },
+  {
+    color: 'red',
+    shape: 'circle',
+    value: 1,
+    __rows: ['color'],
+    __columns: ['shape'],
+  },
+  {
+    color: 'red',
+    shape: 'square',
+    value: 1,
+    __rows: ['color'],
+    __columns: ['shape'],
+  },
+  // row totals (per color, across shapes)
+  { color: 'blue', value: 2, __rows: ['color'], __columns: [] },
+  { color: 'red', value: 2, __rows: ['color'], __columns: [] },
+  // col totals (per shape, across colors)
+  { shape: 'circle', value: 2, __rows: [], __columns: ['shape'] },
+  { shape: 'square', value: 2, __rows: [], __columns: ['shape'] },
+  // grand total
+  { value: 4, __rows: [], __columns: [] },
 ];
 
 function renderWithTheme(ui: ReactElement) {
@@ -101,35 +151,41 @@ test('TableRenderer renders row headers from pivot data', () => {
 });
 
 test('TableRenderer renders aggregated cell values', () => {
-  const props = buildDefaultProps();
+  const props = buildDefaultProps({
+    data: TAGGED_COUNT_DATA,
+    vals: ['value'],
+  });
   renderWithTheme(<TableRenderer {...props} />);
 
-  // With "Count" aggregator, each cell (row x col intersection) should
-  // contain "1" because each combination appears exactly once.
+  // Each leaf cell (row x col intersection) holds the DB-computed value "1".
   const cells = screen.getAllByRole('gridcell');
   const cellTexts = cells.map(cell => cell.textContent);
 
-  // There should be cell values of "1" for each of the four intersections
-  // (blue+circle, blue+square, red+circle, red+square).
-  const onesCount = cellTexts.filter(text => text === '1').length;
+  // There should be a "1" leaf cell for each of the four intersections
+  // (blue+circle, blue+square, red+circle, red+square). The default formatter
+  // renders with two decimals in this test (production applies the metric's
+  // own format).
+  const onesCount = cellTexts.filter(text => text === '1.00').length;
   expect(onesCount).toBeGreaterThanOrEqual(4);
 });
 
 test('TableRenderer renders row totals when rowTotals is enabled', () => {
   const props = buildDefaultProps({
+    data: TAGGED_COUNT_DATA,
+    vals: ['value'],
     tableOptions: { rowTotals: true, colTotals: true },
   });
   renderWithTheme(<TableRenderer {...props} />);
 
-  // Row totals column should show "2" for each color (blue has 2 records,
-  // red has 2 records).
+  // Row totals column should show the DB-computed "2" for each color (blue has
+  // 2 records, red has 2 records).
   const totalCells = screen
     .getAllByRole('gridcell')
     .filter(cell => cell.classList.contains('pvtTotal'));
   expect(totalCells.length).toBeGreaterThan(0);
 
   const totalValues = totalCells.map(cell => cell.textContent);
-  expect(totalValues).toContain('2');
+  expect(totalValues).toContain('2.00');
 });
 
 test('TableRenderer renders col totals row when colTotals is enabled', () => {
@@ -147,16 +203,81 @@ test('TableRenderer renders col totals row when colTotals is enabled', () => {
 
 test('TableRenderer renders grand total when both totals are enabled', () => {
   const props = buildDefaultProps({
+    data: TAGGED_COUNT_DATA,
+    vals: ['value'],
     tableOptions: { rowTotals: true, colTotals: true },
   });
   renderWithTheme(<TableRenderer {...props} />);
 
-  // The grand total cell should show "4" (total record count).
+  // The grand total cell shows the DB-computed "4" (total record count).
   const grandTotalCells = screen
     .getAllByRole('gridcell')
     .filter(cell => cell.classList.contains('pvtGrandTotal'));
   expect(grandTotalCells.length).toBe(1);
   expect(grandTotalCells[0]).toHaveTextContent('4');
+});
+
+/**
+ * Metric-collapse totals: when the metric pseudo-dimension is the only thing on
+ * an axis (here columns), the opposite "Total" axis and the grand-total corner
+ * must still show values rather than null, because no rollup level produces an
+ * empty key on the metric axis. Records carry `__metricKey` so PivotData can
+ * mirror the value into rowTotals / allTotal. (Regression guard for the gap that
+ * in-app verification surfaced: a null right-hand "Total" column.)
+ */
+const TAGGED_METRIC_ON_COLUMNS = [
+  // leaf cells: rows = [color], columns = [Metric] (metric on the column axis)
+  {
+    color: 'blue',
+    Metric: 'm1',
+    value: 10,
+    __rows: ['color'],
+    __columns: ['Metric'],
+    __metricKey: 'Metric',
+  },
+  {
+    color: 'red',
+    Metric: 'm1',
+    value: 20,
+    __rows: ['color'],
+    __columns: ['Metric'],
+    __metricKey: 'Metric',
+  },
+  // grand total level: rows = [], columns = [Metric]
+  {
+    Metric: 'm1',
+    value: 30,
+    __rows: [],
+    __columns: ['Metric'],
+    __metricKey: 'Metric',
+  },
+];
+
+test('TableRenderer fills metric-collapse totals (no null Total column/corner)', () => {
+  const props = buildDefaultProps({
+    data: TAGGED_METRIC_ON_COLUMNS,
+    rows: ['color'],
+    cols: ['Metric'],
+    vals: ['value'],
+    tableOptions: { rowTotals: true, colTotals: true },
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  // Right-hand "Total" column (rowTotals) shows the per-row collapsed values...
+  const rowTotalTexts = screen
+    .getAllByRole('gridcell')
+    .filter(cell => cell.classList.contains('pvtTotal'))
+    .map(cell => cell.textContent);
+  expect(rowTotalTexts).toContain('10.00');
+  expect(rowTotalTexts).toContain('20.00');
+  expect(rowTotalTexts).not.toContain('null');
+
+  // ...and the grand-total corner shows the collapsed grand total (not null).
+  const grandTotalCells = screen
+    .getAllByRole('gridcell')
+    .filter(cell => cell.classList.contains('pvtGrandTotal'));
+  expect(grandTotalCells.length).toBe(1);
+  expect(grandTotalCells[0]).toHaveTextContent('30.00');
 });
 
 test('TableRenderer handles empty data gracefully', () => {
@@ -351,6 +472,197 @@ test('TableRenderer coerces numeric timestamp strings to numbers for column head
 
   expect(screen.getByText('col:1700000000000')).toBeInTheDocument();
   expect(screen.getByText('col:square')).toBeInTheDocument();
+});
+
+type TestData = {
+  [key: string]: number | string | null;
+};
+
+const createMockAggregator =
+  (data: TestData) =>
+  (key: string[], _context: never[]): unknown => {
+    const keyStr = key.join('|');
+    return data[keyStr] ?? null;
+  };
+
+test('should sort flat keys in ascending order', () => {
+  const keys: string[][] = [['A'], ['C'], ['B']];
+  const data = {
+    A: 30,
+    B: 10,
+    C: 20,
+  };
+
+  groupingValueSort(keys, createMockAggregator(data), false, true);
+
+  expect(keys).toEqual([['B'], ['C'], ['A']]);
+});
+
+test('should sort flat keys in descending order', () => {
+  const keys: string[][] = [['A'], ['C'], ['B']];
+  const data = {
+    A: 30,
+    B: 10,
+    C: 20,
+  };
+
+  groupingValueSort(keys, createMockAggregator(data), false, false);
+
+  expect(keys).toEqual([['A'], ['C'], ['B']]);
+});
+
+test('should place subtotal at top when top=true and ascending', () => {
+  const keys: string[][] = [
+    ['Region', 'City1'],
+    ['Region'],
+    ['Region', 'City2'],
+  ];
+  const data = {
+    Region: 150,
+    'Region|City1': 100,
+    'Region|City2': 50,
+  };
+
+  groupingValueSort(keys, createMockAggregator(data), true, true);
+
+  expect(keys[0]).toEqual(['Region']);
+  expect(keys[1]).toEqual(['Region', 'City2']);
+  expect(keys[2]).toEqual(['Region', 'City1']);
+});
+
+test('should place subtotal at bottom when top=false and descending', () => {
+  const keys: string[][] = [
+    ['Region', 'City1'],
+    ['Region'],
+    ['Region', 'City2'],
+  ];
+  const data = {
+    'Region|City1': 100,
+    'Region|City2': 50,
+    Region: 150,
+  };
+
+  groupingValueSort(keys, createMockAggregator(data), false, false);
+
+  expect(keys[0]).toEqual(['Region', 'City1']);
+  expect(keys[1]).toEqual(['Region', 'City2']);
+  expect(keys[2]).toEqual(['Region']);
+});
+
+test('should use alphabetical order for terminals with equal values', () => {
+  const keys: string[][] = [
+    ['Group', 'Apple'],
+    ['Group', 'Banana'],
+    ['Group', 'Cherry'],
+  ];
+  const data = {
+    'Group|Apple': 50,
+    'Group|Banana': 50,
+    'Group|Cherry': 50,
+  };
+
+  groupingValueSort(keys, createMockAggregator(data), false, true);
+
+  expect(keys).toEqual([
+    ['Group', 'Apple'],
+    ['Group', 'Banana'],
+    ['Group', 'Cherry'],
+  ]);
+});
+
+test('should handle null values gracefully', () => {
+  const keys: string[][] = [['A'], ['B'], ['C']];
+  const data = {
+    A: 100,
+    B: null,
+    C: 50,
+  };
+
+  groupingValueSort(keys, createMockAggregator(data), false, true);
+  expect(keys).toEqual([['B'], ['C'], ['A']]);
+});
+
+test('should handle string numbers', () => {
+  const keys: string[][] = [['A'], ['B'], ['C']];
+  const data = {
+    A: '100',
+    B: '50',
+    C: '200',
+  };
+
+  groupingValueSort(keys, createMockAggregator(data), false, false);
+  expect(keys).toEqual([['C'], ['A'], ['B']]);
+});
+
+test('should handle NaN values', () => {
+  const keys: string[][] = [['A'], ['B'], ['C']];
+  const data = {
+    A: 100,
+    B: NaN,
+    C: 50,
+  };
+
+  groupingValueSort(keys, createMockAggregator(data), false, true);
+  expect(keys).toEqual([['B'], ['C'], ['A']]);
+});
+
+test('should handle single key', () => {
+  const keys: string[][] = [['OnlyKey']];
+  const data = { OnlyKey: 42 };
+
+  groupingValueSort(keys, createMockAggregator(data), false, true);
+  expect(keys).toEqual([['OnlyKey']]);
+});
+
+test('should handle empty keys array', () => {
+  const keys: string[][] = [];
+  const data = {};
+
+  groupingValueSort(keys, createMockAggregator(data), false, true);
+  expect(keys).toEqual([]);
+});
+
+test('should handle product categories with subcategories', () => {
+  const keys: string[][] = [
+    ['Electronics'],
+    ['Electronics', 'Phones'],
+    ['Electronics', 'Phones', 'iPhone'],
+    ['Electronics', 'Phones', 'Samsung'],
+    ['Electronics', 'Laptops'],
+    ['Electronics', 'Laptops', 'MacBook'],
+    ['Clothing'],
+    ['Clothing', 'Shirts'],
+    ['Clothing', 'Shirts', 'T-Shirt'],
+    ['Clothing', 'Pants'],
+    ['Clothing', 'Pants', 'Jeans'],
+  ];
+  const data = {
+    Electronics: 2100,
+    'Electronics|Phones': 900,
+    'Electronics|Phones|iPhone': 500,
+    'Electronics|Phones|Samsung': 400,
+    'Electronics|Laptops': 1200,
+    'Electronics|Laptops|MacBook': 1200,
+    Clothing: 2550,
+    'Clothing|Shirts': 1400,
+    'Clothing|Shirts|T-Shirt': 1400,
+    'Clothing|Pants': 1150,
+    'Clothing|Pants|Jeans': 1150,
+  };
+
+  groupingValueSort(keys, createMockAggregator(data), true, true);
+
+  expect(keys[0]).toEqual(['Electronics']);
+  expect(keys[1]).toEqual(['Electronics', 'Phones']);
+  expect(keys[2]).toEqual(['Electronics', 'Phones', 'Samsung']);
+  expect(keys[3]).toEqual(['Electronics', 'Phones', 'iPhone']);
+  expect(keys[4]).toEqual(['Electronics', 'Laptops']);
+  expect(keys[5]).toEqual(['Electronics', 'Laptops', 'MacBook']);
+  expect(keys[6]).toEqual(['Clothing']);
+  expect(keys[7]).toEqual(['Clothing', 'Pants']);
+  expect(keys[8]).toEqual(['Clothing', 'Pants', 'Jeans']);
+  expect(keys[9]).toEqual(['Clothing', 'Shirts']);
+  expect(keys[10]).toEqual(['Clothing', 'Shirts', 'T-Shirt']);
 });
 
 test('TableRenderer coerces numeric timestamp strings to numbers for row header date formatters', () => {

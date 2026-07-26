@@ -45,13 +45,13 @@ def upgrade():
 
     # Update cluster_id values
     metadata = sa.MetaData(bind=bind)
-    datasources = sa.Table("datasources", metadata, autoload=True)
-    clusters = sa.Table("clusters", metadata, autoload=True)
+    datasources = sa.Table("datasources", metadata, autoload_with=bind)
+    clusters = sa.Table("clusters", metadata, autoload_with=bind)
 
     statement = datasources.update().values(
-        cluster_id=sa.select([clusters.c.id])
+        cluster_id=sa.select(clusters.c.id)
         .where(datasources.c.cluster_name == clusters.c.cluster_name)
-        .as_scalar()
+        .scalar_subquery()
     )
     bind.execute(statement)
 
@@ -87,13 +87,13 @@ def downgrade():
 
     # Update cluster_name values
     metadata = sa.MetaData(bind=bind)
-    datasources = sa.Table("datasources", metadata, autoload=True)
-    clusters = sa.Table("clusters", metadata, autoload=True)
+    datasources = sa.Table("datasources", metadata, autoload_with=bind)
+    clusters = sa.Table("clusters", metadata, autoload_with=bind)
 
     statement = datasources.update().values(
-        cluster_name=sa.select([clusters.c.cluster_name])
+        cluster_name=sa.select(clusters.c.cluster_name)
         .where(datasources.c.cluster_id == clusters.c.id)
-        .as_scalar()
+        .scalar_subquery()
     )
     bind.execute(statement)
 

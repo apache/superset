@@ -17,6 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
+import { mockUserSubjectsBootstrapData } from 'spec/helpers/mockBootstrapData';
 import {
   fireEvent,
   screen,
@@ -44,6 +45,10 @@ jest.mock('src/utils/export', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
+
+jest.mock('src/utils/getBootstrapData', () =>
+  mockUserSubjectsBootstrapData([1]),
+);
 
 const mockUser = {
   userId: 1,

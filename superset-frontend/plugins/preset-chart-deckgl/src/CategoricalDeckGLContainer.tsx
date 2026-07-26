@@ -34,27 +34,27 @@ import {
   JsonValue,
   QueryFormData,
   SetDataMaskHook,
+  getMapProviderMapStyle,
 } from '@superset-ui/core';
 import type { Layer } from '@deck.gl/core';
 import Legend from './components/Legend';
 import { hexToRGB } from './utils/colors';
 import { getMapboxApiKey } from './utils/mapbox';
-import sandboxedEval from './utils/sandbox';
 import fitViewport, { Viewport } from './utils/fitViewport';
 import {
   DeckGLContainerHandle,
   DeckGLContainerStyledWrapper,
 } from './DeckGLContainer';
 import { GetLayerType } from './factory';
-import { ColorBreakpointType, ColorType, Point } from './types';
+import { Point } from './types';
 import { TooltipProps } from './components/Tooltip';
 import { COLOR_SCHEME_TYPES, ColorSchemeType } from './utilities/utils';
 import { getColorBreakpointsBuckets } from './utils';
-import { DEFAULT_DECKGL_COLOR } from './utilities/Shared_DeckGL';
+import { addColorToFeatures } from './utils/addColor';
 
 const { getScale } = CategoricalColorNamespace;
 
-function getCategories(fd: QueryFormData, data: JsonObject[]) {
+export function getCategories(fd: QueryFormData, data: JsonObject[]) {
   const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
   const fixedColor = [c.r, c.g, c.b, 255 * c.a];
   const appliedScheme = fd.color_scheme;
@@ -69,7 +69,7 @@ function getCategories(fd: QueryFormData, data: JsonObject[]) {
       if (d.cat_color != null && !categories.hasOwnProperty(d.cat_color)) {
         let color;
         if (fd.dimension) {
-          color = hexToRGB(colorFn(d.cat_color, fd.sliceId), c.a * 255);
+          color = hexToRGB(colorFn(d.cat_color, fd.slice_id), c.a * 255);
         } else {
           color = fixedColor;
         }
@@ -149,80 +149,7 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
       data: JsonObject[],
       fd: QueryFormData,
       selectedColorScheme: ColorSchemeType,
-    ) => {
-      const appliedScheme = fd.color_scheme;
-      const colorFn = getScale(appliedScheme);
-      let color: ColorType;
-
-      switch (selectedColorScheme) {
-        case COLOR_SCHEME_TYPES.fixed_color: {
-          color = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
-          const colorArray = [color.r, color.g, color.b, color.a * 255];
-
-          return data.map(d => ({ ...d, color: colorArray }));
-        }
-        case COLOR_SCHEME_TYPES.categorical_palette: {
-          if (!fd.dimension) {
-            const fallbackColor = fd.color_picker || {
-              r: 0,
-              g: 0,
-              b: 0,
-              a: 1,
-            };
-            const colorArray = [
-              fallbackColor.r,
-              fallbackColor.g,
-              fallbackColor.b,
-              fallbackColor.a * 255,
-            ];
-            return data.map(d => ({ ...d, color: colorArray }));
-          }
-
-          return data.map(d => ({
-            ...d,
-            color: hexToRGB(colorFn(d.cat_color, fd.slice_id)),
-          }));
-        }
-        case COLOR_SCHEME_TYPES.color_breakpoints: {
-          const defaultBreakpointColor = fd.default_breakpoint_color
-            ? [
-                fd.default_breakpoint_color.r,
-                fd.default_breakpoint_color.g,
-                fd.default_breakpoint_color.b,
-                fd.default_breakpoint_color.a * 255,
-              ]
-            : [
-                DEFAULT_DECKGL_COLOR.r,
-                DEFAULT_DECKGL_COLOR.g,
-                DEFAULT_DECKGL_COLOR.b,
-                DEFAULT_DECKGL_COLOR.a * 255,
-              ];
-          return data.map(d => {
-            const breakpointForPoint: ColorBreakpointType =
-              fd.color_breakpoints?.find(
-                (breakpoint: ColorBreakpointType) =>
-                  d.metric >= breakpoint.minValue &&
-                  d.metric <= breakpoint.maxValue,
-              );
-
-            if (breakpointForPoint) {
-              const pointColor = [
-                breakpointForPoint.color.r,
-                breakpointForPoint.color.g,
-                breakpointForPoint.color.b,
-                breakpointForPoint.color.a * 255,
-              ];
-              return { ...d, color: pointColor };
-            }
-
-            return { ...d, color: defaultBreakpointColor };
-          });
-        }
-        default: {
-          return [];
-        }
-      }
-    },
+    ) => addColorToFeatures(data, fd, selectedColorScheme),
     [],
   );
 
@@ -244,12 +171,6 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
 
     // Add colors from categories or fixed color
     features = addColor(features, fd, selectedColorScheme);
-
-    // Apply user defined data mutator if defined
-    if (fd.js_data_mutator) {
-      const jsFnMutator = sandboxedEval(fd.js_data_mutator);
-      features = jsFnMutator(features);
-    }
 
     // Show only categories selected in the legend
     if (fd.dimension) {
@@ -318,6 +239,12 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
     },
     [categories],
   );
+  const selectedMap = getMapProviderMapStyle({
+    mapProvider: props.formData.map_renderer,
+    maplibreStyle: props.formData.maplibre_style,
+    mapboxStyle: props.formData.mapbox_style,
+    legacyMapStyle: props.formData.map_style,
+  });
 
   return (
     <div style={{ position: 'relative' }}>
@@ -326,14 +253,8 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
         viewport={viewport}
         layers={getLayers()}
         setControlValue={props.setControlValue}
-        mapStyle={
-          props.formData.map_renderer === 'mapbox'
-            ? props.formData.mapbox_style
-            : props.formData.maplibre_style
-        }
-        mapProvider={
-          props.formData.map_renderer === 'mapbox' ? 'mapbox' : 'maplibre'
-        }
+        mapStyle={selectedMap.mapStyle}
+        mapProvider={selectedMap.mapProvider}
         mapboxApiKey={getMapboxApiKey()}
         width={props.width}
         height={props.height}

@@ -21,6 +21,7 @@ import logging
 import math
 import threading
 import time
+from collections.abc import Sequence
 from typing import Any, TYPE_CHECKING
 
 import requests
@@ -30,7 +31,7 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchTableError
 
-from superset import db
+from superset import cache_manager, db
 from superset.common.db_query_status import QueryStatus
 from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
 from superset.db_engine_specs.base import (
@@ -70,6 +71,19 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     engine = "trino"
     engine_name = "Trino"
     allows_alias_to_source_column = False
+    supports_grouping_sets = True
+
+    # The full set of columns Trino's "<table>$partitions" exposes for an
+    # Iceberg table. The real partition keys are nested in the "partition" ROW,
+    # so none of these are user partition columns.
+    iceberg_partitions_metadata_columns = frozenset(
+        {"partition", "record_count", "file_count", "total_size", "data"}
+    )
+    # Always present for Iceberg; used as the positive signal so we don't act on
+    # a table that merely happens to share one of the names above.
+    iceberg_partitions_signature_columns = frozenset(
+        {"record_count", "file_count", "total_size"}
+    )
 
     metadata = {
         "description": (
@@ -167,6 +181,37 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         )
 
     @classmethod
+    def _filter_iceberg_partition_indexes(
+        cls,
+        indexes: list[dict[str, Any]] | None,
+    ) -> list[dict[str, Any]]:
+        """
+        Drop Iceberg "$partitions" metadata indexes.
+
+        A partition index is recognized as Iceberg metadata only when it carries
+        the signature columns *and* every one of its columns is a known metadata
+        field. Requiring the latter means an index with any real partition key
+        (e.g. a Hive table partitioned on "ds" that also has a column named
+        "record_count") is left untouched. Such an index has no real partition
+        keys, so it's dropped entirely; all other indexes pass through unchanged.
+
+        :param indexes: the indexes associated with a table
+        :returns: the indexes with Iceberg metadata indexes removed
+        """
+        filtered_indexes = []
+        for index in indexes or []:
+            column_names = set(index.get("column_names") or [])
+            is_iceberg_metadata = (
+                index.get("name") == "partition"
+                and cls.iceberg_partitions_signature_columns <= column_names
+                and column_names <= cls.iceberg_partitions_metadata_columns
+            )
+            if not is_iceberg_metadata:
+                filtered_indexes.append(index)
+
+        return filtered_indexes
+
+    @classmethod
     def get_extra_table_metadata(
         cls,
         database: Database,
@@ -174,7 +219,9 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     ) -> dict[str, Any]:
         metadata = {}
 
-        if indexes := database.get_indexes(table):
+        if indexes := cls._filter_iceberg_partition_indexes(
+            database.get_indexes(table)
+        ):
             col_names, latest_parts = cls.latest_partition(
                 database,
                 table,
@@ -182,8 +229,11 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                 indexes=indexes,
             )
 
-            if not latest_parts:
-                latest_parts = tuple([None] * len(col_names))
+            partition_values: Sequence[str | None]
+            if latest_parts:
+                partition_values = latest_parts
+            else:
+                partition_values = [None] * len(col_names)
 
             metadata["partitions"] = {
                 "cols": sorted(  # noqa: C414
@@ -196,7 +246,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                         }
                     )
                 ),
-                "latest": dict(zip(col_names, latest_parts, strict=False)),
+                "latest": dict(zip(col_names, partition_values, strict=False)),
                 "partitionQuery": cls._partition_query(
                     table=table,
                     indexes=indexes,
@@ -429,6 +479,12 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         :param cancel_query_id: Trino `queryId`
         :return: True if query cancelled successfully, False otherwise
         """
+        # Validate cancel_query_id to prevent SQL injection
+        # Trino query IDs look like yyyymmdd_hhmmss_nnnnn_xxxxx
+        # (alphanumeric with underscores)
+        if not cls.validate_cancel_query_id(cancel_query_id, r"^[a-zA-Z0-9_]+$"):
+            return False
+
         try:
             cursor.execute(
                 f"CALL system.runtime.kill_query(query_id => '{cancel_query_id}',"
@@ -547,7 +603,11 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         Expanded columns are named foo.bar.baz and we provide a query_as property to
         instruct the base engine spec how to correctly query them: instead of quoting
         the whole string they have to be quoted like "foo"."bar"."baz" and we then
-        alias them to the full dotted string for ease of reference.
+        alias them to the full dotted string for ease of reference. We also provide
+        an `expression` property with the same correctly quoted path (without the
+        alias), so that a physical `TableColumn` created from this metadata selects
+        the column correctly instead of quoting the whole dotted name as a single
+        (invalid) identifier.
         """
         # pylint: disable=import-outside-toplevel
         from trino.sqlalchemy import datatype
@@ -570,6 +630,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                 column_name=name,
                 type=inner_type,
                 is_dttm=is_dttm,
+                expression=query_name,
                 query_as=f'{query_name} AS "{name}"',
             )
             cols.extend(cls._expand_columns(inner_col))
@@ -625,3 +686,66 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             return super().get_indexes(database, inspector, table)
         except NoSuchTableError:
             return []
+
+    @classmethod
+    @cache_manager.data_cache.memoize(timeout=60)
+    def latest_partition(
+        cls,
+        database: Database,
+        table: Table,
+        show_first: bool = False,
+        indexes: list[dict[str, Any]] | None = None,
+    ) -> tuple[list[str], list[str] | None]:
+        """
+        Return the latest partition for a table.
+
+        Iceberg "$partitions" metadata fields are filtered out first, so we
+        never build a latest-partition query against them. Memoized like the
+        base implementation so the index lookup is not repeated on cache hits.
+
+        :param database: the database the query will be run against
+        :param table: the table instance
+        :param show_first: return the value for the first partitioning key when
+            there are several
+        :param indexes: the indexes associated with the table
+        :returns: the column names and the latest partition values
+        """
+        if indexes is None:
+            indexes = database.get_indexes(table)
+
+        return super().latest_partition(
+            database,
+            table,
+            show_first=show_first,
+            indexes=cls._filter_iceberg_partition_indexes(indexes),
+        )
+
+    @classmethod
+    def latest_sub_partition(
+        cls,
+        database: Database,
+        table: Table,
+        indexes: list[dict[str, Any]] | None = None,
+        **kwargs: Any,
+    ) -> Any:
+        """
+        Return the latest sub-partition value for a table.
+
+        Iceberg "$partitions" metadata fields are filtered out first, so the
+        ``latest_sub_partition`` macro never builds a query against them.
+
+        :param database: the database the query will be run against
+        :param table: the table instance
+        :param indexes: the indexes associated with the table
+        :param kwargs: filtering criteria on the partition list
+        :returns: the latest sub-partition value
+        """
+        if indexes is None:
+            indexes = database.get_indexes(table)
+
+        return super().latest_sub_partition(
+            database,
+            table,
+            indexes=cls._filter_iceberg_partition_indexes(indexes),
+            **kwargs,
+        )

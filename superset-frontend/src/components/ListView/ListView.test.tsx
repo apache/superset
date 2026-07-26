@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, within, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  within,
+  waitFor,
+  fireEvent,
+} from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
@@ -358,5 +364,25 @@ describe('ListView', () => {
     await userEvent.click(sortOption);
 
     expect(mockedPropsComprehensive.fetchData).toHaveBeenCalled();
+  });
+
+  test('switches view mode via keyboard activation of the toggle buttons', () => {
+    const { container } = factory({
+      renderCard: jest.fn(),
+      data: [],
+      count: 0,
+      initialSort: [{ id: 'something' }],
+    });
+
+    const [cardToggle, tableToggle] =
+      container.querySelectorAll<HTMLElement>('.toggle-button');
+
+    expect(screen.getByTestId('empty-state')).toHaveClass('card');
+
+    fireEvent.keyDown(tableToggle, { key: 'Enter' });
+    expect(screen.getByTestId('empty-state')).toHaveClass('table');
+
+    fireEvent.keyDown(cardToggle, { key: ' ' });
+    expect(screen.getByTestId('empty-state')).toHaveClass('card');
   });
 });

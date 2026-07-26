@@ -74,8 +74,7 @@ interface _PostProcessingAggregation {
   };
 }
 export type PostProcessingAggregation =
-  | _PostProcessingAggregation
-  | DefaultPostProcessing;
+  _PostProcessingAggregation | DefaultPostProcessing;
 
 export type BoxPlotQueryObjectWhiskerType = 'tukey' | 'min/max' | 'percentile';
 interface _PostProcessingBoxplot {
@@ -88,8 +87,7 @@ interface _PostProcessingBoxplot {
   };
 }
 export type PostProcessingBoxplot =
-  | _PostProcessingBoxplot
-  | DefaultPostProcessing;
+  _PostProcessingBoxplot | DefaultPostProcessing;
 
 interface _PostProcessingContribution {
   operation: 'contribution';
@@ -101,8 +99,7 @@ interface _PostProcessingContribution {
   };
 }
 export type PostProcessingContribution =
-  | _PostProcessingContribution
-  | DefaultPostProcessing;
+  _PostProcessingContribution | DefaultPostProcessing;
 
 interface _PostProcessingPivot {
   operation: 'pivot';
@@ -132,8 +129,7 @@ interface _PostProcessingProphet {
   };
 }
 export type PostProcessingProphet =
-  | _PostProcessingProphet
-  | DefaultPostProcessing;
+  _PostProcessingProphet | DefaultPostProcessing;
 
 interface _PostProcessingDiff {
   operation: 'diff';
@@ -155,8 +151,7 @@ interface _PostProcessingRolling {
   };
 }
 export type PostProcessingRolling =
-  | _PostProcessingRolling
-  | DefaultPostProcessing;
+  _PostProcessingRolling | DefaultPostProcessing;
 
 interface _PostProcessingCum {
   operation: 'cum';
@@ -177,8 +172,7 @@ export interface _PostProcessingCompare {
   };
 }
 export type PostProcessingCompare =
-  | _PostProcessingCompare
-  | DefaultPostProcessing;
+  _PostProcessingCompare | DefaultPostProcessing;
 
 interface _PostProcessingSort {
   operation: 'sort';
@@ -199,8 +193,7 @@ interface _PostProcessingResample {
   };
 }
 export type PostProcessingResample =
-  | _PostProcessingResample
-  | DefaultPostProcessing;
+  _PostProcessingResample | DefaultPostProcessing;
 
 interface _PostProcessingRename {
   operation: 'rename';
@@ -211,8 +204,7 @@ interface _PostProcessingRename {
   };
 }
 export type PostProcessingRename =
-  | _PostProcessingRename
-  | DefaultPostProcessing;
+  _PostProcessingRename | DefaultPostProcessing;
 
 interface _PostProcessingFlatten {
   operation: 'flatten';
@@ -222,8 +214,7 @@ interface _PostProcessingFlatten {
   };
 }
 export type PostProcessingFlatten =
-  | _PostProcessingFlatten
-  | DefaultPostProcessing;
+  _PostProcessingFlatten | DefaultPostProcessing;
 
 interface _PostProcessingRank {
   operation: 'rank';
@@ -245,8 +236,7 @@ interface _PostProcessingHistogram {
   };
 }
 export type PostProcessingHistogram =
-  | _PostProcessingHistogram
-  | DefaultPostProcessing;
+  _PostProcessingHistogram | DefaultPostProcessing;
 
 /**
  * Parameters for chart data postprocessing.

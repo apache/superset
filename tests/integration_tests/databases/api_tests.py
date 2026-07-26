@@ -343,6 +343,77 @@ class TestDatabaseApi(SupersetTestCase):
     )
     @mock.patch("superset.models.core.Database.get_all_catalog_names")
     @mock.patch("superset.models.core.Database.get_all_schema_names")
+    def test_get_database_ssh_tunnel_credentials_are_masked(
+        self,
+        mock_get_all_schema_names,
+        mock_get_all_catalog_names,
+        mock_test_connection_database_command_run,
+    ):
+        """
+        Database API: SSH tunnel credentials are masked on the read paths
+        (GET /<pk> and GET /<pk>/connection), consistently with create/update.
+        """
+        self.login(ADMIN_USERNAME)
+        example_db = get_example_database()
+        if example_db.backend == "sqlite":
+            return
+        ssh_tunnel_properties = {
+            "server_address": "123.132.123.1",
+            "server_port": 8080,
+            "username": "foo",
+            "password": "bar",
+            "private_key": "secret-key-material",
+            "private_key_password": "secret-key-password",
+        }
+        database_data = {
+            "database_name": "test-db-with-ssh-tunnel-read-masking",
+            "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+            "ssh_tunnel": ssh_tunnel_properties,
+        }
+        rv = self.client.post("api/v1/database/", json=database_data)
+        response = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 201
+        database_id = response.get("id")
+
+        masked_fields = ("password", "private_key", "private_key_password")
+
+        # GET /<pk>/connection
+        rv = self.client.get(f"api/v1/database/{database_id}/connection")
+        assert rv.status_code == 200
+        connection_tunnel = json.loads(rv.data.decode("utf-8"))["result"]["ssh_tunnel"]
+        for field in masked_fields:
+            assert connection_tunnel[field] == "XXXXXXXXXX"  # noqa: S105
+
+        # GET /<pk>
+        rv = self.client.get(f"api/v1/database/{database_id}")
+        assert rv.status_code == 200
+        get_tunnel = json.loads(rv.data.decode("utf-8"))["result"]["ssh_tunnel"]
+        for field in masked_fields:
+            assert get_tunnel[field] == "XXXXXXXXXX"  # noqa: S105
+
+        # The stored credentials remain intact (only the response is masked).
+        model_ssh_tunnel = (
+            db.session.query(SSHTunnel)
+            .filter(SSHTunnel.database_id == database_id)
+            .one()
+        )
+        assert model_ssh_tunnel.password == "bar"  # noqa: S105
+        assert model_ssh_tunnel.private_key == "secret-key-material"  # noqa: S105
+        assert (
+            model_ssh_tunnel.private_key_password == "secret-key-password"  # noqa: S105
+        )
+
+        # Cleanup
+        model = db.session.query(Database).get(database_id)
+        db.session.delete(model)
+        db.session.commit()
+
+    @with_feature_flags(SSH_TUNNELING=True)
+    @mock.patch(
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
+    )
+    @mock.patch("superset.models.core.Database.get_all_catalog_names")
+    @mock.patch("superset.models.core.Database.get_all_schema_names")
     def test_create_database_with_ssh_tunnel_no_port(
         self,
         mock_get_all_schema_names,
@@ -3427,6 +3498,7 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_dynamic_catalog": True,
                         "disable_ssh_tunneling": False,
                         "supports_oauth2": False,
+                        "supports_offset": True,
                         "supports_schemas": True,
                     },
                     "supports_oauth2": False,
@@ -3456,6 +3528,7 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_dynamic_catalog": True,
                         "disable_ssh_tunneling": True,
                         "supports_oauth2": False,
+                        "supports_offset": True,
                         "supports_schemas": True,
                     },
                     "supports_oauth2": False,
@@ -3515,6 +3588,7 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
                         "supports_oauth2": False,
+                        "supports_offset": True,
                         "supports_schemas": True,
                     },
                     "supports_oauth2": False,
@@ -3561,6 +3635,7 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": True,
                         "supports_oauth2": True,
+                        "supports_offset": True,
                         "supports_schemas": True,
                     },
                     "supports_oauth2": True,
@@ -3620,6 +3695,7 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
                         "supports_oauth2": False,
+                        "supports_offset": True,
                         "supports_schemas": True,
                     },
                     "supports_oauth2": False,
@@ -3635,6 +3711,7 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
                         "supports_oauth2": False,
+                        "supports_offset": True,
                         "supports_schemas": True,
                     },
                     "supports_oauth2": False,
@@ -3670,6 +3747,7 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
                         "supports_oauth2": False,
+                        "supports_offset": True,
                         "supports_schemas": True,
                     },
                     "supports_oauth2": False,
@@ -3685,6 +3763,7 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
                         "supports_oauth2": False,
+                        "supports_offset": True,
                         "supports_schemas": True,
                     },
                     "supports_oauth2": False,

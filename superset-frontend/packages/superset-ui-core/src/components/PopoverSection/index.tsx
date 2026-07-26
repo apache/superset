@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { MouseEventHandler, ReactNode } from 'react';
+import { handleKeyboardActivation } from '../../utils';
+import { ReactNode, SyntheticEvent } from 'react';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Tooltip } from '../Tooltip';
@@ -24,7 +25,10 @@ import { Tooltip } from '../Tooltip';
 export interface PopoverSectionProps {
   title: string;
   isSelected?: boolean;
-  onSelect?: MouseEventHandler<HTMLDivElement>;
+  // `SyntheticEvent` (rather than `MouseEventHandler`) so the same callback
+  // can be reused as the keyboard-activation handler via
+  // `handleKeyboardActivation`, which invokes it with a `KeyboardEvent`.
+  onSelect?: (event: SyntheticEvent) => void;
   info?: string;
   children?: ReactNode;
 }
@@ -48,6 +52,7 @@ export default function PopoverSection({
         role="button"
         tabIndex={0}
         onClick={onSelect}
+        onKeyDown={onSelect ? handleKeyboardActivation(onSelect) : undefined}
         css={css`
           display: flex;
           align-items: center;

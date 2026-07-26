@@ -29,7 +29,7 @@ import {
   getClientErrorObject,
 } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
-import { invert, mapKeys } from 'lodash';
+import { invert, mapKeys } from 'lodash-es';
 
 import { now } from '@superset-ui/core/utils/dates';
 import {
@@ -48,6 +48,8 @@ import getInitialState from '../reducers/getInitialState';
 import { rehydratePersistedState } from '../utils/reduxStateToLocalStorageHelper';
 import { PREVIEW_QUERY_LIMIT } from '../constants';
 import { EMPTY_STATE_QE_ID } from '../hooks/useQueryEditor';
+import { queryHistoryApi } from '../../hooks/apiResources/queries';
+import type { AppDispatch as RootDispatch } from '../../views/store';
 
 // Type definitions for SqlLab actions
 export interface Query {
@@ -689,8 +691,8 @@ export function syncQueryEditor(
       (table: Table) =>
         table.inLocalStorage && table.queryEditorId === queryEditor.id,
     );
-    const localStorageQueries = Object.values(queries).filter(
-      query => query.inLocalStorage && query.sqlEditorId === queryEditor.id,
+    const queriesToMigrate = Object.values(queries).filter(
+      query => query.sqlEditorId === queryEditor.id && !query.isDataPreview,
     );
     return SupersetClient.post({
       endpoint: '/tabstateview/',
@@ -712,7 +714,7 @@ export function syncQueryEditor(
           ...localStorageTables.map((table: Table) =>
             migrateTable(table, newQueryEditor.tabViewId!, dispatch),
           ),
-          ...localStorageQueries.map((query: Query) =>
+          ...queriesToMigrate.map((query: Query) =>
             migrateQuery(query.id, newQueryEditor.tabViewId!, dispatch),
           ),
         ]);
@@ -954,12 +956,24 @@ export function setActiveSouthPaneTab(tabId: string): SqlLabAction {
   return { type: SET_ACTIVE_SOUTHPANE_TAB, tabId };
 }
 
-export function toggleLeftBar(queryEditor: QueryEditor): SqlLabAction {
-  const hideLeftBar = !queryEditor.hideLeftBar;
-  return {
-    type: QUERY_EDITOR_TOGGLE_LEFT_BAR,
-    queryEditor,
-    hideLeftBar,
+export function toggleLeftBar(shouldHide: boolean): SqlLabThunkAction {
+  return (dispatch: AppDispatch, getState: GetState) => {
+    const { sqlLab } = getState();
+    const id = sqlLab.tabHistory.slice(-1)[0];
+    if (!id) return;
+    const qe = sqlLab.queryEditors.find(e => e.id === id);
+    const merged =
+      qe && sqlLab.unsavedQueryEditor?.id === id
+        ? { ...qe, ...sqlLab.unsavedQueryEditor }
+        : qe;
+    if (!merged) return;
+    const isCurrentlyHidden = Boolean(merged.hideLeftBar);
+    if (shouldHide === isCurrentlyHidden) return;
+    dispatch({
+      type: QUERY_EDITOR_TOGGLE_LEFT_BAR,
+      queryEditorId: id,
+      hideLeftBar: shouldHide,
+    });
   };
 }
 
@@ -985,7 +999,7 @@ export function removeAllOtherQueryEditors(
 }
 
 export function removeQuery(query: Query): SqlLabThunkAction<Promise<unknown>> {
-  return function (dispatch: AppDispatch) {
+  return function (dispatch: RootDispatch) {
     const queryEditorId = query.sqlEditorId ?? query.id;
     const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
       ? SupersetClient.delete({
@@ -996,7 +1010,26 @@ export function removeQuery(query: Query): SqlLabThunkAction<Promise<unknown>> {
       : Promise.resolve();
 
     return sync
-      .then(() => dispatch({ type: REMOVE_QUERY, query }))
+      .then(() => {
+        dispatch({ type: REMOVE_QUERY, query });
+        dispatch(
+          queryHistoryApi.util.updateQueryData(
+            'editorQueries',
+            { editorId: queryEditorId },
+            draft => {
+              // The infinite-scroll merge can leave duplicate entries for the
+              // same id (offset shifts between page fetches), so drop them all.
+              const remaining = draft.result.filter(
+                ({ id }) => id !== query.id,
+              );
+              if (remaining.length !== draft.result.length) {
+                draft.result = remaining;
+                draft.count = Math.max(0, draft.count - 1);
+              }
+            },
+          ),
+        );
+      })
       .catch(() =>
         dispatch(
           addDangerToast(
@@ -1346,52 +1379,6 @@ export function runTablePreviewQuery(
   };
 }
 
-export interface TableMetaData {
-  columns?: unknown[];
-  selectStar?: string;
-  primaryKey?: unknown;
-  foreignKeys?: unknown[];
-  indexes?: unknown[];
-}
-
-export function syncTable(
-  table: Table,
-  tableMetadata: TableMetaData,
-  finalQueryEditorId?: string,
-): SqlLabThunkAction<Promise<unknown>> {
-  return function (dispatch: AppDispatch) {
-    const finalTable = { ...table, queryEditorId: finalQueryEditorId };
-    const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
-      ? SupersetClient.post({
-          endpoint: encodeURI('/tableschemaview/'),
-          postPayload: { table: { ...tableMetadata, ...finalTable } },
-        })
-      : Promise.resolve({ json: { id: table.id } });
-
-    return sync
-      .then(({ json: resultJson }) => {
-        const newTable = { ...table, id: `${resultJson.id}` };
-        dispatch(
-          mergeTable({
-            ...newTable,
-            expanded: true,
-            initialized: true,
-          }),
-        );
-      })
-      .catch(() =>
-        dispatch(
-          addDangerToast(
-            t(
-              'An error occurred while fetching table metadata. ' +
-                'Please contact your administrator.',
-            ),
-          ),
-        ),
-      );
-  };
-}
-
 export function changeDataPreviewId(
   oldQueryId: string,
   newQuery: Query,
@@ -1585,6 +1572,7 @@ export function popSavedQuery(
         } as Record<string, unknown>;
         const tmpAdaptedProps = {
           name: queryEditorProps.name as string,
+          description: queryEditorProps.description as string,
           dbId: (queryEditorProps.database as { id: number }).id,
           catalog: queryEditorProps.catalog as string,
           schema: queryEditorProps.schema as string,

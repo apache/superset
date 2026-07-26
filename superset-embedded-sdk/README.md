@@ -41,12 +41,12 @@ npm install --save @superset-ui/embedded-sdk
 ```
 
 ```js
-import { embedDashboard } from '@superset-ui/embedded-sdk';
+import { embedDashboard } from "@superset-ui/embedded-sdk";
 
 embedDashboard({
-  id: 'abc123', // given by the Superset embedding UI
-  supersetDomain: 'https://superset.example.com',
-  mountPoint: document.getElementById('my-superset-container'), // any html element that can contain an iframe
+  id: "abc123", // given by the Superset embedding UI
+  supersetDomain: "https://superset.example.com",
+  mountPoint: document.getElementById("my-superset-container"), // any html element that can contain an iframe
   fetchGuestToken: () => fetchGuestTokenFromBackend(),
   dashboardUiConfig: {
     // dashboard UI config: hideTitle, hideTab, hideChartControls, filters.visible, filters.expanded (optional), urlParams (optional)
@@ -55,21 +55,21 @@ embedDashboard({
       expanded: true,
     },
     urlParams: {
-      foo: 'value1',
-      bar: 'value2',
+      foo: "value1",
+      bar: "value2",
       // themeMode: 'dark', // set the initial theme: 'dark' | 'system' | 'default' (default: 'default')
       // ...
     },
   },
   // optional additional iframe sandbox attributes
   iframeSandboxExtras: [
-    'allow-top-navigation',
-    'allow-popups-to-escape-sandbox',
+    "allow-top-navigation",
+    "allow-popups-to-escape-sandbox",
   ],
   // optional Permissions Policy features
-  iframeAllowExtras: ['clipboard-write', 'fullscreen'],
+  iframeAllowExtras: ["clipboard-write", "fullscreen"],
   // optional config to enforce a particular referrerPolicy
-  referrerPolicy: 'same-origin',
+  referrerPolicy: "same-origin",
   // optional callback to customize permalink URLs
   resolvePermalinkUrl: ({ key }) => `https://my-app.com/analytics/share/${key}`,
 });
@@ -163,13 +163,13 @@ Use the `themeMode` URL parameter to control the embedded dashboard's initial co
 
 ```js
 embedDashboard({
-  id: 'abc123',
-  supersetDomain: 'https://superset.example.com',
-  mountPoint: document.getElementById('my-superset-container'),
+  id: "abc123",
+  supersetDomain: "https://superset.example.com",
+  mountPoint: document.getElementById("my-superset-container"),
   fetchGuestToken: () => fetchGuestTokenFromBackend(),
   dashboardUiConfig: {
     urlParams: {
-      themeMode: 'dark', // 'dark' | 'system' | 'default' (default: 'default')
+      themeMode: "dark", // 'dark' | 'system' | 'default' (default: 'default')
     },
   },
 });
@@ -193,7 +193,7 @@ To pass additional sandbox attributes you can use `iframeSandboxExtras`:
 
 ```js
 // optional additional iframe sandbox attributes
-iframeSandboxExtras: ['allow-top-navigation', 'allow-popups-to-escape-sandbox'];
+iframeSandboxExtras: ["allow-top-navigation", "allow-popups-to-escape-sandbox"];
 ```
 
 ### Permissions Policy
@@ -202,7 +202,7 @@ To enable specific browser features within the embedded iframe, use `iframeAllow
 
 ```js
 // optional Permissions Policy features
-iframeAllowExtras: ['clipboard-write', 'fullscreen'];
+iframeAllowExtras: ["clipboard-write", "fullscreen"];
 ```
 
 Common permissions you might need:
@@ -225,9 +225,9 @@ When users click share buttons inside an embedded dashboard, Superset generates 
 
 ```js
 embedDashboard({
-  id: 'abc123',
-  supersetDomain: 'https://superset.example.com',
-  mountPoint: document.getElementById('my-superset-container'),
+  id: "abc123",
+  supersetDomain: "https://superset.example.com",
+  mountPoint: document.getElementById("my-superset-container"),
   fetchGuestToken: () => fetchGuestTokenFromBackend(),
 
   // Customize permalink URLs
@@ -245,9 +245,9 @@ To restore the dashboard state from a permalink in your app:
 const permalinkKey = routeParams.key;
 
 embedDashboard({
-  id: 'abc123',
-  supersetDomain: 'https://superset.example.com',
-  mountPoint: document.getElementById('my-superset-container'),
+  id: "abc123",
+  supersetDomain: "https://superset.example.com",
+  mountPoint: document.getElementById("my-superset-container"),
   fetchGuestToken: () => fetchGuestTokenFromBackend(),
   resolvePermalinkUrl: ({ key }) => `https://my-app.com/analytics/share/${key}`,
   dashboardUiConfig: {

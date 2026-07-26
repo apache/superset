@@ -240,7 +240,10 @@ export function EditableTitle({
               t("You don't have the rights to alter this title.")
         }
       >
-        {titleComponent}
+        {/* Wrap in span so the Tooltip can attach a ref to a DOM element.
+            antd's Input.TextArea forwards a non-DOM imperative handle, which
+            triggers a React 18 findDOMNode deprecation warning. */}
+        <span>{titleComponent}</span>
       </Tooltip>
     );
   }

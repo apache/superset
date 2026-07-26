@@ -450,3 +450,124 @@ def test_stringify_extension_columns() -> None:
     # plain binary BLOBs and other types are left untouched
     assert pa.types.is_binary(result.schema.field("blob").type)
     assert pa.types.is_integer(result.schema.field("n").type)
+
+
+def test_stringify_values_dict_and_list_produce_valid_json() -> None:
+    """
+    ClickHouse native JSON and Map types return Python dicts. When stringified for
+    Arrow array storage they must produce valid double-quoted JSON strings, not
+    Python's single-quoted repr. Single-quoted strings pass the cheap '{' prefix
+    check in the frontend's safeJsonObjectParse but then fail JSONbig.parse(),
+    so the SQL Lab cell viewer never activates.
+    """
+    data = np.array(
+        [
+            {"key": "value", "nested": {"a": 1}},
+            # str() gives ['a', 'b'] (single-quoted, invalid JSON);
+            # json.dumps gives ["a", "b"] (double-quoted, valid JSON).
+            ["a", "b"],
+            {"items": [1, 2, 3], "d": "Hello, World!"},
+            None,
+        ],
+        dtype=object,
+    )
+    result = stringify_values(data)
+
+    # Must be valid JSON strings (double-quoted), not Python repr (single-quoted)
+    assert result[0] == '{"key": "value", "nested": {"a": 1}}'
+    assert result[1] == '["a", "b"]'
+    assert result[2] == '{"items": [1, 2, 3], "d": "Hello, World!"}'
+    assert result[3] is None
+
+    # Parseable by a JSON parser — confirms the frontend's JSON.parse would succeed
+    parsed = superset_json.loads(result[0])
+    assert parsed == {"key": "value", "nested": {"a": 1}}
+    parsed = superset_json.loads(result[1])
+    assert parsed == ["a", "b"]
+
+
+def test_clickhouse_json_column_in_pa_table_is_valid_json() -> None:
+    """
+    Verify that ClickHouse-style heterogeneous dict columns produce valid JSON
+    strings in the Arrow table used by the msgpack serialization path.
+
+    When clickhouse-connect returns Python dicts for JSON/Map type columns,
+    SupersetResultSet must serialize them with json.dumps (not str()) so that
+    the SQL Lab grid's cell viewer can call JSON.parse on the value.
+    """
+    data = [
+        (1, {"a": {"b": 42}, "c": [1, 2, 3], "d": "Hello, World!"}),
+        (2, {"e": 5}),
+        (3, None),
+    ]
+    description = [
+        ("id", 3, None, None, None, None, None),
+        ("json_col", None, None, None, None, None, None),
+    ]
+    result_set = SupersetResultSet(data, description, BaseEngineSpec)  # type: ignore
+
+    df_from_pa = SupersetResultSet.convert_table_to_df(result_set.pa_table)
+
+    val0 = df_from_pa["json_col"].iloc[0]
+    val1 = df_from_pa["json_col"].iloc[1]
+
+    # Values in pa_table must be valid JSON strings (parseable by JSON.parse)
+    assert isinstance(val0, str)
+    assert isinstance(val1, str)
+
+    # Double-quoted JSON, not single-quoted Python repr
+    parsed0 = superset_json.loads(val0)
+    assert parsed0 == {"a": {"b": 42}, "c": [1, 2, 3], "d": "Hello, World!"}
+    parsed1 = superset_json.loads(val1)
+    assert parsed1 == {"e": 5}
+
+
+def test_stringify_values_preserves_non_ascii_characters() -> None:
+    """
+    Non-ASCII text inside array/struct/JSON column values (e.g. the Cyrillic and
+    CJK strings produced by ``array_agg``) must render verbatim in the result
+    grid, not as ``\\uXXXX`` escape sequences. Regression test for #19388 and
+    #22904, where such values were displayed as "unicode gibberish".
+    """
+    data = np.array(
+        [
+            ["Лонгсливы", "Свитшоты"],
+            {"city": "北京", "country": "中国"},
+            "你好，世界！",
+        ],
+        dtype=object,
+    )
+    result = stringify_values(data)
+
+    # Array and dict values keep their characters intact and stay valid JSON
+    assert result[0] == '["Лонгсливы", "Свитшоты"]'
+    assert result[1] == '{"city": "北京", "country": "中国"}'
+    assert result[2] == "你好，世界！"
+
+    # No escape sequences leak through
+    assert "\\u" not in result[0]
+    assert "\\u" not in result[1]
+
+    # Still round-trips through a JSON parser
+    assert superset_json.loads(result[0]) == ["Лонгсливы", "Свитшоты"]
+    assert superset_json.loads(result[1]) == {"city": "北京", "country": "中国"}
+
+
+def test_stringify_values_non_serializable_dict_falls_back_to_str() -> None:
+    """
+    When a dict/list contains a value that json.dumps cannot serialize (e.g. bytes),
+    stringify_values must fall back to str() rather than raising TypeError and crashing
+    the result-set construction path.
+    """
+
+    class _Unserializable:
+        def __repr__(self) -> str:
+            return "unserializable"
+
+    data = np.array(
+        [{"key": _Unserializable()}],
+        dtype=object,
+    )
+    # Must not raise — falls back to str()
+    result = stringify_values(data)
+    assert result[0] == str({"key": _Unserializable()})

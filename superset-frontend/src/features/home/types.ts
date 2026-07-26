@@ -36,6 +36,7 @@ export interface ExtensionConfigs {
   COLUMNAR_EXTENSIONS: Array<any>;
   EXCEL_EXTENSIONS: Array<any>;
   HAS_GSHEETS_INSTALLED: boolean;
+  SCARF_ANALYTICS?: boolean;
 }
 export interface RightMenuProps {
   align: 'flex-start' | 'flex-end';

@@ -223,8 +223,9 @@ compose based installation, edit the `x-superset-image:` line in your `docker-co
 `docker-compose-non-dev.yml` files, replacing `apachesuperset.docker.scarf.sh/apache/superset` with
 `apache/superset` to pull the image directly from Docker Hub.
 
-To disable the Scarf telemetry pixel, set the `SCARF_ANALYTICS` environment variable to `False` in
-your terminal and/or in your `docker/.env` file.
+To disable the Scarf telemetry pixel, set the `SCARF_ANALYTICS` environment variable to `false` in
+your `docker/.env` file. This is read at runtime, so it disables the pixel on the pre-built image
+without rebuilding the frontend.
 :::
 
 ## 3. Log in to Superset

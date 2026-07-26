@@ -90,3 +90,40 @@ def test_find_by_extra_metadata_escapes_underscore_wildcard(
 
     assert len(results) == 1
     assert results[0].name == "with-underscore"
+
+
+def test_find_by_native_filter_id_returns_matching_reports(
+    session: Session,
+) -> None:
+    extra = json.dumps({"dashboard": {"nativeFilters": "NATIVE_FILTER-abc123"}})
+    _create_report(session, "match", extra_json=extra)
+    _create_report(session, "no-match", extra_json="{}")
+
+    results = ReportScheduleDAO.find_by_native_filter_id("NATIVE_FILTER-abc123")
+
+    assert len(results) == 1
+    assert results[0].name == "match"
+
+
+def test_find_by_native_filter_id_escapes_percent_wildcard(
+    session: Session,
+) -> None:
+    _create_report(session, "with-percent", extra_json='{"id": "FILTER-100%x"}')
+    _create_report(session, "other", extra_json='{"id": "FILTER-100yx"}')
+
+    results = ReportScheduleDAO.find_by_native_filter_id("FILTER-100%x")
+
+    assert len(results) == 1
+    assert results[0].name == "with-percent"
+
+
+def test_find_by_native_filter_id_escapes_underscore_wildcard(
+    session: Session,
+) -> None:
+    _create_report(session, "with-underscore", extra_json='{"id": "FILTER-a_b"}')
+    _create_report(session, "other", extra_json='{"id": "FILTER-axb"}')
+
+    results = ReportScheduleDAO.find_by_native_filter_id("FILTER-a_b")
+
+    assert len(results) == 1
+    assert results[0].name == "with-underscore"

@@ -17,21 +17,25 @@
  * under the License.
  */
 import { sanitizeUrl } from '@braintree/sanitize-url';
-import { PropsWithoutRef, RefAttributes } from 'react';
+import { forwardRef, PropsWithoutRef, Ref, RefAttributes } from 'react';
 import { Link, LinkProps } from 'react-router-dom';
 import { isUrlExternal, parseUrl } from 'src/utils/urlUtils';
 
-export const GenericLink = <S,>({
-  to,
-  component,
-  replace,
-  innerRef,
-  children,
-  ...rest
-}: PropsWithoutRef<LinkProps<S>> & RefAttributes<HTMLAnchorElement>) => {
+type GenericLinkProps<S> = PropsWithoutRef<LinkProps<S>> &
+  RefAttributes<HTMLAnchorElement>;
+
+const GenericLinkInner = <S,>(
+  { to, component, replace, innerRef, children, ...rest }: GenericLinkProps<S>,
+  ref: Ref<HTMLAnchorElement>,
+) => {
   if (typeof to === 'string' && isUrlExternal(to)) {
     return (
-      <a data-test="external-link" href={sanitizeUrl(parseUrl(to))} {...rest}>
+      <a
+        ref={ref}
+        data-test="external-link"
+        href={sanitizeUrl(parseUrl(to))}
+        {...rest}
+      >
         {children}
       </a>
     );
@@ -42,10 +46,14 @@ export const GenericLink = <S,>({
       to={to}
       component={component}
       replace={replace}
-      innerRef={innerRef}
+      innerRef={innerRef ?? ref}
       {...rest}
     >
       {children}
     </Link>
   );
 };
+
+export const GenericLink = forwardRef(GenericLinkInner) as <S>(
+  props: GenericLinkProps<S> & { ref?: Ref<HTMLAnchorElement> },
+) => ReturnType<typeof GenericLinkInner>;

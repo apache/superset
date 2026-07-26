@@ -24,5 +24,11 @@ export {
   hasMixedCurrencies,
 } from './CurrencyFormatter';
 export { AUTO_CURRENCY_SYMBOL, ISO_4217_REGEX } from './CurrencyFormats';
+export { getCurrencyLocale, setCurrencyLocale } from './currencyLocale';
+export {
+  resolveSymbolPosition,
+  formatWithSymbolPosition,
+  type SymbolPosition,
+} from './symbolPosition';
 export * from './types';
 export * from './utils';

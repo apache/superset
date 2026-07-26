@@ -17,6 +17,7 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
+import { QueryFormData } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   D3_FORMAT_OPTIONS,
@@ -124,9 +125,9 @@ const config: ControlPanelConfig = {
       clearable: false,
     },
   },
-  formDataOverrides: formData => ({
+  formDataOverrides: (formData: QueryFormData) => ({
     ...formData,
-    metric: getStandardizedControls().shiftMetric,
+    metric: getStandardizedControls().shiftMetric(),
   }),
 };
 

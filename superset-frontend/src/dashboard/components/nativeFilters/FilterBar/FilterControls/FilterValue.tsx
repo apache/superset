@@ -31,6 +31,7 @@ import {
   ChartDataResponseResult,
   Behavior,
   DataMask,
+  DatasourceType,
   isFeatureEnabled,
   FeatureFlag,
   getChartMetadataRegistry,
@@ -41,9 +42,10 @@ import {
   getClientErrorObject,
   isChartCustomization,
 } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/theme';
-import { useDispatch, useSelector } from 'react-redux';
-import { isEqual, isEqualWith } from 'lodash';
+import { styled, SupersetTheme } from '@apache-superset/core/theme';
+import { useTheme } from '@emotion/react';
+import { useDispatch, useSelector, shallowEqual } from 'react-redux';
+import { isEqual, isEqualWith } from 'lodash-es';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { ErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
 import { Loading, Constants, Flex } from '@superset-ui/core/components';
@@ -84,35 +86,6 @@ const StyledDiv = styled.div<{
 
 const queriesDataPlaceholder = [{ data: [{}] }];
 
-type TimeGrainFilterConfig = {
-  time_grains?: string[];
-};
-
-export const applyTimeGrainAllowlist = (
-  filterType: string,
-  allowedTimeGrains: string[] | undefined,
-  results: ChartDataResponseResult[],
-): ChartDataResponseResult[] => {
-  if (filterType !== 'filter_timegrain' || !allowedTimeGrains?.length) {
-    return results;
-  }
-
-  return results.map(result => {
-    if (!Array.isArray(result.data)) {
-      return result;
-    }
-
-    return {
-      ...result,
-      data: result.data.filter(row =>
-        allowedTimeGrains.includes(
-          (row as { duration?: string }).duration ?? '',
-        ),
-      ),
-    };
-  });
-};
-
 const useShouldFilterRefresh = () => {
   const isDashboardRefreshing = useSelector<RootState, boolean>(
     state => state.dashboardState.isRefreshing,
@@ -141,11 +114,9 @@ const FilterValue: FC<FilterValueProps> = ({
   clearAllTrigger,
   onClearAllComplete,
 }) => {
+  const theme = useTheme() as SupersetTheme;
   const { id, targets, filterType } = filter;
   const isCustomization = isChartCustomization(filter);
-  const allowedTimeGrains = isCustomization
-    ? undefined
-    : (filter as TimeGrainFilterConfig).time_grains;
   const adhocFilters = isCustomization ? undefined : filter.adhoc_filters;
   const timeRange = isCustomization ? undefined : filter.time_range;
   const granularitySqla = isCustomization ? undefined : filter.granularity_sqla;
@@ -153,6 +124,19 @@ const FilterValue: FC<FilterValueProps> = ({
   const dependencies = useFilterDependencies(id, dataMaskSelected);
   const transitiveParentIds = useTransitiveParentIds(id);
   const shouldRefresh = useShouldFilterRefresh();
+
+  // Derive only the defaultToFirstItem flag per filter to avoid re-renders
+  // when unrelated filter config fields change.
+  const parentDefaultToFirstItem = useSelector(
+    (state: RootState) =>
+      Object.fromEntries(
+        Object.entries(state.nativeFilters?.filters ?? {}).map(([fId, f]) => [
+          fId,
+          Boolean(f.controlValues?.defaultToFirstItem),
+        ]),
+      ),
+    shallowEqual,
+  );
 
   const behaviors = useMemo(
     () => [
@@ -177,8 +161,13 @@ const FilterValue: FC<FilterValueProps> = ({
   const [target] = targets || [];
   const {
     datasetId,
+    datasourceType,
     column = {},
-  }: Partial<{ datasetId: number; column: { name?: string } }> = target || {};
+  }: Partial<{
+    datasetId: number;
+    datasourceType: DatasourceType;
+    column: { name?: string };
+  }> = target || {};
   const groupby = column?.name;
   const hasDataSource = !!datasetId;
   const [isLoading, setIsLoading] = useState<boolean>(hasDataSource);
@@ -212,6 +201,7 @@ const FilterValue: FC<FilterValueProps> = ({
     const newFormData = getFormData({
       ...filter,
       datasetId,
+      datasourceType,
       dependencies,
       groupby,
       adhoc_filters: adhocFilters,
@@ -225,6 +215,21 @@ const FilterValue: FC<FilterValueProps> = ({
       // selections first. We walk the full transitive ancestor chain (not just
       // direct parents) so the counts line up with `dependencies`, which is
       // itself built from the transitive chain by `useFilterDependencies`.
+
+      // Block if any parent with defaultToFirstItem hasn't auto-selected yet.
+      // Without this, the child fetches unfiltered options before the parent
+      // auto-selects, leading to a stale first-value dispatch that never
+      // gets corrected because subsequent re-selections are not first-initialization.
+      const hasDefaultFirstParentPending = transitiveParentIds.some(pId => {
+        const parentMask = dataMaskSelected?.[pId];
+        return (
+          parentDefaultToFirstItem[pId] &&
+          parentMask?.filterState?.value === undefined
+        );
+      });
+      if (hasDefaultFirstParentPending) {
+        return;
+      }
 
       let selectedParentFilterValueCounts = 0;
       let isTimeRangeSelected = false;
@@ -283,23 +288,13 @@ const FilterValue: FC<FilterValueProps> = ({
             // deal with getChartDataRequest transforming the response data
             const result = 'result' in json ? json.result[0] : json;
             if (response.status === 200) {
-              setState(
-                applyTimeGrainAllowlist(filterType, allowedTimeGrains, [
-                  result as ChartDataResponseResult,
-                ]),
-              );
+              setState([result as ChartDataResponseResult]);
               setError(undefined);
               handleFilterLoadFinish();
             } else if (response.status === 202) {
               waitForAsyncData(result as Parameters<typeof waitForAsyncData>[0])
                 .then((asyncResult: ChartDataResponseResult[]) => {
-                  setState(
-                    applyTimeGrainAllowlist(
-                      filterType,
-                      allowedTimeGrains,
-                      asyncResult,
-                    ),
-                  );
+                  setState(asyncResult);
                   setError(undefined);
                   handleFilterLoadFinish();
                 })
@@ -315,13 +310,7 @@ const FilterValue: FC<FilterValueProps> = ({
               );
             }
           } else {
-            setState(
-              applyTimeGrainAllowlist(
-                filterType,
-                allowedTimeGrains,
-                json.result as ChartDataResponseResult[],
-              ),
-            );
+            setState(json.result as ChartDataResponseResult[]);
             setError(undefined);
             handleFilterLoadFinish();
           }
@@ -340,13 +329,13 @@ const FilterValue: FC<FilterValueProps> = ({
     groupby,
     handleFilterLoadFinish,
     filter,
-    allowedTimeGrains,
     hasDataSource,
     isRefreshing,
     shouldRefresh,
     dataMaskSelected,
     setHasDepsFilterValue,
     transitiveParentIds,
+    parentDefaultToFirstItem,
   ]);
 
   useEffect(() => {
@@ -487,6 +476,7 @@ const FilterValue: FC<FilterValueProps> = ({
           enableNoResults={metadata?.enableNoResults}
           isRefreshing={isRefreshing}
           hooks={hooks}
+          theme={theme}
         />
       )}
     </StyledDiv>

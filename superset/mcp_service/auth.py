@@ -46,16 +46,17 @@ Configuration:
 
 import logging
 from contextlib import AbstractContextManager, nullcontext
-from typing import Any, Callable, TYPE_CHECKING, TypeVar
+from typing import Any, Callable, cast, TYPE_CHECKING, TypeAlias, TypeVar
 
 from flask import current_app, g, has_app_context, has_request_context
 from flask_appbuilder.security.sqla.models import User
 
-from superset import security_manager
+from superset import is_feature_enabled, security_manager
 from superset.mcp_service.composite_token_verifier import (
     API_KEY_PASSTHROUGH_CLAIM,
     API_KEY_VALIDATED_USERNAME_CLAIM,
 )
+from superset.mcp_service.guest_token_verifier import GUEST_TOKEN_CLAIM
 from superset.mcp_service.mcp_config import (
     default_user_resolver,
     get_mcp_api_key_enabled,
@@ -63,15 +64,22 @@ from superset.mcp_service.mcp_config import (
 from superset.mcp_service.utils.error_sanitization import (
     sanitize_for_log as _sanitize_for_log,
 )
+from superset.security.guest_token import GuestUser
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
     from superset.mcp_service.chart.chart_utils import DatasetValidationResult
+    from superset.security.guest_token import GuestToken
 
 # Type variable for decorated functions
 F = TypeVar("F", bound=Callable[..., Any])
 
 logger = logging.getLogger(__name__)
+
+# An MCP request resolves to a real DB ``User`` or, for embedded guests, a
+# ``GuestUser`` (an AnonymousUserMixin, not a ``User`` subclass). Both are valid
+# authenticated principals for tool execution.
+MCPUser: TypeAlias = User | GuestUser
 
 # Constants for RBAC permission attributes (mirrors FAB conventions)
 PERMISSION_PREFIX = "can_"
@@ -106,6 +114,10 @@ class MCPNoAuthSourceError(ValueError):
 # scope. When introducing a new method permission, add it here.
 _METHOD_TO_REQUIRED_SCOPE = {
     "read": "superset:read",
+    # "get" is the read-class permission FAB registers on its security API
+    # views (User/Role) — those views have no can_read, so tools targeting
+    # them declare method_permission_name="get".
+    "get": "superset:read",
     "write": "superset:write",
     "delete": "superset:write",
     # SQL execution (execute_sql, get_chart_sql) runs arbitrary queries and is
@@ -228,7 +240,85 @@ def _log_scope_denial(
         )
 
 
-def check_tool_permission(func: Callable[..., Any], *, log_denial: bool = True) -> bool:
+# Default-deny allow-list for embedded guests: a guest may call only these tools,
+# regardless of MCP_RBAC_ENABLED or how the guest role (PUBLIC_ROLE_LIKE) is
+# configured. Everything else is denied, including newly added tools until listed
+# here. Sync with mcp_config.py.
+_DEFAULT_GUEST_ALLOWED_TOOLS: frozenset[str] = frozenset(
+    {
+        # Dashboard structure, scoped to the token's embedded dashboards.
+        "get_dashboard_info",
+        "get_dashboard_layout",
+        "list_dashboards",
+        # Chart read + data, scoped by ChartFilter; data-model fields redacted.
+        "list_charts",
+        "get_chart_info",
+        "get_chart_data",
+        "get_chart_preview",
+    }
+)
+
+
+def _guest_allowed_tools() -> frozenset[str]:
+    """The tool allow-list for embedded guests (``MCP_GUEST_ALLOWED_TOOLS`` or the
+    default). A str config is rejected — it would make ``in`` do substring
+    matching — and falls back to the safe default."""
+    allowed = current_app.config.get("MCP_GUEST_ALLOWED_TOOLS")
+    if not isinstance(allowed, (set, frozenset, list, tuple)):
+        if allowed is not None:
+            logger.warning(
+                "MCP_GUEST_ALLOWED_TOOLS must be a set/list of tool names, got %s; "
+                "using the default allow-list",
+                type(allowed).__name__,
+            )
+        return _DEFAULT_GUEST_ALLOWED_TOOLS
+    return frozenset(allowed)
+
+
+def _default_restricted_tool_policy(user: Any) -> frozenset[str] | None:
+    """Map a principal to its MCP tool allow-list, or None when the principal is
+    not allow-list-restricted (RBAC governs instead). Embedded guests are the
+    built-in restricted principal; override ``MCP_RESTRICTED_TOOL_POLICY`` to add
+    others (e.g. a future embedded principal type)."""
+    if isinstance(user, GuestUser):
+        return _guest_allowed_tools()
+    return None
+
+
+def _tool_denied_for_principal(func: Callable[..., Any]) -> bool:
+    """True when the current principal is allow-list-restricted and ``func`` is
+    not on its allow-list. Default-deny for restricted principals (embedded guests
+    by default), holds even with MCP_RBAC_ENABLED off; unrestricted principals are
+    governed by RBAC and never blocked here."""
+    policy = (
+        current_app.config.get("MCP_RESTRICTED_TOOL_POLICY")
+        or _default_restricted_tool_policy
+    )
+    if not callable(policy):
+        # A misconfigured (non-callable) policy must not crash every tool call:
+        # fall back to the built-in default, same as MCP_GUEST_ALLOWED_TOOLS.
+        logger.warning(
+            "MCP_RESTRICTED_TOOL_POLICY is not callable (%s); using the default policy",
+            type(policy).__name__,
+        )
+        policy = _default_restricted_tool_policy
+    allowed = policy(getattr(g, "user", None))
+    if allowed is None:
+        return False
+    if not isinstance(allowed, (set, frozenset, list, tuple)):
+        # A misbehaving custom policy must not open the surface: fail closed.
+        logger.warning(
+            "MCP_RESTRICTED_TOOL_POLICY returned %s, expected a set/list or None; "
+            "denying all tools for this principal",
+            type(allowed).__name__,
+        )
+        return True
+    return getattr(func, "__name__", None) not in allowed
+
+
+def check_tool_permission(  # noqa: C901
+    func: Callable[..., Any], *, log_denial: bool = True
+) -> bool:
     """Check if the current user has RBAC permission for an MCP tool.
 
     Reads permission metadata stored on the function by the @tool decorator
@@ -247,6 +337,22 @@ def check_tool_permission(func: Callable[..., Any], *, log_denial: bool = True) 
         True if user has permission or no permission is required.
     """
     try:
+        # Restricted principals (embedded guests by default) are default-deny:
+        # only allow-listed tools pass, enforced regardless of RBAC config (holds
+        # even when MCP_RBAC_ENABLED is False).
+        if _tool_denied_for_principal(func):
+            if log_denial:
+                logger.warning(
+                    "Tool %s denied for restricted principal (not allow-listed)",
+                    func.__name__,
+                )
+            else:
+                logger.debug(
+                    "Tool %s hidden for restricted principal (not allow-listed)",
+                    func.__name__,
+                )
+            return False
+
         if not current_app.config.get("MCP_RBAC_ENABLED", True):
             return True
 
@@ -344,11 +450,17 @@ def is_tool_visible_to_current_user(tool: Any) -> bool:
         True if the tool is visible to the current user, False otherwise.
     """
     try:
-        if not current_app.config.get("MCP_RBAC_ENABLED", True):
-            return True
-
         tool_func = getattr(tool, "fn", None)
         if tool_func is None:
+            return True
+
+        # Hide non-allow-listed tools from restricted principals in tools/list
+        # regardless of RBAC config (enforced again at call time in
+        # check_tool_permission, including for permission-less tools).
+        if _tool_denied_for_principal(tool_func):
+            return False
+
+        if not current_app.config.get("MCP_RBAC_ENABLED", True):
             return True
 
         from superset.mcp_service.privacy import (
@@ -394,7 +506,7 @@ def load_user_with_relationships(
     return security_manager.find_user_with_relationships(username=username, email=email)
 
 
-def _resolve_user_from_jwt_context(app: Any) -> User | None:
+def _resolve_user_from_jwt_context(app: Any) -> MCPUser | None:  # noqa: C901
     """
     Resolve the current user from the MCP SDK's per-request JWT context.
 
@@ -408,6 +520,8 @@ def _resolve_user_from_jwt_context(app: Any) -> User | None:
     Returns:
         User object with relationships loaded, or None if no JWT context
         (i.e. no token present — caller should fall through to next source).
+        For a verified embedded guest token (``client_id == "guest"``) returns
+        the corresponding ``GuestUser`` built from the token's resources/RLS.
 
     Raises:
         ValueError: If JWT resolves a username that doesn't exist in the DB
@@ -430,6 +544,35 @@ def _resolve_user_from_jwt_context(app: Any) -> User | None:
     # to the claim so that an external IdP JWT that happens to include the
     # claim name is not misclassified as an API-key pass-through.
     claims = getattr(access_token, "claims", None)
+
+    # Embedded guest token (already admitted by the GuestTokenVerifier): resolve
+    # as the highest-priority identity so a valid guest is never downgraded.
+    # Anti-forgery: only the GuestTokenVerifier sets the marker (the composite
+    # verifier strips it from JWT tokens) and this branch requires guest auth
+    # enabled, so a crafted IdP JWT with the marker can't pose as a guest.
+    if (
+        isinstance(claims, dict)
+        and claims.get(GUEST_TOKEN_CLAIM)
+        and getattr(access_token, "client_id", None) == "guest"
+    ):
+        if not (
+            is_feature_enabled("EMBEDDED_SUPERSET")
+            and app.config.get("MCP_EMBEDDED_GUEST_AUTH_ENABLED", False)
+        ):
+            logger.warning(
+                "Guest-marked token presented but embedded guest auth is not "
+                "enabled; rejecting"
+            )
+            return None
+        logger.debug("Resolving MCP request as embedded guest user")
+        # Drop the internal marker so it does not leak into GuestUser.guest_token.
+        guest_claims: dict[str, Any] = {
+            k: v for k, v in claims.items() if k != GUEST_TOKEN_CLAIM
+        }
+        return security_manager.get_guest_user_from_token(
+            cast("GuestToken", guest_claims)
+        )
+
     if isinstance(claims, dict) and claims.get(API_KEY_PASSTHROUGH_CLAIM):
         if getattr(access_token, "client_id", None) == "api_key":
             logger.debug(
@@ -511,7 +654,7 @@ def _load_api_key_user_by_username(username: str) -> User:
     """Load a user by username after transport-layer API key validation."""
     user_with_rels = load_user_with_relationships(username=username)
     if user_with_rels is None:
-        raise PermissionError(f"API key owner '{username}' not found in database.")
+        raise PermissionError(f"API key user '{username}' not found in database.")
     return user_with_rels
 
 
@@ -607,12 +750,15 @@ def _resolve_user_from_api_key(app: Any) -> User | None:
     return _validate_api_key_fallback(app, api_key_string)
 
 
-def get_user_from_request() -> User:
+def get_user_from_request() -> MCPUser:
     """
     Get the current user for the MCP tool request.
 
     Priority order:
-    1. JWT auth context (per-request ContextVar from MCP SDK) — safest
+    1. JWT auth context (per-request ContextVar from MCP SDK) — safest. This
+       also resolves a verified embedded guest token to a ``GuestUser`` (when
+       ``MCP_EMBEDDED_GUEST_AUTH_ENABLED`` + ``EMBEDDED_SUPERSET`` are on), so a
+       guest can never be downgraded to a lower-priority source.
     2. API key from Authorization header (via FAB SecurityManager)
     3. MCP_DEV_USERNAME from configuration (for development/testing)
     4. g.user fallback (for external middleware like Preset's
@@ -740,7 +886,7 @@ def _log_user_resolution_failure(exc: ValueError | PermissionError) -> None:
         logger.error("MCP user resolution failed, denying request: %s", exc)
 
 
-def _assert_user_active(user: User | None) -> None:
+def _assert_user_active(user: MCPUser | None) -> None:
     """Raise ValueError if the user account is disabled (no-op for None)."""
     if user is None:
         return
@@ -750,7 +896,7 @@ def _assert_user_active(user: User | None) -> None:
         )
 
 
-def _setup_user_context() -> User | None:
+def _setup_user_context() -> MCPUser | None:
     """
     Set up user context for MCP tool execution.
 
@@ -1080,5 +1226,9 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
     # Also remove ctx from annotations to match signature
     if "ctx" in new_wrapper.__annotations__:
         del new_wrapper.__annotations__["ctx"]
+
+    # Mark this wrapper as protected so a startup assertion can verify every
+    # registered tool went through mcp_auth_hook (see issue #39395).
+    new_wrapper._mcp_auth_protected = True  # type: ignore[attr-defined]
 
     return new_wrapper  # type: ignore[return-value]

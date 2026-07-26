@@ -21,6 +21,7 @@ import { css, styled } from '@apache-superset/core/theme';
 export default styled.div`
   ${({ theme }) => css`
     /* Base table styles */
+    padding: ${theme.sizeUnit * 5}px;
     table {
       width: 100%;
       min-width: auto;
@@ -98,7 +99,7 @@ export default styled.div`
       background-color: ${theme.colorBgLayout};
     }
 
-    .dt-select-page-size .ant-select .ant-select-arrow {
+    .dt-select-page-size .ant-select .ant-select-suffix {
       color: ${theme.colorTextQuaternary};
       z-index: 11;
     }

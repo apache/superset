@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { ReactElement } from 'react';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { render, screen } from '@testing-library/react';
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -33,10 +34,23 @@ const mockGetColorBreakpointsBuckets = jest.spyOn(
 );
 
 // Mock DeckGL container and Legend
+const mockDeckGLContainerProps: Array<Record<string, unknown>> = [];
+
 jest.mock('../../DeckGLContainer', () => ({
-  DeckGLContainerStyledWrapper: ({ children }: any) => (
-    <div data-testid="deckgl-container">{children}</div>
-  ),
+  DeckGLContainerStyledWrapper: (props: Record<string, unknown>) => {
+    mockDeckGLContainerProps.push(props);
+    const React = jest.requireActual('react');
+    return React.createElement(
+      'div',
+      { 'data-testid': 'deckgl-container' },
+      props.children,
+    );
+  },
+}));
+
+jest.mock('../../utils/mapbox', () => ({
+  getMapboxApiKey: () => 'bootstrap-mapbox-key',
+  hasMapboxApiKey: () => true,
 }));
 
 jest.mock('../../components/Legend', () => ({ categories, position }: any) => (
@@ -109,6 +123,95 @@ const mockProps = {
   emitCrossFilters: false,
 };
 
+describe('DeckGLPolygon renderer propagation', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockGetBuckets.mockReturnValue({});
+    mockGetColorBreakpointsBuckets.mockReturnValue({});
+  });
+
+  const renderWithTheme = (component: ReactElement) =>
+    render(<ThemeProvider theme={supersetTheme}>{component}</ThemeProvider>);
+
+  const lastDeckGLContainerProps = () =>
+    mockDeckGLContainerProps
+      .slice()
+      .reverse()
+      .find(props => props?.viewport !== undefined);
+
+  test('passes selected MapLibre renderer props to the container', () => {
+    mockDeckGLContainerProps.length = 0;
+
+    renderWithTheme(
+      <DeckGLPolygon
+        {...mockProps}
+        formData={{
+          ...mockProps.formData,
+          map_renderer: 'maplibre',
+          maplibre_style: 'https://example.com/polygon-maplibre-style.json',
+          mapbox_style: 'mapbox://styles/mapbox/dark-v9',
+        }}
+      />,
+    );
+
+    expect(lastDeckGLContainerProps()).toEqual(
+      expect.objectContaining({
+        mapProvider: 'maplibre',
+        mapStyle: 'https://example.com/polygon-maplibre-style.json',
+        mapboxApiKey: 'bootstrap-mapbox-key',
+      }),
+    );
+  });
+
+  test('passes selected Mapbox renderer props to the container', () => {
+    mockDeckGLContainerProps.length = 0;
+
+    renderWithTheme(
+      <DeckGLPolygon
+        {...mockProps}
+        formData={{
+          ...mockProps.formData,
+          map_renderer: 'mapbox',
+          maplibre_style: 'https://example.com/polygon-maplibre-style.json',
+          mapbox_style: 'mapbox://styles/mapbox/satellite-v9',
+        }}
+      />,
+    );
+
+    expect(lastDeckGLContainerProps()).toEqual(
+      expect.objectContaining({
+        mapProvider: 'mapbox',
+        mapStyle: 'mapbox://styles/mapbox/satellite-v9',
+        mapboxApiKey: 'bootstrap-mapbox-key',
+      }),
+    );
+  });
+
+  test('falls back to legacy map_style when provider-specific style is absent', () => {
+    mockDeckGLContainerProps.length = 0;
+
+    renderWithTheme(
+      <DeckGLPolygon
+        {...mockProps}
+        formData={{
+          ...mockProps.formData,
+          map_renderer: 'maplibre',
+          maplibre_style: undefined,
+          map_style: 'legacy-map-style',
+        }}
+      />,
+    );
+
+    expect(lastDeckGLContainerProps()).toEqual(
+      expect.objectContaining({
+        mapProvider: 'maplibre',
+        mapStyle: 'legacy-map-style',
+        mapboxApiKey: 'bootstrap-mapbox-key',
+      }),
+    );
+  });
+});
+
 describe('DeckGLPolygon bucket generation logic', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -119,7 +222,7 @@ describe('DeckGLPolygon bucket generation logic', () => {
     mockGetColorBreakpointsBuckets.mockReturnValue({});
   });
 
-  const renderWithTheme = (component: React.ReactElement) =>
+  const renderWithTheme = (component: ReactElement) =>
     render(<ThemeProvider theme={supersetTheme}>{component}</ThemeProvider>);
 
   test('should use getBuckets for linear_palette color scheme', () => {
@@ -227,7 +330,7 @@ describe('DeckGLPolygon Error Handling and Edge Cases', () => {
     mockGetColorBreakpointsBuckets.mockReturnValue({});
   });
 
-  const renderWithTheme = (component: React.ReactElement) =>
+  const renderWithTheme = (component: ReactElement) =>
     render(<ThemeProvider theme={supersetTheme}>{component}</ThemeProvider>);
 
   test('handles empty features data gracefully', () => {
@@ -291,7 +394,7 @@ describe('DeckGLPolygon Legend Integration', () => {
     });
   });
 
-  const renderWithTheme = (component: React.ReactElement) =>
+  const renderWithTheme = (component: ReactElement) =>
     render(<ThemeProvider theme={supersetTheme}>{component}</ThemeProvider>);
 
   test('renders legend with non-empty categories when metric and linear_palette are defined', () => {

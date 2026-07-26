@@ -26,10 +26,18 @@ export type FetchRetryOptions = {
   retries?: number;
   retryDelay?:
     | number
-    | ((attempt: number, error: Error, response: Response) => number);
+    | ((
+        attempt: number,
+        error: Error | null,
+        response: Response | null,
+      ) => number);
   retryOn?:
     | number[]
-    | ((attempt: number, error: Error, response: Response) => boolean);
+    | ((
+        attempt: number,
+        error: Error | null,
+        response: Response | null,
+      ) => boolean);
 };
 export type Headers = { [k: string]: string };
 export type Host = string;
@@ -43,9 +51,7 @@ export type JsonPrimitive = string | number | boolean | null;
  * (Ref: https://github.com/microsoft/TypeScript/issues/15300).
  */
 export type StrictJsonValue =
-  | JsonPrimitive
-  | StrictJsonObject
-  | StrictJsonArray;
+  JsonPrimitive | StrictJsonObject | StrictJsonArray;
 export type StrictJsonArray = StrictJsonValue[];
 /**
  * More strict JSON objects that makes sure all values are plain objects.
@@ -71,12 +77,7 @@ export type Mode = RequestInit['mode'];
 export type Redirect = RequestInit['redirect'];
 export type ClientTimeout = number | undefined;
 export type ParseMethod =
-  | 'json'
-  | 'json-bigint'
-  | 'text'
-  | 'raw'
-  | null
-  | undefined;
+  'json' | 'json-bigint' | 'text' | 'raw' | null | undefined;
 export type Signal = RequestInit['signal'];
 export type Stringify = boolean;
 export type Url = string;
@@ -152,6 +153,7 @@ export interface SupersetClientInterface extends Pick<
   | 'get'
   | 'post'
   | 'postForm'
+  | 'postBlob'
   | 'put'
   | 'request'
   | 'init'
@@ -163,6 +165,7 @@ export interface SupersetClientInterface extends Pick<
   configure: (config?: ClientConfig) => SupersetClientInterface;
   reset: () => void;
   getCSRFToken: () => CsrfPromise;
+  guestTokenHeaderName?: string;
 }
 
 export type SupersetClientResponse = Response | JsonResponse | TextResponse;

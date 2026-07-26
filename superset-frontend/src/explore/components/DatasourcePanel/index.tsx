@@ -18,7 +18,12 @@
  */
 import { useContext, useDeferredValue, useMemo, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { DatasourceType, Metric, QueryFormData } from '@superset-ui/core';
+import {
+  DatasourceType,
+  Metric,
+  QueryFormData,
+  handleKeyboardActivation,
+} from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 
@@ -290,6 +295,9 @@ export default function DataSourcePanel({
                       role="button"
                       tabIndex={0}
                       onClick={() => setShowSaveDatasetModal(true)}
+                      onKeyDown={handleKeyboardActivation(() =>
+                        setShowSaveDatasetModal(true),
+                      )}
                       className="add-dataset-alert-description"
                     >
                       {t('Create a dataset')}

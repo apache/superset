@@ -84,6 +84,31 @@ async def test_algorithm_mismatch(hs256_verifier):
 
 
 @pytest.mark.asyncio
+async def test_unpinned_algorithm_is_rejected(
+    hs256_verifier: DetailedJWTVerifier,
+) -> None:
+    """A verifier with no pinned algorithm must reject signed tokens.
+
+    The upstream JWTVerifier currently always defaults the algorithm to RS256,
+    so this state is not reachable through normal construction. This asserts the
+    fail-closed guard so the verifier does not silently rely on that upstream
+    default: if the pinned algorithm is ever absent, tokens are rejected rather
+    than validated against an unconstrained algorithm family.
+    """
+    # Simulate an unpinned verifier (e.g. a future upstream default change).
+    hs256_verifier.algorithm = None
+    token = _make_token(
+        {"alg": "HS256", "typ": "JWT"},
+        {"sub": "user1", "iss": "test-issuer", "aud": "test-audience"},
+    )
+
+    result = await hs256_verifier.load_access_token(token)
+
+    assert result is None
+    assert _jwt_failure_reason.get() == "No signing algorithm pinned"
+
+
+@pytest.mark.asyncio
 async def test_malformed_token_header(hs256_verifier):
     """Token with invalid header should report malformed header."""
     # A token with only 2 parts (missing signature)
@@ -405,6 +430,58 @@ async def test_token_without_expiration_rejected(hs256_verifier):
     assert reason == "Token missing expiration"
     # Claim values must not leak into the contextvar reason
     assert "user1" not in reason
+
+
+@pytest.mark.asyncio
+async def test_non_finite_expiration_rejected(hs256_verifier):
+    """An infinite exp must be rejected cleanly, not crash on int() overflow.
+
+    A JSON ``1e309`` decodes to ``float('inf')``, which passes the
+    ``exp < time.time()`` expiry check and would later raise ``OverflowError``
+    on ``int(exp)`` — surfacing as a 500 instead of a 401. The finite-number
+    guard rejects it with a precise reason before that can happen.
+    """
+    token = _make_token(
+        {"alg": "HS256", "typ": "JWT"},
+        {"sub": "user1", "iss": "test-issuer", "aud": "test-audience"},
+    )
+    claims = {
+        "sub": "user1",
+        "iss": "test-issuer",
+        "aud": "test-audience",
+        "exp": float("inf"),
+    }
+
+    with patch.object(hs256_verifier.jwt, "decode", return_value=claims):
+        result = await hs256_verifier.load_access_token(token)
+
+    assert result is None
+    assert _jwt_failure_reason.get() == "Token has invalid expiration"
+
+
+@pytest.mark.asyncio
+async def test_non_numeric_expiration_rejected(hs256_verifier):
+    """A non-numeric exp must be rejected with the invalid-expiration reason.
+
+    Without the finite-number guard, ``exp < time.time()`` would raise
+    ``TypeError`` and degrade to the generic "Token validation failed" reason.
+    """
+    token = _make_token(
+        {"alg": "HS256", "typ": "JWT"},
+        {"sub": "user1", "iss": "test-issuer", "aud": "test-audience"},
+    )
+    claims = {
+        "sub": "user1",
+        "iss": "test-issuer",
+        "aud": "test-audience",
+        "exp": "2026-01-01",
+    }
+
+    with patch.object(hs256_verifier.jwt, "decode", return_value=claims):
+        result = await hs256_verifier.load_access_token(token)
+
+    assert result is None
+    assert _jwt_failure_reason.get() == "Token has invalid expiration"
 
 
 @pytest.mark.asyncio

@@ -51,7 +51,7 @@ async def get_rls_filter_info(
 ) -> RlsFilterInfo | RlsFilterError:
     """Get row level security filter details by ID. Requires admin access.
 
-    Returns full RLS filter configuration including name, type, tables, roles,
+    Returns full RLS filter configuration including name, type, tables, subjects,
     and clause.
 
     Example usage:
@@ -59,6 +59,16 @@ async def get_rls_filter_info(
     {"identifier": 1}
     ```
     """
+    from superset import security_manager
+
+    # An RLS clause exposes tables/columns and roles; deny guests explicitly so
+    # it holds even with MCP_RBAC_ENABLED off.
+    if security_manager.is_guest_user():
+        return RlsFilterError(
+            error="RLS filters are not available to embedded guests.",
+            error_type="Forbidden",
+        )
+
     await ctx.info(
         "Retrieving RLS filter information: identifier=%s" % (request.identifier,)
     )
