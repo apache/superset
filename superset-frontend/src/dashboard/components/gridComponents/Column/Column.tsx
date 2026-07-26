@@ -248,6 +248,7 @@ const Column = (props: ColumnProps) => {
               <IconButton
                 onClick={() => handleChangeFocus(true)}
                 label={t('Column settings')}
+                hideVisibleLabel
                 icon={<Icons.SettingOutlined iconSize="m" />}
               />
             </HoverMenu>

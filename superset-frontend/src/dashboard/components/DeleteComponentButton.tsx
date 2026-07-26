@@ -35,6 +35,7 @@ const DeleteComponentButton: FC<DeleteComponentButtonProps> = ({
   <IconButton
     onClick={onDelete}
     label={t('Delete component')}
+    hideVisibleLabel
     icon={<Icons.DeleteOutlined iconSize={iconSize ?? 'l'} />}
   />
 );

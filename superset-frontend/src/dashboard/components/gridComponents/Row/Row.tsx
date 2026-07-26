@@ -294,6 +294,7 @@ const Row = memo((props: RowProps) => {
             <IconButton
               onClick={() => handleChangeFocus(true)}
               label={t('Row settings')}
+              hideVisibleLabel
               icon={<Icons.SettingOutlined iconSize="l" />}
             />
           </HoverMenu>
