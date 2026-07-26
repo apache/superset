@@ -361,6 +361,7 @@ const Thumbnail: FC<ThumbnailProps> = ({
       // the data-test attribute
       css={thumbnailContainerCss(theme)}
       className={isSelected ? 'selected' : ''}
+      aria-pressed={isSelected}
       onClick={() => setSelectedViz(key)}
       onDoubleClick={onDoubleClick}
       onFocus={handleFocus}

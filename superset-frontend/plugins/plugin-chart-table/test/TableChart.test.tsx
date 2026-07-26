@@ -2334,7 +2334,7 @@ describe('plugin-chart-table', () => {
       expect(screen.getByText('User 1')).toBeInTheDocument();
       expect(screen.queryByText('User 11')).not.toBeInTheDocument();
 
-      const page2Link = container.querySelector('a[href="#page-1"]')!;
+      const page2Link = screen.getByRole('button', { name: '2' });
       expect(page2Link).toBeTruthy();
       fireEvent.click(page2Link);
 
@@ -2381,8 +2381,8 @@ describe('plugin-chart-table', () => {
         expect(screen.queryByText('User 1')).not.toBeInTheDocument();
       });
 
-      const activePage = container.querySelector('li.active a')!;
-      expect(activePage).toHaveAttribute('href', '#page-1');
+      const activePage = container.querySelector('li.active button')!;
+      expect(activePage).toHaveTextContent('2');
     });
 
     test('should build columnLabelToNameMap for adhoc columns with custom labels', () => {

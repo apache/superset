@@ -110,7 +110,12 @@ const UrlFiltersVerticalCollapse = (props: {
 
   return (
     <div css={sectionContainerStyle}>
-      <button type="button" css={sectionHeaderStyle} onClick={toggleSection}>
+      <button
+        type="button"
+        css={sectionHeaderStyle}
+        aria-expanded={isOpen}
+        onClick={toggleSection}
+      >
         <h4 css={sectionTitleStyle}>
           <Icons.LinkOutlined iconSize="s" />
           {t('URL Filters')}

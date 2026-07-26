@@ -324,6 +324,7 @@ const FilterControls: FC<FilterControlsProps> = ({
             {!hideHeader && (
               <SectionHeader
                 type="button"
+                aria-expanded={sectionsOpen.filters}
                 onClick={() => toggleSection('filters')}
               >
                 <Title
@@ -361,6 +362,7 @@ const FilterControls: FC<FilterControlsProps> = ({
             {!hideHeader && (
               <SectionHeader
                 type="button"
+                aria-expanded={sectionsOpen.chartCustomization}
                 onClick={() => toggleSection('chartCustomization')}
               >
                 <Title
