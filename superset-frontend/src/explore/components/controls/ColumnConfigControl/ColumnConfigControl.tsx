@@ -168,7 +168,6 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
         {needShowMoreButton && (
           <button
             type="button"
-            tabIndex={-1}
             css={{
               appearance: 'none',
               border: 'none',

@@ -62,7 +62,7 @@ export const ActionButton = ({
         cursor: pointer;
         color: ${theme.colorIcon};
         margin-right: ${theme.sizeUnit}px;
-        &:hover {
+        &:not(.disabled):hover {
           path {
             fill: ${theme.colorPrimary};
           }
