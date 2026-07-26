@@ -48,14 +48,19 @@ function formatThroughput(
     const sign = value > 0 ? '' : '-';
     const magnitude = Math.abs(value);
     const bits = fromBytes ? magnitude * BITS_PER_BYTE : magnitude;
-    const i = Math.max(
+    let i = Math.max(
       0,
       Math.min(
         SUFFIXES.length - 1,
         Math.floor(Math.log(bits) / Math.log(BASE)),
       ),
     );
-    const scaled = parseFloat((bits / Math.pow(BASE, i)).toFixed(decimals));
+    let scaled = parseFloat((bits / Math.pow(BASE, i)).toFixed(decimals));
+
+    if (scaled >= BASE && i < SUFFIXES.length - 1) {
+      i += 1;
+      scaled = parseFloat((bits / Math.pow(BASE, i)).toFixed(decimals));
+    }
 
     return `${sign}${scaled}${SUFFIXES[i]}`;
   };

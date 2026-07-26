@@ -85,6 +85,20 @@ test('scales bytes per second across the full range of suffixes', () => {
   expect(formatter(Math.pow(1000, 10) / 8)).toBe('1Qbps');
 });
 
+test('promotes to the next suffix when rounding reaches the base', () => {
+  const formatter = createThroughputFormatter();
+  expect(formatter(999.999)).toBe('1kbps');
+  expect(formatter(999999)).toBe('1Mbps');
+  expect(formatter(999999999)).toBe('1Gbps');
+  expect(formatter(-999999)).toBe('-1Mbps');
+
+  const fromBytes = createThroughputFormatter({ fromBytes: true });
+  expect(fromBytes(124999.99)).toBe('1Mbps');
+
+  const formatter0decimals = createThroughputFormatter({ decimals: 0 });
+  expect(formatter0decimals(999.6)).toBe('1kbps');
+});
+
 test('clamps to the largest suffix beyond the known range', () => {
   const formatter = createThroughputFormatter();
   expect(formatter(Math.pow(1000, 11))).toBe('1000Qbps');
