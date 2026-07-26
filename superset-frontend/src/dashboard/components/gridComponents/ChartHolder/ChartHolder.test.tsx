@@ -114,9 +114,6 @@ describe('ChartHolder', () => {
     renderWrapper();
 
     expect(
-      screen.getByTestId('dashboard-component-chart-holder'),
-    ).toHaveAttribute('data-test-chart-id', String(chartId));
-    expect(
       screen.getByText('No results were returned for this query'),
     ).toBeVisible();
     expect(

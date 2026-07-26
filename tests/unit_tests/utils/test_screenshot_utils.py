@@ -538,12 +538,11 @@ class TestTakeTiledScreenshot:
             assert "spinner_mounted" in js
             assert "waiting_on_database" in js
             assert "nothing_mounted" in js
-            assert "slice-container" in js
+            assert ".slice_container" in js
             assert (
-                '[data-test="dashboard-component-chart-holder"][data-test-chart-id]'
+                '.dashboard-component-chart-holder[class*="dashboard-chart-id-"]'
             ) in js
-            assert "holder.getAttribute('data-test-chart-id')" in js
-            assert "holder.querySelector('[data-test-chart-id]')" not in js
+            assert "holder.className.match(/\\bdashboard-chart-id-(\\d+)\\b/)" in js
 
         assert "rendered" in FIND_CHART_HOLDER_STATES_JS
         assert "empty" in FIND_CHART_HOLDER_STATES_JS
@@ -551,8 +550,24 @@ class TestTakeTiledScreenshot:
         assert "virtualized" in FIND_CHART_HOLDER_STATES_JS
         assert "waiting_on_database" in FIND_CHART_HOLDER_STATES_JS
         assert (
-            '[data-test="dashboard-component-chart-holder"][data-test-chart-id]'
+            '.dashboard-component-chart-holder[class*="dashboard-chart-id-"]'
         ) in FIND_CHART_HOLDER_STATES_JS
+
+    def test_readiness_constants_are_production_safe(self):
+        from superset.utils.screenshot_utils import (
+            CHART_CONTAINER_READY_JS,
+            CHART_HOLDERS_READY_JS,
+            FIND_CHART_HOLDER_STATES_JS,
+            FIND_UNREADY_CHART_HOLDERS_JS,
+        )
+
+        for js in (
+            CHART_CONTAINER_READY_JS,
+            CHART_HOLDERS_READY_JS,
+            FIND_CHART_HOLDER_STATES_JS,
+            FIND_UNREADY_CHART_HOLDERS_JS,
+        ):
+            assert "data-test" not in js
 
     def test_per_tile_timing_logged_at_debug(self, mock_page):
         """Each tile logs how long it waited for readiness, for profiling."""

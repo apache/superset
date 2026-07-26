@@ -148,9 +148,6 @@ describe('DynamicComponent', () => {
     expect(
       screen.getByTestId('dashboard-component-chart-holder'),
     ).toBeInTheDocument();
-    expect(
-      screen.getByTestId('dashboard-component-chart-holder'),
-    ).not.toHaveAttribute('data-test-chart-id');
     expect(screen.getByTestId('mock-dynamic-component')).toBeInTheDocument();
   });
 

@@ -67,7 +67,7 @@ def resolve_screenshot_task_budget_seconds(
             limit * SCREENSHOT_TASK_BUDGET_MARGIN_FRACTION,
         )
         budget = max(0.0, float(limit) - margin)
-        logger.info(
+        logger.debug(
             "Screenshot budget derived from Celery task %s=%.1fs: %.1fs "
             "(cleanup margin=%.1fs)%s",
             "soft_time_limit" if soft_limit else "time_limit",
@@ -98,134 +98,113 @@ if TYPE_CHECKING:
     except ImportError:
         Page = None
 
-# Selectors used to build a positive readiness check, shared by both the
-# tiled (take_tiled_screenshot, below) and standard/non-tiled
-# (WebDriverPlaywright.get_screenshot in webdriver.py) capture paths. A chart
-# holder is only "ready" once it shows a terminal state (a rendered chart or
-# an error/empty state) -- the mere absence of a `.loading` element is not
-# sufficient, since a chart holder that intersects the viewport but hasn't
-# mounted anything yet (e.g. its IntersectionObserver callback hasn't fired)
-# would otherwise pass vacuously.
-# See superset-frontend/src/dashboard/components/gridComponents/ChartHolder/
-# ChartHolder.tsx for the chart-specific combination of
-# `data-test="dashboard-component-chart-holder"` and `data-test-chart-id`.
-# Markdown.tsx and DynamicComponent.tsx reuse the former styling/test hook but
-# intentionally lack the chart-id attribute, so they cannot participate in
-# chart readiness.
-# superset-frontend/src/components/Chart/Chart.tsx for `.slice_container`
-# (rendered chart container, `data-test="slice-container"`) and `.loading`
-# (spinner, via the shared Loading component), and
-# superset-frontend/packages/superset-ui-core/src/components/EmptyState for
-# `.ant-empty` (e.g. "no results"/"add required control values" states).
-#
-# Scoped to viewport-intersecting holders only (not just "in the tile", but
-# actually intersecting `window.innerHeight` at evaluation time) in both call
-# sites, since neither one resizes the browser viewport to the full dashboard
-# height before capturing: the tiled path scrolls tile-by-tile and the
-# standard path relies on Playwright's ability to capture below-the-fold
-# content without ever scrolling it into view. In both cases, chart holders
-# outside the current viewport are DashboardVirtualization placeholders that
-# haven't mounted anything real yet by design, so requiring them to reach a
-# terminal state would deadlock the wait.
-#
-# For diagnostics, each unready holder is additionally classified by *why*
-# it isn't ready, distinguishing a slow query from the virtualization race:
-#   - "waiting_on_database": `.loading` present with no `.slice_container`
-#     -- Chart.tsx's `renderSpinner()` replaces the whole container while
-#     the initial query is in flight (`chartStatus === 'loading'`).
-#   - "spinner_mounted": `.loading` present *inside* `.slice_container`
-#     -- the chart's query finished, but it isn't in the virtualization
-#     viewport yet, so `renderChartContainer()` shows a bare spinner instead
-#     of the chart.
-#   - "nothing_mounted": neither `.loading` nor any ready marker present --
-#     the vacuous-pass race this check exists to close.
-UNREADY_CHART_HOLDERS_JS_BODY = """
-    const holders = document.querySelectorAll(
-        '[data-test="dashboard-component-chart-holder"][data-test-chart-id]'
-    );
+# Production dashboard builds run ``babel-plugin-jsx-remove-data-test-id``
+# under the production BABEL_ENV (including Docker builds), so readiness must
+# never depend on ``data-test`` attributes. These runtime classes are the
+# production contract shared by readiness polling and diagnostics.
+CHART_HOLDER_SELECTOR = (
+    r'.dashboard-component-chart-holder[class*="dashboard-chart-id-"]'
+)
+SLICE_CONTAINER_SELECTOR = r".slice_container"
+LOADING_SELECTOR = r".loading"
+ALERT_SELECTOR = r'[role="alert"]'
+EMPTY_SELECTOR = r".ant-empty"
+MISSING_CHART_SELECTOR = r".missing-chart-container"
+TERMINAL_MARKER_SELECTOR = (
+    f"{SLICE_CONTAINER_SELECTOR}, {ALERT_SELECTOR}, {EMPTY_SELECTOR}, "
+    f"{MISSING_CHART_SELECTOR}"
+)
+CHART_ID_CLASS_PATTERN = r"\bdashboard-chart-id-(\d+)\b"
+
+# Shared body for holder readiness and timeout diagnostics. A holder is ready
+# only after a terminal marker appears and its loading marker disappears.
+UNREADY_CHART_HOLDERS_JS_BODY = f"""
+    const holders = document.querySelectorAll('{CHART_HOLDER_SELECTOR}');
     const unready = [];
-    for (const holder of holders) {
+    for (const holder of holders) {{
         const r = holder.getBoundingClientRect();
-        if (!(r.top < window.innerHeight && r.bottom > 0)) {
+        if (!(r.top < window.innerHeight && r.bottom > 0)) {{
             continue;
-        }
+        }}
         const hasSliceContainer = holder.querySelector(
-            '[data-test="slice-container"]'
+            '{SLICE_CONTAINER_SELECTOR}'
         ) !== null;
-        const stillLoading = holder.querySelector('.loading') !== null;
-        const isReady = hasSliceContainer || holder.querySelector(
-            '[role="alert"], .ant-empty, .missing-chart-container'
-        ) !== null;
-        if (stillLoading || !isReady) {
-            const chartId = holder.getAttribute('data-test-chart-id');
+        const stillLoading = holder.querySelector('{LOADING_SELECTOR}') !== null;
+        const isReady = holder.querySelector('{TERMINAL_MARKER_SELECTOR}') !== null;
+        if (stillLoading || !isReady) {{
+            const chartIdMatch = holder.className.match(/{CHART_ID_CLASS_PATTERN}/);
+            const chartId = chartIdMatch ? chartIdMatch[1] : null;
             let state;
-            if (stillLoading && hasSliceContainer) {
+            if (stillLoading && hasSliceContainer) {{
                 state = 'spinner_mounted';
-            } else if (stillLoading) {
+            }} else if (stillLoading) {{
                 state = 'waiting_on_database';
-            } else {
+            }} else {{
                 state = 'nothing_mounted';
-            }
-            unready.push({
+            }}
+            unready.push({{
                 chartId: chartId,
                 state: state,
-            });
-        }
-    }
+            }});
+        }}
+    }}
 """
 
 # Diagnostic query for every chart holder, including terminal and virtualized
-# states. This is intentionally separate from the readiness predicate so
-# incident logs can distinguish a valid empty/error result from a holder that
-# never mounted or remained loading.
-FIND_CHART_HOLDER_STATES_JS = """
-() => {
-    const holders = document.querySelectorAll(
-        '[data-test="dashboard-component-chart-holder"][data-test-chart-id]'
-    );
-    return Array.from(holders).map(holder => {
-        const chartId = holder.getAttribute('data-test-chart-id');
+# states. It interpolates the same selector constants as the predicates.
+FIND_CHART_HOLDER_STATES_JS = f"""
+() => {{
+    const holders = document.querySelectorAll('{CHART_HOLDER_SELECTOR}');
+    return Array.from(holders).map(holder => {{
+        const chartIdMatch = holder.className.match(/{CHART_ID_CLASS_PATTERN}/);
+        const chartId = chartIdMatch ? chartIdMatch[1] : null;
         const r = holder.getBoundingClientRect();
-        if (!(r.top < window.innerHeight && r.bottom > 0)) {
-            return { chartId, state: 'virtualized' };
-        }
+        if (!(r.top < window.innerHeight && r.bottom > 0)) {{
+            return {{ chartId, state: 'virtualized' }};
+        }}
         const hasSliceContainer = holder.querySelector(
-            '[data-test="slice-container"]'
+            '{SLICE_CONTAINER_SELECTOR}'
         ) !== null;
-        const stillLoading = holder.querySelector('.loading') !== null;
-        if (stillLoading && hasSliceContainer) {
-            return { chartId, state: 'spinner_mounted' };
-        }
-        if (stillLoading) {
-            return { chartId, state: 'waiting_on_database' };
-        }
-        if (holder.querySelector('[role="alert"]') !== null) {
-            return { chartId, state: 'error' };
-        }
+        const stillLoading = holder.querySelector('{LOADING_SELECTOR}') !== null;
+        if (stillLoading && hasSliceContainer) {{
+            return {{ chartId, state: 'spinner_mounted' }};
+        }}
+        if (stillLoading) {{
+            return {{ chartId, state: 'waiting_on_database' }};
+        }}
+        if (holder.querySelector('{ALERT_SELECTOR}') !== null) {{
+            return {{ chartId, state: 'error' }};
+        }}
         if (holder.querySelector(
-            '.ant-empty, .missing-chart-container'
-        ) !== null) {
-            return { chartId, state: 'empty' };
-        }
-        if (hasSliceContainer) {
-            return { chartId, state: 'rendered' };
-        }
-        return { chartId, state: 'nothing_mounted' };
-    });
-}
+            '{EMPTY_SELECTOR}, {MISSING_CHART_SELECTOR}'
+        ) !== null) {{
+            return {{ chartId, state: 'empty' }};
+        }}
+        if (hasSliceContainer) {{
+            return {{ chartId, state: 'rendered' }};
+        }}
+        return {{ chartId, state: 'nothing_mounted' }};
+    }});
+}}
 """
 
-# Predicate for page.wait_for_function: true once every viewport-visible chart
-# holder has reached a terminal state.
 CHART_HOLDERS_READY_JS = (
     f"() => {{ {UNREADY_CHART_HOLDERS_JS_BODY} return unready.length === 0; }}"
 )
-
-# Diagnostic query for page.evaluate: chart id + state of holders still not
-# ready, used to build the timeout log message.
 FIND_UNREADY_CHART_HOLDERS_JS = (
     f"() => {{ {UNREADY_CHART_HOLDERS_JS_BODY} return unready; }}"
 )
+
+# A chart capture has one target rather than dashboard holders, but needs the
+# same positive terminal-state guarantee and loading exclusion.
+CHART_CONTAINER_READY_JS = f"""
+() => {{
+    const chart = document.querySelector('.chart-container');
+    return chart !== null
+        && chart.querySelector('{LOADING_SELECTOR}') === null
+        && chart.querySelector('{TERMINAL_MARKER_SELECTOR}') !== null;
+}}
+"""
 
 
 def combine_screenshot_tiles(screenshot_tiles: list[bytes]) -> bytes:
