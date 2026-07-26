@@ -2347,7 +2347,7 @@ def test_relative_offset_preserves_inner_bounds(
         mock_cache.is_loaded = False
         mock_cache_manager.get.return_value = mock_cache
 
-        result = datasource.processing_time_offsets(df, query_object, None, None, False)
+        datasource.processing_time_offsets(df, query_object, None, None, False)
 
     # The offset query should use shifted dates for the main window
     assert len(captured) == 1
