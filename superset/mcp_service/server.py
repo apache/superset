@@ -30,6 +30,7 @@ from typing import Annotated, Any, Callable
 import uvicorn
 from fastmcp.exceptions import ToolError
 from fastmcp.server.middleware import Middleware
+from starlette.requests import ClientDisconnect
 
 from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
 from superset.mcp_service.jwt_verifier import BrowserHelloMiddleware
@@ -112,6 +113,46 @@ class FastMCPValidationFilter(logging.Filter):
         return True
 
 
+class MCPTransportDisconnectFilter(logging.Filter):
+    """Downgrade MCP SDK client-disconnect transport logs from ERROR to WARNING.
+
+    When an MCP client disconnects mid-request (a cancelled or timed-out tool
+    call — normal client behavior, not a Superset bug), the ``mcp`` SDK's own
+    transport code logs it at ERROR with a full traceback, and separately
+    re-raises it into the session's message loop, which logs a second ERROR.
+    Both are expected under normal client behavior and should not page or
+    open incidents; downgrading to WARNING keeps them visible in log
+    aggregation without polluting ERROR-level alerting.
+
+    Two different loggers require two different matching strategies:
+
+    - ``mcp.server.streamable_http`` (``_handle_post_request``) catches the
+      disconnect via a broad ``except Exception`` and logs it with
+      ``logger.exception(...)``, so ``record.exc_info`` carries the actual
+      exception object — we can check its type directly.
+    - ``mcp.server.lowlevel.server`` (``_handle_message``) receives the same
+      exception secondhand, already wrapped as a bare
+      ``Exception(ClientDisconnect())`` pushed onto the read stream. The
+      original type is lost by the time it's logged, so exception-type
+      checks are impossible here. ``ClientDisconnect`` is always raised with
+      zero args, so ``str(ClientDisconnect())`` is always ``""`` — making the
+      rendered message a fixed, matchable string instead.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if record.levelno != logging.ERROR:
+            return True
+        if record.name == "mcp.server.streamable_http":
+            if record.exc_info and isinstance(record.exc_info[1], ClientDisconnect):
+                record.levelno = logging.WARNING
+                record.levelname = "WARNING"
+        elif record.name == "mcp.server.lowlevel.server":
+            if record.getMessage() == "Received exception from stream: ":
+                record.levelno = logging.WARNING
+                record.levelname = "WARNING"
+        return True
+
+
 def configure_logging(debug: bool = False) -> None:
     """Configure logging for the MCP service."""
     import sys
@@ -146,6 +187,17 @@ def configure_logging(debug: bool = False) -> None:
     # Downgrade these specific messages from ERROR to WARNING.
     fastmcp_server_logger = logging.getLogger("fastmcp.server.server")
     fastmcp_server_logger.addFilter(FastMCPValidationFilter())
+
+    # MCP client disconnects (cancelled/timed-out tool calls) are logged at
+    # ERROR by the mcp SDK's transport and lowlevel server loggers. These are
+    # expected client behavior, not Superset bugs — downgrade to WARNING.
+    transport_disconnect_filter = MCPTransportDisconnectFilter()
+    logging.getLogger("mcp.server.streamable_http").addFilter(
+        transport_disconnect_filter
+    )
+    logging.getLogger("mcp.server.lowlevel.server").addFilter(
+        transport_disconnect_filter
+    )
 
 
 def create_event_store(config: dict[str, Any] | None = None) -> Any | None:
