@@ -399,9 +399,11 @@ class ExportDashboardsCommand(ExportModelsCommand):
             dashboard_ids = model.id
             command = ExportChartsCommand(chart_ids)
             command.disable_tag_export()
-            # Pass the shared seen set to the chart export command
-            yield from command.run(seen=seen)
-            command.enable_tag_export()
+            try:
+                # Pass the shared seen set to the chart export command
+                yield from command.run(seen=seen)
+            finally:
+                command.enable_tag_export()
             if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
                 yield from ExportTagsCommand(
                     dashboard_ids=dashboard_ids, chart_ids=chart_ids

@@ -556,6 +556,10 @@ class TestExportDashboardsCommand(SupersetTestCase):
             columns=[],
         )
         db.session.add(second_dataset)
+        # Flush so `second_dataset.id` is populated before it's read below;
+        # otherwise the chart would be constructed with `datasource_id=None`
+        # and never actually link back to this dataset.
+        db.session.flush()
 
         # Create a chart using the second database's dataset
         chart_from_second_db = Slice(
@@ -580,52 +584,58 @@ class TestExportDashboardsCommand(SupersetTestCase):
         example_dashboard.slices.append(chart_from_second_db)
         db.session.commit()
 
-        # Export the dashboard
-        command = ExportDashboardsCommand([example_dashboard.id])
-        contents = dict(command.run())
+        try:
+            # Export the dashboard
+            command = ExportDashboardsCommand([example_dashboard.id])
+            contents = dict(command.run())
 
-        # Verify all databases are exported
-        db_files = [key for key in contents.keys() if key.startswith("databases/")]
-        assert len(db_files) >= 2, f"Expected at least 2 database files, got {db_files}"
+            # Verify all databases are exported
+            db_files = [key for key in contents.keys() if key.startswith("databases/")]
+            assert (
+                len(db_files) >= 2
+            ), f"Expected at least 2 database files, got {db_files}"
 
-        # Verify the second database is included
-        assert "databases/test_db_2.yaml" in contents.keys(), (
-            f"Second database not found in export. Keys: {list(contents.keys())}"
-        )
+            # Verify the second database is included
+            assert (
+                "databases/test_db_2.yaml" in contents.keys()
+            ), f"Second database not found in export. Keys: {list(contents.keys())}"
 
-        # Verify all charts are exported (original + new one)
-        chart_files = [key for key in contents.keys() if key.startswith("charts/")]
-        assert len(chart_files) == original_charts_count + 1, (
-            f"Expected {original_charts_count + 1} charts, got {len(chart_files)}"
-        )
+            # Verify all charts are exported (original + new one)
+            chart_files = [key for key in contents.keys() if key.startswith("charts/")]
+            assert (
+                len(chart_files) == original_charts_count + 1
+            ), f"Expected {original_charts_count + 1} charts, got {len(chart_files)}"
 
-        # Verify the new chart from second database is included
-        chart_from_second_db_file = None
-        for key in chart_files:
-            if f"Chart_from_Second_Database_{chart_from_second_db.id}" in key:
-                chart_from_second_db_file = key
-                break
+            # Verify the new chart from second database is included
+            chart_from_second_db_file = None
+            for key in chart_files:
+                if f"Chart_from_Second_Database_{chart_from_second_db.id}" in key:
+                    chart_from_second_db_file = key
+                    break
 
-        assert chart_from_second_db_file is not None, (
-            f"Chart from second database not found in export. "
-            f"Chart files: {chart_files}"
-        )
+            assert chart_from_second_db_file is not None, (
+                f"Chart from second database not found in export. "
+                f"Chart files: {chart_files}"
+            )
 
-        # Verify the dataset from second database is included
-        dataset_files = [key for key in contents.keys() if key.startswith("datasets/")]
-        second_dataset_file = (
-            f"datasets/test_db_2/second_dataset_{second_dataset.id}.yaml"
-        )
-        assert second_dataset_file in contents.keys(), (
-            f"Second dataset not found. Dataset files: {dataset_files}"
-        )
-
-        # Clean up
-        example_dashboard.slices.remove(chart_from_second_db)
-        db.session.delete(chart_from_second_db)
-        db.session.delete(second_dataset)
-        db.session.delete(second_db)
-        db.session.commit()
+            # Verify the dataset from second database is included
+            dataset_files = [
+                key for key in contents.keys() if key.startswith("datasets/")
+            ]
+            second_dataset_file = (
+                f"datasets/test_db_2/second_dataset_{second_dataset.id}.yaml"
+            )
+            assert (
+                second_dataset_file in contents.keys()
+            ), f"Second dataset not found. Dataset files: {dataset_files}"
+        finally:
+            # Clean up, even if an assertion above failed, so a failing run
+            # doesn't leave extra Database/Slice/SqlaTable rows for later tests.
+            example_dashboard.slices.remove(chart_from_second_db)
+            db.session.delete(chart_from_second_db)
+            db.session.delete(second_dataset)
+            db.session.delete(second_db)
+            db.session.commit()
 
 
 class TestImportDashboardsCommand(SupersetTestCase):
