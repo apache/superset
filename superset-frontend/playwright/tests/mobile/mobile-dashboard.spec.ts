@@ -141,31 +141,31 @@ test.describe('Mobile Dashboard Interaction', () => {
     const cards = page.locator('[data-test="styled-card"]');
     const cardCount = await cards.count();
 
-    if (cardCount > 0) {
-      await cards.first().click();
+    test.skip(cardCount === 0, 'No dashboards available to open on mobile');
 
-      // Wait for dashboard to load
-      await page.waitForURL(url => /\/dashboard\/(?!list)/.test(url.pathname), {
-        timeout: TIMEOUT.PAGE_LOAD,
-      });
+    await cards.first().click();
 
-      // Dashboard content should be visible
-      await expect(
-        page
-          .locator('[data-test="dashboard-content-wrapper"]')
-          .or(page.locator('.dashboard')),
-      ).toBeVisible({ timeout: TIMEOUT.PAGE_LOAD });
+    // Wait for dashboard to load
+    await page.waitForURL(url => /\/dashboard\/(?!list)/.test(url.pathname), {
+      timeout: TIMEOUT.PAGE_LOAD,
+    });
 
-      // Charts should start loading (look for chart containers)
-      const chartContainers = page
-        .locator('[data-test="chart-container"]')
-        .or(page.locator('.dashboard-chart'));
+    // Dashboard content should be visible
+    await expect(
+      page
+        .locator('[data-test="dashboard-content-wrapper"]')
+        .or(page.locator('.dashboard')),
+    ).toBeVisible({ timeout: TIMEOUT.PAGE_LOAD });
 
-      // Wait for at least one chart to be visible (with timeout)
-      await expect(chartContainers.first()).toBeVisible({
-        timeout: TIMEOUT.PAGE_LOAD * 2,
-      });
-    }
+    // Charts should start loading (look for chart containers)
+    const chartContainers = page
+      .locator('[data-test="chart-container"]')
+      .or(page.locator('.dashboard-chart'));
+
+    // Wait for at least one chart to be visible (with timeout)
+    await expect(chartContainers.first()).toBeVisible({
+      timeout: TIMEOUT.PAGE_LOAD * 2,
+    });
   });
 
   test('dashboard header shows hamburger menu on mobile', async ({ page }) => {
@@ -177,23 +177,23 @@ test.describe('Mobile Dashboard Interaction', () => {
     const cards = page.locator('[data-test="styled-card"]');
     const cardCount = await cards.count();
 
-    if (cardCount > 0) {
-      await cards.first().click();
+    test.skip(cardCount === 0, 'No dashboards available to open on mobile');
 
-      // Wait for dashboard
-      await page.waitForURL(url => /\/dashboard\/(?!list)/.test(url.pathname), {
-        timeout: TIMEOUT.PAGE_LOAD,
-      });
+    await cards.first().click();
 
-      // Look for the hamburger menu / more actions button
-      const menuButton = page
-        .locator('[data-test="actions-trigger"]')
-        .or(page.locator('[aria-label="Menu actions trigger"]'));
+    // Wait for dashboard
+    await page.waitForURL(url => /\/dashboard\/(?!list)/.test(url.pathname), {
+      timeout: TIMEOUT.PAGE_LOAD,
+    });
 
-      await expect(menuButton.first()).toBeVisible({
-        timeout: TIMEOUT.PAGE_LOAD,
-      });
-    }
+    // Look for the hamburger menu / more actions button
+    const menuButton = page
+      .locator('[data-test="actions-trigger"]')
+      .or(page.locator('[aria-label="Menu actions trigger"]'));
+
+    await expect(menuButton.first()).toBeVisible({
+      timeout: TIMEOUT.PAGE_LOAD,
+    });
   });
 
   test('refresh dashboard works from mobile menu', async ({ page }) => {
@@ -205,36 +205,42 @@ test.describe('Mobile Dashboard Interaction', () => {
     const cards = page.locator('[data-test="styled-card"]');
     const cardCount = await cards.count();
 
-    if (cardCount > 0) {
-      await cards.first().click();
+    test.skip(cardCount === 0, 'No dashboards available to open on mobile');
 
-      // Wait for dashboard
-      await page.waitForURL(url => /\/dashboard\/(?!list)/.test(url.pathname), {
-        timeout: TIMEOUT.PAGE_LOAD,
-      });
+    await cards.first().click();
 
-      // Open the actions menu
-      const menuButton = page
-        .locator('[data-test="actions-trigger"]')
-        .or(page.locator('[aria-label="Menu actions trigger"]'));
+    // Wait for dashboard
+    await page.waitForURL(url => /\/dashboard\/(?!list)/.test(url.pathname), {
+      timeout: TIMEOUT.PAGE_LOAD,
+    });
 
-      if ((await menuButton.count()) > 0) {
-        await menuButton.first().click();
+    // Open the actions menu
+    const menuButton = page
+      .locator('[data-test="actions-trigger"]')
+      .or(page.locator('[aria-label="Menu actions trigger"]'));
 
-        // Look for refresh option
-        const refreshOption = page.getByText('Refresh dashboard');
+    test.skip(
+      (await menuButton.count()) === 0,
+      'Mobile actions menu button not found on this dashboard',
+    );
 
-        if ((await refreshOption.count()) > 0) {
-          await refreshOption.click();
+    await menuButton.first().click();
 
-          // Should show success toast or refresh the charts
-          // This is hard to verify without checking network requests
-          // Just verify the menu closes and we're still on the dashboard
-          await page.waitForTimeout(1000);
-          expect(page.url()).toMatch(/\/dashboard\/(?!list)/);
-        }
-      }
-    }
+    // Look for refresh option
+    const refreshOption = page.getByText('Refresh dashboard');
+
+    test.skip(
+      (await refreshOption.count()) === 0,
+      'Refresh dashboard option not found in mobile actions menu',
+    );
+
+    await refreshOption.click();
+
+    // Should show success toast or refresh the charts
+    // This is hard to verify without checking network requests
+    // Just verify the menu closes and we're still on the dashboard
+    await page.waitForTimeout(1000);
+    expect(page.url()).toMatch(/\/dashboard\/(?!list)/);
   });
 });
 
@@ -246,8 +252,9 @@ test.describe('Mobile Filter Drawer', () => {
 
   test('filter button appears on dashboards with filters', async ({ page }) => {
     // Navigate directly to the World Bank's Health dashboard, which this
-    // spec's fixtures require and which is known to have native filters
-    // configured, rather than an arbitrary first card from the list.
+    // spec's fixtures require, rather than an arbitrary first card from
+    // the list. Whether it has native filters configured depends on the
+    // fixture, so the test below skips itself when none are present.
     await page.goto('dashboard/world_health/');
     await page.waitForLoadState('networkidle');
 
@@ -276,8 +283,9 @@ test.describe('Mobile Filter Drawer', () => {
 
   test('filter drawer opens when filter button is tapped', async ({ page }) => {
     // Navigate directly to the World Bank's Health dashboard, which this
-    // spec's fixtures require and which is known to have native filters
-    // configured, rather than an arbitrary first card from the list.
+    // spec's fixtures require, rather than an arbitrary first card from
+    // the list. Whether it has native filters configured depends on the
+    // fixture, so the test below skips itself when none are present.
     await page.goto('dashboard/world_health/');
     await page.waitForLoadState('networkidle');
 
@@ -287,7 +295,11 @@ test.describe('Mobile Filter Drawer', () => {
     // Check for filter button
     const filterButton = page
       .locator('[data-test="filter-icon"]')
-      .or(page.locator('[aria-label="Filters"]'));
+      .or(
+        page
+          .locator('[aria-label="Filters"]')
+          .or(page.locator('.mobile-filter-button')),
+      );
 
     const filterCount = await filterButton.count();
 
