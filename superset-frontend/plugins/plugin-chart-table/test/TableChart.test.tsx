@@ -2335,12 +2335,11 @@ describe('plugin-chart-table', () => {
       expect(screen.queryByText('User 11')).not.toBeInTheDocument();
 
       // The pagination bar is styled `visibility: hidden` until sticky
-      // height is measured, which jsdom never reports, so it must be
-      // queried with `hidden: true` even though it's functionally present.
-      const page2Link = screen.getByRole('button', {
-        name: '2',
-        hidden: true,
-      });
+      // height is measured, which jsdom never reports. Accessible-name
+      // computation treats CSS-hidden elements as nameless regardless of
+      // the `hidden: true` query option, so query the button directly by
+      // its `aria-label` instead of through the accessibility tree.
+      const page2Link = container.querySelector('button[aria-label="2"]')!;
       expect(page2Link).toBeTruthy();
       fireEvent.click(page2Link);
 
