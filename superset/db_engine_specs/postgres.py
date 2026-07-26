@@ -796,15 +796,16 @@ WHERE datistemplate = false;
     @classmethod
     def get_schema_names(cls, inspector: Inspector) -> set[str]:
         """
-        Return all schema names, excluding actual Postgres system schemas.
+        Return all schema names, excluding the ``pg_``-prefixed Postgres
+        system schemas (e.g. ``pg_catalog``, ``pg_toast``).
 
         SQLAlchemy's Postgres dialect filters out system schemas with the
         query ``nspname NOT LIKE 'pg_%'``. Since ``_`` is a single-character
         wildcard in SQL ``LIKE`` patterns, this unintentionally excludes any
         user-defined schema that merely starts with ``pg`` followed by any
-        other character (e.g. ``pgsql``, ``pgstats``), not only the actual
-        Postgres system schemas, which are always prefixed with the literal
-        string ``pg_`` (e.g. ``pg_catalog``, ``pg_toast``).
+        other character (e.g. ``pgsql``, ``pgstats``), not only the
+        ``pg_``-prefixed system schemas. Matching on the literal ``pg_``
+        prefix instead keeps those user-defined schemas.
         """
         with inspector.engine.connect() as conn:
             return {

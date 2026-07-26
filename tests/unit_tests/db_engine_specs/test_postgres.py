@@ -413,7 +413,7 @@ def test_get_schema_names_excludes_only_actual_system_schemas(
 
     User-defined schemas that merely start with ``pg`` (but are not
     actual Postgres system schemas, which always start with the literal
-    ``pg_``) must not be filtered out. See SIP/issue #30678.
+    ``pg_``) must not be filtered out. See issue #30678.
     """
     inspector = mocker.MagicMock()
     inspector.engine.connect().__enter__().execute.return_value = [
