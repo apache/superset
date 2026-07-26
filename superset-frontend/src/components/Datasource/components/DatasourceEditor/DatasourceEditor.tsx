@@ -746,7 +746,6 @@ function ColumnCollectionTable({
               advanced_data_type: d => <Label>{d as string}</Label>,
               expression: (v, onChange) => (
                 <TextAreaControl
-                  canEdit
                   initialValue={v as string}
                   onChange={onChange}
                   extraClasses={['datasource-sql-expression']}
@@ -787,7 +786,6 @@ function ColumnCollectionTable({
               type: d => (d ? <Label>{String(d)}</Label> : null),
               expression: (v, onChange) => (
                 <TextAreaControl
-                  canEdit
                   initialValue={v as string}
                   onChange={onChange}
                   extraClasses={['datasource-sql-expression']}
