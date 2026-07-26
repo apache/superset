@@ -41,6 +41,7 @@ jest.mock('@superset-ui/core', () => ({
   createSmartDateVerboseFormatter: jest.fn(() => jest.fn()),
   createSmartDateDetailedFormatter: jest.fn(() => jest.fn()),
   createLengthFormatter: jest.fn(() => jest.fn()),
+  createThroughputFormatter: jest.fn(() => jest.fn()),
   NumberFormats: { INTEGER: ',d', INTEGER_SIGNED: '+,d' },
   SMART_DATE_ID: 'smart_date',
   SMART_DATE_DETAILED_ID: 'smart_date_detailed',
