@@ -390,3 +390,21 @@ test('Sends the correct schema when changing the schema', async () => {
   );
   expect(props.onSchemaChange).toHaveBeenCalledTimes(1);
 });
+
+test('should include expose_in_sqllab filter when filterBySqlLab is true', async () => {
+  const props = createProps();
+  render(<DatabaseSelector {...props} sqlLabMode={false} filterBySqlLab />, {
+    useRedux: true,
+    store,
+  });
+  const select = screen.getByRole('combobox', {
+    name: 'Select database or type to search databases',
+  });
+  await userEvent.click(select);
+  await waitFor(() => {
+    const calls = fetchMock.callHistory.calls(databaseApiRoute);
+    expect(calls.length).toBeGreaterThanOrEqual(1);
+    const lastCall = calls[calls.length - 1];
+    expect(lastCall.url).toContain('expose_in_sqllab');
+  });
+});
