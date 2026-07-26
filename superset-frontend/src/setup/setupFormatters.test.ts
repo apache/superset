@@ -71,3 +71,24 @@ test('setupFormatters forwards an underscore-formatted locale to setCurrencyLoca
 
   expect(mockSetCurrencyLocale).toHaveBeenCalledWith('pt_BR');
 });
+
+test('registers both network throughput formats with matching converters', async () => {
+  await runSetupFormatters('en-US');
+
+  const { getNumberFormatterRegistry, createThroughputFormatter } =
+    await import('@superset-ui/core');
+
+  expect(createThroughputFormatter).toHaveBeenCalledWith();
+  expect(createThroughputFormatter).toHaveBeenCalledWith({ fromBytes: true });
+
+  const [bitsFormatter, bytesFormatter] = (
+    createThroughputFormatter as jest.Mock
+  ).mock.results.map(result => result.value);
+
+  const registry = (getNumberFormatterRegistry as jest.Mock).mock.results[0]
+    .value;
+  const registered = new Map(registry.registerValue.mock.calls);
+
+  expect(registered.get('NETWORK_THROUGHPUT')).toBe(bitsFormatter);
+  expect(registered.get('NETWORK_THROUGHPUT_FROM_BYTES')).toBe(bytesFormatter);
+});
