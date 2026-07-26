@@ -1228,11 +1228,12 @@ test('regression #37921: multi-metric Query A with groupby does not duplicate fi
 
   // Each (metric, dim_value) combo from Query A should appear exactly once
   // with the *correct* metric prefix — not the first-metric-prepended-to-
-  // everything-else form.
-  expect(queryASeriesNames).toContain('score_one, A');
-  expect(queryASeriesNames).toContain('score_one, B');
-  expect(queryASeriesNames).toContain('score_two, A');
-  expect(queryASeriesNames).toContain('score_two, B');
+  // everything-else form. Comparing the sorted array (rather than using
+  // separate toContain assertions) also catches a regression that emits
+  // duplicate series for the same name.
+  expect([...queryASeriesNames].sort()).toEqual(
+    ['score_one, A', 'score_one, B', 'score_two, A', 'score_two, B'].sort(),
+  );
 
   // And explicitly: no series name should contain *both* metric names —
   // that's the smoking gun for the duplication bug.
