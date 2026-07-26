@@ -98,7 +98,11 @@ export default memo(
                 key={item}
                 className={currentPage === item ? 'active' : undefined}
               >
-                <button type="button" onClick={() => onPageChange(item)}>
+                <button
+                  type="button"
+                  aria-label={`${item + 1}`}
+                  onClick={() => onPageChange(item)}
+                >
                   {item + 1}
                 </button>
               </li>
