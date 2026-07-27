@@ -139,11 +139,10 @@ const StyledContainer = styled.div`
 
     &&&& .ant-steps-item-content {
       overflow: unset;
-
-      .ant-steps-item-description {
-        margin-top: ${theme.sizeUnit}px;
-        padding-bottom: ${theme.sizeUnit}px;
-      }
+      /* antd 6 removed .ant-steps-item-description; the description text is now
+         rendered directly in .ant-steps-item-content. */
+      margin-top: ${theme.sizeUnit}px;
+      padding-bottom: ${theme.sizeUnit}px;
     }
 
     &&&& .ant-tooltip-open {

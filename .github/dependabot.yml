@@ -70,6 +70,10 @@ updates:
           - "@storybook/*"
           - "storybook"
           - "eslint-plugin-storybook"
+      ag-grid:
+        patterns:
+          - "ag-grid-react"
+          - "ag-grid-community"
     open-pull-requests-limit: 30
     versioning-strategy: increase
     cooldown:

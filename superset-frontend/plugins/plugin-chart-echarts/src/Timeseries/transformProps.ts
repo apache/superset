@@ -883,7 +883,22 @@ export default function transformProps(
   const deduplicatedFormatter = showMaxLabel
     ? (() => {
         let lastLabel: string | undefined;
+        let lastValue: number | undefined;
         const wrapper = (value: number | string) => {
+          // ECharts formats the labels in repeated ascending passes. Reset the
+          // dedup state when the sequence restarts so a forced boundary label
+          // (e.g. the min date) isn't blanked by the previous pass's last label
+          // when both format identically (e.g. a May-to-May range).
+          if (
+            typeof value === 'number' &&
+            lastValue !== undefined &&
+            value <= lastValue
+          ) {
+            lastLabel = undefined;
+          }
+          if (typeof value === 'number') {
+            lastValue = value;
+          }
           const label =
             typeof xAxisFormatter === 'function'
               ? (xAxisFormatter as Function)(value)
@@ -921,12 +936,16 @@ export default function transformProps(
       formatter: deduplicatedFormatter,
       rotate: xAxisLabelRotation,
       interval: xAxisLabelInterval,
-      // Force last label on non-rotated time axes to prevent
-      // hideOverlap from hiding it. Skipped when rotated to
-      // avoid phantom labels at the axis boundary.
+      // Force the boundary labels on non-rotated time axes so the first
+      // and last dates stay visible: hideOverlap can hide the last label,
+      // and a min date that falls between "nice" ticks otherwise renders
+      // no beginning label. Skipped when rotated to avoid phantom labels
+      // at the axis boundary.
       ...(showMaxLabel && {
         showMaxLabel: true,
         alignMaxLabel: 'right',
+        showMinLabel: true,
+        alignMinLabel: 'left',
       }),
     },
     minorTick: { show: minorTicks },

@@ -857,7 +857,7 @@ const AsyncSelect = forwardRef(
           getPopupContainer={
             getPopupContainer ||
             ((triggerNode: HTMLElement) =>
-              (triggerNode?.closest('.ant-modal-content') as HTMLElement) ||
+              (triggerNode?.closest('.ant-modal-container') as HTMLElement) ||
               (triggerNode.parentNode as HTMLElement))
           }
           headerPosition={headerPosition}
