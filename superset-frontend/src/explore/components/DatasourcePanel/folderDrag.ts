@@ -52,3 +52,17 @@ export function collectFolderDragItems(
   });
   return items;
 }
+
+/**
+ * Collect the folder's own id plus every (recursive) subfolder id. Used to fade
+ * all rows belonging to a folder while it is being dragged: every flattened row
+ * carries its folder's id, so a row is part of the drag when its folderId is in
+ * this set.
+ */
+export function collectFolderIds(folder: Folder): string[] {
+  const ids = [folder.id];
+  folder.subFolders?.forEach(subFolder => {
+    ids.push(...collectFolderIds(subFolder));
+  });
+  return ids;
+}

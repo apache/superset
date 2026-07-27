@@ -63,10 +63,12 @@ export interface ActiveDragData {
   type: string;
   value?: unknown;
   dragIndex?: number;
-  // For a folder drag (DndItemType.Folder): the columns/metrics it holds and
-  // the folder's display name (shown in the drag overlay).
+  // For a folder drag (DndItemType.Folder): the columns/metrics it holds, the
+  // folder's display name (shown in the drag overlay), and the ids of the
+  // folder and its subfolders (used to fade every row of the folder in flight).
   items?: DatasourcePanelDndItem[];
   name?: string;
+  folderIds?: string[];
   // For sortable items - callback to handle reorder
   onShiftOptions?: (dragIndex: number, hoverIndex: number) => void;
   onMoveLabel?: (dragIndex: number, hoverIndex: number) => void;
