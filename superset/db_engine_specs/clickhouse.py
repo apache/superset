@@ -66,16 +66,20 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
     sampling_read_limit_override_suffix = "\nSETTINGS read_overflow_mode='break'"
 
     @classmethod
-    def apply_sampling_read_limit_override(cls, sql: str) -> str:
+    def apply_sampling_read_limit_override(cls, sql: str) -> str | None:
         """Append a read-overflow override so bounded sampling SQL succeeds.
 
-        Idempotent: SQL already carrying the override suffix is returned
-        unchanged. A trailing statement terminator is stripped so the SETTINGS
-        clause attaches to the statement itself.
+        Returns ``None`` when no retry should be attempted: the SQL already
+        carries the override, or it contains a SETTINGS clause from another
+        source (ClickHouse permits only one per statement, so appending a
+        second would produce invalid SQL — including subquery SETTINGS in
+        this check merely degrades to the engine's normal rejection). A
+        trailing statement terminator is stripped so the SETTINGS clause
+        attaches to the statement itself.
         """
+        if re.search(r"\bSETTINGS\b", sql, re.IGNORECASE):
+            return None
         stripped = sql.rstrip().rstrip(";").rstrip()
-        if stripped.endswith(cls.sampling_read_limit_override_suffix.strip()):
-            return sql
         return f"{stripped}{cls.sampling_read_limit_override_suffix}"
 
     @classmethod

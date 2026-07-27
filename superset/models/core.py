@@ -308,8 +308,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         """
         if self.disable_sampling_read_limit_override:
             return None
-        retry_sql = self.db_engine_spec.apply_sampling_read_limit_override(sql)
-        return retry_sql if retry_sql != sql else None
+        return self.db_engine_spec.apply_sampling_read_limit_override(sql)
 
     def run_with_sampling_read_limit_retry(
         self,

@@ -305,11 +305,11 @@ def test_base_engine_spec_has_no_column_description_retry_by_default() -> None:
     assert BaseEngineSpec.get_column_description_retry_sql("SELECT 1") is None
 
 
-def test_sampling_read_limit_override_base_spec_is_noop() -> None:
+def test_sampling_read_limit_override_base_spec_returns_none() -> None:
     from superset.db_engine_specs.base import BaseEngineSpec
 
     sql = "SELECT col FROM tbl LIMIT 100"
-    assert BaseEngineSpec.apply_sampling_read_limit_override(sql) == sql
+    assert BaseEngineSpec.apply_sampling_read_limit_override(sql) is None
 
 
 @pytest.mark.parametrize(
@@ -344,16 +344,28 @@ def test_sampling_read_limit_override_survives_trailing_comment() -> None:
 
     sql = "SELECT col FROM tbl LIMIT 100\n-- query hash: abc123"
     result = ClickHouseConnectEngineSpec.apply_sampling_read_limit_override(sql)
+    assert result is not None
     assert result.splitlines()[-1] == "SETTINGS read_overflow_mode='break'"
 
 
-def test_sampling_read_limit_override_is_idempotent() -> None:
+def test_sampling_read_limit_override_already_applied_returns_none() -> None:
     from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
 
     sql = "SELECT col FROM tbl LIMIT 100"
     once = ClickHouseConnectEngineSpec.apply_sampling_read_limit_override(sql)
-    twice = ClickHouseConnectEngineSpec.apply_sampling_read_limit_override(once)
-    assert twice == once
+    assert once is not None
+    assert ClickHouseConnectEngineSpec.apply_sampling_read_limit_override(once) is None
+
+
+def test_sampling_read_limit_override_existing_settings_returns_none() -> None:
+    """
+    ClickHouse permits one SETTINGS clause per statement; SQL that already
+    carries one (from any source) must not be retried with a second.
+    """
+    from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+
+    sql = "SELECT col FROM tbl LIMIT 100 SETTINGS max_threads=2"
+    assert ClickHouseConnectEngineSpec.apply_sampling_read_limit_override(sql) is None
 
 
 def _make_database(spec: Any, opt_out: bool = False) -> Any:
