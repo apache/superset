@@ -44,7 +44,7 @@ import CurrentVersionSection from './CurrentVersionSection';
 
 export const VERSION_HISTORY_PANEL_WIDTH = 320;
 
-const Panel = styled.div`
+const Panel = styled.aside`
   ${({ theme }) => `
     width: ${VERSION_HISTORY_PANEL_WIDTH}px;
     min-width: ${VERSION_HISTORY_PANEL_WIDTH}px;
@@ -204,7 +204,7 @@ export default function VersionHistoryPanel({
   const isInitialLoading = isLoading && timeline.length === 0;
 
   return (
-    <Panel role="complementary" aria-label={t('Version history')}>
+    <Panel aria-label={t('Version history')}>
       <PanelHeader>
         <PanelTitle>{t('Version history')}</PanelTitle>
         <CloseButton

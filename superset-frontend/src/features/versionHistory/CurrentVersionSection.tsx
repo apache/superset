@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { KeyboardEvent, useState } from 'react';
+import { useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
@@ -31,13 +31,19 @@ const Container = styled.div`
   `}
 `;
 
-const Header = styled.div`
+const Header = styled.button`
   ${({ theme }) => `
     display: flex;
     align-items: flex-start;
     gap: ${theme.sizeUnit * 2}px;
     padding: ${theme.sizeUnit * 3}px 0;
     cursor: pointer;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    font: inherit;
+    color: inherit;
   `}
 `;
 
@@ -114,20 +120,12 @@ export default function CurrentVersionSection({
   }
 
   const toggle = () => setExpanded(value => !value);
-  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      toggle();
-    }
-  };
 
   return (
     <Container data-test="version-history-current-version">
       <Header
-        role="button"
-        tabIndex={0}
+        type="button"
         onClick={toggle}
-        onKeyDown={handleKeyDown}
         aria-expanded={expanded}
         aria-label={t('Current version')}
       >

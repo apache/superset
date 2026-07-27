@@ -291,6 +291,7 @@ export default function SaveGroupItem({
   return (
     <Container isPreviewed={isPreviewed} data-test="version-history-save-group">
       <Header
+        // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- header contains a nested kebab <button>, which a real <button> cannot
         role="button"
         tabIndex={0}
         onClick={toggleExpanded}

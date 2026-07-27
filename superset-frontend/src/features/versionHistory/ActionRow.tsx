@@ -200,6 +200,7 @@ export default function ActionRow({
 
   return (
     <Row
+      // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- row contains a nested kebab <button>, which a real <button> cannot
       role="button"
       tabIndex={0}
       onClick={onPreview}
