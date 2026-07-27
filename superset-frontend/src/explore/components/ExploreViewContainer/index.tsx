@@ -549,7 +549,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         endpoint: '/api/v1/query/stop',
         body: JSON.stringify({ client_id: queryId }),
         headers: { 'Content-Type': 'application/json' },
-      }).catch(error => {
+      }).catch(_error => {
         props.addDangerToast(t('Failed to stop query.'));
       });
     }
