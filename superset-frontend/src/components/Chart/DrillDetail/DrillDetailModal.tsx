@@ -194,6 +194,7 @@ export default function DrillDetailModal({
       footer={
         <ModalFooter
           canExplore={canExplore}
+          closeModal={onHideModal}
           showEditButton={showEditButton}
           onExploreClick={handleExploreClick}
           isGeneratingUrl={isGeneratingUrl}
