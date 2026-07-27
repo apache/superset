@@ -41,7 +41,7 @@ import { FeatureFlag } from '@superset-ui/core/utils';
  */
 export const mobileBreakpoints = {
   xs: true,
-  sm: true,
+  sm: false,
   md: false,
   lg: false,
   xl: false,

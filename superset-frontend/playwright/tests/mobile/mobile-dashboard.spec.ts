@@ -114,9 +114,13 @@ test.describe('Mobile Dashboard Interaction', () => {
 
   // Skip this test suite if no dashboards exist
   test.beforeAll(async ({ browser }) => {
+    // browser.newPage() does not inherit the project's `storageState`, so
+    // it must be passed explicitly to reuse the authenticated session -
+    // otherwise this check hits the login page and always finds 0 cards.
     const page = await browser.newPage({
       viewport: mobileViewport.viewport,
       userAgent: mobileViewport.userAgent,
+      storageState: 'playwright/.auth/user.json',
     });
 
     await page.goto(URL.DASHBOARD_LIST);
