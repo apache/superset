@@ -144,6 +144,21 @@ def get_default_viewers_for_groups(groups: list[Group]) -> list[Subject]:
     return subjects_from_groups(groups)
 
 
+def get_default_viewers_for_current_user() -> list[Subject]:
+    """Default viewers for the acting user, resolved once for bulk callers.
+
+    The v1 importers create many assets in a single request; resolving the
+    creator's groups once here and passing the result down avoids one
+    membership query per imported asset. Mirrors the ``user = get_user()``
+    lookup the importers do internally, so the result is identical to letting
+    each call resolve it. Returns ``[]`` when there is no request user.
+    """
+    from superset.utils.core import get_user
+
+    user = get_user()
+    return get_default_viewers_for_new_asset(user.id) if user else []
+
+
 def get_user_subject_ids(user_id: int) -> list[int]:
     """Return all Subject IDs that a user represents.
 

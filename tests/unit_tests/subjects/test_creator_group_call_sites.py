@@ -134,6 +134,37 @@ def test_chart_importer_skips_default_viewers_on_reimport(app_context) -> None:
     mock_viewers.assert_not_called()
 
 
+def test_chart_importer_uses_passed_default_viewers_without_recomputing(
+    app_context,
+) -> None:
+    """Bulk importers resolve the creator's viewers once and pass them down;
+    a per-asset call must reuse that list rather than re-query membership."""
+    from superset.commands.chart.importers.v1 import utils as chart_utils
+
+    passed = _group_subject(7)
+    chart = SimpleNamespace(id=1, editors=[], viewers=[])
+
+    with (
+        patch.object(chart_utils, "find_existing_for_import", return_value=None),
+        patch.object(chart_utils, "get_user", return_value=_user()),
+        patch.object(chart_utils, "filter_chart_annotations"),
+        patch.object(chart_utils, "migrate_chart", side_effect=lambda config: config),
+        patch.object(chart_utils.Slice, "import_from_dict", return_value=chart),
+        patch("superset.subjects.utils.get_user_subject", return_value=None),
+        patch(
+            "superset.subjects.utils.get_default_viewers_for_new_asset",
+        ) as mock_compute,
+    ):
+        result = chart_utils.import_chart(
+            {"uuid": "x", "params": {}},
+            ignore_permissions=True,
+            default_viewers=[passed],
+        )
+
+    assert result.viewers == [passed]
+    mock_compute.assert_not_called()
+
+
 def test_copy_dashboard_attaches_viewers_from_the_users_in_memory_groups(
     app_context,
 ) -> None:
