@@ -17,6 +17,7 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
+import { openInNewTab } from 'src/utils/navigationUtils';
 import type { ActivityEntityKind, ActivityRecord } from './types';
 import { resolveEntityId } from './api';
 
@@ -25,7 +26,7 @@ function entityUrl(kind: ActivityEntityKind, id: number): string {
     return `/explore/?slice_id=${id}`;
   }
   if (kind === 'dashboard') {
-    return `/superset/dashboard/${id}/`;
+    return `/dashboard/${id}/`;
   }
   return `/explore/?datasource_type=table&datasource_id=${id}`;
 }
@@ -45,7 +46,7 @@ export async function openRelatedEntity(
       onError(t('Could not find %s', record.entity_name));
       return;
     }
-    window.open(entityUrl(record.entity_kind, id), '_blank', 'noopener');
+    openInNewTab(entityUrl(record.entity_kind, id));
   } catch {
     onError(t('Could not find %s', record.entity_name));
   }

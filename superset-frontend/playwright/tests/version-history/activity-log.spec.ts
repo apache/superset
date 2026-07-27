@@ -97,11 +97,11 @@ test.describe('chart activity log', () => {
     for (const chart of charts) {
       const original = chart.slice_name;
       // Version history is only offered on charts the user can overwrite,
-      // i.e. owns — so claim ownership first (example charts ship ownerless).
+      // i.e. can edit — so claim editorship first (example charts ship without editors).
       // Two renames: the first edit on an as-yet-untracked chart collapses
       // into "first tracked save"; the second is a normal descriptive save.
       await updateChart(page.request, csrf, chart.id, {
-        owners: [adminId],
+        editors: [adminId],
         slice_name: `${original} ·vh1`,
       });
       await updateChart(page.request, csrf, chart.id, {

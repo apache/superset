@@ -20,6 +20,7 @@ import { ReactElement, useCallback, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { openInNewTab } from 'src/utils/navigationUtils';
 import type { VersionedEntityType } from './types';
 import {
   createChartFromSnapshot,
@@ -147,7 +148,7 @@ export function useVersionActions(
             snapshot,
             t('%s (copy from %s)', snapshot.slice_name, copyDate),
           );
-          window.open(`/explore/?slice_id=${id}`, '_blank', 'noopener');
+          openInNewTab(`/explore/?slice_id=${id}`);
         } else {
           const snapshot = await fetchVersionSnapshot(
             'dashboard',
@@ -159,7 +160,7 @@ export function useVersionActions(
             snapshot,
             t('%s (copy from %s)', snapshot.dashboard_title, copyDate),
           );
-          window.open(`/superset/dashboard/${id}/`, '_blank', 'noopener');
+          openInNewTab(`/dashboard/${id}/`);
         }
         addSuccessToast(t('Created from version: %s', target.headline));
       } catch {

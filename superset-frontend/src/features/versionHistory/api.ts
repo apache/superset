@@ -341,7 +341,6 @@ export async function fetchDashboardHydrationData(
       position_data: dashboard.position_json
         ? JSON.parse(dashboard.position_json as string)
         : null,
-      owners: dashboard.owners || [],
     } as unknown as HydrateDashboardData,
     charts: (chartsResponse.json as { result: HydrateChartData[] }).result,
   };
