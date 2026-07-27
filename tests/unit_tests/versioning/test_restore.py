@@ -30,7 +30,8 @@ from uuid import UUID
 
 import pytest
 
-from superset.versioning.restore import _OPERATION_DELETE, restore_version
+from superset.versioning.baseline import OPERATION_DELETE
+from superset.versioning.restore import restore_version
 from superset.versioning.utils import single_flush_scope
 
 _UUID = UUID("00000000-0000-0000-0000-000000000000")
@@ -71,7 +72,7 @@ def test_restore_version_refuses_delete_row_target(mock_db, mock_version_class) 
     """A DELETE version row is never a valid target: Continuum's Reverter
     would delete the live entity and report success. Engine treats it as
     not-found."""
-    target = MagicMock(operation_type=_OPERATION_DELETE)
+    target = MagicMock(operation_type=OPERATION_DELETE)
     mock_db.session = _engine_with_target(target)
     result = restore_version(
         MagicMock(__name__="Slice"), _UUID, 123, entity=MagicMock(id=1)
