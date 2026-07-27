@@ -6374,7 +6374,7 @@ msgid "Enable label JavaScript mode"
 msgstr "Activer le mode JavaScript pour les étiquettes"
 
 msgid "Enable labels"
-msgstr "Activer les balises"
+msgstr "Activer les étiquettes"
 
 #, fuzzy
 msgid "Enable matrixify"
@@ -12406,7 +12406,7 @@ msgid "Select a database table and create dataset"
 msgstr "Sélectionner une table de base de données et créer un jeu de données"
 
 msgid "Select a database table."
-msgstr "Sélectionner un tableau de base de données."
+msgstr "Sélectionner une table de base de données."
 
 msgid "Select a database to connect"
 msgstr "Sélectionner une base de données à connecter"
@@ -16943,7 +16943,7 @@ msgid "Unexpected error: "
 msgstr "Erreur inattendue :"
 
 msgid "Unexpected no file extension found"
-msgstr "Extension de fichier trouvée inattendue"
+msgstr "Extension de fichier introuvable (inattendue)"
 
 #, python-format
 msgid "Unexpected time range: %(error)s"
