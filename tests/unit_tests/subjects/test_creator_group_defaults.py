@@ -171,14 +171,17 @@ def test_default_viewers_for_groups_resolves_in_memory_groups(
     app_context,
 ) -> None:
     """Flush-time callers hold groups in memory before ab_user_group is written."""
-    groups = [_group_subject(11)]
-    mock_from_groups.return_value = groups
+    group = MagicMock()
+    group.id = 11
+    subject = _group_subject(11)
+    subject.group_id = 11
+    mock_from_groups.return_value = [subject]
 
     with patch.dict(
         "superset.subjects.utils.current_app.config",
         {"ASSIGN_CREATOR_GROUPS_AS_VIEWERS": True},
     ):
-        assert get_default_viewers_for_groups([MagicMock()]) == groups
+        assert get_default_viewers_for_groups([group]) == [subject]
 
 
 @patch("superset.subjects.utils.subjects_from_groups")

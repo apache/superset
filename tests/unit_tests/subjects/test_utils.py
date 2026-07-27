@@ -30,6 +30,7 @@ from superset.subjects.models import Subject
 from superset.subjects.types import SubjectType
 from superset.subjects.utils import (
     get_current_user_subject_ids,
+    get_default_viewers_for_groups,
     get_or_create_group_subject,
     get_or_create_role_subject,
     get_user_group_subjects,
@@ -225,6 +226,53 @@ def test_get_user_group_subjects_backfills_missing_group(app_context) -> None:
 
     assert result == [synced, backfilled]
     mock_get_or_create.assert_called_once_with(2)
+
+
+def test_get_default_viewers_for_groups_discards_partial_result(app_context) -> None:
+    """If any group lacks a Subject row, return [] so the datasource fallback
+    stays intact rather than a partial viewer set that locks its members out."""
+    g1 = MagicMock()
+    g1.id = 1
+    g2 = MagicMock()
+    g2.id = 2
+    subject_for_g1 = _make_subject(10, SubjectType.GROUP)
+    subject_for_g1.group_id = 1
+
+    with (
+        patch(
+            "superset.subjects.utils._assigns_creator_groups_as_viewers",
+            return_value=True,
+        ),
+        patch(
+            "superset.subjects.utils.subjects_from_groups",
+            return_value=[subject_for_g1],
+        ),
+    ):
+        assert get_default_viewers_for_groups([g1, g2]) == []
+
+
+def test_get_default_viewers_for_groups_applies_when_all_resolve(app_context) -> None:
+    """When every group resolves to a Subject, all are returned as viewers."""
+    g1 = MagicMock()
+    g1.id = 1
+    g2 = MagicMock()
+    g2.id = 2
+    s1 = _make_subject(10, SubjectType.GROUP)
+    s1.group_id = 1
+    s2 = _make_subject(11, SubjectType.GROUP)
+    s2.group_id = 2
+
+    with (
+        patch(
+            "superset.subjects.utils._assigns_creator_groups_as_viewers",
+            return_value=True,
+        ),
+        patch(
+            "superset.subjects.utils.subjects_from_groups",
+            return_value=[s1, s2],
+        ),
+    ):
+        assert get_default_viewers_for_groups([g1, g2]) == [s1, s2]
 
 
 # --------------------------------------------------------------------------

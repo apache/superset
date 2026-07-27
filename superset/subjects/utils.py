@@ -158,10 +158,22 @@ def get_default_viewers_for_groups(groups: list[Group]) -> list[Subject]:
     are written *after* the user's own INSERT, so the query returns nothing.
     Those callers already hold the group objects on the instance and pass them
     here instead.
+
+    Resolution is all-or-nothing: if any group lacks a Subject row (an unsynced
+    group is a real deployment state — see the ``superset sync-subjects`` CLI),
+    the whole result is discarded and ``[]`` returned. A *partial* viewer set
+    would switch off the asset's datasource-access fallback
+    (``security_manager.raise_for_access``) while granting the unsynced group's
+    members nothing, locking them out; no viewers keeps the fallback intact and
+    is strictly safer. On-demand backfill isn't an option here — this runs in a
+    flush event, where :func:`get_or_create_group_subject`'s flush is unsafe.
     """
     if not groups or not _assigns_creator_groups_as_viewers():
         return []
-    return subjects_from_groups(groups)
+    subjects = subjects_from_groups(groups)
+    if {subject.group_id for subject in subjects} != {group.id for group in groups}:
+        return []
+    return subjects
 
 
 def get_default_viewers_for_current_user() -> list[Subject]:
@@ -315,12 +327,12 @@ def subjects_from_groups(groups: list[Group | int]) -> list[Subject]:
     """Convert a list of Group objects or group IDs to GROUP-type Subjects.
 
     Mirrors :func:`subjects_from_roles`, but resolves the whole list in one
-    query rather than one per group. Skips groups without a matching Subject
-    row: its only caller (``get_default_viewers_for_groups``) runs inside the
-    user's ``after_insert`` flush event, where the on-demand sync in
-    :func:`get_or_create_group_subject` (which flushes) is unsafe. Those groups
-    pre-exist and are synced on creation, so the skip is not reached in
-    practice; :func:`get_user_group_subjects` is the path that backfills.
+    query rather than one per group. Groups without a matching Subject row are
+    omitted from the result; the viewer-defaulting caller
+    (:func:`get_default_viewers_for_groups`) detects that shortfall and discards
+    the partial result rather than applying it, so no partial viewer set leaks
+    out. On-demand backfill happens instead in :func:`get_user_group_subjects`,
+    the path that does not run inside a flush event.
     """
     group_ids = [group if isinstance(group, int) else group.id for group in groups]
     if not group_ids:
