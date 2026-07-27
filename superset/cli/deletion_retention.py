@@ -20,7 +20,7 @@
 protected by deployment/shell access (the ``SECURITY.md`` operator trust
 boundary), not Flask-AppBuilder RBAC: a CLI invocation has no ``g.user``, so
 there is no ``403`` to enforce. A future REST route would carry real
-Admin/workspace-admin RBAC.
+Admin RBAC.
 """
 
 import logging
@@ -46,14 +46,16 @@ def deletion_retention() -> None:
     help="Retention window in days; 0 disables.",
 )
 def set_window(days: int) -> None:
-    """Set the per-workspace retention window (SharedKey, upsert)."""
+    """Set the per-deployment retention window (SharedKey, upsert)."""
     from superset.key_value.shared_entries import upsert_shared_value
     from superset.key_value.types import SharedKey
 
     if days < 0:
         raise click.BadParameter("--days must be >= 0")
     upsert_shared_value(SharedKey.SOFT_DELETE_RETENTION_DAYS, days)
-    click.echo(f"Soft-delete retention window set to {days} day(s) for this workspace.")
+    click.echo(
+        f"Soft-delete retention window set to {days} day(s) for this deployment."
+    )
 
 
 @deletion_retention.command()

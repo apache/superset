@@ -991,8 +991,8 @@ FEATURE_FLAGS: dict[str, bool] = {}
 # Retention policy for soft-deleted dashboards, charts, and datasets. A value of
 # zero disables scheduled purging. Dry-run mode is enabled by default so operators
 # must explicitly opt in to irreversible deletion.
-SUPERSET_SOFT_DELETE_RETENTION_DAYS: int = 30
-SUPERSET_SOFT_DELETE_PURGE_DRY_RUN: bool = True
+SOFT_DELETE_RETENTION_DAYS: int = 30
+SOFT_DELETE_PURGE_DRY_RUN: bool = True
 
 # A function that receives a dict of all feature flags
 # (DEFAULT_FEATURE_FLAGS merged with FEATURE_FLAGS)

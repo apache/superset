@@ -56,9 +56,9 @@ class SharedKey(StrEnum):
     # Monotonically increasing version used to revoke outstanding guest tokens.
     # Bumping it invalidates every guest token minted with a lower version.
     GUEST_TOKEN_REVOCATION_VERSION = "guest_token_revocation_version"  # noqa: S105
-    # Per-workspace retention window (days) for purging soft-deleted entities.
+    # Per-deployment retention window (days) for purging soft-deleted entities.
     # Read live each run by deletion_retention.purge_soft_deleted; falls back to
-    # SUPERSET_SOFT_DELETE_RETENTION_DAYS when unset. 0 disables the purge.
+    # SOFT_DELETE_RETENTION_DAYS when unset. 0 disables the purge.
     SOFT_DELETE_RETENTION_DAYS = "soft_delete_retention_days"
 
 

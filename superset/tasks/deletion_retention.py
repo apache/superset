@@ -30,7 +30,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterator
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, cast
 
 import sqlalchemy as sa
@@ -114,7 +114,12 @@ def _purge_impl(window_days: int, dry_run: bool) -> dict[str, Any]:
         stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.skipped")
         return {"skipped": 1}
 
-    cutoff = datetime.now() - timedelta(days=window_days)
+    # Naive UTC, matching the naive-UTC deleted_at values it is compared
+    # against — datetime.now() would shift the window by the worker's
+    # local timezone offset.
+    cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
+        days=window_days
+    )
     audit.reconcile_pending()
     purged: dict[str, int] = {}
     would_purge: dict[str, int] = {}
@@ -251,7 +256,7 @@ def purge_soft_deleted() -> dict[str, Any]:
         logger.info("deletion_retention: SOFT_DELETE gate off; skipping")
         return {"skipped": 1}
     window_days = resolve_retention_window()
-    dry_run = bool(current_app.config.get("SUPERSET_SOFT_DELETE_PURGE_DRY_RUN", True))
+    dry_run = bool(current_app.config.get("SOFT_DELETE_PURGE_DRY_RUN", True))
     try:
         return _purge_impl(window_days, dry_run)
     except Exception:  # pylint: disable=broad-except

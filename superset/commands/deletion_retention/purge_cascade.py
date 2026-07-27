@@ -483,17 +483,19 @@ def _delete_version_history(session: Session, entity: Any, entity_id: int) -> in
         removed += session.execute(sa.delete(tbl).where(pred)).rowcount
 
     # version_changes scoped to this entity (entity_kind + entity_id).
+    # Counted alongside the shadow rows: callers report the total as the
+    # definitive number of version-history rows removed.
     if changes is not None:
         from superset.versioning.changes import ENTITY_KIND_BY_CLASS_NAME
 
         kind = ENTITY_KIND_BY_CLASS_NAME.get(model.__name__)
         if kind is not None:
-            session.execute(
+            removed += session.execute(
                 sa.delete(changes).where(
                     changes.c.entity_kind == kind,
                     changes.c.entity_id == entity_id,
                 )
-            )
+            ).rowcount
 
     if tx is not None and tx_ids:
         _sweep_orphan_transactions(session, metadata, tx, changes, tx_ids)

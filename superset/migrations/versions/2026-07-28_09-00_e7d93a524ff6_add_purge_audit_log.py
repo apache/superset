@@ -20,8 +20,8 @@ Immutable, content-free audit record for deletion-retention purges. Survives
 the entity it names; written write-ahead (pending -> confirmed).
 
 Revision ID: e7d93a524ff6
-Revises: e5f6a7b8c9d0
-Create Date: 2026-06-23 13:00:00.000000
+Revises: d3b9a1f6c204
+Create Date: 2026-07-28 09:00:00.000000
 
 """
 
@@ -37,7 +37,7 @@ from superset.migrations.shared.utils import (
 
 # revision identifiers, used by Alembic.
 revision = "e7d93a524ff6"
-down_revision = "e5f6a7b8c9d0"
+down_revision = "d3b9a1f6c204"
 
 
 def upgrade() -> None:

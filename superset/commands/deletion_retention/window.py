@@ -33,7 +33,7 @@ _DEFAULT_RETENTION_DAYS: int = 30
 def _config_retention_days() -> int:
     """Return a validated config fallback without breaking scheduled runs."""
     configured = current_app.config.get(
-        "SUPERSET_SOFT_DELETE_RETENTION_DAYS", _DEFAULT_RETENTION_DAYS
+        "SOFT_DELETE_RETENTION_DAYS", _DEFAULT_RETENTION_DAYS
     )
     try:
         if isinstance(configured, bool):
@@ -57,10 +57,10 @@ def resolve_retention_window() -> int:
 
     Resolution order:
 
-    1. The per-workspace value persisted under
+    1. The per-deployment value persisted under
        ``SharedKey.SOFT_DELETE_RETENTION_DAYS`` (read live; takes
        precedence when present).
-    2. Otherwise the ``SUPERSET_SOFT_DELETE_RETENTION_DAYS`` config /
+    2. Otherwise the ``SOFT_DELETE_RETENTION_DAYS`` config /
        environment seed default (itself defaulting to 30).
 
     ``0`` from either source is a meaningful "disable", so the shared

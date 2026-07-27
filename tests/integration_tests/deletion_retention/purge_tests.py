@@ -367,7 +367,12 @@ class TestSoftDeletePurge(DeletionRetentionTestBase):
         self.soft_delete(chart, days_ago=90)
 
         db.session.execute(sa.text("PRAGMA foreign_keys=OFF"))
-        _purge(window=30)
+        try:
+            _purge(window=30)
+        finally:
+            # The connection is pooled; a later test must not inherit
+            # disabled FK enforcement.
+            db.session.execute(sa.text("PRAGMA foreign_keys=ON"))
 
         assert not self.exists(Slice, chart_id)
         assert (

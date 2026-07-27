@@ -34,7 +34,7 @@ from flask.config import Config
 def app_config(app_context: None) -> Config:
     from flask import current_app
 
-    current_app.config["SUPERSET_SOFT_DELETE_RETENTION_DAYS"] = 30
+    current_app.config["SOFT_DELETE_RETENTION_DAYS"] = 30
     return current_app.config
 
 
@@ -82,7 +82,7 @@ def test_malformed_shared_value_falls_back(app_config: Config) -> None:
 def test_malformed_config_value_falls_back(
     app_config: Config, configured: object
 ) -> None:
-    app_config["SUPERSET_SOFT_DELETE_RETENTION_DAYS"] = configured
+    app_config["SOFT_DELETE_RETENTION_DAYS"] = configured
     with patch(
         "superset.commands.deletion_retention.window.get_shared_value",
         return_value=None,
@@ -120,8 +120,8 @@ def test_clock_uses_now_not_utcnow() -> None:
 def test_default_config_is_safe() -> None:
     from superset import config
 
-    assert config.SUPERSET_SOFT_DELETE_RETENTION_DAYS == 30
-    assert config.SUPERSET_SOFT_DELETE_PURGE_DRY_RUN is True
+    assert config.SOFT_DELETE_RETENTION_DAYS == 30
+    assert config.SOFT_DELETE_PURGE_DRY_RUN is True
 
 
 def test_default_celery_config_registers_daily_purge() -> None:

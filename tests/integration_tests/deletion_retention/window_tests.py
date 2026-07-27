@@ -72,7 +72,7 @@ class TestRetentionWindow(DeletionRetentionTestBase):
             ),
             patch.dict(
                 current_app.config,
-                {"SUPERSET_SOFT_DELETE_PURGE_DRY_RUN": False},
+                {"SOFT_DELETE_PURGE_DRY_RUN": False},
             ),
         ):
             result: dict[str, object] = purge_soft_deleted.run()

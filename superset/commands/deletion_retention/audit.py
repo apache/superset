@@ -39,7 +39,7 @@ removed by the purge cascade.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, cast
 from uuid import UUID, uuid4
 
@@ -71,6 +71,12 @@ TRIGGER_RETENTION = "retention"
 TRIGGER_FORCE = "force"
 
 ACTOR_SYSTEM = "system"
+
+
+def _utc_now() -> datetime:
+    """Naive UTC now — the audit columns are naive-UTC like the rest of the
+    metadata schema; ``datetime.utcnow()`` is deprecated."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 class PurgeAuditLog(db.Model):
@@ -112,7 +118,7 @@ def write_ahead(
             entity_type=entity_type,
             entity_uuid=entity_uuid,
             removed_dashboard_slices=removed_dashboard_slices,
-            created_on=datetime.utcnow(),
+            created_on=_utc_now(),
         )
         session.add(record)
         session.commit()
@@ -136,9 +142,14 @@ def finalize(record_id: UUID | None, status: str, **details: Any) -> None:
         record = session.get(PurgeAuditLog, record_id)
         if record is None:
             return
+        if record.status != STATUS_PENDING:
+            # Only pending rows may transition: a delayed worker must not
+            # overwrite an outcome reconcile_pending() already recorded —
+            # the audit history is immutable once finalized.
+            return
         record.status = status
         if status == STATUS_CONFIRMED:
-            record.confirmed_on = datetime.utcnow()
+            record.confirmed_on = _utc_now()
         referrers = details.get("affected_referrers")
         if referrers:
             record.affected_referrers = ",".join(referrers)
@@ -200,7 +211,7 @@ def reconcile_pending(stale_before: datetime | None = None) -> dict[str, int]:
     confirmed. A surviving or unresolvable entity means the attempt did not
     durably purge it and is finalized as failed; normal selection may retry.
     """
-    cutoff = stale_before or datetime.utcnow() - _PENDING_STALE_AFTER
+    cutoff = stale_before or _utc_now() - _PENDING_STALE_AFTER
     reconciled = confirmed = failed = 0
     session = _dedicated_session()
     try:
@@ -213,7 +224,7 @@ def reconcile_pending(stale_before: datetime | None = None) -> dict[str, int]:
         for record in records:
             if _entity_exists(session, record) is False:
                 record.status = STATUS_CONFIRMED
-                record.confirmed_on = datetime.utcnow()
+                record.confirmed_on = _utc_now()
                 confirmed += 1
             else:
                 record.status = STATUS_FAILED
