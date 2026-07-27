@@ -44,6 +44,7 @@ beforeEach(() => {
 
 const COLUMN = 'column';
 const METRIC = 'metric';
+const FOLDER = 'folder';
 
 const active = (data: ActiveDragData, id = 'drag-source') => ({
   id,
@@ -153,6 +154,70 @@ test('no-op when dropping onto itself', () => {
   resolveDragEnd(
     active({ type: COLUMN, value: {} }, 'same'),
     over({ accept: [COLUMN], onDrop }, 'same'),
+  );
+  expect(onDrop).not.toHaveBeenCalled();
+});
+
+// --- folder drops ----------------------------------------------------------
+// Dragging a whole folder expands into its columns/metrics; the droppable's
+// bulk `onDropFolder` receives only the items it accepts and that pass canDrop.
+
+type DndItem = NonNullable<ActiveDragData['items']>[number];
+const columnItem = (name: string) =>
+  ({ type: COLUMN, value: { column_name: name } }) as unknown as DndItem;
+const metricItem = (name: string) =>
+  ({ type: METRIC, value: { metric_name: name } }) as unknown as DndItem;
+
+test('folder drop passes all accepted items to onDropFolder', () => {
+  const onDropFolder = jest.fn();
+  const items = [columnItem('a'), metricItem('m')];
+  resolveDragEnd(
+    active({ type: FOLDER, items }, 'datasource-folder-row-0'),
+    over({
+      accept: [COLUMN, METRIC, FOLDER],
+      canDrop: () => true,
+      onDropFolder,
+    }),
+  );
+  expect(onDropFolder).toHaveBeenCalledWith(items);
+});
+
+test('folder drop drops items whose type the droppable does not accept', () => {
+  const onDropFolder = jest.fn();
+  const col = columnItem('a');
+  resolveDragEnd(
+    active({ type: FOLDER, items: [col, metricItem('m')] }),
+    over({ accept: [COLUMN, FOLDER], canDrop: () => true, onDropFolder }),
+  );
+  expect(onDropFolder).toHaveBeenCalledWith([col]);
+});
+
+test('folder drop drops items rejected by canDrop (already present)', () => {
+  const onDropFolder = jest.fn();
+  const b = columnItem('b');
+  const canDrop = (item: DndItem) =>
+    (item.value as { column_name?: string }).column_name !== 'a'; // 'a' selected
+  resolveDragEnd(
+    active({ type: FOLDER, items: [columnItem('a'), b] }),
+    over({ accept: [COLUMN, FOLDER], canDrop, onDropFolder }),
+  );
+  expect(onDropFolder).toHaveBeenCalledWith([b]);
+});
+
+test('folder drop is a no-op when no item is accepted', () => {
+  const onDropFolder = jest.fn();
+  resolveDragEnd(
+    active({ type: FOLDER, items: [columnItem('a')] }),
+    over({ accept: [COLUMN, FOLDER], canDrop: () => false, onDropFolder }),
+  );
+  expect(onDropFolder).not.toHaveBeenCalled();
+});
+
+test('folder drop is ignored by droppables without an onDropFolder handler', () => {
+  const onDrop = jest.fn();
+  resolveDragEnd(
+    active({ type: FOLDER, items: [columnItem('a')] }),
+    over({ accept: [COLUMN], canDrop: () => true, onDrop }),
   );
   expect(onDrop).not.toHaveBeenCalled();
 });

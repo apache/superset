@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, useCallback } from 'react';
 import type { RowComponentProps } from 'react-window';
+import { CSSProperties, ReactNode, useCallback, useMemo } from 'react';
+import { useDraggable } from '@dnd-kit/core';
 
 import { t } from '@apache-superset/core/translation';
 import { useCSSTextTruncation } from '@superset-ui/core';
@@ -28,6 +29,7 @@ import { Tooltip } from '@superset-ui/core/components/Tooltip';
 import { Typography } from '@superset-ui/core/components';
 import DatasourcePanelDragOption from './DatasourcePanelDragOption';
 import { DndItemType } from '../DndItemType';
+import { collectFolderDragItems } from './folderDrag';
 import { DndItemValue, FlattenedItem, Folder } from './types';
 
 const LabelWrapper = styled.div`
@@ -172,9 +174,35 @@ const DatasourcePanelItem = ({
     [labelIsTruncated],
   );
 
-  if (!item) return null;
+  // Folder headers double as a drag source: dragging the label picks up every
+  // column/metric in the folder (and its subfolders). Hooks must run on every
+  // row regardless of type, so compute the folder up front and disable the
+  // draggable for non-header rows / empty folders.
+  const isFolderHeader = item?.type === 'header';
+  const folder = item ? folderMap.get(item.folderId) : undefined;
+  const folderDragItems = useMemo(
+    () => (isFolderHeader && folder ? collectFolderDragItems(folder) : []),
+    [isFolderHeader, folder],
+  );
+  const {
+    attributes: folderDragAttributes,
+    listeners: folderDragListeners,
+    setNodeRef: setFolderDragRef,
+    isDragging: isFolderDragging,
+  } = useDraggable({
+    // Keyed by the flattened row index so every row (header, item, divider…)
+    // gets a unique draggable id — a folder's header and its child rows would
+    // otherwise collide on the shared folder id.
+    id: `datasource-folder-row-${index}`,
+    data: {
+      type: DndItemType.Folder,
+      name: folder?.name,
+      items: folderDragItems,
+    },
+    disabled: !isFolderHeader || folderDragItems.length === 0,
+  });
 
-  const folder = folderMap.get(item.folderId);
+  if (!item) return null;
   if (!folder) return null;
 
   const indentation = item.depth * theme.sizeUnit * 4;
@@ -188,7 +216,16 @@ const DatasourcePanelItem = ({
       }}
     >
       {item.type === 'header' && (
-        <SectionHeaderButton onClick={() => onToggleCollapse(folder.id)}>
+        <SectionHeaderButton
+          ref={setFolderDragRef}
+          onClick={() => onToggleCollapse(folder.id)}
+          style={{
+            opacity: isFolderDragging ? 0.5 : undefined,
+            cursor: folderDragItems.length ? 'grab' : undefined,
+          }}
+          {...folderDragAttributes}
+          {...folderDragListeners}
+        >
           <Tooltip title={getTooltipNode(folder)}>
             <SectionHeaderTextContainer>
               <SectionHeader ref={labelRef}>{folder.name}</SectionHeader>
