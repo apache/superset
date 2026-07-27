@@ -202,11 +202,17 @@ def import_chart(
         db.session.flush()
 
     if user:
-        from superset.subjects.utils import get_user_subject
+        from superset.subjects.utils import (
+            get_default_viewers_for_new_asset,
+            get_user_subject,
+        )
 
         subj = get_user_subject(user.id)
         if subj and subj not in chart.editors:
             chart.editors.append(subj)
+        for viewer in get_default_viewers_for_new_asset(user.id):
+            if viewer not in chart.viewers:
+                chart.viewers.append(viewer)
 
     return chart
 

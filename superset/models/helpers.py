@@ -646,7 +646,10 @@ class ImportExportMixin(UUIDMixin):
 
     def reset_ownership(self) -> None:
         """object will belong to the current user"""
-        from superset.subjects.utils import get_user_subject
+        from superset.subjects.utils import (
+            get_default_viewers_for_new_asset,
+            get_user_subject,
+        )
 
         # Reset the audit pointers. When a Flask request context is
         # available we explicitly stamp the current user, otherwise we
@@ -664,6 +667,10 @@ class ImportExportMixin(UUIDMixin):
             user_subject = get_user_subject(g.user.id)
             if user_subject:
                 self.editors = [user_subject]
+            # Only dashboards and charts have ``viewers``; this mixin also
+            # serves datasets, which have editors only.
+            if hasattr(self, "viewers"):
+                self.viewers = get_default_viewers_for_new_asset(g.user.id)
         else:
             self.created_by = None
             self.changed_by = None

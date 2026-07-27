@@ -19,9 +19,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from flask_appbuilder.security.sqla.models import Role, User
-    from sqlalchemy.sql import CompoundSelect
+    from flask_appbuilder.security.sqla.models import Group, Role, User
+    from sqlalchemy.sql import CompoundSelect, Select
 
+from flask import current_app, has_app_context
 from sqlalchemy import select, union_all
 
 from superset import db
@@ -77,6 +78,70 @@ def get_user_subject_ids_subquery(user_id: int) -> CompoundSelect:
     )
 
     return union_all(user_subj, role_subj, group_subj, group_role_subj)
+
+
+def get_user_group_subject_ids_subquery(user_id: int) -> Select:
+    """Return a Select of GROUP-type Subject IDs for a user's groups.
+
+    Unlike :func:`get_user_subject_ids_subquery` this covers group membership
+    only — it excludes the user's own subject and any roles.
+    """
+    from flask_appbuilder.security.sqla.models import assoc_user_group
+
+    return (
+        select(Subject.id)
+        .join(assoc_user_group, Subject.group_id == assoc_user_group.c.group_id)
+        .where(
+            assoc_user_group.c.user_id == user_id,
+            Subject.type == SubjectType.GROUP,
+        )
+    )
+
+
+def get_user_group_subjects(user_id: int) -> list[Subject]:
+    """Return the GROUP-type Subjects for every group a user belongs to."""
+    return (
+        db.session.query(Subject)
+        .filter(Subject.id.in_(get_user_group_subject_ids_subquery(user_id)))
+        .all()
+    )
+
+
+def _assigns_creator_groups_as_viewers() -> bool:
+    return bool(
+        has_app_context() and current_app.config.get("ASSIGN_CREATOR_GROUPS_AS_VIEWERS")
+    )
+
+
+def get_default_viewers_for_new_asset(user_id: int | None) -> list[Subject]:
+    """Return the viewers a newly created asset should default to.
+
+    The single place deciding how a creator's group membership propagates to a
+    new asset, so the paths that build assets outside the create commands
+    (save-as, importers, MCP tools) stay consistent with them. Empty unless
+    ``ASSIGN_CREATOR_GROUPS_AS_VIEWERS`` is enabled.
+
+    Only assets with a ``viewers`` relationship apply — datasets have editors
+    only. Callers inside a flush event use
+    :func:`get_default_viewers_for_groups` instead.
+    """
+    if user_id is None or not _assigns_creator_groups_as_viewers():
+        return []
+    return get_user_group_subjects(user_id)
+
+
+def get_default_viewers_for_groups(groups: list[Group]) -> list[Subject]:
+    """Like :func:`get_default_viewers_for_new_asset`, for in-memory groups.
+
+    Callers inside a SQLAlchemy flush event cannot resolve membership by
+    querying ``ab_user_group``: for a user being inserted, the association rows
+    are written *after* the user's own INSERT, so the query returns nothing.
+    Those callers already hold the group objects on the instance and pass them
+    here instead.
+    """
+    if not groups or not _assigns_creator_groups_as_viewers():
+        return []
+    return subjects_from_groups(groups)
 
 
 def get_user_subject_ids(user_id: int) -> list[int]:
@@ -174,6 +239,26 @@ def get_or_create_role_subject(role_id: int) -> Subject | None:
     sync_role_subject(role)
     db.session.flush()
     return get_role_subject(role_id)
+
+
+def subjects_from_groups(groups: list[Group | int]) -> list[Subject]:
+    """Convert a list of Group objects or group IDs to GROUP-type Subjects.
+
+    Mirrors :func:`subjects_from_roles`, but resolves the whole list in one
+    query rather than one per group. Silently skips groups without a matching
+    Subject row.
+    """
+    group_ids = [group if isinstance(group, int) else group.id for group in groups]
+    if not group_ids:
+        return []
+    return (
+        db.session.query(Subject)
+        .filter(
+            Subject.group_id.in_(group_ids),
+            Subject.type == SubjectType.GROUP,
+        )
+        .all()
+    )
 
 
 def subjects_from_roles(roles: list[Role | int]) -> list[Subject]:

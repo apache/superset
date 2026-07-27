@@ -247,6 +247,27 @@ This feature is particularly useful for:
 - Granting access to dashboards without exposing the underlying datasets for other uses
 - Creating dashboard-specific access patterns that don't align with dataset permissions
 
+#### Assigning the creator's groups automatically
+
+```python
+ASSIGN_CREATOR_GROUPS_AS_VIEWERS = True
+```
+
+With this enabled, a newly created dashboard or chart is shared read-only with every group its
+creator belongs to, unless the create payload names viewers explicitly. It applies to every path
+that creates an asset: the REST API, `/dashboard/new/`, save-as from Explore, dashboard copy,
+the import commands, and the MCP tools. Datasets are unaffected, as they have editors but no
+viewers.
+
+Note that this **narrows** access rather than widening it. Because an asset with no viewers falls
+back to dataset-based access, giving new assets a viewer makes that fallback unreachable for them:
+a colleague who could previously open a new dashboard by virtue of dataset access can no longer do
+so unless they share one of the creator's groups. Existing assets are untouched — only assets
+created after the setting is enabled are affected.
+
+The setting assigns groups as *viewers*, not editors, so group members get read-only access and
+cannot modify or delete the asset.
+
 ### SQL Execution Security Considerations
 
 Apache Superset includes features designed to provide safeguards when interacting with connected databases, such as the `DISALLOWED_SQL_FUNCTIONS` configuration setting. This aims to prevent the execution of potentially harmful database functions or system variables directly from Superset interfaces like SQL Lab.

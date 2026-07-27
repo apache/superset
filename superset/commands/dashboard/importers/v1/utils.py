@@ -449,10 +449,16 @@ def import_dashboard(  # noqa: C901
         db.session.flush()
 
     if not existing and user:
-        from superset.subjects.utils import get_user_subject
+        from superset.subjects.utils import (
+            get_default_viewers_for_new_asset,
+            get_user_subject,
+        )
 
         subj = get_user_subject(user.id)
         if subj and subj not in dashboard.editors:
             dashboard.editors.append(subj)
+        for viewer in get_default_viewers_for_new_asset(user.id):
+            if viewer not in dashboard.viewers:
+                dashboard.viewers.append(viewer)
 
     return dashboard

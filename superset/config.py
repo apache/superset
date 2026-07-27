@@ -2945,6 +2945,12 @@ EXTRA_RELATED_QUERY_FILTERS: ExtraRelatedQueryFilters = {}
 # Only effective when ENABLE_VIEWERS is on.
 VIEWER_PROMISCUOUS_MODE = False
 
+# When True, a newly created asset is shared read-only with every group its
+# creator belongs to, unless the create payload names viewers explicitly.
+# This narrows access: an asset with no viewers falls back to datasource
+# permissions, while one with viewers is limited to its editors and viewers.
+ASSIGN_CREATOR_GROUPS_AS_VIEWERS = False
+
 # Default Subject types shown in editor/viewer/subject pickers.
 # Entity-specific SUBJECTS_RELATED_TYPES_* settings can replace this default.
 # None = show all types (USER, ROLE, GROUP).

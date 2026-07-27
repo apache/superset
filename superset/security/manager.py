@@ -193,9 +193,15 @@ def _log_audit_event(action: str, payload: dict[str, Any]) -> None:
     configured implementation (DBEventLogger, S3EventLogger, etc.)
     receives these security audit events.
     """
-    from superset.extensions import (
-        event_logger,  # pylint: disable=import-outside-toplevel
+    from superset.extensions import (  # pylint: disable=import-outside-toplevel
+        event_logger,
+        stats_logger_manager,
     )
+
+    try:
+        stats_logger_manager.instance.incr(f"security.{action}")
+    except Exception:  # pylint: disable=broad-except
+        logger.warning("Failed to emit audit metric: %s", action, exc_info=True)
 
     user_id = get_user_id()
     try:
