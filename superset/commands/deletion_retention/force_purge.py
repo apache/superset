@@ -75,7 +75,7 @@ class ForcePurgeCommand:
         removed_dashboard_slices = dashboard_slice_count(db.session, entity)
         # The audit row commits independently. Release the resolving read
         # transaction first, then resolve again against post-audit state.
-        db.session.rollback()
+        db.session.rollback()  # pylint: disable=consider-using-transaction
         record_id = audit.write_ahead(
             trigger=audit.TRIGGER_FORCE,
             actor=self._actor,
@@ -96,9 +96,11 @@ class ForcePurgeCommand:
                 result: CascadeResult = cascade_hard_delete(
                     db.session, entity, enforce_window=False
                 )
-                db.session.commit()
+                # Commit/rollback are managed manually so audit.fail() can
+                # record the outcome after the purge transaction resolves.
+                db.session.commit()  # pylint: disable=consider-using-transaction
         except Exception:
-            db.session.rollback()
+            db.session.rollback()  # pylint: disable=consider-using-transaction
             audit.fail(record_id)
             raise
         if result.purged:

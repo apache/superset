@@ -178,7 +178,7 @@ def _purge_model(
                 elif result is not None and result.blocked_reason is not None:
                     blocked += 1
             except Exception:  # pylint: disable=broad-except
-                db.session.rollback()
+                db.session.rollback()  # pylint: disable=consider-using-transaction
                 failures += 1
                 logger.exception(
                     "deletion_retention: cascade failed for %s id=%s",
@@ -201,7 +201,7 @@ def _purge_one(
     # The audit row commits on a separate connection. End the read transaction
     # before that write so SQLite can later promote this session to a writer.
     # Re-resolving below also ensures the cascade acts on post-audit state.
-    db.session.rollback()
+    db.session.rollback()  # pylint: disable=consider-using-transaction
     record_id = audit.write_ahead(
         trigger=audit.TRIGGER_RETENTION,
         actor=audit.ACTOR_SYSTEM,
@@ -219,9 +219,11 @@ def _purge_one(
             result = cascade_hard_delete(
                 db.session, entity, enforce_window=True, cutoff=cutoff
             )
-            db.session.commit()
+            # Commit/rollback are managed manually so audit.fail() can
+            # record the outcome after the purge transaction resolves.
+            db.session.commit()  # pylint: disable=consider-using-transaction
     except Exception:
-        db.session.rollback()
+        db.session.rollback()  # pylint: disable=consider-using-transaction
         audit.fail(record_id)
         raise
     if result.purged:

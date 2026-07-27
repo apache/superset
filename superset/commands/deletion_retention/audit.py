@@ -30,6 +30,12 @@ action, actor, UTC time, entity type, UUID, and affected referrers) and is never
 removed by the purge cascade.
 """
 
+# Explicit commit/rollback on the dedicated session is the whole point of
+# this module — the audit row must survive independently of the purge
+# transaction, which the @transaction decorator (scoped to db.session)
+# cannot express.
+# pylint: disable=consider-using-transaction
+
 from __future__ import annotations
 
 import logging
