@@ -489,13 +489,13 @@ test('renders 5 sections for reports', () => {
   expect(sections.length).toBe(5);
 });
 
-test('renders 6 sections for alerts', () => {
+test('renders 5 sections for alerts', () => {
   render(<AlertReportModal {...generateMockedProps(false)} />, {
     useRedux: true,
   });
 
   const sections = screen.getAllByRole('tab');
-  expect(sections.length).toBe(6);
+  expect(sections.length).toBe(5);
 });
 
 // Validation
@@ -1475,16 +1475,16 @@ test('adding and removing dashboard filter rows', async () => {
 });
 
 test('alert shows condition section, report does not', () => {
-  // Alert has 6 sections (general, condition, content, schedule, notification, error handling)
+  // Alert has 5 sections (general, condition, content, schedule, notification)
   const { unmount } = render(
     <AlertReportModal {...generateMockedProps(false)} />,
     { useRedux: true },
   );
-  expect(screen.getAllByRole('tab')).toHaveLength(6);
+  expect(screen.getAllByRole('tab')).toHaveLength(5);
   expect(screen.getByTestId('alert-condition-panel')).toBeInTheDocument();
   unmount();
 
-  // Report has 5 sections, no condition panel
+  // Report has 5 sections (general, content, schedule, notification, error handling)
   render(<AlertReportModal {...generateMockedProps(true)} />, {
     useRedux: true,
   });
