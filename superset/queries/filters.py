@@ -39,4 +39,9 @@ class QueryFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         """
         if not security_manager.can_access_all_queries():
             query = query.filter(Query.user_id == get_user_id())
+        # Exclude best-effort Query rows created for chart client_id/cancellation
+        # tracking (see QueryContextProcessor.get_df_payload) — those never set
+        # `sql`, unlike every SQL Lab-originated query, so this keeps chart
+        # renders out of the user-facing Query History list.
+        query = query.filter(Query.sql.isnot(None))
         return query
