@@ -91,10 +91,13 @@ export default function DashboardVersionHistory() {
   );
 
   useEffect(() => {
-    if (getUrlParam(URL_PARAMS.versionHistory)) {
+    // Match the menu entry's gating: version history is only offered to
+    // users who could restore (sc-107604) — the URL param must not open
+    // it for read-only viewers.
+    if (getUrlParam(URL_PARAMS.versionHistory) && canRestore) {
       dispatch(openVersionHistoryPanel('dashboard'));
     }
-  }, [dispatch]);
+  }, [canRestore, dispatch]);
 
   // Leaving the page should not carry panel/preview state to other pages.
   useEffect(
