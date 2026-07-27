@@ -31,10 +31,18 @@ from superset.commands.dataset.exceptions import (
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.dataset import DatasetDAO
 from superset.datasets.datetime_format_detector import DatetimeFormatDetector
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import (
+    SupersetGenericDBErrorException,
+    SupersetSecurityException,
+)
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
+
+
+def _has_jinja_markers(sql: str) -> bool:
+    """Check for Jinja template markers (``{%`` or ``{{``) in a SQL string."""
+    return "{%" in sql or "{{" in sql
 
 
 class RefreshDatasetCommand(BaseCommand):
@@ -46,7 +54,29 @@ class RefreshDatasetCommand(BaseCommand):
     def run(self) -> Model:
         self.validate()
         assert self._model
-        self._model.fetch_metadata()
+        try:
+            self._model.fetch_metadata()
+        except SupersetGenericDBErrorException as ex:
+            # Only soften when the dataset SQL contains Jinja templates —
+            # those cannot be validated at save time because the template
+            # context is empty and sqlglot then rejects the unrendered
+            # ``{% if %}`` blocks. The row is already persisted by
+            # ``UpdateDatasetCommand`` before this refresh runs, so
+            # surfacing an "Invalid SQL" toast for that specific case is
+            # misleading. Genuine DB errors (connection failures, driver
+            # errors, permission errors — also wrapped as
+            # ``SupersetGenericDBErrorException`` by
+            # ``get_columns_description``) must still bubble up so the
+            # operator sees them. See #38012.
+            if self._model.sql and _has_jinja_markers(self._model.sql):
+                logger.warning(
+                    "Dataset column refresh skipped for %s: %s "
+                    "(Jinja templates cannot be validated at save time)",
+                    self._model.table_name,
+                    ex.message,
+                )
+            else:
+                raise
 
         # Detect datetime formats if feature is enabled
         if current_app.config.get("DATASET_AUTO_DETECT_DATETIME_FORMATS", True):
