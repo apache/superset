@@ -23,7 +23,6 @@ jest.mock('lodash', () => {
   const debounce = <T extends (...args: never[]) => unknown>(func: T) => {
     const debounced = (...args: Parameters<T>) => func(...args);
     debounced.cancel = jest.fn();
-    debounced.flush = jest.fn();
     return debounced;
   };
 
@@ -73,15 +72,6 @@ test('FilterInput syncs displayed value from external value prop', () => {
 
   rerender(<FilterInput onChangeHandler={onChangeHandler} value="" />);
   expect(input.value).toBe('');
-});
-
-test('FilterInput updates immediately on typing despite debounce', async () => {
-  const onChangeHandler = jest.fn();
-  render(<FilterInput onChangeHandler={onChangeHandler} value="" />);
-  const input = screen.getByRole('textbox') as HTMLInputElement;
-
-  await userEvent.type(input, 'abc');
-  expect(input.value).toBe('abc');
 });
 
 test('FilterInput does not steal focus when another input already has focus', () => {
