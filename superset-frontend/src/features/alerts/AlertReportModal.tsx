@@ -722,6 +722,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     validator_type: '',
     force_screenshot: false,
     grace_period: undefined,
+    retry_on_failure: false,
+    retry_max_attempts: 3,
+    send_failed_reports: false,
+    retry_notify_owners: true,
+    retry_notify_recipients: false,
   };
 
   const fetchDashboardFilterValues = async (
@@ -2728,6 +2733,97 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     )
                   }
                 </>
+              ),
+            },
+            {
+              key: 'error-handling',
+              label: (
+                <CollapseLabelInModal
+                  title={t('Error handling')}
+                  subtitle={t('Configure retry behavior on delivery failure.')}
+                  testId="error-handling-panel"
+                />
+              ),
+              children: (
+                <div className="header-section">
+                  <StyledSwitchContainer
+                    css={css`
+                      margin-bottom: ${theme.sizeUnit * 4}px;
+                    `}
+                  >
+                    <Switch
+                      checked={!!currentAlert?.retry_on_failure}
+                      onChange={(checked: boolean) =>
+                        updateAlertState('retry_on_failure', checked)
+                      }
+                    />
+                    <div className="switch-label">{t('Enable Retries')}</div>
+                    <InfoTooltip
+                      tooltip={t(
+                        'Automatically retry sending the report when delivery fails.',
+                      )}
+                    />
+                  </StyledSwitchContainer>
+                  {currentAlert?.retry_on_failure && (
+                    <>
+                      <ModalFormField label={t('Maximum Retry Attempts')}>
+                        <InputNumber
+                          min={1}
+                          max={10}
+                          value={currentAlert?.retry_max_attempts ?? 3}
+                          onChange={(value: number | null) =>
+                            updateAlertState('retry_max_attempts', value ?? 3)
+                          }
+                        />
+                      </ModalFormField>
+                      <StyledSwitchContainer
+                        css={css`
+                          margin-bottom: ${theme.sizeUnit * 4}px;
+                        `}
+                      >
+                        <Switch
+                          checked={!!currentAlert?.send_failed_reports}
+                          onChange={(checked: boolean) =>
+                            updateAlertState('send_failed_reports', checked)
+                          }
+                        />
+                        <div className="switch-label">
+                          {t('Send Failed Reports')}
+                        </div>
+                        <InfoTooltip
+                          tooltip={t(
+                            'By default, recipients only receive reports when all charts successfully load. ' +
+                              'Enable this to send reports even when some charts fail to render.',
+                          )}
+                        />
+                      </StyledSwitchContainer>
+                      <ModalFormField label={t('Failure Notifications')}>
+                        <Checkbox
+                          checked={currentAlert?.retry_notify_owners ?? true}
+                          onChange={(e: CheckboxChangeEvent) =>
+                            updateAlertState(
+                              'retry_notify_owners',
+                              e.target.checked,
+                            )
+                          }
+                        >
+                          {t('Owners')}
+                        </Checkbox>
+                        <Checkbox
+                          checked={!!currentAlert?.retry_notify_recipients}
+                          onChange={(e: CheckboxChangeEvent) =>
+                            updateAlertState(
+                              'retry_notify_recipients',
+                              e.target.checked,
+                            )
+                          }
+                        >
+                          {t('Report Recipients')}
+                        </Checkbox>
+                      </ModalFormField>
+                    </>
+                  )}
+                </div>
               ),
             },
           ]}

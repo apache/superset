@@ -278,6 +278,35 @@ class ReportSchedulePostSchema(Schema):
         required=False,
         dump_default=None,
     )
+    retry_on_failure = fields.Boolean(
+        metadata={"description": _("Enable automatic retries on report failure")},
+        load_default=False,
+    )
+    retry_max_attempts = fields.Integer(
+        metadata={
+            "description": _("Maximum number of retry attempts (1–10)"),
+            "example": 3,
+        },
+        load_default=3,
+        required=False,
+        validate=[Range(min=1, max=10, error=_("Must be between 1 and 10"))],
+    )
+    send_failed_reports = fields.Boolean(
+        metadata={
+            "description": _(
+                "Send the failed report to all recipients after retries are exhausted"
+            )
+        },
+        load_default=False,
+    )
+    retry_notify_owners = fields.Boolean(
+        metadata={"description": _("Notify report owners on each retry attempt")},
+        load_default=True,
+    )
+    retry_notify_recipients = fields.Boolean(
+        metadata={"description": _("Notify report recipients on each retry attempt")},
+        load_default=False,
+    )
 
     @validates("custom_width")
     def validate_custom_width(
@@ -310,6 +339,21 @@ class ReportSchedulePostSchema(Schema):
                 raise ValidationError(
                     {"database": ["Database reference is not allowed on a report"]}
                 )
+
+    @validates_schema
+    def validate_retry_config(  # pylint: disable=unused-argument
+        self,
+        data: dict[str, Any],
+        **kwargs: Any,
+    ) -> None:
+        if data.get("send_failed_reports") and not data.get("retry_on_failure"):
+            raise ValidationError(
+                {
+                    "send_failed_reports": [
+                        _("send_failed_reports requires retry_on_failure to be enabled")
+                    ]
+                }
+            )
 
 
 class ReportScheduleSubscribeSchema(ReportSchedulePostSchema):
@@ -441,6 +485,34 @@ class ReportSchedulePutSchema(Schema):
         required=False,
         dump_default=None,
     )
+    retry_on_failure = fields.Boolean(
+        metadata={"description": _("Enable automatic retries on report failure")},
+        required=False,
+    )
+    retry_max_attempts = fields.Integer(
+        metadata={
+            "description": _("Maximum number of retry attempts (1–10)"),
+            "example": 3,
+        },
+        required=False,
+        validate=[Range(min=1, max=10, error=_("Must be between 1 and 10"))],
+    )
+    send_failed_reports = fields.Boolean(
+        metadata={
+            "description": _(
+                "Send the failed report to all recipients after retries are exhausted"
+            )
+        },
+        required=False,
+    )
+    retry_notify_owners = fields.Boolean(
+        metadata={"description": _("Notify report owners on each retry attempt")},
+        required=False,
+    )
+    retry_notify_recipients = fields.Boolean(
+        metadata={"description": _("Notify report recipients on each retry attempt")},
+        required=False,
+    )
 
     @validates("custom_width")
     def validate_custom_width(
@@ -460,6 +532,21 @@ class ReportSchedulePutSchema(Schema):
                     min=min_width,
                     max=max_width,
                 )
+            )
+
+    @validates_schema
+    def validate_retry_config(  # pylint: disable=unused-argument
+        self,
+        data: dict[str, Any],
+        **kwargs: Any,
+    ) -> None:
+        if data.get("send_failed_reports") and not data.get("retry_on_failure"):
+            raise ValidationError(
+                {
+                    "send_failed_reports": [
+                        _("send_failed_reports requires retry_on_failure to be enabled")
+                    ]
+                }
             )
 
 

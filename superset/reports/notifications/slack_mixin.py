@@ -47,7 +47,31 @@ class SlackMixin:
         )
 
     @staticmethod
-    def _error_template(name: str, description: str, text: str) -> str:
+    def _error_template(
+        name: str,
+        description: str,
+        text: str,
+        retry_attempt: int | None = None,
+        retry_max_attempts: int | None = None,
+    ) -> str:
+        if retry_attempt is not None:
+            retries_remaining = (retry_max_attempts or 0) - retry_attempt
+            return __(
+                """*Report Retry [%(attempt)s of %(max)s]: %(name)s*
+
+%(description)s
+
+Retry attempt: %(attempt)s of %(max)s  |  Retries remaining: %(remaining)s
+
+Error: %(text)s
+""",
+                name=name,
+                description=description,
+                attempt=retry_attempt,
+                max=retry_max_attempts,
+                remaining=retries_remaining,
+                text=text,
+            )
         return __(
             """*%(name)s*
 
@@ -63,7 +87,11 @@ class SlackMixin:
     def _get_body(self, content: NotificationContent) -> str:
         if content.text:
             return self._error_template(
-                content.name, content.description or "", content.text
+                content.name,
+                content.description or "",
+                content.text,
+                retry_attempt=content.retry_attempt,
+                retry_max_attempts=content.retry_max_attempts,
             )
 
         if content.embedded_data is None:

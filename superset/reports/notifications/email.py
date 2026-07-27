@@ -161,7 +161,71 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             call_to_action=call_to_action,
         )
 
+    def _retry_error_template(self, text: str) -> tuple[str, dict[str, bytes]]:
+        """HTML body for a per-retry-attempt failure notification."""
+        attempt = self._content.retry_attempt
+        max_attempts = self._content.retry_max_attempts
+        retries_remaining = (max_attempts or 0) - (attempt or 0)
+        # pylint: disable=no-member
+        safe_text = nh3.clean(text, tags=set(), attributes={})
+        call_to_action = self._get_call_to_action()
+
+        img_tags = ""
+        if self._content.screenshots:
+            domain = self._get_smtp_domain()
+            images = {
+                make_msgid(domain)[1:-1]: screenshot
+                for screenshot in self._content.screenshots
+            }
+            img_parts = [
+                f'<div class="image"><img width="1000" src="cid:{msgid}"></div>'
+                for msgid in images
+            ]
+            img_tags = "".join(img_parts)
+        else:
+            images = {}
+
+        body = textwrap.dedent(
+            f"""
+            <html>
+              <head>
+                <style type="text/css">
+                  table, th, td {{
+                    border-collapse: collapse;
+                    border-color: rgb(200, 212, 227);
+                    color: rgb(42, 63, 95);
+                    padding: 4px 8px;
+                  }}
+                  .image {{ margin-bottom: 18px; min-width: 1000px; }}
+                </style>
+              </head>
+              <body>
+                <h3>Report Generation Failed &mdash; Retry in Progress</h3>
+                <p>
+                  Your scheduled report
+                  <b>{nh3.clean(self._content.name, tags=set(), attributes={})}</b>
+                  encountered an error during generation.
+                  The system is automatically retrying.
+                </p>
+                <p><b>Retry attempt:</b> {attempt} of {max_attempts}
+                   &nbsp;&nbsp; <b>Retries remaining:</b> {retries_remaining}</p>
+                <p><b>Error details:</b> {safe_text}</p>
+                <p><b><a href="{self._content.url}">{call_to_action}</a></b></p>
+                {img_tags}
+              </body>
+            </html>
+            """
+        )
+        return body, images
+
     def _get_content(self) -> EmailContent:
+        if self._content.text and self._content.retry_attempt is not None:
+            body, images = self._retry_error_template(self._content.text)
+            return EmailContent(
+                body=body,
+                images=images or None,
+                header_data=self._content.header_data,
+            )
         if self._content.text:
             return EmailContent(body=self._error_template(self._content.text))
         # Get the domain from the 'From' address ..
@@ -267,6 +331,19 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         )
 
     def _get_subject(self) -> str:
+        if self._content.retry_attempt is not None:
+            return __(
+                "Report Retry [%(attempt)s of %(max)s]: %(name)s",
+                attempt=self._content.retry_attempt,
+                max=self._content.retry_max_attempts,
+                name=self._name,
+            )
+        if self._content.text and self._content.retry_max_attempts is not None:
+            # Final-failure notification (retry_attempt is None but max is set)
+            return __(
+                "Report Failed - All Retries Exhausted: %(name)s",
+                name=self._name,
+            )
         return __(
             "%(prefix)s %(title)s",
             prefix=current_app.config["EMAIL_REPORTS_SUBJECT_PREFIX"],

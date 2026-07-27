@@ -151,6 +151,11 @@ export type AlertObject = {
   };
   validator_type?: string;
   working_timeout?: number;
+  retry_on_failure?: boolean;
+  retry_max_attempts?: number;
+  send_failed_reports?: boolean;
+  retry_notify_owners?: boolean;
+  retry_notify_recipients?: boolean;
 };
 
 export type LogObject = {

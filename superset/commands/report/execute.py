@@ -1165,6 +1165,98 @@ class BaseReportState:
             < last_success.end_dttm
         )
 
+    def _get_retry_delay(self, attempt: int) -> int:
+        """Exponential backoff: base * 2^attempt, capped at a configurable max."""
+        base: int = app.config.get("ALERT_REPORTS_RETRY_BASE_DELAY_SECONDS", 60)
+        cap: int = app.config.get("ALERT_REPORTS_RETRY_MAX_DELAY_SECONDS", 3600)
+        return min(base * (2**attempt), cap)
+
+    def _is_retry_window_stale(self) -> bool:
+        """
+        Return True if a new crontab window fired while the previous one was
+        still retrying.  When stale the retry counter must be reset so the new
+        window gets a fresh retry budget.
+        """
+        anchor = self._report_schedule.retry_scheduled_dttm
+        return anchor is not None and anchor != self._scheduled_dttm
+
+    def _increment_retry(self) -> int:
+        """Increment retry_attempt, set the window anchor, and return the new count."""
+        self._report_schedule.retry_attempt += 1
+        self._report_schedule.retry_scheduled_dttm = self._scheduled_dttm
+        return self._report_schedule.retry_attempt
+
+    def _reset_retry_counter(self) -> None:
+        """Reset retry state after a terminal outcome."""
+        self._report_schedule.retry_attempt = 0
+        self._report_schedule.retry_scheduled_dttm = None
+
+    def _schedule_retry(self, delay_seconds: int) -> None:
+        """Re-queue the execute task with the given countdown (seconds)."""
+        # Lazy import to avoid a circular dependency between execute.py and scheduler.py
+        from superset.tasks.scheduler import execute as execute_task  # noqa: PLC0415
+
+        execute_task.apply_async(
+            (self._report_schedule.id,),
+            countdown=delay_seconds,
+        )
+
+    def send_retry_notification(
+        self, attempt: int, max_attempts: int, error_message: str
+    ) -> None:
+        """
+        Send a per-retry-attempt failure notification to the owners and/or recipients
+        selected via the retry_notify_owners / retry_notify_recipients flags.
+        """
+        recipients: list[ReportRecipients] = []
+
+        if self._report_schedule.retry_notify_owners:
+            recipients.extend(
+                [
+                    ReportRecipients(
+                        type=ReportRecipientType.EMAIL,
+                        recipient_config_json=json.dumps({"target": s.user.email}),
+                    )
+                    for s in self._report_schedule.editors
+                    if s.type == SubjectType.USER and s.user
+                ]
+            )
+
+        if self._report_schedule.retry_notify_recipients:
+            recipients.extend(self._report_schedule.recipients)
+
+        if not recipients:
+            return
+
+        header_data = self._get_log_data()
+        url = self._get_url(user_friendly=True)
+        notification_content = NotificationContent(
+            name=sanitize_title(self._report_schedule.name),
+            text=error_message,
+            header_data=header_data,
+            url=url,
+            retry_attempt=attempt,
+            retry_max_attempts=max_attempts,
+        )
+        self._send(notification_content, recipients)
+
+    def send_final_failure_report(self, error_message: str) -> None:
+        """
+        Send the failed report notification to all configured recipients after
+        all retry attempts have been exhausted and send_failed_reports is enabled.
+        """
+        header_data = self._get_log_data()
+        url = self._get_url(user_friendly=True)
+        max_attempts: int = self._report_schedule.retry_max_attempts
+        notification_content = NotificationContent(
+            name=sanitize_title(self._report_schedule.name),
+            text=error_message,
+            header_data=header_data,
+            url=url,
+            retry_max_attempts=max_attempts,
+        )
+        self._send(notification_content, self._report_schedule.recipients)
+
     def is_on_working_timeout(self) -> bool:
         """
         Checks if an alert is in a working timeout
@@ -1195,7 +1287,7 @@ class ReportNotTriggeredErrorState(BaseReportState):
     - Error
     """
 
-    current_states = [ReportState.NOOP, ReportState.ERROR]
+    current_states = [ReportState.NOOP, ReportState.ERROR, ReportState.RETRYING]
     initial = True
 
     def next(self) -> None:  # noqa: C901
@@ -1223,6 +1315,60 @@ class ReportNotTriggeredErrorState(BaseReportState):
             error_message = str(first_ex)
             if isinstance(first_ex, SupersetErrorsException):
                 error_message = ";".join([error.message for error in first_ex.errors])
+
+            # --- Retry logic ---
+            retry_on_failure: bool = self._report_schedule.retry_on_failure
+            max_attempts: int = self._report_schedule.retry_max_attempts
+
+            # If a new crontab window has fired since the first failure, reset the
+            # retry counter so this window gets a fresh budget.
+            if retry_on_failure and self._is_retry_window_stale():
+                self._reset_retry_counter()
+
+            current_attempt = self._report_schedule.retry_attempt
+
+            if retry_on_failure and current_attempt < max_attempts:
+                # Schedule another attempt and exit cleanly (don't re-raise).
+                attempt = self._increment_retry()
+                try:
+                    self.update_report_schedule_and_log(
+                        ReportState.RETRYING, error_message=error_message
+                    )
+                except ReportScheduleUnexpectedError as logging_ex:
+                    logger.warning(
+                        "Failed to log RETRYING state for report schedule "
+                        "(execution %s) due to database issue",
+                        self._execution_id,
+                        exc_info=True,
+                    )
+                    raise first_ex from logging_ex
+                try:
+                    self.send_retry_notification(attempt, max_attempts, error_message)
+                except Exception:  # pylint: disable=broad-except
+                    logger.warning(
+                        "Failed to send retry notification for report schedule "
+                        "(execution %s)",
+                        self._execution_id,
+                        exc_info=True,
+                    )
+                self._schedule_retry(self._get_retry_delay(attempt))
+                return  # task completes normally; next attempt is queued
+
+            # All retries exhausted (or retry disabled) — fall through to the
+            # existing error-logging and grace-period notification path.
+            if retry_on_failure:
+                # Reset counter so the next crontab window starts fresh.
+                self._reset_retry_counter()
+                if self._report_schedule.send_failed_reports:
+                    try:
+                        self.send_final_failure_report(error_message)
+                    except Exception:  # pylint: disable=broad-except
+                        logger.warning(
+                            "Failed to send final failure report for report schedule "
+                            "(execution %s)",
+                            self._execution_id,
+                            exc_info=True,
+                        )
 
             try:
                 self.update_report_schedule_and_log(
@@ -1403,6 +1549,8 @@ class ReportSuccessState(BaseReportState):
             warning_message = (
                 ";".join(self._filter_warnings) if self._filter_warnings else None
             )
+            # Clear any retry state from previous failed attempts in this window.
+            self._reset_retry_counter()
             self.update_report_schedule_and_log(
                 ReportState.SUCCESS, error_message=warning_message
             )

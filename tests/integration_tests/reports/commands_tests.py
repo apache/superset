@@ -2667,3 +2667,178 @@ def test__send_with_server_errors(notification_mock, logger_mock):
     logger_mock.warning.assert_called_with(
         "SupersetError(message='', error_type=<SupersetErrorType.REPORT_NOTIFICATION_ERROR: 'REPORT_NOTIFICATION_ERROR'>, level=<ErrorLevel.ERROR: 'error'>, extra=None)"  # noqa: E501
     )
+
+
+# ---------------------------------------------------------------------------
+# Retry tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@patch("superset.commands.report.execute.ReportNotTriggeredErrorState._schedule_retry")
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_retry_on_failure_schedules_retry(
+    screenshot_mock: Mock,
+    email_mock: Mock,
+    schedule_retry_mock: Mock,
+) -> None:
+    """
+    ExecuteReport Command: when retry_on_failure is enabled and the report fails,
+    the state transitions to RETRYING and a retry task is enqueued.
+    """
+    chart = db.session.query(Slice).first()
+    report_schedule = create_report_notification(
+        email_target="target@email.com",
+        chart=chart,
+        retry_on_failure=True,
+        retry_max_attempts=3,
+        retry_notify_owners=False,
+        retry_notify_recipients=False,
+    )
+    try:
+        screenshot_mock.side_effect = Exception("screenshot failed")
+
+        # Should NOT re-raise (retry path exits cleanly)
+        AsyncExecuteReportScheduleCommand(
+            TEST_ID, report_schedule.id, datetime.utcnow()
+        ).run()
+
+        db.session.refresh(report_schedule)
+        assert report_schedule.last_state == ReportState.RETRYING
+        assert report_schedule.retry_attempt == 1
+        schedule_retry_mock.assert_called_once()
+        # No error email should be sent on the retry path
+        email_mock.assert_not_called()
+    finally:
+        cleanup_report_schedule(report_schedule)
+
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@patch("superset.commands.report.execute.ReportNotTriggeredErrorState._schedule_retry")
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_retry_exhausted_transitions_to_error(
+    screenshot_mock: Mock,
+    email_mock: Mock,
+    schedule_retry_mock: Mock,
+) -> None:
+    """
+    ExecuteReport Command: when all retries are exhausted the state transitions
+    to ERROR, the retry counter is reset, and an error email is sent to editors.
+    """
+    chart = db.session.query(Slice).first()
+    report_schedule = create_report_notification(
+        email_target="target@email.com",
+        chart=chart,
+        retry_on_failure=True,
+        retry_max_attempts=2,
+        retry_notify_owners=False,
+        retry_notify_recipients=False,
+    )
+    # Pre-set retry_attempt to the max so the next execution exhausts retries.
+    report_schedule.retry_attempt = 2
+    report_schedule.retry_scheduled_dttm = datetime.utcnow()
+    db.session.commit()
+
+    try:
+        screenshot_mock.side_effect = Exception("screenshot failed")
+
+        with pytest.raises(Exception, match="screenshot failed"):
+            AsyncExecuteReportScheduleCommand(
+                TEST_ID, report_schedule.id, datetime.utcnow()
+            ).run()
+
+        db.session.refresh(report_schedule)
+        assert report_schedule.last_state == ReportState.ERROR
+        # Counter is reset after exhaustion
+        assert report_schedule.retry_attempt == 0
+        # No further retry should have been scheduled
+        schedule_retry_mock.assert_not_called()
+        # Error email sent to editors
+        assert email_mock.call_count >= 1
+    finally:
+        cleanup_report_schedule(report_schedule)
+
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@patch("superset.commands.report.execute.ReportNotTriggeredErrorState._schedule_retry")
+@patch("superset.commands.report.execute.BaseReportState._send")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_send_failed_reports_sends_to_recipients(
+    screenshot_mock: Mock,
+    send_mock: Mock,
+    schedule_retry_mock: Mock,
+) -> None:
+    """
+    ExecuteReport Command: when send_failed_reports is True and all retries are
+    exhausted, _send is called with the configured recipients.
+    """
+    chart = db.session.query(Slice).first()
+    report_schedule = create_report_notification(
+        email_target="target@email.com",
+        chart=chart,
+        retry_on_failure=True,
+        retry_max_attempts=1,
+        send_failed_reports=True,
+        retry_notify_owners=False,
+        retry_notify_recipients=False,
+    )
+    report_schedule.retry_attempt = 1
+    report_schedule.retry_scheduled_dttm = datetime.utcnow()
+    db.session.commit()
+
+    try:
+        screenshot_mock.side_effect = Exception("screenshot failed")
+
+        with pytest.raises(Exception, match="screenshot failed"):
+            AsyncExecuteReportScheduleCommand(
+                TEST_ID, report_schedule.id, datetime.utcnow()
+            ).run()
+
+        # _send should have been called for the final failure report
+        assert send_mock.call_count >= 1
+        schedule_retry_mock.assert_not_called()
+    finally:
+        cleanup_report_schedule(report_schedule)
+
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@patch("superset.commands.report.execute.ReportNotTriggeredErrorState._schedule_retry")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_retrying_state_routes_back_to_error_handler(
+    screenshot_mock: Mock,
+    schedule_retry_mock: Mock,
+) -> None:
+    """
+    ExecuteReport Command: a schedule with last_state=RETRYING is routed to
+    ReportNotTriggeredErrorState, which can retry again or exhaust and error.
+    """
+    chart = db.session.query(Slice).first()
+    report_schedule = create_report_notification(
+        email_target="target@email.com",
+        chart=chart,
+        retry_on_failure=True,
+        retry_max_attempts=3,
+        retry_notify_owners=False,
+        retry_notify_recipients=False,
+    )
+    report_schedule.last_state = ReportState.RETRYING
+    report_schedule.retry_attempt = 1
+    report_schedule.retry_scheduled_dttm = datetime.utcnow()
+    db.session.commit()
+
+    try:
+        screenshot_mock.side_effect = Exception("still failing")
+
+        # Should not raise — still within retry budget
+        AsyncExecuteReportScheduleCommand(
+            TEST_ID, report_schedule.id, datetime.utcnow()
+        ).run()
+
+        db.session.refresh(report_schedule)
+        assert report_schedule.last_state == ReportState.RETRYING
+        assert report_schedule.retry_attempt == 2
+        schedule_retry_mock.assert_called_once()
+    finally:
+        cleanup_report_schedule(report_schedule)
