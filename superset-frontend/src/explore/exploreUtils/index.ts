@@ -320,7 +320,10 @@ export const buildV1ChartDataPayload = async ({
 }: BuildV1ChartDataPayloadParams): Promise<
   ReturnType<typeof buildQueryContext>
 > => {
-  const defaultBuildQuery = (buildQueryFormData: QueryFormData, _options?: unknown,) =>
+  const defaultBuildQuery = (
+    buildQueryFormData: QueryFormData,
+    _options?: unknown,
+  ) =>
     buildQueryContext(buildQueryFormData, baseQueryObject => [
       {
         ...baseQueryObject,

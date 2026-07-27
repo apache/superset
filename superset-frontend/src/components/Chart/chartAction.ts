@@ -775,7 +775,12 @@ export function exploreJSON(
     };
     const clientId = nanoid(11);
     dispatch(
-      chartUpdateStarted(controller, formData, key as string | number, clientId),
+      chartUpdateStarted(
+        controller,
+        formData,
+        key as string | number,
+        clientId,
+      ),
     );
     /**
      * Abort in-flight requests after the new controller has been stored in
