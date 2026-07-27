@@ -33,6 +33,12 @@ function MobileUnsupported() {
   const theme = useTheme();
   const history = useHistory();
 
+  const actionButtonCss = css`
+    width: 280px;
+    height: 48px;
+    font-size: ${theme.fontSizeSM}px;
+  `;
+
   const handleViewDashboards = useCallback(() => {
     history.push('/dashboard/list/');
   }, [history]);
@@ -108,11 +114,7 @@ function MobileUnsupported() {
         <Button
           buttonStyle="primary"
           onClick={handleViewDashboards}
-          css={css`
-            width: 280px;
-            height: 48px;
-            font-size: ${theme.fontSizeSM}px;
-          `}
+          css={actionButtonCss}
         >
           {t('View Dashboards')}
         </Button>
@@ -127,11 +129,7 @@ function MobileUnsupported() {
         <Button
           buttonStyle="secondary"
           onClick={handleGoHome}
-          css={css`
-            width: 280px;
-            height: 48px;
-            font-size: ${theme.fontSizeSM}px;
-          `}
+          css={actionButtonCss}
         >
           {t('Go to Welcome Page')}
         </Button>

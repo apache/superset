@@ -16,6 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// Imported first: loading this before 'spec/helpers/testing-library' or
+// '@superset-ui/core' ensures mockAntdWithDesktopBreakpoint is defined
+// before anything transitively requires (and thus mocks) 'antd'.
+import { mockAntdWithDesktopBreakpoint } from 'spec/helpers/mobileTestUtils';
 import * as reactRedux from 'react-redux';
 import fetchMock from 'fetch-mock';
 import {
@@ -51,13 +55,7 @@ jest.mock('react-redux', () => ({
 }));
 
 // Mock useBreakpoint to return desktop breakpoints (prevents mobile menu rendering)
-jest.mock('antd', () => ({
-  ...jest.requireActual('antd'),
-  Grid: {
-    ...jest.requireActual('antd').Grid,
-    useBreakpoint: () => ({ xs: true, sm: true, md: true, lg: true, xl: true }),
-  },
-}));
+jest.mock('antd', () => mockAntdWithDesktopBreakpoint());
 
 jest.mock('src/features/databases/DatabaseModal', () => {
   const DatabaseModal = () => <span />;
