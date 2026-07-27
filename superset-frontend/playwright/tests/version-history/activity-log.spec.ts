@@ -42,10 +42,29 @@ async function csrfToken(request: APIRequestContext): Promise<string> {
   return (await res.json()).result;
 }
 
-async function currentUserId(request: APIRequestContext): Promise<number> {
-  const res = await request.get('/api/v1/me/');
-  expect(res.ok(), 'current user request').toBeTruthy();
-  return (await res.json()).result.id;
+/**
+ * Resolve the current user's USER-type subject id. Chart `editors` (and the
+ * `can_overwrite` gate derived from them) live in the Subject id space, not
+ * the user id space.
+ */
+async function currentUserSubjectId(
+  request: APIRequestContext,
+): Promise<number> {
+  const meRes = await request.get('/api/v1/me/');
+  expect(meRes.ok(), 'current user request').toBeTruthy();
+  const userId = (await meRes.json()).result.id;
+
+  const q = encodeURIComponent(
+    `(filters:!((col:user_id,opr:eq,value:${userId})))`,
+  );
+  const res = await request.get(`/api/v1/security/subject/?q=${q}`);
+  expect(res.ok(), 'subject lookup request').toBeTruthy();
+  const subjects = (await res.json()).result;
+  expect(
+    subjects.length,
+    `USER subject exists for user ${userId}`,
+  ).toBeGreaterThan(0);
+  return subjects[0].id;
 }
 
 /** First few charts (id + name) the API exposes. */
@@ -92,7 +111,7 @@ test.describe('chart activity log', () => {
     expect(charts.length, 'at least one chart exists').toBeGreaterThan(0);
 
     const csrf = await csrfToken(page.request);
-    const adminId = await currentUserId(page.request);
+    const adminSubjectId = await currentUserSubjectId(page.request);
 
     for (const chart of charts) {
       const original = chart.slice_name;
@@ -101,7 +120,7 @@ test.describe('chart activity log', () => {
       // Two renames: the first edit on an as-yet-untracked chart collapses
       // into "first tracked save"; the second is a normal descriptive save.
       await updateChart(page.request, csrf, chart.id, {
-        editors: [adminId],
+        editors: [adminSubjectId],
         slice_name: `${original} ·vh1`,
       });
       await updateChart(page.request, csrf, chart.id, {
