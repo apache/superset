@@ -358,6 +358,42 @@ test('dynamic group by normalizes a single-select string value into a one-item g
   expectGroupBy(result, ['status']);
 });
 
+test('sankey chart maps dynamic group by columns to source, intermediate levels and target', () => {
+  const result = getFormDataWithExtraFilters({
+    ...makeGroupByArgs(['country', 'product', 'channel', 'outcome']),
+    chart: {
+      ...mockChart,
+      form_data: {
+        ...mockChart.form_data,
+        viz_type: 'sankey_v2',
+        datasource: '3__table',
+      },
+    },
+  }) as Record<string, unknown>;
+
+  expect(result.source).toEqual('country');
+  expect(result.intermediate_levels).toEqual(['product', 'channel']);
+  expect(result.target).toEqual('outcome');
+});
+
+test('sankey chart with two dynamic group by columns has no intermediate levels', () => {
+  const result = getFormDataWithExtraFilters({
+    ...makeGroupByArgs(['country', 'outcome']),
+    chart: {
+      ...mockChart,
+      form_data: {
+        ...mockChart.form_data,
+        viz_type: 'sankey_v2',
+        datasource: '3__table',
+      },
+    },
+  }) as Record<string, unknown>;
+
+  expect(result.source).toEqual('country');
+  expect(result.intermediate_levels).toEqual([]);
+  expect(result.target).toEqual('outcome');
+});
+
 test('structural conflict: metric column blocks groupby override (nonConflictingColumns guard)', () => {
   const customizationId = 'CHART_CUSTOMIZATION-groupby-conflict';
   const argsWithMetricConflict: GetFormDataWithExtraFiltersArguments = {

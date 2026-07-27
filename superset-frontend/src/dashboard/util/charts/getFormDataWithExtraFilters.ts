@@ -246,13 +246,10 @@ function applyChartSpecificGroupBy(
       groupByFormData.target = limitedColumns[1];
     }
   } else if (chartType === 'sankey_v2') {
-    const { limitedColumns } = limitColumnsForChartType(
-      chartType,
-      groupByColumns,
-    );
-    groupByFormData.source = limitedColumns[0];
-    if (limitedColumns.length > 1) {
-      groupByFormData.target = limitedColumns[1];
+    groupByFormData.source = groupByColumns[0];
+    if (groupByColumns.length > 1) {
+      groupByFormData.target = groupByColumns[groupByColumns.length - 1];
+      groupByFormData.intermediate_levels = groupByColumns.slice(1, -1);
     }
   } else if (['chord'].includes(chartType)) {
     groupByFormData.groupby =
