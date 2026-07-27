@@ -290,7 +290,13 @@ class DatasetValidator:
             logger.warning("No plugin registered for chart_type=%r", chart_type)
             return []
 
-        return plugin.extract_column_refs(config)
+        refs = plugin.extract_column_refs(config)
+        temporal_column = getattr(config, "temporal_column", None)
+        if temporal_column and not any(
+            ref.name and ref.name.lower() == temporal_column.lower() for ref in refs
+        ):
+            refs.append(ColumnRef(name=temporal_column))
+        return refs
 
     @staticmethod
     def _column_exists(column_name: str, dataset_context: DatasetContext) -> bool:
@@ -424,7 +430,16 @@ class DatasetValidator:
             )
             return config
 
-        return plugin.normalize_column_refs(config, dataset_context)
+        normalized_config = plugin.normalize_column_refs(config, dataset_context)
+        if temporal_column := getattr(normalized_config, "temporal_column", None):
+            canonical_temporal_column = DatasetValidator.get_canonical_column_name(
+                temporal_column, dataset_context
+            )
+            if canonical_temporal_column != temporal_column:
+                normalized_config = normalized_config.model_copy(
+                    update={"temporal_column": canonical_temporal_column}
+                )
+        return normalized_config
 
     @staticmethod
     def _get_column_suggestions(
