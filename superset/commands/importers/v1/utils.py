@@ -230,7 +230,21 @@ def load_configs(
                     prefix,
                     exc.messages,
                 )
-                logger.debug("Config content that failed validation: %s", config)
+                # Log field names only; full values can be huge (e.g. inline
+                # example data) and drown out the validation error above. Guard
+                # the diagnostic so it can never raise and mask the validation
+                # error: config may be a non-mapping or have unsortable keys.
+                if isinstance(config, dict):
+                    field_names = ", ".join(sorted(map(str, config)))
+                    logger.debug(
+                        "Config fields present in %s: %s", file_name, field_names
+                    )
+                else:
+                    logger.debug(
+                        "Config in %s is not a mapping (type: %s)",
+                        file_name,
+                        type(config).__name__,
+                    )
                 exc.messages = {file_name: exc.messages}
                 exceptions.append(exc)
 
