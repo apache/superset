@@ -99,12 +99,32 @@ def get_user_group_subject_ids_subquery(user_id: int) -> Select:
 
 
 def get_user_group_subjects(user_id: int) -> list[Subject]:
-    """Return the GROUP-type Subjects for every group a user belongs to."""
-    return (
+    """Return the GROUP-type Subjects for every group a user belongs to.
+
+    Any group whose Subject row is missing is backfilled on demand (see
+    :func:`get_or_create_group_subject`) rather than skipped: a single viewer
+    disables an asset's datasource-access fallback, so a partial viewer set
+    would silently lock out the members of an unsynced group.
+    """
+    from flask_appbuilder.security.sqla.models import assoc_user_group
+
+    subjects = (
         db.session.query(Subject)
         .filter(Subject.id.in_(get_user_group_subject_ids_subquery(user_id)))
         .all()
     )
+    member_group_ids = {
+        row[0]
+        for row in db.session.execute(
+            select(assoc_user_group.c.group_id).where(
+                assoc_user_group.c.user_id == user_id
+            )
+        )
+    }
+    for group_id in member_group_ids - {subject.group_id for subject in subjects}:
+        if subject := get_or_create_group_subject(group_id):
+            subjects.append(subject)
+    return subjects
 
 
 def _assigns_creator_groups_as_viewers() -> bool:
@@ -256,12 +276,51 @@ def get_or_create_role_subject(role_id: int) -> Subject | None:
     return get_role_subject(role_id)
 
 
+def get_group_subject(group_id: int) -> Subject | None:
+    """Get the GROUP-type Subject for a given group ID."""
+    return (
+        db.session.query(Subject)
+        .filter_by(
+            group_id=group_id,
+            type=SubjectType.GROUP,
+        )
+        .first()
+    )
+
+
+def get_or_create_group_subject(group_id: int) -> Subject | None:
+    """Get or create the GROUP-type Subject for a given group ID.
+
+    Mirrors ``get_or_create_role_subject``: a group that exists but has no
+    Subject row yet (e.g. created before the sync hooks were installed and not
+    yet backfilled) is synced on demand rather than skipped. Returns ``None``
+    only when no such group exists.
+    """
+    if subject := get_group_subject(group_id):
+        return subject
+
+    from superset import security_manager
+    from superset.subjects.sync import sync_group_subject
+
+    group = db.session.get(security_manager.group_model, group_id)
+    if not group:
+        return None
+
+    sync_group_subject(group)
+    db.session.flush()
+    return get_group_subject(group_id)
+
+
 def subjects_from_groups(groups: list[Group | int]) -> list[Subject]:
     """Convert a list of Group objects or group IDs to GROUP-type Subjects.
 
     Mirrors :func:`subjects_from_roles`, but resolves the whole list in one
-    query rather than one per group. Silently skips groups without a matching
-    Subject row.
+    query rather than one per group. Skips groups without a matching Subject
+    row: its only caller (``get_default_viewers_for_groups``) runs inside the
+    user's ``after_insert`` flush event, where the on-demand sync in
+    :func:`get_or_create_group_subject` (which flushes) is unsafe. Those groups
+    pre-exist and are synced on creation, so the skip is not reached in
+    practice; :func:`get_user_group_subjects` is the path that backfills.
     """
     group_ids = [group if isinstance(group, int) else group.id for group in groups]
     if not group_ids:

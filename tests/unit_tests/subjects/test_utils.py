@@ -30,7 +30,9 @@ from superset.subjects.models import Subject
 from superset.subjects.types import SubjectType
 from superset.subjects.utils import (
     get_current_user_subject_ids,
+    get_or_create_group_subject,
     get_or_create_role_subject,
+    get_user_group_subjects,
     get_user_subject_ids_subquery,
 )
 
@@ -141,6 +143,88 @@ def test_get_or_create_role_subject_missing_role_returns_none() -> None:
         assert get_or_create_role_subject(999) is None
 
     mock_sync.assert_not_called()
+
+
+# --------------------------------------------------------------------------
+# get_or_create_group_subject / get_user_group_subjects backfill
+# --------------------------------------------------------------------------
+
+
+@patch("superset.subjects.utils.get_group_subject")
+def test_get_or_create_group_subject_returns_existing(
+    mock_get_group_subject: MagicMock,
+) -> None:
+    """An already-synced group resolves to its Subject with no sync."""
+    existing = _make_subject(10, SubjectType.GROUP)
+    mock_get_group_subject.return_value = existing
+
+    assert get_or_create_group_subject(5) is existing
+    mock_get_group_subject.assert_called_once_with(5)
+
+
+def test_get_or_create_group_subject_syncs_unsynced_group() -> None:
+    """A group that exists but has no Subject row yet is synced on demand
+    rather than treated as nonexistent."""
+    created = _make_subject(11, SubjectType.GROUP)
+    group = MagicMock()
+    group.id = 5
+
+    with (
+        patch(
+            "superset.subjects.utils.get_group_subject",
+            side_effect=[None, created],
+        ) as mock_get_group_subject,
+        patch("superset.subjects.utils.db") as mock_db,
+        patch("superset.subjects.sync.sync_group_subject") as mock_sync,
+    ):
+        mock_db.session.get.return_value = group
+
+        assert get_or_create_group_subject(5) is created
+
+    mock_sync.assert_called_once_with(group)
+    mock_db.session.flush.assert_called_once()
+    assert mock_get_group_subject.call_count == 2
+
+
+def test_get_or_create_group_subject_missing_group_returns_none() -> None:
+    """A group ID with no matching group at all resolves to None."""
+    with (
+        patch("superset.subjects.utils.get_group_subject", return_value=None),
+        patch("superset.subjects.utils.db") as mock_db,
+        patch("superset.subjects.sync.sync_group_subject") as mock_sync,
+    ):
+        mock_db.session.get.return_value = None
+
+        assert get_or_create_group_subject(999) is None
+
+    mock_sync.assert_not_called()
+
+
+def test_get_user_group_subjects_backfills_missing_group(app_context) -> None:
+    """A group the user belongs to but which has no Subject row is backfilled,
+    not skipped: a partial viewer set would silently lock out its members."""
+    synced = _make_subject(10, SubjectType.GROUP)
+    synced.group_id = 1
+    backfilled = _make_subject(11, SubjectType.GROUP)
+    backfilled.group_id = 2
+
+    with (
+        patch("superset.subjects.utils.db") as mock_db,
+        patch(
+            "superset.subjects.utils.get_or_create_group_subject",
+            return_value=backfilled,
+        ) as mock_get_or_create,
+    ):
+        mock_db.session.query.return_value.filter.return_value.all.return_value = [
+            synced
+        ]
+        # The user belongs to groups 1 (synced) and 2 (missing a Subject row).
+        mock_db.session.execute.return_value = [(1,), (2,)]
+
+        result = get_user_group_subjects(5)
+
+    assert result == [synced, backfilled]
+    mock_get_or_create.assert_called_once_with(2)
 
 
 # --------------------------------------------------------------------------
