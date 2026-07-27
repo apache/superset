@@ -2529,10 +2529,10 @@
   resolved "https://registry.yarnpkg.com/@faker-js/faker/-/faker-5.5.3.tgz#18e3af6b8eae7984072bbeb0c0858474d7c4cefe"
   integrity sha512-R11tGE6yIFwqpaIqcfkcg7AICXzFg14+5h5v0TfF/9+RMDL6jhzCy/pxHVOfbALGdtVYdt6JdR21tuxEgl34dw==
 
-"@fontsource/fira-code@^5.2.7":
-  version "5.2.7"
-  resolved "https://registry.yarnpkg.com/@fontsource/fira-code/-/fira-code-5.2.7.tgz#9ecbd909d53e7196a5d895b601747fe34491fc6a"
-  integrity sha512-tnB9NNund9TwIym8/7DMJe573nlPEQb+fKUV5GL8TBYXjIhDvL0D7mgmNVNQUPhXp+R7RylQeiBdkA4EbOHPGQ==
+"@fontsource/fira-code@^5.3.0":
+  version "5.3.0"
+  resolved "https://registry.yarnpkg.com/@fontsource/fira-code/-/fira-code-5.3.0.tgz#487475cedfa1f7ba7650810ddce00b6c7b1b7a25"
+  integrity sha512-EJL968RJRkakubAj/coU8pSUaeTE5UNoRjtzAr6kGiSZ3jWuN8/AKWHwym/PFUaQL1q7IL/H+EXs4358YhrTBQ==
 
 "@fontsource/ibm-plex-mono@^5.2.7":
   version "5.2.7"
