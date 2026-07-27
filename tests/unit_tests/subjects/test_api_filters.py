@@ -58,7 +58,9 @@ def test_subject_list_filter_excludes_configured_users(
     filter_ = SubjectListFilter("id", SQLAInterface(Subject))
     filtered = filter_.apply(_subject_query(), None)
 
-    assert "service_account" in _compiled(filtered)
+    # Assert on the NOT IN predicate specifically: a plain "service_account"
+    # membership check would pass for an (incorrect) IN filter just as well.
+    assert "NOT IN ('service_account')" in _compiled(filtered)
 
 
 def test_subject_list_filter_is_a_noop_without_configuration(

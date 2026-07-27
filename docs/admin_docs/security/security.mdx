@@ -259,6 +259,12 @@ that creates an asset: the REST API, `/dashboard/new/`, save-as from Explore, da
 the import commands, and the MCP tools. Datasets are unaffected, as they have editors but no
 viewers.
 
+For dashboards, viewer access additionally requires the dashboard to be **published** — the same
+rule that governs every dashboard viewer. Until a new dashboard is published its creator's groups
+see nothing, and because it now has viewers the dataset-based fallback no longer applies to it
+either; group members gain access only once it is published. Charts have no such gate, so a new
+chart is visible to the creator's groups immediately.
+
 Note that this **narrows** access rather than widening it. Because an asset with no viewers falls
 back to dataset-based access, giving new assets a viewer makes that fallback unreachable for them:
 a colleague who could previously open a new dashboard by virtue of dataset access can no longer do

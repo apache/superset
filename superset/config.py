@@ -2949,6 +2949,8 @@ VIEWER_PROMISCUOUS_MODE = False
 # creator belongs to, unless the create payload names viewers explicitly.
 # This narrows access: an asset with no viewers falls back to datasource
 # permissions, while one with viewers is limited to its editors and viewers.
+# Dashboards must also be published for viewers to gain access, so a new
+# dashboard grants its creator's groups nothing until it is published.
 ASSIGN_CREATOR_GROUPS_AS_VIEWERS = False
 
 # Default Subject types shown in editor/viewer/subject pickers.
