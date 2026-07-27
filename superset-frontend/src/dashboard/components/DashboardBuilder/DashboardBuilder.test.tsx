@@ -16,6 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// Imported first: loading this before 'spec/helpers/testing-library' or
+// '@superset-ui/core' ensures mockAntdWithDesktopBreakpoint is defined
+// before anything transitively requires (and thus mocks) 'antd'.
+import { mockAntdWithDesktopBreakpoint } from 'spec/helpers/mobileTestUtils';
 import fetchMock from 'fetch-mock';
 import {
   fireEvent,
@@ -58,13 +62,7 @@ fetchMock.put('glob:*/api/v1/dashboard/*', {});
 fetchMock.post('glob:*/log/?*', {});
 
 // Mock useBreakpoint to return desktop breakpoints (prevents mobile rendering)
-jest.mock('antd', () => ({
-  ...jest.requireActual('antd'),
-  Grid: {
-    ...jest.requireActual('antd').Grid,
-    useBreakpoint: () => ({ xs: true, sm: true, md: true, lg: true, xl: true }),
-  },
-}));
+jest.mock('antd', () => mockAntdWithDesktopBreakpoint());
 
 jest.mock('src/dashboard/actions/dashboardState', () => ({
   ...jest.requireActual('src/dashboard/actions/dashboardState'),
