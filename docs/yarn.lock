@@ -7007,7 +7007,7 @@ copy-text-to-clipboard@^3.2.0:
   resolved "https://registry.yarnpkg.com/copy-text-to-clipboard/-/copy-text-to-clipboard-3.2.2.tgz#99bc79db3f2d355ec33a08d573aff6804491ddb9"
   integrity sha512-T6SqyLd1iLuqPA90J5N4cTalrtovCySh58iiZDGJ6FGznbclKh4UI+FGacQSgFzwKG77W7XT5gwbVEbd9cIH1A==
 
-copy-to-clipboard@^3.3.1:
+copy-to-clipboard@^3.3.3:
   version "3.3.3"
   resolved "https://registry.yarnpkg.com/copy-to-clipboard/-/copy-to-clipboard-3.3.3.tgz#55ac43a1db8ae639a4bd99511c148cdd1b83a1b0"
   integrity sha512-2KV8NhB5JqC3ky0r9PMCAZKbUHSwtEo4CwCs0KXgruG43gX5PMqDEBbVU4OUzw2MuAWUfsuFmWvEKG5QRfSnJA==
@@ -13243,12 +13243,12 @@ rc@1.2.8:
     minimist "^1.2.0"
     strip-json-comments "~2.0.1"
 
-react-copy-to-clipboard@5.1.0:
-  version "5.1.0"
-  resolved "https://registry.yarnpkg.com/react-copy-to-clipboard/-/react-copy-to-clipboard-5.1.0.tgz#09aae5ec4c62750ccb2e6421a58725eabc41255c"
-  integrity sha512-k61RsNgAayIJNoy9yDsYzDe/yAZAzEbEgcz3DZMhF686LEyukcE1hzurxe85JandPUG+yTfGVFzuEw3xt8WP/A==
+react-copy-to-clipboard@5.1.1:
+  version "5.1.1"
+  resolved "https://registry.yarnpkg.com/react-copy-to-clipboard/-/react-copy-to-clipboard-5.1.1.tgz#76adb8be03616e99692fcf3f762365ed3fb5ff16"
+  integrity sha512-s+HrzLyJBxrpGTYXF15dTgMjAJpEPZT/Yp6NytAtZMRngejxt6Pt5WrfFxLAcsqUDU6sY1Jz6tyHwIicE1U2Xg==
   dependencies:
-    copy-to-clipboard "^3.3.1"
+    copy-to-clipboard "^3.3.3"
     prop-types "^15.8.1"
 
 react-debounce-input@=3.3.0:
@@ -14925,10 +14925,10 @@ swagger-client@^3.37.4:
     ramda "^0.30.1"
     ramda-adjunct "^5.1.0"
 
-swagger-ui-react@^5.32.8:
-  version "5.32.8"
-  resolved "https://registry.yarnpkg.com/swagger-ui-react/-/swagger-ui-react-5.32.8.tgz#0608b45cf552f33fcc9b3fc5e07740c9a854861f"
-  integrity sha512-Cstx4Tq8fT5l2TBxHxts8pG+ks0qKSkuO1pwUwgrQQiZ241Mqs+KUODLVIonsYXL/gqX143rkcipUa4d0Rid7w==
+swagger-ui-react@^5.32.9:
+  version "5.32.9"
+  resolved "https://registry.yarnpkg.com/swagger-ui-react/-/swagger-ui-react-5.32.9.tgz#d0e8521091b270e35f8d87771fba49eede425b38"
+  integrity sha512-zs6PG4G6XEWG2evKHSwx32nWXIlk48a9Hw9YS9hlt55O5W0FM1cpltMrM/AnU+mohdnV7oEx0ap2TaG3fbfLIA==
   dependencies:
     "@babel/runtime-corejs3" "^7.27.1"
     "@scarf/scarf" "=1.4.0"
@@ -14946,7 +14946,7 @@ swagger-ui-react@^5.32.8:
     prop-types "^15.8.1"
     randexp "^0.5.3"
     randombytes "^2.1.0"
-    react-copy-to-clipboard "5.1.0"
+    react-copy-to-clipboard "5.1.1"
     react-debounce-input "=3.3.0"
     react-immutable-proptypes "2.2.0"
     react-immutable-pure-component "^2.2.0"
