@@ -320,5 +320,11 @@ def restore_version_endpoint(
             "the snapshot no longer exist and were not reattached"
         )
     return set_version_etag_by_uuid(
-        api.response(200, message=message), model_cls, entity_uuid
+        api.response(200, message=message),
+        model_cls,
+        entity_uuid,
+        # The command already loaded the entity; passing its id skips the
+        # extra id-by-uuid SELECT (same optimization as the sibling
+        # list/get endpoints).
+        entity_id=result.entity.id,
     )

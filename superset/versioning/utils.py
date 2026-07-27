@@ -35,6 +35,15 @@ def capture_enabled() -> bool:
     Continuum's write listeners detached, a restore would mutate the live
     entity with no new version row — a destructive, untracked write that
     violates the append-only contract).
+
+    Operational constraint: this reads config at call time, but the
+    Continuum listeners themselves attach or detach only when
+    ``init_versioning()`` runs at startup. The two agree only because the
+    flag is static per-process — flipping it at runtime (dynamic config
+    reload, a future admin toggle) without re-running ``init_versioning()``
+    would let this gate pass while listeners stay detached, producing
+    exactly the untracked write it exists to prevent. Restart the process
+    (or re-run ``init_versioning()``) after changing the flag.
     """
     return bool(current_app.config.get("ENABLE_VERSIONING_CAPTURE", False))
 

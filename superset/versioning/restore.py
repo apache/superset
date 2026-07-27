@@ -37,20 +37,19 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-import sqlalchemy as sa
 from sqlalchemy_continuum import version_class
 
 from superset.extensions import db
+from superset.versioning.baseline import OPERATION_DELETE
 from superset.versioning.queries import find_active_by_uuid
 from superset.versioning.utils import single_flush_scope
 
 logger = logging.getLogger(__name__)
 
-#: Continuum ``operation_type`` for a DELETE version row. A DELETE row is
-#: never a valid restore target: Continuum's ``Reverter`` would delete the
-#: live entity and report success — the opposite of the non-destructive
-#: contract — so the engine treats it as not-found.
-_OPERATION_DELETE = 2
+# A DELETE version row (``OPERATION_DELETE``) is never a valid restore
+# target: Continuum's ``Reverter`` would delete the live entity and report
+# success — the opposite of the non-destructive contract — so the engine
+# treats it as not-found.
 
 
 # Per-model relationships that Continuum's Reverter recurses into during a
@@ -131,7 +130,7 @@ def restore_version(
         )
         .one_or_none()
     )
-    if target_version is None or target_version.operation_type == _OPERATION_DELETE:
+    if target_version is None or target_version.operation_type == OPERATION_DELETE:
         return None
 
     relations = _RESTORE_RELATIONS.get(model_cls.__name__)
@@ -192,35 +191,34 @@ def _restore_dashboard_membership(dashboard: Any, transaction_id: int) -> list[i
     content is the chart's own restore endpoint's job.
     """
     # pylint: disable=import-outside-toplevel
-    # Local import: models.slice transitively imports models.core, which
+    # Local imports: models.slice transitively imports models.core, which
     # needs the initialised app — module-top import would recreate the
-    # bootstrap cycle documented in changes/listener.py.
+    # bootstrap cycle documented in changes/listener.py; shadow_queries is
+    # imported lazily for the same reason (see queries.get_version).
     from superset.models.slice import Slice
+    from superset.versioning.changes import shadow_rows_valid_at
 
     ver_cls = version_class(type(dashboard))
     m2m_tbl = ver_cls.__table__.metadata.tables.get("dashboard_slices_version")
     if m2m_tbl is None:  # pragma: no cover — shadow tables always exist here
         return []
 
-    rows = (
-        db.session.connection()
-        .execute(
-            sa.select(m2m_tbl.c.slice_id)
-            .distinct()
-            .where(
-                m2m_tbl.c.dashboard_id == dashboard.id,
-                m2m_tbl.c.operation_type != _OPERATION_DELETE,
-                m2m_tbl.c.slice_id.is_not(None),
-                m2m_tbl.c.transaction_id <= transaction_id,
-                sa.or_(
-                    m2m_tbl.c.end_transaction_id.is_(None),
-                    m2m_tbl.c.end_transaction_id > transaction_id,
-                ),
+    # shadow_rows_valid_at owns the validity-window semantics (open or
+    # later-closing window, non-DELETE) — the same predicate the version
+    # snapshot's column/metric reconstruction uses.
+    member_ids = sorted(
+        {
+            row["slice_id"]
+            for row in shadow_rows_valid_at(
+                db.session,
+                m2m_tbl,
+                "dashboard_id",
+                dashboard.id,
+                transaction_id,
             )
-        )
-        .all()
+            if row["slice_id"] is not None
+        }
     )
-    member_ids = [row[0] for row in rows]
     if not member_ids:
         dashboard.slices = []
         return []
