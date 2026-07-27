@@ -20,7 +20,7 @@
 import rison from 'rison';
 import { Dashboard, Datasource, EmbeddedDashboard } from 'src/dashboard/types';
 import { Chart } from 'src/types/Chart';
-import { Currency } from '@superset-ui/core';
+import { getCurrencyFormats } from '@superset-ui/core';
 import { useApiV1Resource, useTransformedResource } from './apiResources';
 
 export const DASHBOARD_GET_COLUMNS = [
@@ -79,14 +79,7 @@ export const useDashboardDatasets = (idOrSlug: string | number) =>
     datasets =>
       datasets.map(dataset => ({
         ...dataset,
-        currencyFormats: Object.fromEntries(
-          (dataset.metrics ?? [])
-            .filter(metric => !!metric.currency)
-            .map((metric): [string, Currency] => [
-              metric.metric_name,
-              metric.currency!,
-            ]),
-        ),
+        currencyFormats: getCurrencyFormats(dataset.metrics),
       })),
   );
 

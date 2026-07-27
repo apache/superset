@@ -18,8 +18,13 @@
  */
 
 import exploreReducer, { ExploreState } from './exploreReducer';
-import { setStashFormData } from '../actions/exploreActions';
-import { QueryFormData } from '@superset-ui/core';
+import {
+  setStashFormData,
+  updateFormDataByDatasource,
+} from '../actions/exploreActions';
+import { setDatasource } from '../actions/datasourcesActions';
+import { Dataset } from '@superset-ui/chart-controls';
+import { Currency, DatasourceType, QueryFormData } from '@superset-ui/core';
 
 test('reset hiddenFormData on SET_STASH_FORM_DATA', () => {
   const initialState: ExploreState = {
@@ -38,6 +43,56 @@ test('reset hiddenFormData on SET_STASH_FORM_DATA', () => {
   const newState2 = exploreReducer(newState, restoreAction);
   expect(newState2.form_data).toEqual({ c: 4 });
   expect(newState2.hiddenFormData).toEqual({ a: 3 });
+});
+
+test('carries the derived currency formats into state.explore.datasource', () => {
+  // Charts render from state.explore.datasource, which this action writes, so
+  // the reducer is fed whatever setDatasource actually produced. That pins the
+  // action-to-reducer seam; datasourcesActions.test.ts pins the thunk half.
+  const usd: Currency = { symbol: 'USD', symbolPosition: 'prefix' };
+  const prevDatasource: Dataset & { uid: string } = {
+    id: 1,
+    uid: '1__table',
+    type: DatasourceType.Table,
+    columns: [],
+    metrics: [],
+    column_formats: {},
+    currency_formats: {},
+    verbose_map: {},
+    main_dttm_col: '__timestamp',
+    datasource_name: 'test datasource',
+    description: null,
+  };
+  // Shaped like an API payload: metrics carry the currency and the lookup key
+  // is absent altogether.
+  const rawDatasource: Dataset & { uid: string } = {
+    id: 2,
+    uid: '2__table',
+    type: DatasourceType.Table,
+    columns: [],
+    metrics: [{ uuid: 'sales-uuid', metric_name: 'sales', currency: usd }],
+    column_formats: {},
+    verbose_map: {},
+    main_dttm_col: '__timestamp',
+    datasource_name: 'test datasource',
+    description: null,
+  };
+  const initialState: ExploreState = {
+    form_data: { datasource: '1__table' } as unknown as QueryFormData,
+    controls: {},
+    datasource: prevDatasource,
+  };
+
+  const { datasource } = setDatasource(rawDatasource);
+  const newState = exploreReducer(
+    initialState,
+    updateFormDataByDatasource(prevDatasource, datasource) as Parameters<
+      typeof exploreReducer
+    >[1],
+  );
+
+  expect(newState.datasource?.currency_formats).toStrictEqual({ sales: usd });
+  expect(newState.form_data.datasource).toEqual('2__table');
 });
 
 test('skips updates when the field is already updated on SET_STASH_FORM_DATA', () => {

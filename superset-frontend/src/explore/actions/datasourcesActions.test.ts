@@ -16,9 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DatasourceType, getClientErrorObject } from '@superset-ui/core';
+import {
+  Currency,
+  DatasourceType,
+  getClientErrorObject,
+} from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
 import {
+  SET_DATASOURCE,
   setDatasource,
   changeDatasource,
   saveDataset,
@@ -60,6 +65,16 @@ const NEW_DATASOURCE = {
   description: null,
 };
 
+const USD: Currency = { symbol: 'USD', symbolPosition: 'prefix' };
+
+const DATASOURCE_WITH_CURRENCY = {
+  ...NEW_DATASOURCE,
+  metrics: [
+    { uuid: 'sales-uuid', metric_name: 'sales', currency: USD },
+    { uuid: 'count-uuid', metric_name: 'count' },
+  ],
+};
+
 const SAVE_DATASET_POST_ARGS = {
   schema: 'foo',
   sql: 'select * from bar',
@@ -80,9 +95,16 @@ test('sets new datasource', () => {
     defaultDatasourcesReducerState,
     setDatasource(NEW_DATASOURCE),
   );
-  expect(newState).toEqual({
+  expect(newState).toStrictEqual({
     ...defaultDatasourcesReducerState,
-    '2__table': NEW_DATASOURCE,
+    '2__table': { ...NEW_DATASOURCE, currency_formats: {} },
+  });
+});
+
+test('setDatasource derives currency formats from the metrics', () => {
+  expect(setDatasource(DATASOURCE_WITH_CURRENCY).datasource).toStrictEqual({
+    ...DATASOURCE_WITH_CURRENCY,
+    currency_formats: { sales: USD },
   });
 });
 
@@ -93,60 +115,46 @@ test('change datasource action', () => {
       datasource: CURRENT_DATASOURCE,
     },
   }));
-  // NEW_DATASOURCE has no metrics with currency, so currency_formats is {}
-  const expectedDatasource = { ...NEW_DATASOURCE, currency_formats: {} };
   // ignore getState type check - we dont need explore.datasource field for this test
   // @ts-expect-error
   changeDatasource(NEW_DATASOURCE)(dispatch, getState);
   expect(dispatch).toHaveBeenCalledTimes(2);
-  expect(dispatch).toHaveBeenNthCalledWith(
-    1,
-    setDatasource(expectedDatasource),
-  );
+  // Spelled out rather than reusing setDatasource(), so that the expectation
+  // cannot drift along with the implementation it is meant to pin.
+  expect(dispatch).toHaveBeenNthCalledWith(1, {
+    type: SET_DATASOURCE,
+    datasource: { ...NEW_DATASOURCE, currency_formats: {} },
+  });
   expect(dispatch).toHaveBeenNthCalledWith(
     2,
-    updateFormDataByDatasource(CURRENT_DATASOURCE, expectedDatasource),
+    updateFormDataByDatasource(CURRENT_DATASOURCE, {
+      ...NEW_DATASOURCE,
+      currency_formats: {},
+    }),
   );
 });
 
-test('changeDatasource computes currency_formats from metric currencies', () => {
+test('changeDatasource feeds both reducers the same derived datasource', () => {
+  // state.explore.datasource comes from UPDATE_FORM_DATA_BY_DATASOURCE and is
+  // what charts render from, so it has to carry the derived formats too, not
+  // just the copy stored under state.datasources.
   const dispatch = jest.fn();
   const getState = jest.fn(() => ({
     explore: { datasource: CURRENT_DATASOURCE },
   }));
-  const datasourceWithCurrencyMetric = {
-    ...NEW_DATASOURCE,
-    metrics: [
-      {
-        uuid: 'uuid-revenue',
-        metric_name: 'revenue',
-        expression: 'SUM(revenue)',
-        currency: { symbol: 'EUR', symbolPosition: 'prefix' },
-      },
-      {
-        uuid: 'uuid-cost',
-        metric_name: 'cost',
-        expression: 'SUM(cost)',
-        currency: null,
-      },
-    ],
-  };
-  const expectedDatasource = {
-    ...datasourceWithCurrencyMetric,
-    currency_formats: {
-      revenue: { symbol: 'EUR', symbolPosition: 'prefix' },
-    },
-  };
-  // @ts-expect-error
-  changeDatasource(datasourceWithCurrencyMetric)(dispatch, getState);
-  expect(dispatch).toHaveBeenNthCalledWith(
-    1,
-    setDatasource(expectedDatasource),
-  );
-  expect(dispatch).toHaveBeenNthCalledWith(
-    2,
-    updateFormDataByDatasource(CURRENT_DATASOURCE, expectedDatasource),
-  );
+  // @ts-expect-error - only explore.datasource is needed here
+  changeDatasource(DATASOURCE_WITH_CURRENCY)(dispatch, getState);
+
+  const setAction = dispatch.mock.calls[0][0];
+  const updateAction = dispatch.mock.calls[1][0];
+  expect(setAction.datasource.currency_formats).toStrictEqual({ sales: USD });
+  // Assert the value rather than only the shared reference: identity alone
+  // still holds when neither dispatch derives anything, so it would not catch
+  // a regression that drops the derivation from both paths at once.
+  expect(updateAction.newDatasource.currency_formats).toStrictEqual({
+    sales: USD,
+  });
+  expect(updateAction.newDatasource).toBe(setAction.datasource);
 });
 
 test('saveDataset handles success', async () => {

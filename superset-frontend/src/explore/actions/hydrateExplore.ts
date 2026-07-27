@@ -27,13 +27,13 @@ import { getChartKey } from 'src/explore/exploreUtils';
 import { getControlsState, handleDeprecatedControls } from 'src/explore/store';
 import { Dispatch } from 'redux';
 import {
-  Currency,
   DataMaskStateWithId,
   JsonObject,
   ensureIsArray,
   FeatureFlag,
   getCategoricalSchemeRegistry,
   getColumnLabel,
+  getCurrencyFormats,
   getSequentialSchemeRegistry,
   isFeatureEnabled,
   NO_TIME_RANGE,
@@ -113,15 +113,14 @@ export const hydrateExplore =
       initialFormData.dashboardId = dashboardId;
     }
 
-    const initialDatasource = dataset;
-    initialDatasource.currency_formats = Object.fromEntries(
-      (initialDatasource.metrics ?? [])
-        .filter(metric => !!metric.currency)
-        .map((metric): [string, Currency] => [
-          metric.metric_name,
-          metric.currency!,
-        ]),
-    );
+    // Derived onto a copy of ``dataset`` rather than onto the caller's object:
+    // the fallback payload used for failed chart loads is a module level
+    // constant, and writing through would make that constant itself the
+    // datasource held in the store.
+    const initialDatasource = {
+      ...dataset,
+      currency_formats: getCurrencyFormats(dataset.metrics),
+    };
 
     // Normalize deprecated controls (e.g., migrate old per-axis matrixify
     // flags to matrixify_enable) before form_data is stored in Redux state.

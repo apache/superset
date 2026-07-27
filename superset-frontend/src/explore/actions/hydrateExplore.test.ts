@@ -342,4 +342,8 @@ test('extracts currency formats from metrics in dataset', () => {
       }),
     }),
   );
+  // The caller's object must not be written through: chart pages hydrate from
+  // a module level fallback payload, which would otherwise end up being the
+  // datasource the store holds.
+  expect(datasetWithMetrics).not.toHaveProperty('currency_formats');
 });

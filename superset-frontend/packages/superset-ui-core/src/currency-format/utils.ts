@@ -22,12 +22,38 @@ import {
   ensureIsArray,
   getNumberFormatter,
   isSavedMetric,
+  Metric,
   QueryFormMetric,
   ValueFormatter,
 } from '@superset-ui/core';
 import { normalizeCurrency, hasMixedCurrencies } from './CurrencyFormatter';
 import { RowData, RowDataValue } from './types';
 import { AUTO_CURRENCY_SYMBOL } from './CurrencyFormats';
+
+/**
+ * Builds the metric name to currency lookup that charts use to format values.
+ *
+ * The lookup is derived client side from each metric's ``currency``, so it is
+ * easy to lose: any code path that swaps in a fresh datasource payload drops
+ * it unless it recomputes. Keeping the derivation here gives such paths one
+ * rule to call instead of each carrying its own copy.
+ *
+ * Values are passed through as the metric reports them, so they are only as
+ * precise as ``Metric['currency']`` -- an unparseable currency reaches the
+ * client as an empty object. Such entries are kept rather than filtered so
+ * that this stays byte for byte the derivation the call sites used to inline.
+ */
+export const getCurrencyFormats = (
+  metrics?: Metric[] | null,
+): Record<string, Currency> =>
+  Object.fromEntries(
+    ensureIsArray(metrics)
+      .filter(metric => !!metric.currency)
+      .map((metric): [string, Currency] => [
+        metric.metric_name,
+        metric.currency!,
+      ]),
+  );
 
 export const analyzeCurrencyInData = (
   data: RowData[],

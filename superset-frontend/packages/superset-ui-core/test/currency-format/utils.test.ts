@@ -29,6 +29,7 @@ import {
 } from '@superset-ui/core';
 import {
   analyzeCurrencyInData,
+  getCurrencyFormats,
   resolveAutoCurrency,
 } from '../../src/currency-format/utils';
 
@@ -411,4 +412,56 @@ test('getValueFormatter returns NumberFormatter via line 205 when AUTO resolves 
     undefined, // no data → else branch → resolvedCurrencyFormat = null
   );
   expect(formatter).toBeInstanceOf(NumberFormatter);
+});
+
+test('getCurrencyFormats maps metric names to their currency', () => {
+  expect(
+    getCurrencyFormats([
+      {
+        uuid: 'sales-uuid',
+        metric_name: 'sales',
+        currency: { symbol: 'USD', symbolPosition: 'prefix' },
+      },
+      {
+        uuid: 'cost-uuid',
+        metric_name: 'cost',
+        currency: { symbol: 'EUR', symbolPosition: 'suffix' },
+      },
+    ]),
+  ).toEqual({
+    sales: { symbol: 'USD', symbolPosition: 'prefix' },
+    cost: { symbol: 'EUR', symbolPosition: 'suffix' },
+  });
+});
+
+test('getCurrencyFormats skips metrics without a currency', () => {
+  // toStrictEqual rather than toEqual: the latter ignores keys whose value is
+  // undefined, which would hide a metric that should have been filtered out.
+  expect(
+    getCurrencyFormats([
+      {
+        uuid: 'sales-uuid',
+        metric_name: 'sales',
+        currency: { symbol: 'USD', symbolPosition: 'prefix' },
+      },
+      { uuid: 'count-uuid', metric_name: 'count' },
+      { uuid: 'ratio-uuid', metric_name: 'ratio', currency: null },
+    ]),
+  ).toStrictEqual({ sales: { symbol: 'USD', symbolPosition: 'prefix' } });
+});
+
+test('getCurrencyFormats keeps a currency the backend could not parse', () => {
+  // Unparseable currencies come back as `{}`. Keeping them preserves the
+  // behaviour of the derivations this helper replaced.
+  expect(
+    getCurrencyFormats([
+      { uuid: 'legacy-uuid', metric_name: 'legacy', currency: {} as Currency },
+    ]),
+  ).toStrictEqual({ legacy: {} });
+});
+
+test('getCurrencyFormats tolerates missing metrics', () => {
+  expect(getCurrencyFormats()).toStrictEqual({});
+  expect(getCurrencyFormats(null)).toStrictEqual({});
+  expect(getCurrencyFormats([])).toStrictEqual({});
 });

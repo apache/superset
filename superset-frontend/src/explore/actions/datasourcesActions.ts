@@ -21,9 +21,9 @@ import { Dispatch, AnyAction } from 'redux';
 import { ThunkDispatch } from 'redux-thunk';
 import { Dataset } from '@superset-ui/chart-controls';
 import {
-  Currency,
   SupersetClient,
   getClientErrorObject,
+  getCurrencyFormats,
 } from '@superset-ui/core';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { updateFormDataByDatasource } from './exploreActions';
@@ -46,7 +46,15 @@ export interface SetDatasource {
   datasource: Dataset;
 }
 export function setDatasource(datasource: Dataset) {
-  return { type: SET_DATASOURCE, datasource };
+  // Derive here so that a datasource handed over straight from an API response
+  // still carries the lookup by the time it reaches the store.
+  return {
+    type: SET_DATASOURCE,
+    datasource: {
+      ...datasource,
+      currency_formats: getCurrencyFormats(datasource.metrics),
+    },
+  };
 }
 
 export function changeDatasource(newDatasource: Dataset) {
@@ -54,25 +62,12 @@ export function changeDatasource(newDatasource: Dataset) {
     const {
       explore: { datasource: prevDatasource },
     } = getState();
-    // Recompute currency_formats from the updated metrics, mirroring the
-    // logic in hydrateExplore. The raw API response does not carry this
-    // derived field, so without this step any currency change made via
-    // Edit Dataset would not be reflected in the chart preview.
-    const datasourceWithCurrencyFormats: Dataset = {
-      ...newDatasource,
-      currency_formats: Object.fromEntries(
-        (newDatasource.metrics ?? [])
-          .filter(metric => !!metric.currency)
-          .map((metric): [string, Currency] => [
-            metric.metric_name,
-            metric.currency!,
-          ]),
-      ),
-    };
-    dispatch(setDatasource(datasourceWithCurrencyFormats));
-    dispatch(
-      updateFormDataByDatasource(prevDatasource, datasourceWithCurrencyFormats),
-    );
+    // Both reducers must see the same object: ``SET_DATASOURCE`` feeds
+    // state.datasources while ``UPDATE_FORM_DATA_BY_DATASOURCE`` feeds
+    // state.explore.datasource, which is the one charts render from.
+    const action = setDatasource(newDatasource);
+    dispatch(action);
+    dispatch(updateFormDataByDatasource(prevDatasource, action.datasource));
   };
 }
 
