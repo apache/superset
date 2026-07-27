@@ -1819,8 +1819,6 @@ msgstr ""
 
 msgid "An error occurred while fetching available themes"
 msgstr "Une erreur s'est produite lors de la récupération des thèmes disponibles"
-"Une erreur s'est produite lors de l'extraction des modèles de CSS "
-"disponibles"
 
 #, python-format
 msgid "An error occurred while fetching chart editor values: %s"
