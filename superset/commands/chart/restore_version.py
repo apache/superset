@@ -18,8 +18,6 @@
 
 from __future__ import annotations
 
-from functools import partial
-
 from superset.commands.chart.exceptions import (
     ChartForbiddenError,
     ChartNotFoundError,
@@ -27,7 +25,6 @@ from superset.commands.chart.exceptions import (
 )
 from superset.commands.version_restore import BaseRestoreVersionCommand
 from superset.models.slice import Slice
-from superset.utils.decorators import on_error, transaction
 
 
 class RestoreChartVersionCommand(BaseRestoreVersionCommand):
@@ -35,15 +32,13 @@ class RestoreChartVersionCommand(BaseRestoreVersionCommand):
 
     The restore is non-destructive: it produces a new version row (authored
     by the restoring user), so prior versions remain in the history and the
-    change is itself reversible. ``@transaction`` wraps :meth:`run` so the
-    commit that fires Continuum's ``after_flush`` hook — the one that writes
-    the new version row — is bound to this command's lifecycle.
+    change is itself reversible. The base builds the ``@transaction``
+    boundary from :attr:`failed_exc`, binding the commit that fires
+    Continuum's ``after_flush`` hook — the one that writes the new version
+    row — to this command's lifecycle.
     """
 
     model_cls = Slice
     not_found_exc = ChartNotFoundError
     forbidden_exc = ChartForbiddenError
-
-    @transaction(on_error=partial(on_error, reraise=ChartUpdateFailedError))
-    def run(self) -> Slice:
-        return self._do_restore()
+    failed_exc = ChartUpdateFailedError

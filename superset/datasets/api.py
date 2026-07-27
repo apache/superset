@@ -97,6 +97,7 @@ from superset.versioning.api_helpers import (
     current_entity_version_info,
     get_version_endpoint,
     list_versions_endpoint,
+    restore_version_endpoint,
 )
 from superset.versioning.etag import set_version_etag
 from superset.versioning.schemas import VersionListItemSchema
@@ -2010,33 +2011,16 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
               $ref: '#/components/responses/422'
         """
         # pylint: disable=import-outside-toplevel
-        from uuid import UUID
-
+        # Local import: the command module transitively imports the
+        # versioning bootstrap graph; see changes/listener.py.
         from superset.commands.dataset.restore_version import (
             RestoreDatasetVersionCommand,
         )
 
-        try:
-            entity_uuid = UUID(uuid_str)
-        except ValueError:
-            return self.response_400(message="Invalid UUID")
-        try:
-            version_uuid = UUID(version_uuid_str)
-        except ValueError:
-            return self.response_400(message="Invalid version UUID")
-
-        try:
-            RestoreDatasetVersionCommand(entity_uuid, version_uuid).run()
-        except DatasetNotFoundError:
-            return self.response_404()
-        except DatasetForbiddenError:
-            return self.response_403()
-        except DatasetUpdateFailedError as ex:
-            logger.error("Error restoring dataset version: %s", ex)
-            return self.response_422(message=str(ex))
-
-        from superset.versioning.etag import set_version_etag_by_uuid
-
-        return set_version_etag_by_uuid(
-            self.response(200, message="OK"), SqlaTable, entity_uuid
+        return restore_version_endpoint(
+            self,
+            SqlaTable,
+            RestoreDatasetVersionCommand,
+            uuid_str,
+            version_uuid_str,
         )

@@ -23,7 +23,20 @@ from contextlib import contextmanager
 from typing import Any
 
 import sqlalchemy as sa
+from flask import current_app
 from sqlalchemy.orm import Session
+
+
+def capture_enabled() -> bool:
+    """Whether ``ENABLE_VERSIONING_CAPTURE`` is on for the current app.
+
+    The single gate shared by the read helpers (which degrade to inert
+    responses when off) and the write side (which must refuse: with
+    Continuum's write listeners detached, a restore would mutate the live
+    entity with no new version row — a destructive, untracked write that
+    violates the append-only contract).
+    """
+    return bool(current_app.config.get("ENABLE_VERSIONING_CAPTURE", False))
 
 
 @contextmanager

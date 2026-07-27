@@ -27,6 +27,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
+import sqlalchemy as sa
 from sqlalchemy_continuum import version_class
 
 from superset.extensions import db
@@ -197,6 +198,161 @@ class TestDashboardRestoreApi(SupersetTestCase):
             f"restore did not re-attach chart: expected {original_slice_ids}, "
             f"got {restored_ids}"
         )
+
+    def test_restore_preserves_live_chart_content(self) -> None:
+        """Dashboard restore is membership-only: a member chart edited
+        AFTER the snapshot keeps its current content — charts are shared
+        entities with their own restore endpoint, so a dashboard restore
+        must never rewrite them to historical values."""
+        from superset.daos.version import derive_version_uuid
+        from superset.models.slice import Slice
+
+        _persist_fixture_state()
+        dashboard: Dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "USA Births Names")
+            .first()
+        )
+        assert dashboard is not None
+        dashboard_id = dashboard.id
+        member = dashboard.slices[0]
+        member_id = member.id
+        original_chart_name = member.slice_name
+        original_title = dashboard.dashboard_title
+
+        # Snapshot point: chart still has its original name.
+        dashboard.dashboard_title = "USA Births Names — content snapshot"
+        db.session.commit()
+
+        ver_cls = version_class(Dashboard)
+        target_tx = (
+            db.session.query(ver_cls.transaction_id)
+            .filter(ver_cls.id == dashboard_id)
+            .order_by(ver_cls.transaction_id.desc())
+            .limit(1)
+            .scalar()
+        )
+        target_uuid = str(derive_version_uuid(dashboard.uuid, target_tx))
+
+        # Edit the member chart AFTER the snapshot.
+        member = db.session.query(Slice).filter(Slice.id == member_id).one()
+        member.slice_name = "edited after snapshot"
+        db.session.commit()
+
+        self.login(ADMIN_USERNAME)
+        rv = self._restore(str(dashboard.uuid), target_uuid)
+        assert rv.status_code == 200, rv.data
+
+        db.session.expire_all()
+        member = db.session.query(Slice).filter(Slice.id == member_id).one()
+        assert member.slice_name == "edited after snapshot", (
+            "dashboard restore must not rewrite live member chart content"
+        )
+
+        # Cleanup
+        member.slice_name = original_chart_name
+        dashboard = (
+            db.session.query(Dashboard).filter(Dashboard.id == dashboard_id).one()
+        )
+        dashboard.dashboard_title = original_title
+        db.session.commit()
+
+    def test_restore_skips_member_chart_that_no_longer_exists(self) -> None:
+        """A snapshot member whose chart row has been hard-deleted stays
+        deleted: restore succeeds, reattaches the surviving members, does
+        NOT revive the deleted chart, and says so in the response."""
+        from superset.daos.version import derive_version_uuid
+        from superset.models.slice import Slice
+
+        _persist_fixture_state()
+        dashboard: Dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "USA Births Names")
+            .first()
+        )
+        assert dashboard is not None
+        dashboard_id = dashboard.id
+        original_ids = sorted(s.id for s in dashboard.slices)
+        assert len(original_ids) >= 2
+        victim = dashboard.slices[0]
+        victim_id = victim.id
+
+        # Snapshot point: victim is a member.
+        dashboard.dashboard_title = "USA Births Names — skip snapshot"
+        db.session.commit()
+
+        ver_cls = version_class(Dashboard)
+        target_tx = (
+            db.session.query(ver_cls.transaction_id)
+            .filter(ver_cls.id == dashboard_id)
+            .order_by(ver_cls.transaction_id.desc())
+            .limit(1)
+            .scalar()
+        )
+        target_uuid = str(derive_version_uuid(dashboard.uuid, target_tx))
+
+        # Detach, then hard-delete the victim via raw SQL so no live row
+        # remains (bypasses the soft-delete listener deliberately — the
+        # scenario is a purged/legacy-deleted chart).
+        dashboard.slices.remove(victim)
+        db.session.commit()
+        for assoc in ("chart_editors", "chart_viewers"):
+            db.session.execute(
+                sa.text(f"DELETE FROM {assoc} WHERE chart_id = :sid"),  # noqa: S608
+                {"sid": victim_id},
+            )
+        db.session.execute(
+            sa.text("DELETE FROM slices WHERE id = :sid"), {"sid": victim_id}
+        )
+        db.session.commit()
+
+        self.login(ADMIN_USERNAME)
+        rv = self._restore(str(dashboard.uuid), target_uuid)
+        assert rv.status_code == 200, rv.data
+        message = _json.loads(rv.data.decode("utf-8")).get("message", "")
+        assert "no longer exist" in message, message
+
+        db.session.expire_all()
+        dashboard = (
+            db.session.query(Dashboard).filter(Dashboard.id == dashboard_id).one()
+        )
+        restored_ids = sorted(s.id for s in dashboard.slices)
+        assert victim_id not in restored_ids, "deleted chart must stay deleted"
+        assert restored_ids == sorted(sid for sid in original_ids if sid != victim_id)
+        assert (
+            db.session.query(Slice).filter(Slice.id == victim_id).one_or_none() is None
+        ), "restore must not revive a hard-deleted chart"
+
+    def test_restore_denies_non_editor_with_write_permission(self) -> None:
+        """A user holding can_write on Dashboard but who is not an editor
+        of THIS dashboard gets 403 from the command's editorship check."""
+        from superset.daos.version import derive_version_uuid
+        from tests.integration_tests.constants import ALPHA_USERNAME
+
+        _persist_fixture_state()
+        dashboard: Dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "USA Births Names")
+            .first()
+        )
+        assert dashboard is not None
+        alpha = self.get_user(ALPHA_USERNAME)
+        assert alpha not in dashboard.editors
+
+        ver_cls = version_class(Dashboard)
+        first_tx = (
+            db.session.query(ver_cls.transaction_id)
+            .filter(ver_cls.id == dashboard.id)
+            .order_by(ver_cls.transaction_id.asc())
+            .limit(1)
+            .scalar()
+        )
+        assert first_tx is not None
+        target_uuid = str(derive_version_uuid(dashboard.uuid, first_tx))
+
+        self.login(ALPHA_USERNAME)
+        rv = self._restore(str(dashboard.uuid), target_uuid)
+        assert rv.status_code == 403, rv.data
 
     def test_restore_returns_404_for_unknown_uuid(self) -> None:
         self.login(ADMIN_USERNAME)

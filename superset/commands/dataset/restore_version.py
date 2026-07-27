@@ -19,8 +19,6 @@ previous version."""
 
 from __future__ import annotations
 
-from functools import partial
-
 from superset.commands.dataset.exceptions import (
     DatasetForbiddenError,
     DatasetNotFoundError,
@@ -28,12 +26,11 @@ from superset.commands.dataset.exceptions import (
 )
 from superset.commands.version_restore import BaseRestoreVersionCommand
 from superset.connectors.sqla.models import SqlaTable
-from superset.utils.decorators import on_error, transaction
 
 
 class RestoreDatasetVersionCommand(BaseRestoreVersionCommand):
-    """Revert a dataset (and its columns + metrics) to a previous version.
-    See
+    """Revert a dataset (and its columns + metrics — the aggregate's own
+    parts) to a previous version. See
     :class:`superset.commands.chart.restore_version.RestoreChartVersionCommand`
     for the general contract.
     """
@@ -41,7 +38,4 @@ class RestoreDatasetVersionCommand(BaseRestoreVersionCommand):
     model_cls = SqlaTable
     not_found_exc = DatasetNotFoundError
     forbidden_exc = DatasetForbiddenError
-
-    @transaction(on_error=partial(on_error, reraise=DatasetUpdateFailedError))
-    def run(self) -> SqlaTable:
-        return self._do_restore()
+    failed_exc = DatasetUpdateFailedError

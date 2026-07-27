@@ -780,8 +780,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 "versioning: ENABLE_VERSIONING_CAPTURE is False; "
                 "skipping baseline + change-record listener registration "
                 "and detaching Continuum's write listeners. Save-path "
-                "capture is disabled; existing shadow tables and "
-                "/versions/ endpoints continue to work read-only."
+                "capture is disabled; existing shadow tables and the "
+                "read-side /versions/ endpoints continue to work "
+                "read-only, and the version-restore endpoints refuse "
+                "with 404 (a restore without capture would be a "
+                "destructive, untracked write)."
             )
             self._remove_continuum_write_listeners()
             return

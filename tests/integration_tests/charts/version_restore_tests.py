@@ -311,14 +311,144 @@ class TestChartRestoreApi(SupersetTestCase):
         chart.slice_name = original_name
         db.session.commit()
 
-    @pytest.mark.skip(
-        reason=(
-            "Per-entity ownership isn't enforced yet for the restore path — "
-            "raise_for_ownership is called inside validate(), but Gamma has "
-            "can_write on Chart so the admin-only assertion needs a custom "
-            "no-write user setup. See dataset tests (T039) for a working "
-            "403 check."
+    def test_restore_denies_non_editor_with_write_permission(self) -> None:
+        """A user holding can_write on Chart but who is not an editor of
+        THIS chart gets 403 from the command's ``raise_for_editorship``
+        branch — the interesting case route-level ``@protect()`` cannot
+        catch."""
+        from superset.daos.version import derive_version_uuid
+        from tests.integration_tests.constants import ALPHA_USERNAME
+
+        _persist_fixture_state()
+        chart: Slice = (
+            db.session.query(Slice).filter(Slice.slice_name == "Girls").first()
         )
-    )
-    def test_restore_denies_without_write_permission(self) -> None:
-        """A user without can_write on Chart gets 403."""
+        assert chart is not None
+        # Ensure alpha is not an editor of the fixture chart.
+        alpha = self.get_user(ALPHA_USERNAME)
+        assert alpha not in chart.editors
+
+        ver_cls = version_class(Slice)
+        first_tx = (
+            db.session.query(ver_cls.transaction_id)
+            .filter(ver_cls.id == chart.id)
+            .order_by(ver_cls.transaction_id.asc())
+            .limit(1)
+            .scalar()
+        )
+        assert first_tx is not None
+        target_uuid = str(derive_version_uuid(chart.uuid, first_tx))
+
+        self.login(ALPHA_USERNAME)
+        rv = self._restore(str(chart.uuid), target_uuid)
+        assert rv.status_code == 403, rv.data
+
+    def test_restore_returns_404_when_capture_disabled(self) -> None:
+        """With ENABLE_VERSIONING_CAPTURE off, the restore route is inert:
+        Continuum's write listeners are detached, so a revert would mutate
+        the live entity with no new version row — a destructive, untracked
+        write. The command refuses with 404 before touching anything."""
+        _persist_fixture_state()
+        chart: Slice = (
+            db.session.query(Slice).filter(Slice.slice_name == "Girls").first()
+        )
+        assert chart is not None
+        original_name = chart.slice_name
+
+        self.login(ADMIN_USERNAME)
+        listing = _json.loads(self._list(str(chart.uuid)).data.decode("utf-8"))
+        target_uuid = listing["result"][0]["version_uuid"]
+
+        self.app.config["ENABLE_VERSIONING_CAPTURE"] = False
+        try:
+            rv = self._restore(str(chart.uuid), target_uuid)
+        finally:
+            self.app.config["ENABLE_VERSIONING_CAPTURE"] = True
+        assert rv.status_code == 404, rv.data
+
+        db.session.expire_all()
+        live = db.session.query(Slice).filter(Slice.id == chart.id).one()
+        assert live.slice_name == original_name
+
+    def test_restore_returns_404_for_other_entitys_version_uuid(self) -> None:
+        """A version_uuid belonging to a DIFFERENT chart must not resolve:
+        version identity is (entity_uuid, transaction), so entity A's
+        version_uuid presented under entity B's path is a 404."""
+        from superset.daos.version import derive_version_uuid
+
+        _persist_fixture_state()
+        girls: Slice = (
+            db.session.query(Slice).filter(Slice.slice_name == "Girls").first()
+        )
+        boys: Slice = db.session.query(Slice).filter(Slice.slice_name == "Boys").first()
+        assert girls is not None
+        assert boys is not None
+
+        ver_cls = version_class(Slice)
+        boys_tx = (
+            db.session.query(ver_cls.transaction_id)
+            .filter(ver_cls.id == boys.id)
+            .order_by(ver_cls.transaction_id.asc())
+            .limit(1)
+            .scalar()
+        )
+        assert boys_tx is not None
+        boys_version_uuid = str(derive_version_uuid(boys.uuid, boys_tx))
+
+        self.login(ADMIN_USERNAME)
+        rv = self._restore(str(girls.uuid), boys_version_uuid)
+        assert rv.status_code == 404, rv.data
+
+    def test_restore_stamps_action_kind_restore_on_transaction(self) -> None:
+        """The restoring commit's version_transaction row must carry
+        ``action_kind='restore'`` so the activity feed renders it as a
+        restore, not an ordinary save (contract in versioning/changes)."""
+        from sqlalchemy_continuum import versioning_manager
+
+        from superset.daos.version import derive_version_uuid
+
+        _persist_fixture_state()
+        chart: Slice = (
+            db.session.query(Slice).filter(Slice.slice_name == "Girls").first()
+        )
+        assert chart is not None
+        chart_id = chart.id
+        original_name = chart.slice_name
+
+        chart.slice_name = "Girls action-kind v1"
+        db.session.commit()
+
+        ver_cls = version_class(Slice)
+        first_tx = (
+            db.session.query(ver_cls.transaction_id)
+            .filter(ver_cls.id == chart_id)
+            .order_by(ver_cls.transaction_id.asc())
+            .limit(1)
+            .scalar()
+        )
+        target_uuid = str(derive_version_uuid(chart.uuid, first_tx))
+
+        self.login(ADMIN_USERNAME)
+        rv = self._restore(str(chart.uuid), target_uuid)
+        assert rv.status_code == 200, rv.data
+
+        latest_tx = (
+            db.session.query(ver_cls.transaction_id)
+            .filter(ver_cls.id == chart_id)
+            .order_by(ver_cls.transaction_id.desc())
+            .limit(1)
+            .scalar()
+        )
+        tx_tbl = versioning_manager.transaction_cls.__table__
+        action_kind = (
+            db.session.execute(tx_tbl.select().where(tx_tbl.c.id == latest_tx))
+            .mappings()
+            .one()["action_kind"]
+        )
+        assert action_kind == "restore"
+
+        # Cleanup
+        db.session.expire_all()
+        chart = db.session.query(Slice).filter(Slice.id == chart_id).one()
+        chart.slice_name = original_name
+        db.session.commit()

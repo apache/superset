@@ -38,6 +38,7 @@ from superset.versioning.queries import (
     get_version,
     list_change_records_batch,
     list_versions,
+    resolve_version,
     resolve_version_uuid,
     VERSION_UUID_NAMESPACE,
 )
@@ -66,6 +67,7 @@ class VersionDAO:
     current_live_version_uuid = staticmethod(current_live_version_uuid)
     list_change_records_batch = staticmethod(list_change_records_batch)
     list_versions = staticmethod(list_versions)
+    resolve_version = staticmethod(resolve_version)
     resolve_version_uuid = staticmethod(resolve_version_uuid)
     get_version = staticmethod(get_version)
 

@@ -18,8 +18,6 @@
 
 from __future__ import annotations
 
-from functools import partial
-
 from superset.commands.dashboard.exceptions import (
     DashboardForbiddenError,
     DashboardNotFoundError,
@@ -27,20 +25,21 @@ from superset.commands.dashboard.exceptions import (
 )
 from superset.commands.version_restore import BaseRestoreVersionCommand
 from superset.models.dashboard import Dashboard
-from superset.utils.decorators import on_error, transaction
 
 
 class RestoreDashboardVersionCommand(BaseRestoreVersionCommand):
-    """Revert a dashboard (including its chart associations) to a previous
-    version. See
-    :class:`superset.commands.chart.restore_version.RestoreChartVersionCommand`
+    """Revert a dashboard to a previous version.
+
+    Restores the dashboard's own fields and its chart *membership* — which
+    charts sit on it — reattaching only charts that still exist (snapshot
+    members deleted since the snapshot stay deleted and are reported as
+    skipped). Member charts' content is never modified; restoring a
+    chart's content is the chart restore endpoint's job. See
+    :class:`superset.commands.version_restore.BaseRestoreVersionCommand`
     for the general contract.
     """
 
     model_cls = Dashboard
     not_found_exc = DashboardNotFoundError
     forbidden_exc = DashboardForbiddenError
-
-    @transaction(on_error=partial(on_error, reraise=DashboardUpdateFailedError))
-    def run(self) -> Dashboard:
-        return self._do_restore()
+    failed_exc = DashboardUpdateFailedError
