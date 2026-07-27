@@ -390,6 +390,8 @@ def test_compile_timegrain_expression_preserves_date_truncation() -> None:
     assert expected in proxied, (
         f"DATE_FORMAT truncation was dropped in proxied expression. Got: {proxied}"
     )
+
+
 def test_identifier_quote_uses_backticks() -> None:
     """MySQL/MariaDB quote identifiers with backticks."""
     from superset.db_engine_specs.mysql import MySQLEngineSpec
