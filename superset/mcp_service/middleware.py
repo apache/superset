@@ -318,6 +318,129 @@ class LoggingMiddleware(Middleware):
             return params["name"]
         return None
 
+    def _backfill_output_ids(
+        self,
+        success: bool,
+        result: Any,
+        dashboard_id: int | None,
+        slice_id: int | None,
+    ) -> tuple[int | None, int | None]:
+        """Fill in missing ids from a create tool's response on success.
+
+        Create-style tools (generate_chart, generate_dashboard) don't take
+        the new object's ID as input, so it's missing from params. On a
+        successful call, pull it from the response instead so retried
+        creates are distinguishable.
+        """
+        if not success or not isinstance(result, ToolResult):
+            return dashboard_id, slice_id
+        output_dashboard_id, output_slice_id = self._extract_output_ids(result)
+        if dashboard_id is None:
+            dashboard_id = output_dashboard_id
+        if slice_id is None:
+            slice_id = output_slice_id
+        return dashboard_id, slice_id
+
+    @staticmethod
+    def _build_call_tool_payload(
+        *,
+        mcp_call_id: str,
+        tool_name: str | None,
+        agent_id: str | None,
+        params: Any,
+        method: str,
+        dashboard_id: int | None,
+        slice_id: int | None,
+        dataset_id: int | None,
+        success: bool,
+        mcp_tool: str | None,
+        error_type: str | None,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "mcp_call_id": mcp_call_id,
+            "tool": tool_name,
+            "agent_id": agent_id,
+            "params": _sanitize_params(params),
+            "method": method,
+            "dashboard_id": dashboard_id,
+            "slice_id": slice_id,
+            "dataset_id": dataset_id,
+            "success": success,
+        }
+        if mcp_tool is not None:
+            payload["mcp_tool"] = mcp_tool
+        if error_type is not None:
+            payload["error_type"] = error_type
+        return payload
+
+    def _log_call_tool_result(
+        self,
+        *,
+        context: MiddlewareContext,
+        tool_name: str | None,
+        mcp_tool: str | None,
+        mcp_call_id: str,
+        agent_id: str | None,
+        user_id: int | None,
+        dashboard_id: int | None,
+        slice_id: int | None,
+        dataset_id: int | None,
+        params: Any,
+        success: bool,
+        error_type: str | None,
+        result: Any,
+        start_time: float,
+    ) -> None:
+        duration_ms = int((time.time() - start_time) * 1000)
+        dashboard_id, slice_id = self._backfill_output_ids(
+            success, result, dashboard_id, slice_id
+        )
+        payload = self._build_call_tool_payload(
+            mcp_call_id=mcp_call_id,
+            tool_name=tool_name,
+            agent_id=agent_id,
+            params=params,
+            method=context.method,
+            dashboard_id=dashboard_id,
+            slice_id=slice_id,
+            dataset_id=dataset_id,
+            success=success,
+            mcp_tool=mcp_tool,
+            error_type=error_type,
+        )
+        if has_app_context():
+            event_logger.log(
+                user_id=user_id,
+                action="mcp_tool_call",
+                dashboard_id=dashboard_id,
+                duration_ms=duration_ms,
+                slice_id=slice_id,
+                referrer=None,
+                curated_payload=payload,
+            )
+        extra_parts = []
+        if mcp_tool is not None:
+            extra_parts.append(f"mcp_tool={mcp_tool}")
+        if error_type is not None:
+            extra_parts.append(f"error_type={error_type}")
+        extra = (", " + ", ".join(extra_parts)) if extra_parts else ""
+        logger.info(
+            "MCP tool call: tool=%s, agent_id=%s, user_id=%s, method=%s, "
+            "dashboard_id=%s, slice_id=%s, dataset_id=%s, duration_ms=%s, "
+            "success=%s, mcp_call_id=%s%s",
+            tool_name,
+            agent_id,
+            user_id,
+            context.method,
+            dashboard_id,
+            slice_id,
+            dataset_id,
+            duration_ms,
+            success,
+            mcp_call_id,
+            extra,
+        )
+
     async def on_call_tool(
         self,
         context: MiddlewareContext,
@@ -352,63 +475,21 @@ class LoggingMiddleware(Middleware):
             success = False
             raise
         finally:
-            duration_ms = int((time.time() - start_time) * 1000)
-            # Create-style tools (generate_chart, generate_dashboard) don't
-            # take the new object's ID as input, so it's missing from
-            # params above. On a successful call, pull it from the
-            # response instead so retried creates are distinguishable.
-            if success and isinstance(result, ToolResult):
-                output_dashboard_id, output_slice_id = self._extract_output_ids(result)
-                if dashboard_id is None:
-                    dashboard_id = output_dashboard_id
-                if slice_id is None:
-                    slice_id = output_slice_id
-            payload: dict[str, Any] = {
-                "mcp_call_id": mcp_call_id,
-                "tool": tool_name,
-                "agent_id": agent_id,
-                "params": _sanitize_params(params),
-                "method": context.method,
-                "dashboard_id": dashboard_id,
-                "slice_id": slice_id,
-                "dataset_id": dataset_id,
-                "success": success,
-            }
-            if mcp_tool is not None:
-                payload["mcp_tool"] = mcp_tool
-            if error_type is not None:
-                payload["error_type"] = error_type
-            if has_app_context():
-                event_logger.log(
-                    user_id=user_id,
-                    action="mcp_tool_call",
-                    dashboard_id=dashboard_id,
-                    duration_ms=duration_ms,
-                    slice_id=slice_id,
-                    referrer=None,
-                    curated_payload=payload,
-                )
-            extra_parts = []
-            if mcp_tool is not None:
-                extra_parts.append(f"mcp_tool={mcp_tool}")
-            if error_type is not None:
-                extra_parts.append(f"error_type={error_type}")
-            extra = (", " + ", ".join(extra_parts)) if extra_parts else ""
-            logger.info(
-                "MCP tool call: tool=%s, agent_id=%s, user_id=%s, method=%s, "
-                "dashboard_id=%s, slice_id=%s, dataset_id=%s, duration_ms=%s, "
-                "success=%s, mcp_call_id=%s%s",
-                tool_name,
-                agent_id,
-                user_id,
-                context.method,
-                dashboard_id,
-                slice_id,
-                dataset_id,
-                duration_ms,
-                success,
-                mcp_call_id,
-                extra,
+            self._log_call_tool_result(
+                context=context,
+                tool_name=tool_name,
+                mcp_tool=mcp_tool,
+                mcp_call_id=mcp_call_id,
+                agent_id=agent_id,
+                user_id=user_id,
+                dashboard_id=dashboard_id,
+                slice_id=slice_id,
+                dataset_id=dataset_id,
+                params=params,
+                success=success,
+                error_type=error_type,
+                result=result,
+                start_time=start_time,
             )
 
     async def on_message(
