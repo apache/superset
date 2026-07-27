@@ -60,8 +60,6 @@ def test_superset_oauth_view_oauth_oauth_single_provider(
     Test that SupersetOAuthView auto-selects the provider and delegates
     to the parent login method when only a single OAuth provider is configured.
     """
-    from superset.views.auth import SupersetOAuthView
-
     mock_provider = MagicMock()
     mock_remotes = {"google": mock_provider}
 
@@ -87,8 +85,6 @@ def test_superset_oauth_view_oauth_multiple_providers(
     Test that SupersetOAuthView does NOT auto-select when multiple OAuth
     providers are configured, and instead calls parent login without provider.
     """
-    from superset.views.auth import SupersetOAuthView
-
     mock_provider1 = MagicMock()
     mock_provider2 = MagicMock()
     mock_remotes = {"google": mock_provider1, "github": mock_provider2}
@@ -143,6 +139,22 @@ def test_security_manager_with_oauth_auth_type(
     oauth_view.login()
 
     mock_super_login.assert_called_once_with("google")
+
+
+@pytest.fixture
+def stored_metrics() -> list[AdhocMetric]:
+    """
+    Return a list of metrics.
+    """
+    return [
+        {
+            "column": None,
+            "expressionType": "SQL",
+            "hasCustomLabel": False,
+            "label": "COUNT(*) + 1",
+            "sqlExpression": "COUNT(*) + 1",
+        },
+    ]
 
 
 @pytest.fixture
