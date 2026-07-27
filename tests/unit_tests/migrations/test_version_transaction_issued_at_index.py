@@ -62,7 +62,7 @@ def _indexes(engine: Engine) -> dict[str, list[str]]:
 
 
 def test_upgrade_creates_issued_at_index(engine: Engine) -> None:
-    with engine.connect() as connection:
+    with engine.begin() as connection:
         context = MigrationContext.configure(connection)
         with Operations.context(context):
             migration.upgrade()
@@ -71,7 +71,7 @@ def test_upgrade_creates_issued_at_index(engine: Engine) -> None:
 
 
 def test_downgrade_drops_issued_at_index(engine: Engine) -> None:
-    with engine.connect() as connection:
+    with engine.begin() as connection:
         context = MigrationContext.configure(connection)
         with Operations.context(context):
             migration.upgrade()
@@ -81,7 +81,7 @@ def test_downgrade_drops_issued_at_index(engine: Engine) -> None:
 
 
 def test_upgrade_is_idempotent(engine: Engine) -> None:
-    with engine.connect() as connection:
+    with engine.begin() as connection:
         context = MigrationContext.configure(connection)
         with Operations.context(context):
             migration.upgrade()
