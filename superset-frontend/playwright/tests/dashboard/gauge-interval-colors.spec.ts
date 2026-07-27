@@ -41,6 +41,7 @@ import {
   buildSingleRowDashboardLayout,
 } from '../../helpers/api/dashboard';
 import { getDatasetByName } from '../../helpers/api/dataset';
+import { TIMEOUT } from '../../utils/constants';
 import { DashboardPage } from '../../pages/DashboardPage';
 
 const DATASET_NAME = 'birth_names';
@@ -118,7 +119,7 @@ testWithAssets(
     await dashboardPage.waitForChartsToLoad();
 
     const canvas = page.locator('[data-test="chart-container"] canvas').first();
-    await canvas.waitFor({ state: 'visible', timeout: 30_000 });
+    await canvas.waitFor({ state: 'visible', timeout: TIMEOUT.CHART_RENDER });
 
     // Read the configured interval colors back from the rendered canvas.
     // Poll because the gauge paints shortly after the chart container appears.

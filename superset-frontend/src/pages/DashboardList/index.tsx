@@ -21,7 +21,6 @@ import {
   isFeatureEnabled,
   FeatureFlag,
   SupersetClient,
-  handleKeyboardActivation,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { useSelector } from 'react-redux';
@@ -40,6 +39,7 @@ import { SUBJECT_OPTION_FILTER_PROPS } from 'src/features/subjects/SubjectSelect
 import { SubjectPile } from 'src/features/subjects/SubjectPile';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import {
+  ActionButton,
   CertifiedBadge,
   ConfirmStatusChange,
   DeleteModal,
@@ -81,7 +81,6 @@ import { findPermission } from 'src/utils/findPermission';
 import { navigateTo } from 'src/utils/navigationUtils';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
-import IconButton from 'src/dashboard/components/IconButton';
 import type { CellProps } from 'react-table';
 
 const PAGE_SIZE = 25;
@@ -496,9 +495,9 @@ function DashboardList(props: DashboardListProps) {
           return (
             <Actions className="actions">
               {canEdit && (
-                <Tooltip
-                  id="edit-action-tooltip"
-                  title={
+                <ActionButton
+                  label={t('Edit')}
+                  tooltip={
                     allowEdit
                       ? t('Edit')
                       : t(
@@ -506,31 +505,23 @@ function DashboardList(props: DashboardListProps) {
                         )
                   }
                   placement="bottom"
-                >
-                  <IconButton
-                    data-test="dashboard-row-edit"
-                    disabled={!allowEdit}
-                    onClick={handleEdit}
-                    onKeyDown={handleKeyboardActivation(handleEdit)}
-                    icon={
-                      <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
-                    }
-                  />
-                </Tooltip>
+                  icon={
+                    <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
+                  }
+                  dataTest="dashboard-row-edit"
+                  disabled={!allowEdit}
+                  onClick={handleEdit}
+                />
               )}
               {canExport && (
-                <Tooltip
-                  id="export-action-tooltip"
-                  title={t('Export')}
+                <ActionButton
+                  label={t('Export')}
+                  tooltip={t('Export')}
                   placement="bottom"
-                >
-                  <IconButton
-                    data-test="dashboard-row-export"
-                    onClick={handleExport}
-                    onKeyDown={handleKeyboardActivation(handleExport)}
-                    icon={<Icons.UploadOutlined iconSize="l" />}
-                  />
-                </Tooltip>
+                  icon={<Icons.UploadOutlined iconSize="l" />}
+                  dataTest="dashboard-row-export"
+                  onClick={handleExport}
+                />
               )}
               {canDelete && (
                 <ConfirmStatusChange
@@ -544,9 +535,9 @@ function DashboardList(props: DashboardListProps) {
                   onConfirm={handleDelete}
                 >
                   {confirmDelete => (
-                    <Tooltip
-                      id="delete-action-tooltip"
-                      title={
+                    <ActionButton
+                      label={t('Delete')}
+                      tooltip={
                         allowEdit
                           ? t('Delete')
                           : t(
@@ -554,20 +545,16 @@ function DashboardList(props: DashboardListProps) {
                             )
                       }
                       placement="bottom"
-                    >
-                      <IconButton
-                        data-test="dashboard-row-delete"
-                        disabled={!allowEdit}
-                        onClick={confirmDelete}
-                        onKeyDown={handleKeyboardActivation(confirmDelete)}
-                        icon={
-                          <Icons.DeleteOutlined
-                            iconSize="l"
-                            data-test="dashboard-list-trash-icon"
-                          />
-                        }
-                      />
-                    </Tooltip>
+                      icon={
+                        <Icons.DeleteOutlined
+                          iconSize="l"
+                          data-test="dashboard-list-trash-icon"
+                        />
+                      }
+                      dataTest="dashboard-row-delete"
+                      disabled={!allowEdit}
+                      onClick={confirmDelete}
+                    />
                   )}
                 </ConfirmStatusChange>
               )}
