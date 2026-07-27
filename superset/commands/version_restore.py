@@ -62,7 +62,7 @@ class BaseRestoreVersionCommand(BaseCommand):
     #: failure modes. ``not_found_exc`` covers both "no such entity"
     #: and "version_uuid not on this entity"; the API handler maps
     #: either to HTTP 404. ``forbidden_exc`` covers the row-level
-    #: ownership denial; the handler maps it to HTTP 403.
+    #: editorship denial; the handler maps it to HTTP 403.
     not_found_exc: type[Exception]
     forbidden_exc: type[Exception]
 
@@ -90,6 +90,6 @@ class BaseRestoreVersionCommand(BaseCommand):
         if entity is None:
             raise self.not_found_exc()
         try:
-            security_manager.raise_for_ownership(entity)
+            security_manager.raise_for_editorship(entity)
         except SupersetSecurityException as ex:
             raise self.forbidden_exc() from ex
