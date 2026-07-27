@@ -61,7 +61,7 @@ export const useDashboardFormData = (
 
     // Early return if we don't have required data or chartId
     if (
-      !chartId ||
+      chartId == null ||
       !nativeFilters ||
       !dataMask ||
       !chartConfiguration ||
