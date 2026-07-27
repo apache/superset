@@ -183,7 +183,37 @@ def test_get_or_create_group_subject_syncs_unsynced_group() -> None:
         assert get_or_create_group_subject(5) is created
 
     mock_sync.assert_called_once_with(group)
-    mock_db.session.flush.assert_called_once()
+    # The insert is wrapped in a SAVEPOINT so a concurrent conflict can't
+    # poison the surrounding transaction.
+    mock_db.session.begin_nested.assert_called_once()
+    assert mock_get_group_subject.call_count == 2
+
+
+def test_get_or_create_group_subject_handles_concurrent_insert() -> None:
+    """A concurrent backfill (IntegrityError in the savepoint) is swallowed and
+    the row the other request wrote is reloaded, keeping the transaction usable."""
+    from sqlalchemy.exc import IntegrityError
+
+    winner = _make_subject(12, SubjectType.GROUP)
+    group = MagicMock()
+    group.id = 7
+
+    with (
+        patch(
+            "superset.subjects.utils.get_group_subject",
+            side_effect=[None, winner],
+        ) as mock_get_group_subject,
+        patch("superset.subjects.utils.db") as mock_db,
+        patch("superset.subjects.sync.sync_group_subject"),
+    ):
+        mock_db.session.get.return_value = group
+        mock_db.session.begin_nested.return_value.__enter__.side_effect = (
+            IntegrityError("duplicate group_id", None, Exception())
+        )
+
+        assert get_or_create_group_subject(7) is winner
+
+    # First lookup misses, the reload after the conflict returns the winner.
     assert mock_get_group_subject.call_count == 2
 
 

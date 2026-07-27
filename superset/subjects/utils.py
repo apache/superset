@@ -307,9 +307,17 @@ def get_or_create_group_subject(group_id: int) -> Subject | None:
     Subject row yet (e.g. created before the sync hooks were installed and not
     yet backfilled) is synced on demand rather than skipped. Returns ``None``
     only when no such group exists.
+
+    The insert runs inside a SAVEPOINT. ``Subject.group_id`` is unique, so a
+    concurrent request backfilling the same group would otherwise fail this
+    flush with an ``IntegrityError`` and poison the surrounding transaction. On
+    that conflict the savepoint rolls back and the row the other request wrote
+    is reloaded instead.
     """
     if subject := get_group_subject(group_id):
         return subject
+
+    from sqlalchemy.exc import IntegrityError
 
     from superset import security_manager
     from superset.subjects.sync import sync_group_subject
@@ -318,8 +326,11 @@ def get_or_create_group_subject(group_id: int) -> Subject | None:
     if not group:
         return None
 
-    sync_group_subject(group)
-    db.session.flush()
+    try:
+        with db.session.begin_nested():
+            sync_group_subject(group)
+    except IntegrityError:
+        pass
     return get_group_subject(group_id)
 
 
