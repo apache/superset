@@ -96,7 +96,7 @@ class ExportSavedQueriesCommand(ExportModelsCommand):
                 if "extra" in payload:
                     try:
                         payload["extra"] = json.loads(payload["extra"])
-                    except json.JSONDecodeError:
+                    except (TypeError, json.JSONDecodeError):
                         logger.info(
                             "Unable to decode `extra` field: %s", payload["extra"]
                         )
