@@ -29,7 +29,8 @@ import { Tooltip } from '@superset-ui/core/components/Tooltip';
 import { Typography } from '@superset-ui/core/components';
 import DatasourcePanelDragOption from './DatasourcePanelDragOption';
 import { DndItemType } from '../DndItemType';
-import { collectFolderDragItems } from './folderDrag';
+import { useActiveDrag } from '../ExploreContainer/ExploreDndContext';
+import { collectFolderDragItems, collectFolderIds } from './folderDrag';
 import { DndItemValue, FlattenedItem, Folder } from './types';
 
 const LabelWrapper = styled.div`
@@ -184,11 +185,14 @@ const DatasourcePanelItem = ({
     () => (isFolderHeader && folder ? collectFolderDragItems(folder) : []),
     [isFolderHeader, folder],
   );
+  const folderDragIds = useMemo(
+    () => (isFolderHeader && folder ? collectFolderIds(folder) : []),
+    [isFolderHeader, folder],
+  );
   const {
     attributes: folderDragAttributes,
     listeners: folderDragListeners,
     setNodeRef: setFolderDragRef,
-    isDragging: isFolderDragging,
   } = useDraggable({
     // Keyed by the flattened row index so every row (header, item, divider…)
     // gets a unique draggable id — a folder's header and its child rows would
@@ -198,9 +202,19 @@ const DatasourcePanelItem = ({
       type: DndItemType.Folder,
       name: folder?.name,
       items: folderDragItems,
+      folderIds: folderDragIds,
     },
     disabled: !isFolderHeader || folderDragItems.length === 0,
   });
+
+  // Fade every row of the folder currently being dragged (header + its items,
+  // subtitle, divider, and any subfolder rows). Each flattened row carries its
+  // folder id, so a row is in flight when its id is in the drag's folderIds.
+  const activeDrag = useActiveDrag();
+  const isRowInDraggedFolder =
+    activeDrag?.type === DndItemType.Folder &&
+    !!item &&
+    !!activeDrag.folderIds?.includes(item.folderId);
 
   if (!item) return null;
   if (!folder) return null;
@@ -213,16 +227,14 @@ const DatasourcePanelItem = ({
         ...style,
         paddingLeft: theme.sizeUnit * 4 + indentation,
         paddingRight: theme.sizeUnit * 4,
+        opacity: isRowInDraggedFolder ? 0.5 : undefined,
       }}
     >
       {item.type === 'header' && (
         <SectionHeaderButton
           ref={setFolderDragRef}
           onClick={() => onToggleCollapse(folder.id)}
-          style={{
-            opacity: isFolderDragging ? 0.5 : undefined,
-            cursor: folderDragItems.length ? 'grab' : undefined,
-          }}
+          style={{ cursor: folderDragItems.length ? 'grab' : undefined }}
           {...folderDragAttributes}
           {...folderDragListeners}
         >

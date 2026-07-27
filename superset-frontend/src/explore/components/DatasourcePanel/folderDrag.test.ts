@@ -18,7 +18,7 @@
  */
 import { FoldersEditorItemType } from 'src/components/Datasource/types';
 import { DndItemType } from '../DndItemType';
-import { collectFolderDragItems } from './folderDrag';
+import { collectFolderDragItems, collectFolderIds } from './folderDrag';
 import { ColumnItem, Folder, MetricItem } from './types';
 
 const col = (name: string): ColumnItem =>
@@ -77,4 +77,12 @@ test('descends into subfolders, preserving order (parent items first)', () => {
 
 test('returns an empty list for an empty folder', () => {
   expect(collectFolderDragItems(folder([]))).toEqual([]);
+});
+
+test('collectFolderIds gathers the folder id and every subfolder id', () => {
+  const sub = { ...folder([col('b')]), id: 'sub' };
+  const nested = { ...folder([col('c')]), id: 'nested' };
+  sub.subFolders = [nested];
+  const parent = { ...folder([col('a')]), id: 'parent', subFolders: [sub] };
+  expect(collectFolderIds(parent)).toEqual(['parent', 'sub', 'nested']);
 });
