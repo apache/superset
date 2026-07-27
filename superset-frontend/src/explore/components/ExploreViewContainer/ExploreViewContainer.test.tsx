@@ -30,6 +30,7 @@ import { QUERY_MODE_REQUISITES } from 'src/explore/constants';
 import { Router, Route } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -324,6 +325,53 @@ test('reuses the same form_data param when updating', async () => {
     previousCall,
   );
   replaceSpy.mockRestore();
+  getChartControlPanelRegistry().remove('table');
+});
+
+test('pushes a history entry when the chart changed, so Back undoes it', async () => {
+  getChartControlPanelRegistry().registerValue('table', {
+    controlPanelSections: [],
+  });
+  const initialState = {
+    ...reduxState,
+    explore: {
+      ...reduxState.explore,
+      form_data: {
+        datasource: '1__table',
+        viz_type: VizType.Table,
+        metrics: [],
+      },
+      controls: { ...reduxState.explore.controls, row_limit: { value: 100 } },
+    },
+  };
+  const store = createStore(initialState, reducerIndex);
+  const history = createMemoryHistory({
+    initialEntries: [`${defaultPath}${SEARCH}`],
+  });
+  const pushSpy = jest.spyOn(history, 'push');
+  renderWithRouter({
+    search: SEARCH,
+    history,
+    initialState,
+    store: store as Store,
+  });
+  // the entry Back should return to
+  await waitFor(() =>
+    expect(history.location.state).toEqual(
+      expect.objectContaining({ row_limit: 100 }),
+    ),
+  );
+  act(() => {
+    store.dispatch(exploreActions.setControlValue('row_limit', 200));
+  });
+  await userEvent.click(screen.getByText('Update chart'));
+  await waitFor(() =>
+    expect(pushSpy).toHaveBeenCalledWith(
+      expect.stringMatching('form_data_key'),
+      expect.objectContaining({ row_limit: 200 }),
+    ),
+  );
+  pushSpy.mockRestore();
   getChartControlPanelRegistry().remove('table');
 });
 

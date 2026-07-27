@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useHistory } from 'react-router-dom';
 import type { Location, Action } from 'history';
 import { t } from '@apache-superset/core/translation';
@@ -28,6 +28,7 @@ import {
   makeApi,
   LabelsColorMapSource,
   getClientErrorObject,
+  QueryFormData,
 } from '@superset-ui/core';
 import { Loading } from '@superset-ui/core/components';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
@@ -36,9 +37,20 @@ import { URL_PARAMS } from 'src/constants';
 import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 import { getAppliedFilterValues } from 'src/dashboard/util/activeDashboardFilters';
 import { getParsedExploreURLParams } from 'src/explore/exploreUtils/getParsedExploreURLParams';
+import {
+  getChartStateFromHistoryState,
+  isSameChartState,
+} from 'src/explore/exploreUtils/exploreHistory';
 import { hydrateExplore } from 'src/explore/actions/hydrateExplore';
+import { setExploreControls } from 'src/explore/actions/exploreActions';
+import { postChartFormData } from 'src/components/Chart/chartAction';
+import { UNSAVED_CHART_ID } from 'src/explore/constants';
 import ExploreViewContainer from 'src/explore/components/ExploreViewContainer';
-import { ExploreResponsePayload, SaveActionType } from 'src/explore/types';
+import {
+  ExplorePageState,
+  ExploreResponsePayload,
+  SaveActionType,
+} from 'src/explore/types';
 import { fallbackExploreInitialData } from 'src/explore/fixtures';
 import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { getFormDataWithDashboardContext } from 'src/explore/controlUtils/getFormDataWithDashboardContext';
@@ -136,8 +148,32 @@ export default function ExplorePage() {
   const [isLoaded, setIsLoaded] = useState(false);
   const fetchGeneration = useRef(0);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const loadedFormData = useRef<QueryFormData>();
   const dispatch = useDispatch();
   const history = useHistory();
+  const force = useSelector<ExplorePageState, boolean>(
+    state => !!state.explore?.force,
+  );
+  const timeout = useSelector<ExplorePageState, number | undefined>(
+    state => state.common?.conf?.SUPERSET_WEBSERVER_TIMEOUT,
+  );
+
+  // Restores a chart state stored in a history entry by updateHistory, so that
+  // Back/Forward step through chart states without reloading the page.
+  const restoreChartState = useCallback(
+    (formData: QueryFormData) => {
+      dispatch(setExploreControls(formData));
+      dispatch(
+        postChartFormData(
+          formData,
+          force,
+          timeout,
+          formData.slice_id ?? UNSAVED_CHART_ID,
+        ),
+      );
+    },
+    [dispatch, force, timeout],
+  );
 
   const loadExploreData = useCallback(
     (
@@ -185,6 +221,7 @@ export default function ExplorePage() {
             };
           }
 
+          loadedFormData.current = formData as QueryFormData;
           dispatch(
             hydrateExplore({
               ...result,
@@ -304,10 +341,25 @@ export default function ExplorePage() {
   // PUSH/POP: full reload (unmount + re-fetch).
   // REPLACE with saveAction state: re-fetch without unmount (keeps chart visible).
   // Other REPLACE: ignored (URL sync from updateHistory).
+  // Entries holding a chart state of the loaded chart are handled in place:
+  // Explore pushed them itself, and POP into one is an undo/redo.
   useEffect(() => {
     const unlisten = history.listen((loc: Location, action: Action) => {
       const saveAction = (loc.state as Record<string, unknown>)?.saveAction as
         SaveActionType | undefined;
+      const chartState = getChartStateFromHistoryState(loc.state);
+      if (chartState) {
+        if (action === 'PUSH') {
+          return;
+        }
+        if (
+          action === 'POP' &&
+          isSameChartState(chartState, loadedFormData.current)
+        ) {
+          restoreChartState(chartState);
+          return;
+        }
+      }
       if (action === 'PUSH' || action === 'POP') {
         setIsLoaded(false);
         loadExploreData(loc, saveAction);
@@ -316,7 +368,7 @@ export default function ExplorePage() {
       }
     });
     return unlisten;
-  }, [history, loadExploreData]);
+  }, [history, loadExploreData, restoreChartState]);
 
   if (!isLoaded) {
     return <Loading />;

@@ -74,6 +74,10 @@ import { mergeExtraFormData } from 'src/dashboard/components/nativeFilters/utils
 import { postFormData, putFormData } from 'src/explore/exploreUtils/formData';
 import { datasourcesActions } from 'src/explore/actions/datasourcesActions';
 import { mountExploreUrl } from 'src/explore/exploreUtils';
+import {
+  getChartStateFromHistoryState,
+  toChartStateHistoryState,
+} from 'src/explore/exploreUtils/exploreHistory';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
 import * as exploreActions from 'src/explore/actions/exploreActions';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
@@ -227,7 +231,20 @@ const updateHistory = debounce(
           force,
           false,
         );
-        history.replace(url, payload);
+        const previousChartState = getChartStateFromHistoryState(
+          history.location.state,
+        );
+        const state = toChartStateHistoryState(payload);
+        if (
+          isReplace ||
+          !previousChartState ||
+          isEqual(previousChartState, payload)
+        ) {
+          history.replace(url, state);
+        } else {
+          // one entry per chart state is what makes the Back button undo it
+          history.push(url, state);
+        }
       }
     } catch (e) {
       logging.warn('Failed at altering browser history', e);
