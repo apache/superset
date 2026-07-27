@@ -34,6 +34,7 @@
  * Screenshots are saved under docs/static/img/screenshots/mobile/.
  */
 
+import fs from 'fs';
 import path from 'path';
 import { Page, test, expect } from '@playwright/test';
 import { URL } from '../../utils/urls';
@@ -42,6 +43,11 @@ const MOBILE_SCREENSHOTS_DIR = path.resolve(
   __dirname,
   '../../../../docs/static/img/screenshots/mobile',
 );
+// Committed to the repo alongside the generated images, but create it
+// defensively in case someone deletes the directory and re-runs this
+// generator standalone (Playwright does not create missing parent
+// directories for screenshot paths).
+fs.mkdirSync(MOBILE_SCREENSHOTS_DIR, { recursive: true });
 
 // iPhone 12-class viewport; 2x scale factor for crisp docs images
 test.use({
