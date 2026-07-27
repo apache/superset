@@ -144,7 +144,23 @@ export const Styles = styled.div<{ isDashboardEditMode: boolean }>`
     }
 
     .toggle {
+      appearance: none;
+      border: none;
+      background: none;
       padding-right: ${theme.sizeUnit}px;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .sort-icon-btn {
+      display: inline-flex;
+      align-items: center;
+      appearance: none;
+      border: none;
+      background: none;
+      padding: 0;
+      margin: 0;
+      font: inherit;
       cursor: pointer;
     }
 

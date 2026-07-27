@@ -51,7 +51,7 @@ class Slice(Base):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     slices = session.query(Slice).filter(Slice.viz_type == "pivot_table_v2").all()
     for slc in slices:
@@ -75,7 +75,7 @@ def upgrade():
 
 def downgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     slices = session.query(Slice).filter(Slice.viz_type == "pivot_table_v2").all()
     for slc in slices:
