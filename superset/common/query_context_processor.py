@@ -39,7 +39,7 @@ from superset.exceptions import (
     SupersetException,
 )
 from superset.explorables.base import Explorable
-from superset.extensions import cache_manager, security_manager
+from superset.extensions import cache_manager, db, security_manager
 from superset.models.helpers import QueryResult
 from superset.superset_typing import AdhocColumn, AdhocMetric, Column
 from superset.utils import csv, excel
@@ -115,6 +115,11 @@ class QueryContextProcessor:
         ):
             cache.is_loaded = False
 
+        # Defined here (not just inside the cache-miss branch below) so that a
+        # cache hit doesn't leave it unbound when the payload is built further
+        # down.
+        query_model: Query | None = None
+
         if query_obj and cache_key and not cache.is_loaded:
             try:
                 if invalid_columns := [
@@ -137,7 +142,6 @@ class QueryContextProcessor:
                 # client_id and allow cancellation later. This mirrors SQL Lab's
                 # behavior; it is best-effort and only created if the datasource has
                 # an underlying database.
-                query_model = None
                 if (
                     hasattr(self._qc_datasource, "database")
                     and getattr(self._qc_datasource, "database", None) is not None
@@ -145,7 +149,6 @@ class QueryContextProcessor:
                     try:
                         from uuid import uuid4
 
-                        from superset.extensions import db as _db
                         from superset.models.sql_lab import Query as SqlLabQuery
                         from superset.utils.core import get_user_id
 
@@ -160,7 +163,7 @@ class QueryContextProcessor:
 
                         # If a Query with this client_id already exists, reuse it.
                         query_model = (
-                            _db.session.query(SqlLabQuery)
+                            db.session.query(SqlLabQuery)
                             .filter_by(client_id=client_id)
                             .one_or_none()
                         )
@@ -171,12 +174,13 @@ class QueryContextProcessor:
                                 database_id=self._qc_datasource.database.id,
                                 user_id=get_user_id(),
                             )
-                            _db.session.add(query_model)
-                            _db.session.commit()
+                            db.session.add(query_model)
+                            db.session.commit()
 
                     except (
                         Exception
                     ):  # pragma: no cover - best-effort Query model creation
+                        db.session.rollback()
                         logger.debug(
                             "Could not create Query model for chart query",
                             exc_info=True,

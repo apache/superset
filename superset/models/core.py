@@ -865,18 +865,10 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                     # If a Query model was provided, prefer to call the engine's
                     # `execute_with_cursor` path so engines that need the running
                     # cursor (eg Trino) can capture a cancel id via `handle_cursor`.
-                    # Fall back to the normal `execute` call if not available or if
-                    # the engine signature differs.
                     if query is not None and hasattr(
                         self.db_engine_spec, "execute_with_cursor"
                     ):
-                        try:
-                            # Preferred signature: (cursor, sql, query)
-                            self.db_engine_spec.execute_with_cursor(cursor, sql_, query)
-                        except TypeError:
-                            # Some engine implementations may not accept the `query`
-                            # argument; try the two-arg form as a fallback.
-                            self.db_engine_spec.execute_with_cursor(cursor, sql_)  # type: ignore
+                        self.db_engine_spec.execute_with_cursor(cursor, sql_, query)
                     else:
                         # Best-effort: some engines can expose a cancel id prior to
                         # execution via `get_cancel_query_id` — attempt to persist
@@ -903,12 +895,13 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                                 exc_info=True,
                             )
 
-                        try:
-                            # Preferred `execute` signature tries to accept query kwarg
-                            self.db_engine_spec.execute(cursor, sql_, self, query=query)  # type: ignore
-                        except TypeError:
-                            # Older signatures may not accept the keyword; fall back
-                            self.db_engine_spec.execute(cursor, sql_, self)
+                        # Every engine spec's `execute(cursor, query, database, ...)`
+                        # names its SQL-text parameter `query`, so passing the
+                        # persisted Query row as a `query=` kwarg here would always
+                        # collide with that positional argument. The cancel id is
+                        # already captured above (or via `execute_with_cursor`), so
+                        # there's nothing to forward to `execute` itself.
+                        self.db_engine_spec.execute(cursor, sql_, self)
 
                 # Fetch results from last statement if requested
                 if fetch_last_result and i == len(script.statements) - 1:
