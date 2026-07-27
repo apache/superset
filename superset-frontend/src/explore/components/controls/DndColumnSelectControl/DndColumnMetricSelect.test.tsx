@@ -27,6 +27,7 @@ import {
   captureDroppableData,
   captureSortableData,
   simulateDrop,
+  simulateFolderDrop,
   simulateReorder,
 } from './dndTestUtils';
 
@@ -343,4 +344,75 @@ test('handles mixed value types correctly', () => {
 
   expect(screen.getByText('column_a')).toBeVisible();
   expect(screen.getByText('metric_a')).toBeVisible();
+});
+
+// --- folder drops -----------------------------------------------------
+// Dragging a whole folder from the DatasourcePanel expands into its
+// columns/metrics, handled in bulk by onDropFolder. Driven through the
+// production `resolveDragEnd` dispatcher since jsdom cannot simulate real
+// @dnd-kit pointer drags.
+
+test('folder drop appends all accepted columns and metrics for a multi control', () => {
+  const onChange = jest.fn();
+  render(
+    <DndColumnMetricSelect
+      {...defaultProps}
+      value={['column_a']}
+      onChange={onChange}
+      multi
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  simulateFolderDrop(captured, [
+    { type: DndItemType.Column, value: { column_name: 'column_b' } as any },
+    { type: DndItemType.Metric, value: { metric_name: 'metric_a' } as any },
+  ]);
+
+  expect(onChange).toHaveBeenCalledWith(['column_a', 'column_b', 'metric_a']);
+});
+
+test('folder drop replaces (not appends) the existing value for a single-value control', () => {
+  // Regression test: onDropFolder used to append the dropped items and then
+  // send the stale first (pre-drop) value to onChange for non-multi
+  // controls, silently ignoring the drop. It must send the first newly
+  // dropped item instead, matching the single-item onDrop's replace
+  // behavior.
+  const onChange = jest.fn();
+  render(
+    <DndColumnMetricSelect
+      {...defaultProps}
+      value={['column_a']}
+      onChange={onChange}
+      multi={false}
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  simulateFolderDrop(captured, [
+    { type: DndItemType.Metric, value: { metric_name: 'metric_a' } as any },
+  ]);
+
+  expect(onChange).toHaveBeenCalledWith('metric_a');
+});
+
+test('folder drop is a no-op when no item is accepted', () => {
+  const onChange = jest.fn();
+  render(
+    <DndColumnMetricSelect
+      {...defaultProps}
+      value={['column_a', 'metric_a']}
+      onChange={onChange}
+      multi
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  // Both items already selected -> canDrop rejects them both.
+  simulateFolderDrop(captured, [
+    { type: DndItemType.Column, value: { column_name: 'column_a' } as any },
+    { type: DndItemType.Metric, value: { metric_name: 'metric_a' } as any },
+  ]);
+
+  expect(onChange).not.toHaveBeenCalled();
 });
