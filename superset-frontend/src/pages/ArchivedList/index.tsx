@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useMemo, useState, type KeyboardEvent } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import {
+  ActionButton,
   ConfirmStatusChange,
   Select,
   Tooltip,
@@ -59,21 +60,8 @@ const StyledActions = styled.div`
     color: ${theme.colorIcon};
     display: flex;
     gap: ${theme.sizeUnit * 2}px;
-    .action-button {
-      cursor: pointer;
-    }
   `}
 `;
-
-// Row actions are focusable icon "buttons" (spans with role=button); pair the
-// click handler with Enter/Space so they're keyboard-operable.
-const onActionKeyDown =
-  (action: () => void) => (event: KeyboardEvent<HTMLSpanElement>) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      action();
-    }
-  };
 
 const TYPE_LABELS: Record<ArchivedType, string> = {
   chart: t('Chart'),
@@ -100,22 +88,14 @@ function ArchivedRowActions({
 }) {
   return (
     <StyledActions className="actions">
-      <Tooltip
-        id="restore-action-tooltip"
-        title={t('Recover this item')}
+      <ActionButton
+        label={t('Recover')}
+        tooltip={t('Recover this item')}
         placement="bottom"
-      >
-        <span
-          data-test="archived-row-restore"
-          role="button"
-          tabIndex={0}
-          className="action-button"
-          onClick={() => onRestore(item)}
-          onKeyDown={onActionKeyDown(() => onRestore(item))}
-        >
-          <Icons.RollbackOutlined iconSize="l" />
-        </span>
-      </Tooltip>
+        icon={<Icons.RollbackOutlined iconSize="l" />}
+        dataTest="archived-row-restore"
+        onClick={() => onRestore(item)}
+      />
       <ConfirmStatusChange
         title={t('Delete permanently %(name)s?', { name })}
         description={t(
@@ -125,22 +105,14 @@ function ArchivedRowActions({
         requireConfirmationText={false}
       >
         {confirmDelete => (
-          <Tooltip
-            id="purge-action-tooltip"
-            title={t('Delete permanently')}
+          <ActionButton
+            label={t('Delete permanently')}
+            tooltip={t('Delete permanently')}
             placement="bottom"
-          >
-            <span
-              data-test="archived-row-purge"
-              role="button"
-              tabIndex={0}
-              className="action-button"
-              onClick={confirmDelete}
-              onKeyDown={onActionKeyDown(() => confirmDelete())}
-            >
-              <Icons.DeleteOutlined iconSize="l" />
-            </span>
-          </Tooltip>
+            icon={<Icons.DeleteOutlined iconSize="l" />}
+            dataTest="archived-row-purge"
+            onClick={confirmDelete}
+          />
         )}
       </ConfirmStatusChange>
     </StyledActions>

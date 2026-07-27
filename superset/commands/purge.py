@@ -65,7 +65,7 @@ class PurgeArchivedCommand(BaseCommand):
 
     def validate(self) -> Any:
         # Bypass only the visibility filter (RBAC base_filter still applies),
-        # matching the restore path; ownership is then verified explicitly.
+        # matching the restore path; editorship is then verified explicitly.
         model = self._binding.dao.find_by_id(
             self._model_uuid,
             id_column="uuid",
@@ -79,7 +79,7 @@ class PurgeArchivedCommand(BaseCommand):
                 "nothing to purge"
             )
         try:
-            security_manager.raise_for_ownership(model)
+            security_manager.raise_for_editorship(model)
         except SupersetSecurityException as ex:
             raise self._binding.forbidden() from ex
         return model
