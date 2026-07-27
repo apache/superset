@@ -107,9 +107,9 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals
         if not any(col.metric_name == metric for col in tbl.metrics):
             aggr_func = metric[:3]
             col = str(column(metric[5:]).compile(db.engine))
-            tbl.metrics.append(
-                SqlMetric(metric_name=metric, expression=f"{aggr_func}({col})")
-            )
+            metric_it = SqlMetric(metric_name=metric, expression=f"{aggr_func}({col})")
+            db.session.add(metric_it)
+            tbl.metrics.append(metric_it)
 
     tbl.fetch_metadata()
 

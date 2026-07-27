@@ -30,9 +30,8 @@ import {
   type FilterState,
   type JsonObject,
   type AgGridChartState,
-  handleKeyboardActivation,
 } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/theme';
+import { css, styled } from '@apache-superset/core/theme';
 import type { ChartState, Datasource, ChartStatus } from 'src/explore/types';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
 import { EmptyState, Loading } from '@superset-ui/core/components';
@@ -440,6 +439,37 @@ function Chart({
     );
   }
 
+  if (chartStatus === 'stopped') {
+    return (
+      <EmptyState
+        size="large"
+        title={chartAlert || t('Updating chart was stopped')}
+        description={
+          <span>
+            {t('Run a new query using the "Update chart" button or')}{' '}
+            <button
+              type="button"
+              onClick={onQuery}
+              css={css`
+                appearance: none;
+                border: none;
+                background: none;
+                padding: 0;
+                font: inherit;
+                cursor: pointer;
+                text-decoration: underline;
+              `}
+            >
+              {t('click here')}
+            </button>
+            .
+          </span>
+        }
+        image="chart.svg"
+      />
+    );
+  }
+
   if (errorMessage && ensureIsArray(queriesResponse).length === 0) {
     return (
       <EmptyState
@@ -466,14 +496,21 @@ function Chart({
             {t(
               'Click on "Create chart" button in the control panel on the left to preview a visualization or',
             )}{' '}
-            <span
-              role="button"
-              tabIndex={0}
+            <button
+              type="button"
               onClick={onQuery}
-              onKeyDown={handleKeyboardActivation(() => onQuery?.())}
+              css={css`
+                appearance: none;
+                border: none;
+                background: none;
+                padding: 0;
+                font: inherit;
+                cursor: pointer;
+                text-decoration: underline;
+              `}
             >
               {t('click here')}
-            </span>
+            </button>
             .
           </span>
         }

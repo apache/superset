@@ -363,12 +363,16 @@ function StickyWrap({
   }
 
   return (
+    // Virtualized/sticky table built from divs so the header/body can be
+    // positioned independently; a real <table> would break that layout, so
+    // role="table" is the correct ARIA pattern here, not the suggested tag.
     <div
       style={{
         width: maxWidth,
         height: sticky.realHeight || maxHeight,
         overflow: 'hidden',
       }}
+      // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
       role="table"
     >
       {headerTable}

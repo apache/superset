@@ -89,7 +89,10 @@ export default function Login() {
   }, []);
 
   const loginEndpoint = useMemo(
-    () => (nextUrl ? `/login/?next=${encodeURIComponent(nextUrl)}` : '/login/'),
+    () =>
+      ensureAppRoot(
+        nextUrl ? `/login/?next=${encodeURIComponent(nextUrl)}` : '/login/',
+      ),
     [nextUrl],
   );
 

@@ -146,7 +146,9 @@ The `where_in` filter converts the list to SQL format: `('value1', 'value2', 'va
 
 ### Time Filters
 
-For charts with time range filters:
+`get_time_filter()` is the standard way to reference the selected time range in a virtual dataset.
+It returns a `TimeFilter` object with `from_expr` and `to_expr` — fully-formatted SQL expressions
+that should be used directly in `WHERE` clauses without quoting.
 
 | Macro | Description |
 |-------|-------------|
@@ -198,17 +200,9 @@ GROUP BY category
 
 ## Testing Templates in SQL Lab
 
-Some variables like `from_dttm` and `filter_values()` only work when filters are applied from dashboards or charts. To test in SQL Lab:
+Some variables like `filter_values()` only work when filters are applied from dashboards or charts. To test in SQL Lab:
 
-**Option 1: Use defaults**
-
-```sql
-SELECT *
-FROM orders
-WHERE date >= '{{ from_dttm | default("2024-01-01", true) }}'
-```
-
-**Option 2: Set test parameters**
+**Option 1: Set test parameters**
 
 Add to the Parameters menu:
 
@@ -220,7 +214,7 @@ Add to the Parameters menu:
 }
 ```
 
-**Option 3: Use `{% set %}`**
+**Option 2: Use `{% set %}`**
 
 ```sql
 {% set start_date = "2024-01-01" %}

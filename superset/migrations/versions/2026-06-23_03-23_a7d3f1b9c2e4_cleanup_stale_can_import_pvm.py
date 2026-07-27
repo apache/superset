@@ -102,7 +102,7 @@ def upgrade() -> None:
     # stamp) fails. Alembic commits everything together when the migration
     # run completes.
     bind = op.get_bind()
-    session = Session(bind=bind)
+    session = Session(bind=bind, future=True)
     do_upgrade(session)
     session.flush()
 
@@ -110,6 +110,6 @@ def upgrade() -> None:
 def downgrade() -> None:
     # See upgrade(): flush only, let Alembic own the commit.
     bind = op.get_bind()
-    session = Session(bind=bind)
+    session = Session(bind=bind, future=True)
     do_downgrade(session)
     session.flush()

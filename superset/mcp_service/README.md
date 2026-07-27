@@ -84,7 +84,7 @@ If Docker is not available, you can set up manually:
 git clone https://github.com/apache/superset.git
 cd superset
 
-# 2. Set up Python environment (Python 3.10 or 3.11 required)
+# 2. Set up Python environment (Python 3.11 or 3.12 required)
 python3 -m venv venv
 source venv/bin/activate
 
