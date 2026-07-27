@@ -86,24 +86,19 @@ async function createChart(
   return sliceName;
 }
 
-/** Create an empty published dashboard and return its id. */
-async function createDashboard(
-  page: Page,
-  testAssets: TestAssets,
-  testInfo: TestInfo,
-): Promise<number> {
-  const { id } = await createTestDashboard(page, testAssets, testInfo, {
-    prefix: 'edit_mode',
-    published: true,
-  });
-  return id;
-}
+/** Options for the empty published dashboard every test in this file starts from. */
+const DASHBOARD_OPTIONS = { prefix: 'edit_mode', published: true } as const;
 
 testWithAssets(
   'edit mode: add a chart to the dashboard via drag-and-drop',
   async ({ page, testAssets }, testInfo) => {
     const sliceName = await createChart(page, testAssets, testInfo);
-    const dashboardId = await createDashboard(page, testAssets, testInfo);
+    const { id: dashboardId } = await createTestDashboard(
+      page,
+      testAssets,
+      testInfo,
+      DASHBOARD_OPTIONS,
+    );
 
     const dashboard = new DashboardPage(page);
     await dashboard.gotoById(dashboardId);
@@ -120,7 +115,12 @@ testWithAssets(
   'edit mode: remove an added chart from the dashboard',
   async ({ page, testAssets }, testInfo) => {
     const sliceName = await createChart(page, testAssets, testInfo);
-    const dashboardId = await createDashboard(page, testAssets, testInfo);
+    const { id: dashboardId } = await createTestDashboard(
+      page,
+      testAssets,
+      testInfo,
+      DASHBOARD_OPTIONS,
+    );
 
     const dashboard = new DashboardPage(page);
     await dashboard.gotoById(dashboardId);
@@ -141,7 +141,12 @@ testWithAssets(
     // Heaviest edit-mode flow (drag + ace edit + commit + mouse resize); give it
     // extra headroom so it stays reliable when the suite runs in parallel.
     testWithAssets.slow();
-    const dashboardId = await createDashboard(page, testAssets, testInfo);
+    const { id: dashboardId } = await createTestDashboard(
+      page,
+      testAssets,
+      testInfo,
+      DASHBOARD_OPTIONS,
+    );
 
     const dashboard = new DashboardPage(page);
     await dashboard.gotoById(dashboardId);

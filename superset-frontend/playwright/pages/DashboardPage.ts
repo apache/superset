@@ -43,6 +43,7 @@ export class DashboardPage {
 
   private static readonly SELECTORS = {
     DASHBOARD_HEADER: '[data-test="dashboard-header-container"]',
+    CHART_GRID_COMPONENT: '[data-test="chart-grid-component"]',
     DASHBOARD_MENU_TRIGGER: '[data-test="actions-trigger"]',
     // The header-actions-menu is the data-test for the dropdown menu content
     HEADER_ACTIONS_MENU: '[data-test="header-actions-menu"]',
@@ -87,12 +88,16 @@ export class DashboardPage {
 
   /**
    * Wait for the dashboard header to be visible.
+   *
+   * The header container renders well before the grid does, so this only
+   * establishes that the dashboard route mounted — pair it with
+   * {@link waitForChartsToLoad} before asserting on chart content.
    */
   async waitForLoad(options?: { timeout?: number }): Promise<void> {
     const timeout = options?.timeout ?? TIMEOUT.PAGE_LOAD;
-    await this.page.waitForSelector(DashboardPage.SELECTORS.DASHBOARD_HEADER, {
-      timeout,
-    });
+    await this.page
+      .locator(DashboardPage.SELECTORS.DASHBOARD_HEADER)
+      .waitFor({ state: 'visible', timeout });
   }
 
   /**
@@ -100,16 +105,30 @@ export class DashboardPage {
    */
   getChart(chartId: number): Locator {
     return this.page.locator(
-      `[data-test="chart-grid-component"][data-test-chart-id="${chartId}"]`,
+      `${DashboardPage.SELECTORS.CHART_GRID_COMPONENT}[data-test-chart-id="${chartId}"]`,
     );
   }
 
   /**
-   * Wait for all charts on the dashboard to finish loading.
-   * Waits until no loading indicators are visible on the page.
+   * Wait for the dashboard's charts to mount and finish loading.
+   *
+   * Waiting only for loading indicators to clear is not enough: the grid mounts
+   * its spinners after the header renders, so a "no visible loader" check
+   * called straight after {@link waitForLoad} passes instantly against a
+   * dashboard that has not started rendering anything. Waiting for at least one
+   * chart grid component first makes the absence of loaders mean "charts
+   * finished" rather than "charts have not begun".
+   *
+   * Only for dashboards that have charts — on an empty one this waits out
+   * `timeout` rather than returning.
    */
   async waitForChartsToLoad(options?: { timeout?: number }): Promise<void> {
     const timeout = options?.timeout ?? TIMEOUT.API_RESPONSE;
+
+    await this.page
+      .locator(DashboardPage.SELECTORS.CHART_GRID_COMPONENT)
+      .first()
+      .waitFor({ state: 'attached', timeout });
 
     // Use browser-context evaluation to check visibility directly.
     // Loading indicators ([aria-label="Loading"]) may persist in the DOM as hidden
@@ -155,7 +174,9 @@ export class DashboardPage {
    * Opens the native filters and Display Controls configuration modal.
    */
   async openNativeFiltersConfigModal(): Promise<NativeFiltersConfigModal> {
-    await this.page.click(DashboardPage.SELECTORS.FILTER_BAR_SETTINGS);
+    await this.page
+      .locator(DashboardPage.SELECTORS.FILTER_BAR_SETTINGS)
+      .click();
     await this.page
       .getByText('Add or edit filters and controls', { exact: true })
       .click();
@@ -167,12 +188,17 @@ export class DashboardPage {
 
   /**
    * Applies pending native filter changes when the Apply button is enabled.
+   *
+   * A disabled button means there is nothing pending, which is a valid state to
+   * skip. A *missing* button is not — the button is waited for rather than
+   * having its absence collapse into the same no-op as "nothing to apply".
    */
   async applyFiltersIfEnabled(): Promise<void> {
     const applyButton = this.page
       .locator(DashboardPage.SELECTORS.APPLY_FILTERS_BUTTON)
       .first();
-    if (!(await applyButton.isEnabled().catch(() => false))) {
+    await applyButton.waitFor({ state: 'attached' });
+    if (!(await applyButton.isEnabled())) {
       return;
     }
 
@@ -183,14 +209,13 @@ export class DashboardPage {
    * Open the dashboard header actions menu (three-dot menu)
    */
   async openHeaderActionsMenu(): Promise<void> {
-    await this.page.click(DashboardPage.SELECTORS.DASHBOARD_MENU_TRIGGER);
+    await this.page
+      .locator(DashboardPage.SELECTORS.DASHBOARD_MENU_TRIGGER)
+      .click();
     // Wait for the dropdown menu to appear
-    await this.page.waitForSelector(
-      DashboardPage.SELECTORS.HEADER_ACTIONS_MENU,
-      {
-        state: 'visible',
-      },
-    );
+    await this.page
+      .locator(DashboardPage.SELECTORS.HEADER_ACTIONS_MENU)
+      .waitFor({ state: 'visible' });
   }
 
   /**
@@ -235,9 +260,9 @@ export class DashboardPage {
       DashboardPage.SELECTORS.EDIT_BUTTON,
     );
     await editButton.click();
-    await this.page.waitForSelector(DashboardPage.SELECTORS.BUILDER_PANE, {
-      state: 'visible',
-    });
+    await this.page
+      .locator(DashboardPage.SELECTORS.BUILDER_PANE)
+      .waitFor({ state: 'visible' });
   }
 
   /**
@@ -303,6 +328,9 @@ export class DashboardPage {
 
   /**
    * The grid's empty drop target, which the grid renders while in edit mode.
+   *
+   * Only resolves while the grid is still empty. Dropping a second component
+   * needs a target relative to the already-placed one, not this.
    */
   private dropTarget(): Locator {
     return this.page.locator(DashboardPage.SELECTORS.EMPTY_DROPTARGET).first();
@@ -355,8 +383,12 @@ export class DashboardPage {
 
   /**
    * Click the dashboard title, moving focus off whichever grid component holds
-   * it. Committing a markdown edit needs a click on a neutral target, and the
-   * title is the one always-present element that changes nothing when clicked.
+   * it. Committing a markdown edit needs a click on some other element, and the
+   * title is the one that is always present regardless of what is on the grid.
+   *
+   * In edit mode the click focuses the title's input. That is a state change,
+   * not a no-op — but it edits nothing on its own, so it leaves the component
+   * under test untouched.
    */
   async blurToDashboardTitle(): Promise<void> {
     await this.page
