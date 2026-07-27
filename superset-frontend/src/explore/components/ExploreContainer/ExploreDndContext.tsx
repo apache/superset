@@ -23,6 +23,7 @@ import {
   useCallback,
   FC,
   Dispatch,
+  ReactNode,
   useReducer,
 } from 'react';
 import {
@@ -327,6 +328,57 @@ export const exploreCollisionDetection: CollisionDetection = args => {
     : rectIntersection({ ...args, droppableContainers: dropzoneContainers });
 };
 
+/**
+ * Content shown in the drag preview that follows the cursor. Extracted as a
+ * pure function (rather than inlined JSX) so it can be unit-tested directly:
+ * @dnd-kit's PointerSensor only reacts to real pointer events, which jsdom
+ * cannot meaningfully dispatch, so a real drag can't be simulated to reach it.
+ * Reorder drags leave activeData null on purpose, so only external
+ * DatasourcePanel drags (which carry a value, or a folder's items) get a
+ * preview.
+ */
+export function renderDragOverlayContent(
+  activeData: ActiveDragData | null,
+): ReactNode {
+  if (activeData?.type === DndItemType.Folder) {
+    return (
+      <DragOverlayContainer align="center" justify="space-between">
+        <Flex align="center" gap={4}>
+          <Icons.FolderOutlined iconSize="l" />
+          <span>{activeData.name}</span>
+        </Flex>
+        <FolderDragBadge>
+          {tn(
+            '%s field',
+            '%s fields',
+            activeData.items?.length ?? 0,
+            activeData.items?.length ?? 0,
+          )}
+        </FolderDragBadge>
+      </DragOverlayContainer>
+    );
+  }
+  if (activeData?.value) {
+    return (
+      <DragOverlayContainer align="center" justify="space-between">
+        {activeData.type === DndItemType.Column ? (
+          <StyledColumnOption
+            column={activeData.value as ColumnOptionProps['column']}
+            showType
+          />
+        ) : (
+          <StyledMetricOption
+            metric={activeData.value as MetricOptionProps['metric']}
+            showType
+          />
+        )}
+        <Icons.Drag iconSize="xl" />
+      </DragOverlayContainer>
+    );
+  }
+  return null;
+}
+
 interface ExploreDndContextProps {
   children: React.ReactNode;
 }
@@ -408,41 +460,9 @@ export const ExploreDndContextProvider: FC<ExploreDndContextProps> = ({
       {/*
         @dnd-kit has no native drag image (unlike react-dnd's HTML5 backend),
         so the item following the cursor must be rendered explicitly here.
-        Reorder drags leave activeData null on purpose, so only external
-        DatasourcePanel drags (which carry a value) get a preview.
       */}
       <DragOverlay dropAnimation={null}>
-        {activeData?.type === DndItemType.Folder ? (
-          <DragOverlayContainer align="center" justify="space-between">
-            <Flex align="center" gap={4}>
-              <Icons.FolderOutlined iconSize="l" />
-              <span>{activeData.name}</span>
-            </Flex>
-            <FolderDragBadge>
-              {tn(
-                '%s field',
-                '%s fields',
-                activeData.items?.length ?? 0,
-                activeData.items?.length ?? 0,
-              )}
-            </FolderDragBadge>
-          </DragOverlayContainer>
-        ) : activeData?.value ? (
-          <DragOverlayContainer align="center" justify="space-between">
-            {activeData.type === DndItemType.Column ? (
-              <StyledColumnOption
-                column={activeData.value as ColumnOptionProps['column']}
-                showType
-              />
-            ) : (
-              <StyledMetricOption
-                metric={activeData.value as MetricOptionProps['metric']}
-                showType
-              />
-            )}
-            <Icons.Drag iconSize="xl" />
-          </DragOverlayContainer>
-        ) : null}
+        {renderDragOverlayContent(activeData)}
       </DragOverlay>
     </DndContext>
   );

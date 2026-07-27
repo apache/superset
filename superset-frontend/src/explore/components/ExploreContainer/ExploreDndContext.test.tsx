@@ -17,10 +17,12 @@
  * under the License.
  */
 import { closestCenter, pointerWithin, rectIntersection } from '@dnd-kit/core';
+import { render, screen } from 'spec/helpers/testing-library';
 import {
   ActiveDragData,
   DroppableData,
   exploreCollisionDetection,
+  renderDragOverlayContent,
   resolveDragEnd,
 } from './ExploreDndContext';
 
@@ -374,4 +376,75 @@ test('a drag with no active data routes to the external dropzone branch', () => 
   expect(mockClosestCenter).not.toHaveBeenCalled();
   expect(mockPointerWithin).toHaveBeenCalledTimes(1);
   expect(result).toEqual([{ id: 'dropzone-cols' }]);
+});
+
+// --- renderDragOverlayContent -----------------------------------------------
+// The DragOverlay preview content is extracted to a pure function so it can
+// be rendered directly with a given activeData, since @dnd-kit's
+// PointerSensor needs real pointer events/layout that jsdom cannot provide.
+
+test('renders nothing when there is no active drag', () => {
+  const { container } = render(<>{renderDragOverlayContent(null)}</>);
+  expect(container).toBeEmptyDOMElement();
+});
+
+test('renders nothing for a reorder drag (no value, not a folder)', () => {
+  const { container } = render(
+    <>{renderDragOverlayContent({ type: COLUMN, dragIndex: 0 })}</>,
+  );
+  expect(container).toBeEmptyDOMElement();
+});
+
+test('renders the folder name and a singular field count for one item', () => {
+  render(
+    <>
+      {renderDragOverlayContent({
+        type: FOLDER,
+        name: 'My Folder',
+        items: [columnItem('a')],
+      })}
+    </>,
+  );
+  expect(screen.getByText('My Folder')).toBeInTheDocument();
+  expect(screen.getByText('1 field')).toBeInTheDocument();
+});
+
+test('renders a plural field count for a folder with multiple items, including metrics', () => {
+  render(
+    <>
+      {renderDragOverlayContent({
+        type: FOLDER,
+        name: 'Mixed Folder',
+        items: [columnItem('a'), metricItem('m')],
+      })}
+    </>,
+  );
+  expect(screen.getByText('Mixed Folder')).toBeInTheDocument();
+  // The count reflects all folder items regardless of whether they are
+  // columns or metrics - it is intentionally not labeled "columns".
+  expect(screen.getByText('2 fields')).toBeInTheDocument();
+});
+
+test('renders a column preview for a plain column drag', () => {
+  render(
+    <>
+      {renderDragOverlayContent({
+        type: COLUMN,
+        value: { column_name: 'a', verbose_name: 'Column A' },
+      })}
+    </>,
+  );
+  expect(screen.getByText('Column A')).toBeInTheDocument();
+});
+
+test('renders a metric preview for a plain metric drag', () => {
+  render(
+    <>
+      {renderDragOverlayContent({
+        type: METRIC,
+        value: { metric_name: 'm', verbose_name: 'Metric M' },
+      })}
+    </>,
+  );
+  expect(screen.getByText('Metric M')).toBeInTheDocument();
 });
