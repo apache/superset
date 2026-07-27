@@ -27,6 +27,18 @@ export interface DatasourcePanelDndItem {
   type: DndItemType;
 }
 
+/**
+ * Payload for dragging a whole folder out of the DatasourcePanel. `items` are
+ * the folder's columns/metrics (recursively including subfolders) already
+ * shaped as individual DnD items so drop targets can reuse their per-item
+ * `canDrop`/`onDrop` logic.
+ */
+export interface FolderDndItem {
+  type: DndItemType.Folder;
+  name: string;
+  items: DatasourcePanelDndItem[];
+}
+
 export function isDatasourcePanelDndItem(
   item: any,
 ): item is DatasourcePanelDndItem {

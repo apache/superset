@@ -46,7 +46,35 @@ import { AGGREGATES } from 'src/explore/constants';
 import { datasetLabelLower } from 'src/features/semanticLayers/label';
 
 const EMPTY_OBJECT = {};
-const DND_ACCEPTED_TYPES = [DndItemType.Column, DndItemType.Metric];
+const DND_ACCEPTED_TYPES = [
+  DndItemType.Column,
+  DndItemType.Metric,
+  DndItemType.Folder,
+];
+
+/**
+ * Build an adhoc metric from a dropped column, picking a sensible default
+ * aggregation from the column's data type: SUM for numeric columns,
+ * COUNT_DISTINCT for string/boolean/temporal ones.
+ */
+export const createAdhocMetricFromColumn = (
+  column: ColumnMeta,
+): AdhocMetric => {
+  // Cast config to handle ColumnMeta/ColumnType mismatch
+  const config = {
+    column,
+  } as Partial<AdhocMetric>;
+  if (column.type_generic === GenericDataType.Numeric) {
+    config.aggregate = AGGREGATES.SUM;
+  } else if (
+    column.type_generic === GenericDataType.String ||
+    column.type_generic === GenericDataType.Boolean ||
+    column.type_generic === GenericDataType.Temporal
+  ) {
+    config.aggregate = AGGREGATES.COUNT_DISTINCT;
+  }
+  return new AdhocMetric(config);
+};
 
 const isDictionaryForAdhocMetric = (value: QueryFormMetric) =>
   value &&
@@ -385,6 +413,26 @@ const DndMetricSelect = (props: any) => {
     [onNewMetric, togglePopover],
   );
 
+  const onDropFolder = useCallback(
+    (items: DatasourcePanelDndItem[]) => {
+      // Items already passed `canDrop`. Saved metrics are added as-is; columns
+      // become adhoc metrics with a default aggregation (no popover, since a
+      // folder can drop many at once).
+      const additions = items.map(item =>
+        item.type === DndItemType.Metric
+          ? (item.value as Metric)
+          : createAdhocMetricFromColumn(item.value as ColumnMeta),
+      );
+      if (additions.length === 0) {
+        return;
+      }
+      const newValue = multi ? [...value, ...additions] : [additions[0]];
+      setValue(newValue);
+      handleChange(newValue);
+    },
+    [handleChange, multi, value],
+  );
+
   const handleClickGhostButton = useCallback(() => {
     setDroppedItem({});
     togglePopover(true);
@@ -395,21 +443,7 @@ const DndMetricSelect = (props: any) => {
       isDatasourcePanelDndItem(droppedItem) &&
       droppedItem.type === DndItemType.Column
     ) {
-      const itemValue = droppedItem.value as ColumnMeta;
-      // Cast config to handle ColumnMeta/ColumnType mismatch
-      const config = {
-        column: itemValue,
-      } as Partial<AdhocMetric>;
-      if (itemValue.type_generic === GenericDataType.Numeric) {
-        config.aggregate = AGGREGATES.SUM;
-      } else if (
-        itemValue.type_generic === GenericDataType.String ||
-        itemValue.type_generic === GenericDataType.Boolean ||
-        itemValue.type_generic === GenericDataType.Temporal
-      ) {
-        config.aggregate = AGGREGATES.COUNT_DISTINCT;
-      }
-      return new AdhocMetric(config);
+      return createAdhocMetricFromColumn(droppedItem.value as ColumnMeta);
     }
     return new AdhocMetric({});
   }, [droppedItem]);
@@ -428,6 +462,7 @@ const DndMetricSelect = (props: any) => {
       <DndSelectLabel
         onDrop={handleDrop}
         canDrop={canDrop}
+        onDropFolder={onDropFolder}
         valuesRenderer={valuesRenderer}
         accept={DND_ACCEPTED_TYPES}
         ghostButtonText={ghostButtonText}
