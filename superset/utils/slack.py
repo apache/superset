@@ -185,11 +185,10 @@ def _get_channels(
         )
         return channels
     except SlackApiError as ex:
-        logger.error(
+        logger.warning(
             "Failed to fetch Slack channels after %d pages: %s",
             page_count,
             str(ex),
-            exc_info=True,
         )
         raise
 

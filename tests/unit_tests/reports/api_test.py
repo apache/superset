@@ -80,14 +80,22 @@ def test_slack_channels_page_without_page_size_returns_all(
 
 
 @with_feature_flags(ALERT_REPORTS=True)
+@patch("superset.reports.api.logger")
 @patch("superset.reports.api.get_channels_with_search")
 def test_slack_channels_handles_superset_exception(
     mock_search: Any,
+    logger_mock: Any,
     client: Any,
     full_api_access: None,
 ) -> None:
+    # A SupersetException here typically wraps an already-handled Slack auth
+    # error (e.g. a revoked bot token), so it must be logged at WARNING, not
+    # ERROR, to avoid polluting Sentry with an expected, already-handled state.
     mock_search.side_effect = SupersetException("Slack API error")
     params = rison.dumps({})
     rv = client.get(f"/api/v1/report/slack_channels/?q={params}")
     assert rv.status_code == 422
     assert "Slack API error" in rv.json["message"]
+    logger_mock.error.assert_not_called()
+    logger_mock.warning.assert_called_once()
+    assert "Slack API error" in logger_mock.warning.call_args.args[1]
