@@ -548,24 +548,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # fetched for cursor.description to be populated.
     type_probe_needs_row: bool = False
     requires_column_value_normalization: bool = False
-
-    @classmethod
-    def apply_sampling_read_limit_override(cls, sql: str) -> str:
-        """Adjust system-authored sampling SQL to survive engine read limits.
-
-        Some engines reject full-table-shaped queries from a pre-execution
-        row estimate that ignores LIMIT (e.g. ClickHouse `max_rows_to_read`),
-        which breaks Superset-authored sampling queries (filter values,
-        samples/preview, datetime format detection) on large tables. Engine
-        specs that support a bounded-read override return a modified query;
-        the base implementation returns the SQL unchanged. Must only be
-        applied to SQL authored entirely by Superset, never to user-authored
-        SQL, and callers go through
-        ``Database.apply_sampling_read_limit_override`` so the per-database
-        opt-out is honored.
-        """
-        return sql
-
     try_remove_schema_from_table_name = True  # pylint: disable=invalid-name
     run_multiple_statements_as_one = False
     custom_errors: dict[
@@ -638,6 +620,40 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # is determined only after the specific query is executed and it will update
     # the `cancel_query` value in the `extra` field of the `query` object
     has_query_id_before_execute = True
+
+    @classmethod
+    def apply_sampling_read_limit_override(cls, sql: str) -> str:
+        """Build the bounded-read retry form of system-authored sampling SQL.
+
+        Some engines reject bounded queries from a pre-execution row estimate
+        that ignores LIMIT (e.g. ClickHouse ``max_rows_to_read``), which breaks
+        Superset-authored sampling queries (filter values, samples/preview,
+        datetime format detection) on large tables. Engine specs that support
+        a bounded-read override return a modified query; the base
+        implementation returns the SQL unchanged, which callers interpret as
+        "no retry available".
+
+        The override must only be applied to sampling queries whose statement
+        Superset generated (a physical-table dataset, not a virtual dataset's
+        user-authored base query), and only as a retry after the engine
+        rejected the un-modified statement with a read-limit error (see
+        ``is_read_limit_error``), so deployments whose queries already succeed
+        — including ClickHouse users connected with ``readonly=1``, which
+        rejects in-query SETTINGS changes — never see altered SQL. Callers go
+        through ``Database.sampling_read_limit_retry_sql`` so the per-database
+        opt-out is honored.
+        """
+        return sql
+
+    @classmethod
+    def is_read_limit_error(cls, ex: Exception) -> bool:
+        """Return True when the exception is this engine's read-limit rejection.
+
+        Used to decide whether a failed system-sampling query should be
+        retried with ``apply_sampling_read_limit_override``. The base
+        implementation recognizes nothing.
+        """
+        return False
 
     @classmethod
     def encrypted_extra_sensitive_field_paths(cls) -> set[str]:

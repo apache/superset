@@ -166,9 +166,10 @@ extra_description = markdown(
     "the default catalog when running queries and creating datasets."
     "9. The ``disable_sampling_read_limit_override`` field is a boolean "
     "specifying whether system-generated sampling queries (filter values, "
-    "samples/preview, datetime format detection) are kept subject to the "
-    "engine's configured read limits instead of running with the engine's "
-    "bounded-read override (ClickHouse only).",
+    "samples/preview, datetime format detection) that an engine rejects with "
+    "a read-limit error should fail outright instead of being retried once "
+    "with the engine's bounded-read override. Only affects engines that "
+    "implement such an override.",
     True,
 )
 get_export_ids_schema = {
