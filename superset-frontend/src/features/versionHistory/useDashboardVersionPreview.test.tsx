@@ -56,7 +56,7 @@ const liveChart = (sliceId: number, name: string): HydrateChartData => ({
   form_data: { slice_id: sliceId, viz_type: 'table' },
   description: '',
   description_markeddown: '',
-  owners: [],
+  editors: [],
   modified: '',
   changed_on: '2025-12-05T17:18:00',
 });

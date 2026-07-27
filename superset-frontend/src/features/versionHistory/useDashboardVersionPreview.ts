@@ -104,7 +104,7 @@ export async function resolveSnapshotCharts(
           form_data: { ...form_data, slice_id: id },
           description: slice?.description ?? '',
           description_markeddown: '',
-          owners: [],
+          editors: [],
           modified: '',
           changed_on: new Date().toISOString(),
         });
