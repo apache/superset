@@ -254,7 +254,10 @@ def test_sql_filters_and_legacy_where_go_into_extras() -> None:
     assert query["extras"]["having"] == "(SUM(x) > 5)"
 
 
-def test_table_percent_metrics_and_time_grain_are_carried() -> None:
+def test_table_excludes_percent_metrics_but_carries_time_grain() -> None:
+    # percent_metrics are shown as "% of total" via contribution post-processing
+    # the rebuild can't apply, so they are omitted rather than exported as raw
+    # aggregates that don't match the chart.
     form_data = {
         "groupby": ["c"],
         "metrics": ["count"],
@@ -264,5 +267,29 @@ def test_table_percent_metrics_and_time_grain_are_carried() -> None:
     query = build_query_context_from_form_data(form_data, DATASOURCE, viz_type="table")[
         "queries"
     ][0]
-    assert query["metrics"] == ["count", "pct_total"]
+    assert query["metrics"] == ["count"]
     assert query["extras"]["time_grain_sqla"] == "P1M"
+
+
+def test_simple_having_filter_is_still_converted() -> None:
+    # SIMPLE filters convert regardless of clause, preserving the behavior the MCP
+    # compile/preview path relied on.
+    adhoc = [
+        {
+            "expressionType": "SIMPLE",
+            "clause": "HAVING",
+            "subject": "count",
+            "operator": ">",
+            "comparator": 5,
+        }
+    ]
+    assert adhoc_filters_to_query_filters(adhoc) == [
+        {"col": "count", "op": ">", "val": 5}
+    ]
+
+
+def test_time_range_falls_back_to_since_until() -> None:
+    # Older charts store the range as separate since/until rather than time_range.
+    form_data = {"metrics": ["count"], "since": "2020-01-01", "until": "2020-12-31"}
+    query = build_query_context_from_form_data(form_data, DATASOURCE)["queries"][0]
+    assert query["time_range"] == "2020-01-01 : 2020-12-31"

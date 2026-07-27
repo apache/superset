@@ -45,16 +45,14 @@ def adhoc_filters_to_query_filters(
     Convert ``SIMPLE`` adhoc filters into QueryObject filter clauses.
 
     Adhoc filters use ``{subject, operator, comparator}`` while a query object
-    expects ``{col, op, val}``. Only ``SIMPLE`` WHERE-clause filters are
-    convertible here; free-form ``SQL`` filters have no ``{col, op, val}``
-    equivalent and are handled separately (see :func:`freeform_where_having`).
+    expects ``{col, op, val}``. All ``SIMPLE`` filters are converted (matching the
+    behavior the MCP compile/preview path relied on); free-form ``SQL`` filters
+    have no ``{col, op, val}`` equivalent and are handled separately (see
+    :func:`freeform_where_having`).
     """
     result: list[dict[str, Any]] = []
     for flt in adhoc_filters or []:
-        if (
-            flt.get("expressionType") == "SIMPLE"
-            and (flt.get("clause") or "WHERE").upper() == "WHERE"
-        ):
+        if flt.get("expressionType") == "SIMPLE":
             result.append(
                 {
                     "col": flt.get("subject"),
@@ -177,9 +175,10 @@ def build_query_context_from_form_data(
     # ``metrics``.
     if not metrics and form_data.get("metric"):
         metrics = [form_data["metric"]]
-    # Table percent metrics are computed as additional query metrics.
-    if viz_type == "table" and form_data.get("percent_metrics"):
-        metrics = [*metrics, *form_data["percent_metrics"]]
+    # ``percent_metrics`` are intentionally not carried: the chart shows them as a
+    # "% of total" produced by contribution post-processing, which this rebuild
+    # does not apply, so adding them as plain metrics would export raw aggregates
+    # that don't match the chart.
 
     columns = columns_from_form_data(form_data)
     # Only a Big Number *with a trendline* (viz_type ``big_number``) groups by its
@@ -199,7 +198,12 @@ def build_query_context_from_form_data(
     if form_data.get("time_grain_sqla"):
         extras["time_grain_sqla"] = form_data["time_grain_sqla"]
 
-    time_range = form_data.get("time_range") or "No filter"
+    # Prefer the modern ``time_range``; fall back to the legacy ``since``/``until``
+    # pair (older charts store the range that way) before defaulting to no filter.
+    time_range = form_data.get("time_range")
+    if not time_range and (form_data.get("since") or form_data.get("until")):
+        time_range = f"{form_data.get('since') or ''} : {form_data.get('until') or ''}"
+    time_range = time_range or "No filter"
     query: dict[str, Any] = {
         "columns": columns,
         "metrics": metrics,
