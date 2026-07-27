@@ -1670,7 +1670,8 @@ def test_get_df_payload_rolls_back_session_when_query_model_commit_fails():
         mock_cache.status = "success"
         mock_cache_manager.get.return_value = mock_cache
 
-        mock_db.session.query.return_value.filter_by.return_value.one_or_none.return_value = None
+        mock_query = mock_db.session.query.return_value
+        mock_query.filter_by.return_value.one_or_none.return_value = None
         mock_db.session.commit.side_effect = Exception("commit failed")
 
         payload = processor.get_df_payload(query_obj, force_cached=False)

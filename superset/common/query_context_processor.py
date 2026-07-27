@@ -84,7 +84,7 @@ class QueryContextProcessor:
     cache_type: ClassVar[str] = "df"
     enforce_numerical_metrics: ClassVar[bool] = True
 
-    def get_df_payload(
+    def get_df_payload(  # noqa: C901
         self, query_obj: QueryObject, force_cached: bool | None = False
     ) -> dict[str, Any]:
         """Handles caching around the df payload retrieval"""
