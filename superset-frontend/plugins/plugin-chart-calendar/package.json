@@ -1,7 +1,7 @@
 {
   "name": "@superset-ui/plugin-chart-calendar",
   "version": "0.20.3",
-  "description": "Superset Legacy Chart - Calendar Heatmap",
+  "description": "Superset Chart - Calendar Heatmap",
   "keywords": [
     "superset"
   ],

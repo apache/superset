@@ -1,7 +1,7 @@
 {
   "name": "@superset-ui/plugin-chart-paired-t-test",
   "version": "0.20.3",
-  "description": "Superset Legacy Chart - Paired T Test",
+  "description": "Superset Chart - Paired T Test",
   "keywords": [
     "superset"
   ],

@@ -1,7 +1,7 @@
 {
   "name": "@superset-ui/plugin-chart-rose",
   "version": "0.20.3",
-  "description": "Superset Legacy Chart - Nightingale Rose Diagram",
+  "description": "Superset Chart - Nightingale Rose Diagram",
   "keywords": [
     "superset"
   ],

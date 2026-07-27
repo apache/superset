@@ -1,7 +1,7 @@
 {
   "name": "@superset-ui/plugin-chart-chord",
   "version": "0.20.3",
-  "description": "Superset Legacy Chart - Chord Diagram",
+  "description": "Superset Chart - Chord Diagram",
   "sideEffects": [
     "*.css"
   ],

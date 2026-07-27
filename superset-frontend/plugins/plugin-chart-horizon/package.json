@@ -1,7 +1,7 @@
 {
   "name": "@superset-ui/plugin-chart-horizon",
   "version": "0.20.3",
-  "description": "Superset Legacy Chart - Horizon",
+  "description": "Superset Chart - Horizon",
   "keywords": [
     "superset"
   ],
