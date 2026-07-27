@@ -71,25 +71,17 @@ test('fetchActivity sends the base pagination params and omits empty filters', a
   expect(url.searchParams.get('include')).toBe('self');
   expect(url.searchParams.get('page')).toBe('2');
   expect(url.searchParams.get('page_size')).toBe('25');
-  // No search/window filters were supplied, so they must not be sent.
+  // No search filter was supplied, so it must not be sent.
   expect(url.searchParams.has('q')).toBe(false);
-  expect(url.searchParams.has('since')).toBe(false);
-  expect(url.searchParams.has('until')).toBe(false);
 });
 
-test('fetchActivity forwards trimmed q and since/until window filters', async () => {
+test('fetchActivity forwards a trimmed q filter', async () => {
   fetchMock.get(ACTIVITY_ENDPOINT, { result: [], count: 0 });
 
-  await fetchActivity('chart', 'chart-uuid', {
-    q: '  revenue  ',
-    since: '2026-01-01T00:00:00',
-    until: '2026-02-01T00:00:00',
-  });
+  await fetchActivity('chart', 'chart-uuid', { q: '  revenue  ' });
 
   const url = new URL(fetchMock.callHistory.calls(ACTIVITY_ENDPOINT)[0].url);
   expect(url.searchParams.get('q')).toBe('revenue');
-  expect(url.searchParams.get('since')).toBe('2026-01-01T00:00:00');
-  expect(url.searchParams.get('until')).toBe('2026-02-01T00:00:00');
 });
 
 test('fetchActivity omits q when it is whitespace only', async () => {

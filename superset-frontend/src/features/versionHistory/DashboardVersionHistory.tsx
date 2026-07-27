@@ -189,7 +189,7 @@ export default function DashboardVersionHistory() {
           entityUuid: uuid,
           versionUuid: group.versionUuid,
           transactionId: group.transactionId,
-          headline: groupHeadline('dashboard', group),
+          headline: groupHeadline(group),
           issuedAt: group.issuedAt,
         }),
       );
@@ -213,7 +213,7 @@ export default function DashboardVersionHistory() {
       if (group.versionUuid) {
         requestRestore({
           versionUuid: group.versionUuid,
-          headline: groupHeadline('dashboard', group),
+          headline: groupHeadline(group),
           issuedAt: group.issuedAt,
         });
       }
@@ -226,7 +226,7 @@ export default function DashboardVersionHistory() {
       if (group.versionUuid) {
         openAsNew({
           versionUuid: group.versionUuid,
-          headline: groupHeadline('dashboard', group),
+          headline: groupHeadline(group),
           issuedAt: group.issuedAt,
         });
       }

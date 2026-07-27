@@ -223,7 +223,7 @@ export default function ExploreVersionHistory() {
           entityUuid: uuid,
           versionUuid: group.versionUuid,
           transactionId: group.transactionId,
-          headline: groupHeadline('chart', group),
+          headline: groupHeadline(group),
           issuedAt: group.issuedAt,
         }),
       );
@@ -247,7 +247,7 @@ export default function ExploreVersionHistory() {
       if (group.versionUuid) {
         requestRestore({
           versionUuid: group.versionUuid,
-          headline: groupHeadline('chart', group),
+          headline: groupHeadline(group),
           issuedAt: group.issuedAt,
         });
       }
@@ -260,7 +260,7 @@ export default function ExploreVersionHistory() {
       if (group.versionUuid) {
         openAsNew({
           versionUuid: group.versionUuid,
-          headline: groupHeadline('chart', group),
+          headline: groupHeadline(group),
           issuedAt: group.issuedAt,
         });
       }

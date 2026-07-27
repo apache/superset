@@ -51,23 +51,12 @@ export interface FetchActivityOptions {
    * reflects matches. Debounced upstream.
    */
   q?: string;
-  /** ISO-8601 lower bound on `issued_at` (inclusive). */
-  since?: string;
-  /** ISO-8601 upper bound on `issued_at` (exclusive). */
-  until?: string;
 }
 
 export async function fetchActivity(
   entityType: VersionedEntityType,
   uuid: string,
-  {
-    include = 'all',
-    page = 0,
-    pageSize = 25,
-    q,
-    since,
-    until,
-  }: FetchActivityOptions = {},
+  { include = 'all', page = 0, pageSize = 25, q }: FetchActivityOptions = {},
 ): Promise<ActivityResponse> {
   const params = new URLSearchParams({
     include,
@@ -77,12 +66,6 @@ export async function fetchActivity(
   const trimmedQ = q?.trim();
   if (trimmedQ) {
     params.set('q', trimmedQ);
-  }
-  if (since) {
-    params.set('since', since);
-  }
-  if (until) {
-    params.set('until', until);
   }
   const { json } = await SupersetClient.get({
     endpoint: `/api/v1/${API_RESOURCE[entityType]}/${encodeURIComponent(uuid)}/activity/?${params.toString()}`,

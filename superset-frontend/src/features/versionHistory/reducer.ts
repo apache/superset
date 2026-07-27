@@ -196,9 +196,6 @@ export const selectVersionHistoryInclude = (state: VersionHistoryRootState) =>
 export const selectVersionPreview = (state: VersionHistoryRootState) =>
   selectVersionHistory(state).preview;
 
-export const selectIsVersionPreviewActive = (state: VersionHistoryRootState) =>
-  selectVersionHistory(state).preview !== null;
-
 export const selectIsChartVersionPreviewActive = (
   state: VersionHistoryRootState,
 ) => {

@@ -281,23 +281,18 @@ test('describeRecord humanizes camelCase field names', () => {
 });
 
 test('groupHeadline prefers the transaction action kind', () => {
-  expect(groupHeadline('chart', group({ actionKind: 'restore' }))).toBe(
+  expect(groupHeadline(group({ actionKind: 'restore' }))).toBe(
     'Restored version',
   );
   expect(
-    groupHeadline(
-      'chart',
-      group({ actionKind: 'restore', restoredToVersion: 3 }),
-    ),
+    groupHeadline(group({ actionKind: 'restore', restoredToVersion: 3 })),
   ).toBe('Restored to version 3');
-  expect(groupHeadline('dashboard', group({ actionKind: 'import' }))).toBe(
-    'Imported',
-  );
-  expect(groupHeadline('chart', group({ actionKind: 'clone' }))).toBe('Cloned');
+  expect(groupHeadline(group({ actionKind: 'import' }))).toBe('Imported');
+  expect(groupHeadline(group({ actionKind: 'clone' }))).toBe('Cloned');
 });
 
 test('groupHeadline uses the save date for charts', () => {
-  expect(groupHeadline('chart', group())).toBe('Dec 5, 2025, 12:18 PM');
+  expect(groupHeadline(group())).toBe('Dec 5, 2025, 12:18 PM');
 });
 
 // Dashboards share the chart headline model (sc-107283 guide, 2026-06-12):
@@ -309,15 +304,11 @@ test('groupHeadline heads dashboard saves with the save date', () => {
     kind: 'filter',
     path: ['json_metadata', 'native_filter_configuration', 'NATIVE_1'],
   });
+  expect(groupHeadline(group({ records: [filterRecord, filterRecord] }))).toBe(
+    'Dec 5, 2025, 12:18 PM',
+  );
   expect(
     groupHeadline(
-      'dashboard',
-      group({ records: [filterRecord, filterRecord] }),
-    ),
-  ).toBe('Dec 5, 2025, 12:18 PM');
-  expect(
-    groupHeadline(
-      'dashboard',
       group({
         records: [
           filterRecord,
@@ -329,24 +320,19 @@ test('groupHeadline heads dashboard saves with the save date', () => {
 });
 
 test('groupHeadline labels the first tracked save', () => {
-  expect(groupHeadline('chart', group({ firstTrackedSave: true }))).toBe(
+  expect(groupHeadline(group({ firstTrackedSave: true }))).toBe(
     'First tracked save',
   );
 });
 
 test('groupHeadline falls back to a label when a save has no records', () => {
-  expect(groupHeadline('dashboard', group({ records: [] }))).toBe(
-    'Properties updated',
-  );
+  expect(groupHeadline(group({ records: [] }))).toBe('Properties updated');
 });
 
 test('groupHeadline labels a scaffolding-only save as a layout rearrangement', () => {
-  expect(
-    groupHeadline(
-      'dashboard',
-      group({ records: [], hasSuppressedLayout: true }),
-    ),
-  ).toBe('Rearranged layout');
+  expect(groupHeadline(group({ records: [], hasSuppressedLayout: true }))).toBe(
+    'Rearranged layout',
+  );
 });
 
 test('relatedHeadline prefers impact-aware phrasing for shared datasets', () => {

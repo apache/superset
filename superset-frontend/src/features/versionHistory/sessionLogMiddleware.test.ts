@@ -99,3 +99,14 @@ test('passes every action through to the next middleware', () => {
   expect(next).toHaveBeenCalledWith(action);
   expect(store.dispatch).not.toHaveBeenCalled();
 });
+
+test('inlined action-type literals match the real explore constants', async () => {
+  // The middleware inlines these to keep explore out of the global
+  // bundle; a rename in explore must fail here, not silently kill the
+  // session log. Test code can afford the real imports.
+  const middleware = await import('./sessionLogMiddleware');
+  const exploreActions = await import('src/explore/actions/exploreActions');
+  const hydrateExplore = await import('src/explore/actions/hydrateExplore');
+  expect(middleware.SET_FIELD_VALUE).toBe(exploreActions.SET_FIELD_VALUE);
+  expect(middleware.HYDRATE_EXPLORE).toBe(hydrateExplore.HYDRATE_EXPLORE);
+});

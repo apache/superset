@@ -42,7 +42,7 @@ import SaveGroupItem from './SaveGroupItem';
 import RelatedUpdateRow from './RelatedUpdateRow';
 import CurrentVersionSection from './CurrentVersionSection';
 
-export const VERSION_HISTORY_PANEL_WIDTH = 320;
+const VERSION_HISTORY_PANEL_WIDTH = 320;
 
 const Panel = styled.aside`
   ${({ theme }) => `
@@ -83,9 +83,6 @@ const Controls = styled.div`
     > * {
       flex: 1 1 0;
       min-width: 0;
-    }
-    .ant-input-affix-wrapper {
-      border-radius: ${theme.borderRadiusSM}px;
     }
   `}
 `;

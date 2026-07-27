@@ -23,7 +23,6 @@ import type {
   ActivityEntityKind,
   ActivityRecord,
   SaveGroup,
-  VersionedEntityType,
 } from './types';
 
 /** Activity timestamps are naive UTC; parse as UTC, render local. */
@@ -180,11 +179,6 @@ function layoutKindLabel(kind: string): string | null {
 }
 
 /**
- * Human-readable label for a `source='self'` activity record. The
- * backend leaves `summary` empty for self records, so the client
- * renders one from kind / operation / path / values.
- */
-/**
  * A change to the entity's own name/title reads better as a rename than as
  * a generic field edit ("Changed 'slice name'"). Returns the friendly
  * headline, or null when the record isn't a top-level name change.
@@ -204,6 +198,11 @@ function renameHeadline(record: ActivityRecord): string | null {
   }
 }
 
+/**
+ * Human-readable label for a `source='self'` activity record. The
+ * backend leaves `summary` empty for self records, so the client
+ * renders one from kind / operation / path / values.
+ */
 export function describeRecord(record: ActivityRecord): string {
   const { kind, operation } = record;
   const subject = recordSubject(record);
@@ -302,16 +301,12 @@ export function describeRecord(record: ActivityRecord): string {
 }
 
 /**
- * Headline for a save container, identical across entity types (sc-107283
- * model. The transaction `action_kind` drives an action-specific
- * headline; otherwise the save's date/time heads the group and the descriptive
- * per-change rows render beneath it. `entityType` is retained for the shared
- * signature but no longer changes the headline.
+ * Headline for a save container, identical across entity types. The
+ * transaction `action_kind` drives an action-specific headline; otherwise
+ * the save's date/time heads the group and the descriptive per-change rows
+ * render beneath it.
  */
-export function groupHeadline(
-  entityType: VersionedEntityType,
-  group: SaveGroup,
-): string {
+export function groupHeadline(group: SaveGroup): string {
   if (group.actionKind === 'restore') {
     return group.restoredToVersion != null
       ? t('Restored to version %s', group.restoredToVersion)

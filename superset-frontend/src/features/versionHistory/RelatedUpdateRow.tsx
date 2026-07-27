@@ -82,8 +82,8 @@ const NameLink = styled.button`
     border: none;
     padding: 0;
     cursor: pointer;
+    font: inherit;
     color: ${theme.colorPrimary};
-    font-size: ${theme.fontSize}px;
     &:hover {
       text-decoration: underline;
     }

@@ -251,7 +251,7 @@ export default function SaveGroupItem({
 }: SaveGroupItemProps) {
   const [expanded, setExpanded] = useState(false);
   const [showAll, setShowAll] = useState(false);
-  const headline = groupHeadline(entityType, group);
+  const headline = groupHeadline(group);
   const meta = `${formatAuthor(group.changedBy)} · ${formatVersionDateTimeShort(
     group.issuedAt,
   )}`;

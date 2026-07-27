@@ -23,9 +23,11 @@ import { appendVersionSessionLog, clearVersionSessionLog } from './reducer';
 
 // Action types are inlined (rather than imported from the explore
 // module) so this middleware does not pull explore code into every
-// page's bundle; the store applies it globally.
-const SET_FIELD_VALUE = 'SET_FIELD_VALUE';
-const HYDRATE_EXPLORE = 'HYDRATE_EXPLORE';
+// page's bundle; the store applies it globally. Exported so the test
+// suite can assert they match the real explore constants — a rename
+// there would otherwise silently kill the session log.
+export const SET_FIELD_VALUE = 'SET_FIELD_VALUE';
+export const HYDRATE_EXPLORE = 'HYDRATE_EXPLORE';
 
 interface SessionLogState {
   user?: { firstName?: string; lastName?: string };
