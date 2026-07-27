@@ -594,9 +594,7 @@ class TestExtractOutputIds:
     def test_extracts_both_ids_from_flat_response(self) -> None:
         middleware = LoggingMiddleware()
         response_text = '{"chart_id": 123, "dashboard_id": 456}'
-        result = ToolResult(
-            content=[mt.TextContent(type="text", text=response_text)]
-        )
+        result = ToolResult(content=[mt.TextContent(type="text", text=response_text)])
         assert middleware._extract_output_ids(result) == (456, 123)
 
 
