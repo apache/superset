@@ -123,12 +123,15 @@ export default function ExploreVersionHistory() {
       .catch(() => {
         if (!cancelled) {
           addDangerToast(t('Failed to load version history'));
+          // Without a uuid the panel would sit on a misleading
+          // "No history yet" empty state; close it instead.
+          dispatch(closeVersionHistoryPanel());
         }
       });
     return () => {
       cancelled = true;
     };
-  }, [uuid, isPanelOpen, sliceId, addDangerToast]);
+  }, [uuid, isPanelOpen, sliceId, addDangerToast, dispatch]);
 
   // Server-side search over the full history; debounce so each keystroke
   // doesn't refetch.

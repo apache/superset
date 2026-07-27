@@ -47,10 +47,8 @@ export default function PreviewBanner({
   const dispatch = useDispatch();
   const { entityType: activeEntityType, preview } =
     useSelector(selectVersionHistory);
-  const { requestRestore, openAsNew, restoreModal } = useVersionActions(
-    entityType,
-    preview?.entityUuid,
-  );
+  const { requestRestore, openAsNew, isCreating, restoreModal } =
+    useVersionActions(entityType, preview?.entityUuid);
 
   const handleClose = useCallback(() => {
     dispatch(clearVersionPreview());
@@ -99,6 +97,7 @@ export default function PreviewBanner({
             <Button
               buttonSize="small"
               buttonStyle="secondary"
+              loading={isCreating}
               onClick={() => openAsNew(target)}
             >
               {entityType === 'chart'

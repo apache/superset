@@ -33,6 +33,9 @@ export const VERSION_RESTORED = 'VERSION_RESTORED';
 export const APPEND_VERSION_SESSION_LOG = 'APPEND_VERSION_SESSION_LOG';
 export const CLEAR_VERSION_SESSION_LOG = 'CLEAR_VERSION_SESSION_LOG';
 
+/** Upper bound on retained unsaved-edit entries; older ones drop off. */
+export const MAX_SESSION_LOG_ENTRIES = 50;
+
 interface OpenPanelAction {
   type: typeof OPEN_VERSION_HISTORY_PANEL;
   entityType: VersionedEntityType;
@@ -159,7 +162,15 @@ export default function versionHistoryReducer(
           sessionLog: [...state.sessionLog.slice(0, -1), action.entry],
         };
       }
-      return { ...state, sessionLog: [...state.sessionLog, action.entry] };
+      // Alternating edits never collapse, so cap the log — the middleware
+      // appends on every control change for the lifetime of the page, and
+      // only the most recent entries are meaningful in the panel.
+      return {
+        ...state,
+        sessionLog: [...state.sessionLog, action.entry].slice(
+          -MAX_SESSION_LOG_ENTRIES,
+        ),
+      };
     }
     case CLEAR_VERSION_SESSION_LOG:
       return { ...state, sessionLog: [] };

@@ -166,7 +166,8 @@ export default function VersionHistoryPanel({
   onOpenRelated,
   sessionEntries = [],
 }: VersionHistoryPanelProps) {
-  const { timeline, isLoading, error, hasMore, loadMore } = activity;
+  const { timeline, newestGroup, isLoading, error, hasMore, loadMore } =
+    activity;
 
   const includeOptions = useMemo(
     () => [
@@ -189,12 +190,8 @@ export default function VersionHistoryPanel({
   // no preview affordances, and no restore action. The newest save
   // being a restore additionally means the live entity matches an
   // older version; surface that in the "Current version" section.
-  const newestGroup = useMemo(
-    () =>
-      timeline.find((entry): entry is SaveGroup => entry.type === 'group') ??
-      null,
-    [timeline],
-  );
+  // newestGroup comes from the hook's last unfiltered fetch — the visible
+  // timeline is search-filtered, so its first group may be an older save.
   const currentTransactionId = newestGroup?.transactionId ?? null;
   const restoreNotice =
     newestGroup?.actionKind === 'restore'

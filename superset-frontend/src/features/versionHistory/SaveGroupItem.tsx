@@ -52,13 +52,13 @@ const Container = styled.div<{ isPreviewed: boolean }>`
   }}
 `;
 
-const Header = styled.div`
-  ${({ theme }) => `
+const Header = styled.div<{ hasRecords: boolean }>`
+  ${({ theme, hasRecords }) => `
     display: flex;
     align-items: flex-start;
     gap: ${theme.sizeUnit * 2}px;
     padding: ${theme.sizeUnit * 3}px 0;
-    cursor: pointer;
+    cursor: ${hasRecords ? 'pointer' : 'default'};
   `}
 `;
 
@@ -297,13 +297,16 @@ export default function SaveGroupItem({
   return (
     <Container isPreviewed={isPreviewed} data-test="version-history-save-group">
       <Header
+        // A group with no records has nothing to expand — render it as a
+        // plain container instead of a focusable no-op button.
         // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- header contains a nested kebab <button>, which a real <button> cannot
-        role="button"
-        tabIndex={0}
-        onClick={toggleExpanded}
-        onKeyDown={activate(toggleExpanded)}
+        role={hasRecords ? 'button' : undefined}
+        tabIndex={hasRecords ? 0 : undefined}
+        onClick={hasRecords ? toggleExpanded : undefined}
+        onKeyDown={hasRecords ? activate(toggleExpanded) : undefined}
         aria-expanded={hasRecords ? expanded : undefined}
-        aria-label={headline}
+        aria-label={hasRecords ? headline : undefined}
+        hasRecords={hasRecords}
       >
         <IconWrapper>
           <Icons.CalendarOutlined iconSize="l" />
@@ -337,9 +340,12 @@ export default function SaveGroupItem({
         <>
           {visibleRecords.map((record, index) => (
             <ActionRow
+              // kind/operation/path alone can repeat within one save
+              // (grouping's recordKey needs more discriminators for the
+              // same reason); the index breaks any remaining ties.
               key={`${record.kind}-${record.operation}-${JSON.stringify(
                 record.path,
-              )}`}
+              )}-${index}`}
               entityType={entityType}
               record={record}
               showRestore={canRestore && !isCurrent}

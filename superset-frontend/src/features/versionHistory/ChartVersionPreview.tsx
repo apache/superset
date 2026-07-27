@@ -88,9 +88,12 @@ export default function ChartVersionPreview() {
   const [error, setError] = useState<string | null>(null);
   const fetchIdRef = useRef(0);
   // Read the live datasource through a ref so re-hydrations don't
-  // retrigger the preview fetch.
+  // retrigger the preview fetch. Synced in an effect — render-phase ref
+  // writes are unsafe under concurrent rendering.
   const liveDatasourceRef = useRef(datasource);
-  liveDatasourceRef.current = datasource;
+  useEffect(() => {
+    liveDatasourceRef.current = datasource;
+  }, [datasource]);
 
   const entityUuid = preview?.entityUuid;
   const versionUuid = preview?.versionUuid;
@@ -178,6 +181,13 @@ export default function ChartVersionPreview() {
           setIsLoading(false);
         }
       });
+
+    // Invalidate the in-flight request when the preview closes or the
+    // component unmounts, so a late /chart/data response cannot set state
+    // afterwards.
+    return () => {
+      fetchIdRef.current += 1;
+    };
   }, [entityUuid, versionUuid]);
 
   if (!preview) {

@@ -45,6 +45,8 @@ export interface UseVersionActionsResult {
   requestRestore: (target: VersionActionTarget) => void;
   /** Forks the given version into a new chart/dashboard in a new tab. */
   openAsNew: (target: VersionActionTarget) => void;
+  /** True while an openAsNew fork is in flight; disable its triggers. */
+  isCreating: boolean;
   /** Render this alongside the calling component. */
   restoreModal: ReactElement | null;
 }
@@ -63,6 +65,7 @@ export function useVersionActions(
   const [restoreTarget, setRestoreTarget] =
     useState<VersionActionTarget | null>(null);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
 
   const requestRestore = useCallback((target: VersionActionTarget) => {
     setRestoreTarget(target);
@@ -133,9 +136,12 @@ export function useVersionActions(
 
   const openAsNew = useCallback(
     async (target: VersionActionTarget) => {
-      if (!uuid) {
+      // The in-flight guard mirrors isRestoring: forking awaits several
+      // requests, and a double activation would create two copies.
+      if (!uuid || isCreating) {
         return;
       }
+      setIsCreating(true);
       const copyDate = formatVersionMonthDay(target.issuedAt);
       try {
         if (entityType === 'chart') {
@@ -169,9 +175,11 @@ export function useVersionActions(
             ? t('Failed to create a new chart from this version')
             : t('Failed to create a new dashboard from this version'),
         );
+      } finally {
+        setIsCreating(false);
       }
     },
-    [addDangerToast, addSuccessToast, entityType, uuid],
+    [addDangerToast, addSuccessToast, entityType, isCreating, uuid],
   );
 
   const restoreModal = (
@@ -184,5 +192,5 @@ export function useVersionActions(
     />
   );
 
-  return { requestRestore, openAsNew, restoreModal };
+  return { requestRestore, openAsNew, isCreating, restoreModal };
 }

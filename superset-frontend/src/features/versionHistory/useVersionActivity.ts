@@ -23,6 +23,7 @@ import { buildTimeline, mergeActivityPages } from './grouping';
 import type {
   ActivityInclude,
   ActivityRecord,
+  SaveGroup,
   TimelineEntry,
   VersionedEntityType,
 } from './types';
@@ -37,6 +38,13 @@ const MAX_CHAINED_PAGES = 8;
 export interface UseVersionActivityResult {
   records: ActivityRecord[];
   timeline: TimelineEntry[];
+  /**
+   * The newest save group from the last *unfiltered* fetch. The timeline is
+   * server-filtered by the search term, so its first group is merely the
+   * newest match — using that for "Current" tagging or restore gating would
+   * mislabel an older save while a search is active.
+   */
+  newestGroup: SaveGroup | null;
   count: number;
   isLoading: boolean;
   error: string | null;
@@ -55,6 +63,7 @@ export function useVersionActivity(
   q = '',
 ): UseVersionActivityResult {
   const [records, setRecords] = useState<ActivityRecord[]>([]);
+  const [newestGroup, setNewestGroup] = useState<SaveGroup | null>(null);
   const [count, setCount] = useState(0);
   const [page, setPage] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -62,18 +71,30 @@ export function useVersionActivity(
   // Monotonic id so stale responses from a previous uuid/include are dropped.
   const fetchIdRef = useRef(0);
   // Mirror of `records` so the chained loadMore loop can see the merged
-  // result immediately (functional setState doesn't expose it).
+  // result immediately. Kept in lock-step with setRecords by applyRecords —
+  // never write either one directly.
   const recordsRef = useRef<ActivityRecord[]>([]);
+  const applyRecords = useCallback((next: ActivityRecord[]) => {
+    recordsRef.current = next;
+    setRecords(next);
+  }, []);
 
+  // The cached newest group describes one entity's history; a different
+  // entity must not inherit it.
   useEffect(() => {
-    recordsRef.current = records;
-  }, [records]);
+    setNewestGroup(null);
+  }, [entityType, uuid]);
 
   const fetchPage = useCallback(
     async (pageToLoad: number, reset: boolean) => {
+      // Bump before the guard: clearing the uuid must invalidate any
+      // in-flight response so it cannot land afterwards.
       fetchIdRef.current += 1;
       const fetchId = fetchIdRef.current;
       if (!uuid) {
+        // The invalidated in-flight request can no longer clear the
+        // spinner from its own finally block; clear it here.
+        setIsLoading(false);
         return;
       }
       setIsLoading(true);
@@ -90,11 +111,19 @@ export function useVersionActivity(
         }
         setCount(response.count);
         setPage(pageToLoad);
-        setRecords(existing =>
-          reset
-            ? response.result
-            : mergeActivityPages(existing, response.result),
-        );
+        const next = reset
+          ? response.result
+          : mergeActivityPages(recordsRef.current, response.result);
+        applyRecords(next);
+        if (reset && !q.trim()) {
+          // Only an unfiltered first page is authoritative about which
+          // save is truly the newest.
+          setNewestGroup(
+            (buildTimeline(response.result).find(
+              entry => entry.type === 'group',
+            ) as SaveGroup | undefined) ?? null,
+          );
+        }
       } catch (response) {
         if (fetchId !== fetchIdRef.current) {
           return;
@@ -113,12 +142,11 @@ export function useVersionActivity(
   );
 
   useEffect(() => {
-    recordsRef.current = [];
-    setRecords([]);
+    applyRecords([]);
     setCount(0);
     setPage(0);
     fetchPage(0, true);
-  }, [fetchPage]);
+  }, [applyRecords, fetchPage]);
 
   const loadMore = useCallback(async () => {
     if (!uuid) {
@@ -156,8 +184,7 @@ export function useVersionActivity(
       }
       setCount(total);
       setPage(nextPage);
-      recordsRef.current = merged;
-      setRecords(merged);
+      applyRecords(merged);
     } catch (response) {
       if (fetchId !== fetchIdRef.current) {
         return;
@@ -171,7 +198,7 @@ export function useVersionActivity(
         setIsLoading(false);
       }
     }
-  }, [count, entityType, include, page, q, uuid]);
+  }, [applyRecords, count, entityType, include, page, q, uuid]);
 
   const refresh = useCallback(() => {
     fetchPage(0, true);
@@ -182,6 +209,7 @@ export function useVersionActivity(
   return {
     records,
     timeline,
+    newestGroup,
     count,
     isLoading,
     error,

@@ -73,6 +73,10 @@ const activity = (
 ): UseVersionActivityResult => ({
   records: [],
   timeline,
+  // Mirrors the hook's default: the newest group of an unfiltered timeline.
+  newestGroup:
+    (timeline.find(entry => entry.type === 'group') as SaveGroup | undefined) ??
+    null,
   count: timeline.length,
   isLoading: false,
   error: null,
@@ -219,6 +223,19 @@ test('previewing a change row in an older dashboard group calls onPreview', asyn
   );
   await userEvent.click(screen.getByTestId('version-history-action-row'));
   expect(props.onPreview).toHaveBeenCalledWith(older);
+});
+
+test('an active search never mis-tags the newest match as Current', () => {
+  // The search filtered out the true newest save; the visible newest match
+  // is an older version and must not be treated as Current.
+  const trueNewest = group({ transactionId: 99, versionUuid: 'v-99' });
+  const olderMatch = group({ transactionId: 5, versionUuid: 'v-5' });
+  const props = defaultProps([olderMatch]);
+  props.searchTerm = 'rename';
+  props.activity = activity([olderMatch], { newestGroup: trueNewest });
+  render(<VersionHistoryPanel {...props} />);
+
+  expect(screen.queryByText('Current')).not.toBeInTheDocument();
 });
 
 test('the newest save shows a Current tag and older saves do not', () => {

@@ -721,7 +721,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enables the tagging system for organizing assets
     # @lifecycle: development
     "TAGGING_SYSTEM": False,
-    # Enables the version history panel on Explore and Dashboard pages
+    # Enables the version history panel on Explore and Dashboard pages.
+    # History only accrues while ``ENABLE_VERSIONING_CAPTURE`` is also on;
+    # with capture off the panel renders but stays empty.
     # @lifecycle: development
     "VERSION_HISTORY": False,
     # =================================================================

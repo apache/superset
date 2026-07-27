@@ -236,8 +236,13 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
       fetchIdRef.current += 1;
       const fetchId = fetchIdRef.current;
       const apply = async () => {
-        if (!liveDataRef.current) {
-          liveDataRef.current = await fetchDashboardHydrationData(dashboardId);
+        // Work on a local copy and commit it to the cache only after the
+        // staleness check below — an in-flight fetch resolving after a
+        // restore (which cleared the cache) must not repopulate it with
+        // pre-restore content.
+        let liveData = liveDataRef.current;
+        if (!liveData) {
+          liveData = await fetchDashboardHydrationData(dashboardId);
         }
         const snapshot = await fetchVersionSnapshot(
           'dashboard',
@@ -248,13 +253,14 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
           ? JSON.parse(snapshot.position_json)
           : null;
         const { charts, positionData } = await resolveSnapshotCharts(
-          liveDataRef.current.charts,
+          liveData.charts,
           snapshotLayout,
         );
         if (fetchId !== fetchIdRef.current) {
           return;
         }
-        const { dashboard } = liveDataRef.current;
+        liveDataRef.current = liveData;
+        const { dashboard } = liveData;
         if (appliedVersionRef.current === null) {
           // Entering preview from the live dashboard: remember the user's
           // filter selections so closing the preview can bring them back.

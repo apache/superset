@@ -109,6 +109,7 @@ beforeEach(() => {
   mockedUseVersionActivity.mockReturnValue({
     records: [],
     timeline: [],
+    newestGroup: null,
     count: 0,
     isLoading: false,
     error: null,

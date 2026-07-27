@@ -65,19 +65,29 @@ export default function DashboardVersionHistory() {
   );
   // Dashboard edits are tracked coarsely (no per-control log like
   // explore): a single "unsaved edits" entry while edit mode is dirty.
+  // The timestamp is captured when the dashboard first turns dirty —
+  // stamping it during render would drift on every re-render.
+  const [dirtySince, setDirtySince] = useState<number | null>(null);
+  useEffect(() => {
+    if (hasUnsavedChanges) {
+      setDirtySince(current => current ?? Date.now());
+    } else {
+      setDirtySince(null);
+    }
+  }, [hasUnsavedChanges]);
   const sessionEntries = useMemo<SessionLogEntry[]>(
     () =>
-      hasUnsavedChanges
+      hasUnsavedChanges && dirtySince !== null
         ? [
             {
               label: t('Unsaved dashboard edits'),
               controlName: 'dashboard',
-              ts: Date.now(),
+              ts: dirtySince,
               user: null,
             },
           ]
         : [],
-    [hasUnsavedChanges],
+    [dirtySince, hasUnsavedChanges],
   );
 
   useEffect(() => {
