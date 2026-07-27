@@ -88,6 +88,20 @@ export default function transformProps(
   const displayName = (name: string): string =>
     isMultiLevel ? name.slice(name.indexOf(LEVEL_DELIMITER) + 1) : name;
 
+  // The same value can occupy several levels, and the color scale hands out a
+  // fresh color per call when it has no sliceId to memoize against, so each
+  // display value is resolved once to keep a category one color across levels.
+  const colorCache = new Map<string, string>();
+  const nodeColor = (name: string): string => {
+    const label = displayName(name);
+    let color = colorCache.get(label);
+    if (color === undefined) {
+      color = colorFn(label, sliceId);
+      colorCache.set(label, color);
+    }
+    return color;
+  };
+
   const linkMap = new Map<string, Link>();
   const nodeLevels = new Map<string, number>();
   data.forEach(datum => {
@@ -125,7 +139,7 @@ export default function transformProps(
     ...(isMultiLevel && { depth: level }),
     itemStyle: {
       // color by display name so the same value shares a color across levels
-      color: colorFn(displayName(name), sliceId),
+      color: nodeColor(name),
     },
     label: {
       color: theme.colorText,

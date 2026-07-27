@@ -22,12 +22,25 @@ import type { SankeySeriesOption } from 'echarts/charts';
 import transformProps from '../../src/Sankey/transformProps';
 import { SankeyChartProps } from '../../src/Sankey/types';
 
-type SankeyNode = { name: string; depth?: number };
+type SankeyNode = {
+  name: string;
+  depth?: number;
+  itemStyle: { color: string };
+  label: { position?: string };
+};
 type SankeyLink = { source: string; target: string; value: number };
 
 const getSeries = (props: ChartProps): SankeySeriesOption => {
   const { echartOptions } = transformProps(props as SankeyChartProps);
   return (echartOptions as { series: SankeySeriesOption }).series;
+};
+
+const getTooltipFormatter = (props: ChartProps) => {
+  const { echartOptions } = transformProps(props as SankeyChartProps);
+  const { tooltip } = echartOptions as {
+    tooltip: { formatter: (params: unknown) => string };
+  };
+  return tooltip.formatter;
 };
 
 const getNodes = (props: ChartProps) => getSeries(props).data as SankeyNode[];
@@ -78,10 +91,17 @@ test('three-column mode chains adjacent pairs with level-prefixed names', () => 
     { source: '0\0a', target: '1\0m', value: 10 },
     { source: '1\0m', target: '2\0z', value: 10 },
   ]);
-  expect(getNodes(props)).toEqual([
+  const nodes = getNodes(props);
+  expect(nodes).toEqual([
     expect.objectContaining({ name: '0\0a', depth: 0 }),
     expect.objectContaining({ name: '1\0m', depth: 1 }),
     expect.objectContaining({ name: '2\0z', depth: 2 }),
+  ]);
+  // only the last column flips its labels inward, to keep them on canvas
+  expect(nodes.map(node => node.label.position)).toEqual([
+    undefined,
+    undefined,
+    'left',
   ]);
 });
 
@@ -94,6 +114,29 @@ test('four-column mode aggregates duplicate adjacent pairs across rows', () => {
   expect(links).toHaveLength(4);
   expect(links).toContainEqual({ source: '1\0m', target: '2\0n', value: 15 });
   expect(links).toContainEqual({ source: '2\0n', target: '3\0z', value: 15 });
+});
+
+test('two-column mode aggregates repeated pairs into a single link', () => {
+  const props = makeProps({}, [
+    { source_col: 'a', target_col: 'b', count: 1 },
+    { source_col: 'a', target_col: 'b', count: 2 },
+    { source_col: 'a', target_col: 'b', count: 4 },
+  ]);
+  // one hoverable edge carrying the total, rather than three stacked ribbons
+  // each reporting its share against that same total
+  expect(getLinks(props)).toEqual([{ source: 'a', target: 'b', value: 7 }]);
+});
+
+test('null and missing values coalesce to NULL_STRING in two-column mode too', () => {
+  const props = makeProps({}, [
+    { source_col: null, target_col: 'b', count: 10 },
+    // target_col absent from the row entirely
+    { source_col: 'a', count: 5 },
+  ]);
+  expect(getLinks(props)).toEqual([
+    { source: '<NULL>', target: 'b', value: 10 },
+    { source: 'a', target: '<NULL>', value: 5 },
+  ]);
 });
 
 test('null intermediate values coalesce to NULL_STRING and preserve totals', () => {
@@ -110,9 +153,15 @@ test('the same value in different levels creates distinct nodes', () => {
   const props = makeProps({ intermediateLevels: ['mid_col'] }, [
     { source_col: 'direct', mid_col: 'x', target_col: 'direct', count: 10 },
   ]);
-  const names = getNodes(props).map(node => node.name);
+  const nodes = getNodes(props);
+  const names = nodes.map(node => node.name);
   expect(names).toContain('0\0direct');
   expect(names).toContain('2\0direct');
+  // distinct nodes, but the same category keeps one color across levels
+  const [first, last] = ['0\0direct', '2\0direct'].map(
+    name => nodes.find(node => node.name === name)!.itemStyle.color,
+  );
+  expect(first).toEqual(last);
 });
 
 test('the same value in adjacent levels does not create a self-loop', () => {
@@ -140,6 +189,71 @@ test('label formatter is an identity for two-column mode', () => {
   const { label } = getSeries(props);
   const formatter = label?.formatter as (params: { name: string }) => string;
   expect(formatter({ name: 'a' })).toEqual('a');
+});
+
+test('link tooltips strip the level prefix from the title and both shares', () => {
+  const props = makeProps({ intermediateLevels: ['mid_col'] }, [
+    { source_col: 'a', mid_col: 'm', target_col: 'z', count: 10 },
+  ]);
+  const html = getTooltipFormatter(props)({
+    name: '0\0a > 1\0m',
+    value: 10,
+    data: { source: '0\0a', target: '1\0m', value: 10 },
+  });
+  expect(html).toContain('a → m');
+  expect(html).toContain('% (a)');
+  expect(html).toContain('% (m)');
+  // a leaked prefix would put raw NUL control characters in user-facing HTML
+  expect(html).not.toContain('\0');
+});
+
+test('node tooltips strip the level prefix from the title', () => {
+  const props = makeProps({ intermediateLevels: ['mid_col'] }, [
+    { source_col: 'a', mid_col: 'm', target_col: 'z', count: 10 },
+  ]);
+  const html = getTooltipFormatter(props)({
+    name: '1\0m',
+    value: 10,
+    data: {},
+  });
+  expect(html).toContain('m');
+  expect(html).not.toContain('\0');
+});
+
+test('two-column tooltips report each endpoint share against its node total', () => {
+  const props = makeProps({}, [
+    { source_col: 'a', target_col: 'b', count: 3 },
+    { source_col: 'a', target_col: 'c', count: 1 },
+  ]);
+  const html = getTooltipFormatter(props)({
+    name: 'a > b',
+    value: 3,
+    data: { source: 'a', target: 'b', value: 3 },
+  });
+  // a sends 4 in total, b receives only this link
+  expect(html).toContain('75.00%');
+  expect(html).toContain('100.00%');
+});
+
+test('adhoc intermediate levels are resolved by their column label', () => {
+  const props = makeProps(
+    {
+      intermediateLevels: [
+        {
+          sqlExpression: 'CASE WHEN x THEN 1 END',
+          label: 'bucket',
+          expressionType: 'SQL',
+        },
+      ],
+    },
+    [{ source_col: 'a', bucket: 'm', target_col: 'z', count: 10 }],
+  );
+  // without label resolution the row lookup misses and every middle node
+  // collapses into a single <NULL> bucket
+  expect(getLinks(props)).toEqual([
+    { source: '0\0a', target: '1\0m', value: 10 },
+    { source: '1\0m', target: '2\0z', value: 10 },
+  ]);
 });
 
 // ECharts spends nodeGap as a fixed pixel budget per column, so a large value

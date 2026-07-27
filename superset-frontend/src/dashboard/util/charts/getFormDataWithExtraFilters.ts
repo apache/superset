@@ -246,8 +246,11 @@ function applyChartSpecificGroupBy(
       groupByFormData.target = limitedColumns[1];
     }
   } else if (chartType === 'sankey_v2') {
-    groupByFormData.source = groupByColumns[0];
+    // A flow needs both ends, so a single column is left unapplied rather than
+    // overriding the source while target and intermediate levels keep the
+    // columns configured on the chart.
     if (groupByColumns.length > 1) {
+      groupByFormData.source = groupByColumns[0];
       groupByFormData.target = groupByColumns[groupByColumns.length - 1];
       groupByFormData.intermediate_levels = groupByColumns.slice(1, -1);
     }
@@ -290,6 +293,7 @@ function processGroupByCustomizations(
   entity?: string;
   source?: string;
   target?: string;
+  intermediate_levels?: string[];
   groupbyColumns?: string[];
 } {
   if (!chartCustomizationItems || chartCustomizationItems.length === 0) {
