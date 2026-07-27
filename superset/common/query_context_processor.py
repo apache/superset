@@ -24,6 +24,7 @@ from typing import Any, cast, ClassVar, Sequence, TYPE_CHECKING
 import pandas as pd
 from flask import current_app
 from flask_babel import gettext as _
+from sqlalchemy.exc import SQLAlchemyError
 
 from superset.common.chart_data import ChartDataResultFormat
 from superset.common.db_query_status import QueryStatus
@@ -175,12 +176,12 @@ class QueryContextProcessor:
                                 user_id=get_user_id(),
                             )
                             db.session.add(query_model)
-                            db.session.commit()
+                            db.session.commit()  # pylint: disable=consider-using-transaction
 
                     except (
-                        Exception
+                        SQLAlchemyError
                     ):  # pragma: no cover - best-effort Query model creation
-                        db.session.rollback()
+                        db.session.rollback()  # pylint: disable=consider-using-transaction
                         logger.debug(
                             "Could not create Query model for chart query",
                             exc_info=True,

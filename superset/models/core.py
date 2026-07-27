@@ -888,7 +888,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                                     )
                                     from superset.extensions import db as _db
 
-                                    _db.session.commit()
+                                    _db.session.commit()  # pylint: disable=consider-using-transaction
                         except Exception:
                             logger.debug(
                                 "Could not obtain or persist cancel id for query",

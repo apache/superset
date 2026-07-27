@@ -22,6 +22,7 @@ from __future__ import annotations
 import builtins
 import copy
 import dataclasses
+import inspect
 import logging
 import re
 import uuid
@@ -1890,15 +1891,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         :param query_object: The query configuration
         :return: QueryResult with processed dataframe
         """
-        # Execute the base query. Some datasource implementations (e.g., older
-        # connector implementations) may not accept a second `query` parameter
-        # on their `query()` method. Try passing the `query` model and fall back
-        # to calling without it if the implementation doesn't accept it.
-        try:
+        # Execute the base query. Some datasource implementations (e.g.,
+        # AnnotationDatasource.query()) don't accept a second `query`
+        # parameter. Check the signature upfront rather than reacting to a
+        # TypeError, which could otherwise mask an unrelated TypeError raised
+        # from inside a real `query()` call.
+        if "query" in inspect.signature(self.query).parameters:
             result = self.query(query_object.to_dict(), query=query)
-        except TypeError:
-            # Fallback for implementations that don't accept the optional
-            # `query` parameter (backwards compatibility)
+        else:
             result = self.query(query_object.to_dict())
         query_str = result.query + ";\n\n" if result.query else ""
 

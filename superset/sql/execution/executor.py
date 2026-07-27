@@ -1279,7 +1279,10 @@ class SQLExecutor:
             return True
 
         # Some databases may need to make preparations for query cancellation
-        database.db_engine_spec.prepare_cancel_query(query)
+        try:
+            database.db_engine_spec.prepare_cancel_query(query)
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("prepare_cancel_query failed", exc_info=True)
 
         # Check early cancellation flag
         if query.extra.get(QUERY_EARLY_CANCEL_KEY):
@@ -1298,6 +1301,10 @@ class SQLExecutor:
         ) as engine:
             with contextlib.closing(engine.raw_connection()) as conn:
                 with contextlib.closing(conn.cursor()) as cursor:
-                    return database.db_engine_spec.cancel_query(
-                        cursor, query, cancel_query_id
-                    )
+                    try:
+                        return database.db_engine_spec.cancel_query(
+                            cursor, query, cancel_query_id
+                        )
+                    except Exception:  # pylint: disable=broad-except
+                        logger.warning("cancel_query failed", exc_info=True)
+                        return False

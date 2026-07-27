@@ -22,6 +22,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pandas as pd
 import pytest
+from sqlalchemy.exc import SQLAlchemyError
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.db_query_status import QueryStatus
@@ -1672,7 +1673,7 @@ def test_get_df_payload_rolls_back_session_when_query_model_commit_fails():
 
         mock_query = mock_db.session.query.return_value
         mock_query.filter_by.return_value.one_or_none.return_value = None
-        mock_db.session.commit.side_effect = Exception("commit failed")
+        mock_db.session.commit.side_effect = SQLAlchemyError("commit failed")
 
         payload = processor.get_df_payload(query_obj, force_cached=False)
 
