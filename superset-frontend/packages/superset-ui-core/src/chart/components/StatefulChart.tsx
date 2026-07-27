@@ -352,9 +352,7 @@ export default function StatefulChart(props: StatefulChartProps) {
         ) as JsonObject[];
 
         // Handle the nested result structure from the API
-        responseData = (
-          rows[0]?.result ? rows[0].result : rows
-        ) as QueryData[];
+        responseData = (rows[0]?.result ? rows[0].result : rows) as QueryData[];
       }
 
       // Don't pair this request's data with newer props or fire a stale onLoad

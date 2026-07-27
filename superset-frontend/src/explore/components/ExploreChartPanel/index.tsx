@@ -368,39 +368,6 @@ const ExploreChartPanel = ({
           padding-top: ${theme.sizeUnit * 2}px;
         `}
       >
-        {vizTypeNeedsDataset && (
-          <Alert
-            message={t('Chart type requires a dataset')}
-            type="error"
-            css={theme => css`
-              margin: 0 0 ${theme.sizeUnit * 4}px 0;
-            `}
-            description={
-              <>
-                {t(
-                  'This chart type is not supported when using an unsaved query as a chart source. ',
-                )}
-                <button
-                  type="button"
-                  onClick={() => setShowDatasetModal(true)}
-                  css={css`
-                    appearance: none;
-                    border: none;
-                    background: none;
-                    padding: 0;
-                    font: inherit;
-                    color: inherit;
-                    text-decoration: underline;
-                    cursor: pointer;
-                  `}
-                >
-                  {t('Create a dataset')}
-                </button>
-                {t(' to visualize your data.')}
-              </>
-            }
-          />
-        )}
         {showAlertBanner && (
           <ExploreAlert
             title={
