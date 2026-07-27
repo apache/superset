@@ -78,7 +78,7 @@
     "remark-import-partial": "^0.0.2",
     "reselect": "^5.2.0",
     "storybook": "^10.5.0",
-    "swagger-ui-react": "^5.32.8",
+    "swagger-ui-react": "^5.32.9",
     "swc-loader": "^0.2.7",
     "tinycolor2": "^1.4.2",
     "unist-util-visit": "^5.1.0"
