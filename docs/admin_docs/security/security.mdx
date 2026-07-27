@@ -271,6 +271,15 @@ a colleague who could previously open a new dashboard by virtue of dataset acces
 so unless they share one of the creator's groups. Existing assets are untouched — only assets
 created after the setting is enabled are affected.
 
+The same narrowing affects background execution as a fixed identity. Alerts, reports, and
+thumbnails that run as a `FixedExecutor` service account (via `ALERT_REPORTS_EXECUTE_AS` or
+`THUMBNAIL_EXECUTE_AS`) reach a chart or dashboard through the dataset fallback when that account
+is neither an editor nor a viewer. Once a new asset is scoped to the creator's groups that
+fallback is gone, so rendering fails `raise_for_access` unless the executor account is an admin,
+an editor, or shares one of those groups. If a fixed executor must render assets it does not own,
+grant it the needed access (make it an admin or add it to the relevant groups) — or leave the
+setting off.
+
 The setting assigns groups as *viewers*, not editors, so group members get read-only access and
 cannot modify or delete the asset.
 

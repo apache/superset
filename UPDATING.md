@@ -39,6 +39,15 @@ callers — but external clients will notice:
   List counts may drop, and fetching an excluded principal via
   `GET /api/v1/security/subject/<id>` now returns `404`.
 
+### v1 chart import no longer re-adds the importer as editor on overwrite
+
+Re-importing over an existing chart (an overwrite or a soft-delete restore) no
+longer appends the importing user to the chart's `editors`, matching the
+dashboard importer's behavior. This changes anything only for a user who was not
+already an editor of that chart — typically an admin overwriting a chart they do
+not own, who was previously added as an editor as a side effect of the import.
+Newly-created charts are unaffected.
+
 ### Dashboard "Export Data to Excel" requires a Celery worker and S3 bucket
 
 A new dashboard action exports every chart's data to a single multi-sheet
