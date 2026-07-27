@@ -99,6 +99,41 @@ def test_chart_importer_adds_missing_viewers_without_duplicating_present_ones(
     assert result.viewers == [already_there, newly_added]
 
 
+def test_chart_importer_skips_default_viewers_on_reimport(app_context) -> None:
+    """Re-importing over an existing chart must not grant the importer's groups.
+
+    Unlike a fresh import, an overwrite / soft-delete restore falls through to
+    an in-place update; applying "new asset" defaults there would silently
+    widen an existing chart's read access.
+    """
+    from superset.commands.chart.importers.v1 import utils as chart_utils
+
+    chart = SimpleNamespace(id=1, editors=[], viewers=[])
+
+    with (
+        # A matching row that falls through to an in-place update (return None).
+        patch.object(chart_utils, "find_existing_for_import", return_value=MagicMock()),
+        patch.object(
+            chart_utils, "_prepare_existing_chart_for_import", return_value=None
+        ),
+        patch.object(chart_utils, "get_user", return_value=_user()),
+        patch.object(chart_utils, "filter_chart_annotations"),
+        patch.object(chart_utils, "migrate_chart", side_effect=lambda config: config),
+        patch.object(chart_utils.Slice, "import_from_dict", return_value=chart),
+        patch("superset.subjects.utils.get_user_subject", return_value=None),
+        patch(
+            "superset.subjects.utils.get_default_viewers_for_new_asset",
+            return_value=[_group_subject()],
+        ) as mock_viewers,
+    ):
+        result = chart_utils.import_chart(
+            {"uuid": "x", "params": {}}, overwrite=True, ignore_permissions=True
+        )
+
+    assert result.viewers == []
+    mock_viewers.assert_not_called()
+
+
 def test_copy_dashboard_attaches_viewers_from_the_users_in_memory_groups(
     app_context,
 ) -> None:
@@ -293,6 +328,33 @@ def test_reset_ownership_attaches_default_viewers(app_context) -> None:
         asset.reset_ownership()
 
     assert asset.viewers == [viewer]
+
+
+def test_reset_ownership_preserves_explicitly_set_viewers(app_context) -> None:
+    """A viewer list already on the instance is not replaced by group defaults."""
+    from superset.models.helpers import ImportExportMixin
+
+    explicit = _group_subject(99)
+
+    class _Asset(ImportExportMixin):
+        def __init__(self) -> None:
+            self.editors: list[Any] = []
+            self.viewers: list[Any] = [explicit]
+
+    asset = _Asset()
+
+    with (
+        patch("superset.models.helpers.g", MagicMock(user=_user())),
+        patch("superset.subjects.utils.get_user_subject", return_value=None),
+        patch(
+            "superset.subjects.utils.get_default_viewers_for_new_asset",
+            return_value=[_group_subject(11)],
+        ) as mock_viewers,
+    ):
+        asset.reset_ownership()
+
+    assert asset.viewers == [explicit]
+    mock_viewers.assert_not_called()
 
 
 class _ConstructedError(Exception):

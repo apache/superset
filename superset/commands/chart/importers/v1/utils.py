@@ -201,7 +201,11 @@ def import_chart(
     if chart.id is None:
         db.session.flush()
 
-    if user:
+    # Only newly created charts inherit the creator's editor/viewer defaults;
+    # re-importing over an existing chart (overwrite or soft-delete restore)
+    # must not silently grant the importer's groups access. Mirrors the
+    # dashboard importer's ``not existing`` guard.
+    if not existing and user:
         from superset.subjects.utils import (
             get_default_viewers_for_new_asset,
             get_user_subject,
