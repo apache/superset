@@ -2334,7 +2334,12 @@ describe('plugin-chart-table', () => {
       expect(screen.getByText('User 1')).toBeInTheDocument();
       expect(screen.queryByText('User 11')).not.toBeInTheDocument();
 
-      const page2Link = container.querySelector('a[href="#page-1"]')!;
+      // The pagination bar is styled `visibility: hidden` until sticky
+      // height is measured, which jsdom never reports. Accessible-name
+      // computation treats CSS-hidden elements as nameless regardless of
+      // the `hidden: true` query option, so query the button directly by
+      // its `aria-label` instead of through the accessibility tree.
+      const page2Link = container.querySelector('button[aria-label="2"]')!;
       expect(page2Link).toBeTruthy();
       fireEvent.click(page2Link);
 
@@ -2381,8 +2386,8 @@ describe('plugin-chart-table', () => {
         expect(screen.queryByText('User 1')).not.toBeInTheDocument();
       });
 
-      const activePage = container.querySelector('li.active a')!;
-      expect(activePage).toHaveAttribute('href', '#page-1');
+      const activePage = container.querySelector('li.active button')!;
+      expect(activePage).toHaveTextContent('2');
     });
 
     test('should build columnLabelToNameMap for adhoc columns with custom labels', () => {

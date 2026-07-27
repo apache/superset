@@ -1278,8 +1278,7 @@ SUPERSET_CACHE_WARMUP_USER: str | None = None
 # Time before selenium times out after trying to locate an element on the page and wait
 # for that element to load for a screenshot.
 SCREENSHOT_LOCATE_WAIT = int(timedelta(seconds=10).total_seconds())
-# Time before selenium times out after waiting for all DOM class elements named
-# "loading" are gone.
+# Time before screenshot capture times out while waiting for chart readiness.
 SCREENSHOT_LOAD_WAIT = int(timedelta(minutes=1).total_seconds())
 # Maximum time (in seconds) selenium waits for an initial page navigation
 # (driver.get) to complete. Without it the navigation blocks indefinitely when
@@ -1408,6 +1407,19 @@ EXTENSIONS_PERSISTENT_STORAGE: dict[str, Any] = {
 
 # store cache keys by datasource UID (via CacheKey) for custom processing/invalidation
 STORE_CACHE_KEYS_IN_METADATA_DB = False
+
+# Cache timeout (in seconds) specifically for native dashboard filter option queries.
+# Native filter queries use `DATA_CACHE_CONFIG` as their backend, but their TTL can be
+# configured independently here because they often require fresher data (e.g., for
+# datasets whose visible values change frequently, including RLS-constrained datasets).
+#
+# Valid values:
+#   None : Preserve the existing cache timeout resolution chain.
+#   -1   : Completely disable cache writes for native filter options.
+#   0    : Passed directly to the underlying cache backend. Backend-specific
+#          behavior may vary. Do not use 0 to disable caching; use -1 instead.
+#   >0   : Cache filter options for the specified number of seconds.
+NATIVE_FILTER_OPTIONS_CACHE_TIMEOUT: int | None = None
 
 # CORS Options
 # NOTE: enabling this requires installing the cors-related python dependencies

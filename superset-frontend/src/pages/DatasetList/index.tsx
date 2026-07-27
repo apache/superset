@@ -22,7 +22,6 @@ import {
   SupersetClient,
   isFeatureEnabled,
   FeatureFlag,
-  handleKeyboardActivation,
 } from '@superset-ui/core';
 import { styled, useTheme, css } from '@apache-superset/core/theme';
 import {
@@ -47,6 +46,7 @@ import { SubjectPile } from 'src/features/subjects/SubjectPile';
 import { ColumnObject } from 'src/features/datasets/types';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import {
+  ActionButton,
   Button,
   ConfirmStatusChange,
   CertifiedBadge,
@@ -57,6 +57,8 @@ import {
   DatasetTypeLabel,
   Loading,
   List,
+  RlsBadge,
+  type RlsFilterSummary,
 } from '@superset-ui/core/components';
 import {
   DatasourceModal,
@@ -105,7 +107,6 @@ import type {
   UserWithPermissionsAndRoles,
 } from 'src/types/bootstrapTypes';
 import type User from 'src/types/User';
-import IconButton from 'src/dashboard/components/IconButton';
 
 const SEMANTIC_LAYERS_FLAG = 'SEMANTIC_LAYERS' as FeatureFlag;
 type DatasetExtra = {
@@ -158,6 +159,7 @@ type Dataset = {
   cache_timeout?: number | null;
   extra?: string | DatasetExtra | null;
   sql?: string | null;
+  rls_filters?: RlsFilterSummary[];
 };
 
 interface VirtualDataset extends Dataset {
@@ -683,6 +685,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               table_name: datasetTitle,
               description,
               explore_url: exploreURL,
+              rls_filters: rlsFilters,
             },
           },
         }: CellProps<Dataset>) => {
@@ -726,6 +729,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     warningMarkdown={parsedExtra.warning_markdown}
                     size="l"
                   />
+                )}
+                {rlsFilters && rlsFilters.length > 0 && (
+                  <RlsBadge rlsFilters={rlsFilters} size="l" />
                 )}
                 {titleLink}
                 {description && <InfoTooltip tooltip={description} />}
@@ -835,9 +841,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             return (
               <Actions className="actions">
                 {canDelete && (
-                  <Tooltip
-                    id="delete-action-tooltip"
-                    title={
+                  <ActionButton
+                    label={t('Delete')}
+                    tooltip={
                       allowEdit
                         ? t('Delete')
                         : t(
@@ -845,22 +851,16 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                           )
                     }
                     placement="bottom"
-                  >
-                    <IconButton
-                      data-test="dataset-row-delete"
-                      disabled={!allowEdit}
-                      onClick={() => handleSemanticViewDelete(original)}
-                      onKeyDown={handleKeyboardActivation(() =>
-                        handleSemanticViewDelete(original),
-                      )}
-                      icon={<Icons.DeleteOutlined iconSize="l" />}
-                    />
-                  </Tooltip>
+                    icon={<Icons.DeleteOutlined iconSize="l" />}
+                    dataTest="dataset-row-delete"
+                    disabled={!allowEdit}
+                    onClick={() => handleSemanticViewDelete(original)}
+                  />
                 )}
                 {canEdit && (
-                  <Tooltip
-                    id="edit-action-tooltip"
-                    title={
+                  <ActionButton
+                    label={t('Edit')}
+                    tooltip={
                       allowEdit
                         ? t('Edit')
                         : t(
@@ -868,17 +868,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                           )
                     }
                     placement="bottom"
-                  >
-                    <IconButton
-                      data-test="dataset-row-edit"
-                      disabled={!allowEdit}
-                      onClick={() => setSvCurrentlyEditing(original)}
-                      onKeyDown={handleKeyboardActivation(() =>
-                        setSvCurrentlyEditing(original),
-                      )}
-                      icon={<Icons.EditOutlined iconSize="l" />}
-                    />
-                  </Tooltip>
+                    icon={<Icons.EditOutlined iconSize="l" />}
+                    dataTest="dataset-row-edit"
+                    disabled={!allowEdit}
+                    onClick={() => setSvCurrentlyEditing(original)}
+                  />
                 )}
               </Actions>
             );
@@ -899,9 +893,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           return (
             <Actions className="actions">
               {canEdit && (
-                <Tooltip
-                  id="edit-action-tooltip"
-                  title={
+                <ActionButton
+                  label={t('Edit')}
+                  tooltip={
                     allowEdit
                       ? t('Edit')
                       : t(
@@ -909,52 +903,36 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                         )
                   }
                   placement="bottom"
-                >
-                  <IconButton
-                    data-test="dataset-row-edit"
-                    disabled={!allowEdit}
-                    onClick={handleEdit}
-                    onKeyDown={
-                      allowEdit
-                        ? handleKeyboardActivation(handleEdit)
-                        : undefined
-                    }
-                    icon={<Icons.EditOutlined iconSize="l" />}
-                  />
-                </Tooltip>
+                  icon={<Icons.EditOutlined iconSize="l" />}
+                  dataTest="dataset-row-edit"
+                  disabled={!allowEdit}
+                  onClick={handleEdit}
+                />
               )}
               {canExport && (
-                <Tooltip
-                  id="export-action-tooltip"
-                  title={t('Export')}
+                <ActionButton
+                  label={t('Export')}
+                  tooltip={t('Export')}
                   placement="bottom"
-                >
-                  <IconButton
-                    data-test="dataset-row-export"
-                    onClick={handleExport}
-                    onKeyDown={handleKeyboardActivation(handleExport)}
-                    icon={<Icons.UploadOutlined iconSize="l" />}
-                  />
-                </Tooltip>
+                  icon={<Icons.UploadOutlined iconSize="l" />}
+                  dataTest="dataset-row-export"
+                  onClick={handleExport}
+                />
               )}
               {canDuplicate && original.kind === 'virtual' && (
-                <Tooltip
-                  id="duplicate-action-tooltip"
-                  title={t('Duplicate')}
+                <ActionButton
+                  label={t('Duplicate')}
+                  tooltip={t('Duplicate')}
                   placement="bottom"
-                >
-                  <IconButton
-                    data-test="dataset-row-duplicate"
-                    onClick={handleDuplicate}
-                    onKeyDown={handleKeyboardActivation(handleDuplicate)}
-                    icon={<Icons.CopyOutlined iconSize="l" />}
-                  />
-                </Tooltip>
+                  icon={<Icons.CopyOutlined iconSize="l" />}
+                  dataTest="dataset-row-duplicate"
+                  onClick={handleDuplicate}
+                />
               )}
               {canDelete && (
-                <Tooltip
-                  id="delete-action-tooltip"
-                  title={
+                <ActionButton
+                  label={t('Delete')}
+                  tooltip={
                     allowEdit
                       ? t('Delete')
                       : t(
@@ -962,15 +940,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                         )
                   }
                   placement="bottom"
-                >
-                  <IconButton
-                    data-test="dataset-row-delete"
-                    disabled={!allowEdit}
-                    onClick={handleDelete}
-                    onKeyDown={handleKeyboardActivation(handleDelete)}
-                    icon={<Icons.DeleteOutlined iconSize="l" />}
-                  />
-                </Tooltip>
+                  icon={<Icons.DeleteOutlined iconSize="l" />}
+                  dataTest="dataset-row-delete"
+                  disabled={!allowEdit}
+                  onClick={handleDelete}
+                />
               )}
             </Actions>
           );

@@ -19,7 +19,10 @@
 
 import { testWithAssets, expect } from '../../helpers/fixtures';
 import { apiPost, apiPut } from '../../helpers/api/requests';
-import { apiPostDashboard } from '../../helpers/api/dashboard';
+import {
+  apiPostDashboard,
+  buildSingleRowDashboardLayout,
+} from '../../helpers/api/dashboard';
 import { getDatasetByName } from '../../helpers/api/dataset';
 import { DashboardPage } from '../../pages/DashboardPage';
 import { TIMEOUT } from '../../utils/constants';
@@ -61,36 +64,14 @@ testWithAssets(
 
     // Create dashboard with chart in position_json and a native filter in json_metadata
     const filterId = `NATIVE_FILTER-${Math.random().toString(36).slice(2, 10)}`;
-    const chartLayoutKey = `CHART-${chartId}`;
-    const positionJson = {
-      DASHBOARD_VERSION_KEY: 'v2',
-      ROOT_ID: { type: 'ROOT', id: 'ROOT_ID', children: ['GRID_ID'] },
-      GRID_ID: {
-        type: 'GRID',
-        id: 'GRID_ID',
-        children: ['ROW-1'],
-        parents: ['ROOT_ID'],
+    const positionJson = buildSingleRowDashboardLayout([
+      {
+        id: chartId,
+        sliceName: 'clear_all_repro',
+        width: 6,
+        height: 50,
       },
-      'ROW-1': {
-        type: 'ROW',
-        id: 'ROW-1',
-        children: [chartLayoutKey],
-        parents: ['ROOT_ID', 'GRID_ID'],
-        meta: { background: 'BACKGROUND_TRANSPARENT' },
-      },
-      [chartLayoutKey]: {
-        type: 'CHART',
-        id: chartLayoutKey,
-        children: [],
-        parents: ['ROOT_ID', 'GRID_ID', 'ROW-1'],
-        meta: {
-          chartId,
-          width: 6,
-          height: 50,
-          sliceName: 'clear_all_repro',
-        },
-      },
-    };
+    ]);
 
     const jsonMetadata = {
       native_filter_configuration: [

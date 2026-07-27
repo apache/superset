@@ -288,6 +288,22 @@ The pivot table chart's `First` and `Last` aggregations now return the first and
 
 The `error` and `response` parameters of the `retryDelay` and `retryOn` callbacks in `FetchRetryOptions` (exported from `@superset-ui/core`) are now typed `Error | null` and `Response | null` to match the actual call-site signature provided by `fetch-retry`. Because these parameter types are contravariant, consumers who typed their callbacks with the non-nullable `(attempt: number, error: Error, response: Response) => number` will get a TypeScript compile error. Widen your callback signatures to accept `Error | null` / `Response | null`.
 
+### Pivot Table totals are now computed by the database (per-metric "Aggregation function" control removed)
+
+Pivot Table subtotals and grand totals are now computed by the database at each
+rollup level instead of re-aggregating the already-aggregated cell values on the
+client. This fixes long-standing incorrect totals for non-additive metrics
+(ratios such as `SUM(a)/SUM(b)`, `COUNT_DISTINCT`, `AVG`, percentiles, etc.),
+which previously summed the displayed cell values.
+
+As a result the per-table **"Aggregation function"** control (which let you pick
+how totals were aggregated client-side, e.g. Sum/Average/Count) has been
+removed: totals now always reflect the metric's own definition evaluated at the
+total's granularity. For additive metrics (`SUM`/`COUNT`/`MIN`/`MAX`) the result
+is unchanged. Saved charts that set `aggregateFunction` will ignore it; no
+migration is required. If you previously relied on a plain sum-of-cells total
+for a non-additive metric, that specific behavior is no longer available.
+
 ### `thumbnail_url` removed from dashboard list API response
 
 The `thumbnail_url` field has been removed from `GET /api/v1/dashboard/` list responses. External consumers relying on this field must now construct the thumbnail URL client-side using `id` and `changed_on_utc`:
@@ -635,6 +651,10 @@ Added a new combined datasource list endpoint at `GET /api/v1/datasource/` to se
 ### ClickHouse minimum driver version bump
 
 The minimum required version of `clickhouse-connect` has been raised to `>=0.13.0`. If you are using the ClickHouse connector, please upgrade your `clickhouse-connect` package. The `_mutate_label` workaround that appended hash suffixes to column aliases has also been removed, as it is no longer needed with modern versions of the driver.
+
+### Kenya Country Map: Updated Administrative Divisions
+
+The Kenya country map has been updated to reflect the 47 counties established under Kenya's 2010 constitution, replacing the outdated 8-province boundaries from the Natural Earth dataset. County keys now use ISO 3166-2:KE codes (`KE-01` through `KE-47`), replacing the former province codes (`KE-110`, `KE-200`, ..., `KE-800`). Dashboards that join on the old province codes will need to re-key their datasets to use the new county codes.
 
 ### MCP Tool Observability
 

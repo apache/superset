@@ -27,7 +27,7 @@ jobs:
       should-run: ${{ steps.check.outputs.frontend }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
@@ -110,7 +110,7 @@ jobs:
       id-token: write
     steps:
       - name: Checkout Code
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
@@ -122,25 +122,13 @@ jobs:
           pattern: coverage-artifacts-*
           path: coverage/
 
-      - name: Reorganize test result reports
-        run: |
-          find coverage/
-          for i in {1..8}; do
-            mv coverage/coverage-artifacts-${i}/coverage-final.json coverage/coverage-shard-${i}.json
-          done
-        shell: bash
-
-      - name: Merge Code Coverage
-        run: npx nyc merge coverage/ merged-output/coverage-summary.json
-
       - name: Upload Code Coverage
         uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
           flags: javascript
           use_oidc: true
           verbose: true
-          disable_search: true
-          files: merged-output/coverage-summary.json
+          directory: coverage
           slug: apache/superset
 
   lint-frontend:

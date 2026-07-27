@@ -566,6 +566,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # if True, database will be listed as option in the upload file form
     supports_file_upload = True
 
+    # Whether the engine supports SQL GROUPING SETS / ROLLUP / CUBE. When True,
+    # consumers (e.g. the pivot table's non-additive totals) can collapse the
+    # per-rollup-level queries into a single GROUPING SETS query instead of
+    # issuing one query per level. Conservative default of False; engines opt in.
+    supports_grouping_sets = False
+
     # Is the DB engine spec able to change the default schema? This requires implementing  # noqa: E501
     # a custom `adjust_engine_params` method.
     supports_dynamic_schema = False
@@ -2352,6 +2358,36 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return: A number of limit size
         """
         return 1
+
+    @classmethod
+    def get_column_description_retry_sql(cls, sql: str) -> str | None:
+        """
+        Build a comment-safe fallback query for ``get_columns_description`` to
+        retry with when a zero-row metadata probe unexpectedly comes back with
+        an empty ``cursor.description``.
+
+        Some DB-API drivers only run their own "empty result" metadata
+        fallback -- used to populate ``cursor.description`` when a query
+        legitimately returns zero rows -- when the executed SQL text starts
+        with ``SELECT``/``WITH``. ``SQL_QUERY_MUTATOR`` can prepend comments
+        (e.g. query attribution) ahead of the ``SELECT`` keyword, which
+        defeats that startswith check on those drivers even though the query
+        itself is valid.
+
+        Engine specs affected by this can override this hook to wrap the
+        already-mutated SQL passed in so that the outer statement always
+        starts with a bare ``SELECT``. The original SQL -- including any
+        comments added by ``SQL_QUERY_MUTATOR`` -- is preserved verbatim, so
+        no mutation/audit behavior is lost, and the wrapped query still
+        returns zero rows.
+
+        Returning ``None`` (the default) means the engine doesn't support or
+        need this retry.
+
+        :param sql: The already limited and mutated SQL that was executed
+        :return: A comment-safe SQL string to retry with, or ``None``
+        """
+        return None
 
     @staticmethod
     def pyodbc_rows_to_tuples(data: list[Any]) -> list[tuple[Any, ...]]:

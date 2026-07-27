@@ -581,6 +581,7 @@ def test_get_sqla_engine(mocker: MockerFixture) -> None:
     create_engine.assert_called_with(
         make_url("trino:///"),
         connect_args={"source": "Apache Superset"},
+        future=True,
     )
 
 
@@ -701,6 +702,7 @@ def test_get_sqla_engine_user_impersonation(mocker: MockerFixture) -> None:
     create_engine.assert_called_with(
         make_url("trino:///"),
         connect_args={"user": "alice", "source": "Apache Superset"},
+        future=True,
     )
 
 
@@ -756,6 +758,7 @@ def test_get_sqla_engine_user_impersonation_email(mocker: MockerFixture) -> None
     create_engine.assert_called_with(
         make_url("trino:///"),
         connect_args={"user": "alice.doe", "source": "Apache Superset"},
+        future=True,
     )
 
 
@@ -1268,7 +1271,7 @@ def test_get_schema_access_for_file_upload() -> None:
     try:
         from sqlalchemy import create_engine
 
-        create_engine("gsheets://")
+        create_engine("gsheets://", future=True)
     except Exception:
         pytest.skip("gsheets:// dialect not available (Shillelagh not installed)")
 
@@ -2023,6 +2026,7 @@ def test_prequery_listener_mutation_race_deterministic(
 
     def patched_create_engine(url: Any, **kwargs: Any) -> Any:
         kwargs["creator"] = parking_creator
+        kwargs["future"] = True
         return real_create_engine(url, **kwargs)
 
     mocker.patch(
