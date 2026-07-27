@@ -2534,10 +2534,10 @@
   resolved "https://registry.yarnpkg.com/@fontsource/fira-code/-/fira-code-5.3.0.tgz#487475cedfa1f7ba7650810ddce00b6c7b1b7a25"
   integrity sha512-EJL968RJRkakubAj/coU8pSUaeTE5UNoRjtzAr6kGiSZ3jWuN8/AKWHwym/PFUaQL1q7IL/H+EXs4358YhrTBQ==
 
-"@fontsource/ibm-plex-mono@^5.2.7":
-  version "5.2.7"
-  resolved "https://registry.yarnpkg.com/@fontsource/ibm-plex-mono/-/ibm-plex-mono-5.2.7.tgz#ef5b6f052115fdf6666208a5f8a0f13fcd7ba1fd"
-  integrity sha512-MKAb8qV+CaiMQn2B0dIi1OV3565NYzp3WN5b4oT6LTkk+F0jR6j0ZN+5BKJiIhffDC3rtBULsYZE65+0018z9w==
+"@fontsource/ibm-plex-mono@^5.3.0":
+  version "5.3.0"
+  resolved "https://registry.yarnpkg.com/@fontsource/ibm-plex-mono/-/ibm-plex-mono-5.3.0.tgz#1879699d104602d5331e28e103f33c3b1b766b17"
+  integrity sha512-eTgnZjZEGk1QtD3ZstF+Vclo2HLAni8YMy34/DxllwZvyz1lR/1RF/xTiAquOBO7MvqBx8D2Ig2WCPMVfdZu7Q==
 
 "@fontsource/inter@^5.3.0":
   version "5.3.0"
