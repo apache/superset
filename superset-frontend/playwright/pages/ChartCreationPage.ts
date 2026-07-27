@@ -19,6 +19,7 @@
 
 import { expect, Locator, Page } from '@playwright/test';
 import { Button, Select } from '../components/core';
+import { gotoWithRetry } from '../helpers/navigation';
 
 /**
  * Chart Creation Page object for the "Create a new chart" wizard.
@@ -40,7 +41,14 @@ export class ChartCreationPage {
    * Gets the dataset selector container (includes the displayed selection value)
    */
   getDatasetSelectContainer(): Locator {
-    return this.page.getByLabel('Dataset', { exact: false }).first();
+    // antd v6 moved the `aria-label` onto the combobox <input> itself, so
+    // getByLabel('Dataset') resolves to the empty input (no text content). The
+    // selected value is rendered in the `.ant-select-content-has-value` element
+    // (which also wraps that input), so scope to it to read the displayed value.
+    return this.page
+      .locator('.ant-select-content-has-value')
+      .filter({ has: this.page.getByLabel('Dataset', { exact: false }) })
+      .first();
   }
 
   /**
@@ -74,7 +82,7 @@ export class ChartCreationPage {
    * Navigate to the chart creation page
    */
   async goto(): Promise<void> {
-    await this.page.goto('chart/add');
+    await gotoWithRetry(this.page, 'chart/add');
   }
 
   /**

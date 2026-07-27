@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ChartProps, getNumberFormatter } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 import transformProps, { parseParams } from '../../src/Funnel/transformProps';
 import {
   EchartsFunnelChartProps,
@@ -71,6 +71,15 @@ describe('Funnel transformProps', () => {
         }),
       }),
     );
+  });
+
+  test('does not apply a text border to segment labels', () => {
+    // A white textBorder washes out the dark text on light-colored segments.
+    const result = transformProps(chartProps as EchartsFunnelChartProps);
+    const { label } = (result.echartOptions.series as any)[0];
+    expect(label.color).toBe(supersetTheme.colorText);
+    expect(label.textBorderColor).toBeUndefined();
+    expect(label.textBorderWidth).toBeUndefined();
   });
 });
 

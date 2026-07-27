@@ -279,3 +279,49 @@ def test_query_dao_stop_query(
     QueryDAO.stop_query(query_obj.client_id)
     query = db.session.query(Query).one()
     assert query.status == QueryStatus.STOPPED
+
+
+def test_query_dao_stop_query_wrong_user(
+    mocker: MockerFixture, app: Any, session: Session
+) -> None:
+    """A user cannot stop a query that belongs to a different user."""
+    from superset import db
+    from superset.common.db_query_status import QueryStatus
+    from superset.models.core import Database
+    from superset.models.sql_lab import Query
+
+    engine = db.session.get_bind()
+    Query.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+
+    query_obj = Query(
+        client_id="foo",
+        database=database,
+        tab_name="test_tab",
+        sql_editor_id="test_editor_id",
+        sql="select * from bar",
+        select_sql="select * from bar",
+        executed_sql="select * from bar",
+        limit=100,
+        select_as_cta=False,
+        rows=100,
+        error_message="none",
+        results_key="abc",
+        status=QueryStatus.RUNNING,
+        user_id=1,
+    )
+
+    db.session.add(database)
+    db.session.add(query_obj)
+
+    # Simulate a different user (user 2) attempting to stop user 1's query
+    mocker.patch("superset.daos.query.get_user_id", return_value=2)
+
+    from superset.daos.query import QueryDAO
+
+    with pytest.raises(QueryNotFoundException):
+        QueryDAO.stop_query(query_obj.client_id)
+
+    query = db.session.query(Query).one()
+    assert query.status == QueryStatus.RUNNING

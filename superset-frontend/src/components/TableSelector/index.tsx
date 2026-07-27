@@ -25,9 +25,9 @@ import {
 } from 'react';
 import type { SelectValue } from '@superset-ui/core/components';
 
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { SupersetError } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { CertifiedBadge, Select } from '@superset-ui/core/components';
 import { DatabaseSelector, ErrorMessageWithStackTrace } from 'src/components';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -190,6 +190,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     dbId: database?.id,
     catalog: currentCatalog,
     schema: currentSchema,
+    supportsSchemas: database?.supports_schemas,
     onSuccess: (data, isFetched) => {
       setErrorPayload(null);
       if (isFetched) {
@@ -220,6 +221,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         : [],
     [data, customTableOptionLabelRenderer],
   );
+  const hasMoreTables = data?.hasMore;
 
   useEffect(() => {
     // reset selections
@@ -247,7 +249,8 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   const internalTableChange = (
     selectedOptions: TableOption | TableOption[] | undefined,
   ) => {
-    if (currentSchema) {
+    setTableSelectValue(selectedOptions);
+    if (currentSchema || database?.supports_schemas === false) {
       onTableSelectChange?.(
         Array.isArray(selectedOptions)
           ? selectedOptions.map(option => option?.value)
@@ -255,8 +258,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         currentCatalog,
         currentSchema,
       );
-    } else {
-      setTableSelectValue(selectedOptions);
     }
   };
 
@@ -302,7 +303,8 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   );
 
   function renderTableSelect() {
-    const disabled = (currentSchema && !formMode && readOnly) || !currentSchema;
+    const disabled =
+      readOnly || (database?.supports_schemas !== false && !currentSchema);
 
     const label = t('Table');
 
@@ -338,6 +340,11 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       <>
         <StyledFormLabel>{label}</StyledFormLabel>
         {renderSelectRow(select, refreshLabel)}
+        {hasMoreTables && !disabled && (
+          <div className="table-length">
+            {t('Some tables are not shown. Refine your search.')}
+          </div>
+        )}
       </>
     );
   }

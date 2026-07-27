@@ -1,0 +1,1 @@
+{"schema":{"properties":{"id":{"type":"integer"},"name":{"maxLength":250,"nullable":true,"type":"string"}},"type":"object","title":"AnnotationRestApi.get.AnnotationLayer"},"schemaType":"response"}

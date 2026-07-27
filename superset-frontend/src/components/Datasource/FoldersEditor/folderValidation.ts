@@ -22,7 +22,7 @@
  * Determines what actions are allowed based on folder structure and types.
  */
 
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { DatasourceFolder } from 'src/explore/components/DatasourcePanel/types';
 import {
   ValidationResult,

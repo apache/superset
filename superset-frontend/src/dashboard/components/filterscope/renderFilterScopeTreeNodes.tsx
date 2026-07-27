@@ -18,7 +18,7 @@
  */
 import { ReactNode } from 'react';
 import cx from 'classnames';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 

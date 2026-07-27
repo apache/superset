@@ -1,0 +1,1 @@
+{"schema":{"properties":{"result":{"description":"SQL select star","type":"string"}},"type":"object","title":"SelectStarResponseSchema"},"schemaType":"response"}

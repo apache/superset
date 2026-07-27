@@ -17,9 +17,9 @@
  * under the License.
  */
 import { SupersetClient } from '@superset-ui/core';
-import { logging } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
 import rison from 'rison';
-import contentDisposition from 'content-disposition';
+import { parse as parseContentDisposition } from 'content-disposition';
 
 // Maximum blob size for in-memory downloads (100MB)
 const MAX_BLOB_SIZE = 100 * 1024 * 1024;
@@ -29,7 +29,35 @@ const MAX_BLOB_SIZE = 100 * 1024 * 1024;
  * @param blob - The blob to download
  * @param fileName - The filename to use for the download
  */
-function downloadBlob(blob: Blob, fileName: string): void {
+/**
+ * Derives a download filename from response headers, falling back when absent.
+ */
+export function getFilenameFromResponse(
+  response: Response,
+  fallback: string,
+): string {
+  const disposition = response.headers.get('Content-Disposition');
+  if (disposition) {
+    try {
+      const parsed = parseContentDisposition(disposition);
+      if (parsed?.parameters?.filename) {
+        return parsed.parameters.filename;
+      }
+    } catch (error) {
+      logging.warn('Failed to parse Content-Disposition header:', error);
+    }
+  }
+
+  const contentType = response.headers.get('Content-Type') ?? '';
+  if (contentType.includes('zip')) {
+    const base = fallback.replace(/\.[^.]+$/, '');
+    return `${base}.zip`;
+  }
+
+  return fallback;
+}
+
+export function downloadBlob(blob: Blob, fileName: string): void {
   const url = window.URL.createObjectURL(blob);
   try {
     const a = document.createElement('a');
@@ -75,7 +103,7 @@ export default async function handleResourceExport(
 
     if (disposition) {
       try {
-        const parsed = contentDisposition.parse(disposition);
+        const parsed = parseContentDisposition(disposition);
         if (parsed?.parameters?.filename) {
           fileName = parsed.parameters.filename;
         }

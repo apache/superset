@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { t } from '@apache-superset/core/translation';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   ControlPanelConfig,
   getStandardizedControls,
@@ -25,7 +25,7 @@ import {
   sections,
   ColorSchemeEnum,
 } from '@superset-ui/chart-controls';
-import { noop } from 'lodash';
+import { noop } from 'lodash-es';
 import {
   headerFontSize,
   subheaderFontSize,

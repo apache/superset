@@ -30,7 +30,7 @@ import {
   TimeseriesAnnotationLayer,
   TimeseriesDataRecord,
 } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 import { OrientationType } from '../../src';
 import {
   transformEventAnnotation,

@@ -82,7 +82,7 @@ class SupersetAPSWDialect(APSWDialect):
 
         >>> engine = create_engine('superset://')
         >>> conn = engine.connect()
-        >>> results = conn.execute('SELECT * FROM "examples.birth_names"')
+        >>> results = conn.execute(text('SELECT * FROM "examples.birth_names"'))
 
     Queries can also join data across different Superset databases.
 
@@ -305,9 +305,16 @@ class SupersetShillelaghAdapter(Adapter):
             raise ProgrammingError(f"Database not found: {self.database}")
         self._allow_dml = database.allow_dml
 
-        # verify permissions
+        # verify permissions. MetaDB returns row data through a regular
+        # query path, so the strict scoping used by SQL Lab applies here
+        # too: the referenced table must resolve to a Superset dataset the
+        # user has datasource_access on (or owns).
         table = Table(self.table, self.schema, self.catalog)
-        security_manager.raise_for_access(database=database, table=table)
+        security_manager.raise_for_access(
+            database=database,
+            table=table,
+            force_dataset_match=True,
+        )
 
         # store this callable for later whenever we need an engine
         self.engine_context = partial(
@@ -324,7 +331,6 @@ class SupersetShillelaghAdapter(Adapter):
                     self.table,
                     metadata,
                     schema=self.schema,
-                    autoload=True,
                     autoload_with=engine,
                 )
             except NoSuchTableError as ex:
@@ -361,7 +367,7 @@ class SupersetShillelaghAdapter(Adapter):
         """
         Build SQLAlchemy query object.
         """
-        query = select([self._table])
+        query = select(self._table)
 
         for column_name, filter_ in bounds.items():
             column = self._table.c[column_name]
@@ -410,12 +416,12 @@ class SupersetShillelaghAdapter(Adapter):
         query = self._build_sql(bounds, order, limit, offset)
 
         with self.engine_context() as engine:
-            connection = engine.connect()
-            rows = connection.execute(query)
-            for i, row in enumerate(rows):
-                data = dict(zip(self.columns, row, strict=False))
-                data["rowid"] = data[self._rowid] if self._rowid else i
-                yield data
+            with engine.connect() as connection:
+                rows = connection.execute(query)
+                for i, row in enumerate(rows):
+                    data = dict(zip(self.columns, row, strict=False))
+                    data["rowid"] = data[self._rowid] if self._rowid else i
+                    yield data
 
     @check_dml
     def insert_row(self, row: Row) -> int:
@@ -438,15 +444,16 @@ class SupersetShillelaghAdapter(Adapter):
         query = self._table.insert().values(**row)
 
         with self.engine_context() as engine:
-            connection = engine.connect()
-            result = connection.execute(query)
+            with engine.begin() as connection:
+                result = connection.execute(query)
 
-            # return rowid
-            if self._rowid:
-                return result.inserted_primary_key[0]
+                # return rowid
+                if self._rowid:
+                    return result.inserted_primary_key[0]
 
-            query = select([func.count()]).select_from(self._table)
-            return connection.execute(query).scalar()
+            query = select(func.count()).select_from(self._table)
+            with engine.connect() as connection:
+                return connection.execute(query).scalar()
 
     @check_dml
     @has_rowid
@@ -457,8 +464,8 @@ class SupersetShillelaghAdapter(Adapter):
         query = self._table.delete().where(self._table.c[self._rowid] == row_id)
 
         with self.engine_context() as engine:
-            connection = engine.connect()
-            connection.execute(query)
+            with engine.begin() as connection:
+                connection.execute(query)
 
     @check_dml
     @has_rowid
@@ -481,5 +488,5 @@ class SupersetShillelaghAdapter(Adapter):
         )
 
         with self.engine_context() as engine:
-            connection = engine.connect()
-            connection.execute(query)
+            with engine.begin() as connection:
+                connection.execute(query)

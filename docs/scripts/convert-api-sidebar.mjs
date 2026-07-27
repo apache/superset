@@ -28,8 +28,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const sidebarTsPath = path.join(__dirname, '..', 'docs', 'api', 'sidebar.ts');
-const sidebarJsPath = path.join(__dirname, '..', 'docs', 'api', 'sidebar.js');
+const sidebarTsPath = path.join(__dirname, '..', 'developer_docs', 'api', 'sidebar.ts');
+const sidebarJsPath = path.join(__dirname, '..', 'developer_docs', 'api', 'sidebar.js');
 
 if (!fs.existsSync(sidebarTsPath)) {
   console.log('No sidebar.ts found, skipping conversion');

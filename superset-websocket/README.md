@@ -16,6 +16,7 @@ KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License.
 -->
+
 # Superset WebSocket Server
 
 A Node.js WebSocket server for sending async event data to the Superset web application frontend.
@@ -66,6 +67,25 @@ npm ci
 Copy `config.example.json` to `config.json` and adjust the values for your environment.
 
 Configuration via environment variables is also supported which can be helpful in certain contexts, e.g., deployment. `src/config.ts` can be consulted to see the full list of supported values.
+
+### Restricting WebSocket origins
+
+To mitigate Cross-Site WebSocket Hijacking, set `allowedOrigins` (or the
+`ALLOWED_ORIGINS` environment variable, comma-separated) to the list of origins
+permitted to open WebSocket connections, e.g. the origin Superset is served
+from:
+
+```json
+{
+  "allowedOrigins": ["https://superset.example.com"]
+}
+```
+
+The `Origin` header of each upgrade request must exactly match one of the
+configured values. When `allowedOrigins` is empty (the default) the check is
+skipped and any origin is accepted; a single `"*"` entry explicitly allows any
+origin. Setting this is recommended for production deployments, especially when
+the JWT cookie uses `SameSite=None`.
 
 ## Superset Configuration
 
@@ -145,4 +165,4 @@ HEAD /health
 
 ## Containerization
 
-*TODO: containerize websocket server*
+_TODO: containerize websocket server_

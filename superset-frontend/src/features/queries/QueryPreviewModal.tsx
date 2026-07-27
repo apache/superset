@@ -17,8 +17,8 @@
  * under the License.
  */
 import { useState } from 'react';
-import { t } from '@apache-superset/core';
-import { styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { useTheme, styled } from '@apache-superset/core/theme';
 import cx from 'classnames';
 import { Button, Modal } from '@superset-ui/core/components';
 import withToasts, {
@@ -44,12 +44,17 @@ const QueryViewToggle = styled.div`
   display: flex;
 `;
 
-const TabButton = styled.div`
+const TabButton = styled.button`
+  appearance: none;
+  border: none;
+  background: none;
+  font: inherit;
   font-size: ${({ theme }) => theme.fontSizeSM}px;
   padding: ${({ theme }) => theme.sizeUnit * 2}px
     ${({ theme }) => theme.sizeUnit * 4}px;
   margin-right: ${({ theme }) => theme.sizeUnit * 4}px;
   color: ${({ theme }) => theme.colorPrimaryText};
+  cursor: pointer;
 
   &.active,
   &:focus,
@@ -65,6 +70,7 @@ const TabButton = styled.div`
 const StyledModal = styled(Modal)`
   .ant-modal-body {
     padding: ${({ theme }) => theme.sizeUnit * 6}px;
+    padding-top: 0;
   }
 `;
 
@@ -93,6 +99,15 @@ function QueryPreviewModal({
       currentQueryId: query.id,
       fetchData,
     });
+  const theme = useTheme();
+  const codeBlockStyle = {
+    border: 1,
+    borderColor: theme.colorBorder,
+    borderStyle: 'solid',
+    marginTop: theme.sizeUnit * 4,
+    fontSize: theme.fontSize * 0.75,
+    height: theme.sizeUnit * 100,
+  };
 
   const [currentTab, setCurrentTab] = useState<'user' | 'executed'>('user');
 
@@ -137,7 +152,7 @@ function QueryPreviewModal({
         <QueryLabel>{query.tab_name}</QueryLabel>
         <QueryViewToggle>
           <TabButton
-            role="button"
+            type="button"
             data-test="toggle-user-sql"
             className={cx({ active: currentTab === 'user' })}
             onClick={() => setCurrentTab('user')}
@@ -145,7 +160,7 @@ function QueryPreviewModal({
             {t('User query')}
           </TabButton>
           <TabButton
-            role="button"
+            type="button"
             data-test="toggle-executed-sql"
             className={cx({ active: currentTab === 'executed' })}
             onClick={() => setCurrentTab('executed')}
@@ -157,6 +172,7 @@ function QueryPreviewModal({
           addDangerToast={addDangerToast}
           addSuccessToast={addSuccessToast}
           language="sql"
+          customStyle={codeBlockStyle}
         >
           {(currentTab === 'user' ? sql : executed_sql) || ''}
         </SyntaxHighlighterCopy>

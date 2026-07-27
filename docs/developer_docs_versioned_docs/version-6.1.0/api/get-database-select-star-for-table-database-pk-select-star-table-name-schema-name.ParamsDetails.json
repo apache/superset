@@ -1,0 +1,1 @@
+{"parameters":[{"description":"The database id","in":"path","name":"pk","required":true,"schema":{"type":"integer"}},{"description":"Table name","in":"path","name":"table_name","required":true,"schema":{"type":"string"}},{"description":"Table schema","in":"path","name":"schema_name","required":true,"schema":{"type":"string"}}]}

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Dispatch } from 'redux';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { makeApi, getClientErrorObject } from '@superset-ui/core';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import {

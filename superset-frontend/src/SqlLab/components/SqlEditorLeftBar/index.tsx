@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback, useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 
 import { resetState } from 'src/SqlLab/actions/sqlLab';
 import {
@@ -28,16 +28,18 @@ import {
   Popover,
   Typography,
 } from '@superset-ui/core/components';
-import { t } from '@apache-superset/core';
-import { styled, css } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled, css } from '@apache-superset/core/theme';
 import type { SchemaOption, CatalogOption } from 'src/hooks/apiResources';
 import { DatabaseSelector, type DatabaseObject } from 'src/components';
+import { EMPTY_STATE_QE_ID } from 'src/SqlLab/hooks/useQueryEditor';
 
 import useDatabaseSelector from '../SqlEditorTopBar/useDatabaseSelector';
 import TableExploreTree from '../TableExploreTree';
 
 export interface SqlEditorLeftBarProps {
   queryEditorId: string;
+  collapsed?: boolean;
 }
 
 const LeftBarStyles = styled.div`
@@ -62,12 +64,16 @@ const StyledDivider = styled.div`
   margin: 0 -${({ theme }) => theme.sizeUnit * 2.5}px 0;
 `;
 
-const SqlEditorLeftBar = ({ queryEditorId }: SqlEditorLeftBarProps) => {
-  const dbSelectorProps = useDatabaseSelector(queryEditorId);
+const SqlEditorLeftBar = ({
+  queryEditorId,
+  collapsed = false,
+}: SqlEditorLeftBarProps) => {
+  const activeQEId = queryEditorId || EMPTY_STATE_QE_ID;
+  const dbSelectorProps = useDatabaseSelector(activeQEId);
   const { db, catalog, schema, onDbChange, onCatalogChange, onSchemaChange } =
     dbSelectorProps;
 
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const shouldShowReset = window.location.search === '?reset=1';
 
   // Modal state for Database/Catalog/Schema selector
@@ -178,15 +184,17 @@ const SqlEditorLeftBar = ({ queryEditorId }: SqlEditorLeftBarProps) => {
     </Flex>
   );
 
-  return (
-    <LeftBarStyles data-test="sql-editor-left-bar">
-      <Popover
-        content={popoverContent}
-        open={selectorModalOpen}
-        onOpenChange={open => !open && closeSelectorModal()}
-        placement="bottomLeft"
-        trigger="click"
-      >
+  const dbSelectorTrigger = (
+    <Popover
+      content={popoverContent}
+      open={selectorModalOpen}
+      onOpenChange={open => !open && closeSelectorModal()}
+      placement="bottomLeft"
+      trigger="click"
+    >
+      {/* Wrap in a span so the Popover can attach a ref without relying
+            on findDOMNode (deprecated in React 18+). */}
+      <span>
         <DatabaseSelector
           key={`db-selector-${db ? db.id : 'no-db'}:${catalog ?? 'no-catalog'}:${
             schema ?? 'no-schema'
@@ -194,11 +202,22 @@ const SqlEditorLeftBar = ({ queryEditorId }: SqlEditorLeftBarProps) => {
           {...dbSelectorProps}
           emptyState={<EmptyState />}
           sqlLabMode
+          compactMode={collapsed}
           onOpenModal={openSelectorModal}
         />
-      </Popover>
+      </span>
+    </Popover>
+  );
+
+  if (collapsed) {
+    return dbSelectorTrigger;
+  }
+
+  return (
+    <LeftBarStyles data-test="sql-editor-left-bar">
+      {dbSelectorTrigger}
       <StyledDivider />
-      <TableExploreTree queryEditorId={queryEditorId} />
+      <TableExploreTree queryEditorId={activeQEId} />
       {shouldShowReset && (
         <Button
           buttonSize="small"

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { styled, css } from '@apache-superset/core/ui';
+import { styled, css } from '@apache-superset/core/theme';
 
 export const FOLDER_INDENTATION_WIDTH = 24;
 export const ITEM_INDENTATION_WIDTH = 4;
@@ -30,7 +30,7 @@ export const TreeItemContainer = styled.div<{
 }>`
   ${({ theme, depth, isDragging, isOverlay }) => `
     margin: 0 ${theme.marginMD}px;
-    margin-left: ${isOverlay ? ITEM_INDENTATION_WIDTH : (depth - 1) * FOLDER_INDENTATION_WIDTH + ITEM_INDENTATION_WIDTH}px;
+    margin-left: ${Math.max(0, (depth - 1) * FOLDER_INDENTATION_WIDTH + ITEM_INDENTATION_WIDTH)}px;
     padding-left: ${theme.paddingSM}px;
     display: flex;
     align-items: center;
@@ -71,7 +71,7 @@ export const ItemSeparator = styled.div<{
 export const TreeFolderContainer = styled(TreeItemContainer)<{
   isForbiddenDropTarget?: boolean;
 }>`
-  ${({ theme, depth, isForbiddenDropTarget, isOverlay }) => `
+  ${({ theme, depth, isForbiddenDropTarget }) => `
     margin-top: 0;
     margin-bottom: 0;
     padding-top: ${theme.paddingSM}px;
@@ -188,17 +188,21 @@ export const EmptyFolderDropZone = styled.div<{
     margin-left: ${depth * FOLDER_INDENTATION_WIDTH + ITEM_INDENTATION_WIDTH}px;
     padding: ${theme.paddingLG}px;
     border: 2px dashed
-      ${isOver
-        ? isForbidden
-          ? theme.colorError
-          : theme.colorPrimary
-        : 'transparent'};
+      ${
+        isOver
+          ? isForbidden
+            ? theme.colorError
+            : theme.colorPrimary
+          : 'transparent'
+      };
     border-radius: ${theme.borderRadius}px;
-    background: ${isOver
-      ? isForbidden
-        ? theme.colorErrorBg
-        : theme.colorPrimaryBg
-      : 'transparent'};
+    background: ${
+      isOver
+        ? isForbidden
+          ? theme.colorErrorBg
+          : theme.colorPrimaryBg
+        : 'transparent'
+    };
     text-align: center;
     transition: all 0.2s ease-in-out;
     cursor: ${isOver && isForbidden ? 'not-allowed' : 'default'};

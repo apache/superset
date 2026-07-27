@@ -22,12 +22,14 @@ import Link from '@docusaurus/Link';
 import { Card, Carousel, Flex } from 'antd';
 import styled from '@emotion/styled';
 import GitHubButton from 'react-github-btn';
+import { load } from 'js-yaml';
 import { mq } from '../utils';
 import SectionHeader from '../components/SectionHeader';
 import databaseData from '../data/databases.json';
 import BlurredSection from '../components/BlurredSection';
 import DataSet from '../../../RESOURCES/INTHEWILD.yaml';
 import type { DatabaseData } from '../components/databases/types';
+import GetStartedSplitButton from '../components/GetStartedSplitButton';
 import '../styles/main.css';
 
 // Build database list from databases.json (databases with logos)
@@ -59,7 +61,7 @@ interface DataSetType {
   categories: Record<string, Organization[]>;
 }
 
-const typedDataSet = DataSet as DataSetType;
+const typedDataSet = load(DataSet) as DataSetType;
 
 // Extract all organizations with logos for the carousel
 const companiesWithLogos = Object.values(typedDataSet.categories)
@@ -100,6 +102,41 @@ const features = [
     title: 'Rich visualizations and dashboards',
     description:
       'Superset ships with 40+ pre-installed visualization types. Our plug-in architecture makes it easy to build custom visualizations.',
+  },
+];
+
+const docSections = [
+  {
+    title: 'User Guide',
+    description:
+      'For analysts and business users. Learn to explore data, build charts, create dashboards, and connect to databases.',
+    cta: 'Browse User Docs',
+    href: '/user-docs/',
+    accent: '#20a7c9',
+  },
+  {
+    title: 'Administrator Guide',
+    description:
+      'For teams installing and operating Superset. Covers installation, configuration, security, and database drivers.',
+    cta: 'Browse Admin Docs',
+    href: '/admin-docs/',
+    accent: '#457f8d',
+  },
+  {
+    title: 'Developer Guide',
+    description:
+      'For contributors and engineers building on Superset. Covers the REST API, extensions, and contributing workflows.',
+    cta: 'Browse Developer Docs',
+    href: '/developer-docs/',
+    accent: '#2d6a4f',
+  },
+  {
+    title: 'Community',
+    description:
+      'Join the Superset community. Find resources on Slack, GitHub, the mailing list, and upcoming meetups.',
+    cta: 'Join the Community',
+    href: '/community',
+    accent: '#6d4c7e',
   },
 ];
 
@@ -153,20 +190,6 @@ const StyledTitleContainer = styled('div')`
         }
       }
     }
-  }
-`;
-
-const StyledButton = styled(Link)`
-  border-radius: 10px;
-  font-size: 20px;
-  font-weight: bold;
-  width: 170px;
-  padding: 10px 0;
-  margin: 15px auto 0;
-  ${mq[1]} {
-    font-size: 19px;
-    width: 175px;
-    padding: 10px 0;
   }
 `;
 
@@ -285,6 +308,81 @@ const StyledFeaturesList = styled('ul')`
         font-size: 16px;
         margin-top: 10px;
       }
+    }
+  }
+`;
+
+interface StyledDocSectionCardProps {
+  accent: string;
+}
+
+const StyledDocSectionsHeader = styled('div')`
+  & > div {
+    max-width: 960px;
+  }
+`;
+
+const StyledDocSectionsGrid = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+  max-width: 1170px;
+  width: 100%;
+  margin: 30px auto 0;
+  padding: 0 20px 10px;
+  ${mq[2]} {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  ${mq[0]} {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+`;
+
+const StyledDocSectionCard = styled(Link)<StyledDocSectionCardProps>`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  border: 1px solid var(--ifm-border-color);
+  border-top: 4px solid ${({ accent }) => accent};
+  border-radius: 10px;
+  padding: 24px;
+  text-decoration: none;
+  color: var(--ifm-font-base-color);
+  background: transparent;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    text-decoration: none;
+    color: var(--ifm-font-base-color);
+  }
+  .card-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0 0 8px;
+    color: var(--ifm-font-base-color);
+  }
+  .card-description {
+    font-size: 15px;
+    line-height: 22px;
+    margin: 0 0 16px;
+    color: var(--ifm-font-base-color);
+    flex: 1;
+  }
+  .card-cta {
+    font-size: 14px;
+    font-weight: 700;
+    color: ${({ accent }) => accent};
+    margin: 0;
+  }
+  ${mq[1]} {
+    padding: 20px;
+    .card-title {
+      font-size: 18px;
+    }
+    .card-description {
+      font-size: 14px;
     }
   }
 `;
@@ -607,9 +705,10 @@ export default function Home(): JSX.Element {
               </span>
             </div>
             <img src="/img/community/line.png" alt="line" />
-            <StyledButton className="default-button-theme" href="/docs/intro">
-              Get Started
-            </StyledButton>
+            <GetStartedSplitButton
+              variant="hero"
+              rootClassName="default-button-theme get-started-split"
+            />
           </div>
           <StyledScreenshotContainer>
             <img
@@ -622,6 +721,24 @@ export default function Home(): JSX.Element {
             <div className="screenshotBlur"></div>
           </StyledScreenshotContainer>
         </StyledTitleContainer>
+        <BlurredSection>
+          <StyledDocSectionsHeader>
+            <SectionHeader
+              level="h2"
+              title="Find your documentation"
+              subtitle="Whether you're exploring data, managing a deployment, building an integration, or joining the community — here's where to get started."
+            />
+          </StyledDocSectionsHeader>
+          <StyledDocSectionsGrid>
+            {docSections.map(({ title, description, cta, href, accent }) => (
+              <StyledDocSectionCard key={title} to={href} accent={accent}>
+                <h3 className="card-title">{title}</h3>
+                <p className="card-description">{description}</p>
+                <span className="card-cta">{cta} →</span>
+              </StyledDocSectionCard>
+            ))}
+          </StyledDocSectionsGrid>
+        </BlurredSection>
         <BlurredSection>
           <SectionHeader
             level="h2"

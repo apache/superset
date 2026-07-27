@@ -1,0 +1,1 @@
+{"schema":{"properties":{"domains":{"items":{"type":"string"},"type":"array"}},"type":"object","title":"AvailableDomainsSchema"},"schemaType":"response"}

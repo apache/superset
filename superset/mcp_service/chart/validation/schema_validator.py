@@ -126,115 +126,75 @@ class SchemaValidator:
             return False, ChartGenerationError(
                 error_type="missing_chart_type",
                 message="Missing required field: chart_type",
-                details="Chart configuration must specify 'chart_type' as either 'xy' "
-                "or 'table'",
+                details="Chart configuration must specify 'chart_type'",
                 suggestions=[
                     "Add 'chart_type': 'xy' for line/bar/area/scatter charts",
                     "Add 'chart_type': 'table' for table visualizations",
+                    "Add 'chart_type': 'pie' for pie or donut charts",
+                    "Add 'chart_type': 'pivot_table' for interactive pivot tables",
+                    "Add 'chart_type': 'mixed_timeseries' for dual-series time charts",
+                    "Add 'chart_type': 'handlebars' for custom HTML template charts",
+                    "Add 'chart_type': 'big_number' for big number display",
                     "Example: 'config': {'chart_type': 'xy', ...}",
                 ],
                 error_code="MISSING_CHART_TYPE",
             )
 
-        if chart_type not in ["xy", "table"]:
+        return SchemaValidator._pre_validate_chart_type(chart_type, config)
+
+    @staticmethod
+    def _pre_validate_chart_type(
+        chart_type: str,
+        config: Dict[str, Any],
+    ) -> Tuple[bool, ChartGenerationError | None]:
+        """Validate chart type and dispatch to plugin pre-validation."""
+        # avoid circular import — a top-level import of registry here would pull in
+        # the plugins package before it finishes registering, creating an import cycle.
+        from superset.mcp_service.chart.registry import get_registry
+
+        registry = get_registry()
+        # Compute once — used in both error branches below.
+        valid_types = ", ".join(registry.all_types())
+
+        if not isinstance(chart_type, str) or not registry.is_registered(chart_type):
             return False, ChartGenerationError(
                 error_type="invalid_chart_type",
                 message=f"Invalid chart_type: '{chart_type}'",
-                details=f"Chart type '{chart_type}' is not supported. Must be 'xy' or "
-                f"'table'",
+                details=f"Chart type '{chart_type}' is not supported. "
+                f"Must be one of: {valid_types}",
                 suggestions=[
                     "Use 'chart_type': 'xy' for line, bar, area, or scatter charts",
                     "Use 'chart_type': 'table' for tabular data display",
+                    "Use 'chart_type': 'pie' for pie or donut charts",
+                    "Use 'chart_type': 'pivot_table' for interactive pivot tables",
+                    "Use 'chart_type': 'mixed_timeseries' for dual-series time charts",
+                    "Use 'chart_type': 'handlebars' for custom HTML template charts",
+                    "Use 'chart_type': 'big_number' for big number display",
                     "Check spelling and ensure lowercase",
                 ],
                 error_code="INVALID_CHART_TYPE",
             )
 
-        # Pre-validate structure based on chart type
-        if chart_type == "xy":
-            return SchemaValidator._pre_validate_xy_config(config)
-        elif chart_type == "table":
-            return SchemaValidator._pre_validate_table_config(config)
-
-        return True, None
-
-    @staticmethod
-    def _pre_validate_xy_config(
-        config: Dict[str, Any],
-    ) -> Tuple[bool, ChartGenerationError | None]:
-        """Pre-validate XY chart configuration."""
-        missing_fields = []
-
-        if "x" not in config:
-            missing_fields.append("'x' (X-axis column)")
-        if "y" not in config:
-            missing_fields.append("'y' (Y-axis metrics)")
-
-        if missing_fields:
+        # Single get() call — returns None when the plugin is disabled.
+        # Avoids calling enabled_func twice (separate is_enabled + get both
+        # invoke _is_plugin_enabled, which may call operator-supplied callable).
+        plugin = registry.get(chart_type)
+        if plugin is None:
             return False, ChartGenerationError(
-                error_type="missing_xy_fields",
-                message=f"XY chart missing required "
-                f"fields: {', '.join(missing_fields)}",
-                details="XY charts require both X-axis (dimension) and Y-axis ("
-                "metrics) specifications",
+                error_type="disabled_chart_type",
+                message=f"Chart type '{chart_type}' is not enabled on this instance",
+                details=f"Chart type '{chart_type}' is registered but has been "
+                f"disabled by the operator. "
+                f"Enabled chart types: {valid_types}",
                 suggestions=[
-                    "Add 'x' field: {'name': 'column_name'} for X-axis",
-                    "Add 'y' field: [{'name': 'metric_column', 'aggregate': 'SUM'}] "
-                    "for Y-axis",
-                    "Example: {'chart_type': 'xy', 'x': {'name': 'date'}, "
-                    "'y': [{'name': 'sales', 'aggregate': 'SUM'}]}",
+                    f"Use one of the enabled chart types: {valid_types}",
+                    "Contact your administrator if you believe this is an error",
                 ],
-                error_code="MISSING_XY_FIELDS",
+                error_code="DISABLED_CHART_TYPE",
             )
 
-        # Validate Y is a list
-        if not isinstance(config.get("y", []), list):
-            return False, ChartGenerationError(
-                error_type="invalid_y_format",
-                message="Y-axis must be a list of metrics",
-                details="The 'y' field must be an array of metric specifications",
-                suggestions=[
-                    "Wrap Y-axis metric in array: 'y': [{'name': 'column', "
-                    "'aggregate': 'SUM'}]",
-                    "Multiple metrics supported: 'y': [metric1, metric2, ...]",
-                ],
-                error_code="INVALID_Y_FORMAT",
-            )
-
-        return True, None
-
-    @staticmethod
-    def _pre_validate_table_config(
-        config: Dict[str, Any],
-    ) -> Tuple[bool, ChartGenerationError | None]:
-        """Pre-validate table chart configuration."""
-        if "columns" not in config:
-            return False, ChartGenerationError(
-                error_type="missing_columns",
-                message="Table chart missing required field: columns",
-                details="Table charts require a 'columns' array to specify which "
-                "columns to display",
-                suggestions=[
-                    "Add 'columns' field with array of column specifications",
-                    "Example: 'columns': [{'name': 'product'}, {'name': 'sales', "
-                    "'aggregate': 'SUM'}]",
-                    "Each column can have optional 'aggregate' for metrics",
-                ],
-                error_code="MISSING_COLUMNS",
-            )
-
-        if not isinstance(config.get("columns", []), list):
-            return False, ChartGenerationError(
-                error_type="invalid_columns_format",
-                message="Columns must be a list",
-                details="The 'columns' field must be an array of column specifications",
-                suggestions=[
-                    "Ensure columns is an array: 'columns': [...]",
-                    "Each column should be an object with 'name' field",
-                ],
-                error_code="INVALID_COLUMNS_FORMAT",
-            )
-
+        if (error := plugin.pre_validate(config)) is not None:
+            return False, error
         return True, None
 
     @staticmethod
@@ -249,54 +209,27 @@ class SchemaValidator:
             if err.get("type") == "union_tag_invalid" or "discriminator" in str(
                 err.get("ctx", {})
             ):
-                # This is the generic union error - provide better message
-                config = request_data.get("config", {})
-                chart_type = config.get("chart_type", "unknown")
+                # avoid circular import
+                from superset.mcp_service.chart.registry import get_registry
 
-                if chart_type == "xy":
-                    return ChartGenerationError(
-                        error_type="xy_validation_error",
-                        message="XY chart configuration validation failed",
-                        details="The XY chart configuration is missing required "
-                        "fields or has invalid structure",
-                        suggestions=[
-                            "Ensure 'x' field exists with {'name': 'column_name'}",
-                            "Ensure 'y' field is an array: [{'name': 'metric', "
-                            "'aggregate': 'SUM'}]",
-                            "Check that all column names are strings",
-                            "Verify aggregate functions are valid: SUM, COUNT, AVG, "
-                            "MIN, MAX",
-                        ],
-                        error_code="XY_VALIDATION_ERROR",
-                    )
-                elif chart_type == "table":
-                    return ChartGenerationError(
-                        error_type="table_validation_error",
-                        message="Table chart configuration validation failed",
-                        details="The table chart configuration is missing required "
-                        "fields or has invalid structure",
-                        suggestions=[
-                            "Ensure 'columns' field is an array of column "
-                            "specifications",
-                            "Each column needs {'name': 'column_name'}",
-                            "Optional: add 'aggregate' for metrics",
-                            "Example: 'columns': [{'name': 'product'}, {'name': "
-                            "'sales', 'aggregate': 'SUM'}]",
-                        ],
-                        error_code="TABLE_VALIDATION_ERROR",
-                    )
+                chart_type = request_data.get("config", {}).get("chart_type", "")
+                plugin = get_registry().get(chart_type)
+                if plugin is not None:
+                    hint = plugin.schema_error_hint()
+                    if hint is not None:
+                        return hint
 
         # Default enhanced error
         error_details = []
         for err in errors[:3]:  # Show first 3 errors
             loc = " -> ".join(str(location) for location in err.get("loc", []))
             msg = err.get("msg", "Validation failed")
-            error_details.append(f"{loc}: {msg}")
+            error_details.append(f"{loc}: {msg}" if loc else msg)
 
         return ChartGenerationError(
             error_type="validation_error",
             message="Chart configuration validation failed",
-            details="; ".join(error_details),
+            details="; ".join(error_details) or "Invalid chart configuration structure",
             suggestions=[
                 "Check that all required fields are present",
                 "Ensure field types match the schema",

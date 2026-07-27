@@ -258,6 +258,33 @@ describe('formatValueHandler', () => {
 
     expect(result).toEqual(expected);
   });
+
+  test('formats unary filter', () => {
+    const filters = [
+      {
+        expressionType: 'SIMPLE',
+        operator: 'IS NULL',
+        subject: 'a',
+      },
+      {
+        clause: 'WHERE',
+        comparator: ['hu', 'ho', 'ha'],
+        expressionType: 'SIMPLE',
+        operator: 'NOT IN',
+        subject: 'b',
+      },
+    ];
+    const key = 'adhoc_filters';
+
+    const expected = 'a IS NULL, b NOT IN [hu, ho, ha]';
+    const formattedValue: string | number = formatValueHandler(
+      filters,
+      key,
+      controlsMap,
+    );
+
+    expect(formattedValue).toEqual(expected);
+  });
 });
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks

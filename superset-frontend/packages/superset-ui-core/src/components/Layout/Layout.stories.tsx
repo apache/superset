@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Meta, StoryObj } from '@storybook/react';
+import { Meta, StoryObj } from '@storybook/react-webpack5';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Menu } from '../Menu';
 import type { LayoutProps, SiderProps } from './types';

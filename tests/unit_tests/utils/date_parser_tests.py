@@ -32,9 +32,13 @@ from superset.utils.date_parser import (
     datetime_eval,
     get_past_or_future,
     get_since_until,
+    is_constant_human_timedelta,
+    is_parseable_human_timedelta,
+    normalize_time_delta,
     parse_human_datetime,
     parse_human_timedelta,
     parse_past_timedelta,
+    TimeDeltaAmbiguousError,
 )
 from tests.unit_tests.conftest import with_feature_flags
 
@@ -561,6 +565,109 @@ def test_get_past_or_future() -> None:
     assert get_past_or_future("3 month", dttm) == datetime(2020, 5, 29)
 
 
+def test_get_past_or_future_quarters() -> None:
+    # parsedatetime has no notion of quarters (it would leave the source time
+    # unchanged); quarter phrases are rewritten to months before parsing
+    dttm = datetime(2024, 5, 15, 10, 30, 45)
+    assert get_past_or_future("1 quarter ago", dttm) == datetime(
+        2024, 2, 15, 10, 30, 45
+    )
+    assert get_past_or_future("2 quarters ago", dttm) == datetime(
+        2023, 11, 15, 10, 30, 45
+    )
+    assert get_past_or_future("1 quarter later", dttm) == datetime(
+        2024, 8, 15, 10, 30, 45
+    )
+    assert get_past_or_future("1 QUARTER ago", dttm) == datetime(
+        2024, 2, 15, 10, 30, 45
+    )
+    # absurdly long digit runs are not rewritten (bounded to keep matching
+    # linear and the month count small); they parse like any other
+    # unintelligible phrase, i.e. the source time comes back unchanged
+    assert get_past_or_future("0" * 100_000 + " quarters ago", dttm) == dttm
+
+
+def test_parse_human_timedelta_unparseable_is_zero() -> None:
+    # the parser leaves unparseable phrases as the source time, so their
+    # delta is zero; a zero delta alone cannot distinguish them from
+    # legitimate zero-shift phrases (see is_parseable_human_timedelta)
+    dttm = datetime(2024, 5, 15)
+    assert parse_human_timedelta("not a real offset", dttm) == timedelta(0)
+
+
+def test_is_parseable_human_timedelta() -> None:
+    assert is_parseable_human_timedelta("1 week ago")
+    assert is_parseable_human_timedelta("one year ago")
+    assert is_parseable_human_timedelta("1 quarter ago")
+    # zero-shift phrases parse successfully even though their delta is zero
+    assert is_parseable_human_timedelta("0 days ago")
+    assert not is_parseable_human_timedelta("not a real offset")
+    assert not is_parseable_human_timedelta("invalid-date-range")
+    assert not is_parseable_human_timedelta("")
+    assert not is_parseable_human_timedelta(None)
+    # absurdly long digit runs are not rewritten to months; they are
+    # unparseable like any other unintelligible phrase
+    assert not is_parseable_human_timedelta("9" * 100_000 + " quarters ago")
+
+
+def test_is_constant_human_timedelta() -> None:
+    # phrases that shift every source time by the same amount
+    assert is_constant_human_timedelta("1 week ago")
+    assert is_constant_human_timedelta("one year ago")
+    assert is_constant_human_timedelta("1 quarter ago")
+    assert is_constant_human_timedelta("2 days later")
+    # a zero shift is still a constant one
+    assert is_constant_human_timedelta("0 days ago")
+    # anchors resolve to a fixed point instead: how far they move a source
+    # time depends on where in the day that source time falls
+    assert not is_constant_human_timedelta("yesterday")
+    assert not is_constant_human_timedelta("last month")
+    assert not is_constant_human_timedelta("noon")
+    # a phrase nothing can parse is not a delta either
+    assert not is_constant_human_timedelta("not a real offset")
+    assert not is_constant_human_timedelta("")
+    assert not is_constant_human_timedelta(None)
+
+
+def test_is_constant_human_timedelta_matches_applied_shift() -> None:
+    """
+    The probes stand in for real source timestamps, so the verdict has to hold
+    for source times they never looked at: an accepted phrase shifts arbitrary
+    timestamps equally, a rejected one does not.
+    """
+    sources = [
+        datetime(2021, 3, 14, 2, 30),
+        datetime(2021, 11, 7, 1, 30),
+        datetime(2024, 2, 29, 23, 59, 59),
+        datetime(2020, 1, 1, 0, 0),
+    ]
+
+    deltas = {get_past_or_future("1 week ago", src) - src for src in sources}
+    assert deltas == {timedelta(days=-7)}
+
+    anchored = {get_past_or_future("yesterday", src) - src for src in sources}
+    assert len(anchored) > 1
+
+
+def test_normalize_time_delta() -> None:
+    assert normalize_time_delta("30 seconds ago") == {"seconds": -30}
+    assert normalize_time_delta("5 minutes later") == {"minutes": 5}
+    assert normalize_time_delta("12 hours ago") == {"hours": -12}
+    assert normalize_time_delta("2 weeks ago") == {"weeks": -2}
+    assert normalize_time_delta("28 days ago") == {"days": -28}
+    assert normalize_time_delta("2 months later") == {"months": 2}
+    assert normalize_time_delta("1 year ago") == {"years": -1}
+    # quarters are converted to months (pd.DateOffset has no quarters argument)
+    assert normalize_time_delta("1 quarter ago") == {"months": -3}
+    assert normalize_time_delta("2 quarters later") == {"months": 6}
+    # matching is case-insensitive and the result uses lowercase keys
+    assert normalize_time_delta("1 QUARTER ago") == {"months": -3}
+    assert normalize_time_delta("1 Year AGO") == {"years": -1}
+
+    with pytest.raises(TimeDeltaAmbiguousError):
+        normalize_time_delta("one year ago")
+
+
 def test_parse_human_datetime() -> None:
     with pytest.raises(TimeRangeAmbiguousError):
         parse_human_datetime("2 days")
@@ -722,3 +829,41 @@ def test_time_range_bounded_whitespace_regex_invalid(time_range: str) -> None:
     """Reject expressions with 0 or 6+ spaces (fall back to DATETIME wrapping)."""
     result = get_since_until(time_range)
     assert result[0] is None, f"Expected '{time_range}' to NOT match bounded regex"
+
+
+def test_datetime_eval_does_not_emit_parsedatetime_debug_logs(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """
+    Regression for #33365: ``parsedatetime`` emits a noisy DEBUG record
+    (``parsedatetime:eval now with context - False, False``) every time
+    ``datetime_eval`` runs against a relative expression. In production
+    deployments running at DEBUG level this floods the logs — the user
+    report notes "this appears frequently" and a search of the issue
+    tracker turns up "dozens of places where people have posted a log
+    with that in it."
+
+    The fix is to silence the ``parsedatetime`` logger at module load
+    in ``superset/utils/date_parser.py`` (e.g.
+    ``logging.getLogger("parsedatetime").setLevel(logging.WARNING)``).
+    Their own DEBUG output is internal library chatter that Superset
+    does not surface to operators in any actionable way.
+
+    This test captures all log records at DEBUG level during a single
+    ``datetime_eval`` call and asserts that none of them come from the
+    ``parsedatetime`` logger. If the suppression is removed or bypassed,
+    the test fails immediately.
+    """
+    import logging
+
+    with caplog.at_level(logging.DEBUG):
+        datetime_eval("datetime('now')")
+
+    parsedatetime_records = [
+        r for r in caplog.records if r.name.startswith("parsedatetime")
+    ]
+    assert not parsedatetime_records, (
+        "parsedatetime emitted DEBUG records during datetime_eval — these "
+        "flood production logs. Records: "
+        + repr([(r.levelname, r.getMessage()) for r in parsedatetime_records])
+    )

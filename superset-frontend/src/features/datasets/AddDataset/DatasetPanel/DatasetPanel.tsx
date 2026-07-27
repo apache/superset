@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
-import { styled, Alert } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
+import { css, styled } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Loading } from '@superset-ui/core/components';
 import Table, {
@@ -25,6 +26,7 @@ import Table, {
   TableSize,
 } from '@superset-ui/core/components/Table';
 import { DatasetObject } from 'src/features/datasets/AddDataset/types';
+import { openInNewTab, stripAppRoot } from 'src/utils/navigationUtils';
 import { ITableColumn } from './types';
 import MessageContent from './MessageContent';
 
@@ -182,7 +184,7 @@ export const tableColumnDefinition: ColumnsType<ITableColumn> = [
     dataIndex: 'type',
     key: 'type',
     width: '100px',
-    sorter: (a: ITableColumn, b: ITableColumn) => a.name.localeCompare(b.name),
+    sorter: (a: ITableColumn, b: ITableColumn) => a.type.localeCompare(b.type),
   },
 ];
 
@@ -223,20 +225,28 @@ const renderExistingDatasetAlert = (dataset?: DatasetObject) => (
     description={
       <>
         {EXISTING_DATASET_DESCRIPTION}
-        <span
-          role="button"
+        <button
+          type="button"
           onClick={() => {
-            window.open(
-              dataset?.explore_url,
-              '_blank',
-              'noreferrer noopener popup=false',
-            );
+            if (dataset?.explore_url) {
+              // `explore_url` is router-relative from the backend (rooted under
+              // a subdirectory deployment); strip the root so openInNewTab's
+              // ensureAppRoot re-prefixes it once rather than doubling it.
+              openInNewTab(stripAppRoot(dataset.explore_url));
+            }
           }}
-          tabIndex={0}
           className="view-dataset-button"
+          css={css`
+            appearance: none;
+            border: none;
+            background: none;
+            padding: 0;
+            font: inherit;
+            cursor: pointer;
+          `}
         >
           {VIEW_DATASET}
-        </span>
+        </button>
       </>
     }
   />

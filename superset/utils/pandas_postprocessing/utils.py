@@ -26,6 +26,8 @@ from pandas import DataFrame, NamedAgg
 from superset.constants import TimeGrain
 from superset.exceptions import InvalidPostProcessingError
 
+_PANDAS_VERSION = tuple(int(x) for x in pd.__version__.split(".")[:2])
+
 NUMPY_FUNCTIONS: dict[str, Callable[..., Any]] = {
     "average": np.average,
     "argmin": np.argmin,
@@ -52,6 +54,13 @@ NUMPY_FUNCTIONS: dict[str, Callable[..., Any]] = {
     "var": np.var,
 }
 
+# Operators that pandas GroupBy.agg accepts as string names. Passing the string
+# avoids a FutureWarning raised when pandas receives a numpy callable it internally
+# maps to its own method (e.g. np.mean → SeriesGroupBy.mean).
+_PANDAS_STRING_AGGREGATORS: frozenset[str] = frozenset(
+    {"max", "mean", "median", "min", "prod", "std", "sum", "var"}
+)
+
 DENYLIST_ROLLING_FUNCTIONS = (
     "count",
     "corr",
@@ -76,18 +85,18 @@ ALLOWLIST_CUMULATIVE_FUNCTIONS = (
 )
 
 PROPHET_TIME_GRAIN_MAP: dict[str, str] = {
-    TimeGrain.SECOND: "S",
+    TimeGrain.SECOND: "s",
     TimeGrain.MINUTE: "min",
     TimeGrain.FIVE_MINUTES: "5min",
     TimeGrain.TEN_MINUTES: "10min",
     TimeGrain.FIFTEEN_MINUTES: "15min",
     TimeGrain.THIRTY_MINUTES: "30min",
-    TimeGrain.HOUR: "H",
+    TimeGrain.HOUR: "h",
     TimeGrain.DAY: "D",
     TimeGrain.WEEK: "W",
-    TimeGrain.MONTH: "M",
-    TimeGrain.QUARTER: "Q",
-    TimeGrain.YEAR: "A",
+    TimeGrain.MONTH: "ME" if _PANDAS_VERSION >= (2, 2) else "M",
+    TimeGrain.QUARTER: "QE" if _PANDAS_VERSION >= (2, 2) else "Q",
+    TimeGrain.YEAR: "YE" if _PANDAS_VERSION >= (2, 2) else "A",
     TimeGrain.WEEK_STARTING_SUNDAY: "W-SUN",
     TimeGrain.WEEK_STARTING_MONDAY: "W-MON",
     TimeGrain.WEEK_ENDING_SATURDAY: "W-SAT",
@@ -164,7 +173,7 @@ def _get_aggregate_funcs(
             )
         operator = agg_obj["operator"]
         if callable(operator):
-            aggfunc = operator
+            aggfunc: str | Callable[..., Any] = operator
         else:
             func = NUMPY_FUNCTIONS.get(operator)
             if not func:
@@ -175,7 +184,10 @@ def _get_aggregate_funcs(
                     )
                 )
             options = agg_obj.get("options", {})
-            aggfunc = partial(func, **options)
+            if not options and operator in _PANDAS_STRING_AGGREGATORS:
+                aggfunc = operator
+            else:
+                aggfunc = partial(func, **options)
         agg_funcs[name] = NamedAgg(column=column, aggfunc=aggfunc)
 
     return agg_funcs

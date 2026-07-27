@@ -17,8 +17,8 @@
  * under the License.
  */
 import { FC } from 'react';
-import { t } from '@apache-superset/core';
-import { styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import { Typography } from '@superset-ui/core/components';
 import { type TagType, TagsList } from 'src/components';
 
@@ -28,8 +28,8 @@ interface ColumnsPreviewProps {
 }
 
 export const StyledDivContainer = styled.div`
-  //margin-top: 10px;
-  //margin-bottom: 10px;
+  /* margin-top: 10px; */
+  /* margin-bottom: 10px; */
 `;
 
 const ColumnsPreview: FC<ColumnsPreviewProps> = ({
@@ -40,7 +40,7 @@ const ColumnsPreview: FC<ColumnsPreviewProps> = ({
 
   return (
     <StyledDivContainer>
-      <Typography.Text type="secondary">Columns:</Typography.Text>
+      <Typography.Text type="secondary">{t('Columns')}:</Typography.Text>
       {columns.length === 0 ? (
         <p className="help-block">{t('Upload file to preview columns')}</p>
       ) : (

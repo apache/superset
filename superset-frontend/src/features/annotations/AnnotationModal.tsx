@@ -18,8 +18,8 @@
  */
 import { FunctionComponent, useState, useEffect, ChangeEvent } from 'react';
 
-import { t } from '@apache-superset/core';
-import { styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -208,7 +208,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
     setCurrentAnnotation(data);
   };
 
-  const onDateChange = (dates: any, dateString: Array<string>) => {
+  const onDateChange = (dates: any, _dateString: Array<string>) => {
     if (!dates?.[0] || !dates?.[1]) {
       const data = {
         ...currentAnnotation,

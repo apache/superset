@@ -58,4 +58,45 @@ export const TIMEOUT = {
    * File import/upload operations (upload + server processing)
    */
   FILE_IMPORT: 30000, // 30s for file import operations
+
+  /**
+   * UI transition timeout (tab close, popover dismiss, dropdown close)
+   */
+  UI_TRANSITION: 5000, // 5s ceiling for Ant Design animations (~300-500ms actual)
+
+  /**
+   * SQL query execution (query → backend processing → results).
+   * 30s matches Playwright's default test timeout — cold-start CI on the
+   * /app/prefix variant has been observed running trivial SELECTs in
+   * ~25s before results render, which exceeded the previous 15s budget.
+   */
+  QUERY_EXECUTION: 30000, // 30s for SQL queries
+
+  /**
+   * A chart going from mounted to painted with real data.
+   * Navigating to a dashboard only waits for its header, so the first chart
+   * asserted absorbs the whole uncached query round-trip — more than the global
+   * expect timeout allows on a loaded runner. Charts query in parallel, so a
+   * dashboard full of them pays this roughly once.
+   */
+  CHART_RENDER: 30000, // 30s for a chart to query and paint
+
+  /**
+   * Extended test timeout for multi-step tests (page load + query execution + assertions).
+   * Use with test.setTimeout() when the default 30s test timeout is insufficient.
+   */
+  SLOW_TEST: 60000, // 60s for tests that chain multiple slow operations
+} as const;
+
+/**
+ * Embedded dashboard test app configuration.
+ * The test app is served by a Node.js http server started in the test fixture.
+ */
+export const EMBEDDED = {
+  /** Timeout for iframe to appear in the DOM */
+  IFRAME_LOAD: 15000, // 15s
+  /** Timeout for dashboard content to render inside the iframe */
+  DASHBOARD_RENDER: 30000, // 30s
+  /** Timeout for individual chart cells to finish rendering */
+  CHART_RENDER: TIMEOUT.CHART_RENDER,
 } as const;

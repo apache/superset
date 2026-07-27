@@ -1,0 +1,1 @@
+{"schema":{"properties":{"allowed_domains":{"items":{"type":"string"},"type":"array"}},"required":["allowed_domains"],"type":"object","title":"EmbeddedDashboardConfig"},"schemaType":"response"}

@@ -1,0 +1,31 @@
+---
+title: Ocient
+sidebar_label: Ocient
+description: "Ocient is a hyperscale data analytics database."
+hide_title: true
+---
+
+{/*
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+*/}
+
+import { DatabasePage } from '@site/src/components/databases';
+
+export const databaseInfo = {"engine":"ocient","engine_name":"Ocient","module":"ocient","documentation":{"description":"Ocient is a hyperscale data analytics database.","categories":["ANALYTICAL_DATABASES","PROPRIETARY"],"pypi_packages":["sqlalchemy-ocient"],"connection_string":"ocient://{username}:{password}@{host}:{port}/{database}","install_instructions":"pip install sqlalchemy-ocient","custom_errors":[{"regex_name":"CONNECTION_INVALID_USERNAME_REGEX","message_template":"The username \"%(username)s\" does not exist.","error_type":"CONNECTION_INVALID_USERNAME_ERROR","category":"Authentication","description":"Invalid username","issue_codes":[1012]},{"regex_name":"CONNECTION_INVALID_PASSWORD_REGEX","message_template":"The user/password combination is not valid (Incorrect password for user).","error_type":"CONNECTION_INVALID_PASSWORD_ERROR","category":"Authentication","description":"Invalid password","issue_codes":[1013]},{"regex_name":"CONNECTION_UNKNOWN_DATABASE_REGEX","message_template":"Could not connect to database: \"%(database)s\"","error_type":"CONNECTION_UNKNOWN_DATABASE_ERROR","category":"Connection","description":"Unknown database","issue_codes":[1015]},{"regex_name":"CONNECTION_INVALID_HOSTNAME_REGEX","message_template":"Could not resolve hostname: \"%(host)s\".","error_type":"CONNECTION_INVALID_HOSTNAME_ERROR","category":"Connection","description":"Invalid hostname","issue_codes":[1007]},{"regex_name":"CONNECTION_INVALID_PORT_ERROR","message_template":"Port out of range 0-65535","error_type":"CONNECTION_INVALID_PORT_ERROR"},{"regex_name":"INVALID_CONNECTION_STRING_REGEX","message_template":"Invalid Connection String: Expecting String of the form 'ocient://user:pass@host:port/database'.","error_type":"GENERIC_DB_ENGINE_ERROR","category":"General","description":"Database engine error","issue_codes":[1002]},{"regex_name":"SYNTAX_ERROR_REGEX","message_template":"Syntax Error: %(qualifier)s input \"%(input)s\" expecting \"%(expected)s","error_type":"SYNTAX_ERROR","category":"Query","description":"SQL syntax error","issue_codes":[1030]},{"regex_name":"TABLE_DOES_NOT_EXIST_REGEX","message_template":"Table or View \"%(table)s\" does not exist.","error_type":"TABLE_DOES_NOT_EXIST_ERROR","category":"Query","description":"Table not found","issue_codes":[1003,1005]},{"regex_name":"COLUMN_DOES_NOT_EXIST_REGEX","message_template":"Invalid reference to column: \"%(column)s\"","error_type":"COLUMN_DOES_NOT_EXIST_ERROR","category":"Query","description":"Column not found","issue_codes":[1003,1004]}]},"time_grains":{"SECOND":true,"FIVE_SECONDS":false,"THIRTY_SECONDS":false,"MINUTE":true,"FIVE_MINUTES":false,"TEN_MINUTES":false,"FIFTEEN_MINUTES":false,"THIRTY_MINUTES":false,"HALF_HOUR":false,"HOUR":true,"SIX_HOURS":false,"DAY":true,"WEEK":true,"WEEK_STARTING_SUNDAY":false,"WEEK_STARTING_MONDAY":false,"WEEK_ENDING_SATURDAY":false,"WEEK_ENDING_SUNDAY":false,"MONTH":true,"QUARTER":false,"QUARTER_YEAR":true,"YEAR":true},"score":38,"max_score":201,"joins":true,"subqueries":true,"supports_dynamic_schema":false,"supports_catalog":false,"supports_dynamic_catalog":false,"ssh_tunneling":true,"supports_file_upload":true,"query_cancelation":true,"query_cost_estimation":false,"sql_validation":false,"user_impersonation":false};
+
+<DatabasePage name="Ocient" database={databaseInfo} />

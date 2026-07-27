@@ -19,6 +19,50 @@
 import { FilterXSS, getDefaultWhiteList } from 'xss';
 import { DataRecordValue } from '../types';
 
+// Restrict inline `style` attributes to a small set of presentational CSS
+// properties. Overlay/positioning properties (e.g. position, z-index, top,
+// left, transform) and sizing properties that could cover the page (e.g.
+// width, height) are intentionally excluded so that sanitized markup cannot
+// escape its container to overlay or obscure the surrounding page. The
+// allowlisted spacing/border properties (margin, padding, border) can still
+// affect layout within the container, which is acceptable. The `xss` library
+// also validates property values against this allowlist, stripping unsupported
+// constructs such as url()/expression().
+const allowedCssProperties = {
+  color: true,
+  'background-color': true,
+  'text-align': true,
+  'text-decoration': true,
+  'font-family': true,
+  'font-size': true,
+  'font-style': true,
+  'font-weight': true,
+  'line-height': true,
+  'letter-spacing': true,
+  'white-space': true,
+  padding: true,
+  'padding-top': true,
+  'padding-right': true,
+  'padding-bottom': true,
+  'padding-left': true,
+  margin: true,
+  'margin-top': true,
+  'margin-right': true,
+  'margin-bottom': true,
+  'margin-left': true,
+  border: true,
+  'border-color': true,
+  'border-style': true,
+  'border-width': true,
+  'border-radius': true,
+  'vertical-align': true,
+  // Needed by ECharts tooltips for row transparency and text truncation.
+  opacity: true,
+  'max-width': true,
+  overflow: true,
+  'text-overflow': true,
+};
+
 const xssFilter = new FilterXSS({
   whiteList: {
     ...getDefaultWhiteList(),
@@ -45,7 +89,7 @@ const xssFilter = new FilterXSS({
     tfoot: ['align', 'valign', 'style'],
   },
   stripIgnoreTag: true,
-  css: false,
+  css: { whiteList: allowedCssProperties },
 });
 
 export function sanitizeHtml(htmlString: string) {

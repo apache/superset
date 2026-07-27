@@ -29,6 +29,7 @@ import {
   serializeForAPI,
   getProjection,
   countAllFolders,
+  filterFoldersByValidUuids,
 } from './treeUtils';
 import { FoldersEditorItemType } from '../types';
 import { DatasourceFolder } from 'src/explore/components/DatasourcePanel/types';
@@ -725,4 +726,87 @@ test('countAllFolders ignores non-folder children', () => {
   ] as DatasourceFolder[];
 
   expect(countAllFolders(folders)).toBe(1);
+});
+
+test('filterFoldersByValidUuids removes items with invalid UUIDs', () => {
+  const folders: DatasourceFolder[] = [
+    createFolderItem('f1', 'Metrics', [
+      createMetricItem('m1', 'Metric 1'),
+      createMetricItem('m2', 'Metric 2'),
+    ]),
+  ] as DatasourceFolder[];
+
+  const validUuids = new Set(['m1']);
+  const filtered = filterFoldersByValidUuids(folders, validUuids);
+
+  expect(filtered).toHaveLength(1);
+  expect(filtered[0].children).toHaveLength(1);
+  expect(filtered[0].children![0].uuid).toBe('m1');
+});
+
+test('filterFoldersByValidUuids preserves folders even when empty', () => {
+  const folders: DatasourceFolder[] = [
+    createFolderItem('f1', 'Metrics', [createMetricItem('m1', 'Metric 1')]),
+  ] as DatasourceFolder[];
+
+  const validUuids = new Set<string>();
+  const filtered = filterFoldersByValidUuids(folders, validUuids);
+
+  expect(filtered).toHaveLength(1);
+  expect(filtered[0].uuid).toBe('f1');
+  expect(filtered[0].children).toHaveLength(0);
+});
+
+test('filterFoldersByValidUuids handles nested folders', () => {
+  const folders: DatasourceFolder[] = [
+    createFolderItem('f1', 'Root', [
+      createFolderItem('f2', 'Nested', [
+        createMetricItem('m1', 'Metric 1'),
+        createColumnItem('c1', 'Column 1'),
+      ]),
+      createColumnItem('c2', 'Column 2'),
+    ]),
+  ] as DatasourceFolder[];
+
+  const validUuids = new Set(['m1', 'c2']);
+  const filtered = filterFoldersByValidUuids(folders, validUuids);
+
+  expect(filtered).toHaveLength(1);
+  expect(filtered[0].children).toHaveLength(2);
+
+  const nestedFolder = filtered[0].children![0] as DatasourceFolder;
+  expect(nestedFolder.uuid).toBe('f2');
+  expect(nestedFolder.children).toHaveLength(1);
+  expect(nestedFolder.children![0].uuid).toBe('m1');
+
+  expect(filtered[0].children![1].uuid).toBe('c2');
+});
+
+test('filterFoldersByValidUuids keeps all items when all UUIDs are valid', () => {
+  const folders: DatasourceFolder[] = [
+    createFolderItem('f1', 'Metrics', [
+      createMetricItem('m1', 'Metric 1'),
+      createMetricItem('m2', 'Metric 2'),
+    ]),
+  ] as DatasourceFolder[];
+
+  const validUuids = new Set(['m1', 'm2']);
+  const filtered = filterFoldersByValidUuids(folders, validUuids);
+
+  expect(filtered).toHaveLength(1);
+  expect(filtered[0].children).toHaveLength(2);
+});
+
+test('filterFoldersByValidUuids returns same reference when nothing changed', () => {
+  const folders: DatasourceFolder[] = [
+    createFolderItem('f1', 'Root', [
+      createFolderItem('f2', 'Nested', [createMetricItem('m1', 'Metric 1')]),
+      createColumnItem('c1', 'Column 1'),
+    ]),
+  ] as DatasourceFolder[];
+
+  const validUuids = new Set(['m1', 'c1']);
+  const filtered = filterFoldersByValidUuids(folders, validUuids);
+
+  expect(filtered).toBe(folders);
 });

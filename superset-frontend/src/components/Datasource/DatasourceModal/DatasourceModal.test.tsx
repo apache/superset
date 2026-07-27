@@ -17,7 +17,6 @@
  * under the License.
  */
 import {
-  act,
   render,
   screen,
   waitFor,
@@ -29,7 +28,7 @@ import fetchMock from 'fetch-mock';
 import { SupersetClient } from '@superset-ui/core';
 import mockDatasource from 'spec/fixtures/mockDatasource';
 import React from 'react';
-import DatasourceModalComponent from '.';
+import DatasourceModalComponent, { buildExtraJsonObject } from '.';
 
 // Cast to accept partial mock props in tests
 const DatasourceModal = DatasourceModalComponent as unknown as React.FC<
@@ -120,14 +119,20 @@ describe('DatasourceModal', () => {
         onDatasourceSave as unknown as typeof mockedProps.onDatasourceSave,
     });
     const saveButton = screen.getByTestId('datasource-modal-save');
-    await act(async () => {
-      fireEvent.click(saveButton);
-      const okButton = await screen.findByRole('button', { name: 'OK' });
-      okButton.click();
-    });
+    fireEvent.click(saveButton);
+    const okButton = await screen.findByRole('button', { name: 'OK' });
+    fireEvent.click(okButton);
     await waitFor(() => {
       expect(onDatasourceSave).toHaveBeenCalled();
     });
+    const putCall = fetchMock.callHistory
+      .calls()
+      .find(
+        call =>
+          call.url.includes('/api/v1/dataset/7') &&
+          call.options?.method === 'put',
+      );
+    expect(JSON.parse(putCall?.options?.body as string).editors).toEqual([1]);
   });
 
   test('should render error dialog', async () => {
@@ -135,18 +140,14 @@ describe('DatasourceModal', () => {
       .spyOn(SupersetClient, 'put')
       .mockRejectedValue(new Error('Something went wrong'));
 
-    await act(async () => {
-      const saveButton = screen.getByTestId('datasource-modal-save');
-      fireEvent.click(saveButton);
-      const okButton = await screen.findByRole('button', { name: 'OK' });
-      okButton.click();
-    });
+    const saveButton = screen.getByTestId('datasource-modal-save');
+    fireEvent.click(saveButton);
+    const okButton = await screen.findByRole('button', { name: 'OK' });
+    fireEvent.click(okButton);
 
-    await act(async () => {
-      const errorElements = await screen.findAllByText('Error saving dataset');
-      const errorDiv = errorElements.find(el => el.closest('div'));
-      expect(errorDiv).toBeInTheDocument();
-    });
+    const errorElements = await screen.findAllByText('Error saving dataset');
+    const errorDiv = errorElements.find(el => el.closest('div'));
+    expect(errorDiv).toBeInTheDocument();
     putSpy.mockRestore();
   });
 
@@ -314,5 +315,37 @@ describe('DatasourceModal', () => {
         'override_columns=false',
       );
     });
+  });
+});
+
+describe('buildExtraJsonObject', () => {
+  test('returns "{}" for an item with no warning and no certification', () => {
+    expect(buildExtraJsonObject({} as any)).toBe('{}');
+  });
+
+  test('drops warning_markdown when its value is null', () => {
+    expect(buildExtraJsonObject({ warning_markdown: null } as any)).toBe('{}');
+  });
+
+  test('drops warning_markdown when its value is an empty string', () => {
+    expect(buildExtraJsonObject({ warning_markdown: '' } as any)).toBe('{}');
+  });
+
+  test('preserves a non-empty warning_markdown verbatim', () => {
+    expect(buildExtraJsonObject({ warning_markdown: '⚠ caveat' } as any)).toBe(
+      '{"warning_markdown":"⚠ caveat"}',
+    );
+  });
+
+  test('preserves certification and drops null warning_markdown', () => {
+    expect(
+      buildExtraJsonObject({
+        certified_by: 'data-team',
+        certification_details: 'verified',
+        warning_markdown: null,
+      } as any),
+    ).toBe(
+      '{"certification":{"certified_by":"data-team","details":"verified"}}',
+    );
   });
 });

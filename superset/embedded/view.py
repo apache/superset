@@ -55,6 +55,7 @@ class EmbeddedView(BaseSupersetView):
             abort(404)
 
         assert embedded is not None
+        dashboard = embedded.dashboard
 
         # validate request referrer in allowed domains
         is_referrer_allowed = not embedded.allowed_domains
@@ -64,6 +65,20 @@ class EmbeddedView(BaseSupersetView):
                 break
 
         if not is_referrer_allowed:
+            abort(403)
+
+        # Defense in depth: when the browser sends a Sec-Fetch-Dest header,
+        # require an embeddable destination (iframe/frame) or a direct
+        # document/fetch load, rather than e.g. an <img>/<script>/<object> tag.
+        # The header is unforgeable by page script; an absent header (older
+        # browsers / non-browser clients) is allowed for compatibility.
+        sec_fetch_dest = request.headers.get("Sec-Fetch-Dest")
+        if sec_fetch_dest and sec_fetch_dest not in {
+            "iframe",
+            "frame",
+            "document",
+            "empty",
+        }:
             abort(403)
 
         # Log in as an anonymous user, just for this view.
@@ -83,12 +98,18 @@ class EmbeddedView(BaseSupersetView):
             "common": common_bootstrap_payload(),
             "embedded": {
                 "dashboard_id": embedded.dashboard_id,
+                # The list of domains allowed to embed this dashboard. An empty
+                # list means any domain is allowed (no restriction). The frontend
+                # uses this to validate the origin of incoming postMessage events.
+                "allowed_domains": embedded.allowed_domains,
             },
         }
 
         return self.render_template(
             "superset/spa.html",
             entry="embedded",
+            title=dashboard.dashboard_title,
+            dashboard_description=dashboard.description,
             bootstrap_data=json.dumps(
                 bootstrap_data, default=json.pessimistic_json_iso_dttm_ser
             ),

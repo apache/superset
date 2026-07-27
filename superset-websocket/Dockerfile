@@ -12,7 +12,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM node:22-alpine AS build
+FROM node:24-alpine AS build
+
+# Harden `npm ci` against transient npm-registry network blips (e.g. ECONNRESET),
+# which otherwise fail the image build with no retry.
+ENV npm_config_fetch_retries=5 \
+    npm_config_fetch_retry_mintimeout=20000 \
+    npm_config_fetch_retry_maxtimeout=120000 \
+    npm_config_fetch_timeout=600000
 
 WORKDIR /home/superset-websocket
 
@@ -22,9 +29,14 @@ RUN npm ci && \
   npm run build
 
 
-FROM node:22-alpine
+FROM node:24-alpine
 
-ENV NODE_ENV=production
+# Retry npm-registry fetches so a transient blip doesn't fail the build.
+ENV NODE_ENV=production \
+    npm_config_fetch_retries=5 \
+    npm_config_fetch_retry_mintimeout=20000 \
+    npm_config_fetch_retry_maxtimeout=120000 \
+    npm_config_fetch_timeout=600000
 WORKDIR /home/superset-websocket
 
 COPY --from=build /home/superset-websocket/dist ./dist

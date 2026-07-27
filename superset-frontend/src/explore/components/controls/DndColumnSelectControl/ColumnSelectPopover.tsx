@@ -27,7 +27,8 @@ import {
   useState,
 } from 'react';
 import { useSelector } from 'react-redux';
-import { t, editors } from '@apache-superset/core';
+import { editors } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   AdhocColumn,
   isAdhocColumn,
@@ -35,7 +36,7 @@ import {
   Metric,
   QueryFormMetric,
 } from '@superset-ui/core';
-import { styled, css } from '@apache-superset/core/ui';
+import { styled, css } from '@apache-superset/core/theme';
 import { ColumnMeta, isSavedExpression } from '@superset-ui/chart-controls';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {
@@ -87,6 +88,16 @@ const MetricIcon = styled.span`
 
 const MetricLabel = styled.span`
   color: ${({ theme }) => theme.colorText};
+`;
+
+const inlineTextButtonCss = css`
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
 `;
 
 export interface ColumnSelectPopoverProps {
@@ -141,6 +152,10 @@ const ColumnSelectPopover = ({
   const datasourceType = useSelector<ExplorePageState, string | undefined>(
     state => state.explore.datasource.type,
   );
+  const compatibleDimensions = useSelector<
+    ExplorePageState,
+    string[] | null | undefined
+  >(state => state.explore.compatibleDimensions);
   const [initialLabel] = useState(label);
   const [initialAdhocColumn, initialCalculatedColumn, initialSimpleColumn] =
     getInitialColumnValues(editedColumn);
@@ -166,21 +181,22 @@ const ColumnSelectPopover = ({
 
   const sqlEditorRef = useRef<editors.EditorHandle>(null);
 
-  const [calculatedColumns, simpleColumns] = useMemo(
-    () =>
-      columns?.reduce(
-        (acc: [ColumnMeta[], ColumnMeta[]], column: ColumnMeta) => {
-          if (column.expression) {
-            acc[0].push(column);
-          } else {
-            acc[1].push(column);
-          }
-          return acc;
-        },
-        [[], []],
-      ),
-    [columns],
-  );
+  const [calculatedColumns, simpleColumns] = useMemo(() => {
+    const [calc, simple] = (columns ?? []).reduce(
+      (acc: [ColumnMeta[], ColumnMeta[]], column: ColumnMeta) => {
+        if (column.expression) {
+          acc[0].push(column);
+        } else {
+          acc[1].push(column);
+        }
+        return acc;
+      },
+      [[], []],
+    );
+    const alpha = (a: ColumnMeta, b: ColumnMeta) =>
+      (a.column_name ?? '').localeCompare(b.column_name ?? '');
+    return [calc.sort(alpha), simple.sort(alpha)];
+  }, [columns]);
 
   // Filter metrics that are already selected in the chart
   const availableMetrics = useMemo(() => {
@@ -202,7 +218,7 @@ const ColumnSelectPopover = ({
   );
 
   const onSqlExpressionChange = useCallback(
-    sqlExpression => {
+    (sqlExpression: string) => {
       setAdhocColumn({ label, sqlExpression, expressionType: 'SQL' });
       setSelectedSimpleColumn(undefined);
       setSelectedCalculatedColumn(undefined);
@@ -212,7 +228,7 @@ const ColumnSelectPopover = ({
   );
 
   const onCalculatedColumnChange = useCallback(
-    selectedColumnName => {
+    (selectedColumnName: string) => {
       const selectedColumn = calculatedColumns.find(
         col => col.column_name === selectedColumnName,
       );
@@ -228,7 +244,7 @@ const ColumnSelectPopover = ({
   );
 
   const onSimpleColumnChange = useCallback(
-    selectedColumnName => {
+    (selectedColumnName: string) => {
       const selectedColumn = simpleColumns.find(
         col => col.column_name === selectedColumnName,
       );
@@ -244,7 +260,7 @@ const ColumnSelectPopover = ({
   );
 
   const onSimpleMetricChange = useCallback(
-    selectedMetricName => {
+    (selectedMetricName: string) => {
       const selectedMetric = availableMetrics.find(
         metric => metric.metric_name === selectedMetricName,
       );
@@ -260,7 +276,7 @@ const ColumnSelectPopover = ({
   );
 
   const onSimpleItemChange = useCallback(
-    selectedValue => {
+    (selectedValue: string) => {
       const selectedColumn = columnMap[selectedValue];
       if (selectedColumn) {
         onSimpleColumnChange(selectedValue);
@@ -348,7 +364,7 @@ const ColumnSelectPopover = ({
   ]);
 
   const onTabChange = useCallback(
-    tab => {
+    (tab: string) => {
       getCurrentTab(tab);
       setSelectedTab(tab);
       sqlEditorRef.current?.focus();
@@ -466,24 +482,24 @@ const ColumnSelectPopover = ({
                           description={
                             isTemporal ? (
                               <>
-                                <span
-                                  role="button"
-                                  tabIndex={0}
+                                <button
+                                  type="button"
+                                  css={inlineTextButtonCss}
                                   onClick={setDatasetAndClose}
                                 >
                                   {t('Create a dataset')}
-                                </span>{' '}
+                                </button>{' '}
                                 {t(' to mark a column as a time column')}
                               </>
                             ) : (
                               <>
-                                <span
-                                  role="button"
-                                  tabIndex={0}
+                                <button
+                                  type="button"
+                                  css={inlineTextButtonCss}
                                   onClick={setDatasetAndClose}
                                 >
                                   {t('Create a dataset')}
-                                </span>{' '}
+                                </button>{' '}
                                 {t(' to add calculated columns')}
                               </>
                             )
@@ -511,13 +527,13 @@ const ColumnSelectPopover = ({
                         )
                       ) : (
                         <>
-                          <span
-                            role="button"
-                            tabIndex={0}
+                          <button
+                            type="button"
+                            css={inlineTextButtonCss}
                             onClick={setDatasetAndClose}
                           >
                             {t('Create a dataset')}
-                          </span>{' '}
+                          </button>{' '}
                           {t(' to mark a column as a time column')}
                         </>
                       )
@@ -550,6 +566,11 @@ const ColumnSelectPopover = ({
                           key: `column-${simpleColumn.column_name}`,
                           column_name: simpleColumn.column_name,
                           verbose_name: simpleColumn.verbose_name ?? '',
+                          disabled:
+                            compatibleDimensions != null &&
+                            !compatibleDimensions.includes(
+                              simpleColumn.column_name,
+                            ),
                         })),
                         ...availableMetrics.map(metric => ({
                           value: metric.metric_name,
@@ -564,6 +585,9 @@ const ColumnSelectPopover = ({
                           key: `metric-${metric.metric_name}`,
                           metric_name: metric.metric_name,
                           verbose_name: metric.verbose_name ?? '',
+                          disabled:
+                            compatibleDimensions != null &&
+                            !compatibleDimensions.includes(metric.metric_name),
                         })),
                       ]}
                       optionFilterProps={[

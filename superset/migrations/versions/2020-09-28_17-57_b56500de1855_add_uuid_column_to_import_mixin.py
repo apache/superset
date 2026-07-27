@@ -27,8 +27,7 @@ from uuid import uuid4
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import load_only
+from sqlalchemy.orm import declarative_base, load_only
 from sqlalchemy_utils import UUIDType
 
 from superset import db
@@ -120,7 +119,7 @@ def update_dashboards(session, uuid_map):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for table_name, model in models.items():
         with op.batch_alter_table(table_name) as batch_op:
@@ -152,7 +151,7 @@ def upgrade():
 
 def downgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     # remove uuid from position_json
     update_dashboards(session, {})

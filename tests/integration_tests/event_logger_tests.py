@@ -21,10 +21,11 @@ from datetime import timedelta
 from typing import Any, Optional
 from unittest.mock import patch
 
-from flask import current_app  # noqa: F401
+from flask import current_app, g  # noqa: F401
 from freezegun import freeze_time
 
 from superset import security_manager
+from superset.security.guest_token import GuestUser
 from superset.utils.log import (
     AbstractEventLogger,
     DBEventLogger,
@@ -68,15 +69,15 @@ class TestEventLogger(unittest.TestCase):
             time.sleep(0.05)
             return 1
 
-        with app.test_request_context("/superset/dashboard/1/?myparam=foo"):
+        with app.test_request_context("/dashboard/1/?myparam=foo"):
             result = test_func()
             payload = mock_log.call_args[1]
             assert result == 1
             assert payload["records"] == [
                 {
                     "myparam": "foo",
-                    "path": "/superset/dashboard/1/",
-                    "url_rule": "/superset/dashboard/<dashboard_id_or_slug>/",
+                    "path": "/dashboard/1/",
+                    "url_rule": "/dashboard/<dashboard_id_or_slug>/",
                     "object_ref": test_func.__qualname__,
                 }
             ]
@@ -231,6 +232,88 @@ class TestEventLogger(unittest.TestCase):
 
         assert logger.records[0]["user_id"] == None  # noqa: E711
 
+    def test_log_with_context_guest_user_skips_warning(self):
+        """Guest/anonymous users are never DB-mapped; adding them to the
+        session is expected to be a no-op, not a warning-worthy failure."""
+
+        class DummyEventLogger(AbstractEventLogger):
+            def __init__(self):
+                self.records = []
+
+            def log(
+                self,
+                user_id: Optional[int],
+                action: str,
+                dashboard_id: Optional[int],
+                duration_ms: Optional[int],
+                slice_id: Optional[int],
+                referrer: Optional[str],
+                *args: Any,
+                **kwargs: Any,
+            ):
+                self.records.append(
+                    {**kwargs, "user_id": user_id, "duration": duration_ms}
+                )
+
+        logger = DummyEventLogger()
+
+        with app.test_request_context():
+            g.user = GuestUser(
+                token={"user": {"username": "guest"}, "resources": []},
+                roles=[],
+            )
+            with self.assertNoLogs(level="WARNING"):
+                logger.log_with_context(
+                    action="foo",
+                    duration=timedelta(seconds=1),
+                    log_to_statsd=False,
+                )
+
+        assert logger.records[0]["user_id"] is None
+
+    @patch("superset.db")
+    def test_log_with_context_unexpected_add_failure_logs_debug(self, mock_db):
+        """A genuinely unexpected failure (not the guest-user case) should
+        still be surfaced, but at debug level rather than warning."""
+
+        class DummyEventLogger(AbstractEventLogger):
+            def __init__(self):
+                self.records = []
+
+            def log(
+                self,
+                user_id: Optional[int],
+                action: str,
+                dashboard_id: Optional[int],
+                duration_ms: Optional[int],
+                slice_id: Optional[int],
+                referrer: Optional[str],
+                *args: Any,
+                **kwargs: Any,
+            ):
+                self.records.append(
+                    {**kwargs, "user_id": user_id, "duration": duration_ms}
+                )
+
+        logger = DummyEventLogger()
+        mock_db.session.add.side_effect = Exception("boom")
+
+        with app.test_request_context():
+            # A DB-mapped (but unpersisted) user instance so sa_inspect()
+            # treats it as mapped and the code proceeds to db.session.add(),
+            # independent of any test-database fixture data.
+            g.user = security_manager.user_model()
+            with self.assertNoLogs(level="WARNING"):
+                with self.assertLogs("superset.utils.log", level="DEBUG") as debug_logs:
+                    logger.log_with_context(
+                        action="foo",
+                        duration=timedelta(seconds=1),
+                        log_to_statsd=False,
+                    )
+
+        assert "Failed to add user to db session" in debug_logs.output[0]
+        assert logger.records[0]["user_id"] is None
+
     @patch.object(DBEventLogger, "log")
     def test_log_this_with_context_and_extra_payload(self, mock_log):
         logger = DBEventLogger()
@@ -254,3 +337,64 @@ class TestEventLogger(unittest.TestCase):
                 }
             ]
             assert payload["duration_ms"] >= 100
+
+    @patch("superset.db")
+    def test_curated_payload_used_when_records_empty(self, mock_db):
+        """Test that curated_payload is used when records is empty (MCP pattern).
+
+        MCP middleware passes curated_payload instead of records. This test verifies
+        that DBEventLogger.log() creates a Log entry from curated_payload when
+        records is empty.
+        """
+        logger = DBEventLogger()
+
+        with app.test_request_context():
+            logger.log(
+                user_id=1,
+                action="mcp_tool_call",
+                dashboard_id=None,
+                duration_ms=100,
+                slice_id=None,
+                referrer=None,
+                curated_payload={"tool": "list_charts", "success": True},
+            )
+
+        # Verify bulk_save_objects was called with one Log object
+        mock_db.session.bulk_save_objects.assert_called_once()
+        logs = mock_db.session.bulk_save_objects.call_args[0][0]
+        assert len(logs) == 1
+        assert logs[0].action == "mcp_tool_call"
+        assert logs[0].duration_ms == 100
+        # Verify JSON contains the curated_payload data
+        from superset.utils import json as json_utils
+
+        payload = json_utils.loads(logs[0].json)
+        assert payload["tool"] == "list_charts"
+        assert payload["success"] is True
+
+    @patch("superset.db")
+    def test_records_takes_precedence_over_curated_payload(self, mock_db):
+        """Test that records takes precedence over curated_payload."""
+        logger = DBEventLogger()
+
+        with app.test_request_context():
+            logger.log(
+                user_id=1,
+                action="test_action",
+                dashboard_id=None,
+                duration_ms=50,
+                slice_id=None,
+                referrer=None,
+                records=[{"from_records": True}],
+                curated_payload={"from_curated": True},
+            )
+
+        # Verify only records data is used, not curated_payload
+        mock_db.session.bulk_save_objects.assert_called_once()
+        logs = mock_db.session.bulk_save_objects.call_args[0][0]
+        assert len(logs) == 1
+        from superset.utils import json as json_utils
+
+        payload = json_utils.loads(logs[0].json)
+        assert payload.get("from_records") is True
+        assert "from_curated" not in payload

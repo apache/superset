@@ -305,8 +305,8 @@ export function serializeForAPI(items: TreeItem[]): DatasourceFolder[] {
         (
           child,
         ): child is
-          | DatasourceFolder
-          | { uuid: string; type: FoldersEditorItemType } => child !== null,
+          DatasourceFolder | { uuid: string; type: FoldersEditorItemType } =>
+          child !== null,
       );
   };
 
@@ -329,6 +329,52 @@ export function serializeForAPI(items: TreeItem[]): DatasourceFolder[] {
       } as DatasourceFolder;
     })
     .filter((folder): folder is DatasourceFolder => folder !== null);
+}
+
+/**
+ * Remove leaf items whose UUIDs are not in the valid set.
+ * Returns the original reference when nothing was removed.
+ */
+export function filterFoldersByValidUuids(
+  folders: DatasourceFolder[],
+  validUuids: Set<string>,
+): DatasourceFolder[] {
+  const filterChildren = (
+    children: (DatasourceFolder | DatasourceFolderItem)[] | undefined,
+  ): (DatasourceFolder | DatasourceFolderItem)[] | undefined => {
+    if (!children) return children;
+
+    let childChanged = false;
+    const result: (DatasourceFolder | DatasourceFolderItem)[] = [];
+    for (const child of children) {
+      if (child.type === FoldersEditorItemType.Folder && 'children' in child) {
+        const filtered = filterChildren((child as DatasourceFolder).children);
+        if (filtered !== (child as DatasourceFolder).children) {
+          childChanged = true;
+          result.push({ ...child, children: filtered } as DatasourceFolder);
+        } else {
+          result.push(child);
+        }
+      } else if (validUuids.has(child.uuid)) {
+        result.push(child);
+      } else {
+        childChanged = true;
+      }
+    }
+    return childChanged ? result : children;
+  };
+
+  let changed = false;
+  const result = folders.map(folder => {
+    const filtered = filterChildren(folder.children);
+    if (filtered !== folder.children) {
+      changed = true;
+      return { ...folder, children: filtered };
+    }
+    return folder;
+  });
+
+  return changed ? result : folders;
 }
 
 /**

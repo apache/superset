@@ -17,7 +17,8 @@
  * under the License.
  */
 import { FC, useMemo, createContext, useContext, useRef } from 'react';
-import { t, styled } from '@apache-superset/core';
+import { styled } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import {
   Flex,
   Steps,

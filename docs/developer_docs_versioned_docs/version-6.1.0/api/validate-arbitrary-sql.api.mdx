@@ -1,0 +1,68 @@
+---
+id: validate-arbitrary-sql
+title: "Validate arbitrary SQL"
+description: "Validates that arbitrary SQL is acceptable for the given database."
+sidebar_label: "Validate arbitrary SQL"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFV21v2zYQ/ivEYUATTImboQMKFf2QZi3aLmjT2N0GREFKS+eYjUQq5MmJJ+i/D0dKsvySdmgL9JMt8ni857lX1pChS60qSRkNMfwlc5VJQidoLklIO1VkpV2K8YdToZyQaYolyWmOYmasoDmKa7VALTJJciodHkIEpbSyQELrIL6oQbHiUtIcItCyQP66gQgs3lbKYgYx2QojcOkcCwlxDbQsWUppwmu00DSXQRodvTDZkkVSowk18V9ZlrlKJSMYfXYMox7oKq0p0ZJC549Jkrm55r+6ynMG0l3fXurIKn0NzdCer4ve5iy3ziVT5kgSFqhJkBGLllzYoYGwKHNJeOXJc1+41Uw/Y0rQNEMGL7wJl5tCEZAi1tA7dvzh9DwwybfivSxK3h8w0xm1ImCwwjhXn9tGNw3btTumfAy1btxyv0fjSqNdcNRvjx9/h5stuiqnbZcci1PlSJiZtwWtNdaJmal0Joz20dw7DCJQhMET68pRZ1epyatC74rVCHKl8UpXxRTtboECnZPXONgcRBJJS19Q3/xPFwcqYSUurZXLHefXo6Aj7qJuLh92pTJatJJNBE++y1UPk/EVU/uD8EJmXVzF4o32aSZWRUiU1ixUhhnsQDQ4G7Ac/VwsH7WsaG6s+hezWBxXNEdN7f2iT5kdQIYHA5InPxfJO0MhtWIxmWNHMjLdzlQ2RZEZdEIbEnivmP5tUL0OvuX3nx1nbzSh1TIXDu0CbagfsTjWotJ4X2LK6PyiMGla2Qc89YorbZDzlztMK6to6Zvl5zvOvkvueCSvuYHCH21r5fJ+f5CaDMfeuNBdc6m5aKcfz08hglxOMV99BqL5u7K5OPhHnL0fT0QCc6IyHo1yk8p8bhzFTx8/fTqSpRotjkZdKx8djbqOdeVu81ECIkkSLcTBa5HAcRttnv1YvEBp0Ypfjk9OXo7HV5P3f758t37gJPjtYLIsMRabrlvJZuJRncANLhOIRQILmVeYQPMImqhHe7akudEDvP1Cj1gVpbHUhZ1LdKK7BiOe98uHpXG0x/eKb6clCufnKDO07nm9QU7A0RKUgPjVT1HOXZG5Qd20p5mE57uAJ3o/0aVVmvY6AIcsvLe/P6TkrVzIsY+yAS1ri6tgMNoxMz0b8k4qEjOkdO65+D4m6gCoQJqbjJFw0G2yFHdiYjOWGP2nLpzqQNXEM/UpWh0ZRlPgazuignRH8NRky1i8Hb9/dxgyX82We7W4weWAbdHsszST/izRgSiG25O04YJWyOR4mJvrPRbdfwacvQE+z7rGjzt+AI5hi8O6vGnWaWRX+QITEryy7MmdDoHN0nLK2yLDBeam9GNn0OQDJSiqS2vIpCZv4tGoZlVNXHOqNFvaTipHpuhURLCQVvFA2s1EXk0YsmbSjw3eTIgAdVVw6Wo/+cdx+VrX/3oyORO9niYCtmZdX493y7hxqMG8x48KYax4c8ZKGMu6kp1Utee9dONfGF0dHnMHCSB9Na5h6qPxlbGFZH1v/5500zGnU9hdDfUedBPx4SuLM4tu/q1KWIsz+nz19nn54yf2CJSemR3vl6pE63A4Yg6WOD6D3OIo0O6okL4Ft4+8fu5fe0VuOmLQ0H/M67MlkPCeRmUulWbrfOzXbRJegCwVQzhiY7ruGkHsn6XDXIQIOGxDXF5AXbPkR5s3DS/fVmi5a1+uUsNnbKYc/88gnsnc4RcA7523E92+eMjybnzXy2BbxV8QcZ8ID+nmkjPHV1V/e9gY1sfBwa2JiQtDOHHsyf2i7LCscVGHCKbte7wwGZ+x8o6fdvIuGGk85vAk47XQraowTgWdHH88uQ4Gsz4X2j+MaicNdR0kQntoelZ8YwX/gvkPGDvPzA==
+sidebar_class_name: "post api-method"
+info_path: developer-docs/api/superset
+custom_edit_url: null
+hide_send_button: true
+show_extensions: true
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Validate arbitrary SQL"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/api/v1/database/{pk}/validate_sql/"}
+  context={"endpoint"}
+>
+
+</MethodEndpoint>
+
+
+
+Validates that arbitrary SQL is acceptable for the given database.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  {...require("./validate-arbitrary-sql.ParamsDetails.json")}
+>
+
+</ParamsDetails>
+
+<RequestSchema
+  {...require("./validate-arbitrary-sql.RequestSchema.json")}
+>
+
+</RequestSchema>
+
+<StatusCodes
+  {...require("./validate-arbitrary-sql.StatusCodes.json")}
+>
+
+</StatusCodes>

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState } from 'react';
-import { styled, supersetTheme } from '@apache-superset/core/ui';
+import { styled, supersetTheme } from '@apache-superset/core/theme';
 import { Input } from '../Input';
 import { Icons, IconNameType } from '.';
 import type { IconType } from './types';
@@ -63,11 +63,11 @@ const IconBlock = styled.div`
 
   span {
     margin-top: ${({ theme }) =>
-      2 * theme.sizeUnit}px; // Add spacing between icon and name
+      2 * theme.sizeUnit}px; /* Add spacing between icon and name */
     font-size: ${({ theme }) =>
-      theme.fontSizeSM}; // Optional: adjust font size for elegance
+      theme.fontSizeSM}; /* Optional: adjust font size for elegance */
     color: ${({ theme }) =>
-      theme.colorText}; // Optional: subtle color for the name
+      theme.colorText}; /* Optional: subtle color for the name */
   }
 `;
 

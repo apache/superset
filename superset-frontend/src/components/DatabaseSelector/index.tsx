@@ -24,9 +24,9 @@ import {
   useRef,
   useCallback,
 } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { SupersetClient, SupersetError } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import rison from 'rison';
 import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -52,6 +52,10 @@ import type {
   DatabaseObject,
 } from './types';
 import { StyledFormLabel } from './styles';
+import {
+  databaseLabel,
+  databasesLabelLower,
+} from 'src/features/semanticLayers/label';
 
 const DatabaseSelectorWrapper = styled.div<{ horizontal?: boolean }>`
   ${({ theme, horizontal }) =>
@@ -139,9 +143,11 @@ const LabelStyle = styled.div`
   }
 `;
 
-const SelectButton = styled(Button)<{ empty: boolean }>`
-  color: ${({ theme, empty }) =>
-    empty ? theme.colorTextPlaceholder : theme.colorTextBase};
+const SelectButton = styled(Button, {
+  shouldForwardProp: prop => prop !== '$empty',
+})<{ $empty: boolean }>`
+  color: ${({ theme, $empty }) =>
+    $empty ? theme.colorTextPlaceholder : theme.colorTextBase};
 `;
 
 export const SelectLabel = ({
@@ -180,11 +186,14 @@ export function DatabaseSelector({
   onSchemaChange,
   schema,
   readOnly = false,
+  compactMode = false,
   sqlLabMode = false,
   onOpenModal,
 }: DatabaseSelectorProps) {
   const showCatalogSelector = !!db?.allow_multi_catalog;
   const [currentDb, setCurrentDb] = useState<DatabaseValue | undefined>();
+  const showSchemaSelector =
+    (db?.supports_schemas ?? currentDb?.supports_schemas) !== false;
   const [errorPayload, setErrorPayload] = useState<SupersetError | null>();
   const [currentCatalog, setCurrentCatalog] = useState<
     CatalogOption | null | undefined
@@ -254,6 +263,12 @@ export function DatabaseSelector({
             database_name: row.database_name,
             backend: row.backend,
             allow_multi_catalog: row.allow_multi_catalog,
+            supports_schemas:
+              (
+                row as DatabaseObject & {
+                  engine_information?: { supports_schemas?: boolean };
+                }
+              ).engine_information?.supports_schemas !== false,
             order,
           }));
 
@@ -304,7 +319,7 @@ export function DatabaseSelector({
       if (schemas.length === 1) {
         changeSchema(schemas[0]);
       } else if (
-        !schemas.find(schemaOption => schemaRef.current === schemaOption.value)
+        !schemas.some(schemaOption => schemaRef.current === schemaOption.value)
       ) {
         changeSchema(undefined);
       }
@@ -345,7 +360,7 @@ export function DatabaseSelector({
       } else if (catalogs.length === 1) {
         changeCatalog(catalogs[0]);
       } else if (
-        !catalogs.find(
+        !catalogs.some(
           catalogOption => catalogRef.current === catalogOption.value,
         )
       ) {
@@ -368,6 +383,7 @@ export function DatabaseSelector({
   });
 
   const catalogOptions = catalogData || EMPTY_CATALOG_OPTIONS;
+  const sqlLabCompactMode = sqlLabMode && compactMode;
 
   function changeDatabase(
     value: { label: string; value: number },
@@ -410,7 +426,7 @@ export function DatabaseSelector({
             buttonStyle="tertiary"
             disabled={sqlLabModeConfig.disabled}
             loading={sqlLabModeConfig.loading}
-            empty={!sqlLabModeConfig.displayValue}
+            $empty={!sqlLabModeConfig.displayValue}
           >
             {displayValue}
           </SelectButton>
@@ -431,7 +447,11 @@ export function DatabaseSelector({
   function renderDatabaseSelect() {
     if (sqlLabMode) {
       return renderSelectRow(
-        t('Select database or type to search databases'),
+        t(
+          'Select %s or type to search %s',
+          databaseLabel().toLowerCase(),
+          databasesLabelLower(),
+        ),
         null,
         null,
         {
@@ -448,16 +468,24 @@ export function DatabaseSelector({
     return (
       <div>
         {renderSelectRow(
-          t('Database'),
+          databaseLabel(),
           <AsyncSelect
-            ariaLabel={t('Select database or type to search databases')}
+            ariaLabel={t(
+              'Select %s or type to search %s',
+              databaseLabel().toLowerCase(),
+              databasesLabelLower(),
+            )}
             optionFilterProps={['database_name', 'value']}
             data-test="select-database"
             lazyLoading={false}
             notFoundContent={emptyState}
             onChange={changeDatabase}
             value={currentDb}
-            placeholder={t('Select database or type to search databases')}
+            placeholder={t(
+              'Select %s or type to search %s',
+              databaseLabel().toLowerCase(),
+              databasesLabelLower(),
+            )}
             disabled={!isDatabaseSelectEnabled || readOnly}
             options={loadDatabases}
             sortComparator={sortComparator}
@@ -515,17 +543,12 @@ export function DatabaseSelector({
 
   function renderSchemaSelect() {
     if (sqlLabMode) {
-      return renderSelectRow(
-        t('Select schema or type to search schemas'),
-        null,
-        null,
-        {
-          displayValue: currentSchema?.label,
-          disabled: !currentDb || readOnly,
-          loading: loadingSchemas,
-          icon: <Icons.RightOutlined />,
-        },
-      );
+      return renderSelectRow(t('Select schema'), null, null, {
+        displayValue: currentSchema?.label,
+        disabled: !currentDb || readOnly,
+        loading: loadingSchemas,
+        icon: <Icons.RightOutlined />,
+      });
     }
     const refreshIcon = !readOnly && (
       <RefreshLabel
@@ -539,13 +562,13 @@ export function DatabaseSelector({
         {renderSelectRow(
           t('Schema'),
           <Select
-            ariaLabel={t('Select schema or type to search schemas')}
+            ariaLabel={t('Select schema')}
             disabled={!currentDb || readOnly}
             labelInValue
             loading={loadingSchemas}
             name="select-schema"
             notFoundContent={t('No compatible schema found')}
-            placeholder={t('Select schema or type to search schemas')}
+            placeholder={t('Select schema')}
             onChange={item => changeSchema(item as SchemaOption)}
             options={schemaOptions}
             showSearch
@@ -583,8 +606,8 @@ export function DatabaseSelector({
     >
       {renderDatabaseSelect()}
       {renderError()}
-      {showCatalogSelector && renderCatalogSelect()}
-      {renderSchemaSelect()}
+      {!sqlLabCompactMode && showCatalogSelector && renderCatalogSelect()}
+      {!sqlLabCompactMode && showSchemaSelector && renderSchemaSelect()}
     </DatabaseSelectorWrapper>
   );
 }

@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
+import {
+  styled,
+  css,
+  SupersetTheme,
+  useTheme,
+} from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import cx from 'classnames';
 import { Interweave } from 'interweave';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -29,7 +35,7 @@ const ToastContainer = styled.div`
     align-items: flex-start;
     gap: ${theme.sizeUnit * 2}px;
 
-    // Content container for icon and text
+    /* Content container for icon and text */
     .toast__content {
       display: flex;
       align-items: flex-start;
@@ -146,13 +152,14 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
         {icon}
         <Interweave content={toast.text} noHtml={!toast.allowHtml} />
       </div>
+      {/* role is auto-computed by BaseIconComponent as "button" since
+          onClick is present, so no explicit role needed here. */}
       <Icons.CloseOutlined
         iconSize="m"
         className="toast__close pointer"
-        role="button"
         tabIndex={0}
         onClick={handleClosePress}
-        aria-label="Close"
+        aria-label={t('Close')}
         data-test="close-button"
       />
     </ToastContainer>

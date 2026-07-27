@@ -1,0 +1,1 @@
+{"schema":{"properties":{"id":{"type":"integer"},"recipient_config_json":{"nullable":true,"type":"string"},"type":{"maxLength":50,"type":"string"}},"required":["type"],"type":"object","title":"ReportScheduleRestApi.get.ReportRecipients"},"schemaType":"response"}

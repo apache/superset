@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 from unittest.mock import patch
 
 from freezegun import freeze_time
-from superset_core.api.tasks import TaskScope, TaskStatus
+from superset_core.tasks.types import TaskScope, TaskStatus
 
 from superset import db
 from superset.commands.tasks import TaskPruneCommand

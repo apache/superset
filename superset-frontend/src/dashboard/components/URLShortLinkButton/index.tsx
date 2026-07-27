@@ -17,9 +17,9 @@
  * under the License.
  */
 import { useState } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { getClientErrorObject } from '@superset-ui/core';
-import { useTheme } from '@apache-superset/core/ui';
+import { useTheme } from '@apache-superset/core/theme';
 import {
   Button,
   Icons,
@@ -106,6 +106,7 @@ export default function URLShortLinkButton({
           onClick={e => {
             e.stopPropagation();
           }}
+          onKeyDown={e => e.stopPropagation()}
         >
           <CopyToClipboard
             text={shortUrl}
@@ -114,7 +115,7 @@ export default function URLShortLinkButton({
             }
           />
           &nbsp;&nbsp;
-          <Typography.Link href={emailLink} aria-label="Email link">
+          <Typography.Link href={emailLink} aria-label={t('Email link')}>
             <Icons.MailOutlined iconSize="m" iconColor={theme.colorPrimary} />
           </Typography.Link>
         </div>

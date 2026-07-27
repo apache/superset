@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { Filter, Divider, NativeFilterType } from '@superset-ui/core';
 import type { FormInstance } from '@superset-ui/core/components';
 import { NativeFiltersForm } from '../types';
@@ -125,7 +125,7 @@ export function useFilterOperations({
   );
 
   const handleRearrangeFilters = useCallback(
-    (dragIndex: number, targetIndex: number, id: string) => {
+    (dragIndex: number, targetIndex: number, _id: string) => {
       const newOrderedIds = [...filterState.orderedIds];
       const [removed] = newOrderedIds.splice(dragIndex, 1);
       newOrderedIds.splice(targetIndex, 0, removed);

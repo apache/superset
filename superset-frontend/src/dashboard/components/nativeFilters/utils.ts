@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   AdhocFilter,
   Behavior,
   ChartCustomization,
   DataMaskStateWithId,
+  DatasourceType,
   EXTRA_FORM_DATA_APPEND_KEYS,
   EXTRA_FORM_DATA_OVERRIDE_KEYS,
   ExtraFormData,
@@ -46,10 +47,12 @@ const getDefaultRowLimit = (): number => {
 
 export const getFormData = ({
   datasetId,
+  datasourceType,
   dependencies = {},
   groupby,
   defaultDataMask,
   controlValues,
+  time_grains,
   filterType,
   sortMetric,
   adhoc_filters,
@@ -61,12 +64,14 @@ export const getFormData = ({
 }: (Partial<Filter> | Partial<ChartCustomization>) & {
   dashboardId: number;
   datasetId?: number;
+  datasourceType?: DatasourceType;
   dependencies?: object;
   groupby?: string;
   adhoc_filters?: AdhocFilter[];
   time_range?: string;
   sortMetric?: string | null;
   granularity_sqla?: string;
+  time_grains?: string[];
 }): Partial<QueryFormData> => {
   const otherProps: {
     datasource?: string;
@@ -74,7 +79,8 @@ export const getFormData = ({
     sortMetric?: string;
   } = {};
   if (datasetId) {
-    otherProps.datasource = `${datasetId}__table`;
+    const dsType = datasourceType || DatasourceType.Table;
+    otherProps.datasource = `${datasetId}__${dsType}`;
   }
   if (groupby) {
     otherProps.groupby = [groupby];
@@ -84,9 +90,12 @@ export const getFormData = ({
   }
 
   const vizType = filterType;
+  const timeGrainsFormData =
+    time_grains && time_grains.length > 0 ? { time_grains } : {};
 
   return {
     ...controlValues,
+    ...timeGrainsFormData,
     ...otherProps,
     adhoc_filters: adhoc_filters ?? [],
     extra_filters: [],

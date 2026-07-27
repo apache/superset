@@ -193,13 +193,25 @@ class CacheManager:
         self._thumbnail_cache = SupersetCache()
         self._filter_state_cache = SupersetCache()
         self._explore_form_data_cache = ExploreFormDataCache()
-        self._signal_cache: RedisCacheBackend | RedisSentinelCacheBackend | None = None
+        self._extension_ephemeral_state_cache = SupersetCache()
+        self._distributed_coordination: (
+            RedisCacheBackend | RedisSentinelCacheBackend | None
+        ) = None
 
     @staticmethod
     def _init_cache(
-        app: Flask, cache: Cache, cache_config_key: str, required: bool = False
+        app: Flask,
+        cache: Cache,
+        config: str | dict[str, Any],
+        required: bool = False,
     ) -> None:
-        cache_config = app.config[cache_config_key]
+        if isinstance(config, dict):
+            cache_config = config
+            config_name = cache_config.get("CACHE_KEY_PREFIX", "unknown")
+        else:
+            cache_config = app.config[config]
+            config_name = config
+
         cache_type = cache_config.get("CACHE_TYPE")
         if (required and cache_type is None) or cache_type == "SupersetMetastoreCache":
             if cache_type is None and not app.debug:
@@ -208,10 +220,10 @@ class CacheManager:
                     "metadata database, for the following cache: `%s`. "
                     "It is recommended to use `RedisCache`, `MemcachedCache` or "
                     "another dedicated caching backend for production deployments",
-                    cache_config_key,
+                    config_name,
                 )
             cache_type = CACHE_IMPORT_PATH
-            cache_key_prefix = cache_config.get("CACHE_KEY_PREFIX", cache_config_key)
+            cache_key_prefix = cache_config.get("CACHE_KEY_PREFIX", config_name)
             cache_config.update(
                 {"CACHE_TYPE": cache_type, "CACHE_KEY_PREFIX": cache_key_prefix}
             )
@@ -235,27 +247,35 @@ class CacheManager:
             "EXPLORE_FORM_DATA_CACHE_CONFIG",
             required=True,
         )
-        self._init_signal_cache(app)
+        self._init_cache(
+            app,
+            self._extension_ephemeral_state_cache,
+            app.config.get("EXTENSIONS_EPHEMERAL_STORAGE", {}),
+            required=True,
+        )
+        self._init_distributed_coordination(app)
 
-    def _init_signal_cache(self, app: Flask) -> None:
-        """Initialize the signal cache for pub/sub and distributed locks."""
+    def _init_distributed_coordination(self, app: Flask) -> None:
+        """Initialize the distributed coordination backend (pub/sub, locks, streams)."""
         from superset.async_events.cache_backend import (
             RedisCacheBackend,
             RedisSentinelCacheBackend,
         )
 
-        config = app.config.get("SIGNAL_CACHE_CONFIG")
+        config = app.config.get("DISTRIBUTED_COORDINATION_CONFIG")
         if not config:
             return
 
         cache_type = config.get("CACHE_TYPE")
         if cache_type == "RedisCache":
-            self._signal_cache = RedisCacheBackend.from_config(config)
+            self._distributed_coordination = RedisCacheBackend.from_config(config)
         elif cache_type == "RedisSentinelCache":
-            self._signal_cache = RedisSentinelCacheBackend.from_config(config)
+            self._distributed_coordination = RedisSentinelCacheBackend.from_config(
+                config
+            )
         else:
             logger.warning(
-                "Unsupported CACHE_TYPE for SIGNAL_CACHE_CONFIG: %s. "
+                "Unsupported CACHE_TYPE for DISTRIBUTED_COORDINATION_CONFIG: %s. "
                 "Use 'RedisCache' or 'RedisSentinelCache'.",
                 cache_type,
             )
@@ -281,13 +301,21 @@ class CacheManager:
         return self._explore_form_data_cache
 
     @property
-    def signal_cache(
+    def extension_ephemeral_state_cache(self) -> Cache:
+        return self._extension_ephemeral_state_cache
+
+    @property
+    def distributed_coordination(
         self,
     ) -> RedisCacheBackend | RedisSentinelCacheBackend | None:
         """
-        Return the signal cache backend.
+        Return the distributed coordination backend for Redis-specific primitives.
 
-        Used for signaling features that require Redis-specific primitives:
+        This backend is the foundation for distributed coordination features including
+        pub/sub messaging, atomic distributed locking, and streams. A higher-level
+        service will eventually expose standardized interfaces on top of this backend.
+
+        Coordination primitives currently backed by this:
         - Pub/Sub messaging for real-time abort/completion notifications
         - SET NX EX for atomic distributed lock acquisition
 
@@ -296,6 +324,6 @@ class CacheManager:
         - `.key_prefix`: Configured key prefix (from CACHE_KEY_PREFIX)
         - `.default_timeout`: Default timeout in seconds (from CACHE_DEFAULT_TIMEOUT)
 
-        Returns None if SIGNAL_CACHE_CONFIG is not configured.
+        Returns None if DISTRIBUTED_COORDINATION_CONFIG is not configured.
         """
-        return self._signal_cache
+        return self._distributed_coordination

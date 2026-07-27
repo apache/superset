@@ -105,7 +105,7 @@ export const InteractiveButton = (args: ButtonProps & { children: string }) => (
 );
 
 InteractiveButton.args = {
-  buttonStyle: 'default',
+  buttonStyle: 'primary',
   buttonSize: 'default',
   children: 'Button!',
 };
@@ -124,6 +124,11 @@ InteractiveButton.argTypes = {
     description: 'The size of the button.',
     options: buttonSizes,
     control: { type: 'select' },
+  },
+  styleConfig: {
+    description:
+      'Optional visual overrides (controlHeight, paddingInline, fontSize, fontWeight, borderRadius, ctaMinWidth, ctaMinHeight, iconGap).',
+    control: { type: 'object' },
   },
   target: {
     name: TARGETS.label,

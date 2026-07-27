@@ -22,7 +22,7 @@ import {
   getNumberFormatter,
   SqlaFormData,
 } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 import { EchartsBubbleChartProps } from '../../src/Bubble/types';
 import transformProps, { formatTooltip } from '../../src/Bubble/transformProps';
 
@@ -149,6 +149,78 @@ describe('Bubble transformProps', () => {
           ]),
         }),
       }),
+    );
+  });
+});
+
+describe('adhoc Custom SQL dimension', () => {
+  const adhocColumn = {
+    expressionType: 'SQL',
+    sqlExpression: 'EXTRACT(YEAR FROM ds)',
+    label: 'year',
+  };
+  const adhocQueriesData = [
+    {
+      data: [
+        {
+          year: 1992,
+          customer_name: 'AV Stores, Co.',
+          count: 10,
+          'SUM(price_each)': 20,
+          'SUM(sales)': 30,
+        },
+        {
+          year: 1993,
+          customer_name: 'Alpha Cognac',
+          count: 40,
+          'SUM(price_each)': 50,
+          'SUM(sales)': 60,
+        },
+      ],
+    },
+  ];
+
+  test('resolves the entity label so an adhoc dimension is not rendered as NULL', () => {
+    const formData: SqlaFormData = { ...defaultFormData, entity: adhocColumn };
+    const chartProps = new ChartProps({
+      ...chartConfig,
+      queriesData: adhocQueriesData,
+      formData,
+    });
+    const result = transformProps(chartProps as EchartsBubbleChartProps);
+
+    expect((result.echartOptions.legend as any).data).toEqual(['1992', '1993']);
+    expect(result.echartOptions.series).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: '1992',
+          data: [[10, 20, 30, 1992, null]],
+        }),
+      ]),
+    );
+  });
+
+  test('resolves the series label so an adhoc bubble series is not rendered as NULL', () => {
+    const formData: SqlaFormData = {
+      ...defaultFormData,
+      entity: 'customer_name',
+      series: adhocColumn,
+    };
+    const chartProps = new ChartProps({
+      ...chartConfig,
+      queriesData: adhocQueriesData,
+      formData,
+    });
+    const result = transformProps(chartProps as EchartsBubbleChartProps);
+
+    expect((result.echartOptions.legend as any).data).toEqual(['1992', '1993']);
+    expect(result.echartOptions.series).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: '1992',
+          data: [[10, 20, 30, 'AV Stores, Co.', 1992]],
+        }),
+      ]),
     );
   });
 });

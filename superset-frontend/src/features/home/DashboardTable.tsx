@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { SupersetClient } from '@superset-ui/core';
 import { useFavoriteStatus, useListViewResource } from 'src/views/CRUD/hooks';
 import { Dashboard, DashboardTableProps, TableTab } from 'src/views/CRUD/types';
@@ -203,7 +203,7 @@ function DashboardTable({
             name: t('Dashboard'),
             buttonStyle: 'secondary',
             onClick: () => {
-              navigateTo('/dashboard/new', { assign: true });
+              navigateTo('/dashboard/new/', { assign: true });
             },
           },
           {
@@ -263,7 +263,7 @@ function DashboardTable({
               hasPerm={hasPerm}
               bulkSelectEnabled={false}
               showThumbnails={showThumbnails}
-              userId={user?.userId}
+              user={user}
               loading={loading}
               openDashboardEditModal={(dashboard: Dashboard) =>
                 setEditModal(dashboard)

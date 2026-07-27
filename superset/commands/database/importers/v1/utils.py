@@ -26,7 +26,10 @@ from superset.commands.exceptions import ImportFailedError
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import (
+    OAuth2RedirectError,
+    SupersetSecurityException,
+)
 from superset.models.core import Database
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
 from superset.utils import json
@@ -74,6 +77,25 @@ def import_database(  # noqa: C901
     # TODO (betodealmeida): move this logic to import_from_dict
     config["extra"] = json.dumps(config["extra"])
 
+    # Convert masked_encrypted_extra → encrypted_extra before importing.
+    # For existing DBs, reveal masked sensitive values from current encrypted_extra.
+    # For new DBs, schema validation already ensured no fields are still masked.
+    if masked_encrypted_extra := config.pop("masked_encrypted_extra", None):
+        if existing and existing.encrypted_extra:
+            old_config = json.loads(existing.encrypted_extra)
+            new_config = json.loads(masked_encrypted_extra)
+            sensitive_fields = (
+                existing.db_engine_spec.encrypted_extra_sensitive_field_paths()
+            )
+            revealed = json.reveal_sensitive(
+                old_config,
+                new_config,
+                sensitive_fields,
+            )
+            config["encrypted_extra"] = json.dumps(revealed)
+        else:
+            config["encrypted_extra"] = masked_encrypted_extra
+
     ssh_tunnel_config = config.pop("ssh_tunnel", None)
 
     # set SQLAlchemy URI via `set_sqlalchemy_uri` so that the password gets masked
@@ -94,7 +116,7 @@ def import_database(  # noqa: C901
 
     try:
         add_permissions(database)
-    except SupersetDBAPIConnectionError as ex:
+    except (SupersetDBAPIConnectionError, OAuth2RedirectError) as ex:
         logger.warning(ex.message)
 
     return database

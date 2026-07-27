@@ -17,8 +17,8 @@
  * under the License.
  */
 import { useEffect, SetStateAction, Dispatch, useCallback } from 'react';
-import { t } from '@apache-superset/core';
-import { styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import TableSelector, { TableOption } from 'src/components/TableSelector';
 import { EmptyState } from '@superset-ui/core/components';
 import { type DatabaseObject } from 'src/components';
@@ -30,7 +30,7 @@ import {
 } from 'src/features/datasets/AddDataset/types';
 import { Table } from 'src/hooks/apiResources';
 import { Typography } from '@superset-ui/core/components/Typography';
-import { ensureAppRoot } from 'src/utils/pathUtils';
+import { ensureAppRoot } from 'src/utils/navigationUtils';
 
 interface LeftPanelProps {
   setDataset: Dispatch<SetStateAction<object>>;

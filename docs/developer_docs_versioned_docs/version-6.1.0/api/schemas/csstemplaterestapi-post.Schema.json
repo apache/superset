@@ -1,0 +1,1 @@
+{"schema":{"properties":{"css":{"nullable":true,"type":"string"},"template_name":{"maxLength":250,"nullable":true,"type":"string"}},"type":"object","title":"CssTemplateRestApi.post"},"schemaType":"response"}

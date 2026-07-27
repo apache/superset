@@ -154,10 +154,8 @@ class CurrentUserRestApi(BaseSupersetApi):
             if not item:
                 return self.response_400(message="At least one field must be provided.")
 
-            for key, value in item.items():
-                setattr(g.user, key, value)
-
             self.pre_update(g.user, item)
+            UserDAO.update(item=g.user, attributes=item)
             db.session.commit()  # pylint: disable=consider-using-transaction
             return self.response(200, result=user_response_schema.dump(g.user))
         except ValidationError as error:
@@ -169,9 +167,13 @@ class UserRestApi(BaseSupersetApi):
 
     resource_name = "user"
     openapi_spec_tag = "User"
+    # Enable browser login for all user endpoints to support avatar access and other
+    # user-related functionality that may be called from browser contexts
+    allow_browser_login = True
     openapi_spec_component_schemas = (UserResponseSchema,)
 
     @expose("/<int:user_id>/avatar.png", methods=("GET",))
+    @protect()
     @safe
     def avatar(self, user_id: int) -> Response:
         """Get a redirect to the avatar's URL for the user with the given ID.

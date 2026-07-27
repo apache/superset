@@ -18,9 +18,9 @@
  */
 import { useState, useMemo } from 'react';
 import { Button, Row, Col, InputNumber } from '@superset-ui/core/components';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { validateNumber } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import ControlHeader from '../../ControlHeader';
 import ColorPickerControl from '../ColorPickerControl';
 import {
@@ -194,6 +194,10 @@ const ColorBreakpointsPopoverControl = ({
   };
 
   return (
+    // Rendered as antd Popover content, whose visibility antd itself
+    // manages (mount/unmount); native <dialog> requires showModal()/the
+    // open attribute and would render hidden without it.
+    // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
     <div role="dialog">
       <StyledRow>
         <Col flex="1">

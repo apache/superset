@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useSelector } from 'react-redux';
-import { noop } from 'lodash';
+import { useDispatch, useSelector } from 'react-redux';
+import { noop } from 'lodash-es';
 import type { SqlLabRootState } from 'src/SqlLab/types';
-import { css, styled } from '@apache-superset/core';
+import { css, styled } from '@apache-superset/core/theme';
 import { useComponentDidUpdate } from '@superset-ui/core';
 import { Grid } from '@superset-ui/core/components';
-import ExtensionsManager from 'src/extensions/ExtensionsManager';
+import { useViews } from 'src/core';
 import { Splitter } from 'src/components/Splitter';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
@@ -32,6 +32,7 @@ import {
 } from 'src/SqlLab/constants';
 import { ViewLocations } from 'src/SqlLab/contributions';
 import ViewListExtension from 'src/components/ViewListExtension';
+import { toggleLeftBar } from 'src/SqlLab/actions/sqlLab';
 
 import SqlEditorLeftBar from '../SqlEditorLeftBar';
 import StatusBar from '../StatusBar';
@@ -65,7 +66,8 @@ const ContentWrapper = styled.div`
   overflow: auto;
 `;
 
-const AppLayout: React.FC = ({ children }) => {
+const AppLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
+  const dispatch = useDispatch();
   const queryEditorId = useSelector<SqlLabRootState, string>(
     ({ sqlLab: { tabHistory } }) => tabHistory.slice(-1)[0],
   );
@@ -91,15 +93,13 @@ const AppLayout: React.FC = ({ children }) => {
   const onSidebarChange = (sizes: number[]) => {
     const [updatedWidth, _, possibleRightWidth] = sizes;
     setLeftWidth(updatedWidth);
+    dispatch(toggleLeftBar(updatedWidth === 0));
 
     if (typeof possibleRightWidth === 'number') {
       setRightWidth(possibleRightWidth);
     }
   };
-  const contributions =
-    ExtensionsManager.getInstance().getViewContributions(
-      ViewLocations.sqllab.rightSidebar,
-    ) || [];
+  const viewItems = useViews(ViewLocations.sqllab.rightSidebar) || [];
 
   return (
     <StyledContainer>
@@ -128,7 +128,7 @@ const AppLayout: React.FC = ({ children }) => {
           </StyledSidebar>
         </Splitter.Panel>
         <Splitter.Panel className="sqllab-body">{children}</Splitter.Panel>
-        {contributions.length > 0 && (
+        {viewItems.length > 0 && (
           <Splitter.Panel
             collapsible={{
               start: true,

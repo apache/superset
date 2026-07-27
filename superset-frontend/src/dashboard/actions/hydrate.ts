@@ -49,6 +49,7 @@ import {
   ROW_TYPE,
 } from 'src/dashboard/util/componentTypes';
 import findFirstParentContainerId from 'src/dashboard/util/findFirstParentContainer';
+import getDefaultActiveTabs from 'src/dashboard/util/getDefaultActiveTabs';
 import getEmptyLayout from 'src/dashboard/util/getEmptyLayout';
 import getLocationHash from 'src/dashboard/util/getLocationHash';
 import newComponentFactory, {
@@ -60,6 +61,8 @@ import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import type { DashboardChartStates } from 'src/dashboard/types/chartState';
 import extractUrlParams from '../util/extractUrlParams';
 import updateComponentParentsList from '../util/updateComponentParentsList';
+import { AUTO_REFRESH_STATE_DEFAULTS } from '../types/autoRefresh';
+import { migrateChartCustomizationArray } from '../util/migrateChartCustomization';
 import {
   DashboardLayout,
   FilterBarOrientation,
@@ -78,7 +81,7 @@ interface HydrateChartData {
   form_data: JsonObject;
   description: string;
   description_markeddown: string;
-  owners: { id: number }[];
+  editors: { id: number }[];
   modified: string;
   changed_on: string;
 }
@@ -176,8 +179,8 @@ export const hydrateDashboard =
         viz_type: slice.form_data.viz_type,
         datasource: slice.form_data.datasource,
         description: slice.description,
-        description_markeddown: slice.description_markeddown,
-        owners: slice.owners,
+        description_markdown: slice.description_markeddown,
+        editors: slice.editors,
         modified: slice.modified,
         changed_on: new Date(slice.changed_on).getTime(),
       };
@@ -291,10 +294,17 @@ export const hydrateDashboard =
       directPathToChild.push(directLinkComponentId);
     }
 
-    const chartCustomizations =
-      (metadata?.chart_customization_config as JsonObject[]) || [];
-    const filters =
-      (metadata?.native_filter_configuration as JsonObject[]) || [];
+    const rawChartCustomizations = (
+      (metadata?.chart_customization_config as JsonObject[]) || []
+    ).filter(Boolean);
+
+    const chartCustomizations = migrateChartCustomizationArray(
+      rawChartCustomizations,
+    );
+
+    const filters = (
+      (metadata?.native_filter_configuration as JsonObject[]) || []
+    ).filter(Boolean);
     const combinedFilters = [...filters, ...chartCustomizations];
 
     const nativeFilters = getInitialNativeFilterState({
@@ -317,6 +327,19 @@ export const hydrateDashboard =
     const crossFiltersEnabled = isCrossFiltersEnabled(
       metadata.cross_filters_enabled as boolean | undefined,
     );
+
+    // precedence: permalink param > stored redux value > layout default.
+    // The layout default only applies to a genuinely fresh load: no permalink
+    // activeTabs, no stored activeTabs, and no deep-link (directPathToChild),
+    // which the live Tabs component resolves on its own.
+    const seededActiveTabs =
+      activeTabs ||
+      (dashboardState?.activeTabs?.length
+        ? dashboardState.activeTabs
+        : undefined) ||
+      (directPathToChild.length
+        ? []
+        : getDefaultActiveTabs(dashboardLayout.present as DashboardLayout));
 
     return dispatch({
       type: HYDRATE_DASHBOARD,
@@ -346,7 +369,7 @@ export const hydrateDashboard =
             'Superset',
             roles,
           ),
-          superset_can_csv: findPermission('can_csv', 'Superset', roles),
+          superset_can_download: findPermission('can_csv', 'Superset', roles),
           common: {
             // legacy, please use state.common instead
             conf: common?.conf,
@@ -359,6 +382,7 @@ export const hydrateDashboard =
         dashboardFilters,
         nativeFilters,
         dashboardState: {
+          ...AUTO_REFRESH_STATE_DEFAULTS,
           preselectNativeFilters: getUrlParam(URL_PARAMS.nativeFilters),
           sliceIds: Array.from(sliceIds),
           directPathToChild,
@@ -380,7 +404,7 @@ export const hydrateDashboard =
           lastModifiedTime: dashboard.changed_on,
           isRefreshing: false,
           isFiltersRefreshing: false,
-          activeTabs: activeTabs || dashboardState?.activeTabs || [],
+          activeTabs: seededActiveTabs,
           datasetsStatus:
             dashboardState?.datasetsStatus || ResourceStatus.Loading,
           chartStates: chartStates || dashboardState?.chartStates || {},

@@ -47,3 +47,13 @@ test('should pass removeToast to the Toast component', async () => {
   fireEvent.click(getAllByTestId('close-button')[0]);
   await waitFor(() => expect(removeToast).toHaveBeenCalledTimes(1));
 });
+
+test('presenter caps its height with max-height so it hugs the toasts', () => {
+  // A fixed `height` would make the fixed overlay span the viewport and block
+  // controls underneath it; `max-height` lets it shrink to the toasts while
+  // still scrolling when they overflow.
+  const presenter = setup().container.querySelector('#toast-presenter');
+  expect(presenter).toBeInTheDocument();
+  expect(presenter).toHaveStyleRule('max-height', 'calc(100vh - 100px)');
+  expect(presenter).not.toHaveStyleRule('height', 'calc(100vh - 100px)');
+});

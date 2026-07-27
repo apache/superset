@@ -17,9 +17,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { QueryColumn, validateNonEmpty } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   ExtraControlProps,
   SharedControlConfig,
@@ -152,7 +152,9 @@ export const dndAdhocFilterControl: SharedControlConfig<
   type: 'DndFilterSelect',
   label: t('Filters'),
   default: [],
-  description: '',
+  description: t(
+    'Add columns to filter by. When typing or pasting filter values, commas will separate values into multiple entries. To include a comma within a value, wrap it in double quotes: "San Francisco, CA"',
+  ),
   mapStateToProps: ({ datasource, form_data }) => ({
     columns: isDataset(datasource)
       ? datasource.columns.filter(c => c.filterable)

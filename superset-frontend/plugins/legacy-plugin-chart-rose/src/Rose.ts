@@ -17,7 +17,7 @@
  * under the License.
  */
 // @ts-nocheck
-/* eslint no-use-before-define: ["error", { "functions": false }] */
+/* oxlint-disable no-use-before-define: ["error", { "functions": false }] */
 /* eslint-disable no-restricted-syntax */
 /* eslint-disable react/sort-prop-types */
 import d3 from 'd3';
@@ -27,6 +27,7 @@ import {
   getTimeFormatter,
   getNumberFormatter,
   CategoricalColorNamespace,
+  sanitizeHtml,
 } from '@superset-ui/core';
 
 interface RoseDataEntry {
@@ -146,24 +147,32 @@ function Rose(element: HTMLElement, props: RoseProps): void {
   function legendData(adatum: RoseData) {
     return adatum[times[0]].map((v: RoseDataEntry, i: number) => ({
       disabled: state.disabled[i],
+      // Keep the raw name as `key` so it matches the value used for arc
+      // fills (colorFn is called with d.name on arcs and d.key on the
+      // legend). nvd3-fork's legend renders `key` via .text(), so the
+      // raw value is escaped at the DOM sink.
       key: v.name,
     }));
   }
 
   function tooltipData(d: ArcDatum, i: number, adatum: RoseData) {
     const timeIndex = Math.floor(d.arcId / numGroups);
+    // nvd3-fork's nv.models.tooltip renders the `key` strings via .html(),
+    // so any HTML in user-controlled column values would execute. Pass the
+    // keys through sanitizeHtml to strip dangerous markup while preserving
+    // legitimate text content.
     const series = useRichTooltip
       ? adatum[times[timeIndex]]
           .filter(v => !state.disabled[v.id % numGroups])
           .map(v => ({
-            key: v.name,
+            key: sanitizeHtml(v.name),
             value: v.value,
             color: colorFn(v.name, sliceId),
             highlight: v.id === d.arcId,
           }))
       : [
           {
-            key: d.name,
+            key: sanitizeHtml(d.name),
             value: d.val,
             color: colorFn(d.name, sliceId),
           },
@@ -386,11 +395,7 @@ function Rose(element: HTMLElement, props: RoseProps): void {
     .enter()
     .append('g')
     .attr('class', 'segment')
-    .classed('clickable', true)
-    .on('mouseover', mouseover)
-    .on('mouseout', mouseout)
-    .on('mousemove', mousemove)
-    .on('click', click);
+    .classed('clickable', true);
 
   const labels = labelsWrap
     .selectAll('g')
@@ -613,6 +618,11 @@ function Rose(element: HTMLElement, props: RoseProps): void {
         .attrTween('d', d => arcTween(arcSt.data[d.arcId])(d));
     }
   }
+
+  ae.on('mouseover', mouseover)
+    .on('mouseout', mouseout)
+    .on('mousemove', mousemove)
+    .on('click', click);
 
   function updateActive(): void {
     const delay = d3.event.altKey ? 3000 : 300;

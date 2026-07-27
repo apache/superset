@@ -25,9 +25,22 @@
   command = "yarn install && yarn build"
   # Output directory (relative to base)
   publish = "build"
-  # Skip builds when no docs changes (exit 0 = skip, exit 1 = build)
-  # Checks for changes in docs/ and README.md (which gets pulled into docs)
-  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- . ../README.md"
+  # Skip builds when no docs changes (exit 0 = skip, non-zero = build).
+  # Checks for changes in docs/ and README.md (which gets pulled into docs).
+  #
+  # $CACHED_COMMIT_REF is the last *deployed* commit; it is set on incremental
+  # builds (notably the master production deploy) and empty on a context's
+  # first build (every deploy preview). The production path diffs against it
+  # and skips correctly.
+  #
+  # Deploy previews need different handling: Netlify checks out a *merge*
+  # commit, so $COMMIT_REF (the PR head SHA) is frequently not resolvable in
+  # the clone, and on a shallow clone `git merge-base` can fail too -- so the
+  # previous logic fell through to a build on every PR, even non-docs ones.
+  # Instead, always diff the checked-out HEAD against its merge-base with
+  # master, deepening the shallow clone until that merge-base resolves. If it
+  # genuinely can't be determined, exit non-zero to build (fail safe).
+  ignore = 'if [ -n "$CACHED_COMMIT_REF" ]; then git diff --quiet "$CACHED_COMMIT_REF" HEAD -- . ../README.md; else git fetch --no-tags origin master >/dev/null 2>&1 || true; i=0; while [ "$i" -lt 10 ] && ! git merge-base origin/master HEAD >/dev/null 2>&1; do git fetch --deepen=200 origin master >/dev/null 2>&1 || break; i=$((i+1)); done; BASE="$(git merge-base origin/master HEAD 2>/dev/null || true)"; if [ -z "$BASE" ]; then exit 1; fi; git diff --quiet "$BASE" HEAD -- . ../README.md; fi'
 
 [build.environment]
   # Node version matching docs/.nvmrc

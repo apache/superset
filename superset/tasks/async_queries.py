@@ -169,7 +169,7 @@ def load_explore_json_into_cache(  # pylint: disable=too-many-locals
             set_and_log_cache(
                 cache_instance, cache_key, cache_value, cache_timeout=cache_timeout
             )
-            result_url = f"/superset/explore_json/data/{cache_key}"
+            result_url = f"/explore_json/data/{cache_key}"
             async_query_manager.update_job(
                 job_metadata,
                 async_query_manager.STATUS_DONE,
@@ -183,6 +183,11 @@ def load_explore_json_into_cache(  # pylint: disable=too-many-locals
         except Exception as ex:
             if isinstance(ex, SupersetVizException):
                 errors = ex.errors
+            # Extract SIP-40 style errors when available
+            elif isinstance(ex, SupersetErrorException):
+                errors = [dataclasses.asdict(ex.error)]  # type: ignore
+            elif isinstance(ex, SupersetErrorsException):
+                errors = [dataclasses.asdict(error) for error in ex.errors]  # type: ignore
             else:
                 error = ex.message if hasattr(ex, "message") else str(ex)
                 errors = [error]  # type: ignore

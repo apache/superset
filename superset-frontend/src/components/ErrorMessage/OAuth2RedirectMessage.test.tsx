@@ -19,13 +19,30 @@
 
 import * as reduxHooks from 'react-redux';
 import { Provider } from 'react-redux';
-import { createStore } from 'redux';
-import { render, fireEvent, waitFor } from 'spec/helpers/testing-library';
+import { createStore, Store } from 'redux';
+import { render, waitFor } from 'spec/helpers/testing-library';
 import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
 import { reRunQuery } from 'src/SqlLab/actions/sqlLab';
 import { triggerQuery } from 'src/components/Chart/chartAction';
 import { onRefresh } from 'src/dashboard/actions/dashboardState';
+import { UNSAVED_CHART_ID } from 'src/explore/constants';
+import { api } from 'src/hooks/apiResources/queryApi';
 import { OAuth2RedirectMessage } from '.';
+
+jest.mock('src/hooks/apiResources/queryApi', () => ({
+  api: {
+    util: {
+      invalidateTags: jest
+        .fn()
+        .mockReturnValue({ type: 'mock/invalidateTags' }),
+    },
+    reducerPath: 'queryApi',
+    reducer: (state = {}) => state,
+    middleware:
+      () => (next: (action: unknown) => unknown) => (action: unknown) =>
+        next(action),
+  },
+}));
 
 // Mock the Redux store
 const mockStore = createStore(() => ({
@@ -39,6 +56,19 @@ const mockStore = createStore(() => ({
   },
   charts: { '1': {}, '2': {} },
   dashboardInfo: { id: 'dashboard-id' },
+}));
+
+const mockStoreUnsavedChart = createStore(() => ({
+  sqlLab: {
+    queries: {},
+    queryEditors: [],
+    tabHistory: [],
+  },
+  explore: {
+    slice: null,
+  },
+  charts: {},
+  dashboardInfo: {},
 }));
 
 // Mock actions
@@ -58,25 +88,33 @@ jest.mock('src/dashboard/actions/dashboardState', () => ({
 const mockDispatch = jest.fn();
 jest.spyOn(reduxHooks, 'useDispatch').mockReturnValue(mockDispatch);
 
-// Mock global window functions
-const mockOpen = jest.spyOn(window, 'open').mockImplementation(() => null);
-const mockAddEventListener = jest.spyOn(window, 'addEventListener');
-const mockRemoveEventListener = jest.spyOn(window, 'removeEventListener');
-
-// Mock window.postMessage
-const originalPostMessage = window.postMessage;
+// Capture the channel instance created by the component so tests can drive its
+// onmessage handler and assert it gets closed on unmount.
+let capturedChannel: {
+  onmessage: ((event: any) => void) | null;
+  close: jest.Mock;
+};
+const channelCloseMock = jest.fn();
 
 beforeEach(() => {
-  window.postMessage = jest.fn();
+  jest.clearAllMocks();
+  capturedChannel = { onmessage: null, close: channelCloseMock };
+  (global as any).BroadcastChannel = jest
+    .fn()
+    .mockImplementation(() => capturedChannel);
 });
 
-afterEach(() => {
-  window.postMessage = originalPostMessage;
-});
+function simulateBroadcastMessage(data: any) {
+  capturedChannel.onmessage?.({ data });
+}
 
-function simulateMessageEvent(data: any, origin: string) {
-  const messageEvent = new MessageEvent('message', { data, origin });
-  window.dispatchEvent(messageEvent);
+function simulateStorageMessage(data: any) {
+  window.dispatchEvent(
+    new StorageEvent('storage', {
+      key: 'oauth2_auth_complete',
+      newValue: JSON.stringify(data),
+    }),
+  );
 }
 
 const defaultProps = {
@@ -93,8 +131,8 @@ const defaultProps = {
   source: 'sqllab' as ErrorSource,
 };
 
-const setup = (overrides = {}) => (
-  <Provider store={mockStore}>
+const setup = (overrides = {}, store: Store = mockStore) => (
+  <Provider store={store}>
     <OAuth2RedirectMessage {...defaultProps} {...overrides} />;
   </Provider>
 );
@@ -108,27 +146,36 @@ describe('OAuth2RedirectMessage Component', () => {
     expect(getByText(/provide authorization/i)).toBeInTheDocument();
   });
 
-  test('opens a new window with the correct URL when the link is clicked', () => {
+  test('renders the authorization link pointing at the OAuth2 URL', () => {
     const { getByText } = render(setup());
 
-    const linkElement = getByText(/provide authorization/i);
-    fireEvent.click(linkElement);
-
-    expect(mockOpen).toHaveBeenCalledWith('https://example.com', '_blank');
+    const linkElement = getByText(/provide authorization/i).closest('a');
+    expect(linkElement).toHaveAttribute('href', 'https://example.com');
+    expect(linkElement).toHaveAttribute('target', '_blank');
   });
 
-  test('cleans up the message event listener on unmount', () => {
+  test('closes the BroadcastChannel on unmount', () => {
     const { unmount } = render(setup());
 
-    expect(mockAddEventListener).toHaveBeenCalled();
+    expect((global as any).BroadcastChannel).toHaveBeenCalledWith('oauth');
     unmount();
-    expect(mockRemoveEventListener).toHaveBeenCalled();
+    expect(channelCloseMock).toHaveBeenCalled();
   });
 
   test('dispatches reRunQuery action when a message with correct tab ID is received for SQL Lab', async () => {
     render(setup());
 
-    simulateMessageEvent({ tabId: 'tabId' }, 'https://redirect.example.com');
+    simulateBroadcastMessage({ tabId: 'tabId' });
+
+    await waitFor(() => {
+      expect(reRunQuery).toHaveBeenCalledWith({ sql: 'SELECT * FROM table' });
+    });
+  });
+
+  test('dispatches reRunQuery action when storage event has matching tab ID', async () => {
+    render(setup());
+
+    simulateStorageMessage({ tabId: 'tabId' });
 
     await waitFor(() => {
       expect(reRunQuery).toHaveBeenCalledWith({ sql: 'SELECT * FROM table' });
@@ -138,7 +185,7 @@ describe('OAuth2RedirectMessage Component', () => {
   test('dispatches triggerQuery action for explore source upon receiving a correct message', async () => {
     render(setup({ source: 'explore' }));
 
-    simulateMessageEvent({ tabId: 'tabId' }, 'https://redirect.example.com');
+    simulateBroadcastMessage({ tabId: 'tabId' });
 
     await waitFor(() => {
       expect(triggerQuery).toHaveBeenCalledWith(true, 123);
@@ -148,11 +195,43 @@ describe('OAuth2RedirectMessage Component', () => {
   test('dispatches onRefresh action for dashboard source upon receiving a correct message', async () => {
     render(setup({ source: 'dashboard' }));
 
-    simulateMessageEvent({ tabId: 'tabId' }, 'https://redirect.example.com');
+    simulateBroadcastMessage({ tabId: 'tabId' });
 
     await waitFor(() => {
       // Chart IDs are converted to numbers by the component via chartList.map(Number)
       expect(onRefresh).toHaveBeenCalledWith([1, 2], true, 0, 'dashboard-id');
+    });
+  });
+
+  test('ignores messages with a mismatched tab ID', () => {
+    render(setup());
+
+    simulateBroadcastMessage({ tabId: 'someOtherTab' });
+
+    expect(reRunQuery).not.toHaveBeenCalled();
+  });
+
+  test('dispatches triggerQuery with UNSAVED_CHART_ID for explore source when no saved chart exists', async () => {
+    render(setup({ source: 'explore' as ErrorSource }, mockStoreUnsavedChart));
+
+    simulateBroadcastMessage({ tabId: 'tabId' });
+
+    await waitFor(() => {
+      expect(triggerQuery).toHaveBeenCalledWith(true, UNSAVED_CHART_ID);
+    });
+  });
+
+  test('dispatches invalidateTags for Schemas when source is crud', async () => {
+    render(setup({ source: 'crud' as ErrorSource }));
+
+    simulateBroadcastMessage({ tabId: 'tabId' });
+
+    await waitFor(() => {
+      expect(api.util.invalidateTags).toHaveBeenCalledWith([
+        { type: 'Schemas', id: 'LIST' },
+        { type: 'Catalogs', id: 'LIST' },
+        'Tables',
+      ]);
     });
   });
 });

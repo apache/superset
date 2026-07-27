@@ -1,0 +1,4350 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+// @ts-nocheck
+/**
+ * Auto-generated CommonJS sidebar from sidebar.ts
+ * Do not edit directly - run 'yarn generate:api-docs' to regenerate
+ */
+
+const sidebar = {
+  "apisidebar": [
+    {
+      "type": "category",
+      "label": "Advanced Data Type",
+      "link": {
+        "type": "doc",
+        "id": "api/advanced-data-type"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/return-an-advanced-data-type-response",
+          "label": "Return an AdvancedDataTypeResponse",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/return-a-list-of-available-advanced-data-types",
+          "label": "Return a list of available advanced data types",
+          "className": "api-method get"
+        }
+      ],
+      "key": "api-category-advanced-data-type"
+    },
+    {
+      "type": "category",
+      "label": "Annotation Layers",
+      "link": {
+        "type": "doc",
+        "id": "api/annotation-layers"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/delete-multiple-annotation-layers-in-a-bulk-operation",
+          "label": "Delete multiple annotation layers in a bulk operation",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-a-list-of-annotation-layers-annotation-layer",
+          "label": "Get a list of annotation layers (annotation-layer)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/create-an-annotation-layer-annotation-layer",
+          "label": "Create an annotation layer (annotation-layer)",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-metadata-information-about-this-api-resource-annotation-layer-info",
+          "label": "Get metadata information about this API resource (annotation-layer--info)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-related-fields-data-annotation-layer-related-column-name",
+          "label": "Get related fields data (annotation-layer-related-column-name)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/delete-annotation-layer-annotation-layer-pk",
+          "label": "Delete annotation layer (annotation-layer-pk)",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-an-annotation-layer-annotation-layer-pk",
+          "label": "Get an annotation layer (annotation-layer-pk)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/update-an-annotation-layer-annotation-layer-pk",
+          "label": "Update an annotation layer (annotation-layer-pk)",
+          "className": "api-method put"
+        },
+        {
+          "type": "doc",
+          "id": "api/bulk-delete-annotation-layers",
+          "label": "Bulk delete annotation layers",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-a-list-of-annotation-layers-annotation-layer-pk-annotation",
+          "label": "Get a list of annotation layers (annotation-layer-pk-annotation)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/create-an-annotation-layer-annotation-layer-pk-annotation",
+          "label": "Create an annotation layer (annotation-layer-pk-annotation)",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/delete-annotation-layer-annotation-layer-pk-annotation-annotation-id",
+          "label": "Delete annotation layer (annotation-layer-pk-annotation-annotation-id)",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-an-annotation-layer-annotation-layer-pk-annotation-annotation-id",
+          "label": "Get an annotation layer (annotation-layer-pk-annotation-annotation-id)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/update-an-annotation-layer-annotation-layer-pk-annotation-annotation-id",
+          "label": "Update an annotation layer (annotation-layer-pk-annotation-annotation-id)",
+          "className": "api-method put"
+        }
+      ],
+      "key": "api-category-annotation-layers"
+    },
+    {
+      "type": "category",
+      "label": "AsyncEventsRestApi",
+      "link": {
+        "type": "doc",
+        "id": "api/async-events-rest-api"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/read-off-of-the-redis-events-stream",
+          "label": "Read off of the Redis events stream",
+          "className": "api-method get"
+        }
+      ],
+      "key": "api-category-asynceventsrestapi"
+    },
+    {
+      "type": "category",
+      "label": "Available Domains",
+      "link": {
+        "type": "doc",
+        "id": "api/available-domains"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/get-all-available-domains",
+          "label": "Get all available domains",
+          "className": "api-method get"
+        }
+      ],
+      "key": "api-category-available-domains"
+    },
+    {
+      "type": "category",
+      "label": "CSS Templates",
+      "link": {
+        "type": "doc",
+        "id": "api/css-templates"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/bulk-delete-css-templates",
+          "label": "Bulk delete CSS templates",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-a-list-of-css-templates",
+          "label": "Get a list of CSS templates",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/create-a-css-template",
+          "label": "Create a CSS template",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-metadata-information-about-this-api-resource-css-template-info",
+          "label": "Get metadata information about this API resource (css-template--info)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-related-fields-data-css-template-related-column-name",
+          "label": "Get related fields data (css-template-related-column-name)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/delete-a-css-template",
+          "label": "Delete a CSS template",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-a-css-template",
+          "label": "Get a CSS template",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/update-a-css-template",
+          "label": "Update a CSS template",
+          "className": "api-method put"
+        }
+      ],
+      "key": "api-category-css-templates"
+    },
+    {
+      "type": "category",
+      "label": "CacheRestApi",
+      "link": {
+        "type": "doc",
+        "id": "api/cache-rest-api"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/invalidate-cache-records-and-remove-the-database-records",
+          "label": "Invalidate cache records and remove the database records",
+          "className": "api-method post"
+        }
+      ],
+      "key": "api-category-cacherestapi"
+    },
+    {
+      "type": "category",
+      "label": "Charts",
+      "link": {
+        "type": "doc",
+        "id": "api/charts"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/bulk-delete-charts",
+          "label": "Bulk delete charts",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-a-list-of-charts",
+          "label": "Get a list of charts",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/create-a-new-chart",
+          "label": "Create a new chart",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-metadata-information-about-this-api-resource-chart-info",
+          "label": "Get metadata information about this API resource (chart--info)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/return-payload-data-response-for-the-given-query-chart-data",
+          "label": "Return payload data response for the given query (chart-data)",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/return-payload-data-response-for-the-given-query-chart-data-cache-key",
+          "label": "Return payload data response for the given query (chart-data-cache-key)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/download-multiple-charts-as-yaml-files",
+          "label": "Download multiple charts as YAML files",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/check-favorited-charts-for-current-user",
+          "label": "Check favorited charts for current user",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/import-chart-s-with-associated-datasets-and-databases",
+          "label": "Import chart(s) with associated datasets and databases",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-related-fields-data-chart-related-column-name",
+          "label": "Get related fields data (chart-related-column-name)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/warm-up-the-cache-for-the-chart",
+          "label": "Warm up the cache for the chart",
+          "className": "api-method put"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-a-chart-detail-information",
+          "label": "Get a chart detail information",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/delete-a-chart",
+          "label": "Delete a chart",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/update-a-chart",
+          "label": "Update a chart",
+          "className": "api-method put"
+        },
+        {
+          "type": "doc",
+          "id": "api/compute-and-cache-a-screenshot-chart-pk-cache-screenshot",
+          "label": "Compute and cache a screenshot (chart-pk-cache-screenshot)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/return-payload-data-response-for-a-chart",
+          "label": "Return payload data response for a chart",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/remove-the-chart-from-the-user-favorite-list",
+          "label": "Remove the chart from the user favorite list",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/mark-the-chart-as-favorite-for-the-current-user",
+          "label": "Mark the chart as favorite for the current user",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-a-computed-screenshot-from-cache-chart-pk-screenshot-digest",
+          "label": "Get a computed screenshot from cache (chart-pk-screenshot-digest)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-chart-thumbnail",
+          "label": "Get chart thumbnail",
+          "className": "api-method get"
+        }
+      ],
+      "key": "api-category-charts"
+    },
+    {
+      "type": "category",
+      "label": "Current User",
+      "link": {
+        "type": "doc",
+        "id": "api/current-user"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/get-the-user-object",
+          "label": "Get the user object",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/update-the-current-user",
+          "label": "Update the current user",
+          "className": "api-method put"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-the-user-roles",
+          "label": "Get the user roles",
+          "className": "api-method get"
+        }
+      ],
+      "key": "api-category-current-user"
+    },
+    {
+      "type": "category",
+      "label": "Dashboard Filter State",
+      "link": {
+        "type": "doc",
+        "id": "api/dashboard-filter-state"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/create-a-dashboards-filter-state",
+          "label": "Create a dashboard's filter state",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/delete-a-dashboards-filter-state-value",
+          "label": "Delete a dashboard's filter state value",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-a-dashboards-filter-state-value",
+          "label": "Get a dashboard's filter state value",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/update-a-dashboards-filter-state-value",
+          "label": "Update a dashboard's filter state value",
+          "className": "api-method put"
+        }
+      ],
+      "key": "api-category-dashboard-filter-state"
+    },
+    {
+      "type": "category",
+      "label": "Dashboard Permanent Link",
+      "link": {
+        "type": "doc",
+        "id": "api/dashboard-permanent-link"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/get-dashboards-permanent-link-state",
+          "label": "Get dashboard's permanent link state",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/create-a-new-dashboards-permanent-link",
+          "label": "Create a new dashboard's permanent link",
+          "className": "api-method post"
+        }
+      ],
+      "key": "api-category-dashboard-permanent-link"
+    },
+    {
+      "type": "category",
+      "label": "Dashboards",
+      "link": {
+        "type": "doc",
+        "id": "api/dashboards"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/bulk-delete-dashboards",
+          "label": "Bulk delete dashboards",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-a-list-of-dashboards",
+          "label": "Get a list of dashboards",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/create-a-new-dashboard",
+          "label": "Create a new dashboard",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-metadata-information-about-this-api-resource-dashboard-info",
+          "label": "Get metadata information about this API resource (dashboard--info)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/download-multiple-dashboards-as-yaml-files",
+          "label": "Download multiple dashboards as YAML files",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/check-favorited-dashboards-for-current-user",
+          "label": "Check favorited dashboards for current user",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/import-dashboard-s-with-associated-charts-datasets-databases",
+          "label": "Import dashboard(s) with associated charts/datasets/databases",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-related-fields-data-dashboard-related-column-name",
+          "label": "Get related fields data (dashboard-related-column-name)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-a-dashboard-detail-information",
+          "label": "Get a dashboard detail information",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-a-dashboards-chart-definitions",
+          "label": "Get a dashboard's chart definitions.",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/create-a-copy-of-an-existing-dashboard",
+          "label": "Create a copy of an existing dashboard",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-dashboards-datasets",
+          "label": "Get dashboard's datasets",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/delete-a-dashboards-embedded-configuration",
+          "label": "Delete a dashboard's embedded configuration",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-the-dashboards-embedded-configuration",
+          "label": "Get the dashboard's embedded configuration",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/set-a-dashboards-embedded-configuration",
+          "label": "Set a dashboard's embedded configuration",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/update-dashboard-by-id-or-slug-embedded",
+          "label": "Update dashboard by id_or_slug embedded",
+          "className": "api-method put"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-dashboards-tabs",
+          "label": "Get dashboard's tabs",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/delete-a-dashboard",
+          "label": "Delete a dashboard",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/update-a-dashboard",
+          "label": "Update a dashboard",
+          "className": "api-method put"
+        },
+        {
+          "type": "doc",
+          "id": "api/compute-and-cache-a-screenshot-dashboard-pk-cache-dashboard-screenshot",
+          "label": "Compute and cache a screenshot (dashboard-pk-cache-dashboard-screenshot)",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/update-chart-customizations-configuration-for-a-dashboard",
+          "label": "Update chart customizations configuration for a dashboard.",
+          "className": "api-method put"
+        },
+        {
+          "type": "doc",
+          "id": "api/update-colors-configuration-for-a-dashboard",
+          "label": "Update colors configuration for a dashboard.",
+          "className": "api-method put"
+        },
+        {
+          "type": "doc",
+          "id": "api/export-dashboard-as-example-bundle",
+          "label": "Export dashboard as example bundle",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/remove-the-dashboard-from-the-user-favorite-list",
+          "label": "Remove the dashboard from the user favorite list",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/mark-the-dashboard-as-favorite-for-the-current-user",
+          "label": "Mark the dashboard as favorite for the current user",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/update-native-filters-configuration-for-a-dashboard",
+          "label": "Update native filters configuration for a dashboard.",
+          "className": "api-method put"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-a-computed-screenshot-from-cache-dashboard-pk-screenshot-digest",
+          "label": "Get a computed screenshot from cache (dashboard-pk-screenshot-digest)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-dashboards-thumbnail",
+          "label": "Get dashboard's thumbnail",
+          "className": "api-method get"
+        }
+      ],
+      "key": "api-category-dashboards"
+    },
+    {
+      "type": "category",
+      "label": "Database",
+      "link": {
+        "type": "doc",
+        "id": "api/database"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/get-a-list-of-databases",
+          "label": "Get a list of databases",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/create-a-new-database",
+          "label": "Create a new database",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-metadata-information-about-this-api-resource-database-info",
+          "label": "Get metadata information about this API resource (database--info)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-names-of-databases-currently-available",
+          "label": "Get names of databases currently available",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/download-database-s-and-associated-dataset-s-as-a-zip-file",
+          "label": "Download database(s) and associated dataset(s) as a zip file",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/import-database-s-with-associated-datasets",
+          "label": "Import database(s) with associated datasets",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/receive-personal-access-tokens-from-o-auth-2",
+          "label": "Receive personal access tokens from OAuth2",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-related-fields-data-database-related-column-name",
+          "label": "Get related fields data (database-related-column-name)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/test-a-database-connection",
+          "label": "Test a database connection",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/upload-a-file-and-returns-file-metadata",
+          "label": "Upload a file and returns file metadata",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/validate-database-connection-parameters",
+          "label": "Validate database connection parameters",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/delete-a-database",
+          "label": "Delete a database",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-a-database",
+          "label": "Get a database",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/change-a-database",
+          "label": "Change a database",
+          "className": "api-method put"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-all-catalogs-from-a-database",
+          "label": "Get all catalogs from a database",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-a-database-connection-info",
+          "label": "Get a database connection info",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-function-names-supported-by-a-database",
+          "label": "Get function names supported by a database",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-charts-and-dashboards-count-associated-to-a-database",
+          "label": "Get charts and dashboards count associated to a database",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-all-schemas-from-a-database",
+          "label": "Get all schemas from a database",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/the-list-of-the-database-schemas-where-to-upload-information",
+          "label": "The list of the database schemas where to upload information",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-database-select-star-for-table-database-pk-select-star-table-name",
+          "label": "Get database select star for table (database-pk-select-star-table-name)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-database-select-star-for-table-database-pk-select-star-table-name-schema-name",
+          "label": "Get database select star for table (database-pk-select-star-table-name-schema-name)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/re-sync-all-permissions-for-a-database-connection",
+          "label": "Re-sync all permissions for a database connection",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-database-table-metadata",
+          "label": "Get database table metadata",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-table-extra-metadata-database-pk-table-extra-table-name-schema-name",
+          "label": "Get table extra metadata (database-pk-table-extra-table-name-schema-name)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-table-metadata",
+          "label": "Get table metadata",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-table-extra-metadata-database-pk-table-metadata-extra",
+          "label": "Get table extra metadata (database-pk-table-metadata-extra)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-a-list-of-tables-for-given-database",
+          "label": "Get a list of tables for given database",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/upload-a-file-to-a-database-table",
+          "label": "Upload a file to a database table",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/validate-arbitrary-sql",
+          "label": "Validate arbitrary SQL",
+          "className": "api-method post"
+        }
+      ],
+      "key": "api-category-database"
+    },
+    {
+      "type": "category",
+      "label": "Datasets",
+      "link": {
+        "type": "doc",
+        "id": "api/datasets"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/bulk-delete-datasets",
+          "label": "Bulk delete datasets",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-a-list-of-datasets",
+          "label": "Get a list of datasets",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/create-a-new-dataset",
+          "label": "Create a new dataset",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-metadata-information-about-this-api-resource-dataset-info",
+          "label": "Get metadata information about this API resource (dataset--info)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-distinct-values-from-field-data-dataset-distinct-column-name",
+          "label": "Get distinct values from field data (dataset-distinct-column-name)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/duplicate-a-dataset",
+          "label": "Duplicate a dataset",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/download-multiple-datasets-as-yaml-files",
+          "label": "Download multiple datasets as YAML files",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/retrieve-a-table-by-name-or-create-it-if-it-does-not-exist",
+          "label": "Retrieve a table by name, or create it if it does not exist",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/import-dataset-s-with-associated-databases",
+          "label": "Import dataset(s) with associated databases",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-related-fields-data-dataset-related-column-name",
+          "label": "Get related fields data (dataset-related-column-name)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/warm-up-the-cache-for-each-chart-powered-by-the-given-table",
+          "label": "Warm up the cache for each chart powered by the given table",
+          "className": "api-method put"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-a-dataset",
+          "label": "Get a dataset",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-charts-and-dashboards-count-associated-to-a-dataset",
+          "label": "Get charts and dashboards count associated to a dataset",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/delete-a-dataset",
+          "label": "Delete a dataset",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/update-a-dataset",
+          "label": "Update a dataset",
+          "className": "api-method put"
+        },
+        {
+          "type": "doc",
+          "id": "api/delete-a-dataset-column",
+          "label": "Delete a dataset column",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-dataset-drill-info",
+          "label": "Get dataset drill info",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/delete-a-dataset-metric",
+          "label": "Delete a dataset metric",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/refresh-and-update-columns-of-a-dataset",
+          "label": "Refresh and update columns of a dataset",
+          "className": "api-method put"
+        }
+      ],
+      "key": "api-category-datasets"
+    },
+    {
+      "type": "category",
+      "label": "Datasources",
+      "link": {
+        "type": "doc",
+        "id": "api/datasources"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/get-possible-values-for-a-datasource-column",
+          "label": "Get possible values for a datasource column",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/validate-a-sql-expression-against-a-datasource",
+          "label": "Validate a SQL expression against a datasource",
+          "className": "api-method post"
+        }
+      ],
+      "key": "api-category-datasources"
+    },
+    {
+      "type": "category",
+      "label": "Embedded Dashboard",
+      "link": {
+        "type": "doc",
+        "id": "api/embedded-dashboard"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/get-a-report-schedule-log-embedded-dashboard-uuid",
+          "label": "Get a report schedule log (embedded-dashboard-uuid)",
+          "className": "api-method get"
+        }
+      ],
+      "key": "api-category-embedded-dashboard"
+    },
+    {
+      "type": "category",
+      "label": "Explore",
+      "link": {
+        "type": "doc",
+        "id": "api/explore"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/assemble-explore-related-information-in-a-single-endpoint",
+          "label": "Assemble Explore related information in a single endpoint",
+          "className": "api-method get"
+        }
+      ],
+      "key": "api-category-explore"
+    },
+    {
+      "type": "category",
+      "label": "Explore Form Data",
+      "link": {
+        "type": "doc",
+        "id": "api/explore-form-data"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/create-a-new-form-data",
+          "label": "Create a new form_data",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/delete-a-form-data",
+          "label": "Delete a form_data",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-a-form-data",
+          "label": "Get a form_data",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/update-an-existing-form-data",
+          "label": "Update an existing form_data",
+          "className": "api-method put"
+        }
+      ],
+      "key": "api-category-explore-form-data"
+    },
+    {
+      "type": "category",
+      "label": "Explore Permanent Link",
+      "link": {
+        "type": "doc",
+        "id": "api/explore-permanent-link"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/create-a-new-permanent-link-explore-permalink",
+          "label": "Create a new permanent link (explore-permalink)",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-charts-permanent-link-state",
+          "label": "Get chart's permanent link state",
+          "className": "api-method get"
+        }
+      ],
+      "key": "api-category-explore-permanent-link"
+    },
+    {
+      "type": "category",
+      "label": "Import/export",
+      "link": {
+        "type": "doc",
+        "id": "api/import-export"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/export-all-assets",
+          "label": "Export all assets",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/import-multiple-assets",
+          "label": "Import multiple assets",
+          "className": "api-method post"
+        }
+      ],
+      "key": "api-category-import/export"
+    },
+    {
+      "type": "category",
+      "label": "LogRestApi",
+      "link": {
+        "type": "doc",
+        "id": "api/log-rest-api"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/get-a-list-of-logs",
+          "label": "Get a list of logs",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/create-log",
+          "label": "Create log",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-recent-activity-data-for-a-user",
+          "label": "Get recent activity data for a user",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-a-log-detail-information",
+          "label": "Get a log detail information",
+          "className": "api-method get"
+        }
+      ],
+      "key": "api-category-logrestapi"
+    },
+    {
+      "type": "category",
+      "label": "Menu",
+      "link": {
+        "type": "doc",
+        "id": "api/menu"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/get-menu",
+          "label": "Get menu",
+          "className": "api-method get"
+        }
+      ],
+      "key": "api-category-menu"
+    },
+    {
+      "type": "category",
+      "label": "OpenApi",
+      "link": {
+        "type": "doc",
+        "id": "api/open-api"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/get-api-by-version-openapi",
+          "label": "Get api by version  openapi",
+          "className": "api-method get"
+        }
+      ],
+      "key": "api-category-openapi"
+    },
+    {
+      "type": "category",
+      "label": "Queries",
+      "link": {
+        "type": "doc",
+        "id": "api/queries"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/get-a-list-of-queries",
+          "label": "Get a list of queries",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-distinct-values-from-field-data-query-distinct-column-name",
+          "label": "Get distinct values from field data (query-distinct-column-name)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-related-fields-data-query-related-column-name",
+          "label": "Get related fields data (query-related-column-name)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/manually-stop-a-query-with-client-id",
+          "label": "Manually stop a query with client_id",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-a-list-of-queries-that-changed-after-last-updated-ms",
+          "label": "Get a list of queries that changed after last_updated_ms",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-query-detail-information",
+          "label": "Get query detail information",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/bulk-delete-saved-queries",
+          "label": "Bulk delete saved queries",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-a-list-of-saved-queries",
+          "label": "Get a list of saved queries",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/create-a-saved-query",
+          "label": "Create a saved query",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-metadata-information-about-this-api-resource-saved-query-info",
+          "label": "Get metadata information about this API resource (saved-query--info)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-distinct-values-from-field-data-saved-query-distinct-column-name",
+          "label": "Get distinct values from field data (saved-query-distinct-column-name)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/download-multiple-saved-queries-as-yaml-files",
+          "label": "Download multiple saved queries as YAML files",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/import-saved-queries-with-associated-databases",
+          "label": "Import saved queries with associated databases",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-related-fields-data-saved-query-related-column-name",
+          "label": "Get related fields data (saved-query-related-column-name)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/delete-a-saved-query",
+          "label": "Delete a saved query",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-a-saved-query",
+          "label": "Get a saved query",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/update-a-saved-query",
+          "label": "Update a saved query",
+          "className": "api-method put"
+        }
+      ],
+      "key": "api-category-queries"
+    },
+    {
+      "type": "category",
+      "label": "Report Schedules",
+      "link": {
+        "type": "doc",
+        "id": "api/report-schedules"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/bulk-delete-report-schedules",
+          "label": "Bulk delete report schedules",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-a-list-of-report-schedules",
+          "label": "Get a list of report schedules",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/create-a-report-schedule",
+          "label": "Create a report schedule",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-metadata-information-about-this-api-resource-report-info",
+          "label": "Get metadata information about this API resource (report--info)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-related-fields-data-report-related-column-name",
+          "label": "Get related fields data (report-related-column-name)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-slack-channels",
+          "label": "Get slack channels",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/delete-a-report-schedule",
+          "label": "Delete a report schedule",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-a-report-schedule",
+          "label": "Get a report schedule",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/update-a-report-schedule",
+          "label": "Update a report schedule",
+          "className": "api-method put"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-a-list-of-report-schedule-logs",
+          "label": "Get a list of report schedule logs",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-a-report-schedule-log-report-pk-log-log-id",
+          "label": "Get a report schedule log (report-pk-log-log-id)",
+          "className": "api-method get"
+        }
+      ],
+      "key": "api-category-report-schedules"
+    },
+    {
+      "type": "category",
+      "label": "Row Level Security",
+      "link": {
+        "type": "doc",
+        "id": "api/row-level-security"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/bulk-delete-rls-rules",
+          "label": "Bulk delete RLS rules",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-a-list-of-rls",
+          "label": "Get a list of RLS",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/create-a-new-rls-rule",
+          "label": "Create a new RLS rule",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-metadata-information-about-this-api-resource-rowlevelsecurity-info",
+          "label": "Get metadata information about this API resource (rowlevelsecurity--info)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-related-fields-data-rowlevelsecurity-related-column-name",
+          "label": "Get related fields data (rowlevelsecurity-related-column-name)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/delete-an-rls",
+          "label": "Delete an RLS",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-an-rls",
+          "label": "Get an RLS",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/update-an-rls-rule",
+          "label": "Update an RLS rule",
+          "className": "api-method put"
+        }
+      ],
+      "key": "api-category-row-level-security"
+    },
+    {
+      "type": "category",
+      "label": "SQL Lab",
+      "link": {
+        "type": "doc",
+        "id": "api/sql-lab"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/get-the-bootstrap-data-for-sql-lab-page",
+          "label": "Get the bootstrap data for SqlLab page",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/estimate-the-sql-query-execution-cost",
+          "label": "Estimate the SQL query execution cost",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/execute-a-sql-query",
+          "label": "Execute a SQL query",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/export-the-sql-query-results-to-a-csv",
+          "label": "Export the SQL query results to a CSV",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/export-sql-query-results-to-csv-with-streaming",
+          "label": "Export SQL query results to CSV with streaming",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/format-sql-code",
+          "label": "Format SQL code",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-the-result-of-a-sql-query-execution",
+          "label": "Get the result of a SQL query execution",
+          "className": "api-method get"
+        }
+      ],
+      "key": "api-category-sql-lab"
+    },
+    {
+      "type": "category",
+      "label": "SQL Lab Permanent Link",
+      "link": {
+        "type": "doc",
+        "id": "api/sql-lab-permanent-link"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/create-a-new-permanent-link-sqllab-permalink",
+          "label": "Create a new permanent link (sqllab-permalink)",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-permanent-link-state-for-sql-lab-editor",
+          "label": "Get permanent link state for SQLLab editor.",
+          "className": "api-method get"
+        }
+      ],
+      "key": "api-category-sql-lab-permanent-link"
+    },
+    {
+      "type": "category",
+      "label": "Security",
+      "link": {
+        "type": "doc",
+        "id": "api/security"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/get-the-csrf-token",
+          "label": "Get the CSRF token",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-a-guest-token",
+          "label": "Get a guest token",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/create-security-login",
+          "label": "Create security login",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/create-security-refresh",
+          "label": "Create security refresh",
+          "className": "api-method post"
+        }
+      ],
+      "key": "api-category-security"
+    },
+    {
+      "type": "category",
+      "label": "Security Groups",
+      "link": {
+        "type": "doc",
+        "id": "api/security-groups"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/get-security-groups",
+          "label": "Get security groups",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/create-security-groups",
+          "label": "Create security groups",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-security-groups-info",
+          "label": "Get security groups  info",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/delete-security-groups-by-pk",
+          "label": "Delete security groups by pk",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-security-groups-by-pk",
+          "label": "Get security groups by pk",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/update-security-groups-by-pk",
+          "label": "Update security groups by pk",
+          "className": "api-method put"
+        }
+      ],
+      "key": "api-category-security-groups"
+    },
+    {
+      "type": "category",
+      "label": "Security Permissions",
+      "link": {
+        "type": "doc",
+        "id": "api/security-permissions"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/get-security-permissions",
+          "label": "Get security permissions",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-security-permissions-info",
+          "label": "Get security permissions  info",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-security-permissions-by-pk",
+          "label": "Get security permissions by pk",
+          "className": "api-method get"
+        }
+      ],
+      "key": "api-category-security-permissions"
+    },
+    {
+      "type": "category",
+      "label": "Security Permissions on Resources (View Menus)",
+      "link": {
+        "type": "doc",
+        "id": "api/security-permissions-on-resources-view-menus"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/get-security-permissions-resources",
+          "label": "Get security permissions resources",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/create-security-permissions-resources",
+          "label": "Create security permissions resources",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-security-permissions-resources-info",
+          "label": "Get security permissions resources  info",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/delete-security-permissions-resources-by-pk",
+          "label": "Delete security permissions resources by pk",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-security-permissions-resources-by-pk",
+          "label": "Get security permissions resources by pk",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/update-security-permissions-resources-by-pk",
+          "label": "Update security permissions resources by pk",
+          "className": "api-method put"
+        }
+      ],
+      "key": "api-category-security-permissions-on-resources-(view-menus)"
+    },
+    {
+      "type": "category",
+      "label": "Security Resources (View Menus)",
+      "link": {
+        "type": "doc",
+        "id": "api/security-resources-view-menus"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/get-security-resources",
+          "label": "Get security resources",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/create-security-resources",
+          "label": "Create security resources",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-security-resources-info",
+          "label": "Get security resources  info",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/delete-security-resources-by-pk",
+          "label": "Delete security resources by pk",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-security-resources-by-pk",
+          "label": "Get security resources by pk",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/update-security-resources-by-pk",
+          "label": "Update security resources by pk",
+          "className": "api-method put"
+        }
+      ],
+      "key": "api-category-security-resources-(view-menus)"
+    },
+    {
+      "type": "category",
+      "label": "Security Roles",
+      "link": {
+        "type": "doc",
+        "id": "api/security-roles"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/get-security-roles",
+          "label": "Get security roles",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/create-security-roles",
+          "label": "Create security roles",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-security-roles-info",
+          "label": "Get security roles  info",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/list-roles",
+          "label": "List roles",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/delete-security-roles-by-pk",
+          "label": "Delete security roles by pk",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-security-roles-by-pk",
+          "label": "Get security roles by pk",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/update-security-roles-by-pk",
+          "label": "Update security roles by pk",
+          "className": "api-method put"
+        },
+        {
+          "type": "doc",
+          "id": "api/update-security-roles-by-role-id-groups",
+          "label": "Update security roles by role_id groups",
+          "className": "api-method put"
+        },
+        {
+          "type": "doc",
+          "id": "api/create-security-roles-by-role-id-permissions",
+          "label": "Create security roles by role_id permissions",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-security-roles-by-role-id-permissions",
+          "label": "Get security roles by role_id permissions",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/update-security-roles-by-role-id-users",
+          "label": "Update security roles by role_id users",
+          "className": "api-method put"
+        }
+      ],
+      "key": "api-category-security-roles"
+    },
+    {
+      "type": "category",
+      "label": "Security Users",
+      "link": {
+        "type": "doc",
+        "id": "api/security-users"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/get-security-users",
+          "label": "Get security users",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/create-security-users",
+          "label": "Create security users",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-security-users-info",
+          "label": "Get security users  info",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/delete-security-users-by-pk",
+          "label": "Delete security users by pk",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-security-users-by-pk",
+          "label": "Get security users by pk",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/update-security-users-by-pk",
+          "label": "Update security users by pk",
+          "className": "api-method put"
+        }
+      ],
+      "key": "api-category-security-users"
+    },
+    {
+      "type": "category",
+      "label": "Tags",
+      "link": {
+        "type": "doc",
+        "id": "api/tags"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/bulk-delete-tags",
+          "label": "Bulk delete tags",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-a-list-of-tags",
+          "label": "Get a list of tags",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/create-a-tag",
+          "label": "Create a tag",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-metadata-information-about-tag-api-endpoints",
+          "label": "Get metadata information about tag API endpoints",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/bulk-create-tags-and-tagged-objects",
+          "label": "Bulk create tags and tagged objects",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-tag-favorite-status",
+          "label": "Get tag favorite status",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-all-objects-associated-with-a-tag",
+          "label": "Get all objects associated with a tag",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-related-fields-data-tag-related-column-name",
+          "label": "Get related fields data (tag-related-column-name)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/add-tags-to-an-object",
+          "label": "Add tags to an object",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/delete-a-tagged-object",
+          "label": "Delete a tagged object",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/delete-a-tag",
+          "label": "Delete a tag",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-a-tag-detail-information",
+          "label": "Get a tag detail information",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/update-a-tag",
+          "label": "Update a tag",
+          "className": "api-method put"
+        },
+        {
+          "type": "doc",
+          "id": "api/delete-tag-by-pk-favorites",
+          "label": "Delete tag by pk favorites",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/create-tag-by-pk-favorites",
+          "label": "Create tag by pk favorites",
+          "className": "api-method post"
+        }
+      ],
+      "key": "api-category-tags"
+    },
+    {
+      "type": "category",
+      "label": "Themes",
+      "link": {
+        "type": "doc",
+        "id": "api/themes"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/bulk-delete-themes",
+          "label": "Bulk delete themes",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-a-list-of-themes",
+          "label": "Get a list of themes",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/create-a-theme",
+          "label": "Create a theme",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-metadata-information-about-this-api-resource-theme-info",
+          "label": "Get metadata information about this API resource (theme--info)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/download-multiple-themes-as-yaml-files",
+          "label": "Download multiple themes as YAML files",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/import-themes-from-a-zip-file",
+          "label": "Import themes from a ZIP file",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-related-fields-data-theme-related-column-name",
+          "label": "Get related fields data (theme-related-column-name)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/clear-the-system-dark-theme",
+          "label": "Clear the system dark theme",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/clear-the-system-default-theme",
+          "label": "Clear the system default theme",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/delete-a-theme",
+          "label": "Delete a theme",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-a-theme",
+          "label": "Get a theme",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/update-a-theme",
+          "label": "Update a theme",
+          "className": "api-method put"
+        },
+        {
+          "type": "doc",
+          "id": "api/set-a-theme-as-the-system-dark-theme",
+          "label": "Set a theme as the system dark theme",
+          "className": "api-method put"
+        },
+        {
+          "type": "doc",
+          "id": "api/set-a-theme-as-the-system-default-theme",
+          "label": "Set a theme as the system default theme",
+          "className": "api-method put"
+        }
+      ],
+      "key": "api-category-themes"
+    },
+    {
+      "type": "category",
+      "label": "User",
+      "link": {
+        "type": "doc",
+        "id": "api/user"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/get-the-user-avatar",
+          "label": "Get the user avatar",
+          "className": "api-method get"
+        }
+      ],
+      "key": "api-category-user"
+    },
+    {
+      "type": "category",
+      "label": "UserRegistrationsRestAPI",
+      "link": {
+        "type": "doc",
+        "id": "api/user-registrations-rest-api"
+      },
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/get-security-user-registrations",
+          "label": "Get security user registrations",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/create-security-user-registrations",
+          "label": "Create security user registrations",
+          "className": "api-method post"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-security-user-registrations-info",
+          "label": "Get security user registrations  info",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-distinct-values-from-field-data-security-user-registrations-distinct-column-name",
+          "label": "Get distinct values from field data (security-user-registrations-distinct-column-name)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-related-fields-data-security-user-registrations-related-column-name",
+          "label": "Get related fields data (security-user-registrations-related-column-name)",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/delete-security-user-registrations-by-pk",
+          "label": "Delete security user registrations by pk",
+          "className": "api-method delete"
+        },
+        {
+          "type": "doc",
+          "id": "api/get-security-user-registrations-by-pk",
+          "label": "Get security user registrations by pk",
+          "className": "api-method get"
+        },
+        {
+          "type": "doc",
+          "id": "api/update-security-user-registrations-by-pk",
+          "label": "Update security user registrations by pk",
+          "className": "api-method put"
+        }
+      ],
+      "key": "api-category-userregistrationsrestapi"
+    },
+    {
+      "type": "category",
+      "label": "Schemas",
+      "collapsible": true,
+      "collapsed": true,
+      "items": [
+        {
+          "type": "doc",
+          "id": "api/schemas/advanceddatatypeschema",
+          "label": "AdvancedDataTypeSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/annotationlayer",
+          "label": "AnnotationLayer",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/annotationlayerrestapi-get",
+          "label": "AnnotationLayerRestApi.get",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/annotationlayerrestapi-get-list",
+          "label": "AnnotationLayerRestApi.get_list",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/annotationlayerrestapi-get-list-user",
+          "label": "AnnotationLayerRestApi.get_list.User",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/annotationlayerrestapi-get-list-user-1",
+          "label": "AnnotationLayerRestApi.get_list.User1",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/annotationlayerrestapi-post",
+          "label": "AnnotationLayerRestApi.post",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/annotationlayerrestapi-put",
+          "label": "AnnotationLayerRestApi.put",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/annotationrestapi-get",
+          "label": "AnnotationRestApi.get",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/annotationrestapi-get-annotationlayer",
+          "label": "AnnotationRestApi.get.AnnotationLayer",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/annotationrestapi-get-list",
+          "label": "AnnotationRestApi.get_list",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/annotationrestapi-get-list-user",
+          "label": "AnnotationRestApi.get_list.User",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/annotationrestapi-get-list-user-1",
+          "label": "AnnotationRestApi.get_list.User1",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/annotationrestapi-post",
+          "label": "AnnotationRestApi.post",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/annotationrestapi-put",
+          "label": "AnnotationRestApi.put",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/availabledomainsschema",
+          "label": "AvailableDomainsSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/cacheinvalidationrequestschema",
+          "label": "CacheInvalidationRequestSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/cacherestapi-get",
+          "label": "CacheRestApi.get",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/cacherestapi-get-list",
+          "label": "CacheRestApi.get_list",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/cacherestapi-post",
+          "label": "CacheRestApi.post",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/cacherestapi-put",
+          "label": "CacheRestApi.put",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/catalogsresponseschema",
+          "label": "CatalogsResponseSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartcachescreenshotresponseschema",
+          "label": "ChartCacheScreenshotResponseSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartcachewarmuprequestschema",
+          "label": "ChartCacheWarmUpRequestSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartcachewarmupresponseschema",
+          "label": "ChartCacheWarmUpResponseSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartcachewarmupresponsesingle",
+          "label": "ChartCacheWarmUpResponseSingle",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartdataadhocmetricschema",
+          "label": "ChartDataAdhocMetricSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartdataaggregateoptionsschema",
+          "label": "ChartDataAggregateOptionsSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartdataasyncresponseschema",
+          "label": "ChartDataAsyncResponseSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartdataboxplotoptionsschema",
+          "label": "ChartDataBoxplotOptionsSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartdatacolumn",
+          "label": "ChartDataColumn",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartdatacontributionoptionsschema",
+          "label": "ChartDataContributionOptionsSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartdatadatasource",
+          "label": "ChartDataDatasource",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartdataextras",
+          "label": "ChartDataExtras",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartdatafilter",
+          "label": "ChartDataFilter",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartdatageodeticparseoptionsschema",
+          "label": "ChartDataGeodeticParseOptionsSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartdatageohashdecodeoptionsschema",
+          "label": "ChartDataGeohashDecodeOptionsSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartdatageohashencodeoptionsschema",
+          "label": "ChartDataGeohashEncodeOptionsSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartdatapivotoptionsschema",
+          "label": "ChartDataPivotOptionsSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartdatapostprocessingoperation",
+          "label": "ChartDataPostProcessingOperation",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartdataprophetoptionsschema",
+          "label": "ChartDataProphetOptionsSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartdataquerycontextschema",
+          "label": "ChartDataQueryContextSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartdataqueryobject",
+          "label": "ChartDataQueryObject",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartdataresponseresult",
+          "label": "ChartDataResponseResult",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartdataresponseschema",
+          "label": "ChartDataResponseSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartdatarestapi-get",
+          "label": "ChartDataRestApi.get",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartdatarestapi-get-list",
+          "label": "ChartDataRestApi.get_list",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartdatarestapi-get-list-dashboard",
+          "label": "ChartDataRestApi.get_list.Dashboard",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartdatarestapi-get-list-sqlatable",
+          "label": "ChartDataRestApi.get_list.SqlaTable",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartdatarestapi-get-list-tag",
+          "label": "ChartDataRestApi.get_list.Tag",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartdatarestapi-get-list-user",
+          "label": "ChartDataRestApi.get_list.User",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartdatarestapi-get-list-user-1",
+          "label": "ChartDataRestApi.get_list.User1",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartdatarestapi-get-list-user-2",
+          "label": "ChartDataRestApi.get_list.User2",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartdatarestapi-get-list-user-3",
+          "label": "ChartDataRestApi.get_list.User3",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartdatarestapi-post",
+          "label": "ChartDataRestApi.post",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartdatarestapi-put",
+          "label": "ChartDataRestApi.put",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartdatarollingoptionsschema",
+          "label": "ChartDataRollingOptionsSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartdataselectoptionsschema",
+          "label": "ChartDataSelectOptionsSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartdatasortoptionsschema",
+          "label": "ChartDataSortOptionsSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartentityresponseschema",
+          "label": "ChartEntityResponseSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartfavstarresponseresult",
+          "label": "ChartFavStarResponseResult",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartgetdatasourceobjectdataresponse",
+          "label": "ChartGetDatasourceObjectDataResponse",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartgetdatasourceobjectresponse",
+          "label": "ChartGetDatasourceObjectResponse",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartgetdatasourceresponseschema",
+          "label": "ChartGetDatasourceResponseSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartgetresponseschema",
+          "label": "ChartGetResponseSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartrestapi-get",
+          "label": "ChartRestApi.get",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartrestapi-get-list",
+          "label": "ChartRestApi.get_list",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartrestapi-get-list-dashboard",
+          "label": "ChartRestApi.get_list.Dashboard",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartrestapi-get-list-sqlatable",
+          "label": "ChartRestApi.get_list.SqlaTable",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartrestapi-get-list-tag",
+          "label": "ChartRestApi.get_list.Tag",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartrestapi-get-list-user",
+          "label": "ChartRestApi.get_list.User",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartrestapi-get-list-user-1",
+          "label": "ChartRestApi.get_list.User1",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartrestapi-get-list-user-2",
+          "label": "ChartRestApi.get_list.User2",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartrestapi-get-list-user-3",
+          "label": "ChartRestApi.get_list.User3",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartrestapi-post",
+          "label": "ChartRestApi.post",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/chartrestapi-put",
+          "label": "ChartRestApi.put",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/csstemplaterestapi-get",
+          "label": "CssTemplateRestApi.get",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/csstemplaterestapi-get-user",
+          "label": "CssTemplateRestApi.get.User",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/csstemplaterestapi-get-user-1",
+          "label": "CssTemplateRestApi.get.User1",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/csstemplaterestapi-get-list",
+          "label": "CssTemplateRestApi.get_list",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/csstemplaterestapi-get-list-user",
+          "label": "CssTemplateRestApi.get_list.User",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/csstemplaterestapi-get-list-user-1",
+          "label": "CssTemplateRestApi.get_list.User1",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/csstemplaterestapi-post",
+          "label": "CssTemplateRestApi.post",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/csstemplaterestapi-put",
+          "label": "CssTemplateRestApi.put",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/currentuserputschema",
+          "label": "CurrentUserPutSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/dashboard",
+          "label": "Dashboard",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/dashboardcachescreenshotresponseschema",
+          "label": "DashboardCacheScreenshotResponseSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/dashboardcopyschema",
+          "label": "DashboardCopySchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/dashboarddatasetschema",
+          "label": "DashboardDatasetSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/dashboardgetresponseschema",
+          "label": "DashboardGetResponseSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/dashboardpermalinkstateschema",
+          "label": "DashboardPermalinkStateSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/dashboardrestapi-get",
+          "label": "DashboardRestApi.get",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/dashboardrestapi-get-list",
+          "label": "DashboardRestApi.get_list",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/dashboardrestapi-get-list-role",
+          "label": "DashboardRestApi.get_list.Role",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/dashboardrestapi-get-list-tag",
+          "label": "DashboardRestApi.get_list.Tag",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/dashboardrestapi-get-list-user",
+          "label": "DashboardRestApi.get_list.User",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/dashboardrestapi-get-list-user-1",
+          "label": "DashboardRestApi.get_list.User1",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/dashboardrestapi-get-list-user-2",
+          "label": "DashboardRestApi.get_list.User2",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/dashboardrestapi-post",
+          "label": "DashboardRestApi.post",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/dashboardrestapi-put",
+          "label": "DashboardRestApi.put",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/dashboardscreenshotpostschema",
+          "label": "DashboardScreenshotPostSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/database",
+          "label": "Database",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/database-1",
+          "label": "Database1",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/databaseconnectionschema",
+          "label": "DatabaseConnectionSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/databasefunctionnamesresponse",
+          "label": "DatabaseFunctionNamesResponse",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/databaserelatedchart",
+          "label": "DatabaseRelatedChart",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/databaserelatedcharts",
+          "label": "DatabaseRelatedCharts",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/databaserelateddashboard",
+          "label": "DatabaseRelatedDashboard",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/databaserelateddashboards",
+          "label": "DatabaseRelatedDashboards",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/databaserelatedobjectsresponse",
+          "label": "DatabaseRelatedObjectsResponse",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/databaserestapi-get",
+          "label": "DatabaseRestApi.get",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/databaserestapi-get-list",
+          "label": "DatabaseRestApi.get_list",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/databaserestapi-get-list-user",
+          "label": "DatabaseRestApi.get_list.User",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/databaserestapi-get-list-user-1",
+          "label": "DatabaseRestApi.get_list.User1",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/databaserestapi-post",
+          "label": "DatabaseRestApi.post",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/databaserestapi-put",
+          "label": "DatabaseRestApi.put",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/databasesshtunnel",
+          "label": "DatabaseSSHTunnel",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/databaseschemaaccessforfileuploadresponse",
+          "label": "DatabaseSchemaAccessForFileUploadResponse",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/databasetablesresponse",
+          "label": "DatabaseTablesResponse",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/databasetestconnectionschema",
+          "label": "DatabaseTestConnectionSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/databasevalidateparametersschema",
+          "label": "DatabaseValidateParametersSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/dataset",
+          "label": "Dataset",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/datasetcachewarmuprequestschema",
+          "label": "DatasetCacheWarmUpRequestSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/datasetcachewarmupresponseschema",
+          "label": "DatasetCacheWarmUpResponseSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/datasetcachewarmupresponsesingle",
+          "label": "DatasetCacheWarmUpResponseSingle",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/datasetcolumnsput",
+          "label": "DatasetColumnsPut",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/datasetcolumnsrestapi-get",
+          "label": "DatasetColumnsRestApi.get",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/datasetcolumnsrestapi-get-list",
+          "label": "DatasetColumnsRestApi.get_list",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/datasetcolumnsrestapi-post",
+          "label": "DatasetColumnsRestApi.post",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/datasetcolumnsrestapi-put",
+          "label": "DatasetColumnsRestApi.put",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/datasetduplicateschema",
+          "label": "DatasetDuplicateSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/datasetmetriccurrencyput",
+          "label": "DatasetMetricCurrencyPut",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/datasetmetricrestapi-get",
+          "label": "DatasetMetricRestApi.get",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/datasetmetricrestapi-get-list",
+          "label": "DatasetMetricRestApi.get_list",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/datasetmetricrestapi-post",
+          "label": "DatasetMetricRestApi.post",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/datasetmetricrestapi-put",
+          "label": "DatasetMetricRestApi.put",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/datasetmetricsput",
+          "label": "DatasetMetricsPut",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/datasetrelatedchart",
+          "label": "DatasetRelatedChart",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/datasetrelatedcharts",
+          "label": "DatasetRelatedCharts",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/datasetrelateddashboard",
+          "label": "DatasetRelatedDashboard",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/datasetrelateddashboards",
+          "label": "DatasetRelatedDashboards",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/datasetrelatedobjectsresponse",
+          "label": "DatasetRelatedObjectsResponse",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/datasetrestapi-get",
+          "label": "DatasetRestApi.get",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/datasetrestapi-get-database",
+          "label": "DatasetRestApi.get.Database",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/datasetrestapi-get-sqlmetric",
+          "label": "DatasetRestApi.get.SqlMetric",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/datasetrestapi-get-tablecolumn",
+          "label": "DatasetRestApi.get.TableColumn",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/datasetrestapi-get-user",
+          "label": "DatasetRestApi.get.User",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/datasetrestapi-get-user-1",
+          "label": "DatasetRestApi.get.User1",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/datasetrestapi-get-user-2",
+          "label": "DatasetRestApi.get.User2",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/datasetrestapi-get-list",
+          "label": "DatasetRestApi.get_list",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/datasetrestapi-get-list-database",
+          "label": "DatasetRestApi.get_list.Database",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/datasetrestapi-get-list-user",
+          "label": "DatasetRestApi.get_list.User",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/datasetrestapi-get-list-user-1",
+          "label": "DatasetRestApi.get_list.User1",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/datasetrestapi-post",
+          "label": "DatasetRestApi.post",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/datasetrestapi-put",
+          "label": "DatasetRestApi.put",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/datasource",
+          "label": "Datasource",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/distincresponseschema",
+          "label": "DistincResponseSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/distinctresultresponse",
+          "label": "DistinctResultResponse",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/embeddeddashboardconfig",
+          "label": "EmbeddedDashboardConfig",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/embeddeddashboardresponseschema",
+          "label": "EmbeddedDashboardResponseSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/embeddeddashboardrestapi-get",
+          "label": "EmbeddedDashboardRestApi.get",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/embeddeddashboardrestapi-get-list",
+          "label": "EmbeddedDashboardRestApi.get_list",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/embeddeddashboardrestapi-post",
+          "label": "EmbeddedDashboardRestApi.post",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/embeddeddashboardrestapi-put",
+          "label": "EmbeddedDashboardRestApi.put",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/engineinformation",
+          "label": "EngineInformation",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/estimatequerycostschema",
+          "label": "EstimateQueryCostSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/executepayloadschema",
+          "label": "ExecutePayloadSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/explorecontextschema",
+          "label": "ExploreContextSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/explorepermalinkstateschema",
+          "label": "ExplorePermalinkStateSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/folder",
+          "label": "Folder",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/formdatapostschema",
+          "label": "FormDataPostSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/formdataputschema",
+          "label": "FormDataPutSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/formatquerypayloadschema",
+          "label": "FormatQueryPayloadSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/getfavstaridsschema",
+          "label": "GetFavStarIdsSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/getorcreatedatasetschema",
+          "label": "GetOrCreateDatasetSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/groupapi-get",
+          "label": "GroupApi.get",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/groupapi-get-role",
+          "label": "GroupApi.get.Role",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/groupapi-get-user",
+          "label": "GroupApi.get.User",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/groupapi-get-list",
+          "label": "GroupApi.get_list",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/groupapi-get-list-role",
+          "label": "GroupApi.get_list.Role",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/groupapi-get-list-user",
+          "label": "GroupApi.get_list.User",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/groupapi-post",
+          "label": "GroupApi.post",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/groupapi-put",
+          "label": "GroupApi.put",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/grouppostschema",
+          "label": "GroupPostSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/groupputschema",
+          "label": "GroupPutSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/guesttokencreate",
+          "label": "GuestTokenCreate",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/importv-1-database",
+          "label": "ImportV1Database",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/importv-1-databaseextra",
+          "label": "ImportV1DatabaseExtra",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/logrestapi-get",
+          "label": "LogRestApi.get",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/logrestapi-get-user",
+          "label": "LogRestApi.get.User",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/logrestapi-get-list",
+          "label": "LogRestApi.get_list",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/logrestapi-get-list-user",
+          "label": "LogRestApi.get_list.User",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/logrestapi-post",
+          "label": "LogRestApi.post",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/logrestapi-put",
+          "label": "LogRestApi.put",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/permissionapi-get",
+          "label": "PermissionApi.get",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/permissionapi-get-list",
+          "label": "PermissionApi.get_list",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/permissionapi-post",
+          "label": "PermissionApi.post",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/permissionapi-put",
+          "label": "PermissionApi.put",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/permissionviewmenuapi-get",
+          "label": "PermissionViewMenuApi.get",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/permissionviewmenuapi-get-permission",
+          "label": "PermissionViewMenuApi.get.Permission",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/permissionviewmenuapi-get-viewmenu",
+          "label": "PermissionViewMenuApi.get.ViewMenu",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/permissionviewmenuapi-get-list",
+          "label": "PermissionViewMenuApi.get_list",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/permissionviewmenuapi-get-list-permission",
+          "label": "PermissionViewMenuApi.get_list.Permission",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/permissionviewmenuapi-get-list-viewmenu",
+          "label": "PermissionViewMenuApi.get_list.ViewMenu",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/permissionviewmenuapi-post",
+          "label": "PermissionViewMenuApi.post",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/permissionviewmenuapi-put",
+          "label": "PermissionViewMenuApi.put",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/queryexecutionresponseschema",
+          "label": "QueryExecutionResponseSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/queryrestapi-get",
+          "label": "QueryRestApi.get",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/queryrestapi-get-database",
+          "label": "QueryRestApi.get.Database",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/queryrestapi-get-list",
+          "label": "QueryRestApi.get_list",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/queryrestapi-post",
+          "label": "QueryRestApi.post",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/queryrestapi-put",
+          "label": "QueryRestApi.put",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/queryresult",
+          "label": "QueryResult",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/rlsrestapi-get",
+          "label": "RLSRestApi.get",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/rlsrestapi-get-list",
+          "label": "RLSRestApi.get_list",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/rlsrestapi-post",
+          "label": "RLSRestApi.post",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/rlsrestapi-put",
+          "label": "RLSRestApi.put",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/recentactivity",
+          "label": "RecentActivity",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/recentactivityresponseschema",
+          "label": "RecentActivityResponseSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/recentactivityschema",
+          "label": "RecentActivitySchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/relatedresponseschema",
+          "label": "RelatedResponseSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/relatedresultresponse",
+          "label": "RelatedResultResponse",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/reportexecutionlogrestapi-get",
+          "label": "ReportExecutionLogRestApi.get",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/reportexecutionlogrestapi-get-list",
+          "label": "ReportExecutionLogRestApi.get_list",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/reportexecutionlogrestapi-post",
+          "label": "ReportExecutionLogRestApi.post",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/reportexecutionlogrestapi-put",
+          "label": "ReportExecutionLogRestApi.put",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/reportrecipient",
+          "label": "ReportRecipient",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/reportrecipientconfigjson",
+          "label": "ReportRecipientConfigJSON",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/reportschedulerestapi-get",
+          "label": "ReportScheduleRestApi.get",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/reportschedulerestapi-get-dashboard",
+          "label": "ReportScheduleRestApi.get.Dashboard",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/reportschedulerestapi-get-database",
+          "label": "ReportScheduleRestApi.get.Database",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/reportschedulerestapi-get-reportrecipients",
+          "label": "ReportScheduleRestApi.get.ReportRecipients",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/reportschedulerestapi-get-slice",
+          "label": "ReportScheduleRestApi.get.Slice",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/reportschedulerestapi-get-user",
+          "label": "ReportScheduleRestApi.get.User",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/reportschedulerestapi-get-list",
+          "label": "ReportScheduleRestApi.get_list",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/reportschedulerestapi-get-list-reportrecipients",
+          "label": "ReportScheduleRestApi.get_list.ReportRecipients",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/reportschedulerestapi-get-list-user",
+          "label": "ReportScheduleRestApi.get_list.User",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/reportschedulerestapi-get-list-user-1",
+          "label": "ReportScheduleRestApi.get_list.User1",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/reportschedulerestapi-get-list-user-2",
+          "label": "ReportScheduleRestApi.get_list.User2",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/reportschedulerestapi-post",
+          "label": "ReportScheduleRestApi.post",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/reportschedulerestapi-put",
+          "label": "ReportScheduleRestApi.put",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/resource",
+          "label": "Resource",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/rlsrule",
+          "label": "RlsRule",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/rolegroupputschema",
+          "label": "RoleGroupPutSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/rolepermissionlistschema",
+          "label": "RolePermissionListSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/rolepermissionpostschema",
+          "label": "RolePermissionPostSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/roleresponseschema",
+          "label": "RoleResponseSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/roleuserputschema",
+          "label": "RoleUserPutSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/roles",
+          "label": "Roles",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/roles-1",
+          "label": "Roles1",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/rolesresponseschema",
+          "label": "RolesResponseSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/sqllabbootstrapschema",
+          "label": "SQLLabBootstrapSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/savedqueryrestapi-get",
+          "label": "SavedQueryRestApi.get",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/savedqueryrestapi-get-database",
+          "label": "SavedQueryRestApi.get.Database",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/savedqueryrestapi-get-user",
+          "label": "SavedQueryRestApi.get.User",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/savedqueryrestapi-get-user-1",
+          "label": "SavedQueryRestApi.get.User1",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/savedqueryrestapi-get-list",
+          "label": "SavedQueryRestApi.get_list",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/savedqueryrestapi-get-list-database",
+          "label": "SavedQueryRestApi.get_list.Database",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/savedqueryrestapi-get-list-tag",
+          "label": "SavedQueryRestApi.get_list.Tag",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/savedqueryrestapi-get-list-user",
+          "label": "SavedQueryRestApi.get_list.User",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/savedqueryrestapi-get-list-user-1",
+          "label": "SavedQueryRestApi.get_list.User1",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/savedqueryrestapi-post",
+          "label": "SavedQueryRestApi.post",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/savedqueryrestapi-put",
+          "label": "SavedQueryRestApi.put",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/schemasresponseschema",
+          "label": "SchemasResponseSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/selectstarresponseschema",
+          "label": "SelectStarResponseSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/slice",
+          "label": "Slice",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/sqllabpermalinkschema",
+          "label": "SqlLabPermalinkSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/stopqueryschema",
+          "label": "StopQuerySchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/supersetroleapi-get",
+          "label": "SupersetRoleApi.get",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/supersetroleapi-get-list",
+          "label": "SupersetRoleApi.get_list",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/supersetroleapi-post",
+          "label": "SupersetRoleApi.post",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/supersetroleapi-put",
+          "label": "SupersetRoleApi.put",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/supersetuserapi-get",
+          "label": "SupersetUserApi.get",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/supersetuserapi-get-group",
+          "label": "SupersetUserApi.get.Group",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/supersetuserapi-get-role",
+          "label": "SupersetUserApi.get.Role",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/supersetuserapi-get-user",
+          "label": "SupersetUserApi.get.User",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/supersetuserapi-get-user-1",
+          "label": "SupersetUserApi.get.User1",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/supersetuserapi-get-list",
+          "label": "SupersetUserApi.get_list",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/supersetuserapi-get-list-group",
+          "label": "SupersetUserApi.get_list.Group",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/supersetuserapi-get-list-role",
+          "label": "SupersetUserApi.get_list.Role",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/supersetuserapi-get-list-user",
+          "label": "SupersetUserApi.get_list.User",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/supersetuserapi-get-list-user-1",
+          "label": "SupersetUserApi.get_list.User1",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/supersetuserapi-post",
+          "label": "SupersetUserApi.post",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/supersetuserapi-put",
+          "label": "SupersetUserApi.put",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/tab",
+          "label": "Tab",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/tabstate",
+          "label": "TabState",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/table",
+          "label": "Table",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/tableextrametadataresponseschema",
+          "label": "TableExtraMetadataResponseSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/tablemetadatacolumnsresponse",
+          "label": "TableMetadataColumnsResponse",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/tablemetadataforeignkeysindexesresponse",
+          "label": "TableMetadataForeignKeysIndexesResponse",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/tablemetadataoptionsresponse",
+          "label": "TableMetadataOptionsResponse",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/tablemetadataprimarykeyresponse",
+          "label": "TableMetadataPrimaryKeyResponse",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/tablemetadataresponseschema",
+          "label": "TableMetadataResponseSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/tables",
+          "label": "Tables",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/tabspayloadschema",
+          "label": "TabsPayloadSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/tag",
+          "label": "Tag",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/tag-1",
+          "label": "Tag1",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/taggetresponseschema",
+          "label": "TagGetResponseSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/tagobject",
+          "label": "TagObject",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/tagpostbulkresponseobject",
+          "label": "TagPostBulkResponseObject",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/tagpostbulkresponseschema",
+          "label": "TagPostBulkResponseSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/tagpostbulkschema",
+          "label": "TagPostBulkSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/tagrestapi-get",
+          "label": "TagRestApi.get",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/tagrestapi-get-user",
+          "label": "TagRestApi.get.User",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/tagrestapi-get-user-1",
+          "label": "TagRestApi.get.User1",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/tagrestapi-get-list",
+          "label": "TagRestApi.get_list",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/tagrestapi-get-list-user",
+          "label": "TagRestApi.get_list.User",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/tagrestapi-get-list-user-1",
+          "label": "TagRestApi.get_list.User1",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/tagrestapi-post",
+          "label": "TagRestApi.post",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/tagrestapi-put",
+          "label": "TagRestApi.put",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/taggedobjectentityresponseschema",
+          "label": "TaggedObjectEntityResponseSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/temporarycachepostschema",
+          "label": "TemporaryCachePostSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/temporarycacheputschema",
+          "label": "TemporaryCachePutSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/theme",
+          "label": "Theme",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/themerestapi-get",
+          "label": "ThemeRestApi.get",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/themerestapi-get-user",
+          "label": "ThemeRestApi.get.User",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/themerestapi-get-user-1",
+          "label": "ThemeRestApi.get.User1",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/themerestapi-get-list",
+          "label": "ThemeRestApi.get_list",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/themerestapi-get-list-user",
+          "label": "ThemeRestApi.get_list.User",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/themerestapi-get-list-user-1",
+          "label": "ThemeRestApi.get_list.User1",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/themerestapi-post",
+          "label": "ThemeRestApi.post",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/themerestapi-put",
+          "label": "ThemeRestApi.put",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/uploadfilemetadata",
+          "label": "UploadFileMetadata",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/uploadfilemetadataitem",
+          "label": "UploadFileMetadataItem",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/uploadfilemetadatapostschema",
+          "label": "UploadFileMetadataPostSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/uploadpostschema",
+          "label": "UploadPostSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/user",
+          "label": "User",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/user-1",
+          "label": "User1",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/user-2",
+          "label": "User2",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/user-3",
+          "label": "User3",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/userregistrationsrestapi-get",
+          "label": "UserRegistrationsRestAPI.get",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/userregistrationsrestapi-get-list",
+          "label": "UserRegistrationsRestAPI.get_list",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/userregistrationsrestapi-post",
+          "label": "UserRegistrationsRestAPI.post",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/userregistrationsrestapi-put",
+          "label": "UserRegistrationsRestAPI.put",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/userresponseschema",
+          "label": "UserResponseSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/validatesqlrequest",
+          "label": "ValidateSQLRequest",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/validatesqlresponse",
+          "label": "ValidateSQLResponse",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/validatorconfigjson",
+          "label": "ValidatorConfigJSON",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/viewmenuapi-get",
+          "label": "ViewMenuApi.get",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/viewmenuapi-get-list",
+          "label": "ViewMenuApi.get_list",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/viewmenuapi-post",
+          "label": "ViewMenuApi.post",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/viewmenuapi-put",
+          "label": "ViewMenuApi.put",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/advanced-data-type-convert-schema",
+          "label": "advanced_data_type_convert_schema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/database-catalogs-query-schema",
+          "label": "database_catalogs_query_schema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/database-schemas-query-schema",
+          "label": "database_schemas_query_schema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/database-tables-query-schema",
+          "label": "database_tables_query_schema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/delete-tags-schema",
+          "label": "delete_tags_schema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/get-delete-ids-schema",
+          "label": "get_delete_ids_schema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/get-export-ids-schema",
+          "label": "get_export_ids_schema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/get-fav-star-ids-schema",
+          "label": "get_fav_star_ids_schema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/get-info-schema",
+          "label": "get_info_schema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/get-item-schema",
+          "label": "get_item_schema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/get-list-schema",
+          "label": "get_list_schema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/get-recent-activity-schema",
+          "label": "get_recent_activity_schema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/get-related-schema",
+          "label": "get_related_schema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/queries-get-updated-since-schema",
+          "label": "queries_get_updated_since_schema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/screenshot-query-schema",
+          "label": "screenshot_query_schema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/sql-lab-get-results-schema",
+          "label": "sql_lab_get_results_schema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/thumbnail-query-schema",
+          "label": "thumbnail_query_schema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/dashboardnativefiltersconfigupdateschema",
+          "label": "DashboardNativeFiltersConfigUpdateSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/dashboardcolorsconfigupdateschema",
+          "label": "DashboardColorsConfigUpdateSchema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/get-slack-channels-schema",
+          "label": "get_slack_channels_schema",
+          "className": "schema"
+        },
+        {
+          "type": "doc",
+          "id": "api/schemas/dashboardchartcustomizationsconfigupdateschema",
+          "label": "DashboardChartCustomizationsConfigUpdateSchema",
+          "className": "schema"
+        }
+      ],
+      "key": "api-category-schemas"
+    }
+  ]
+};
+
+module.exports = sidebar.apisidebar;

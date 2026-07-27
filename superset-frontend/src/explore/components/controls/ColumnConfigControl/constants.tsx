@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { validateNumber } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   ControlFormItemSpec,
   D3_FORMAT_DOCS,
@@ -61,6 +61,7 @@ const d3NumberFormat: ControlFormItemSpec<'Select'> = {
 };
 
 const d3TimeFormat: ControlFormItemSpec<'Select'> = {
+  allowNewOptions: true,
   controlType: 'Select',
   label: t('D3 format'),
   description: D3_TIME_FORMAT_DOCS,

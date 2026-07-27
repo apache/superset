@@ -23,7 +23,7 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { Comparator, ColorSchemeEnum } from '@superset-ui/chart-controls';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { FormattingPopoverContent } from './FormattingPopoverContent';
 
 const mockOnChange = jest.fn();
@@ -71,8 +71,8 @@ test('renders FormattingPopoverContent component', () => {
 
   // Assert that the component renders correctly
   expect(screen.getByLabelText('Column')).toBeInTheDocument();
-  expect(screen.getAllByLabelText('Color scheme')).toHaveLength(2);
-  expect(screen.getAllByLabelText('Operator')).toHaveLength(2);
+  expect(screen.getByLabelText('Color scheme')).toBeInTheDocument();
+  expect(screen.getByLabelText('Operator')).toBeInTheDocument();
   expect(screen.queryByLabelText('Left value')).not.toBeInTheDocument();
   expect(screen.queryByLabelText('Right value')).not.toBeInTheDocument();
   expect(screen.getByText('Apply')).toBeInTheDocument();

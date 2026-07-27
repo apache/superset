@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   Button,
   type OnClickHandler,
@@ -43,7 +43,6 @@ const ExploreResultsButton = ({
       icon={<Icons.LineChartOutlined iconSize="m" />}
       onClick={onClick}
       disabled={!allowsSubquery}
-      role="button"
       tooltip={t('Create chart')}
       aria-label={t('Create chart')}
       data-test="explore-results-button"

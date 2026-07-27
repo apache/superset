@@ -22,7 +22,7 @@ import {
   SqlaFormData,
   VizType,
 } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 import transformProps, {
   getIntervalBoundsAndColors,
 } from '../../src/Gauge/transformProps';

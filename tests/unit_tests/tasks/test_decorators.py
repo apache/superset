@@ -20,7 +20,7 @@ from unittest.mock import MagicMock, patch
 from uuid import UUID
 
 import pytest
-from superset_core.api.tasks import TaskOptions, TaskScope
+from superset_core.tasks.types import TaskOptions, TaskScope
 
 from superset.commands.tasks.exceptions import GlobalTaskFrameworkDisabledError
 from superset.tasks.decorators import task, TaskWrapper

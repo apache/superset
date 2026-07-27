@@ -17,10 +17,21 @@
  * under the License.
  */
 import cx from 'classnames';
-import { useCallback, useEffect, useRef, useMemo, useState, memo } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useMemo,
+  useState,
+  memo,
+  RefObject,
+} from 'react';
 import type { ChartCustomization, JsonObject } from '@superset-ui/core';
-import { styled, t } from '@apache-superset/core/ui';
-import { debounce } from 'lodash';
+import { VizType } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
+import { debounce } from 'lodash-es';
 import { bindActionCreators } from 'redux';
 import { useDispatch, useSelector } from 'react-redux';
 
@@ -46,6 +57,7 @@ import {
   convertChartStateToOwnState,
   hasChartStateConverter,
 } from '../../../util/chartStateConverter';
+import { useIsAutoRefreshing } from 'src/dashboard/contexts/AutoRefreshContext';
 
 import SliceHeader from '../../SliceHeader';
 import MissingChart from '../../MissingChart';
@@ -86,6 +98,7 @@ interface ChartProps {
   extraControls?: JsonObject;
   isInView?: boolean;
   cacheBusterProp?: string | number;
+  chartHolderRef?: RefObject<HTMLDivElement>;
 }
 
 const RESIZE_TIMEOUT = 500;
@@ -115,6 +128,10 @@ const SliceContainer = styled.div`
 `;
 
 const EMPTY_OBJECT: Record<string, never> = {};
+
+// Stable no-op fallback for optional callbacks so we don't allocate a new
+// function on every render (keeps referential equality for memoized children).
+const NOOP = () => {};
 
 // Helper function to get chart state with fallback
 const getChartStateWithFallback = (
@@ -153,7 +170,7 @@ const createOwnStateWithChartState = (
 
 const Chart = (props: ChartProps) => {
   const dispatch = useDispatch();
-  const descriptionRef = useRef<HTMLDivElement>(null);
+  const descriptionRef = useRef<HTMLElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
 
   const boundActionCreators = useMemo(
@@ -201,9 +218,9 @@ const Chart = (props: ChartProps) => {
     (state: RootState) =>
       !!(state.dashboardInfo as JsonObject).superset_can_share,
   );
-  const supersetCanCSV = useSelector(
+  const supersetCanDownload = useSelector(
     (state: RootState) =>
-      !!(state.dashboardInfo as JsonObject).superset_can_csv,
+      !!(state.dashboardInfo as JsonObject).superset_can_download,
   );
   const timeout: number = useSelector(
     (state: RootState) =>
@@ -232,6 +249,7 @@ const Chart = (props: ChartProps) => {
       (state.dashboardInfo?.metadata as JsonObject)?.show_chart_timestamps ??
       false,
   );
+  const suppressLoadingSpinner = useIsAutoRefreshing();
 
   const isCached: boolean[] = useMemo(
     () =>
@@ -301,13 +319,9 @@ const Chart = (props: ChartProps) => {
     [dispatch, props.id, sliceVizType],
   );
 
-  useEffect(() => {
-    if (isExpanded) {
-      const descHeight =
-        isExpanded && descriptionRef.current
-          ? descriptionRef.current?.offsetHeight
-          : 0;
-      setDescriptionHeight(descHeight);
+  useLayoutEffect(() => {
+    if (isExpanded && descriptionRef.current) {
+      setDescriptionHeight(descriptionRef.current.offsetHeight);
     } else {
       setDescriptionHeight(0);
     }
@@ -466,8 +480,28 @@ const Chart = (props: ChartProps) => {
 
   (formData as JsonObject).dashboardId = dashboardInfo.id;
 
+  // Memoize ownState so it keeps a stable reference across re-renders that
+  // don't change its logical value. ViewQueryModal depends on ownState; a fresh
+  // object on every render would refetch the query unnecessarily.
+  const ownState = useMemo(
+    () =>
+      createOwnStateWithChartState(
+        (dataMaskOwnState as JsonObject) || EMPTY_OBJECT,
+        {
+          state:
+            getChartStateWithFallback(
+              chartState as { state?: JsonObject } | undefined,
+              formData as JsonObject,
+              sliceVizType,
+            ) ?? undefined,
+        },
+        sliceVizType,
+      ),
+    [dataMaskOwnState, chartState, formData, sliceVizType],
+  );
+
   const exportTable = useCallback(
-    (format: string, isFullCSV: boolean, isPivot = false) => {
+    async (format: string, isFullCSV: boolean, isPivot = false) => {
       const logAction =
         format === 'csv'
           ? LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART
@@ -483,7 +517,9 @@ const Chart = (props: ChartProps) => {
       const resultType = isPivot ? 'post_processed' : 'full';
 
       let actualRowCount: number | undefined;
-      const isTableViz = (formData as JsonObject)?.viz_type === 'table';
+      const vizType = (formData as JsonObject)?.viz_type;
+      const isTableViz =
+        vizType === VizType.Table || vizType === VizType.TableAgGrid;
 
       if (
         isTableViz &&
@@ -497,10 +533,11 @@ const Chart = (props: ChartProps) => {
       } else if ((queriesResponse?.[0] as JsonObject)?.sql_rowcount != null) {
         actualRowCount = (queriesResponse![0] as JsonObject)
           .sql_rowcount as number;
+      } else if ((queriesResponse?.[0] as JsonObject)?.rowcount != null) {
+        actualRowCount = (queriesResponse![0] as JsonObject).rowcount as number;
       } else {
         actualRowCount = (exportFormData as JsonObject)?.row_limit as
-          | number
-          | undefined;
+          number | undefined;
       }
 
       // Handle streaming CSV exports based on row threshold
@@ -538,24 +575,47 @@ const Chart = (props: ChartProps) => {
           }
         : baseOwnState;
 
-      exportChart({
-        formData:
-          exportFormData as unknown as import('@superset-ui/core').QueryFormData,
-        resultType,
-        resultFormat: format,
-        force: true,
-        ownState: exportOwnState,
-        onStartStreamingExport: shouldUseStreaming
-          ? (exportParams: JsonObject) => {
-              setIsStreamingModalVisible(true);
-              startExport({
-                ...(exportParams as Record<string, unknown>),
-                filename,
-                expectedRows: actualRowCount,
-              } as Parameters<typeof startExport>[0]);
-            }
-          : null,
-      });
+      try {
+        await exportChart({
+          formData:
+            exportFormData as unknown as import('@superset-ui/core').QueryFormData,
+          resultType,
+          resultFormat: format,
+          ownState: exportOwnState,
+          onStartStreamingExport: shouldUseStreaming
+            ? (exportParams: JsonObject) => {
+                setIsStreamingModalVisible(true);
+                startExport({
+                  ...(exportParams as Record<string, unknown>),
+                  filename,
+                  expectedRows: actualRowCount,
+                } as Parameters<typeof startExport>[0]);
+              }
+            : null,
+        });
+      } catch (error) {
+        const exportError = error as Error & {
+          status?: number;
+          statusText?: string;
+          response?: { status?: number };
+        };
+        const status = exportError.status || exportError.response?.status;
+        if (status === 413) {
+          boundActionCreators.addDangerToast(
+            t(
+              'The chart data is too large to download. Please try reducing the date range, limiting rows, or using fewer columns.',
+            ),
+          );
+        } else {
+          const errorMessage =
+            exportError.message ||
+            exportError.statusText ||
+            t(
+              'Failed to export chart data. Please try again or contact your administrator.',
+            );
+          boundActionCreators.addDangerToast(errorMessage);
+        }
+      }
     },
     [
       sliceSliceId,
@@ -567,6 +627,7 @@ const Chart = (props: ChartProps) => {
       chartState,
       props.id,
       boundActionCreators.logEvent,
+      boundActionCreators.addDangerToast,
       queriesResponse,
       startExport,
       resetExport,
@@ -667,7 +728,7 @@ const Chart = (props: ChartProps) => {
         sliceName={props.sliceName}
         supersetCanExplore={supersetCanExplore}
         supersetCanShare={supersetCanShare}
-        supersetCanCSV={supersetCanCSV}
+        supersetCanDownload={supersetCanDownload}
         componentId={props.componentId}
         dashboardId={props.dashboardId}
         filters={getActiveFilters() || EMPTY_OBJECT}
@@ -683,6 +744,8 @@ const Chart = (props: ChartProps) => {
         width={width}
         height={getHeaderHeight()}
         exportPivotExcel={exportPivotExcel as unknown as (arg0: string) => void}
+        chartHolderRef={props.chartHolderRef}
+        ownState={ownState}
       />
 
       {/*
@@ -693,14 +756,13 @@ const Chart = (props: ChartProps) => {
              https://github.com/apache/superset/pull/23862
         */}
       {isExpanded && slice.description_markdown && (
-        <div
+        <aside
           className="slice_description bs-callout bs-callout-default"
           ref={descriptionRef}
           // eslint-disable-next-line react/no-danger
           dangerouslySetInnerHTML={{
             __html: slice.description_markdown,
           }}
-          role="complementary"
         />
       )}
 
@@ -708,7 +770,7 @@ const Chart = (props: ChartProps) => {
         className={cx('dashboard-chart')}
         aria-label={slice.description}
       >
-        {isLoading && (
+        {isLoading && !suppressLoadingSpinner && (
           <ChartOverlay
             style={{
               width,
@@ -733,29 +795,20 @@ const Chart = (props: ChartProps) => {
           formData={
             formData as unknown as import('@superset-ui/core').QueryFormData
           }
-          ownState={createOwnStateWithChartState(
-            (dataMask[props.id]?.ownState as JsonObject) || EMPTY_OBJECT,
-            {
-              state:
-                getChartStateWithFallback(
-                  chartState as { state?: JsonObject } | undefined,
-                  formData as JsonObject,
-                  slice.viz_type,
-                ) ?? undefined,
-            },
-            slice.viz_type,
-          )}
-          queriesResponse={chart.queriesResponse ?? undefined}
+          ownState={ownState}
+          queriesResponse={chart.queriesResponse ?? null}
           timeout={timeout}
           triggerQuery={chart.triggerQuery}
           vizType={slice.viz_type}
-          setControlValue={props.setControlValue}
+          setControlValue={props.setControlValue ?? NOOP}
           datasetsStatus={
             datasetsStatus as 'loading' | 'error' | 'complete' | undefined
           }
           isInView={props.isInView}
           emitCrossFilters={emitCrossFilters}
           onChartStateChange={handleChartStateChange}
+          suppressLoadingSpinner={suppressLoadingSpinner}
+          filterState={dataMask[props.id]?.filterState}
         />
       </ChartWrapper>
 

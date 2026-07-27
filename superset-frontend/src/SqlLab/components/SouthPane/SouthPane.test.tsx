@@ -16,12 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
 import { render, waitFor, screen } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
 import SouthPane from 'src/SqlLab/components/SouthPane';
 import { STATUS_OPTIONS } from 'src/SqlLab/constants';
 import { initialState, table, defaultQueryEditor } from 'src/SqlLab/fixtures';
 import { denormalizeTimestamp } from '@superset-ui/core';
-import userEvent from '@testing-library/user-event';
+import { ViewLocations } from 'src/SqlLab/contributions';
+import {
+  registerTestView,
+  registerToolbarAction,
+  cleanupExtensions,
+} from 'spec/helpers/extensionTestHelpers';
+
+afterEach(cleanupExtensions);
 
 const mockedProps = {
   queryEditorId: defaultQueryEditor.id,
@@ -163,8 +172,6 @@ test('should remove tab', async () => {
   const totalTabs = mockState.sqlLab.tables.length + 2;
   expect(tabs).toHaveLength(totalTabs);
 
-  console.log(tabs[2].parentElement?.innerHTML); // debug
-
   const removeButton = tabs[2].parentElement?.querySelector(
     'button[aria-label="remove"]',
   );
@@ -180,4 +187,65 @@ test('should remove tab', async () => {
     );
     expect(tabs).toHaveLength(totalTabs - 1);
   });
+});
+
+test('renders contributed tab content via ViewListExtension', () => {
+  registerTestView(
+    ViewLocations.sqllab.panels,
+    'test-panel',
+    'Test Panel',
+    () => React.createElement('div', null, 'Contributed Panel Content'),
+  );
+
+  const { container } = render(<SouthPane {...mockedProps} />, {
+    useRedux: true,
+    initialState: mockState,
+  });
+
+  const tabs = Array.from(container.querySelectorAll('[role="tab"]')).filter(
+    tab => !tab.classList.contains('ant-tabs-tab-remove'),
+  );
+  // Base tabs (Results + Query history) + 2 table previews + 1 extension
+  expect(tabs).toHaveLength(mockState.sqlLab.tables.length + 3);
+  expect(tabs.find(tab => tab.textContent === 'Test Panel')).toBeTruthy();
+  expect(screen.getByText('Contributed Panel Content')).toBeInTheDocument();
+});
+
+test('renders slot-wide toolbar actions via PanelToolbar', () => {
+  registerToolbarAction(
+    ViewLocations.sqllab.panels,
+    'test-panels-action',
+    'Panels Action',
+    jest.fn(),
+  );
+
+  render(<SouthPane {...mockedProps} />, {
+    useRedux: true,
+    initialState: mockState,
+  });
+
+  expect(screen.getByLabelText('Panels Action')).toBeInTheDocument();
+});
+
+test('renders per-view toolbar actions for contributed tab', () => {
+  registerTestView(
+    ViewLocations.sqllab.panels,
+    'test-per-view-panel',
+    'Per-View Panel',
+    () => React.createElement('div', null, 'Per-View Content'),
+  );
+  registerToolbarAction(
+    'test-per-view-panel',
+    'test-per-view-action',
+    'Per-View Action',
+    jest.fn(),
+  );
+
+  render(<SouthPane {...mockedProps} />, {
+    useRedux: true,
+    initialState: mockState,
+  });
+
+  // Content is rendered via forceRender: true even when tab is not active.
+  expect(screen.getByLabelText('Per-View Action')).toBeInTheDocument();
 });

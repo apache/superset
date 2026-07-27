@@ -753,6 +753,15 @@ def generate_yaml_docs(output_dir: str | None = None) -> dict[str, dict[str, Any
             continue
 
         name = get_name(spec)
+
+        # Skip "base" specs (e.g. PostgresBaseEngineSpec) that share an engine_name
+        # with a real product spec but have no concrete engine value.  When multiple
+        # specs share the same engine_name the one with a non-empty engine string is
+        # the authoritative product spec; letting a base class overwrite it would
+        # produce incorrect capability flags.
+        if not spec.engine and name in all_docs:
+            continue
+
         doc_data = diagnose(spec)
 
         # Get documentation metadata (prefers spec.metadata over DATABASE_DOCS)
@@ -766,6 +775,7 @@ def generate_yaml_docs(output_dir: str | None = None) -> dict[str, dict[str, Any
         doc_data["supports_file_upload"] = spec.supports_file_upload
         doc_data["supports_dynamic_schema"] = spec.supports_dynamic_schema
         doc_data["supports_catalog"] = spec.supports_catalog
+        doc_data["supports_dynamic_catalog"] = spec.supports_dynamic_catalog
 
         all_docs[name] = doc_data
 

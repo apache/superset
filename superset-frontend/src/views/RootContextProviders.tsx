@@ -27,7 +27,6 @@ import { DynamicPluginProvider } from 'src/components';
 import { EmbeddedUiConfigProvider } from 'src/components/UiConfigContext';
 import { SupersetThemeProvider } from 'src/theme/ThemeProvider';
 import { ThemeController } from 'src/theme/ThemeController';
-import { ExtensionsProvider } from 'src/extensions/ExtensionsContext';
 import { store } from './store';
 import '../preamble';
 import querystring from 'query-string';
@@ -35,7 +34,9 @@ import querystring from 'query-string';
 const themeController = new ThemeController();
 const extensionsRegistry = getExtensionsRegistry();
 
-export const RootContextProviders: React.FC = ({ children }) => {
+export const RootContextProviders: React.FC<{ children?: React.ReactNode }> = ({
+  children,
+}) => {
   const RootContextProviderExtension = extensionsRegistry.get(
     'root.context.provider',
   );
@@ -43,6 +44,7 @@ export const RootContextProviders: React.FC = ({ children }) => {
   return (
     <SupersetThemeProvider themeController={themeController}>
       <ReduxProvider store={store}>
+        {/* @ts-expect-error react-dnd types not updated for React 18 */}
         <DndProvider backend={HTML5Backend}>
           <EmbeddedUiConfigProvider>
             <DynamicPluginProvider>
@@ -54,15 +56,13 @@ export const RootContextProviders: React.FC = ({ children }) => {
                     querystring.stringify(object, { encode: false }),
                 }}
               >
-                <ExtensionsProvider>
-                  {RootContextProviderExtension ? (
-                    <RootContextProviderExtension>
-                      {children}
-                    </RootContextProviderExtension>
-                  ) : (
-                    children
-                  )}
-                </ExtensionsProvider>
+                {RootContextProviderExtension ? (
+                  <RootContextProviderExtension>
+                    {children}
+                  </RootContextProviderExtension>
+                ) : (
+                  children
+                )}
               </QueryParamProvider>
             </DynamicPluginProvider>
           </EmbeddedUiConfigProvider>

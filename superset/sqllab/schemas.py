@@ -14,9 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from marshmallow import fields, Schema
+from marshmallow import fields, Schema, validate
 
 from superset.databases.schemas import ImportV1DatabaseSchema
+
+# Restricts the optional CTAS target name to a bare SQL identifier. Shared by the
+# SQL Lab execute payload schemas so both request paths validate it identically.
+tmp_table_name_validator = validate.Regexp(
+    r"^([A-Za-z_][A-Za-z0-9_]*)?\Z",
+    error="tmp_table_name must contain only letters, digits, and underscores",
+)
 
 sql_lab_get_results_schema = {
     "type": "object",
@@ -69,7 +76,10 @@ class ExecutePayloadSchema(Schema):
     tab = fields.String(allow_none=True)
     ctas_method = fields.String(allow_none=True)
     templateParams = fields.String(allow_none=True)  # noqa: N815
-    tmp_table_name = fields.String(allow_none=True)
+    tmp_table_name = fields.String(
+        allow_none=True,
+        validate=tmp_table_name_validator,
+    )
     select_as_cta = fields.Boolean(allow_none=True)
     runAsync = fields.Boolean(allow_none=True)  # noqa: N815
     expand_data = fields.Boolean(allow_none=True)

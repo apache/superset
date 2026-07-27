@@ -16,10 +16,9 @@
 # under the License.
 import logging
 from functools import partial
-from typing import Any, Optional
+from typing import Any
 
 from flask import g
-from flask_babel import gettext as _
 from marshmallow import ValidationError
 
 from superset.commands.base import CreateMixin
@@ -33,6 +32,7 @@ from superset.commands.report.exceptions import (
     ReportScheduleNameUniquenessValidationError,
     ReportScheduleUserEmailNotFoundError,
 )
+from superset.commands.utils import populate_subjects
 from superset.daos.database import DatabaseDAO
 from superset.daos.report import ReportScheduleDAO
 from superset.reports.models import (
@@ -41,7 +41,6 @@ from superset.reports.models import (
     ReportSchedule,
     ReportScheduleType,
 )
-from superset.reports.types import ReportScheduleExtra
 from superset.utils import json
 from superset.utils.decorators import on_error, transaction
 
@@ -86,6 +85,13 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
                 exceptions.append(ReportScheduleUserEmailNotFoundError())
         # For creation from alerts_reports view, keep the recipients as provided
 
+    def _populate_subjects(self, exceptions: list[ValidationError]) -> None:
+        populate_subjects(
+            self._properties,
+            exceptions,
+            include_viewers=False,
+        )
+
     def validate(self) -> None:
         """
         Validates the properties of a report schedule configuration, including uniqueness
@@ -103,7 +109,6 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
         chart_id = self._properties.get("chart")
         creation_method = self._properties.get("creation_method")
         dashboard_id = self._properties.get("dashboard")
-        owner_ids: Optional[list[int]] = self._properties.get("owners")
 
         exceptions: list[ValidationError] = []
 
@@ -157,42 +162,7 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
                 self._properties["validator_config_json"]
             )
 
-        try:
-            owners = self.populate_owners(owner_ids)
-            self._properties["owners"] = owners
-        except ValidationError as ex:
-            exceptions.append(ex)
+        self._populate_subjects(exceptions)
+
         if exceptions:
             raise ReportScheduleInvalidError(exceptions=exceptions)
-
-    def _validate_report_extra(self, exceptions: list[ValidationError]) -> None:
-        extra: Optional[ReportScheduleExtra] = self._properties.get("extra")
-        dashboard = self._properties.get("dashboard")
-
-        if extra is None or dashboard is None:
-            return
-
-        dashboard_state = extra.get("dashboard")
-        if not dashboard_state:
-            return
-
-        position_data = json.loads(dashboard.position_json or "{}")
-        active_tabs = dashboard_state.get("activeTabs") or []
-        invalid_tab_ids = set(active_tabs) - set(position_data.keys())
-
-        if anchor := dashboard_state.get("anchor"):
-            try:
-                anchor_list: list[str] = json.loads(anchor)
-                if _invalid_tab_ids := set(anchor_list) - set(position_data.keys()):
-                    invalid_tab_ids.update(_invalid_tab_ids)
-            except json.JSONDecodeError:
-                if anchor not in position_data:
-                    invalid_tab_ids.add(anchor)
-
-        if invalid_tab_ids:
-            exceptions.append(
-                ValidationError(
-                    _("Invalid tab ids: %s(tab_ids)", tab_ids=str(invalid_tab_ids)),
-                    "extra",
-                )
-            )

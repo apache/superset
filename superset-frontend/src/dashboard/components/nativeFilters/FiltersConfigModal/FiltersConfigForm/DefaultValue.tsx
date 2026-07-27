@@ -17,7 +17,7 @@
  * under the License.
  */
 import { FC, useMemo } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   Behavior,
   SetDataMaskHook,

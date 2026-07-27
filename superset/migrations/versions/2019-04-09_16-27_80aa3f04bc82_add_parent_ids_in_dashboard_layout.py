@@ -26,7 +26,7 @@ import logging
 
 from alembic import op
 from sqlalchemy import Column, Integer, Text
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 from superset import db
 from superset.utils import json
@@ -62,7 +62,7 @@ def add_parent_ids(node, layout):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     dashboards = session.query(Dashboard).all()
     for i, dashboard in enumerate(dashboards):
@@ -88,7 +88,7 @@ def upgrade():
 
 def downgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     dashboards = session.query(Dashboard).all()
     for i, dashboard in enumerate(dashboards):

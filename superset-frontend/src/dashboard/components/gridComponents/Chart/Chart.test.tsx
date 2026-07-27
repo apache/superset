@@ -29,6 +29,15 @@ import chartQueries, {
 } from 'spec/fixtures/mockChartQueries';
 import Chart from './Chart';
 
+let capturedChartContainerProps: Record<string, unknown> = {};
+jest.mock('src/components/Chart/ChartContainer', () => {
+  const MockChartContainer = (props: Record<string, unknown>) => {
+    capturedChartContainerProps = props;
+    return <div data-test="chart-container" />;
+  };
+  return { __esModule: true, default: MockChartContainer };
+});
+
 const props = {
   id: queryId,
   width: 100,
@@ -69,7 +78,6 @@ const defaultState = {
       [queryId]: {
         ...sliceEntities.slices[queryId],
         description_markdown: 'markdown',
-        owners: [],
         viz_type: VizType.Table,
       },
     },
@@ -80,7 +88,7 @@ const defaultState = {
     id: props.dashboardId,
     superset_can_explore: false,
     superset_can_share: false,
-    superset_can_csv: false,
+    superset_can_download: false,
     common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 0, SQL_MAX_ROW: 666 } },
   },
   dashboardLayout: {
@@ -172,7 +180,10 @@ test('should call exportChart when exportCSV is clicked', async () => {
   const { findByText, getByRole } = setup(
     {},
     {
-      dashboardInfo: { ...defaultState.dashboardInfo, superset_can_csv: true },
+      dashboardInfo: {
+        ...defaultState.dashboardInfo,
+        superset_can_download: true,
+      },
     },
   );
   fireEvent.click(getByRole('button', { name: 'More Options' }));
@@ -202,7 +213,10 @@ test('should call exportChart with row_limit props.maxRows when exportFullCSV is
   const { findByText, getByRole } = setup(
     {},
     {
-      dashboardInfo: { ...defaultState.dashboardInfo, superset_can_csv: true },
+      dashboardInfo: {
+        ...defaultState.dashboardInfo,
+        superset_can_download: true,
+      },
     },
   );
   fireEvent.click(getByRole('button', { name: 'More Options' }));
@@ -230,7 +244,10 @@ test('should call exportChart when exportXLSX is clicked', async () => {
   const { findByText, getByRole } = setup(
     {},
     {
-      dashboardInfo: { ...defaultState.dashboardInfo, superset_can_csv: true },
+      dashboardInfo: {
+        ...defaultState.dashboardInfo,
+        superset_can_download: true,
+      },
     },
   );
   fireEvent.click(getByRole('button', { name: 'More Options' }));
@@ -257,7 +274,10 @@ test('should call exportChart with row_limit props.maxRows when exportFullXLSX i
   const { findByText, getByRole } = setup(
     {},
     {
-      dashboardInfo: { ...defaultState.dashboardInfo, superset_can_csv: true },
+      dashboardInfo: {
+        ...defaultState.dashboardInfo,
+        superset_can_download: true,
+      },
     },
   );
   fireEvent.click(getByRole('button', { name: 'More Options' }));
@@ -370,6 +390,104 @@ test('should fallback to formData state when runtime state not available', () =>
   expect(getByTestId('chart-container')).toBeInTheDocument();
 });
 
+test('chart height is reduced on first render in expanded state (guards against useEffect regression)', () => {
+  const DESCRIPTION_HEIGHT = 60;
+  const CHART_HEIGHT = 300;
+  // Matches the DEFAULT_HEADER_HEIGHT constant in Chart.tsx.
+  const DEFAULT_HEADER_HEIGHT = 22;
+
+  // Stabilise getHeaderHeight(): emotion injects margin-bottom CSS during
+  // React's commit phase, so getComputedStyle returns different values in
+  // initial renders vs re-renders. Mock it to always return empty so
+  // getHeaderHeight() consistently falls back to DEFAULT_HEADER_HEIGHT.
+  const getComputedStyleSpy = jest
+    .spyOn(window, 'getComputedStyle')
+    .mockReturnValue({
+      getPropertyValue: () => '',
+    } as unknown as CSSStyleDeclaration);
+
+  // JSDOM doesn't compute layout, so mock offsetHeight to simulate a real
+  // description element with height.
+  const offsetHeightSpy = jest
+    .spyOn(HTMLElement.prototype, 'offsetHeight', 'get')
+    .mockImplementation(function (this: HTMLElement) {
+      return this.classList.contains('slice_description')
+        ? DESCRIPTION_HEIGHT
+        : 0;
+    });
+
+  // Suppress all passive effects to simulate the first-paint moment — the
+  // point at which the original useEffect bug caused clipping. useLayoutEffect
+  // (the fix) runs synchronously before paint and is intentionally NOT mocked
+  // here. If the implementation were reverted to useEffect, this spy would
+  // prevent the height measurement and the assertion below would fail.
+  const useEffectSpy = jest
+    .spyOn(global.React, 'useEffect')
+    .mockImplementation(() => {});
+
+  const { container } = setup(
+    { height: CHART_HEIGHT },
+    {
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          // ChartOverlay renders with an inline height style when loading —
+          // this is the observable proxy for getChartHeight() without real layout.
+          chartStatus: 'loading',
+        },
+      },
+      dashboardState: {
+        ...defaultState.dashboardState,
+        expandedSlices: { [queryId]: true },
+      },
+    },
+  );
+
+  const chartHeight = parseInt(
+    container.querySelector<HTMLDivElement>('.dashboard-chart > div[style]')!
+      .style.height,
+    10,
+  );
+
+  // useLayoutEffect must have measured and applied descriptionHeight
+  // synchronously. If useEffect were used instead, descriptionHeight would
+  // still be 0 here (suppressed by useEffectSpy) and chartHeight would equal
+  // CHART_HEIGHT - DEFAULT_HEADER_HEIGHT rather than the value below.
+  expect(chartHeight).toBe(
+    CHART_HEIGHT - DEFAULT_HEADER_HEIGHT - DESCRIPTION_HEIGHT,
+  );
+
+  useEffectSpy.mockRestore();
+  getComputedStyleSpy.mockRestore();
+  offsetHeightSpy.mockRestore();
+});
+
+test('should not show a close button on chart error banners', () => {
+  const { queryByRole } = setup(
+    {},
+    {
+      ...defaultState,
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          chartStatus: 'failed',
+          chartAlert: 'Something went wrong',
+          queriesResponse: [
+            {
+              message: 'Something went wrong',
+              errors: [],
+            },
+          ],
+        },
+      },
+    },
+  );
+
+  expect(queryByRole('button', { name: /close/i })).not.toBeInTheDocument();
+});
+
 test('should handle chart state when no converter exists', () => {
   jest
     .spyOn(chartStateConverter, 'hasChartStateConverter')
@@ -426,4 +544,25 @@ test('should merge base ownState with converted chart state', () => {
   );
 
   expect(getByTestId('chart-container')).toBeInTheDocument();
+});
+
+test('should pass filterState from dataMask to ChartContainer', () => {
+  const mockFilterState = { value: ['bar'], selectedValues: ['bar'] };
+
+  setup(
+    {},
+    {
+      ...defaultState,
+      dataMask: {
+        [queryId]: {
+          filterState: mockFilterState,
+        },
+      },
+    },
+  );
+
+  expect(capturedChartContainerProps).toHaveProperty(
+    'filterState',
+    mockFilterState,
+  );
 });

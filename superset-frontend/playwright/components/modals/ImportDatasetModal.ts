@@ -40,6 +40,24 @@ export class ImportDatasetModal extends Modal {
   }
 
   /**
+   * Upload a file buffer to the import modal (no temp file needed)
+   * @param buffer - File contents as a Buffer
+   * @param fileName - Name to use for the uploaded file
+   */
+  async uploadFileBuffer(
+    buffer: Buffer,
+    fileName: string = 'dataset_export.zip',
+  ): Promise<void> {
+    await this.page
+      .locator(ImportDatasetModal.SELECTORS.FILE_INPUT)
+      .setInputFiles({
+        name: fileName,
+        mimeType: 'application/zip',
+        buffer,
+      });
+  }
+
+  /**
    * Fill the overwrite confirmation input (only needed if dataset exists)
    */
   async fillOverwriteConfirmation(): Promise<void> {

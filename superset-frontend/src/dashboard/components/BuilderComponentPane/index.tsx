@@ -19,8 +19,8 @@
 /* eslint-env browser */
 import tinycolor from 'tinycolor2';
 import Tabs from '@superset-ui/core/components/Tabs';
-import { t } from '@apache-superset/core';
-import { css, SupersetTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { css, SupersetTheme } from '@apache-superset/core/theme';
 import SliceAdder from 'src/dashboard/containers/SliceAdder';
 import dashboardComponents from 'src/visualizations/presets/dashboardComponents';
 import NewColumn from '../gridComponents/new/NewColumn';
@@ -67,9 +67,9 @@ const BuilderComponentPane = ({ topOffset = 0 }) => (
           margin-top: ${theme.sizeUnit * 2}px;
           height: 100%;
 
-          & .ant-tabs-content-holder {
+          & .ant-tabs-body-holder {
             height: 100%;
-            & .ant-tabs-content {
+            & .ant-tabs-body {
               height: 100%;
             }
           }

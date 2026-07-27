@@ -25,28 +25,6 @@ export interface ChartSpec {
   viz: string;
 }
 
-const viewTypeIcons = {
-  card: 'appstore',
-  list: 'unordered-list',
-};
-
-export function setGridMode(type: 'card' | 'list') {
-  const icon = viewTypeIcons[type];
-  cy.get(`[aria-label="${icon}"]`).click();
-}
-
-export function toggleBulkSelect() {
-  cy.getBySel('bulk-select').click();
-}
-
-export function clearAllInputs() {
-  cy.get('body').then($body => {
-    if ($body.find('.ant-select-clear').length) {
-      cy.get('.ant-select-clear').click({ multiple: true, force: true });
-    }
-  });
-}
-
 const toSlicelike = ($chart: JQuery<HTMLElement>): Slice => {
   const chartId = $chart.attr('data-test-chart-id');
   const vizType = $chart.attr('data-test-viz-type');

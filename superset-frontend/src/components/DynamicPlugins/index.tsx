@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useContext, useEffect, useReducer, createContext, FC } from 'react';
+import {
+  useContext,
+  useEffect,
+  useReducer,
+  createContext,
+  FC,
+  ReactNode,
+} from 'react';
 
 import {
   ChartMetadata,
@@ -26,8 +33,8 @@ import {
   getChartMetadataRegistry,
   makeApi,
 } from '@superset-ui/core';
-import { logging } from '@apache-superset/core';
-import { omitBy } from 'lodash';
+import { logging } from '@apache-superset/core/utils';
+import { omitBy } from 'lodash-es';
 import type { Plugin, PluginAction, PluginContextType } from './types';
 
 const metadataRegistry = getChartMetadataRegistry();
@@ -122,7 +129,9 @@ const sharedModules = {
   '@superset-ui/core': () => import('@superset-ui/core'),
 };
 
-export const DynamicPluginProvider: FC = ({ children }) => {
+export const DynamicPluginProvider: FC<{ children?: ReactNode }> = ({
+  children,
+}) => {
   const [pluginState, dispatch] = useReducer(
     pluginContextReducer,
     dummyPluginContext,

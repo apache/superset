@@ -30,7 +30,7 @@ from flask import current_app
 from flask_appbuilder import Model
 from flask_migrate import downgrade, upgrade
 from progress.bar import ChargingBar
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.ext.automap import automap_base
 
 from superset import db
@@ -93,7 +93,7 @@ def find_models(module: ModuleType) -> list[type[Model]]:  # noqa: C901
     # where the current model is out-of-sync with the existing table after a
     # downgrade
     sqlalchemy_uri = current_app.config["SQLALCHEMY_DATABASE_URI"]
-    engine = create_engine(sqlalchemy_uri)
+    engine = create_engine(sqlalchemy_uri, future=True)
     Base = automap_base()  # noqa: N806
     Base.prepare(engine, reflect=True)
     seen = set()
@@ -153,10 +153,11 @@ def main(  # noqa: C901
         )
 
     print(f"Migration goes from {down_revision} to {revision}")
-    current_revision = db.engine.execute(
-        "SELECT version_num FROM alembic_version"
-    ).scalar()
-    print(f"Current version of the DB is {current_revision}")
+    with db.engine.connect() as conn:
+        current_revision = conn.execute(
+            text("SELECT version_num FROM alembic_version")
+        ).scalar()
+        print(f"Current version of the DB is {current_revision}")
 
     if current_revision != down_revision:
         if not force:

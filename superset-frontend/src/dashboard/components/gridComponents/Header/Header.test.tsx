@@ -74,6 +74,7 @@ describe('Header', () => {
   function setup(overrideProps: Partial<HeaderTestProps> = {}) {
     return render(
       <Provider store={mockStoreWithTabs}>
+        {/* @ts-expect-error react-dnd types not updated for React 18 */}
         <DndProvider backend={HTML5Backend}>
           <Header {...(props as HeaderTestProps)} {...overrideProps} />
         </DndProvider>

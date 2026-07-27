@@ -25,7 +25,8 @@ import {
   useState,
 } from 'react';
 import { LatestQueryFormData } from '@superset-ui/core';
-import { css, t } from '@apache-superset/core/ui';
+import { css } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import { Input, Space, Typography } from '@superset-ui/core/components';
 import { CopyToClipboard } from 'src/components';
 import { URL_PARAMS } from 'src/constants';
@@ -105,9 +106,19 @@ const EmbedCodeContent: FC<EmbedCodeContentProps> = ({
           shouldShowText={false}
           text={html}
           copyNode={
-            <span role="button" aria-label="Copy to clipboard">
+            <button
+              type="button"
+              css={css`
+                appearance: none;
+                border: none;
+                background: none;
+                padding: 0;
+                font: inherit;
+              `}
+              aria-label={t('Copy to clipboard')}
+            >
               <Icons.CopyOutlined />
-            </span>
+            </button>
           }
         />
         <Input.TextArea
@@ -134,18 +145,25 @@ const EmbedCodeContent: FC<EmbedCodeContentProps> = ({
         `}
       >
         <div>
-          <Typography.Text type="secondary">
-            {t('Chart height')}
-          </Typography.Text>
+          <label htmlFor="embed-height">
+            <Typography.Text type="secondary">
+              {t('Chart height')}
+            </Typography.Text>
+          </label>
           <Input
             type="number"
             defaultValue={height}
             name="height"
             onChange={handleInputChange}
+            id="embed-height"
           />
         </div>
         <div>
-          <Typography.Text type="secondary">{t('Chart width')}</Typography.Text>
+          <label htmlFor="embed-width">
+            <Typography.Text type="secondary">
+              {t('Chart width')}
+            </Typography.Text>
+          </label>
           <Input
             type="number"
             defaultValue={width}

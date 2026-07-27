@@ -96,7 +96,9 @@ type TableMetadataResponse = {
 
 export type TableExtendedMetadata = Record<string, string>;
 
-type Params = Omit<FetchTablesQueryParams, 'forceRefresh'>;
+type Params = Omit<FetchTablesQueryParams, 'forceRefresh'> & {
+  supportsSchemas?: boolean;
+};
 
 const tableApi = api.injectEndpoints({
   endpoints: builder => ({
@@ -166,7 +168,14 @@ export const {
 } = tableApi;
 
 export function useTables(options: Params) {
-  const { dbId, catalog, schema, onSuccess, onError } = options || {};
+  const {
+    dbId,
+    catalog,
+    schema,
+    supportsSchemas = true,
+    onSuccess,
+    onError,
+  } = options || {};
   const isMountedRef = useRef(false);
   const { currentData: schemaOptions, isFetching } = useSchemas({
     dbId,
@@ -177,9 +186,9 @@ export function useTables(options: Params) {
     [schemaOptions],
   );
 
-  const enabled = Boolean(
-    dbId && schema && !isFetching && schemaOptionsMap.has(schema),
-  );
+  const enabled = supportsSchemas
+    ? Boolean(dbId && schema && !isFetching && schemaOptionsMap.has(schema))
+    : Boolean(dbId);
 
   const result = useTablesQuery(
     { dbId, catalog, schema, forceRefresh: false },

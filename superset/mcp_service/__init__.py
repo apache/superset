@@ -34,6 +34,19 @@ superset mcp run --port 5009
 # http://localhost:5009/mcp/
 """
 
+import warnings
+
+# authlib.jose is deprecated in authlib 1.3+ in favour of joserfc, but fastmcp
+# still imports it internally. This filter must live here — it runs when any
+# superset.mcp_service submodule is first imported, which is before fastmcp
+# triggers the authlib.jose import. Placed in __init__.py so both the
+# production server path and test imports get it without duplicating the
+# filterwarnings call in every affected module.
+warnings.filterwarnings(
+    "ignore",
+    message=r"authlib\.jose module is deprecated",
+)
+
 __version__ = "1.0.0"
 
 # Tools are auto-registered when imported by the MCP service

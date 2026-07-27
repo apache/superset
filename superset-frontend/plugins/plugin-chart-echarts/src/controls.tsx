@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { VizType } from '@superset-ui/core';
 import {
   ControlPanelsContainerProps,
@@ -140,6 +140,30 @@ export const showValueControl: ControlSetItem = {
   },
 };
 
+export const colorByPrimaryAxisControl: ControlSetItem = {
+  name: 'color_by_primary_axis',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Color By X-Axis'),
+    default: false,
+    renderTrigger: true,
+    description: t('Color bars by x-axis'),
+    visibility: ({ controls }: { controls: any }) =>
+      (!controls?.stack?.value || controls?.stack?.value === null) &&
+      (!controls?.groupby?.value || controls?.groupby?.value?.length === 0),
+    shouldMapStateToProps: () => true,
+    mapStateToProps: (state: any) => {
+      const isHorizontal = state?.controls?.orientation?.value === 'horizontal';
+      return {
+        label: isHorizontal ? t('Color By Y-Axis') : t('Color By X-Axis'),
+        description: isHorizontal
+          ? t('Color bars by y-axis')
+          : t('Color bars by x-axis'),
+      };
+    },
+  },
+};
+
 export const stackControl: ControlSetItem = {
   name: 'stack',
   config: {
@@ -200,6 +224,10 @@ export const showValueSection: ControlSetRow[] = [
   [percentageThresholdControl],
 ];
 
+export const colorByPrimaryAxisSection: ControlSetRow[] = [
+  [colorByPrimaryAxisControl],
+];
+
 export const showValueSectionWithoutStack: ControlSetRow[] = [
   [showValueControl],
   [onlyTotalControl],
@@ -230,7 +258,6 @@ export const tooltipTimeFormatControl: ControlSetItem = {
   config: {
     ...sharedControls.x_axis_time_format,
     label: t('Tooltip time format'),
-    default: 'smart_date',
     clearable: false,
   },
 };
@@ -252,7 +279,7 @@ const tooltipSortByMetricControl: ControlSetItem = {
     renderTrigger: true,
     default: false,
     description: t(
-      'Whether to sort tooltip by the selected metric in descending order.',
+      'Whether to sort tooltip by the selected metric in descending order. On stacked charts, values are shown in ascending order.',
     ),
     visibility: ({ controls }: ControlPanelsContainerProps) =>
       Boolean(controls?.rich_tooltip?.value),

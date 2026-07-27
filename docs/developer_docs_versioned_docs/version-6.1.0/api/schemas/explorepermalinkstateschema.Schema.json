@@ -1,0 +1,1 @@
+{"schema":{"properties":{"formData":{"description":"Chart form data","type":"object"},"urlParams":{"description":"URL Parameters","items":{"description":"URL Parameter key-value pair","nullable":true},"nullable":true,"type":"array"}},"required":["formData"],"type":"object","title":"ExplorePermalinkStateSchema"},"schemaType":"response"}

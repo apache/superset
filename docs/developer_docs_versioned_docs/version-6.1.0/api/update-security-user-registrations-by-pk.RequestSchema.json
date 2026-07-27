@@ -1,0 +1,1 @@
+{"title":"Body","body":{"content":{"application/json":{"schema":{"properties":{"id":{"type":"integer"}},"type":"object","title":"UserRegistrationsRestAPI.put"},"example":{"id":1}}},"description":"Model schema","required":true}}

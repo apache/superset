@@ -21,10 +21,11 @@ import yaml
 from flask_appbuilder import Model
 from sqlalchemy.orm.session import make_transient
 
-from superset import db
+from superset import db, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.database.exceptions import DatabaseNotFoundError
 from superset.commands.dataset.exceptions import DatasetInvalidError
+from superset.commands.exceptions import ImportFailedError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import (
     BaseDatasource,
@@ -32,8 +33,11 @@ from superset.connectors.sqla.models import (
     SqlMetric,
     TableColumn,
 )
+from superset.constants import PASSWORD_MASK
+from superset.databases.utils import make_url_safe
 from superset.models.core import Database
 from superset.utils import json
+from superset.utils.core import get_user
 from superset.utils.decorators import transaction
 from superset.utils.dict_import_export import DATABASES_KEY
 
@@ -209,9 +213,37 @@ def import_from_dict(data: dict[str, Any], sync: Optional[list[str]] = None) -> 
     if not sync:
         sync = []
     if isinstance(data, dict):
-        logger.info("Importing %d %s", len(data.get(DATABASES_KEY, [])), DATABASES_KEY)
-        for database in data.get(DATABASES_KEY, []):
-            Database.import_from_dict(database, sync=sync)
+        databases = data.get(DATABASES_KEY, [])
+        # This legacy path creates/updates the embedded database connections.
+        # Mirror the versioned (v1) import commands and require database write
+        # permission for the objects being created here. Only enforced when there
+        # is something to import and a request user is present, so the CLI import
+        # paths keep working.
+        if (
+            databases
+            and get_user()
+            and not security_manager.can_access("can_write", "Database")
+        ):
+            raise ImportFailedError(
+                "User doesn't have permission to create or update databases"
+            )
+        logger.info("Importing %d %s", len(databases), DATABASES_KEY)
+        for database in databases:
+            db_obj = Database.import_from_dict(database, sync=sync)
+            # ``import_from_dict`` sets fields via setattr, bypassing
+            # ``set_sqlalchemy_uri``.  Call it explicitly so that any plaintext
+            # password in the URI is extracted into the encrypted ``password``
+            # column and replaced with the password mask in ``sqlalchemy_uri``.
+            if db_obj is not None:
+                # Only call set_sqlalchemy_uri when the imported URI carries a real
+                # password (non-empty and not the password mask).  If the URI has no
+                # password segment — common when users keep secrets out of YAML and
+                # rely on the encrypted ``password`` column from a prior run —
+                # calling set_sqlalchemy_uri would set ``password = None`` and break
+                # existing connections.
+                parsed = make_url_safe(db_obj.sqlalchemy_uri)
+                if parsed.password and parsed.password != PASSWORD_MASK:
+                    db_obj.set_sqlalchemy_uri(db_obj.sqlalchemy_uri)
     else:
         logger.info("Supplied object is not a dictionary.")
 

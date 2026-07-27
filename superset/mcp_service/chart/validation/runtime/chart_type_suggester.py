@@ -20,6 +20,7 @@ Chart type suggestions based on data characteristics and user intent.
 """
 
 import logging
+import re
 from typing import Any, Dict, List, Tuple
 
 from superset.mcp_service.chart.schemas import (
@@ -67,6 +68,9 @@ class ChartTypeSuggester:
         """Analyze XY chart appropriateness."""
         issues = []
         suggestions = []
+
+        if config.x is None or config.x.name is None:
+            return True, None
 
         x_analysis = ChartTypeSuggester._analyze_x_axis(config.x.name)
         y_analysis = ChartTypeSuggester._analyze_y_axis(config.y)
@@ -135,10 +139,15 @@ class ChartTypeSuggester:
     @staticmethod
     def _analyze_y_axis(y_columns: List[ColumnRef]) -> Dict[str, Any]:
         """Analyze Y-axis characteristics."""
+
+        def _is_count(col: ColumnRef) -> bool:
+            if col.aggregate in ("COUNT", "COUNT_DISTINCT"):
+                return True
+            expr = col.sql_expression or ""
+            return bool(re.search(r"\bCOUNT\b", expr, re.IGNORECASE))
+
         return {
-            "has_count": any(
-                col.aggregate in ["COUNT", "COUNT_DISTINCT"] for col in y_columns
-            ),
+            "has_count": any(_is_count(col) for col in y_columns),
             "num_metrics": len(y_columns),
         }
 
@@ -147,6 +156,7 @@ class ChartTypeSuggester:
         config: XYChartConfig, x_analysis: Dict[str, Any], y_analysis: Dict[str, Any]
     ) -> Tuple[List[str], List[str]]:
         """Check for chart type specific issues."""
+        assert config.x is not None  # caller guards for None
         issues = []
         suggestions = []
 
@@ -195,6 +205,7 @@ class ChartTypeSuggester:
         x_is_id: bool,
     ) -> Tuple[List[str], List[str]]:
         """Check line chart specific issues."""
+        assert config.x is not None
         issues = []
         suggestions = []
 
@@ -228,6 +239,7 @@ class ChartTypeSuggester:
         config: XYChartConfig, x_is_categorical: bool, num_metrics: int
     ) -> Tuple[List[str], List[str]]:
         """Check scatter chart specific issues."""
+        assert config.x is not None
         issues = []
         suggestions = []
 
@@ -258,6 +270,7 @@ class ChartTypeSuggester:
         config: XYChartConfig, x_is_temporal: bool
     ) -> Tuple[List[str], List[str]]:
         """Check area chart specific issues."""
+        assert config.x is not None
         issues = []
         suggestions = []
 
@@ -276,6 +289,8 @@ class ChartTypeSuggester:
 
         # Check for potential negative values
         for col in config.y:
+            if not col.name:
+                continue
             if any(term in col.name.lower() for term in ["loss", "debt", "negative"]):
                 issues.append(
                     f"Area chart with potentially negative values in '{col.name}' "
@@ -295,6 +310,7 @@ class ChartTypeSuggester:
         config: XYChartConfig, x_is_id: bool
     ) -> Tuple[List[str], List[str]]:
         """Check bar chart specific issues."""
+        assert config.x is not None
         issues = []
         suggestions = []
 
@@ -348,8 +364,8 @@ class ChartTypeSuggester:
         suggestions = []
 
         # Count different column types
-        raw_columns = sum(1 for col in config.columns if not col.aggregate)
-        metric_columns = sum(1 for col in config.columns if col.aggregate)
+        raw_columns = sum(1 for col in config.columns if not col.is_metric)
+        metric_columns = sum(1 for col in config.columns if col.is_metric)
         total_columns = len(config.columns)
 
         # Check if data might be better visualized
@@ -365,7 +381,8 @@ class ChartTypeSuggester:
         id_columns = sum(
             1
             for col in config.columns
-            if any(i in col.name.lower() for i in ["id", "uuid", "guid", "key"])
+            if col.name
+            and any(i in col.name.lower() for i in ["id", "uuid", "guid", "key"])
         )
         if id_columns > total_columns / 2:
             suggestions.append(

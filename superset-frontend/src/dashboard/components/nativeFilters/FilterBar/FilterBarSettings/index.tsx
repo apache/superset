@@ -19,8 +19,8 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { t } from '@apache-superset/core';
-import { styled, useTheme, css } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled, useTheme, css } from '@apache-superset/core/theme';
 import { MenuProps } from '@superset-ui/core/components/Menu';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import {
@@ -34,7 +34,7 @@ import { clearDataMaskState } from 'src/dataMask/actions';
 import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';
 import { useFilterConfigModal } from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink/useFilterConfigModal';
 import { useCrossFiltersScopingModal } from '../CrossFilters/ScopingModal/useCrossFiltersScopingModal';
-import FilterConfigurationLink from '../FilterConfigurationLink';
+import MemoizedFilterConfigurationLink from '../FilterConfigurationLink';
 
 type SelectedKey = FilterBarOrientation | string | number;
 
@@ -84,12 +84,12 @@ const FilterBarSettings = () => {
 
   const { openFilterConfigModal, FilterConfigModalComponent } =
     useFilterConfigModal({
-      createNewOnOpen: filterValues.length === 0,
+      createNewOnOpen: false,
       dashboardId,
     });
 
   const updateCrossFiltersSetting = useCallback(
-    async isEnabled => {
+    async (isEnabled: boolean) => {
       if (!isEnabled) {
         dispatch(clearDataMaskState());
       }
@@ -170,9 +170,9 @@ const FilterBarSettings = () => {
       items.push({
         key: ADD_EDIT_FILTERS_MENU_KEY,
         label: (
-          <FilterConfigurationLink>
+          <MemoizedFilterConfigurationLink>
             {t('Add or edit filters and controls')}
-          </FilterConfigurationLink>
+          </MemoizedFilterConfigurationLink>
         ),
       });
       if (canEdit) {
@@ -206,7 +206,7 @@ const FilterBarSettings = () => {
                   <Icons.CheckOutlined
                     iconColor={theme.colorPrimary}
                     iconSize="m"
-                    aria-label="check"
+                    aria-label={t('Selected')}
                   />
                 )}
               </Space>
@@ -224,7 +224,7 @@ const FilterBarSettings = () => {
                     css={css`
                       vertical-align: middle;
                     `}
-                    aria-label="check"
+                    aria-label={t('Selected')}
                   />
                 )}
               </Space>

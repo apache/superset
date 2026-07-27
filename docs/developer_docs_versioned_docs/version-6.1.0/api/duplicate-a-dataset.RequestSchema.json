@@ -1,0 +1,1 @@
+{"title":"Body","body":{"content":{"application/json":{"schema":{"properties":{"base_model_id":{"type":"integer"},"table_name":{"maxLength":250,"minLength":1,"type":"string"}},"required":["base_model_id","table_name"],"type":"object","title":"DatasetDuplicateSchema"},"example":{"base_model_id":1,"table_name":"string"}}},"description":"Dataset schema","required":true}}

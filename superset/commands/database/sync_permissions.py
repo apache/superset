@@ -36,12 +36,15 @@ from superset.commands.database.utils import (
     add_vm,
     ping,
 )
+from superset.connectors.sqla.models import SqlaTable
 from superset.daos.database import DatabaseDAO
 from superset.daos.dataset import DatasetDAO
 from superset.db_engine_specs.base import GenericDBException
 from superset.exceptions import OAuth2RedirectError
 from superset.extensions import celery_app, db
 from superset.models.core import Database
+from superset.models.helpers import skip_visibility_filter
+from superset.models.slice import Slice
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -283,17 +286,29 @@ class SyncPermissionsCommand(BaseCommand):
             if existing_pvm:
                 existing_pvm.view_menu.name = new_schema_perm_name
 
-            # rename permissions on datasets and charts
-            for dataset in DatabaseDAO.get_datasets(
-                self.db_connection_id,
-                catalog=catalog,
-                schema=schema,
-            ):
-                dataset.catalog_perm = new_catalog_perm_name
-                dataset.schema_perm = new_schema_perm_name
-                for chart in DatasetDAO.get_related_objects(dataset.id)["charts"]:
-                    chart.catalog_perm = new_catalog_perm_name
-                    chart.schema_perm = new_schema_perm_name
+            # Rename permissions on datasets and charts. Bypass the
+            # soft-delete visibility filter: a soft-deleted dataset's
+            # ``schema_perm``/``catalog_perm`` (and its charts') must still be
+            # rewritten on a database rename — otherwise restoring the dataset
+            # later brings back stale perm strings referencing the old
+            # database name (fail-closed for legitimate users, and matchable
+            # by a schema_access grant on a new database reusing the old
+            # name). Mirrors the same bypass in
+            # ``security_manager._update_vm_datasources_access``, which
+            # maintains the dataset-level ``perm`` string. ``Slice`` is
+            # included so chart perm rewrites keep working once charts gain
+            # soft delete (a no-op until then).
+            with skip_visibility_filter(db.session, SqlaTable, Slice):
+                for dataset in DatabaseDAO.get_datasets(
+                    self.db_connection_id,
+                    catalog=catalog,
+                    schema=schema,
+                ):
+                    dataset.catalog_perm = new_catalog_perm_name
+                    dataset.schema_perm = new_schema_perm_name
+                    for chart in DatasetDAO.get_related_objects(dataset.id)["charts"]:
+                        chart.catalog_perm = new_catalog_perm_name
+                        chart.schema_perm = new_schema_perm_name
 
 
 @celery_app.task(name="sync_database_permissions", soft_time_limit=600)

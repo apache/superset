@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Button } from '@superset-ui/core/components';
 
@@ -31,7 +31,7 @@ const SaveDatasetActionButton = ({
 }: SaveDatasetActionButtonProps) => (
   <>
     <Button
-      color="primary"
+      color="default"
       variant="text"
       onClick={() => setShowSave(true)}
       icon={<Icons.SaveOutlined />}
@@ -40,7 +40,7 @@ const SaveDatasetActionButton = ({
     />
     {onSaveAsExplore && (
       <Button
-        color="primary"
+        color="default"
         variant="text"
         onClick={() => onSaveAsExplore?.()}
         icon={<Icons.TableOutlined />}

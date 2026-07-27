@@ -19,6 +19,47 @@
 Tests for preview_utils query context column building.
 """
 
+import ast
+import inspect
+from pathlib import Path
+
+from superset.mcp_service.chart import preview_utils
+
+
+def _imports_chart_data_command(node: ast.Import | ast.ImportFrom) -> bool:
+    blocked_module = "superset.commands.chart.data.get_data_command"
+
+    if isinstance(node, ast.Import):
+        return any(
+            alias.name == blocked_module or alias.name.startswith(f"{blocked_module}.")
+            for alias in node.names
+        )
+
+    module = node.module or ""
+    return (
+        module == blocked_module
+        or module.startswith(f"{blocked_module}.")
+        or (
+            module == "superset.commands.chart.data"
+            and any(alias.name == "get_data_command" for alias in node.names)
+        )
+    )
+
+
+def test_preview_utils_does_not_top_level_import_chart_data_command():
+    """preview_utils constants should stay safe to import before app setup."""
+    source_path = inspect.getsourcefile(preview_utils) or preview_utils.__file__
+    source = Path(source_path).read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    top_level_imports = [
+        node for node in tree.body if isinstance(node, (ast.Import, ast.ImportFrom))
+    ]
+
+    assert preview_utils.SUPPORTED_FORM_DATA_PREVIEW_FORMATS == frozenset(
+        {"ascii", "table", "vega_lite"}
+    )
+    assert not any(_imports_chart_data_command(node) for node in top_level_imports)
+
 
 class TestPreviewUtilsColumnBuilding:
     """Tests for x_axis + groupby column building in generate_preview_from_form_data.

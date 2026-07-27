@@ -1,0 +1,1 @@
+{"schema":{"properties":{"result":{"items":{"description":"A database schema name","type":"string"},"type":"array"}},"type":"object","title":"SchemasResponseSchema"},"schemaType":"response"}

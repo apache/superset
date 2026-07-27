@@ -18,7 +18,7 @@
  */
 
 import { useState } from 'react';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { Popover } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 
@@ -65,8 +65,8 @@ export default function TaskPayloadPopover({
       content={content}
       trigger="hover"
       placement="leftTop"
-      visible={visible}
-      onVisibleChange={setVisible}
+      open={visible}
+      onOpenChange={setVisible}
     >
       <InfoIconWrapper>
         <Icons.InfoCircleOutlined iconSize="l" />

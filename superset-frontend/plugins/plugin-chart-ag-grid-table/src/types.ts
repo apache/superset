@@ -81,6 +81,7 @@ export type TableChartFormData = QueryFormData & {
   time_grain_sqla?: TimeGranularity;
   column_config?: Record<string, TableColumnConfig>;
   allow_rearrange_columns?: boolean;
+  show_numbered_column?: boolean;
 };
 
 export interface TableChartProps extends ChartProps {
@@ -128,8 +129,11 @@ export interface AgGridTableChartTransformedProps<
   basicColorFormatters?: { [Key: string]: BasicColorFormatterType }[];
   basicColorColumnFormatters?: { [Key: string]: BasicColorFormatterType }[];
   formData: TableChartFormData;
+  metricSqlExpressions: Record<string, string>;
+  rawSummaryColumns: string[];
   onChartStateChange?: (chartState: JsonObject) => void;
   chartState?: AgGridChartState;
+  showNumberedColumn: boolean;
 }
 
 export interface SortState {
@@ -185,12 +189,10 @@ export interface InputColumn {
   isPercentMetric: boolean;
   config: TableColumnConfig;
   formatter?:
-    | TimeFormatter
-    | NumberFormatter
-    | CustomFormatter
-    | CurrencyFormatter;
+    TimeFormatter | NumberFormatter | CustomFormatter | CurrencyFormatter;
   originalLabel?: string;
   metricName?: string;
+  description?: string;
 }
 
 export type ValueRange = [number, number] | null;
@@ -221,7 +223,7 @@ export type Dataset = {
   created_on_humanized: string;
   description: string;
   table_name: string;
-  owners: {
+  editors: {
     first_name: string;
     last_name: string;
   }[];

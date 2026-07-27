@@ -19,11 +19,10 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta, timezone
-from functools import partial
 from typing import Any
 
 import redis
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from superset.commands.distributed_lock.base import (
     BaseDistributedLockCommand,
@@ -31,22 +30,37 @@ from superset.commands.distributed_lock.base import (
     get_redis_client,
 )
 from superset.daos.key_value import KeyValueDAO
-from superset.exceptions import AcquireDistributedLockFailedException
+from superset.exceptions import (
+    AcquireDistributedLockFailedException,
+    LockAlreadyHeldException,
+)
 from superset.key_value.exceptions import (
     KeyValueCodecEncodeException,
     KeyValueUpsertFailedError,
 )
 from superset.key_value.types import KeyValueResource
-from superset.utils.decorators import on_error, transaction
+from superset.utils.decorators import transaction
 
 logger = logging.getLogger(__name__)
+
+
+def _kv_lock_on_error(ex: Exception) -> None:
+    """Translate KV-backend exceptions into the appropriate lock exception type."""
+    if isinstance(ex, IntegrityError):
+        # Unique-constraint violation: lock is already held by another process.
+        raise LockAlreadyHeldException("KV lock already held") from ex
+    if isinstance(
+        ex, (KeyValueCodecEncodeException, KeyValueUpsertFailedError, SQLAlchemyError)
+    ):
+        raise AcquireDistributedLockFailedException(f"KV lock failed: {ex}") from ex
+    raise ex
 
 
 class AcquireDistributedLock(BaseDistributedLockCommand):
     """
     Acquire a distributed lock with automatic backend selection.
 
-    Uses Redis SET NX EX when SIGNAL_CACHE_CONFIG is configured,
+    Uses Redis SET NX EX when DISTRIBUTED_COORDINATION_CONFIG is configured,
     otherwise falls back to KeyValue table.
 
     Raises AcquireDistributedLockFailedException if:
@@ -85,7 +99,7 @@ class AcquireDistributedLock(BaseDistributedLockCommand):
 
             if not acquired:
                 logger.debug("Redis lock on %s already taken", self.redis_lock_key)
-                raise AcquireDistributedLockFailedException("Lock already taken")
+                raise LockAlreadyHeldException("Lock already taken")
 
             logger.debug(
                 "Acquired Redis lock: %s (TTL=%ds)",
@@ -99,17 +113,7 @@ class AcquireDistributedLock(BaseDistributedLockCommand):
                 f"Redis lock failed: {ex}"
             ) from ex
 
-    @transaction(
-        on_error=partial(
-            on_error,
-            catches=(
-                KeyValueCodecEncodeException,
-                KeyValueUpsertFailedError,
-                SQLAlchemyError,
-            ),
-            reraise=AcquireDistributedLockFailedException,
-        ),
-    )
+    @transaction(on_error=_kv_lock_on_error)
     def _acquire_kv(self) -> None:
         """Acquire lock using KeyValue table (database)."""
         # Delete expired entries first to prevent stale locks from blocking

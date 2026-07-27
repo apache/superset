@@ -24,7 +24,7 @@ import {
   ControlComponentProps,
   ObjectFormattingEnum,
 } from '@superset-ui/chart-controls';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 
 export type ConditionalFormattingConfig = {
   operator?: Comparator;

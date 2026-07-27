@@ -20,7 +20,7 @@ import {
   ControlPanelsContainerProps,
   ControlStateMapping,
 } from '@superset-ui/chart-controls';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { ensureIsArray, QueryFormColumn, QueryMode } from '@superset-ui/core';
 
 export function getQueryMode(controls: ControlStateMapping): QueryMode {
@@ -29,8 +29,7 @@ export function getQueryMode(controls: ControlStateMapping): QueryMode {
     return mode as QueryMode;
   }
   const rawColumns = controls?.all_columns?.value as
-    | QueryFormColumn[]
-    | undefined;
+    QueryFormColumn[] | undefined;
   const hasRawColumns = rawColumns && rawColumns.length > 0;
   return hasRawColumns ? QueryMode.Raw : QueryMode.Aggregate;
 }

@@ -18,7 +18,7 @@
  */
 
 /* eslint-disable no-param-reassign */
-import { throttle } from 'lodash';
+import { throttle } from 'lodash-es';
 import {
   memo,
   useEffect,
@@ -31,8 +31,8 @@ import {
 } from 'react';
 import { useSelector } from 'react-redux';
 import cx from 'classnames';
-import { t } from '@apache-superset/core';
-import { styled, useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import { RootState } from 'src/dashboard/types';
 import { DataMaskStateWithId } from '@superset-ui/core';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -45,6 +45,7 @@ import Header from './Header';
 import FilterControls from './FilterControls/FilterControls';
 import CrossFiltersVertical from './CrossFilters/Vertical';
 import crossFiltersSelector from './CrossFilters/selectors';
+import UrlFiltersVertical from './UrlFilters/Vertical';
 
 enum SectionType {
   Filters = 'filters',
@@ -59,7 +60,7 @@ const BarWrapper = styled.div<{ width: number }>`
     margin: 0;
   }
   &.open {
-    width: ${({ width }) => width}px; // arbitrary...
+    width: ${({ width }) => width}px; /* arbitrary... */
   }
 `;
 
@@ -87,8 +88,12 @@ const Bar = styled.div<{ width: number }>`
   `}
 `;
 
-const CollapsedBar = styled.div<{ offset: number }>`
+const CollapsedBar = styled.button<{ offset: number }>`
   ${({ theme, offset }) => `
+    appearance: none;
+    border: none;
+    background: none;
+    font: inherit;
     position: absolute;
     top: ${offset}px;
     left: 0;
@@ -119,6 +124,7 @@ const FilterControlsWrapper = styled.div`
     flex-direction: column;
     gap: ${theme.sizeUnit * 2}px;
     padding: ${theme.sizeUnit * 4}px;
+    padding-top: 0; /* Works with other changes in PR https://github.com/apache/superset/pull/38646 to reduces space between filter header and 1st filter */
     // 108px padding to make room for buttons with position: absolute
     padding-bottom: ${theme.sizeUnit * 27}px;
   `}
@@ -139,8 +145,6 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
   onPendingCustomizationDataMaskChange,
   toggleFiltersBar,
   width,
-  clearAllTriggers,
-  onClearAllComplete,
 }) => {
   const theme = useTheme();
   const [isScrolling, setIsScrolling] = useState(false);
@@ -262,10 +266,10 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
         width={width}
       >
         <CollapsedBar
+          type="button"
           {...getFilterBarTestId('collapsable')}
           className={cx({ open: !filtersOpen })}
           onClick={openFiltersBar}
-          role="button"
           offset={offset}
         >
           <Icons.VerticalAlignTopOutlined
@@ -287,12 +291,20 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
         <Bar className={cx({ open: filtersOpen })} width={width}>
           <Header toggleFiltersBar={toggleFiltersBar} />
           {!isInitialized ? (
-            <div css={{ height }}>
-              <Loading size="s" muted />
+            <div
+              css={{
+                height,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Loading position="inline-centered" size="s" muted />
             </div>
           ) : (
             <div css={tabPaneStyle} onScroll={onScroll}>
               <>
+                <UrlFiltersVertical />
                 <CrossFiltersVertical hideHeader={hasOnlyOneSectionType} />
                 {filterControls}
               </>

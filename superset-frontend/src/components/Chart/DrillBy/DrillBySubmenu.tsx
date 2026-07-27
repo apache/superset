@@ -26,7 +26,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   BaseFormData,
   Behavior,
@@ -35,7 +35,7 @@ import {
   ensureIsArray,
   getChartMetadataRegistry,
 } from '@superset-ui/core';
-import { css, useTheme } from '@apache-superset/core/ui';
+import { css, useTheme } from '@apache-superset/core/theme';
 import {
   Constants,
   Input,
@@ -43,7 +43,7 @@ import {
   Popover,
   Icons,
 } from '@superset-ui/core/components';
-import { debounce } from 'lodash';
+import { debounce } from 'lodash-es';
 import { FixedSizeList as List } from 'react-window';
 import { InputRef } from 'antd';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
@@ -57,7 +57,7 @@ export interface DrillBySubmenuProps {
   drillByConfig?: ContextMenuFilters['drillBy'];
   formData: BaseFormData & { [key: string]: any };
   onSelection?: (...args: any) => void;
-  onClick?: (event: MouseEvent) => void;
+  onClick?: (event: React.MouseEvent) => void;
   onCloseMenu?: () => void;
   openNewModal?: boolean;
   excludedColumns?: Column[];
@@ -84,7 +84,7 @@ export const DrillBySubmenu = ({
   const [debouncedSearchInput, setDebouncedSearchInput] = useState('');
   const [popoverOpen, setPopoverOpen] = useState(false);
   const ref = useRef<InputRef>(null);
-  const menuItemRef = useRef<HTMLDivElement>(null);
+  const menuItemRef = useRef<HTMLButtonElement>(null);
 
   const columns = useMemo(
     () => (dataset ? ensureIsArray(dataset.drillable_columns) : []),
@@ -93,8 +93,8 @@ export const DrillBySubmenu = ({
   const showSearch = columns.length > SHOW_COLUMNS_SEARCH_THRESHOLD;
 
   const handleSelection = useCallback(
-    (event, column) => {
-      onClick(event as MouseEvent);
+    (event: React.MouseEvent, column: Column) => {
+      onClick(event);
       onSelection(column, drillByConfig);
       if (openNewModal && onDrillBy && dataset) {
         onDrillBy(column, dataset);
@@ -179,8 +179,11 @@ export const DrillBySubmenu = ({
   }
 
   if (
-    formData.matrixify_enable_vertical_layout === true ||
-    formData.matrixify_enable_horizontal_layout === true
+    formData.matrixify_enable === true &&
+    ((formData.matrixify_mode_rows !== undefined &&
+      formData.matrixify_mode_rows !== 'disabled') ||
+      (formData.matrixify_mode_columns !== undefined &&
+        formData.matrixify_mode_columns !== 'disabled'))
   ) {
     return null;
   }
@@ -214,6 +217,7 @@ export const DrillBySubmenu = ({
       role="menu"
       tabIndex={0}
       data-test="drill-by-submenu"
+      onKeyDown={e => e.stopPropagation()}
       css={css`
         width: 220px;
         max-width: 220px;
@@ -280,11 +284,18 @@ export const DrillBySubmenu = ({
   );
 
   const menuItem = (
-    <div
+    <button
+      type="button"
       ref={menuItemRef}
-      role="button"
+      aria-disabled={isDisabled}
       tabIndex={isDisabled ? -1 : 0}
       css={css`
+        appearance: none;
+        border: none;
+        background: none;
+        padding: 0;
+        font: inherit;
+        width: 100%;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -295,12 +306,6 @@ export const DrillBySubmenu = ({
         }
       `}
       onClick={() => !isDisabled && setPopoverOpen(!popoverOpen)}
-      onKeyDown={e => {
-        if (!isDisabled && (e.key === 'Enter' || e.key === ' ')) {
-          e.preventDefault();
-          setPopoverOpen(!popoverOpen);
-        }
-      }}
     >
       <span>{t('Drill by')}</span>
       {isDisabled ? (
@@ -308,7 +313,7 @@ export const DrillBySubmenu = ({
       ) : (
         <Icons.RightOutlined iconSize="s" iconColor={theme.colorTextTertiary} />
       )}
-    </div>
+    </button>
   );
 
   if (isDisabled) {
@@ -327,7 +332,8 @@ export const DrillBySubmenu = ({
         root: {
           paddingLeft: 0,
         },
-        body: {
+        // antd v6 renamed the inner content slot `body` -> `container`
+        container: {
           padding: theme.sizeUnit * 2,
           boxShadow: theme.boxShadow,
           borderRadius: theme.borderRadius,

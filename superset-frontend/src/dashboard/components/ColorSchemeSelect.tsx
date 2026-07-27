@@ -17,15 +17,15 @@
  * under the License.
  */
 import { ReactNode, useMemo } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   ColorScheme,
   ColorSchemeGroup,
   getCategoricalSchemeRegistry,
   CategoricalScheme,
 } from '@superset-ui/core';
-import { css, useTheme } from '@apache-superset/core/ui';
-import { sortBy } from 'lodash';
+import { css, useTheme } from '@apache-superset/core/theme';
+import { sortBy } from 'lodash-es';
 import { Select, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import ColorSchemeLabel from 'src/explore/components/controls/ColorSchemeControl/ColorSchemeLabel';

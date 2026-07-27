@@ -24,10 +24,8 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
-import { createMemoryHistory } from 'history';
 import { ChartCreation } from 'src/pages/ChartCreation';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import { supersetTheme } from '@apache-superset/core/ui';
 
 jest.mock('src/components/DynamicPlugins', () => ({
   usePluginContext: () => ({
@@ -64,6 +62,7 @@ const mockUser: UserWithPermissionsAndRoles = {
   userId: 1,
   username: 'admin',
   isAnonymous: false,
+  groups: [],
 };
 
 const mockUserWithDatasetWrite: UserWithPermissionsAndRoles = {
@@ -77,25 +76,22 @@ const mockUserWithDatasetWrite: UserWithPermissionsAndRoles = {
   userId: 1,
   username: 'admin',
   isAnonymous: false,
+  groups: [],
 };
-const history = createMemoryHistory();
 
-history.push = jest.fn();
+const mockHistoryPush = jest.fn();
 
-const routeProps = {
-  history,
-  location: {} as any,
-  match: {} as any,
-};
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useHistory: () => ({
+    push: mockHistoryPush,
+  }),
+}));
 
 async function renderComponent(user = mockUser) {
+  mockHistoryPush.mockClear();
   const rendered = render(
-    <ChartCreation
-      user={user}
-      addSuccessToast={() => null}
-      theme={supersetTheme}
-      {...routeProps}
-    />,
+    <ChartCreation user={user} addSuccessToast={() => null} />,
     {
       useRedux: true,
       useRouter: true,
@@ -169,7 +165,7 @@ test('double-click viz type does nothing if no datasource is selected', async ()
   expect(
     screen.getByRole('button', { name: 'Create new chart' }),
   ).toBeDisabled();
-  expect(history.push).not.toHaveBeenCalled();
+  expect(mockHistoryPush).not.toHaveBeenCalled();
 });
 
 test('double-click viz type submits with formatted URL if datasource is selected', async () => {
@@ -191,7 +187,7 @@ test('double-click viz type submits with formatted URL if datasource is selected
     screen.getByRole('button', { name: 'Create new chart' }),
   ).toBeEnabled();
   const formattedUrl = '/explore/?viz_type=table&datasource=table_1__table';
-  expect(history.push).toHaveBeenCalledWith(formattedUrl);
+  expect(mockHistoryPush).toHaveBeenCalledWith(formattedUrl);
 });
 
 test('dropdown displays matching datasets when user types a search term', async () => {
@@ -249,23 +245,16 @@ test('handles special characters in dataset name from URL parameter', async () =
     status: 200,
   });
 
-  const originalLocation = window.location;
-  Object.defineProperty(window, 'location', {
-    value: {
-      ...originalLocation,
-      search: '?dataset=flights%C3%86%20test',
-    },
-    writable: true,
-  });
+  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+    ...window.location,
+    search: '?dataset=flights%C3%86%20test',
+  } as Location);
 
   await renderComponent();
 
   expect(await screen.findByText('flightsÆ test')).toBeInTheDocument();
 
-  Object.defineProperty(window, 'location', {
-    value: originalLocation,
-    writable: true,
-  });
+  locationSpy.mockRestore();
 });
 
 test('pre-selects the dataset from URL parameter and shows it in dropdown', async () => {
@@ -286,20 +275,16 @@ test('pre-selects the dataset from URL parameter and shows it in dropdown', asyn
     status: 200,
   });
 
-  const originalLocation = window.location;
-  Object.defineProperty(window, 'location', {
-    value: { ...originalLocation, search: '?dataset=flights' },
-    writable: true,
-  });
+  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+    ...window.location,
+    search: '?dataset=flights',
+  } as Location);
 
   await renderComponent();
 
   expect(await screen.findByText('flights')).toBeInTheDocument();
 
-  Object.defineProperty(window, 'location', {
-    value: originalLocation,
-    writable: true,
-  });
+  locationSpy.mockRestore();
 });
 
 test('shows loading spinner when dataset parameter is present in URL', async () => {
@@ -327,24 +312,15 @@ test('shows loading spinner when dataset parameter is present in URL', async () 
     })),
   );
 
-  const originalLocation = window.location;
-  Object.defineProperty(window, 'location', {
-    value: { ...originalLocation, search: '?dataset=flights' },
-    writable: true,
-  });
+  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+    ...window.location,
+    search: '?dataset=flights',
+  } as Location);
 
-  render(
-    <ChartCreation
-      user={mockUser}
-      addSuccessToast={() => null}
-      theme={supersetTheme}
-      {...routeProps}
-    />,
-    {
-      useRedux: true,
-      useRouter: true,
-    },
-  );
+  render(<ChartCreation user={mockUser} addSuccessToast={() => null} />, {
+    useRedux: true,
+    useRouter: true,
+  });
 
   expect(screen.getByRole('status')).toBeInTheDocument();
 
@@ -354,10 +330,7 @@ test('shows loading spinner when dataset parameter is present in URL', async () 
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
-  Object.defineProperty(window, 'location', {
-    value: originalLocation,
-    writable: true,
-  });
+  locationSpy.mockRestore();
 });
 
 test('shows only exact match when loading dataset from URL, not partial matches', async () => {
@@ -404,19 +377,15 @@ test('shows only exact match when loading dataset from URL, not partial matches'
     };
   });
 
-  const originalLocation = window.location;
-  Object.defineProperty(window, 'location', {
-    value: { ...originalLocation, search: '?dataset=flights' },
-    writable: true,
-  });
+  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+    ...window.location,
+    search: '?dataset=flights',
+  } as Location);
 
   await renderComponent();
 
   await screen.findByText('flights');
   expect(screen.queryByText('flights_delayed')).not.toBeInTheDocument();
 
-  Object.defineProperty(window, 'location', {
-    value: originalLocation,
-    writable: true,
-  });
+  locationSpy.mockRestore();
 });

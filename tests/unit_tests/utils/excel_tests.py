@@ -15,13 +15,19 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import io
 from datetime import datetime, timezone
 
 import pandas as pd
+from openpyxl import load_workbook
 from pandas.api.types import is_numeric_dtype
 
 from superset.utils.core import GenericDataType
-from superset.utils.excel import apply_column_types, df_to_excel
+from superset.utils.excel import (
+    apply_column_types,
+    df_to_excel,
+    NEUTRAL_TIMESTAMP,
+)
 
 
 def test_timezone_conversion() -> None:
@@ -45,6 +51,35 @@ def test_quote_formulas() -> None:
         "normal",
         "'@SUM(A1:A2)",
     ]
+
+
+def test_document_properties_are_neutral() -> None:
+    """
+    Test that exported workbooks do not carry identifying document properties.
+    """
+    df = pd.DataFrame({"a": [1, 2], "b": ["x", "y"]})
+    contents = df_to_excel(df, index=False)
+
+    workbook = load_workbook(io.BytesIO(contents))
+    properties = workbook.properties
+
+    # Authoring/descriptive fields are cleared.
+    for field in (
+        "creator",
+        "lastModifiedBy",
+        "title",
+        "subject",
+        "description",
+        "keywords",
+        "category",
+    ):
+        value = getattr(properties, field)
+        assert value in (None, ""), f"{field} should be empty, got {value!r}"
+
+    # Timestamps are pinned to a fixed, neutral value rather than the
+    # actual generation time.
+    assert properties.created == NEUTRAL_TIMESTAMP
+    assert properties.modified == NEUTRAL_TIMESTAMP
 
 
 def test_column_data_types_with_one_numeric_column():

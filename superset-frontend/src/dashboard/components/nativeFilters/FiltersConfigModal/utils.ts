@@ -30,8 +30,9 @@ import {
   ChartCustomization,
   ChartCustomizationDivider,
 } from '@superset-ui/core';
-import { logging } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
+import { buildNativeFilterTarget } from './transformers/buildTarget';
 import {
   ChartCustomizationsForm,
   FilterChangesType,
@@ -126,13 +127,8 @@ export const createHandleSave =
         };
       }
 
-      const target: Partial<NativeFilterTarget> = {};
-      if (formInputs.dataset) {
-        target.datasetId = formInputs.dataset.value;
-      }
-      if (formInputs.dataset && formInputs.column) {
-        target.column = { name: formInputs.column };
-      }
+      const target: Partial<NativeFilterTarget> =
+        buildNativeFilterTarget(formInputs);
 
       return {
         id,
@@ -140,6 +136,9 @@ export const createHandleSave =
         time_range: formInputs.time_range,
         controlValues: formInputs.controlValues ?? {},
         granularity_sqla: formInputs.granularity_sqla,
+        ...(formInputs.time_grains?.length
+          ? { time_grains: formInputs.time_grains }
+          : {}),
         requiredFirst: Object.values(formInputs.requiredFirst ?? {}).find(
           rf => rf,
         ),
@@ -310,9 +309,11 @@ export const createHandleCustomizationSave =
 export const CHART_CUSTOMIZATION_PREFIX = 'CHART_CUSTOMIZATION-';
 export const CHART_CUSTOMIZATION_DIVIDER_PREFIX =
   'CHART_CUSTOMIZATION_DIVIDER-';
+export const LEGACY_GROUPBY_PREFIX = 'groupby_';
 
 export const isChartCustomization = (id: string): boolean =>
-  id.startsWith(CHART_CUSTOMIZATION_PREFIX);
+  id.startsWith(CHART_CUSTOMIZATION_PREFIX) ||
+  id.startsWith(LEGACY_GROUPBY_PREFIX);
 
 export const isChartCustomizationDivider = (id: string): boolean =>
   id.startsWith(CHART_CUSTOMIZATION_DIVIDER_PREFIX);
@@ -337,7 +338,8 @@ export const isFilterId = (id: string): boolean =>
 
 export const isChartCustomizationId = (id: string): boolean =>
   id.startsWith(CHART_CUSTOMIZATION_PREFIX) ||
-  id.startsWith(CHART_CUSTOMIZATION_DIVIDER_PREFIX);
+  id.startsWith(CHART_CUSTOMIZATION_DIVIDER_PREFIX) ||
+  id.startsWith(LEGACY_GROUPBY_PREFIX);
 
 export const getItemType = (id: string): ItemType => {
   if (isFilterId(id)) return 'filter';

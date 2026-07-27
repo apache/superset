@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, tn } from '@apache-superset/core';
+import { t, tn } from '@apache-superset/core/translation';
 import { getNumberFormatter } from '@superset-ui/core';
 
 import { Label, Tooltip } from '@superset-ui/core/components';

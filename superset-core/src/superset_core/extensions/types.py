@@ -25,92 +25,41 @@ Two distinct schemas:
 
 from __future__ import annotations
 
-from typing import Any
+from pydantic import BaseModel, computed_field, Field  # noqa: I001
 
-from pydantic import BaseModel, Field  # noqa: I001
-
-# =============================================================================
-# Shared components
-# =============================================================================
-
-
-class ModuleFederationConfig(BaseModel):
-    """Configuration for Webpack Module Federation."""
-
-    exposes: list[str] = Field(
-        default_factory=list,
-        description="Modules exposed by this extension",
-    )
-    filename: str = Field(
-        default="remoteEntry.js",
-        description="Remote entry filename",
-    )
-    shared: dict[str, Any] = Field(
-        default_factory=dict,
-        description="Shared dependencies configuration",
-    )
-    remotes: dict[str, str] = Field(
-        default_factory=dict,
-        description="Remote module references",
-    )
-
-
-class ContributionConfig(BaseModel):
-    """Configuration for frontend UI contributions.
-
-    Views and menus use a nested structure: type -> scope -> location -> contributions.
-
-    Example:
-        {
-            "views": {
-                "sqllab": {
-                    "panels": [{"id": "my-ext.panel", "name": "My Panel"}],
-                    "leftSidebar": [{"id": "my-ext.sidebar", "name": "Sidebar"}]
-                }
-            },
-            "menus": {
-                "sqllab": {
-                    "editor": {"primary": [...], "secondary": [...]}
-                }
-            }
-        }
-    """
-
-    commands: list[dict[str, Any]] = Field(
-        default_factory=list,
-        description="Command contributions",
-    )
-    views: dict[str, dict[str, list[dict[str, Any]]]] = Field(
-        default_factory=dict,
-        description="View contributions by scope and location",
-    )
-    menus: dict[str, dict[str, Any]] = Field(
-        default_factory=dict,
-        description="Menu contributions by scope and location",
-    )
-    editors: list[dict[str, Any]] = Field(
-        default_factory=list,
-        description="Editor contributions",
-    )
+from superset_core.extensions.constants import (
+    DISPLAY_NAME_PATTERN,
+    PUBLISHER_PATTERN,
+    TECHNICAL_NAME_PATTERN,
+    VERSION_PATTERN,
+)
 
 
 class BaseExtension(BaseModel):
     """Base fields shared by ExtensionConfig and Manifest."""
 
-    id: str = Field(
+    publisher: str = Field(
         ...,
-        description="Unique extension identifier",
+        description="Publisher/organization namespace",
         min_length=1,
+        pattern=PUBLISHER_PATTERN,
     )
     name: str = Field(
         ...,
+        description="Technical extension identifier",
+        min_length=1,
+        pattern=TECHNICAL_NAME_PATTERN,
+    )
+    displayName: str = Field(  # noqa: N815
+        ...,
         description="Human-readable extension name",
         min_length=1,
+        pattern=DISPLAY_NAME_PATTERN,
     )
     version: str = Field(
         default="0.0.0",
         description="Semantic version string",
-        pattern=r"^\d+\.\d+\.\d+$",
+        pattern=VERSION_PATTERN,
     )
     license: str | None = Field(
         default=None,
@@ -129,32 +78,20 @@ class BaseExtension(BaseModel):
         description="Permissions required by this extension",
     )
 
+    @computed_field(description="Composite extension ID (publisher.name)")  # type: ignore[prop-decorator]
+    @property
+    def id(self) -> str:
+        return f"{self.publisher}.{self.name}"
+
 
 # =============================================================================
 # ExtensionConfig (extension.json)
 # =============================================================================
 
 
-class ExtensionConfigFrontend(BaseModel):
-    """Frontend section in extension.json."""
-
-    contributions: ContributionConfig = Field(
-        default_factory=ContributionConfig,
-        description="UI contribution points",
-    )
-    moduleFederation: ModuleFederationConfig = Field(  # noqa: N815
-        default_factory=ModuleFederationConfig,
-        description="Module Federation configuration",
-    )
-
-
 class ExtensionConfigBackend(BaseModel):
     """Backend section in extension.json."""
 
-    entryPoints: list[str] = Field(  # noqa: N815
-        default_factory=list,
-        description="Python module entry points to load",
-    )
     files: list[str] = Field(
         default_factory=list,
         description="Glob patterns for backend Python files",
@@ -168,10 +105,6 @@ class ExtensionConfig(BaseExtension):
     This file is authored by developers to define extension metadata.
     """
 
-    frontend: ExtensionConfigFrontend | None = Field(
-        default=None,
-        description="Frontend configuration",
-    )
     backend: ExtensionConfigBackend | None = Field(
         default=None,
         description="Backend configuration",
@@ -186,27 +119,20 @@ class ExtensionConfig(BaseExtension):
 class ManifestFrontend(BaseModel):
     """Frontend section in manifest.json."""
 
-    contributions: ContributionConfig = Field(
-        default_factory=ContributionConfig,
-        description="UI contribution points",
-    )
-    moduleFederation: ModuleFederationConfig = Field(  # noqa: N815
-        default_factory=ModuleFederationConfig,
-        description="Module Federation configuration",
-    )
     remoteEntry: str = Field(  # noqa: N815
         ...,
         description="Path to the built remote entry file",
+    )
+    moduleFederationName: str = Field(  # noqa: N815
+        ...,
+        description="Webpack Module Federation container name (maps to window[name])",
     )
 
 
 class ManifestBackend(BaseModel):
     """Backend section in manifest.json."""
 
-    entryPoints: list[str] = Field(  # noqa: N815
-        default_factory=list,
-        description="Python module entry points to load",
-    )
+    entrypoint: str
 
 
 class Manifest(BaseExtension):

@@ -17,9 +17,9 @@
  * under the License.
  */
 import { useMemo, useState } from 'react';
-import { t } from '@apache-superset/core';
-import { useTheme } from '@apache-superset/core/ui';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { t } from '@apache-superset/core/translation';
+import { useTheme } from '@apache-superset/core/theme';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   COLUMN_NAME_ALIASES,
   ControlComponentProps,
@@ -166,10 +166,14 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
           />
         ))}
         {needShowMoreButton && (
-          <div
-            role="button"
-            tabIndex={-1}
+          <button
+            type="button"
             css={{
+              appearance: 'none',
+              border: 'none',
+              background: 'none',
+              font: 'inherit',
+              width: '100%',
               padding: theme.sizeUnit * 2,
               textAlign: 'center',
               cursor: 'pointer',
@@ -190,7 +194,7 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
                 <Icons.DownOutlined /> &nbsp; {t('Show all columns')}
               </>
             )}
-          </div>
+          </button>
         )}
       </div>
     </>

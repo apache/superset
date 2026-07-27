@@ -16,12 +16,63 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, SqlaFormData } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/ui';
-import { EchartsTimeseriesChartProps } from '../../../src/types';
+import {
+  ChartDataResponseResult,
+  ChartProps,
+  DataRecord,
+  SqlaFormData,
+} from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
+import { supersetTheme } from '@apache-superset/core/theme';
+import { StackControlsValue } from '../../../src/constants';
+import type {
+  GridComponentOption,
+  LegendComponentOption,
+} from 'echarts/components';
+import {
+  EchartsTimeseriesChartProps,
+  LegendOrientation,
+  LegendType,
+} from '../../../src/types';
 import transformProps from '../../../src/Timeseries/transformProps';
 import { DEFAULT_FORM_DATA } from '../../../src/Timeseries/constants';
-import { EchartsTimeseriesSeriesType } from '../../../src/Timeseries/types';
+import {
+  EchartsTimeseriesFormData,
+  OrientationType,
+  EchartsTimeseriesSeriesType,
+} from '../../../src/Timeseries/types';
+import { getPadding } from '../../../src/Timeseries/transformers';
+import {
+  getHorizontalLegendAvailableWidth,
+  getLegendLayoutResult,
+} from '../../../src/utils/series';
+import { createEchartsTimeseriesTestChartProps } from '../../helpers';
+
+function createTestQueryData(
+  data: DataRecord[],
+  overrides?: Partial<ChartDataResponseResult>,
+): ChartDataResponseResult {
+  return {
+    annotation_data: null,
+    cache_key: null,
+    cache_timeout: null,
+    cached_dttm: null,
+    queried_dttm: null,
+    data,
+    colnames: [],
+    coltypes: [],
+    error: null,
+    is_cached: false,
+    query: '',
+    rowcount: data.length,
+    sql_rowcount: data.length,
+    stacktrace: null,
+    status: 'success',
+    from_dttm: null,
+    to_dttm: null,
+    ...overrides,
+  };
+}
 
 describe('Bar Chart X-axis Time Formatting', () => {
   const baseFormData: SqlaFormData = {
@@ -349,6 +400,598 @@ describe('Bar Chart X-axis Time Formatting', () => {
 
       expect(chartProps.formData.xAxisTimeFormat).toBeDefined();
       expect(chartProps.formData.xAxisTimeFormat).toBe('smart_date');
+    });
+  });
+
+  describe('Color By X-Axis Feature', () => {
+    const categoricalData = [
+      {
+        data: [
+          { category: 'A', value: 100 },
+          { category: 'B', value: 150 },
+          { category: 'C', value: 200 },
+        ],
+        colnames: ['category', 'value'],
+        coltypes: ['STRING', 'BIGINT'],
+      },
+    ];
+
+    test('should apply color by x-axis when enabled with no dimensions', () => {
+      const formData = {
+        ...baseFormData,
+        colorByPrimaryAxis: true,
+        groupby: [],
+        x_axis: 'category',
+        metric: 'value',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        queriesData: categoricalData,
+        formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as unknown as EchartsTimeseriesChartProps,
+      );
+
+      // Should have hidden legend series for each x-axis value
+      const series = transformedProps.echartOptions.series as any[];
+      expect(series.length).toBeGreaterThan(3); // Original series + hidden legend series
+
+      // Check that legend data contains x-axis values
+      const legendData = transformedProps.legendData as string[];
+      expect(legendData).toContain('A');
+      expect(legendData).toContain('B');
+      expect(legendData).toContain('C');
+
+      // Check that legend items have roundRect icons
+      const legend = transformedProps.echartOptions.legend as any;
+      expect(legend.data).toBeDefined();
+      expect(Array.isArray(legend.data)).toBe(true);
+      if (legend.data.length > 0 && typeof legend.data[0] === 'object') {
+        expect(legend.data[0].icon).toBe('roundRect');
+      }
+    });
+
+    test('should NOT apply color by x-axis when dimensions are present', () => {
+      const formData = {
+        ...baseFormData,
+        colorByPrimaryAxis: true,
+        groupby: ['region'],
+        x_axis: 'category',
+        metric: 'value',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        queriesData: categoricalData,
+        formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as unknown as EchartsTimeseriesChartProps,
+      );
+
+      // Legend data should NOT contain x-axis values when dimensions exist
+      const legendData = transformedProps.legendData as string[];
+      // Should use series names, not x-axis values
+      expect(legendData.length).toBeLessThan(10);
+    });
+
+    test('should use x-axis values as color keys for consistent colors', () => {
+      const formData = {
+        ...baseFormData,
+        colorByPrimaryAxis: true,
+        groupby: [],
+        x_axis: 'category',
+        metric: 'value',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        queriesData: categoricalData,
+        formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as unknown as EchartsTimeseriesChartProps,
+      );
+
+      const series = transformedProps.echartOptions.series as any[];
+
+      // Find the data series (not the hidden legend series)
+      const dataSeries = series.find(
+        s => s.data && s.data.length > 0 && s.type === 'bar',
+      );
+      expect(dataSeries).toBeDefined();
+
+      // Check that data points have individual itemStyle with colors
+      if (dataSeries && Array.isArray(dataSeries.data)) {
+        const dataPoint = dataSeries.data[0];
+        if (
+          dataPoint &&
+          typeof dataPoint === 'object' &&
+          'itemStyle' in dataPoint
+        ) {
+          expect(dataPoint.itemStyle).toBeDefined();
+          expect(dataPoint.itemStyle.color).toBeDefined();
+        }
+      }
+    });
+
+    test('should disable legend selection when color by x-axis is enabled', () => {
+      const formData = {
+        ...baseFormData,
+        colorByPrimaryAxis: true,
+        groupby: [],
+        x_axis: 'category',
+        metric: 'value',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        queriesData: categoricalData,
+        formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as unknown as EchartsTimeseriesChartProps,
+      );
+
+      const legend = transformedProps.echartOptions.legend as any;
+      expect(legend.selectedMode).toBe(false);
+      expect(legend.selector).toBe(false);
+    });
+
+    test('should work without stacking enabled', () => {
+      const formData = {
+        ...baseFormData,
+        colorByPrimaryAxis: true,
+        groupby: [],
+        stack: null,
+        x_axis: 'category',
+        metric: 'value',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        queriesData: categoricalData,
+        formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as unknown as EchartsTimeseriesChartProps,
+      );
+
+      // Should still create legend with x-axis values
+      const legendData = transformedProps.legendData as string[];
+      expect(legendData.length).toBeGreaterThan(0);
+      expect(legendData).toContain('A');
+    });
+
+    test('should handle when colorByPrimaryAxis is disabled', () => {
+      const formData = {
+        ...baseFormData,
+        colorByPrimaryAxis: false,
+        groupby: [],
+        x_axis: 'category',
+        metric: 'value',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        queriesData: categoricalData,
+        formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as unknown as EchartsTimeseriesChartProps,
+      );
+
+      // Legend should not be disabled when feature is off
+      const legend = transformedProps.echartOptions.legend as any;
+      expect(legend.selectedMode).not.toBe(false);
+    });
+
+    test('should use category axis (Y) as color key for horizontal bar charts', () => {
+      const formData = {
+        ...baseFormData,
+        colorByPrimaryAxis: true,
+        groupby: [],
+        orientation: 'horizontal',
+        x_axis: 'category',
+        metric: 'value',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        queriesData: categoricalData,
+        formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as unknown as EchartsTimeseriesChartProps,
+      );
+
+      // Legend should contain category values (A, B, C), not numeric values
+      const legendData = transformedProps.legendData as string[];
+      expect(legendData).toContain('A');
+      expect(legendData).toContain('B');
+      expect(legendData).toContain('C');
+    });
+
+    test('should preserve source order for color-by-primary-axis legends when label sorting is enabled', () => {
+      const unsortedCategoricalData = [
+        {
+          data: [
+            { category: 'Zulu', value: 100 },
+            { category: 'Alpha', value: 150 },
+            { category: 'Mike', value: 200 },
+          ],
+          colnames: ['category', 'value'],
+          coltypes: ['STRING', 'BIGINT'],
+        },
+      ];
+
+      const formData = {
+        ...baseFormData,
+        colorByPrimaryAxis: true,
+        groupby: [],
+        legendSort: 'asc',
+        x_axis: 'category',
+        metric: 'value',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        queriesData: unsortedCategoricalData,
+        formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as unknown as EchartsTimeseriesChartProps,
+      );
+
+      const legend = transformedProps.echartOptions.legend as {
+        data: { name: string }[];
+      };
+      expect(legend.data.map(item => item.name)).toEqual([
+        'Zulu',
+        'Alpha',
+        'Mike',
+      ]);
+    });
+
+    test('should deduplicate legend entries when x-axis has repeated values', () => {
+      const repeatedData = [
+        {
+          data: [
+            { category: 'A', value: 100 },
+            { category: 'A', value: 200 },
+            { category: 'B', value: 150 },
+          ],
+          colnames: ['category', 'value'],
+          coltypes: ['STRING', 'BIGINT'],
+        },
+      ];
+
+      const formData = {
+        ...baseFormData,
+        colorByPrimaryAxis: true,
+        groupby: [],
+        x_axis: 'category',
+        metric: 'value',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        queriesData: repeatedData,
+        formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as unknown as EchartsTimeseriesChartProps,
+      );
+
+      const legendData = transformedProps.legendData as string[];
+      // 'A' should appear only once despite being in the data twice
+      expect(legendData.filter(v => v === 'A').length).toBe(1);
+      expect(legendData).toContain('B');
+    });
+
+    test('should create exactly one hidden legend series per unique category', () => {
+      const formData = {
+        ...baseFormData,
+        colorByPrimaryAxis: true,
+        groupby: [],
+        x_axis: 'category',
+        metric: 'value',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        queriesData: categoricalData,
+        formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as unknown as EchartsTimeseriesChartProps,
+      );
+
+      const series = transformedProps.echartOptions.series as any[];
+      const hiddenSeries = series.filter(
+        s => s.type === 'line' && Array.isArray(s.data) && s.data.length === 0,
+      );
+      // One hidden series per unique category (A, B, C)
+      expect(hiddenSeries.length).toBe(3);
+    });
+  });
+
+  describe('Horizontal stacked bar chart axis bounds', () => {
+    // Dataset where each series max = 4 but stacked total max = 8
+    const stackedData: ChartDataResponseResult[] = [
+      createTestQueryData(
+        [
+          { team: 'Team A', High: 2, Low: 2, Medium: 4 },
+          { team: 'Team B', High: null, Low: null, Medium: 3 },
+          { team: 'Team C', High: null, Low: null, Medium: 1 },
+        ],
+        {
+          colnames: ['team', 'High', 'Low', 'Medium'],
+          coltypes: [
+            GenericDataType.String,
+            GenericDataType.Numeric,
+            GenericDataType.Numeric,
+            GenericDataType.Numeric,
+          ],
+        },
+      ),
+    ];
+
+    const horizontalStackedFormData: EchartsTimeseriesFormData = {
+      ...(baseFormData as EchartsTimeseriesFormData),
+      x_axis: 'team',
+      metric: ['High', 'Low', 'Medium'],
+      groupby: [],
+      orientation: OrientationType.Horizontal,
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      stack: StackControlsValue.Stack,
+      truncateYAxis: true,
+    };
+
+    test('xAxis.max uses stacked total, not individual series max', () => {
+      // Individual series max = 4 (Medium), stacked total for Team A = 8
+      // Without the fix, xAxis.max would be 4, clipping bars and duplicating labels
+      const chartProps = createEchartsTimeseriesTestChartProps<
+        EchartsTimeseriesFormData,
+        EchartsTimeseriesChartProps
+      >({
+        defaultFormData: horizontalStackedFormData,
+        defaultVizType: 'echarts_timeseries_bar',
+        defaultQueriesData: stackedData,
+      });
+
+      const { echartOptions } = transformProps(chartProps);
+      const xAxis = echartOptions.xAxis as any;
+
+      // xAxis.max must be >= stacked total (8), not capped at individual series max (4)
+      expect(xAxis.max).toBeGreaterThanOrEqual(8);
+    });
+
+    test('xAxis.max is not set to individual series max when stacking', () => {
+      const chartProps = createEchartsTimeseriesTestChartProps<
+        EchartsTimeseriesFormData,
+        EchartsTimeseriesChartProps
+      >({
+        defaultFormData: horizontalStackedFormData,
+        defaultVizType: 'echarts_timeseries_bar',
+        defaultQueriesData: stackedData,
+      });
+
+      const { echartOptions } = transformProps(chartProps);
+      const xAxis = echartOptions.xAxis as any;
+
+      // 4 is the individual series max — the axis should not be clipped there
+      expect(xAxis.max).not.toBe(4);
+    });
+
+    test('non-stacked horizontal bar chart still uses individual series max', () => {
+      const nonStackedFormData: EchartsTimeseriesFormData = {
+        ...horizontalStackedFormData,
+        stack: null,
+      };
+
+      const chartProps = createEchartsTimeseriesTestChartProps<
+        EchartsTimeseriesFormData,
+        EchartsTimeseriesChartProps
+      >({
+        defaultFormData: nonStackedFormData,
+        defaultVizType: 'echarts_timeseries_bar',
+        defaultQueriesData: stackedData,
+      });
+
+      const { echartOptions } = transformProps(chartProps);
+      const xAxis = echartOptions.xAxis as any;
+
+      // Without stacking, xAxis.max should be based on individual series values
+      expect(xAxis.max).toBe(4);
+    });
+  });
+
+  describe('Legend layout regressions', () => {
+    const getBottomLegendLayout = (
+      chartWidth: number,
+      legendItems: string[],
+      legendMargin?: string | number | null,
+    ) =>
+      getLegendLayoutResult({
+        availableWidth: getHorizontalLegendAvailableWidth({
+          chartWidth,
+          orientation: LegendOrientation.Bottom,
+          padding: getPadding(
+            true,
+            LegendOrientation.Bottom,
+            false,
+            false,
+            legendMargin,
+            false,
+            undefined,
+            undefined,
+            undefined,
+            true,
+          ),
+        }),
+        chartHeight: baseChartPropsConfig.height,
+        chartWidth,
+        legendItems,
+        legendMargin,
+        orientation: LegendOrientation.Bottom,
+        show: true,
+        theme: supersetTheme,
+        type: LegendType.Plain,
+      });
+
+    test('should fall back to scroll for horizontal bottom legends after margin expansion reduces available width', () => {
+      const legendLabels = [
+        'This is a long sales legend',
+        'This is a long marketing legend',
+        'This is a long operations legend',
+      ];
+      const longLegendData: ChartDataResponseResult[] = [
+        createTestQueryData(
+          [
+            {
+              [legendLabels[0]]: 100,
+              [legendLabels[1]]: null,
+              [legendLabels[2]]: null,
+              __timestamp: 1609459200000,
+            },
+            {
+              [legendLabels[0]]: null,
+              [legendLabels[1]]: 150,
+              [legendLabels[2]]: null,
+              __timestamp: 1612137600000,
+            },
+            {
+              [legendLabels[0]]: null,
+              [legendLabels[1]]: null,
+              [legendLabels[2]]: 200,
+              __timestamp: 1614556800000,
+            },
+          ],
+          {
+            colnames: [...legendLabels, '__timestamp'],
+            coltypes: [
+              GenericDataType.Numeric,
+              GenericDataType.Numeric,
+              GenericDataType.Numeric,
+              GenericDataType.Temporal,
+            ],
+          },
+        ),
+      ];
+      const regressionFormData: EchartsTimeseriesFormData = {
+        ...(baseFormData as EchartsTimeseriesFormData),
+        metric: legendLabels,
+        orientation: OrientationType.Horizontal,
+        legendOrientation: LegendOrientation.Bottom,
+        legendType: LegendType.Plain,
+        showLegend: true,
+      };
+      const baselineChartProps = createEchartsTimeseriesTestChartProps<
+        EchartsTimeseriesFormData,
+        EchartsTimeseriesChartProps
+      >({
+        defaultFormData: regressionFormData,
+        defaultVizType: 'echarts_timeseries_bar',
+        defaultQueriesData: longLegendData,
+        width: baseChartPropsConfig.width,
+        height: baseChartPropsConfig.height,
+      });
+      const baselineTransformed = transformProps(baselineChartProps);
+      const legendItems = (
+        (baselineTransformed.echartOptions.legend as LegendComponentOption)
+          .data as Array<string | { name: string }>
+      ).map(item => (typeof item === 'string' ? item : item.name));
+      let chartWidth: number | undefined;
+      let expandedLegendMargin: number | null = null;
+
+      for (let width = 300; width <= 700; width += 1) {
+        const initialLayout = getBottomLegendLayout(width, legendItems, null);
+
+        if (initialLayout.effectiveType !== LegendType.Plain) {
+          continue;
+        }
+
+        const refinedLayout = getBottomLegendLayout(
+          width,
+          legendItems,
+          initialLayout.effectiveMargin ?? null,
+        );
+
+        if (refinedLayout.effectiveType === LegendType.Scroll) {
+          chartWidth = width;
+          expandedLegendMargin = initialLayout.effectiveMargin ?? null;
+          break;
+        }
+      }
+
+      expect(chartWidth).toBeDefined();
+      expect(expandedLegendMargin).not.toBeNull();
+      const resolvedChartWidth = chartWidth ?? baseChartPropsConfig.width;
+
+      const chartProps = createEchartsTimeseriesTestChartProps<
+        EchartsTimeseriesFormData,
+        EchartsTimeseriesChartProps
+      >({
+        defaultFormData: regressionFormData,
+        defaultVizType: 'echarts_timeseries_bar',
+        defaultQueriesData: longLegendData,
+        width: resolvedChartWidth,
+        height: baseChartPropsConfig.height,
+      });
+
+      const transformedProps = transformProps(chartProps);
+      const legend = transformedProps.echartOptions
+        .legend as LegendComponentOption;
+      const grid = transformedProps.echartOptions.grid as GridComponentOption;
+      const expectedPadding = getPadding(
+        true,
+        LegendOrientation.Bottom,
+        false,
+        false,
+        null,
+        false,
+        undefined,
+        undefined,
+        undefined,
+        true,
+      );
+      [expectedPadding.bottom, expectedPadding.left] = [
+        expectedPadding.left,
+        expectedPadding.bottom,
+      ];
+      const expandedPadding = getPadding(
+        true,
+        LegendOrientation.Bottom,
+        false,
+        false,
+        expandedLegendMargin,
+        false,
+        undefined,
+        undefined,
+        undefined,
+        true,
+      );
+      [expandedPadding.bottom, expandedPadding.left] = [
+        expandedPadding.left,
+        expandedPadding.bottom,
+      ];
+
+      expect(legend.type).toBe(LegendType.Scroll);
+      expect(grid.bottom).toBe(expectedPadding.bottom);
+      expect(grid.bottom).not.toBe(expandedPadding.bottom);
     });
   });
 });

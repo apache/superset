@@ -1,0 +1,1 @@
+{"parameters":[{"in":"path","name":"pk","required":true,"schema":{"type":"integer"}},{"in":"path","name":"digest","required":true,"schema":{"type":"string"}}]}

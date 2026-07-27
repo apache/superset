@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   ContributionType,
   ensureIsArray,
@@ -26,7 +26,7 @@ import {
   QueryFormColumn,
   QueryFormMetric,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   ControlPanelState,
   ControlState,
@@ -238,11 +238,16 @@ export const xAxisForceCategoricalControl = {
       return state?.form_data?.x_axis_sort !== undefined || control.value;
     },
     renderTrigger: true,
+    // Expose the toggle for numeric and temporal x-axes. Temporal columns
+    // default to a continuous time scale, where ECharts places ticks at "nice"
+    // intervals that don't align with the actual buckets (e.g. weekly grain
+    // markers landing between month ticks). Treating the axis as categorical
+    // lets each bucket map to a discrete, tick-aligned category.
     visibility: ({ controls }: { controls: ControlStateMapping }) =>
       checkColumnType(
         getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
         controls?.datasource?.datasource,
-        [GenericDataType.Numeric],
+        [GenericDataType.Numeric, GenericDataType.Temporal],
       ),
     shouldMapStateToProps: () => true,
   },

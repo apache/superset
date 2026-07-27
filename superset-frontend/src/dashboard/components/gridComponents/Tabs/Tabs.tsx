@@ -25,7 +25,8 @@ import {
   ReactElement,
 } from 'react';
 import { usePrevious } from '@superset-ui/core';
-import { t, useTheme, styled } from '@apache-superset/core/ui';
+import { useTheme, styled } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import { useSelector } from 'react-redux';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { LOG_ACTIONS_SELECT_DASHBOARD_TAB } from 'src/logger/LogUtils';
@@ -43,7 +44,7 @@ import TabsRenderer from '../TabsRenderer';
 import type { LayoutItem, RootState } from 'src/dashboard/types';
 import type { DropResult } from 'src/dashboard/components/dnd/dragDroppableConfig';
 
-interface TabsProps {
+export interface TabsProps {
   id: string;
   parentId: string;
   component: LayoutItem;
@@ -97,8 +98,6 @@ interface ShowDropIndicatorsResult {
 
 interface CloseIconWithDropIndicatorProps {
   showDropIndicators: ShowDropIndicatorsResult;
-  role?: string;
-  tabIndex?: number;
 }
 
 const CloseIconWithDropIndicator = (
@@ -480,9 +479,9 @@ const Tabs = (props: TabsProps): ReactElement => {
           </>
         ),
         closeIcon: (
+          // rc-tabs already wraps closeIcon content in its own
+          // <button role="tab" aria-label="remove">.
           <CloseIconWithDropIndicator
-            role="button"
-            tabIndex={tabIndex}
             showDropIndicators={showDropIndicators(tabIndex)}
           />
         ),
@@ -581,7 +580,7 @@ const Tabs = (props: TabsProps): ReactElement => {
           show={!!tabToDelete}
           onHide={handleCancelTabDelete}
           onHandledPrimaryAction={handleConfirmTabDelete}
-          primaryButtonName={t('DELETE')}
+          primaryButtonName={t('Delete')}
           primaryButtonStyle="danger"
           title={t('Delete dashboard tab?')}
           centered

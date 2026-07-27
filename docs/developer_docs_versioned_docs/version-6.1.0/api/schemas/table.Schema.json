@@ -1,0 +1,1 @@
+{"schema":{"properties":{"database_id":{"type":"integer"},"description":{"type":"string"},"expanded":{"type":"boolean"},"id":{"type":"integer"},"schema":{"type":"string"},"tab_state_id":{"type":"integer"},"table":{"type":"string"}},"type":"object","title":"Table"},"schemaType":"response"}

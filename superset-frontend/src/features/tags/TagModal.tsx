@@ -28,9 +28,9 @@ import {
   Input,
   Modal,
 } from '@superset-ui/core/components';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { SupersetClient } from '@superset-ui/core';
-import { styled, useTheme } from '@apache-superset/core/ui';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import { Tag } from 'src/views/CRUD/types';
 import { fetchObjectsByTagIds } from 'src/features/tags/tags';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
@@ -130,7 +130,7 @@ const TagModal: FC<TagModalProps> = ({
           setChartsToTag(resourceMap[TaggableResources.Chart]);
           setSavedQueriesToTag(resourceMap[TaggableResources.SavedQuery]);
         },
-        (error: Response) => {
+        (_error: Response) => {
           addDangerToast('Error Fetching Tagged Objects');
         },
       );
@@ -312,8 +312,11 @@ const TagModal: FC<TagModalProps> = ({
         </Flex>
 
         <Flex vertical gap={theme.sizeUnit}>
-          <FormLabel>{t('Description')}</FormLabel>
+          <FormLabel htmlFor="tag-description">
+            {t('Tag description')}
+          </FormLabel>
           <Input
+            id="tag-description"
             className="tag-input"
             onChange={handleDescriptionChange}
             placeholder={t('Add description of your tag')}
@@ -332,6 +335,7 @@ const TagModal: FC<TagModalProps> = ({
           onChange={value =>
             handleOptionChange(TaggableResources.Dashboard, value)
           }
+          getPopupContainer={() => document.body}
           header={<FormLabel>{t('Dashboards')}</FormLabel>}
           allowClear
         />
@@ -344,6 +348,7 @@ const TagModal: FC<TagModalProps> = ({
           value={chartsToTag}
           options={loadCharts}
           onChange={value => handleOptionChange(TaggableResources.Chart, value)}
+          getPopupContainer={() => document.body}
           header={<FormLabel>{t('Charts')}</FormLabel>}
           allowClear
         />
@@ -358,6 +363,7 @@ const TagModal: FC<TagModalProps> = ({
           onChange={value =>
             handleOptionChange(TaggableResources.SavedQuery, value)
           }
+          getPopupContainer={() => document.body}
           header={<FormLabel>{t('Saved queries')}</FormLabel>}
           allowClear
         />

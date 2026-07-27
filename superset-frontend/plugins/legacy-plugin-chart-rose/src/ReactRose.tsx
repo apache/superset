@@ -17,7 +17,7 @@
  * under the License.
  */
 import { reactify } from '@superset-ui/core';
-import { styled, css } from '@apache-superset/core/ui';
+import { styled, css } from '@apache-superset/core/theme';
 import { Global } from '@emotion/react';
 import Component from './Rose';
 

@@ -19,7 +19,7 @@
 
 import { RefObject } from 'react';
 import { createSelector, lruMemoize } from 'reselect';
-import { supersetTheme, SupersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme, SupersetTheme } from '@apache-superset/core/theme';
 import {
   AppSection,
   Behavior,
@@ -66,6 +66,18 @@ type Hooks = {
   setTooltip?: HandlerFunction;
   /* handle legend scroll changes */
   onLegendScroll?: HandlerFunction;
+  /**
+   * Resolve an async chart-data response (HTTP 202 from GLOBAL_ASYNC_QUERIES).
+   * Injected by the app so components in this package (e.g. Matrixify's
+   * StatefulChart) can await async results without importing app-level
+   * async-event middleware. Returns the resolved query results.
+   */
+  handleAsyncChartData?: (
+    response: Response,
+    json: JsonObject,
+    useLegacyApi?: boolean,
+    signal?: AbortSignal,
+  ) => Promise<QueryData[]> | QueryData[];
 } & PlainObject;
 
 /**

@@ -19,7 +19,8 @@
 import { extent as d3Extent, range as d3Range } from 'd3-array';
 import { select as d3Select } from 'd3-selection';
 import { getSequentialSchemeRegistry } from '@superset-ui/core';
-import { SupersetTheme, t } from '@apache-superset/core/ui';
+import { SupersetTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import CalHeatMapImport from './vendor/cal-heatmap';
 import { convertUTCTimestampToLocal } from './utils';
 
@@ -55,6 +56,8 @@ interface CalendarProps {
   valueFormatter: (value: number) => string;
   verboseMap: Record<string, string>;
   theme: SupersetTheme;
+  colorRangeEnd?: number;
+  colorRangeStart?: number;
 }
 
 function Calendar(element: HTMLElement, props: CalendarProps) {
@@ -75,6 +78,8 @@ function Calendar(element: HTMLElement, props: CalendarProps) {
     valueFormatter,
     verboseMap,
     theme,
+    colorRangeEnd,
+    colorRangeStart,
   } = props;
 
   const container = d3Select(element)
@@ -97,10 +102,14 @@ function Calendar(element: HTMLElement, props: CalendarProps) {
       calContainer.text(`${METRIC_TEXT}: ${verboseMap[metric] || metric}`);
     }
     const timestamps = metricsData[metric];
-    const rawExtents = d3Extent(
-      Object.keys(timestamps),
-      key => timestamps[key],
-    );
+    const useCustomColorRange =
+      Number.isFinite(colorRangeStart) && Number.isFinite(colorRangeEnd);
+    const rawExtents = useCustomColorRange
+      ? ([
+          Math.min(colorRangeStart as number, colorRangeEnd as number),
+          Math.max(colorRangeStart as number, colorRangeEnd as number),
+        ] as [number, number])
+      : d3Extent(Object.keys(timestamps), key => timestamps[key]);
     // Guard against undefined extents (empty data)
     const extents: [number, number] =
       rawExtents[0] != null && rawExtents[1] != null
@@ -111,7 +120,7 @@ function Calendar(element: HTMLElement, props: CalendarProps) {
     const colorScheme = getSequentialSchemeRegistry().get(linearColorScheme);
     const colorScale = colorScheme
       ? colorScheme.createLinearScale(extents)
-      : (v: number) => '#ccc'; // fallback if scheme not found
+      : (_v: number) => '#ccc'; // fallback if scheme not found
 
     const legend = d3Range(steps).map(i => extents[0] + step * i);
     const legendColors = legend.map(x => colorScale(x));

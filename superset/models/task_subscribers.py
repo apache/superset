@@ -21,7 +21,7 @@ from datetime import datetime, timezone
 from flask_appbuilder import Model
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, UniqueConstraint
 from sqlalchemy.orm import relationship
-from superset_core.api.models import TaskSubscriber as CoreTaskSubscriber
+from superset_core.tasks.models import TaskSubscriber as CoreTaskSubscriber
 
 from superset.models.helpers import AuditMixinNullable
 

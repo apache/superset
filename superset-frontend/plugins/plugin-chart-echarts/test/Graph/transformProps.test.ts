@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ChartProps, SqlaFormData } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 import transformProps from '../../src/Graph/transformProps';
 import { DEFAULT_GRAPH_SERIES_OPTION } from '../../src/Graph/constants';
 import { EchartsGraphChartProps } from '../../src/Graph/types';

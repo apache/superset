@@ -69,6 +69,14 @@ class KeyValueDAO(BaseDAO[KeyValueEntry]):
 
     @staticmethod
     def delete_expired_entries(resource: KeyValueResource) -> None:
+        """
+        Bulk-delete every expired entry for the given resource.
+
+        Callers that pass an explicit ``key`` to ``create_entry`` along with an
+        ``expires_on`` must invoke this once before their ``create_entry`` call(s);
+        see :meth:`create_entry` for the rationale. Expired entries are also removed
+        in bulk across all resources by the scheduled ``prune_key_value`` task.
+        """
         (
             db.session.query(KeyValueEntry)
             .filter(
@@ -88,6 +96,20 @@ class KeyValueDAO(BaseDAO[KeyValueEntry]):
         key: Key | None = None,
         expires_on: datetime | None = None,
     ) -> KeyValueEntry:
+        """
+        Create a new entry in the key-value store.
+
+        .. note::
+            This method intentionally does **not** purge expired entries. Callers
+            that pass an explicit ``key`` along with an ``expires_on`` must call
+            :meth:`delete_expired_entries` for the same ``resource`` once before
+            creating their entries. Purging is deliberately hoisted out of this
+            method so that a transaction creating many entries pays the cleanup cost
+            only once up front rather than on every insert. An expired entry still
+            occupying the same ``key`` would otherwise cause this insert to fail the
+            unique constraint. (Entries created without an explicit ``key`` get an
+            auto-generated id and cannot collide, so they need no prior purge.)
+        """
         try:
             encoded_value = codec.encode(value)
         except Exception as ex:
@@ -118,6 +140,12 @@ class KeyValueDAO(BaseDAO[KeyValueEntry]):
         key: Key,
         expires_on: datetime | None = None,
     ) -> KeyValueEntry:
+        """
+        Update an existing entry or create it if it does not exist.
+
+        Because this overwrites any existing entry for the key (expired or not), it
+        does not require a prior :meth:`delete_expired_entries` call.
+        """
         if entry := KeyValueDAO.get_entry(resource, key):
             entry.value = codec.encode(value)
             entry.expires_on = expires_on
@@ -135,6 +163,10 @@ class KeyValueDAO(BaseDAO[KeyValueEntry]):
         key: Key,
         expires_on: datetime | None = None,
     ) -> KeyValueEntry:
+        """
+        Update an existing entry, raising ``KeyValueUpdateFailedError`` if no entry
+        exists for the given key.
+        """
         if entry := KeyValueDAO.get_entry(resource, key):
             entry.value = codec.encode(value)
             entry.expires_on = expires_on

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   ControlPanelConfig,
   formatSelectOptions,
@@ -144,7 +144,7 @@ const config: ControlPanelConfig = {
               clearable: true,
               label: t('X axis title margin'),
               renderTrigger: true,
-              default: sections.TITLE_MARGIN_OPTIONS[1],
+              default: sections.TITLE_MARGIN_OPTIONS[3],
               choices: formatSelectOptions(sections.TITLE_MARGIN_OPTIONS),
             },
           },
@@ -216,7 +216,7 @@ const config: ControlPanelConfig = {
               clearable: true,
               label: t('Y axis title margin'),
               renderTrigger: true,
-              default: sections.TITLE_MARGIN_OPTIONS[1],
+              default: sections.TITLE_MARGIN_OPTIONS[4],
               choices: formatSelectOptions(sections.TITLE_MARGIN_OPTIONS),
             },
           },

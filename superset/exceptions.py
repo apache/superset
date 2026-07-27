@@ -353,9 +353,9 @@ class OAuth2RedirectError(SupersetErrorException):
 
     See the `OAuth2RedirectMessage.tsx` component for more details of how this
     information is handled.
-
-    TODO (betodealmeida): change status to 403.
     """
+
+    status = 403
 
     def __init__(self, url: str, tab_id: str, redirect_uri: str):
         super().__init__(
@@ -365,6 +365,27 @@ class OAuth2RedirectError(SupersetErrorException):
                 level=ErrorLevel.WARNING,
                 extra={"url": url, "tab_id": tab_id, "redirect_uri": redirect_uri},
             )
+        )
+
+
+class OAuth2TokenRefreshError(OAuth2RedirectError):
+    """
+    Raised when an OAuth2 refresh token request fails with a 400/401/403 error.
+    The stored token is no longer valid and the user must re-authenticate.
+
+    Subclasses OAuth2RedirectError so that existing oauth2_exception checks
+    match it automatically, triggering start_oauth2_dance() via check_for_oauth2.
+    """
+
+    def __init__(self, response_text: str) -> None:
+        SupersetErrorException.__init__(
+            self,
+            SupersetError(
+                message="OAuth2 token refresh failed, re-authentication required.",
+                error_type=SupersetErrorType.OAUTH2_REDIRECT,
+                level=ErrorLevel.WARNING,
+                extra={"error": response_text},
+            ),
         )
 
 
@@ -417,6 +438,14 @@ class SupersetDisallowedSQLTableException(SupersetErrorException):
 class AcquireDistributedLockFailedException(Exception):  # noqa: N818
     """
     Exception to signalize failure to acquire lock.
+    """
+
+
+class LockAlreadyHeldException(AcquireDistributedLockFailedException):  # noqa: N818
+    """
+    Raised when a distributed lock is already held by another process (lock contention).
+    Subclass of AcquireDistributedLockFailedException so existing callers that catch
+    the base exception continue to work unchanged.
     """
 
 

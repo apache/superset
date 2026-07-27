@@ -1,0 +1,1 @@
+{"parameters":[{"description":"The SQL query result identifier","in":"path","name":"client_id","required":true,"schema":{"type":"integer"}}]}

@@ -1,6 +1,7 @@
 const path = require("path");
 const { ModuleFederationPlugin } = require("webpack").container;
 const packageConfig = require("./package");
+const extensionConfig = require("../extension.json");
 
 module.exports = (env, argv) => {
   const isProd = argv.mode === "production";
@@ -19,14 +20,10 @@ module.exports = (env, argv) => {
       filename: isProd ? undefined : "[name].[contenthash].js",
       chunkFilename: "[name].[contenthash].js",
       path: path.resolve(__dirname, "dist"),
-      publicPath: `/api/v1/extensions/${packageConfig.name}/`,
+      publicPath: `/api/v1/extensions/${extensionConfig.publisher}/${extensionConfig.name}/`,
     },
     resolve: {
       extensions: [".ts", ".tsx", ".js", ".jsx"],
-    },
-    externalsType: "window",
-    externals: {
-      "@apache-superset/core": "superset",
     },
     module: {
       rules: [
@@ -39,7 +36,7 @@ module.exports = (env, argv) => {
     },
     plugins: [
       new ModuleFederationPlugin({
-        name: "{{ id }}",
+        name: "{{ mf_name }}",
         filename: "remoteEntry.[contenthash].js",
         exposes: {
           "./index": "./src/index.tsx",
@@ -58,6 +55,10 @@ module.exports = (env, argv) => {
           antd: {
             singleton: true,
             requiredVersion: packageConfig.peerDependencies["antd"],
+            import: false,
+          },
+          "@apache-superset/core": {
+            singleton: true,
             import: false,
           },
         },

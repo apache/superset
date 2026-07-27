@@ -16,15 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryFormData, DataMask } from '@superset-ui/core';
+import { QueryFormData, FilterState } from '@superset-ui/core';
+import { PluginFilterHooks, PluginFilterStylesProps } from '../types';
+import { RefObject } from 'react';
+import type { RefSelectProps } from '@superset-ui/core/components';
+import { ColumnData, ColumnOption } from '../DynamicGroupBy/types';
 
 export interface DeckglLayerVisibilityFormData extends QueryFormData {
   defaultToAllLayersVisible?: boolean;
 }
-
-export const DEFAULT_FORM_DATA: Partial<DeckglLayerVisibilityFormData> = {
-  defaultToAllLayersVisible: true,
-};
 
 export interface LayerInfo {
   sliceId: number;
@@ -32,15 +32,9 @@ export interface LayerInfo {
   type: string;
 }
 
-export interface PluginDeckglLayerVisibilityProps {
+export type PluginDeckglLayerVisibilityProps = PluginFilterStylesProps & {
+  data: (ColumnOption | ColumnData)[];
+  filterState: FilterState;
   formData: DeckglLayerVisibilityFormData;
-  height: number;
-  width: number;
-  filterState: {
-    value?: number[];
-  };
-  setDataMask: (dataMask: DataMask) => void;
-  ownState?: {
-    availableLayers?: LayerInfo[];
-  };
-}
+  inputRef: RefObject<RefSelectProps>;
+} & PluginFilterHooks;

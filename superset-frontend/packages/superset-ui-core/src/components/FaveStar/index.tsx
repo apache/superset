@@ -19,14 +19,18 @@
 
 import { useCallback, useEffect, MouseEvent } from 'react';
 
-import { t } from '@apache-superset/core';
-import { css, styled, useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Tooltip } from '../Tooltip';
 import type { FaveStarProps } from './types';
 
-const StyledLink = styled.a`
+const StyledLink = styled.button`
   ${({ theme }) => css`
+    appearance: none;
+    border: none;
+    background: none;
+    font: inherit;
     font-size: ${theme.fontSizeXL}px;
     display: flex;
     padding: 0 0 0 ${theme.sizeUnit * 2}px;
@@ -55,11 +59,10 @@ export const FaveStar = ({
 
   const content = (
     <StyledLink
-      href="#"
+      type="button"
       onClick={onClick}
       className="fave-unfave-icon"
       data-test="fave-unfave-icon"
-      role="button"
     >
       {isStarred ? (
         <Icons.StarFilled

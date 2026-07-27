@@ -81,6 +81,9 @@ def test_get_prequeries(mocker: MockerFixture) -> None:
     assert Db2EngineSpec.get_prequeries(database, schema="my_schema") == [
         'set current_schema "my_schema"'
     ]
+    assert Db2EngineSpec.get_prequeries(database, schema='evil"; SELECT 1--') == [
+        'set current_schema "evil""; SELECT 1--"'
+    ]
 
 
 @pytest.mark.parametrize(

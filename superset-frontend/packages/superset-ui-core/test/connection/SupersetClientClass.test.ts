@@ -108,6 +108,20 @@ describe('SupersetClientClass', () => {
       expect(fetchMock.callHistory.calls(LOGIN_GLOB)).toHaveLength(0);
     });
 
+    test('getCSRFToken() returns existing csrfToken without fetching when already set', async () => {
+      const client = new SupersetClientClass({ csrfToken: 'existing_token' });
+      const token = await client.getCSRFToken();
+      expect(token).toBe('existing_token');
+      expect(fetchMock.callHistory.calls(LOGIN_GLOB)).toHaveLength(0);
+    });
+
+    test('getCSRFToken() calls fetchCSRFToken when csrfToken is not set (line 261 || branch)', async () => {
+      const client = new SupersetClientClass({});
+      const token = await client.getCSRFToken();
+      expect(fetchMock.callHistory.calls(LOGIN_GLOB)).toHaveLength(1);
+      expect(token).toBe(1234);
+    });
+
     test('calls api/v1/security/csrf_token/ when init(force=true) is called even if a CSRF token is passed', async () => {
       expect.assertions(4);
       const initialToken = 'initial_token';
@@ -143,6 +157,25 @@ describe('SupersetClientClass', () => {
     test('throws if api/v1/security/csrf_token/ does not return a token', async () => {
       expect.assertions(1);
       fetchMock.modifyRoute(LOGIN_GLOB, { response: {} });
+
+      let error;
+      try {
+        await new SupersetClientClass({}).init();
+      } catch (err) {
+        error = err;
+      } finally {
+        expect(error as typeof invalidCsrfTokenError).toEqual(
+          invalidCsrfTokenError,
+        );
+      }
+    });
+
+    test('does not set csrfToken when json response is a non-object primitive (line 245 false branch)', async () => {
+      expect.assertions(1);
+      fetchMock.removeRoute(LOGIN_GLOB);
+      // String '123' is used as raw body text; response.json() parses it to the
+      // number 123, so typeof json === 'object' is false
+      fetchMock.get(LOGIN_GLOB, '123', { name: LOGIN_GLOB });
 
       let error;
       try {
@@ -520,22 +553,26 @@ describe('SupersetClientClass', () => {
   });
 
   describe('when unauthorized', () => {
-    let originalLocation: any;
     let authSpy: jest.SpyInstance;
+    let locationSpy: jest.SpyInstance;
+    let mockHrefValue: string;
     const mockRequestUrl = 'https://host/get/url';
     const mockRequestPath = '/get/url';
     const mockRequestSearch = '?param=1&param=2';
     const mockHref = mockRequestUrl + mockRequestSearch;
 
     beforeEach(() => {
-      originalLocation = window.location;
-      // @ts-expect-error
-      delete window.location;
-      window.location = {
+      mockHrefValue = mockHref;
+      locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
         pathname: mockRequestPath,
         search: mockRequestSearch,
-        href: mockHref,
-      } as unknown as Location;
+        get href() {
+          return mockHrefValue;
+        },
+        set href(v: string) {
+          mockHrefValue = v;
+        },
+      } as unknown as Location);
       authSpy = jest
         .spyOn(SupersetClientClass.prototype, 'ensureAuth')
         .mockImplementation();
@@ -545,7 +582,7 @@ describe('SupersetClientClass', () => {
 
     afterEach(() => {
       authSpy.mockReset();
-      window.location = originalLocation;
+      locationSpy.mockRestore();
     });
 
     test('should redirect', async () => {
@@ -566,11 +603,17 @@ describe('SupersetClientClass', () => {
     test('should not redirect again if already on login page', async () => {
       const client = new SupersetClientClass({});
 
-      window.location = {
-        href: '/login?next=something',
+      mockHrefValue = '/login?next=something';
+      locationSpy.mockReturnValue({
+        get href() {
+          return mockHrefValue;
+        },
+        set href(v: string) {
+          mockHrefValue = v;
+        },
         pathname: '/login',
         search: '?next=something',
-      } as unknown as Location;
+      } as unknown as Location);
 
       let error;
       try {
@@ -735,6 +778,77 @@ describe('SupersetClientClass', () => {
       expect(appendChild.mock.calls).toHaveLength(0);
       expect(removeChild.mock.calls).toHaveLength(0);
       expect(authSpy).toHaveBeenCalledTimes(0);
+    });
+  });
+
+  describe('.postBlob()', () => {
+    const protocol = 'https:';
+    const host = 'host';
+    const mockPostBlobEndpoint = '/api/v1/chart/data';
+    const mockPostBlobUrl = `${protocol}//${host}${mockPostBlobEndpoint}`;
+    const postBlobPayload = { form_data: '{"viz_type":"table"}' };
+
+    let authSpy: jest.SpyInstance;
+    let client: SupersetClientClass;
+
+    beforeEach(async () => {
+      fetchMock.removeRoute(LOGIN_GLOB);
+      fetchMock.get(LOGIN_GLOB, { result: 1234 }, { name: LOGIN_GLOB });
+
+      client = new SupersetClientClass({ protocol, host });
+      await client.init();
+      authSpy = jest.spyOn(SupersetClientClass.prototype, 'ensureAuth');
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    test('calls ensureAuth and delegates to post with raw parseMethod', async () => {
+      const mockResponse = new Response('csv data', { status: 200 });
+      const postSpy = jest
+        .spyOn(client, 'post')
+        .mockResolvedValue(mockResponse);
+
+      const response = await client.postBlob(
+        mockPostBlobEndpoint,
+        postBlobPayload,
+      );
+
+      expect(authSpy).toHaveBeenCalledTimes(1);
+      expect(postSpy).toHaveBeenCalledWith({
+        endpoint: mockPostBlobEndpoint,
+        postPayload: postBlobPayload,
+        parseMethod: 'raw',
+        stringify: false,
+      });
+      expect(response).toBe(mockResponse);
+    });
+
+    test('passes payload in request body', async () => {
+      fetchMock.post(mockPostBlobUrl, {
+        status: 200,
+        body: 'csv data',
+      });
+
+      await client.postBlob(mockPostBlobEndpoint, postBlobPayload);
+
+      const fetchRequest = fetchMock.callHistory.calls(mockPostBlobUrl)[0]
+        .options as CallApi;
+      const formData = fetchRequest.body as FormData;
+
+      expect(formData.get('form_data')).toBe(postBlobPayload.form_data);
+    });
+
+    test('rejects when response is not ok', async () => {
+      fetchMock.post(mockPostBlobUrl, {
+        status: 413,
+        body: 'Payload Too Large',
+      });
+
+      await expect(
+        client.postBlob(mockPostBlobEndpoint, postBlobPayload),
+      ).rejects.toMatchObject({ status: 413 });
     });
   });
 });

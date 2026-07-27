@@ -18,7 +18,7 @@
  */
 import { useMemo, ReactNode } from 'react';
 
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   ColorScheme,
   ColorSchemeGroup,
@@ -26,8 +26,8 @@ import {
   getLabelsColorMap,
   CategoricalColorNamespace,
 } from '@superset-ui/core';
-import { css, useTheme } from '@apache-superset/core/ui';
-import { sortBy } from 'lodash';
+import { css, useTheme } from '@apache-superset/core/theme';
+import { sortBy } from 'lodash-es';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import {
   Tooltip,

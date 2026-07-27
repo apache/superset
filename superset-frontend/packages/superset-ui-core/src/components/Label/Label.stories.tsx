@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { action } from '@storybook/addon-actions';
-import { Meta, StoryFn } from '@storybook/react';
+import { action } from 'storybook/actions';
+import { Meta, StoryFn } from '@storybook/react-webpack5';
 import type { LabelType } from './types';
 import { Label, DatasetTypeLabel, PublishedLabel } from '.';
 

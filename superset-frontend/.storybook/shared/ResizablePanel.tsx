@@ -17,13 +17,9 @@
  * under the License.
  */
 
-import { PropsWithChildren, ReactNode, SyntheticEvent } from 'react';
-import {
-  ResizableBox,
-  ResizableBoxProps,
-  ResizeCallbackData,
-} from 'react-resizable';
-import { styled } from '@apache-superset/core/ui';
+import { ReactNode, SyntheticEvent } from 'react';
+import { ResizableBox, ResizeCallbackData } from 'react-resizable';
+import { styled } from '@apache-superset/core/theme';
 
 import 'react-resizable/css/styles.css';
 
@@ -46,14 +42,16 @@ export type Size = ResizeCallbackData['size'];
 
 export default function ResizablePanel({
   children,
-  heading = undefined,
+  heading,
   initialSize = { width: 500, height: 300 },
   minConstraints = [100, 100] as [number, number],
   onResize,
-  ...props
-}: PropsWithChildren<Omit<ResizableBoxProps, 'width' | 'height'>> & {
+}: {
+  children?: ReactNode;
   heading?: ReactNode;
   initialSize?: Size;
+  minConstraints?: [number, number];
+  onResize?: (e: SyntheticEvent, data: ResizeCallbackData) => void;
 }) {
   const { width, height } = initialSize;
   return (
@@ -61,16 +59,14 @@ export default function ResizablePanel({
       className="panel"
       width={width}
       height={height}
+      axis="both"
       minConstraints={minConstraints}
-      onResize={
-        onResize
-          ? (e: SyntheticEvent, data: ResizeCallbackData) => {
-              const { size } = data;
-              onResize(e, { ...data, size });
-            }
-          : undefined
-      }
-      {...props}
+      maxConstraints={[Infinity, Infinity]}
+      handleSize={[20, 20]}
+      lockAspectRatio={false}
+      resizeHandles={['se']}
+      transformScale={1}
+      onResize={onResize}
     >
       <>
         {heading ? <div className="panel-heading">{heading}</div> : null}

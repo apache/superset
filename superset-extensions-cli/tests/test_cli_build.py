@@ -20,6 +20,7 @@ from __future__ import annotations
 import json
 from unittest.mock import Mock, patch
 
+import click
 import pytest
 from superset_extensions_cli.cli import (
     app,
@@ -46,26 +47,49 @@ def extension_with_build_structure():
             frontend_dir = base_path / "frontend"
             frontend_dir.mkdir()
 
+            # Create conventional frontend entry point
+            frontend_src_dir = frontend_dir / "src"
+            frontend_src_dir.mkdir()
+            (frontend_src_dir / "index.tsx").write_text("// Frontend entry point")
+
         if include_backend:
             backend_dir = base_path / "backend"
             backend_dir.mkdir()
 
+            # Create conventional backend structure
+            backend_src_dir = backend_dir / "src" / "test_org" / "test_extension"
+            backend_src_dir.mkdir(parents=True)
+
+            # Create conventional entry point file
+            (backend_src_dir / "entrypoint.py").write_text("# Backend entry point")
+            (backend_src_dir / "__init__.py").write_text("")
+
+            # Create parent __init__.py files for namespace packages
+            (backend_dir / "src" / "test_org" / "__init__.py").write_text("")
+
+            # Create pyproject.toml matching the template structure
+            pyproject_content = """[project]
+name = "test_org-test_extension"
+version = "1.0.0"
+license = "Apache-2.0"
+
+[tool.apache_superset_extensions.build]
+# Files to include in the extension build/bundle
+include = [
+    "src/test_org/test_extension/**/*.py",
+]
+exclude = []
+"""
+            (backend_dir / "pyproject.toml").write_text(pyproject_content)
+
         # Create extension.json
         extension_json = {
-            "id": "test_extension",
-            "name": "Test Extension",
+            "publisher": "test-org",
+            "name": "test-extension",
+            "displayName": "Test Extension",
             "version": "1.0.0",
             "permissions": [],
         }
-
-        if include_frontend:
-            extension_json["frontend"] = {
-                "contributions": {"commands": []},
-                "moduleFederation": {"exposes": ["./index"]},
-            }
-
-        if include_backend:
-            extension_json["backend"] = {"entryPoints": ["test_extension.entrypoint"]}
 
         (base_path / "extension.json").write_text(json.dumps(extension_json))
 
@@ -97,7 +121,14 @@ def test_build_command_success_flow(
     """Test build command success flow."""
     # Setup mocks
     mock_rebuild_frontend.return_value = "remoteEntry.abc123.js"
-    mock_read_toml.return_value = {"project": {"name": "test"}}
+    mock_read_toml.return_value = {
+        "project": {"name": "test", "version": "1.0.0"},
+        "tool": {
+            "apache_superset_extensions": {
+                "build": {"include": ["src/test_org/test_extension/**/*.py"]}
+            }
+        },
+    }
 
     # Create extension structure
     dirs = extension_with_build_structure(isolated_filesystem)
@@ -118,7 +149,9 @@ def test_build_command_success_flow(
 @patch("superset_extensions_cli.cli.validate_npm")
 @patch("superset_extensions_cli.cli.init_frontend_deps")
 @patch("superset_extensions_cli.cli.rebuild_frontend")
+@patch("superset_extensions_cli.cli.read_toml")
 def test_build_command_handles_frontend_build_failure(
+    mock_read_toml,
     mock_rebuild_frontend,
     mock_init_frontend_deps,
     mock_validate_npm,
@@ -129,6 +162,14 @@ def test_build_command_handles_frontend_build_failure(
     """Test build command handles frontend build failure."""
     # Setup mocks
     mock_rebuild_frontend.return_value = None  # Indicates failure
+    mock_read_toml.return_value = {
+        "project": {"name": "test", "version": "1.0.0"},
+        "tool": {
+            "apache_superset_extensions": {
+                "build": {"include": ["src/test_org/test_extension/**/*.py"]}
+            }
+        },
+    }
 
     # Create extension structure
     extension_with_build_structure(isolated_filesystem)
@@ -226,20 +267,23 @@ def test_init_frontend_deps_exits_on_npm_ci_failure(
 
 # Build Manifest Tests
 @pytest.mark.unit
-def test_build_manifest_creates_correct_manifest_structure(isolated_filesystem):
+def test_build_manifest_creates_correct_manifest_structure(
+    isolated_filesystem, extension_with_build_structure
+):
     """Test build_manifest creates correct manifest from extension.json."""
-    # Create extension.json
+    # Create extension structure with both frontend and backend
+    extension_with_build_structure(
+        isolated_filesystem, include_frontend=True, include_backend=True
+    )
+
+    # Update extension.json with additional fields
     extension_data = {
-        "id": "test_extension",
-        "name": "Test Extension",
+        "publisher": "test-org",
+        "name": "test-extension",
+        "displayName": "Test Extension",
         "version": "1.0.0",
         "permissions": ["read_data"],
         "dependencies": ["some_dep"],
-        "frontend": {
-            "contributions": {"commands": [{"id": "test_command", "title": "Test"}]},
-            "moduleFederation": {"exposes": ["./index"]},
-        },
-        "backend": {"entryPoints": ["test_extension.entrypoint"]},
     }
     extension_json = isolated_filesystem / "extension.json"
     extension_json.write_text(json.dumps(extension_data))
@@ -247,31 +291,31 @@ def test_build_manifest_creates_correct_manifest_structure(isolated_filesystem):
     manifest = build_manifest(isolated_filesystem, "remoteEntry.abc123.js")
 
     # Verify manifest structure
-    assert manifest.id == "test_extension"
-    assert manifest.name == "Test Extension"
+    assert manifest.id == "test-org.test-extension"  # Composite ID
+    assert manifest.publisher == "test-org"
+    assert manifest.name == "test-extension"
+    assert manifest.displayName == "Test Extension"
     assert manifest.version == "1.0.0"
     assert manifest.permissions == ["read_data"]
     assert manifest.dependencies == ["some_dep"]
 
     # Verify frontend section
     assert manifest.frontend is not None
-    assert manifest.frontend.contributions.commands == [
-        {"id": "test_command", "title": "Test"}
-    ]
-    assert manifest.frontend.moduleFederation.exposes == ["./index"]
     assert manifest.frontend.remoteEntry == "remoteEntry.abc123.js"
+    assert manifest.frontend.moduleFederationName == "testOrg_testExtension"
 
-    # Verify backend section
+    # Verify backend section and conventional entrypoint
     assert manifest.backend is not None
-    assert manifest.backend.entryPoints == ["test_extension.entrypoint"]
+    assert manifest.backend.entrypoint == "test_org.test_extension.entrypoint"
 
 
 @pytest.mark.unit
 def test_build_manifest_handles_minimal_extension(isolated_filesystem):
     """Test build_manifest with minimal extension.json (no frontend/backend)."""
     extension_data = {
-        "id": "minimal_extension",
-        "name": "Minimal Extension",
+        "publisher": "minimal-org",
+        "name": "minimal-extension",
+        "displayName": "Minimal Extension",
         "version": "0.1.0",
         "permissions": [],
     }
@@ -280,8 +324,10 @@ def test_build_manifest_handles_minimal_extension(isolated_filesystem):
 
     manifest = build_manifest(isolated_filesystem, None)
 
-    assert manifest.id == "minimal_extension"
-    assert manifest.name == "Minimal Extension"
+    assert manifest.id == "minimal-org.minimal-extension"  # Composite ID
+    assert manifest.publisher == "minimal-org"
+    assert manifest.name == "minimal-extension"
+    assert manifest.displayName == "Minimal Extension"
     assert manifest.version == "0.1.0"
     assert manifest.permissions == []
     assert manifest.dependencies == []  # Default empty list
@@ -393,8 +439,9 @@ def test_rebuild_backend_calls_copy_and_shows_message(isolated_filesystem):
 
     # Create extension.json
     extension_json = {
-        "id": "test",
-        "name": "Test Extension",
+        "publisher": "test-org",
+        "name": "test-extension",
+        "displayName": "Test Extension",
         "version": "1.0.0",
         "permissions": [],
     }
@@ -410,7 +457,8 @@ def test_rebuild_backend_calls_copy_and_shows_message(isolated_filesystem):
 def test_copy_backend_files_skips_non_files(isolated_filesystem):
     """Test copy_backend_files skips directories and non-files."""
     # Create backend structure with directory
-    backend_src = isolated_filesystem / "backend" / "src" / "test_ext"
+    backend_dir = isolated_filesystem / "backend"
+    backend_src = backend_dir / "src" / "test_org" / "test_ext"
     backend_src.mkdir(parents=True)
     (backend_src / "__init__.py").write_text("# init")
 
@@ -418,15 +466,27 @@ def test_copy_backend_files_skips_non_files(isolated_filesystem):
     subdir = backend_src / "subdir"
     subdir.mkdir()
 
-    # Create extension.json with backend file patterns
+    # Create pyproject.toml with build configuration
+    pyproject_content = """[project]
+name = "test_org-test_ext"
+version = "1.0.0"
+license = "Apache-2.0"
+
+[tool.apache_superset_extensions.build]
+include = [
+    "src/test_org/test_ext/**/*",
+]
+exclude = []
+"""
+    (backend_dir / "pyproject.toml").write_text(pyproject_content)
+
+    # Create extension.json
     extension_data = {
-        "id": "test_ext",
-        "name": "Test Extension",
+        "publisher": "test-org",
+        "name": "test-ext",
+        "displayName": "Test Extension",
         "version": "1.0.0",
         "permissions": [],
-        "backend": {
-            "files": ["backend/src/test_ext/**/*"]  # Will match both files and dirs
-        },
     }
     (isolated_filesystem / "extension.json").write_text(json.dumps(extension_data))
 
@@ -437,10 +497,12 @@ def test_copy_backend_files_skips_non_files(isolated_filesystem):
 
     # Verify only files were copied, not directories
     dist_dir = isolated_filesystem / "dist"
-    assert_file_exists(dist_dir / "backend" / "src" / "test_ext" / "__init__.py")
+    assert_file_exists(
+        dist_dir / "backend" / "src" / "test_org" / "test_ext" / "__init__.py"
+    )
 
     # Directory should not be copied as a file
-    copied_subdir = dist_dir / "backend" / "src" / "test_ext" / "subdir"
+    copied_subdir = dist_dir / "backend" / "src" / "test_org" / "test_ext" / "subdir"
     # The directory might exist but should be empty since we skip non-files
     if copied_subdir.exists():
         assert list(copied_subdir.iterdir()) == []
@@ -448,20 +510,35 @@ def test_copy_backend_files_skips_non_files(isolated_filesystem):
 
 @pytest.mark.unit
 def test_copy_backend_files_copies_matched_files(isolated_filesystem):
-    """Test copy_backend_files copies files matching patterns from extension.json."""
+    """Test copy_backend_files copies files matching patterns from pyproject.toml."""
     # Create backend source files
-    backend_src = isolated_filesystem / "backend" / "src" / "test_ext"
+    backend_dir = isolated_filesystem / "backend"
+    backend_src = backend_dir / "src" / "test_org" / "test_ext"
     backend_src.mkdir(parents=True)
     (backend_src / "__init__.py").write_text("# init")
     (backend_src / "main.py").write_text("# main")
 
-    # Create extension.json with backend file patterns
+    # Create pyproject.toml with build configuration
+    pyproject_content = """[project]
+name = "test_org-test_ext"
+version = "1.0.0"
+license = "Apache-2.0"
+
+[tool.apache_superset_extensions.build]
+include = [
+    "src/test_org/test_ext/**/*.py",
+]
+exclude = []
+"""
+    (backend_dir / "pyproject.toml").write_text(pyproject_content)
+
+    # Create extension.json
     extension_data = {
-        "id": "test_ext",
-        "name": "Test Extension",
+        "publisher": "test-org",
+        "name": "test-ext",
+        "displayName": "Test Extension",
         "version": "1.0.0",
         "permissions": [],
-        "backend": {"files": ["backend/src/test_ext/**/*.py"]},
     }
     (isolated_filesystem / "extension.json").write_text(json.dumps(extension_data))
 
@@ -472,16 +549,169 @@ def test_copy_backend_files_copies_matched_files(isolated_filesystem):
 
     # Verify files were copied
     dist_dir = isolated_filesystem / "dist"
-    assert_file_exists(dist_dir / "backend" / "src" / "test_ext" / "__init__.py")
-    assert_file_exists(dist_dir / "backend" / "src" / "test_ext" / "main.py")
+    assert_file_exists(
+        dist_dir / "backend" / "src" / "test_org" / "test_ext" / "__init__.py"
+    )
+    assert_file_exists(
+        dist_dir / "backend" / "src" / "test_org" / "test_ext" / "main.py"
+    )
 
 
 @pytest.mark.unit
-def test_copy_backend_files_handles_no_backend_config(isolated_filesystem):
-    """Test copy_backend_files handles extension.json without backend config."""
+def test_copy_backend_files_handles_various_glob_patterns(isolated_filesystem):
+    """Test copy_backend_files correctly handles different glob pattern formats."""
+    # Create backend structure with files in different locations
+    backend_dir = isolated_filesystem / "backend"
+    backend_src = backend_dir / "src" / "test_org" / "test_ext"
+    backend_src.mkdir(parents=True)
+
+    # Create files that should match different pattern types
+    (backend_src / "__init__.py").write_text("# init")
+    (backend_src / "main.py").write_text("# main")
+    (backend_dir / "config.py").write_text("# config")  # Root level file
+
+    # Create subdirectory with files
+    subdir = backend_src / "utils"
+    subdir.mkdir()
+    (subdir / "helper.py").write_text("# helper")
+
+    # Create pyproject.toml with various glob patterns that would fail with old logic
+    pyproject_content = """[project]
+name = "test_org-test_ext"
+version = "1.0.0"
+license = "Apache-2.0"
+
+[tool.apache_superset_extensions.build]
+include = [
+    "config.py",                                  # No '/' - would break old logic
+    "**/*.py",                                    # Starts with '**' - would break old logic
+    "src/test_org/test_ext/main.py",              # Specific file
+]
+exclude = []
+"""
+    (backend_dir / "pyproject.toml").write_text(pyproject_content)
+
+    # Create extension.json
     extension_data = {
-        "id": "frontend_only",
-        "name": "Frontend Only Extension",
+        "publisher": "test-org",
+        "name": "test-ext",
+        "displayName": "Test Extension",
+        "version": "1.0.0",
+        "permissions": [],
+    }
+    (isolated_filesystem / "extension.json").write_text(json.dumps(extension_data))
+
+    # Create dist directory
+    clean_dist(isolated_filesystem)
+
+    copy_backend_files(isolated_filesystem)
+
+    # Verify files were copied according to patterns
+    dist_dir = isolated_filesystem / "dist"
+
+    # config.py (pattern: "config.py")
+    assert_file_exists(dist_dir / "backend" / "config.py")
+
+    # All .py files should be included (pattern: "**/*.py")
+    assert_file_exists(
+        dist_dir / "backend" / "src" / "test_org" / "test_ext" / "__init__.py"
+    )
+    assert_file_exists(
+        dist_dir / "backend" / "src" / "test_org" / "test_ext" / "utils" / "helper.py"
+    )
+
+    # Specific file (pattern: "src/test_org/test_ext/main.py")
+    assert_file_exists(
+        dist_dir / "backend" / "src" / "test_org" / "test_ext" / "main.py"
+    )
+
+
+@pytest.mark.unit
+def test_copy_backend_files_supports_legitimate_nested_patterns(isolated_filesystem):
+    """Test copy_backend_files copies deeply nested files via recursive globs."""
+    backend_dir = isolated_filesystem / "backend"
+    nested = backend_dir / "src" / "test_org" / "test_ext" / "deep" / "deeper"
+    nested.mkdir(parents=True)
+    (nested / "module.py").write_text("# nested module")
+
+    pyproject_content = """[project]
+name = "test_org-test_ext"
+version = "1.0.0"
+license = "Apache-2.0"
+
+[tool.apache_superset_extensions.build]
+include = [
+    "src/test_org/test_ext/**/*.py",
+]
+exclude = []
+"""
+    (backend_dir / "pyproject.toml").write_text(pyproject_content)
+
+    extension_data = {
+        "publisher": "test-org",
+        "name": "test-ext",
+        "displayName": "Test Extension",
+        "version": "1.0.0",
+        "permissions": [],
+    }
+    (isolated_filesystem / "extension.json").write_text(json.dumps(extension_data))
+
+    clean_dist(isolated_filesystem)
+    copy_backend_files(isolated_filesystem)
+
+    dist_dir = isolated_filesystem / "dist"
+    assert_file_exists(
+        dist_dir
+        / "backend"
+        / "src"
+        / "test_org"
+        / "test_ext"
+        / "deep"
+        / "deeper"
+        / "module.py"
+    )
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "bad_pattern",
+    [
+        "../../.ssh/*",
+        "../config",
+        "src/../../secret.txt",
+        "/etc/passwd",
+    ],
+)
+def test_copy_backend_files_rejects_patterns_escaping_backend_dir(
+    isolated_filesystem, bad_pattern
+):
+    """Test copy_backend_files refuses include patterns that escape backend_dir."""
+    # Create a sensitive file outside the backend directory.
+    (isolated_filesystem / "secret.txt").write_text("SECRET")
+    (isolated_filesystem / "config").write_text("SECRET")
+
+    backend_dir = isolated_filesystem / "backend"
+    backend_src = backend_dir / "src" / "test_org" / "test_ext"
+    backend_src.mkdir(parents=True)
+    (backend_src / "__init__.py").write_text("# init")
+
+    pyproject_content = f"""[project]
+name = "test_org-test_ext"
+version = "1.0.0"
+license = "Apache-2.0"
+
+[tool.apache_superset_extensions.build]
+include = [
+    "{bad_pattern}",
+]
+exclude = []
+"""
+    (backend_dir / "pyproject.toml").write_text(pyproject_content)
+
+    extension_data = {
+        "publisher": "test-org",
+        "name": "test-ext",
+        "displayName": "Test Extension",
         "version": "1.0.0",
         "permissions": [],
     }
@@ -489,19 +719,65 @@ def test_copy_backend_files_handles_no_backend_config(isolated_filesystem):
 
     clean_dist(isolated_filesystem)
 
-    # Should not raise error
-    copy_backend_files(isolated_filesystem)
+    with pytest.raises(click.ClickException):
+        copy_backend_files(isolated_filesystem)
+
+    # Nothing outside the backend directory should have been staged into dist,
+    # including paths reachable via ".." from inside dist/backend.
+    dist_dir = isolated_filesystem / "dist"
+    assert not (dist_dir / "secret.txt").exists()
+    assert not (dist_dir / "config").exists()
 
 
 @pytest.mark.unit
-def test_copy_backend_files_exits_when_extension_json_missing(isolated_filesystem):
-    """Test copy_backend_files exits when extension.json is missing."""
+def test_copy_backend_files_stages_symlink_at_matched_path(isolated_filesystem):
+    """Symlinked files inside backend are staged at the matched path, not the target."""
+    backend_dir = isolated_filesystem / "backend"
+    target_dir = backend_dir / "src" / "common"
+    target_dir.mkdir(parents=True)
+    (target_dir / "module.py").write_text("# shared module")
+
+    link_dir = backend_dir / "src" / "test_org" / "test_ext" / "common"
+    link_dir.mkdir(parents=True)
+    link = link_dir / "module.py"
+    link.symlink_to(target_dir / "module.py")
+
+    pyproject_content = """[project]
+name = "test_org-test_ext"
+version = "1.0.0"
+license = "Apache-2.0"
+
+[tool.apache_superset_extensions.build]
+include = [
+    "src/test_org/test_ext/**/*.py",
+]
+exclude = []
+"""
+    (backend_dir / "pyproject.toml").write_text(pyproject_content)
+
+    extension_data = {
+        "publisher": "test-org",
+        "name": "test-ext",
+        "displayName": "Test Extension",
+        "version": "1.0.0",
+        "permissions": [],
+    }
+    (isolated_filesystem / "extension.json").write_text(json.dumps(extension_data))
+
     clean_dist(isolated_filesystem)
+    copy_backend_files(isolated_filesystem)
 
-    with pytest.raises(SystemExit) as exc_info:
-        copy_backend_files(isolated_filesystem)
+    dist_dir = isolated_filesystem / "dist"
+    # Staged at the configured (symlink) path, not the resolved target path.
+    assert_file_exists(
+        dist_dir / "backend" / "src" / "test_org" / "test_ext" / "common" / "module.py"
+    )
+    assert not (dist_dir / "backend" / "src" / "common" / "module.py").exists()
 
-    assert exc_info.value.code == 1
+
+# Removed obsolete tests:
+# - test_copy_backend_files_handles_no_backend_config: This scenario can't happen since copy_backend_files is only called when backend exists
+# - test_copy_backend_files_exits_when_extension_json_missing: Validation catches this before copy_backend_files is called
 
 
 # Frontend Dist Copy Tests

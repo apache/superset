@@ -1,0 +1,1 @@
+{"schema":{"properties":{"id":{"type":"integer"},"name":{"maxLength":100,"type":"string"}},"required":["name"],"type":"object","title":"PermissionApi.get_list"},"schemaType":"response"}

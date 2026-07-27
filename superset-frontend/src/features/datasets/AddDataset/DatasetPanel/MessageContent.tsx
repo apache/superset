@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import { t } from '@apache-superset/core';
-import { styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import { EmptyState } from '@superset-ui/core/components';
 import { Link } from 'react-router-dom';
 
@@ -52,9 +52,9 @@ const renderEmptyDescription = () => (
   <>
     {SELECT_MESSAGE}
     <Link to="/sqllab">
-      <span role="button" tabIndex={0}>
-        {CREATE_MESSAGE}
-      </span>
+      {/* Link already renders an interactive <a>, so this span needs no
+          role/tabIndex of its own. */}
+      <span>{CREATE_MESSAGE}</span>
     </Link>
     {VIEW_DATASET_MESSAGE}
   </>

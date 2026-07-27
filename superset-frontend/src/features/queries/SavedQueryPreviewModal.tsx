@@ -17,8 +17,8 @@
  * under the License.
  */
 import { FunctionComponent } from 'react';
-import { t } from '@apache-superset/core';
-import { styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { useTheme, styled } from '@apache-superset/core/theme';
 import { Button, Modal } from '@superset-ui/core/components';
 import SyntaxHighlighterCopy from 'src/features/queries/SyntaxHighlighterCopy';
 import withToasts, {
@@ -41,6 +41,7 @@ const QueryLabel = styled.div`
 const StyledModal = styled(Modal)`
   .ant-modal-body {
     padding: 24px;
+    padding-top: 0;
   }
 `;
 
@@ -77,6 +78,15 @@ const SavedQueryPreviewModal: FunctionComponent<
       currentQueryId: savedQuery.id,
       fetchData,
     });
+  const theme = useTheme();
+  const codeBlockStyle = {
+    border: 1,
+    borderColor: theme.colorBorder,
+    borderStyle: 'solid',
+    marginTop: theme.sizeUnit * 4,
+    fontSize: theme.fontSize * 0.75,
+    height: theme.sizeUnit * 100,
+  };
 
   return (
     <div role="none" onKeyUp={handleKeyPress}>
@@ -123,6 +133,7 @@ const SavedQueryPreviewModal: FunctionComponent<
           language="sql"
           addDangerToast={addDangerToast}
           addSuccessToast={addSuccessToast}
+          customStyle={codeBlockStyle}
         >
           {savedQuery.sql || ''}
         </SyntaxHighlighterCopy>

@@ -27,6 +27,7 @@ import {
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import { EditableTitle } from '@superset-ui/core/components';
 import { setEditMode, onRefresh } from 'src/dashboard/actions/dashboardState';
+import * as getBootstrapData from 'src/utils/getBootstrapData';
 
 import type { FC } from 'react';
 import ActualTab from './Tab';
@@ -158,6 +159,44 @@ test('Render tab (no content)', () => {
   expect(screen.getByText('🚀 Aspiring Developers')).toBeInTheDocument();
   expect(EditableTitle).toHaveBeenCalledTimes(1);
   expect(getByTestId('dragdroppable-object')).toBeInTheDocument();
+});
+
+test('passes correct canEdit and editing props to EditableTitle', () => {
+  const props = createProps();
+
+  props.editMode = true;
+  props.isFocused = false;
+  props.renderType = 'RENDER_TAB';
+  render(<Tab {...props} />, {
+    useRedux: true,
+    useDnd: true,
+  });
+
+  expect(EditableTitle).toHaveBeenCalledWith(
+    expect.objectContaining({
+      title: '🚀 Aspiring Developers',
+      canEdit: true,
+      editing: false,
+    }),
+    expect.anything(),
+  );
+
+  (EditableTitle as jest.Mock).mockClear();
+
+  const focusedProps = { ...props, isFocused: true };
+  render(<Tab {...focusedProps} />, {
+    useRedux: true,
+    useDnd: true,
+  });
+
+  expect(EditableTitle).toHaveBeenCalledWith(
+    expect.objectContaining({
+      title: '🚀 Aspiring Developers',
+      canEdit: true,
+      editing: true,
+    }),
+    expect.anything(),
+  );
 });
 
 test('Render tab (no content) editMode:true', () => {
@@ -450,6 +489,36 @@ test('Render tab content with no children, editMode: true, canEdit: true', () =>
   ).toHaveAttribute('href', '/chart/add?dashboard_id=23');
 });
 
+test('empty-tab "create a new chart" link is single-prefixed under subdirectory deployment', () => {
+  // The empty-tab CTA composes the chart-add URL via ensureAppRoot. Under
+  // SUPERSET_APP_ROOT=/superset the rendered href must be exactly
+  // `/superset/chart/add?dashboard_id=23` — not `/chart/add?…` (no prefix)
+  // and not `/superset/superset/chart/add?…` (double prefix). The link uses
+  // target="_blank", so basename routing does NOT re-apply the prefix.
+  const applicationRootSpy = jest
+    .spyOn(getBootstrapData, 'applicationRoot')
+    .mockReturnValue('/superset');
+
+  try {
+    const props = createProps();
+    props.editMode = true;
+    props.component.children = [];
+    render(<Tab {...props} />, {
+      useRedux: true,
+      useDnd: true,
+      initialState: {
+        dashboardInfo: { dash_edit_perm: true },
+      },
+    });
+
+    expect(
+      screen.getByRole('link', { name: 'create a new chart' }),
+    ).toHaveAttribute('href', '/superset/chart/add?dashboard_id=23');
+  } finally {
+    applicationRootSpy.mockRestore();
+  }
+});
+
 test('Drag to empty state, editMode: true, canEdit: true', async () => {
   const props = createProps();
   props.editMode = true;
@@ -578,6 +647,7 @@ test('Should refresh charts when tab becomes active after dashboard refresh', as
     true, // Force refresh
     0, // Interval
     23, // Dashboard ID
+    false, // skipFiltersRefresh
     true, // isLazyLoad flag
   );
 });
@@ -718,6 +788,7 @@ test('Should use isLazyLoad flag for tab refreshes', async () => {
     true, // force
     0, // interval
     42, // dashboardId
+    false, // skipFiltersRefresh
     true, // isLazyLoad should be true to prevent infinite loops
   );
 });
