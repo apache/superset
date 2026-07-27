@@ -109,7 +109,7 @@ class TestDashboardVersionRetention(SupersetTestCase):
         """``prune_old_versions`` removes shadow rows whose owning
         ``version_transaction.issued_at`` is older than the retention
         window, while preserving every transaction that anchors a live row."""
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
 
         import sqlalchemy as sa
 
@@ -160,7 +160,8 @@ class TestDashboardVersionRetention(SupersetTestCase):
             with _db.engine.begin() as conn:
                 conn.execute(
                     sa.update(tx_table).values(
-                        issued_at=datetime.utcnow() - timedelta(days=100)
+                        issued_at=datetime.now(timezone.utc).replace(tzinfo=None)
+                        - timedelta(days=100)
                     )
                 )
 
@@ -207,7 +208,7 @@ class TestDashboardVersionRetention(SupersetTestCase):
         this: it asserts on the dashboard parent shadow alone, which is
         exactly the blind spot the bug lived in.
         """
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
 
         import sqlalchemy as sa
         from sqlalchemy_continuum import version_class, versioning_manager
@@ -257,7 +258,8 @@ class TestDashboardVersionRetention(SupersetTestCase):
             with _db.engine.begin() as conn:
                 conn.execute(
                     sa.update(tx_table).values(
-                        issued_at=datetime.utcnow() - timedelta(days=100)
+                        issued_at=datetime.now(timezone.utc).replace(tzinfo=None)
+                        - timedelta(days=100)
                     )
                 )
 
@@ -397,7 +399,7 @@ class TestDashboardVersionRetention(SupersetTestCase):
         """A transient ``OperationalError`` from the SERIALIZABLE pass
         triggers an inline retry; the prune completes on the second
         attempt and the stats dict records the retry count."""
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
         from unittest.mock import patch
 
         import sqlalchemy as sa
@@ -429,7 +431,8 @@ class TestDashboardVersionRetention(SupersetTestCase):
             with _db.engine.begin() as conn:
                 conn.execute(
                     sa.update(tx_table).values(
-                        issued_at=datetime.utcnow() - timedelta(days=100)
+                        issued_at=datetime.now(timezone.utc).replace(tzinfo=None)
+                        - timedelta(days=100)
                     )
                 )
 

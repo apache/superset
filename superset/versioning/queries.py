@@ -382,11 +382,13 @@ def resolve_version_uuid(
     transaction in Python because there's no portable SQL form for a
     UUIDv5 derivation across PostgreSQL / MySQL / SQLite (Postgres has
     ``uuid_generate_v5``; the other two do not). The iteration count is
-    bounded by ``SUPERSET_VERSION_HISTORY_RETENTION_DAYS`` worth of
-    edits — the retention task ages older shadow rows out — so the
-    practical N is at most a few hundred. If retention is ever
-    disabled (``= 0``) on a heavily-edited entity, this loop is the
-    place to revisit.
+    roughly bounded by ``SUPERSET_VERSION_HISTORY_RETENTION_DAYS`` worth
+    of edits — the retention task ages older shadow rows out, though
+    transactions still anchoring a live row survive past the window
+    (their count is bounded by the entity's current size, not its edit
+    volume) — so the practical N is at most a few hundred. If retention
+    is ever disabled (``= 0``) on a heavily-edited entity, this loop is
+    the place to revisit.
 
     Pass *entity* to skip the ``find_active_by_uuid`` lookup; see
     :func:`list_versions` for the rationale.
