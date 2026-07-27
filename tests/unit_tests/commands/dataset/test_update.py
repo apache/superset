@@ -24,6 +24,8 @@ from superset import db
 from superset.commands.dataset.exceptions import DatasetInvalidError
 from superset.commands.dataset.update import UpdateDatasetCommand
 from superset.connectors.sqla.models import SqlaTable
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 
 
@@ -147,3 +149,98 @@ def test_update_does_not_validate_roles_when_not_in_payload(
 
     populate_roles_mock.assert_not_called()
     assert "roles" not in command._properties
+
+
+@pytest.mark.usefixture("session")
+def test_update_dataset_sql_authorized(mocker: MockerFixture) -> None:
+    """Updating the SQL of a dataset succeeds when the user has access to it."""
+    SqlaTable.metadata.create_all(db.session.get_bind())
+    database = Database(database_name="my_db_4", sqlalchemy_uri="sqlite://")
+    dataset = SqlaTable(
+        table_name="bar", schema="foo", database=database, sql="SELECT 1"
+    )
+    db.session.add_all([database, dataset])
+    db.session.commit()
+
+    mock_g = mocker.patch("superset.security.manager.g")
+    mock_g.user = MagicMock()
+
+    mocker.patch(
+        "superset.views.base.security_manager.can_access_all_datasources",
+        return_value=True,
+    )
+    mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_ownership",
+        return_value=None,
+    )
+    mocker.patch.object(UpdateDatasetCommand, "compute_owners", return_value=[])
+
+    raise_for_access_mock = mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_access",
+        return_value=None,
+    )
+
+    command = UpdateDatasetCommand(
+        dataset.id,
+        {
+            "table_name": "bar",
+            "schema": "foo",
+            "sql": "SELECT * FROM allowed_table",
+        },
+    )
+    command.validate()
+
+    raise_for_access_mock.assert_called_once()
+
+
+@pytest.mark.usefixture("session")
+def test_update_dataset_sql_unauthorized(mocker: MockerFixture) -> None:
+    """Updating the SQL of a dataset raises when the user lacks access to it."""
+    SqlaTable.metadata.create_all(db.session.get_bind())
+    database = Database(database_name="my_db_5", sqlalchemy_uri="sqlite://")
+    dataset = SqlaTable(
+        table_name="bar", schema="foo", database=database, sql="SELECT 1"
+    )
+    db.session.add_all([database, dataset])
+    db.session.commit()
+
+    mock_g = mocker.patch("superset.security.manager.g")
+    mock_g.user = MagicMock()
+
+    mocker.patch(
+        "superset.views.base.security_manager.can_access_all_datasources",
+        return_value=True,
+    )
+    mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_ownership",
+        return_value=None,
+    )
+    mocker.patch.object(UpdateDatasetCommand, "compute_owners", return_value=[])
+
+    mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_access",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.MISSING_OWNERSHIP_ERROR,
+                message="You don't have access to the 'restricted_schema' schema",
+                level=ErrorLevel.ERROR,
+            )
+        ),
+    )
+
+    command = UpdateDatasetCommand(
+        dataset.id,
+        {
+            "table_name": "bar",
+            "schema": "foo",
+            "sql": "SELECT * FROM restricted_schema.sensitive_table",
+        },
+    )
+
+    with pytest.raises(DatasetInvalidError) as excinfo:
+        command.validate()
+
+    assert any(
+        "You don't have access to the 'restricted_schema' schema" in str(exc)
+        for exc in excinfo.value._exceptions
+    )

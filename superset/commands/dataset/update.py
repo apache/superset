@@ -17,7 +17,7 @@
 import logging
 from collections import Counter
 from functools import partial
-from typing import Any, Optional
+from typing import Any, cast, Optional
 
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
@@ -30,6 +30,7 @@ from superset.commands.dataset.exceptions import (
     DatasetColumnNotFoundValidationError,
     DatasetColumnsDuplicateValidationError,
     DatasetColumnsExistsValidationError,
+    DatasetDataAccessIsNotAllowed,
     DatasetExistsValidationError,
     DatasetForbiddenError,
     DatasetInvalidError,
@@ -42,7 +43,8 @@ from superset.commands.dataset.exceptions import (
 from superset.commands.utils import populate_roles
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.dataset import DatasetDAO
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import SupersetParseError, SupersetSecurityException
+from superset.models.core import Database
 from superset.sql_parse import Table
 from superset.utils.decorators import on_error, transaction
 
@@ -139,6 +141,9 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             except ValidationError as ex:
                 exceptions.append(ex)
 
+        schema = self._properties.get("schema")
+        self._validate_sql_access(self._model.database, catalog, schema, exceptions)
+
         if exceptions:
             raise DatasetInvalidError(exceptions=exceptions)
 
@@ -195,6 +200,36 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             ]
             if not DatasetDAO.validate_metrics_uniqueness(self._model_id, metric_names):
                 exceptions.append(DatasetMetricsExistsValidationError())
+
+    def _validate_sql_access(
+        self,
+        db: Database,
+        catalog: str | None,
+        schema: str | None,
+        exceptions: list[ValidationError],
+    ) -> None:
+        """Validate SQL query access if SQL is being updated."""
+        # we know we have a valid model
+        self._model = cast(SqlaTable, self._model)
+
+        sql = self._properties.get("sql")
+        if sql and sql != self._model.sql:
+            try:
+                security_manager.raise_for_access(
+                    database=db,
+                    sql=sql,
+                    catalog=catalog,
+                    schema=schema,
+                )
+            except SupersetSecurityException as ex:
+                exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
+            except SupersetParseError as ex:
+                exceptions.append(
+                    ValidationError(
+                        f"Invalid SQL: {ex.error.message}",
+                        field_name="sql",
+                    )
+                )
 
     @staticmethod
     def _get_duplicates(data: list[dict[str, Any]], key: str) -> list[str]:
