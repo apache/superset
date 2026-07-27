@@ -4774,7 +4774,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 level=ErrorLevel.ERROR,
             )
         )
-
     def is_editor(self, resource: Model) -> bool:
         """
         Returns True if the current user is an editor of the resource.
@@ -4803,6 +4802,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         editor_subject_ids = set(get_extra_editor_subject_ids(resource))
         if hasattr(resource, "editors"):
             editor_subject_ids.update(s.id for s in resource.editors)
+
+        # Fallback for models like Query and SavedQuery that use 'user_id'
+        if hasattr(resource, "user_id") and resource.user_id is not None:
+            editor_subject_ids.add(resource.user_id)
+
         return bool(subject_ids & editor_subject_ids)
 
     def is_viewer(self, resource: Model) -> bool:
