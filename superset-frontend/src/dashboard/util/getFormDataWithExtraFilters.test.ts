@@ -394,6 +394,27 @@ test('sankey chart with two dynamic group by columns has no intermediate levels'
   expect(result.target).toEqual('outcome');
 });
 
+test('sankey chart leaves its configured columns alone when only one dynamic group by column is selected', () => {
+  const result = getFormDataWithExtraFilters({
+    ...makeGroupByArgs(['country']),
+    chart: {
+      ...mockChart,
+      form_data: {
+        ...mockChart.form_data,
+        viz_type: 'sankey_v2',
+        datasource: '3__table',
+        source: 'configured_source',
+        target: 'configured_target',
+        intermediate_levels: ['configured_level'],
+      },
+    },
+  }) as Record<string, unknown>;
+
+  expect(result.source).toEqual('configured_source');
+  expect(result.target).toEqual('configured_target');
+  expect(result.intermediate_levels).toEqual(['configured_level']);
+});
+
 test('structural conflict: metric column blocks groupby override (nonConflictingColumns guard)', () => {
   const customizationId = 'CHART_CUSTOMIZATION-groupby-conflict';
   const argsWithMetricConflict: GetFormDataWithExtraFiltersArguments = {
