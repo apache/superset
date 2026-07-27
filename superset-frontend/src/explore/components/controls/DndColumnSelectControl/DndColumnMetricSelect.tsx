@@ -85,7 +85,11 @@ function fieldHasMultipleValues(
   return false;
 }
 
-const DND_ACCEPTED_TYPES = [DndItemType.Column, DndItemType.Metric];
+const DND_ACCEPTED_TYPES = [
+  DndItemType.Column,
+  DndItemType.Metric,
+  DndItemType.Folder,
+];
 
 type ColumnMetricValue =
   | string
@@ -255,6 +259,25 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
       return false;
     },
     [combinedOptionsMap, coercedValue, isMetricSelected],
+  );
+
+  const onDropFolder = useCallback(
+    (items: DatasourcePanelDndItem[]) => {
+      // Items already passed `canDrop` (valid, not already selected).
+      const newValues = [...coercedValue];
+      items.forEach(item => {
+        if (item.type === DndItemType.Column) {
+          newValues.push((item.value as ColumnMeta).column_name);
+        } else if (item.type === DndItemType.Metric) {
+          newValues.push((item.value as Metric).metric_name);
+        }
+      });
+      if (newValues.length === coercedValue.length) {
+        return;
+      }
+      onChange(multi ? newValues : newValues[0]);
+    },
+    [onChange, coercedValue, multi],
   );
 
   const onClickClose = useCallback(
@@ -437,6 +460,7 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
       <DndSelectLabel
         onDrop={onDrop}
         canDrop={canDrop}
+        onDropFolder={onDropFolder}
         valuesRenderer={valuesRenderer}
         accept={DND_ACCEPTED_TYPES}
         displayGhostButton={multi || coercedValue.length === 0}
