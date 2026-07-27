@@ -23,7 +23,7 @@ from typing import Any, Optional
 from unittest.mock import Mock, patch
 
 import pytest
-from sqlalchemy import types
+from sqlalchemy import column, types
 from sqlalchemy.dialects.mysql import (
     BIT,
     DECIMAL,
@@ -38,6 +38,8 @@ from sqlalchemy.dialects.mysql import (
 )
 from sqlalchemy.engine.url import make_url, URL  # noqa: F401
 
+from superset.constants import TimeGrain
+from superset.db_engine_specs.base import TimestampExpression
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,
@@ -304,3 +306,87 @@ def test_get_datatype_pymysql_fallback():
     finally:
         # Restore original state
         MySQLEngineSpec.type_code_map = original_type_code_map
+
+
+@pytest.mark.parametrize(
+    ("grain", "expected_expression"),
+    [
+        (None, "my_col"),
+        (
+            TimeGrain.SECOND,
+            "DATE_FORMAT(my_col, '%Y-%m-%d %H:%i:%s')",
+        ),
+        (
+            TimeGrain.MINUTE,
+            "DATE_FORMAT(my_col, '%Y-%m-%d %H:%i:00')",
+        ),
+        (
+            TimeGrain.HOUR,
+            "DATE_FORMAT(my_col, '%Y-%m-%d %H:00:00')",
+        ),
+        (TimeGrain.DAY, "DATE(my_col)"),
+        (
+            TimeGrain.WEEK,
+            "DATE(DATE_SUB(my_col, INTERVAL DAYOFWEEK(my_col) - 1 DAY))",
+        ),
+        (
+            TimeGrain.MONTH,
+            "DATE(DATE_SUB(my_col, INTERVAL DAYOFMONTH(my_col) - 1 DAY))",
+        ),
+        (
+            TimeGrain.QUARTER,
+            "MAKEDATE(YEAR(my_col), 1) "
+            "+ INTERVAL QUARTER(my_col) QUARTER - INTERVAL 1 QUARTER",
+        ),
+        (
+            TimeGrain.YEAR,
+            "DATE(DATE_SUB(my_col, INTERVAL DAYOFYEAR(my_col) - 1 DAY))",
+        ),
+        (
+            TimeGrain.WEEK_STARTING_MONDAY,
+            "DATE(DATE_SUB(my_col, "
+            "INTERVAL DAYOFWEEK(DATE_SUB(my_col, "
+            "INTERVAL 1 DAY)) - 1 DAY))",
+        ),
+    ],
+)
+def test_time_grain_expressions(
+    grain: Optional[TimeGrain], expected_expression: str
+) -> None:
+    """
+    Test that MySQL time grain expression templates produce the expected SQL.
+    Guards against the bare DATE() call being dropped by SQLGlot sanitization
+    or SQLAlchemy proxying for the SECOND/MINUTE/HOUR grains, which used to
+    truncate to a bare `DATE({col})`.
+    """
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    actual = MySQLEngineSpec._time_grain_expressions[grain].replace("{col}", "my_col")
+    assert actual == expected_expression
+
+
+def test_compile_timegrain_expression_preserves_date_truncation() -> None:
+    """
+    Test that compile_timegrain_expression preserves the full DATE_FORMAT
+    truncation in the MySQL HOUR time grain expression, including when the
+    expression is proxied through a subquery (series-limit path).
+
+    Regression test for: ECharts HOUR grain generates invalid SQL (DATE()
+    dropped by sanitization/proxying).
+    """
+    from sqlalchemy import select
+
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    col = column("my_col")
+    template = MySQLEngineSpec._time_grain_expressions[TimeGrain.HOUR]
+    expr = TimestampExpression(template, col)
+    expected = "DATE_FORMAT(my_col, '%Y-%m-%d %H:00:00')"
+
+    compiled = str(expr)
+    assert compiled == expected, f"DATE_FORMAT truncation was dropped. Got: {compiled}"
+
+    proxied = str(select(select(expr.label("bucket")).subquery().c.bucket))
+    assert expected in proxied, (
+        f"DATE_FORMAT truncation was dropped in proxied expression. Got: {proxied}"
+    )
