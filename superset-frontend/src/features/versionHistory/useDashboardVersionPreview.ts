@@ -143,8 +143,37 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
   const fetchIdRef = useRef(0);
   const restoreCount = useSelector(selectVersionRestoreCount);
   const lastRestoreCountRef = useRef(restoreCount);
+  // Saves bump one of two redux signals depending on the path: edit-mode
+  // saves round-trip through ON_SAVE (dashboardState.lastModifiedTime),
+  // while native-filter and properties saves bump
+  // dashboardInfo.last_modified_time.
+  const saveSignal = useSelector<RootState, string>(state =>
+    [
+      state.dashboardState?.lastModifiedTime ?? '',
+      state.dashboardInfo?.last_modified_time ?? '',
+    ].join('|'),
+  );
+  const lastSaveSignalRef = useRef(saveSignal);
 
   const versionUuid = preview?.versionUuid;
+
+  // A save that lands while no preview is applied makes the cached live
+  // copy stale — exiting a later preview would rehydrate the pre-save
+  // state (and a subsequent edit-mode save could overwrite the newer
+  // server state with it). Drop the cache so the next preview entry
+  // fetches a fresh live copy. While a preview is applied, saves are
+  // gated off in the UI and the cache must be kept for exit-preview, so
+  // only the not-previewing case clears it.
+  useEffect(() => {
+    if (saveSignal === lastSaveSignalRef.current) {
+      return;
+    }
+    lastSaveSignalRef.current = saveSignal;
+    if (appliedVersionRef.current === null) {
+      liveDataRef.current = null;
+      liveDataMaskRef.current = null;
+    }
+  }, [saveSignal]);
 
   useEffect(() => {
     const hydrateWith = (

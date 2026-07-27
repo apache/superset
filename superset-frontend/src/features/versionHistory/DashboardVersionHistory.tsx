@@ -166,6 +166,14 @@ export default function DashboardVersionHistory() {
       if (!group.versionUuid || !uuid) {
         return;
       }
+      if (hasUnsavedChanges) {
+        // Previewing rehydrates the whole dashboard state, which would
+        // silently wipe in-progress edit-mode work and its undo history.
+        addDangerToast(
+          t('Save or discard your unsaved changes to preview a version.'),
+        );
+        return;
+      }
       dispatch(
         setVersionPreview({
           entityUuid: uuid,
@@ -176,7 +184,7 @@ export default function DashboardVersionHistory() {
         }),
       );
     },
-    [dispatch, uuid],
+    [addDangerToast, dispatch, hasUnsavedChanges, uuid],
   );
 
   const handleExitPreview = useCallback(() => {

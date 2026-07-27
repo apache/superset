@@ -192,6 +192,12 @@ export default function ActionRow({
   ];
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    // Keydowns from the nested kebab <button> bubble up here; only
+    // activate when the row itself has focus, so Enter/Space on the kebab
+    // opens its menu instead of triggering a preview.
+    if (event.target !== event.currentTarget) {
+      return;
+    }
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
       onPreview();

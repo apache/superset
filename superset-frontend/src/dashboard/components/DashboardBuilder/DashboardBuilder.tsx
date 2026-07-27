@@ -805,10 +805,18 @@ const DashboardBuilder = () => {
             aria-disabled={isVersionPreviewActive}
             previewGated={isVersionPreviewActive}
             onKeyDownCapture={event => {
-              if (
-                isVersionPreviewActive &&
-                !(event.target as HTMLElement).closest('.ant-tabs-nav')
-              ) {
+              if (!isVersionPreviewActive) {
+                return;
+              }
+              // pointer-events: none leaves the subtree tab-focusable, so
+              // focus-navigation keys must pass through — swallowing Tab
+              // would trap keyboard focus inside the gated grid
+              // (WCAG 2.1.2). Activation/typing keys stay blocked outside
+              // the tab navs, which remain interactive during preview.
+              if (event.key === 'Tab' || event.key === 'Escape') {
+                return;
+              }
+              if (!(event.target as HTMLElement).closest('.ant-tabs-nav')) {
                 event.preventDefault();
                 event.stopPropagation();
               }

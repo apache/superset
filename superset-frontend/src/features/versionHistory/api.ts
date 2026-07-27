@@ -218,20 +218,33 @@ export function swapUnreachableChartSlots(
   return layout;
 }
 
+// FAB list endpoints clamp page_size server-side; batches must stay under
+// that cap or reachable charts past it would silently be reported missing.
+const REACHABLE_CHART_BATCH_SIZE = 100;
+
 /** The subset of the given chart ids that the list API can resolve. */
 async function fetchReachableChartIds(
   chartIds: number[],
 ): Promise<Set<number>> {
-  const q = rison.encode({
-    columns: ['id'],
-    filters: [{ col: 'id', opr: 'in', value: chartIds }],
-    page_size: chartIds.length,
-  });
-  const { json } = await SupersetClient.get({
-    endpoint: `/api/v1/chart/?q=${q}`,
-  });
-  const { result } = json as { result: Array<{ id: number }> };
-  return new Set(result.map(({ id }) => id));
+  const batches: number[][] = [];
+  for (let i = 0; i < chartIds.length; i += REACHABLE_CHART_BATCH_SIZE) {
+    batches.push(chartIds.slice(i, i + REACHABLE_CHART_BATCH_SIZE));
+  }
+  const results = await Promise.all(
+    batches.map(async batch => {
+      const q = rison.encode({
+        columns: ['id'],
+        filters: [{ col: 'id', opr: 'in', value: batch }],
+        page_size: batch.length,
+      });
+      const { json } = await SupersetClient.get({
+        endpoint: `/api/v1/chart/?q=${q}`,
+      });
+      const { result } = json as { result: Array<{ id: number }> };
+      return result.map(({ id }) => id);
+    }),
+  );
+  return new Set(results.flat());
 }
 
 /**

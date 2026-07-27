@@ -199,7 +199,7 @@ const previewOf = (versionUuid: string) => ({
 
 interface TestState {
   versionHistory: VersionHistoryState;
-  dashboardInfo: { id: number };
+  dashboardInfo: { id: number; last_modified_time?: number };
   dataMask: DataMaskStateWithId;
 }
 
@@ -305,6 +305,44 @@ test('closing the preview restores the dataMask captured before previewing', asy
   expect(hydrateMaskArg(1)).toEqual(liveMask);
   const types = store.actions.map(action => action.type);
   expect(types.filter(type => type === CLEAR_DATA_MASK_STATE)).toHaveLength(2);
+});
+
+test('a save landing after exit-preview invalidates the cached live copy', async () => {
+  const store = makePreviewStore();
+  renderPreviewHook(store);
+
+  // Preview v1 fetches and caches the live copy.
+  act(() => {
+    store.setState({
+      versionHistory: versionHistoryState({ preview: previewOf('v1') }),
+    });
+  });
+  await waitFor(() => expect(mockedHydrateDashboard).toHaveBeenCalledTimes(1));
+  expect(mockedFetchHydration).toHaveBeenCalledTimes(1);
+
+  // Exit preview rehydrates the live dashboard from the cache.
+  act(() => {
+    store.setState({ versionHistory: versionHistoryState() });
+  });
+  await waitFor(() => expect(mockedHydrateDashboard).toHaveBeenCalledTimes(2));
+
+  // A save lands (properties/native-filter saves bump
+  // dashboardInfo.last_modified_time) — the cached copy is stale.
+  act(() => {
+    store.setState({
+      dashboardInfo: { id: 6, last_modified_time: 1765200000 },
+    });
+  });
+
+  // The next preview must fetch a fresh live copy, not reuse the cache —
+  // otherwise exiting it would rehydrate the pre-save state.
+  act(() => {
+    store.setState({
+      versionHistory: versionHistoryState({ preview: previewOf('v2') }),
+    });
+  });
+  await waitFor(() => expect(mockedHydrateDashboard).toHaveBeenCalledTimes(3));
+  expect(mockedFetchHydration).toHaveBeenCalledTimes(2);
 });
 
 test('closing a pending preview prevents historical hydration', async () => {

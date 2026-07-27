@@ -268,6 +268,12 @@ export default function SaveGroupItem({
 
   const activate =
     (handler: () => void) => (event: KeyboardEvent<HTMLDivElement>) => {
+      // Keydowns from the nested kebab <button> bubble up here; only
+      // activate when the header itself has focus, so Enter/Space on the
+      // kebab opens its menu instead of toggling the group.
+      if (event.target !== event.currentTarget) {
+        return;
+      }
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
         handler();

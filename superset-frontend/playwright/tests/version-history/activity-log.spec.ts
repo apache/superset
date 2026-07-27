@@ -93,6 +93,20 @@ async function updateChart(
   expect(res.ok(), `update chart ${id}: ${JSON.stringify(data)}`).toBeTruthy();
 }
 
+/** The chart's current editor subject ids, for restoring after the test. */
+async function chartEditors(
+  request: APIRequestContext,
+  id: number,
+): Promise<number[]> {
+  const res = await request.get(`/api/v1/chart/${id}`);
+  expect(res.ok(), `fetch chart ${id}`).toBeTruthy();
+  const editors: Array<{ id: number } | number> =
+    (await res.json()).result.editors ?? [];
+  return editors.map(editor =>
+    typeof editor === 'number' ? editor : editor.id,
+  );
+}
+
 /** Open the Explore "Additional actions → View version history" panel. */
 async function openVersionHistory(page: Page): Promise<void> {
   await page.locator('[data-test="actions-trigger"]').click();
@@ -103,20 +117,22 @@ async function openVersionHistory(page: Page): Promise<void> {
   ).toBeVisible();
 }
 
-test.describe('chart activity log', () => {
-  test('renders deterministic descriptive entries for multiple charts', async ({
-    page,
-  }) => {
-    const charts = await listCharts(page.request, 3);
-    expect(charts.length, 'at least one chart exists').toBeGreaterThan(0);
+test('chart activity log renders deterministic descriptive entries for multiple charts', async ({
+  page,
+}) => {
+  const charts = await listCharts(page.request, 3);
+  expect(charts.length, 'at least one chart exists').toBeGreaterThan(0);
 
-    const csrf = await csrfToken(page.request);
-    const adminSubjectId = await currentUserSubjectId(page.request);
+  const csrf = await csrfToken(page.request);
+  const adminSubjectId = await currentUserSubjectId(page.request);
 
-    for (const chart of charts) {
-      const original = chart.slice_name;
+  for (const chart of charts) {
+    const original = chart.slice_name;
+    const originalEditors = await chartEditors(page.request, chart.id);
+    try {
       // Version history is only offered on charts the user can overwrite,
-      // i.e. can edit — so claim editorship first (example charts ship without editors).
+      // i.e. can edit — so claim editorship first (example charts ship
+      // without editors).
       // Two renames: the first edit on an as-yet-untracked chart collapses
       // into "first tracked save"; the second is a normal descriptive save.
       await updateChart(page.request, csrf, chart.id, {
@@ -159,9 +175,15 @@ test.describe('chart activity log', () => {
         OPAQUE_ID.test(panelText),
         `chart ${chart.id} panel leaks a raw id/uuid:\n${panelText}`,
       ).toBeFalsy();
-
-      // Restore the original name so re-runs stay clean.
-      await updateChart(page.request, csrf, chart.id, { slice_name: original });
+    } finally {
+      // Restore the original name and editorship even when an assertion
+      // fails mid-loop, so the shared fixtures stay clean for re-runs.
+      // Plain request (no assertion) — a failed restore must not mask the
+      // original test failure.
+      await page.request.put(`/api/v1/chart/${chart.id}`, {
+        headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' },
+        data: { slice_name: original, editors: originalEditors },
+      });
     }
-  });
+  }
 });

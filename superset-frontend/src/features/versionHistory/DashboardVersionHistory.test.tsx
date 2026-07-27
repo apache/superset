@@ -22,9 +22,13 @@ import type { VersionHistoryState } from './types';
 import { useVersionActivity } from './useVersionActivity';
 import DashboardVersionHistory from './DashboardVersionHistory';
 
+const mockPanelProps = jest.fn();
 jest.mock('./VersionHistoryPanel', () => ({
   __esModule: true,
-  default: () => null,
+  default: (props: unknown) => {
+    mockPanelProps(props);
+    return null;
+  },
 }));
 jest.mock('./useDashboardVersionPreview', () => ({
   useDashboardVersionPreview: jest.fn(),
@@ -39,8 +43,9 @@ jest.mock('./useVersionActions', () => ({
 jest.mock('./useVersionActivity', () => ({
   useVersionActivity: jest.fn(),
 }));
+const mockAddDangerToast = jest.fn();
 jest.mock('src/components/MessageToasts/withToasts', () => ({
-  useToasts: () => ({ addDangerToast: jest.fn() }),
+  useToasts: () => ({ addDangerToast: mockAddDangerToast }),
 }));
 
 const mockedUseVersionActivity = useVersionActivity as jest.Mock;
@@ -170,4 +175,33 @@ test('a restore that also moves the save signal refreshes exactly once', () => {
   });
 
   expect(refresh).toHaveBeenCalledTimes(1);
+});
+
+test('preview is blocked while the dashboard has unsaved edit-mode changes', () => {
+  const store = makeTestStore({
+    versionHistory: versionHistoryState(),
+    dashboardInfo: { uuid: 'dash-uuid', last_modified_time: 100 },
+    dashboardState: { hasUnsavedChanges: true, lastModifiedTime: 500 },
+  });
+  renderAdapter(store);
+
+  const { onPreview } = mockPanelProps.mock.lastCall[0];
+  act(() => {
+    onPreview({
+      type: 'group',
+      transactionId: 10,
+      versionUuid: 'v-1',
+      issuedAt: '2025-12-05T17:18:00',
+      changedBy: null,
+      actionKind: null,
+      records: [],
+    });
+  });
+
+  // Previewing would rehydrate the dashboard and wipe the unsaved work;
+  // the user is told to save or discard instead.
+  expect(mockAddDangerToast).toHaveBeenCalled();
+  expect(
+    store.actions.some(action => action.type === 'SET_VERSION_PREVIEW'),
+  ).toBe(false);
 });
