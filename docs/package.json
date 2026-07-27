@@ -55,7 +55,7 @@
     "@emotion/styled": "^11.14.1",
     "@fontsource/fira-code": "^5.2.7",
     "@fontsource/ibm-plex-mono": "^5.2.7",
-    "@fontsource/inter": "^5.2.8",
+    "@fontsource/inter": "^5.3.0",
     "@mdx-js/react": "^3.1.1",
     "@saucelabs/theme-github-codeblock": "^0.3.0",
     "@storybook/addon-docs": "^10.5.0",
