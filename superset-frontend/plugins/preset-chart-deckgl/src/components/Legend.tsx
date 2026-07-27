@@ -1,6 +1,5 @@
 /* eslint-disable react/jsx-sort-default-props */
 /* eslint-disable react/sort-prop-types */
-/* eslint-disable jsx-a11y/anchor-is-valid */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,11 +42,18 @@ const StyledLegend = styled.div`
       padding-left: 0;
       margin: 0;
 
-      & li a {
+      & li button {
+        appearance: none;
+        border: none;
+        background: none;
+        font: inherit;
+        width: 100%;
+        text-align: left;
         display: flex;
         color: ${theme.colorText};
         text-decoration: none;
         padding: ${theme.sizeUnit}px 0;
+        cursor: pointer;
 
         & span {
           margin-right: ${theme.sizeUnit}px;
@@ -160,20 +166,13 @@ const Legend = ({
 
     return (
       <li key={k}>
-        <a
-          href="#"
-          role="button"
-          onClick={e => {
-            e.preventDefault();
-            toggleCategory(k);
-          }}
-          onDoubleClick={e => {
-            e.preventDefault();
-            showSingleCategory(k);
-          }}
+        <button
+          type="button"
+          onClick={() => toggleCategory(k)}
+          onDoubleClick={() => showSingleCategory(k)}
         >
           <span aria-hidden style={swatchStyle} /> {formatCategoryLabel(k)}
-        </a>
+        </button>
       </li>
     );
   });
