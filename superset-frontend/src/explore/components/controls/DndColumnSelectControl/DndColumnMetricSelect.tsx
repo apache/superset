@@ -264,18 +264,18 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
   const onDropFolder = useCallback(
     (items: DatasourcePanelDndItem[]) => {
       // Items already passed `canDrop` (valid, not already selected).
-      const newValues = [...coercedValue];
+      const additions: string[] = [];
       items.forEach(item => {
         if (item.type === DndItemType.Column) {
-          newValues.push((item.value as ColumnMeta).column_name);
+          additions.push((item.value as ColumnMeta).column_name);
         } else if (item.type === DndItemType.Metric) {
-          newValues.push((item.value as Metric).metric_name);
+          additions.push((item.value as Metric).metric_name);
         }
       });
-      if (newValues.length === coercedValue.length) {
+      if (additions.length === 0) {
         return;
       }
-      onChange(multi ? newValues : newValues[0]);
+      onChange(multi ? [...coercedValue, ...additions] : additions[0]);
     },
     [onChange, coercedValue, multi],
   );

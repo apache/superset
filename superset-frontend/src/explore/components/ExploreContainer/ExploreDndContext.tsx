@@ -420,8 +420,8 @@ export const ExploreDndContextProvider: FC<ExploreDndContextProps> = ({
             </Flex>
             <FolderDragBadge>
               {tn(
-                '%s column',
-                '%s columns',
+                '%s field',
+                '%s fields',
                 activeData.items?.length ?? 0,
                 activeData.items?.length ?? 0,
               )}
