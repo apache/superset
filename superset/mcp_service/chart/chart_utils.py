@@ -37,6 +37,7 @@ from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
     BoxPlotChartConfig,
     ChartCapabilities,
+    ChartConfig,
     ChartSemantics,
     ColumnRef,
     CurrencyFormat,
@@ -387,13 +388,7 @@ def is_column_truly_temporal(
 
 
 def map_config_to_form_data(
-    config: TableChartConfig
-    | XYChartConfig
-    | PieChartConfig
-    | PivotTableChartConfig
-    | MixedTimeseriesChartConfig
-    | HandlebarsChartConfig
-    | BigNumberChartConfig,
+    config: ChartConfig,
     dataset_id: int | str | None = None,
 ) -> Dict[str, Any]:
     """Map chart config to Superset form_data via the plugin registry.
@@ -433,6 +428,7 @@ def map_config_to_form_data(
             parts.append("Suggestions: " + "; ".join(error.suggestions))
         raise ValueError(" ".join(parts))
 
+    _bind_dashboard_time_range_filter(form_data, config, dataset_id)
     return form_data
 
 
@@ -758,6 +754,71 @@ def _ensure_temporal_adhoc_filter(form_data: Dict[str, Any], column: str) -> Non
         }
     )
     form_data["adhoc_filters"] = existing
+
+
+def _bind_dashboard_time_range_filter(
+    form_data: Dict[str, Any],
+    config: ChartConfig,
+    dataset_id: int | str | None,
+) -> None:
+    """Bind charts without time configuration to a temporal filter subject."""
+    if form_data.get("granularity_sqla") or any(
+        filter_.get("operator") == FilterOperator.TEMPORAL_RANGE.value
+        for filter_ in form_data.get("adhoc_filters", [])
+    ):
+        return
+
+    if temporal_column := getattr(config, "temporal_column", None):
+        if _is_temporal_for_dashboard_binding(temporal_column, dataset_id):
+            _ensure_temporal_adhoc_filter(form_data, temporal_column)
+        return
+
+    dataset = None
+    if dataset_id:
+        from sqlalchemy.exc import SQLAlchemyError
+
+        try:
+            dataset = _find_dataset_by_id_or_uuid(dataset_id)
+        except (AttributeError, RuntimeError, ValueError, SQLAlchemyError) as ex:
+            logger.debug(
+                "Could not resolve dataset %s for dashboard time binding: %s",
+                dataset_id,
+                ex,
+            )
+            return
+
+    x_axis = form_data.get("x_axis")
+    if isinstance(x_axis, str) and _is_temporal_for_dashboard_binding(
+        x_axis, dataset_id, dataset
+    ):
+        _ensure_temporal_adhoc_filter(form_data, x_axis)
+        return
+
+    main_dttm_col = getattr(dataset, "main_dttm_col", None)
+    if isinstance(main_dttm_col, str) and _is_temporal_for_dashboard_binding(
+        main_dttm_col, dataset_id, dataset
+    ):
+        _ensure_temporal_adhoc_filter(form_data, main_dttm_col)
+
+
+def _is_temporal_for_dashboard_binding(
+    column: str,
+    dataset_id: int | str | None,
+    dataset: "SqlaTable | None" = None,
+) -> bool:
+    """Check temporal metadata without making chart mapping fail on lookup errors."""
+    from sqlalchemy.exc import SQLAlchemyError
+
+    try:
+        return is_column_truly_temporal(column, dataset_id, dataset=dataset)
+    except (AttributeError, RuntimeError, ValueError, SQLAlchemyError) as ex:
+        logger.debug(
+            "Could not validate temporal column %s for dataset %s: %s",
+            column,
+            dataset_id,
+            ex,
+        )
+        return False
 
 
 def _resolve_default_x_axis(

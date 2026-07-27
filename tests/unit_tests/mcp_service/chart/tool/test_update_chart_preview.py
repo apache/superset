@@ -586,6 +586,71 @@ class TestUpdateChartPreview:
 
         assert result is None
 
+    def test_preserves_generated_temporal_filter_with_cached_filters(self) -> None:
+        """Cached filters are merged without replacing the temporal binding."""
+        new_form_data = {
+            "adhoc_filters": [
+                {
+                    "clause": "WHERE",
+                    "comparator": "No filter",
+                    "expressionType": "SIMPLE",
+                    "operator": "TEMPORAL_RANGE",
+                    "subject": "ds",
+                }
+            ]
+        }
+        previous_form_data = {
+            "adhoc_filters": [
+                {
+                    "clause": "WHERE",
+                    "comparator": "North",
+                    "expressionType": "SIMPLE",
+                    "operator": "==",
+                    "subject": "region",
+                }
+            ]
+        }
+
+        update_chart_preview_module._preserve_previous_adhoc_filters(
+            new_form_data,
+            previous_form_data,
+        )
+
+        assert [filter_["subject"] for filter_ in new_form_data["adhoc_filters"]] == [
+            "region",
+            "ds",
+        ]
+
+    def test_cached_temporal_filter_takes_precedence_over_generated_default(
+        self,
+    ) -> None:
+        """A cached chart-specific time range is not duplicated or reset."""
+        new_form_data = {
+            "adhoc_filters": [
+                {
+                    "clause": "WHERE",
+                    "comparator": "No filter",
+                    "expressionType": "SIMPLE",
+                    "operator": "TEMPORAL_RANGE",
+                    "subject": "ds",
+                }
+            ]
+        }
+        cached_temporal_filter = {
+            "clause": "WHERE",
+            "comparator": "Last month",
+            "expressionType": "SIMPLE",
+            "operator": "TEMPORAL_RANGE",
+            "subject": "ds",
+        }
+
+        update_chart_preview_module._preserve_previous_adhoc_filters(
+            new_form_data,
+            {"adhoc_filters": [cached_temporal_filter]},
+        )
+
+        assert new_form_data["adhoc_filters"] == [cached_temporal_filter]
+
     @patch.object(update_chart_preview_module, "validate_and_compile")
     @patch.object(update_chart_preview_module, "has_dataset_access", return_value=True)
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
