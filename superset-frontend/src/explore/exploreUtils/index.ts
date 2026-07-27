@@ -87,6 +87,7 @@ interface BuildV1ChartDataPayloadParams {
   resultType?: string;
   setDataMask?: SetDataMaskHook;
   ownState?: JsonObject;
+  clientId?: string;
 }
 
 interface ExportChartParams {
@@ -315,10 +316,14 @@ export const buildV1ChartDataPayload = async ({
   resultType,
   setDataMask,
   ownState,
+  clientId,
 }: BuildV1ChartDataPayloadParams): Promise<
   ReturnType<typeof buildQueryContext>
 > => {
-  const defaultBuildQuery = (buildQueryFormData: QueryFormData) =>
+  const defaultBuildQuery = (
+    buildQueryFormData: QueryFormData,
+    _options?: unknown,
+  ) =>
     buildQueryContext(buildQueryFormData, baseQueryObject => [
       {
         ...baseQueryObject,
@@ -329,7 +334,7 @@ export const buildV1ChartDataPayload = async ({
     : undefined;
   const buildQuery =
     (registryResult ? await registryResult : undefined) ?? defaultBuildQuery;
-  return buildQuery(
+  const queryContext = buildQuery(
     {
       ...formData,
       force,
@@ -337,13 +342,22 @@ export const buildV1ChartDataPayload = async ({
       result_type: resultType,
     } as QueryFormData,
     {
-      ownState,
+      ...(ownState !== undefined ? { ownState } : {}),
       hooks: {
         setDataMask: setDataMask ?? (() => {}),
         setCachedChanges: () => {},
       },
     },
   );
+
+  if (clientId) {
+    return {
+      ...queryContext,
+      client_id: clientId,
+    };
+  }
+
+  return queryContext;
 };
 
 export const getLegacyEndpointType = ({
