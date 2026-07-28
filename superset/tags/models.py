@@ -49,7 +49,7 @@ if TYPE_CHECKING:
     from superset.models.slice import Slice
     from superset.models.sql_lab import Query
 
-Session = sessionmaker()
+Session = sessionmaker(future=True)
 
 user_favorite_tag_table = Table(
     "user_favorite_tag",
@@ -98,7 +98,10 @@ class Tag(CoreTag, AuditMixinNullable):
     description = Column(Text)
 
     objects = relationship(
-        "TaggedObject", back_populates="tag", overlaps="objects,tags"
+        "TaggedObject",
+        back_populates="tag",
+        cascade_backrefs=False,
+        overlaps="objects,tags",
     )
 
     users_favorited = relationship(
@@ -122,7 +125,12 @@ class TaggedObject(Model, AuditMixinNullable):
     object_id = Column(Integer)
     object_type = Column(Enum(ObjectType))
 
-    tag = relationship("Tag", back_populates="objects", overlaps="tags")
+    tag = relationship(
+        "Tag",
+        back_populates="objects",
+        cascade_backrefs=False,
+        overlaps="tags",
+    )
     __table_args__ = (
         UniqueConstraint(
             "tag_id", "object_id", "object_type", name="uix_tagged_object"

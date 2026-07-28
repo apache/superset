@@ -28,6 +28,7 @@ import DatasetList from 'src/pages/DatasetList';
 import handleResourceExport from 'src/utils/export';
 import type Subject from 'src/types/Subject';
 import { SubjectType } from 'src/types/Subject';
+import type { RlsFilterSummary } from '@superset-ui/core/components/RlsBadge';
 
 export const mockHandleResourceExport =
   handleResourceExport as jest.MockedFunction<typeof handleResourceExport>;
@@ -78,6 +79,7 @@ export interface DatasetFixture {
   extra: string; // JSON-serialized metadata (always present in API)
   sql: string | null; // SQL query for virtual datasets
   description?: string; // Optional description field
+  rls_filters?: RlsFilterSummary[]; // RLS filters applied to this dataset
 }
 
 interface StoreState {
@@ -218,6 +220,35 @@ export const mockDatasets: DatasetFixture[] = [
     extra: JSON.stringify({}),
     sql: 'SELECT quarter, SUM(revenue) FROM sales GROUP BY quarter',
   },
+  {
+    id: 6,
+    table_name: 'Restricted Sales',
+    kind: 'physical',
+    schema: 'public',
+    database: {
+      id: '1',
+      database_name: 'PostgreSQL',
+    },
+    changed_by_name: 'Admin User',
+    changed_by: {
+      first_name: 'Admin',
+      last_name: 'User',
+      id: 1,
+    },
+    editors: [mockDatasetEditors.admin],
+    changed_on_delta_humanized: '2 days ago',
+    explore_url: '/explore/?datasource=6__table',
+    extra: JSON.stringify({}),
+    sql: null,
+    rls_filters: [
+      {
+        id: 1,
+        name: 'Region filter',
+        filter_type: 'Regular',
+        group_key: 'region',
+      },
+    ],
+  },
 ];
 
 // Mock users with various permission levels
@@ -225,6 +256,11 @@ export const mockAdminUser = {
   userId: 1,
   firstName: 'Admin',
   lastName: 'User',
+  username: 'admin',
+  permissions: {
+    database_access: [],
+    datasource_access: [],
+  },
   roles: {
     Admin: [
       ['can_read', 'Dataset'],

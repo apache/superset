@@ -31,7 +31,7 @@ import logging  # noqa: E402
 
 import sqlalchemy as sa  # noqa: E402
 from alembic import op  # noqa: E402
-from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
+from sqlalchemy.orm import declarative_base  # noqa: E402
 
 from superset import db  # noqa: E402
 from superset.migrations.shared.utils import paginated_update  # noqa: E402
@@ -50,7 +50,7 @@ class Dashboard(Base):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
     for dashboard in paginated_update(session.query(Dashboard)):
         #
         # This is needed in order to work-around a potential issue
@@ -100,7 +100,7 @@ def upgrade():
 
 def downgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for dashboard in paginated_update(session.query(Dashboard)):
         try:

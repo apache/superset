@@ -28,6 +28,7 @@ from pytest_mock import MockerFixture
 
 from superset.exceptions import SupersetException
 from superset.utils.core import (
+    build_email_attachment,
     cast_to_boolean,
     check_is_safe_zip,
     DateColumn,
@@ -68,6 +69,43 @@ EXTRA_FILTER: QueryObjectFilterClause = {
     "val": "bar",
     "isExtra": True,
 }
+
+
+@pytest.mark.parametrize(
+    ("name", "body", "expected_payload", "content_type"),
+    [
+        (
+            "report.xlsx",
+            b"attachment",
+            b"attachment",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ),
+        (
+            "report.zip",
+            "архив".encode("utf-8"),
+            "архив".encode("utf-8"),
+            "application/zip",
+        ),
+        (
+            "report.csv",
+            "город,value\nМосква,1",
+            "город,value\nМосква,1".encode("utf-8"),
+            "application/octet-stream",
+        ),
+    ],
+)
+def test_build_email_attachment(
+    name: str,
+    body: bytes | str,
+    expected_payload: bytes,
+    content_type: str,
+) -> None:
+    """Email attachments should expose the expected MIME type and filename."""
+    attachment = build_email_attachment(name, body)
+
+    assert attachment.get_content_type() == content_type
+    assert attachment.get_filename() == name
+    assert attachment.get_payload(decode=True) == expected_payload
 
 
 @dataclass

@@ -84,7 +84,7 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
         `
       }
 
-      .ant-modal-content {
+      .ant-modal-container {
         background-color: ${theme.colorBgContainer};
         display: flex;
         flex-direction: column;
@@ -120,8 +120,8 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
         right: 0;
         display: flex;
         justify-content: center;
-        // Keep the close button clickable when modal body content uses
-        // position: sticky with elevated z-index (e.g. DatabaseModal header).
+        /* Keep the close button clickable when modal body content uses */
+        /* position: sticky with elevated z-index (e.g. DatabaseModal header). */
         z-index: ${theme.zIndexPopupBase + 1};
       }
 
@@ -196,7 +196,7 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
               height: 100%;
             }
 
-            .ant-modal-content {
+            .ant-modal-container {
               height: 100%;
 
               .ant-modal-body {
@@ -344,6 +344,8 @@ const CustomModal = ({
         className="draggable-trigger"
         onMouseOver={() => dragDisabled && setDragDisabled(false)}
         onMouseOut={() => !dragDisabled && setDragDisabled(true)}
+        onFocus={() => dragDisabled && setDragDisabled(false)}
+        onBlur={() => !dragDisabled && setDragDisabled(true)}
       >
         {title}
       </div>

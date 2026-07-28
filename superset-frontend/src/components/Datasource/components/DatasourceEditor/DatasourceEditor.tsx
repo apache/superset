@@ -276,9 +276,7 @@ interface CollectionTabTitleProps {
 
 interface ColumnCollectionTableProps {
   columns: Column[];
-  datasource: DatasourceObject;
   onColumnsChange: (columns: Column[]) => void;
-  onDatasourceChange: (datasource: DatasourceObject) => void;
   editableColumnName?: boolean;
   showExpression?: boolean;
   allowAddItem?: boolean;
@@ -343,18 +341,18 @@ const StyledTableTabs = styled(Tabs)`
   display: flex;
   flex-direction: column;
 
-  .ant-tabs-content-holder {
+  .ant-tabs-body-holder {
     flex: 1;
     min-height: 0;
     overflow: auto;
     padding-top: ${({ theme }) => theme.paddingMD}px;
   }
 
-  .ant-tabs-content {
+  .ant-tabs-body {
     height: 100%;
   }
 
-  .ant-tabs-tabpane-active {
+  .ant-tabs-content-active {
     height: 100%;
   }
 `;
@@ -493,9 +491,7 @@ function FormContainer({ children }: FormContainerProps): JSX.Element {
 
 function ColumnCollectionTable({
   columns,
-  datasource,
   onColumnsChange,
-  onDatasourceChange,
   editableColumnName = false,
   showExpression = false,
   allowAddItem = false,
@@ -1757,12 +1753,16 @@ function DatasourceEditor({
     () => (
       <div>
         <EditLockContainer>
-          <span
+          <button
+            type="button"
             css={themeParam => css`
+              appearance: none;
+              border: none;
+              background: none;
+              padding: 0;
+              font: inherit;
               color: ${themeParam.colorTextTertiary};
             `}
-            role="button"
-            tabIndex={0}
             onClick={onChangeEditMode}
           >
             {isEditMode ? (
@@ -1780,7 +1780,7 @@ function DatasourceEditor({
                 })}
               />
             )}
-          </span>
+          </button>
           {!isEditMode && <div>{t('Click the lock to make changes.')}</div>}
           {isEditMode && (
             <div>{t('Click the lock to prevent further changes.')}</div>
@@ -2416,9 +2416,7 @@ function DatasourceEditor({
               columns={databaseColumns}
               filterTerm={columnSearchTerm}
               filterFields={['column_name']}
-              datasource={datasource}
               onColumnsChange={cols => setColumns({ databaseColumns: cols })}
-              onDatasourceChange={onDatasourceChange}
             />
             {metadataLoading && <Loading />}
           </StyledTableTabWrapper>
@@ -2457,8 +2455,6 @@ function DatasourceEditor({
                     'as the alias in the SQL query.',
                 ),
               }}
-              onDatasourceChange={onDatasourceChange}
-              datasource={datasource}
               editableColumnName
               showExpression
               allowAddItem
@@ -2544,7 +2540,6 @@ function DatasourceEditor({
       isEditMode,
       datasource,
       setColumns,
-      onDatasourceChange,
       metadataLoading,
       calculatedColumns,
       columnSearchTerm,

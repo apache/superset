@@ -28,13 +28,16 @@ To add a new chart type:
 """
 
 from superset.mcp_service.chart.plugins.big_number import BigNumberChartPlugin
+from superset.mcp_service.chart.plugins.box_plot import BoxPlotChartPlugin
 from superset.mcp_service.chart.plugins.handlebars import HandlebarsChartPlugin
+from superset.mcp_service.chart.plugins.histogram import HistogramChartPlugin
 from superset.mcp_service.chart.plugins.mixed_timeseries import (
     MixedTimeseriesChartPlugin,
 )
 from superset.mcp_service.chart.plugins.pie import PieChartPlugin
 from superset.mcp_service.chart.plugins.pivot_table import PivotTableChartPlugin
 from superset.mcp_service.chart.plugins.table import TableChartPlugin
+from superset.mcp_service.chart.plugins.waterfall import WaterfallChartPlugin
 from superset.mcp_service.chart.plugins.xy import XYChartPlugin
 from superset.mcp_service.chart.registry import register
 
@@ -46,13 +49,19 @@ register(PivotTableChartPlugin())
 register(MixedTimeseriesChartPlugin())
 register(HandlebarsChartPlugin())
 register(BigNumberChartPlugin())
+register(HistogramChartPlugin())
+register(BoxPlotChartPlugin())
+register(WaterfallChartPlugin())
 
 __all__ = [
     "BigNumberChartPlugin",
+    "BoxPlotChartPlugin",
     "HandlebarsChartPlugin",
+    "HistogramChartPlugin",
     "MixedTimeseriesChartPlugin",
     "PieChartPlugin",
     "PivotTableChartPlugin",
     "TableChartPlugin",
+    "WaterfallChartPlugin",
     "XYChartPlugin",
 ]

@@ -18,7 +18,7 @@ import re
 from typing import Any, Mapping, Union
 
 from marshmallow import fields, post_dump, post_load, pre_load, Schema
-from marshmallow.validate import Length, ValidationError
+from marshmallow.validate import Length, OneOf, ValidationError
 
 from superset import security_manager
 from superset.subjects.schemas import SubjectResponseSchema
@@ -26,9 +26,21 @@ from superset.tags.models import TagType
 from superset.utils import json
 from superset.utils.schema import validate_external_url
 
-get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
-get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
-get_fav_star_ids_schema = {"type": "array", "items": {"type": "integer"}}
+get_delete_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
+get_export_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
+get_fav_star_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
 thumbnail_query_schema = {
     "type": "object",
     "properties": {"force": {"type": "boolean"}},
@@ -628,3 +640,30 @@ class CacheScreenshotSchema(Schema):
         fields.List(fields.Str(), validate=lambda x: len(x) == 2), required=False
     )
     permalinkKey = fields.Str(required=False)  # noqa: N815
+
+
+class DashboardExportXlsxPostSchema(Schema):
+    active_data_mask = fields.Dict(
+        keys=fields.Str(),
+        values=fields.Dict(),
+        load_default=dict,
+        metadata={
+            "description": "Live dashboard filter state keyed by native filter id, "
+            "each carrying an extraFormData object."
+        },
+    )
+    mode = fields.String(
+        load_default="data",
+        validate=OneOf(["data", "images"]),
+        metadata={
+            "description": "Export mode: 'data' streams each chart's tabular result "
+            "(default); 'images' embeds non-table charts as rendered images and "
+            "keeps table charts tabular."
+        },
+    )
+
+
+class DashboardExportXlsxResponseSchema(Schema):
+    job_id = fields.String(
+        metadata={"description": "Correlation id for the async export task"}
+    )

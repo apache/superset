@@ -392,14 +392,22 @@ const ExploreChartPanel = ({
                 {t(
                   'This chart type is not supported when using an unsaved query as a chart source. ',
                 )}
-                <span
-                  role="button"
-                  tabIndex={0}
+                <button
+                  type="button"
                   onClick={() => setShowDatasetModal(true)}
-                  css={{ textDecoration: 'underline' }}
+                  css={css`
+                    appearance: none;
+                    border: none;
+                    background: none;
+                    padding: 0;
+                    font: inherit;
+                    color: inherit;
+                    text-decoration: underline;
+                    cursor: pointer;
+                  `}
                 >
                   {t('Create a dataset')}
-                </span>
+                </button>
                 {t(' to visualize your data.')}
               </>
             }
@@ -420,9 +428,21 @@ const ExploreChartPanel = ({
                   {t(
                     'You updated the values in the control panel, but the chart was not updated automatically. Run the query by clicking on the "Update chart" button or',
                   )}{' '}
-                  <span role="button" tabIndex={0} onClick={onQuery}>
+                  <button
+                    type="button"
+                    onClick={onQuery}
+                    css={css`
+                      appearance: none;
+                      border: none;
+                      background: none;
+                      padding: 0;
+                      font: inherit;
+                      color: inherit;
+                      cursor: pointer;
+                    `}
+                  >
                     {t('click here')}
-                  </span>
+                  </button>
                   .
                 </span>
               )

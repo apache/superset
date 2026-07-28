@@ -51,7 +51,7 @@ export const ExploreAlert = forwardRef(
       type = 'info',
       className = '',
     }: ControlPanelAlertProps,
-    ref: RefObject<HTMLDivElement>,
+    _ref: RefObject<HTMLDivElement>,
   ) => (
     <ErrorAlert
       errorType={title}

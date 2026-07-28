@@ -65,7 +65,8 @@ def _assert_table_list_covers_schema() -> None:
     )
 
 
-def _clear_version_tables() -> None:
+def clear_version_tables() -> None:
+    """Delete all entity-versioning capture rows and commit the cleanup."""
     with app.app_context():
         _assert_table_list_covers_schema()
         for table in _VERSION_TABLES:
@@ -88,6 +89,6 @@ def clean_version_tables() -> Iterator[None]:
     Table names are interpolated from the fixed ``_VERSION_TABLES`` tuple, not
     from any test input, so the ``DELETE`` is not an injection surface.
     """
-    _clear_version_tables()
+    clear_version_tables()
     yield
-    _clear_version_tables()
+    clear_version_tables()

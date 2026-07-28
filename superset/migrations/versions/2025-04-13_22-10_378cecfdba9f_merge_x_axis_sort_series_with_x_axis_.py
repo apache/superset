@@ -28,7 +28,7 @@ down_revision = "32bf93dfe2a4"
 
 from alembic import op  # noqa: E402
 from sqlalchemy import Column, Integer, String, Text  # noqa: E402
-from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
+from sqlalchemy.orm import declarative_base  # noqa: E402
 
 from superset import db  # noqa: E402
 from superset.migrations.shared.utils import paginated_update  # noqa: E402
@@ -58,7 +58,7 @@ timeseries_charts = [
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
     for slc in paginated_update(
         session.query(Slice).filter(Slice.viz_type.in_(timeseries_charts))
     ):
@@ -87,7 +87,7 @@ def upgrade():
 
 def downgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for slc in paginated_update(
         session.query(Slice).filter(Slice.viz_type.in_(timeseries_charts))

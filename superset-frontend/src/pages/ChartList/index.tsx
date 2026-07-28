@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetTheme } from '@apache-superset/core/theme';
+import { SupersetTheme, css, styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import {
   isFeatureEnabled,
@@ -26,7 +26,6 @@ import {
   SupersetClient,
   isMatrixifyEnabled,
 } from '@superset-ui/core';
-import { css, styled } from '@apache-superset/core/theme';
 import { useState, useMemo, useCallback } from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash-es';
@@ -47,6 +46,7 @@ import {
 } from 'src/views/CRUD/hooks';
 import handleResourceExport from 'src/utils/export';
 import {
+  ActionButton,
   ConfirmStatusChange,
   CertifiedBadge,
   Tooltip,
@@ -85,6 +85,8 @@ import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 import { Tag } from 'src/components/Tag';
 import { datasetLabel } from 'src/features/semanticLayers/label';
+import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
+import type { CellProps } from 'react-table';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -159,23 +161,16 @@ const createFetchDatasets = async (
 interface ChartListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  user: {
-    userId: string | number;
-    firstName: string;
-    lastName: string;
-  };
+  user?: UserWithPermissionsAndRoles;
 }
 
-const StyledActions = styled.div`
+const Actions = styled.div`
   color: ${({ theme }) => theme.colorIcon};
 `;
 
 function ChartList(props: ChartListProps) {
-  const {
-    addDangerToast,
-    addSuccessToast,
-    user: { userId },
-  } = props;
+  const { addDangerToast, addSuccessToast, user } = props;
+  const userId = user?.userId;
 
   const history = useHistory();
 
@@ -228,9 +223,11 @@ function ChartList(props: ChartListProps) {
   // TODO: Fix usage of localStorage keying on the user id
   const userSettings = useMemo(
     () =>
-      dangerouslyGetItemDoNotUse(userId?.toString(), null) as {
-        thumbnails: boolean;
-      },
+      userId === undefined
+        ? null
+        : (dangerouslyGetItemDoNotUse(userId.toString(), null) as {
+            thumbnails: boolean;
+          }),
     [userId],
   );
 
@@ -516,7 +513,8 @@ function ChartList(props: ChartListProps) {
         id: 'changed_on_delta_humanized',
       },
       {
-        Cell: ({ row: { original } }: any) => {
+        Cell: ({ row: { original } }: CellProps<Chart>) => {
+          const allowEdit = isUserEditorOrAdmin(user, original.editors);
           const handleDelete = () =>
             handleChartDelete(
               original,
@@ -531,40 +529,35 @@ function ChartList(props: ChartListProps) {
           }
 
           return (
-            <StyledActions className="actions">
+            <Actions className="actions">
               {canEdit && (
-                <Tooltip
-                  id="edit-action-tooltip"
-                  title={t('Edit')}
+                <ActionButton
+                  label={t('Edit')}
+                  tooltip={
+                    allowEdit
+                      ? t('Edit')
+                      : t(
+                          'You must be a chart editor in order to edit. Please reach out to a chart editor to request modifications or edit access.',
+                        )
+                  }
                   placement="bottom"
-                >
-                  <span
-                    data-test="chart-row-edit"
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={openEditModal}
-                  >
+                  icon={
                     <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
-                  </span>
-                </Tooltip>
+                  }
+                  dataTest="chart-row-edit"
+                  disabled={!allowEdit}
+                  onClick={openEditModal}
+                />
               )}
               {canExport && (
-                <Tooltip
-                  id="export-action-tooltip"
-                  title={t('Export')}
+                <ActionButton
+                  label={t('Export')}
+                  tooltip={t('Export')}
                   placement="bottom"
-                >
-                  <span
-                    data-test="chart-row-export"
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={handleExport}
-                  >
-                    <Icons.UploadOutlined iconSize="l" />
-                  </span>
-                </Tooltip>
+                  icon={<Icons.UploadOutlined iconSize="l" />}
+                  dataTest="chart-row-export"
+                  onClick={handleExport}
+                />
               )}
               {canDelete && (
                 <ConfirmStatusChange
@@ -578,25 +571,25 @@ function ChartList(props: ChartListProps) {
                   onConfirm={handleDelete}
                 >
                   {confirmDelete => (
-                    <Tooltip
-                      id="delete-action-tooltip"
-                      title={t('Delete')}
+                    <ActionButton
+                      label={t('Delete')}
+                      tooltip={
+                        allowEdit
+                          ? t('Delete')
+                          : t(
+                              'You must be a chart editor in order to delete. Please reach out to a chart editor to request modifications or edit access.',
+                            )
+                      }
                       placement="bottom"
-                    >
-                      <span
-                        data-test="chart-row-delete"
-                        role="button"
-                        tabIndex={0}
-                        className="action-button"
-                        onClick={confirmDelete}
-                      >
-                        <Icons.DeleteOutlined iconSize="l" />
-                      </span>
-                    </Tooltip>
+                      icon={<Icons.DeleteOutlined iconSize="l" />}
+                      dataTest="chart-row-delete"
+                      disabled={!allowEdit}
+                      onClick={confirmDelete}
+                    />
                   )}
                 </ConfirmStatusChange>
               )}
-            </StyledActions>
+            </Actions>
           );
         },
         Header: t('Actions'),
@@ -612,6 +605,7 @@ function ChartList(props: ChartListProps) {
       },
     ],
     [
+      user,
       userId,
       canEdit,
       canDelete,
@@ -845,7 +839,7 @@ function ChartList(props: ChartListProps) {
         addDangerToast={addDangerToast}
         addSuccessToast={addSuccessToast}
         refreshData={refreshData}
-        userId={userId}
+        user={user}
         loading={loading}
         favoriteStatus={favoriteStatus[chart.id]}
         saveFavoriteStatus={saveFavoriteStatus}
@@ -863,7 +857,7 @@ function ChartList(props: ChartListProps) {
       openChartEditModal,
       refreshData,
       saveFavoriteStatus,
-      userId,
+      user,
       userSettings,
     ],
   );

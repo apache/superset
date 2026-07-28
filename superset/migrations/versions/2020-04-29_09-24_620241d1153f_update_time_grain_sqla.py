@@ -28,7 +28,7 @@ down_revision = "f9a30386bd74"
 
 from alembic import op  # noqa: E402
 from sqlalchemy import Column, ForeignKey, Integer, Text  # noqa: E402
-from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
+from sqlalchemy.orm import declarative_base  # noqa: E402
 
 from superset import db, db_engine_specs  # noqa: E402
 from superset.databases.utils import make_url_safe  # noqa: E402
@@ -74,7 +74,7 @@ def duration_by_name(database: Database):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     query = (
         session.query(Slice, Database)

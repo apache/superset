@@ -108,10 +108,22 @@ const findAllSelectOptions = () =>
   waitFor(() => getElementsByClassName('.ant-select-item-option-content'));
 
 const findSelectValue = () =>
-  waitFor(() => getElementByClassName('.ant-select-selection-item'));
+  // antd v6: single-mode value is `.ant-select-content-has-value`, multiple-mode
+  // tags remain `.ant-select-selection-item`.
+  waitFor(() =>
+    getElementByClassName(
+      '.ant-select-content-has-value, .ant-select-selection-item',
+    ),
+  );
 
 const findAllSelectValues = () =>
-  waitFor(() => [...getElementsByClassName('.ant-select-selection-item')]);
+  // antd v6: multiple-mode tags keep `.ant-select-selection-item`, single-mode
+  // value is `.ant-select-content-has-value`.
+  waitFor(() => [
+    ...getElementsByClassName(
+      '.ant-select-selection-item, .ant-select-content-has-value',
+    ),
+  ]);
 
 const clearAll = () => userEvent.click(screen.getByLabelText('close-circle'));
 
@@ -363,7 +375,7 @@ test('searches for custom fields', async () => {
 
 test('removes duplicated values', async () => {
   render(<Select {...defaultProps} mode="multiple" allowNewOptions />);
-  const input = getElementByClassName('.ant-select-selection-search-input');
+  const input = getElementByClassName('.ant-select-input');
   const paste = createEvent.paste(input, {
     clipboardData: {
       getData: () => 'a,b,b,b,c,d,d',
@@ -378,9 +390,96 @@ test('removes duplicated values', async () => {
   expect(values[3]).toHaveTextContent('d');
 });
 
+test('typing an unquoted comma splits the value into a chip', async () => {
+  render(<Select {...defaultProps} mode="multiple" allowNewOptions />);
+  await type('Australia');
+  expect(await findSelectOption('Australia')).toBeInTheDocument();
+  await type(',', undefined, false);
+  const values = await findAllSelectValues();
+  expect(values.length).toBe(1);
+  expect(values[0]).toHaveTextContent('Australia');
+});
+
+test('closing quote and separator arriving in a single input event still create the chip', async () => {
+  render(<Select {...defaultProps} mode="multiple" allowNewOptions />);
+  await open();
+  await type('"Australia, U');
+  // dead-key keyboard layouts deliver the closing quote together with the
+  // next character in one input event
+  fireEvent.change(getSelect(), { target: { value: '"Australia, US",' } });
+  await waitFor(() =>
+    expect(getElementsByClassName('.ant-select-selection-item')).toHaveLength(
+      1,
+    ),
+  );
+  expect(getElementByClassName('.ant-select-selection-item')).toHaveTextContent(
+    'Australia, US',
+  );
+});
+
+test('an options prop update mid-typing keeps the created option tokenizable', async () => {
+  const { rerender } = render(
+    <Select {...defaultProps} mode="multiple" allowNewOptions />,
+  );
+  await type('"Australia, US"');
+  expect(await findSelectOption('Australia, US')).toBeInTheDocument();
+  rerender(
+    <Select
+      {...defaultProps}
+      options={[...OPTIONS]}
+      mode="multiple"
+      allowNewOptions
+    />,
+  );
+  await type(',', undefined, false);
+  await waitFor(() =>
+    expect(getElementsByClassName('.ant-select-selection-item')).toHaveLength(
+      1,
+    ),
+  );
+  expect(getElementByClassName('.ant-select-selection-item')).toHaveTextContent(
+    'Australia, US',
+  );
+});
+
+test('typing a comma inside double quotes keeps the value as a single chip', async () => {
+  render(<Select {...defaultProps} mode="multiple" allowNewOptions />);
+  await type('"Australia, US"');
+  expect(await findSelectOption('Australia, US')).toBeInTheDocument();
+  await type(',', undefined, false);
+  const values = await findAllSelectValues();
+  expect(values.length).toBe(1);
+  expect(values[0]).toHaveTextContent('Australia, US');
+});
+
+test('prevents the default paste action when pasted values are consumed', async () => {
+  render(<Select {...defaultProps} mode="multiple" allowNewOptions />);
+  const input = getElementByClassName('.ant-select-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => `${OPTIONS[0].label},${OPTIONS[1].label}`,
+    },
+  });
+  fireEvent(input, paste);
+  await findAllSelectValues();
+  expect(paste.defaultPrevented).toBe(true);
+});
+
+test('allows the default paste action when nothing is consumable', async () => {
+  render(<Select {...defaultProps} mode="multiple" />);
+  const input = getElementByClassName('.ant-select-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => 'zzz,yyy',
+    },
+  });
+  fireEvent(input, paste);
+  expect(paste.defaultPrevented).toBe(false);
+});
+
 test('trims whitespace from pasted comma-separated values', async () => {
   render(<Select {...defaultProps} mode="multiple" allowNewOptions />);
-  const input = getElementByClassName('.ant-select-selection-search-input');
+  const input = getElementByClassName('.ant-select-input');
   const paste = createEvent.paste(input, {
     clipboardData: {
       getData: () => 'a, b,  c , d',
@@ -777,7 +876,7 @@ test('Renders only an overflow tag if dropdown is open in oneLine mode', async (
   );
   await open();
 
-  const withinSelector = within(getElementByClassName('.ant-select-selector'));
+  const withinSelector = within(getElementByClassName('.ant-select-content'));
   await waitFor(() => {
     expect(
       withinSelector.queryByText(OPTIONS[0].label),
@@ -810,7 +909,7 @@ test('Maintains stable maxTagCount to prevent click target disappearing in oneLi
     />,
   );
 
-  const withinSelector = within(getElementByClassName('.ant-select-selector'));
+  const withinSelector = within(getElementByClassName('.ant-select-content'));
   expect(withinSelector.getByText(OPTIONS[0].label)).toBeVisible();
   expect(withinSelector.getByText('+ 2 ...')).toBeVisible();
 
@@ -847,9 +946,7 @@ test('dropdown width matches input width after tags collapse in oneLine mode', a
 
   // Wait for RAF to complete and tags to collapse
   await waitFor(() => {
-    const withinSelector = within(
-      getElementByClassName('.ant-select-selector'),
-    );
+    const withinSelector = within(getElementByClassName('.ant-select-content'));
     expect(
       withinSelector.queryByText(OPTIONS[0].label),
     ).not.toBeInTheDocument();
@@ -933,6 +1030,35 @@ test('do not count unselected disabled options in "Select all"', async () => {
   expect(
     screen.getByText(selectAllButtonText(OPTIONS.length - 1)),
   ).toBeInTheDocument();
+});
+
+test('"Select all" does not count null-valued options', async () => {
+  // A falsy-valued option (e.g. <NULL>, value: null) is skipped by
+  // handleSelectAll, so it must not be counted in the "Select all" badge or
+  // the count overstates the selection. Regression test for #40228. Uses a
+  // local options array to stay isolated from tests that mutate OPTIONS.
+  const localOptions = [
+    { label: 'Alpha', value: 1 },
+    { label: 'Bravo', value: 2 },
+  ];
+  render(
+    <Select
+      {...defaultProps}
+      options={[...localOptions, NULL_OPTION]}
+      mode="multiple"
+      maxTagCount={0}
+    />,
+  );
+  await open();
+  // Three options are visible, but the <NULL> option is not bulk-selectable,
+  // so the badge must count only the two real options (would be 3 before fix).
+  await userEvent.click(
+    await screen.findByText(selectAllButtonText(localOptions.length)),
+  );
+  // And Select all selects exactly those two — the null option is skipped.
+  const values = await findAllSelectValues();
+  expect(values.length).toBe(1);
+  expect(values[0]).toHaveTextContent(`+ ${localOptions.length} ...`);
 });
 
 test('"Deselect all" counts all selected options', async () => {
@@ -1037,14 +1163,14 @@ test('dropdown takes full width of the select input for single select', async ()
 test('does not fire onChange when searching but no selection', async () => {
   const onChange = jest.fn();
   render(
-    <div role="main">
+    <main>
       <Select
         {...defaultProps}
         onChange={onChange}
         mode="multiple"
         allowNewOptions
       />
-    </div>,
+    </main>,
   );
   await open();
   await type('Joh');
@@ -1085,7 +1211,7 @@ test('fires onChange when pasting a selection', async () => {
   const onChange = jest.fn();
   render(<Select {...defaultProps} onChange={onChange} />);
   await open();
-  const input = getElementByClassName('.ant-select-selection-search-input');
+  const input = getElementByClassName('.ant-select-input');
   const paste = createEvent.paste(input, {
     clipboardData: {
       getData: () => OPTIONS[0].label,
@@ -1113,7 +1239,7 @@ test('does not duplicate options when using numeric values', async () => {
 test('pasting an existing option does not duplicate it', async () => {
   render(<Select {...defaultProps} options={[OPTIONS[0]]} />);
   await open();
-  const input = getElementByClassName('.ant-select-selection-search-input');
+  const input = getElementByClassName('.ant-select-input');
   const paste = createEvent.paste(input, {
     clipboardData: {
       getData: () => OPTIONS[0].label,
@@ -1139,7 +1265,7 @@ test('pasting an existing option does not duplicate it in multiple mode', async 
     />,
   );
   await open();
-  const input = getElementByClassName('.ant-select-selection-search-input');
+  const input = getElementByClassName('.ant-select-input');
   const paste = createEvent.paste(input, {
     clipboardData: {
       getData: () => 'John,Liam,Peter',
@@ -1153,7 +1279,7 @@ test('pasting an existing option does not duplicate it in multiple mode', async 
 test('pasting an non-existent option should not add it if allowNewOptions is false', async () => {
   render(<Select {...defaultProps} options={[]} allowNewOptions={false} />);
   await open();
-  const input = getElementByClassName('.ant-select-selection-search-input');
+  const input = getElementByClassName('.ant-select-input');
   const paste = createEvent.paste(input, {
     clipboardData: {
       getData: () => 'John',
@@ -1179,7 +1305,7 @@ test('keeps pasted values outside loaded options when allowNewOptionsOnPaste is 
       onChange={onChange}
     />,
   );
-  const input = getElementByClassName('.ant-select-selection-search-input');
+  const input = getElementByClassName('.ant-select-input');
   const paste = createEvent.paste(input, {
     clipboardData: {
       // Liam is a loaded option; OutsideValue is not in the loaded page.
@@ -1215,7 +1341,7 @@ test('trims whitespace around pasted comma-separated values', async () => {
       onChange={onChange}
     />,
   );
-  const input = getElementByClassName('.ant-select-selection-search-input');
+  const input = getElementByClassName('.ant-select-input');
   const paste = createEvent.paste(input, {
     clipboardData: {
       // Note the space after the comma — it must not leak into the value.
@@ -1248,7 +1374,7 @@ test('does not create an empty option when pasting blank text', async () => {
       onChange={onChange}
     />,
   );
-  const input = getElementByClassName('.ant-select-selection-search-input');
+  const input = getElementByClassName('.ant-select-input');
   const paste = createEvent.paste(input, {
     clipboardData: {
       getData: () => '   ',
@@ -1269,7 +1395,7 @@ test('does not create an empty option when pasting blank text', async () => {
 
 test('drops pasted values outside loaded options when allowNewOptionsOnPaste is false', async () => {
   render(<Select {...defaultProps} mode="multiple" allowNewOptions={false} />);
-  const input = getElementByClassName('.ant-select-selection-search-input');
+  const input = getElementByClassName('.ant-select-input');
   const paste = createEvent.paste(input, {
     clipboardData: {
       getData: () => 'Liam,OutsideValue',
@@ -1432,6 +1558,26 @@ describe('grouped options search', () => {
   });
 });
 
+test('cancels pending debounce on unmount', async () => {
+  const mockOnSearch = jest.fn();
+  const { unmount } = render(
+    <Select
+      {...defaultProps}
+      allowNewOptions
+      mode="multiple"
+      onSearch={mockOnSearch}
+    />,
+  );
+
+  await type('test');
+  await new Promise(resolve => setTimeout(resolve, 300));
+  expect(mockOnSearch).toHaveBeenCalledWith('test');
+  mockOnSearch.mockClear();
+  await type('unmounted');
+  unmount();
+  await new Promise(resolve => setTimeout(resolve, 400));
+  expect(mockOnSearch).not.toHaveBeenCalled();
+});
 /*
  TODO: Add tests that require scroll interaction. Needs further investigation.
  - Fetches more data when scrolling and more data is available

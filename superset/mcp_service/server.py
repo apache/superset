@@ -30,6 +30,7 @@ from typing import Annotated, Any, Callable
 import uvicorn
 from fastmcp.exceptions import ToolError
 from fastmcp.server.middleware import Middleware
+from starlette.requests import ClientDisconnect
 
 from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
 from superset.mcp_service.jwt_verifier import BrowserHelloMiddleware
@@ -84,6 +85,12 @@ def _suppress_third_party_warnings() -> None:
     )
 
 
+def _downgrade_to_warning(record: logging.LogRecord) -> None:
+    """Mutate *record* in place to WARNING level."""
+    record.levelno = logging.WARNING
+    record.levelname = "WARNING"
+
+
 class FastMCPValidationFilter(logging.Filter):
     """Downgrade FastMCP's user-error logs from ERROR to WARNING.
 
@@ -107,8 +114,51 @@ class FastMCPValidationFilter(logging.Filter):
         if record.levelno != logging.ERROR:
             return True
         if "Error validating tool" in record.getMessage():
-            record.levelno = logging.WARNING
-            record.levelname = "WARNING"
+            _downgrade_to_warning(record)
+        return True
+
+
+class MCPTransportDisconnectFilter(logging.Filter):
+    """Downgrade MCP SDK client-disconnect transport logs from ERROR to WARNING.
+
+    When an MCP client disconnects mid-request (a cancelled or timed-out tool
+    call — normal client behavior, not a Superset bug), the ``mcp`` SDK's own
+    transport code logs it at ERROR with a full traceback, and separately
+    re-raises it into the session's message loop, which logs a second ERROR.
+    Both are expected under normal client behavior and should not page or
+    open incidents; downgrading to WARNING keeps them visible in log
+    aggregation without polluting ERROR-level alerting.
+
+    Two different loggers require two different matching strategies:
+
+    - ``mcp.server.streamable_http`` (``_handle_post_request``) catches the
+      disconnect via a broad ``except Exception`` and logs it with
+      ``logger.exception(...)``, so ``record.exc_info`` carries the actual
+      exception object — we can check its type directly.
+    - ``mcp.server.lowlevel.server`` (``_handle_message``) receives the same
+      exception secondhand, already wrapped as a bare
+      ``Exception(ClientDisconnect())`` pushed onto the read stream. The
+      original type is lost by the time it's logged, so exception-type
+      checks are impossible here. ``ClientDisconnect`` is always raised with
+      zero args, so ``str(ClientDisconnect())`` is always ``""`` — making the
+      rendered message a fixed, matchable string instead.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if record.levelno != logging.ERROR:
+            return True
+        if record.name == "mcp.server.streamable_http":
+            if record.exc_info and isinstance(record.exc_info[1], ClientDisconnect):
+                _downgrade_to_warning(record)
+        elif record.name == "mcp.server.lowlevel.server":
+            # NOTE: This matches the literal log message from the mcp SDK's
+            # lowlevel/server.py (``_handle_message``, line ~689 in the
+            # ``mcp==1.24.0`` pinned in requirements/development.txt):
+            # ``logger.error(f"Received exception from stream: {message}")``.
+            # If the SDK changes this f-string's wording, this filter will
+            # stop working silently.
+            if record.getMessage() == "Received exception from stream: ":
+                _downgrade_to_warning(record)
         return True
 
 
@@ -146,6 +196,17 @@ def configure_logging(debug: bool = False) -> None:
     # Downgrade these specific messages from ERROR to WARNING.
     fastmcp_server_logger = logging.getLogger("fastmcp.server.server")
     fastmcp_server_logger.addFilter(FastMCPValidationFilter())
+
+    # MCP client disconnects (cancelled/timed-out tool calls) are logged at
+    # ERROR by the mcp SDK's transport and lowlevel server loggers. These are
+    # expected client behavior, not Superset bugs — downgrade to WARNING.
+    transport_disconnect_filter = MCPTransportDisconnectFilter()
+    logging.getLogger("mcp.server.streamable_http").addFilter(
+        transport_disconnect_filter
+    )
+    logging.getLogger("mcp.server.lowlevel.server").addFilter(
+        transport_disconnect_filter
+    )
 
 
 def create_event_store(config: dict[str, Any] | None = None) -> Any | None:
@@ -841,6 +902,21 @@ def _build_starlette_middleware(
     ]
 
 
+def _register_health_endpoint(mcp_instance: Any) -> None:
+    """
+    Register /health for load balancers and K8s probes.
+
+    The health_check MCP tool exists but is only reachable via the MCP
+    protocol, not httpGet probes.
+    """
+    from starlette.requests import Request
+    from starlette.responses import JSONResponse
+
+    @mcp_instance.custom_route("/health", methods=["GET"])
+    async def _health(_: Request) -> JSONResponse:
+        return JSONResponse({"status": "ok"})
+
+
 def run_server(
     host: str = "127.0.0.1",
     port: int = 5008,
@@ -917,6 +993,8 @@ def run_server(
             if size_guard_middleware:
                 search_name = tool_search_config.get("search_tool_name", "search_tools")
                 size_guard_middleware.excluded_tools.add(search_name)
+
+    _register_health_endpoint(mcp_instance)
 
     # Create EventStore for session management (Redis for multi-pod, None for in-memory)
     event_store = create_event_store(event_store_config)

@@ -96,6 +96,26 @@ describe("guest token refresh", () => {
     expect(timing).toBe(DEFAULT_TOKEN_EXP_MS - REFRESH_TIMING_BUFFER_MS);
   });
 
+  it("falls back to default timing for a completely malformed token", () => {
+    const timing = getGuestTokenRefreshTiming("not-a-jwt");
+
+    expect(timing).toBe(DEFAULT_TOKEN_EXP_MS - REFRESH_TIMING_BUFFER_MS);
+  });
+
+  it("falls back to default timing for an empty string token", () => {
+    const timing = getGuestTokenRefreshTiming("");
+
+    expect(timing).toBe(DEFAULT_TOKEN_EXP_MS - REFRESH_TIMING_BUFFER_MS);
+  });
+
+  it("falls back to default timing for a token with invalid base64 payload", () => {
+    const timing = getGuestTokenRefreshTiming(
+      "header.!!!invalid-base64!!!.signature",
+    );
+
+    expect(timing).toBe(DEFAULT_TOKEN_EXP_MS - REFRESH_TIMING_BUFFER_MS);
+  });
+
   it("exposes a positive retry delay for failed token refreshes", () => {
     // The refresh loop reschedules itself after this delay when a fetch
     // fails or times out, so it must be a sane positive value.

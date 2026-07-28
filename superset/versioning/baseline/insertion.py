@@ -48,16 +48,23 @@ logger = logging.getLogger(__name__)
 def insert_baseline_and_children(
     session: Session, obj: Any, version_table: Any
 ) -> None:
-    """Insert the parent baseline row, then baseline the parent's child
-    collections under the same transaction id.
+    """Insert one atomic baseline for a parent and its children.
 
     Wrapped in ``no_autoflush`` so ``session.connection()`` inside
     ``_insert_baseline_row`` does not trigger a flush of Continuum's
     pending Transaction object before our direct-SQL insert claims its
-    tx_id.
+    tx_id. A connection-level SAVEPOINT is required because this helper runs
+    inside ``before_flush``, where ``Session.begin_nested()`` would flush
+    recursively. One SAVEPOINT contains the transaction row, parent shadow,
+    and every child shadow so optional baseline capture is all-or-nothing and
+    a failed PostgreSQL statement cannot poison the user's transaction.
+
+    Continuum runs later in the same ``before_flush`` listener chain. The
+    PostgreSQL failure tests assert that releasing or rolling back this
+    SAVEPOINT preserves Continuum's canonical update shadow and transaction.
     """
     try:
-        with session.no_autoflush:
+        with session.no_autoflush, session.connection().begin_nested():
             tx_id = _insert_baseline_row(session, obj, version_table)
             if tx_id is None:
                 return
@@ -132,18 +139,12 @@ def _baseline_children_for_parent(
 
     Dispatches via the
     :data:`~superset.versioning.baseline.children.CHILD_BASELINE_HANDLERS`
-    table to per-entity handlers. A handler failure is logged but does
-    not block the parent baseline.
+    table to per-entity handlers. Handler failures propagate to
+    :func:`insert_baseline_and_children`, which rolls back the complete
+    optional baseline unit before logging the failure.
     """
     parent_name = type(parent_obj).__name__
     handler = CHILD_BASELINE_HANDLERS.get(parent_name)
     if handler is None:
         return
-    try:
-        handler(session, parent_obj, tx_id)
-    except Exception:  # pylint: disable=broad-except
-        logger.exception(
-            "baseline_listener: failed to baseline children of %s id=%s",
-            parent_name,
-            getattr(parent_obj, "id", None),
-        )
+    handler(session, parent_obj, tx_id)

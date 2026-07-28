@@ -444,7 +444,6 @@ export function AsyncAceEditor(
                 /* Adjust tooltip styles */
                 .ace_tooltip {
                   margin-left: ${token.margin}px;
-                  padding: ${token.sizeUnit * 2}px;
                   background-color: ${token.colorBgElevated} !important;
                   color: ${token.colorText} !important;
                   border: 1px solid ${token.colorBorderSecondary};

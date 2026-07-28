@@ -127,11 +127,11 @@ const engineSpecificAlertMapping = {
 };
 
 const TabsStyled = styled(Tabs)`
-  .ant-tabs-content {
+  .ant-tabs-body {
     width: 100%;
     overflow: inherit;
 
-    & > .ant-tabs-tabpane {
+    & > .ant-tabs-content {
       position: relative;
     }
   }
@@ -2356,6 +2356,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     id="databaseFile"
                     data-test="database-file-input"
                     accept=".yaml,.json,.yml,.zip"
+                    fileList={fileList}
                     customRequest={() => {}}
                     onChange={onDbImport}
                     onRemove={removeFile}

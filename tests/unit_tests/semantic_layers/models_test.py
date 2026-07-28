@@ -655,6 +655,118 @@ def test_semantic_view_data(
         assert data["offset"] == 0
 
 
+@pytest.fixture
+def mock_grain_variant_dimensions() -> list[Dimension]:
+    """Time column exposed as multiple Dimension variants, one per grain."""
+    base = {
+        "id": "orders.created_at",
+        "name": "created_at",
+        "type": pa.timestamp("us"),
+        "definition": "orders.created_at",
+        "description": "Order timestamp",
+    }
+    return [
+        Dimension(**base, grain=Grains.HOUR),
+        Dimension(**base, grain=Grains.DAY),
+        Dimension(**base, grain=Grains.MONTH),
+        Dimension(
+            id="products.category",
+            name="category",
+            type=pa.utf8(),
+            definition="products.category",
+            description="Product category",
+            grain=None,
+        ),
+    ]
+
+
+def test_semantic_view_columns_dedupes_grain_variants(
+    mock_grain_variant_dimensions: list[Dimension],
+) -> None:
+    """Multiple grain variants of the same time column collapse to one column."""
+    impl = MagicMock()
+    impl.get_dimensions.return_value = mock_grain_variant_dimensions
+    view = SemanticView()
+
+    with patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=lambda: property(lambda s: impl),
+    ):
+        columns = view.columns
+        assert [c.column_name for c in columns] == ["created_at", "category"]
+        assert columns[0].is_dttm is True
+        assert view.column_names == ["created_at", "category"]
+
+
+def test_semantic_view_get_time_grains_dedupes_across_dimensions(
+    mock_grain_variant_dimensions: list[Dimension],
+) -> None:
+    """Grains shared across multiple time dimensions are returned once each."""
+    extra_dim = Dimension(
+        id="shipments.shipped_at",
+        name="shipped_at",
+        type=pa.timestamp("us"),
+        definition="shipments.shipped_at",
+        description=None,
+        grain=Grains.DAY,
+    )
+    impl = MagicMock()
+    impl.get_dimensions.return_value = mock_grain_variant_dimensions + [extra_dim]
+    view = SemanticView()
+
+    with patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=lambda: property(lambda s: impl),
+    ):
+        grains = view.get_time_grains()
+
+    durations = sorted(grain["duration"] or "" for grain in grains)
+    assert durations == sorted(["PT1H", "P1D", "P1M"])
+
+
+def test_semantic_view_data_populates_time_grain_sqla(
+    mock_grain_variant_dimensions: list[Dimension],
+    mock_metrics: list[Metric],
+) -> None:
+    """``data['time_grain_sqla']`` mirrors ``get_time_grains`` for the explore UI."""
+    from superset.semantic_layers.models import SemanticLayer
+
+    impl = MagicMock()
+    impl.get_dimensions.return_value = mock_grain_variant_dimensions
+    impl.get_metrics.return_value = mock_metrics
+    impl.uid.return_value = "semantic_view_uid_123"
+
+    layer = SemanticLayer()
+    layer.name = "My Semantic Layer"
+    layer.uuid = uuid.UUID("87654321-4321-8765-4321-876543218765")
+    layer.perm = "[My Semantic Layer](id:87654321432187654321876543218765)"
+
+    view = SemanticView()
+    view.name = "Orders View"
+    view.description = "View of order data"
+    view.id = 1
+    view.uuid = uuid.UUID("12345678-1234-5678-1234-567812345678")
+    view.semantic_layer_uuid = uuid.UUID("87654321-4321-8765-4321-876543218765")
+    view.semantic_layer = layer
+    view.cache_timeout = 3600
+
+    with patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=lambda: property(lambda s: impl),
+    ):
+        data = view.data
+
+    assert data["column_names"] == ["created_at", "category"]
+    assert len(data["columns"]) == 2
+    assert data["columns"][0]["is_dttm"] is True
+    # ``time_grain_sqla`` in ExplorableData is ``(duration, name)`` tuples.
+    grain_durations = sorted(entry[0] for entry in data["time_grain_sqla"])
+    assert grain_durations == sorted(["PT1H", "P1D", "P1M"])
+
+
 def test_semantic_view_get_query_result(
     mock_implementation: MagicMock,
 ) -> None:

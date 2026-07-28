@@ -48,7 +48,7 @@ import { logging } from '@apache-superset/core/utils';
 import { debounce, isEqual, isObjectLike, omit, pick } from 'lodash-es';
 import { Resizable } from 're-resizable';
 import { useHistory } from 'react-router-dom';
-import { Tooltip } from '@superset-ui/core/components';
+import { ActionButton, Tooltip } from '@superset-ui/core/components';
 import { usePluginContext } from 'src/components';
 import { Global } from '@emotion/react';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -893,8 +893,11 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
           setForceQuery: props.actions.setForceQuery,
           postChartFormData: props.actions.postChartFormData,
           updateQueryFormData: props.actions.updateQueryFormData,
-          setControlValue: (controlName: string, value: any, chartId: number) =>
-            props.actions.setControlValue(controlName, value),
+          setControlValue: (
+            controlName: string,
+            value: any,
+            _chartId: number,
+          ) => props.actions.setControlValue(controlName, value),
         }}
         can_overwrite={props.can_overwrite}
         can_download={props.can_download}
@@ -990,21 +993,20 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         >
           <div className="title-container">
             <span className="horizontal-text">{t('Chart Source')}</span>
-            <span
-              role="button"
-              tabIndex={0}
-              className="action-button"
+            <ActionButton
+              label={t('Collapse Datasource panel')}
+              icon={
+                <Icons.VerticalAlignTopOutlined
+                  iconSize="xl"
+                  css={css`
+                    transform: rotate(-90deg);
+                  `}
+                  className="collapse-icon"
+                  iconColor={theme.colorPrimary}
+                />
+              }
               onClick={toggleCollapse}
-            >
-              <Icons.VerticalAlignTopOutlined
-                iconSize="xl"
-                css={css`
-                  transform: rotate(-90deg);
-                `}
-                className="collapse-icon"
-                iconColor={theme.colorPrimary}
-              />
-            </span>
+            />
           </div>
           {/* eslint-disable @typescript-eslint/no-explicit-any -- DataSourcePanel uses narrower types that are compatible at runtime */}
           <DataSourcePanel
@@ -1017,14 +1019,22 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
           {/* eslint-enable @typescript-eslint/no-explicit-any */}
         </Resizable>
         {isCollapsed ? (
-          <div
+          <button
+            type="button"
             className="sidebar"
+            css={css`
+              appearance: none;
+              border: none;
+              background: none;
+              padding: 0;
+              margin: 0;
+              font: inherit;
+            `}
             onClick={toggleCollapse}
             data-test="open-datasource-tab"
-            role="button"
-            tabIndex={0}
+            aria-label={t('Open Datasource tab')}
           >
-            <span role="button" tabIndex={0} className="action-button">
+            <span className="action-button">
               <Tooltip title={t('Open Datasource tab')}>
                 <Icons.VerticalAlignTopOutlined
                   iconSize="xl"
@@ -1036,7 +1046,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
                 />
               </Tooltip>
             </span>
-          </div>
+          </button>
         ) : null}
         <Resizable
           onResizeStop={(evt, direction, ref, d) =>

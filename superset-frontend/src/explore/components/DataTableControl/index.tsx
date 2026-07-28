@@ -35,7 +35,7 @@ export const CellNull = styled('span')`
 export const CopyButton = styled(Button)`
   font-size: ${({ theme }) => theme.fontSizeSM}px;
 
-  // needed to override button's first-of-type margin: 0
+  /* needed to override button's first-of-type margin: 0 */
   && {
     margin: 0 ${({ theme }) => theme.sizeUnit * 2}px;
   }
@@ -65,11 +65,20 @@ export const CopyToClipboardButton = ({
       disabled={disabled}
       wrapped={false}
       copyNode={
-        <span
-          role="button"
+        <button
+          type="button"
           aria-label={t('Copy')}
           aria-disabled={disabled}
           tabIndex={disabled ? -1 : 0}
+          css={css`
+            appearance: none;
+            border: none;
+            background: none;
+            padding: 0;
+            font: inherit;
+            display: inline-flex;
+            align-items: center;
+          `}
         >
           <Icons.CopyOutlined
             iconColor={theme.colorIcon}
@@ -82,7 +91,7 @@ export const CopyToClipboardButton = ({
               }
             `}
           />
-        </span>
+        </button>
       }
     />
   );

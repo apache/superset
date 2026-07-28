@@ -358,6 +358,27 @@ test('enables overwrite option for admin non-editor', () => {
   expect(getByRole('radio', { name: 'Save (Overwrite)' })).toBeEnabled();
 });
 
+test('enables overwrite option for owner when owners are objects', () => {
+  // The Slice type declares `owners` as `number[]`, but the explore
+  // bootstrap can deliver owners as `{ id: number }` objects at runtime.
+  // A chart owner must still be able to overwrite their own chart in that case.
+  const { getByRole } = setup(
+    {},
+    mockStore({
+      ...initialState,
+      explore: {
+        ...initialState.explore,
+        slice: {
+          ...initialState.explore.slice,
+          owners: [{ id: 1 }],
+        },
+      },
+      user: { userId: 1 },
+    }),
+  );
+  expect(getByRole('radio', { name: 'Save (Overwrite)' })).toBeEnabled();
+});
+
 test('updates slice name and selected dashboard', async () => {
   const dashboardId = mockEvent.value;
   const saveDataset = jest.fn().mockResolvedValue(undefined);

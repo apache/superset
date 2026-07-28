@@ -230,6 +230,80 @@ def test_saved_chart_no_access(mocker: MockerFixture) -> None:
             )
 
 
+def test_drill_by_access_without_can_explore(mocker: MockerFixture) -> None:
+    """
+    Regression for #27900: performing Drill By (and Drill to Detail) must not
+    require the broad ``can explore on Superset`` permission.
+
+    ``check_access`` is the backend access gate for the Drill By flow: it is
+    invoked by ``CreateFormDataCommand`` when the client stores the drill
+    ``form_data`` via ``ExploreFormDataRestApi`` (the endpoint commenters on the
+    issue identified as drill-by-specific). This test grants the granular
+    ``can read on Chart`` permission while *explicitly denying*
+    ``can explore on Superset`` and asserts that access is still granted.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.explore.utils import check_access as check_chart_access
+    from superset.models.slice import Slice
+
+    def can_access_side_effect(permission: str, view_menu: str) -> bool:
+        # The broad explore permission is denied; only the granular chart-read
+        # permission is granted.
+        if (permission, view_menu) == ("can_explore", "Superset"):
+            return False
+        return (permission, view_menu) == ("can_read", "Chart")
+
+    mocker.patch(dataset_find_by_id, return_value=SqlaTable())
+    mocker.patch(can_access_datasource, return_value=True)
+    mocker.patch(is_admin, return_value=False)
+    mocker.patch(is_editor, return_value=False)
+    mocker.patch(can_access, side_effect=can_access_side_effect)
+    mocker.patch(chart_find_by_id, return_value=Slice())
+
+    with override_user(User()):
+        assert (
+            check_chart_access(  # noqa: E712
+                datasource_id=1,
+                chart_id=1,
+                datasource_type=DatasourceType.TABLE,
+            )
+            is True
+        )
+
+
+def test_drill_by_access_can_explore_is_not_the_gate(mocker: MockerFixture) -> None:
+    """
+    Regression for #27900: ``can explore on Superset`` is neither necessary nor
+    sufficient for Drill By access. Here the user holds *only*
+    ``can explore on Superset`` (the granular ``can read on Chart`` is denied and
+    the user is not an owner/admin) and access must be refused, proving the gate
+    is governed by the granular chart permission rather than ``can explore``.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.explore.utils import check_access as check_chart_access
+    from superset.models.slice import Slice
+
+    def can_access_side_effect(permission: str, view_menu: str) -> bool:
+        # Only the broad explore permission is granted; the granular chart-read
+        # permission is denied.
+        return (permission, view_menu) == ("can_explore", "Superset")
+
+    mocker.patch(dataset_find_by_id, return_value=SqlaTable())
+    mocker.patch(can_access_datasource, return_value=True)
+    mocker.patch(is_admin, return_value=False)
+    mocker.patch(is_editor, return_value=False)
+    mocker.patch(can_access, side_effect=can_access_side_effect)
+    mocker.patch(chart_find_by_id, return_value=Slice())
+
+    with raises(ChartAccessDeniedError):  # noqa: PT012
+        with override_user(User()):
+            check_chart_access(
+                datasource_id=1,
+                chart_id=1,
+                datasource_type=DatasourceType.TABLE,
+            )
+
+
 def test_dataset_has_access(mocker: MockerFixture) -> None:
     from superset.connectors.sqla.models import SqlaTable
     from superset.explore.utils import check_datasource_access

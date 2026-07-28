@@ -64,6 +64,26 @@ export class Menu {
   }
 
   /**
+   * Selects a top-level menu item by its accessible name.
+   *
+   * Ant Design menu items render as `div[role="menuitem"]` labelled by their
+   * text, so the accessible name is the stable handle — most items carry no
+   * `data-test`. Use this for flat items; use {@link selectSubmenuItem} for
+   * items nested under a submenu.
+   *
+   * @param itemText - The accessible name of the item (e.g., "Refresh dashboard")
+   * @param options - Optional timeout settings
+   */
+  async selectItem(
+    itemText: string,
+    options?: { timeout?: number },
+  ): Promise<void> {
+    await this.locator
+      .getByRole('menuitem', { name: itemText, exact: true })
+      .click({ timeout: options?.timeout ?? TIMEOUT.FORM_LOAD });
+  }
+
+  /**
    * Opens a submenu and selects an item within it.
    * Uses hover as primary approach, falls back to keyboard then dispatchEvent.
    *

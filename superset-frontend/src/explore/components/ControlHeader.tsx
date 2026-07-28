@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { handleKeyboardActivation } from '@superset-ui/core';
 import { FC, ReactNode } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { css, useTheme, SupersetTheme } from '@apache-superset/core/theme';
@@ -135,10 +136,16 @@ const ControlHeader: FC<ControlHeaderProps> = ({
           htmlFor={name}
         >
           {leftNode && <span>{leftNode} </span>}
+          {/* This label text sits inside FormLabel's <label>, and HTML5
+              prohibits interactive content (including <button>) as a
+              descendant of <label>, so a real button tag isn't an option
+              here. */}
           <span
+            // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
             role="button"
             tabIndex={0}
             onClick={onClick}
+            onKeyDown={onClick ? handleKeyboardActivation(onClick) : undefined}
             style={{ cursor: onClick ? 'pointer' : '' }}
           >
             {label}
