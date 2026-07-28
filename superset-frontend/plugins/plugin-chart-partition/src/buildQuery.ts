@@ -19,11 +19,10 @@
 import {
   buildQueryContext,
   ensureIsArray,
-  getMetricLabel,
   QueryFormData,
   QueryFormMetric,
-  QueryFormOrderBy,
 } from '@superset-ui/core';
+import { buildSortMetricOrderby } from '@superset-ui/chart-controls';
 
 /**
  * Mirrors the legacy PartitionViz.query_obj (via NVD3TimeSeriesViz): a
@@ -35,19 +34,12 @@ import {
 export default function buildQuery(formData: QueryFormData) {
   const { time_series_option, timeseries_limit_metric, order_desc } = formData;
   return buildQueryContext(formData, baseQueryObject => {
-    let metrics: QueryFormMetric[] = ensureIsArray(baseQueryObject.metrics);
-    const orderby: QueryFormOrderBy[] = [];
-    const sortByMetric =
-      ensureIsArray(
-        timeseries_limit_metric as QueryFormMetric | QueryFormMetric[],
-      )[0] ?? metrics[0];
-    if (sortByMetric) {
-      const sortByLabel = getMetricLabel(sortByMetric);
-      if (!metrics.some(metric => getMetricLabel(metric) === sortByLabel)) {
-        metrics = [...metrics, sortByMetric];
-      }
-      orderby.push([sortByMetric, !order_desc]);
-    }
+    const { metrics, orderby } = buildSortMetricOrderby({
+      metrics: ensureIsArray(baseQueryObject.metrics) as QueryFormMetric[],
+      timeseriesLimitMetric: timeseries_limit_metric,
+      order_desc,
+      fallbackToFirstMetric: true,
+    });
     return [
       {
         ...baseQueryObject,

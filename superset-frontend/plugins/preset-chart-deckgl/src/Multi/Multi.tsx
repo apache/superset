@@ -81,7 +81,11 @@ type DataMaskState = Record<
 
 export type DeckMultiProps = {
   formData: QueryFormData;
-  payload: JsonObject;
+  // deck_multi's buildQuery always returns an empty queries array (every
+  // layer self-fetches instead), so this is always undefined in practice --
+  // kept optional rather than dropped to match the shared transformProps
+  // shape used across the deck.gl chart family.
+  payload?: JsonObject;
   setControlValue: (control: string, value: JsonValue) => void;
   viewport: Viewport;
   onAddFilter: HandlerFunction;
@@ -150,30 +154,18 @@ const DeckMulti = (props: DeckMultiProps) => {
   const visibleDeckLayersFromRedux =
     layerVisibilityFilter?.extraFormData?.visible_deckgl_layers;
 
+  // The v1 path fetches every layer client-side (see loadSingleLayer below),
+  // so there is never pre-merged feature data available at mount or at the
+  // start of a reload -- only the base viewport, clamped to a non-negative
+  // zoom. Autozoom itself happens incrementally as each layer's features
+  // arrive (see the refit in loadSingleLayer).
   const getAdjustedViewport = useCallback(() => {
-    let viewport = { ...props.viewport };
-
-    // Default to autozoom enabled for backward compatibility (undefined treated as true)
-    // legacy container payloads carried pre-merged features; the v1 path
-    // fetches every layer client-side, so there may be none here
-    const features = props.payload?.data?.features || {};
-    if (props.formData.autozoom !== false) {
-      const points = collectPoints(features);
-
-      if (props.formData && points.length > 0) {
-        viewport = fitViewport(viewport, {
-          width: props.width,
-          height: props.height,
-          points,
-        });
-      }
-    }
-
+    const viewport = { ...props.viewport };
     if (viewport.zoom < 0) {
       viewport.zoom = 0;
     }
     return viewport;
-  }, [props]);
+  }, [props.viewport]);
 
   const [viewport, setViewport] = useState<Viewport>(getAdjustedViewport());
   const [subSlicesLayers, setSubSlicesLayers] = useState<Record<number, Layer>>(
@@ -189,6 +181,18 @@ const DeckMulti = (props: DeckMultiProps) => {
   // getAdjustedViewport has nothing to fit to and the viewport is recomputed
   // here as each layer arrives.
   const layerFeaturesRef = useRef<JsonObject>({});
+  // Bumped at the start of every loadLayers call. Each in-flight layer fetch
+  // captures the generation it was started under; if deck_slices (or the
+  // layer-visibility filter) changes again before that fetch resolves, its
+  // callback checks the ref and bails out instead of writing a stale layer
+  // or stale accumulated features into the current (already-reset) state.
+  const loadGenerationRef = useRef(0);
+  // Bumped at the start of every metadata-fetch effect run (before
+  // fetchSubslices resolves). If deck_slices or the visibility filter
+  // changes again while an earlier fetch is still pending, the stale
+  // fetch's callback sees a mismatch here and skips calling loadLayers, so
+  // an older, slower-resolving fetch can never clobber a newer generation.
+  const fetchGenerationRef = useRef(0);
 
   const setTooltip = useCallback((tooltip: TooltipProps['tooltip']) => {
     const { current } = containerRef;
@@ -304,6 +308,7 @@ const DeckMulti = (props: DeckMultiProps) => {
       subslice: JsonObject,
       formData: QueryFormData,
       payloadIndex: number,
+      generation: number,
     ): void => {
       const layerIndex = getLayerIndex(
         subslice.slice_id,
@@ -381,6 +386,12 @@ const DeckMulti = (props: DeckMultiProps) => {
               result_type: 'full',
             },
           }).then(({ json }) => {
+            // A newer loadLayers call (deck_slices or the visibility filter
+            // changed again) has already reset state; this response belongs
+            // to an abandoned generation and must not write into it.
+            if (loadGenerationRef.current !== generation) {
+              return;
+            }
             const chartProps = new ChartProps({
               width: props.width,
               height: props.height,
@@ -420,6 +431,9 @@ const DeckMulti = (props: DeckMultiProps) => {
           });
         })
         .catch(async error => {
+          if (loadGenerationRef.current !== generation) {
+            return;
+          }
           // Surface the failure in the chart (e.g. a layer bound to a dataset
           // that is missing the columns it needs) rather than only throwing to
           // the console.
@@ -450,6 +464,8 @@ const DeckMulti = (props: DeckMultiProps) => {
       slices: ({ slice_id: number } & JsonObject)[],
       visibleLayers?: number[],
     ): void => {
+      loadGenerationRef.current += 1;
+      const { current: generation } = loadGenerationRef;
       setViewport(getAdjustedViewport());
       setSubSlicesLayers({});
       setLayerErrors({});
@@ -476,7 +492,7 @@ const DeckMulti = (props: DeckMultiProps) => {
             }
           }
 
-          loadSingleLayer(subslice, formData, payloadIndex);
+          loadSingleLayer(subslice, formData, payloadIndex, generation);
         },
       );
 
@@ -542,7 +558,7 @@ const DeckMulti = (props: DeckMultiProps) => {
   );
 
   useEffect(() => {
-    const { formData, payload } = props;
+    const { formData } = props;
 
     const deckSlicesChanged = !isEqual(prevDeckSlices, formData.deck_slices);
     const visibilityFilterChanged = !isEqual(
@@ -551,15 +567,22 @@ const DeckMulti = (props: DeckMultiProps) => {
     );
 
     if (deckSlicesChanged || visibilityFilterChanged) {
-      // legacy explore_json payloads already carried the subslice metadata
-      const legacySlices = payload?.data?.slices;
-      if (legacySlices) {
-        loadLayers(formData, legacySlices, visibleDeckLayersFromRedux);
-      } else {
-        fetchSubslices(ensureIsArray(formData.deck_slices) as number[]).then(
-          slices => loadLayers(formData, slices, visibleDeckLayersFromRedux),
-        );
-      }
+      // deck_multi issues no query of its own (see buildQuery.ts), so each
+      // sub-slice's saved form_data is always fetched client-side here --
+      // there is no pre-merged payload to read subslice metadata from.
+      fetchGenerationRef.current += 1;
+      const { current: fetchGeneration } = fetchGenerationRef;
+      fetchSubslices(ensureIsArray(formData.deck_slices) as number[]).then(
+        slices => {
+          // A newer deck_slices/visibility change already started its own
+          // fetch; let that one (or whichever of them resolves) call
+          // loadLayers instead of this abandoned, possibly slower one.
+          if (fetchGenerationRef.current !== fetchGeneration) {
+            return;
+          }
+          loadLayers(formData, slices, visibleDeckLayersFromRedux);
+        },
+      );
     }
   }, [
     loadLayers,
