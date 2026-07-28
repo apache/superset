@@ -242,44 +242,120 @@ describe('reducers', () => {
   });
 });
 
+type CompatibilityResponse = {
+  json: {
+    result: {
+      compatible_metrics: string[];
+      compatible_dimensions: string[];
+    };
+  };
+};
+
+const getCompatibilityActions = (dispatch: jest.Mock) =>
+  dispatch.mock.calls
+    .map(call => call[0])
+    .filter((action: AnyAction) => action.type === actions.SET_COMPATIBILITY);
+
+test('fetchCompatibility resets to idle for non-semantic datasources', async () => {
+  const dispatch = jest.fn();
+
+  await actions.fetchCompatibility('table', 3, ['m1'], ['d1'])(dispatch as any);
+
+  expect(getCompatibilityActions(dispatch)).toEqual([
+    { type: actions.SET_COMPATIBILITY, compatibility: { status: 'idle' } },
+  ]);
+});
+
+test('fetchCompatibility transitions loading then verified with values', async () => {
+  const dispatch = jest.fn();
+  const postSpy = jest.spyOn(SupersetClient, 'post').mockResolvedValueOnce({
+    json: {
+      result: {
+        compatible_metrics: ['m1'],
+        compatible_dimensions: ['d1', 'd2'],
+      },
+    },
+  } as never);
+
+  await actions.fetchCompatibility(
+    'semantic_view',
+    7,
+    ['m1'],
+    ['d1'],
+  )(dispatch as any);
+
+  expect(getCompatibilityActions(dispatch)).toEqual([
+    { type: actions.SET_COMPATIBILITY, compatibility: { status: 'loading' } },
+    {
+      type: actions.SET_COMPATIBILITY,
+      compatibility: {
+        status: 'verified',
+        metrics: ['m1'],
+        dimensions: ['d1', 'd2'],
+      },
+    },
+  ]);
+
+  postSpy.mockRestore();
+});
+
+test('fetchCompatibility keeps empty verified arrays distinct from idle and failed', async () => {
+  const dispatch = jest.fn();
+  const postSpy = jest.spyOn(SupersetClient, 'post').mockResolvedValueOnce({
+    json: {
+      result: {
+        compatible_metrics: [],
+        compatible_dimensions: [],
+      },
+    },
+  } as never);
+
+  await actions.fetchCompatibility(
+    'semantic_view',
+    7,
+    [],
+    [],
+  )(dispatch as any);
+
+  expect(getCompatibilityActions(dispatch)).toContainEqual({
+    type: actions.SET_COMPATIBILITY,
+    compatibility: { status: 'verified', metrics: [], dimensions: [] },
+  });
+
+  postSpy.mockRestore();
+});
+
+test('fetchCompatibility marks the latest request failed on error', async () => {
+  const dispatch = jest.fn();
+  const postSpy = jest
+    .spyOn(SupersetClient, 'post')
+    .mockRejectedValueOnce(new Error('network down'));
+
+  await actions.fetchCompatibility(
+    'semantic_view',
+    7,
+    ['m1'],
+    ['d1'],
+  )(dispatch as any);
+
+  expect(getCompatibilityActions(dispatch)).toEqual([
+    { type: actions.SET_COMPATIBILITY, compatibility: { status: 'loading' } },
+    { type: actions.SET_COMPATIBILITY, compatibility: { status: 'failed' } },
+  ]);
+
+  postSpy.mockRestore();
+});
+
 test('fetchCompatibility ignores stale async responses', async () => {
   const dispatch = jest.fn();
 
-  let resolveFirst: (value: {
-    json: {
-      result: {
-        compatible_metrics: string[];
-        compatible_dimensions: string[];
-      };
-    };
-  }) => void;
-  let resolveSecond: (value: {
-    json: {
-      result: {
-        compatible_metrics: string[];
-        compatible_dimensions: string[];
-      };
-    };
-  }) => void;
+  let resolveFirst: (value: CompatibilityResponse) => void;
+  let resolveSecond: (value: CompatibilityResponse) => void;
 
-  const firstPromise = new Promise<{
-    json: {
-      result: {
-        compatible_metrics: string[];
-        compatible_dimensions: string[];
-      };
-    };
-  }>(resolve => {
+  const firstPromise = new Promise<CompatibilityResponse>(resolve => {
     resolveFirst = resolve;
   });
-  const secondPromise = new Promise<{
-    json: {
-      result: {
-        compatible_metrics: string[];
-        compatible_dimensions: string[];
-      };
-    };
-  }>(resolve => {
+  const secondPromise = new Promise<CompatibilityResponse>(resolve => {
     resolveSecond = resolve;
   });
 
@@ -321,27 +397,81 @@ test('fetchCompatibility ignores stale async responses', async () => {
   });
   await firstThunk;
 
-  const compatibilityActions = dispatch.mock.calls
-    .map(call => call[0])
-    .filter((action: AnyAction) => action.type === actions.SET_COMPATIBILITY);
-  const successfulActions = compatibilityActions.filter(
-    (action: AnyAction) => action.compatibilityLoading === false,
+  const verifiedActions = getCompatibilityActions(dispatch).filter(
+    (action: AnyAction) => action.compatibility.status === 'verified',
   );
 
-  expect(successfulActions).toContainEqual(
-    expect.objectContaining({
-      compatibleMetrics: ['m2'],
-      compatibleDimensions: ['d2'],
-      compatibilityLoading: false,
-    }),
+  expect(verifiedActions).toEqual([
+    {
+      type: actions.SET_COMPATIBILITY,
+      compatibility: {
+        status: 'verified',
+        metrics: ['m2'],
+        dimensions: ['d2'],
+      },
+    },
+  ]);
+
+  postSpy.mockRestore();
+});
+
+test('fetchCompatibility ignores a stale failure after a newer success', async () => {
+  const dispatch = jest.fn();
+
+  let rejectFirst: (reason: Error) => void;
+  let resolveSecond: (value: CompatibilityResponse) => void;
+
+  const firstPromise = new Promise<CompatibilityResponse>((_, reject) => {
+    rejectFirst = reject;
+  });
+  const secondPromise = new Promise<CompatibilityResponse>(resolve => {
+    resolveSecond = resolve;
+  });
+
+  const postSpy = jest.spyOn(SupersetClient, 'post');
+  postSpy
+    .mockImplementationOnce(() => firstPromise as never)
+    .mockImplementationOnce(() => secondPromise as never);
+
+  const firstThunk = actions.fetchCompatibility(
+    'semantic_view',
+    7,
+    ['m1'],
+    ['d1'],
+  )(dispatch as any);
+  const secondThunk = actions.fetchCompatibility(
+    'semantic_view',
+    7,
+    ['m2'],
+    ['d2'],
+  )(dispatch as any);
+
+  resolveSecond!({
+    json: {
+      result: {
+        compatible_metrics: ['m2'],
+        compatible_dimensions: ['d2'],
+      },
+    },
+  });
+  await secondThunk;
+
+  rejectFirst!(new Error('stale failure'));
+  await firstThunk;
+
+  const compatibilityActions = getCompatibilityActions(dispatch);
+
+  expect(compatibilityActions).not.toContainEqual(
+    expect.objectContaining({ compatibility: { status: 'failed' } }),
   );
-  expect(successfulActions).not.toContainEqual(
-    expect.objectContaining({
-      compatibleMetrics: ['m1'],
-      compatibleDimensions: ['d1'],
-      compatibilityLoading: false,
-    }),
-  );
+  expect(compatibilityActions[compatibilityActions.length - 1]).toEqual({
+    type: actions.SET_COMPATIBILITY,
+    compatibility: {
+      status: 'verified',
+      metrics: ['m2'],
+      dimensions: ['d2'],
+    },
+  });
 
   postSpy.mockRestore();
 });
