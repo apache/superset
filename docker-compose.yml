@@ -25,8 +25,8 @@
 # - Set SUPERSET_LOG_LEVEL=debug in docker/.env-local for detailed Superset logs
 # -----------------------------------------------------------------------
 x-superset-user: &superset-user root
-x-superset-volumes: &superset-volumes
-  # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
+x-superset-volumes:
+  &superset-volumes # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
   - ./docker:/app/docker
   - ./superset:/app/superset
   - ./superset-core:/app/superset-core
@@ -135,6 +135,26 @@ services:
         condition: service_completed_successfully
     volumes: *superset-volumes
 
+  superset-mcp:
+    env_file:
+      - path: docker/.env # default
+        required: true
+      - path: docker/.env-local # optional override
+        required: false
+    build:
+      <<: *common-build
+    command: ["superset", "mcp", "run", "--host", "0.0.0.0", "--port", "5008"]
+    restart: unless-stopped
+    ports:
+      - 127.0.0.1:${MCP_SERVICE_PORT:-5008}:5008
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    user: *superset-user
+    depends_on:
+      superset-init:
+        condition: service_completed_successfully
+    volumes: *superset-volumes
+
   superset-websocket:
     build: ./superset-websocket
     ports:
@@ -207,7 +227,7 @@ services:
       # Webpack dev server must bind to 0.0.0.0 to be accessible from outside the container
       WEBPACK_DEVSERVER_HOST: "0.0.0.0"
     ports:
-      - "127.0.0.1:${NODE_PORT:-9000}:9000"  # exposing the dynamic webpack dev server
+      - "127.0.0.1:${NODE_PORT:-9000}:9000" # exposing the dynamic webpack dev server
     command: ["/app/docker/docker-frontend.sh"]
     env_file:
       - path: docker/.env # default
@@ -236,7 +256,11 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:
-      test: ["CMD-SHELL", "celery -A superset.tasks.celery_app:app inspect ping -d celery@$$HOSTNAME"]
+      test:
+        [
+          "CMD-SHELL",
+          "celery -A superset.tasks.celery_app:app inspect ping -d celery@$$HOSTNAME",
+        ]
     # Bump memory limit if processing selenium / thumbnails on superset-worker
     # mem_limit: 2038m
     # mem_reservation: 128M
@@ -283,7 +307,11 @@ services:
     user: *superset-user
     volumes: *superset-volumes
     healthcheck:
-      test: ["CMD-SHELL", "celery inspect ping -A superset.tasks.celery_app:app -d celery@$$HOSTNAME"]
+      test:
+        [
+          "CMD-SHELL",
+          "celery inspect ping -A superset.tasks.celery_app:app -d celery@$$HOSTNAME",
+        ]
 
 volumes:
   superset_home:

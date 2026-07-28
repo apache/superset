@@ -113,6 +113,13 @@ FEATURE_FLAGS = {
     "SEMANTIC_LAYERS": True,
 }
 EXTENSIONS_PATH = "/app/docker/extensions"
+
+# MCP server (AI agent) configuration for local development.
+# Runs unauthenticated as MCP_DEV_USERNAME -- never use this in production.
+MCP_SERVICE_HOST = "0.0.0.0"
+MCP_SERVICE_PORT = int(os.environ.get("MCP_SERVICE_PORT", "5008"))
+MCP_AUTH_ENABLED = False
+MCP_DEV_USERNAME = os.environ.get("MCP_DEV_USERNAME", "admin")
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
 WEBDRIVER_BASEURL = f"http://superset_app{os.environ.get('SUPERSET_APP_ROOT', '/')}/"  # When using docker compose baseurl should be http://superset_nginx{ENV{BASEPATH}}/  # noqa: E501
 # The base URL for the email report hyperlinks.

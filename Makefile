@@ -18,7 +18,7 @@
 # Python version installed; we need 3.11-3.12
 PYTHON=`command -v python3.11 || command -v python3.12`
 
-.PHONY: install superset venv pre-commit up down logs ps nuke ports open
+.PHONY: install superset venv pre-commit up down logs ps nuke ports open enable-claude-zai
 
 install: superset pre-commit
 
@@ -144,3 +144,15 @@ ports:
 
 open:
 	./scripts/docker-compose-up.sh open
+
+# Configure Claude Code to use the z.ai GLM Coding Plan as its backend for
+# THIS project only. Writes to .claude/settings.local.json, which is
+# gitignored, so the API key never gets committed.
+# Get a key at https://z.ai/manage-apikey/apikey-list
+# Usage: make enable-claude-zai ZAI_API_KEY=your_zai_api_key
+enable-claude-zai:
+	@if [ -z "$(ZAI_API_KEY)" ]; then echo "ERROR: ZAI_API_KEY is required. Get one at https://z.ai/manage-apikey/apikey-list"; echo "Usage: make enable-claude-zai ZAI_API_KEY=your_zai_api_key"; exit 1; fi
+	@mkdir -p .claude
+	@ZAI_API_KEY="$(ZAI_API_KEY)" python3 -c "import json, os; path = '.claude/settings.local.json'; data = json.load(open(path)) if os.path.exists(path) else {}; data.setdefault('env', {}).update({'ANTHROPIC_BASE_URL': 'https://api.z.ai/api/anthropic', 'ANTHROPIC_AUTH_TOKEN': os.environ['ZAI_API_KEY'], 'ANTHROPIC_DEFAULT_OPUS_MODEL': 'glm-5.2[1m]', 'ANTHROPIC_DEFAULT_SONNET_MODEL': 'glm-5.2[1m]', 'ANTHROPIC_DEFAULT_HAIKU_MODEL': 'glm-4.5-air', 'CLAUDE_CODE_AUTO_COMPACT_WINDOW': '1000000', 'API_TIMEOUT_MS': '3000000'}); json.dump(data, open(path, 'w'), indent=2); print('Wrote', path)"
+	@echo "Claude Code is now configured to use z.ai's GLM Coding Plan for this project."
+	@echo "Run 'claude' inside this repo to start (fully restart it first if it's already running)."
