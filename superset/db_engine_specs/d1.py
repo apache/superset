@@ -48,4 +48,15 @@ class CloudflareD1EngineSpec(SqliteEngineSpec):
             "cloudflare_d1_database_id": "D1 database ID",
         },
         "install_instructions": "pip install superset-engine-d1",
+        "known_incompatibilities": [
+            {
+                "dependency": "SQLAlchemy 2.0",
+                "reason": (
+                    "sqlalchemy-d1 is very young (single release, Nov 2025); "
+                    "no confirmed SQLAlchemy 2.0 support either way yet."
+                ),
+                "tracking_url": ("https://github.com/sqlalchemy-cf-d1/sqlalchemy-d1"),
+                "since": "2026-07-28",
+            }
+        ],
     }

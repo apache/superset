@@ -309,9 +309,10 @@ flask-session==0.8.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-flask-sqlalchemy==2.5.1
+flask-sqlalchemy==3.0.5
     # via
     #   -c requirements/base-constraint.txt
+    #   apache-superset
     #   flask-appbuilder
     #   flask-migrate
 flask-talisman==1.1.0
@@ -989,7 +990,7 @@ sqlalchemy==1.4.54
     #   sqlalchemy-bigquery
     #   sqlalchemy-continuum
     #   sqlalchemy-utils
-sqlalchemy-bigquery==1.17.0
+sqlalchemy-bigquery==1.17.1
     # via apache-superset
 sqlalchemy-continuum==1.7.0
     # via
