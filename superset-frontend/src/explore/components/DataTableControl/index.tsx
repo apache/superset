@@ -108,9 +108,15 @@ export const FilterInput = ({
 }) => {
   const inputRef: RefObject<any> = useRef(null);
   const [internalValue, setInternalValue] = useState(externalValue);
+  const lastEmittedValue = useRef(externalValue);
+  const onChangeRef = useRef(onChangeHandler);
+  onChangeRef.current = onChangeHandler;
 
   useEffect(() => {
-    setInternalValue(externalValue);
+    if (externalValue !== lastEmittedValue.current) {
+      setInternalValue(externalValue);
+    }
+    lastEmittedValue.current = externalValue;
   }, [externalValue]);
 
   useEffect(() => {
@@ -133,8 +139,12 @@ export const FilterInput = ({
 
   const theme = useTheme();
   const debouncedChangeHandler = useMemo(
-    () => debounce(onChangeHandler, Constants.SLOW_DEBOUNCE),
-    [onChangeHandler],
+    () =>
+      debounce((value: string) => {
+        lastEmittedValue.current = value;
+        onChangeRef.current(value);
+      }, Constants.SLOW_DEBOUNCE),
+    [],
   );
 
   useEffect(
