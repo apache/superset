@@ -329,6 +329,13 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         a physical-table dataset through this retry — never a virtual
         dataset's user-authored base query, which stays fully governed by
         operator read limits.
+
+        Note that ``run`` implementations going through ``get_df`` re-apply
+        the operator's ``SQL_QUERY_MUTATOR`` to the retry SQL. ClickHouse
+        accepts the override with mutator-added comments (any position) and
+        subquery wrapping; a mutator that appends non-comment clauses after
+        the statement is not supported here — the retry then fails and the
+        original read-limit error is surfaced.
         """
         try:
             return run(sql)

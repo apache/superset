@@ -368,6 +368,24 @@ def test_sampling_read_limit_override_existing_settings_returns_none() -> None:
     assert ClickHouseConnectEngineSpec.apply_sampling_read_limit_override(sql) is None
 
 
+def test_sampling_read_limit_override_ignores_settings_named_column() -> None:
+    """
+    The existing-clause guard matches the ``SETTINGS <key> = ...`` clause
+    shape, not the bare token, so a column named ``settings`` must not
+    suppress the retry.
+    """
+    from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+
+    sql = "SELECT DISTINCT settings AS column_values FROM tbl LIMIT 100"
+    result = ClickHouseConnectEngineSpec.apply_sampling_read_limit_override(sql)
+    assert result is not None
+    assert result.endswith("SETTINGS read_overflow_mode='break'")
+
+    filtered = "SELECT DISTINCT settings FROM tbl WHERE settings = 'a' LIMIT 100"
+    result = ClickHouseConnectEngineSpec.apply_sampling_read_limit_override(filtered)
+    assert result is not None
+
+
 def _make_database(spec: Any, opt_out: bool = False) -> Any:
     """A minimal Database stand-in with the real retry methods bound."""
     from superset.models.core import Database

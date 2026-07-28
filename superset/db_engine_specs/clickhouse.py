@@ -73,11 +73,13 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
         carries the override, or it contains a SETTINGS clause from another
         source (ClickHouse permits only one per statement, so appending a
         second would produce invalid SQL — including subquery SETTINGS in
-        this check merely degrades to the engine's normal rejection). A
-        trailing statement terminator is stripped so the SETTINGS clause
-        attaches to the statement itself.
+        this check merely degrades to the engine's normal rejection). The
+        guard matches the clause shape ``SETTINGS <key> = ...`` rather than
+        the bare token, so a column that happens to be named ``settings``
+        does not suppress the retry. A trailing statement terminator is
+        stripped so the SETTINGS clause attaches to the statement itself.
         """
-        if re.search(r"\bSETTINGS\b", sql, re.IGNORECASE):
+        if re.search(r"\bSETTINGS\s+\w+\s*=", sql, re.IGNORECASE):
             return None
         stripped = sql.rstrip().rstrip(";").rstrip()
         return f"{stripped}{cls.sampling_read_limit_override_suffix}"
