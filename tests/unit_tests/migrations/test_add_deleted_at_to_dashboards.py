@@ -76,7 +76,7 @@ def engine() -> Engine:
     on ``slug`` is included so SQLite's no-op branch can be asserted
     against the post-migration state.
     """
-    engine = create_engine("sqlite:///:memory:")
+    engine = create_engine("sqlite:///:memory:", future=True)
     md = MetaData()
     table = Table(
         TABLE_NAME,

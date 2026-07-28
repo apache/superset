@@ -36,8 +36,12 @@
  */
 import { testWithAssets, expect } from '../../helpers/fixtures';
 import { apiPostChart, apiPutChart } from '../../helpers/api/chart';
-import { apiPostDashboard } from '../../helpers/api/dashboard';
+import {
+  apiPostDashboard,
+  buildSingleRowDashboardLayout,
+} from '../../helpers/api/dashboard';
 import { getDatasetByName } from '../../helpers/api/dataset';
+import { TIMEOUT } from '../../utils/constants';
 import { DashboardPage } from '../../pages/DashboardPage';
 
 const DATASET_NAME = 'birth_names';
@@ -93,36 +97,9 @@ testWithAssets(
     }
     testAssets.trackChart(chartId);
 
-    const chartLayoutKey = `CHART-${chartId}`;
-    const positionJson = {
-      DASHBOARD_VERSION_KEY: 'v2',
-      ROOT_ID: { type: 'ROOT', id: 'ROOT_ID', children: ['GRID_ID'] },
-      GRID_ID: {
-        type: 'GRID',
-        id: 'GRID_ID',
-        children: ['ROW-1'],
-        parents: ['ROOT_ID'],
-      },
-      'ROW-1': {
-        type: 'ROW',
-        id: 'ROW-1',
-        children: [chartLayoutKey],
-        parents: ['ROOT_ID', 'GRID_ID'],
-        meta: { background: 'BACKGROUND_TRANSPARENT' },
-      },
-      [chartLayoutKey]: {
-        type: 'CHART',
-        id: chartLayoutKey,
-        children: [],
-        parents: ['ROOT_ID', 'GRID_ID', 'ROW-1'],
-        meta: {
-          chartId,
-          width: 6,
-          height: 60,
-          sliceName,
-        },
-      },
-    };
+    const positionJson = buildSingleRowDashboardLayout([
+      { id: chartId, sliceName, width: 6, height: 60 },
+    ]);
     const dashResp = await apiPostDashboard(page, {
       dashboard_title: `gauge_interval_colors_${Date.now()}`,
       published: true,
@@ -142,7 +119,7 @@ testWithAssets(
     await dashboardPage.waitForChartsToLoad();
 
     const canvas = page.locator('[data-test="chart-container"] canvas').first();
-    await canvas.waitFor({ state: 'visible', timeout: 30_000 });
+    await canvas.waitFor({ state: 'visible', timeout: TIMEOUT.CHART_RENDER });
 
     // Read the configured interval colors back from the rendered canvas.
     // Poll because the gauge paints shortly after the chart container appears.

@@ -17,9 +17,7 @@
  * under the License.
  */
 import { AdhocColumn, QueryMode, VizType } from '@superset-ui/core';
-import buildQuery, {
-  buildQuery as buildQueryUncached,
-} from '../src/buildQuery';
+import buildQuery, { buildQueryUncached } from '../src/buildQuery';
 import { TableChartFormData } from '../src/types';
 
 const basicFormData: TableChartFormData = {
