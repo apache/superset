@@ -19,11 +19,10 @@
 import {
   buildQueryContext,
   ensureIsArray,
-  getMetricLabel,
   QueryFormData,
   QueryFormMetric,
-  QueryFormOrderBy,
 } from '@superset-ui/core';
+import { buildSortMetricOrderby } from '@superset-ui/chart-controls';
 
 /**
  * Mirrors the legacy PairedTTestViz.query_obj: a timeseries query grouped
@@ -33,20 +32,12 @@ import {
 export default function buildQuery(formData: QueryFormData) {
   const { timeseries_limit_metric, order_desc } = formData;
   return buildQueryContext(formData, baseQueryObject => {
-    let metrics: QueryFormMetric[] = ensureIsArray(baseQueryObject.metrics);
-    const orderby: QueryFormOrderBy[] = [];
-    const sortByMetric = ensureIsArray(
-      timeseries_limit_metric as QueryFormMetric | QueryFormMetric[],
-    )[0];
-    if (sortByMetric) {
-      const sortByLabel = getMetricLabel(sortByMetric);
-      if (!metrics.some(metric => getMetricLabel(metric) === sortByLabel)) {
-        metrics = [...metrics, sortByMetric];
-      }
-      if (order_desc) {
-        orderby.push([sortByMetric, !order_desc]);
-      }
-    }
+    const { metrics, orderby } = buildSortMetricOrderby({
+      metrics: ensureIsArray(baseQueryObject.metrics) as QueryFormMetric[],
+      timeseriesLimitMetric: timeseries_limit_metric,
+      order_desc,
+      orderOnlyWhenDesc: true,
+    });
     return [
       {
         ...baseQueryObject,

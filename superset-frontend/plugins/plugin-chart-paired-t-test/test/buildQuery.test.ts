@@ -47,6 +47,18 @@ test('appends the sort metric and orders when order_desc is set', () => {
   expect(query.orderby).toEqual([['count', false]]);
 });
 
+test('appends the sort metric but does not order when order_desc is unset', () => {
+  // order_desc gates whether the query orders at all here (unlike partition,
+  // which always orders and only flips direction) -- a sort metric with
+  // order_desc false/absent should still be selected, just not ordered by.
+  const [query] = buildQuery({
+    ...formData,
+    timeseries_limit_metric: 'count',
+  }).queries;
+  expect(query.metrics).toEqual(['sum__num', 'count']);
+  expect(query.orderby).toBeUndefined();
+});
+
 test('ignores residual order_by_cols from other viz types', () => {
   const [query] = buildQuery({
     ...formData,
