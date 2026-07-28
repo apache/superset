@@ -41,10 +41,11 @@ jobs:
           path: .lycheecache
           key: lychee-cache-${{ github.run_id }}
           restore-keys: lychee-cache-
-      # v2.8.0 is the version ASF Infra has allowlisted for this org. Do not
-      # bump this lychee-action version without opening an Infra ticket to
-      # allow the new version first!
-      - uses: lycheeverse/lychee-action@8646ba30535128ac92d33dfc9133794bfdd9b411 # v2.8.0
+      # v2.8.0 and v2.9.0 are both on ASF Infra's action allowlist
+      # (apache/infrastructure-actions approved_patterns.yml) as of this
+      # writing. Do not bump past v2.9.0 without opening an Infra ticket
+      # to allow the new SHA first!
+      - uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
         continue-on-error: true # This will make the job advisory (non-blocking, no red X)
         with:
           fail: false
