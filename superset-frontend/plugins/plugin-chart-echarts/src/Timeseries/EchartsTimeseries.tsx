@@ -284,15 +284,33 @@ export default function EchartsTimeseries({
                 formattedVal: String(categoryAxisValue),
               });
             }
-          } else if (props.componentType === 'series' && props.name != null) {
-            // Non-category (e.g. time) x-axis: use the event name.
-            // Null check so zero-like labels (e.g. 0) still drill.
-            drillFilters.push({
-              col: xAxis.label,
-              op: '==',
-              val: props.name,
-              formattedVal: String(props.name),
-            });
+          } else if (props.componentType === 'series') {
+            // Non-category (e.g. time) x-axis. Mirror the drill-to-detail
+            // temporal filter so the drill scopes correctly on strict engines
+            // (e.g. Trino): use the raw value from the data tuple (never the
+            // formatted axis label), map __timestamp to the real granularity
+            // column, and carry the time grain. Null check so zero-like labels
+            // (e.g. 0) still drill.
+            const rawValue = Array.isArray(props.data)
+              ? props.data[0]
+              : props.name;
+            if (rawValue != null) {
+              const isTimeAxis = xAxis.type === AxisType.Time;
+              drillFilters.push({
+                col:
+                  isTimeAxis && xAxis.label === DTTM_ALIAS
+                    ? formData.granularitySqla
+                    : xAxis.label,
+                ...(isTimeAxis && formData.timeGrainSqla
+                  ? { grain: formData.timeGrainSqla }
+                  : {}),
+                op: '==',
+                val: rawValue,
+                formattedVal: isTimeAxis
+                  ? xValueFormatter(rawValue)
+                  : String(rawValue),
+              });
+            }
           }
           // Cross-filter is emitted by the DrillDownHost with the full
           // accumulated drill path; here we only report the click upward.
