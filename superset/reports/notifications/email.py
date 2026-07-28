@@ -148,22 +148,29 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         return parseaddr(current_app.config["SMTP_MAIL_FROM"])[1].split("@")[1]
 
     def _error_template(self, text: str) -> str:
-        call_to_action = self._get_call_to_action()
         # The error text is derived from exception messages that can embed
         # data-controlled content (e.g. crafted table/column names in a DB
         # error). Strip all HTML before interpolating it into the email body,
         # matching the sanitization applied to the normal content path.
         # pylint: disable=no-member
         safe_text = nh3.clean(text, tags=set(), attributes={})
+        if self._content.include_cta:
+            return __(
+                """
+                <p>Your report/alert was unable to be generated because of the following error: %(text)s</p>
+                <p>Please check your dashboard/chart for errors.</p>
+                <p><b><a href="%(url)s">%(call_to_action)s</a></b></p>
+                """,  # noqa: E501
+                text=safe_text,
+                url=self._content.url,
+                call_to_action=self._get_call_to_action(),
+            )
         return __(
             """
             <p>Your report/alert was unable to be generated because of the following error: %(text)s</p>
             <p>Please check your dashboard/chart for errors.</p>
-            <p><b><a href="%(url)s">%(call_to_action)s</a></b></p>
             """,  # noqa: E501
             text=safe_text,
-            url=self._content.url,
-            call_to_action=call_to_action,
         )
 
     def _retry_error_template(self, text: str) -> str:
@@ -312,7 +319,12 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 """
             )
         img_tag = "".join(img_tags)
-        call_to_action = self._get_call_to_action()
+        call_to_action_tag = ""
+        if self._content.include_cta:
+            call_to_action = self._get_call_to_action()
+            call_to_action_tag = (
+                f'<b><a href="{self._content.url}">{call_to_action}</a></b><p></p>'
+            )
         body = textwrap.dedent(
             f"""
             <html>
@@ -333,7 +345,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
               <body>
                 <div>{description}</div>
                 <br>
-                <b><a href="{self._content.url}">{call_to_action}</a></b><p></p>
+                {call_to_action_tag}
                 {html_table}
                 {img_tag}
               </body>

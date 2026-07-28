@@ -31,8 +31,9 @@ class SlackMixin:
         content: NotificationContent,
         table: str = "",
     ) -> str:
-        return __(
-            """*%(name)s*
+        if content.include_cta:
+            return __(
+                """*%(name)s*
 
 %(description)s
 
@@ -40,9 +41,20 @@ class SlackMixin:
 
 %(table)s
 """,
+                name=content.name,
+                description=content.description or "",
+                url=content.url,
+                table=table,
+            )
+        return __(
+            """*%(name)s*
+
+%(description)s
+
+%(table)s
+""",
             name=content.name,
             description=content.description or "",
-            url=content.url,
             table=table,
         )
 
