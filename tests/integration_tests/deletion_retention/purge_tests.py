@@ -363,8 +363,16 @@ class TestSoftDeletePurge(DeletionRetentionTestBase):
             self.skipTest("FK-off probe is SQLite-specific")
         chart = self.make_chart("fkoff")
         chart_id = chart.id
-        self.make_dashboard("fkoffdash", slices=[chart])
+        dashboard = self.make_dashboard("fkoffdash", slices=[chart])
+        dashboard_id = dashboard.id
+        # Embedded config is a delete-orphan child whose removal must not
+        # depend on the DB cascade either.
+        from superset.models.embedded_dashboard import EmbeddedDashboard
+
+        db.session.add(EmbeddedDashboard(dashboard_id=dashboard_id))
+        db.session.commit()
         self.soft_delete(chart, days_ago=90)
+        self.soft_delete(dashboard, days_ago=90)
 
         db.session.execute(sa.text("PRAGMA foreign_keys=OFF"))
         try:
@@ -379,6 +387,35 @@ class TestSoftDeletePurge(DeletionRetentionTestBase):
             self.count(
                 "SELECT count(*) FROM dashboard_slices WHERE slice_id = :i",
                 {"i": chart_id},
+            )
+            == 0
+        )
+        assert (
+            self.count(
+                "SELECT count(*) FROM embedded_dashboards WHERE dashboard_id = :i",
+                {"i": dashboard_id},
+            )
+            == 0
+        )
+
+    def test_purge_writes_no_association_shadows_with_capture_on(self) -> None:
+        """A purge must not create association version shadows: the
+        Core deletes on dashboard_slices queue Continuum statements that the
+        suppression context discards before commit. After purging the
+        dashboard, no dashboard_slices_version rows for it remain — neither
+        pre-existing (its history is cascaded) nor purge-queued."""
+        chart = self.make_chart("noshadow_chart")
+        dashboard = self.make_dashboard("noshadow_dash", slices=[chart])
+        dashboard_id = dashboard.id
+        self.soft_delete(dashboard, days_ago=90)
+
+        _purge(window=30)
+
+        assert not self.exists(Dashboard, dashboard_id)
+        assert (
+            self.count(
+                "SELECT count(*) FROM dashboard_slices_version WHERE dashboard_id = :i",
+                {"i": dashboard_id},
             )
             == 0
         )

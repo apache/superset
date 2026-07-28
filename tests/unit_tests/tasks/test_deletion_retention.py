@@ -191,3 +191,32 @@ def test_purge_model_counts_only_committed_deletions(app_context: None) -> None:
         )
 
     assert result == (0, 0, 0, 0)
+
+
+def test_scheduled_purge_fails_closed_when_write_ahead_fails(
+    app_context: None,
+) -> None:
+    """An unauditable scheduled purge must not delete: the entity is
+    skipped (counted as a failure) and retried next run."""
+    import superset.tasks.deletion_retention as mod
+    from superset.models.slice import Slice
+
+    entity = MagicMock(id=1)
+    with (
+        patch.object(mod, "_iter_eligible_ids", return_value=[[1]]),
+        patch.object(mod, "skip_visibility_filter"),
+        patch.object(mod, "entity_uuid", return_value="u-1"),
+        patch.object(mod, "dashboard_slice_count", return_value=0),
+        patch.object(mod, "cascade_hard_delete") as cascade,
+        patch.object(mod.db, "session") as session,
+        patch.object(mod.audit, "write_ahead", return_value=None),
+    ):
+        session.get.return_value = entity
+        result: tuple[int, int, int, int] = mod._purge_model(
+            Slice, datetime.now(), dry_run=False
+        )
+
+    cascade.assert_not_called()
+    purged, would, failures, blocked = result
+    assert (purged, would, blocked) == (0, 0, 0)
+    assert failures == 1

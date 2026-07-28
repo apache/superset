@@ -351,13 +351,14 @@ def _delete_tags(
 
 
 def _delete_owned_children(session: Session, model: type[Any], entity_id: int) -> None:
-    """Hard-delete a dataset's owned children (columns and metrics).
-
-    These ``delete-orphan`` children have no independent existence. Charts
-    and dashboards have no such owned child tables today.
+    """Hard-delete the entity's owned children — rows with no independent
+    existence: a dataset's columns and metrics, a dashboard's embedded
+    configs. Charts have no such owned child tables today.
     """
     # pylint: disable=import-outside-toplevel
     from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.models.dashboard import Dashboard
+    from superset.models.embedded_dashboard import EmbeddedDashboard
 
     if model is SqlaTable:
         session.execute(
@@ -368,6 +369,15 @@ def _delete_owned_children(session: Session, model: type[Any], entity_id: int) -
         session.execute(
             sa.delete(SqlMetric.__table__).where(
                 SqlMetric.__table__.c.table_id == entity_id
+            )
+        )
+    elif model is Dashboard:
+        # Embedded configs (delete-orphan children carrying the public
+        # embed UUID and allowed_domains) — the ORM cascade does not fire
+        # for Core deletes and the DB cascade is a backstop only.
+        session.execute(
+            sa.delete(EmbeddedDashboard.__table__).where(
+                EmbeddedDashboard.__table__.c.dashboard_id == entity_id
             )
         )
 
@@ -503,6 +513,21 @@ def _delete_version_history(session: Session, entity: Any, entity_id: int) -> in
     return removed
 
 
+# Bound for IN() membership lists, below SQLite's historical 999
+# bind-variable limit (well under PostgreSQL and MySQL limits). An entity
+# with a long edit history can anchor thousands of transactions; unchunked
+# IN lists would fail the sweep on SQLite — and a failing sweep makes the
+# entity permanently unpurgeable.
+_IN_CLAUSE_CHUNK: int = 500
+
+
+def _chunked(values: set[int]) -> Iterator[list[int]]:
+    """Yield sorted ``_IN_CLAUSE_CHUNK``-sized slices of *values*."""
+    ordered = sorted(values)
+    for start in range(0, len(ordered), _IN_CLAUSE_CHUNK):
+        yield ordered[start : start + _IN_CLAUSE_CHUNK]
+
+
 def _sweep_orphan_transactions(
     session: Session,
     metadata: sa.MetaData,
@@ -524,13 +549,15 @@ def _sweep_orphan_transactions(
         sources.append(changes)
     still_referenced: set[int] = set()
     for source in sources:
-        still_referenced.update(
-            row[0]
-            for row in session.execute(
-                sa.select(source.c.transaction_id)
-                .where(source.c.transaction_id.in_(tx_ids))
-                .distinct()
+        for chunk in _chunked(tx_ids):
+            still_referenced.update(
+                row[0]
+                for row in session.execute(
+                    sa.select(source.c.transaction_id)
+                    .where(source.c.transaction_id.in_(chunk))
+                    .distinct()
+                )
             )
-        )
     if orphaned := tx_ids - still_referenced:
-        session.execute(sa.delete(tx).where(tx.c.id.in_(orphaned)))
+        for chunk in _chunked(orphaned):
+            session.execute(sa.delete(tx).where(tx.c.id.in_(chunk)))

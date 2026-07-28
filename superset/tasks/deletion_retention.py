@@ -30,7 +30,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterator
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any, cast
 
 import sqlalchemy as sa
@@ -55,10 +55,9 @@ from superset.models.helpers import (
 logger: logging.Logger = logging.getLogger(__name__)
 
 _METRIC_PREFIX: str = "deletion_retention"
-# Below SQLite's historical 999 bind-variable limit; well under PostgreSQL and
-# MySQL limits. There is no existing SQLITE_MAX_VARIABLE_NUMBER symbol to reuse.
-_PURGE_DELETE_CHUNK: int = 500
-_BATCH: int = _PURGE_DELETE_CHUNK
+# Batch window for the eligible-id scan (SELECT ... LIMIT): bounds how many
+# entities one iteration holds eligible before purging them one at a time.
+_BATCH: int = 500
 
 
 def _soft_delete_models() -> list[type[SoftDeleteMixin]]:
@@ -114,12 +113,13 @@ def _purge_impl(window_days: int, dry_run: bool) -> dict[str, Any]:
         stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.skipped")
         return {"skipped": 1}
 
-    # Naive UTC, matching the naive-UTC deleted_at values it is compared
-    # against — datetime.now() would shift the window by the worker's
-    # local timezone offset.
-    cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
-        days=window_days
-    )
+    # Same clock as SoftDeleteMixin.soft_delete(): deleted_at is stamped
+    # with naive-local datetime.now() (mirroring changed_on per the
+    # PR #33693 UTC revert), so the cutoff must be naive-local too — a
+    # UTC-derived cutoff would shift the retention window by the server's
+    # timezone offset, purging early west of UTC. If deleted_at ever moves
+    # to UTC-aware, this must move with it.
+    cutoff = datetime.now() - timedelta(days=window_days)
     audit.reconcile_pending()
     purged: dict[str, int] = {}
     would_purge: dict[str, int] = {}
@@ -214,6 +214,15 @@ def _purge_one(
         entity_uuid=entity_uuid_value,
         removed_dashboard_slices=removed_dashboard_slices,
     )
+    if record_id is None:
+        # Fail closed: the scheduled purge must not delete unauditably.
+        # The entity stays soft-deleted and is retried next run; the
+        # operator-invoked force-purge makes the opposite call (deletion
+        # outranks audit when a human is present).
+        raise RuntimeError(
+            f"deletion_retention: write-ahead audit failed for "
+            f"{_model_table_name(model)} id={entity_id}; skipping purge"
+        )
     with skip_visibility_filter(db.session, model):
         entity = db.session.get(model, entity_id)
     if entity is None:
@@ -224,9 +233,13 @@ def _purge_one(
             result = cascade_hard_delete(
                 db.session, entity, enforce_window=True, cutoff=cutoff
             )
-            # Commit/rollback are managed manually so audit.fail() can
-            # record the outcome after the purge transaction resolves.
-            db.session.commit()  # pylint: disable=consider-using-transaction
+        # Commit AFTER the suppression block: Continuum executes its
+        # pending association statements during flush/commit, so the
+        # block's exit-time trim must run first or a session carrying
+        # versioned state would write the purge-queued shadows anyway.
+        # Commit/rollback are managed manually so audit.fail() can
+        # record the outcome after the purge transaction resolves.
+        db.session.commit()  # pylint: disable=consider-using-transaction
     except Exception:
         db.session.rollback()  # pylint: disable=consider-using-transaction
         audit.fail(record_id)

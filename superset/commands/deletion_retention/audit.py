@@ -41,15 +41,19 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any, cast
-from uuid import UUID, uuid4
+from uuid import UUID
 
 import sqlalchemy as sa
-from flask_appbuilder import Model
-from sqlalchemy import Column, DateTime, Integer, String, Text
 from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy_utils import UUIDType
 
 from superset import db
+from superset.models.purge_audit_log import (
+    PurgeAuditLog,
+    STATUS_BLOCKED,
+    STATUS_CONFIRMED,
+    STATUS_FAILED,
+    STATUS_PENDING,
+)
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -61,11 +65,6 @@ def _dedicated_session() -> Session:
     return sessionmaker(bind=db.engine)()
 
 
-STATUS_PENDING = "pending"
-STATUS_CONFIRMED = "confirmed"
-STATUS_FAILED = "failed"
-STATUS_BLOCKED = "blocked"
-
 _PENDING_STALE_AFTER = timedelta(hours=1)
 
 TRIGGER_RETENTION = "retention"
@@ -75,28 +74,15 @@ ACTOR_SYSTEM = "system"
 
 
 def _utc_now() -> datetime:
-    """Naive UTC now — the audit columns are naive-UTC like the rest of the
-    metadata schema; ``datetime.utcnow()`` is deprecated."""
+    """Naive UTC now for the audit columns.
+
+    Note this deliberately differs from the metadata schema's audit
+    columns (``changed_on`` / ``deleted_at``), which are naive-local per
+    the PR #33693 UTC revert — the purge audit table is self-contained
+    (``created_on`` and the reconcile cutoff both use this clock), so it
+    can use the saner convention without a comparison hazard.
+    """
     return datetime.now(timezone.utc).replace(tzinfo=None)
-
-
-class PurgeAuditLog(Model):
-    """Immutable, content-free record of a purge."""
-
-    __tablename__ = "purge_audit_log"
-
-    id = Column(UUIDType(binary=True), primary_key=True, default=uuid4)
-    status = Column(String(16), nullable=False, default=STATUS_PENDING)
-    trigger = Column(String(16), nullable=False)
-    actor = Column(String(256), nullable=False)
-    entity_type = Column(String(64), nullable=False)
-    entity_uuid = Column(String(36), nullable=True, index=True)
-    # Comma-joined UUIDs of charts left dangling / dashboards that lost a join
-    # row (force-purge visibility). Free text, content-free.
-    affected_referrers = Column(Text, nullable=True)
-    removed_dashboard_slices = Column(Integer, nullable=False, default=0)
-    created_on = Column(DateTime, nullable=False)
-    confirmed_on = Column(DateTime, nullable=True)
 
 
 def write_ahead(
@@ -140,23 +126,28 @@ def finalize(record_id: UUID | None, status: str, **details: Any) -> None:
         return
     session = _dedicated_session()
     try:
-        record = session.get(PurgeAuditLog, record_id)
-        if record is None:
-            return
-        if record.status != STATUS_PENDING:
-            # Only pending rows may transition: a delayed worker must not
-            # overwrite an outcome reconcile_pending() already recorded —
-            # the audit history is immutable once finalized.
-            return
-        record.status = status
+        values: dict[str, Any] = {"status": status}
         if status == STATUS_CONFIRMED:
-            record.confirmed_on = _utc_now()
+            values["confirmed_on"] = _utc_now()
         referrers = details.get("affected_referrers")
         if referrers:
-            record.affected_referrers = ",".join(referrers)
+            values["affected_referrers"] = ",".join(referrers)
         removed_dashboard_slices = details.get("removed_dashboard_slices")
         if removed_dashboard_slices is not None:
-            record.removed_dashboard_slices = removed_dashboard_slices
+            values["removed_dashboard_slices"] = removed_dashboard_slices
+        # Conditional UPDATE, not read-then-write: only pending rows may
+        # transition (a delayed worker must not overwrite an outcome
+        # reconcile_pending() already recorded — the audit history is
+        # immutable once finalized), and the status predicate makes that
+        # atomic under concurrent finalizers.
+        session.execute(
+            sa.update(PurgeAuditLog.__table__)
+            .where(
+                PurgeAuditLog.__table__.c.id == record_id,
+                PurgeAuditLog.__table__.c.status == STATUS_PENDING,
+            )
+            .values(**values)
+        )
         session.commit()
     except Exception:  # pylint: disable=broad-except
         session.rollback()
@@ -220,6 +211,10 @@ def reconcile_pending(stale_before: datetime | None = None) -> dict[str, int]:
             session.query(PurgeAuditLog)
             .filter(PurgeAuditLog.status == STATUS_PENDING)
             .filter(PurgeAuditLog.created_on < cutoff)
+            # Row locks so a delayed worker's finalize() (a conditional
+            # UPDATE on status='pending') serializes against this scan
+            # on PostgreSQL/MySQL; a no-op on SQLite.
+            .with_for_update()
             .all()
         )
         for record in records:

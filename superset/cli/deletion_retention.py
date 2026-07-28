@@ -24,6 +24,7 @@ Admin RBAC.
 """
 
 import logging
+from uuid import UUID
 
 import click
 from flask.cli import with_appcontext
@@ -72,17 +73,25 @@ def show_window() -> None:
 @deletion_retention.command()
 @with_appcontext
 @click.option(
-    "--uuid", "-u", "uuid", required=True, help="UUID of the entity to purge."
+    "--uuid",
+    "-u",
+    "uuid",
+    required=True,
+    # Validate up front: a malformed value must fail with a clean
+    # BadParameter message, not a StatementError traceback after the
+    # operator has already confirmed an irreversible prompt.
+    type=click.UUID,
+    help="UUID of the entity to purge.",
 )
 @click.confirmation_option(
     prompt="Force-purge is irreversible — the entity and its version history "
     "will be permanently removed. Continue?"
 )
-def force_purge(uuid: str) -> None:
+def force_purge(uuid: UUID) -> None:
     """Immediately and irreversibly purge an entity by UUID (compliance)."""
     from superset.commands.deletion_retention.force_purge import ForcePurgeCommand
 
-    result = ForcePurgeCommand(uuid).run()
+    result = ForcePurgeCommand(str(uuid)).run()
     if not result.get("purged"):
         if result.get("reason") == "blocked":
             click.echo(

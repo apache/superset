@@ -96,9 +96,13 @@ class ForcePurgeCommand:
                 result: CascadeResult = cascade_hard_delete(
                     db.session, entity, enforce_window=False
                 )
-                # Commit/rollback are managed manually so audit.fail() can
-                # record the outcome after the purge transaction resolves.
-                db.session.commit()  # pylint: disable=consider-using-transaction
+            # Commit AFTER the suppression block: Continuum executes its
+            # pending association statements during flush/commit, so the
+            # block's exit-time trim must run first or a session carrying
+            # versioned state would write the purge-queued shadows anyway.
+            # Commit/rollback are managed manually so audit.fail() can
+            # record the outcome after the purge transaction resolves.
+            db.session.commit()  # pylint: disable=consider-using-transaction
         except Exception:
             db.session.rollback()  # pylint: disable=consider-using-transaction
             audit.fail(record_id)

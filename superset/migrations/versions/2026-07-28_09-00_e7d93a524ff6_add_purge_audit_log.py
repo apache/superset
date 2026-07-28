@@ -70,9 +70,19 @@ def upgrade() -> None:
         "ix_purge_audit_log_status_created_on",
         ["status", "created_on"],
     )
+    # Chart purges delete dashboard_slices_version rows by slice_id; the
+    # table's PK and existing indexes all lead with other columns, so
+    # without this every purged chart full-scans the association shadow
+    # history.
+    create_index(
+        "dashboard_slices_version",
+        "ix_dashboard_slices_version_slice_id",
+        ["slice_id"],
+    )
 
 
 def downgrade() -> None:
+    drop_index("dashboard_slices_version", "ix_dashboard_slices_version_slice_id")
     drop_index("purge_audit_log", "ix_purge_audit_log_status_created_on")
     drop_index("purge_audit_log", "ix_purge_audit_log_entity_uuid")
     drop_table("purge_audit_log")
