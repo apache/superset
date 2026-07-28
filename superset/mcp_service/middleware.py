@@ -168,6 +168,165 @@ class LoggingMiddleware(Middleware):
             dataset_id = params.get("dataset_id")
         return agent_id, user_id, dashboard_id, slice_id, dataset_id, params
 
+    def _extract_output_ids(self, result: ToolResult) -> tuple[int | None, int | None]:
+        """Extract dashboard/chart IDs created by the tool from its response.
+
+        Create-style tools (generate_chart, generate_dashboard) don't take
+        chart_id/dashboard_id as input, so _extract_context_info never sees
+        them and every retry logs slice_id/dashboard_id=None even on the
+        attempt that actually persisted the object. Look at the response
+        body instead, since that's the only place the new ID appears.
+        Supports both flat ("chart_id"/"dashboard_id") and nested
+        ("chart"/"dashboard" objects with an "id" field) response shapes.
+        """
+        from superset.utils.json import loads as json_loads
+
+        try:
+            data = json_loads(result.content[0].text)
+        except (AttributeError, IndexError, ValueError, TypeError):
+            return None, None
+        if not isinstance(data, dict):
+            return None, None
+
+        slice_id = None
+        chart = data.get("chart")
+        if isinstance(chart, dict):
+            slice_id = chart.get("id")
+        if slice_id is None:
+            slice_id = data.get("chart_id")
+
+        dashboard_id = None
+        dashboard = data.get("dashboard")
+        if isinstance(dashboard, dict):
+            dashboard_id = dashboard.get("id")
+        if dashboard_id is None:
+            dashboard_id = data.get("dashboard_id")
+
+        return dashboard_id, slice_id
+
+    @staticmethod
+    def _resolve_tool_name(tool_name: str | None, params: Any) -> str | None:
+        """Resolve the underlying tool name from call_tool proxy arguments.
+
+        When tool search is enabled, the MCP client uses the ``call_tool``
+        proxy and passes the real tool name as the ``name`` argument.  This
+        helper extracts that value so we can log which tool was actually
+        executed rather than just ``"call_tool"``.
+
+        Returns:
+            The resolved tool name if *tool_name* is the call_tool proxy and
+            ``params["name"]`` is a non-empty string, otherwise ``None``.
+        """
+        if (
+            tool_name == LoggingMiddleware._CALL_TOOL_PROXY
+            and isinstance(params, dict)
+            and isinstance(params.get("name"), str)
+            and params["name"]
+        ):
+            return params["name"]
+        return None
+
+    def _backfill_output_ids(
+        self,
+        success: bool,
+        result: Any,
+        dashboard_id: int | None,
+        slice_id: int | None,
+    ) -> tuple[int | None, int | None]:
+        """Fill in missing ids from a create tool's response on success.
+
+        Create-style tools (generate_chart, generate_dashboard) don't take
+        the new object's ID as input, so it's missing from params. On a
+        successful call, pull it from the response instead so retried
+        creates are distinguishable.
+        """
+        if not success or not isinstance(result, ToolResult):
+            return dashboard_id, slice_id
+        output_dashboard_id, output_slice_id = self._extract_output_ids(result)
+        if dashboard_id is None:
+            dashboard_id = output_dashboard_id
+        if slice_id is None:
+            slice_id = output_slice_id
+        return dashboard_id, slice_id
+
+    @staticmethod
+    def _build_call_tool_payload(
+        *,
+        tool_name: str | None,
+        agent_id: str | None,
+        params: Any,
+        method: str,
+        dashboard_id: int | None,
+        slice_id: int | None,
+        dataset_id: int | None,
+        success: bool,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "tool": tool_name,
+            "agent_id": agent_id,
+            "params": _sanitize_params(params),
+            "method": method,
+            "dashboard_id": dashboard_id,
+            "slice_id": slice_id,
+            "dataset_id": dataset_id,
+            "success": success,
+        }
+        return payload
+
+    def _log_call_tool_result(
+        self,
+        *,
+        context: MiddlewareContext,
+        tool_name: str | None,
+        agent_id: str | None,
+        user_id: int | None,
+        dashboard_id: int | None,
+        slice_id: int | None,
+        dataset_id: int | None,
+        params: Any,
+        success: bool,
+        result: Any,
+        start_time: float,
+    ) -> None:
+        duration_ms = int((time.time() - start_time) * 1000)
+        dashboard_id, slice_id = self._backfill_output_ids(
+            success, result, dashboard_id, slice_id
+        )
+        payload = self._build_call_tool_payload(
+            tool_name=tool_name,
+            agent_id=agent_id,
+            params=params,
+            method=context.method,
+            dashboard_id=dashboard_id,
+            slice_id=slice_id,
+            dataset_id=dataset_id,
+            success=success,
+        )
+        if has_app_context():
+            event_logger.log(
+                user_id=user_id,
+                action="mcp_tool_call",
+                dashboard_id=dashboard_id,
+                duration_ms=duration_ms,
+                slice_id=slice_id,
+                referrer=None,
+                curated_payload=payload,
+            )
+        logger.info(
+            "MCP tool call: tool=%s, agent_id=%s, user_id=%s, method=%s, "
+            "dashboard_id=%s, slice_id=%s, dataset_id=%s, duration_ms=%s, "
+            "success=%s",
+            tool_name,
+            agent_id,
+            user_id,
+            context.method,
+            dashboard_id,
+            slice_id,
+            dataset_id,
+            duration_ms,
+            success,
+        )
+
     async def on_call_tool(
         self,
         context: MiddlewareContext,
@@ -181,6 +340,7 @@ class LoggingMiddleware(Middleware):
 
         start_time = time.time()
         success = False
+        result: Any = None
         try:
             result = await call_next(context)
             success = not self._is_error_response(result)
@@ -189,39 +349,18 @@ class LoggingMiddleware(Middleware):
             success = False
             raise
         finally:
-            duration_ms = int((time.time() - start_time) * 1000)
-            if has_app_context():
-                event_logger.log(
-                    user_id=user_id,
-                    action="mcp_tool_call",
-                    dashboard_id=dashboard_id,
-                    duration_ms=duration_ms,
-                    slice_id=slice_id,
-                    referrer=None,
-                    curated_payload={
-                        "tool": tool_name,
-                        "agent_id": agent_id,
-                        "params": _sanitize_params(params),
-                        "method": context.method,
-                        "dashboard_id": dashboard_id,
-                        "slice_id": slice_id,
-                        "dataset_id": dataset_id,
-                        "success": success,
-                    },
-                )
-            logger.info(
-                "MCP tool call: tool=%s, agent_id=%s, user_id=%s, method=%s, "
-                "dashboard_id=%s, slice_id=%s, dataset_id=%s, duration_ms=%s, "
-                "success=%s",
-                tool_name,
-                agent_id,
-                user_id,
-                context.method,
-                dashboard_id,
-                slice_id,
-                dataset_id,
-                duration_ms,
-                success,
+            self._log_call_tool_result(
+                context=context,
+                tool_name=tool_name,
+                agent_id=agent_id,
+                user_id=user_id,
+                dashboard_id=dashboard_id,
+                slice_id=slice_id,
+                dataset_id=dataset_id,
+                params=params,
+                success=success,
+                result=result,
+                start_time=start_time,
             )
 
     async def on_message(
