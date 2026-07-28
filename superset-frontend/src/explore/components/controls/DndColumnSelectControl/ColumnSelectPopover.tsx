@@ -509,8 +509,9 @@ const ColumnSelectPopover = ({
   return (
     <Form layout="vertical" id="metrics-edit-popover">
       {showCompatibilityFailureWarning && (
+        // Alert renders role="alert" with a polite live region, satisfying
+        // the accessible non-blocking feedback contract.
         <Alert
-          role="status"
           type="warning"
           closable={false}
           data-test="compatibility-failure-warning"
@@ -802,15 +803,17 @@ const ColumnSelectPopover = ({
 
       <div>
         {invalidSelectionFeedback && (
-          <div
+          // ``output`` carries an implicit ``status`` role, announcing the
+          // corrective message without stealing focus.
+          <output
             id={INVALID_SELECTION_FEEDBACK_ID}
-            role="status"
             css={(theme: { colorErrorText: string }) => css`
+              display: block;
               color: ${theme.colorErrorText};
             `}
           >
             {invalidSelectionFeedback}
-          </div>
+          </output>
         )}
         <Button
           buttonSize="small"
