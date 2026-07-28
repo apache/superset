@@ -34,7 +34,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.connectors.sqla.utils import get_physical_table_metadata
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.dataset import DatasetDAO
-from superset.daos.datasource import DatasourceDAO
+from superset.daos.datasource import Datasource as DatasourceUnion, DatasourceDAO
 from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.core import Database
@@ -230,7 +230,7 @@ class Datasource(BaseSupersetView):
         # ``supports_samples`` defaults to True for any datasource class that
         # doesn't explicitly opt out, so SqlaTable/Query/SavedQuery continue
         # to work without needing the attribute declared on each class.
-        ds_class = DatasourceDAO.sources.get(
+        ds_class: type[DatasourceUnion] | None = DatasourceDAO.sources.get(
             DatasourceType(params["datasource_type"]),
         )
         if ds_class is not None and not getattr(ds_class, "supports_samples", True):
