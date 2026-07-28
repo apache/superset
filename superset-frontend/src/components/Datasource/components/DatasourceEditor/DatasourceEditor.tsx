@@ -804,7 +804,7 @@ function ColumnCollectionTable({
                 <TextAreaControl
                   initialValue={v as string}
                   onChange={onChange}
-                  extraClasses={['datasource-sql-expression']}
+                  className="datasource-sql-expression"
                   language="sql"
                   offerEditInModal={false}
                   minLines={5}
@@ -844,7 +844,7 @@ function ColumnCollectionTable({
                 <TextAreaControl
                   initialValue={v as string}
                   onChange={onChange}
-                  extraClasses={['datasource-sql-expression']}
+                  className="datasource-sql-expression"
                   language="sql"
                   offerEditInModal={false}
                   minLines={5}
