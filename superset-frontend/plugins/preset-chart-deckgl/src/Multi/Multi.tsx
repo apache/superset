@@ -187,6 +187,12 @@ const DeckMulti = (props: DeckMultiProps) => {
   // callback checks the ref and bails out instead of writing a stale layer
   // or stale accumulated features into the current (already-reset) state.
   const loadGenerationRef = useRef(0);
+  // Bumped at the start of every metadata-fetch effect run (before
+  // fetchSubslices resolves). If deck_slices or the visibility filter
+  // changes again while an earlier fetch is still pending, the stale
+  // fetch's callback sees a mismatch here and skips calling loadLayers, so
+  // an older, slower-resolving fetch can never clobber a newer generation.
+  const fetchGenerationRef = useRef(0);
 
   const setTooltip = useCallback((tooltip: TooltipProps['tooltip']) => {
     const { current } = containerRef;
@@ -564,8 +570,18 @@ const DeckMulti = (props: DeckMultiProps) => {
       // deck_multi issues no query of its own (see buildQuery.ts), so each
       // sub-slice's saved form_data is always fetched client-side here --
       // there is no pre-merged payload to read subslice metadata from.
+      fetchGenerationRef.current += 1;
+      const { current: fetchGeneration } = fetchGenerationRef;
       fetchSubslices(ensureIsArray(formData.deck_slices) as number[]).then(
-        slices => loadLayers(formData, slices, visibleDeckLayersFromRedux),
+        slices => {
+          // A newer deck_slices/visibility change already started its own
+          // fetch; let that one (or whichever of them resolves) call
+          // loadLayers instead of this abandoned, possibly slower one.
+          if (fetchGenerationRef.current !== fetchGeneration) {
+            return;
+          }
+          loadLayers(formData, slices, visibleDeckLayersFromRedux);
+        },
       );
     }
   }, [

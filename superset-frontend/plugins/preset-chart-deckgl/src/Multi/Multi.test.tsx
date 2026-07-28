@@ -392,18 +392,19 @@ describe('DeckMulti stale-response guard', () => {
   });
 
   test('ignores a layer response that resolves after deck_slices has already changed again', async () => {
-    let resolveFirstLoad: (value: unknown) => void = () => {};
+    let resolveSlice1Load: (value: unknown) => void = () => {};
+    let resolveSlice2Load: (value: unknown) => void = () => {};
     (SupersetClient.post as jest.Mock)
       .mockImplementationOnce(
         () =>
           new Promise(resolve => {
-            resolveFirstLoad = resolve;
+            resolveSlice1Load = resolve;
           }),
       )
       .mockImplementationOnce(
         () =>
           new Promise(resolve => {
-            resolveFirstLoad = resolve;
+            resolveSlice2Load = resolve;
           }),
       )
       .mockImplementation(() =>
@@ -429,10 +430,11 @@ describe('DeckMulti stale-response guard', () => {
 
     await waitFor(() => expect(SupersetClient.post).toHaveBeenCalledTimes(3));
 
-    // The abandoned first-generation slice-1 response now resolves. If it
-    // were not ignored, the container would show 2 layers (the stale slice 1
-    // plus the new slice 2) instead of just the current generation's 1.
-    resolveFirstLoad({ json: { result: [{ data: [] }] } });
+    // The abandoned first-generation slice-1 and slice-2 responses now
+    // resolve. If they were not ignored, the container would show 2 layers
+    // (the stale slice 1 and 2) instead of just the current generation's 1.
+    resolveSlice1Load({ json: { result: [{ data: [] }] } });
+    resolveSlice2Load({ json: { result: [{ data: [] }] } });
 
     await waitFor(() => {
       expect(

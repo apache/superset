@@ -176,7 +176,7 @@ export default function transformProps(
   // (roughly the grid height), so a percentage symbolOffset lands inside a
   // tall bar. Compute pixels: half the bar plus a small gap below it.
   const gridHeight = Math.max(height - gridTop - theme.sizeUnit * 6, 40);
-  const rowHeight = gridHeight / categories.length;
+  const rowHeight = gridHeight / Math.max(categories.length, 1);
   const markerOffsetPx = Math.round(
     (MEASURE_BAR_FRACTION / 2) * rowHeight + MARKER_GAP_BELOW_BAR_PX,
   );

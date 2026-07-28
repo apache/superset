@@ -169,7 +169,7 @@ test('clicking again while drilled returns to the rose view', () => {
   expect(lastEchartCall().echartOptions).toBe(ROSE_ECHART_OPTIONS);
 });
 
-test('clicking a different period while drilled switches to that period', () => {
+test('clicking a different period while drilled returns to the rose view', () => {
   renderRose();
 
   act(() => {
@@ -177,8 +177,8 @@ test('clicking a different period while drilled switches to that period', () => 
   });
   expect(lastEchartCall().echartOptions.title.text).toContain('2021');
 
-  // Per the current toggle logic, any click while drilled returns to the
-  // rose rather than switching directly to a different period's pie.
+  // The toggle logic returns to the rose on any click while drilled,
+  // rather than switching directly to a different period's pie.
   act(() => {
     lastEchartCall().eventHandlers.click({ dataIndex: 1 });
   });
