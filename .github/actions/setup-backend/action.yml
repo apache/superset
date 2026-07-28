@@ -45,14 +45,18 @@ runs:
       with:
         python-version: ${{ steps.set-python-version.outputs.python-version }}
         enable-cache: true
+    - name: Install apt packages
+      if: inputs.install-superset == 'true'
+      uses: awalsh128/cache-apt-pkgs-action@553a35bb8ebd9fcabcb1c9451aa4c98e1b4ca8a9 # v1.6.3
+      with:
+        packages: libldap2-dev libsasl2-dev
+        version: 1.0
     - name: Install dependencies
       env:
         INPUT_INSTALL_SUPERSET: ${{ inputs.install-superset }}
         INPUT_REQUIREMENTS_TYPE: ${{ inputs.requirements-type }}
       run: |
         if [ "$INPUT_INSTALL_SUPERSET" = "true" ]; then
-          sudo apt-get update && sudo apt-get -y install libldap2-dev libsasl2-dev
-
           if [ "$INPUT_REQUIREMENTS_TYPE" = "dev" ]; then
             uv pip install --system -r requirements/development.txt
           elif [ "$INPUT_REQUIREMENTS_TYPE" = "base" ]; then
