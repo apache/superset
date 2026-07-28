@@ -30,6 +30,11 @@ from superset.exceptions import SupersetSecurityException
 from superset.utils import json as superset_json
 
 
+def _identity_gettext(message: str) -> str:
+    """Typed stand-in for flask-babel's ``_`` in request-less unit tests."""
+    return message
+
+
 def _security_exception() -> SupersetSecurityException:
     return SupersetSecurityException(
         SupersetError(
@@ -317,7 +322,7 @@ def test_save_non_editor_with_editors_field_is_rejected(
 # ---------------------------------------------------------------------------
 
 
-@patch("superset.views.datasource.views._", lambda s: s)
+@patch("superset.views.datasource.views._", _identity_gettext)
 @patch("superset.views.datasource.views.get_samples")
 @patch("superset.views.datasource.views.json_error_response")
 @patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
