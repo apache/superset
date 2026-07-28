@@ -12,11 +12,6 @@ on:
   # importing test) can pass every PR yet leave master red. This catches that.
   schedule:
     - cron: "0 6 * * *"
-  # Spike-only: lets us force a full --all-files run on demand (workflow_dispatch
-  # has no diffable base, so "Determine changed files" below falls back to
-  # mode=all) to validate prek against the whole tree without waiting for the
-  # nightly cron. Remove if/when this spike is promoted or dropped.
-  workflow_dispatch:
 
 permissions:
   contents: read
