@@ -56,6 +56,7 @@ import {
   POPOVER_INITIAL_WIDTH,
 } from 'src/explore/constants';
 import { ExplorePageState } from 'src/explore/types';
+import { selectCompatibleDimensionNames } from 'src/explore/selectors/compatibility';
 import useResizeButton from './useResizeButton';
 
 const TABS_KEYS = {
@@ -152,10 +153,7 @@ const ColumnSelectPopover = ({
   const datasourceType = useSelector<ExplorePageState, string | undefined>(
     state => state.explore.datasource.type,
   );
-  const compatibleDimensions = useSelector<
-    ExplorePageState,
-    string[] | null | undefined
-  >(state => state.explore.compatibleDimensions);
+  const compatibleDimensions = useSelector(selectCompatibleDimensionNames);
   const [initialLabel] = useState(label);
   const [initialAdhocColumn, initialCalculatedColumn, initialSimpleColumn] =
     getInitialColumnValues(editedColumn);

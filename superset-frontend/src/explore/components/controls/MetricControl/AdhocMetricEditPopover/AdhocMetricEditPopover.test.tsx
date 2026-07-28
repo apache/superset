@@ -458,3 +458,57 @@ test('Should filter columns by column_name and verbose_name in Simple tab', asyn
   expect(within(dropdown).queryByText('Order Amount')).not.toBeInTheDocument();
   expect(within(dropdown).queryByText('Product Title')).not.toBeInTheDocument();
 });
+
+test('disables saved metrics absent from a verified compatibility result', async () => {
+  const props = createProps();
+  render(<AdhocMetricEditPopover {...props} />, {
+    useRedux: true,
+    initialState: {
+      explore: {
+        compatibility: {
+          status: 'verified',
+          metrics: ['count'],
+          dimensions: [],
+        },
+      },
+    },
+  });
+
+  userEvent.click(
+    screen.getByRole('combobox', { name: 'Select saved metrics' }),
+  );
+
+  const dropdown = (await screen.findByText('sum').then(() =>
+    document.querySelector('.rc-virtual-list'),
+  )) as HTMLElement;
+  expect(within(dropdown).getByText('sum').closest('.ant-select-item')).toHaveClass(
+    'ant-select-item-option-disabled',
+  );
+  expect(
+    within(dropdown).getByText('count').closest('.ant-select-item'),
+  ).not.toHaveClass('ant-select-item-option-disabled');
+});
+
+test('keeps every saved metric enabled after a failed compatibility request', async () => {
+  const props = createProps();
+  render(<AdhocMetricEditPopover {...props} />, {
+    useRedux: true,
+    initialState: {
+      explore: { compatibility: { status: 'failed' } },
+    },
+  });
+
+  userEvent.click(
+    screen.getByRole('combobox', { name: 'Select saved metrics' }),
+  );
+
+  const dropdown = (await screen.findByText('sum').then(() =>
+    document.querySelector('.rc-virtual-list'),
+  )) as HTMLElement;
+  expect(
+    within(dropdown).getByText('sum').closest('.ant-select-item'),
+  ).not.toHaveClass('ant-select-item-option-disabled');
+  expect(
+    within(dropdown).getByText('count').closest('.ant-select-item'),
+  ).not.toHaveClass('ant-select-item-option-disabled');
+});

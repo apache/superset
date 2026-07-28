@@ -28,7 +28,10 @@ import {
   StyledMetricOption,
 } from 'src/explore/components/optionRenderers';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { ExplorePageState } from 'src/explore/types';
+import {
+  selectCompatibleDimensionNames,
+  selectCompatibleMetricNames,
+} from 'src/explore/selectors/compatibility';
 
 import { DatasourcePanelDndItem } from '../types';
 
@@ -76,15 +79,10 @@ export default function DatasourcePanelDragOption(
   const theme = useTheme();
 
   // Read compatibility lists from Redux.
-  // `null` means no filtering is active (SQL datasets, or no selection yet).
-  const compatibleMetrics = useSelector<
-    ExplorePageState,
-    string[] | null | undefined
-  >(state => state.explore.compatibleMetrics);
-  const compatibleDimensions = useSelector<
-    ExplorePageState,
-    string[] | null | undefined
-  >(state => state.explore.compatibleDimensions);
+  // `null` means no filtering is active (SQL datasets, no selection yet, or
+  // an unresolved/failed compatibility request).
+  const compatibleMetrics = useSelector(selectCompatibleMetricNames);
+  const compatibleDimensions = useSelector(selectCompatibleDimensionNames);
 
   // An item is compatible when the list is null (no filter) or when its
   // name explicitly appears in the list returned by the backend.

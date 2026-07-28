@@ -413,6 +413,11 @@ class SemanticView(AuditMixinNullable, Model):
             "id": self.id,
             "uid": self.uid,
             "type": "semantic_view",
+            # Sorted for a deterministic payload; values are the stable
+            # SemanticViewFeature strings, never provider identity.
+            "semantic_view_features": sorted(
+                feature.value for feature in self.implementation.features
+            ),
             "name": self.name,
             "columns": [
                 {
