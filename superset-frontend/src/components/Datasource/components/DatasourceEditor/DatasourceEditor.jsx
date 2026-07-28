@@ -75,7 +75,7 @@ import Fieldset from '../Fieldset';
 import Field from '../Field';
 import { fetchSyncedColumns, updateColumns } from '../../utils';
 import DatasetUsageTab from './components/DatasetUsageTab';
-import ChartSelect from '../Select/ChartSelect';
+import ChartSelect from '../../../Select/ChartSelect';
 
 const extensionsRegistry = getExtensionsRegistry();
 
