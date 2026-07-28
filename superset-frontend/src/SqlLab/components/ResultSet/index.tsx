@@ -275,17 +275,22 @@ const ResultSet = ({
     const openInNewWindow = clickEvent.metaKey;
     logAction(LOG_ACTIONS_SQLLAB_CREATE_CHART, {});
     if (results?.query_id) {
-      const url = await generateExploreUrl(results.query_id, 'query', {
-        ...EXPLORE_CHART_DEFAULT,
-        datasource: `${results.query_id}__query`,
-        ...{
-          all_columns: results.columns.map(column => column.column_name),
-        },
-      });
-      if (openInNewWindow) {
-        window.open(url, '_blank', 'noreferrer');
-      } else {
-        history.push(url);
+      try {
+        const url = await generateExploreUrl(results.query_id, 'query', {
+          ...EXPLORE_CHART_DEFAULT,
+          datasource: `${results.query_id}__query`,
+          ...{
+            all_columns: results.columns.map(column => column.column_name),
+          },
+        });
+        if (openInNewWindow) {
+          window.open(url, '_blank', 'noreferrer');
+        } else {
+          history.push(url);
+        }
+      } catch (error) {
+        console.error('Failed to generate chart explore URL:', error);
+        addDangerToast(t('Failed to generate chart explore URL'));
       }
     } else {
       addDangerToast(t('Unable to create chart without a query id.'));
