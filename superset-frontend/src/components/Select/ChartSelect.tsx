@@ -28,7 +28,7 @@ type SelectAsyncControlProps = ComponentProps<typeof SelectAsyncControl>;
 export interface ChartSelectProps
   extends Omit<
     SelectAsyncControlProps,
-    'onChange' | 'dataEndpoint' | 'mutator' | 'addDangerToast'
+    'onChange' | 'dataEndpoint' | 'mutator' | 'addDangerToast' | 'multi'
   > {
   // ChartSelect-specific props that override base props
   value?: number | null;
@@ -98,8 +98,8 @@ export default function ChartSelectUsingAsync({
       value={value}
       onChange={onChange}
       placeholder={placeholder}
-      multi={false}
       {...rest}
+      multi={false}
     />
   );
 }
