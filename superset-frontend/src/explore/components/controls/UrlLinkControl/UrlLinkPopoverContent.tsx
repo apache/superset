@@ -43,6 +43,16 @@ const JustifyEnd = styled.div`
 
 const rulesRequired = [{ required: true, message: t('Required') }];
 
+// Only http(s)/mailto links are allowed - the resolved URL is rendered as a
+// clickable link, so other schemes (e.g. `javascript:`) must be rejected.
+const rulesLinkSchema = [
+  ...rulesRequired,
+  {
+    pattern: /^\s*(https?:|mailto:)/i,
+    message: t('Link schema must start with http://, https://, or mailto:'),
+  },
+];
+
 const schemaPlaceholder = `You can use column name as a variable to splice url.
 such as: https://superset.apache.org/docs/miscellaneous/issue-codes#issue-\${issueId}`;
 
@@ -82,7 +92,7 @@ export const UrlLinkPopoverContent = ({
         <FormItem
           name="linkSchema"
           label={t('link schema')}
-          rules={rulesRequired}
+          rules={rulesLinkSchema}
         >
           <FullWidthTextarea rows={4} placeholder={schemaPlaceholder} />
         </FormItem>
