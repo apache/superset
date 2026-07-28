@@ -17,8 +17,9 @@
  * under the License.
  */
 import { Behavior } from '@superset-ui/core';
-import { DashboardLayout } from 'src/dashboard/types';
+import { DashboardLayout, LayoutItem } from 'src/dashboard/types';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
+import { createChartLayoutItemMap } from 'src/dashboard/util/getChartIdsInFilterScope';
 import {
   nativeFilterGate,
   findTabsWithChartsInScope,
@@ -84,6 +85,26 @@ test('findTabsWithChartsInScope should handle a recursive layout structure', () 
   expect(Array.from(findTabsWithChartsInScope(chartLayoutItems, []))).toEqual(
     [],
   );
+});
+
+test('findTabsWithChartsInScope accepts a precomputed chart layout item map', () => {
+  const chartLayoutItem: LayoutItem = {
+    id: 'CHART-7',
+    type: CHART_TYPE,
+    children: [],
+    parents: ['ROOT_ID', 'TAB-parent', 'TABS-nested', 'TAB-child'],
+    meta: {
+      chartId: 7,
+      height: 100,
+      width: 100,
+      uuid: 'test-uuid-CHART-7',
+    },
+  };
+  const chartLayoutItemMap = createChartLayoutItemMap([chartLayoutItem]);
+
+  expect(
+    Array.from(findTabsWithChartsInScope(chartLayoutItemMap, [7])),
+  ).toEqual(['TAB-parent', 'TAB-child']);
 });
 
 test('getFormData should include persisted time_grains for time grain filters', () => {

@@ -23,7 +23,10 @@ import {
   isDefined,
   NativeFilterScope,
 } from '@superset-ui/core';
-import { getChartIdsInFilterScope } from './getChartIdsInFilterScope';
+import {
+  createChartLayoutItemMap,
+  getChartIdsInFilterScope,
+} from './getChartIdsInFilterScope';
 import {
   ChartConfiguration,
   ChartsState,
@@ -33,7 +36,6 @@ import {
   isCrossFilterScopeGlobal,
 } from '../types';
 import { DEFAULT_CROSS_FILTER_SCOPING } from '../constants';
-import { CHART_TYPE } from './componentTypes';
 
 export const isCrossFiltersEnabled = (
   metadataCrossFiltersEnabled: boolean | undefined,
@@ -48,28 +50,29 @@ export const getCrossFiltersConfiguration = (
   >,
   charts: ChartsState,
 ) => {
-  const chartLayoutItems = Object.values(dashboardLayout).filter(
-    item => item?.type === CHART_TYPE,
+  const chartLayoutItemMap = createChartLayoutItemMap(
+    Object.values(dashboardLayout),
   );
+  const chartIds = Object.values(charts).map(chart => chart.id);
 
   const globalChartConfiguration = metadata.global_chart_configuration?.scope
     ? {
         scope: metadata.global_chart_configuration.scope,
         chartsInScope: getChartIdsInFilterScope(
           metadata.global_chart_configuration.scope,
-          Object.values(charts).map(chart => chart.id),
-          chartLayoutItems,
+          chartIds,
+          chartLayoutItemMap,
         ),
       }
     : {
         scope: DEFAULT_CROSS_FILTER_SCOPING,
-        chartsInScope: Object.values(charts).map(chart => chart.id),
+        chartsInScope: chartIds,
       };
 
   // If user just added cross filter to dashboard it's not saving its scope on server,
   // so we tweak it until user will update scope and will save it in server
   const chartConfiguration: ChartConfiguration = {};
-  chartLayoutItems.forEach(layoutItem => {
+  chartLayoutItemMap.forEach(layoutItem => {
     const chartId = layoutItem.meta?.chartId;
 
     if (!isDefined(chartId)) {
@@ -106,8 +109,8 @@ export const getCrossFiltersConfiguration = (
           : getChartIdsInFilterScope(
               chartConfiguration[chartId].crossFilters
                 .scope as NativeFilterScope,
-              Object.values(charts).map(chart => chart.id),
-              chartLayoutItems,
+              chartIds,
+              chartLayoutItemMap,
             );
     }
   });
