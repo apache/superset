@@ -22,7 +22,7 @@ import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import { t } from '@apache-superset/core/translation';
 import { getExtensionsRegistry } from '@superset-ui/core';
 
-import type { Editor } from '@superset-ui/core/components';
+import type { AceCompleterKeyword, Editor } from '@superset-ui/core/components';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { addTable, addDangerToast } from 'src/SqlLab/actions/sqlLab';
 import {
@@ -76,7 +76,7 @@ const extensionsRegistry = getExtensionsRegistry();
 export function useKeywords(
   { queryEditorId, dbId, catalog, schema, tabViewId }: Params,
   skip = false,
-) {
+): AceCompleterKeyword[] {
   const useCustomKeywords = extensionsRegistry.get(
     'sqleditor.extension.customAutocomplete',
   );
@@ -264,7 +264,7 @@ export function useKeywords(
     [functionNames, insertMatch],
   );
 
-  const keywords = useMemo(
+  const keywords = useMemo<AceCompleterKeyword[]>(
     () =>
       columnKeywords
         .concat(schemaKeywords)
