@@ -380,9 +380,10 @@ test('saved-only semantic view disables Simple and Custom SQL in the combined pi
 
   fireEvent.click(screen.getByText('Drop columns/metrics here or click'));
 
-  expect(
-    await screen.findByRole('tab', { name: 'Saved' }),
-  ).toHaveAttribute('aria-selected', 'true');
+  expect(await screen.findByRole('tab', { name: 'Saved' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
   expect(screen.getByRole('tab', { name: 'Simple' })).toHaveAttribute(
     'aria-disabled',
     'true',

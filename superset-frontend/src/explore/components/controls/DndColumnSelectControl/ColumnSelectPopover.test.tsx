@@ -511,7 +511,7 @@ test('a failed compatibility request shows a non-blocking warning and unfiltered
     },
   );
 
-  expect(screen.getByRole('status')).toHaveTextContent(
+  expect(screen.getByRole('alert')).toHaveTextContent(
     /could not verify|compatib/i,
   );
 
@@ -533,7 +533,7 @@ test('a loading compatibility request shows neither warning nor a filtered list'
     },
   );
 
-  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 
   openDimensionsDropdown();
   expect(getOptionItem('Order Date')).not.toHaveClass(
@@ -563,7 +563,7 @@ test('non-semantic datasources never show the compatibility failure warning', ()
     { store },
   );
 
-  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 });
 
 test('an edited dimension that became incompatible cannot be saved until replaced', async () => {
@@ -735,7 +735,7 @@ test('a feature-declaring semantic view keeps expression-based classification an
     name: 'Columns and metrics',
   });
   userEvent.click(simpleCombobox);
-  let dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  const dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
   expect(within(dropdown).getByText('Plain Dimension')).toBeInTheDocument();
   expect(
     within(dropdown).queryByText('calc_dimension'),
@@ -747,7 +747,7 @@ test('a feature-declaring semantic view keeps expression-based classification an
   userEvent.click(saveButton);
   expect(onChange).toHaveBeenCalledWith(columns[0]);
 
-  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 });
 
 test('non-semantic datasources still filter Saved options by compatibility metadata only when verified', () => {

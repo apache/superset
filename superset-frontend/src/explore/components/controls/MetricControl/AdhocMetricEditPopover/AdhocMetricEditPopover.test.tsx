@@ -478,12 +478,12 @@ test('disables saved metrics absent from a verified compatibility result', async
     screen.getByRole('combobox', { name: 'Select saved metrics' }),
   );
 
-  const dropdown = (await screen.findByText('sum').then(() =>
-    document.querySelector('.rc-virtual-list'),
-  )) as HTMLElement;
-  expect(within(dropdown).getByText('sum').closest('.ant-select-item')).toHaveClass(
-    'ant-select-item-option-disabled',
-  );
+  const dropdown = (await screen
+    .findByText('sum')
+    .then(() => document.querySelector('.rc-virtual-list'))) as HTMLElement;
+  expect(
+    within(dropdown).getByText('sum').closest('.ant-select-item'),
+  ).toHaveClass('ant-select-item-option-disabled');
   expect(
     within(dropdown).getByText('count').closest('.ant-select-item'),
   ).not.toHaveClass('ant-select-item-option-disabled');
@@ -502,9 +502,9 @@ test('keeps every saved metric enabled after a failed compatibility request', as
     screen.getByRole('combobox', { name: 'Select saved metrics' }),
   );
 
-  const dropdown = (await screen.findByText('sum').then(() =>
-    document.querySelector('.rc-virtual-list'),
-  )) as HTMLElement;
+  const dropdown = (await screen
+    .findByText('sum')
+    .then(() => document.querySelector('.rc-virtual-list'))) as HTMLElement;
   expect(
     within(dropdown).getByText('sum').closest('.ant-select-item'),
   ).not.toHaveClass('ant-select-item-option-disabled');

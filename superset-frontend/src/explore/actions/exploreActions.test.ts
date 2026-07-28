@@ -310,12 +310,7 @@ test('fetchCompatibility keeps empty verified arrays distinct from idle and fail
     },
   } as never);
 
-  await actions.fetchCompatibility(
-    'semantic_view',
-    7,
-    [],
-    [],
-  )(dispatch as any);
+  await actions.fetchCompatibility('semantic_view', 7, [], [])(dispatch as any);
 
   expect(getCompatibilityActions(dispatch)).toContainEqual({
     type: actions.SET_COMPATIBILITY,

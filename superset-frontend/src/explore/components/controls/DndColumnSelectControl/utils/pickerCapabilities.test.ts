@@ -59,7 +59,10 @@ test('unknown feature strings are ignored', () => {
   expect(
     getColumnPickerCapabilities({
       type: 'semantic_view',
-      semantic_view_features: ['ADHOC_COLUMN_EXPRESSIONS', 'SOME_FUTURE_FEATURE'],
+      semantic_view_features: [
+        'ADHOC_COLUMN_EXPRESSIONS',
+        'SOME_FUTURE_FEATURE',
+      ],
     }),
   ).toEqual({
     dimensionClassification: 'expression',
