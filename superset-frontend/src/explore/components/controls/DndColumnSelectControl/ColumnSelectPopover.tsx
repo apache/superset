@@ -313,6 +313,27 @@ const ColumnSelectPopover = ({
     [columnMap, metricMap, onSimpleColumnChange, onSimpleMetricChange],
   );
 
+  // With Saved classification the combined column/metric controls surface
+  // their metrics in the Saved mode (Simple is disabled), so metric
+  // selection keeps working there.
+  const onSavedItemChange = useCallback(
+    (selectedValue: string) => {
+      if (calculatedColumns.some(col => col.column_name === selectedValue)) {
+        onCalculatedColumnChange(selectedValue);
+        return;
+      }
+      if (metricMap[selectedValue]) {
+        onSimpleMetricChange(selectedValue);
+      }
+    },
+    [
+      calculatedColumns,
+      metricMap,
+      onCalculatedColumnChange,
+      onSimpleMetricChange,
+    ],
+  );
+
   const effectiveDisabledTabs = useMemo(() => {
     const merged = new Set([...disabledTabs, ...capabilities.disabledModes]);
     // A legacy adhoc value must stay inspectable: keep Custom SQL reachable
@@ -475,7 +496,9 @@ const ColumnSelectPopover = ({
     capabilities.showCompatibilityFailure && compatibility.status === 'failed';
 
   const savedExpressionsLabel = savedClassification
-    ? t('Dimensions')
+    ? availableMetrics.length > 0
+      ? t('Dimensions and metrics')
+      : t('Dimensions')
     : t('Saved expressions');
   const simpleColumnsLabel = t('Columns and metrics');
   const keywords = useMemo(
@@ -521,16 +544,32 @@ const ColumnSelectPopover = ({
                         <FormItem label={savedExpressionsLabel}>
                           <StyledSelect
                             ariaLabel={savedExpressionsLabel}
-                            value={selectedCalculatedColumn?.column_name}
-                            onChange={onCalculatedColumnChange}
+                            value={
+                              selectedCalculatedColumn?.column_name ||
+                              (savedClassification
+                                ? selectedMetric?.metric_name
+                                : undefined)
+                            }
+                            onChange={
+                              savedClassification
+                                ? onSavedItemChange
+                                : onCalculatedColumnChange
+                            }
                             allowClear
-                            autoFocus={!selectedCalculatedColumn}
-                            placeholder={t(
-                              '%s column(s)',
-                              calculatedColumns.length,
-                            )}
-                            options={calculatedColumns.map(
-                              calculatedColumn => ({
+                            autoFocus={
+                              !selectedCalculatedColumn && !selectedMetric
+                            }
+                            placeholder={
+                              savedClassification
+                                ? t(
+                                    '%s item(s)',
+                                    calculatedColumns.length +
+                                      availableMetrics.length,
+                                  )
+                                : t('%s column(s)', calculatedColumns.length)
+                            }
+                            options={[
+                              ...calculatedColumns.map(calculatedColumn => ({
                                 value: calculatedColumn.column_name,
                                 label: (
                                   <StyledColumnOption
@@ -548,9 +587,35 @@ const ColumnSelectPopover = ({
                                   !compatibleDimensions.includes(
                                     calculatedColumn.column_name,
                                   ),
-                              }),
-                            )}
-                            optionFilterProps={['column_name', 'verbose_name']}
+                              })),
+                              ...(savedClassification
+                                ? availableMetrics.map(metric => ({
+                                    value: metric.metric_name,
+                                    label: (
+                                      <MetricOptionContainer>
+                                        <MetricIcon>ƒ</MetricIcon>
+                                        <MetricLabel>
+                                          {metric.verbose_name ||
+                                            metric.metric_name}
+                                        </MetricLabel>
+                                      </MetricOptionContainer>
+                                    ),
+                                    key: `metric-${metric.metric_name}`,
+                                    metric_name: metric.metric_name,
+                                    verbose_name: metric.verbose_name ?? '',
+                                    disabled:
+                                      compatibleDimensions != null &&
+                                      !compatibleDimensions.includes(
+                                        metric.metric_name,
+                                      ),
+                                  }))
+                                : []),
+                            ]}
+                            optionFilterProps={[
+                              'column_name',
+                              'verbose_name',
+                              'metric_name',
+                            ]}
                           />
                         </FormItem>
                       ) : datasourceType === DatasourceType.Table ? (
