@@ -1832,6 +1832,29 @@ def test_cancel_query_early_cancel_flag(
     prepare_cancel_mock.assert_called_with(mock_query)
 
 
+def test_cancel_query_prepare_cancel_query_raises(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """A failing prepare_cancel_query is logged and does not abort cancellation."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    mock_query = MagicMock()
+    mock_query.extra = {}
+
+    mocker.patch.object(
+        database.db_engine_spec, "has_implicit_cancel", return_value=False
+    )
+    mocker.patch.object(
+        database.db_engine_spec,
+        "prepare_cancel_query",
+        side_effect=Exception("boom"),
+    )
+
+    result = SQLExecutor._cancel_query(database, mock_query)
+
+    assert result is False
+
+
 def test_cancel_query_no_cancel_id(
     mocker: MockerFixture, database: Database, app_context: None
 ) -> None:
@@ -1899,6 +1922,48 @@ def test_cancel_query_with_cancel_id(
         catalog="main", schema="public", source=QuerySource.SQL_LAB
     )
     cancel_query_mock.assert_called_once()
+
+
+def test_cancel_query_cancel_query_raises(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """A failing db_engine_spec.cancel_query is logged and returns False."""
+    from superset.constants import QUERY_CANCEL_KEY
+    from superset.sql.execution.executor import SQLExecutor
+
+    mock_query = MagicMock()
+    mock_query.extra = {QUERY_CANCEL_KEY: "cancel_123"}
+    mock_query.catalog = "main"
+    mock_query.schema = "public"
+
+    mocker.patch.object(
+        database.db_engine_spec, "has_implicit_cancel", return_value=False
+    )
+    mocker.patch.object(database.db_engine_spec, "prepare_cancel_query")
+    mocker.patch.object(
+        database.db_engine_spec, "cancel_query", side_effect=Exception("boom")
+    )
+
+    mock_cursor = MagicMock()
+    mock_conn = MagicMock()
+    mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    mock_conn.__enter__ = MagicMock(return_value=mock_conn)
+    mock_conn.__exit__ = MagicMock(return_value=False)
+
+    mock_engine = MagicMock()
+    mock_engine.raw_connection.return_value.__enter__ = MagicMock(
+        return_value=mock_conn
+    )
+    mock_engine.raw_connection.return_value.__exit__ = MagicMock(return_value=False)
+    mock_engine.__enter__ = MagicMock(return_value=mock_engine)
+    mock_engine.__exit__ = MagicMock(return_value=False)
+
+    mocker.patch.object(database, "get_sqla_engine", return_value=mock_engine)
+
+    result = SQLExecutor._cancel_query(database, mock_query)
+
+    assert result is False
 
 
 def test_async_handle_cancel_query_not_found(
