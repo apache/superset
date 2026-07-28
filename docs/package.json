@@ -92,11 +92,9 @@
     "@typescript-eslint/eslint-plugin": "^8.64.0",
     "@typescript-eslint/parser": "^8.64.0",
     "eslint": "^9.39.2",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-prettier": "^5.5.6",
     "eslint-plugin-react": "^7.37.5",
     "globals": "^17.7.0",
-    "prettier": "^3.9.5",
+    "oxfmt": "^0.60.0",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.64.0",
     "webpack": "^5.108.2"

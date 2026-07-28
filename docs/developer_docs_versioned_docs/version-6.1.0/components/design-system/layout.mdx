@@ -33,20 +33,47 @@ Ant Design Layout component with configurable Sider, Header, Footer, and Content
 <StoryWithControls
   component="Layout"
   props={{
-  hasSider: false,
-  style: {
-    minHeight: 200
-  }
-}}
+    hasSider: false,
+    style: {
+      minHeight: 200,
+    },
+  }}
   controls={[
-  {
-    name: "hasSider",
-    label: "Has Sider",
-    type: "boolean",
-    description: "Whether the layout contains a Sider sub-component."
-  }
-]}
-  sampleChildren={[{"component":"Layout.Header","props":{"children":"Header","style":{"background":"#001529","color":"#fff","padding":"0 24px","lineHeight":"64px"}}},{"component":"Layout.Content","props":{"children":"Content Area","style":{"padding":"24px","background":"#fff","flex":1}}},{"component":"Layout.Footer","props":{"children":"Footer","style":{"textAlign":"center","background":"#f5f5f5","padding":"12px"}}}]}
+    {
+      name: 'hasSider',
+      label: 'Has Sider',
+      type: 'boolean',
+      description: 'Whether the layout contains a Sider sub-component.',
+    },
+  ]}
+  sampleChildren={[
+    {
+      component: 'Layout.Header',
+      props: {
+        children: 'Header',
+        style: {
+          background: '#001529',
+          color: '#fff',
+          padding: '0 24px',
+          lineHeight: '64px',
+        },
+      },
+    },
+    {
+      component: 'Layout.Content',
+      props: {
+        children: 'Content Area',
+        style: { padding: '24px', background: '#fff', flex: 1 },
+      },
+    },
+    {
+      component: 'Layout.Footer',
+      props: {
+        children: 'Footer',
+        style: { textAlign: 'center', background: '#f5f5f5', padding: '12px' },
+      },
+    },
+  ]}
 />
 
 ## Try It
@@ -64,12 +91,12 @@ function Demo() {
         <Layout.Header style={{ background: '#fff', padding: '0 16px' }}>
           Header
         </Layout.Header>
-        <Layout.Content style={{ margin: '16px', padding: '24px', background: '#fff' }}>
+        <Layout.Content
+          style={{ margin: '16px', padding: '24px', background: '#fff' }}
+        >
           Content
         </Layout.Content>
-        <Layout.Footer style={{ textAlign: 'center' }}>
-          Footer
-        </Layout.Footer>
+        <Layout.Footer style={{ textAlign: 'center' }}>Footer</Layout.Footer>
       </Layout>
     </Layout>
   );
@@ -82,10 +109,19 @@ function Demo() {
 function ContentOnly() {
   return (
     <Layout>
-      <Layout.Header style={{ background: '#001529', color: '#fff', padding: '0 24px', lineHeight: '64px' }}>
+      <Layout.Header
+        style={{
+          background: '#001529',
+          color: '#fff',
+          padding: '0 24px',
+          lineHeight: '64px',
+        }}
+      >
         Application Header
       </Layout.Header>
-      <Layout.Content style={{ padding: '24px', minHeight: '200px', background: '#fff' }}>
+      <Layout.Content
+        style={{ padding: '24px', minHeight: '200px', background: '#fff' }}
+      >
         Main content area without a sidebar
       </Layout.Content>
       <Layout.Footer style={{ textAlign: 'center', background: '#f5f5f5' }}>
@@ -120,10 +156,10 @@ function RightSidebar() {
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `hasSider` | `boolean` | `false` | Whether the layout contains a Sider sub-component. |
-| `style` | `any` | `{"minHeight":200}` | - |
+| Prop       | Type      | Default             | Description                                        |
+| ---------- | --------- | ------------------- | -------------------------------------------------- |
+| `hasSider` | `boolean` | `false`             | Whether the layout contains a Sider sub-component. |
+| `style`    | `any`     | `{"minHeight":200}` | -                                                  |
 
 ## Import
 
