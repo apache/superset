@@ -205,7 +205,7 @@ test('DynamicFieldControl handles a 500-option enum via search (FR-006 sibling)'
       enum: largeMetricEnum,
       'x-dynamic': true,
       'x-dependsOn': [],
-    },
+    } as ControlProps['schema'],
   });
   render(<DynamicFieldControl {...props} />);
   const combobox = screen.getByRole('combobox');
