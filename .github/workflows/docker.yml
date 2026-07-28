@@ -130,13 +130,25 @@ jobs:
           # repeated --build-arg key, so appending PY_VER here overrides
           # supersetbot's pin and keeps the build on the Dockerfile's own
           # supported Python version.
+          #
+          # The "py311"/"py312" presets exist specifically to pin a
+          # *different* PY_VER than "dev"/"lean" (that's the whole point of
+          # those two presets), so they're excluded from this override.
+          # Without this exclusion, the PY_VER above clobbers theirs too
+          # (same last-value-wins rule), making "py311"/"py312" silently
+          # build the exact same image as "lean".
+          EXTRA_FLAGS="--build-arg INCLUDE_CHROMIUM=false --tag $IMAGE_TAG"
+          if [ "$BUILD_PRESET" != "py311" ] && [ "$BUILD_PRESET" != "py312" ]; then
+            EXTRA_FLAGS="--build-arg PY_VER=3.11.14-slim-trixie $EXTRA_FLAGS"
+          fi
+
           for attempt in 1 2 3; do
             if supersetbot docker \
               $PUSH_OR_LOAD \
               --preset "$BUILD_PRESET" \
               --context "$EVENT" \
               --context-ref "$RELEASE" $FORCE_LATEST \
-              --extra-flags "--build-arg PY_VER=3.11.14-slim-trixie --build-arg INCLUDE_CHROMIUM=false --tag $IMAGE_TAG" \
+              --extra-flags "$EXTRA_FLAGS" \
               $PLATFORM_ARG; then
               break
             fi
