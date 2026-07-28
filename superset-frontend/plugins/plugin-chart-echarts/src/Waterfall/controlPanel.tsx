@@ -195,6 +195,8 @@ const config: ControlPanelConfig = {
               label: t('X Axis Label'),
               renderTrigger: true,
               default: '',
+              visibility: ({ controls }) =>
+                controls?.show_x_axis?.value !== false,
             },
           },
         ],
@@ -205,6 +207,8 @@ const config: ControlPanelConfig = {
               ...sharedControls.x_axis_time_format,
               default: DEFAULT_TIME_FORMAT,
               description: `${D3_TIME_FORMAT_DOCS}.`,
+              visibility: ({ controls }) =>
+                controls?.show_x_axis?.value !== false,
             },
           },
         ],
@@ -225,6 +229,8 @@ const config: ControlPanelConfig = {
               clearable: false,
               renderTrigger: true,
               description: t('The way the ticks are laid out on the X-axis'),
+              visibility: ({ controls }) =>
+                controls?.show_x_axis?.value !== false,
             },
           },
         ],
@@ -256,6 +262,8 @@ const config: ControlPanelConfig = {
               label: t('Y Axis Label'),
               renderTrigger: true,
               default: '',
+              visibility: ({ controls }) =>
+                controls?.show_y_axis?.value !== false,
             },
           },
         ],
@@ -265,6 +273,12 @@ const config: ControlPanelConfig = {
     },
   ],
   controlOverrides: {
+    y_axis_format: {
+      visibility: ({ controls }) => controls?.show_y_axis?.value !== false,
+    },
+    currency_format: {
+      visibility: ({ controls }) => controls?.show_y_axis?.value !== false,
+    },
     groupby: {
       label: t('Breakdowns'),
       description:

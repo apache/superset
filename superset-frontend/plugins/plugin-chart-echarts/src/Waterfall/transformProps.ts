@@ -372,7 +372,6 @@ export default function transformProps(
   }
   axisLabel.formatter = xAxisFormatter;
   axisLabel.hideOverlap = false;
-  axisLabel.show = showXAxis;
 
   const seriesProps: Pick<BarSeriesOption, 'type' | 'stack' | 'emphasis'> = {
     type: 'bar',
@@ -446,29 +445,26 @@ export default function transformProps(
       data: [legendNames.INCREASE, legendNames.DECREASE, legendNames.TOTAL],
     },
     xAxis: {
+      show: showXAxis,
       data: xAxisData,
       type: 'category',
-      name: showXAxis ? xAxisLabel : '',
+      name: xAxisLabel,
       nameTextStyle: {
         padding: [theme.sizeUnit * 4, 0, 0, 0],
       },
       nameLocation: 'middle',
       axisLabel,
-      axisLine: { show: showXAxis },
-      axisTick: { show: showXAxis },
     },
     yAxis: {
       ...defaultYAxis,
+      show: showYAxis,
       type: 'value',
       nameTextStyle: {
         padding: [0, 0, theme.sizeUnit * 5, 0],
       },
       nameLocation: 'middle',
-      name: showYAxis ? yAxisLabel : '',
-      axisLabel: { show: showYAxis, formatter: defaultFormatter },
-      axisLine: { show: showYAxis },
-      axisTick: { show: showYAxis },
-      splitLine: { show: showYAxis },
+      name: yAxisLabel,
+      axisLabel: { formatter: defaultFormatter },
     },
     tooltip: {
       ...getDefaultTooltip(refs),
