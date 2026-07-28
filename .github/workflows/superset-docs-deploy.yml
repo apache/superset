@@ -56,7 +56,16 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BUILD_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
+          # workflow_dispatch is a deliberate, one-off action (e.g. to deploy
+          # a specific ref) rather than something racing other triggers, so
+          # it always bypasses the freshness gate below.
+          if [ "${EVENT_NAME}" = "workflow_dispatch" ]; then
+            echo "is-current=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           latest_sha="$(gh api "repos/${{ github.repository }}/commits/master" --jq .sha)"
           if [ "${latest_sha}" = "${BUILD_SHA}" ]; then
             echo "is-current=true" >> "$GITHUB_OUTPUT"
