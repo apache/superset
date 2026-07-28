@@ -59,7 +59,10 @@ function main() {
   const results = [];
   TRACKED_ENTRYPOINTS.forEach(name => {
     const entrypoint = entrypoints[name];
-    if (!entrypoint) return;
+    if (!entrypoint) {
+      console.error(`stats.json is missing the "${name}" entrypoint`);
+      process.exit(1);
+    }
     results.push({
       name: `${name} entrypoint (JS)`,
       unit: 'bytes',
@@ -75,4 +78,8 @@ function main() {
   console.log(JSON.stringify(results, null, 2));
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = { entrypointSizeByExt, main, TRACKED_ENTRYPOINTS };
