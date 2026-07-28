@@ -230,7 +230,7 @@ jobs:
     runs-on: ubuntu-26.04
     timeout-minutes: 15
     permissions:
-      contents: write
+      contents: read
       pull-requests: write
     steps:
       - name: Checkout Code

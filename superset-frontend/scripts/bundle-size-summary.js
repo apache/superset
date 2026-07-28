@@ -50,8 +50,9 @@ function main() {
   const { entrypoints } = stats;
   if (!entrypoints) {
     console.error(
-      'stats.json has no `entrypoints` key -- was it generated with ' +
-        '`--stats=normal` (or richer)? `minimal`/`errors-only` stats omit it.',
+      'stats.json has no `entrypoints` key -- was it built with ' +
+        '`BUNDLE_SIZE_STATS=true` set? Without it, webpack.config.js uses ' +
+        '`stats: "minimal"`, which omits `entrypoints`.',
     );
     process.exit(1);
   }

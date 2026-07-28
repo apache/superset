@@ -34,8 +34,11 @@ function mockExit() {
   });
 }
 
+const originalArgv = process.argv;
+
 afterEach(() => {
   jest.restoreAllMocks();
+  process.argv = originalArgv;
 });
 
 test('entrypointSizeByExt sums only assets matching the given extension', () => {
