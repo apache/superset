@@ -19,6 +19,7 @@
  */
 import {
   Column,
+  DatasourceType,
   Metric,
   ensureIsArray,
   getExtensionsRegistry,
@@ -31,6 +32,10 @@ import {
   cachedSupersetGet,
   supersetGetCache,
 } from 'src/utils/cachedSupersetGet';
+import {
+  fetchSemanticViewStructure,
+  semanticViewDimensionsToColumns,
+} from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/utils';
 import { Resource, ResourceStatus } from './apiResources';
 
 /**
@@ -40,6 +45,26 @@ export const getDatasetId = (datasetId: string | number): number =>
   typeof datasetId === 'string'
     ? Number(datasetId.split('__')[0])
     : Number(datasetId);
+
+/**
+ * Extract the datasource type from an `<id>__<type>` datasource string.
+ * Semantic views and regular datasets have independent numeric-id
+ * sequences, so the type is load-bearing: resolving by id alone reads
+ * whatever regular dataset shares the number (sc-111089). Absent or
+ * unrecognized suffixes fall back to a regular dataset, preserving
+ * legacy behaviour.
+ */
+export const getDatasourceTypeFromId = (
+  datasetId: string | number,
+): DatasourceType => {
+  if (typeof datasetId !== 'string') {
+    return DatasourceType.Table;
+  }
+  const suffix = datasetId.split('__')[1];
+  return suffix === DatasourceType.SemanticView
+    ? DatasourceType.SemanticView
+    : DatasourceType.Table;
+};
 
 /**
  * Helper function to create verbose_map from a dataset
@@ -89,7 +114,29 @@ export const useDatasetDrillInfo = (
         );
         let result;
 
-        if (loadDrillByOptionsExtension && formData) {
+        if (
+          getDatasourceTypeFromId(datasetId) === DatasourceType.SemanticView
+        ) {
+          // Semantic views short-circuit BEFORE the extension check: the
+          // extension receives only the numeric id, which would resolve
+          // the colliding regular dataset (sc-111089 review consensus).
+          // The structure payload carries no changed_on/owners metadata —
+          // those metadata-bar rows render their not-available state, an
+          // accepted degradation. Columns are narrowed to metadata needs;
+          // no drill flags are fabricated.
+          const structure = await fetchSemanticViewStructure(numericDatasetId);
+          result = {
+            id: numericDatasetId,
+            table_name: structure.name,
+            datasource_type: DatasourceType.SemanticView,
+            columns: semanticViewDimensionsToColumns(structure.dimensions),
+            metrics: structure.metrics.map(metric => ({
+              metric_name: metric.name,
+              expression: metric.definition,
+              verbose_name: null,
+            })),
+          } as unknown as Dataset;
+        } else if (loadDrillByOptionsExtension && formData) {
           const response = await loadDrillByOptionsExtension(
             numericDatasetId,
             formData,

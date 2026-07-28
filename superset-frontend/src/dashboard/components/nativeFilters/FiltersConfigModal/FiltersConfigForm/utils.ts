@@ -23,6 +23,7 @@ import { CustomControlItem, Dataset } from '@superset-ui/chart-controls';
 import { Column, DatasourceType, ensureIsArray } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { DatasourcesState, ChartsState } from 'src/dashboard/types';
+import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import { FILTER_SUPPORTED_TYPES } from './constants';
 
 const FILTERS_FIELD_NAME = 'filters';
@@ -144,6 +145,51 @@ export const mapSemanticTypeToGenericDataType = (
 
   return undefined;
 };
+
+/** The slice of `GET /api/v1/semantic_view/<id>/structure` consumers rely on. */
+export interface SemanticViewStructure {
+  name?: string;
+  dimensions: { name: string; type: string }[];
+  metrics: { name: string; definition: string }[];
+}
+
+/**
+ * Fetch a semantic view's structure — the single, shared entry point for
+ * every type-aware datasource consumer (ColumnSelect, FiltersConfigForm,
+ * display controls, drill metadata). Semantic views and regular datasets
+ * have independent numeric-id sequences, so callers must route here (and
+ * never to `/api/v1/dataset/<id>`) whenever the binding's datasourceType
+ * is SemanticView.
+ */
+export const fetchSemanticViewStructure = async (
+  semanticViewId: number | string,
+): Promise<SemanticViewStructure> => {
+  const response = await cachedSupersetGet({
+    endpoint: `/api/v1/semantic_view/${semanticViewId}/structure`,
+  });
+  const { name, dimensions = [], metrics = [] } = response.json?.result ?? {};
+  return { name, dimensions, metrics };
+};
+
+/**
+ * Map structure dimensions onto the `Column` shape the filter/control
+ * machinery expects. Mapping semantics are shared by every consumer:
+ * temporal detection via `mapSemanticTypeToGenericDataType`, and
+ * `filterable: true` (semantic-view dimensions are always selectable).
+ */
+export const semanticViewDimensionsToColumns = (
+  dimensions: SemanticViewStructure['dimensions'],
+): Column[] =>
+  dimensions.map(dim => {
+    const mappedType = mapSemanticTypeToGenericDataType(dim.type);
+    return {
+      column_name: dim.name,
+      type: dim.type,
+      is_dttm: mappedType === GenericDataType.Temporal,
+      type_generic: mappedType,
+      filterable: true,
+    };
+  });
 
 // Validates that a filter default value is present when the default value option is enabled.
 // For range filters, at least one of the two values must be non-null.
