@@ -241,6 +241,9 @@ class TestSupersetAppInitializer:
                 f[0] == "ignore"
                 and isinstance(f[1], re.Pattern)
                 and f[1].pattern == r"pkg_resources is deprecated as an API"
+                and f[2] is UserWarning
+                and isinstance(f[3], re.Pattern)
+                and f[3].pattern == r"sqlalchemy_redshift(?:\..*)?"
                 for f in warnings.filters
             )
 
