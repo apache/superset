@@ -185,8 +185,10 @@ class MigrateViz:
     def downgrade_slice(cls, slc: Slice) -> None:
         try:
             form_data = try_load_json(slc.params)
-            if "viz_type" in (
-                form_data_bak := form_data.get(FORM_DATA_BAK_FIELD_NAME, {})
+            form_data_bak = form_data.get(FORM_DATA_BAK_FIELD_NAME, {})
+            if (
+                "viz_type" in form_data_bak
+                and form_data_bak["viz_type"] == cls.source_viz_type
             ):
                 slc.params = json.dumps(form_data_bak)
                 slc.viz_type = form_data_bak.get("viz_type")
@@ -214,6 +216,13 @@ class MigrateViz:
 
     @classmethod
     def downgrade(cls, session: Session) -> None:
+        # This SQL-level filter is intentionally coarse: several MigrateViz
+        # subclasses can share one target_viz_type (e.g. MigrateLineChart and
+        # MigrateCompareChart both migrate onto echarts_timeseries_line), so
+        # it will also match slices another subclass upgraded. downgrade_slice
+        # does the precise per-row check (form_data_bak["viz_type"] ==
+        # cls.source_viz_type) so this class's downgrade only reverts the
+        # slices it upgraded, not every slice currently at the same target.
         slices = session.query(Slice).filter(
             and_(
                 Slice.viz_type == cls.target_viz_type,
