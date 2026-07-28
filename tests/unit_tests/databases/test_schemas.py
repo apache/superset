@@ -35,3 +35,25 @@ def test_engine_information_schema_includes_supports_offset() -> None:
     )
 
     assert result["supports_offset"] is False
+
+
+def test_engine_information_schema_includes_identifier_quote() -> None:
+    """
+    identifier_quote is a nested field that must pass the dialect-specific
+    quote characters through unchanged.
+    """
+    from superset.databases.schemas import EngineInformationSchema
+
+    schema = EngineInformationSchema()
+    result = schema.dump(
+        {
+            "supports_file_upload": True,
+            "disable_ssh_tunneling": False,
+            "supports_dynamic_catalog": False,
+            "supports_oauth2": False,
+            "supports_offset": False,
+            "identifier_quote": {"start": "`", "end": "`"},
+        }
+    )
+
+    assert result["identifier_quote"] == {"start": "`", "end": "`"}
