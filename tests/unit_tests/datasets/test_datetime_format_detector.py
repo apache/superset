@@ -63,7 +63,12 @@ def mock_dataset() -> MagicMock:
         except Exception as ex:
             if not is_read_limit_error(ex):
                 raise
-            return run(f"{sql}\nSETTINGS read_overflow_mode='break'")
+            try:
+                return run(f"{sql}\nSETTINGS read_overflow_mode='break'")
+            except Exception as retry_ex:
+                # Mirror Database.run_with_sampling_read_limit_retry: a failed
+                # retry surfaces the original read-limit error.
+                raise ex from retry_ex
 
     dataset.database.run_with_sampling_read_limit_retry = run_with_retry
 
@@ -403,6 +408,43 @@ def test_detect_column_format_read_limit_error_logs_warning(
         record.levelno == logging.WARNING and "Could not query column" in record.message
         for record in caplog.records
     )
+
+
+def test_detect_column_format_failed_retry_surfaces_original_error(
+    mock_dataset: MagicMock,
+    mock_column: MagicMock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """When the bounded-read retry itself fails (e.g. a readonly connection
+    rejecting in-query SETTINGS), the WARNING carries the original read-limit
+    error, not the retry failure."""
+
+    def reject_both(sql: str, schema: str) -> pd.DataFrame:
+        if "SETTINGS" in sql:
+            raise Exception(  # noqa: TRY002
+                "Code: 164. DB::Exception: Cannot modify 'read_overflow_mode' "
+                "setting in readonly mode. (READONLY)"
+            )
+        raise Exception(  # noqa: TRY002
+            "Code: 158. DB::Exception: Limit for rows exceeded. (TOO_MANY_ROWS)"
+        )
+
+    mock_dataset.database.get_df.side_effect = reject_both
+
+    detector = DatetimeFormatDetector()
+    with caplog.at_level(logging.WARNING):
+        detected_format = detector.detect_column_format(mock_dataset, mock_column)
+
+    assert detected_format is None
+    warnings = [
+        record.getMessage()
+        for record in caplog.records
+        if record.levelno == logging.WARNING
+        and "Could not query column" in record.message
+    ]
+    assert len(warnings) == 1
+    assert "TOO_MANY_ROWS" in warnings[0]
+    assert "READONLY" not in warnings[0]
 
 
 def test_detect_all_formats_summary_reports_detected_of_attempted(

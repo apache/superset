@@ -75,11 +75,23 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
         second would produce invalid SQL — including subquery SETTINGS in
         this check merely degrades to the engine's normal rejection). The
         guard matches the clause shape ``SETTINGS <key> = ...`` rather than
-        the bare token, so a column that happens to be named ``settings``
-        does not suppress the retry. A trailing statement terminator is
-        stripped so the SETTINGS clause attaches to the statement itself.
+        the bare token, and string literals, quoted identifiers, and comments
+        are blanked out before matching, so a column named ``settings`` or a
+        literal/comment merely containing that text does not suppress the
+        retry. A trailing statement terminator is stripped so the SETTINGS
+        clause attaches to the statement itself.
         """
-        if re.search(r"\bSETTINGS\s+\w+\s*=", sql, re.IGNORECASE):
+        code_only = re.sub(
+            r"'(?:[^']|'')*'"  # single-quoted string literals ('' escape)
+            r'|"(?:[^"]|"")*"'  # double-quoted identifiers
+            r"|`[^`]*`"  # backtick-quoted identifiers
+            r"|--[^\n]*"  # single-line comments
+            r"|/\*.*?\*/",  # block comments
+            " ",
+            sql,
+            flags=re.DOTALL,
+        )
+        if re.search(r"\bSETTINGS\s+\w+\s*=", code_only, re.IGNORECASE):
             return None
         stripped = sql.rstrip().rstrip(";").rstrip()
         return f"{stripped}{cls.sampling_read_limit_override_suffix}"

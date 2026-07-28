@@ -368,6 +368,34 @@ def test_sampling_read_limit_override_existing_settings_returns_none() -> None:
     assert ClickHouseConnectEngineSpec.apply_sampling_read_limit_override(sql) is None
 
 
+def test_sampling_read_limit_override_ignores_settings_text_in_literals() -> None:
+    """
+    SETTINGS-clause-shaped text inside string literals or comments (e.g. a
+    fetch_values_predicate value or a mutator comment) must not suppress the
+    retry -- only a genuine statement-level clause counts.
+    """
+    from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+
+    in_literal = (
+        "SELECT DISTINCT col AS column_values FROM tbl "
+        "WHERE note = 'try SETTINGS max_threads=4 for speed' LIMIT 100"
+    )
+    result = ClickHouseConnectEngineSpec.apply_sampling_read_limit_override(in_literal)
+    assert result is not None
+    assert result.endswith("SETTINGS read_overflow_mode='break'")
+
+    in_comment = (
+        "SELECT col FROM tbl LIMIT 100\n-- mutator note: SETTINGS max_threads=4"
+    )
+    result = ClickHouseConnectEngineSpec.apply_sampling_read_limit_override(in_comment)
+    assert result is not None
+
+    genuine = "SELECT col FROM tbl LIMIT 100 SETTINGS max_threads=4 -- note"
+    assert (
+        ClickHouseConnectEngineSpec.apply_sampling_read_limit_override(genuine) is None
+    )
+
+
 def test_sampling_read_limit_override_ignores_settings_named_column() -> None:
     """
     The existing-clause guard matches the ``SETTINGS <key> = ...`` clause
