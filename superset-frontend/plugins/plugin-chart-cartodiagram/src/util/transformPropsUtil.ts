@@ -70,12 +70,13 @@ export const getGeojsonColumns = (columns: string[]) =>
     return [...prev, idx];
   }, []);
 
-export const getWkbColumns = (columns: string[]) =>
-  columns.reduce((prev, current, idx) => {
+export const getWkbColumns = (columns: string[]) => {
+  const wkb = new WKB();
+  return columns.reduce((prev, current, idx) => {
     let isWkb;
 
     try {
-      new WKB().readFeature(current);
+      wkb.readFeature(current);
       isWkb = true;
     } catch {
       isWkb = false;
@@ -85,6 +86,7 @@ export const getWkbColumns = (columns: string[]) =>
     }
     return [...prev, idx];
   }, []);
+};
 
 const WktFormatIdentifiers = [
   'SRID=',
