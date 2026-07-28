@@ -326,9 +326,8 @@ export const LayerConfigsPopoverContent: FC<
   };
 
   const onSaveClick = () => {
-    const baseConfs: BaseLayerConf = {
+    const baseConfs: Omit<BaseLayerConf, 'type'> = {
       title: currentLayerConf.title,
-      type: currentLayerConf.type,
       attribution: currentLayerConf.attribution,
     };
 
