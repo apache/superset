@@ -16,7 +16,7 @@
 # under the License.
 import time
 from datetime import datetime
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import yaml
@@ -400,8 +400,8 @@ class TestChartsCreateCommand(SupersetTestCase):
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_create_chart_rejects_externally_managed_dashboard(
-        self, mock_sm_g, mock_c_g, mock_u_g
-    ):
+        self, mock_sm_g: MagicMock, mock_c_g: MagicMock, mock_u_g: MagicMock
+    ) -> None:
         """
         Test that creating a chart fails when a selected dashboard is managed
         externally
@@ -721,8 +721,8 @@ class TestChartsUpdateCommand(SupersetTestCase):
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_update_chart_rejects_new_externally_managed_dashboard(
-        self, mock_sm_g, mock_u_g, mock_c_g
-    ):
+        self, mock_sm_g: MagicMock, mock_u_g: MagicMock, mock_c_g: MagicMock
+    ) -> None:
         """Test that updating a chart to add an externally managed dashboard fails"""
         from superset.models.dashboard import Dashboard
 
