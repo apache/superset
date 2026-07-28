@@ -42,7 +42,7 @@ down_revision = "eb1c288c71c4"
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
     try:
         MigrateAreaChart.upgrade(session)
         MigrateBarChart.upgrade(session)
@@ -61,7 +61,7 @@ def upgrade():
 
 def downgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
     try:
         MigrateAreaChart.downgrade(session)
         MigrateBarChart.downgrade(session)

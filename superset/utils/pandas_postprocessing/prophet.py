@@ -87,9 +87,9 @@ def _prophet_fit_and_predict(  # pylint: disable=too-many-arguments
 
 def prophet(  # pylint: disable=too-many-arguments  # noqa: C901
     df: DataFrame,
-    time_grain: str,
     periods: int,
     confidence_interval: float,
+    time_grain: Optional[str] = None,
     yearly_seasonality: Optional[Union[bool, int]] = None,
     weekly_seasonality: Optional[Union[bool, int]] = None,
     daily_seasonality: Optional[Union[bool, int]] = None,

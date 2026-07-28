@@ -288,6 +288,22 @@ The pivot table chart's `First` and `Last` aggregations now return the first and
 
 The `error` and `response` parameters of the `retryDelay` and `retryOn` callbacks in `FetchRetryOptions` (exported from `@superset-ui/core`) are now typed `Error | null` and `Response | null` to match the actual call-site signature provided by `fetch-retry`. Because these parameter types are contravariant, consumers who typed their callbacks with the non-nullable `(attempt: number, error: Error, response: Response) => number` will get a TypeScript compile error. Widen your callback signatures to accept `Error | null` / `Response | null`.
 
+### Pivot Table totals are now computed by the database (per-metric "Aggregation function" control removed)
+
+Pivot Table subtotals and grand totals are now computed by the database at each
+rollup level instead of re-aggregating the already-aggregated cell values on the
+client. This fixes long-standing incorrect totals for non-additive metrics
+(ratios such as `SUM(a)/SUM(b)`, `COUNT_DISTINCT`, `AVG`, percentiles, etc.),
+which previously summed the displayed cell values.
+
+As a result the per-table **"Aggregation function"** control (which let you pick
+how totals were aggregated client-side, e.g. Sum/Average/Count) has been
+removed: totals now always reflect the metric's own definition evaluated at the
+total's granularity. For additive metrics (`SUM`/`COUNT`/`MIN`/`MAX`) the result
+is unchanged. Saved charts that set `aggregateFunction` will ignore it; no
+migration is required. If you previously relied on a plain sum-of-cells total
+for a non-additive metric, that specific behavior is no longer available.
+
 ### `thumbnail_url` removed from dashboard list API response
 
 The `thumbnail_url` field has been removed from `GET /api/v1/dashboard/` list responses. External consumers relying on this field must now construct the thumbnail URL client-side using `id` and `changed_on_utc`:
@@ -341,6 +357,16 @@ A read-only companion to the version-history endpoints: each entity type gains a
 | `page` / `page_size` | integer | `0` / `25` | Pagination (`page_size` clamped to 200) |
 
 Authorization reuses the resource's `can_read` permission and per-object `raise_for_access`; related-entity rows are visibility-filtered to what the caller may see. The stream is empty unless version capture is on (`ENABLE_VERSIONING_CAPTURE`).
+
+### Version-history retention (pruning)
+
+Entity version history (the `version_transaction` / `*_version` shadow tables that back version capture) is aged out by a nightly Celery beat task, `version_history.prune_old_versions` (`superset.tasks.version_history_retention`).
+
+| Key | Default | Purpose |
+|---|---|---|
+| `SUPERSET_VERSION_HISTORY_RETENTION_DAYS` | `30` | Version rows whose owning `version_transaction.issued_at` is older than this many days are pruned. Each entity's live row (`end_transaction_id IS NULL`) is always preserved, as are the live rows of its children and associations; closed historical rows (including the baseline) age out. Set to `0` or a negative value to disable pruning. |
+
+The task ships in the default `CeleryConfig.beat_schedule`; a deployment that overrides `CELERY_CONFIG` without inheriting the default will log a startup warning that the prune task is absent (so it never silently stops running). Retention only prunes whatever history exists — capture itself is gated separately by `ENABLE_VERSIONING_CAPTURE` (ships off).
 
 ### Webhook alerts/reports block private/internal hosts by default
 
@@ -635,6 +661,10 @@ Added a new combined datasource list endpoint at `GET /api/v1/datasource/` to se
 ### ClickHouse minimum driver version bump
 
 The minimum required version of `clickhouse-connect` has been raised to `>=0.13.0`. If you are using the ClickHouse connector, please upgrade your `clickhouse-connect` package. The `_mutate_label` workaround that appended hash suffixes to column aliases has also been removed, as it is no longer needed with modern versions of the driver.
+
+### Kenya Country Map: Updated Administrative Divisions
+
+The Kenya country map has been updated to reflect the 47 counties established under Kenya's 2010 constitution, replacing the outdated 8-province boundaries from the Natural Earth dataset. County keys now use ISO 3166-2:KE codes (`KE-01` through `KE-47`), replacing the former province codes (`KE-110`, `KE-200`, ..., `KE-800`). Dashboards that join on the old province codes will need to re-key their datasets to use the new county codes.
 
 ### MCP Tool Observability
 

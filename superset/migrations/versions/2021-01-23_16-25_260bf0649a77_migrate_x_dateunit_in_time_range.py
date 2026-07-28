@@ -53,7 +53,7 @@ class Slice(Base):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
     x_dateunit_in_since = DateRangeMigration.x_dateunit_in_since
     x_dateunit_in_until = DateRangeMigration.x_dateunit_in_until
 

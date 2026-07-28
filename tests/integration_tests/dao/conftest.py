@@ -80,10 +80,11 @@ def app_context(app: Flask) -> Generator[Session, None, None]:
         "sqlite:///:memory:",
         poolclass=StaticPool,
         connect_args={"check_same_thread": False},
+        future=True,
     )
 
     # Create session bound to in-memory database
-    session_factory = sessionmaker(bind=engine)
+    session_factory = sessionmaker(bind=engine, future=True)
     session = session_factory()
 
     # Make session compatible with Flask-SQLAlchemy expectations

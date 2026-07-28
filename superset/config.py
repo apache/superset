@@ -1278,8 +1278,7 @@ SUPERSET_CACHE_WARMUP_USER: str | None = None
 # Time before selenium times out after trying to locate an element on the page and wait
 # for that element to load for a screenshot.
 SCREENSHOT_LOCATE_WAIT = int(timedelta(seconds=10).total_seconds())
-# Time before selenium times out after waiting for all DOM class elements named
-# "loading" are gone.
+# Time before screenshot capture times out while waiting for chart readiness.
 SCREENSHOT_LOAD_WAIT = int(timedelta(minutes=1).total_seconds())
 # Maximum time (in seconds) selenium waits for an initial page navigation
 # (driver.get) to complete. Without it the navigation blocks indefinitely when
@@ -1408,6 +1407,19 @@ EXTENSIONS_PERSISTENT_STORAGE: dict[str, Any] = {
 
 # store cache keys by datasource UID (via CacheKey) for custom processing/invalidation
 STORE_CACHE_KEYS_IN_METADATA_DB = False
+
+# Cache timeout (in seconds) specifically for native dashboard filter option queries.
+# Native filter queries use `DATA_CACHE_CONFIG` as their backend, but their TTL can be
+# configured independently here because they often require fresher data (e.g., for
+# datasets whose visible values change frequently, including RLS-constrained datasets).
+#
+# Valid values:
+#   None : Preserve the existing cache timeout resolution chain.
+#   -1   : Completely disable cache writes for native filter options.
+#   0    : Passed directly to the underlying cache backend. Backend-specific
+#          behavior may vary. Do not use 0 to disable caching; use -1 instead.
+#   >0   : Cache filter options for the specified number of seconds.
+NATIVE_FILTER_OPTIONS_CACHE_TIMEOUT: int | None = None
 
 # CORS Options
 # NOTE: enabling this requires installing the cors-related python dependencies
@@ -1637,6 +1649,49 @@ ENABLE_VERSIONING_CAPTURE: bool = utils.parse_boolean_string(
     os.environ.get("ENABLE_VERSIONING_CAPTURE", "false")
 )
 
+# Retention window (days) for entity version history. Version rows
+# whose owning ``version_transaction.issued_at`` is older than this
+# value are pruned by the ``version_history.prune_old_versions``
+# Celery beat task (registered below in ``CeleryConfig.beat_schedule``).
+# If any row anchored at a transaction is live
+# (``end_transaction_id IS NULL``), that entire transaction is preserved.
+# Baseline rows (``operation_type=0``) and closed historical rows otherwise
+# age out alongside the rest. Any non-positive value disables pruning.
+# Read from environment variable of the same name.
+_DEFAULT_VERSION_HISTORY_RETENTION_DAYS: int = 30
+# Keep cutoff arithmetic comfortably inside ``datetime``'s supported range
+# while allowing retention windows far beyond any practical deployment age.
+_MAX_VERSION_HISTORY_RETENTION_DAYS: int = 36_500
+
+
+def _parse_version_history_retention_days() -> int:
+    """Parse the retention window without making invalid input fatal."""
+    value: str | None = os.environ.get("SUPERSET_VERSION_HISTORY_RETENTION_DAYS")
+    if value is None:
+        return _DEFAULT_VERSION_HISTORY_RETENTION_DAYS
+    try:
+        retention_days = int(value)
+    except ValueError:
+        logger.warning(
+            "Invalid SUPERSET_VERSION_HISTORY_RETENTION_DAYS=%r; using %d",
+            value,
+            _DEFAULT_VERSION_HISTORY_RETENTION_DAYS,
+        )
+        return _DEFAULT_VERSION_HISTORY_RETENTION_DAYS
+    if retention_days > _MAX_VERSION_HISTORY_RETENTION_DAYS:
+        logger.warning(
+            "SUPERSET_VERSION_HISTORY_RETENTION_DAYS=%r exceeds the maximum "
+            "of %d; using %d",
+            value,
+            _MAX_VERSION_HISTORY_RETENTION_DAYS,
+            _DEFAULT_VERSION_HISTORY_RETENTION_DAYS,
+        )
+        return _DEFAULT_VERSION_HISTORY_RETENTION_DAYS
+    return retention_days
+
+
+SUPERSET_VERSION_HISTORY_RETENTION_DAYS: int = _parse_version_history_retention_days()
+
 # Adds a warning message on sqllab save query and schedule query modals.
 SQLLAB_SAVE_WARNING_MESSAGE = None
 SQLLAB_SCHEDULE_WARNING_MESSAGE = None
@@ -1690,6 +1745,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         "superset.tasks.cache",
         "superset.tasks.slack",
         "superset.tasks.export_dashboard_excel",
+        "superset.tasks.version_history_retention",
     )
     result_backend = "db+sqlite:///celery_results.sqlite"
     worker_prefetch_multiplier = 1
@@ -1708,6 +1764,13 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         "reports.prune_log": {
             "task": "reports.prune_log",
             "schedule": crontab(minute=0, hour=0),
+        },
+        # Entity version-history retention. Daily at 03:00; the task
+        # itself short-circuits when SUPERSET_VERSION_HISTORY_RETENTION_DAYS
+        # is non-positive (disabled).
+        "version_history.prune_old_versions": {
+            "task": "version_history.prune_old_versions",
+            "schedule": crontab(minute=0, hour=3),
         },
         # Uncomment to enable pruning of the query table
         # "prune_query": {
