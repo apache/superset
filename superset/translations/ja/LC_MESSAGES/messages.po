@@ -114,7 +114,7 @@ msgid " expression which needs to adhere to the "
 msgstr "準拠すべき式"
 
 msgid " for details."
-msgstr "(詳細)"
+msgstr "をご覧ください。"
 
 #, python-format
 msgid " near '%(highlight)s'"
@@ -504,7 +504,7 @@ msgid "+ %s more"
 msgstr "他 %s 件"
 
 msgid ", then paste the JSON below. See our"
-msgstr "、次に以下のJSONを貼り付けてください。詳細は"
+msgstr "で作成し、以下に JSON を貼り付けてください。詳細については、当社の"
 
 msgid ""
 "-- Note: Unless you save your query, these tabs will NOT persist if you "
@@ -1805,7 +1805,7 @@ msgid "An error occurred while syncing permissions for %s: %s"
 msgstr "%s の権限同期中にエラーが発生しました: %s"
 
 msgid "An error occurred while triggering the report"
-msgstr "レポートの生成を開始する際にエラーが発生しました"
+msgstr "レポートの実行中にエラーが発生しました"
 
 msgid "An error occurred while updating the extension."
 msgstr "拡張機能の更新中にエラーが発生しました。"
@@ -4902,7 +4902,7 @@ msgid "Deselect all"
 msgstr "すべての選択を解除"
 
 msgid "Design with"
-msgstr "デザイン"
+msgstr "デザインを"
 
 msgid "Details"
 msgstr "詳細"
