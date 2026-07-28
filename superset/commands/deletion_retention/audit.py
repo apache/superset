@@ -44,6 +44,7 @@ from typing import Any, cast
 from uuid import UUID, uuid4
 
 import sqlalchemy as sa
+from flask_appbuilder import Model
 from sqlalchemy import Column, DateTime, Integer, String, Text
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy_utils import UUIDType
@@ -79,7 +80,7 @@ def _utc_now() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
-class PurgeAuditLog(db.Model):
+class PurgeAuditLog(Model):
     """Immutable, content-free record of a purge."""
 
     __tablename__ = "purge_audit_log"
