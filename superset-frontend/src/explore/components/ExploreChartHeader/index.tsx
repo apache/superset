@@ -252,8 +252,11 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
   // chart, so stepping through them isn't leaving unsaved changes behind.
   const isChartStateTransition = useCallback(
     (state: Location['state']) =>
-      isSameChartState(getChartStateFromHistoryState(state), formData),
-    [formData],
+      isSameChartState(getChartStateFromHistoryState(state), {
+        ...formData,
+        slice_id: formData?.slice_id ?? slice?.slice_id,
+      }),
+    [formData, slice?.slice_id],
   );
 
   const {

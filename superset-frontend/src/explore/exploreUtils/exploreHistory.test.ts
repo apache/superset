@@ -35,6 +35,18 @@ test('round trips form data through the history state', () => {
   ).toEqual(formData);
 });
 
+test('stamps the chart id on form data that carries none', () => {
+  const controlsFormData = { datasource: '1__table' } as QueryFormData;
+  expect(
+    getChartStateFromHistoryState(
+      toChartStateHistoryState(controlsFormData, 7),
+    ),
+  ).toEqual({ ...controlsFormData, slice_id: 7 });
+  expect(
+    getChartStateFromHistoryState(toChartStateHistoryState(formData, 8)),
+  ).toEqual(formData);
+});
+
 test('ignores history states that hold no chart state', () => {
   expect(getChartStateFromHistoryState(undefined)).toBeUndefined();
   expect(

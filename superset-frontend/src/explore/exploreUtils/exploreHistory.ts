@@ -27,10 +27,16 @@ import { UNSAVED_CHART_ID } from 'src/explore/constants';
  */
 const CHART_STATE_MARKER = '__exploreChartState';
 
+/**
+ * The chart id has to be stamped on: form data assembled from the controls
+ * carries none, so a state would otherwise not be attributable to its chart.
+ */
 export const toChartStateHistoryState = (
   formData: QueryFormData,
+  chartId?: number,
 ): JsonObject => ({
   ...formData,
+  slice_id: formData.slice_id ?? chartId,
   [CHART_STATE_MARKER]: true,
 });
 

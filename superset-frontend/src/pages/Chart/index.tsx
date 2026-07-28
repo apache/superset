@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { useHistory } from 'react-router-dom';
 import type { Location, Action } from 'history';
 import { t } from '@apache-superset/core/translation';
@@ -42,15 +42,8 @@ import {
   isSameChartState,
 } from 'src/explore/exploreUtils/exploreHistory';
 import { hydrateExplore } from 'src/explore/actions/hydrateExplore';
-import { setExploreControls } from 'src/explore/actions/exploreActions';
-import { postChartFormData } from 'src/components/Chart/chartAction';
-import { UNSAVED_CHART_ID } from 'src/explore/constants';
 import ExploreViewContainer from 'src/explore/components/ExploreViewContainer';
-import {
-  ExplorePageState,
-  ExploreResponsePayload,
-  SaveActionType,
-} from 'src/explore/types';
+import { ExploreResponsePayload, SaveActionType } from 'src/explore/types';
 import { fallbackExploreInitialData } from 'src/explore/fixtures';
 import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { getFormDataWithDashboardContext } from 'src/explore/controlUtils/getFormDataWithDashboardContext';
@@ -151,29 +144,6 @@ export default function ExplorePage() {
   const loadedFormData = useRef<QueryFormData>();
   const dispatch = useDispatch();
   const history = useHistory();
-  const force = useSelector<ExplorePageState, boolean>(
-    state => !!state.explore?.force,
-  );
-  const timeout = useSelector<ExplorePageState, number | undefined>(
-    state => state.common?.conf?.SUPERSET_WEBSERVER_TIMEOUT,
-  );
-
-  // Restores a chart state stored in a history entry by updateHistory, so that
-  // Back/Forward step through chart states without reloading the page.
-  const restoreChartState = useCallback(
-    (formData: QueryFormData) => {
-      dispatch(setExploreControls(formData));
-      dispatch(
-        postChartFormData(
-          formData,
-          force,
-          timeout,
-          formData.slice_id ?? UNSAVED_CHART_ID,
-        ),
-      );
-    },
-    [dispatch, force, timeout],
-  );
 
   const loadExploreData = useCallback(
     (
@@ -341,8 +311,8 @@ export default function ExplorePage() {
   // PUSH/POP: full reload (unmount + re-fetch).
   // REPLACE with saveAction state: re-fetch without unmount (keeps chart visible).
   // Other REPLACE: ignored (URL sync from updateHistory).
-  // Entries holding a chart state of the loaded chart are handled in place:
-  // Explore pushed them itself, and POP into one is an undo/redo.
+  // Entries holding a chart state of the loaded chart are skipped: Explore
+  // pushed them itself, and ExploreViewContainer restores a popped one in place.
   useEffect(() => {
     const unlisten = history.listen((loc: Location, action: Action) => {
       const saveAction = (loc.state as Record<string, unknown>)?.saveAction as
@@ -356,7 +326,7 @@ export default function ExplorePage() {
           action === 'POP' &&
           isSameChartState(chartState, loadedFormData.current)
         ) {
-          restoreChartState(chartState);
+          loadedFormData.current = chartState;
           return;
         }
       }
@@ -368,7 +338,7 @@ export default function ExplorePage() {
       }
     });
     return unlisten;
-  }, [history, loadExploreData, restoreChartState]);
+  }, [history, loadExploreData]);
 
   if (!isLoaded) {
     return <Loading />;
