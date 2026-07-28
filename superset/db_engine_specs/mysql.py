@@ -250,12 +250,9 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
 
     _time_grain_expressions = {
         None: "{col}",
-        TimeGrain.SECOND: "DATE_ADD(DATE({col}), "
-        "INTERVAL (HOUR({col})*60*60 + MINUTE({col})*60"
-        " + SECOND({col})) SECOND)",
-        TimeGrain.MINUTE: "DATE_ADD(DATE({col}), "
-        "INTERVAL (HOUR({col})*60 + MINUTE({col})) MINUTE)",
-        TimeGrain.HOUR: "DATE_ADD(DATE({col}), INTERVAL HOUR({col}) HOUR)",
+        TimeGrain.SECOND: "DATE_FORMAT({col}, '%Y-%m-%d %H:%i:%s')",
+        TimeGrain.MINUTE: "DATE_FORMAT({col}, '%Y-%m-%d %H:%i:00')",
+        TimeGrain.HOUR: "DATE_FORMAT({col}, '%Y-%m-%d %H:00:00')",
         TimeGrain.DAY: "DATE({col})",
         TimeGrain.WEEK: "DATE(DATE_SUB({col}, INTERVAL DAYOFWEEK({col}) - 1 DAY))",
         TimeGrain.MONTH: "DATE(DATE_SUB({col}, INTERVAL DAYOFMONTH({col}) - 1 DAY))",
