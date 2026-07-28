@@ -201,3 +201,22 @@ report_schedule_editors = Table(
     ),
     UniqueConstraint("subject_id", "report_schedule_id"),
 )
+
+theme_editors = Table(
+    "theme_editors",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column(
+        "subject_id",
+        Integer,
+        ForeignKey("subjects.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    Column(
+        "theme_id",
+        Integer,
+        ForeignKey("themes.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    UniqueConstraint("subject_id", "theme_id"),
+)

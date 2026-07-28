@@ -39,11 +39,22 @@ def import_theme(config: dict[str, Any], overwrite: bool = False) -> "Theme | No
     from superset.utils.core import get_user
 
     can_write = security_manager.can_access("can_write", "Theme")
+    user = get_user()
     existing = db.session.query(Theme).filter_by(uuid=config["uuid"]).first()
 
     if existing:
         if not overwrite or not can_write:
             return existing
+        # Overwriting an existing theme requires editorship (admins bypass).
+        if (
+            user
+            and not security_manager.is_editor(existing)
+            and not security_manager.is_admin()
+        ):
+            raise ThemeImportError(
+                "A theme already exists and user doesn't have "
+                "permissions to overwrite it"
+            )
         config["id"] = existing.id
     elif not can_write:
         raise ThemeImportError(
@@ -60,7 +71,7 @@ def import_theme(config: dict[str, Any], overwrite: bool = False) -> "Theme | No
         db.session.flush()
 
     # Add current user as owner if creating new theme
-    if not existing and (user := get_user()):
+    if not existing and user:
         theme.changed_by = user
         theme.created_by = user
 
