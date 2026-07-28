@@ -266,7 +266,7 @@ class ChartPostSchema(Schema):
     query_context = fields.String(
         metadata={"description": query_context_description},
         allow_none=True,
-        validate=utils.validate_json,
+        validate=utils.validate_query_context_metadata,
     )
     query_context_generation = fields.Boolean(
         metadata={"description": query_context_generation_description}, allow_none=True
@@ -330,7 +330,7 @@ class ChartPutSchema(Schema):
     query_context = fields.String(
         metadata={"description": query_context_description},
         allow_none=True,
-        validate=utils.validate_json,
+        validate=utils.validate_query_context_metadata,
     )
     query_context_generation = fields.Boolean(
         metadata={"description": query_context_generation_description}, allow_none=True
