@@ -94,7 +94,9 @@ class TestForcePurge(DeletionRetentionTestBase):
         assert audit.affected_referrers
         assert chart_uuid in audit.affected_referrers
 
-    def test_force_purge_reports_relationship_count_before_db_cascade(self) -> None:
+    def test_force_purge_counts_removed_dashboard_slices_before_db_cascade(
+        self,
+    ) -> None:
         """The removed join count is accurate with FK enforcement enabled."""
         chart = self.make_chart("counted")
         dashboard = self.make_dashboard("counted", slices=[chart])

@@ -102,6 +102,9 @@ class CeleryConfig:
             "task": "reports.prune_log",
             "schedule": crontab(minute=10, hour=0),
         },
+        # Gated on the SOFT_DELETE feature flag, which is off by default: the
+        # task is scheduled either way, but purges nothing while the flag is
+        # unset. Enable it in FEATURE_FLAGS below to exercise retention locally.
         "deletion_retention.purge_soft_deleted": {
             "task": "deletion_retention.purge_soft_deleted",
             "schedule": crontab(minute=0, hour=0),
