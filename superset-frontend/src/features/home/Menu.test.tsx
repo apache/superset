@@ -1052,6 +1052,32 @@ describe('active tab highlighting (regression #36403)', () => {
     expect(getMenuItemByText('Дашборды')).toHaveClass('ant-menu-item-selected');
   });
 
+  test.each([
+    ['/dataset/add/', 'the modern React dataset create route'],
+    ['/dataset/42', 'a dataset detail route'],
+  ])(
+    'highlights the Datasets tab on %s (%s) — regression #42467',
+    async (route, _label) => {
+      // Legacy list URL (``/tablemodelview/list/``) already highlights the
+      // tab; these newer React-managed routes did not until #42467 added
+      // ``/dataset`` as a second prefix in the active-tab matcher.
+      useSelectorMock.mockReturnValue({ roles: user.roles });
+      window.history.pushState({}, '', route);
+
+      render(<Menu {...mockedProps} />, {
+        useRedux: true,
+        useQueryParams: true,
+        useRouter: true,
+        useTheme: true,
+      });
+
+      await screen.findByText('Datasets');
+      expect(getMenuItemByText('Datasets')).toHaveClass(
+        'ant-menu-item-selected',
+      );
+    },
+  );
+
   test('highlights the active SQL tab when the label is localized', async () => {
     // The SQL Lab top-level entry is a FAB category: its stable `name` is
     // "SQL Lab" while its label ("SQL") is localized.
