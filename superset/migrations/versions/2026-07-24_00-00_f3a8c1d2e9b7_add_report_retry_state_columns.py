@@ -33,7 +33,7 @@ logger = logging.getLogger("alembic.env")
 
 # revision identifiers, used by Alembic.
 revision = "f3a8c1d2e9b7"
-down_revision = "e5f6a7b8c9d0"
+down_revision = "d3b9a1f6c204"
 
 # Configuration columns (user-configurable)
 _CONFIG_COLUMNS = [
