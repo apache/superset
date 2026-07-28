@@ -46,8 +46,10 @@ jobs:
     steps:
       - name: Fetch Dependabot metadata
         id: metadata
-        # Do not bump this action version without opening an ASF Infra
-        # ticket to allow the new SHA first!
+        # This exact SHA is on ASF Infra's action allowlist
+        # (apache/infrastructure-actions approved_patterns.yml) as of this
+        # writing. Do not bump without opening an Infra ticket to allow
+        # the new SHA first!
         uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
 
       - name: Approve patch-level bump
