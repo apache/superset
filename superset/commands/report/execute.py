@@ -19,7 +19,7 @@ import urllib.parse
 import urllib.request
 from collections.abc import Sequence
 from contextlib import closing
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional, TYPE_CHECKING, Union
 from urllib.error import URLError
 from uuid import UUID
@@ -136,7 +136,7 @@ class BaseReportState:
     ) -> None:
         self._report_schedule = report_schedule
         self._scheduled_dttm = scheduled_dttm
-        self._start_dttm = datetime.utcnow()
+        self._start_dttm: datetime = datetime.now(timezone.utc).replace(tzinfo=None)
         self._execution_id = execution_id
         self._filter_warnings: list[str] = []
 
@@ -166,7 +166,9 @@ class BaseReportState:
             self._report_schedule.last_value_row_json = None
 
         self._report_schedule.last_state = state
-        self._report_schedule.last_eval_dttm = datetime.utcnow()
+        self._report_schedule.last_eval_dttm = datetime.now(timezone.utc).replace(
+            tzinfo=None
+        )
 
     def update_report_schedule_slack_v2(self) -> None:
         """
@@ -225,22 +227,47 @@ class BaseReportState:
     def create_log(self, error_message: Optional[str] = None) -> None:
         """
         Creates a Report execution log, uses the current computed last_value for Alerts
+
+        A single execution transitions through the WORKING state before reaching a
+        terminal state (SUCCESS/ERROR/NOOP/GRACE). To avoid duplicated rows in the
+        execution-log view (see issue #29857), the terminal result is written onto
+        the WORKING "trigger" row created earlier in the same execution rather than
+        inserting a second row. The WORKING row is only used as a placeholder while
+        the execution is in flight (``find_last_entered_working_log`` relies on it
+        for working-timeout detection), so promoting it in place keeps one row per
+        execution ``uuid`` without losing that behavior. The intentional
+        error-notification marker row is a terminal-to-terminal transition, so it is
+        still recorded as a distinct row.
         """
         from sqlalchemy.orm.exc import StaleDataError
 
         try:
-            log = ReportExecutionLog(
-                scheduled_dttm=self._scheduled_dttm,
-                start_dttm=self._start_dttm,
-                end_dttm=datetime.utcnow(),
-                value=self._report_schedule.last_value,
-                value_row_json=self._report_schedule.last_value_row_json,
-                state=self._report_schedule.last_state,
-                error_message=error_message,
-                report_schedule=self._report_schedule,
-                uuid=self._execution_id,
+            # Reuse the in-flight WORKING trigger row for this execution, if any,
+            # so a single execution surfaces as a single log entry.
+            log = (
+                db.session.query(ReportExecutionLog)
+                .filter(
+                    ReportExecutionLog.uuid == self._execution_id,
+                    ReportExecutionLog.state == ReportState.WORKING,
+                    ReportExecutionLog.error_message.is_(None),
+                )
+                .first()
+                if self._report_schedule.last_state != ReportState.WORKING
+                else None
             )
-            db.session.add(log)
+            if log is None:
+                log = ReportExecutionLog(
+                    scheduled_dttm=self._scheduled_dttm,
+                    start_dttm=self._start_dttm,
+                    report_schedule=self._report_schedule,
+                    uuid=self._execution_id,
+                )
+                db.session.add(log)
+            log.end_dttm = datetime.now(timezone.utc).replace(tzinfo=None)
+            log.value = self._report_schedule.last_value
+            log.value_row_json = self._report_schedule.last_value_row_json
+            log.state = self._report_schedule.last_state
+            log.error_message = error_message
             db.session.commit()  # pylint: disable=consider-using-transaction
         except StaleDataError as ex:
             # Report schedule was modified or deleted by another process
@@ -523,7 +550,7 @@ class BaseReportState:
         Get chart or dashboard screenshots
         :raises: ReportScheduleScreenshotFailedError
         """
-        start_time = datetime.utcnow()
+        start_time: datetime = datetime.now(timezone.utc).replace(tzinfo=None)
 
         user, _ = resolve_executor_user(self._report_schedule)
 
@@ -564,20 +591,26 @@ class BaseReportState:
         try:
             imges = []
             for screenshot in screenshots:
-                imge = screenshot.get_screenshot(user=user)
+                imge = screenshot.get_screenshot(
+                    user=user, log_context=f"execution_id={self._execution_id}"
+                )
                 if imge is None:
                     raise ReportScheduleScreenshotFailedError(
                         "Screenshot failed; aborting to avoid sending a partial report"
                     )
                 imges.append(imge)
-            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            elapsed_seconds: float = (
+                datetime.now(timezone.utc).replace(tzinfo=None) - start_time
+            ).total_seconds()
             logger.info(
                 "Screenshot capture took %.2fs - execution_id: %s",
                 elapsed_seconds,
                 self._execution_id,
             )
         except SoftTimeLimitExceeded as ex:
-            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            elapsed_seconds = (
+                datetime.now(timezone.utc).replace(tzinfo=None) - start_time
+            ).total_seconds()
             logger.warning(
                 "Screenshot timeout after %.2fs - execution_id: %s",
                 elapsed_seconds,
@@ -585,7 +618,9 @@ class BaseReportState:
             )
             raise ReportScheduleScreenshotTimeout() from ex
         except Exception as ex:
-            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            elapsed_seconds = (
+                datetime.now(timezone.utc).replace(tzinfo=None) - start_time
+            ).total_seconds()
             logger.error(
                 "Screenshot failed after %.2fs - execution_id: %s",
                 elapsed_seconds,
@@ -739,7 +774,7 @@ class BaseReportState:
                 ReportScheduleCsvFailedError,
             )
 
-        start_time = datetime.utcnow()
+        start_time: datetime = datetime.now(timezone.utc).replace(tzinfo=None)
         user, username = resolve_executor_user(self._report_schedule)
         auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
 
@@ -765,7 +800,9 @@ class BaseReportState:
                     request_payload=request_payload,
                     timeout=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
                 )
-            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            elapsed_seconds: float = (
+                datetime.now(timezone.utc).replace(tzinfo=None) - start_time
+            ).total_seconds()
             logger.info(
                 "%s data generation from %s as user %s took %.2fs - execution_id: %s",
                 label,
@@ -775,7 +812,9 @@ class BaseReportState:
                 self._execution_id,
             )
         except SoftTimeLimitExceeded as ex:
-            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            elapsed_seconds = (
+                datetime.now(timezone.utc).replace(tzinfo=None) - start_time
+            ).total_seconds()
             logger.warning(
                 "%s generation timeout after %.2fs - execution_id: %s",
                 label,
@@ -784,7 +823,9 @@ class BaseReportState:
             )
             raise timeout_error() from ex
         except Exception as ex:
-            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            elapsed_seconds = (
+                datetime.now(timezone.utc).replace(tzinfo=None) - start_time
+            ).total_seconds()
             logger.exception(
                 "%s generation failed after %.2fs - execution_id: %s",
                 label,
@@ -800,7 +841,7 @@ class BaseReportState:
         """
         Return data as a Pandas dataframe, to embed in notifications as a table.
         """
-        start_time = datetime.utcnow()
+        start_time: datetime = datetime.now(timezone.utc).replace(tzinfo=None)
 
         url = self._get_url(result_format=ChartDataResultFormat.JSON)
         user, username = resolve_executor_user(self._report_schedule)
@@ -816,7 +857,9 @@ class BaseReportState:
                 auth_cookies,
                 timeout=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
             )
-            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            elapsed_seconds: float = (
+                datetime.now(timezone.utc).replace(tzinfo=None) - start_time
+            ).total_seconds()
             logger.info(
                 "DataFrame generation from %s as user %s took %.2fs - execution_id: %s",
                 url,
@@ -825,7 +868,9 @@ class BaseReportState:
                 self._execution_id,
             )
         except SoftTimeLimitExceeded as ex:
-            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            elapsed_seconds = (
+                datetime.now(timezone.utc).replace(tzinfo=None) - start_time
+            ).total_seconds()
             logger.warning(
                 "DataFrame generation timeout after %.2fs - execution_id: %s",
                 elapsed_seconds,
@@ -833,7 +878,9 @@ class BaseReportState:
             )
             raise ReportScheduleDataFrameTimeout() from ex
         except Exception as ex:
-            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            elapsed_seconds = (
+                datetime.now(timezone.utc).replace(tzinfo=None) - start_time
+            ).total_seconds()
             logger.error(
                 "DataFrame generation failed after %.2fs - execution_id: %s",
                 elapsed_seconds,
@@ -1096,7 +1143,7 @@ class BaseReportState:
         return (
             last_success is not None
             and self._report_schedule.grace_period
-            and datetime.utcnow()
+            and datetime.now(timezone.utc).replace(tzinfo=None)
             - timedelta(seconds=self._report_schedule.grace_period)
             < last_success.end_dttm
         )
@@ -1113,7 +1160,7 @@ class BaseReportState:
         return (
             last_success is not None
             and self._report_schedule.grace_period
-            and datetime.utcnow()
+            and datetime.now(timezone.utc).replace(tzinfo=None)
             - timedelta(seconds=self._report_schedule.grace_period)
             < last_success.end_dttm
         )
@@ -1130,7 +1177,7 @@ class BaseReportState:
         return (
             self._report_schedule.working_timeout is not None
             and self._report_schedule.last_eval_dttm is not None
-            and datetime.utcnow()
+            and datetime.now(timezone.utc).replace(tzinfo=None)
             - timedelta(seconds=self._report_schedule.working_timeout)
             > last_working.end_dttm
         )
@@ -1246,7 +1293,10 @@ class ReportWorkingState(BaseReportState):
                 self._report_schedule
             )
             elapsed_seconds = (
-                (datetime.utcnow() - last_working.end_dttm).total_seconds()
+                (
+                    datetime.now(timezone.utc).replace(tzinfo=None)
+                    - last_working.end_dttm
+                ).total_seconds()
                 if last_working
                 else None
             )
@@ -1444,7 +1494,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
             )
             user = security_manager.find_user(username)
 
-            start_time = datetime.utcnow()
+            start_time: datetime = datetime.now(timezone.utc).replace(tzinfo=None)
             with override_user(user):
                 # Pre-commit any permalink rows before the state machine's
                 # @transaction() opens. When called inside a transaction,
@@ -1463,7 +1513,9 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                     self._execution_id, self._model, self._scheduled_dttm
                 ).run()
 
-            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            elapsed_seconds: float = (
+                datetime.now(timezone.utc).replace(tzinfo=None) - start_time
+            ).total_seconds()
             logger.info(
                 "Report execution as user %s completed in %.2fs - execution_id: %s",
                 username,

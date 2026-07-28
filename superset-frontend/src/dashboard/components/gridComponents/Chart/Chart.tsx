@@ -170,7 +170,7 @@ const createOwnStateWithChartState = (
 
 const Chart = (props: ChartProps) => {
   const dispatch = useDispatch();
-  const descriptionRef = useRef<HTMLDivElement>(null);
+  const descriptionRef = useRef<HTMLElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
 
   const boundActionCreators = useMemo(
@@ -756,14 +756,13 @@ const Chart = (props: ChartProps) => {
              https://github.com/apache/superset/pull/23862
         */}
       {isExpanded && slice.description_markdown && (
-        <div
+        <aside
           className="slice_description bs-callout bs-callout-default"
           ref={descriptionRef}
           // eslint-disable-next-line react/no-danger
           dangerouslySetInnerHTML={{
             __html: slice.description_markdown,
           }}
-          role="complementary"
         />
       )}
 

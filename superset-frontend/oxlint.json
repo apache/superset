@@ -113,11 +113,8 @@
     // === Import plugin rules ===
     "import/named": "error",
     "import/export": "error",
-    // TODO: Re-enable after fixing default export patterns across codebase
-    // This is temporarily disabled during OXC migration to unblock CI
-    // Tracking issue: [Create issue after PR merge]
-    "import/no-named-as-default": "off",
-    "import/no-named-as-default-member": "off",
+    "import/no-named-as-default": "error",
+    "import/no-named-as-default-member": "error",
     "import/no-mutable-exports": "error",
     "import/no-amd": "error",
     "import/first": "error",
@@ -218,6 +215,7 @@
     "jsx-a11y/no-noninteractive-tabindex": "error",
     "jsx-a11y/no-redundant-roles": "error",
     "jsx-a11y/no-static-element-interactions": "error",
+    "jsx-a11y/prefer-tag-over-role": "error",
     "jsx-a11y/role-has-required-aria-props": "error",
     "jsx-a11y/role-supports-aria-props": "error",
     "jsx-a11y/scope": "error",

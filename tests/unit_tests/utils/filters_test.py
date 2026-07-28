@@ -50,7 +50,7 @@ def test_get_dataset_access_filters(mocker: MockerFixture) -> None:
     )
 
     clause = get_dataset_access_filters(SqlaTable)
-    engine = create_engine("sqlite://")
+    engine = create_engine("sqlite://", future=True)
     compiled_query = clause.compile(engine, compile_kwargs={"literal_binds": True})
     assert str(compiled_query) == (
         "dbs.id IN (1, 3) "
@@ -117,7 +117,7 @@ def test_guest_embedded_dashboard_filter_uuid_resources(
     # structure (an EXISTS against embedded_dashboards.uuid) rather than the value.
     clause = guest_embedded_dashboard_filter()
     assert clause is not None
-    compiled = str(clause.compile(create_engine("sqlite://")))
+    compiled = str(clause.compile(create_engine("sqlite://", future=True)))
     assert "EXISTS" in compiled
     assert "embedded_dashboards" in compiled
     assert "uuid" in compiled
@@ -139,7 +139,8 @@ def test_guest_embedded_dashboard_filter_int_resources(
     assert clause is not None
     compiled = str(
         clause.compile(
-            create_engine("sqlite://"), compile_kwargs={"literal_binds": True}
+            create_engine("sqlite://", future=True),
+            compile_kwargs={"literal_binds": True},
         )
     )
     assert "dashboards.id IN (5, 7)" in compiled
@@ -165,7 +166,7 @@ def test_guest_embedded_dashboard_filter_mixed_uuid_and_int_ids(
     assert clause is not None
     # uuid column is BINARY(16), so compile without literal_binds and assert
     # structure: an EXISTS on embedded_dashboards OR a dashboards.id filter.
-    compiled = str(clause.compile(create_engine("sqlite://")))
+    compiled = str(clause.compile(create_engine("sqlite://", future=True)))
     assert "embedded_dashboards" in compiled
     assert "dashboards.id IN" in compiled
     assert " OR " in compiled

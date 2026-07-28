@@ -2468,6 +2468,9 @@ def test_create_log_success_commits(mocker: MockerFixture) -> None:
     state._report_schedule = schedule
 
     mock_db = mocker.patch("superset.commands.report.execute.db")
+    # No in-flight WORKING "trigger" row exists for this execution, so create_log
+    # inserts a fresh row rather than promoting an existing one.
+    mock_db.session.query.return_value.filter.return_value.first.return_value = None
     mock_log_cls = mocker.patch(
         "superset.commands.report.execute.ReportExecutionLog",
         return_value=mocker.Mock(),

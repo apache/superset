@@ -61,15 +61,6 @@ DEFAULT_CHART_COLUMNS = [
     "changed_on_humanized",
 ]
 
-SORTABLE_CHART_COLUMNS = [
-    "id",
-    "slice_name",
-    "viz_type",
-    "description",
-    "changed_on",
-    "created_on",
-]
-
 _DEFAULT_LIST_CHARTS_REQUEST = ListChartsRequest()
 
 

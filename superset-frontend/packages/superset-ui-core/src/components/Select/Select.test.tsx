@@ -390,6 +390,93 @@ test('removes duplicated values', async () => {
   expect(values[3]).toHaveTextContent('d');
 });
 
+test('typing an unquoted comma splits the value into a chip', async () => {
+  render(<Select {...defaultProps} mode="multiple" allowNewOptions />);
+  await type('Australia');
+  expect(await findSelectOption('Australia')).toBeInTheDocument();
+  await type(',', undefined, false);
+  const values = await findAllSelectValues();
+  expect(values.length).toBe(1);
+  expect(values[0]).toHaveTextContent('Australia');
+});
+
+test('closing quote and separator arriving in a single input event still create the chip', async () => {
+  render(<Select {...defaultProps} mode="multiple" allowNewOptions />);
+  await open();
+  await type('"Australia, U');
+  // dead-key keyboard layouts deliver the closing quote together with the
+  // next character in one input event
+  fireEvent.change(getSelect(), { target: { value: '"Australia, US",' } });
+  await waitFor(() =>
+    expect(getElementsByClassName('.ant-select-selection-item')).toHaveLength(
+      1,
+    ),
+  );
+  expect(getElementByClassName('.ant-select-selection-item')).toHaveTextContent(
+    'Australia, US',
+  );
+});
+
+test('an options prop update mid-typing keeps the created option tokenizable', async () => {
+  const { rerender } = render(
+    <Select {...defaultProps} mode="multiple" allowNewOptions />,
+  );
+  await type('"Australia, US"');
+  expect(await findSelectOption('Australia, US')).toBeInTheDocument();
+  rerender(
+    <Select
+      {...defaultProps}
+      options={[...OPTIONS]}
+      mode="multiple"
+      allowNewOptions
+    />,
+  );
+  await type(',', undefined, false);
+  await waitFor(() =>
+    expect(getElementsByClassName('.ant-select-selection-item')).toHaveLength(
+      1,
+    ),
+  );
+  expect(getElementByClassName('.ant-select-selection-item')).toHaveTextContent(
+    'Australia, US',
+  );
+});
+
+test('typing a comma inside double quotes keeps the value as a single chip', async () => {
+  render(<Select {...defaultProps} mode="multiple" allowNewOptions />);
+  await type('"Australia, US"');
+  expect(await findSelectOption('Australia, US')).toBeInTheDocument();
+  await type(',', undefined, false);
+  const values = await findAllSelectValues();
+  expect(values.length).toBe(1);
+  expect(values[0]).toHaveTextContent('Australia, US');
+});
+
+test('prevents the default paste action when pasted values are consumed', async () => {
+  render(<Select {...defaultProps} mode="multiple" allowNewOptions />);
+  const input = getElementByClassName('.ant-select-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => `${OPTIONS[0].label},${OPTIONS[1].label}`,
+    },
+  });
+  fireEvent(input, paste);
+  await findAllSelectValues();
+  expect(paste.defaultPrevented).toBe(true);
+});
+
+test('allows the default paste action when nothing is consumable', async () => {
+  render(<Select {...defaultProps} mode="multiple" />);
+  const input = getElementByClassName('.ant-select-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => 'zzz,yyy',
+    },
+  });
+  fireEvent(input, paste);
+  expect(paste.defaultPrevented).toBe(false);
+});
+
 test('trims whitespace from pasted comma-separated values', async () => {
   render(<Select {...defaultProps} mode="multiple" allowNewOptions />);
   const input = getElementByClassName('.ant-select-input');
@@ -945,6 +1032,35 @@ test('do not count unselected disabled options in "Select all"', async () => {
   ).toBeInTheDocument();
 });
 
+test('"Select all" does not count null-valued options', async () => {
+  // A falsy-valued option (e.g. <NULL>, value: null) is skipped by
+  // handleSelectAll, so it must not be counted in the "Select all" badge or
+  // the count overstates the selection. Regression test for #40228. Uses a
+  // local options array to stay isolated from tests that mutate OPTIONS.
+  const localOptions = [
+    { label: 'Alpha', value: 1 },
+    { label: 'Bravo', value: 2 },
+  ];
+  render(
+    <Select
+      {...defaultProps}
+      options={[...localOptions, NULL_OPTION]}
+      mode="multiple"
+      maxTagCount={0}
+    />,
+  );
+  await open();
+  // Three options are visible, but the <NULL> option is not bulk-selectable,
+  // so the badge must count only the two real options (would be 3 before fix).
+  await userEvent.click(
+    await screen.findByText(selectAllButtonText(localOptions.length)),
+  );
+  // And Select all selects exactly those two — the null option is skipped.
+  const values = await findAllSelectValues();
+  expect(values.length).toBe(1);
+  expect(values[0]).toHaveTextContent(`+ ${localOptions.length} ...`);
+});
+
 test('"Deselect all" counts all selected options', async () => {
   render(<Select {...defaultProps} allowNewOptions mode="multiple" />);
   await open();
@@ -1047,14 +1163,14 @@ test('dropdown takes full width of the select input for single select', async ()
 test('does not fire onChange when searching but no selection', async () => {
   const onChange = jest.fn();
   render(
-    <div role="main">
+    <main>
       <Select
         {...defaultProps}
         onChange={onChange}
         mode="multiple"
         allowNewOptions
       />
-    </div>,
+    </main>,
   );
   await open();
   await type('Joh');
@@ -1442,6 +1558,26 @@ describe('grouped options search', () => {
   });
 });
 
+test('cancels pending debounce on unmount', async () => {
+  const mockOnSearch = jest.fn();
+  const { unmount } = render(
+    <Select
+      {...defaultProps}
+      allowNewOptions
+      mode="multiple"
+      onSearch={mockOnSearch}
+    />,
+  );
+
+  await type('test');
+  await new Promise(resolve => setTimeout(resolve, 300));
+  expect(mockOnSearch).toHaveBeenCalledWith('test');
+  mockOnSearch.mockClear();
+  await type('unmounted');
+  unmount();
+  await new Promise(resolve => setTimeout(resolve, 400));
+  expect(mockOnSearch).not.toHaveBeenCalled();
+});
 /*
  TODO: Add tests that require scroll interaction. Needs further investigation.
  - Fetches more data when scrolling and more data is available
