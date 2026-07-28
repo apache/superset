@@ -309,7 +309,7 @@ flask-session==0.8.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-flask-sqlalchemy==3.0.5
+flask-sqlalchemy==2.5.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset

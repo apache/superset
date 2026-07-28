@@ -148,7 +148,7 @@ flask-migrate==4.1.0
     # via apache-superset (pyproject.toml)
 flask-session==0.8.0
     # via apache-superset (pyproject.toml)
-flask-sqlalchemy==3.0.5
+flask-sqlalchemy==2.5.1
     # via
     #   apache-superset (pyproject.toml)
     #   flask-appbuilder
