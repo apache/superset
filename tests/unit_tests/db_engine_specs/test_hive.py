@@ -64,6 +64,74 @@ def test_get_schema_from_engine_params() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    "catalog,schema",
+    [
+        (None, None),
+        (None, "new_schema"),
+        ("catalog", None),
+        ("catalog", "new_schema"),
+    ],
+)
+def test_adjust_engine_params(catalog: Optional[str], schema: Optional[str]) -> None:
+    """
+    Test that ``adjust_engine_params`` leaves the URI untouched.
+
+    The URI database must not be rewritten to the selected schema: PyHive runs
+    ``USE`` on it at connect time, and on Spark Thrift Server it can select a
+    catalog, so overwriting it with the schema breaks table resolution (see
+    issue #30208). Schema selection happens via ``get_prequeries`` instead.
+    """
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    uri = make_url("hive://localhost:10000/default")
+    connect_args = {"foo": "bar"}
+
+    adjusted_uri, adjusted_connect_args = HiveEngineSpec.adjust_engine_params(
+        uri,
+        connect_args,
+        catalog=catalog,
+        schema=schema,
+    )
+    assert adjusted_uri is uri
+    assert adjusted_connect_args is connect_args
+    assert connect_args == {"foo": "bar"}
+
+
+@pytest.mark.parametrize(
+    "catalog,schema,expected",
+    [
+        (None, None, []),
+        ("catalog", None, []),
+        (None, "new_schema", ["USE `new_schema`"]),
+        ("catalog", "new_schema", ["USE `new_schema`"]),
+        (None, "evil`schema", ["USE `evil``schema`"]),
+    ],
+)
+def test_get_prequeries(
+    mocker: MockerFixture,
+    catalog: Optional[str],
+    schema: Optional[str],
+    expected: list[str],
+) -> None:
+    """
+    Test that ``get_prequeries`` selects the schema with a ``USE`` statement.
+
+    Together with ``supports_dynamic_schema`` this implements per-query schema
+    selection, so unqualified table names resolve in the schema Superset
+    attributes the query to.
+    """
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    assert HiveEngineSpec.supports_dynamic_schema
+
+    database = mocker.MagicMock()
+    assert (
+        HiveEngineSpec.get_prequeries(database, catalog=catalog, schema=schema)
+        == expected
+    )
+
+
 def test_select_star(mocker: MockerFixture) -> None:
     """
     Test the ``select_star`` method.
