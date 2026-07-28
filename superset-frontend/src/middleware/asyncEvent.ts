@@ -110,7 +110,9 @@ const cancelAsyncJob = (jobId: string) => {
   // client has already stopped waiting on the job.
   SupersetClient.post({
     endpoint: `/api/v1/async_event/${jobId}/cancel`,
-  }).catch(() => {});
+  }).catch(error => {
+    logging.warn('Failed to cancel async job', jobId, error);
+  });
 };
 
 export const waitForAsyncData = async (

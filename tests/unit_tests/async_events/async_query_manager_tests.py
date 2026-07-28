@@ -445,6 +445,8 @@ def test_init_job_registers_cancellable_record(cancellable_manager):
 
 
 def test_cancel_job_authorized_revokes_task(cancellable_manager):
+    cancellable_manager._stream_limit = 100
+    cancellable_manager._stream_limit_firehose = 1000
     cancellable_manager._cache.get.return_value = json.dumps(
         {"channel_id": "chan-1", "user_id": 7}
     )
@@ -456,11 +458,40 @@ def test_cancel_job_authorized_revokes_task(cancellable_manager):
     celery_app.control.revoke.assert_called_once_with(
         "job-1", terminate=True, signal="SIGUSR1"
     )
-    # The job is flagged cancelled (conditionally, xx=True) so the worker emits
-    # STATUS_CANCELLED.
+    # The job is flagged cancelled (conditionally, xx=True) so the worker knows
+    # what the signal it is about to receive means.
     assert cancellable_manager._cache.set.call_args.kwargs["xx"] is True
     flagged = json.loads(cancellable_manager._cache.set.call_args.args[1])
     assert flagged["cancelled"] is True
+
+
+def test_cancel_job_emits_the_terminal_event(cancellable_manager):
+    """A task revoked before a worker picks it up never reports on itself."""
+    cancellable_manager._stream_limit = 100
+    cancellable_manager._stream_limit_firehose = 1000
+    cancellable_manager._cache.get.return_value = json.dumps(
+        {"channel_id": "chan-1", "user_id": 7}
+    )
+    cancellable_manager._cache.set.return_value = True
+
+    with mock.patch("superset.extensions.celery_app"):
+        cancellable_manager.cancel_job("job-1", "chan-1", 7)
+
+    scoped_stream, event_data = cancellable_manager._cache.xadd.call_args_list[0].args[
+        :2
+    ]
+    assert scoped_stream == "async-events-chan-1"
+    assert json.loads(event_data["data"]) == {
+        "channel_id": "chan-1",
+        "job_id": "job-1",
+        "user_id": 7,
+        "status": AsyncQueryManager.STATUS_CANCELLED,
+        "errors": [],
+        "result_url": None,
+    }
+    # the record has to outlive the event: the worker still needs to recognize
+    # the signal on its way as a cancellation
+    cancellable_manager._cache.delete.assert_not_called()
 
 
 def test_cancel_job_completed_between_read_and_flag(cancellable_manager):
@@ -542,9 +573,13 @@ def test_is_job_cancelled_swallows_cache_errors(cancellable_manager):
     assert cancellable_manager.is_job_cancelled("job-1") is False
 
 
-def test_update_job_clears_registry_on_terminal_status(cancellable_manager):
+def test_update_job_clears_registry_before_terminal_event(cancellable_manager):
+    """Clearing first is what makes a cancel that lost the race a 404."""
+    calls = []
     cancellable_manager._stream_limit = 100
     cancellable_manager._stream_limit_firehose = 1000
+    cancellable_manager._cache.delete.side_effect = lambda *_: calls.append("delete")
+    cancellable_manager._cache.xadd.side_effect = lambda *_: calls.append("xadd")
     job_metadata = {"channel_id": "chan-1", "job_id": "job-1", "user_id": 7}
 
     cancellable_manager.update_job(job_metadata, AsyncQueryManager.STATUS_DONE)
@@ -552,3 +587,4 @@ def test_update_job_clears_registry_on_terminal_status(cancellable_manager):
     cancellable_manager._cache.delete.assert_called_once_with(
         "async-events-job-cancel:job-1"
     )
+    assert calls == ["delete", "xadd", "xadd"]

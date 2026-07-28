@@ -110,7 +110,7 @@ class AsyncEventsRestApi(BaseSupersetApi):
     @protect()
     @safe
     @statsd_metrics
-    @permission_name("list")
+    @permission_name("cancel")
     def cancel(self, job_id: str) -> Response:
         """Cancel a running async query job.
         ---

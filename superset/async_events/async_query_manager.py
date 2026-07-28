@@ -415,15 +415,17 @@ class AsyncQueryManager:
         logger.debug("********** logging event data to stream %s", scoped_stream_name)
         logger.debug(event_data)
 
-        self._cache.xadd(scoped_stream_name, event_data, "*", self._stream_limit)
-        self._cache.xadd(full_stream_name, event_data, "*", self._stream_limit_firehose)
-
-        # Once a job reaches a terminal state its cancel record is dead weight
-        # (and a stale record would let a caller "cancel" a finished job), so
-        # drop it. TTL is the backstop if this is never reached.
-        if status in (self.STATUS_DONE, self.STATUS_ERROR, self.STATUS_CANCELLED):
+        # Drop the cancel record before announcing the result, so a cancel that
+        # arrives once the job is done finds nothing to flag and is reported as
+        # such instead of contradicting the event below. A cancelled job keeps
+        # its record until the TTL: the worker still has to recognize the
+        # SIGUSR1 it is about to receive as a cancellation.
+        if status in (self.STATUS_DONE, self.STATUS_ERROR):
             if job_id := job_metadata.get("job_id"):
                 self._cache.delete(self._job_registry_key(job_id))
+
+        self._cache.xadd(scoped_stream_name, event_data, "*", self._stream_limit)
+        self._cache.xadd(full_stream_name, event_data, "*", self._stream_limit_firehose)
 
     def is_job_cancelled(self, job_id: str) -> bool:
         """
@@ -452,10 +454,10 @@ class AsyncQueryManager:
 
         The caller's ``channel_id`` and ``user_id`` (resolved server-side from
         the request, never taken from the client) must match the job's original
-        owner. On success the running Celery task is revoked; the SIGUSR1 it
-        receives surfaces as ``SoftTimeLimitExceeded`` in the worker, which
-        reads the cancelled flag set here and emits the terminal
-        ``STATUS_CANCELLED`` event — so exactly one terminal event is written.
+        owner. The terminal ``STATUS_CANCELLED`` event is emitted here rather
+        than by the worker, which never runs for a task revoked while it was
+        still queued; the worker only logs the cancellation it is told about
+        through the flag, so a job still gets exactly one terminal event.
 
         :raises AsyncQueryJobException: the job is unknown or already terminal
         :raises AsyncQueryTokenException: the caller does not own the job
@@ -490,6 +492,11 @@ class AsyncQueryManager:
         from superset.extensions import celery_app
 
         # SIGUSR1 raises SoftTimeLimitExceeded inside the running task rather
-        # than hard-killing the process, so the worker can emit its terminal
-        # event before exiting.
+        # than hard-killing the process, so it unwinds through the task's
+        # exception handling instead of dying mid-query.
         celery_app.control.revoke(job_id, terminate=True, signal="SIGUSR1")
+
+        self.update_job(
+            build_job_metadata(channel_id, job_id, user_id),
+            self.STATUS_CANCELLED,
+        )
