@@ -17,9 +17,20 @@
  * under the License.
  */
 import type { ControlProps } from '@jsonforms/core';
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 
 import { MultiEnumControl } from './jsonFormsHelpers';
+import {
+  LARGE_CATALOG_SIZE,
+  largeMetricEnum,
+  largeMultiEnumFieldSchema,
+  duplicateLabelEnumSchema,
+} from './testFixtures';
 
 const baseProps = (overrides: Partial<ControlProps> = {}): ControlProps =>
   ({
@@ -58,9 +69,10 @@ test('falls back to raw enum values when x-enumNames is absent', async () => {
   const options = container.ownerDocument.querySelectorAll(
     '.ant-select-item-option-content',
   );
+  // The wrapped Select alphabetises options by label.
   expect(Array.from(options).map(el => el.textContent)).toEqual([
-    'red',
     'green',
+    'red',
   ]);
 });
 
@@ -85,7 +97,8 @@ test('shows a loading state when config.refreshingSchema is true', () => {
   const { container } = render(
     <MultiEnumControl {...baseProps({ config: { refreshingSchema: true } })} />,
   );
-  expect(container.querySelector('.ant-select-suffix-loading')).toBeTruthy();
+  // The wrapped Select renders loading as a Spin suffix icon.
+  expect(container.querySelector('.ant-spin')).toBeTruthy();
 });
 
 test('treats non-array data as an empty selection without crashing', () => {
@@ -93,4 +106,88 @@ test('treats non-array data as an empty selection without crashing', () => {
   // No tags rendered when data is missing
   expect(screen.queryByText('Apple')).not.toBeInTheDocument();
   expect(screen.queryByText('Banana')).not.toBeInTheDocument();
+});
+
+// ---------------------------------------------------------------------------
+// Large-catalog regression tests (sc-107832). The wrapped Select virtualizes
+// its dropdown above 20 options, so interactions go through search-then-click
+// or prop-driven values — never option-DOM counting.
+// ---------------------------------------------------------------------------
+
+test('caps rendered tags at large selection counts while keeping the full value', () => {
+  const { container } = render(
+    <MultiEnumControl
+      {...baseProps({
+        schema: largeMultiEnumFieldSchema,
+        data: largeMetricEnum,
+      })}
+    />,
+  );
+  const tags = container.querySelectorAll('.ant-select-selection-item');
+  // maxTagCount tags plus one overflow summary tag — never one per selection.
+  expect(tags.length).toBeLessThanOrEqual(6);
+  expect(tags.length).toBeGreaterThan(0);
+  const overflow = Array.from(tags).find(el =>
+    /\+\s*\d+/.test(el.textContent ?? ''),
+  );
+  expect(overflow?.textContent).toMatch(
+    new RegExp(`\\+\\s*${LARGE_CATALOG_SIZE - 4}`),
+  );
+});
+
+test('propagates the full selection array when adding to a large selection', async () => {
+  const handleChange = jest.fn();
+  const allButOne = largeMetricEnum.slice(0, LARGE_CATALOG_SIZE - 1);
+  render(
+    <MultiEnumControl
+      {...baseProps({
+        schema: largeMultiEnumFieldSchema,
+        data: allButOne,
+        handleChange,
+      })}
+    />,
+  );
+  const combobox = screen.getByRole('combobox');
+  await userEvent.click(combobox);
+  // Search-then-click: virtualization renders only a window of options.
+  await userEvent.type(combobox, 'metric_499');
+  const option = await waitFor(() => {
+    const el = Array.from(
+      document.querySelectorAll('.ant-select-item-option'),
+    ).find(e => e.getAttribute('title') === 'metric_499');
+    if (!el) throw new Error('option not rendered yet');
+    return el;
+  });
+  await userEvent.click(option);
+  expect(handleChange).toHaveBeenLastCalledWith(
+    'tags',
+    expect.arrayContaining(['metric_499']),
+  );
+  const lastValue = handleChange.mock.calls.at(-1)?.[1];
+  expect(lastValue).toHaveLength(LARGE_CATALOG_SIZE);
+});
+
+test('does not render a Select-all bulk affordance', async () => {
+  render(
+    <MultiEnumControl
+      {...baseProps({ schema: largeMultiEnumFieldSchema, data: [] })}
+    />,
+  );
+  await userEvent.click(screen.getByRole('combobox'));
+  expect(screen.queryByText(/Select all/i)).not.toBeInTheDocument();
+});
+
+test('keeps duplicated display labels individually selectable', async () => {
+  const handleChange = jest.fn();
+  render(
+    <MultiEnumControl
+      {...baseProps({ schema: duplicateLabelEnumSchema, handleChange })}
+    />,
+  );
+  const combobox = screen.getByRole('combobox');
+  await userEvent.click(combobox);
+  const revenues = await screen.findAllByText('Revenue');
+  expect(revenues.length).toBeGreaterThanOrEqual(2);
+  await userEvent.click(revenues[0]);
+  expect(handleChange).toHaveBeenLastCalledWith('tags', ['metric_a_v1']);
 });

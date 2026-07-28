@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { Spin, Select, Form } from 'antd';
+import { FormItem, Select } from '@superset-ui/core/components';
+import { Spin } from '@superset-ui/core/components/Spin';
 import { withJsonFormsControlProps } from '@jsonforms/react';
 import type {
   JsonSchema,
@@ -68,6 +69,16 @@ const passwordEntry = {
 };
 
 /**
+ * Value equality for default/const backfill guards. Reference equality is
+ * not enough: an object or array default (e.g. ``default: []``) gets a new
+ * identity from JSON Forms on every change cycle, so a reference comparison
+ * would call ``handleChange`` forever ("Maximum update depth exceeded").
+ */
+function valuesEqual(a: unknown, b: unknown): boolean {
+  return a === b || JSON.stringify(a) === JSON.stringify(b);
+}
+
+/**
  * Renderer for `const` properties (e.g. Pydantic discriminator fields).
  * Renders nothing visually but ensures the const value is set in form data,
  * so discriminated unions resolve correctly on the backend.
@@ -75,7 +86,7 @@ const passwordEntry = {
 function ConstControl({ data, handleChange, path, schema }: ControlProps) {
   const constValue = (schema as Record<string, unknown>).const;
   useEffect(() => {
-    if (constValue !== undefined && data !== constValue) {
+    if (constValue !== undefined && !valuesEqual(data, constValue)) {
       handleChange(path, constValue);
     }
   }, [constValue, data, handleChange, path]);
@@ -111,7 +122,7 @@ function ReadOnlyControl({
     (schema as Record<string, unknown>).const ??
     (schema as Record<string, unknown>).default;
   useEffect(() => {
-    if (defaultValue !== undefined && data !== defaultValue) {
+    if (defaultValue !== undefined && !valuesEqual(data, defaultValue)) {
       handleChange(path, defaultValue);
     }
   }, [defaultValue, data, handleChange, path]);
@@ -191,41 +202,48 @@ function DynamicFieldControl(props: ControlProps) {
   const enumValues = Array.isArray(schema.enum)
     ? (schema.enum as unknown[])
     : undefined;
+  // Honour ``x-enumNames`` when present so labels can differ from values
+  // (e.g. MetricFlow's mode picker maps "full" / "cube" to human strings).
+  const enumNames = Array.isArray(schema['x-enumNames'])
+    ? (schema['x-enumNames'] as unknown[])
+    : undefined;
+  // The backend returns these as a set, so order is undefined. Sort by
+  // label so the dropdown is stable and alphabetised. Memoized so a
+  // re-render without an enum change (every host-form keystroke passes a
+  // fresh ``config`` to all controls) does not rebuild and re-sort the
+  // full option list.
+  const options = useMemo(
+    () =>
+      (enumValues ?? [])
+        .map((value, index) => ({
+          value: value as string | number,
+          label:
+            enumNames?.[index] !== undefined
+              ? String(enumNames[index])
+              : String(value),
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
+    [enumValues, enumNames],
+  );
 
   if (enumValues && enumValues.length > 0) {
-    // Honour ``x-enumNames`` when present so labels can differ from values
-    // (e.g. MetricFlow's mode picker maps "full" / "cube" to human strings).
-    const enumNames = Array.isArray(schema['x-enumNames'])
-      ? (schema['x-enumNames'] as unknown[])
-      : undefined;
-    // The backend returns these as a set, so order is undefined. Sort by
-    // label so the dropdown is stable and alphabetised.
-    const options = enumValues
-      .map((value, index) => ({
-        value: value as string | number,
-        label:
-          enumNames?.[index] !== undefined
-            ? String(enumNames[index])
-            : String(value),
-      }))
-      .sort((a, b) => a.label.localeCompare(b.label));
     const tooltip = (props.uischema?.options as Record<string, unknown>)
       ?.tooltip as string | undefined;
     const placeholder = (props.uischema?.options as Record<string, unknown>)
       ?.placeholderText as string | undefined;
     return (
-      <Form.Item label={props.label} tooltip={tooltip}>
+      <FormItem label={props.label} tooltip={tooltip}>
         <Select
+          ariaLabel={props.label || undefined}
           value={(props.data as string | number | undefined) ?? undefined}
           onChange={value => props.handleChange(props.path, value)}
           options={options}
-          style={{ width: '100%' }}
           disabled={!props.enabled || refreshing}
           loading={refreshing}
           allowClear
           placeholder={refreshing ? t('Loading...') : placeholder}
         />
-      </Form.Item>
+      </FormItem>
     );
   }
 
@@ -275,21 +293,25 @@ function EnumNamesControl(props: ControlProps) {
   const enumNames =
     (schema['x-enumNames'] as string[]) ?? enumValues.map(String);
 
-  const options = enumValues.map((value, index) => ({
-    value,
-    label: enumNames[index] ?? String(value),
-  }));
+  const options = useMemo(
+    () =>
+      enumValues.map((value, index) => ({
+        value: value as string | number,
+        label: enumNames[index] ?? String(value),
+      })),
+    [enumValues, enumNames],
+  );
 
   const tooltip = (props.uischema?.options as Record<string, unknown>)
     ?.tooltip as string | undefined;
 
   return (
-    <Form.Item label={props.label} tooltip={tooltip}>
+    <FormItem label={props.label} tooltip={tooltip}>
       <Select
-        value={props.data ?? null}
+        ariaLabel={props.label || undefined}
+        value={props.data ?? undefined}
         onChange={value => props.handleChange(props.path, value)}
         options={options}
-        style={{ width: '100%' }}
         disabled={!props.enabled}
         allowClear
         loading={!!refreshingSchema}
@@ -298,7 +320,7 @@ function EnumNamesControl(props: ControlProps) {
             ?.placeholderText as string | undefined
         }
       />
-    </Form.Item>
+    </FormItem>
   );
 }
 const EnumNamesRenderer = withJsonFormsControlProps(EnumNamesControl);
@@ -343,13 +365,19 @@ export function MultiEnumControl(props: ControlProps) {
     ({} as Record<string, unknown>);
 
   const enumValues = (itemsSchema.enum as unknown[]) ?? [];
-  const enumNames =
-    (itemsSchema['x-enumNames'] as string[]) ?? enumValues.map(String);
+  const enumNames = (itemsSchema['x-enumNames'] as string[]) ?? undefined;
 
-  const options = enumValues.map((value, index) => ({
-    value: value as string | number,
-    label: enumNames[index] ?? String(value),
-  }));
+  // Memoized: the host form passes a fresh ``config`` to every control on
+  // each change, so without the memo a catalog of N options is rebuilt on
+  // every one of the user's M selections (O(N·M)).
+  const options = useMemo(
+    () =>
+      enumValues.map((value, index) => ({
+        value: value as string | number,
+        label: enumNames?.[index] ?? String(value),
+      })),
+    [enumValues, enumNames],
+  );
 
   const value = Array.isArray(props.data) ? (props.data as unknown[]) : [];
 
@@ -357,23 +385,26 @@ export function MultiEnumControl(props: ControlProps) {
     ?.tooltip as string | undefined;
 
   return (
-    <Form.Item label={props.label} tooltip={tooltip}>
+    <FormItem label={props.label} tooltip={tooltip}>
       <Select
+        ariaLabel={props.label || undefined}
         mode="multiple"
         value={value as (string | number)[]}
         onChange={next => props.handleChange(props.path, next)}
         options={options}
-        style={{ width: '100%' }}
         disabled={!props.enabled}
         loading={!!refreshingSchema}
         allowClear
-        optionFilterProp="label"
+        // Stability fix only: the wrapped Select's bulk select-all/clear
+        // affordance is out of scope for this control (sc-107832).
+        allowSelectAll={false}
+        optionFilterProps={['label']}
         placeholder={
           (props.uischema?.options as Record<string, unknown>)
             ?.placeholderText as string | undefined
         }
       />
-    </Form.Item>
+    </FormItem>
   );
 }
 const MultiEnumRenderer = withJsonFormsControlProps(MultiEnumControl);

@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { SupersetClient } from '@superset-ui/core';
-import { Spin } from 'antd';
 import { Select } from '@superset-ui/core/components';
+import { Spin } from '@superset-ui/core/components/Spin';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { JsonForms } from '@jsonforms/react';
 import type { JsonSchema, UISchemaElement } from '@jsonforms/core';
@@ -200,11 +200,20 @@ export default function AddSemanticViewModal({
     [addDangerToast],
   );
 
+  const lastSchemaJsonRef = useRef('');
   const applyRuntimeSchema = useCallback((rawSchema: JsonSchema) => {
+    dynamicDepsRef.current = getDynamicDependencies(rawSchema);
     const schema = sanitizeSchema(rawSchema);
+    const schemaJson = JSON.stringify(schema);
+    // A refresh response whose sanitized schema is unchanged keeps the
+    // existing object identities: JSON Forms then neither rebuilds its AJV
+    // validator (which caches one compiled copy per schema object — a per-
+    // selection memory leak at large enum sizes) nor remounts the renderer
+    // tree.
+    if (schemaJson === lastSchemaJsonRef.current) return;
+    lastSchemaJsonRef.current = schemaJson;
     setRuntimeSchema(schema);
     setRuntimeUiSchema(buildUiSchema(schema));
-    dynamicDepsRef.current = getDynamicDependencies(rawSchema);
   }, []);
 
   const scheduleFetchViews = useCallback(
@@ -238,6 +247,7 @@ export default function AddSemanticViewModal({
       errorsRef.current = [];
       dynamicDepsRef.current = {};
       lastDepSnapshotRef.current = '';
+      lastSchemaJsonRef.current = '';
       setAvailableViews([]);
       setSelectedViewNames([]);
       lastViewsKeyRef.current = '';
@@ -318,7 +328,12 @@ export default function AddSemanticViewModal({
                 if (gen !== fetchGenRef.current) return;
                 applyRuntimeSchema(json.result);
               } catch {
-                // Silent fail on refresh — form still works
+                if (gen !== fetchGenRef.current) return;
+                // The form (and the user's selections) stay intact; only the
+                // dynamic narrowing is stale, so surface it without blocking.
+                addDangerToast(
+                  t('An error occurred while refreshing the runtime schema'),
+                );
               } finally {
                 if (gen === fetchGenRef.current) setRefreshingSchema(false);
               }
@@ -333,7 +348,7 @@ export default function AddSemanticViewModal({
         scheduleFetchViews(selectedLayerUuid, data);
       }
     },
-    [selectedLayerUuid, applyRuntimeSchema, scheduleFetchViews],
+    [selectedLayerUuid, applyRuntimeSchema, scheduleFetchViews, addDangerToast],
   );
 
   // After a schema refresh settles, JSON Forms re-validates and fires
@@ -376,6 +391,7 @@ export default function AddSemanticViewModal({
       errorsRef.current = [];
       dynamicDepsRef.current = {};
       lastDepSnapshotRef.current = '';
+      lastSchemaJsonRef.current = '';
       setAvailableViews([]);
       setSelectedViewNames([]);
       setLoadingViews(false);
@@ -456,6 +472,27 @@ export default function AddSemanticViewModal({
     runtimeSchema?.properties &&
     Object.keys(runtimeSchema.properties).length > 0;
 
+  // Stable identity unless its inputs change: JSON Forms hands ``config`` to
+  // every control, so an inline literal would re-render all of them on each
+  // modal render.
+  const jsonFormsConfig = useMemo(
+    () => ({ refreshingSchema, formData: runtimeData }),
+    [refreshingSchema, runtimeData],
+  );
+
+  // Sorted copy — sorting in place would mutate React state during render.
+  const viewOptions = useMemo(
+    () =>
+      [...availableViews]
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map(v => ({
+          value: v.name,
+          label: v.already_added ? `${v.name} (${t('already added')})` : v.name,
+          disabled: v.already_added,
+        })),
+    [availableViews],
+  );
+
   const viewsDisabled =
     loadingViews || (!loadingViews && availableViews.length === 0);
 
@@ -531,7 +568,7 @@ export default function AddSemanticViewModal({
                 data={runtimeData}
                 renderers={renderers}
                 cells={cellRegistryEntries}
-                config={{ refreshingSchema, formData: runtimeData }}
+                config={jsonFormsConfig}
                 validationMode="ValidateAndHide"
                 onChange={handleRuntimeFormChange}
               />
@@ -554,15 +591,7 @@ export default function AddSemanticViewModal({
               disabled={viewsDisabled}
               value={selectedViewNames}
               onChange={values => setSelectedViewNames(values as string[])}
-              options={availableViews
-                .sort((a, b) => a.name.localeCompare(b.name))
-                .map(v => ({
-                  value: v.name,
-                  label: v.already_added
-                    ? `${v.name} (${t('already added')})`
-                    : v.name,
-                  disabled: v.already_added,
-                }))}
+              options={viewOptions}
               getPopupContainer={() => document.body}
             />
           </ModalFormField>
