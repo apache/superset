@@ -2737,8 +2737,10 @@ def test_retry_exhausted_transitions_to_error(
         retry_notify_recipients=False,
     )
     # Pre-set retry_attempt to the max so the next execution exhausts retries.
+    # Use the same timestamp for both so _is_retry_window_stale() returns False.
+    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None)
     report_schedule.retry_attempt = 2
-    report_schedule.retry_scheduled_dttm = datetime.utcnow()
+    report_schedule.retry_scheduled_dttm = scheduled_dttm
     db.session.commit()
 
     try:
@@ -2746,7 +2748,7 @@ def test_retry_exhausted_transitions_to_error(
 
         with pytest.raises(Exception, match="screenshot failed"):
             AsyncExecuteReportScheduleCommand(
-                TEST_ID, report_schedule.id, datetime.utcnow()
+                TEST_ID, report_schedule.id, scheduled_dttm
             ).run()
 
         db.session.refresh(report_schedule)
@@ -2784,8 +2786,9 @@ def test_send_failed_reports_sends_to_recipients(
         retry_notify_owners=False,
         retry_notify_recipients=False,
     )
+    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None)
     report_schedule.retry_attempt = 1
-    report_schedule.retry_scheduled_dttm = datetime.utcnow()
+    report_schedule.retry_scheduled_dttm = scheduled_dttm
     db.session.commit()
 
     try:
@@ -2793,7 +2796,7 @@ def test_send_failed_reports_sends_to_recipients(
 
         with pytest.raises(Exception, match="screenshot failed"):
             AsyncExecuteReportScheduleCommand(
-                TEST_ID, report_schedule.id, datetime.utcnow()
+                TEST_ID, report_schedule.id, scheduled_dttm
             ).run()
 
         # _send should have been called for the final failure report
@@ -2823,9 +2826,10 @@ def test_retrying_state_routes_back_to_error_handler(
         retry_notify_owners=False,
         retry_notify_recipients=False,
     )
+    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None)
     report_schedule.last_state = ReportState.RETRYING
     report_schedule.retry_attempt = 1
-    report_schedule.retry_scheduled_dttm = datetime.utcnow()
+    report_schedule.retry_scheduled_dttm = scheduled_dttm
     db.session.commit()
 
     try:
@@ -2833,7 +2837,7 @@ def test_retrying_state_routes_back_to_error_handler(
 
         # Should not raise — still within retry budget
         AsyncExecuteReportScheduleCommand(
-            TEST_ID, report_schedule.id, datetime.utcnow()
+            TEST_ID, report_schedule.id, scheduled_dttm
         ).run()
 
         db.session.refresh(report_schedule)
