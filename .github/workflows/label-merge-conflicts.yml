@@ -19,9 +19,14 @@ on:
     - cron: "0 */2 * * *"
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pull-requests: write
+# Avoid two full backlog sweeps racing (a manual workflow_dispatch landing
+# mid-schedule-tick, say); queue rather than cancel so an in-progress
+# paginated sweep always runs to completion.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions: {}
 
 jobs:
   label-merge-conflicts:
@@ -30,9 +35,13 @@ jobs:
     if: github.repository == 'apache/superset'
     name: Label Merge Conflicts
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # to add/remove requires:rebase and need:merge
     steps:
-      # Do not bump this action version without opening an ASF Infra ticket
-      # to allow the new SHA first!
+      # ASF Infra allowlists this whole action via a wildcard
+      # (eps1lon/actions-label-merge-conflict@*), so any pinned SHA/version
+      # is already fine here - no Infra ticket needed for future bumps.
       - uses: eps1lon/actions-label-merge-conflict@0273be72a0bbd58fcd71d0d6c02c209b50d1e5e1 # v3.1.0
         with:
           dirtyLabel: "requires:rebase"
