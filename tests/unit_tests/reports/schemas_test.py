@@ -544,6 +544,11 @@ def test_include_cta_round_trips(
     result = schema.load({**payload_base, "include_cta": True})
     assert result["include_cta"] is True
 
+    # explicit null is accepted and round-trips as None (legacy NULL rows are
+    # treated as True at execution time)
+    result = schema.load({**payload_base, "include_cta": None})
+    assert result["include_cta"] is None
+
     # omitted key is absent from the load result (the model default applies)
     result = schema.load(payload_base)
     assert "include_cta" not in result

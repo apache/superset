@@ -275,6 +275,7 @@ class ReportSchedulePostSchema(Schema):
     force_screenshot = fields.Boolean(dump_default=False)
     include_cta = fields.Boolean(
         dump_default=True,
+        allow_none=True,
         metadata={"description": include_cta_description},
     )
     custom_width = fields.Integer(
@@ -492,6 +493,7 @@ class ReportSchedulePutSchema(Schema):
     force_screenshot = fields.Boolean(dump_default=False)
     include_cta = fields.Boolean(
         dump_default=True,
+        allow_none=True,
         metadata={"description": include_cta_description},
     )
 
