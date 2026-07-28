@@ -295,7 +295,7 @@ interface AxisTooltipParam {
   value: unknown;
 }
 
-function tooltipFormatter(
+export function tooltipFormatter(
   params: unknown,
   dim: DataColumn | null,
   isTemporal: boolean,
@@ -306,12 +306,16 @@ function tooltipFormatter(
     ? formatDate(list[0].axisValue)
     : String(list[0].axisValue ?? '');
   const label = dim ? dim.display_name || dim.name : '';
+  // ECharts renders this formatter's return value as HTML, so every
+  // data-derived string must be escaped. formatFull falls back to the raw
+  // value for non-numeric input, so it is escaped too. ``p.marker`` is
+  // ECharts-generated markup (a colored swatch), not user data.
   const rows = list
     .map(
       (p) =>
         `<div style="display:flex;justify-content:space-between;gap:16px;margin-top:4px;">
            <span>${p.marker} ${escapeHtml(p.seriesName)}</span>
-           <strong>${formatFull(p.value)}</strong>
+           <strong>${escapeHtml(formatFull(p.value))}</strong>
          </div>`,
     )
     .join('');
@@ -324,7 +328,9 @@ function escapeHtml(s: string): string {
   return s
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 /** Resolve the single KPI value + label for the big-number view. */

@@ -23,6 +23,7 @@ import {
   classifyColumns,
   defaultViewForChartType,
   resolveBigNumber,
+  tooltipFormatter,
 } from './adapter';
 import { getThemeTokens } from './theme';
 import type { ChartData, DataColumn } from './types';
@@ -205,5 +206,49 @@ describe('chartDataToEChartsOption', () => {
     expect(roles.dimension?.name).toBe('ds');
     expect(roles.dimensionIsTemporal).toBe(true);
     expect(roles.numeric).toHaveLength(1);
+  });
+});
+
+describe('tooltip HTML escaping (XSS)', () => {
+  const dim: DataColumn = {
+    name: 'country',
+    display_name: '<img src=x onerror=alert(1)>',
+    data_type: 'string',
+    sample_values: [],
+    null_count: 0,
+    unique_count: 1,
+  };
+
+  it('escapes series names, axis values, dimension labels and values', () => {
+    // ECharts renders this formatter's output as HTML, so any data-derived
+    // string reaching it must be escaped.
+    const html = tooltipFormatter(
+      [
+        {
+          axisValue: '<script>alert("x")</script>',
+          seriesName: '<b>evil</b>',
+          marker: '<span class="mk"></span>',
+          value: '<i>not-a-number</i>',
+        },
+      ],
+      dim,
+      false,
+    );
+    expect(html).not.toContain('<script>');
+    expect(html).not.toContain('<b>evil</b>');
+    expect(html).not.toContain('<i>not-a-number</i>');
+    expect(html).not.toContain('<img src=x');
+    expect(html).toContain('&lt;script&gt;');
+    // ECharts' own marker markup is not user data and is preserved.
+    expect(html).toContain('<span class="mk"></span>');
+  });
+
+  it('still renders numeric values normally', () => {
+    const html = tooltipFormatter(
+      [{ axisValue: 'Jan', seriesName: 'Revenue', marker: '', value: 1234 }],
+      null,
+      false,
+    );
+    expect(html).toContain('1,234');
   });
 });
