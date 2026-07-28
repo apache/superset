@@ -217,3 +217,75 @@ jobs:
       - uses: Kesin11/actions-timeline@7bf79990b7c09f5dfb570ac30b814ca597bd538e # v3.1.1
         with:
           expand-composite-actions: true
+
+  bundle-size:
+    needs: frontend-build
+    if: needs.frontend-build.outputs.should-run == 'true'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download Docker Image Artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: docker-image
+
+      - name: Load Docker Image
+        run: |
+          zstd -d < docker-image.tar.zst | docker load
+
+      # Only ever pull the last recorded data point off the cache, keyed by
+      # run ID -- `restore-keys` prefix-matches the most recently created
+      # entry. Absent on the very first run ever; benchmark-action starts a
+      # fresh history in that case.
+      - name: Restore bundle size history
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: bundle-size-history.json
+          key: bundle-size-history-${{ github.run_id }}
+          restore-keys: |
+            bundle-size-history-
+
+      - name: Build production bundle with stats
+        run: |
+          mkdir -p ${{ github.workspace }}/superset-frontend/bundle-stats
+          docker run \
+          -v ${{ github.workspace }}/superset-frontend/bundle-stats:/app/superset-frontend/bundle-stats \
+          --rm $TAG \
+          bash -c \
+          "npm i && BUNDLE_SIZE_STATS=true npm run build -- --json=bundle-stats/stats.json"
+
+      - name: Summarize bundle size
+        run: |
+          node superset-frontend/scripts/bundle-size-summary.js \
+            superset-frontend/bundle-stats/stats.json > bundle-size-summary.json
+          rm -rf superset-frontend/bundle-stats
+
+      - name: Track bundle size
+        uses: benchmark-action/github-action-benchmark@52576c92bccf6ac60c8223ec7eb2565637cae9ba # v1.22.1
+        with:
+          tool: customSmallerIsBetter
+          output-file-path: bundle-size-summary.json
+          external-data-json-path: bundle-size-history.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          comment-on-alert: true
+          alert-threshold: "110%"
+          fail-on-alert: false
+          summary-always: true
+
+      # Only the trunk's own bundle size becomes the baseline everyone else
+      # is compared against -- an unmerged PR's numbers (including ones that
+      # regress on purpose to test something) never get persisted.
+      - name: Save bundle size history
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: bundle-size-history.json
+          key: bundle-size-history-${{ github.run_id }}
