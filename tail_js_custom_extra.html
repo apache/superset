@@ -1,0 +1,14 @@
+<script nonce="{{ macros.get_nonce() }}">
+    window.addEventListener('message', function (event) {
+        if (!event.data) return;
+
+        if (event.data.type === 'SWITCH_TAB') {
+            var tabs = document.querySelectorAll('.ant-tabs-tab-btn');
+            if (tabs && tabs.length > event.data.tabIndex && event.data.tabIndex >= 0) {
+                tabs[event.data.tabIndex].click();
+            }
+        } else if (event.data.type === 'REFRESH') {
+            window.location.reload();
+        }
+    });
+</script>

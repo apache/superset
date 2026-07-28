@@ -30,6 +30,8 @@ x-superset-volumes:
   - ./docker:/app/docker
   - ./superset-core:/app/superset-core
   - superset_home:/app/superset_home
+  # Canias Tab Rotator — postMessage ile tab geçişi ve sayfa yenileme
+  - ./tail_js_custom_extra.html:/app/superset/templates/tail_js_custom_extra.html
 
 services:
   redis:
