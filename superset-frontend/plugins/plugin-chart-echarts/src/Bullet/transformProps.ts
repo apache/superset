@@ -29,8 +29,12 @@ import type { EChartsCoreOption } from 'echarts/core';
 import { Refs } from '../types';
 import { EchartsBulletChartProps, BulletChartTransformedProps } from './types';
 import { tokenizeToNumericArray, tokenizeToStringArray } from './utils';
+import { estimateWrappedLegendRowCount } from '../utils/legendLayout';
 
 const MEASURE_BAR_FRACTION = 0.28;
+// Small pixel gap below the measure bar so the target/marker symbol doesn't
+// touch its edge.
+const MARKER_GAP_BELOW_BAR_PX = 12;
 
 export default function transformProps(
   chartProps: EchartsBulletChartProps,
@@ -157,26 +161,15 @@ export default function transformProps(
     ...markers.map((value, i) => markerName(value, i, markerLabels)),
     ...markerLines.map((value, i) => markerName(value, i, markerLineLabels)),
   ];
-  const estimateLegendRows = (names: string[]): number => {
-    // legend icon width + icon-text gap + inter-item gap (ECharts defaults)
-    const itemOverhead = 25 + 5 + 10;
-    const avgCharWidth = theme.fontSize * 0.6;
-    const available = Math.max(width - theme.sizeUnit * 4, 1);
-    let rows = 1;
-    let cursor = 0;
-    names.forEach(name => {
-      const itemWidth = itemOverhead + name.length * avgCharWidth;
-      if (cursor > 0 && cursor + itemWidth > available) {
-        rows += 1;
-        cursor = 0;
-      }
-      cursor += itemWidth;
-    });
-    return rows;
-  };
   const legendRowHeight = theme.fontSize + theme.sizeUnit * 3;
   const gridTop = showLegend
-    ? estimateLegendRows(legendNames) * legendRowHeight + theme.sizeUnit * 2
+    ? estimateWrappedLegendRowCount({
+        names: legendNames,
+        availableWidth: width - theme.sizeUnit * 4,
+        theme,
+      }) *
+        legendRowHeight +
+      theme.sizeUnit * 2
     : theme.sizeUnit * 2;
 
   // The measure bar spans MEASURE_BAR_FRACTION of the category band
@@ -185,7 +178,7 @@ export default function transformProps(
   const gridHeight = Math.max(height - gridTop - theme.sizeUnit * 6, 40);
   const rowHeight = gridHeight / categories.length;
   const markerOffsetPx = Math.round(
-    (MEASURE_BAR_FRACTION / 2) * rowHeight + 12,
+    (MEASURE_BAR_FRACTION / 2) * rowHeight + MARKER_GAP_BELOW_BAR_PX,
   );
 
   const echartOptions: EChartsCoreOption = {

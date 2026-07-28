@@ -26,6 +26,7 @@ import {
 import type { EChartsCoreOption } from 'echarts/core';
 import { Refs } from '../types';
 import { calculateLowerLogTick } from '../utils/series';
+import { estimateWrappedLegendRowCount } from '../utils/legendLayout';
 import transformData, { TimePivotSeries } from './transformData';
 import {
   EchartsTimePivotChartProps,
@@ -104,9 +105,26 @@ export default function transformProps(
     }
   }
 
+  const legendNames = series.map(s => s.key);
+  // A single-row legend fits the chart's established top padding as before;
+  // with `period_limit` unset a chart can have 50+ series (current + many
+  // priors), so a wider legend can wrap onto extra rows that would
+  // otherwise overlap the plot -- reserve additional height per extra row.
+  const legendRowHeight = theme.fontSize + theme.sizeUnit * 3;
+  const legendRows =
+    showLegend !== false
+      ? estimateWrappedLegendRowCount({
+          names: legendNames,
+          availableWidth: width - theme.sizeUnit * 4,
+          theme,
+        })
+      : 0;
+  const gridTop =
+    theme.sizeUnit * 8 + Math.max(legendRows - 1, 0) * legendRowHeight;
+
   const echartOptions: EChartsCoreOption = {
     grid: {
-      top: theme.sizeUnit * 8,
+      top: gridTop,
       bottom: theme.sizeUnit * 8,
       left: theme.sizeUnit * 4,
       right: theme.sizeUnit * 6,
@@ -115,7 +133,7 @@ export default function transformProps(
     legend: {
       show: showLegend !== false,
       top: 0,
-      data: series.map(s => s.key),
+      data: legendNames,
     },
     xAxis: {
       type: 'time',
