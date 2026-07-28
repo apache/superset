@@ -788,13 +788,25 @@ def _collect_sortable_identifiers(
     params = stored_chart.params_dict
     column_config = params.get("column_config")
 
-    for key in ("columns", "groupby", "all_columns"):
+    for key in ("columns", "groupby", "all_columns", "intermediate_levels"):
         _add_visible_sort_targets(
             allowed,
             params.get(key),
             column_config,
             is_metric=False,
         )
+    # sankey_v2's source/target are single columns (scalar strings), not
+    # lists -- _add_visible_sort_targets returns immediately for a
+    # non-list/tuple value, so these need the same wrap-in-a-list handling
+    # as the legacy singular ``metric`` key below, not a plain tuple entry.
+    for scalar_key in ("source", "target"):
+        if params.get(scalar_key) is not None:
+            _add_visible_sort_targets(
+                allowed,
+                [params[scalar_key]],
+                column_config,
+                is_metric=False,
+            )
     _add_visible_sort_targets(
         allowed,
         params.get("metrics"),
@@ -812,13 +824,21 @@ def _collect_sortable_identifiers(
 
     if stored_query_context:
         for query in stored_query_context.get("queries") or []:
-            for key in ("columns", "groupby", "all_columns"):
+            for key in ("columns", "groupby", "all_columns", "intermediate_levels"):
                 _add_visible_sort_targets(
                     allowed,
                     query.get(key),
                     column_config,
                     is_metric=False,
                 )
+            for scalar_key in ("source", "target"):
+                if query.get(scalar_key) is not None:
+                    _add_visible_sort_targets(
+                        allowed,
+                        [query[scalar_key]],
+                        column_config,
+                        is_metric=False,
+                    )
             _add_visible_sort_targets(
                 allowed,
                 query.get("metrics"),
@@ -1015,6 +1035,14 @@ _STORED_COLUMN_PARAMS = (
     "series_columns",
     "x_axis",
     "granularity_sqla",
+    # sankey_v2's endpoint/intermediate-level controls (see this PR's own
+    # chart params: source/target are single columns, intermediate_levels
+    # is a list) -- without these, a guest embedding a sankey_v2 chart gets
+    # "Guest user cannot modify chart payload" on every request, since this
+    # tuple drives the subset check in _stored_param_values below.
+    "source",
+    "target",
+    "intermediate_levels",
 )
 
 

@@ -1419,6 +1419,98 @@ def test_query_context_modified_orderby_unknown_column(mocker: MockerFixture) ->
     assert query_context_modified(query_context)
 
 
+def _sankey_query_context(mocker: MockerFixture, *, with_orderby: bool = True) -> Any:
+    """
+    Build a query context replaying a sankey_v2 chart's own generated
+    payload exactly: source/target are single columns (not lists),
+    intermediate_levels is a list, metric is the legacy singular key. This
+    is the real shape a guest-embedded sankey_v2 dashboard sends.
+    """
+    metric: AdhocMetric = {
+        "aggregate": "SUM",
+        "column": {"column_name": "effective_cost"},
+        "expressionType": "SIMPLE",
+        "label": "SUM(effective_cost)",
+    }
+    params_dict = {
+        "viz_type": "sankey_v2",
+        "source": "sub_account_name",
+        "intermediate_levels": ["service_category", "service_name"],
+        "target": "region_name",
+        "metric": metric,
+    }
+    orderby = (
+        [
+            (metric, False),
+            ("sub_account_name", True),
+            ("service_category", True),
+            ("service_name", True),
+            ("region_name", True),
+        ]
+        if with_orderby
+        else []
+    )
+    query_context = mocker.MagicMock()
+    query_context.queries = [
+        QueryObject(
+            columns=[],
+            groupby=[
+                "sub_account_name",
+                "service_category",
+                "service_name",
+                "region_name",
+            ],
+            metrics=[metric],
+            orderby=orderby,
+        ),
+    ]
+    query_context.form_data = {"slice_id": 10, "dashboardId": 1}
+    query_context.slice_.id = 10
+    query_context.slice_.params_dict = params_dict
+    query_context.slice_.query_context = None
+    return query_context
+
+
+def test_query_context_modified_sankey_v2_columns_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A guest replaying a sankey_v2 chart's own source/intermediate_levels/
+    target columns and singular metric is not tampering. Regression test:
+    source/target/intermediate_levels were previously absent from
+    _STORED_COLUMN_PARAMS, so every real request read as tampering
+    regardless of content.
+    """
+    query_context = _sankey_query_context(mocker, with_orderby=False)
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_sankey_v2_orderby_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A guest replaying a sankey_v2 chart's own default sort (by its metric,
+    then by each of source/intermediate_levels/target) is not tampering.
+    Regression test: _collect_sortable_identifiers's own separate hardcoded
+    column-key tuple did not include intermediate_levels, and its helper
+    does not accept a scalar value the way _stored_param_values does, so
+    source/target (scalar strings on this viz type) were silently dropped
+    even after fixing _STORED_COLUMN_PARAMS alone.
+    """
+    query_context = _sankey_query_context(mocker, with_orderby=True)
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_sankey_v2_orderby_unknown_column_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """A guest sorting a sankey_v2 chart by a column it does not reference
+    is still rejected -- the fix must not make this viz type permissive."""
+    query_context = _sankey_query_context(mocker, with_orderby=False)
+    query_context.queries[0].orderby = [("unrelated_column", True)]
+    assert query_context_modified(query_context)
+
+
 def test_query_context_modified_orderby_empty(mocker: MockerFixture) -> None:
     """An empty order-by is not a modification."""
     query_context = _table_sort_query_context(mocker, orderby=[])
