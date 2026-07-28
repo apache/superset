@@ -39,7 +39,7 @@ export interface Dashboard {
   // `columns` projection. Bare ids, not Subjects.
   extra_editors?: number[];
   viewers?: Subject[];
-  is_managed_externally?: boolean;
+  is_managed_externally: boolean;
   theme?: {
     id: number;
     theme_name: string;

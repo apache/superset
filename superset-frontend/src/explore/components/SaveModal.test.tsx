@@ -27,6 +27,10 @@ import {
   within,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
+import type {
+  SelectValue,
+  SelectOptionsPagePromise,
+} from '@superset-ui/core/components/Select';
 
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import SaveModal, {
@@ -47,24 +51,29 @@ jest.mock('src/utils/getBootstrapData', () => ({
 
 // Captures the AsyncSelect `options` loader (SaveModal's loadDashboards) so
 // tests can invoke it directly and assert on the request it issues.
-let mockLoadDashboards:
-  | ((search: string, page: number, pageSize: number) => Promise<unknown>)
-  | undefined;
+let mockLoadDashboards: SelectOptionsPagePromise | undefined;
 
 jest.mock('@superset-ui/core/components/Select', () => ({
   ...jest.requireActual('@superset-ui/core/components/Select/AsyncSelect'),
   AsyncSelect: ({
     onChange,
     options,
+    value,
   }: {
-    onChange: (val: any) => void;
-    options?: (search: string, page: number, pageSize: number) => Promise<any>;
+    onChange: (val: SelectValue) => void;
+    options?: SelectOptionsPagePromise;
+    value?: { label?: string } | null;
   }) => {
     mockLoadDashboards = options;
     return (
       <input
         data-test="mock-async-select"
-        onChange={({ target: { value } }) => onChange({ label: value, value })}
+        // Surfaces the currently selected label so tests can assert on what
+        // the user actually sees, rather than only on side-effect requests.
+        value={value?.label ?? ''}
+        onChange={({ target: { value: newValue } }) =>
+          onChange({ label: newValue, value: newValue })
+        }
       />
     );
   },
@@ -333,6 +342,9 @@ test('does not preselect an externally managed dashboard on mount', async () => 
 
   const selectInput = queryByTestId('mock-async-select') as HTMLInputElement;
   expect(selectInput).toBeInTheDocument();
+  // Assert on what the user actually sees: the externally managed dashboard
+  // must never appear as the selected value.
+  expect(selectInput.value).toBe('');
   expect(
     fetchMock.callHistory.calls(`glob:*/api/v1/dashboard/${dashboardId}/tabs`),
   ).toHaveLength(0);
