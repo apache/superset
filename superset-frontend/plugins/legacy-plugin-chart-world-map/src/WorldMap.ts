@@ -164,7 +164,8 @@ function WorldMap(element: HTMLElement, props: WorldMapProps): void {
     processedData = filteredData.map(d => ({
       ...d,
       radius: radiusScale(Math.sqrt(d.m2)),
-      fillColor: d.m1 != null ? colorFn(d.m1) ?? theme.colorBorder : theme.colorBorder,
+      fillColor:
+        d.m1 != null ? (colorFn(d.m1) ?? theme.colorBorder) : theme.colorBorder,
     }));
   }
 
@@ -304,36 +305,16 @@ function WorldMap(element: HTMLElement, props: WorldMapProps): void {
       key: JSON.stringify,
     },
     done: datamap => {
+      // Hover highlighting and its reset are handled entirely by Datamaps'
+      // built-in highlightOnHover, which saves each country's original fill on
+      // mouseover and restores it on mouseout. Adding our own mouseover/mouseout
+      // fill handlers here creates a second, competing restore path whose
+      // execution order is browser-timing-dependent, which left the highlight
+      // stuck on Chrome/Edge (see #37761).
       datamap.svg
         .selectAll('.datamaps-subunit')
         .on('contextmenu', handleContextMenu)
-        .on('click', handleClick)
-        // Use namespaced events to avoid overriding Datamaps' default tooltip handlers
-        .on('mouseover.fillPreserve', function onMouseOver() {
-          if (inContextMenu) {
-            return;
-          }
-          const element = d3.select(this);
-          const classes = element.attr('class') || '';
-          const countryId = classes.split(' ')[1];
-          const countryData = mapData[countryId];
-          const originalFill =
-            (countryData && countryData.fillColor) || theme.colorBorder;
-          // Store original fill color for restoration
-          element.attr('data-original-fill', originalFill);
-        })
-        .on('mouseout.fillPreserve', function onMouseOut() {
-          if (inContextMenu) {
-            return;
-          }
-          const element = d3.select(this);
-          const originalFill = element.attr('data-original-fill');
-          // Restore the original fill color (data-based or default no-data color)
-          if (originalFill) {
-            element.style('fill', originalFill);
-            element.attr('data-original-fill', null);
-          }
-        });
+        .on('click', handleClick);
     },
   });
 

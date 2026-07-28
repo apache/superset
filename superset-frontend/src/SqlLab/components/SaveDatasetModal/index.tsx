@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { sanitizeUrl } from '@braintree/sanitize-url';
 import { useCallback, useState, FormEvent } from 'react';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';
@@ -51,13 +50,16 @@ import { addDangerToast } from 'src/components/MessageToasts/actions';
 import {
   DatasetRadioState,
   EXPLORE_CHART_DEFAULT,
-  DatasetOwner,
+  type DatasetOptionAutocomplete,
 } from 'src/SqlLab/types';
 import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS } from 'src/constants';
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'lodash-es';
 import { clearDatasetCache } from 'src/utils/cachedSupersetGet';
+import type Subject from 'src/types/Subject';
+import { openInNewTab, redirect } from 'src/utils/navigationUtils';
+import { mapSubjectValuesToIds } from 'src/features/subjects/SubjectPicker';
 
 interface QueryDatabase {
   id?: number;
@@ -152,9 +154,13 @@ type UpdateDatasetPayload = {
   datasetId: number;
   sql: string;
   columns: Array<Record<string, any>>;
-  owners: number[];
+  editors: number[];
   overrideColumns: boolean;
   templateParams?: string;
+};
+
+type DatasetOverwriteOption = DatasetOptionAutocomplete & {
+  label: string;
 };
 
 const updateDataset = async ({
@@ -162,7 +168,7 @@ const updateDataset = async ({
   datasetId,
   sql,
   columns,
-  owners,
+  editors,
   overrideColumns,
   templateParams,
 }: UpdateDatasetPayload) => {
@@ -171,7 +177,7 @@ const updateDataset = async ({
   const body = JSON.stringify({
     sql,
     columns,
-    owners,
+    editors,
     database_id: dbId,
     ...(templateParams !== undefined && { template_params: templateParams }),
   });
@@ -231,23 +237,24 @@ export const SaveDatasetModal = ({
   );
   const [shouldOverwriteDataset, setShouldOverwriteDataset] = useState(false);
   const [datasetToOverwrite, setDatasetToOverwrite] = useState<
-    Record<string, any>
+    Partial<DatasetOverwriteOption>
   >({});
   const [selectedDatasetToOverwrite, setSelectedDatasetToOverwrite] = useState<
     SelectValue | undefined
   >(undefined);
   const [loading, setLoading] = useState<boolean>(false);
 
-  const user = useAppSelector(state => state.user);
   const dispatch = useAppDispatch();
   const [includeTemplateParameters, setIncludeTemplateParameters] =
     useState(false);
 
   const createWindow = (url: string) => {
+    // `url` is from `mountExploreUrl(..., includeAppRoot=true)`; the
+    // navigationUtils helpers re-apply `ensureAppRoot` idempotently.
     if (openWindow) {
-      window.open(sanitizeUrl(url), '_blank', 'noreferrer');
+      openInNewTab(url);
     } else {
-      window.location.href = sanitizeUrl(url);
+      redirect(url);
     }
   };
   const formDataWithDefaults = {
@@ -270,7 +277,7 @@ export const SaveDatasetModal = ({
       const [, key] = await Promise.all([
         updateDataset({
           dbId: datasource?.dbId,
-          datasetId: datasetToOverwrite?.datasetid,
+          datasetId: datasetToOverwrite.datasetId!,
           sql: datasource?.sql,
           columns: datasource?.columns?.map(
             (d: { column_name: string; type: string; is_dttm: boolean }) => ({
@@ -279,13 +286,13 @@ export const SaveDatasetModal = ({
               is_dttm: d.is_dttm,
             }),
           ),
-          owners: datasetToOverwrite?.owners?.map((o: DatasetOwner) => o.id),
+          editors: mapSubjectValuesToIds(datasetToOverwrite.editors || []),
           overrideColumns: true,
           templateParams,
         }),
-        postFormData(datasetToOverwrite.datasetid, 'table', {
+        postFormData(datasetToOverwrite.datasetId!, 'table', {
           ...formDataWithDefaults,
-          datasource: `${datasetToOverwrite.datasetid}__table`,
+          datasource: `${datasetToOverwrite.datasetId}__table`,
           ...(defaultVizType === VizType.Table && {
             all_columns: datasource?.columns?.map(column => column.column_name),
           }),
@@ -313,42 +320,38 @@ export const SaveDatasetModal = ({
     }
   };
 
-  const loadDatasetOverwriteOptions = useCallback(
-    async (input = '') => {
-      const { userId } = user;
-      const queryParams = rison.encode({
-        filters: [
-          {
-            col: 'table_name',
-            opr: 'ct',
-            value: input,
-          },
-          {
-            col: 'owners',
-            opr: 'rel_m_m',
-            value: userId,
-          },
-        ],
-        order_column: 'changed_on_delta_humanized',
-        order_direction: 'desc',
-      });
+  const loadDatasetOverwriteOptions = useCallback(async (input = '') => {
+    const queryParams = rison.encode({
+      filters: [
+        {
+          col: 'table_name',
+          opr: 'ct',
+          value: input,
+        },
+        {
+          col: 'id',
+          opr: 'is_editable',
+          value: true,
+        },
+      ],
+      order_column: 'changed_on_delta_humanized',
+      order_direction: 'desc',
+    });
 
-      return SupersetClient.get({
-        endpoint: `/api/v1/dataset/?q=${queryParams}`,
-      }).then(response => ({
-        data: response.json.result.map(
-          (r: { table_name: string; id: number; owners: [DatasetOwner] }) => ({
-            value: r.table_name,
-            label: r.table_name,
-            datasetid: r.id,
-            owners: r.owners,
-          }),
-        ),
-        totalCount: response.json.count,
-      }));
-    },
-    [user],
-  );
+    return SupersetClient.get({
+      endpoint: `/api/v1/dataset/?q=${queryParams}`,
+    }).then(response => ({
+      data: response.json.result.map(
+        (r: { table_name: string; id: number; editors: Subject[] }) => ({
+          value: r.table_name,
+          label: r.table_name,
+          datasetId: r.id,
+          editors: r.editors,
+        }),
+      ),
+      totalCount: response.json.count,
+    }));
+  }, []);
 
   const handleSaveInDataset = () => {
     setLoading(true);
@@ -365,7 +368,7 @@ export const SaveDatasetModal = ({
         catalog: datasource?.catalog ?? null,
         schema: datasource?.schema ?? '',
         templateParams,
-        datasourceName: datasetName,
+        datasourceName: datasetName.trim(),
       }),
     )
       .then((data: { id: number }) => {
@@ -394,7 +397,10 @@ export const SaveDatasetModal = ({
       });
   };
 
-  const handleOverwriteDatasetOption = (value: SelectValue, option: any) => {
+  const handleOverwriteDatasetOption = (
+    value: SelectValue,
+    option: DatasetOverwriteOption,
+  ) => {
     setDatasetToOverwrite(option);
     setSelectedDatasetToOverwrite(value);
   };
@@ -411,13 +417,13 @@ export const SaveDatasetModal = ({
 
   const disableSaveAndExploreBtn =
     (newOrOverwrite === DatasetRadioState.SaveNew &&
-      datasetName.length === 0) ||
+      datasetName.trim().length === 0) ||
     (newOrOverwrite === DatasetRadioState.OverwriteDataset &&
       isEmpty(selectedDatasetToOverwrite));
 
   const filterAutocompleteOption = (
     inputValue: string,
-    option: { value: string; datasetid: number },
+    option: DatasetOverwriteOption,
   ) => option.value.toLowerCase().includes(inputValue.toLowerCase());
 
   return (

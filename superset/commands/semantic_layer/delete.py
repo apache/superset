@@ -83,7 +83,7 @@ class DeleteSemanticViewCommand(BaseCommand):
         if not self._model:
             raise SemanticViewNotFoundError()
         try:
-            security_manager.raise_for_ownership(self._model)
+            security_manager.raise_for_editorship(self._model)
         except SupersetSecurityException as ex:
             raise SemanticViewForbiddenError() from ex
 
@@ -110,6 +110,6 @@ class BulkDeleteSemanticViewCommand(BaseCommand):
             raise SemanticViewNotFoundError()
         for model in self._models:
             try:
-                security_manager.raise_for_ownership(model)
+                security_manager.raise_for_editorship(model)
             except SupersetSecurityException as ex:
                 raise SemanticViewForbiddenError() from ex

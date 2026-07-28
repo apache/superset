@@ -26,7 +26,7 @@ import logging
 
 from alembic import op
 from sqlalchemy import and_, Column, ForeignKey, Integer
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 from superset import db
 
@@ -46,7 +46,7 @@ class DashboardSlices(Base):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     # find dup records in dashboard_slices tbl
     dup_records = (

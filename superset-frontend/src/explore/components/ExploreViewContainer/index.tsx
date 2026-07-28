@@ -45,10 +45,10 @@ import {
 import { styled, css, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
-import { debounce, isEqual, isObjectLike, omit, pick } from 'lodash';
+import { debounce, isEqual, isObjectLike, omit, pick } from 'lodash-es';
 import { Resizable } from 're-resizable';
 import { useHistory } from 'react-router-dom';
-import { Tooltip } from '@superset-ui/core/components';
+import { ActionButton, Tooltip } from '@superset-ui/core/components';
 import { usePluginContext } from 'src/components';
 import { Global } from '@emotion/react';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -66,6 +66,7 @@ import {
   LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS,
 } from 'src/logger/LogUtils';
 import { getUrlParam } from 'src/utils/urlUtils';
+import { sanitizeDocumentTitle } from 'src/utils/sanitizeDocumentTitle';
 import cx from 'classnames';
 import * as chartActions from 'src/components/Chart/chartAction';
 import { fetchDatasourceMetadata } from 'src/dashboard/actions/datasources';
@@ -397,7 +398,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   // Update document title when slice name changes
   useEffect(() => {
     if (props.sliceName) {
-      document.title = props.sliceName;
+      document.title = sanitizeDocumentTitle(props.sliceName);
     }
   }, [props.sliceName]);
 
@@ -892,8 +893,11 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
           setForceQuery: props.actions.setForceQuery,
           postChartFormData: props.actions.postChartFormData,
           updateQueryFormData: props.actions.updateQueryFormData,
-          setControlValue: (controlName: string, value: any, chartId: number) =>
-            props.actions.setControlValue(controlName, value),
+          setControlValue: (
+            controlName: string,
+            value: any,
+            _chartId: number,
+          ) => props.actions.setControlValue(controlName, value),
         }}
         can_overwrite={props.can_overwrite}
         can_download={props.can_download}
@@ -989,21 +993,20 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         >
           <div className="title-container">
             <span className="horizontal-text">{t('Chart Source')}</span>
-            <span
-              role="button"
-              tabIndex={0}
-              className="action-button"
+            <ActionButton
+              label={t('Collapse Datasource panel')}
+              icon={
+                <Icons.VerticalAlignTopOutlined
+                  iconSize="xl"
+                  css={css`
+                    transform: rotate(-90deg);
+                  `}
+                  className="collapse-icon"
+                  iconColor={theme.colorPrimary}
+                />
+              }
               onClick={toggleCollapse}
-            >
-              <Icons.VerticalAlignTopOutlined
-                iconSize="xl"
-                css={css`
-                  transform: rotate(-90deg);
-                `}
-                className="collapse-icon"
-                iconColor={theme.colorPrimary}
-              />
-            </span>
+            />
           </div>
           {/* eslint-disable @typescript-eslint/no-explicit-any -- DataSourcePanel uses narrower types that are compatible at runtime */}
           <DataSourcePanel
@@ -1016,14 +1019,22 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
           {/* eslint-enable @typescript-eslint/no-explicit-any */}
         </Resizable>
         {isCollapsed ? (
-          <div
+          <button
+            type="button"
             className="sidebar"
+            css={css`
+              appearance: none;
+              border: none;
+              background: none;
+              padding: 0;
+              margin: 0;
+              font: inherit;
+            `}
             onClick={toggleCollapse}
             data-test="open-datasource-tab"
-            role="button"
-            tabIndex={0}
+            aria-label={t('Open Datasource tab')}
           >
-            <span role="button" tabIndex={0} className="action-button">
+            <span className="action-button">
               <Tooltip title={t('Open Datasource tab')}>
                 <Icons.VerticalAlignTopOutlined
                   iconSize="xl"
@@ -1035,7 +1046,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
                 />
               </Tooltip>
             </span>
-          </div>
+          </button>
         ) : null}
         <Resizable
           onResizeStop={(evt, direction, ref, d) =>
@@ -1165,8 +1176,12 @@ function mapStateToProps(state: ExploreRootState) {
 
   const slice_id = form_data.slice_id ?? slice?.slice_id ?? 0; // 0 - unsaved chart
 
-  // exclude clientView from extra_form_data; keep other ownState pieces
-  const ownStateForQuery = omit(dataMask[slice_id]?.ownState, ['clientView']);
+  // exclude clientView and metricSqlExpressions from extra_form_data;
+  // metricSqlExpressions is runtime-only and must not be serialised to chart params
+  const ownStateForQuery = omit(dataMask[slice_id]?.ownState, [
+    'clientView',
+    'metricSqlExpressions',
+  ]);
 
   form_data.extra_form_data = mergeExtraFormData(
     { ...form_data.extra_form_data },

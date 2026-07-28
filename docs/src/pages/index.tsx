@@ -22,6 +22,7 @@ import Link from '@docusaurus/Link';
 import { Card, Carousel, Flex } from 'antd';
 import styled from '@emotion/styled';
 import GitHubButton from 'react-github-btn';
+import { load } from 'js-yaml';
 import { mq } from '../utils';
 import SectionHeader from '../components/SectionHeader';
 import databaseData from '../data/databases.json';
@@ -60,7 +61,7 @@ interface DataSetType {
   categories: Record<string, Organization[]>;
 }
 
-const typedDataSet = DataSet as DataSetType;
+const typedDataSet = load(DataSet) as DataSetType;
 
 // Extract all organizations with logos for the carousel
 const companiesWithLogos = Object.values(typedDataSet.categories)

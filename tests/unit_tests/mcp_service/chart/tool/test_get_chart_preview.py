@@ -22,7 +22,7 @@ Unit tests for get_chart_preview MCP tool
 import importlib
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -43,6 +43,7 @@ from superset.mcp_service.chart.tool.get_chart_preview import (
     _build_query_metrics,
     _sanitize_chart_preview_for_llm_context,
     ASCIIPreviewStrategy,
+    PreviewFormatStrategy,
     TablePreviewStrategy,
 )
 from superset.mcp_service.utils import sanitize_for_llm_context
@@ -1252,3 +1253,36 @@ class TestDetachedInstanceError:
         data = json.loads(response.content[0].text)
         assert data["error_type"] == "InternalError"
         assert "session" in data["error"].lower() or "retry" in data["error"].lower()
+
+
+def _guest_strategy() -> PreviewFormatStrategy:
+    chart = MagicMock()
+    return PreviewFormatStrategy(chart, GetChartPreviewRequest(identifier=1))
+
+
+def test_authorize_guest_query_attaches_dashboard_context() -> None:
+    """For a guest, the preview query is pinned to the token's dashboard so
+    raise_for_access can authorize it."""
+    strategy = _guest_strategy()
+    query_context = MagicMock()
+
+    with (
+        patch("superset.mcp_service.guest_scope.guest_dashboard_id", return_value=6),
+        patch("superset.mcp_service.guest_scope.authorize_query") as mock_authorize,
+    ):
+        strategy._authorize_guest_query(query_context)
+
+    mock_authorize.assert_called_once_with(query_context, 6, strategy.chart)
+
+
+def test_authorize_guest_query_noop_for_non_guest() -> None:
+    """A non-guest has no dashboard id, so nothing is attached."""
+    strategy = _guest_strategy()
+
+    with (
+        patch("superset.mcp_service.guest_scope.guest_dashboard_id", return_value=None),
+        patch("superset.mcp_service.guest_scope.authorize_query") as mock_authorize,
+    ):
+        strategy._authorize_guest_query(MagicMock())
+
+    mock_authorize.assert_not_called()

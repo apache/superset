@@ -61,7 +61,7 @@ def mcp_server():
 def mock_auth():
     """Mock authentication for all tests."""
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
-        with patch("superset.security_manager.raise_for_ownership"):
+        with patch("superset.security_manager.raise_for_editorship"):
             mock_user = Mock()
             mock_user.id = 1
             mock_user.username = "admin"
@@ -92,7 +92,7 @@ def _mock_chart(id: int = 1, slice_name: str = "Test Chart") -> Mock:
     chart.slice_name = slice_name
     chart.uuid = f"chart-uuid-{id}"
     chart.tags = []
-    chart.owners = []
+    chart.editors = []
     chart.viz_type = "table"
     chart.datasource_name = None
     chart.datasource_type = None
@@ -129,7 +129,7 @@ def _mock_dashboard(id: int = 1, title: str = "Test Dashboard") -> Mock:
     dashboard.changed_by_name = "test_user"
     dashboard.uuid = f"dashboard-uuid-{id}"
     dashboard.slices = []
-    dashboard.owners = []
+    dashboard.editors = []
     dashboard.tags = []
     return dashboard
 
@@ -166,6 +166,11 @@ def _setup_generate_dashboard_mocks(
 
     mock_dashboard_cls.return_value = dashboard
     mock_find_by_id.return_value = dashboard
+
+    # Prevent Subject DB queries during dashboard creation.
+    # The mock is started here and will be cleaned up by patch.stopall()
+    # or when the test process ends.
+    patch("superset.subjects.utils.get_user_subject", return_value=None).start()
 
 
 class TestGenerateDashboard:
@@ -206,8 +211,15 @@ class TestGenerateDashboard:
                 == "Analytics Dashboard"
             )
             assert result.structured_content["dashboard"]["chart_count"] == 2
+            # URL prefers the slug over the id (matching update_dashboard) and
+            # is prefix-free under route_base="": the single app-root prefix is
+            # supplied by get_superset_base_url(), never doubled.
+            assert result.structured_content["dashboard_url"].endswith(
+                "/dashboard/test-dashboard-10/"
+            )
             assert (
-                "/superset/dashboard/10/" in result.structured_content["dashboard_url"]
+                "/superset/superset/dashboard/"
+                not in result.structured_content["dashboard_url"]
             )
 
     @patch("superset.models.dashboard.Dashboard")
@@ -462,6 +474,117 @@ class TestGenerateDashboard:
             assert mock_db_session.rollback.call_count >= 1
 
     @patch("superset.models.dashboard.Dashboard")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generate_dashboard_duplicate_slug_returns_actionable_error(
+        self,
+        mock_db_session,
+        mock_dashboard_cls,
+        mcp_server,
+    ) -> None:
+        """When the supplied slug collides with an existing dashboard,
+        ``commit()`` raises ``IntegrityError``. The tool catches it,
+        recognises the slug-uniqueness violation, and returns a
+        structured error naming the offending slug so the LLM can
+        propose a different one — instead of the generic
+        "internal error" message used for other DB failures."""
+        from sqlalchemy.exc import IntegrityError
+
+        mock_query = Mock()
+        mock_filter = Mock()
+        mock_query.filter.return_value = mock_filter
+        mock_query.filter_by.return_value = mock_filter
+        mock_filter.order_by.return_value = mock_filter
+        mock_filter.all.return_value = [_mock_chart(id=1)]
+        mock_filter.first.return_value = Mock(
+            id=1,
+            username="admin",
+            first_name="Admin",
+            last_name="User",
+            email="admin@example.com",
+            active=True,
+        )
+        mock_db_session.query.return_value = mock_query
+        # Postgres-shaped IntegrityError naming the slug constraint.
+        mock_db_session.commit.side_effect = IntegrityError(
+            statement="INSERT INTO dashboards ...",
+            params={},
+            orig=Exception(
+                "duplicate key value violates unique constraint "
+                '"dashboards_slug_key"\n'
+                "DETAIL:  Key (slug)=(my-slug) already exists."
+            ),
+        )
+        mock_dashboard_cls.return_value = _mock_dashboard(id=100)
+
+        request = {
+            "chart_ids": [1],
+            "dashboard_title": "Q4 Review",
+            "slug": "my-slug",
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("generate_dashboard", {"request": request})
+
+            err = result.structured_content["error"]
+            assert err is not None
+            assert "my-slug" in err
+            assert "already in use" in err
+            assert "different slug" in err or "Choose a different" in err
+            assert result.structured_content["dashboard"] is None
+            assert mock_db_session.rollback.call_count >= 1
+
+    @patch("superset.models.dashboard.Dashboard")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generate_dashboard_integrity_error_unrelated_to_slug(
+        self,
+        mock_db_session,
+        mock_dashboard_cls,
+        mcp_server,
+    ) -> None:
+        """An IntegrityError that is NOT about the slug (e.g. an FK
+        violation on chart_id) gets the generic constraint message
+        rather than the slug-specific one — slug detection must not
+        match every IntegrityError indiscriminately."""
+        from sqlalchemy.exc import IntegrityError
+
+        mock_query = Mock()
+        mock_filter = Mock()
+        mock_query.filter.return_value = mock_filter
+        mock_query.filter_by.return_value = mock_filter
+        mock_filter.order_by.return_value = mock_filter
+        mock_filter.all.return_value = [_mock_chart(id=1)]
+        mock_filter.first.return_value = Mock(
+            id=1,
+            username="admin",
+            first_name="Admin",
+            last_name="User",
+            email="admin@example.com",
+            active=True,
+        )
+        mock_db_session.query.return_value = mock_query
+        mock_db_session.commit.side_effect = IntegrityError(
+            statement="INSERT INTO dashboard_slices ...",
+            params={},
+            orig=Exception(
+                'violates foreign key constraint "dashboard_slices_slice_id_fkey"'
+            ),
+        )
+        mock_dashboard_cls.return_value = _mock_dashboard(id=101)
+
+        # No slug → the slug-detection branch must not match.
+        request = {"chart_ids": [1], "dashboard_title": "No Slug Dashboard"}
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("generate_dashboard", {"request": request})
+
+            err = result.structured_content["error"]
+            assert err is not None
+            assert "constraint" in err
+            assert "slug" not in err.lower()
+
+    @patch("superset.models.dashboard.Dashboard")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
     @pytest.mark.asyncio
@@ -575,6 +698,160 @@ class TestGenerateDashboard:
             created = mock_dashboard_cls.return_value
             assert created.dashboard_title == ""
 
+    @patch("superset.models.dashboard.Dashboard")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generate_dashboard_position_json_override(
+        self,
+        mock_db_session,
+        mock_find_by_id,
+        mock_dashboard_cls,
+        mcp_server,
+    ) -> None:
+        """An explicit ``position_json`` replaces the auto-generated layout
+        in full — the tool serializes the caller's dict verbatim into the
+        dashboard's ``position_json`` column rather than calling the
+        layout-builder helper."""
+        from superset.utils import json
+
+        charts = [_mock_chart(id=1, slice_name="Sales")]
+        mock_dashboard = _mock_dashboard(id=70, title="Custom Layout Dashboard")
+        _setup_generate_dashboard_mocks(
+            mock_db_session,
+            mock_find_by_id,
+            mock_dashboard_cls,
+            charts,
+            mock_dashboard,
+        )
+
+        custom_layout = {
+            "ROOT_ID": {"type": "ROOT", "children": ["GRID_ID"]},
+            "GRID_ID": {"type": "GRID", "children": ["ROW-custom"]},
+            "ROW-custom": {
+                "type": "ROW",
+                "children": ["CHART-1"],
+                "meta": {"background": "BACKGROUND_TRANSPARENT"},
+            },
+            "CHART-1": {
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": 1, "width": 12, "height": 100},
+            },
+        }
+        request = {
+            "chart_ids": [1],
+            "dashboard_title": "Custom Layout Dashboard",
+            "position_json": custom_layout,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("generate_dashboard", {"request": request})
+
+            assert result.structured_content["error"] is None
+            created = mock_dashboard_cls.return_value
+            # position_json on the model is a JSON string; round-trip it
+            # and verify the caller's layout — not the auto-generated 2-col
+            # grid — was written.
+            stored = json.loads(created.position_json)
+            assert stored == custom_layout
+            # The auto-generated layout's HEADER/ROW ids wouldn't match
+            # `ROW-custom`; this sanity-check guards against regressions
+            # where the override silently merges with the default.
+            assert "ROW-custom" in stored
+
+    @patch("superset.models.dashboard.Dashboard")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generate_dashboard_json_metadata_overrides_shallow_merged(
+        self,
+        mock_db_session,
+        mock_find_by_id,
+        mock_dashboard_cls,
+        mcp_server,
+    ) -> None:
+        """``json_metadata_overrides`` is shallow-merged on top of the
+        defaults: caller-supplied keys win, defaults for keys the caller
+        didn't touch survive."""
+        from superset.utils import json
+
+        charts = [_mock_chart(id=1, slice_name="Sales")]
+        mock_dashboard = _mock_dashboard(id=71, title="Themed Dashboard")
+        _setup_generate_dashboard_mocks(
+            mock_db_session,
+            mock_find_by_id,
+            mock_dashboard_cls,
+            charts,
+            mock_dashboard,
+        )
+
+        overrides = {
+            "label_colors": {"Electronics": "#4C78A8"},
+            "cross_filters_enabled": True,
+        }
+        request = {
+            "chart_ids": [1],
+            "dashboard_title": "Themed Dashboard",
+            "json_metadata_overrides": overrides,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("generate_dashboard", {"request": request})
+
+            assert result.structured_content["error"] is None
+            created = mock_dashboard_cls.return_value
+            merged = json.loads(created.json_metadata)
+            # Caller overrides land verbatim
+            assert merged["label_colors"] == {"Electronics": "#4C78A8"}
+            assert merged["cross_filters_enabled"] is True
+            # Defaults for keys the caller did NOT supply must still be
+            # present — this is what makes it a *shallow merge* rather
+            # than a full replace.
+            assert "timed_refresh_immune_slices" in merged
+            assert "refresh_frequency" in merged
+
+    @patch("superset.models.dashboard.Dashboard")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generate_dashboard_slug_and_css_applied(
+        self,
+        mock_db_session,
+        mock_find_by_id,
+        mock_dashboard_cls,
+        mcp_server,
+    ) -> None:
+        """Both ``slug`` and ``css`` land on the created dashboard model
+        when supplied. Verifying via the model directly — not just the
+        response — confirms the tool wrote the fields, not merely echoed
+        them back."""
+        charts = [_mock_chart(id=1, slice_name="Sales")]
+        mock_dashboard = _mock_dashboard(id=72, title="Branded Dashboard")
+        _setup_generate_dashboard_mocks(
+            mock_db_session,
+            mock_find_by_id,
+            mock_dashboard_cls,
+            charts,
+            mock_dashboard,
+        )
+
+        css_value = ".header-controls { display: none; }"
+        request = {
+            "chart_ids": [1],
+            "dashboard_title": "Branded Dashboard",
+            "slug": "branded-q4",
+            "css": css_value,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("generate_dashboard", {"request": request})
+
+            assert result.structured_content["error"] is None
+            created = mock_dashboard_cls.return_value
+            assert created.slug == "branded-q4"
+            assert created.css == css_value
+
 
 class TestAddChartToExistingDashboard:
     """Tests for add_chart_to_existing_dashboard MCP tool."""
@@ -652,8 +929,10 @@ class TestAddChartToExistingDashboard:
             assert "chart_key" in result.structured_content["position"]
             row_key = result.structured_content["position"]["row_key"]
             assert row_key.startswith("ROW-")
+            assert result.structured_content["dashboard_url"].endswith("/dashboard/1/")
             assert (
-                "/superset/dashboard/1/" in result.structured_content["dashboard_url"]
+                "/superset/superset/dashboard/"
+                not in result.structured_content["dashboard_url"]
             )
 
             call_args = mock_update_command.call_args[0][1]
@@ -1703,6 +1982,44 @@ class TestDashboardSerializationEagerLoading:
             # Verify DashboardDAO.find_by_id was called for re-fetch
             mock_find_by_id.assert_called()
 
+    @patch("superset.models.dashboard.Dashboard")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generate_dashboard_refetch_sqlalchemy_error_rollback(
+        self, mock_db_session, mock_find_by_id, mock_dashboard_cls, mcp_server
+    ):
+        """When the DAO re-fetch raises SQLAlchemyError, the session is
+        rolled back and a minimal response is returned with only scalar
+        attributes (no editors/tags/charts that would trigger lazy-loading)."""
+        from sqlalchemy.exc import SQLAlchemyError
+
+        charts = [_mock_chart(id=1, slice_name="Chart 1")]
+        dashboard = _mock_dashboard(id=10, title="Rollback Test")
+        _setup_generate_dashboard_mocks(
+            mock_db_session, mock_find_by_id, mock_dashboard_cls, charts, dashboard
+        )
+        # Make the DAO re-fetch raise SQLAlchemyError
+        mock_find_by_id.side_effect = SQLAlchemyError("session error")
+
+        request = {"chart_ids": [1], "dashboard_title": "Rollback Test"}
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("generate_dashboard", {"request": request})
+
+            data = result.structured_content
+            assert data["error"] is None
+            mock_db_session.rollback.assert_called()
+            # Minimal response should have scalar fields
+            dash = data["dashboard"]
+            assert dash["id"] == 10
+            assert dash["dashboard_title"] == "Rollback Test"
+            assert data["dashboard_url"].endswith("/dashboard/test-dashboard-10/")
+            assert "/superset/superset/dashboard/" not in data["dashboard_url"]
+            # Access-list fields should not be returned.
+            assert "editors" not in dash
+            assert dash["tags"] == []
+            assert dash["charts"] == []
+
     @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
@@ -1771,3 +2088,55 @@ class TestDashboardSerializationEagerLoading:
 
             # Tool should still succeed using fallback dashboard
             assert result.structured_content["error"] is None
+
+    @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_add_chart_refetch_sqlalchemy_error_rollback(
+        self, mock_db_session, mock_find_dashboard, mock_update_command, mcp_server
+    ):
+        """When the DAO re-fetch raises SQLAlchemyError after adding a chart,
+        the session is rolled back and a minimal response is returned with
+        only scalar attributes and position info."""
+        from sqlalchemy.exc import SQLAlchemyError
+
+        mock_dashboard = _mock_dashboard(id=1, title="Dashboard")
+        mock_dashboard.slices = []
+        mock_dashboard.position_json = "{}"
+
+        mock_chart = _mock_chart(id=15)
+        mock_db_session.get.return_value = mock_chart
+
+        updated = _mock_dashboard(id=1, title="Dashboard")
+        updated.slices = [_mock_chart(id=15)]
+        mock_update_command.return_value.run.return_value = updated
+
+        # First call returns dashboard (validation), second raises (re-fetch)
+        mock_find_dashboard.side_effect = [
+            mock_dashboard,
+            SQLAlchemyError("session error"),
+        ]
+
+        request = {"dashboard_id": 1, "chart_id": 15}
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "add_chart_to_existing_dashboard", {"request": request}
+            )
+
+            data = result.structured_content
+            assert data["error"] is None
+            mock_db_session.rollback.assert_called()
+            # Minimal response should have scalar fields
+            dash = data["dashboard"]
+            assert dash["id"] == 1
+            assert dash["dashboard_title"] == "Dashboard"
+            assert data["dashboard_url"].endswith("/dashboard/1/")
+            assert "/superset/superset/dashboard/" not in data["dashboard_url"]
+            # Position info should still be returned
+            assert data["position"] is not None
+            assert "chart_key" in data["position"]
+            # Access-list fields should not be returned.
+            assert "editors" not in dash
+            assert dash["tags"] == []
+            assert dash["charts"] == []

@@ -94,7 +94,6 @@ interface SubtotalOptions {
 interface TableRendererProps {
   cols: string[];
   rows: string[];
-  aggregatorName: string;
   tableOptions?: TableOptions;
   subtotalOptions?: SubtotalOptions;
   namesMapping?: Record<string, string>;
@@ -132,6 +131,7 @@ interface PivotSettings {
   maxColVisible?: number;
   rowAttrSpans?: number[][];
   colAttrSpans?: number[][];
+  visibleRowCount?: number;
 }
 
 const parseLabel = (value: unknown): string | number => {
@@ -154,7 +154,7 @@ function displayCell(value: unknown, allowRenderHtml?: boolean): ReactNode {
 function displayHeaderCell(
   needToggle: boolean,
   ArrowIcon: ReactNode,
-  onArrowClick: ((e: MouseEvent<HTMLSpanElement>) => void) | null,
+  onArrowClick: ((e: MouseEvent<HTMLButtonElement>) => void) | null,
   value: unknown,
   namesMapping: Record<string, string>,
   allowRenderHtml?: boolean,
@@ -167,14 +167,13 @@ function displayHeaderCell(
       : parsedLabel;
   return needToggle ? (
     <span className="toggle-wrapper">
-      <span
-        role="button"
-        tabIndex={0}
+      <button
+        type="button"
         className="toggle"
         onClick={onArrowClick || undefined}
       >
         {ArrowIcon}
-      </span>
+      </button>
       <span className="toggle-val">{labelContent}</span>
     </span>
   ) : (
@@ -332,7 +331,6 @@ export function TableRenderer(props: TableRendererProps) {
   const {
     cols,
     rows,
-    aggregatorName,
     tableOptions = {},
     subtotalOptions,
     namesMapping: namesMappingProp,
@@ -462,7 +460,7 @@ export function TableRenderer(props: TableRendererProps) {
   );
 
   const toggleRowKey = useCallback(
-    (flatRowKey: string) => (e: MouseEvent<HTMLSpanElement>) => {
+    (flatRowKey: string) => (e: MouseEvent<HTMLButtonElement>) => {
       e.stopPropagation();
       setCollapsedRows(state => ({
         ...state,
@@ -473,7 +471,7 @@ export function TableRenderer(props: TableRendererProps) {
   );
 
   const toggleColKey = useCallback(
-    (flatColKey: string) => (e: MouseEvent<HTMLSpanElement>) => {
+    (flatColKey: string) => (e: MouseEvent<HTMLButtonElement>) => {
       e.stopPropagation();
       setCollapsedCols(state => ({
         ...state,
@@ -754,7 +752,6 @@ export function TableRenderer(props: TableRendererProps) {
   }, [
     cols,
     rows,
-    aggregatorName,
     tableOptions,
     subtotalOptions,
     namesMappingProp,
@@ -797,6 +794,7 @@ export function TableRenderer(props: TableRendererProps) {
     maxColVisible: Math.max(...visibleColKeys.map((k: string[]) => k.length)),
     rowAttrSpans: calcAttrSpans(visibleRowKeys, rowAttrs.length),
     colAttrSpans: calcAttrSpans(visibleColKeys, colAttrs.length),
+    visibleRowCount: visibleRowKeys.length + (colTotals ? 1 : 0),
     allowRenderHtml,
     ...basePivotSettings,
   };
@@ -1038,14 +1036,15 @@ export function TableRenderer(props: TableRendererProps) {
                 namesMapping,
                 settingsAllowRenderHtml,
               )}
-              <span
-                role="button"
-                tabIndex={0}
+              <button
+                type="button"
+                className="sort-icon-btn"
                 // Prevents event bubbling to avoid conflict with column header click handlers
                 // Ensures sort operation executes without triggering cross-filtration
                 onClick={e => {
                   e.stopPropagation();
                 }}
+                onKeyDown={e => e.stopPropagation()}
                 aria-label={
                   activeSortColumn === i
                     ? `Sorted by ${columnName} ${sortingOrder[i] === 'asc' ? 'ascending' : 'descending'}`
@@ -1053,7 +1052,7 @@ export function TableRenderer(props: TableRendererProps) {
                 }
               >
                 {visibleSortIcon && getSortIcon(i)}
-              </span>
+              </button>
             </th>,
           );
         } else if (attrIdx === colKey.length) {
@@ -1099,9 +1098,7 @@ export function TableRenderer(props: TableRendererProps) {
               true,
             )}
           >
-            {t('Total (%(aggregatorName)s)', {
-              aggregatorName: t(aggregatorName),
-            })}
+            {t('Total')}
           </th>
         ) : null;
 
@@ -1116,7 +1113,6 @@ export function TableRenderer(props: TableRendererProps) {
       toggleColKey,
       clickHeaderHandler,
       cols,
-      aggregatorName,
       activeSortColumn,
       sortingOrder,
       collapsedCols,
@@ -1183,11 +1179,7 @@ export function TableRenderer(props: TableRendererProps) {
               true,
             )}
           >
-            {settingsColAttrs.length === 0
-              ? t('Total (%(aggregatorName)s)', {
-                  aggregatorName: t(aggregatorName),
-                })
-              : null}
+            {settingsColAttrs.length === 0 ? t('Total') : null}
           </th>
         </tr>
       );
@@ -1198,7 +1190,6 @@ export function TableRenderer(props: TableRendererProps) {
       clickHeaderHandler,
       rows,
       tableOptions.clickRowHeaderCallback,
-      aggregatorName,
     ],
   );
 
@@ -1220,6 +1211,7 @@ export function TableRenderer(props: TableRendererProps) {
         rowTotalCallbacks,
         namesMapping,
         allowRenderHtml: settingsAllowRenderHtml,
+        visibleRowCount,
       } = settings;
 
       const {
@@ -1256,6 +1248,11 @@ export function TableRenderer(props: TableRendererProps) {
         }
         const rowSpan = rowAttrSpans![rowIdx][i];
         if (rowSpan > 0) {
+          const isLastRow = rowIdx + rowSpan === visibleRowCount;
+          let cellClassName = valueCellClassName;
+          if (isLastRow) {
+            cellClassName += ' pvtRowLabelLast';
+          }
           const flatRowKeySlice = flatKey(rowKey.slice(0, i + 1));
           const colSpan =
             1 + (i === settingsRowAttrs.length - 1 ? colIncrSpan : 0);
@@ -1290,7 +1287,7 @@ export function TableRenderer(props: TableRendererProps) {
           return (
             <th
               key={`rowKeyLabel-${i}`}
-              className={valueCellClassName}
+              className={cellClassName}
               style={rowHeaderStyle}
               rowSpan={rowSpan}
               colSpan={colSpan}
@@ -1448,9 +1445,7 @@ export function TableRenderer(props: TableRendererProps) {
             true,
           )}
         >
-          {t('Total (%(aggregatorName)s)', {
-            aggregatorName: t(aggregatorName),
-          })}
+          {t('Total')}
         </th>
       );
 
@@ -1502,7 +1497,6 @@ export function TableRenderer(props: TableRendererProps) {
       clickHeaderHandler,
       rows,
       tableOptions.clickRowHeaderCallback,
-      aggregatorName,
       onContextMenu,
       allowRenderHtml,
     ],

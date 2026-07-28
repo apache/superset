@@ -60,7 +60,7 @@ export default function RadioButtonControl({
   ...props
 }: RadioButtonControlProps) {
   const normalizedOptions = options.map(normalizeOption);
-  const currentValue = initialValue || normalizedOptions[0].value;
+  const currentValue = initialValue ?? normalizedOptions[0]?.value;
 
   return (
     <div>

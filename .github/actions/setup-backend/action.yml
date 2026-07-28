@@ -32,8 +32,6 @@ runs:
         elif [ "$INPUT_PYTHON_VERSION" = "next" ]; then
           # currently disabled in GHA matrixes because of library compatibility issues
           RESOLVED_VERSION="3.12"
-        elif [ "$INPUT_PYTHON_VERSION" = "previous" ]; then
-          RESOLVED_VERSION="3.10"
         elif printf '%s' "$INPUT_PYTHON_VERSION" | grep -Eq '^[0-9]+\.[0-9]+(\.[0-9]+)?$'; then
           RESOLVED_VERSION="$INPUT_PYTHON_VERSION"
         else
@@ -42,7 +40,7 @@ runs:
         fi
         echo "python-version=$RESOLVED_VERSION" >> "$GITHUB_OUTPUT"
     - name: Set up Python ${{ steps.set-python-version.outputs.python-version }}
-      uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+      uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
       with:
         python-version: ${{ steps.set-python-version.outputs.python-version }}
         cache: ${{ inputs.cache }}

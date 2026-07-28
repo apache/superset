@@ -27,7 +27,7 @@ import {
 } from 'react';
 import classNames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
-import { styled } from '@apache-superset/core/theme';
+import { css, styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 
 import { EditableTitle, EmptyState } from '@superset-ui/core/components';
@@ -36,6 +36,7 @@ import getChartIdsFromComponent from 'src/dashboard/util/getChartIdsFromComponen
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
 import { Typography } from '@superset-ui/core/components/Typography';
+import { ensureAppRoot } from 'src/utils/navigationUtils';
 import {
   useIsAutoRefreshing,
   useIsRefreshInFlight,
@@ -333,7 +334,9 @@ const Tab = (props: TabProps): ReactElement => {
                       <span>
                         {t('You can')}{' '}
                         <Typography.Link
-                          href={`/chart/add?dashboard_id=${dashboardId}`}
+                          href={ensureAppRoot(
+                            `/chart/add?dashboard_id=${dashboardId}`,
+                          )}
                           rel="noopener noreferrer"
                           target="_blank"
                         >
@@ -344,13 +347,21 @@ const Tab = (props: TabProps): ReactElement => {
                     ) : (
                       <span>
                         {t('You can add the components in the')}{' '}
-                        <span
-                          role="button"
-                          tabIndex={0}
+                        <button
+                          type="button"
                           onClick={() => dispatch(setEditMode(true))}
+                          css={css`
+                            appearance: none;
+                            border: none;
+                            background: none;
+                            padding: 0;
+                            font: inherit;
+                            cursor: pointer;
+                            text-decoration: underline;
+                          `}
                         >
                           {t('edit mode')}
-                        </span>
+                        </button>
                       </span>
                     ))
                   }

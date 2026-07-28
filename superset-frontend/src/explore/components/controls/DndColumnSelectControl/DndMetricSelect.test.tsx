@@ -24,11 +24,15 @@ import {
   waitFor,
   within,
 } from 'spec/helpers/testing-library';
+import { Metric } from '@superset-ui/core';
 import { useDroppable } from '@dnd-kit/core';
 import { useSortable } from '@dnd-kit/sortable';
-import { DndMetricSelect } from 'src/explore/components/controls/DndColumnSelectControl/DndMetricSelect';
+import {
+  DndMetricSelect,
+  coerceMetrics,
+} from 'src/explore/components/controls/DndColumnSelectControl/DndMetricSelect';
 import { AGGREGATES } from 'src/explore/constants';
-import { EXPRESSION_TYPES } from '../MetricControl/AdhocMetric';
+import AdhocMetric, { EXPRESSION_TYPES } from '../MetricControl/AdhocMetric';
 import { DndItemType } from '../../DndItemType';
 import {
   CapturedDroppable,
@@ -98,6 +102,70 @@ const adhocMetricB = {
   aggregate: AGGREGATES.SUM,
   optionName: 'def',
 };
+
+test('coerceMetrics regenerates duplicate optionNames so each metric stays unique', () => {
+  // A saved chart can carry two adhoc metrics with the same optionName (e.g.
+  // born from a duplicated metric). Since edits are matched by optionName, the
+  // duplicates must be split apart on load or editing one overwrites the other.
+  const dup = 'shared_option';
+  const result = coerceMetrics(
+    [
+      {
+        expressionType: EXPRESSION_TYPES.SIMPLE,
+        column: defaultProps.columns[0],
+        aggregate: AGGREGATES.SUM,
+        optionName: dup,
+      },
+      {
+        expressionType: EXPRESSION_TYPES.SIMPLE,
+        column: defaultProps.columns[1],
+        aggregate: AGGREGATES.AVG,
+        optionName: dup,
+      },
+    ] as any,
+    defaultProps.savedMetrics as unknown as Metric[],
+    defaultProps.columns,
+  ) as AdhocMetric[];
+
+  expect(result).toHaveLength(2);
+  // First keeps the optionName, second is regenerated to avoid the collision.
+  expect(result[0].optionName).toBe(dup);
+  expect(result[1].optionName).not.toBe(dup);
+  // Each metric definition is otherwise preserved.
+  expect(result[0].aggregate).toBe(AGGREGATES.SUM);
+  expect(result[1].aggregate).toBe(AGGREGATES.AVG);
+});
+
+test('coerceMetrics regenerates duplicate optionNames for SQL adhoc metrics too', () => {
+  // The same collision can happen with custom SQL metrics, which take a
+  // different code path than column-backed metrics but must dedupe the same way.
+  const dup = 'shared_option';
+  const result = coerceMetrics(
+    [
+      {
+        expressionType: EXPRESSION_TYPES.SQL,
+        sqlExpression: 'COUNT(*)',
+        label: 'count',
+        optionName: dup,
+      },
+      {
+        expressionType: EXPRESSION_TYPES.SQL,
+        sqlExpression: 'SUM(value)',
+        label: 'total',
+        optionName: dup,
+      },
+    ] as any,
+    defaultProps.savedMetrics as unknown as Metric[],
+    defaultProps.columns,
+  ) as AdhocMetric[];
+
+  expect(result).toHaveLength(2);
+  expect(result[0].optionName).toBe(dup);
+  expect(result[1].optionName).not.toBe(dup);
+  // Each metric definition is otherwise preserved.
+  expect(result[0].sqlExpression).toBe('COUNT(*)');
+  expect(result[1].sqlExpression).toBe('SUM(value)');
+});
 
 test('renders with default props', () => {
   render(<DndMetricSelect {...defaultProps} />, {
@@ -358,15 +426,19 @@ test('can drag metrics (reorder dispatches through the reorder + drop path)', ()
     { useDndKit: true, useRedux: true },
   );
 
-  // DndMetricSelect reorders via moveLabel (internal state) finalized by
-  // onDropLabel. Verify both callbacks were registered on the sortable items
-  // and the drag-end path invokes them (which commits the change via onChange).
+  // DndMetricSelect reorders via moveLabel, which arrayMoves the metrics and
+  // commits the new order itself through onChange (onDropLabel no longer
+  // persists anything). Verify the reorder callback is registered and that a
+  // non-adjacent drag (0 -> 2) commits the fully moved order, not a swap.
   expect(sortables.items.length).toBeGreaterThanOrEqual(3);
   expect(typeof sortables.items[0].onMoveLabel).toBe('function');
-  expect(typeof sortables.items[0].onDropLabel).toBe('function');
 
   simulateReorder(sortables, 0, 2);
-  expect(onChange).toHaveBeenCalled();
+  expect(onChange).toHaveBeenCalledTimes(1);
+  const committed = onChange.mock.calls[0][0];
+  // arrayMove(['metric_a','metric_b',adhoc], 0, 2) => ['metric_b',adhoc,'metric_a']
+  expect(committed[0]).toBe('metric_b');
+  expect(committed[committed.length - 1]).toBe('metric_a');
 });
 
 test('cannot drop a duplicated item', () => {

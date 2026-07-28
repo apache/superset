@@ -38,7 +38,7 @@ import {
   isTimeComparison,
   timeCompareOperator,
 } from '@superset-ui/chart-controls';
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'lodash-es';
 import { TableChartFormData } from './types';
 import { updateTableOwnState } from './utils/externalAPIs';
 
@@ -58,7 +58,7 @@ export function getQueryMode(formData: TableChartFormData) {
   return hasRawColumns ? QueryMode.Raw : QueryMode.Aggregate;
 }
 
-const buildQuery: BuildQuery<TableChartFormData> = (
+export const buildQueryUncached: BuildQuery<TableChartFormData> = (
   formData: TableChartFormData,
   options,
 ) => {
@@ -90,6 +90,13 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     let { metrics, orderby = [], columns = [] } = baseQueryObject;
     const { extras = {} } = baseQueryObject;
     let postProcessing: PostProcessingRule[] = [];
+    // Capture the percent-metric `contribution` rule so it can be reused for
+    // the totals query below. The totals query must rename percent-metric
+    // columns the same way (`metric` -> `%metric`) so the footer can look them
+    // up; without it the totals row renders 0.000%. We deliberately reuse only
+    // this rule and not the full `postProcessing` array, which may also contain
+    // a time-comparison operator that must not run on the single totals row.
+    let contributionPostProcessing: PostProcessingRule | undefined;
     const nonCustomNorInheritShifts = ensureIsArray(
       formData.time_compare,
     ).filter((shift: string) => shift !== 'custom' && shift !== 'inherit');
@@ -157,15 +164,14 @@ const buildQuery: BuildQuery<TableChartFormData> = (
           metrics.concat(percentMetrics),
           getMetricLabel,
         );
-        postProcessing = [
-          {
-            operation: 'contribution',
-            options: {
-              columns: percentMetricLabels,
-              rename_columns: percentMetricLabels.map(x => `%${x}`),
-            },
+        contributionPostProcessing = {
+          operation: 'contribution',
+          options: {
+            columns: percentMetricLabels,
+            rename_columns: percentMetricLabels.map(x => `%${x}`),
           },
-        ];
+        };
+        postProcessing = [contributionPostProcessing];
       }
       // Add the operator for the time comparison if some is selected
       if (!isEmpty(timeOffsets)) {
@@ -203,6 +209,20 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 
     const moreProps: Partial<QueryObject> = {};
     const ownState = options?.ownState ?? {};
+    // Server pagination sizing, shared between the per-page request below and
+    // the filter-change reset further down.
+    const pageSize =
+      Number(ownState.pageSize ?? formDataCopy.server_page_length) || 0;
+    const configuredRowLimit = Number(formDataCopy.row_limit) || 0;
+    // row_limit for the first page, capped by the configured row limit. Used
+    // when a filter change resets pagination back to page 0. A pageSize of 0
+    // means "no pagination", so the configured row limit applies directly.
+    const firstPageRowLimit =
+      pageSize > 0
+        ? configuredRowLimit > 0
+          ? Math.min(pageSize, configuredRowLimit)
+          : pageSize
+        : configuredRowLimit;
 
     // Build Query flag to check if its for either download as csv, excel or json
     const isDownloadQuery =
@@ -216,11 +236,36 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     }
 
     if (!isDownloadQuery && formDataCopy.server_pagination) {
-      const pageSize = ownState.pageSize ?? formDataCopy.server_page_length;
-      const currentPage = ownState.currentPage ?? 0;
+      if (pageSize > 0) {
+        // Never page past the configured row limit. Clamping the page to the
+        // last one that still falls within the limit keeps the request inside
+        // the cap and avoids emitting row_limit: 0, which the backend treats
+        // as "no limit" rather than "no rows" (see helpers.py get_sqla_query).
+        const lastPage =
+          configuredRowLimit > 0
+            ? Math.max(Math.ceil(configuredRowLimit / pageSize) - 1, 0)
+            : Number(ownState.currentPage) || 0;
+        const currentPage = Math.min(
+          Number(ownState.currentPage) || 0,
+          lastPage,
+        );
+        const rowOffset = currentPage * pageSize;
+        const remainingRows =
+          configuredRowLimit > 0
+            ? Math.max(configuredRowLimit - rowOffset, 0)
+            : pageSize;
 
-      moreProps.row_limit = pageSize;
-      moreProps.row_offset = currentPage * pageSize;
+        moreProps.row_limit =
+          configuredRowLimit > 0 ? Math.min(pageSize, remainingRows) : pageSize;
+        moreProps.row_offset = rowOffset;
+      } else {
+        // A pageSize of 0 means "no pagination" (server_page_length: 0), so
+        // request a single unpaginated result capped at the configured row
+        // limit. Feeding 0 into the paging math would emit row_limit: 0,
+        // which the backend treats as "no limit".
+        moreProps.row_limit = configuredRowLimit;
+        moreProps.row_offset = 0;
+      }
     }
 
     let sortByFromOwnState: QueryFormOrderBy[] | undefined;
@@ -367,16 +412,27 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     };
 
     if (
+      !isDownloadQuery &&
       formData.server_pagination &&
       options?.extras?.cachedChanges?.[formData.slice_id] &&
       JSON.stringify(options?.extras?.cachedChanges?.[formData.slice_id]) !==
         JSON.stringify(queryObject.filters)
     ) {
-      queryObject = { ...queryObject, row_offset: 0 };
+      // Reset to the first page: restore the full first-page row_limit rather
+      // than carrying over the last page's capped value. Skipped for download
+      // queries so CSV/JSON exports keep the full configured row_limit instead
+      // of being capped to the page size.
+      queryObject = {
+        ...queryObject,
+        row_offset: 0,
+        row_limit: firstPageRowLimit,
+      };
       const modifiedOwnState = {
         ...options?.ownState,
         currentPage: 0,
-        pageSize: queryObject.row_limit ?? 0,
+        // Persist the user-selected page size, not the per-request row_limit,
+        // which may be capped to the remaining rows on the last page.
+        pageSize,
         lastFilteredColumn: undefined,
         lastFilteredInputPosition: undefined,
       };
@@ -618,11 +674,28 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 
     // Create totals query AFTER all filters (including AG Grid filters) are applied
     // This ensures we can properly exclude AG Grid WHERE filters from the totals
-    if (
+    // In raw records mode the summary is a SUM over the numeric columns primed
+    // into ownState by the chart (see rawSummaryColumns in transformProps).
+    // Own state can outlive a datasource or column-selection change, so bound
+    // the primed summary columns to the current raw selection: a stale name
+    // must never reach a SUM metric or the whole chart query fails before the
+    // chart can re-prime its own state.
+    const selectedRawColumns = new Set(
+      ensureIsArray(formData.all_columns).map(getColumnLabel),
+    );
+    const rawSummaryColumns =
+      queryMode === QueryMode.Raw && formData.show_totals
+        ? ensureIsArray(
+            ownState.rawSummaryColumns as string[] | undefined,
+          ).filter(columnName => selectedRawColumns.has(columnName))
+        : [];
+    const showAggregateTotals = Boolean(
       metrics?.length &&
       formData.show_totals &&
-      queryMode === QueryMode.Aggregate
-    ) {
+      queryMode === QueryMode.Aggregate,
+    );
+
+    if (showAggregateTotals || rawSummaryColumns.length > 0) {
       // Create a copy of extras without the AG Grid WHERE clause
       // AG Grid filters in extras.where can reference calculated columns
       // which aren't available in the totals subquery
@@ -655,10 +728,24 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       extraQueries.push({
         ...queryObject,
         columns: [],
+        ...(rawSummaryColumns.length > 0 && {
+          metrics: rawSummaryColumns.map(columnName => ({
+            expressionType: 'SIMPLE' as const,
+            aggregate: 'SUM' as const,
+            column: { column_name: columnName },
+            label: columnName,
+          })),
+        }),
         extras: totalsExtras, // Use extras with AG Grid WHERE removed
         row_limit: 0,
         row_offset: 0,
-        post_processing: [],
+        // Reapply only the percent-metric contribution rule so the totals row
+        // exposes `%metric` keys (value/value = 100% on the single aggregated
+        // row). The time-comparison operator from the main query is omitted on
+        // purpose; it must not run against the single-row totals query.
+        post_processing: contributionPostProcessing
+          ? [contributionPostProcessing]
+          : [],
         order_desc: undefined, // we don't need orderby stuff here,
         orderby: undefined, // because this query will be used for get total aggregation.
       });
@@ -695,7 +782,7 @@ export const cachedBuildQuery = (): BuildQuery<TableChartFormData> => {
   };
 
   return (formData, options) =>
-    buildQuery(
+    buildQueryUncached(
       { ...formData },
       {
         extras: { cachedChanges },

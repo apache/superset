@@ -332,15 +332,39 @@ cd superset-frontend
 npm run build-translation
 
 # Backend
-pybabel compile -d superset/translations
+pybabel compile --use-fuzzy -d superset/translations
 ```
+
+`--use-fuzzy` includes `#, fuzzy` entries in the compiled `.mo` files. Superset
+serves fuzzy translations on purpose: the frontend build (`po2json --fuzzy`)
+already includes them, `flask fab babel-compile` (used by the release images)
+compiles with `-f`, and the production `Dockerfile` compiles with `--use-fuzzy`
+as well. This keeps machine-generated (and other draft) translations visible in
+the UI rather than falling back to English while they await review.
 
 ### Backfilling missing translations with AI
 
 For languages with many untranslated strings, the repo includes a script that
 uses Claude AI to generate draft translations for any missing entries. All
 AI-generated strings are marked `#, fuzzy` and tagged with an attribution
-comment so that human reviewers know they need to be checked before merging.
+comment so that human reviewers know they need to be checked.
+
+Note that `#, fuzzy` marks a translation as *needing review*, not as *withheld*:
+both the frontend and backend builds serve fuzzy entries (see [Applying
+translations](#applying-translations) above), so an AI-generated string is shown
+in the UI as soon as it is built and deployed. Reviewers should verify each
+entry and remove the `#, fuzzy` flag to promote it to a confirmed translation.
+
+The script never touches entries that must stay literal — icon names, enum
+values, SQL keywords, API field names, and example placeholders. These are
+registered in `superset/translations/do-not-translate.txt`;
+`scripts/translations/apply_do_not_translate.py` stamps them in `messages.pot`
+with a `#. do-not-translate` extracted comment (run automatically
+from `babel_update.sh`), which `pybabel update` then propagates to every
+catalog. To mark a new string do-not-translate, add its msgid to the registry.
+The backfill also honors that marker and any legacy do-not-translate translator
+comment (e.g. the `ru` catalog's `# Не переводить`), leaving such entries
+untranslated so they fall back to the source token.
 
 #### Prerequisites
 

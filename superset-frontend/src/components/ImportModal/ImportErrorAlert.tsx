@@ -26,7 +26,7 @@ import { ErrorAlert } from 'src/components';
 const supersetTextDocs = getDatabaseDocumentationLinks();
 export const DOCUMENTATION_LINK = supersetTextDocs
   ? supersetTextDocs.support
-  : 'https://superset.apache.org/docs/databases/installing-database-drivers';
+  : 'https://superset.apache.org/user-docs/databases/#installing-database-drivers';
 
 export interface IProps {
   errorMessage: string;

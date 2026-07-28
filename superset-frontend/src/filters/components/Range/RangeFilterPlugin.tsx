@@ -28,7 +28,7 @@ import { styled, useTheme, css } from '@apache-superset/core/theme';
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { FilterBarOrientation } from 'src/dashboard/types';
 // import Metadata from '@superset-ui/core/components/Metadata';
-import { isNumber } from 'lodash';
+import { isNumber } from 'lodash-es';
 import { InputNumber } from '@superset-ui/core/components/Input';
 import Slider from '@superset-ui/core/components/Slider';
 import { FormItem, Tooltip, Icons } from '@superset-ui/core/components';

@@ -24,8 +24,7 @@ from typing import Any, Type, Union
 import sqlalchemy as sa
 from alembic import op
 from flask import current_app
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import lazyload, Session
+from sqlalchemy.orm import declarative_base, lazyload, Session
 
 from superset import db, security_manager
 from superset.db_engine_specs.base import GenericDBException
@@ -377,7 +376,7 @@ def upgrade_catalog_perms(engines: set[str] | None = None) -> None:
 
     """
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     # The Database model has an eager-loaded (``lazy="joined"``) ``ssh_tunnel``
     # backref. Eager-loading it here would SELECT every column on ``ssh_tunnels``,
@@ -582,7 +581,7 @@ def downgrade_catalog_perms(engines: set[str] | None = None) -> None:
     WARNING: models (datasets and charts) not in the default catalog are deleted!
     """
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     # See upgrade_catalog_perms: avoid eager-loading the ``ssh_tunnel`` backref so the
     # query stays schema-safe across migration revisions.

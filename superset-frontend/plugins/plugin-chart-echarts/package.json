@@ -29,7 +29,8 @@
     "acorn": "^8.17.0",
     "d3-array": "^3.2.4",
     "lodash": "^4.18.1",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "lodash-es": "^4.18.1"
   },
   "peerDependencies": {
     "@apache-superset/core": "*",

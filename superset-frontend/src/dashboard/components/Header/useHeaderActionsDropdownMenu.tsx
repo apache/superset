@@ -22,7 +22,7 @@ import { useSelector } from 'react-redux';
 import { useHistory, useLocation } from 'react-router-dom';
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
 import { t } from '@apache-superset/core/translation';
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'lodash-es';
 import { URL_PARAMS } from 'src/constants';
 import { useShareMenuItems } from 'src/dashboard/components/menu/ShareMenuItems';
 import { useDownloadMenuItems } from 'src/dashboard/components/menu/DownloadMenuItems';

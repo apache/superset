@@ -122,8 +122,23 @@ class DatetimeFormatDetector:
             # This handles different SQL dialects (LIMIT, TOP, FETCH FIRST, etc.)
             sql = database.apply_limit_to_sql(sql, limit=self.sample_size, force=True)
 
-            # Execute query and get results
-            df = database.get_df(sql, dataset.schema)
+            # Execute query and get results. Failures here come from the
+            # target database itself (bad connection config, transient
+            # outage, permission errors, etc.), not from Superset's own
+            # logic. Format detection is a best-effort optimization with no
+            # user-facing impact when it's skipped, so log at WARNING
+            # instead of capturing an ERROR-level exception for every sample
+            # query a misconfigured/unreachable database rejects.
+            try:
+                df = database.get_df(sql, dataset.schema)
+            except Exception as ex:
+                logger.warning(
+                    "Could not query column %s.%s for format detection: %s",
+                    dataset.table_name,
+                    column.column_name,
+                    str(ex),
+                )
+                return None
 
             if df.empty or column.column_name not in df.columns:
                 logger.warning(

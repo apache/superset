@@ -19,10 +19,16 @@
 
 import {
   AppliedCrossFilterType,
+  ChartCustomization,
+  ChartCustomizationType,
+  DatasourceType,
   Filter,
   NativeFilterType,
 } from '@superset-ui/core';
-import { getRelatedCharts } from './getRelatedCharts';
+import {
+  getRelatedCharts,
+  getRelatedChartsForChartCustomization,
+} from './getRelatedCharts';
 
 const slices = {
   '1': { datasource: 'ds1', slice_id: 1 },
@@ -104,4 +110,68 @@ test('Return only chart ids in specific scope with cross filter', () => {
 
   const result = getRelatedCharts('1', filters['1'], slices);
   expect(result).toEqual([2]);
+});
+
+test('getRelatedChartsForChartCustomization disambiguates by datasource type', () => {
+  // Tables and semantic views have independent ID spaces, so dataset id ``1``
+  // can refer to either. The customization here targets semantic view 1 and
+  // must NOT match the table-1 chart even though their numeric IDs collide.
+  const mixedSlices = {
+    '10': { form_data: { datasource: '1__table' }, slice_id: 10 },
+    '11': { form_data: { datasource: '1__semantic_view' }, slice_id: 11 },
+    '12': { form_data: { datasource: '2__table' }, slice_id: 12 },
+  } as any;
+
+  const customization = {
+    id: 'cust1',
+    type: ChartCustomizationType.ChartCustomization,
+    name: 'cust',
+    filterType: 'filter_select',
+    targets: [
+      {
+        datasetId: 1,
+        datasourceType: DatasourceType.SemanticView,
+        column: { name: 'col1' },
+      },
+    ],
+    scope: { rootPath: [], excluded: [] },
+    defaultDataMask: {},
+    controlValues: {},
+  } as unknown as ChartCustomization;
+
+  expect(
+    getRelatedChartsForChartCustomization(customization, mixedSlices),
+  ).toEqual([11]);
+});
+
+test('getRelatedChartsForChartCustomization falls back to ID match when type is absent', () => {
+  // Legacy customizations persisted before semantic views shipped don't
+  // carry ``datasourceType``. We keep the ID-only behavior for those rather
+  // than silently dropping matches.
+  const mixedSlices = {
+    '10': { form_data: { datasource: '1__table' }, slice_id: 10 },
+    '11': { form_data: { datasource: '1__semantic_view' }, slice_id: 11 },
+  } as any;
+
+  const customization = {
+    id: 'cust1',
+    type: ChartCustomizationType.ChartCustomization,
+    name: 'cust',
+    filterType: 'filter_select',
+    targets: [{ datasetId: 1, column: { name: 'col1' } }],
+    scope: { rootPath: [], excluded: [] },
+    defaultDataMask: {},
+    controlValues: {},
+  } as unknown as ChartCustomization;
+
+  expect(
+    getRelatedChartsForChartCustomization(customization, mixedSlices).sort(),
+  ).toEqual([10, 11]);
+});
+
+test('getRelatedCharts returns empty array when the filter is undefined', () => {
+  // A native filter can transiently disappear from the redux map (e.g. right
+  // after saving a chart customization) while it is still hovered/focused.
+  // Guard against reading .scope on undefined so the dashboard doesn't crash.
+  expect(getRelatedCharts('missing', undefined, slices)).toEqual([]);
 });

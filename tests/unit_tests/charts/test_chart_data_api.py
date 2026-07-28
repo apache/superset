@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 from typing import Any, TYPE_CHECKING
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from flask import Flask, g
 
@@ -113,6 +113,102 @@ def test_apply_dashboard_filter_context_does_not_duplicate_filters(
         assert ExtraCache().filter_values("country") == ["USA"]
 
 
+def test_apply_dashboard_filter_context_applies_time_grain_to_extras() -> None:
+    """
+    A dashboard time-grain filter must land in ``query["extras"]``, where
+    get_time_grain() reads it for charts that have no adhoc x-axis column.
+    """
+    query_context_json: dict[str, Any] = {
+        "queries": [{"extras": {"time_grain_sqla": "P1D", "having": "", "where": ""}}],
+    }
+
+    apply_dashboard_filter_context(query_context_json, {"time_grain_sqla": "P1M"})
+
+    assert query_context_json["queries"][0]["extras"]["time_grain_sqla"] == "P1M"
+
+
+def test_apply_dashboard_filter_context_overrides_x_axis_time_grain() -> None:
+    """
+    For charts with an adhoc X-Axis, the dashboard grain must override the
+    BASE_AXIS column's ``timeGrain`` (which get_time_grain() reads before
+    falling back to extras), mirroring the frontend's normalizeTimeColumn.
+    """
+    query_context_json: dict[str, Any] = {
+        "queries": [
+            {
+                "columns": [
+                    {
+                        "timeGrain": "P1D",
+                        "columnType": "BASE_AXIS",
+                        "sqlExpression": "order_date",
+                    }
+                ],
+                "extras": {"time_grain_sqla": "P1D"},
+            }
+        ],
+    }
+
+    apply_dashboard_filter_context(query_context_json, {"time_grain_sqla": "P1Y"})
+
+    query = query_context_json["queries"][0]
+    assert query["columns"][0]["timeGrain"] == "P1Y"
+    assert query["extras"]["time_grain_sqla"] == "P1Y"
+
+
+def test_apply_dashboard_filter_context_grain_targets_first_adhoc_column() -> None:
+    """
+    The grain override must land on ``columns[0]`` to match frontend logic.
+    """
+    query_context_json: dict[str, Any] = {
+        "queries": [
+            {
+                "columns": [
+                    {"timeGrain": "P1D", "sqlExpression": "order_date"},
+                    {"columnType": "BASE_AXIS", "sqlExpression": "other"},
+                ],
+                "extras": {},
+            }
+        ],
+    }
+
+    apply_dashboard_filter_context(query_context_json, {"time_grain_sqla": "P1Y"})
+
+    columns = query_context_json["queries"][0]["columns"]
+    assert columns[0]["timeGrain"] == "P1Y"  # the column get_time_grain reads
+    assert "timeGrain" not in columns[1]  # the BASE_AXIS-tagged one is untouched
+
+
+def test_apply_dashboard_filter_context_keeps_grain_when_no_grain_filter() -> None:
+    """
+    When the dashboard applies a non-grain filter (e.g. a value filter), the
+    chart's own x-axis ``timeGrain`` must be preserved -- not wiped -- since no
+    dashboard grain was provided.
+    """
+    query_context_json: dict[str, Any] = {
+        "queries": [
+            {
+                "columns": [
+                    {
+                        "timeGrain": "P1M",
+                        "columnType": "BASE_AXIS",
+                        "sqlExpression": "order_date",
+                    }
+                ],
+                "extras": {"time_grain_sqla": "P1M"},
+            }
+        ],
+    }
+
+    # extra_form_data carries a value filter but NO time_grain_sqla
+    apply_dashboard_filter_context(
+        query_context_json,
+        {"filters": [{"col": "country", "op": "IN", "val": ["US"]}]},
+    )
+
+    query = query_context_json["queries"][0]
+    assert query["columns"][0]["timeGrain"] == "P1M"
+
+
 def _extract_filename(form_value: str) -> str | None:
     """Run _extract_export_params_from_request with a form filename value."""
     from superset.charts.data.api import ChartDataRestApi
@@ -140,3 +236,130 @@ def test_extract_export_filename_preserves_normal_name() -> None:
 def test_extract_export_filename_all_special_falls_back_to_none() -> None:
     """A name with no usable characters becomes None (generated downstream)."""
     assert _extract_filename("***") is None
+
+
+def test_send_chart_response_uses_chart_name_for_csv_filename() -> None:
+    """
+    Regression test: the non-streaming CSV export branch of
+    _send_chart_response must include the chart's name in the
+    Content-Disposition header, not just a bare timestamp, mirroring the
+    streaming CSV export path.
+    """
+    from superset.charts.data.api import ChartDataRestApi
+    from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+
+    query_context = MagicMock()
+    query_context.result_type = ChartDataResultType.FULL
+    query_context.result_format = ChartDataResultFormat.CSV
+
+    result = {
+        "query_context": query_context,
+        "queries": [{"data": "col_a,col_b\n1,2\n"}],
+    }
+
+    api = ChartDataRestApi()
+    with (
+        patch("superset.charts.data.api.security_manager") as mock_security_manager,
+        patch("superset.charts.data.api.is_feature_enabled", return_value=False),
+    ):
+        mock_security_manager.can_access.return_value = True
+        response = api._send_chart_response(
+            result, form_data={"slice_name": "My Chart", "row_limit": 10}
+        )
+
+    content_disposition = response.headers["Content-Disposition"]
+    assert "My_Chart" in content_disposition
+
+
+def test_send_chart_response_uses_chart_name_for_xlsx_filename() -> None:
+    """Same regression as above, for the XLSX export branch."""
+    from superset.charts.data.api import ChartDataRestApi
+    from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+
+    query_context = MagicMock()
+    query_context.result_type = ChartDataResultType.FULL
+    query_context.result_format = ChartDataResultFormat.XLSX
+
+    result = {
+        "query_context": query_context,
+        "queries": [{"data": b"fake-xlsx-bytes"}],
+    }
+
+    api = ChartDataRestApi()
+    with (
+        patch("superset.charts.data.api.security_manager") as mock_security_manager,
+        patch("superset.charts.data.api.is_feature_enabled", return_value=False),
+    ):
+        mock_security_manager.can_access.return_value = True
+        response = api._send_chart_response(
+            result, form_data={"slice_name": "My Chart", "row_limit": 10}
+        )
+
+    content_disposition = response.headers["Content-Disposition"]
+    assert "My_Chart" in content_disposition
+
+
+def test_send_chart_response_uses_chart_name_for_zip_filename() -> None:
+    """Same regression as above, for the multi-query zip export branch."""
+    from superset.charts.data.api import ChartDataRestApi
+    from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+
+    query_context = MagicMock()
+    query_context.result_type = ChartDataResultType.FULL
+    query_context.result_format = ChartDataResultFormat.CSV
+
+    result = {
+        "query_context": query_context,
+        "queries": [
+            {"data": "col_a\n1\n"},
+            {"data": "col_a\n2\n"},
+        ],
+    }
+
+    api = ChartDataRestApi()
+    with (
+        patch("superset.charts.data.api.security_manager") as mock_security_manager,
+        patch("superset.charts.data.api.is_feature_enabled", return_value=False),
+    ):
+        mock_security_manager.can_access.return_value = True
+        response = api._send_chart_response(
+            result, form_data={"slice_name": "My Chart", "row_limit": 10}
+        )
+
+    content_disposition = response.headers["Content-Disposition"]
+    assert "My_Chart" in content_disposition
+
+
+def test_send_chart_response_does_not_double_extension_for_csv_filename() -> None:
+    """
+    Regression test: a client-supplied filename that already includes the
+    ``.csv`` extension must not be doubled (e.g. ``export.csv.csv``) by the
+    non-streaming CSV export branch of _send_chart_response.
+    """
+    from superset.charts.data.api import ChartDataRestApi
+    from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+
+    query_context = MagicMock()
+    query_context.result_type = ChartDataResultType.FULL
+    query_context.result_format = ChartDataResultFormat.CSV
+
+    result = {
+        "query_context": query_context,
+        "queries": [{"data": "col_a,col_b\n1,2\n"}],
+    }
+
+    api = ChartDataRestApi()
+    with (
+        patch("superset.charts.data.api.security_manager") as mock_security_manager,
+        patch("superset.charts.data.api.is_feature_enabled", return_value=False),
+    ):
+        mock_security_manager.can_access.return_value = True
+        response = api._send_chart_response(
+            result,
+            form_data={"row_limit": 10},
+            filename="my_export.csv",
+        )
+
+    content_disposition = response.headers["Content-Disposition"]
+    assert "my_export.csv.csv" not in content_disposition
+    assert "my_export.csv" in content_disposition

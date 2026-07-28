@@ -109,7 +109,7 @@ def _get_previous_form_data(form_data_key: str) -> dict[str, Any] | None:
     annotations=ToolAnnotations(
         title="Update chart preview",
         readOnlyHint=False,
-        destructiveHint=True,
+        destructiveHint=False,
     ),
 )
 def update_chart_preview(  # noqa: C901
@@ -128,7 +128,9 @@ def update_chart_preview(  # noqa: C901
     - Iterating on chart design without creating permanent charts
     - Testing different configurations
 
-    Returns new form_data_key, preview images, and explore URL.
+    Returns new form_data_key, preview images, and explore URL. The explore_url
+    scheme matches the configured instance URL (HTTPS in production/staging,
+    HTTP in local development).
     """
     start_time = time.time()
 

@@ -35,7 +35,10 @@
  */
 import { testWithAssets, expect } from '../../helpers/fixtures';
 import { apiPost, apiPut } from '../../helpers/api/requests';
-import { apiPostDashboard } from '../../helpers/api/dashboard';
+import {
+  apiPostDashboard,
+  buildSingleRowDashboardLayout,
+} from '../../helpers/api/dashboard';
 import { DashboardPage } from '../../pages/DashboardPage';
 
 const DATASET_NAME = 'birth_names';
@@ -86,32 +89,15 @@ testWithAssets(
     const chartId: number = (await chartResp.json()).id;
     testAssets.trackChart(chartId);
 
-    const chartLayoutKey = `CHART-${chartId}`;
     const filterId = `NATIVE_FILTER-${Math.random().toString(36).slice(2, 10)}`;
-    const positionJson = {
-      DASHBOARD_VERSION_KEY: 'v2',
-      ROOT_ID: { type: 'ROOT', id: 'ROOT_ID', children: ['GRID_ID'] },
-      GRID_ID: {
-        type: 'GRID',
-        id: 'GRID_ID',
-        children: ['ROW-1'],
-        parents: ['ROOT_ID'],
+    const positionJson = buildSingleRowDashboardLayout([
+      {
+        id: chartId,
+        sliceName: 'mixed_filter_repro',
+        width: 8,
+        height: 60,
       },
-      'ROW-1': {
-        type: 'ROW',
-        id: 'ROW-1',
-        children: [chartLayoutKey],
-        parents: ['ROOT_ID', 'GRID_ID'],
-        meta: { background: 'BACKGROUND_TRANSPARENT' },
-      },
-      [chartLayoutKey]: {
-        type: 'CHART',
-        id: chartLayoutKey,
-        children: [],
-        parents: ['ROOT_ID', 'GRID_ID', 'ROW-1'],
-        meta: { chartId, width: 8, height: 60, sliceName: 'mixed_filter_repro' },
-      },
-    };
+    ]);
     const jsonMetadata = {
       native_filter_configuration: [
         {
@@ -130,9 +116,7 @@ testWithAssets(
           defaultDataMask: {
             filterState: { value: [FILTER_VALUE] },
             extraFormData: {
-              filters: [
-                { col: FILTER_COLUMN, op: 'IN', val: [FILTER_VALUE] },
-              ],
+              filters: [{ col: FILTER_COLUMN, op: 'IN', val: [FILTER_VALUE] }],
             },
           },
           cascadeParentIds: [],
@@ -158,15 +142,14 @@ testWithAssets(
     const dashboardId: number = dashBody.result?.id ?? dashBody.id;
     testAssets.trackDashboard(dashboardId);
 
-    await apiPut(page, `api/v1/chart/${chartId}`, { dashboards: [dashboardId] });
+    await apiPut(page, `api/v1/chart/${chartId}`, {
+      dashboards: [dashboardId],
+    });
 
     // Capture the Mixed chart's data request (the one with two queries).
     const twoQueryPayloads: any[] = [];
     page.on('request', req => {
-      if (
-        req.url().includes('/api/v1/chart/data') &&
-        req.method() === 'POST'
-      ) {
+      if (req.url().includes('/api/v1/chart/data') && req.method() === 'POST') {
         try {
           const body = req.postDataJSON();
           if (body?.queries?.length === 2) {

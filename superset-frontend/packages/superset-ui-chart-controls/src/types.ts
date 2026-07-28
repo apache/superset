@@ -86,7 +86,7 @@ export interface Dataset {
   name?: string;
   description: string | null;
   uid?: string;
-  owners?: Owner[];
+  editors?: Owner[];
   filter_select?: boolean;
   filter_select_enabled?: boolean;
   column_names?: string[];
@@ -330,8 +330,7 @@ export interface SelectControlConfig<
   optionRenderer?: (option: O) => ReactNode;
   valueRenderer?: (option: O) => ReactNode;
   filterOption?:
-    | ((option: FilterOption<O>, rawInput: string) => boolean)
-    | null;
+    ((option: FilterOption<O>, rawInput: string) => boolean) | null;
 }
 
 export type SharedControlConfig<
@@ -396,9 +395,7 @@ export const isCustomControlItem = (obj: unknown): obj is CustomControlItem =>
 export type ExpandedControlItem = CustomControlItem | ReactElement | null;
 
 export type ControlSetItem =
-  | SharedControlAlias
-  | OverrideSharedControlItem
-  | ExpandedControlItem;
+  SharedControlAlias | OverrideSharedControlItem | ExpandedControlItem;
 
 export type ControlSetRow = ControlSetItem[];
 
@@ -702,10 +699,7 @@ export interface DataColumnMeta {
   originalLabel?: string;
   dataType: GenericDataType;
   formatter?:
-    | TimeFormatter
-    | NumberFormatter
-    | CustomFormatter
-    | CurrencyFormatter;
+    TimeFormatter | NumberFormatter | CustomFormatter | CurrencyFormatter;
   isMetric?: boolean;
   isPercentMetric?: boolean;
   isNumeric?: boolean;
@@ -713,4 +707,5 @@ export interface DataColumnMeta {
   isChildColumn?: boolean;
   description?: string;
   currencyCodeColumn?: string;
+  isFilterable?: boolean;
 }

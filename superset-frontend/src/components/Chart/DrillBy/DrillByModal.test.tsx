@@ -19,7 +19,7 @@
 
 import { useState } from 'react';
 import fetchMock from 'fetch-mock';
-import { omit, omitBy } from 'lodash';
+import { omit, omitBy } from 'lodash-es';
 import {
   render,
   screen,
@@ -79,12 +79,7 @@ const dataset = {
   created_on_humanized: '01-01-2001',
   description: 'desc',
   table_name: 'my_dataset',
-  owners: [
-    {
-      first_name: 'Sarah',
-      last_name: 'Connor',
-    },
-  ],
+  editors: [{ id: 1, label: 'Sarah Connor', type: 1 }],
   columns: [
     {
       column_name: 'gender',
@@ -272,7 +267,7 @@ test('render breadcrumbs', async () => {
   // we need to assert that there is only 1 element now
   // eslint-disable-next-line jest-dom/prefer-in-document
   expect(newBreadcrumbItems).toHaveLength(1);
-  expect(within(breadcrumbItems[0]).getByText('gender')).toBeInTheDocument();
+  expect(within(newBreadcrumbItems[0]).getByText('gender')).toBeInTheDocument();
 });
 
 test('should render "Edit chart" as disabled without can_explore permission', async () => {

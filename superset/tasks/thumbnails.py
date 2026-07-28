@@ -27,7 +27,10 @@ from superset.extensions import celery_app
 from superset.security.guest_token import GuestToken
 from superset.tasks.utils import get_executor
 from superset.utils.core import override_user
-from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
+from superset.utils.screenshots import (
+    ChartScreenshot,
+    DashboardScreenshot,
+)
 from superset.utils.urls import get_url_path
 from superset.utils.webdriver import WindowSize
 
@@ -99,12 +102,15 @@ def cache_dashboard_thumbnail(
     user = security_manager.find_user(username)
     with override_user(user):
         screenshot = DashboardScreenshot(url, dashboard.digest)
+        resolved_cache_key = cache_key or screenshot.get_cache_key(
+            window_size, thumb_size
+        )
         screenshot.compute_and_cache(
             user=user,
             window_size=window_size,
             thumb_size=thumb_size,
             force=force,
-            cache_key=cache_key,
+            cache_key=resolved_cache_key,
         )
 
 

@@ -35,8 +35,10 @@ describe('getFormData()', () => {
       field2: 'def',
     };
 
+    // post-`route_base=""`, the legacy endpoint collapsed
+    // from `/superset/fetch_datasource_metadata` to `/fetch_datasource_metadata`.
     fetchMock.get(
-      'glob:*/superset/fetch_datasource_metadata?datasourceKey=1__table',
+      'glob:*/fetch_datasource_metadata?datasourceKey=1__table',
       mockData,
     );
 

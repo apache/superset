@@ -78,8 +78,13 @@ test('does not render the tooltip with anchors', async () => {
     />,
   );
   userEvent.hover(screen.getByRole('link', { name: 'datasource-name' }));
-  expect(await screen.findByRole('tooltip')).toBeInTheDocument();
-  const tooltip = await screen.findByRole('tooltip');
+  // The useState mock forces every TruncatedTextWithTooltip to render its
+  // tooltip, so multiple role="tooltip" nodes exist. Target the datasource
+  // tooltip specifically by its accessible name.
+  const tooltip = await screen.findByRole('tooltip', {
+    name: 'datasource-name',
+  });
+  expect(tooltip).toBeInTheDocument();
   expect(within(tooltip).queryByRole('link')).not.toBeInTheDocument();
   mock.mockRestore();
 });

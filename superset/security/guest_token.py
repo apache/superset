@@ -14,8 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import hashlib
 import logging
-from typing import Optional, TypedDict, Union
+from typing import Any, Optional, TypedDict, Union
 
 from flask_appbuilder.security.sqla.models import Group, Role
 from flask_login import AnonymousUserMixin
@@ -23,6 +24,38 @@ from flask_login import AnonymousUserMixin
 from superset.utils.backports import StrEnum
 
 logger = logging.getLogger(__name__)
+
+
+def build_guest_token_audit_payload(
+    issuer_user_id: Optional[int],
+    source_ip: Optional[str],
+    body: dict[str, Any],
+    token: str,
+) -> dict[str, Any]:
+    """Build security-relevant metadata for a guest-token issuance event.
+
+    Captures who issued the token, from where, what it grants, and a hash of
+    the issued token (never the raw token) so a later investigation into a
+    misissued or over-scoped token can be scoped from the audit log.
+    """
+    resources = body.get("resources") or []
+    rls = body.get("rls") or []
+    return {
+        "issuer_user_id": issuer_user_id,
+        "source_ip": source_ip,
+        "resources": [
+            f"{resource.get('type')}:{resource.get('id')}" for resource in resources
+        ],
+        "datasets": body.get("datasets"),
+        # RLS clauses can carry data values; record only the datasets in scope
+        # and the rule count, not the clause text.
+        "rls_datasets": [rule.get("dataset") for rule in rls],
+        "rls_rule_count": len(rls),
+        # Hash, not the raw token, so the log can be correlated without
+        # becoming a credential store.
+        "token_sha256": hashlib.sha256(token.encode("utf-8")).hexdigest(),
+    }
+
 
 # JWT claim that carries the revocation version a token was minted with.
 GUEST_TOKEN_REVOCATION_CLAIM = "rev"  # noqa: S105

@@ -53,6 +53,14 @@ const getHelperText = (value: string) =>
     detail: value,
   };
 
+// Names that aren't simple identifiers (spaces, punctuation, leading digits)
+// must be double-quoted to be valid SQL, with embedded quotes doubled.
+const SIMPLE_IDENTIFIER_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
+const quoteIdentifier = (identifier: string) =>
+  SIMPLE_IDENTIFIER_RE.test(identifier)
+    ? identifier
+    : `"${identifier.replace(/"/g, '""')}"`;
+
 const extensionsRegistry = getExtensionsRegistry();
 
 export function useKeywords(
@@ -197,7 +205,7 @@ export function useKeywords(
     () =>
       allCachedTables.map(({ value, label, schema: tableSchema }) => ({
         name: label,
-        value,
+        value: quoteIdentifier(value),
         schema: tableSchema,
         score: TABLE_AUTOCOMPLETE_SCORE,
         meta: 'table',

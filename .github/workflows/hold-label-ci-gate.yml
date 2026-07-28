@@ -1,0 +1,115 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+name: Hold Label CI Gate
+
+on:
+  pull_request:
+    types: [labeled, unlabeled]
+
+permissions: {}
+
+jobs:
+  cancel-on-hold:
+    name: Cancel CI runs when hold label applied
+    if: github.event.action == 'labeled' && startsWith(github.event.label.name, 'hold')
+    runs-on: ubuntu-26.04
+    permissions:
+      actions: write
+      pull-requests: read
+    steps:
+      - name: Cancel in-progress workflow runs
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            const sha = context.payload.pull_request.head.sha;
+
+            const { data: { workflow_runs: runs } } =
+              await github.rest.actions.listWorkflowRunsForRepo({
+                owner,
+                repo,
+                head_sha: sha,
+                per_page: 100,
+              });
+
+            const active = runs.filter(r =>
+              ['in_progress', 'queued', 'waiting', 'requested', 'pending'].includes(r.status)
+            );
+
+            core.info(`Found ${active.length} active run(s) to cancel for SHA ${sha}`);
+
+            for (const run of active) {
+              try {
+                await github.rest.actions.cancelWorkflowRun({
+                  owner,
+                  repo,
+                  run_id: run.id,
+                });
+                core.info(`Cancelled run ${run.id} (${run.name})`);
+              } catch (err) {
+                core.warning(`Could not cancel run ${run.id}: ${err.message}`);
+              }
+            }
+
+  rerun-on-unhold:
+    name: Re-run CI when hold label removed
+    if: github.event.action == 'unlabeled' && startsWith(github.event.label.name, 'hold')
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: write
+      pull-requests: read
+    steps:
+      - name: Re-trigger cancelled workflow runs
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            const sha = context.payload.pull_request.head.sha;
+
+            // Check that no other hold* labels remain on the PR
+            const labels = context.payload.pull_request.labels.map(l => l.name);
+            const stillHeld = labels.some(l => l.startsWith('hold'));
+            if (stillHeld) {
+              core.info('PR still has a hold label — skipping re-run.');
+              return;
+            }
+
+            const { data: { workflow_runs: runs } } =
+              await github.rest.actions.listWorkflowRunsForRepo({
+                owner,
+                repo,
+                head_sha: sha,
+                per_page: 100,
+              });
+
+            const cancelled = runs.filter(r => r.conclusion === 'cancelled');
+            core.info(`Found ${cancelled.length} cancelled run(s) to re-trigger for SHA ${sha}`);
+
+            for (const run of cancelled) {
+              try {
+                await github.rest.actions.reRunWorkflow({
+                  owner,
+                  repo,
+                  run_id: run.id,
+                });
+                core.info(`Re-triggered run ${run.id} (${run.name})`);
+              } catch (err) {
+                core.warning(`Could not re-run ${run.id}: ${err.message}`);
+              }
+            }

@@ -35,6 +35,7 @@ import { t } from '@apache-superset/core/translation';
 import {
   Filter,
   ChartCustomization,
+  DatasourceType,
   getChartControlPanelRegistry,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
@@ -54,6 +55,7 @@ import { ColumnSelect } from './ColumnSelect';
 export interface ControlItemsProps {
   expanded: boolean;
   datasetId: number;
+  datasourceType?: DatasourceType;
   disabled: boolean;
   forceUpdate: Function;
   formChanged: Function;
@@ -202,6 +204,7 @@ function DatasetColumnSelect({
 export default function getControlItemsMap({
   expanded,
   datasetId,
+  datasourceType,
   disabled,
   forceUpdate,
   formChanged,
@@ -278,6 +281,7 @@ export default function getControlItemsMap({
               form={form}
               filterId={filterId}
               datasetId={datasetId}
+              datasourceType={datasourceType}
               filterValues={column =>
                 doesColumnMatchFilterType(
                   formFilter?.filterType || '',

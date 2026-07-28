@@ -97,8 +97,11 @@ testWithAssets(
     });
 
     // At least one list item should contain a DD.MM.YYYY formatted date.
-    await expect(panel.locator('li').first()).toHaveText(/\d{2}\.\d{2}\.\d{4}/, {
-      timeout: TIMEOUT.API_RESPONSE,
-    });
+    await expect(panel.locator('li').first()).toHaveText(
+      /\d{2}\.\d{2}\.\d{4}/,
+      {
+        timeout: TIMEOUT.API_RESPONSE,
+      },
+    );
   },
 );

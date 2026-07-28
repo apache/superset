@@ -139,6 +139,16 @@ Example table config:
 ## Available Aggregations
 SUM, COUNT, AVG, MIN, MAX, COUNT_DISTINCT, STDDEV, VAR, MEDIAN
 
+## Custom SQL Metrics
+For ratio metrics, weighted averages, and conditional aggregates,
+use `sql_expression` with a `label`:
+`{{"sql_expression": "SUM(revenue) / COUNT(*)", "label": "Avg Revenue"}}`
+Do NOT combine `sql_expression` with `name` or `aggregate`.
+
+## Saved Metrics
+If a metric is already defined on the dataset, use `saved_metric=True`:
+`{{"name": "avg_revenue", "saved_metric": true}}`
+
 ## Time Grain Options (for temporal x-axis)
 PT1H (hourly), P1D (daily), P1W (weekly), P1M (monthly), P3M (quarterly), P1Y (yearly)
 
