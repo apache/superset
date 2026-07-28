@@ -700,3 +700,90 @@ test('default routing skips a disabled Simple mode for non-semantic datasources'
     'true',
   );
 });
+
+test('a feature-declaring semantic view keeps expression-based classification and Save', async () => {
+  const onChange = jest.fn();
+  const columns = [
+    { column_name: 'plain_dimension', verbose_name: 'Plain Dimension' },
+    { column_name: 'calc_dimension', expression: 'a + b' },
+  ];
+  const store = mockStore({
+    explore: {
+      datasource: {
+        type: 'semantic_view',
+        semantic_view_features: ['ADHOC_COLUMN_EXPRESSIONS'],
+      },
+    },
+  });
+
+  render(
+    <ColumnSelectPopover
+      hasCustomLabel={false}
+      label="My column"
+      onClose={jest.fn()}
+      setDatasetModal={jest.fn()}
+      setLabel={jest.fn()}
+      columns={columns}
+      getCurrentTab={jest.fn()}
+      onChange={onChange}
+    />,
+    { store },
+  );
+
+  // Simple keeps the expression-less column; Saved keeps the calculated one.
+  const simpleCombobox = screen.getByRole('combobox', {
+    name: 'Columns and metrics',
+  });
+  userEvent.click(simpleCombobox);
+  let dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  expect(within(dropdown).getByText('Plain Dimension')).toBeInTheDocument();
+  expect(
+    within(dropdown).queryByText('calc_dimension'),
+  ).not.toBeInTheDocument();
+
+  userEvent.click(within(dropdown).getByText('Plain Dimension'));
+  const saveButton = screen.getByTestId('ColumnEdit#save');
+  await waitFor(() => expect(saveButton).toBeEnabled());
+  userEvent.click(saveButton);
+  expect(onChange).toHaveBeenCalledWith(columns[0]);
+
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+});
+
+test('non-semantic datasources still filter Saved options by compatibility metadata only when verified', () => {
+  const store = mockStore({
+    explore: {
+      datasource: { type: 'table' },
+      compatibility: {
+        status: 'verified',
+        metrics: [],
+        dimensions: ['keep_me'],
+      },
+    },
+  });
+
+  render(
+    <ColumnSelectPopover
+      hasCustomLabel={false}
+      label="My column"
+      onClose={jest.fn()}
+      setDatasetModal={jest.fn()}
+      setLabel={jest.fn()}
+      columns={[{ column_name: 'keep_me' }, { column_name: 'drop_me' }]}
+      getCurrentTab={jest.fn()}
+      onChange={jest.fn()}
+    />,
+    { store },
+  );
+
+  userEvent.click(
+    screen.getByRole('combobox', { name: 'Columns and metrics' }),
+  );
+  const dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  expect(
+    within(dropdown).getByText('keep_me').closest('.ant-select-item'),
+  ).not.toHaveClass('ant-select-item-option-disabled');
+  expect(
+    within(dropdown).getByText('drop_me').closest('.ant-select-item'),
+  ).toHaveClass('ant-select-item-option-disabled');
+});

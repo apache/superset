@@ -469,27 +469,52 @@ test('Sort by entry point commits a compatible Cube dimension through the picker
   });
 });
 
-test('Cube saved-metric selection through the metric popover is unchanged', async () => {
-  render(<DndColumnMetricSelect {...SEMANTIC_METRIC_PROPS} value={[]} />, {
-    useDndKit: true,
-    useRedux: true,
-    initialState: {
-      explore: {
-        datasource: {
-          type: 'semantic_view',
-          id: 1,
-          semantic_view_features: [],
+test('Cube saved metrics remain listed and selectable when Simple is disabled', async () => {
+  const onChange = jest.fn();
+  render(
+    <DndColumnMetricSelect
+      {...SEMANTIC_METRIC_PROPS}
+      selectedMetrics={['metric_a', 'metric_b']}
+      onChange={onChange}
+      value={[]}
+    />,
+    {
+      useDndKit: true,
+      useRedux: true,
+      initialState: {
+        explore: {
+          datasource: {
+            type: 'semantic_view',
+            id: 1,
+            semantic_view_features: [],
+          },
         },
       },
     },
-  });
+  );
 
   fireEvent.click(screen.getByText('Drop columns/metrics here or click'));
 
-  // Metrics stay selectable from the Saved-mode picker flow used by the
-  // combined control; the saved metrics list itself is not affected by
-  // dimension capabilities.
-  expect(
-    await screen.findByRole('tab', { name: 'Saved' }),
-  ).toHaveAttribute('aria-selected', 'true');
+  // Simple is disabled for saved-only semantic views, so the combined
+  // control's metrics must remain reachable from the Saved mode.
+  expect(await screen.findByRole('tab', { name: 'Saved' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+
+  const combobox = await screen.findByRole('combobox', {
+    name: 'Dimensions and metrics',
+  });
+  fireEvent.mouseDown(combobox);
+
+  const option = await screen.findByRole('option', { name: /Metric B/i });
+  fireEvent.click(option);
+
+  const saveButton = await screen.findByTestId('ColumnEdit#save');
+  await waitFor(() => expect(saveButton).toBeEnabled());
+  fireEvent.click(saveButton);
+
+  await waitFor(() => {
+    expect(onChange).toHaveBeenCalledWith(['metric_b']);
+  });
 });
