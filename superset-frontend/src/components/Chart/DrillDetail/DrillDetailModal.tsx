@@ -18,6 +18,7 @@
  */
 
 import { useContext, useMemo, useState } from 'react';
+import { sanitizeUrl } from '@braintree/sanitize-url';
 import {
   BinaryQueryObjectFilterClause,
   css,
@@ -171,7 +172,7 @@ export default function DrillDetailModal({
         },
       );
 
-      window.location.href = url;
+      window.location.href = sanitizeUrl(url);
     } catch (error) {
       console.error('Failed to generate chart explore URL:', error);
       addDangerToast(t('Failed to generate chart explore URL'));
