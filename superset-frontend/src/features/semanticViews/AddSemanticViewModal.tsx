@@ -204,13 +204,24 @@ export default function AddSemanticViewModal({
 
   const lastSchemaJsonRef = useRef('');
   const refreshErrorToastShownRef = useRef(false);
+  // Incremented per scheduled refresh so an out-of-order response from a
+  // superseded request cannot apply a stale schema, toast, or roll back the
+  // snapshot a newer request committed.
+  const schemaRefreshGenRef = useRef(0);
+  // Dependency state whose failed refresh has already been retried once, so
+  // a persistent outage cannot re-fire on every subsequent form edit.
+  const retriedDepSnapshotRef = useRef('');
   const applyRuntimeSchema = useCallback((rawSchema: JsonSchema) => {
     dynamicDepsRef.current = getDynamicDependencies(rawSchema);
     const schema = sanitizeSchema(rawSchema);
-    // Key-order-canonical serialization: providers may serialize the same
-    // schema with different property order between refreshes; that must not
-    // defeat the dedupe below.
-    const schemaJson = stableSerialize(schema);
+    const uiSchema = buildUiSchema(schema);
+    // Dedupe key = key-order-canonical schema + the derived ui schema.
+    // Canonicalizing alone would hide a refresh whose only change is
+    // property order, but ``buildUiSchema`` derives field display order from
+    // that order when ``x-propertyOrder`` is absent — including the ui schema
+    // keeps such reorderings visible while still ignoring incidental
+    // serialization differences elsewhere.
+    const schemaJson = `${stableSerialize(schema)}|${JSON.stringify(uiSchema)}`;
     // A refresh response whose sanitized schema is unchanged keeps the
     // existing object identities: JSON Forms then neither rebuilds its AJV
     // validator (which caches one compiled copy per schema object — a per-
@@ -219,7 +230,7 @@ export default function AddSemanticViewModal({
     if (schemaJson === lastSchemaJsonRef.current) return;
     lastSchemaJsonRef.current = schemaJson;
     setRuntimeSchema(schema);
-    setRuntimeUiSchema(buildUiSchema(schema));
+    setRuntimeUiSchema(uiSchema);
   }, []);
 
   const scheduleFetchViews = useCallback(
@@ -255,6 +266,8 @@ export default function AddSemanticViewModal({
       lastDepSnapshotRef.current = '';
       lastSchemaJsonRef.current = '';
       refreshErrorToastShownRef.current = false;
+      retriedDepSnapshotRef.current = '';
+      schemaRefreshGenRef.current += 1;
       setAvailableViews([]);
       setSelectedViewNames([]);
       lastViewsKeyRef.current = '';
@@ -325,6 +338,8 @@ export default function AddSemanticViewModal({
             lastViewsKeyRef.current = '';
             if (schemaTimerRef.current) clearTimeout(schemaTimerRef.current);
             const uuid = selectedLayerUuid;
+            schemaRefreshGenRef.current += 1;
+            const refreshGen = schemaRefreshGenRef.current;
             schemaTimerRef.current = setTimeout(async () => {
               setRefreshingSchema(true);
               try {
@@ -332,16 +347,34 @@ export default function AddSemanticViewModal({
                   endpoint: `/api/v1/semantic_layer/${uuid}/schema/runtime`,
                   jsonPayload: { runtime_data: data },
                 });
-                if (gen !== fetchGenRef.current) return;
-                applyRuntimeSchema(json.result);
+                if (
+                  gen !== fetchGenRef.current ||
+                  refreshGen !== schemaRefreshGenRef.current
+                )
+                  return;
+                if (json.result) applyRuntimeSchema(json.result);
                 refreshErrorToastShownRef.current = false;
+                retriedDepSnapshotRef.current = '';
               } catch (error) {
-                if (gen !== fetchGenRef.current) return;
+                if (
+                  gen !== fetchGenRef.current ||
+                  refreshGen !== schemaRefreshGenRef.current
+                )
+                  return;
                 logging.error('Runtime schema refresh failed', error);
-                // Clear the committed snapshot so a change event with the
-                // same dependency values re-attempts the refresh instead of
-                // leaving dynamic narrowing stale until deps change twice.
-                lastDepSnapshotRef.current = '';
+                // Allow exactly one retry per dependency state: clearing the
+                // committed snapshot lets the next change event re-attempt
+                // the refresh, but only if this state hasn't been retried
+                // already, so a persistent outage doesn't re-fire on every
+                // edit. Only clear a snapshot this attempt still owns — a
+                // newer change may have committed its own since.
+                if (
+                  lastDepSnapshotRef.current === snapshot &&
+                  retriedDepSnapshotRef.current !== snapshot
+                ) {
+                  retriedDepSnapshotRef.current = snapshot;
+                  lastDepSnapshotRef.current = '';
+                }
                 // The form (and the user's selections) stay intact; only the
                 // dynamic narrowing is stale, so surface it without blocking
                 // — once per outage, not once per debounced attempt.
@@ -352,7 +385,11 @@ export default function AddSemanticViewModal({
                   );
                 }
               } finally {
-                if (gen === fetchGenRef.current) setRefreshingSchema(false);
+                if (
+                  gen === fetchGenRef.current &&
+                  refreshGen === schemaRefreshGenRef.current
+                )
+                  setRefreshingSchema(false);
               }
             }, SCHEMA_REFRESH_DEBOUNCE_MS);
             return;
@@ -410,6 +447,8 @@ export default function AddSemanticViewModal({
       lastDepSnapshotRef.current = '';
       lastSchemaJsonRef.current = '';
       refreshErrorToastShownRef.current = false;
+      retriedDepSnapshotRef.current = '';
+      schemaRefreshGenRef.current += 1;
       setAvailableViews([]);
       setSelectedViewNames([]);
       setLoadingViews(false);

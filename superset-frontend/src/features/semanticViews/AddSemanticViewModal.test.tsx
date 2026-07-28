@@ -485,6 +485,7 @@ test('the save payload carries every selected metric', async () => {
 });
 
 test('renders and selects within a 500-metric runtime schema', async () => {
+  const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
   mockLayerWithSchema(largeRuntimeSchema as Record<string, unknown>);
   render(<AddSemanticViewModal {...createProps()} />);
   await selectOption('Semantic layer', 'Snowflake SL');
@@ -501,4 +502,60 @@ test('renders and selects within a 500-metric runtime schema', async () => {
   });
   await userEvent.click(option);
   expect(selectedTag(largeMetricEnum[42])).toBeTruthy();
+
+  // largeRuntimeSchema's dimensions field depends on metrics, so the pick
+  // schedules a refresh — wait for it so the dedupe/apply path is exercised
+  // at 500-metric scale rather than ending before the debounce elapses.
+  await waitFor(
+    () => {
+      const refreshes = mockedPost.mock.calls.filter(
+        ([{ endpoint, jsonPayload }]) =>
+          endpoint === '/api/v1/semantic_layer/layer-1/schema/runtime' &&
+          (jsonPayload as { runtime_data?: unknown })?.runtime_data,
+      );
+      expect(refreshes.length).toBeGreaterThanOrEqual(1);
+    },
+    { timeout: 10000 },
+  );
+  expect(selectedTag(largeMetricEnum[42])).toBeTruthy();
+  expect(
+    consoleErrorSpy.mock.calls.find(args =>
+      String(args[0]).includes('Maximum update depth'),
+    ),
+  ).toBeUndefined();
+});
+
+test('a persistently failing refresh retries once, not on every edit', async () => {
+  let refreshCount = 0;
+  mockLayerWithSchema(dynamicMetricsSchema, {
+    '/api/v1/semantic_layer/layer-1/schema/runtime': (payload: unknown) => {
+      if ((payload as { runtime_data?: unknown })?.runtime_data) {
+        refreshCount += 1;
+        return Promise.reject(new Error('refresh boom'));
+      }
+      return Promise.resolve({ json: { result: dynamicMetricsSchema } });
+    },
+  });
+  const props = createProps();
+  render(<AddSemanticViewModal {...props} />);
+  await selectOption('Semantic layer', 'Snowflake SL');
+
+  await pickFromSelect(/metrics/i, 'm1');
+  await waitFor(() => expect(refreshCount).toBe(1), { timeout: 10000 });
+
+  // One bounded retry for this dependency state, then no further attempts
+  // however many more edits the user makes during the outage.
+  await pickFromSelect(/dimensions/i, 'd1');
+  await waitFor(() => expect(refreshCount).toBe(2), { timeout: 10000 });
+  await pickFromSelect(/dimensions/i, 'd2');
+  await new Promise(resolve => {
+    setTimeout(resolve, 1200);
+  });
+  expect(refreshCount).toBe(2);
+  // And the user was told once, not once per attempt.
+  expect(
+    props.addDangerToast.mock.calls.filter(([msg]) =>
+      String(msg).includes('refreshing the runtime schema'),
+    ),
+  ).toHaveLength(1);
 });

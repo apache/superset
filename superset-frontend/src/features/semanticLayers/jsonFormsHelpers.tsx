@@ -450,15 +450,23 @@ export const renderers = [
  * ordering can be meaningful, so only key order is canonicalized.
  */
 export function stableSerialize(value: unknown): string {
-  return JSON.stringify(value, (_key, val) =>
-    val && typeof val === 'object' && !Array.isArray(val)
-      ? Object.keys(val as Record<string, unknown>)
-          .sort()
-          .reduce((acc: Record<string, unknown>, k) => {
-            acc[k] = (val as Record<string, unknown>)[k];
-            return acc;
-          }, {})
-      : val,
+  return (
+    JSON.stringify(value, (_key, val) =>
+      val && typeof val === 'object' && !Array.isArray(val)
+        ? Object.keys(val as Record<string, unknown>)
+            .sort()
+            // Null-prototype accumulator: a plain object would treat a
+            // ``__proto__`` key as a prototype assignment and silently drop
+            // it from the output, hiding a genuine schema difference.
+            .reduce(
+              (acc: Record<string, unknown>, k) => {
+                acc[k] = (val as Record<string, unknown>)[k];
+                return acc;
+              },
+              Object.create(null) as Record<string, unknown>,
+            )
+        : val,
+    ) ?? ''
   );
 }
 

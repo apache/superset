@@ -206,3 +206,11 @@ test('stableSerialize keeps array order significant', () => {
     stableSerialize({ enum: ['b', 'a'] }),
   );
 });
+
+test('stableSerialize preserves __proto__ keys from parsed payloads', () => {
+  // A plain-object accumulator would treat __proto__ as a prototype
+  // assignment and drop it, making two different schemas compare equal.
+  const withProto = JSON.parse('{"properties":{"b":1},"__proto__":{"a":1}}');
+  const without = JSON.parse('{"properties":{"b":1}}');
+  expect(stableSerialize(withProto)).not.toEqual(stableSerialize(without));
+});

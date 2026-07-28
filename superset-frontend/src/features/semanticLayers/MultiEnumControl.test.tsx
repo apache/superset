@@ -126,10 +126,9 @@ test('caps rendered tags at large selection counts while keeping the full value'
     />,
   );
   const tags = container.querySelectorAll('.ant-select-selection-item');
-  // MAX_TAG_COUNT tags plus one overflow summary tag — never one per
-  // selection. The cap comes from the wrapped Select's exported default.
-  expect(tags.length).toBeLessThanOrEqual(MAX_TAG_COUNT + 2);
-  expect(tags.length).toBeGreaterThan(0);
+  // Exactly MAX_TAG_COUNT tags plus one overflow summary tag — never one
+  // per selection. The cap comes from the wrapped Select's exported default.
+  expect(tags.length).toBe(MAX_TAG_COUNT + 1);
   const overflow = Array.from(tags).find(el =>
     /\+\s*\d+/.test(el.textContent ?? ''),
   );
@@ -206,6 +205,7 @@ test('DynamicFieldControl handles a 500-option enum via search (FR-006 sibling)'
       'x-dynamic': true,
       'x-dependsOn': [],
     } as ControlProps['schema'],
+    data: undefined,
   });
   render(<DynamicFieldControl {...props} />);
   const combobox = screen.getByRole('combobox');
@@ -220,4 +220,20 @@ test('DynamicFieldControl handles a 500-option enum via search (FR-006 sibling)'
   });
   await userEvent.click(option);
   expect(handleChange).toHaveBeenLastCalledWith('mode', 'metric_042');
+});
+
+test('renders options alphabetically for an unsorted backend enum', async () => {
+  // The renderers dropped their manual sort because the wrapped Select
+  // alphabetises by label; pin that inherited behaviour here so a future
+  // change to the shared component surfaces in this feature's suite.
+  const props = baseProps({
+    schema: { type: 'array', items: { enum: ['zebra', 'apple', 'mango'] } },
+  });
+  const { container } = render(<MultiEnumControl {...props} />);
+  await userEvent.click(screen.getByRole('combobox'));
+  await screen.findAllByText('apple');
+  const labels = Array.from(
+    container.ownerDocument.querySelectorAll('.ant-select-item-option-content'),
+  ).map(el => el.textContent);
+  expect(labels).toEqual(['apple', 'mango', 'zebra']);
 });
