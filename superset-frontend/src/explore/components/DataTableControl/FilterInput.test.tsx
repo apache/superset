@@ -22,7 +22,7 @@ import { FilterInput } from '.';
 jest.mock('lodash', () => {
   const debounce = <T extends (...args: never[]) => unknown>(func: T) => {
     const debounced = (...args: Parameters<T>) => func(...args);
-    debounced.cancel = jest.fn();
+    debounced.flush = jest.fn();
     return debounced;
   };
 

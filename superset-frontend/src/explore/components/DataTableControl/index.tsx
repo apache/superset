@@ -138,7 +138,7 @@ export const FilterInput = ({
   );
 
   useEffect(
-    () => () => debouncedChangeHandler.cancel(),
+    () => () => debouncedChangeHandler.flush(),
     [debouncedChangeHandler],
   );
 
