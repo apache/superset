@@ -20,7 +20,6 @@ import { cloneDeep } from 'lodash-es';
 import {
   Behavior,
   getChartMetadataRegistry,
-  isDefined,
   NativeFilterScope,
 } from '@superset-ui/core';
 import {
@@ -72,13 +71,7 @@ export const getCrossFiltersConfiguration = (
   // If user just added cross filter to dashboard it's not saving its scope on server,
   // so we tweak it until user will update scope and will save it in server
   const chartConfiguration: ChartConfiguration = {};
-  chartLayoutItemMap.forEach(layoutItem => {
-    const chartId = layoutItem.meta?.chartId;
-
-    if (!isDefined(chartId)) {
-      return;
-    }
-
+  chartLayoutItemMap.forEach((_, chartId) => {
     const behaviors =
       (
         getChartMetadataRegistry().get(charts[chartId]?.form_data?.viz_type) ??

@@ -181,10 +181,12 @@ export const findTabsWithChartsInScope = (
   const tabsInScope = new Set<string>();
 
   chartsInScope.forEach(chartId => {
-    chartLayoutItemMap.get(chartId)?.parents?.forEach(parent => {
-      if (parent.startsWith(`${TAB_TYPE}-`)) {
-        tabsInScope.add(parent);
-      }
+    chartLayoutItemMap.get(chartId)?.forEach(layoutItem => {
+      layoutItem.parents?.forEach(parent => {
+        if (parent.startsWith(`${TAB_TYPE}-`)) {
+          tabsInScope.add(parent);
+        }
+      });
     });
   });
 

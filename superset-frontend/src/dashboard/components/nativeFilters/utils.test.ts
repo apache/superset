@@ -87,24 +87,38 @@ test('findTabsWithChartsInScope should handle a recursive layout structure', () 
   );
 });
 
-test('findTabsWithChartsInScope accepts a precomputed chart layout item map', () => {
-  const chartLayoutItem: LayoutItem = {
-    id: 'CHART-7',
-    type: CHART_TYPE,
-    children: [],
-    parents: ['ROOT_ID', 'TAB-parent', 'TABS-nested', 'TAB-child'],
-    meta: {
-      chartId: 7,
-      height: 100,
-      width: 100,
-      uuid: 'test-uuid-CHART-7',
+test('findTabsWithChartsInScope includes tabs from duplicate chart holders', () => {
+  const chartLayoutItems: LayoutItem[] = [
+    {
+      id: 'CHART-7-first',
+      type: CHART_TYPE,
+      children: [],
+      parents: ['ROOT_ID', 'TAB-parent', 'TABS-nested', 'TAB-first'],
+      meta: {
+        chartId: 7,
+        height: 100,
+        width: 100,
+        uuid: 'test-uuid-CHART-7-first',
+      },
     },
-  };
-  const chartLayoutItemMap = createChartLayoutItemMap([chartLayoutItem]);
+    {
+      id: 'CHART-7-second',
+      type: CHART_TYPE,
+      children: [],
+      parents: ['ROOT_ID', 'TAB-parent', 'TABS-nested', 'TAB-second'],
+      meta: {
+        chartId: 7,
+        height: 100,
+        width: 100,
+        uuid: 'test-uuid-CHART-7-second',
+      },
+    },
+  ];
+  const chartLayoutItemMap = createChartLayoutItemMap(chartLayoutItems);
 
   expect(
     Array.from(findTabsWithChartsInScope(chartLayoutItemMap, [7])),
-  ).toEqual(['TAB-parent', 'TAB-child']);
+  ).toEqual(['TAB-parent', 'TAB-first', 'TAB-second']);
 });
 
 test('getFormData should include persisted time_grains for time grain filters', () => {

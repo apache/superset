@@ -111,6 +111,27 @@ test('filter scope accepts a precomputed chart layout item map', () => {
   expect(chartsInScope).toEqual([1, 2]);
 });
 
+test('filter scope includes a chart when any duplicate layout holder is in scope', () => {
+  const chartLayoutItems = [
+    createChartLayoutItem('CHART-7-first', 7, ['ROOT_ID', 'TAB-first']),
+    createChartLayoutItem('CHART-7-second', 7, ['ROOT_ID', 'TAB-second']),
+  ];
+  const chartLayoutItemMap = createChartLayoutItemMap(chartLayoutItems);
+  const filterScope = {
+    rootPath: ['TAB-second'],
+    excluded: [],
+  };
+
+  const chartsInScope = getChartIdsInFilterScope(
+    filterScope,
+    [7],
+    chartLayoutItemMap,
+  );
+
+  expect(chartLayoutItemMap.get(7)).toEqual(chartLayoutItems);
+  expect(chartsInScope).toEqual([7]);
+});
+
 test('filter scoped to Parent1 tab should include only charts in Parent1 (including nested tabs)', () => {
   const chartLayoutItems = createNestedTabsLayout();
   const filterScope = {

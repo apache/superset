@@ -24,7 +24,7 @@ interface ExtendedNativeFilterScope extends NativeFilterScope {
   selectedLayers?: string[];
 }
 
-export type ChartLayoutItemMap = ReadonlyMap<number, LayoutItem>;
+export type ChartLayoutItemMap = ReadonlyMap<number, readonly LayoutItem[]>;
 export type ChartLayoutItems = readonly LayoutItem[] | ChartLayoutItemMap;
 
 const isChartLayoutItemArray = (
@@ -34,16 +34,17 @@ const isChartLayoutItemArray = (
 export function createChartLayoutItemMap(
   layoutItems: readonly (LayoutItem | null | undefined)[],
 ): ChartLayoutItemMap {
-  const chartLayoutItemMap = new Map<number, LayoutItem>();
+  const chartLayoutItemMap = new Map<number, LayoutItem[]>();
 
   layoutItems.forEach(layoutItem => {
     const chartId = layoutItem?.meta?.chartId;
-    if (
-      layoutItem?.type === CHART_TYPE &&
-      typeof chartId === 'number' &&
-      !chartLayoutItemMap.has(chartId)
-    ) {
-      chartLayoutItemMap.set(chartId, layoutItem);
+    if (layoutItem?.type === CHART_TYPE && typeof chartId === 'number') {
+      const chartLayoutItems = chartLayoutItemMap.get(chartId);
+      if (chartLayoutItems) {
+        chartLayoutItems.push(layoutItem);
+      } else {
+        chartLayoutItemMap.set(chartId, [layoutItem]);
+      }
     }
   });
 
@@ -71,7 +72,9 @@ export function getChartIdsInFilterScope(
     !excludedChartIds.has(chartId) &&
     chartLayoutItemMap
       .get(chartId)
-      ?.parents?.some(elementId => rootPath.has(elementId));
+      ?.some(layoutItem =>
+        layoutItem.parents?.some(elementId => rootPath.has(elementId)),
+      );
 
   if (filterScope.selectedLayers && filterScope.selectedLayers.length > 0) {
     const targetChartIds: number[] = [];
