@@ -1196,8 +1196,11 @@ class BaseReportState:
         # Lazy import to avoid a circular dependency between execute.py and scheduler.py
         from superset.tasks.scheduler import execute as execute_task  # noqa: PLC0415
 
+        # Pass the original crontab-trigger timestamp so the retry task
+        # shares the same window identity.  This lets _is_retry_window_stale()
+        # detect when a *new* crontab window fires while retries are in-flight.
         execute_task.apply_async(
-            (self._report_schedule.id,),
+            (self._report_schedule.id, self._scheduled_dttm.isoformat()),
             countdown=delay_seconds,
         )
 

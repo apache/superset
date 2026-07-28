@@ -2788,7 +2788,7 @@ def test_send_failed_reports_sends_to_recipients(
         retry_notify_owners=False,
         retry_notify_recipients=False,
     )
-    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None)
+    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None, microsecond=0)
     report_schedule.retry_attempt = 1
     report_schedule.retry_scheduled_dttm = scheduled_dttm
     db.session.commit()
@@ -2828,7 +2828,7 @@ def test_retrying_state_routes_back_to_error_handler(
         retry_notify_owners=False,
         retry_notify_recipients=False,
     )
-    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None)
+    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None, microsecond=0)
     report_schedule.last_state = ReportState.RETRYING
     report_schedule.retry_attempt = 1
     report_schedule.retry_scheduled_dttm = scheduled_dttm
