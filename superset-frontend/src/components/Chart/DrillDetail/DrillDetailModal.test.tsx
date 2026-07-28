@@ -32,12 +32,9 @@ jest.mock('react-router-dom', () => ({
   }),
 }));
 
-jest.mock('src/explore/exploreUtils', () => ({
-  ...jest.requireActual('src/explore/exploreUtils'),
-  getExploreUrl: jest.fn(
-    ({ formData }) =>
-      `/explore/?dashboard_page_id=&slice_id=${formData.slice_id}`,
-  ),
+jest.mock('src/explore/exploreUtils/formData', () => ({
+  ...jest.requireActual('src/explore/exploreUtils/formData'),
+  postFormData: jest.fn().mockResolvedValue('mock-form-data-key'),
 }));
 
 const { id: chartId, form_data: formData } = chartQueries[sliceId];
