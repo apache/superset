@@ -485,6 +485,12 @@ const FilterBar: FC<FiltersBarProps> = ({
         targets: [
           {
             datasetId: item.targets?.[0]?.datasetId,
+            // Keep the datasource type through a clear: dropping it would
+            // silently rebind a semantic view to the regular dataset that
+            // shares its numeric id on the next resolution (sc-111089).
+            ...(item.targets?.[0]?.datasourceType
+              ? { datasourceType: item.targets[0].datasourceType }
+              : {}),
           },
         ] as [Partial<NativeFilterTarget>],
       }));

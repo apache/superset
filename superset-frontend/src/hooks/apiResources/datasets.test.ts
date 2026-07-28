@@ -448,3 +448,84 @@ test('useDatasetDrillInfo falls back to REST API when extension exists but formD
     verbose_map: { col1: 'Column 1' },
   });
 });
+
+/**
+ * sc-111089 T012: type-aware resolution — semantic views resolve their own
+ * structure and never touch /drill_info/ (which would hit the colliding
+ * regular dataset id), including when a drillby extension is registered.
+ */
+
+test('getDatasourceTypeFromId parses the semantic_view suffix and falls back to table', () => {
+  const { getDatasourceTypeFromId } = jest.requireActual('./datasets');
+  expect(getDatasourceTypeFromId('3__semantic_view')).toBe('semantic_view');
+  expect(getDatasourceTypeFromId('3__table')).toBe('table');
+  expect(getDatasourceTypeFromId('3__bogus')).toBe('table');
+  expect(getDatasourceTypeFromId(3)).toBe('table');
+});
+
+test('useDatasetDrillInfo resolves a semantic view from its structure with zero drill_info calls', async () => {
+  mockedCachedSupersetGet.mockResolvedValue({
+    json: {
+      result: {
+        name: 'orders',
+        dimensions: [{ name: 'Orders Status', type: 'VARCHAR' }],
+        metrics: [{ name: 'order_count', definition: 'COUNT(*)' }],
+      },
+    },
+  } as any);
+
+  const { result } = renderHook(() =>
+    useDatasetDrillInfo('3__semantic_view', 456),
+  );
+
+  await waitFor(() => expect(result.current.status).toBe('complete'));
+
+  expect(mockedCachedSupersetGet).toHaveBeenCalledWith({
+    endpoint: '/api/v1/semantic_view/3/structure',
+  });
+  const drillInfoCalls = mockedCachedSupersetGet.mock.calls.filter(call =>
+    String(call[0]?.endpoint).includes('/drill_info/'),
+  );
+  expect(drillInfoCalls).toHaveLength(0);
+
+  expect(result.current.result?.table_name).toBe('orders');
+  expect(result.current.result?.verbose_map).toMatchObject({
+    'Orders Status': 'Orders Status',
+    order_count: 'order_count',
+  });
+});
+
+test('semantic view wins over a registered drillby extension', async () => {
+  setupExtensionMock();
+  mockedCachedSupersetGet.mockResolvedValue({
+    json: {
+      result: { name: 'orders', dimensions: [], metrics: [] },
+    },
+  } as any);
+  const mockFormData = { datasource: '3__semantic_view' } as any;
+
+  const { result } = renderHook(() =>
+    useDatasetDrillInfo('3__semantic_view', 456, mockFormData),
+  );
+
+  await waitFor(() => expect(result.current.status).toBe('complete'));
+
+  // The extension path must not run for semantic views — it receives only
+  // the numeric id and would resolve the colliding regular dataset.
+  expect(mockExtension).not.toHaveBeenCalled();
+  expect(result.current.result?.table_name).toBe('orders');
+});
+
+test('a malformed type suffix falls back to the regular dataset drill_info path', async () => {
+  mockedCachedSupersetGet.mockResolvedValue({
+    json: { result: { id: 3, columns: [], metrics: [] } },
+  } as any);
+
+  const { result } = renderHook(() => useDatasetDrillInfo('3__bogus', 456));
+
+  await waitFor(() => expect(result.current.status).toBe('complete'));
+
+  expect(mockedCachedSupersetGet).toHaveBeenCalledWith({
+    endpoint: '/api/v1/dataset/3/drill_info/?q=(dashboard_id:456)',
+  });
+});

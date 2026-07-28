@@ -378,3 +378,27 @@ test('should use verbose_map for column headers when available', async () => {
     screen.queryByRole('columnheader', { name: 'na_sales' }),
   ).not.toBeInTheDocument();
 });
+
+/**
+ * sc-111089 T013: a semantic-view drill resource shows the view's name; the
+ * metadata rows the structure payload cannot fill render their explicit
+ * "Not available" state — an accepted, pinned degradation, never another
+ * object's values.
+ */
+test('renders a semantic-view resource with Not available metadata rows', async () => {
+  fetchWithNoData();
+  setup({
+    dataset: {
+      id: 3,
+      table_name: 'orders',
+      datasource_type: 'semantic_view',
+      columns: [{ column_name: 'Orders Status' }],
+      metrics: [],
+      verbose_map: { 'Orders Status': 'Orders Status' },
+    },
+  });
+
+  expect(await screen.findByText('orders')).toBeInTheDocument();
+  const notAvailable = await screen.findAllByText('Not available');
+  expect(notAvailable.length).toBeGreaterThan(0);
+});

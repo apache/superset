@@ -16,20 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  ChartCustomizationType,
-  type ChartCustomization,
-} from '@superset-ui/core';
+import fetchMock from 'fetch-mock';
 import { LabeledValue } from '@superset-ui/core/components';
-import { render, screen } from 'spec/helpers/testing-library';
+import {
+  ChartCustomization,
+  ChartCustomizationType,
+  DatasourceType,
+  NativeFilterTarget,
+} from '@superset-ui/core';
+import {
+  render,
+  screen,
+  waitFor,
+  userEvent,
+} from 'spec/helpers/testing-library';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
 import GroupByFilterCard, {
   createLabelSortComparator,
 } from './GroupByFilterCard';
 
-jest.mock('src/utils/cachedSupersetGet', () => ({
-  // Never resolves, pinning the card in its column-loading state.
-  cachedSupersetGet: jest.fn(() => new Promise(() => {})),
+jest.mock('src/dashboard/actions/chartCustomizationActions', () => ({
+  ...jest.requireActual('src/dashboard/actions/chartCustomizationActions'),
+  setPendingChartCustomization: jest.fn(() => ({ type: 'MOCK_SET_PENDING' })),
 }));
+
+jest.mock('src/components/MessageToasts/actions', () => ({
+  ...jest.requireActual('src/components/MessageToasts/actions'),
+  addDangerToast: jest.fn(() => ({ type: 'MOCK_DANGER_TOAST' })),
+}));
+
+const mockedAddDangerToast = addDangerToast as unknown as jest.Mock;
 
 const apple: LabeledValue = { value: 'a', label: 'Apple' };
 const banana: LabeledValue = { value: 'b', label: 'Banana' };
@@ -52,25 +68,271 @@ test('preserves source order when sortAscending is unset', () => {
   expect(compare(banana, apple)).toBe(0);
 });
 
-const groupByCustomization: ChartCustomization = {
-  id: 'groupby-1',
-  name: 'Group By',
-  filterType: 'filter_groupby',
+/**
+ * Characterization tests (sc-111089 T002): pin today's regular-dataset
+ * behaviour BEFORE the type-aware refactor, so FR-004's "byte-identical"
+ * regression guard is falsifiable. Each test uses a distinct dataset id —
+ * cachedSupersetGet holds a module-level cache keyed by endpoint.
+ */
+
+const customization = (
+  targets: Partial<NativeFilterTarget>[],
+): ChartCustomization => ({
+  id: 'cc-1',
   type: ChartCustomizationType.ChartCustomization,
-  targets: [{ datasetId: 1 }],
+  name: 'Group by control',
+  filterType: 'chart_customization_dynamic_groupby',
+  targets,
   scope: { rootPath: [], excluded: [] },
-  controlValues: {},
   defaultDataMask: {},
+  controlValues: {},
+});
+
+const initialState = {
+  dataMask: {},
+  nativeFilters: { filters: {} },
 };
 
-test('renders the column-loading spinner small and muted', async () => {
-  render(<GroupByFilterCard customizationItem={groupByCustomization} />, {
+const renderCard = (targets: Partial<NativeFilterTarget>[]) =>
+  render(<GroupByFilterCard customizationItem={customization(targets)} />, {
     useRedux: true,
-    initialState: {
-      dataMask: {},
-      nativeFilters: { filters: {} },
+    initialState,
+  });
+
+afterEach(() => {
+  fetchMock.removeRoutes();
+  fetchMock.clearHistory();
+  mockedAddDangerToast.mockClear();
+});
+
+test('fetches the bare dataset endpoint with no query projection', async () => {
+  fetchMock.get('glob:*/api/v1/dataset/301', {
+    result: { table_name: 'Vehicle Sales', columns: [] },
+  });
+
+  renderCard([{ datasetId: 301 }]);
+
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls('glob:*/api/v1/dataset/301'),
+    ).toHaveLength(1),
+  );
+  const { url } = fetchMock.callHistory.calls('glob:*/api/v1/dataset/301')[0];
+  // Characterized: the full resource, no rison ?q= column projection.
+  expect(url.endsWith('/api/v1/dataset/301')).toBe(true);
+});
+
+test('maps columns to options honouring filterable and verbose_name', async () => {
+  fetchMock.get('glob:*/api/v1/dataset/302', {
+    result: {
+      table_name: 'Vehicle Sales',
+      columns: [
+        { column_name: 'deal_size', verbose_name: 'Deal Size' },
+        { column_name: 'internal_only', filterable: false },
+        { column_name: 'city' },
+      ],
     },
   });
+
+  renderCard([{ datasetId: 302 }]);
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls('glob:*/api/v1/dataset/302'),
+    ).toHaveLength(1),
+  );
+
+  const combobox = await screen.findByRole('combobox');
+  userEvent.click(combobox);
+
+  expect(await screen.findByText('Deal Size')).toBeInTheDocument();
+  expect(screen.getByText('city')).toBeInTheDocument();
+  // filterable === false columns are excluded from the options.
+  expect(screen.queryByText('internal_only')).not.toBeInTheDocument();
+});
+
+test('fetch failure fires the danger toast and leaves options empty', async () => {
+  fetchMock.get('glob:*/api/v1/dataset/303', 500);
+
+  renderCard([{ datasetId: 303 }]);
+
+  await waitFor(() => expect(mockedAddDangerToast).toHaveBeenCalled());
+  // Characterized copy: dataset-flavoured noun + raw numeric id.
+  expect(String(mockedAddDangerToast.mock.calls[0][0])).toMatch(/303/);
+
+  const combobox = await screen.findByRole('combobox');
+  userEvent.click(combobox);
+  expect(screen.queryByText('Deal Size')).not.toBeInTheDocument();
+});
+
+test('normalizes legacy datasetId shapes: plain number, string, and {value} object', async () => {
+  fetchMock.get('glob:*/api/v1/dataset/304', {
+    result: { table_name: 'A', columns: [] },
+  });
+  fetchMock.get('glob:*/api/v1/dataset/305', {
+    result: { table_name: 'B', columns: [] },
+  });
+
+  // string-shaped id
+  renderCard([{ datasetId: '304' as unknown as number }]);
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls('glob:*/api/v1/dataset/304'),
+    ).toHaveLength(1),
+  );
+
+  // legacy {value} object shape
+  renderCard([{ datasetId: { value: 305 } as unknown as number }]);
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls('glob:*/api/v1/dataset/305'),
+    ).toHaveLength(1),
+  );
+});
+
+/**
+ * sc-111089 T010: wiring-altitude tests for the type-aware card. The hook's
+ * branch matrix is proven in useDisplayControlDatasource.test.ts — these
+ * cover the card's wiring: collision rendering, target persistence through
+ * user interactions, and the error affordance.
+ */
+
+const { setPendingChartCustomization } = jest.requireMock(
+  'src/dashboard/actions/chartCustomizationActions',
+);
+
+test('semantic-view target lists only the view dimensions under an id collision', async () => {
+  fetchMock.get('glob:*/api/v1/semantic_view/306/structure', {
+    result: {
+      name: 'orders',
+      dimensions: [{ name: 'Orders Status', type: 'VARCHAR' }],
+    },
+  });
+  fetchMock.get('glob:*/api/v1/dataset/306', {
+    result: {
+      table_name: 'Vehicle Sales',
+      columns: [{ column_name: 'address_line1' }],
+    },
+  });
+
+  renderCard([{ datasetId: 306, datasourceType: DatasourceType.SemanticView }]);
+
+  const combobox = await screen.findByRole('combobox');
+  userEvent.click(combobox);
+
+  expect(await screen.findByText('Orders Status')).toBeInTheDocument();
+  expect(screen.queryByText('address_line1')).not.toBeInTheDocument();
+  // The colliding dataset endpoint is never touched.
+  expect(fetchMock.callHistory.calls('glob:*/api/v1/dataset/306')).toHaveLength(
+    0,
+  );
+});
+
+test('selecting a dimension persists a target that still carries datasourceType', async () => {
+  fetchMock.get('glob:*/api/v1/semantic_view/307/structure', {
+    result: {
+      name: 'orders',
+      dimensions: [{ name: 'Orders Users City', type: 'VARCHAR' }],
+    },
+  });
+  fetchMock.get('glob:*/api/v1/dataset/307', { result: {} });
+
+  renderCard([{ datasetId: 307, datasourceType: DatasourceType.SemanticView }]);
+
+  const combobox = await screen.findByRole('combobox');
+  userEvent.click(combobox);
+  userEvent.click(await screen.findByText('Orders Users City'));
+
+  await waitFor(() => expect(setPendingChartCustomization).toHaveBeenCalled());
+  const persisted =
+    setPendingChartCustomization.mock.calls[
+      setPendingChartCustomization.mock.calls.length - 1
+    ][0];
+  expect(persisted.targets[0]).toMatchObject({
+    datasetId: 307,
+    datasourceType: DatasourceType.SemanticView,
+  });
+  // No refetch of the colliding dataset endpoint after the interaction.
+  expect(fetchMock.callHistory.calls('glob:*/api/v1/dataset/307')).toHaveLength(
+    0,
+  );
+});
+
+test('clearing the selection keeps the datasource binding intact', async () => {
+  fetchMock.get('glob:*/api/v1/semantic_view/308/structure', {
+    result: {
+      name: 'orders',
+      dimensions: [{ name: 'Orders State', type: 'VARCHAR' }],
+    },
+  });
+
+  renderCard([{ datasetId: 308, datasourceType: DatasourceType.SemanticView }]);
+
+  const combobox = await screen.findByRole('combobox');
+  userEvent.click(combobox);
+  userEvent.click(await screen.findByText('Orders State'));
+  await waitFor(() => expect(setPendingChartCustomization).toHaveBeenCalled());
+  setPendingChartCustomization.mockClear();
+
+  // Deselect (multi-select toggle) — the cleared target must keep the
+  // datasource binding rather than collapsing to an empty object. After
+  // selection the label exists twice (selection tag + dropdown option);
+  // toggle via the option role.
+  userEvent.click(combobox);
+  userEvent.click(await screen.findByRole('option', { name: 'Orders State' }));
+  await waitFor(() => expect(setPendingChartCustomization).toHaveBeenCalled());
+  const cleared =
+    setPendingChartCustomization.mock.calls[
+      setPendingChartCustomization.mock.calls.length - 1
+    ][0];
+  expect(cleared.targets[0]).toMatchObject({
+    datasetId: 308,
+    datasourceType: DatasourceType.SemanticView,
+  });
+});
+
+test('semantic structure failure renders empty options and toasts exactly once with view wording', async () => {
+  fetchMock.get('glob:*/api/v1/semantic_view/309/structure', 500);
+  fetchMock.get('glob:*/api/v1/dataset/*', { result: {} });
+
+  const { rerender } = renderCard([
+    { datasetId: 309, datasourceType: DatasourceType.SemanticView },
+  ]);
+
+  await waitFor(() => expect(mockedAddDangerToast).toHaveBeenCalledTimes(1));
+  expect(String(mockedAddDangerToast.mock.calls[0][0])).toMatch(
+    /semantic view 309/,
+  );
+  // Re-render (StrictMode-style double pass) must not re-toast the same binding.
+  rerender(
+    <GroupByFilterCard
+      customizationItem={customization([
+        { datasetId: 309, datasourceType: DatasourceType.SemanticView },
+      ])}
+    />,
+  );
+  await new Promise(resolve => setTimeout(resolve, 50));
+  expect(mockedAddDangerToast).toHaveBeenCalledTimes(1);
+
+  const combobox = await screen.findByRole('combobox');
+  userEvent.click(combobox);
+  expect(screen.queryByText('Orders Status')).not.toBeInTheDocument();
+  // Never a cross-type fallback.
+  expect(fetchMock.callHistory.calls('glob:*/api/v1/dataset/*')).toHaveLength(
+    0,
+  );
+});
+
+/**
+ * Upstream #42879 muted the column-loading spinner. Re-expressed here in this
+ * suite's fetchMock idiom: a never-resolving dataset route pins the card in
+ * its loading state without a module-level cachedSupersetGet mock, which
+ * would freeze every other test in this file.
+ */
+test('renders the column-loading spinner small and muted', async () => {
+  fetchMock.get('glob:*/api/v1/dataset/399', new Promise(() => {}));
+
+  renderCard([{ datasetId: 399 }]);
+
   const spinner = await screen.findByTestId('loading-indicator');
   expect(spinner).toHaveClass('inline');
   expect(spinner).toHaveStyle({ opacity: 0.25, width: '40px' });
