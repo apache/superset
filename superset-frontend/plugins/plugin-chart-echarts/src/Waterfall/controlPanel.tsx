@@ -23,6 +23,7 @@ import {
   D3_TIME_FORMAT_DOCS,
   DEFAULT_TIME_FORMAT,
   formatSelectOptions,
+  getStandardizedControls,
   sharedControls,
 } from '@superset-ui/chart-controls';
 import { showValueControl } from '../controls';
@@ -245,6 +246,11 @@ const config: ControlPanelConfig = {
       multi: false,
     },
   },
+  formDataOverrides: formData => ({
+    ...formData,
+    metric: getStandardizedControls().shiftMetric(),
+    groupby: getStandardizedControls().popAllColumns(),
+  }),
 };
 
 export default config;
