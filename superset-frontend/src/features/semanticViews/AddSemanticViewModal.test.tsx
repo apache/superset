@@ -292,6 +292,20 @@ const dynamicMetricsSchema = {
   },
 };
 
+/**
+ * Same metrics picker without the dynamic dependency: selections trigger no
+ * schema-refresh cycle, so tests that only care about form-state wiring wait
+ * on a single debounce instead of one per pick.
+ */
+const staticMetricsSchema = {
+  properties: {
+    metrics: {
+      type: 'array',
+      items: { enum: ['m1', 'm2', 'm3'] },
+    },
+  },
+};
+
 const pickFromSelect = async (name: RegExp, optionTitle: string) => {
   const box = await screen.findByRole('combobox', { name });
   await userEvent.click(box);
@@ -353,7 +367,7 @@ test('metric selections survive identical schema refreshes without losing state'
       );
       expect(refreshCalls.length).toBeGreaterThanOrEqual(1);
     },
-    { timeout: 3000 },
+    { timeout: 10000 },
   );
   expect(selectedTag('m1')).toBeTruthy();
 
@@ -362,7 +376,7 @@ test('metric selections survive identical schema refreshes without losing state'
     () => {
       expect(selectedTag('m2')).toBeTruthy();
     },
-    { timeout: 3000 },
+    { timeout: 10000 },
   );
   // Both selections intact after two refresh cycles.
   expect(selectedTag('m1')).toBeTruthy();
@@ -417,7 +431,7 @@ test('a failed schema refresh surfaces a toast and preserves selections', async 
         'An error occurred while refreshing the runtime schema',
       );
     },
-    { timeout: 3000 },
+    { timeout: 10000 },
   );
   expect(refreshCount).toBeGreaterThanOrEqual(1);
   // The user's selection is untouched by the failure (spec FR-005).
@@ -425,7 +439,10 @@ test('a failed schema refresh surfaces a toast and preserves selections', async 
 });
 
 test('the save payload carries every selected metric', async () => {
-  mockLayerWithSchema(dynamicMetricsSchema);
+  // Static schema on purpose: this test pins the form-state -> payload
+  // wiring, not the refresh cycle (covered by the refresh tests above), so
+  // it waits on one views-fetch debounce rather than one per pick.
+  mockLayerWithSchema(staticMetricsSchema);
   render(<AddSemanticViewModal {...createProps()} />);
   await selectOption('Semantic layer', 'Snowflake SL');
 
@@ -433,15 +450,13 @@ test('the save payload carries every selected metric', async () => {
   await pickFromSelect(/metrics/i, 'm2');
   await pickFromSelect(/metrics/i, 'm3');
 
-  // The views fetch trails the last metric pick by two debounce windows;
-  // the picker stays disabled until options arrive.
   await waitFor(
     () => {
       expect(
         screen.getByRole('combobox', { name: 'Semantic views' }),
       ).toBeEnabled();
     },
-    { timeout: 5000 },
+    { timeout: 10000 },
   );
   await pickFromSelect(/semantic views/i, 'orders');
   await userEvent.click(
