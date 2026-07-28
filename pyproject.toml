@@ -178,7 +178,7 @@ dynamodb = ["pydynamodb>=0.8.2"]
 # Effectively unmaintained (only dependabot bumps since 2024); hard-pinned to
 # SQLAlchemy ~1.4.7 upstream, no SQLAlchemy 2.0 work. See
 # superset/db_engine_specs/solr.py's known_incompatibilities metadata.
-solr = ["sqlalchemy-solr >= 0.2.4.3"]
+solr = ["sqlalchemy-solr>=0.2.4.3"]
 elasticsearch = ["elasticsearch-dbapi>=0.2.13, <0.3.0"]
 # sqlalchemy-exasol cuts hard from SQLAlchemy 1.4-only (<6.0.0) to 2.0-only
 # (>=6.0.0) with no dual-compat release. Capped below 6.0.0 for now; bump to

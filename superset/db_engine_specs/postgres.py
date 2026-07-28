@@ -34,6 +34,7 @@ from sqlalchemy.types import Date, DateTime, String
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import (
+    AURORA_DATA_API_KNOWN_INCOMPATIBILITIES,
     BaseEngineSpec,
     BasicParametersMixin,
     DatabaseCategory,
@@ -545,22 +546,7 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
                     DatabaseCategory.CLOUD_AWS,
                     DatabaseCategory.HOSTED_OPEN_SOURCE,
                 ],
-                "known_incompatibilities": [
-                    {
-                        "dependency": "SQLAlchemy 2.0",
-                        "reason": (
-                            "Neither our fork (preset-io/sqlalchemy-aurora-data-api, "
-                            "dormant since 2021) nor the more active community fork "
-                            "(cloud-utils/sqlalchemy-aurora-data-api) has resolved "
-                            "SQLAlchemy 2.0 compatibility."
-                        ),
-                        "tracking_url": (
-                            "https://github.com/cloud-utils/"
-                            "sqlalchemy-aurora-data-api/issues/43"
-                        ),
-                        "since": "2026-07-28",
-                    }
-                ],
+                "known_incompatibilities": AURORA_DATA_API_KNOWN_INCOMPATIBILITIES,
             },
         ],
     }

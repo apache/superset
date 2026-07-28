@@ -287,6 +287,26 @@ class KnownIncompatibility(TypedDict, total=False):
     since: str  # ISO date this was last confirmed still broken
 
 
+# Shared `known_incompatibilities` entry for the Aurora Data API driver
+# (`sqlalchemy-aurora-data-api`), used by both the MySQL and PostgreSQL
+# `compatible_databases` metadata for their respective Aurora entries.
+AURORA_DATA_API_KNOWN_INCOMPATIBILITIES: list[KnownIncompatibility] = [
+    {
+        "dependency": "SQLAlchemy 2.0",
+        "reason": (
+            "Neither our fork (preset-io/sqlalchemy-aurora-data-api, "
+            "dormant since 2021) nor the more active community fork "
+            "(cloud-utils/sqlalchemy-aurora-data-api) has resolved "
+            "SQLAlchemy 2.0 compatibility."
+        ),
+        "tracking_url": (
+            "https://github.com/cloud-utils/sqlalchemy-aurora-data-api/issues/43"
+        ),
+        "since": "2026-07-28",
+    }
+]
+
+
 class DBEngineSpecMetadata(TypedDict, total=False):
     """
     Metadata for database engine documentation and UI display.
