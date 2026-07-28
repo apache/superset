@@ -19,6 +19,7 @@
 import fetchMock from 'fetch-mock';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { getExtensionsRegistry } from '@superset-ui/core';
+import type { Editor } from '@superset-ui/core/components';
 import {
   createWrapper,
   defaultStore as store,
@@ -278,6 +279,22 @@ test.each([
           meta: 'table',
         }),
       ),
+    );
+
+    // The caption inserted into the editor on selection is quoted with the
+    // same dialect-specific characters as `value`, not a hardcoded ANSI quote.
+    const tableKeyword = result.current.find(
+      keyword => keyword.meta === 'table' && keyword.name === 'COVID Vaccines',
+    );
+    const insertMatch = tableKeyword?.completer?.insertMatch;
+    const editor = {
+      completer: { insertMatch: jest.fn() },
+    } as unknown as Editor;
+    act(() => {
+      insertMatch?.(editor, { meta: 'table', caption: 'COVID Vaccines' });
+    });
+    expect(editor.completer.insertMatch).toHaveBeenCalledWith(
+      `${expectedValue} `,
     );
   },
 );
