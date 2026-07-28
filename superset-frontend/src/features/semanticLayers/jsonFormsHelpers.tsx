@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect, useMemo } from 'react';
-import { isEqual } from 'lodash';
+import { isEqual } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import { FormItem, Select } from '@superset-ui/core/components';
 import { Spin } from '@superset-ui/core/components/Spin';
@@ -366,11 +366,14 @@ export function MultiEnumControl(props: ControlProps) {
     (arraySchema.items as Record<string, unknown>) ??
     ({} as Record<string, unknown>);
 
-  // ``?? undefined`` keeps memo deps identity-stable; fallbacks live in
-  // the memo body.
-  const enumValues = (itemsSchema.enum as unknown[] | undefined) ?? undefined;
-  const enumNames =
-    (itemsSchema['x-enumNames'] as string[] | undefined) ?? undefined;
+  // No fallback allocations out here: a fresh ``[]`` per render would give
+  // the memo new deps every time. Fallbacks live inside the memo.
+  const enumValues = Array.isArray(itemsSchema.enum)
+    ? (itemsSchema.enum as unknown[])
+    : undefined;
+  const enumNames = Array.isArray(itemsSchema['x-enumNames'])
+    ? (itemsSchema['x-enumNames'] as string[])
+    : undefined;
 
   // Memoized: the host form passes a fresh ``config`` to every control on
   // each change, so without the memo a catalog of N options is rebuilt on

@@ -352,9 +352,12 @@ export default function AddSemanticViewModal({
                   refreshGen !== schemaRefreshGenRef.current
                 )
                   return;
-                if (json.result) applyRuntimeSchema(json.result);
+                // Reset before applying: the request itself succeeded, so a
+                // throw inside applyRuntimeSchema must not be reported (or
+                // retried) as a transient network failure.
                 refreshErrorToastShownRef.current = false;
                 retriedDepSnapshotRef.current = '';
+                if (json.result) applyRuntimeSchema(json.result);
               } catch (error) {
                 if (
                   gen !== fetchGenRef.current ||
