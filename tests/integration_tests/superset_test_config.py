@@ -21,6 +21,7 @@ from copy import copy
 from datetime import timedelta
 
 from sqlalchemy.engine import make_url
+from sqlalchemy.pool import NullPool
 
 from superset.config import *  # noqa: F403
 from superset.config import DATA_DIR
@@ -58,6 +59,19 @@ if make_url(SQLALCHEMY_DATABASE_URI).get_backend_name() == "sqlite":
         "SQLite Database support for metadata databases will be "
         "removed in a future version of Superset."
     )
+    # Flask-SQLAlchemy 3.0 stopped defaulting SQLite engines to NullPool when
+    # pool_size isn't set (it now falls back to QueuePool, same as any other
+    # backend). With a file-based SQLite db shared between this test process
+    # and the Celery worker, pooled/held-open connections cause "database is
+    # locked" errors under concurrent writes -- especially with
+    # ENABLE_VERSIONING_CAPTURE on, which adds a version_transaction write to
+    # every commit. NullPool restores the old (correct, for this use case)
+    # behavior: every checkout opens a fresh connection, every checkin closes
+    # it, so no connection sits idle holding a lock.
+    SQLALCHEMY_ENGINE_OPTIONS = {  # noqa: F405
+        **SQLALCHEMY_ENGINE_OPTIONS,  # noqa: F405
+        "poolclass": NullPool,
+    }
 
 # Speeding up the tests.integration_tests.
 PRESTO_POLL_INTERVAL = 0.1
