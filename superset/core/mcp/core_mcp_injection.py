@@ -70,6 +70,7 @@ def create_tool_decorator(
     class_permission_name: Optional[str] = None,
     method_permission_name: Optional[str] = None,
     annotations: ToolAnnotations | None = None,
+    meta: Optional[dict[str, Any]] = None,
 ) -> Callable[[F], F] | F:
     """
     Create the concrete MCP tool decorator implementation.
@@ -140,6 +141,7 @@ def create_tool_decorator(
                 description=tool_description,
                 tags=tool_tags,
                 annotations=annotations,
+                meta=meta,
             )
             mcp.add_tool(tool)
 

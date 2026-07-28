@@ -1,0 +1,442 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+:root {
+  --sv-radius: 12px;
+  --sv-radius-sm: 8px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: var(--sv-font-sans);
+  background: var(--sv-bg);
+  color: var(--sv-text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+.sv-app {
+  display: flex;
+  flex-direction: column;
+  min-height: 260px;
+  height: 100%;
+  padding: 16px;
+  gap: 12px;
+  background: var(--sv-bg);
+  color: var(--sv-text-primary);
+}
+
+/* ---- Header ---- */
+.sv-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sv-title-wrap {
+  min-width: 0;
+}
+
+.sv-title {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 0;
+  color: var(--sv-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sv-subtitle {
+  font-size: 12px;
+  color: var(--sv-text-secondary);
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sv-accent-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--sv-accent);
+  flex: 0 0 auto;
+}
+
+/* ---- Toolbar ---- */
+.sv-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sv-chip-group {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  background: var(--sv-zebra);
+  border: 1px solid var(--sv-border);
+  border-radius: var(--sv-radius-sm);
+}
+
+.sv-chip {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--sv-text-secondary);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 11px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.sv-chip:hover {
+  color: var(--sv-text-primary);
+  background: var(--sv-hover);
+}
+
+.sv-chip[aria-pressed='true'] {
+  background: var(--sv-panel);
+  color: var(--sv-accent);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+
+.sv-metric-chip[aria-pressed='true'] {
+  background: var(--sv-panel);
+  color: var(--sv-text-primary);
+}
+
+.sv-metric-swatch {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.sv-spacer {
+  flex: 1 1 auto;
+}
+
+.sv-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: var(--sv-radius-sm);
+  border: 1px solid var(--sv-accent);
+  background: var(--sv-accent);
+  color: #fff;
+  cursor: pointer;
+  transition: filter 0.15s ease, opacity 0.15s ease;
+  white-space: nowrap;
+}
+
+.sv-btn:hover {
+  filter: brightness(1.05);
+}
+
+.sv-btn--ghost {
+  background: transparent;
+  color: var(--sv-accent);
+}
+
+.sv-btn--subtle {
+  background: var(--sv-zebra);
+  border-color: var(--sv-border);
+  color: var(--sv-text-secondary);
+  font-weight: 500;
+}
+
+.sv-btn--subtle:hover {
+  color: var(--sv-text-primary);
+}
+
+/* ---- Chart area ---- */
+.sv-body {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 220px;
+}
+
+.sv-echart {
+  width: 100%;
+  height: 100%;
+  min-height: 220px;
+}
+
+/* ---- Insight bar ---- */
+.sv-insights {
+  font-size: 12px;
+  color: var(--sv-text-secondary);
+  line-height: 1.45;
+  border-top: 1px solid var(--sv-border);
+  padding-top: 10px;
+}
+
+.sv-insights strong {
+  color: var(--sv-text-primary);
+}
+
+/* ---- Big number ---- */
+.sv-bignum {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+  min-height: 220px;
+  gap: 6px;
+}
+
+.sv-bignum-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--sv-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sv-bignum-value {
+  font-size: clamp(40px, 9vw, 72px);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--sv-text-primary);
+  letter-spacing: -0.02em;
+}
+
+.sv-bignum-full {
+  font-size: 13px;
+  color: var(--sv-text-muted);
+}
+
+.sv-bignum-spark {
+  height: 64px;
+  margin-top: 10px;
+}
+
+/* ---- Table ---- */
+.sv-table-scroll {
+  height: 100%;
+  min-height: 220px;
+  overflow: auto;
+  border: 1px solid var(--sv-border);
+  border-radius: var(--sv-radius-sm);
+}
+
+.sv-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12.5px;
+}
+
+.sv-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--sv-panel);
+  color: var(--sv-text-secondary);
+  font-weight: 600;
+  text-align: left;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--sv-border);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.sv-table thead th:hover {
+  color: var(--sv-text-primary);
+}
+
+.sv-table th.sv-num,
+.sv-table td.sv-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.sv-sort-caret {
+  margin-left: 4px;
+  opacity: 0.7;
+  font-size: 10px;
+}
+
+.sv-table tbody td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--sv-grid-line);
+  color: var(--sv-text-primary);
+  white-space: nowrap;
+}
+
+.sv-table tbody tr:nth-child(even) {
+  background: var(--sv-zebra);
+}
+
+.sv-table tbody tr:hover {
+  background: var(--sv-hover);
+}
+
+/* ---- States (loading / empty / error) ---- */
+.sv-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 240px;
+  gap: 10px;
+  text-align: center;
+  padding: 24px;
+}
+
+.sv-state-icon {
+  width: 40px;
+  height: 40px;
+  color: var(--sv-text-muted);
+}
+
+.sv-state-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--sv-text-primary);
+}
+
+.sv-state-msg {
+  font-size: 12.5px;
+  color: var(--sv-text-secondary);
+  max-width: 320px;
+  line-height: 1.5;
+}
+
+.sv-state--error .sv-state-icon {
+  color: #e04355;
+}
+
+/* ---- Skeleton ---- */
+.sv-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  height: 100%;
+  padding: 8px 0;
+}
+
+.sv-sk-line {
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--sv-skeleton) 25%,
+    var(--sv-hover) 37%,
+    var(--sv-skeleton) 63%
+  );
+  background-size: 400% 100%;
+  animation: sv-shimmer 1.4s ease infinite;
+}
+
+.sv-sk-bars {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding-top: 12px;
+}
+
+.sv-sk-bar {
+  flex: 1;
+  border-radius: 6px 6px 0 0;
+  background: linear-gradient(
+    180deg,
+    var(--sv-hover) 0%,
+    var(--sv-skeleton) 100%
+  );
+  animation: sv-shimmer 1.4s ease infinite;
+  background-size: 100% 400%;
+}
+
+@keyframes sv-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+/* ---- Toast / action popover ---- */
+.sv-toast {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--sv-panel);
+  border: 1px solid var(--sv-border);
+  border-radius: var(--sv-radius-sm);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  padding: 8px 10px 8px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--sv-text-primary);
+  animation: sv-rise 0.18s ease;
+  max-width: 90%;
+  z-index: 5;
+}
+
+@keyframes sv-rise {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.sv-reset-pill {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 4;
+}

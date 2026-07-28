@@ -1,0 +1,10 @@
+node_modules/
+*.log
+.DS_Store
+
+# Keep the built single-file widget bundle committed so the MCP `ui://` resource
+# serves it without a Node build step on the server. Ignore all other Vite
+# output. (For a production build pipeline, build this in CI instead and drop
+# the committed artifact.)
+dist/*
+!dist/index.html

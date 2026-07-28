@@ -516,7 +516,9 @@ def wrap_sql_adhoc_metrics(form_data: Any) -> None:
                 )
 
 
-def sanitize_chart_info_for_llm_context(chart_info: ChartInfo) -> ChartInfo:  # noqa: C901
+def sanitize_chart_info_for_llm_context(
+    chart_info: ChartInfo,
+) -> ChartInfo:  # noqa: C901
     """Wrap chart read-path descriptive fields before LLM exposure."""
     payload = chart_info.model_dump(mode="python")
 
@@ -631,23 +633,29 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
             changed_on_humanized=humanize_timestamp(getattr(chart, "changed_on", None)),
             created_on=getattr(chart, "created_on", None),
             created_on_humanized=humanize_timestamp(getattr(chart, "created_on", None)),
-            uuid=str(getattr(chart, "uuid", ""))
-            if getattr(chart, "uuid", None)
-            else None,
+            uuid=(
+                str(getattr(chart, "uuid", ""))
+                if getattr(chart, "uuid", None)
+                else None
+            ),
             deleted_at=getattr(chart, "deleted_at", None),
-            tags=[
-                TagInfo.model_validate(tag, from_attributes=True)
-                for tag in getattr(chart, "tags", [])
-            ]
-            if getattr(chart, "tags", None)
-            else [],
-            editors=[
-                info
-                for editor in getattr(chart, "editors", [])
-                if (info := serialize_subject_object(editor)) is not None
-            ]
-            if getattr(chart, "editors", None)
-            else [],
+            tags=(
+                [
+                    TagInfo.model_validate(tag, from_attributes=True)
+                    for tag in getattr(chart, "tags", [])
+                ]
+                if getattr(chart, "tags", None)
+                else []
+            ),
+            editors=(
+                [
+                    info
+                    for editor in getattr(chart, "editors", [])
+                    if (info := serialize_subject_object(editor)) is not None
+                ]
+                if getattr(chart, "editors", None)
+                else []
+            ),
         )
     )
 
@@ -2543,6 +2551,13 @@ class ChartData(BaseModel):
         None, description="Export format used (json, csv, excel)"
     )
 
+    # Deep link to open this chart in Superset's Explore view. Populated by the
+    # ``render_chart`` MCP Apps tool so the widget can offer "Open in Superset";
+    # ``None`` for other callers.
+    explore_url: str | None = Field(
+        None, description="Absolute URL to open the chart in Superset Explore"
+    )
+
     # Inherit versioning
     schema_version: str = Field("2.0", description="Response schema version")
     api_version: str = Field("v1", description="MCP API version")
@@ -3031,4 +3046,95 @@ class DeleteChartResponse(BaseModel):
             "True when the caller lacks permission to delete the chart (do not "
             "retry; ask the user)."
         ),
+    )
+
+
+# ---------------------------------------------------------------------------
+# MCP Apps: render_chart (interactive chart widget)
+# ---------------------------------------------------------------------------
+
+
+class RenderChartRequest(QueryCacheControl):
+    """Request for the ``render_chart`` MCP Apps tool.
+
+    Mirrors the query surface of ``get_chart_data`` (minus the export formats,
+    which do not apply to an interactive visualization). The tool returns the
+    chart's data plus a ``_meta.ui.resourceUri`` descriptor so MCP Apps hosts
+    (Claude, ChatGPT, VS Code, ...) render the chart-viewer widget inline.
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    identifier: int | str = Field(
+        ...,
+        description="Chart identifier (numeric ID or UUID) to render.",
+        validation_alias=AliasChoices("identifier", "id", "chart_id"),
+    )
+    limit: int | None = Field(
+        default=None,
+        description=(
+            "Maximum number of data rows to render. Defaults to the chart's "
+            "configured row limit (capped by the server for widget payloads)."
+        ),
+    )
+    extra_form_data: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "Extra form data to merge into the chart query (e.g. dashboard "
+            'native filters). Format: {"filters": [{"col": "country", "op": '
+            '"IN", "val": ["US"]}]}'
+        ),
+    )
+
+
+class RenderChartRequeryRequest(QueryCacheControl):
+    """Request for ``render_chart_requery`` — the app-visible re-query tool the
+    chart-viewer widget calls for drill-down, brush-to-zoom, and filtering.
+
+    This tool is intended to be invoked by the widget (``_meta.ui.visibility =
+    ["app"]``), not the model. It translates high-level interactions into an
+    ``extra_form_data`` override and re-runs the same authorized data query.
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    identifier: int | str = Field(
+        ...,
+        description="Chart identifier (numeric ID or UUID) to re-query.",
+        validation_alias=AliasChoices("identifier", "id", "chart_id"),
+    )
+    filter_col: str | None = Field(
+        default=None,
+        description="Column to filter on (paired with filter_val) when drilling "
+        "into a clicked data point.",
+    )
+    filter_val: Any | None = Field(
+        default=None,
+        description="Value the clicked data point represents; filters "
+        "filter_col == filter_val.",
+    )
+    filter: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            'Drill filter as an object, e.g. {"col": "country", "val": "US"}. '
+            "Alternative to filter_col/filter_val; takes precedence when both "
+            "are provided. Sent by the chart-viewer widget on click-to-drill."
+        ),
+    )
+    time_range: str | None = Field(
+        default=None,
+        description=(
+            "Time range override (Superset time-range syntax, e.g. "
+            '"Last quarter" or an ISO "start : end" range) for brush-to-zoom.'
+        ),
+    )
+    granularity: str | None = Field(
+        default=None,
+        description=(
+            "Time grain override for the narrowed range (e.g. P1D, PT1H) when "
+            "zooming into a time-series."
+        ),
+    )
+    limit: int | None = Field(
+        default=None, description="Maximum number of data rows to return."
     )

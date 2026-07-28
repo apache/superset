@@ -167,6 +167,10 @@ MCP_GUEST_ALLOWED_TOOLS: set[str] = {
     "get_chart_info",
     "get_chart_data",
     "get_chart_preview",
+    # MCP Apps chart widget: same data + guest scoping as get_chart_data, just
+    # rendered interactively. render_chart_requery is the widget's drill/zoom.
+    "render_chart",
+    "render_chart_requery",
 }
 
 # Hook to restrict which MCP tools a principal may call, independent of RBAC.
@@ -401,12 +405,43 @@ MCP_TOOL_SEARCH_CONFIG: dict[str, Any] = {
     "always_visible": [  # Tools always shown in list_tools (pinned)
         "health_check",
         "get_instance_info",
+        # MCP Apps widget entry point. Must be pinned (not hidden behind the
+        # search_tools/call_tool proxy) so hosts see its ``_meta.ui.resourceUri``
+        # descriptor and associate the tool result with the chart-viewer widget.
+        "render_chart",
+        # App-visible drill-down/zoom tool the widget calls back via tools/call.
+        # Pinned so the call path is reachable through the tool-search transform;
+        # its ``_meta.ui.visibility = ["app"]`` keeps compliant hosts from
+        # surfacing it to the model.
+        "render_chart_requery",
     ],
     "search_tool_name": "search_tools",  # Name of the search tool
     "call_tool_name": "call_tool",  # Name of the call proxy tool
     "compact_schemas": True,  # Strip $defs/$ref (requires include_schemas=True)
     "max_description_length": 300,  # Truncate tool descriptions (0 = no truncation)
     "include_schemas": True,  # full inputSchema in search results
+}
+
+
+# =============================================================================
+# MCP Apps: structured-content keep-list
+# =============================================================================
+#
+# StructuredContentStripperMiddleware removes ``outputSchema`` and
+# ``structuredContent`` from every tool by default (a Claude.ai bridge
+# compatibility workaround). MCP Apps widgets read the structured tool result
+# to render an interactive UI, so tools listed here are EXEMPT from stripping
+# and keep their schema + structured content on the wire.
+#
+# Keep this list small. Only add tools whose structured payload is known to be
+# encodable by the transports you target (the chart-viewer widget's
+# ``render_chart`` returns a bounded JSON object that encodes cleanly).
+# =============================================================================
+MCP_STRUCTURED_CONTENT_KEEP_TOOLS: set[str] = {
+    "render_chart",
+    # The widget's drill-down/zoom re-query; its structured result is what the
+    # widget renders after an interaction, so it must survive stripping too.
+    "render_chart_requery",
 }
 
 

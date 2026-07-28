@@ -765,6 +765,8 @@ from superset.mcp_service.chart.tool import (  # noqa: F401, E402
     get_chart_sql,
     get_chart_type_schema,
     list_charts,
+    render_chart,
+    render_chart_requery,
     restore_chart,
     update_chart,
     update_chart_preview,

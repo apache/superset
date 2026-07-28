@@ -1,0 +1,138 @@
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one
+  or more contributor license agreements.  See the NOTICE file
+  distributed with this work for additional information
+  regarding copyright ownership.  The ASF licenses this file
+  to you under the Apache License, Version 2.0 (the
+  "License"); you may not use this file except in compliance
+  with the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on an
+  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied.  See the License for the
+  specific language governing permissions and limitations
+  under the License.
+-->
+
+# Native chart rendering via MCP Apps (`render_chart`)
+
+Proof-of-concept: Superset MCP tools that return a chart as a **real interactive
+visualization** inside MCP Apps hosts (Claude web/desktop, ChatGPT, VS Code
+Copilot, Cursor, Goose, ...), instead of prose the model has to describe.
+
+Built against the **MCP Apps extension (SEP-1865, stable 2026-01-26)**. See the
+research write-up: `mcp-native-viz-research.md` (repo root).
+
+## Architecture
+
+```
+LLM host (Claude/ChatGPT)
+  │  tools/call render_chart {identifier: 42}
+  ▼
+render_chart tool ──► get_chart_data_core ──► ChartDataCommand (RBAC + RLS)
+  │  returns ChartData (structuredContent) + text summary
+  │  tool descriptor carries _meta.ui.resourceUri = ui://superset/chart-viewer/v1
+  ▼
+host fetches ui:// resource ──► chart_viewer/dist/index.html (sandboxed iframe)
+  │  bridge: JSON-RPC 2.0 over postMessage
+  ▼
+ECharts widget renders line/bar/area/big-number/table
+  │  user interacts (drill / zoom / filter)
+  ▼
+widget tools/call render_chart_requery ──► get_chart_data_core (same authz path)
+```
+
+Key pieces:
+
+| Piece | Location |
+|---|---|
+| `render_chart` + `render_chart_requery` tools | `chart/tool/render_chart.py` |
+| Shared authorized data path | `chart/tool/get_chart_data.py` (`get_chart_data_core`) |
+| `ui://` resource (serves the bundle) | `chart/resources/chart_viewer.py` |
+| Widget source (React + ECharts + Vite) | `chart/resources/chart_viewer/` |
+| Built single-file bundle | `chart/resources/chart_viewer/dist/index.html` |
+| Schemas | `chart/schemas.py` (`RenderChartRequest`, `RenderChartRequeryRequest`, `ChartData.explore_url`) |
+| Stripper keep-list + tool pinning | `middleware.py`, `mcp_config.py` |
+| `@tool(meta=...)` plumbing | `superset-core/.../mcp/decorators.py`, `superset/core/mcp/core_mcp_injection.py` |
+
+## Why the two infra changes were required
+
+Superset's MCP service has two defaults that block MCP Apps out of the box; both
+are handled without weakening them globally:
+
+1. **`StructuredContentStripperMiddleware`** strips `outputSchema` /
+   `structuredContent` from every tool (a Claude-bridge workaround). The widget
+   needs the structured result, so `render_chart` is added to a small keep-list
+   (`MCP_STRUCTURED_CONTENT_KEEP_TOOLS`, default `{"render_chart"}`). Every other
+   tool is still stripped.
+2. **Tool-search transform** hides tools behind `search_tools`/`call_tool`. A UI
+   descriptor on a hidden tool won't trigger widget association, so `render_chart`
+   and `render_chart_requery` are pinned in `MCP_TOOL_SEARCH_CONFIG.always_visible`.
+
+## Data contract (tool result → widget)
+
+`render_chart` returns Superset's `ChartData` (see `chart/schemas.py`) as the
+tool's `structuredContent`, plus a concise text summary for the model. The widget
+reads `structuredContent`. `ChartData.explore_url` (new, optional) gives the
+widget its "Open in Superset" deep link.
+
+`render_chart_requery` (widget → server, `visibility: ["app"]`) accepts:
+
+```jsonc
+{
+  "identifier": 42,               // or "chart_id"
+  "group_by": "country",          // drill-down dimension (optional)
+  "filter": {"col": "country", "val": "US"},  // click-to-drill (optional; filter_col/filter_val also accepted)
+  "time_range": "Last quarter",   // brush-to-zoom (optional)
+  "granularity": "P1D"            // finer grain on zoom (optional)
+}
+```
+
+All re-query paths go back through `get_chart_data_core`, so the caller's
+Chart/dataset RBAC, guest scoping, and RLS are re-applied on every interaction —
+the widget cannot exceed the entitlements of the principal who called it.
+
+## Build the widget
+
+The bundle is committed (`dist/index.html`) so the server works without Node.
+To rebuild after changing the widget:
+
+```bash
+cd superset/mcp_service/chart/resources/chart_viewer
+npm install
+npm run build          # emits dist/index.html (self-contained, ~780 KiB)
+npm test               # vitest adapter tests
+```
+
+## Test runbook (P4)
+
+### 1. Local — MCP Inspector / MCPJam / ext-apps basic-host
+Run the MCP server (streamable-http) and point an MCP Apps-capable inspector at
+it. Confirm: `render_chart` appears with `_meta.ui.resourceUri`; calling it
+renders the widget; the `ui://superset/chart-viewer/v1` resource loads.
+
+### 2. ChatGPT web — developer mode
+Requires an eligible **Business/Enterprise/Edu** workspace. Settings → Connectors
+→ Developer mode → add the Superset MCP server (HTTPS). Ask "show me chart 42";
+the widget renders inline. (Pro is more limited — see the research doc.)
+
+### 3. Claude — custom connector
+Requires a **publicly reachable HTTPS** MCP endpoint (Claude calls from
+Anthropic's cloud; localhost won't work). Add it as a custom connector, then ask
+Claude to render a chart. **This is the one external dependency for a live demo:
+a public Superset MCP staging URL.**
+
+## Security notes
+
+- `render_chart` / `render_chart_requery` are read-only, `class_permission_name="Chart"`.
+- No new data path: both delegate to `get_chart_data_core`, which enforces dataset
+  access (`validate_chart_dataset`) and guest-token scoping.
+- The widget iframe is sandboxed with an empty CSP (`_meta.ui.csp`) — no network
+  egress; it talks only to the host over postMessage.
+- The bundle is static and tenant-neutral; per-user data flows only through tool
+  results, never baked into the `ui://` resource.
+- `explore_url` is derived solely from the chart id + configured base URL (no
+  secrets/tokens).
