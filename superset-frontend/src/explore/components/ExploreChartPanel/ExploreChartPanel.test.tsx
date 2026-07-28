@@ -31,6 +31,32 @@ import {
 import ChartContainerComponent from 'src/explore/components/ExploreChartPanel';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 
+jest.mock('../useExploreAdditionalActionsMenu', () => {
+  const React = jest.requireActual('react');
+  return {
+    __esModule: true,
+    useExploreAdditionalActionsMenu: jest.fn(() => [
+      React.createElement('div', {
+        'data-test': 'standalone-download-menu',
+      }),
+      false,
+      jest.fn(),
+      {
+        isVisible: false,
+        onCancel: jest.fn(),
+        onRetry: jest.fn(),
+        onDownload: jest.fn(),
+        progress: undefined,
+      },
+    ]),
+  };
+});
+
+jest.mock('src/components/StreamingExportModal', () => ({
+  __esModule: true,
+  StreamingExportModal: () => null,
+}));
+
 // Cast to accept partial mock props in tests
 const ChartContainer = ChartContainerComponent as unknown as React.FC<
   Record<string, any>
@@ -166,6 +192,46 @@ describe('ChartContainer', () => {
     render(<ChartContainer {...props} />, { useRedux: true });
     expect(await screen.findByRole('timer')).toBeInTheDocument();
     expect(screen.queryByText(/cached/i)).not.toBeInTheDocument();
+  });
+
+  test('renders standalone download button when URL flag and permission are enabled', () => {
+    const props = createProps({
+      standalone: true,
+      showDownload: true,
+      can_download: true,
+    });
+
+    render(<ChartContainer {...props} />, { useRedux: true });
+
+    expect(screen.getByTestId('standalone-download-button')).toBeVisible();
+  });
+
+  test('does not render standalone download button when URL flag is disabled', () => {
+    const props = createProps({
+      standalone: true,
+      showDownload: false,
+      can_download: true,
+    });
+
+    render(<ChartContainer {...props} />, { useRedux: true });
+
+    expect(
+      screen.queryByTestId('standalone-download-button'),
+    ).not.toBeInTheDocument();
+  });
+
+  test('does not render standalone download button without export permission', () => {
+    const props = createProps({
+      standalone: true,
+      showDownload: true,
+      can_download: false,
+    });
+
+    render(<ChartContainer {...props} />, { useRedux: true });
+
+    expect(
+      screen.queryByTestId('standalone-download-button'),
+    ).not.toBeInTheDocument();
   });
 
   test('hides gutter when collapsing data panel', async () => {

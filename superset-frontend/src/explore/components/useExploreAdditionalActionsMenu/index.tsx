@@ -292,6 +292,11 @@ export type UseExploreAdditionalActionsMenuReturn = [
   StreamingExportState,
 ];
 
+export interface UseExploreAdditionalActionsMenuOptions {
+  showDataExportOnly?: boolean;
+  chartExportSelector?: string;
+}
+
 export const useExploreAdditionalActionsMenu = (
   latestQueryFormData: LatestQueryFormData,
   canDownloadCSV: boolean,
@@ -306,6 +311,7 @@ export const useExploreAdditionalActionsMenu = (
     NonNullable<ExplorePageInitialData['metadata']>['dashboards'] | undefined,
   showReportModal: () => void,
   setCurrentReportDeleting: Dispatch<SetStateAction<ReportObject | null>>,
+  options?: UseExploreAdditionalActionsMenuOptions,
   ...rest: MenuProps[]
 ): UseExploreAdditionalActionsMenuReturn => {
   const theme = useTheme();
@@ -336,6 +342,9 @@ export const useExploreAdditionalActionsMenu = (
 
   const dataExportDisabled = !canDownloadCSV;
   const imageExportDisabled = !canExportImage;
+  const showDataExportOnly = options?.showDataExportOnly ?? false;
+  const chartExportSelector =
+    options?.chartExportSelector ?? CHART_EXPORT_SELECTOR;
 
   const dataExportLabel = (text: string) =>
     dataExportDisabled ? (
@@ -912,7 +921,7 @@ export const useExploreAdditionalActionsMenu = (
         disabled: imageExportDisabled,
         onClick: (e: { domEvent: React.MouseEvent | React.KeyboardEvent }) => {
           downloadAsImage(
-            CHART_EXPORT_SELECTOR,
+            chartExportSelector,
             slice?.slice_name ?? t('New chart'),
             true,
             theme,
@@ -927,7 +936,7 @@ export const useExploreAdditionalActionsMenu = (
         },
       },
       ...getExportScreenshotMenuItems({
-        chartSelector: CHART_EXPORT_SELECTOR,
+        chartSelector: chartExportSelector,
         sliceName: slice?.slice_name ?? t('New chart'),
         chartId: slice?.slice_id,
         theme,
@@ -1033,7 +1042,7 @@ export const useExploreAdditionalActionsMenu = (
         disabled: imageExportDisabled,
         onClick: (e: { domEvent: React.MouseEvent | React.KeyboardEvent }) => {
           downloadAsImage(
-            CHART_EXPORT_SELECTOR,
+            chartExportSelector,
             slice?.slice_name ?? t('New chart'),
             true,
             theme,
@@ -1048,7 +1057,7 @@ export const useExploreAdditionalActionsMenu = (
         },
       },
       ...getExportScreenshotMenuItems({
-        chartSelector: CHART_EXPORT_SELECTOR,
+        chartSelector: chartExportSelector,
         sliceName: slice?.slice_name ?? t('New chart'),
         chartId: slice?.slice_id,
         theme,
@@ -1092,28 +1101,53 @@ export const useExploreAdditionalActionsMenu = (
       },
     ];
 
+    const standaloneHiddenExportKeys = new Set([
+      MENU_KEYS.EXPORT_ALL_SCREENSHOT,
+      MENU_KEYS.EXPORT_ALL_PNG_TRANSPARENT,
+      MENU_KEYS.EXPORT_ALL_PNG_SOLID,
+      MENU_KEYS.EXPORT_ALL_PDF,
+      MENU_KEYS.EXPORT_CURRENT_SCREENSHOT,
+      MENU_KEYS.EXPORT_CURRENT_PNG_TRANSPARENT,
+      MENU_KEYS.EXPORT_CURRENT_PNG_SOLID,
+      MENU_KEYS.EXPORT_CURRENT_PDF,
+      'export_all_png_submenu',
+      'export_current_png_submenu',
+    ]);
+    const dataOnlyChildren = <T extends { key?: string }>(children: T[]) =>
+      showDataExportOnly
+        ? children.filter(
+            ({ key }) =>
+              key === undefined || !standaloneHiddenExportKeys.has(key),
+          )
+        : children;
+    const dataExportChildren = [
+      {
+        key: MENU_KEYS.EXPORT_ALL_DATA_GROUP,
+        type: 'submenu' as const,
+        label: t('Export All Data'),
+        children: dataOnlyChildren(allDataChildren),
+      },
+      ...(hasExportCurrentView
+        ? [
+            {
+              key: MENU_KEYS.EXPORT_CURRENT_VIEW_GROUP,
+              type: 'submenu' as const,
+              label: t('Export Current View'),
+              children: dataOnlyChildren(currentViewChildren),
+            },
+          ]
+        : []),
+    ];
+
+    if (showDataExportOnly) {
+      return <Menu selectable={false} items={dataExportChildren} {...rest} />;
+    }
+
     menuItems.push({
       key: MENU_KEYS.DATA_EXPORT_OPTIONS,
       type: 'submenu' as const,
       label: t('Data Export Options'),
-      children: [
-        {
-          key: MENU_KEYS.EXPORT_ALL_DATA_GROUP,
-          type: 'submenu' as const,
-          label: t('Export All Data'),
-          children: allDataChildren,
-        },
-        ...(hasExportCurrentView
-          ? [
-              {
-                key: MENU_KEYS.EXPORT_CURRENT_VIEW_GROUP,
-                type: 'submenu' as const,
-                label: t('Export Current View'),
-                children: currentViewChildren,
-              },
-            ]
-          : []),
-      ],
+      children: dataExportChildren,
     });
 
     // Share submenu
@@ -1244,6 +1278,8 @@ export const useExploreAdditionalActionsMenu = (
     ownState,
     hasExportCurrentView,
     canExportImage,
+    chartExportSelector,
+    showDataExportOnly,
   ]);
 
   // Return streaming modal state and handlers for parent to render
