@@ -167,7 +167,13 @@ class MigrateViz:
                 if "form_data" in query_context:
                     query_context["form_data"] = clz.data
 
-                queries_bak = copy.deepcopy(query_context["queries"])
+                # A stored query_context is expected to carry "queries", but
+                # an atypical/malformed one (e.g. hand-edited via the API)
+                # missing it must not raise here: viz_type was already
+                # flipped above, so an uncaught exception at this point
+                # would leave the slice half-migrated (new viz_type, but
+                # stale params/query_context in the old shape).
+                queries_bak = copy.deepcopy(query_context.get("queries"))
 
                 queries = clz._build_query()["queries"]
                 query_context["queries"] = queries
