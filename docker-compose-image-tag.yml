@@ -28,8 +28,10 @@ x-superset-image: &superset-image apachesuperset.docker.scarf.sh/apache/superset
 x-superset-volumes:
   &superset-volumes # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
   - ./docker:/app/docker
-  - ./superset-core:/app/superset-core
   - superset_home:/app/superset_home
+x-superset-environment: &superset-environment
+  # Tagged images must use their bundled packages rather than host bind mounts.
+  DEV_MODE: "false"
 
 services:
   redis:
@@ -58,6 +60,7 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
+    environment: *superset-environment
     image: *superset-image
     container_name: superset_app
     command: ["/app/docker/docker-bootstrap.sh", "app-gunicorn"]
@@ -79,6 +82,7 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
+    environment: *superset-environment
     depends_on:
       db:
         condition: service_started
@@ -98,6 +102,7 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
+    environment: *superset-environment
     restart: unless-stopped
     depends_on:
       superset-init:
@@ -120,6 +125,7 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
+    environment: *superset-environment
     restart: unless-stopped
     depends_on:
       superset-init:
