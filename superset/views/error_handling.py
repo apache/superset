@@ -238,13 +238,16 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
             status=ex.status,
         )
 
+    @app.errorhandler(sshtunnel.BaseSSHTunnelForwarderError)
+    def show_ssh_tunnel_error(
+        ex: sshtunnel.BaseSSHTunnelForwarderError,
+    ) -> FlaskResponse:
+        return handle_ssh_tunnel_error(ex)
+
     @app.errorhandler(Exception)
     @app.errorhandler(500)
     def show_unexpected_exception(ex: Exception) -> FlaskResponse:
         """Catch-all, to ensure all errors from the backend conform to SIP-40"""
-        if isinstance(ex, sshtunnel.BaseSSHTunnelForwarderError):
-            return handle_ssh_tunnel_error(ex)
-
         logger.warning("Exception", exc_info=True)
         logger.exception(ex)
 
