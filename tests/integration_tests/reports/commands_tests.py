@@ -2738,7 +2738,9 @@ def test_retry_exhausted_transitions_to_error(
     )
     # Pre-set retry_attempt to the max so the next execution exhausts retries.
     # Use the same timestamp for both so _is_retry_window_stale() returns False.
-    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None)
+    # Truncate microseconds — MySQL DateTime columns drop them, which would make
+    # the round-tripped value differ from the in-memory one.
+    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None, microsecond=0)
     report_schedule.retry_attempt = 2
     report_schedule.retry_scheduled_dttm = scheduled_dttm
     db.session.commit()
