@@ -23,6 +23,7 @@ import {
   render,
   screen,
   fireEvent,
+  userEvent,
   waitFor,
   selectOption,
 } from 'spec/helpers/testing-library';
@@ -174,8 +175,15 @@ test('row actions are keyboard-operable (Enter restores)', async () => {
   renderArchivedList();
   await screen.findByTestId('archived-list-view');
 
+  // ActionButton is a native <button>: Enter activation is browser
+  // semantics, which userEvent implements (jsdom's fireEvent.keyDown
+  // does not synthesize the click).
   const restoreButtons = await screen.findAllByTestId('archived-row-restore');
-  fireEvent.keyDown(restoreButtons[0], { key: 'Enter' });
+  expect(restoreButtons[0].tagName).toBe('BUTTON');
+  // skipClick: no pointer click, so the only activation is the Enter
+  // keypress itself; skipClick requires focusing manually first.
+  restoreButtons[0].focus();
+  userEvent.type(restoreButtons[0], '{enter}', { skipClick: true });
 
   await waitFor(() => {
     expect(fetchMock.callHistory.calls(/chart\/uuid-1\/restore/)).toHaveLength(

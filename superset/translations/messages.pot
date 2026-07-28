@@ -9890,6 +9890,9 @@ msgstr ""
 msgid "Raw records"
 msgstr ""
 
+msgid "Recently Archived"
+msgstr ""
+
 msgid "Recently modified"
 msgstr ""
 
