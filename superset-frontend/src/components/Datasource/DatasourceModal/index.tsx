@@ -202,12 +202,14 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         jsonPayload: buildPayload(currentDatasource),
       });
 
+      // Invalidate drill info cache to pick up any drill-through config changes.
+      // This must happen right after the mutation succeeds, independently of the
+      // follow-up GET below, so a failed refresh doesn't leave stale drill config cached.
+      invalidateDatasetDrillCache(currentDatasource.id);
+
       const { json } = await SupersetClient.get({
         endpoint: `/api/v1/dataset/${currentDatasource?.id}`,
       });
-
-      // Invalidate drill info cache to pick up any drill-through config changes
-      invalidateDatasetDrillCache(currentDatasource.id);
 
       addSuccessToast(t('The dataset has been saved'));
       // eslint-disable-next-line no-param-reassign
