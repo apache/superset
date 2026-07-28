@@ -160,6 +160,12 @@ export function DrillDownHost({
         isLoading || effectiveQueriesResponse == null ? 'loading' : 'rendered',
       latestQueryFormData: effectiveFormData,
       chartIsStale: false,
+      // The drill emits a cross-filter whose selectedValues describe the
+      // drilled path. Without clearing it here, the drilled chart reads its own
+      // cross-filter back and, for plugins that dim unselected marks (e.g. Pie
+      // opacity), fades every mark at the new level. The drilled level has no
+      // in-chart selection, so render it with an empty selection.
+      filterState: { selectedValues: null },
     };
   }, [isDrilling, effectiveFormData, effectiveQueriesResponse, isLoading]);
 
