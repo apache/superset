@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useEffect, useMemo } from 'react';
+import { isEqual } from 'lodash';
 import { t } from '@apache-superset/core/translation';
 import { FormItem, Select } from '@superset-ui/core/components';
 import { Spin } from '@superset-ui/core/components/Spin';
@@ -73,9 +74,11 @@ const passwordEntry = {
  * not enough: an object or array default (e.g. ``default: []``) gets a new
  * identity from JSON Forms on every change cycle, so a reference comparison
  * would call ``handleChange`` forever ("Maximum update depth exceeded").
+ * Deep equality (rather than serialized comparison) keeps the guard
+ * insensitive to object key order.
  */
 function valuesEqual(a: unknown, b: unknown): boolean {
-  return a === b || JSON.stringify(a) === JSON.stringify(b);
+  return a === b || isEqual(a, b);
 }
 
 /**
@@ -183,10 +186,10 @@ export function areDependenciesSatisfied(
  * refreshed with dynamic values from the backend.
  *
  * Enum-typed fields (e.g. the Snowflake ``schema`` dropdown) get an explicit
- * Antd Select so the ``loading``/``disabled`` props work natively — wrapping
+ * wrapped Select so the ``loading``/``disabled`` props work natively — wrapping
  * TextControl with ``inputProps.suffix`` doesn't reach the underlying Select.
  */
-function DynamicFieldControl(props: ControlProps) {
+export function DynamicFieldControl(props: ControlProps) {
   const { refreshingSchema, formData: cfgData } = props.config ?? {};
   const schema = props.schema as Record<string, unknown>;
   const deps = schema?.['x-dependsOn'];
@@ -207,22 +210,19 @@ function DynamicFieldControl(props: ControlProps) {
   const enumNames = Array.isArray(schema['x-enumNames'])
     ? (schema['x-enumNames'] as unknown[])
     : undefined;
-  // The backend returns these as a set, so order is undefined. Sort by
-  // label so the dropdown is stable and alphabetised. Memoized so a
-  // re-render without an enum change (every host-form keystroke passes a
-  // fresh ``config`` to all controls) does not rebuild and re-sort the
-  // full option list.
+  // Memoized so a re-render without an enum change (every host-form
+  // keystroke passes a fresh ``config`` to all controls) does not rebuild
+  // the full option list. No manual sort: the wrapped Select alphabetises
+  // options by label itself, so the backend's undefined set order is fine.
   const options = useMemo(
     () =>
-      (enumValues ?? [])
-        .map((value, index) => ({
-          value: value as string | number,
-          label:
-            enumNames?.[index] !== undefined
-              ? String(enumNames[index])
-              : String(value),
-        }))
-        .sort((a, b) => a.label.localeCompare(b.label)),
+      (enumValues ?? []).map((value, index) => ({
+        value: value as string | number,
+        label:
+          enumNames?.[index] !== undefined
+            ? String(enumNames[index])
+            : String(value),
+      })),
     [enumValues, enumNames],
   );
 
@@ -281,7 +281,7 @@ const dynamicFieldEntry = {
 
 /**
  * Renderer for fields that carry an ``x-enumNames`` array alongside their
- * ``enum`` values.  Renders as an Antd Select showing human-readable labels
+ * ``enum`` values.  Renders as a wrapped Select showing human-readable labels
  * (from ``x-enumNames``) while storing the underlying enum values in form
  * data.  Used for MetricFlow's integer-ID fields (account, project,
  * environment) where the backend provides both IDs and display names.
@@ -289,15 +289,17 @@ const dynamicFieldEntry = {
 function EnumNamesControl(props: ControlProps) {
   const { refreshingSchema } = props.config ?? {};
   const schema = props.schema as Record<string, unknown>;
-  const enumValues = (schema.enum as unknown[]) ?? [];
+  // ``?? undefined`` (not a fresh fallback array) keeps the memo deps
+  // stable across renders; fallbacks live inside the memo.
+  const enumValues = (schema.enum as unknown[] | undefined) ?? undefined;
   const enumNames =
-    (schema['x-enumNames'] as string[]) ?? enumValues.map(String);
+    (schema['x-enumNames'] as string[] | undefined) ?? undefined;
 
   const options = useMemo(
     () =>
-      enumValues.map((value, index) => ({
+      (enumValues ?? []).map((value, index) => ({
         value: value as string | number,
-        label: enumNames[index] ?? String(value),
+        label: enumNames?.[index] ?? String(value),
       })),
     [enumValues, enumNames],
   );
@@ -344,7 +346,7 @@ export const enumNamesEntry = {
 
 /**
  * Renderer for ``{type: 'array', items: {enum: [...]}}`` schemas.  Renders
- * a single Antd Select with ``mode="multiple"`` (tag-style multi-select),
+ * a single wrapped Select with ``mode="multiple"`` (tag-style multi-select),
  * matching the natural expectation of a "pick several from a list" control.
  *
  * Without this, the default ``PrimitiveArrayControl`` from the upstream
@@ -364,15 +366,18 @@ export function MultiEnumControl(props: ControlProps) {
     (arraySchema.items as Record<string, unknown>) ??
     ({} as Record<string, unknown>);
 
-  const enumValues = (itemsSchema.enum as unknown[]) ?? [];
-  const enumNames = (itemsSchema['x-enumNames'] as string[]) ?? undefined;
+  // ``?? undefined`` keeps memo deps identity-stable; fallbacks live in
+  // the memo body.
+  const enumValues = (itemsSchema.enum as unknown[] | undefined) ?? undefined;
+  const enumNames =
+    (itemsSchema['x-enumNames'] as string[] | undefined) ?? undefined;
 
   // Memoized: the host form passes a fresh ``config`` to every control on
   // each change, so without the memo a catalog of N options is rebuilt on
   // every one of the user's M selections (O(N·M)).
   const options = useMemo(
     () =>
-      enumValues.map((value, index) => ({
+      (enumValues ?? []).map((value, index) => ({
         value: value as string | number,
         label: enumNames?.[index] ?? String(value),
       })),
@@ -437,6 +442,25 @@ export const renderers = [
   multiEnumEntry,
   dynamicFieldEntry,
 ];
+
+/**
+ * Serializes a value with object keys sorted, so two structurally equal
+ * schemas compare equal regardless of the backend's JSON property order.
+ * Array order is deliberately significant: ``x-propertyOrder`` and enum
+ * ordering can be meaningful, so only key order is canonicalized.
+ */
+export function stableSerialize(value: unknown): string {
+  return JSON.stringify(value, (_key, val) =>
+    val && typeof val === 'object' && !Array.isArray(val)
+      ? Object.keys(val as Record<string, unknown>)
+          .sort()
+          .reduce((acc: Record<string, unknown>, k) => {
+            acc[k] = (val as Record<string, unknown>)[k];
+            return acc;
+          }, {})
+      : val,
+  );
+}
 
 /**
  * Removes empty `enum` arrays from schema properties. The JSON Schema spec

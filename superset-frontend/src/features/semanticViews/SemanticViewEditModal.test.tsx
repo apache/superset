@@ -291,23 +291,26 @@ const LARGE_STRUCTURE = {
 test('renders a 500-metric structure paginated instead of unbounded', async () => {
   mockedGet.mockResolvedValue({ json: LARGE_STRUCTURE });
   const consoleError = jest.spyOn(console, 'error').mockImplementation();
-  render(<SemanticViewEditModal {...createProps()} />);
+  try {
+    render(<SemanticViewEditModal {...createProps()} />);
 
-  // Tab labels report the full counts.
-  await userEvent.click(await screen.findByText('Metrics (500)'));
-  // Pagination caps the rendered rows: first page only, not all 500.
-  await waitFor(() => {
-    expect(screen.getByText('metric_000')).toBeInTheDocument();
-  });
-  expect(screen.queryByText('metric_499')).not.toBeInTheDocument();
-  const rows = document.querySelectorAll('.ant-table-tbody tr');
-  expect(rows.length).toBeLessThanOrEqual(101);
-  expect(
-    consoleError.mock.calls.find(args =>
-      String(args[0]).includes('Maximum update depth'),
-    ),
-  ).toBeUndefined();
-  consoleError.mockRestore();
+    // Tab labels report the full counts.
+    await userEvent.click(await screen.findByText('Metrics (500)'));
+    // Pagination caps the rendered rows: first page only, not all 500.
+    await waitFor(() => {
+      expect(screen.getByText('metric_000')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('metric_499')).not.toBeInTheDocument();
+    const rows = document.querySelectorAll('.ant-table-tbody tr');
+    expect(rows.length).toBeLessThanOrEqual(101);
+    expect(
+      consoleError.mock.calls.find(args =>
+        String(args[0]).includes('Maximum update depth'),
+      ),
+    ).toBeUndefined();
+  } finally {
+    consoleError.mockRestore();
+  }
 });
 
 test('keeps small structures unpaginated', async () => {

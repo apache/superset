@@ -18,6 +18,7 @@
  */
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { t } from '@apache-superset/core/translation';
+import { logging } from '@apache-superset/core/utils';
 import { styled } from '@apache-superset/core/theme';
 import { SupersetClient } from '@superset-ui/core';
 import { Select } from '@superset-ui/core/components';
@@ -39,6 +40,7 @@ import {
   getDynamicDependencies,
   areDependenciesSatisfied,
   serializeDependencyValues,
+  stableSerialize,
   SCHEMA_REFRESH_DEBOUNCE_MS,
 } from 'src/features/semanticLayers/jsonFormsHelpers';
 
@@ -201,10 +203,14 @@ export default function AddSemanticViewModal({
   );
 
   const lastSchemaJsonRef = useRef('');
+  const refreshErrorToastShownRef = useRef(false);
   const applyRuntimeSchema = useCallback((rawSchema: JsonSchema) => {
     dynamicDepsRef.current = getDynamicDependencies(rawSchema);
     const schema = sanitizeSchema(rawSchema);
-    const schemaJson = JSON.stringify(schema);
+    // Key-order-canonical serialization: providers may serialize the same
+    // schema with different property order between refreshes; that must not
+    // defeat the dedupe below.
+    const schemaJson = stableSerialize(schema);
     // A refresh response whose sanitized schema is unchanged keeps the
     // existing object identities: JSON Forms then neither rebuilds its AJV
     // validator (which caches one compiled copy per schema object — a per-
@@ -248,6 +254,7 @@ export default function AddSemanticViewModal({
       dynamicDepsRef.current = {};
       lastDepSnapshotRef.current = '';
       lastSchemaJsonRef.current = '';
+      refreshErrorToastShownRef.current = false;
       setAvailableViews([]);
       setSelectedViewNames([]);
       lastViewsKeyRef.current = '';
@@ -327,13 +334,23 @@ export default function AddSemanticViewModal({
                 });
                 if (gen !== fetchGenRef.current) return;
                 applyRuntimeSchema(json.result);
-              } catch {
+                refreshErrorToastShownRef.current = false;
+              } catch (error) {
                 if (gen !== fetchGenRef.current) return;
+                logging.error('Runtime schema refresh failed', error);
+                // Clear the committed snapshot so a change event with the
+                // same dependency values re-attempts the refresh instead of
+                // leaving dynamic narrowing stale until deps change twice.
+                lastDepSnapshotRef.current = '';
                 // The form (and the user's selections) stay intact; only the
-                // dynamic narrowing is stale, so surface it without blocking.
-                addDangerToast(
-                  t('An error occurred while refreshing the runtime schema'),
-                );
+                // dynamic narrowing is stale, so surface it without blocking
+                // — once per outage, not once per debounced attempt.
+                if (!refreshErrorToastShownRef.current) {
+                  refreshErrorToastShownRef.current = true;
+                  addDangerToast(
+                    t('An error occurred while refreshing the runtime schema'),
+                  );
+                }
               } finally {
                 if (gen === fetchGenRef.current) setRefreshingSchema(false);
               }
@@ -392,6 +409,7 @@ export default function AddSemanticViewModal({
       dynamicDepsRef.current = {};
       lastDepSnapshotRef.current = '';
       lastSchemaJsonRef.current = '';
+      refreshErrorToastShownRef.current = false;
       setAvailableViews([]);
       setSelectedViewNames([]);
       setLoadingViews(false);

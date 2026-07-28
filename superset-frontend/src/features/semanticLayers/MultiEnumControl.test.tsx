@@ -24,7 +24,9 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 
-import { MultiEnumControl } from './jsonFormsHelpers';
+import { MAX_TAG_COUNT } from '@superset-ui/core/components';
+
+import { DynamicFieldControl, MultiEnumControl } from './jsonFormsHelpers';
 import {
   LARGE_CATALOG_SIZE,
   largeMetricEnum,
@@ -124,14 +126,15 @@ test('caps rendered tags at large selection counts while keeping the full value'
     />,
   );
   const tags = container.querySelectorAll('.ant-select-selection-item');
-  // maxTagCount tags plus one overflow summary tag — never one per selection.
-  expect(tags.length).toBeLessThanOrEqual(6);
+  // MAX_TAG_COUNT tags plus one overflow summary tag — never one per
+  // selection. The cap comes from the wrapped Select's exported default.
+  expect(tags.length).toBeLessThanOrEqual(MAX_TAG_COUNT + 2);
   expect(tags.length).toBeGreaterThan(0);
   const overflow = Array.from(tags).find(el =>
     /\+\s*\d+/.test(el.textContent ?? ''),
   );
   expect(overflow?.textContent).toMatch(
-    new RegExp(`\\+\\s*${LARGE_CATALOG_SIZE - 4}`),
+    new RegExp(`\\+\\s*${LARGE_CATALOG_SIZE - MAX_TAG_COUNT}`),
   );
 });
 
@@ -190,4 +193,31 @@ test('keeps duplicated display labels individually selectable', async () => {
   expect(revenues.length).toBeGreaterThanOrEqual(2);
   await userEvent.click(revenues[0]);
   expect(handleChange).toHaveBeenLastCalledWith('tags', ['metric_a_v1']);
+});
+
+test('DynamicFieldControl handles a 500-option enum via search (FR-006 sibling)', async () => {
+  const handleChange = jest.fn();
+  const props = baseProps({
+    handleChange,
+    path: 'mode',
+    schema: {
+      type: 'string',
+      enum: largeMetricEnum,
+      'x-dynamic': true,
+      'x-dependsOn': [],
+    },
+  });
+  render(<DynamicFieldControl {...props} />);
+  const combobox = screen.getByRole('combobox');
+  await userEvent.click(combobox);
+  await userEvent.type(combobox, 'metric_042');
+  const option = await waitFor(() => {
+    const el = Array.from(
+      document.querySelectorAll('.ant-select-item-option'),
+    ).find(e => e.getAttribute('title') === 'metric_042');
+    if (!el) throw new Error('option not rendered yet');
+    return el;
+  });
+  await userEvent.click(option);
+  expect(handleChange).toHaveBeenLastCalledWith('mode', 'metric_042');
 });

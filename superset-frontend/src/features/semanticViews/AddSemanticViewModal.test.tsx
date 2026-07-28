@@ -24,6 +24,11 @@ import {
 } from 'spec/helpers/testing-library';
 import { SupersetClient } from '@superset-ui/core';
 
+import {
+  largeMetricEnum,
+  largeRuntimeSchema,
+} from 'src/features/semanticLayers/testFixtures';
+
 import AddSemanticViewModal from './AddSemanticViewModal';
 
 jest.mock('@superset-ui/core', () => ({
@@ -371,20 +376,23 @@ test('a const array default does not loop updates', async () => {
     },
   });
   const consoleError = jest.spyOn(console, 'error').mockImplementation();
-  render(<AddSemanticViewModal {...createProps()} />);
-  await selectOption('Semantic layer', 'Snowflake SL');
+  try {
+    render(<AddSemanticViewModal {...createProps()} />);
+    await selectOption('Semantic layer', 'Snowflake SL');
 
-  // Pre-fix, ConstControl's reference comparison re-fired handleChange on
-  // every cycle for an array const → "Maximum update depth exceeded".
-  expect(
-    await screen.findByRole('combobox', { name: /metrics/i }),
-  ).toBeInTheDocument();
-  expect(
-    consoleError.mock.calls.find(args =>
-      String(args[0]).includes('Maximum update depth'),
-    ),
-  ).toBeUndefined();
-  consoleError.mockRestore();
+    // Pre-fix, ConstControl's reference comparison re-fired handleChange on
+    // every cycle for an array const → "Maximum update depth exceeded".
+    expect(
+      await screen.findByRole('combobox', { name: /metrics/i }),
+    ).toBeInTheDocument();
+    expect(
+      consoleError.mock.calls.find(args =>
+        String(args[0]).includes('Maximum update depth'),
+      ),
+    ).toBeUndefined();
+  } finally {
+    consoleError.mockRestore();
+  }
 });
 
 test('a failed schema refresh surfaces a toast and preserves selections', async () => {
@@ -459,4 +467,23 @@ test('the save payload carries every selected metric', async () => {
       },
     });
   });
+});
+
+test('renders and selects within a 500-metric runtime schema', async () => {
+  mockLayerWithSchema(largeRuntimeSchema as Record<string, unknown>);
+  render(<AddSemanticViewModal {...createProps()} />);
+  await selectOption('Semantic layer', 'Snowflake SL');
+
+  const metricsBox = await screen.findByRole('combobox', { name: /metrics/i });
+  await userEvent.click(metricsBox);
+  await userEvent.type(metricsBox, largeMetricEnum[42]);
+  const option = await waitFor(() => {
+    const el = Array.from(
+      document.querySelectorAll('.ant-select-item-option'),
+    ).find(e => e.getAttribute('title') === largeMetricEnum[42]);
+    if (!el) throw new Error('option not rendered yet');
+    return el as HTMLElement;
+  });
+  await userEvent.click(option);
+  expect(selectedTag(largeMetricEnum[42])).toBeTruthy();
 });
