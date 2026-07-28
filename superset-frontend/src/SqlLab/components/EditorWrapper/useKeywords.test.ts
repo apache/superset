@@ -291,7 +291,13 @@ test.each([
       completer: { insertMatch: jest.fn() },
     } as unknown as Editor;
     act(() => {
-      insertMatch?.(editor, { meta: 'table', caption: 'COVID Vaccines' });
+      insertMatch?.(editor, {
+        name: 'COVID Vaccines',
+        value: expectedValue,
+        score: TABLE_AUTOCOMPLETE_SCORE,
+        meta: 'table',
+        caption: 'COVID Vaccines',
+      });
     });
     expect(editor.completer.insertMatch).toHaveBeenCalledWith(
       `${expectedValue} `,
