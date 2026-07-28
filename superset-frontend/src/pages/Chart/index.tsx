@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { useHistory } from 'react-router-dom';
 import type { Location, Action } from 'history';
 import { t } from '@apache-superset/core/translation';
@@ -28,7 +28,6 @@ import {
   makeApi,
   LabelsColorMapSource,
   getClientErrorObject,
-  QueryFormData,
 } from '@superset-ui/core';
 import { Loading } from '@superset-ui/core/components';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
@@ -40,6 +39,7 @@ import { getParsedExploreURLParams } from 'src/explore/exploreUtils/getParsedExp
 import {
   getChartStateFromHistoryState,
   isSameChartState,
+  selectRestoreTarget,
 } from 'src/explore/exploreUtils/exploreHistory';
 import { hydrateExplore } from 'src/explore/actions/hydrateExplore';
 import ExploreViewContainer from 'src/explore/components/ExploreViewContainer';
@@ -141,9 +141,9 @@ export default function ExplorePage() {
   const [isLoaded, setIsLoaded] = useState(false);
   const fetchGeneration = useRef(0);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const loadedFormData = useRef<QueryFormData>();
   const dispatch = useDispatch();
   const history = useHistory();
+  const restoreTarget = useSelector(selectRestoreTarget, shallowEqual);
 
   const loadExploreData = useCallback(
     (
@@ -191,7 +191,6 @@ export default function ExplorePage() {
             };
           }
 
-          loadedFormData.current = formData as QueryFormData;
           dispatch(
             hydrateExplore({
               ...result,
@@ -322,11 +321,7 @@ export default function ExplorePage() {
         if (action === 'PUSH') {
           return;
         }
-        if (
-          action === 'POP' &&
-          isSameChartState(chartState, loadedFormData.current)
-        ) {
-          loadedFormData.current = chartState;
+        if (action === 'POP' && isSameChartState(chartState, restoreTarget)) {
           return;
         }
       }
@@ -338,7 +333,7 @@ export default function ExplorePage() {
       }
     });
     return unlisten;
-  }, [history, loadExploreData]);
+  }, [history, loadExploreData, restoreTarget]);
 
   if (!isLoaded) {
     return <Loading />;

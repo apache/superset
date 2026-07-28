@@ -19,11 +19,14 @@
 import fetchMock from 'fetch-mock';
 import { Link } from 'react-router-dom';
 import {
+  act,
+  createStore,
   render,
   waitFor,
   screen,
   fireEvent,
 } from 'spec/helpers/testing-library';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import { getExploreFormData } from 'spec/fixtures/mockExploreFormData';
 import { getDashboardFormData } from 'spec/fixtures/mockDashboardFormData';
 import { LocalStorageKeys } from 'src/utils/localStorageHelpers';
@@ -459,6 +462,50 @@ describe('ChartPage', () => {
         expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(1),
       );
       expect(setExploreControlsSpy).not.toHaveBeenCalled();
+    });
+
+    test('re-fetches when the dataset changed after the entry was pushed', async () => {
+      const exploreApiRoute = 'glob:*/api/v1/explore/*';
+      const loads = () =>
+        fetchMock.callHistory.calls(exploreApiRoute, { method: 'GET' }).length;
+      const formData = getExploreFormData({ viz_type: VizType.Table });
+      fetchMock.get(exploreApiRoute, {
+        result: { dataset: { id: 1 }, form_data: formData },
+      });
+      const store = createStore({}, reducerIndex);
+      render(
+        <>
+          <Link
+            to={{
+              pathname: '/',
+              search: `?${URL_PARAMS.sliceId.name}=${formData.slice_id}`,
+              state: toChartStateHistoryState(formData),
+            }}
+          >
+            Change the chart
+          </Link>
+          <Link to="/?slice_id=99">Navigate away</Link>
+          <ChartPage />
+        </>,
+        { useRouter: true, useRedux: true, useDnd: true, store },
+      );
+      await waitFor(() => expect(loads()).toBe(1));
+      fireEvent.click(screen.getByText('Change the chart'));
+      fireEvent.click(screen.getByText('Navigate away'));
+      await waitFor(() => expect(loads()).toBe(2));
+      fetchMock.clearHistory();
+
+      // the entry predates the swap, so it can't be applied to the chart on screen
+      act(() => {
+        store.dispatch(
+          exploreActions.setExploreControls({
+            ...formData,
+            datasource: '3__table',
+          }),
+        );
+      });
+      window.history.back();
+      await waitFor(() => expect(loads()).toBe(1));
     });
   });
 

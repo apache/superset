@@ -27,7 +27,7 @@ import {
   useState,
 } from 'react';
 import { bindActionCreators, Dispatch } from 'redux';
-import { connect } from 'react-redux';
+import { connect, shallowEqual, useSelector } from 'react-redux';
 import {
   useChangeEffect,
   useComponentDidMount,
@@ -79,6 +79,7 @@ import { mountExploreUrl } from 'src/explore/exploreUtils';
 import {
   getChartStateFromHistoryState,
   isSameChartState,
+  selectRestoreTarget,
   toChartStateHistoryState,
 } from 'src/explore/exploreUtils/exploreHistory';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
@@ -405,6 +406,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   );
   /** set while the chart state of a popped history entry is being applied */
   const restoringFromHistory = useRef(false);
+  const restoreTarget = useSelector(selectRestoreTarget, shallowEqual);
 
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [width, setWidth] = useState(
@@ -502,7 +504,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         title,
         tabId,
         history,
-        props.slice?.slice_id,
+        restoreTarget.slice_id,
       );
     },
     [
@@ -510,7 +512,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
       props.form_data,
       props.datasource.id,
       props.datasource.type,
-      props.slice?.slice_id,
+      restoreTarget.slice_id,
       props.standalone,
       props.force,
       tabId,
@@ -581,6 +583,9 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     );
   });
 
+  // a pending update would run against whatever chart the user moved on to
+  useEffect(() => () => updateHistory.cancel(), []);
+
   useChangeEffect(tabId, (previous, current) => {
     if (current) {
       addHistory({ isReplace: true });
@@ -642,8 +647,6 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   // Explore's own entries carry the chart state they were pushed with, so a POP
   // into one is an undo/redo: apply it and re-query in place, which is also why
   // ExplorePage skips its reload for them.
-  const sliceId = props.form_data.slice_id ?? props.slice?.slice_id;
-  const { datasource: datasourceUid } = props.form_data;
   useEffect(
     () =>
       history.listen((loc: Location, action: Action) => {
@@ -651,10 +654,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         if (
           action !== 'POP' ||
           !chartState ||
-          !isSameChartState(chartState, {
-            slice_id: sliceId,
-            datasource: datasourceUid,
-          })
+          !isSameChartState(chartState, restoreTarget)
         ) {
           return;
         }
@@ -662,7 +662,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         props.actions.setExploreControls(chartState);
         props.actions.triggerQuery(true, props.chart.id);
       }),
-    [history, sliceId, datasourceUid, props.actions, props.chart.id],
+    [history, restoreTarget, props.actions, props.chart.id],
   );
 
   // effect to run when controls change

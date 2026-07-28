@@ -19,6 +19,7 @@
 import { JsonObject, QueryFormData } from '@superset-ui/core';
 import { omit } from 'lodash-es';
 import { UNSAVED_CHART_ID } from 'src/explore/constants';
+import type { ExplorePageState } from 'src/explore/types';
 
 /**
  * Explore stores the chart's form data in the history entry so that stepping
@@ -53,6 +54,19 @@ export const getChartStateFromHistoryState = (
  * Chart states are only interchangeable within the same chart and dataset -
  * applying one to another chart would mix the two.
  */
+/**
+ * The chart a state can be restored into. ExplorePage decides whether to reload
+ * and ExploreViewContainer whether to restore, so both have to read it here -
+ * disagreeing leaves a POP resolving to neither.
+ */
+export const selectRestoreTarget = (
+  state: ExplorePageState,
+): Partial<QueryFormData> => ({
+  slice_id:
+    state.explore?.slice?.slice_id ?? state.explore?.form_data?.slice_id,
+  datasource: state.explore?.controls?.datasource?.value as string | undefined,
+});
+
 export const isSameChartState = (
   a?: Partial<QueryFormData>,
   b?: Partial<QueryFormData>,
