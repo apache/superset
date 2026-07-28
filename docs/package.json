@@ -89,8 +89,8 @@
     "@eslint/js": "^9.39.2",
     "@types/js-yaml": "^4.0.9",
     "@types/react": "^19.1.8",
-    "@typescript-eslint/eslint-plugin": "^8.64.0",
-    "@typescript-eslint/parser": "^8.64.0",
+    "@typescript-eslint/eslint-plugin": "^8.65.0",
+    "@typescript-eslint/parser": "^8.65.0",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.6",
@@ -98,7 +98,7 @@
     "globals": "^17.7.0",
     "prettier": "^3.9.5",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.64.0",
+    "typescript-eslint": "^8.65.0",
     "webpack": "^5.108.2"
   },
   "browserslist": {
