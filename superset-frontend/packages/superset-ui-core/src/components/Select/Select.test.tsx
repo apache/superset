@@ -1032,6 +1032,35 @@ test('do not count unselected disabled options in "Select all"', async () => {
   ).toBeInTheDocument();
 });
 
+test('"Select all" does not count null-valued options', async () => {
+  // A falsy-valued option (e.g. <NULL>, value: null) is skipped by
+  // handleSelectAll, so it must not be counted in the "Select all" badge or
+  // the count overstates the selection. Regression test for #40228. Uses a
+  // local options array to stay isolated from tests that mutate OPTIONS.
+  const localOptions = [
+    { label: 'Alpha', value: 1 },
+    { label: 'Bravo', value: 2 },
+  ];
+  render(
+    <Select
+      {...defaultProps}
+      options={[...localOptions, NULL_OPTION]}
+      mode="multiple"
+      maxTagCount={0}
+    />,
+  );
+  await open();
+  // Three options are visible, but the <NULL> option is not bulk-selectable,
+  // so the badge must count only the two real options (would be 3 before fix).
+  await userEvent.click(
+    await screen.findByText(selectAllButtonText(localOptions.length)),
+  );
+  // And Select all selects exactly those two — the null option is skipped.
+  const values = await findAllSelectValues();
+  expect(values.length).toBe(1);
+  expect(values[0]).toHaveTextContent(`+ ${localOptions.length} ...`);
+});
+
 test('"Deselect all" counts all selected options', async () => {
   render(<Select {...defaultProps} allowNewOptions mode="multiple" />);
   await open();

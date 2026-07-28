@@ -397,7 +397,8 @@ class DashboardDAO(BaseDAO[Dashboard]):
             md["color_namespace"] = data.get("color_namespace")
 
         md["expanded_slices"] = data.get("expanded_slices", {})
-        md["refresh_frequency"] = data.get("refresh_frequency", 0)
+        if "refresh_frequency" in data:
+            md["refresh_frequency"] = data["refresh_frequency"]
         md["color_scheme"] = data.get("color_scheme", "")
         md["label_colors"] = data.get("label_colors", {})
         md["shared_label_colors"] = data.get("shared_label_colors", [])
