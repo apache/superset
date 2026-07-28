@@ -4774,6 +4774,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 level=ErrorLevel.ERROR,
             )
         )
+
     def is_editor(self, resource: Model) -> bool:
         """
         Returns True if the current user is an editor of the resource.
