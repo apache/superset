@@ -39,8 +39,15 @@ type IranFeature = {
 const getIranFeatures = (): IranFeature[] =>
   JSON.parse(fs.readFileSync(iranGeojsonPath, 'utf-8')).features;
 
-test('every province in the Iran map has a unique ISO code', () => {
-  const isoCodes = getIranFeatures().map(feature => feature.properties.ISO);
+test('every province in the Iran map has a unique, non-empty ISO code', () => {
+  const features = getIranFeatures();
+  // Iran has 31 provinces; assert the count so a deleted feature is caught,
+  // not just a duplicated ISO code among whatever features remain.
+  expect(features).toHaveLength(31);
+
+  const isoCodes = features.map(feature => feature.properties.ISO);
+  isoCodes.forEach(iso => expect(iso).toBeTruthy());
+
   const uniqueIsoCodes = new Set(isoCodes);
   expect(uniqueIsoCodes.size).toBe(isoCodes.length);
 });
