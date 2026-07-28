@@ -295,6 +295,39 @@ def test_eligible_viz_skipped_when_form_data_unusable(
     mocks["ChartDataCommand"].return_value.run.assert_called_once()
 
 
+@pytest.mark.parametrize(
+    "form_data",
+    [
+        {"groupby": ["c"], "metrics": ["m"], "time_compare": ["1 year ago"]},
+        {"groupby": ["c"], "metrics": ["m"], "rolling_type": "mean"},
+        {"groupby": ["c"], "metrics": ["m"], "resample_rule": "1D"},
+        {"columns": ["a", "b"], "aggregation": "raw"},
+    ],
+)
+def test_eligible_viz_skipped_when_form_data_needs_post_processing(
+    mocks: dict[str, Any], form_data: dict[str, Any]
+) -> None:
+    # An allowlisted viz type whose form data relies on post-processing or extra
+    # queries the single-query rebuild can't reproduce (time comparison, rolling,
+    # resample, raw aggregation) is skipped rather than exported with wrong data.
+    good = _chart(10, "Good")
+    fancy = _chart(20, "Fancy", viz_type="table")
+    fancy.query_context = None
+    fancy.params = json.dumps(form_data)
+    fancy.datasource_id = 5
+    fancy.datasource_type = "table"
+    mocks["get_charts_in_layout_order"].return_value = [good, fancy]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    _run()
+
+    _, kwargs = mocks["email"].build_success_email.call_args
+    assert kwargs["errored"] == {mocks["email"].ERROR_NO_QUERY_CONTEXT: ["20 - Fancy"]}
+    mocks["ChartDataCommand"].return_value.run.assert_called_once()
+
+
 def test_rebuilt_query_context_payload_carries_query_shape(
     mocks: dict[str, Any],
 ) -> None:

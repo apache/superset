@@ -40,26 +40,35 @@ from superset.utils import json
 
 def adhoc_filters_to_query_filters(
     adhoc_filters: list[dict[str, Any]],
+    where_only: bool = False,
 ) -> list[dict[str, Any]]:
     """
     Convert ``SIMPLE`` adhoc filters into QueryObject filter clauses.
 
     Adhoc filters use ``{subject, operator, comparator}`` while a query object
-    expects ``{col, op, val}``. All ``SIMPLE`` filters are converted (matching the
-    behavior the MCP compile/preview path relied on); free-form ``SQL`` filters
-    have no ``{col, op, val}`` equivalent and are handled separately (see
+    expects ``{col, op, val}``; free-form ``SQL`` filters have no ``{col, op,
+    val}`` equivalent and are handled separately (see
     :func:`freeform_where_having`).
+
+    By default all ``SIMPLE`` filters are converted (the behavior the MCP
+    compile/preview path relies on). Pass ``where_only=True`` to convert only
+    ``WHERE``-clause filters, matching the frontend's ``processFilters`` — the
+    dashboard export uses this so it applies the same rows the chart shows and
+    does not additionally filter on ``SIMPLE`` ``HAVING`` clauses.
     """
     result: list[dict[str, Any]] = []
     for flt in adhoc_filters or []:
-        if flt.get("expressionType") == "SIMPLE":
-            result.append(
-                {
-                    "col": flt.get("subject"),
-                    "op": flt.get("operator"),
-                    "val": flt.get("comparator"),
-                }
-            )
+        if flt.get("expressionType") != "SIMPLE":
+            continue
+        if where_only and (flt.get("clause") or "WHERE").upper() != "WHERE":
+            continue
+        result.append(
+            {
+                "col": flt.get("subject"),
+                "op": flt.get("operator"),
+                "val": flt.get("comparator"),
+            }
+        )
     return result
 
 
@@ -184,12 +193,18 @@ def build_query_context_from_form_data(
     # Only a Big Number *with a trendline* (viz_type ``big_number``) groups by its
     # time column; ``big_number_total`` is a single aggregate and must not be
     # grouped, or it would return one row per timestamp instead of a total.
+    promoted_time_column = False
     if not columns and viz_type == "big_number" and form_data.get("granularity_sqla"):
         columns = [form_data["granularity_sqla"]]
+        promoted_time_column = True
 
     # SIMPLE adhoc filters (+ legacy top-level ``filters``) become query filters;
-    # free-form SQL predicates go into ``extras``.
-    filters = adhoc_filters_to_query_filters(form_data.get("adhoc_filters", []))
+    # free-form SQL predicates go into ``extras``. Only ``WHERE``-clause SIMPLE
+    # filters are applied (matching the chart), so the export never filters on a
+    # ``HAVING`` clause the chart itself ignores.
+    filters = adhoc_filters_to_query_filters(
+        form_data.get("adhoc_filters", []), where_only=True
+    )
     for flt in form_data.get("filters") or []:
         if isinstance(flt, dict) and flt.get("col") is not None:
             filters.append(flt)
@@ -213,13 +228,14 @@ def build_query_context_from_form_data(
     }
     if extras:
         query["extras"] = extras
-    # ``granularity`` names the temporal column that actually applies the time
-    # range; without it, ``time_range`` is inert and the export returns the entire
-    # history. Only set it when there is a real range to apply — otherwise a
-    # numeric column saved as ``granularity_sqla`` (with no active range) would be
-    # forced through date bucketing and fail.
+    # ``granularity`` names the temporal column that applies the time range and
+    # that ``time_grain_sqla`` buckets. Set it when there is a real range to apply,
+    # or when we've promoted a Big Number trendline's time column (so its time
+    # grain takes effect even with no active range). Otherwise leave it off — a
+    # non-temporal ``granularity_sqla`` with no range would be forced through date
+    # bucketing and fail.
     granularity = form_data.get("granularity") or form_data.get("granularity_sqla")
-    if granularity and time_range != "No filter":
+    if granularity and (time_range != "No filter" or promoted_time_column):
         query["granularity"] = granularity
     if form_data.get("row_limit"):
         query["row_limit"] = form_data["row_limit"]

@@ -134,6 +134,23 @@ def _rebuild_viz_types() -> set[str]:
     return REBUILD_VIZ_TYPES if configured is None else configured
 
 
+# Form-data keys whose behavior needs plugin post-processing or extra queries
+# (contribution/time comparison, rolling window, resampling, raw big-number
+# aggregation) that the single-query rebuild cannot reproduce. A chart using any
+# of these is skipped rather than exported with values that differ from the chart.
+_UNSUPPORTED_PROCESSING_KEYS = ("time_compare", "rolling_type", "resample_rule")
+
+
+def _needs_unsupported_processing(form_data: dict[str, Any]) -> bool:
+    """Whether the form data relies on processing the rebuild can't reproduce."""
+    for key in _UNSUPPORTED_PROCESSING_KEYS:
+        value = form_data.get(key)
+        # ``rolling_type`` is often the literal string ``"None"`` when unset.
+        if value and value != "None":
+            return True
+    return form_data.get("aggregation") == "raw"
+
+
 def _resolve_query_context(chart: Any) -> dict[str, Any] | None:
     """
     The query-context payload to run for a chart's data export, or ``None`` when
@@ -142,7 +159,8 @@ def _resolve_query_context(chart: Any) -> dict[str, Any] | None:
     Prefers the chart's saved ``query_context``. When that is missing or empty,
     synthesizes one from the chart's saved form data (``params``) — but only for
     viz types whose data maps faithfully to a single plain query
-    (``EXCEL_EXPORT_REBUILD_VIZ_TYPES``); other charts return ``None`` so the
+    (``EXCEL_EXPORT_REBUILD_VIZ_TYPES``) and that don't rely on post-processing or
+    extra queries the rebuild can't reproduce; other charts return ``None`` so the
     caller lists them for re-saving rather than exporting inaccurate data.
     """
     if saved := _saved_query_context(chart.query_context):
@@ -155,6 +173,8 @@ def _resolve_query_context(chart: Any) -> dict[str, Any] | None:
     except (TypeError, ValueError):
         return None
     if not isinstance(form_data, dict) or not form_data:
+        return None
+    if _needs_unsupported_processing(form_data):
         return None
 
     return build_query_context_from_form_data(

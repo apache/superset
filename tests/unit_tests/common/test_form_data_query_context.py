@@ -271,9 +271,10 @@ def test_table_excludes_percent_metrics_but_carries_time_grain() -> None:
     assert query["extras"]["time_grain_sqla"] == "P1M"
 
 
-def test_simple_having_filter_is_still_converted() -> None:
-    # SIMPLE filters convert regardless of clause, preserving the behavior the MCP
-    # compile/preview path relied on.
+def test_simple_having_filter_converted_by_default_but_not_where_only() -> None:
+    # Default: all SIMPLE filters convert (the behavior MCP relies on).
+    # where_only=True: SIMPLE HAVING is dropped (matching the chart), which the
+    # export uses so it doesn't filter on a clause the chart ignores.
     adhoc = [
         {
             "expressionType": "SIMPLE",
@@ -286,6 +287,48 @@ def test_simple_having_filter_is_still_converted() -> None:
     assert adhoc_filters_to_query_filters(adhoc) == [
         {"col": "count", "op": ">", "val": 5}
     ]
+    assert adhoc_filters_to_query_filters(adhoc, where_only=True) == []
+
+
+def test_build_context_ignores_simple_having_filter() -> None:
+    # The export must not apply a SIMPLE HAVING filter the chart itself ignores.
+    form_data = {
+        "groupby": ["c"],
+        "metrics": ["count"],
+        "adhoc_filters": [
+            {
+                "expressionType": "SIMPLE",
+                "clause": "HAVING",
+                "subject": "count",
+                "operator": ">",
+                "comparator": 5,
+            },
+            {
+                "expressionType": "SIMPLE",
+                "subject": "region",
+                "operator": "==",
+                "comparator": "EMEA",
+            },
+        ],
+    }
+    query = build_query_context_from_form_data(form_data, DATASOURCE)["queries"][0]
+    assert query["filters"] == [{"col": "region", "op": "==", "val": "EMEA"}]
+
+
+def test_big_number_trendline_sets_granularity_without_time_range() -> None:
+    # A Big Number trendline groups by its time column; granularity must be set so
+    # time_grain_sqla buckets it even when there's no active time range.
+    form_data = {
+        "metric": "count",
+        "granularity_sqla": "ds",
+        "time_grain_sqla": "P1M",
+    }
+    query = build_query_context_from_form_data(
+        form_data, DATASOURCE, viz_type="big_number"
+    )["queries"][0]
+    assert query["columns"] == ["ds"]
+    assert query["granularity"] == "ds"
+    assert query["extras"]["time_grain_sqla"] == "P1M"
 
 
 def test_time_range_falls_back_to_since_until() -> None:
