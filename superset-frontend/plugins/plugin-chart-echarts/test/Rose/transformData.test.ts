@@ -19,7 +19,7 @@
 import transformData, {
   seriesKeyOf,
   splitFlatLabel,
-} from '../src/transformData';
+} from '../../src/Rose/transformData';
 
 const t1 = 1704067200000;
 const t2 = 1704153600000;

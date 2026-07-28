@@ -29,7 +29,6 @@ import HorizonChartPlugin from '@superset-ui/plugin-chart-horizon';
 import PairedTTestChartPlugin from '@superset-ui/plugin-chart-paired-t-test';
 import ParallelCoordinatesChartPlugin from '@superset-ui/plugin-chart-parallel-coordinates';
 import PartitionChartPlugin from '@superset-ui/plugin-chart-partition';
-import RoseChartPlugin from '@superset-ui/plugin-chart-rose';
 import TableChartPlugin from '@superset-ui/plugin-chart-table';
 import { WordCloudChartPlugin } from '@superset-ui/plugin-chart-word-cloud';
 import WorldMapChartPlugin from '@superset-ui/plugin-chart-world-map';
@@ -63,6 +62,7 @@ import {
   BigNumberPeriodOverPeriodChartPlugin,
   EchartsHeatmapChartPlugin,
   EchartsGanttChartPlugin,
+  EchartsRoseChartPlugin,
   EchartsTimePivotChartPlugin,
   EchartsBulletChartPlugin,
 } from '@superset-ui/plugin-chart-echarts';
@@ -133,7 +133,7 @@ export default class MainPreset extends Preset {
         new PartitionChartPlugin().configure({ key: VizType.Partition }),
         new EchartsPieChartPlugin().configure({ key: VizType.Pie }),
         new PivotTableChartPluginV2().configure({ key: VizType.PivotTable }),
-        new RoseChartPlugin().configure({ key: VizType.Rose }),
+        new EchartsRoseChartPlugin().configure({ key: VizType.Rose }),
         new TableChartPlugin().configure({ key: VizType.Table }),
         new EchartsTimePivotChartPlugin().configure({ key: VizType.TimePivot }),
         new TimeTableChartPlugin().configure({ key: VizType.TimeTable }),
