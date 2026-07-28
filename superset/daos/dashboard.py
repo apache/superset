@@ -408,9 +408,6 @@ class DashboardDAO(BaseDAO[Dashboard]):
             "refresh_frequency": 0,
             "color_scheme": "",
             "label_colors": {},
-            "shared_label_colors": [],
-            "map_label_colors": {},
-            "color_scheme_domain": [],
             "cross_filters_enabled": True,
         }
         for key, default_value in metadata_defaults.items():
@@ -418,6 +415,17 @@ class DashboardDAO(BaseDAO[Dashboard]):
                 md[key] = data[key]
             else:
                 md.setdefault(key, default_value)
+
+        # These are derived from ``color_scheme``/``label_colors`` on the
+        # frontend (see ``applyDashboardLabelsColorOnLoad``) and are always
+        # omitted from the Properties modal's payload, so they must keep
+        # resetting to their default when absent rather than being preserved
+        # -- otherwise a color scheme change made through that modal leaves
+        # stale label-to-color mappings in place instead of triggering
+        # recomputation on next load.
+        md["shared_label_colors"] = data.get("shared_label_colors", [])
+        md["map_label_colors"] = data.get("map_label_colors", {})
+        md["color_scheme_domain"] = data.get("color_scheme_domain", [])
         dashboard.json_metadata = json.dumps(md)
 
     @staticmethod

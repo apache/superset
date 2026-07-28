@@ -238,16 +238,18 @@ const PropertiesModal = ({
     }, handleErrorResponse);
   }, [dashboardId, handleDashboardData]);
 
-  const getJsonMetadata = () => {
+  // Returns undefined (rather than {}) when the editor holds invalid JSON,
+  // so callers can distinguish "empty/no metadata yet" from "user is
+  // mid-edit with unparsable text" and avoid clobbering the latter.
+  const parseJsonMetadata = () => {
     try {
-      const jsonMetadataObj = jsonMetadata?.length
-        ? JSON.parse(jsonMetadata)
-        : {};
-      return jsonMetadataObj;
+      return jsonMetadata?.length ? JSON.parse(jsonMetadata) : {};
     } catch (_) {
-      return {};
+      return undefined;
     }
   };
+
+  const getJsonMetadata = () => parseJsonMetadata() ?? {};
 
   const handleOnChangeEditors = (values: SubjectPickerValue[]) => {
     setEditors(mapPickerValuesToSubjects(values));
@@ -545,8 +547,13 @@ const PropertiesModal = ({
   const handleRefreshFrequencyChange = (value: number) => {
     setRefreshFrequency(value);
     // Keep the Advanced JSON editor in sync with the dropdown so the two
-    // sources can't diverge, mirroring onColorSchemeChange (#42116).
-    const jsonMetadataObj = getJsonMetadata();
+    // sources can't diverge, mirroring onColorSchemeChange (#42116). Skip
+    // this while the editor holds invalid/in-progress JSON so we don't
+    // clobber the user's unfinished edit with a one-field object.
+    const jsonMetadataObj = parseJsonMetadata();
+    if (!jsonMetadataObj) {
+      return;
+    }
     jsonMetadataObj.refresh_frequency = value;
     setJsonMetadata(jsonStringify(jsonMetadataObj));
   };
@@ -591,7 +598,15 @@ const PropertiesModal = ({
           const refreshLimit =
             dashboardInfo?.common?.conf
               ?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT;
-          return validateRefreshFrequency(refreshFrequency, refreshLimit);
+          // A refresh_frequency edited directly in the Advanced JSON editor
+          // takes precedence over the dropdown when saving (see onFinish),
+          // so validate that effective value rather than the dropdown state.
+          const effectiveRefreshFrequency =
+            getJsonMetadata()?.refresh_frequency ?? refreshFrequency;
+          return validateRefreshFrequency(
+            effectiveRefreshFrequency,
+            refreshLimit,
+          );
         },
       },
       {
