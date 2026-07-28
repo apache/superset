@@ -152,9 +152,11 @@ test('non-admin user can view a themed dashboard without 403 or infinite spinner
     const dashboardPage = new DashboardPage(page);
     await dashboardPage.gotoById(dashboardId!);
 
-    // 7. Assert dashboard fully loads (not stuck on infinite spinner)
+    // 7. Assert dashboard fully loads (not stuck on infinite spinner).
+    // The dashboard is created with no position_json, so its grid renders
+    // empty — there is no chart to wait for, only the grid itself.
     await dashboardPage.waitForLoad({ timeout: TIMEOUT.PAGE_LOAD });
-    await dashboardPage.waitForChartsToLoad();
+    await dashboardPage.waitForGridToLoad();
 
     // 8. Assert no /api/v1/theme/ requests were made (theme data comes from dashboard response)
     expect(themeApiRequests).toHaveLength(0);

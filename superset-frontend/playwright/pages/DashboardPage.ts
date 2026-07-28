@@ -57,6 +57,7 @@ export class DashboardPage {
     EMPTY_DROPTARGET: '[data-test="grid-content"] .empty-droptarget',
     NEW_COMPONENT: '[data-test="new-component"]',
     CHART_HOLDER: '[data-test="dashboard-component-chart-holder"]',
+    GRID_CONTENT: '[data-test="grid-content"]',
     DELETE_COMPONENT: '[data-test="dashboard-delete-component-button"]',
     MARKDOWN_EDITOR: '[data-test="dashboard-markdown-editor"]',
     EDITABLE_TITLE: '[data-test="editable-title-input"]',
@@ -120,7 +121,7 @@ export class DashboardPage {
    * finished" rather than "charts have not begun".
    *
    * Only for dashboards that have charts — on an empty one this waits out
-   * `timeout` rather than returning.
+   * `timeout` rather than returning. Use {@link waitForGridToLoad} there.
    */
   async waitForChartsToLoad(options?: { timeout?: number }): Promise<void> {
     const timeout = options?.timeout ?? TIMEOUT.API_RESPONSE;
@@ -130,10 +131,46 @@ export class DashboardPage {
       .first()
       .waitFor({ state: 'attached', timeout });
 
-    // Use browser-context evaluation to check visibility directly.
-    // Loading indicators ([aria-label="Loading"]) may persist in the DOM as hidden
-    // elements after charts finish loading. This checks that none are currently visible,
-    // returning immediately when charts are already loaded (no timeout penalty).
+    await this.waitForLoadersToSettle(timeout);
+  }
+
+  /**
+   * Wait for the dashboard grid to mount and any loading indicators to clear.
+   *
+   * The counterpart to {@link waitForChartsToLoad} for a dashboard with no
+   * charts on it: the grid container renders whatever the grid holds, so it
+   * gives the "the page got past the header" evidence that a chart component
+   * cannot. Prefer {@link waitForChartsToLoad} whenever charts are expected —
+   * this cannot tell a grid that rendered empty from one whose charts have not
+   * begun rendering.
+   */
+  async waitForGridToLoad(options?: { timeout?: number }): Promise<void> {
+    const timeout = options?.timeout ?? TIMEOUT.API_RESPONSE;
+
+    // Attached rather than visible: an empty grid collapses to zero height,
+    // which Playwright counts as not visible.
+    await this.page
+      .locator(DashboardPage.SELECTORS.GRID_CONTENT)
+      .first()
+      .waitFor({ state: 'attached', timeout });
+
+    await this.waitForLoadersToSettle(timeout);
+  }
+
+  /**
+   * Resolve once no loading indicator is visible.
+   *
+   * Uses browser-context evaluation to check visibility directly. Loading
+   * indicators ([aria-label="Loading"]) may persist in the DOM as hidden
+   * elements after charts finish loading, so this checks that none are
+   * currently visible, returning immediately when they are already settled (no
+   * timeout penalty).
+   *
+   * Loader absence is also the state of a dashboard that has not started
+   * rendering, which is why every caller pairs this with a wait for the content
+   * it expects.
+   */
+  private async waitForLoadersToSettle(timeout: number): Promise<void> {
     await this.page.waitForFunction(
       () => {
         const loaders = document.querySelectorAll('[aria-label="Loading"]');
