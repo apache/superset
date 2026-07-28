@@ -37,8 +37,13 @@ import {
   QueryFormMetric,
 } from '@superset-ui/core';
 import { styled, css } from '@apache-superset/core/theme';
-import { ColumnMeta, isSavedExpression } from '@superset-ui/chart-controls';
+import {
+  ColumnMeta,
+  Dataset,
+  isSavedExpression,
+} from '@superset-ui/chart-controls';
 import Tabs from '@superset-ui/core/components/Tabs';
+import { Alert } from '@apache-superset/core/components';
 import {
   Button,
   Form,
@@ -56,8 +61,12 @@ import {
   POPOVER_INITIAL_WIDTH,
 } from 'src/explore/constants';
 import { ExplorePageState } from 'src/explore/types';
-import { selectCompatibleDimensionNames } from 'src/explore/selectors/compatibility';
+import {
+  selectCompatibility,
+  selectCompatibleDimensionNames,
+} from 'src/explore/selectors/compatibility';
 import useResizeButton from './useResizeButton';
+import { getColumnPickerCapabilities } from './utils/pickerCapabilities';
 
 const TABS_KEYS = {
   SAVED: 'saved',
@@ -115,11 +124,14 @@ export interface ColumnSelectPopoverProps {
   disabledTabs?: Set<string>;
   metrics?: Metric[];
   selectedMetrics?: QueryFormMetric[];
-  datasource?: any;
+  datasource?: Dataset | null;
 }
 
+const INVALID_SELECTION_FEEDBACK_ID = 'column-select-invalid-selection';
+
 const getInitialColumnValues = (
-  editedColumn?: ColumnMeta | AdhocColumn,
+  editedColumn: ColumnMeta | AdhocColumn | undefined,
+  savedClassification: boolean,
 ): [AdhocColumn?, ColumnMeta?, ColumnMeta?] => {
   if (!editedColumn) {
     return [undefined, undefined, undefined];
@@ -127,7 +139,9 @@ const getInitialColumnValues = (
   if (isAdhocColumn(editedColumn)) {
     return [editedColumn, undefined, undefined];
   }
-  if (isSavedExpression(editedColumn)) {
+  // With Saved classification every datasource dimension is a Saved option,
+  // so an edited dimension reopens on the Saved tab.
+  if (isSavedExpression(editedColumn) || savedClassification) {
     return [undefined, editedColumn, undefined];
   }
   return [undefined, undefined, editedColumn];
@@ -150,13 +164,21 @@ const ColumnSelectPopover = ({
   datasource,
 }: ColumnSelectPopoverProps) => {
   // const theme = useTheme(); // Unused variable
-  const datasourceType = useSelector<ExplorePageState, string | undefined>(
-    state => state.explore.datasource.type,
+  const reduxDatasource = useSelector<
+    ExplorePageState,
+    ExplorePageState['explore']['datasource'] | undefined
+  >(state => state.explore.datasource);
+  const datasourceType = reduxDatasource?.type;
+  const capabilities = useMemo(
+    () => getColumnPickerCapabilities(reduxDatasource),
+    [reduxDatasource],
   );
+  const savedClassification = capabilities.dimensionClassification === 'saved';
+  const compatibility = useSelector(selectCompatibility);
   const compatibleDimensions = useSelector(selectCompatibleDimensionNames);
   const [initialLabel] = useState(label);
   const [initialAdhocColumn, initialCalculatedColumn, initialSimpleColumn] =
-    getInitialColumnValues(editedColumn);
+    getInitialColumnValues(editedColumn, savedClassification);
 
   const [adhocColumn, setAdhocColumn] = useState<AdhocColumn | undefined>(
     initialAdhocColumn,
@@ -182,7 +204,9 @@ const ColumnSelectPopover = ({
   const [calculatedColumns, simpleColumns] = useMemo(() => {
     const [calc, simple] = (columns ?? []).reduce(
       (acc: [ColumnMeta[], ColumnMeta[]], column: ColumnMeta) => {
-        if (column.expression) {
+        // Saved classification presents every dimension as a Saved option
+        // without requiring (or mutating) an expression on its metadata.
+        if (savedClassification || column.expression) {
           acc[0].push(column);
         } else {
           acc[1].push(column);
@@ -194,7 +218,7 @@ const ColumnSelectPopover = ({
     const alpha = (a: ColumnMeta, b: ColumnMeta) =>
       (a.column_name ?? '').localeCompare(b.column_name ?? '');
     return [calc.sort(alpha), simple.sort(alpha)];
-  }, [columns]);
+  }, [columns, savedClassification]);
 
   // Filter metrics that are already selected in the chart
   const availableMetrics = useMemo(() => {
@@ -289,11 +313,34 @@ const ColumnSelectPopover = ({
     [columnMap, metricMap, onSimpleColumnChange, onSimpleMetricChange],
   );
 
-  const defaultActiveTabKey = initialAdhocColumn
-    ? 'sqlExpression'
+  const effectiveDisabledTabs = useMemo(() => {
+    const merged = new Set([...disabledTabs, ...capabilities.disabledModes]);
+    // A legacy adhoc value must stay inspectable: keep Custom SQL reachable
+    // for viewing even though such a value can no longer be saved.
+    if (initialAdhocColumn && savedClassification) {
+      merged.delete(TABS_KEYS.SQL_EXPRESSION);
+    }
+    return merged;
+  }, [
+    disabledTabs,
+    capabilities.disabledModes,
+    initialAdhocColumn,
+    savedClassification,
+  ]);
+
+  const preferredTabKey = initialAdhocColumn
+    ? savedClassification
+      ? // A legacy adhoc value cannot be re-saved: open the supported mode.
+        'saved'
+      : 'sqlExpression'
     : selectedCalculatedColumn
       ? 'saved'
       : 'simple';
+  const defaultActiveTabKey = !effectiveDisabledTabs.has(preferredTabKey)
+    ? preferredTabKey
+    : ([TABS_KEYS.SAVED, TABS_KEYS.SIMPLE, TABS_KEYS.SQL_EXPRESSION].find(
+        key => !effectiveDisabledTabs.has(key),
+      ) ?? preferredTabKey);
 
   useEffect(() => {
     getCurrentTab(defaultActiveTabKey);
@@ -327,6 +374,11 @@ const ColumnSelectPopover = ({
   ]);
 
   const onSave = useCallback(() => {
+    // Saved-only datasources never commit adhoc values (legacy or edited);
+    // the Save button is disabled in that state, this is a guard.
+    if (savedClassification && adhocColumn) {
+      return;
+    }
     if (adhocColumn && adhocColumn.label !== label) {
       adhocColumn.label = label;
     }
@@ -343,6 +395,7 @@ const ColumnSelectPopover = ({
     label,
     onChange,
     onClose,
+    savedClassification,
     selectedCalculatedColumn,
     selectedSimpleColumn,
     selectedMetric,
@@ -390,7 +443,40 @@ const ColumnSelectPopover = ({
     selectedMetric?.metric_name !== undefined ||
     adhocColumn?.sqlExpression !== initialAdhocColumn?.sqlExpression;
 
-  const savedExpressionsLabel = t('Saved expressions');
+  // With Saved classification, a value that can no longer be committed keeps
+  // Save disabled until the user explicitly picks a compatible dimension.
+  const invalidSelectionFeedback = useMemo(() => {
+    if (!savedClassification) {
+      return null;
+    }
+    if (adhocColumn) {
+      return t(
+        'Custom column values are not supported here. Select a saved dimension to replace this value.',
+      );
+    }
+    if (
+      selectedCalculatedColumn &&
+      compatibleDimensions != null &&
+      !compatibleDimensions.includes(selectedCalculatedColumn.column_name)
+    ) {
+      return t(
+        'This dimension is not compatible with the current selections. Select a compatible dimension.',
+      );
+    }
+    return null;
+  }, [
+    savedClassification,
+    adhocColumn,
+    selectedCalculatedColumn,
+    compatibleDimensions,
+  ]);
+
+  const showCompatibilityFailureWarning =
+    capabilities.showCompatibilityFailure && compatibility.status === 'failed';
+
+  const savedExpressionsLabel = savedClassification
+    ? t('Dimensions')
+    : t('Saved expressions');
   const simpleColumnsLabel = t('Columns and metrics');
   const keywords = useMemo(
     () => sqlKeywords.concat(getColumnKeywords(columns)),
@@ -399,6 +485,18 @@ const ColumnSelectPopover = ({
 
   return (
     <Form layout="vertical" id="metrics-edit-popover">
+      {showCompatibilityFailureWarning && (
+        <Alert
+          role="status"
+          type="warning"
+          closable={false}
+          data-test="compatibility-failure-warning"
+        >
+          {t(
+            'Could not verify which dimensions are compatible. All dimensions are shown.',
+          )}
+        </Alert>
+      )}
       <Tabs
         id="adhoc-metric-edit-tabs"
         defaultActiveKey={defaultActiveTabKey}
@@ -411,7 +509,7 @@ const ColumnSelectPopover = ({
         `}
         items={[
           // Only show Saved tab if not disabled
-          ...(disabledTabs.has('saved')
+          ...(effectiveDisabledTabs.has('saved')
             ? []
             : [
                 {
@@ -444,6 +542,12 @@ const ColumnSelectPopover = ({
                                 column_name: calculatedColumn.column_name,
                                 verbose_name:
                                   calculatedColumn.verbose_name ?? '',
+                                disabled:
+                                  savedClassification &&
+                                  compatibleDimensions != null &&
+                                  !compatibleDimensions.includes(
+                                    calculatedColumn.column_name,
+                                  ),
                               }),
                             )}
                             optionFilterProps={['column_name', 'verbose_name']}
@@ -511,6 +615,7 @@ const ColumnSelectPopover = ({
           {
             key: TABS_KEYS.SIMPLE,
             label: t('Simple'),
+            disabled: effectiveDisabledTabs.has(TABS_KEYS.SIMPLE),
             children: (
               <>
                 {isTemporal && simpleColumns.length === 0 ? (
@@ -602,7 +707,7 @@ const ColumnSelectPopover = ({
           {
             key: TABS_KEYS.SQL_EXPRESSION,
             label: t('Custom SQL'),
-            disabled: disabledTabs.has('sqlExpression'),
+            disabled: effectiveDisabledTabs.has(TABS_KEYS.SQL_EXPRESSION),
             children: (
               <>
                 <SQLEditorWithValidation
@@ -631,6 +736,17 @@ const ColumnSelectPopover = ({
       />
 
       <div>
+        {invalidSelectionFeedback && (
+          <div
+            id={INVALID_SELECTION_FEEDBACK_ID}
+            role="status"
+            css={(theme: { colorErrorText: string }) => css`
+              color: ${theme.colorErrorText};
+            `}
+          >
+            {invalidSelectionFeedback}
+          </div>
+        )}
         <Button
           buttonSize="small"
           buttonStyle="secondary"
@@ -640,11 +756,18 @@ const ColumnSelectPopover = ({
           {t('Close')}
         </Button>
         <Button
-          disabled={!stateIsValid || !hasUnsavedChanges}
+          disabled={
+            !stateIsValid ||
+            !hasUnsavedChanges ||
+            Boolean(invalidSelectionFeedback)
+          }
           buttonStyle="primary"
           buttonSize="small"
           onClick={onSave}
           data-test="ColumnEdit#save"
+          aria-describedby={
+            invalidSelectionFeedback ? INVALID_SELECTION_FEEDBACK_ID : undefined
+          }
           cta
         >
           {t('Save')}
