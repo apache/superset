@@ -69,8 +69,9 @@ describe('ChartDataProvider', () => {
     formData: { ...bigNumberFormData },
     children: ({ loading, payload, error }) => (
       <div>
+        {/* eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- mirrors the real Loading component's role="status" pattern */}
         {loading && <span role="status">Loading...</span>}
-        {payload && <pre role="contentinfo">{JSON.stringify(payload)}</pre>}
+        {payload && <footer>{JSON.stringify(payload)}</footer>}
         {error && <div role="alert">{error.message}</div>}
       </div>
     ),

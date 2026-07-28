@@ -23,9 +23,57 @@ from PIL import Image
 
 from superset.utils.screenshot_utils import (
     combine_screenshot_tiles,
+    resolve_screenshot_task_budget_seconds,
+    SCREENSHOT_TASK_BUDGET_MAX_MARGIN_SECONDS,
     SCROLL_SETTLE_TIMEOUT_MS,
     take_tiled_screenshot,
 )
+
+
+class TestResolveScreenshotTaskBudget:
+    def _task(self, timelimit):
+        task = MagicMock()
+        task.request.timelimit = timelimit
+        return task
+
+    def test_prefers_soft_limit_and_reserves_scaled_margin(self):
+        task = self._task((400, 300))
+        with patch("superset.utils.screenshot_utils.current_task", task):
+            budget = resolve_screenshot_task_budget_seconds()
+
+        assert budget == 240
+
+    def test_uses_hard_limit_and_caps_cleanup_margin(self):
+        task = self._task((2000, None))
+        with patch("superset.utils.screenshot_utils.current_task", task):
+            budget = resolve_screenshot_task_budget_seconds()
+
+        assert budget == 2000 - SCREENSHOT_TASK_BUDGET_MAX_MARGIN_SECONDS
+
+    @pytest.mark.parametrize("timelimit", [None, (), (None, None), "300", (0, 0)])
+    def test_absent_or_malformed_timelimit_preserves_standalone_timeout(
+        self, timelimit
+    ):
+        task = self._task(timelimit)
+        with patch("superset.utils.screenshot_utils.current_task", task):
+            assert resolve_screenshot_task_budget_seconds() is None
+
+    def test_outside_celery_preserves_standalone_timeout(self):
+        with patch("superset.utils.screenshot_utils.current_task", None):
+            assert resolve_screenshot_task_budget_seconds() is None
+
+    def test_broken_task_metadata_preserves_standalone_timeout(self):
+        task = MagicMock()
+        type(task).request = property(
+            lambda self: (_ for _ in ()).throw(RuntimeError("boom"))
+        )
+        with (
+            patch("superset.utils.screenshot_utils.current_task", task),
+            patch("superset.utils.screenshot_utils.logger") as mock_logger,
+        ):
+            assert resolve_screenshot_task_budget_seconds("execution_id=abc") is None
+
+        assert mock_logger.debug.call_args.kwargs["exc_info"] is True
 
 
 class TestCombineScreenshotTiles:
@@ -481,15 +529,45 @@ class TestTakeTiledScreenshot:
         lets a slow query be told apart from the race during an incident.
         """
         from superset.utils.screenshot_utils import (
-            _FIND_UNREADY_CHART_HOLDERS_JS,
-            _TILE_READY_CHECK_JS,
+            CHART_HOLDERS_READY_JS,
+            FIND_CHART_HOLDER_STATES_JS,
+            FIND_UNREADY_CHART_HOLDERS_JS,
         )
 
-        for js in (_TILE_READY_CHECK_JS, _FIND_UNREADY_CHART_HOLDERS_JS):
+        for js in (CHART_HOLDERS_READY_JS, FIND_UNREADY_CHART_HOLDERS_JS):
             assert "spinner_mounted" in js
             assert "waiting_on_database" in js
             assert "nothing_mounted" in js
-            assert "slice-container" in js
+            assert ".slice_container" in js
+            assert (
+                '.dashboard-component-chart-holder[class*="dashboard-chart-id-"]'
+            ) in js
+            assert "holder.className.match(/\\bdashboard-chart-id-(\\d+)\\b/)" in js
+
+        assert "rendered" in FIND_CHART_HOLDER_STATES_JS
+        assert "empty" in FIND_CHART_HOLDER_STATES_JS
+        assert "error" in FIND_CHART_HOLDER_STATES_JS
+        assert "virtualized" in FIND_CHART_HOLDER_STATES_JS
+        assert "waiting_on_database" in FIND_CHART_HOLDER_STATES_JS
+        assert (
+            '.dashboard-component-chart-holder[class*="dashboard-chart-id-"]'
+        ) in FIND_CHART_HOLDER_STATES_JS
+
+    def test_readiness_constants_are_production_safe(self):
+        from superset.utils.screenshot_utils import (
+            CHART_CONTAINER_READY_JS,
+            CHART_HOLDERS_READY_JS,
+            FIND_CHART_HOLDER_STATES_JS,
+            FIND_UNREADY_CHART_HOLDERS_JS,
+        )
+
+        for js in (
+            CHART_CONTAINER_READY_JS,
+            CHART_HOLDERS_READY_JS,
+            FIND_CHART_HOLDER_STATES_JS,
+            FIND_UNREADY_CHART_HOLDERS_JS,
+        ):
+            assert "data-test" not in js
 
     def test_per_tile_timing_logged_at_debug(self, mock_page):
         """Each tile logs how long it waited for readiness, for profiling."""

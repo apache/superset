@@ -49,7 +49,7 @@ class Slice(Base):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     slices = session.query(Slice).filter_by(viz_type="cal_heatmap").all()
     slice_len = len(slices)

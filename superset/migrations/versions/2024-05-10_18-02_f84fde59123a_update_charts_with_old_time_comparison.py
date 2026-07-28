@@ -97,7 +97,7 @@ def upgrade_comparison_params(slice_params: dict[str, Any]) -> dict[str, Any]:
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for slc in paginated_update(
         session.query(Slice).filter(
@@ -198,7 +198,7 @@ def downgrade_comparison_params(slice_params: dict[str, Any]) -> dict[str, Any]:
 
 def downgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for slc in paginated_update(
         session.query(Slice).filter(

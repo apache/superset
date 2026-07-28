@@ -16,6 +16,7 @@
 # under the License.
 """Tests for datetime format detector."""
 
+import logging
 from unittest.mock import MagicMock
 
 import pandas as pd
@@ -108,16 +109,48 @@ def test_detect_column_format_empty_data(
 
 
 def test_detect_column_format_error_handling(
-    mock_dataset: MagicMock, mock_column: MagicMock
+    mock_dataset: MagicMock, mock_column: MagicMock, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """Test error handling during format detection."""
+    """Test error handling during format detection.
+
+    A failure while querying the target database (bad connection config,
+    transient outage, permission errors, etc.) is expected and already
+    fully handled -- it must not be captured as an ERROR-level exception,
+    since that floods Sentry with noise for every sample query a
+    misconfigured/unreachable database rejects.
+    """
     # Simulate database error
     mock_dataset.database.get_df.side_effect = Exception("Database error")
 
     detector = DatetimeFormatDetector()
-    detected_format = detector.detect_column_format(mock_dataset, mock_column)
+    with caplog.at_level(logging.WARNING):
+        detected_format = detector.detect_column_format(mock_dataset, mock_column)
 
     assert detected_format is None
+    assert not any(record.levelno >= logging.ERROR for record in caplog.records)
+    assert any(
+        record.levelno == logging.WARNING and "Could not query column" in record.message
+        for record in caplog.records
+    )
+
+
+def test_detect_column_format_internal_error_still_logs_at_error(
+    mock_dataset: MagicMock, mock_column: MagicMock, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A genuine internal bug (not a database-query failure) should still be
+    logged at ERROR so it remains visible/actionable, unlike the expected
+    database-query failure case above."""
+    mock_dataset.database.get_sqla_engine.side_effect = RuntimeError(
+        "unexpected internal error"
+    )
+
+    detector = DatetimeFormatDetector()
+    with caplog.at_level(logging.WARNING):
+        detected_format = detector.detect_column_format(mock_dataset, mock_column)
+
+    assert detected_format is None
+    assert any(record.levelno >= logging.ERROR for record in caplog.records)
+    mock_dataset.database.get_df.assert_not_called()
 
 
 def test_detect_all_formats(mock_dataset: MagicMock) -> None:
