@@ -28,9 +28,9 @@ from superset.tags.models import TaggedObject
 from superset.utils.core import DatasourceType
 from superset.utils.database import get_main_database
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.fixtures.tags import (
     with_tagging_system_feature,  # noqa: F401
+    without_tagging_system_feature,  # noqa: F401
 )
 
 
@@ -228,7 +228,7 @@ class TestTagging(SupersetTestCase):
         # Test to make sure the tag is deleted when the associated object is deleted
         assert [] == self.query_tagged_object_table()
 
-    @with_feature_flags(TAGGING_SYSTEM=False)
+    @pytest.mark.usefixtures("without_tagging_system_feature")
     def test_tagging_system(self):
         """
         Test to make sure that when the TAGGING_SYSTEM

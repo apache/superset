@@ -24,6 +24,14 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Feature Flag Changes
+
+#### `TAGGING_SYSTEM`
+The default value of **TAGGING_SYSTEM** was flipped from `False` to `True`.
+
+#### `GRANULAR_EXPORT_CONTROLS`
+This new feature flag was introduced, see below.
+
 ### Dashboard "Export Data to Excel" requires a Celery worker and S3 bucket
 
 A new dashboard action exports every chart's data to a single multi-sheet
