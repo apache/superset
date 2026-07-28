@@ -92,22 +92,13 @@ export function ErrorMessageWithStackTrace({
         <br />
         {stackTrace && <pre>{stackTrace}</pre>}
       </>
-    ) : (
-      subtitle
-    ));
-
-  // When the subtitle is the only detail available (no stack trace, link, or
-  // explicit details), surface it exclusively in the collapsible "See more"
-  // section rather than inline. This guarantees an expand affordance instead
-  // of a flat, unexpandable error card.
-  const message =
-    computedDescriptionDetails === subtitle ? undefined : subtitle;
+    ) : undefined);
 
   return (
     <ErrorAlert
       type="error"
       errorType={title}
-      message={message}
+      message={subtitle}
       description={description}
       descriptionDetails={computedDescriptionDetails}
       compact={compact}
