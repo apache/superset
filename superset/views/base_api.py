@@ -501,8 +501,15 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
             values = [row["value"] for row in result]
             ids = [id_ for id_ in ids if id_ not in values]
             pk_col = datamodel.get_pk()
-            # Fetch requested values from ids
-            extra_rows = db.session.query(datamodel.obj).filter(pk_col.in_(ids)).all()
+            # Fetch requested values from ids, applying the same scoping as the
+            # unforced query so ``include_ids`` cannot resolve rows the
+            # related-field filters deliberately hide.
+            query = db.session.query(datamodel.obj).filter(pk_col.in_(ids))
+            if base_filters := self.base_related_field_filters.get(column_name):
+                query = datamodel.apply_filters(
+                    query, datamodel.get_filters().add_filter_list(base_filters)
+                )
+            extra_rows = query.all()
             result += self._get_result_from_rows(datamodel, extra_rows, column_name)
 
     @event_logger.log_this_with_context(

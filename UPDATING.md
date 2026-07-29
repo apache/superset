@@ -24,6 +24,46 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Principal listing APIs now honour related-field filters
+
+Two authorization-related listing behaviors changed for API clients. Neither
+affects the Superset UI — `include_ids` and `security/subject` have no frontend
+callers — but external clients will notice:
+
+- `GET /api/v1/<resource>/related/<column>?include_ids=...` now applies the
+  endpoint's `base_related_field_filters`. Previously the forced IDs were fetched
+  with no filtering, so a caller could resolve principals the related-field
+  filters deliberately hide; those IDs are now omitted from the response.
+- `GET /api/v1/security/subject/` now honours `EXCLUDE_USERS_FROM_LISTS` and
+  `EXTRA_RELATED_QUERY_FILTERS`, matching every other principal-listing endpoint.
+  List counts may drop, and fetching an excluded principal via
+  `GET /api/v1/security/subject/<id>` now returns `404`.
+
+### v1 chart import no longer re-adds the importer as editor on overwrite
+
+Re-importing over an existing chart (an overwrite or a soft-delete restore) no
+longer appends the importing user to the chart's `editors`, matching the
+dashboard importer's behavior. This changes anything only for a user who was not
+already an editor of that chart — typically an admin overwriting a chart they do
+not own, who was previously added as an editor as a side effect of the import.
+Newly-created charts are unaffected.
+### ClickHouse: system sampling queries retry with a bounded read
+
+System-generated sampling queries — filter-value dropdowns, the Samples
+tab/dataset preview, and datetime format detection — that ClickHouse rejects
+with a `max_rows_to_read` error (`TOO_MANY_ROWS`, code 158) are now retried
+once with `SETTINGS read_overflow_mode='break'` appended, so they return a
+partial result bounded by the operator's row cap instead of failing. The retry
+applies only to statements Superset generates for physical-table datasets;
+virtual datasets and user-authored SQL remain fully governed by configured
+read limits, and queries that already succeed are never altered. Operators who
+rely on `max_rows_to_read` as a hard failure gate for these system queries can
+restore the previous behavior per database with
+`"disable_sampling_read_limit_override": true` in the database's Extra JSON.
+Note that a retried query returns partial data with no truncation indicator
+(e.g. a filter dropdown may list only a subset of values on tables above the
+row cap).
+
 ### Dashboard "Export Data to Excel" requires a Celery worker and S3 bucket
 
 A new dashboard action exports every chart's data to a single multi-sheet
