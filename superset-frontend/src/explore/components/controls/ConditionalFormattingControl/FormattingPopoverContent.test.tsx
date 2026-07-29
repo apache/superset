@@ -68,8 +68,8 @@ test('renders FormattingPopoverContent component', () => {
 
   // Assert that the component renders correctly
   expect(screen.getByLabelText('Column')).toBeInTheDocument();
-  expect(screen.getAllByText('Color scheme')).toHaveLength(1);
-  expect(screen.getAllByText('Operator')).toHaveLength(1);
+  expect(screen.getByLabelText('Color scheme')).toBeInTheDocument();
+  expect(screen.getByLabelText('Operator')).toBeInTheDocument();
   expect(screen.queryByLabelText('Left value')).not.toBeInTheDocument();
   expect(screen.queryByLabelText('Right value')).not.toBeInTheDocument();
   expect(screen.getByText('Apply')).toBeInTheDocument();

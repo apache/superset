@@ -44,6 +44,7 @@ export interface ColorPickerControlProps {
   hovered?: boolean;
   warning?: string;
   presets?: { label: string; colors: string[] }[];
+  ariaLabel?: string;
 }
 
 const getReverseThemeColorMap = (
@@ -84,6 +85,7 @@ export default function ColorPickerControl({
   onChange,
   value,
   presets: customPresets,
+  ariaLabel,
   ...headerProps
 }: ColorPickerControlProps) {
   const categoricalScheme = getCategoricalSchemeRegistry().get();
@@ -155,6 +157,7 @@ export default function ColorPickerControl({
     <div>
       <ControlHeader {...headerProps} />
       <ColorPicker
+        aria-label={ariaLabel}
         value={hexValue}
         onChangeComplete={handleChange}
         presets={presets}

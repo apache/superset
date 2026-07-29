@@ -404,6 +404,7 @@ export const FormattingPopoverContent = ({
             initialValue={defaultColorValue}
           >
             <ColorPickerControl
+              ariaLabel={t('Color scheme')}
               onChange={event => handleChange(event)}
               presets={[...colors, ...extraColorChoices]}
             />
