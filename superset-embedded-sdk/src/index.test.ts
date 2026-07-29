@@ -133,6 +133,35 @@ describe("embedDashboard", () => {
     });
   });
 
+  test("setDataMask drops the change-trigger flags observeDataMask adds", async () => {
+    const fakeToken = makeFakeJWT({ exp: Date.now() / 1000 + 300 });
+    const mockFetchGuestToken = vi.fn().mockResolvedValue(fakeToken);
+    const observedMask = {
+      "NATIVE_FILTER-1": {
+        filterState: {
+          value: ["CA"],
+        },
+      },
+      crossFiltersChanged: false,
+      nativeFiltersChanged: true,
+    };
+
+    const dashboard = await embedDashboard({
+      id: "test-id",
+      supersetDomain: "https://superset.example.com",
+      mountPoint,
+      fetchGuestToken: mockFetchGuestToken,
+    });
+
+    dashboard.setDataMask(observedMask);
+
+    expect(mockSwitchboard.emit).toHaveBeenCalledWith("setDataMask", {
+      dataMask: {
+        "NATIVE_FILTER-1": observedMask["NATIVE_FILTER-1"],
+      },
+    });
+  });
+
   test("setDataMask emits complex dataMask with multiple filters", async () => {
     const fakeToken = makeFakeJWT({ exp: Date.now() / 1000 + 300 });
     const mockFetchGuestToken = vi.fn().mockResolvedValue(fakeToken);
