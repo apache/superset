@@ -306,7 +306,8 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
             .filter(
                 ReportSchedule.active.is_(True),
                 or_(
-                    # Not retrying — always include
+                    # Never executed or not retrying — always include
+                    ReportSchedule.last_state.is_(None),
                     ReportSchedule.last_state != ReportState.RETRYING,
                     # Retrying but stale — rescue it
                     ReportSchedule.retry_scheduled_dttm < stale_cutoff,

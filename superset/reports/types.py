@@ -21,8 +21,3 @@ from superset.dashboards.permalink.types import DashboardPermalinkState
 
 class ReportScheduleExtra(TypedDict, total=False):
     dashboard: DashboardPermalinkState
-    retry_on_failure: bool
-    retry_max_attempts: int
-    send_failed_reports: bool
-    retry_notify_owners: bool
-    retry_notify_recipients: bool

@@ -534,21 +534,6 @@ class ReportSchedulePutSchema(Schema):
                 )
             )
 
-    @validates_schema
-    def validate_retry_config(  # pylint: disable=unused-argument
-        self,
-        data: dict[str, Any],
-        **kwargs: Any,
-    ) -> None:
-        if data.get("send_failed_reports") and not data.get("retry_on_failure"):
-            raise ValidationError(
-                {
-                    "send_failed_reports": [
-                        _("send_failed_reports requires retry_on_failure to be enabled")
-                    ]
-                }
-            )
-
 
 class SlackChannelSchema(Schema):
     """

@@ -136,8 +136,10 @@ def execute(
             eta = execute.request.eta
             if isinstance(eta, str):
                 scheduled_dttm = datetime.fromisoformat(eta)
-            else:
+            elif eta is not None:
                 scheduled_dttm = eta
+            else:
+                scheduled_dttm = datetime.now(tz=timezone.utc)
         logger.info(
             "Executing alert/report, task id: %s, scheduled_dttm: %s",
             task_id,

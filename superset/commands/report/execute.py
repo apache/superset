@@ -1330,9 +1330,26 @@ class ReportNotTriggeredErrorState(BaseReportState):
 
             current_attempt = self._report_schedule.retry_attempt
 
+            # If this execution was itself a retry (current_attempt > 0),
+            # send the retry-failure notification *after* the attempt ran so
+            # the email reflects what happened, not what is about to be
+            # scheduled.  ("You will receive an update after each retry.")
+            if retry_on_failure and current_attempt > 0:
+                try:
+                    self.send_retry_notification(
+                        current_attempt, max_attempts, error_message
+                    )
+                except Exception:  # pylint: disable=broad-except
+                    logger.warning(
+                        "Failed to send retry notification for report schedule "
+                        "(execution %s)",
+                        self._execution_id,
+                        exc_info=True,
+                    )
+
             if retry_on_failure and current_attempt < max_attempts:
                 # Schedule another attempt and exit cleanly (don't re-raise).
-                attempt = self._increment_retry()
+                self._increment_retry()
                 try:
                     self.update_report_schedule_and_log(
                         ReportState.RETRYING, error_message=error_message
@@ -1345,16 +1362,9 @@ class ReportNotTriggeredErrorState(BaseReportState):
                         exc_info=True,
                     )
                     raise first_ex from logging_ex
-                try:
-                    self.send_retry_notification(attempt, max_attempts, error_message)
-                except Exception:  # pylint: disable=broad-except
-                    logger.warning(
-                        "Failed to send retry notification for report schedule "
-                        "(execution %s)",
-                        self._execution_id,
-                        exc_info=True,
-                    )
-                self._schedule_retry(self._get_retry_delay(attempt))
+                self._schedule_retry(
+                    self._get_retry_delay(self._report_schedule.retry_attempt)
+                )
                 return  # task completes normally; next attempt is queued
 
             # All retries exhausted (or retry disabled) — fall through to the

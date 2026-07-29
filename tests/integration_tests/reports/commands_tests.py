@@ -2685,7 +2685,8 @@ def test_retry_on_failure_schedules_retry(
 ) -> None:
     """
     ExecuteReport Command: when retry_on_failure is enabled and the report fails,
-    the state transitions to RETRYING and a retry task is enqueued.
+    the state transitions to RETRYING and a retry task is enqueued with the
+    correct exponential-backoff delay.
     """
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
@@ -2707,8 +2708,10 @@ def test_retry_on_failure_schedules_retry(
         db.session.refresh(report_schedule)
         assert report_schedule.last_state == ReportState.RETRYING
         assert report_schedule.retry_attempt == 1
-        schedule_retry_mock.assert_called_once()
-        # No error email should be sent on the retry path
+        # Verify delay: base=60, attempt=1 → min(60 * 2^1, 3600) = 120
+        schedule_retry_mock.assert_called_once_with(120)
+        # No error email should be sent on the first failure (notification is
+        # sent after a *retry* fails, not after the original failure)
         email_mock.assert_not_called()
     finally:
         cleanup_report_schedule(report_schedule)
@@ -2716,16 +2719,17 @@ def test_retry_on_failure_schedules_retry(
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 @patch("superset.commands.report.execute.ReportNotTriggeredErrorState._schedule_retry")
-@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.commands.report.execute.BaseReportState.send_retry_notification")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
 def test_retry_exhausted_transitions_to_error(
     screenshot_mock: Mock,
-    email_mock: Mock,
+    retry_notification_mock: Mock,
     schedule_retry_mock: Mock,
 ) -> None:
     """
     ExecuteReport Command: when all retries are exhausted the state transitions
-    to ERROR, the retry counter is reset, and an error email is sent to editors.
+    to ERROR, the retry counter is reset, and the retry notification is sent
+    for the final attempt.
     """
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
@@ -2759,24 +2763,24 @@ def test_retry_exhausted_transitions_to_error(
         assert report_schedule.retry_attempt == 0
         # No further retry should have been scheduled
         schedule_retry_mock.assert_not_called()
-        # Error email sent to editors
-        assert email_mock.call_count >= 1
+        # Retry notification sent for the exhausted attempt (attempt 2 of 2)
+        retry_notification_mock.assert_called_once_with(2, 2, "screenshot failed")
     finally:
         cleanup_report_schedule(report_schedule)
 
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 @patch("superset.commands.report.execute.ReportNotTriggeredErrorState._schedule_retry")
-@patch("superset.commands.report.execute.BaseReportState._send")
+@patch("superset.commands.report.execute.BaseReportState.send_final_failure_report")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
 def test_send_failed_reports_sends_to_recipients(
     screenshot_mock: Mock,
-    send_mock: Mock,
+    final_failure_mock: Mock,
     schedule_retry_mock: Mock,
 ) -> None:
     """
     ExecuteReport Command: when send_failed_reports is True and all retries are
-    exhausted, _send is called with the configured recipients.
+    exhausted, send_final_failure_report is called with the error message.
     """
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
@@ -2801,8 +2805,8 @@ def test_send_failed_reports_sends_to_recipients(
                 TEST_ID, report_schedule.id, scheduled_dttm
             ).run()
 
-        # _send should have been called for the final failure report
-        assert send_mock.call_count >= 1
+        # send_final_failure_report should have been called
+        final_failure_mock.assert_called_once_with("screenshot failed")
         schedule_retry_mock.assert_not_called()
     finally:
         cleanup_report_schedule(report_schedule)
@@ -2811,13 +2815,14 @@ def test_send_failed_reports_sends_to_recipients(
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 @patch("superset.commands.report.execute.ReportNotTriggeredErrorState._schedule_retry")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
-def test_retrying_state_routes_back_to_error_handler(
+def test_retrying_state_schedules_another_retry(
     screenshot_mock: Mock,
     schedule_retry_mock: Mock,
 ) -> None:
     """
     ExecuteReport Command: a schedule with last_state=RETRYING is routed to
-    ReportNotTriggeredErrorState, which can retry again or exhaust and error.
+    ReportNotTriggeredErrorState, which increments the counter and schedules
+    another retry with the correct delay.
     """
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
@@ -2845,6 +2850,242 @@ def test_retrying_state_routes_back_to_error_handler(
         db.session.refresh(report_schedule)
         assert report_schedule.last_state == ReportState.RETRYING
         assert report_schedule.retry_attempt == 2
+        # Verify delay: base=60, attempt=2 → min(60 * 2^2, 3600) = 240
+        schedule_retry_mock.assert_called_once_with(240)
+    finally:
+        cleanup_report_schedule(report_schedule)
+
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@patch("superset.commands.report.execute.ReportNotTriggeredErrorState._schedule_retry")
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_retry_disabled_preserves_default_error_path(
+    screenshot_mock: Mock,
+    email_mock: Mock,
+    schedule_retry_mock: Mock,
+) -> None:
+    """
+    ExecuteReport Command: when retry_on_failure is False (default), the
+    existing error behavior is unchanged — no RETRYING state, no retry
+    scheduled, the exception is re-raised normally.
+    """
+    chart = db.session.query(Slice).first()
+    report_schedule = create_report_notification(
+        email_target="target@email.com",
+        chart=chart,
+        retry_on_failure=False,
+    )
+    try:
+        screenshot_mock.side_effect = Exception("screenshot failed")
+
+        with pytest.raises(Exception, match="screenshot failed"):
+            AsyncExecuteReportScheduleCommand(
+                TEST_ID, report_schedule.id, datetime.utcnow()
+            ).run()
+
+        db.session.refresh(report_schedule)
+        assert report_schedule.last_state == ReportState.ERROR
+        assert report_schedule.retry_attempt == 0
+        schedule_retry_mock.assert_not_called()
+    finally:
+        cleanup_report_schedule(report_schedule)
+
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@patch("superset.commands.report.execute.ReportNotTriggeredErrorState._schedule_retry")
+@patch("superset.commands.report.execute.BaseReportState.send_retry_notification")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_retry_notify_owners_sends_notification(
+    screenshot_mock: Mock,
+    retry_notification_mock: Mock,
+    schedule_retry_mock: Mock,
+) -> None:
+    """
+    ExecuteReport Command: when retry_notify_owners is True (default) and a
+    retry attempt fails, send_retry_notification is called.
+    """
+    chart = db.session.query(Slice).first()
+    report_schedule = create_report_notification(
+        email_target="target@email.com",
+        chart=chart,
+        retry_on_failure=True,
+        retry_max_attempts=3,
+        retry_notify_owners=True,
+        retry_notify_recipients=False,
+    )
+    # Set up as a retry attempt (current_attempt=1) so the notification fires
+    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None, microsecond=0)
+    report_schedule.last_state = ReportState.RETRYING
+    report_schedule.retry_attempt = 1
+    report_schedule.retry_scheduled_dttm = scheduled_dttm
+    db.session.commit()
+
+    try:
+        screenshot_mock.side_effect = Exception("screenshot failed")
+
+        AsyncExecuteReportScheduleCommand(
+            TEST_ID, report_schedule.id, scheduled_dttm
+        ).run()
+
+        # Notification sent for the failed retry (attempt 1 of 3)
+        retry_notification_mock.assert_called_once_with(1, 3, "screenshot failed")
+    finally:
+        cleanup_report_schedule(report_schedule)
+
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@patch("superset.commands.report.execute.ReportNotTriggeredErrorState._schedule_retry")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_stale_retry_window_resets_counter(
+    screenshot_mock: Mock,
+    schedule_retry_mock: Mock,
+) -> None:
+    """
+    ExecuteReport Command: when a new crontab window fires while a previous
+    window was still retrying, the retry counter is reset so the new window
+    gets a fresh budget.
+    """
+    chart = db.session.query(Slice).first()
+    report_schedule = create_report_notification(
+        email_target="target@email.com",
+        chart=chart,
+        retry_on_failure=True,
+        retry_max_attempts=3,
+        retry_notify_owners=False,
+        retry_notify_recipients=False,
+    )
+    # Simulate: previous window set retry_attempt=2 with an old anchor
+    old_anchor = datetime(2020, 1, 1, 0, 0, 0)
+    report_schedule.retry_attempt = 2
+    report_schedule.retry_scheduled_dttm = old_anchor
+    report_schedule.last_state = ReportState.RETRYING
+    db.session.commit()
+
+    try:
+        screenshot_mock.side_effect = Exception("screenshot failed")
+        # Pass a *different* scheduled_dttm (new crontab window)
+        new_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None, microsecond=0)
+
+        AsyncExecuteReportScheduleCommand(TEST_ID, report_schedule.id, new_dttm).run()
+
+        db.session.refresh(report_schedule)
+        # Counter was reset to 0, then incremented to 1 for the new window
+        assert report_schedule.retry_attempt == 1
+        assert report_schedule.last_state == ReportState.RETRYING
         schedule_retry_mock.assert_called_once()
     finally:
         cleanup_report_schedule(report_schedule)
+
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@patch("superset.commands.report.execute.ReportNotTriggeredErrorState._schedule_retry")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_success_after_retry_clears_retry_state(
+    screenshot_mock: Mock,
+    schedule_retry_mock: Mock,
+) -> None:
+    """
+    ExecuteReport Command: when a retry attempt succeeds, the retry counter
+    and scheduled_dttm are reset.
+    """
+    chart = db.session.query(Slice).first()
+    report_schedule = create_report_notification(
+        email_target="target@email.com",
+        chart=chart,
+        retry_on_failure=True,
+        retry_max_attempts=3,
+        retry_notify_owners=False,
+        retry_notify_recipients=False,
+    )
+    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None, microsecond=0)
+    report_schedule.last_state = ReportState.RETRYING
+    report_schedule.retry_attempt = 2
+    report_schedule.retry_scheduled_dttm = scheduled_dttm
+    db.session.commit()
+
+    try:
+        # Screenshot succeeds this time
+        screenshot_mock.return_value = SCREENSHOT_FILE
+
+        AsyncExecuteReportScheduleCommand(
+            TEST_ID, report_schedule.id, scheduled_dttm
+        ).run()
+
+        db.session.refresh(report_schedule)
+        assert report_schedule.last_state == ReportState.SUCCESS
+        assert report_schedule.retry_attempt == 0
+        assert report_schedule.retry_scheduled_dttm is None
+        schedule_retry_mock.assert_not_called()
+    finally:
+        cleanup_report_schedule(report_schedule)
+
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+def test_find_active_excludes_retrying_reports() -> None:
+    """
+    ReportScheduleDAO.find_active: RETRYING reports are excluded from the
+    scheduler query, but reports with last_state=None (never executed) and
+    stale RETRYING reports are included.
+    """
+    from superset.daos.report import ReportScheduleDAO
+
+    chart = db.session.query(Slice).first()
+
+    # Normal report (NOOP state) — should be included
+    normal = create_report_notification(
+        email_target="a@test.com", chart=chart, name="normal_report"
+    )
+    # Retrying report (fresh) — should be excluded
+    retrying = create_report_notification(
+        email_target="b@test.com",
+        chart=chart,
+        retry_on_failure=True,
+        name="retrying_report",
+    )
+    retrying.last_state = ReportState.RETRYING
+    retrying.retry_scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None)
+    db.session.commit()
+
+    # Stale retrying report — should be re-included
+    stale = create_report_notification(
+        email_target="c@test.com",
+        chart=chart,
+        retry_on_failure=True,
+        name="stale_retrying_report",
+    )
+    stale.last_state = ReportState.RETRYING
+    stale.retry_scheduled_dttm = datetime(2020, 1, 1, 0, 0, 0)
+    db.session.commit()
+
+    try:
+        active = ReportScheduleDAO.find_active()
+        active_ids = {r.id for r in active}
+
+        assert normal.id in active_ids
+        assert retrying.id not in active_ids
+        assert stale.id in active_ids
+    finally:
+        cleanup_report_schedule(normal)
+        cleanup_report_schedule(retrying)
+        cleanup_report_schedule(stale)
+
+
+def test_get_retry_delay_exponential_backoff() -> None:
+    """
+    _get_retry_delay: verify exponential backoff with cap.
+    base=60, cap=3600 → delay = min(60 * 2^attempt, 3600)
+    """
+    report_schedule = ReportSchedule(
+        type=ReportScheduleType.REPORT,
+        name="delay_test",
+        crontab="0 9 * * *",
+    )
+    state = BaseReportState(report_schedule, datetime.utcnow(), uuid4())
+    assert state._get_retry_delay(0) == 60  # 60 * 2^0 = 60
+    assert state._get_retry_delay(1) == 120  # 60 * 2^1 = 120
+    assert state._get_retry_delay(2) == 240  # 60 * 2^2 = 240
+    assert state._get_retry_delay(3) == 480  # 60 * 2^3 = 480
+    assert state._get_retry_delay(5) == 1920  # 60 * 2^5 = 1920
+    assert state._get_retry_delay(6) == 3600  # 60 * 2^6 = 3840 → capped at 3600
+    assert state._get_retry_delay(10) == 3600  # still capped
