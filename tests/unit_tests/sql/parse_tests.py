@@ -2388,6 +2388,34 @@ def test_set_limit_value(
 
 
 @pytest.mark.parametrize(
+    "sql",
+    [
+        "SHOW TABLES",
+        "SHOW DATABASES",
+        "SHOW CREATE TABLE test.will_test1",
+    ],
+)
+def test_set_limit_value_leaves_show_statements_unchanged(sql: str) -> None:
+    """
+    Regression for #36939: FORCE_LIMIT must not touch ``SHOW`` statements.
+
+    ``SHOW`` statements have no `LIMIT` clause in sqlglot's expression tree,
+    so forcing one via ``args["limit"]`` doesn't reject cleanly, it produces
+    a malformed statement with two ``LIMIT`` keywords (one from a stray
+    rendering of the bare ``Limit`` expression, one from the forced value).
+    StarRocks (and presumably other engines) reject that outright: "Getting
+    syntax error ... Unexpected input 'LIMIT'". The statement should be
+    left untouched instead, matching how ``SELECT`` statements without a
+    scannable row source aren't force-limited either.
+    """
+    statement = SQLStatement(sql, "starrocks")
+    original = statement.format()
+    statement.set_limit_value(1000, LimitMethod.FORCE_LIMIT)
+    assert statement.format() == original
+    assert "LIMIT" not in statement.format()
+
+
+@pytest.mark.parametrize(
     "kql, limit, expected",
     [
         ("StormEvents | take 10", 100, "StormEvents | take 100"),
