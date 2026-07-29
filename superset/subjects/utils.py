@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from flask_appbuilder.security.sqla.models import Group, Role, User
     from sqlalchemy.sql import CompoundSelect, Select
 
-from flask import current_app, has_app_context
+from flask import has_app_context
 from sqlalchemy import select, union_all
 
 from superset import db
@@ -128,9 +128,9 @@ def get_user_group_subjects(user_id: int) -> list[Subject]:
 
 
 def _assigns_creator_groups_as_viewers() -> bool:
-    return bool(
-        has_app_context() and current_app.config.get("ASSIGN_CREATOR_GROUPS_AS_VIEWERS")
-    )
+    from superset import is_feature_enabled
+
+    return has_app_context() and is_feature_enabled("ASSIGN_CREATOR_GROUPS_AS_VIEWERS")
 
 
 def get_default_viewers_for_new_asset(user_id: int | None) -> list[Subject]:

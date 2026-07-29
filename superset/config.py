@@ -849,6 +849,14 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: testing
     # @category: security
     "ENABLE_VIEWERS": False,
+    # Share a newly created dashboard or chart read-only with every group its
+    # creator belongs to, unless the create payload names viewers explicitly.
+    # Narrows access: an asset with no viewers falls back to datasource
+    # permissions; one with viewers is limited to its editors and viewers, and
+    # dashboards must also be published before those viewers gain access.
+    # @lifecycle: testing
+    # @category: security
+    "ASSIGN_CREATOR_GROUPS_AS_VIEWERS": False,
     # Supports simultaneous data and dashboard virtualization for backend performance
     # @lifecycle: stable
     # @category: runtime_config
@@ -2995,14 +3003,6 @@ EXTRA_RELATED_QUERY_FILTERS: ExtraRelatedQueryFilters = {}
 # When True, viewers of a dashboard/chart bypass dataset-level RBAC checks.
 # Only effective when ENABLE_VIEWERS is on.
 VIEWER_PROMISCUOUS_MODE = False
-
-# When True, a newly created asset is shared read-only with every group its
-# creator belongs to, unless the create payload names viewers explicitly.
-# This narrows access: an asset with no viewers falls back to datasource
-# permissions, while one with viewers is limited to its editors and viewers.
-# Dashboards must also be published for viewers to gain access, so a new
-# dashboard grants its creator's groups nothing until it is published.
-ASSIGN_CREATOR_GROUPS_AS_VIEWERS = False
 
 # Default Subject types shown in editor/viewer/subject pickers.
 # Entity-specific SUBJECTS_RELATED_TYPES_* settings can replace this default.

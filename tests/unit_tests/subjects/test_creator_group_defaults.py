@@ -29,6 +29,7 @@ from superset.commands.utils import populate_subjects
 from superset.subjects.models import Subject
 from superset.subjects.types import SubjectType
 from superset.subjects.utils import (
+    _assigns_creator_groups_as_viewers,
     get_default_viewers_for_groups,
     get_default_viewers_for_new_asset,
     get_user_group_subject_ids_subquery,
@@ -40,6 +41,16 @@ def _group_subject(id_: int) -> Subject:
     subject.id = id_
     subject.type = SubjectType.GROUP
     return subject
+
+
+def test_gate_resolves_the_assign_creator_groups_feature_flag(app_context) -> None:
+    """The setting is a feature flag, read via ``is_feature_enabled``."""
+    with patch("superset.is_feature_enabled", return_value=True) as mock_flag:
+        assert _assigns_creator_groups_as_viewers() is True
+    mock_flag.assert_called_once_with("ASSIGN_CREATOR_GROUPS_AS_VIEWERS")
+
+    with patch("superset.is_feature_enabled", return_value=False):
+        assert _assigns_creator_groups_as_viewers() is False
 
 
 def test_user_group_subject_ids_subquery_joins_group_membership(app_context) -> None:
@@ -67,9 +78,9 @@ def test_new_asset_viewers_default_to_creator_groups_when_enabled(
     mock_populate.return_value = [_group_subject(1)]
     properties: dict[str, Any] = {}
 
-    with patch.dict(
-        "superset.commands.utils.current_app.config",
-        {"ASSIGN_CREATOR_GROUPS_AS_VIEWERS": True},
+    with patch(
+        "superset.subjects.utils._assigns_creator_groups_as_viewers",
+        return_value=True,
     ):
         populate_subjects(properties, [])
 
@@ -89,9 +100,9 @@ def test_new_asset_gets_no_default_viewers_when_disabled(
     mock_populate.return_value = [_group_subject(1)]
     properties: dict[str, Any] = {}
 
-    with patch.dict(
-        "superset.commands.utils.current_app.config",
-        {"ASSIGN_CREATOR_GROUPS_AS_VIEWERS": False},
+    with patch(
+        "superset.subjects.utils._assigns_creator_groups_as_viewers",
+        return_value=False,
     ):
         populate_subjects(properties, [])
 
@@ -103,9 +114,9 @@ def test_default_viewers_are_empty_for_an_anonymous_creator(
     mock_groups: MagicMock,
     app_context,
 ) -> None:
-    with patch.dict(
-        "superset.subjects.utils.current_app.config",
-        {"ASSIGN_CREATOR_GROUPS_AS_VIEWERS": True},
+    with patch(
+        "superset.subjects.utils._assigns_creator_groups_as_viewers",
+        return_value=True,
     ):
         assert get_default_viewers_for_new_asset(None) == []
 
@@ -117,9 +128,9 @@ def test_default_viewers_are_empty_when_the_setting_is_off(
     mock_groups: MagicMock,
     app_context,
 ) -> None:
-    with patch.dict(
-        "superset.subjects.utils.current_app.config",
-        {"ASSIGN_CREATOR_GROUPS_AS_VIEWERS": False},
+    with patch(
+        "superset.subjects.utils._assigns_creator_groups_as_viewers",
+        return_value=False,
     ):
         assert get_default_viewers_for_new_asset(5) == []
 
@@ -134,9 +145,9 @@ def test_default_viewers_are_the_creators_groups_when_enabled(
     groups = [_group_subject(11)]
     mock_groups.return_value = groups
 
-    with patch.dict(
-        "superset.subjects.utils.current_app.config",
-        {"ASSIGN_CREATOR_GROUPS_AS_VIEWERS": True},
+    with patch(
+        "superset.subjects.utils._assigns_creator_groups_as_viewers",
+        return_value=True,
     ):
         assert get_default_viewers_for_new_asset(5) == groups
 
@@ -155,9 +166,9 @@ def test_explicit_viewers_are_not_replaced_by_creator_groups(
     mock_populate.side_effect = [[_group_subject(1)], chosen]
     properties: dict[str, Any] = {"viewers": [99]}
 
-    with patch.dict(
-        "superset.commands.utils.current_app.config",
-        {"ASSIGN_CREATOR_GROUPS_AS_VIEWERS": True},
+    with patch(
+        "superset.subjects.utils._assigns_creator_groups_as_viewers",
+        return_value=True,
     ):
         populate_subjects(properties, [])
 
@@ -177,9 +188,9 @@ def test_default_viewers_for_groups_resolves_in_memory_groups(
     subject.group_id = 11
     mock_from_groups.return_value = [subject]
 
-    with patch.dict(
-        "superset.subjects.utils.current_app.config",
-        {"ASSIGN_CREATOR_GROUPS_AS_VIEWERS": True},
+    with patch(
+        "superset.subjects.utils._assigns_creator_groups_as_viewers",
+        return_value=True,
     ):
         assert get_default_viewers_for_groups([group]) == [subject]
 
@@ -189,9 +200,9 @@ def test_default_viewers_for_groups_is_empty_when_the_setting_is_off(
     mock_from_groups: MagicMock,
     app_context,
 ) -> None:
-    with patch.dict(
-        "superset.subjects.utils.current_app.config",
-        {"ASSIGN_CREATOR_GROUPS_AS_VIEWERS": False},
+    with patch(
+        "superset.subjects.utils._assigns_creator_groups_as_viewers",
+        return_value=False,
     ):
         assert get_default_viewers_for_groups([MagicMock()]) == []
 
@@ -207,9 +218,9 @@ def test_user_id_zero_is_treated_as_a_real_principal(
     groups = [_group_subject(11)]
     mock_groups.return_value = groups
 
-    with patch.dict(
-        "superset.subjects.utils.current_app.config",
-        {"ASSIGN_CREATOR_GROUPS_AS_VIEWERS": True},
+    with patch(
+        "superset.subjects.utils._assigns_creator_groups_as_viewers",
+        return_value=True,
     ):
         assert get_default_viewers_for_new_asset(0) == groups
 
@@ -250,9 +261,9 @@ def test_an_explicit_empty_viewers_list_suppresses_the_group_default(
     """``viewers: []`` means "no viewers", not "fall back to my groups"."""
     properties: dict[str, Any] = {"viewers": []}
 
-    with patch.dict(
-        "superset.commands.utils.current_app.config",
-        {"ASSIGN_CREATOR_GROUPS_AS_VIEWERS": True},
+    with patch(
+        "superset.subjects.utils._assigns_creator_groups_as_viewers",
+        return_value=True,
     ):
         populate_subjects(properties, [])
 
@@ -266,8 +277,8 @@ def test_a_creator_without_groups_leaves_the_dataset_fallback_intact(
     app_context,
 ) -> None:
     """No groups means no viewers, so the asset keeps dataset-based access."""
-    with patch.dict(
-        "superset.subjects.utils.current_app.config",
-        {"ASSIGN_CREATOR_GROUPS_AS_VIEWERS": True},
+    with patch(
+        "superset.subjects.utils._assigns_creator_groups_as_viewers",
+        return_value=True,
     ):
         assert get_default_viewers_for_new_asset(5) == []

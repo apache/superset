@@ -61,9 +61,9 @@ def test_dataset_create_never_populates_viewers(app_context) -> None:
             "superset.subjects.utils.get_user_group_subjects",
             return_value=[_group_subject(11)],
         ),
-        patch.dict(
-            "superset.commands.utils.current_app.config",
-            {"ASSIGN_CREATOR_GROUPS_AS_VIEWERS": True},
+        patch(
+            "superset.subjects.utils._assigns_creator_groups_as_viewers",
+            return_value=True,
         ),
     ):
         command.validate()
