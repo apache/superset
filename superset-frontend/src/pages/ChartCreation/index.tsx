@@ -348,7 +348,9 @@ export const ChartCreation = ({
                       (a as { table_name?: string }).table_name ?? '';
                     const bName =
                       (b as { table_name?: string }).table_name ?? '';
-                    return aName.localeCompare(bName);
+                    if (aName < bName) return -1;
+                    if (aName > bName) return 1;
+                    return 0;
                   }}
                   value={datasource}
                 />

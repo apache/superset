@@ -335,11 +335,19 @@ test('shows loading spinner when dataset parameter is present in URL', async () 
 
 test('dataset dropdown sorts options alphabetically by table name regardless of id order', async () => {
   fetchMock.clearHistory().removeRoutes();
-  // IDs are deliberately NOT in alphabetical order of table_name to prove
-  // that sorting is by name, not by creation/id order.
+  // table_name values are deliberately NOT in alphabetical order so the test
+  // only passes when the client-side sortComparator actually reorders them.
+  // IDs are also out of alphabetical order to rule out ID-based sorting.
   fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, {
     body: {
       result: [
+        {
+          id: 2,
+          table_name: 'gamma_table',
+          datasource_type: 'table',
+          database: { database_name: 'test_db' },
+          schema: 'public',
+        },
         {
           id: 3,
           table_name: 'alpha_table',
@@ -350,13 +358,6 @@ test('dataset dropdown sorts options alphabetically by table name regardless of 
         {
           id: 1,
           table_name: 'beta_table',
-          datasource_type: 'table',
-          database: { database_name: 'test_db' },
-          schema: 'public',
-        },
-        {
-          id: 2,
-          table_name: 'gamma_table',
           datasource_type: 'table',
           database: { database_name: 'test_db' },
           schema: 'public',
