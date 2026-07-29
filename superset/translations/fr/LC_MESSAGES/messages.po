@@ -223,7 +223,7 @@ msgstr "% du total"
 
 #, python-format
 msgid "%(alertType)s \"%(alertName)s\" triggered successfully"
-msgstr ""
+msgstr "%(alertType)s « %(alertName)s » déclenché avec succès"
 
 #, python-format
 msgid "%(dialect)s cannot be used as a data source for security reasons."
@@ -1390,10 +1390,10 @@ msgstr ""
 " ou négative par rapport à la valeur de comparaison."
 
 msgid "Adhoc metric SQL expression is invalid"
-msgstr ""
+msgstr "L'expression SQL de la mesure ad hoc est invalide"
 
 msgid "Adhoc metric aggregate is invalid"
-msgstr ""
+msgstr "L'agrégat de la mesure ad hoc est invalide"
 
 msgid "Adjust how this database will interact with SQL Lab."
 msgstr "Ajuster la façon dont cette base de données interagira avec SQL Lab."
@@ -2018,6 +2018,8 @@ msgid ""
 "Angle at which the first slice begins, in degrees. 90° starts at the top,"
 " 0°/360° at the right, 270° at the bottom, and 180° at the left."
 msgstr ""
+"Angle auquel commence la première part, en degrés. 90° démarre en haut, "
+"0°/360° à droite, 270° en bas et 180° à gauche."
 
 msgid "Angle at which to end progress axis"
 msgstr "Angle de fin de l'axe de progression"
@@ -2278,7 +2280,7 @@ msgid "Are you sure you want to delete the selected layers?"
 msgstr "Voulez-vous vraiment supprimer les couches sélectionnées?"
 
 msgid "Are you sure you want to delete the selected queries?"
-msgstr ""
+msgstr "Voulez-vous vraiment supprimer les requêtes sélectionnées ?"
 
 msgid "Are you sure you want to delete the selected roles?"
 msgstr "Voulez-vous vraiment supprimer les rôles sélectionnés ?"
@@ -3527,7 +3529,7 @@ msgid "Clear local theme"
 msgstr "Supprimer le thème local"
 
 msgid "Clear search"
-msgstr ""
+msgstr "Effacer la recherche"
 
 msgid "Clear the selection to revert to the system default theme"
 msgstr "Effacer la sélection pour revenir au thème par défaut du système"
@@ -4056,7 +4058,7 @@ msgid "Connection failed, please check your connection settings."
 msgstr "La connexion a échoué, veuillez vérifier vos paramètres de connexion"
 
 msgid "Connection looks good!"
-msgstr ""
+msgstr "La connexion fonctionne !"
 
 msgid "Contains"
 msgstr "Contient"
@@ -4144,7 +4146,7 @@ msgid "Copy query"
 msgstr "Copier la requête"
 
 msgid "Copy query URL"
-msgstr ""
+msgstr "Copier l'URL de la requête"
 
 msgid "Copy query link to your clipboard"
 msgstr "Copier le lien de la requête vers le presse-papier"
@@ -4274,6 +4276,8 @@ msgid ""
 "Create a new tag and assign it to existing entities like charts or "
 "dashboards"
 msgstr ""
+"Créer une étiquette et l'affecter à des entités existantes comme des "
+"graphiques ou des tableaux de bord"
 
 msgid "Create and explore dataset"
 msgstr "Créer et explorer un jeu de données"
@@ -4597,6 +4601,9 @@ msgid ""
 "Dashboard cannot be restored because its slug is now used by another "
 "active dashboard. Rename one of the dashboards and retry."
 msgstr ""
+"Le tableau de bord ne peut pas être restauré car son slug est désormais "
+"utilisé par un autre tableau de bord actif. Renommez l'un des deux "
+"tableaux de bord et réessayez."
 
 msgid "Dashboard cannot be unfavorited."
 msgstr "Le tableau de bord n'a pas pu être retiré des favoris."
@@ -5283,7 +5290,7 @@ msgid "Delete item"
 msgstr "Supprimer l'élément"
 
 msgid "Delete query"
-msgstr ""
+msgstr "Supprimer la requête"
 
 msgid "Delete role"
 msgstr "Supprimer le rôle"
@@ -5595,6 +5602,9 @@ msgid ""
 "Display charts on a map. For using this plugin, users first have to "
 "create any other chart that can then be placed on the map."
 msgstr ""
+"Affiche des graphiques sur une carte. Pour utiliser ce module, il faut "
+"d'abord créer un autre graphique, qui pourra ensuite être placé sur la "
+"carte."
 
 msgid "Display column in the chart"
 msgstr "Afficher la colonne dans le graphique"
@@ -5990,7 +6000,7 @@ msgstr "ERREUR"
 
 #, python-format
 msgid "ERROR: %s"
-msgstr ""
+msgstr "ERREUR : %s"
 
 msgid "Edge length"
 msgstr "Longueur du bord"
@@ -6082,7 +6092,7 @@ msgid "Edit properties"
 msgstr "Modifier les propriétés"
 
 msgid "Edit query"
-msgstr ""
+msgstr "Modifier la requête"
 
 msgid "Edit report"
 msgstr "Modifier le rapport"
@@ -6172,7 +6182,7 @@ msgid "Email link"
 msgstr "Lien par courriel"
 
 msgid "Email recipients"
-msgstr ""
+msgstr "Destinataires du courriel"
 
 msgid "Email reports active"
 msgstr "Rapports par courriel actifs"
@@ -6425,7 +6435,7 @@ msgid "Entity"
 msgstr "Entité"
 
 msgid "Entries per page"
-msgstr ""
+msgstr "Entrées par page"
 
 msgid "Equal Date Sizes"
 msgstr "Taille des dates égales"
@@ -6693,7 +6703,7 @@ msgid "Export as Example"
 msgstr "Exporter comme exemple"
 
 msgid "Export as PDF"
-msgstr ""
+msgstr "Exporter en PDF"
 
 msgid "Export cancelled"
 msgstr "Export annulé"
@@ -6712,7 +6722,7 @@ msgid "Export failed: %s"
 msgstr "Export échoué : %s"
 
 msgid "Export query"
-msgstr ""
+msgstr "Exporter la requête"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -6720,7 +6730,7 @@ msgid "Export screenshot (jpeg)"
 msgstr "Exporter la capture d'écran (jpeg)"
 
 msgid "Export screenshot (png)"
-msgstr ""
+msgstr "Exporter la capture d'écran (png)"
 
 #, python-format
 msgid "Export successful: %s"
@@ -6764,11 +6774,15 @@ msgid ""
 "Exporting semantic views is not supported yet — %s semantic-view row(s) "
 "were skipped."
 msgstr ""
+"L'export des vues sémantiques n'est pas encore pris en charge — %s "
+"ligne(s) de vue sémantique ont été ignorées."
 
 msgid ""
 "Exporting semantic views is not supported yet. Deselect the semantic-view"
 " rows and try again."
 msgstr ""
+"L'export des vues sémantiques n'est pas encore pris en charge. "
+"Désélectionnez les lignes de vue sémantique et réessayez."
 
 msgid "Expose database in SQL Lab"
 msgstr "Exposer la base de données dans SQL Lab"
@@ -6881,6 +6895,8 @@ msgid ""
 "Failed to export chart data. Please try again or contact your "
 "administrator."
 msgstr ""
+"Échec de l'export des données du graphique. Réessayez ou contactez votre "
+"administrateur."
 
 msgid "Failed to fetch API keys"
 msgstr "Tout Dé-Sélectionner"
@@ -6956,7 +6972,7 @@ msgstr "Échec du marquage des éléments"
 
 #, python-format
 msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
-msgstr ""
+msgstr "Échec du déclenchement de %(alertType)s « %(alertName)s » : %(error)s"
 
 msgid "Failed to update report"
 msgstr "Échec de la mise à jour du rapport"
@@ -7315,7 +7331,7 @@ msgid "Forecast periods"
 msgstr "Périodes de prévision"
 
 msgid "Forecast requires at least 2 data points"
-msgstr ""
+msgstr "La prévision nécessite au moins 2 points de données"
 
 msgid "Foreign key"
 msgstr "Clé étrangère"
@@ -7374,7 +7390,7 @@ msgid "Formatted CSV attached in email"
 msgstr "CSV formatté attaché dans le courriel"
 
 msgid "Formatted Excel attached in email"
-msgstr ""
+msgstr "Fichier Excel mis en forme joint au courriel"
 
 msgid "Formatted date"
 msgstr "Date formatée"
@@ -8318,7 +8334,7 @@ msgid "Label for your query"
 msgstr "Label pour votre requête"
 
 msgid "Label must not be empty."
-msgstr ""
+msgstr "L'étiquette ne doit pas être vide."
 
 msgid "Label position"
 msgstr "Position de l'étiquette"
@@ -8619,7 +8635,7 @@ msgid "Lines encoding"
 msgstr "Codage des lignes"
 
 msgid "Link Copied!"
-msgstr ""
+msgstr "Lien copié !"
 
 msgid "List"
 msgstr "Liste"
@@ -9556,7 +9572,7 @@ msgstr ""
 "enregistrement temporel"
 
 msgid "No data found"
-msgstr ""
+msgstr "Aucune donnée trouvée"
 
 msgid "No data in file"
 msgstr "Pas de données dans le fichier"
@@ -9972,7 +9988,7 @@ msgstr "Une ou plusieurs mesures n'existent pas"
 
 #, python-format
 msgid "One or more parameters are missing: %(missing)s"
-msgstr ""
+msgstr "Un ou plusieurs paramètres sont manquants : %(missing)s"
 
 msgid "One or more parameters needed to configure a database are missing."
 msgstr ""
@@ -10675,6 +10691,11 @@ msgid ""
 "period (e.g. today so far) against complete prior periods (e.g. all of "
 "yesterday)."
 msgstr ""
+"Tracer chaque série décalée dans le temps sur toute sa plage temporelle "
+"au lieu de la tronquer à celle de la série principale. Utile pour "
+"comparer une période en cours partielle (par exemple aujourd'hui jusqu'à "
+"maintenant) à des périodes antérieures complètes (par exemple la journée "
+"d'hier entière)."
 
 msgid "Plot the distance (like flight paths) between origin and destination."
 msgstr ""
@@ -11135,6 +11156,12 @@ msgid ""
 "except the subjects defined in the filter, and can be used to define what"
 " users can see if no RLS filters within a filter group apply to them."
 msgstr ""
+"Les filtres classiques ajoutent des clauses WHERE aux requêtes lorsqu'un "
+"utilisateur correspond à un sujet référencé par le filtre. Les filtres de"
+" base appliquent des filtres à toutes les requêtes sauf pour les sujets "
+"définis dans le filtre ; ils permettent de définir ce que voient les "
+"utilisateurs auxquels aucun filtre RLS d'un groupe de filtres ne "
+"s'applique."
 
 msgid "Relational"
 msgstr "Relationnel"
@@ -11175,7 +11202,7 @@ msgid "Remove customization"
 msgstr "Supprimer la personnalisation"
 
 msgid "Remove dependency"
-msgstr ""
+msgstr "Supprimer la dépendance"
 
 msgid "Remove filter"
 msgstr "Supprimer le filtre"
@@ -11184,13 +11211,13 @@ msgid "Remove item"
 msgstr "Supprimer l’élément"
 
 msgid "Remove notification method"
-msgstr ""
+msgstr "Supprimer le mode de notification"
 
 msgid "Remove query from log"
 msgstr "Supprimer la requête des journaux"
 
 msgid "Remove sheet"
-msgstr ""
+msgstr "Supprimer la feuille"
 
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
@@ -11234,7 +11261,7 @@ msgid "Report Schedule delete failed."
 msgstr "La planification de rapport n'a pas être supprimée."
 
 msgid "Report Schedule execute now failed."
-msgstr ""
+msgstr "L'exécution immédiate de la planification de rapport a échoué."
 
 msgid "Report Schedule execution failed when generating a csv."
 msgstr ""
@@ -11258,6 +11285,8 @@ msgstr ""
 
 msgid "Report Schedule execution failed when generating an Excel file."
 msgstr ""
+"L'exécution de la planification de rapport a échoué lors de la génération"
+" du fichier Excel."
 
 msgid "Report Schedule execution got an unexpected error."
 msgstr ""
@@ -11269,10 +11298,15 @@ msgid ""
 "Please configure a Celery broker (Redis or RabbitMQ) and worker "
 "processes."
 msgstr ""
+"L'exécution de la planification de rapport nécessite un backend Celery "
+"configuré. Configurez un courtier Celery (Redis ou RabbitMQ) et des "
+"processus worker."
 
 #, python-format
 msgid "Report Schedule executor user %(username)s was not found."
 msgstr ""
+"L'utilisateur exécutant la planification de rapport %(username)s est "
+"introuvable."
 
 msgid "Report Schedule is still working, refusing to re-compute."
 msgstr ""
@@ -11981,7 +12015,7 @@ msgid "Search Metrics & Columns"
 msgstr "Rechercher les mesures et les colonnes"
 
 msgid "Search a channel by name, or paste a channel ID"
-msgstr ""
+msgstr "Recherchez un canal par son nom, ou collez un identifiant de canal"
 
 msgid "Search all charts"
 msgstr "Rechercher tous les graphiques"
@@ -12026,7 +12060,7 @@ msgid "Search owners"
 msgstr "Rechercher des propriétaires"
 
 msgid "Search records"
-msgstr ""
+msgstr "Rechercher des enregistrements"
 
 msgid "Search roles"
 msgstr "Recherche de rôles"
@@ -12042,6 +12076,8 @@ msgstr "Rechercher…"
 
 msgid "Searches all text fields: Name, Description, Database & Schema"
 msgstr ""
+"Recherche dans tous les champs texte : nom, description, base de données "
+"et schéma"
 
 msgid "Second"
 msgstr "Seconde"
@@ -12084,7 +12120,7 @@ msgid "See all %(tableName)s"
 msgstr "Voir tout %(tableName)s"
 
 msgid "See all dashboards"
-msgstr ""
+msgstr "Voir tous les tableaux de bord"
 
 msgid "See less"
 msgstr "Voir moins"
@@ -12375,10 +12411,10 @@ msgid "Select operator"
 msgstr "Sélectionner l'opérateur"
 
 msgid "Select or type BCC recipients"
-msgstr ""
+msgstr "Sélectionnez ou saisissez les destinataires en Cci"
 
 msgid "Select or type CC recipients"
-msgstr ""
+msgstr "Sélectionnez ou saisissez les destinataires en Cc"
 
 msgid "Select or type a custom value..."
 msgstr "Sélectionner ou renseigner une valeur personnalisé..."
@@ -12390,7 +12426,7 @@ msgid "Select or type dataset name"
 msgstr "Sélectionner la base de données ou taper le nom du jeu de données"
 
 msgid "Select or type email recipients"
-msgstr ""
+msgstr "Sélectionnez ou saisissez les destinataires du courriel"
 
 msgid "Select page size"
 msgstr "Sélectionner la taille de la page"
@@ -12639,7 +12675,7 @@ msgid "Send as CSV"
 msgstr "Envoyer comme CSV"
 
 msgid "Send as Excel"
-msgstr ""
+msgstr "Envoyer au format Excel"
 
 msgid "Send as PDF"
 msgstr "Envoyer comme PDF"
@@ -12871,7 +12907,7 @@ msgid "Show Metric Names"
 msgstr "Afficher les noms de mesure"
 
 msgid "Show Null Values"
-msgstr ""
+msgstr "Afficher les valeurs nulles"
 
 msgid "Show Range Filter"
 msgstr "Afficher l'intervalle de filtre"
@@ -12912,13 +12948,17 @@ msgstr ""
 "autrement min/max dans les données."
 
 msgid "Show a draggable slider to control the visible range of the Y-axis."
-msgstr ""
+msgstr "Afficher un curseur déplaçable pour contrôler la plage visible de l'axe Y."
 
 msgid ""
 "Show a summary row of total aggregations: the selected metrics in "
 "aggregate mode, or the sum of numeric columns in raw records mode. Note "
 "that row limit does not apply to the result."
 msgstr ""
+"Afficher une ligne de synthèse des agrégats totaux : les mesures "
+"sélectionnées en mode agrégé, ou la somme des colonnes numériques en mode"
+" enregistrements bruts. Notez que la limite de lignes ne s'applique pas "
+"au résultat."
 
 msgid "Show all columns"
 msgstr "Afficher toutes les colonnes"
@@ -12959,7 +12999,7 @@ msgid "Show entries per page"
 msgstr "Afficher le nombre d'éléments par page"
 
 msgid "Show full range for time shift"
-msgstr ""
+msgstr "Afficher la plage complète pour le décalage temporel"
 
 msgid ""
 "Show hierarchical relationships of data, with the value represented by "
@@ -13046,6 +13086,8 @@ msgid ""
 "Showcases a metric along with a comparison of value, change, and percent "
 "change for a selected time period."
 msgstr ""
+"Met en avant une mesure avec une comparaison de la valeur, de l'écart et "
+"de l'écart en pourcentage sur une période sélectionnée."
 
 msgid ""
 "Showcases a single metric front-and-center. Big number is best used to "
@@ -13189,7 +13231,7 @@ msgid "Solid"
 msgstr "Solide"
 
 msgid "Solid background"
-msgstr ""
+msgstr "Fond uni"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -13213,12 +13255,14 @@ msgstr ""
 "seront pas effacés"
 
 msgid "Some tables are not shown. Refine your search."
-msgstr ""
+msgstr "Certaines tables ne sont pas affichées. Affinez votre recherche."
 
 msgid ""
 "Something went wrong loading the dashboard. Check the dev console for "
 "details."
 msgstr ""
+"Un problème est survenu lors du chargement du tableau de bord. Consultez "
+"la console de développement pour le détail."
 
 msgid "Something went wrong while saving the user info"
 msgstr "Une erreur s'est produite. Réessayez plus tard."
@@ -13628,7 +13672,7 @@ msgid "Success"
 msgstr "Réussite"
 
 msgid "Success message"
-msgstr ""
+msgstr "Message de succès"
 
 #, python-format
 msgid "Successfully changed %s!"
@@ -13702,7 +13746,7 @@ msgid "Swap rows and columns"
 msgstr "Échanger les rangées et les colonnes"
 
 msgid "Sweep angle"
-msgstr ""
+msgstr "Angle de balayage"
 
 msgid ""
 "Swiss army knife for visualizing data. Choose between step, line, "
@@ -13870,7 +13914,7 @@ msgid "Tag created"
 msgstr "Balise créée"
 
 msgid "Tag description"
-msgstr ""
+msgstr "Description de l'étiquette"
 
 msgid "Tag name"
 msgstr "Nom de la balise"
@@ -14005,6 +14049,8 @@ msgstr "Text encapsulé dans le courriel"
 #, python-format
 msgid "The %(key)s in metadata_cache_timeout must be a non-negative integer."
 msgstr ""
+"La clé %(key)s de metadata_cache_timeout doit être un entier positif ou "
+"nul."
 
 #, python-format
 msgid "The %s"
@@ -14124,6 +14170,9 @@ msgid ""
 "The chart data is too large to download. Please try reducing the date "
 "range, limiting rows, or using fewer columns."
 msgstr ""
+"Les données du graphique sont trop volumineuses pour être téléchargées. "
+"Réduisez la plage de dates, limitez le nombre de lignes ou utilisez moins"
+" de colonnes."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -14141,7 +14190,7 @@ msgstr ""
 " ou mettez à jour le rapport pour pointer vers un graphique actif."
 
 msgid "The chat failed to load."
-msgstr ""
+msgstr "Le chat n'a pas pu être chargé."
 
 msgid ""
 "The classic. Great for showing how much of a company each investor gets, "
@@ -14239,6 +14288,8 @@ msgstr ""
 
 msgid "The dashboard you are looking for may have been deleted or moved."
 msgstr ""
+"Le tableau de bord que vous recherchez a peut-être été supprimé ou "
+"déplacé."
 
 msgid "The data source seems to have been deleted"
 msgstr "La source de données semble avoir été effacée"
@@ -14523,6 +14574,8 @@ msgid ""
 "The metadata_cache_timeout must be a mapping from string keys to non-"
 "negative integer values."
 msgstr ""
+"metadata_cache_timeout doit être une correspondance entre des clés de "
+"type chaîne et des entiers positifs ou nuls."
 
 #, python-format
 msgid ""
@@ -14759,6 +14812,8 @@ msgstr "Cette requête contient un ou plusieurs paramètres de modèle malformé
 
 msgid "The query context datasource does not match the chart datasource"
 msgstr ""
+"La source de données du contexte de requête ne correspond pas à celle du "
+"graphique"
 
 msgid "The query couldn't be loaded"
 msgstr "La requête ne peut pas être chargée"
@@ -15200,7 +15255,7 @@ msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Une erreur s’est produite lors de la récupération des graphiques et tableaux de bord filtrés :"
 
 msgid "There was an error generating the permalink."
-msgstr ""
+msgstr "Une erreur s'est produite lors de la génération du lien permanent."
 
 msgid "There was an error loading groups."
 msgstr "Une erreur s'est produite lors du chargement des groupes."
@@ -15305,6 +15360,8 @@ msgstr ""
 #, python-format
 msgid "There was an issue deleting the selected queries: %s"
 msgstr ""
+"Un problème est survenu lors de la suppression des requêtes sélectionnées"
+" : %s"
 
 #, python-format
 msgid "There was an issue deleting the selected templates: %s"
@@ -15351,7 +15408,7 @@ msgid "There was an issue exporting the selected dashboards"
 msgstr "Il y a eu un problème lors de l'export des tableaux de bord sélectionnés"
 
 msgid "There was an issue exporting the selected queries"
-msgstr ""
+msgstr "Un problème est survenu lors de l'export des requêtes sélectionnées"
 
 msgid "There was an issue exporting the selected themes"
 msgstr "Il y a eu un problème lors de l'export des thèmes sélectionnés"
@@ -15518,7 +15575,7 @@ msgstr ""
 "être transmis au graphique contenant les données d'annotation."
 
 msgid "This dashboard does not exist"
-msgstr ""
+msgstr "Ce tableau de bord n'existe pas"
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr ""
@@ -15906,6 +15963,8 @@ msgstr "Fragment de temps"
 
 msgid "Time Grain must be specified when using Time Comparison."
 msgstr ""
+"La granularité temporelle doit être précisée lors de l'utilisation de la "
+"comparaison temporelle."
 
 msgid "Time Granularity"
 msgstr "Fragmentation de Temps"
@@ -16195,6 +16254,10 @@ msgid ""
 " angle is a multiple of 90°, the chart is automatically re-centered to "
 "make use of the empty space."
 msgstr ""
+"Angle total couvert par le graphique, en degrés. 360° dessine un cercle "
+"complet et 180° un demi-anneau. Lorsque le balayage est inférieur ou égal"
+" à 180° et que l'angle de départ est un multiple de 90°, le graphique est"
+" automatiquement recentré pour exploiter l'espace vide."
 
 msgid "Total color"
 msgstr "Couleur du total"
@@ -16219,7 +16282,7 @@ msgid "Transparent"
 msgstr "Transparent"
 
 msgid "Transparent background"
-msgstr ""
+msgstr "Fond transparent"
 
 msgid "Transpose pivot"
 msgstr "Pivot de transposition"
@@ -16249,7 +16312,7 @@ msgid "Trigger Alert If..."
 msgstr "Déclencher une alerte si…"
 
 msgid "Trigger now"
-msgstr ""
+msgstr "Déclencher maintenant"
 
 msgid "True"
 msgstr "Est vrai"
@@ -16368,7 +16431,7 @@ msgid "URL parameters"
 msgstr "Paramètres URL"
 
 msgid "UUID to track the execution status"
-msgstr ""
+msgstr "UUID permettant de suivre l'état de l'exécution"
 
 msgid "Unable to calculate such a date delta"
 msgstr "Impossible de calculer un delta de date comme celui-ci"
@@ -16435,7 +16498,7 @@ msgstr "Impossible de générer les données de téléchargement"
 
 #, python-format
 msgid "Unable to generate forecast: %(error)s"
-msgstr ""
+msgstr "Impossible de générer la prévision : %(error)s"
 
 msgid ""
 "Unable to identify temporal column for date range time comparison.Please "
@@ -16450,6 +16513,8 @@ msgid ""
 "Unable to interpret the time offset: %(offset)s. Use a relative time such"
 " as \"1 month ago\"."
 msgstr ""
+"Impossible d'interpréter le décalage temporel : %(offset)s. Utilisez une "
+"expression relative telle que « 1 month ago »."
 
 msgid ""
 "Unable to load columns for the selected table. Please select a different "
@@ -17497,6 +17562,8 @@ msgstr "Affichage ou non des bulles au-dessus des pays"
 
 msgid "Whether to display entries with null values in the hierarchy"
 msgstr ""
+"Afficher ou non les entrées dont les valeurs sont nulles dans la "
+"hiérarchie"
 
 msgid "Whether to display in the chart"
 msgstr "Afficher ou non dans le graphique"
@@ -17632,6 +17699,9 @@ msgid ""
 "Whether to sort tooltip by the selected metric in descending order. On "
 "stacked charts, values are shown in ascending order."
 msgstr ""
+"Trier ou non l'infobulle par la mesure sélectionnée dans l'ordre "
+"décroissant. Sur les graphiques empilés, les valeurs sont affichées dans "
+"l'ordre croissant."
 
 msgid "Whether to truncate metrics"
 msgstr "Tronquer ou non les mesures"
@@ -17791,7 +17861,7 @@ msgid "Y-axis bounds"
 msgstr "Limites de l’axe des ordonnées"
 
 msgid "Y-axis range slider"
-msgstr ""
+msgstr "Curseur de plage de l'axe Y"
 
 msgid "Y-scale interval"
 msgstr "Intervalle d'échelle Y"
@@ -18066,26 +18136,41 @@ msgid ""
 "You must be a chart editor in order to delete. Please reach out to a "
 "chart editor to request modifications or edit access."
 msgstr ""
+"Vous devez être éditeur du graphique pour pouvoir supprimer. Contactez un"
+" éditeur du graphique pour demander des modifications ou un accès en "
+"modification."
 
 msgid ""
 "You must be a chart editor in order to edit. Please reach out to a chart "
 "editor to request modifications or edit access."
 msgstr ""
+"Vous devez être éditeur du graphique pour pouvoir modifier. Contactez un "
+"éditeur du graphique pour demander des modifications ou un accès en "
+"modification."
 
 msgid ""
 "You must be a dashboard editor in order to delete. Please reach out to a "
 "dashboard editor to request modifications or edit access."
 msgstr ""
+"Vous devez être éditeur du tableau de bord pour pouvoir supprimer. "
+"Contactez un éditeur du tableau de bord pour demander des modifications "
+"ou un accès en modification."
 
 msgid ""
 "You must be a dashboard editor in order to edit. Please reach out to a "
 "dashboard editor to request modifications or edit access."
 msgstr ""
+"Vous devez être éditeur du tableau de bord pour pouvoir modifier. "
+"Contactez un éditeur du tableau de bord pour demander des modifications "
+"ou un accès en modification."
 
 msgid ""
 "You must be a dataset editor in order to delete. Please reach out to a "
 "dataset editor to request modifications or edit access."
 msgstr ""
+"Vous devez être éditeur de l'ensemble de données pour pouvoir supprimer. "
+"Contactez un éditeur de l'ensemble de données pour demander des "
+"modifications ou un accès en modification."
 
 msgid ""
 "You must be a dataset editor in order to edit. Please reach out to a "
@@ -18172,6 +18257,11 @@ msgid ""
 "into multiple dashboards) or raise the "
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
+"Votre tableau de bord est trop volumineux pour être enregistré : la "
+"longueur sérialisée de la disposition est de %s alors que la limite est "
+"de %s. Réduisez la taille du tableau de bord (par exemple en le scindant "
+"en plusieurs tableaux de bord) ou augmentez le paramètre de configuration"
+" SUPERSET_DASHBOARD_POSITION_DATA_LIMIT."
 
 msgid "Your query could not be saved"
 msgstr "Votre requête n'a pas pu être enregistrée"
@@ -19026,7 +19116,7 @@ msgid "quarter"
 msgstr "trimestre"
 
 msgid "queries"
-msgstr ""
+msgstr "requêtes"
 
 msgid "query"
 msgstr "requête"
@@ -19072,7 +19162,7 @@ msgid "seconds"
 msgstr "secondes"
 
 msgid "semantic layer"
-msgstr ""
+msgstr "couche sémantique"
 
 msgid "series"
 msgstr "série"
