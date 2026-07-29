@@ -1311,6 +1311,8 @@ class ReportNotTriggeredErrorState(BaseReportState):
             warning_message = (
                 ";".join(self._filter_warnings) if self._filter_warnings else None
             )
+            # Clear any retry state from previous failed attempts in this window.
+            self._reset_retry_counter()
             self.update_report_schedule_and_log(
                 ReportState.SUCCESS, error_message=warning_message
             )
