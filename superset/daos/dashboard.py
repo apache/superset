@@ -429,11 +429,22 @@ class DashboardDAO(BaseDAO[Dashboard]):
             raise DashboardForbiddenError()
 
         dash = Dashboard()
+        # The copied dashboard and every chart cloned below share one creator,
+        # so both lookups are resolved here rather than inside the loop, where
+        # they would cost two extra queries for each chart in the dashboard.
+        creator_editors: list[Any] = []
+        creator_viewers: list[Any] = []
         if g.user:
-            from superset.subjects.utils import get_user_subject
+            from superset.subjects.utils import (
+                get_default_viewers_for_new_asset,
+                get_user_subject,
+            )
 
             user_subject = get_user_subject(g.user.id)
-            dash.editors = [user_subject] if user_subject else []
+            creator_editors = [user_subject] if user_subject else []
+            creator_viewers = get_default_viewers_for_new_asset(g.user.id)
+        dash.editors = creator_editors
+        dash.viewers = creator_viewers
         dash.dashboard_title = data["dashboard_title"]
         dash.css = data.get("css")
 
@@ -443,11 +454,10 @@ class DashboardDAO(BaseDAO[Dashboard]):
             # Duplicating slices as well, mapping old ids to new ones
             for slc in original_dash.slices:
                 new_slice = slc.clone()
-                if g.user:
-                    from superset.subjects.utils import get_user_subject
-
-                    user_subject = get_user_subject(g.user.id)
-                    new_slice.editors = [user_subject] if user_subject else []
+                # ``Slice.clone()`` carries over no subjects, so both
+                # collections start empty on the new chart.
+                new_slice.editors = list(creator_editors)
+                new_slice.viewers = list(creator_viewers)
                 db.session.add(new_slice)
                 db.session.flush()
                 new_slice.dashboards.append(dash)
