@@ -58,7 +58,7 @@ def generate_ascii_chart(
                 "Unsupported chart type '%s', falling back to table", chart_type
             )
             return generate_ascii_table(data, width)
-    except (TypeError, ValueError, KeyError, IndexError) as e:
+    except (TypeError, ValueError, KeyError, IndexError, AttributeError) as e:
         logger.error("ASCII chart generation failed: %s", e, exc_info=True)
         return "ASCII chart generation failed"
 
