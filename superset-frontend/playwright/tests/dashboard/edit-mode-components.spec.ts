@@ -18,19 +18,20 @@
  */
 
 /**
- * Dashboard edit-mode component tests — migrated from the deprecated Cypress
- * suite (cypress-base/cypress/e2e/dashboard/editmode.test.ts, "Components"
- * block). These cover the chart/markdown drag-and-drop workflows that the
+ * Dashboard edit-mode component tests — these replace the deprecated Cypress
+ * spec cypress-base/cypress/e2e/dashboard/editmode.test.ts, deleted in the same
+ * change. They cover the chart/markdown drag-and-drop workflows that the
  * upstream Cypress notes flagged as the one part of edit mode that genuinely
  * requires E2E coverage ("Chart drag/drop functionality requires true E2E
  * testing"). The grid uses react-dnd with the HTML5 backend, so drags are
  * driven by synthetic native drag events (see helpers/dnd.ts).
  *
- * The 21 skipped "Color consistency" tests from the same Cypress file are NOT
- * migrated here: they assert per-series colors by reading an `.nv-legend-symbol`
- * SVG `fill` attribute that no longer exists (ECharts renders to <canvas>, which
- * is not DOM-inspectable — the upstream FIXME skipped them for exactly this
- * reason). The underlying color-precedence logic is covered by Jest/RTL.
+ * Coverage here is a superset of the Cypress spec, which by the time of the
+ * migration held a single "should add charts" test — its "Color consistency"
+ * block had already been dropped upstream as permanently skipped (it read
+ * per-series colors off an `.nv-legend-symbol` SVG `fill` that ECharts, which
+ * renders to <canvas>, no longer produces). That color-precedence logic is
+ * covered by Jest/RTL, not by E2E.
  */
 
 import {
@@ -181,8 +182,11 @@ testWithAssets(
     await aceInput.pressSequentially('Test resize');
     await expect(aceContent).toContainText('Test resize');
 
-    // Commit by clicking outside the component; the preview keeps the text.
+    // Commit by clicking outside the component. Ace unmounting is what proves
+    // the component left its editing state — the wrapper contains "Test resize"
+    // either way, since ace holds that text before the click too.
     await dashboard.blurToDashboardTitle();
+    await expect(aceContent).toBeHidden();
     await expect(editor).toContainText('Test resize');
 
     // Resize via the bottom handle and confirm the component grew taller.
