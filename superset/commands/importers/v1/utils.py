@@ -59,7 +59,7 @@ def load_yaml(file_name: str, content: str) -> dict[str, Any]:
     """Try to load a YAML file"""
     try:
         return yaml.safe_load(content)
-    except yaml.parser.ParserError as ex:
+    except yaml.YAMLError as ex:
         logger.exception("Invalid YAML in %s", file_name)
         raise ValidationError({file_name: "Not a valid YAML file"}) from ex
 
