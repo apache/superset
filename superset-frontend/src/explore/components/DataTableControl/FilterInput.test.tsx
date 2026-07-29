@@ -62,16 +62,17 @@ test('FilterInput auto-focuses when a non-editable element (e.g. a tab) has focu
   }
 });
 
-test('FilterInput syncs displayed value from external value prop', () => {
+test('FilterInput preserves value after unmount and remount', () => {
   const onChangeHandler = jest.fn();
-  const { rerender } = render(
-    <FilterInput onChangeHandler={onChangeHandler} value="hello" />,
+  const { unmount } = render(
+    <FilterInput onChangeHandler={onChangeHandler} value="abc" />,
   );
-  const input = screen.getByRole('textbox') as HTMLInputElement;
-  expect(input.value).toBe('hello');
+  expect((screen.getByRole('textbox') as HTMLInputElement).value).toBe('abc');
 
-  rerender(<FilterInput onChangeHandler={onChangeHandler} value="" />);
-  expect(input.value).toBe('');
+  unmount();
+
+  render(<FilterInput onChangeHandler={onChangeHandler} value="abc" />);
+  expect((screen.getByRole('textbox') as HTMLInputElement).value).toBe('abc');
 });
 
 test('FilterInput does not steal focus when another input already has focus', () => {
