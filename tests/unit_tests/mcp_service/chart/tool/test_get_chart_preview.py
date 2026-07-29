@@ -42,8 +42,8 @@ from superset.mcp_service.chart.tool.get_chart_preview import (
     _build_chart_description,
     _build_query_columns,
     _build_query_metrics,
+    _first_query_has_fields,
     _no_query_fields_error,
-    _query_context_has_fields,
     _sanitize_chart_preview_for_llm_context,
     ASCIIPreviewStrategy,
     PreviewFormatStrategy,
@@ -1166,41 +1166,41 @@ def test_build_query_metrics_empty():
     assert _build_query_metrics({}) == []
 
 
-def test_query_context_has_fields_true_with_metrics():
+def test_first_query_has_fields_true_with_metrics():
     query_context = SimpleNamespace(
         queries=[SimpleNamespace(metrics=["count"], columns=[])]
     )
-    assert _query_context_has_fields(query_context) is True
+    assert _first_query_has_fields(query_context) is True
 
 
-def test_query_context_has_fields_true_with_columns():
+def test_first_query_has_fields_true_with_columns():
     query_context = SimpleNamespace(
         queries=[SimpleNamespace(metrics=[], columns=["region"])]
     )
-    assert _query_context_has_fields(query_context) is True
+    assert _first_query_has_fields(query_context) is True
 
 
-def test_query_context_has_fields_false_when_both_empty():
+def test_first_query_has_fields_false_when_both_empty():
     query_context = SimpleNamespace(queries=[SimpleNamespace(metrics=[], columns=[])])
-    assert _query_context_has_fields(query_context) is False
+    assert _first_query_has_fields(query_context) is False
 
 
-def test_query_context_has_fields_true_when_any_query_has_fields():
-    # Mixed timeseries has two queries; a preview is still useful if only
-    # one of them has metrics/columns.
+def test_first_query_has_fields_ignores_later_populated_query():
+    # Preview strategies render only the first query result, so a populated
+    # secondary mixed-timeseries query must not make an empty preview valid.
     query_context = SimpleNamespace(
         queries=[
             SimpleNamespace(metrics=[], columns=[]),
             SimpleNamespace(metrics=["count"], columns=[]),
         ]
     )
-    assert _query_context_has_fields(query_context) is True
+    assert _first_query_has_fields(query_context) is False
 
 
-def test_query_context_has_fields_defers_when_queries_attr_missing():
+def test_first_query_has_fields_defers_when_queries_attr_missing():
     # Test doubles / unexpected objects without a `.queries` attribute
     # should not be treated as "no fields" — defer to normal execution.
-    assert _query_context_has_fields(object()) is True
+    assert _first_query_has_fields(object()) is True
 
 
 def test_no_query_fields_error_mentions_chart_and_viz_type():

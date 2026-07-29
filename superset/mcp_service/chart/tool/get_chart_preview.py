@@ -218,12 +218,13 @@ def _build_query_metrics(form_data: Dict[str, Any]) -> list[Metric]:
     return metrics
 
 
-def _query_context_has_fields(query_context: Any) -> bool:
-    """Return True if at least one query has metrics or columns configured.
+def _first_query_has_fields(query_context: Any) -> bool:
+    """Return True if the rendered query has metrics or columns configured.
 
     A chart with neither (e.g. a big_number chart saved without a metric)
     cannot be previewed; downstream query execution would only surface a
-    generic "empty query" error.
+    generic "empty query" error. Preview strategies render only the first
+    query result, so validation must inspect that same query.
     """
     queries = getattr(query_context, "queries", None)
     if not queries:
@@ -231,7 +232,8 @@ def _query_context_has_fields(query_context: Any) -> bool:
         # attribute, e.g. a test double) — defer to normal query
         # execution rather than guessing.
         return True
-    return any((query.metrics or query.columns) for query in queries)
+    query = queries[0]
+    return bool(query.metrics or query.columns)
 
 
 def _no_query_fields_error(chart: ChartLike) -> ChartError:
@@ -328,7 +330,7 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
                 force=False,
             )
 
-            if not _query_context_has_fields(query_context):
+            if not _first_query_has_fields(query_context):
                 return _no_query_fields_error(self.chart)
 
             self._authorize_guest_query(query_context)
@@ -393,7 +395,7 @@ class TablePreviewStrategy(PreviewFormatStrategy):
                 force=False,
             )
 
-            if not _query_context_has_fields(query_context):
+            if not _first_query_has_fields(query_context):
                 return _no_query_fields_error(self.chart)
 
             self._authorize_guest_query(query_context)
