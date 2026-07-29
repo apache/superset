@@ -59,7 +59,7 @@ test('overwriting an existing key does not evict another entry', () => {
   cache.set('b', 'b');
   cache.set('b', 'b2');
   expect(cache.size).toBe(2);
-  expect(cache.has('a')).toBeTruthy();
+  expect(cache.has('a')).toBe(true);
   expect(cache.get('b')).toBe('b2');
 });
 
@@ -70,7 +70,7 @@ test('overwriting an existing key refreshes its recency', () => {
   // `a` becomes the most recently used, so `b` is evicted next
   cache.set('a', 'a2');
   cache.set('c', 'c');
-  expect(cache.has('b')).toBeFalsy();
+  expect(cache.has('b')).toBe(false);
   expect(cache.values()).toEqual(['a2', 'c']);
 });
 
