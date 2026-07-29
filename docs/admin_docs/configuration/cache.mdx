@@ -76,6 +76,21 @@ value defined in `DATA_CACHE_CONFIG`.
 Note, that by setting the cache timeout to `-1`, caching for charting data can be disabled, either
 per chart, dataset or database, or by default if set in `DATA_CACHE_CONFIG`.
 
+## Limiting Cached Result Size
+
+Very large chart or SQL query results can flood the cache backend (Redis/Memcached), evicting many
+smaller useful entries or exhausting memory. To cap the size of any single value written to the data
+cache, set `DATA_CACHE_MAX_VALUE_SIZE` (in bytes) in `superset_config.py`:
+
+```python
+DATA_CACHE_MAX_VALUE_SIZE = 10 * 1024 * 1024  # 10 MB
+```
+
+When a result's serialized size exceeds this threshold it is not written to the data cache — the
+chart still renders, but the next load re-queries the datasource instead of getting a cache hit. The
+`skip_cache_value_too_large` statsd metric is incremented each time this happens. Set to `None` (the
+default) to disable the check.
+
 ## SQL Lab Query Results
 
 Caching for SQL Lab query results is used when async queries are enabled and is configured using
