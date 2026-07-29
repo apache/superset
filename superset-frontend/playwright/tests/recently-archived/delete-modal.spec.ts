@@ -24,6 +24,11 @@
  * and dismissed without deleting anything.
  */
 import { test, expect } from '@playwright/test';
+import { skipUnlessFeatureEnabled } from '../../helpers/featureFlags';
+
+test.beforeEach(async ({ page }) => {
+  await skipUnlessFeatureEnabled(page, 'SOFT_DELETE');
+});
 
 test('chart delete confirmation reflects soft-delete (archive) semantics', async ({
   page,

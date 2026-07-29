@@ -42,6 +42,11 @@ import {
   apiGetDataset,
   apiDeleteDataset,
 } from '../../helpers/api/dataset';
+import { skipUnlessFeatureEnabled } from '../../helpers/featureFlags';
+
+test.beforeEach(async ({ page }) => {
+  await skipUnlessFeatureEnabled(page, 'SOFT_DELETE');
+});
 
 interface TypeConfig {
   key: string;
