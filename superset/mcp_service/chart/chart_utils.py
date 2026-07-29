@@ -762,10 +762,7 @@ def _bind_dashboard_time_range_filter(
     dataset_id: int | str | None,
 ) -> None:
     """Bind charts without time configuration to a temporal filter subject."""
-    if form_data.get("granularity_sqla") or any(
-        filter_.get("operator") == FilterOperator.TEMPORAL_RANGE.value
-        for filter_ in form_data.get("adhoc_filters", [])
-    ):
+    if form_data.get("granularity_sqla"):
         return
 
     if temporal_column := getattr(config, "temporal_column", None):

@@ -121,10 +121,7 @@ def _preserve_previous_adhoc_filters(
         for filter_ in previous_filters
         if isinstance(filter_, dict) and filter_.get("operator") == "TEMPORAL_RANGE"
     }
-    replace_temporal_binding = (
-        bool(generated_temporal_subjects)
-        and generated_temporal_subjects != previous_temporal_subjects
-    )
+    replace_temporal_binding = generated_temporal_subjects != previous_temporal_subjects
     merged_filters = [
         filter_
         for filter_ in previous_filters

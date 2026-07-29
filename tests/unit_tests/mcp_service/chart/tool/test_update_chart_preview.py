@@ -686,6 +686,31 @@ class TestUpdateChartPreview:
             new_temporal_filter,
         ]
 
+    def test_removes_cached_temporal_filter_without_new_binding(self) -> None:
+        """A mapping without a temporal subject drops the cached binding."""
+        region_filter = {
+            "clause": "WHERE",
+            "comparator": "North",
+            "expressionType": "SIMPLE",
+            "operator": "==",
+            "subject": "region",
+        }
+        previous_temporal_filter = {
+            "clause": "WHERE",
+            "comparator": "Last month",
+            "expressionType": "SIMPLE",
+            "operator": "TEMPORAL_RANGE",
+            "subject": "ds",
+        }
+        new_form_data = {}
+
+        update_chart_preview_module._preserve_previous_adhoc_filters(
+            new_form_data,
+            {"adhoc_filters": [region_filter, previous_temporal_filter]},
+        )
+
+        assert new_form_data["adhoc_filters"] == [region_filter]
+
     @patch.object(update_chart_preview_module, "validate_and_compile")
     @patch.object(update_chart_preview_module, "has_dataset_access", return_value=True)
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
