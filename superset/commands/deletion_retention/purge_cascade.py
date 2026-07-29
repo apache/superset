@@ -539,6 +539,22 @@ def _sweep_orphan_transactions(
 
     Every ``*_version`` table and ``version_changes`` is checked. A double-sweep
     of the same orphan is a harmless no-op.
+
+    A shadow row references a transaction through **either** endpoint of its
+    lifespan: ``transaction_id`` (created at) or ``end_transaction_id`` (closed
+    at). Both are foreign keys, so both keep a transaction alive.
+
+    Counting only the created-at side is a live FK hazard whenever a
+    transaction spans entities, which is the normal case: one flush saving a
+    dashboard, chart and dataset gives all three a shadow row at ``tx=X``. If
+    the dashboard alone is later edited at ``tx=Y``, its row at ``tx=X`` closes
+    with ``end_transaction_id=Y`` while the others stay live at ``tx=X``.
+    Purging the dashboard removes its own shadow rows, after which nothing
+    *creates* at ``tx=Y`` — but the sibling rows still point at it, or at ``X``,
+    through their end column. Deleting the transaction then fails the foreign
+    key, and the caller reports the entity as blocked by deletion rules rather
+    than as the incomplete cascade it is. ``version_history_retention`` hit the
+    same trap and documents it on ``_delete_for_transactions``.
     """
     sources = [
         t
@@ -549,15 +565,20 @@ def _sweep_orphan_transactions(
         sources.append(changes)
     still_referenced: set[int] = set()
     for source in sources:
-        for chunk in _chunked(tx_ids):
-            still_referenced.update(
-                row[0]
-                for row in session.execute(
-                    sa.select(source.c.transaction_id)
-                    .where(source.c.transaction_id.in_(chunk))
-                    .distinct()
+        # ``version_changes`` has no closing endpoint; shadow tables do.
+        columns = [
+            source.c[name]
+            for name in ("transaction_id", "end_transaction_id")
+            if name in source.c
+        ]
+        for column in columns:
+            for chunk in _chunked(tx_ids):
+                still_referenced.update(
+                    row[0]
+                    for row in session.execute(
+                        sa.select(column).where(column.in_(chunk)).distinct()
+                    )
                 )
-            )
     if orphaned := tx_ids - still_referenced:
         for chunk in _chunked(orphaned):
             session.execute(sa.delete(tx).where(tx.c.id.in_(chunk)))

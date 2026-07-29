@@ -471,6 +471,48 @@ class TestSoftDeletePurge(DeletionRetentionTestBase):
             == 1
         )
 
+    def test_transaction_closing_a_survivor_row_is_not_swept(self) -> None:
+        """A transaction referenced only through a survivor's
+        ``end_transaction_id`` is still referenced, so it must survive the
+        orphan sweep.
+
+        A shadow row points at two transactions: the one that created it and,
+        once a later edit closes it, the one that ended it. Both are foreign
+        keys. Sweeping on the created-at side alone judges the closing
+        transaction orphaned while the survivor's row still points at it, and
+        the delete fails the foreign key — surfacing to the operator as
+        "blocked by existing deletion rules" rather than as the incomplete
+        cascade it is.
+        """
+        purged = self.make_chart("endtx_purged")
+        survivor = self.make_chart("endtx_survivor")
+        purged_id, survivor_id = purged.id, survivor.id
+        # The purged chart is the only entity *created* at 990004.
+        self.forge_version_row(Slice, purged_id, tx_id=990004)
+        # The survivor's earlier row was *closed* at that same transaction, so
+        # nothing surviving references 990004 through transaction_id alone.
+        self.forge_version_row(Slice, survivor_id, tx_id=990003, end_tx_id=990004)
+        self.soft_delete(purged, days_ago=90)
+
+        _purge(window=30)
+
+        # The purge completed rather than reporting itself blocked.
+        assert not self.exists(Slice, purged_id)
+        # The closing transaction is retained because the survivor still
+        # points at it.
+        assert (
+            self.count("SELECT count(*) FROM version_transaction WHERE id = 990004", {})
+            == 1
+        )
+        assert (
+            self.count(
+                "SELECT count(*) FROM slices_version WHERE id = :i "
+                "AND end_transaction_id = 990004",
+                {"i": survivor_id},
+            )
+            == 1
+        )
+
     def test_version_tables_absent_noop(self) -> None:
         """When the version tables are absent the
         version cascade no-ops cleanly and the entity is still purged."""

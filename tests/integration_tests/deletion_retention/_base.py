@@ -121,10 +121,23 @@ class DeletionRetentionTestBase(SupersetTestCase):
 
     # -- version-history forging -------------------------------------------
 
-    def forge_version_row(self, model: type[Any], entity_id: int, tx_id: int) -> None:
+    def forge_version_row(
+        self,
+        model: type[Any],
+        entity_id: int,
+        tx_id: int,
+        end_tx_id: int | None = None,
+    ) -> None:
         """Insert a version_transaction + parent shadow + version_changes row
         for *entity_id* anchored at *tx_id* (so a purge has history to remove
-        without needing live capture to be enabled)."""
+        without needing live capture to be enabled).
+
+        Pass *end_tx_id* to close the shadow row at another transaction, which
+        is how a real edit ends the previous row's lifespan. Both endpoints are
+        foreign keys to ``version_transaction``, so a closed row keeps the
+        transaction it closes at alive just as firmly as the one it was
+        created at.
+        """
         from superset.versioning.changes import ENTITY_KIND_BY_CLASS_NAME
 
         shadow = {
@@ -144,12 +157,26 @@ class DeletionRetentionTestBase(SupersetTestCase):
                 ),
                 {"t": tx_id, "ts": datetime.utcnow()},
             )
+        if (
+            end_tx_id is not None
+            and not db.session.execute(
+                sa.text("SELECT 1 FROM version_transaction WHERE id = :t"),
+                {"t": end_tx_id},
+            ).first()
+        ):
+            db.session.execute(
+                sa.text(
+                    "INSERT INTO version_transaction (id, issued_at) VALUES (:t, :ts)"
+                ),
+                {"t": end_tx_id, "ts": datetime.utcnow()},
+            )
         db.session.execute(
             sa.text(
-                f"INSERT INTO {shadow} (id, transaction_id, operation_type) "  # noqa: S608
-                "VALUES (:i, :t, 0)"
+                f"INSERT INTO {shadow} "  # noqa: S608
+                "(id, transaction_id, end_transaction_id, operation_type) "
+                "VALUES (:i, :t, :e, 0)"
             ),
-            {"i": entity_id, "t": tx_id},
+            {"i": entity_id, "t": tx_id, "e": end_tx_id},
         )
         db.session.execute(
             sa.text(
