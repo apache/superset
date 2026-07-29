@@ -23,6 +23,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from superset.mcp_service.chart.chart_utils import (
+    _bind_dashboard_time_range_filter,
     adhoc_filters_to_query_filters,
     map_config_to_form_data,
 )
@@ -223,6 +224,37 @@ def test_dataset_without_main_temporal_column_remains_unbound(
     )
 
     assert "adhoc_filters" not in form_data
+
+
+@patch(
+    "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+    return_value=True,
+)
+def test_explicit_temporal_column_binds_alongside_different_temporal_filter(
+    mock_is_temporal: MagicMock,
+) -> None:
+    form_data = {
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "Last year",
+                "expressionType": "SIMPLE",
+                "operator": "TEMPORAL_RANGE",
+                "subject": "processed_at",
+            }
+        ]
+    }
+    config = TableChartConfig(
+        columns=[CATEGORY, METRIC],
+        temporal_column="created_at",
+    )
+
+    _bind_dashboard_time_range_filter(form_data, config, dataset_id=42)
+
+    assert [filter_["subject"] for filter_ in form_data["adhoc_filters"]] == [
+        "processed_at",
+        "created_at",
+    ]
 
 
 @patch("superset.daos.dataset.DatasetDAO.find_by_id_or_uuid")
