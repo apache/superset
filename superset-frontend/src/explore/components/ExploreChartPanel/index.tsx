@@ -32,6 +32,8 @@ import {
   getExtensionsRegistry,
 } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
+import { URL_PARAMS } from 'src/constants';
+import { getUrlParam } from 'src/utils/urlUtils';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import ChartContainer from 'src/components/Chart/ChartContainer';
 import { updateExploreChartState } from 'src/explore/actions/exploreActions';
@@ -56,6 +58,7 @@ import { DataTablesPane } from '../DataTablesPane';
 import { ChartPills } from '../ChartPills';
 import { ExploreAlert } from '../ExploreAlert';
 import useResizeDetectorByObserver from './useResizeDetectorByObserver';
+import StandaloneDownloadControl from './StandaloneDownloadControl';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DefaultHeader: React.FC<{ children?: React.ReactNode }> = ({
@@ -177,6 +180,7 @@ const ExploreChartPanel = ({
 }: ExploreChartPanelProps) => {
   const theme = useTheme();
   const dispatch = useDispatch();
+  const showDownload = getUrlParam(URL_PARAMS.showDownload);
   const gutterMargin = theme.sizeUnit * GUTTER_SIZE_FACTOR;
   const gutterHeight = theme.sizeUnit * GUTTER_SIZE_FACTOR;
 
@@ -552,7 +556,23 @@ const ExploreChartPanel = ({
       document.body.className += ` ${standaloneClass}`;
     }
     return (
-      <div id="app" data-test="standalone-app">
+      <div
+        id="app"
+        data-test="standalone-app"
+        css={css`
+          position: relative;
+          height: 100%;
+        `}
+      >
+        {showDownload && canDownload && (
+          <StandaloneDownloadControl
+            latestQueryFormData={chart.latestQueryFormData}
+            canDownload={canDownload}
+            slice={slice}
+            ownState={mergedOwnState}
+          />
+        )}
+
         {standaloneChartBody}
       </div>
     );
