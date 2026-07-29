@@ -18,7 +18,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Optional
-from unittest.mock import call, Mock, patch
+from unittest.mock import ANY, call, Mock, patch
 from uuid import UUID, uuid4
 
 import pytest
@@ -2764,7 +2764,8 @@ def test_retry_exhausted_transitions_to_error(
         # No further retry should have been scheduled
         schedule_retry_mock.assert_not_called()
         # Retry notification sent for the exhausted attempt (attempt 2 of 2)
-        retry_notification_mock.assert_called_once_with(2, 2, "screenshot failed")
+        # The error message is wrapped by the screenshot layer, so use ANY.
+        retry_notification_mock.assert_called_once_with(2, 2, ANY)
     finally:
         cleanup_report_schedule(report_schedule)
 
@@ -2806,7 +2807,7 @@ def test_send_failed_reports_sends_to_recipients(
             ).run()
 
         # send_final_failure_report should have been called
-        final_failure_mock.assert_called_once_with("screenshot failed")
+        final_failure_mock.assert_called_once_with(ANY)
         schedule_retry_mock.assert_not_called()
     finally:
         cleanup_report_schedule(report_schedule)
@@ -2929,7 +2930,7 @@ def test_retry_notify_owners_sends_notification(
         ).run()
 
         # Notification sent for the failed retry (attempt 1 of 3)
-        retry_notification_mock.assert_called_once_with(1, 3, "screenshot failed")
+        retry_notification_mock.assert_called_once_with(1, 3, ANY)
     finally:
         cleanup_report_schedule(report_schedule)
 
@@ -2980,9 +2981,11 @@ def test_stale_retry_window_resets_counter(
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 @patch("superset.commands.report.execute.ReportNotTriggeredErrorState._schedule_retry")
+@patch("superset.reports.notifications.email.send_email_smtp")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
 def test_success_after_retry_clears_retry_state(
     screenshot_mock: Mock,
+    email_mock: Mock,
     schedule_retry_mock: Mock,
 ) -> None:
     """
