@@ -20,6 +20,7 @@ Unit tests for update_chart_preview MCP tool
 """
 
 import importlib
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -702,7 +703,7 @@ class TestUpdateChartPreview:
             "operator": "TEMPORAL_RANGE",
             "subject": "ds",
         }
-        new_form_data = {}
+        new_form_data: dict[str, Any] = {}
 
         update_chart_preview_module._preserve_previous_adhoc_filters(
             new_form_data,
