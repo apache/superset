@@ -1350,6 +1350,15 @@ CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
 # Cache for datasource metadata and query results
 DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
 
+# Upper bound, in bytes, on the serialized size of a single value written to the
+# data cache (chart and SQL query results). When a result's pickled size exceeds
+# this threshold the value is NOT written to the cache: the chart still renders,
+# but the next load re-queries the datasource instead of getting a cache hit. This
+# protects the cache backend (e.g. Redis/Memcached) from being flooded by very
+# large result sets. Set to ``None`` to disable the check (the default). Example:
+# 10 * 1024 * 1024 for a 10 MB limit.
+DATA_CACHE_MAX_VALUE_SIZE: int | None = None
+
 # Cache for dashboard filter state. `CACHE_TYPE` defaults to `SupersetMetastoreCache`
 # that stores the values in the key-value table in the Superset metastore, as it's
 # required for Superset to operate correctly, but can be replaced by any
