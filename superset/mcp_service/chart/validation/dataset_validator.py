@@ -140,6 +140,12 @@ class DatasetValidator:
         if column_error:
             return False, column_error
 
+        temporal_error = DatasetValidator._validate_temporal_column(
+            config, dataset_context
+        )
+        if temporal_error:
+            return False, temporal_error
+
         # Validate aggregation compatibility for every config that produced
         # column refs. ``_validate_aggregations`` is config-agnostic — gating
         # it to Table/XY would let pie / pivot table / mixed timeseries /
@@ -152,6 +158,40 @@ class DatasetValidator:
             return False, aggregation_errors[0]
 
         return True, None
+
+    @staticmethod
+    def _validate_temporal_column(
+        config: ChartConfig, dataset_context: DatasetContext
+    ) -> ChartGenerationError | None:
+        """Require an explicitly selected dashboard time column to be temporal."""
+        temporal_column = getattr(config, "temporal_column", None)
+        if not temporal_column:
+            return None
+
+        matching_column = next(
+            (
+                column
+                for column in dataset_context.available_columns
+                if column["name"].lower() == temporal_column.lower()
+            ),
+            None,
+        )
+        if matching_column is None or matching_column.get("is_temporal", False):
+            return None
+
+        return ChartGenerationError(
+            error_type="invalid_temporal_column",
+            message=f"Column '{temporal_column}' is not temporal",
+            details=(
+                "The temporal_column must reference a dataset column marked as "
+                "temporal so dashboard time-range filters can bind to the chart."
+            ),
+            suggestions=[
+                "Choose a temporal column from the dataset",
+                "Remove temporal_column to use the dataset's default time column",
+            ],
+            error_code="NON_TEMPORAL_COLUMN",
+        )
 
     @staticmethod
     def _validate_columns_exist(  # noqa: C901

@@ -155,33 +155,55 @@ def test_unbound_charts_get_dashboard_temporal_filter(
     ]
 
 
+@pytest.mark.parametrize(
+    "config",
+    [
+        TableChartConfig(
+            columns=[CATEGORY, METRIC],
+            temporal_column="created_at",
+        ),
+        BigNumberChartConfig(
+            chart_type="big_number",
+            metric=METRIC,
+            temporal_column="created_at",
+        ),
+    ],
+)
 @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
 def test_explicit_temporal_column_takes_precedence(
     mock_is_temporal: MagicMock,
+    config: ChartConfig,
 ) -> None:
     mock_is_temporal.return_value = True
-    config = TableChartConfig(
-        columns=[CATEGORY, METRIC],
-        temporal_column="created_at",
-    )
 
     form_data = map_config_to_form_data(config, dataset_id=42)
 
     assert form_data["adhoc_filters"][0]["subject"] == "created_at"
 
 
+@pytest.mark.parametrize(
+    "config",
+    [
+        TableChartConfig(
+            columns=[CATEGORY, METRIC],
+            temporal_column="fiscal_year",
+        ),
+        BigNumberChartConfig(
+            chart_type="big_number",
+            metric=METRIC,
+            temporal_column="fiscal_year",
+        ),
+    ],
+)
 @patch("superset.daos.dataset.DatasetDAO.find_by_id_or_uuid")
 @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
 def test_explicit_non_temporal_column_does_not_fall_back(
     mock_is_temporal: MagicMock,
     mock_find_dataset: MagicMock,
+    config: ChartConfig,
 ) -> None:
     mock_find_dataset.return_value = SimpleNamespace(main_dttm_col="order_date")
     mock_is_temporal.return_value = False
-    config = TableChartConfig(
-        columns=[CATEGORY, METRIC],
-        temporal_column="fiscal_year",
-    )
 
     form_data = map_config_to_form_data(config, dataset_id=42)
 
@@ -241,6 +263,36 @@ def test_temporal_column_is_included_in_dataset_validation() -> None:
     refs = DatasetValidator._extract_column_references(config)
 
     assert [ref.name for ref in refs].count("created_at") == 1
+
+
+def test_dataset_validation_rejects_non_temporal_time_column() -> None:
+    config = TableChartConfig(
+        columns=[CATEGORY, METRIC],
+        temporal_column="fiscal_year",
+    )
+    dataset_context = DatasetContext(
+        id=42,
+        table_name="orders",
+        schema="public",
+        database_name="examples",
+        available_columns=[
+            {"name": "region", "type": "VARCHAR", "is_temporal": False},
+            {"name": "revenue", "type": "NUMERIC", "is_temporal": False},
+            {"name": "fiscal_year", "type": "INTEGER", "is_temporal": False},
+        ],
+        available_metrics=[],
+    )
+
+    is_valid, error = DatasetValidator.validate_against_dataset(
+        config,
+        dataset_id=42,
+        dataset_context=dataset_context,
+    )
+
+    assert not is_valid
+    assert error is not None
+    assert error.error_code == "NON_TEMPORAL_COLUMN"
+    assert "fiscal_year" in error.message
 
 
 def test_temporal_column_is_normalized_to_dataset_casing() -> None:

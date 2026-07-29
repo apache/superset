@@ -111,8 +111,31 @@ def _preserve_previous_adhoc_filters(
     if not isinstance(previous_filters, list) or not previous_filters:
         return
 
-    merged_filters = list(previous_filters)
-    for generated_filter in new_form_data.get("adhoc_filters", []):
+    generated_filters = new_form_data.get("adhoc_filters", [])
+    generated_temporal_subjects = {
+        filter_.get("subject")
+        for filter_ in generated_filters
+        if isinstance(filter_, dict) and filter_.get("operator") == "TEMPORAL_RANGE"
+    }
+    previous_temporal_subjects = {
+        filter_.get("subject")
+        for filter_ in previous_filters
+        if isinstance(filter_, dict) and filter_.get("operator") == "TEMPORAL_RANGE"
+    }
+    replace_temporal_binding = (
+        bool(generated_temporal_subjects)
+        and generated_temporal_subjects != previous_temporal_subjects
+    )
+    merged_filters = [
+        filter_
+        for filter_ in previous_filters
+        if not (
+            replace_temporal_binding
+            and isinstance(filter_, dict)
+            and filter_.get("operator") == "TEMPORAL_RANGE"
+        )
+    ]
+    for generated_filter in generated_filters:
         if not isinstance(generated_filter, dict):
             if generated_filter not in merged_filters:
                 merged_filters.append(generated_filter)

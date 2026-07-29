@@ -651,6 +651,41 @@ class TestUpdateChartPreview:
 
         assert new_form_data["adhoc_filters"] == [cached_temporal_filter]
 
+    def test_replaces_cached_temporal_filter_when_column_changes(self) -> None:
+        """A newly selected temporal column replaces the cached binding."""
+        new_temporal_filter = {
+            "clause": "WHERE",
+            "comparator": "No filter",
+            "expressionType": "SIMPLE",
+            "operator": "TEMPORAL_RANGE",
+            "subject": "created_at",
+        }
+        region_filter = {
+            "clause": "WHERE",
+            "comparator": "North",
+            "expressionType": "SIMPLE",
+            "operator": "==",
+            "subject": "region",
+        }
+        previous_temporal_filter = {
+            "clause": "WHERE",
+            "comparator": "Last month",
+            "expressionType": "SIMPLE",
+            "operator": "TEMPORAL_RANGE",
+            "subject": "ds",
+        }
+        new_form_data = {"adhoc_filters": [new_temporal_filter]}
+
+        update_chart_preview_module._preserve_previous_adhoc_filters(
+            new_form_data,
+            {"adhoc_filters": [region_filter, previous_temporal_filter]},
+        )
+
+        assert new_form_data["adhoc_filters"] == [
+            region_filter,
+            new_temporal_filter,
+        ]
+
     @patch.object(update_chart_preview_module, "validate_and_compile")
     @patch.object(update_chart_preview_module, "has_dataset_access", return_value=True)
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
