@@ -106,7 +106,7 @@ def test_csv_generation_with_small_dataset(mocker: MockerFixture) -> None:
     mock_conn = mocker.MagicMock()
     mock_conn.cursor.return_value = mock_cursor
 
-    datasource.database.get_raw_connection.return_value.__enter__.return_value = (
+    datasource.database.get_raw_connection.return_value = (
         mock_conn
     )
 
@@ -140,7 +140,7 @@ def test_csv_generation_with_special_characters(mocker: MockerFixture) -> None:
     mock_conn = mocker.MagicMock()
     mock_conn.cursor.return_value = mock_cursor
 
-    datasource.database.get_raw_connection.return_value.__enter__.return_value = (
+    datasource.database.get_raw_connection.return_value = (
         mock_conn
     )
 
@@ -169,7 +169,7 @@ def test_streaming_with_null_values(mocker: MockerFixture) -> None:
     mock_conn = mocker.MagicMock()
     mock_conn.cursor.return_value = mock_cursor
 
-    datasource.database.get_raw_connection.return_value.__enter__.return_value = (
+    datasource.database.get_raw_connection.return_value = (
         mock_conn
     )
 
@@ -202,7 +202,7 @@ def test_streaming_execution_options_enabled(mocker: MockerFixture) -> None:
     mock_conn = mocker.MagicMock()
     mock_conn.cursor.return_value = mock_cursor
 
-    datasource.database.get_raw_connection.return_value.__enter__.return_value = (
+    datasource.database.get_raw_connection.return_value = (
         mock_conn
     )
 
@@ -228,7 +228,7 @@ def test_empty_result_set(mocker: MockerFixture) -> None:
     mock_conn = mocker.MagicMock()
     mock_conn.cursor.return_value = mock_cursor
 
-    datasource.database.get_raw_connection.return_value.__enter__.return_value = (
+    datasource.database.get_raw_connection.return_value = (
         mock_conn
     )
 
@@ -255,7 +255,7 @@ def test_catalog_and_schema_passed_to_engine(mocker: MockerFixture) -> None:
     mock_conn = mocker.MagicMock()
     mock_conn.cursor.return_value = mock_cursor
 
-    datasource.database.get_raw_connection.return_value.__enter__.return_value = (
+    datasource.database.get_raw_connection.return_value = (
         mock_conn
     )
 
@@ -285,7 +285,7 @@ def test_sql_mutation_applied_before_execution(mocker: MockerFixture) -> None:
     mock_conn = mocker.MagicMock()
     mock_conn.cursor.return_value = mock_cursor
 
-    datasource.database.get_raw_connection.return_value.__enter__.return_value = (
+    datasource.database.get_raw_connection.return_value = (
         mock_conn
     )
 
@@ -320,7 +320,7 @@ def test_get_raw_connection_used_instead_of_get_sqla_engine(
     mock_conn = mocker.MagicMock()
     mock_conn.cursor.return_value = mock_cursor
 
-    datasource.database.get_raw_connection.return_value.__enter__.return_value = (
+    datasource.database.get_raw_connection.return_value = (
         mock_conn
     )
 
