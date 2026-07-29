@@ -55,6 +55,8 @@ import { useHeaderReportMenuItems } from 'src/features/reports/ReportModal/Heade
 import { MenuItemTooltip } from 'src/components/Chart/DisabledMenuItemTooltip';
 import { logEvent } from 'src/logger/actions';
 import { openVersionHistoryPanel } from 'src/features/versionHistory/reducer';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { canOverwriteSlice } from 'src/explore/exploreUtils/canOverwriteSlice';
 import {
   LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE,
   LOG_ACTIONS_CHART_DOWNLOAD_AS_PNG,
@@ -283,6 +285,7 @@ interface ExploreState {
       CSV_STREAMING_ROW_THRESHOLD?: number;
     };
   };
+  user?: UserWithPermissionsAndRoles;
 }
 
 export type UseExploreAdditionalActionsMenuReturn = [
@@ -331,6 +334,17 @@ export const useExploreAdditionalActionsMenu = (
   );
   const canOverwrite = useSelector<ExploreState, boolean>(
     state => state.explore?.can_overwrite ?? false,
+  );
+  const user = useSelector<
+    ExploreState,
+    UserWithPermissionsAndRoles | undefined
+  >(state => state.user);
+  // `can_overwrite` alone hides version history on any chart without explicit
+  // editors — every seeded chart — even from admins. Same predicate SaveModal
+  // uses, so a user who can save a chart can also see its history.
+  const canModifySlice = useMemo(
+    () => canOverwriteSlice({ slice, user, canOverwrite }),
+    [slice, user, canOverwrite],
   );
 
   const dataExportDisabled = !canDownloadCSV;
@@ -1015,7 +1029,7 @@ export const useExploreAdditionalActionsMenu = (
 
     if (
       isFeatureEnabled(FeatureFlag.VersionHistory) &&
-      canOverwrite &&
+      canModifySlice &&
       slice?.slice_id
     ) {
       menuItems.push({
@@ -1070,7 +1084,7 @@ export const useExploreAdditionalActionsMenu = (
   }, [
     addDangerToast,
     canDownloadCSV,
-    canOverwrite,
+    canModifySlice,
     copyLink,
     dashboards,
     dashboardMenuItems,
