@@ -389,7 +389,7 @@ def test_exec_post_processing_unsupported_operation():
     with pytest.raises(InvalidPostProcessingError) as excinfo:
         query_object.exec_post_processing(DataFrame({"y": [1, 2, 3]}))
 
-    assert "not_a_real_operation" in str(excinfo.value.message)
+    assert "not_a_real_operation" in str(excinfo.value)
 
 
 def test_exec_post_processing_missing_operation():

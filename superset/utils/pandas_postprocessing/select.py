@@ -54,9 +54,12 @@ def select(
         # `exclude` is validated against the incoming DataFrame by the decorator, but
         # a preceding `columns` selection may already have removed the column. Reject
         # that as a validation error instead of letting pandas raise a bare KeyError.
-        if any(column not in df_select.columns for column in exclude):
+        if missing := [column for column in exclude if column not in df_select.columns]:
             raise InvalidPostProcessingError(
-                _("Referenced columns not available in DataFrame.")
+                _(
+                    "Referenced columns not available in DataFrame: %(columns)s",
+                    columns=", ".join(missing),
+                )
             )
         df_select = df_select.drop(exclude, axis=1)
     if rename is not None:

@@ -61,9 +61,11 @@ def test_select_invalid_exclude():
     with pytest.raises(InvalidPostProcessingError):
         select(df=timeseries_df, exclude=["abc"])
 
-    # excluding a column already removed by `columns` is also a validation error
-    with pytest.raises(InvalidPostProcessingError):
+    # excluding a column already removed by `columns` is also a validation error,
+    # and the message names the column so the caller can fix the payload
+    with pytest.raises(InvalidPostProcessingError) as excinfo:
         select(df=timeseries_df, columns=["y"], exclude=["label"])
+    assert "label" in str(excinfo.value)
 
     # excluding a column kept by `columns` still works
     post_df = select(df=timeseries_df, columns=["y", "label"], exclude=["label"])
