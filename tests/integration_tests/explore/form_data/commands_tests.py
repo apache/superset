@@ -31,9 +31,35 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.utils import json
-from superset.utils.core import DatasourceType, get_example_default_schema
+from superset.utils.core import (
+    DatasourceType,
+    get_example_default_schema,
+    override_user,
+)
 from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import SupersetTestCase
+
+# Mirrors the SCHEMA_ACCESS_ROLE pattern in tests/integration_tests/security_tests.py:
+# a role granting only schema_access on one schema, no all_datasource_access and no
+# per-table datasource_access.
+FORM_DATA_SCHEMA_ACCESS_ROLE = "form_data_schema_access_role"
+
+
+def _grant_schema_access(view_menu_name: str) -> None:
+    permission = "schema_access"
+    security_manager.add_permission_view_menu(permission, view_menu_name)
+    perm_view = security_manager.find_permission_view_menu(permission, view_menu_name)
+    security_manager.add_permission_role(
+        security_manager.find_role(FORM_DATA_SCHEMA_ACCESS_ROLE), perm_view
+    )
+
+
+def _revoke_schema_access(view_menu_name: str) -> None:
+    pv = security_manager.find_permission_view_menu("schema_access", view_menu_name)
+    security_manager.del_permission_role(
+        security_manager.find_role(FORM_DATA_SCHEMA_ACCESS_ROLE), pv
+    )
+    security_manager.del_permission_view_menu("schema_access", view_menu_name)
 
 
 class TestCreateFormDataCommand(SupersetTestCase):
@@ -345,3 +371,74 @@ class TestCreateFormDataCommand(SupersetTestCase):
         response = delete_command.run()
 
         assert response is False  # noqa: E712
+
+    def test_create_form_data_command_schema_access_no_all_datasource_access(self):
+        """
+        Regression for #39296: a user who has schema_access on the schema a
+        SQL Lab query ran in (but neither all_datasource_access nor
+        datasource_access on a specific registered dataset, since an ad-hoc
+        query result is never registered as one) should still be able to
+        jump straight from SQL Lab to "Create Chart" -- i.e.
+        CreateFormDataCommand.run() with datasource_type=QUERY should not be
+        blocked purely for lacking all_datasource_access, as long as the
+        query's schema is one they're granted schema_access on.
+
+        This exercises the same non-strict (force_dataset_match=False)
+        fallthrough in SupersetSecurityManager.raise_for_access that
+        test_raise_for_access_force_dataset_match_denies_schema_only (in
+        security_tests.py) exercises for the strict SQL Lab path -- here we
+        confirm the *non*-strict Explore/"Create Chart" path grants access on
+        schema_access alone, without needing a registered dataset at all.
+        """
+        schema = get_example_default_schema()
+        database = get_example_database()
+        view_menu_name = f"[{database.database_name}].[{schema}]"
+
+        security_manager.add_role(FORM_DATA_SCHEMA_ACCESS_ROLE)
+        db.session.commit()
+        _grant_schema_access(view_menu_name)
+        gamma_user = security_manager.find_user(username="gamma")
+        gamma_user.roles.append(
+            security_manager.find_role(FORM_DATA_SCHEMA_ACCESS_ROLE)
+        )
+        db.session.commit()
+
+        query = Query(
+            sql="SELECT * FROM wb_health_population",
+            client_id="form_data_schema_access_test",
+            database=database,
+            schema=schema,
+            user_id=gamma_user.id,
+        )
+        db.session.add(query)
+        db.session.commit()
+
+        try:
+            with override_user(gamma_user):
+                # Sanity check: gamma should NOT have all_datasource_access,
+                # or this test wouldn't be exercising the reported gap.
+                assert not security_manager.can_access_all_datasources()
+
+                args = CommandParameters(
+                    datasource_id=query.id,
+                    datasource_type=DatasourceType.QUERY,
+                    chart_id=None,
+                    tab_id=1,
+                    form_data=json.dumps(
+                        {"datasource": f"{query.id}__{DatasourceType.QUERY}"}
+                    ),
+                )
+                # Should NOT raise: schema_access on the query's schema is
+                # sufficient for the non-strict Explore access check, even
+                # without all_datasource_access or a registered dataset.
+                key = CreateFormDataCommand(args).run()
+                assert isinstance(key, str)
+        finally:
+            db.session.delete(query)
+            gamma_user.roles.remove(
+                security_manager.find_role(FORM_DATA_SCHEMA_ACCESS_ROLE)
+            )
+            db.session.commit()
+            _revoke_schema_access(view_menu_name)
+            db.session.delete(security_manager.find_role(FORM_DATA_SCHEMA_ACCESS_ROLE))
+            db.session.commit()
