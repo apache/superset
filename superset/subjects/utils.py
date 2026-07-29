@@ -323,6 +323,10 @@ def get_or_create_group_subject(group_id: int) -> Subject | None:
     is reloaded. Any ``IntegrityError`` that did *not* leave a matching row is
     re-raised rather than swallowed — it isn't the expected unique-key race, so
     masking it would silently drop the group from the resulting viewer set.
+
+    Unrelated pending work is flushed *before* the SAVEPOINT, so entering it
+    doesn't flush the caller's other objects into the ``except`` below where an
+    unrelated integrity failure could be mistaken for this group's conflict.
     """
     if subject := get_group_subject(group_id):
         return subject
@@ -336,6 +340,10 @@ def get_or_create_group_subject(group_id: int) -> Subject | None:
     if not group:
         return None
 
+    # Surface any unrelated pending failure here, outside the SAVEPOINT, so the
+    # savepoint's own flush carries only the Subject insert and the ``except``
+    # sees only this group's uniqueness conflict.
+    db.session.flush()
     try:
         with db.session.begin_nested():
             sync_group_subject(group)
