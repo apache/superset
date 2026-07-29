@@ -2017,13 +2017,26 @@ def _process_datetime_column(
 
         # Parse with or without format (suppress warning if no format)
         if format_to_use:
-            df[col.col_label] = pd.to_datetime(
+            converted = pd.to_datetime(
                 df[col.col_label],
                 utc=False,
                 format=format_to_use,
                 errors="coerce",
                 exact=False,
             )
+            # A format that coerces every non-null value to NaT is a mismatch
+            # (e.g. an epoch-millis column that inherited a '%Y' string format
+            # when used as a chart's granularity). Assigning it would silently
+            # blank the whole column, so keep the original values instead.
+            if df[col.col_label].notna().any() and not converted.notna().any():
+                logger.warning(
+                    "Datetime format %s coerced every value of column %s to NaT; "
+                    "keeping the original values",
+                    format_to_use,
+                    col.col_label,
+                )
+            else:
+                df[col.col_label] = converted
         else:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", message=".*Could not infer format.*")
