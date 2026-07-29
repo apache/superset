@@ -1336,14 +1336,14 @@ class TestDetachedInstanceError:
 
         data = json.loads(response.content[0].text)
         # The tool should succeed — not return a ChartError
-        assert (
-            "error_type" not in data
-        ), f"Expected ChartPreview but got ChartError: {data.get('error')}"
+        assert "error_type" not in data, (
+            f"Expected ChartPreview but got ChartError: {data.get('error')}"
+        )
         assert data.get("chart_id") == 42
 
-        assert (
-            len(refresh_calls) == 1
-        ), "db.session.refresh() should be called once after loading the chart"
+        assert len(refresh_calls) == 1, (
+            "db.session.refresh() should be called once after loading the chart"
+        )
         assert refresh_calls[0] is mock_chart
 
     @pytest.mark.asyncio
