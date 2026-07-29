@@ -161,12 +161,12 @@ test('propagates the full selection array when adding to a large selection', asy
     return el;
   });
   await userEvent.click(option);
-  expect(handleChange).toHaveBeenLastCalledWith(
-    'tags',
-    expect.arrayContaining(['metric_499']),
-  );
-  const lastValue = handleChange.mock.calls.at(-1)?.[1];
+  // Assert the exact resulting set, not just length + the new member: a
+  // component that dropped an existing selection while adding a new one
+  // could otherwise still satisfy a length check.
+  const lastValue = handleChange.mock.calls.at(-1)?.[1] as string[];
   expect(lastValue).toHaveLength(LARGE_CATALOG_SIZE);
+  expect([...lastValue].sort()).toEqual([...largeMetricEnum].sort());
 });
 
 test('does not render a Select-all bulk affordance', async () => {

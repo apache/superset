@@ -559,3 +559,49 @@ test('a persistently failing refresh retries once, not on every edit', async () 
     ),
   ).toHaveLength(1);
 });
+
+test('a superseded refresh response cannot toast or clobber a newer one', async () => {
+  // Exercises schemaRefreshGenRef: when two refreshes overlap and the older
+  // one settles last, its failure must be ignored — no error toast, and no
+  // rollback of the dependency snapshot the newer request committed.
+  let call = 0;
+  const resolvers: Array<() => void> = [];
+  mockLayerWithSchema(dynamicMetricsSchema, {
+    '/api/v1/semantic_layer/layer-1/schema/runtime': (payload: unknown) => {
+      if (!(payload as { runtime_data?: unknown })?.runtime_data) {
+        return Promise.resolve({ json: { result: dynamicMetricsSchema } });
+      }
+      call += 1;
+      if (call === 1) {
+        // First (soon-to-be superseded) refresh: fails, but only after the
+        // second one has already been issued.
+        return new Promise((_resolve, reject) => {
+          resolvers.push(() => reject(new Error('stale refresh boom')));
+        });
+      }
+      return Promise.resolve({ json: { result: dynamicMetricsSchema } });
+    },
+  });
+  const props = createProps();
+  render(<AddSemanticViewModal {...props} />);
+  await selectOption('Semantic layer', 'Snowflake SL');
+
+  await pickFromSelect(/metrics/i, 'm1');
+  await waitFor(() => expect(call).toBe(1), { timeout: 10000 });
+  // Second selection supersedes the in-flight refresh.
+  await pickFromSelect(/metrics/i, 'm2');
+  await waitFor(() => expect(call).toBe(2), { timeout: 10000 });
+  // Now let the stale first request fail, last.
+  resolvers.forEach(fn => fn());
+  await new Promise(resolve => {
+    setTimeout(resolve, 1000);
+  });
+
+  expect(
+    props.addDangerToast.mock.calls.filter(([msg]) =>
+      String(msg).includes('refreshing the runtime schema'),
+    ),
+  ).toHaveLength(0);
+  expect(selectedTag('m1')).toBeTruthy();
+  expect(selectedTag('m2')).toBeTruthy();
+});
