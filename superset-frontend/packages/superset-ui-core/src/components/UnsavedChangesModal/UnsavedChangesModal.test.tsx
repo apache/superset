@@ -17,6 +17,7 @@
  * under the License.
  */
 import { render, screen, userEvent } from '@superset-ui/core/spec';
+import { Modal } from '@superset-ui/core/components';
 import { UnsavedChangesModal } from '.';
 
 test('should render nothing if showModal is false', () => {
@@ -93,4 +94,40 @@ test('should only call handleSave when clicking the Save button', async () => {
   expect(mockHandleSave).toHaveBeenCalled();
   expect(mockOnHide).not.toHaveBeenCalled();
   expect(mockOnConfirmNavigation).not.toHaveBeenCalled();
+});
+
+test('renders above an already-open modal without a hardcoded z-index', () => {
+  // Regression test for a bug where this modal could render BEHIND another
+  // already-open modal (e.g. a draggable "View query" modal), because its
+  // z-index was pinned to a hardcoded constant instead of relying on Ant
+  // Design's automatic z-index stacking. Since this modal is always opened
+  // on top of whatever it's interrupting, it should always come out ahead
+  // with no manual override at all.
+  render(
+    <>
+      <Modal show title="Other open modal" onHide={() => {}}>
+        <div>Other modal content</div>
+      </Modal>
+      <UnsavedChangesModal
+        showModal
+        onHide={() => {}}
+        handleSave={() => {}}
+        onConfirmNavigation={() => {}}
+      />
+    </>,
+  );
+
+  const otherDialog = screen.getByRole('dialog', {
+    name: /other open modal/i,
+  });
+  const unsavedChangesDialog = screen.getByRole('dialog', {
+    name: /unsaved changes/i,
+  });
+
+  const otherZIndex = Number(getComputedStyle(otherDialog).zIndex);
+  const unsavedChangesZIndex = Number(
+    getComputedStyle(unsavedChangesDialog).zIndex,
+  );
+
+  expect(unsavedChangesZIndex).toBeGreaterThan(otherZIndex);
 });
