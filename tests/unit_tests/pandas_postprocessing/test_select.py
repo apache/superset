@@ -70,3 +70,15 @@ def test_select_invalid_exclude():
     # excluding a column kept by `columns` still works
     post_df = select(df=timeseries_df, columns=["y", "label"], exclude=["label"])
     assert post_df.columns.tolist() == ["y"]
+
+
+def test_select_exclude_accepts_scalar():
+    # `validate_column_args` normalises a scalar through `scalar_to_sequence`, so a
+    # bare column name is a supported form and must not be iterated character by
+    # character
+    post_df = select(df=timeseries_df, exclude="label")
+    assert post_df.columns.tolist() == ["y"]
+
+    # a scalar naming a column that does not exist is still a validation error
+    with pytest.raises(InvalidPostProcessingError):
+        select(df=timeseries_df, exclude="abc")

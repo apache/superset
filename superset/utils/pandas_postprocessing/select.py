@@ -20,7 +20,10 @@ from flask_babel import gettext as _
 from pandas import DataFrame
 
 from superset.exceptions import InvalidPostProcessingError
-from superset.utils.pandas_postprocessing.utils import validate_column_args
+from superset.utils.pandas_postprocessing.utils import (
+    scalar_to_sequence,
+    validate_column_args,
+)
 
 
 @validate_column_args("columns", "exclude", "rename")
@@ -51,6 +54,11 @@ def select(
     if columns:
         df_select = df_select[columns]
     if exclude:
+        # A bare column name is accepted as well as a sequence: `validate_column_args`
+        # normalises through `scalar_to_sequence` to validate, then hands the original
+        # value on. Normalise here too, so a string is not iterated character by
+        # character.
+        exclude = list(scalar_to_sequence(exclude))
         # `exclude` is validated against the incoming DataFrame by the decorator, but
         # a preceding `columns` selection may already have removed the column. Reject
         # that as a validation error instead of letting pandas raise a bare KeyError.
