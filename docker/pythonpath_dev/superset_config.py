@@ -114,9 +114,11 @@ FEATURE_FLAGS = {
 }
 EXTENSIONS_PATH = "/app/docker/extensions"
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
-# The Docker Compose app service is named "superset" and listens on 8088. Only the
-# scheme/host/port matter here (paths are joined with urljoin). For screenshots in
-# the dev stack (unbuilt static assets) point this at the nginx service instead:
+# The Docker Compose app service is named "superset" and listens on 8088. Report
+# paths are root-relative, so urljoin drops the base path; only the scheme, host,
+# and port must be correct here. SUPERSET_APP_ROOT is kept for consumers that
+# concatenate paths directly (e.g. cache warm-up). For screenshots in the dev
+# stack (unbuilt static assets) point this at the nginx service instead:
 # http://nginx{SUPERSET_APP_ROOT}/
 WEBDRIVER_BASEURL = f"http://superset:8088{os.environ.get('SUPERSET_APP_ROOT', '/')}/"
 # The base URL for the email report hyperlinks.
