@@ -185,6 +185,73 @@ def test_explicit_temporal_column_takes_precedence(
 @pytest.mark.parametrize(
     "config",
     [
+        XYChartConfig(
+            x=ColumnRef(name="event_time"),
+            y=[METRIC],
+            temporal_column="created_at",
+        ),
+        MixedTimeseriesChartConfig(
+            x=ColumnRef(name="event_time"),
+            y=[METRIC],
+            temporal_column="created_at",
+        ),
+    ],
+)
+@patch(
+    "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+    return_value=True,
+)
+def test_explicit_temporal_column_overrides_temporal_granularity(
+    mock_is_temporal: MagicMock,
+    config: ChartConfig,
+) -> None:
+    form_data = map_config_to_form_data(config, dataset_id=42)
+
+    assert form_data["granularity_sqla"] == "event_time"
+    assert form_data["adhoc_filters"] == [
+        {
+            "clause": "WHERE",
+            "expressionType": "SIMPLE",
+            "subject": "created_at",
+            "operator": "TEMPORAL_RANGE",
+            "comparator": "No filter",
+        }
+    ]
+
+
+@patch("superset.daos.dataset.DatasetDAO.find_by_id_or_uuid")
+@patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+def test_non_temporal_waterfall_granularity_falls_back_to_dataset_time_column(
+    mock_is_temporal: MagicMock,
+    mock_find_dataset: MagicMock,
+) -> None:
+    mock_find_dataset.return_value = SimpleNamespace(main_dttm_col="order_date")
+    mock_is_temporal.side_effect = (
+        lambda column, dataset_id, dataset=None: column == "order_date"
+    )
+    config = WaterfallChartConfig(
+        x_axis=CATEGORY,
+        metric=METRIC,
+        time_grain="P1D",
+    )
+
+    form_data = map_config_to_form_data(config, dataset_id=42)
+
+    assert form_data["granularity_sqla"] == "region"
+    assert form_data["adhoc_filters"] == [
+        {
+            "clause": "WHERE",
+            "expressionType": "SIMPLE",
+            "subject": "order_date",
+            "operator": "TEMPORAL_RANGE",
+            "comparator": "No filter",
+        }
+    ]
+
+
+@pytest.mark.parametrize(
+    "config",
+    [
         TableChartConfig(
             columns=[CATEGORY, METRIC],
             temporal_column="fiscal_year",
