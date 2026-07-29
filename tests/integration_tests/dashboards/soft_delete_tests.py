@@ -738,6 +738,30 @@ class TestDashboardArchiveListing(SupersetTestCase):
     compose with the ``dashboard_deleted_state`` filter; the restore gate
     holds for a non-owner."""
 
+    def setUp(self) -> None:
+        super().setUp()
+        self._made: list[int] = []
+
+    def tearDown(self) -> None:
+        """Remove every fixture this class created, however the test ended.
+
+        These fixtures are soft-deleted with ``deleted_at`` values far in the
+        past, which makes them eligible for the retention purge. Leaving one
+        behind lets an unrelated suite's global ``_purge_impl`` run pick it up
+        and count it, so cleanup has to survive a failed assertion.
+        """
+        for dashboard_id in self._made:
+            row = (
+                db.session.query(Dashboard)
+                .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {Dashboard}})
+                .filter(Dashboard.id == dashboard_id)
+                .one_or_none()
+            )
+            if row:
+                db.session.delete(row)
+        db.session.commit()
+        super().tearDown()
+
     def _make(self, title: str) -> Dashboard:
         admin = self.get_user("admin")
         dashboard = Dashboard(
@@ -748,6 +772,7 @@ class TestDashboardArchiveListing(SupersetTestCase):
         )
         db.session.add(dashboard)
         db.session.commit()
+        self._made.append(dashboard.id)
         return dashboard
 
     def test_archive_list_orders_by_deleted_at(self) -> None:

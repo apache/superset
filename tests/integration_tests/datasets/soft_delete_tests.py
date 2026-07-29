@@ -611,6 +611,33 @@ class TestDatasetArchiveListing(SupersetTestCase):
     compose with the ``dataset_deleted_state`` filter; the restore gate holds
     for a non-owner."""
 
+    def setUp(self) -> None:
+        super().setUp()
+        self._made: list[tuple[int, int]] = []
+
+    def tearDown(self) -> None:
+        """Remove every fixture this class created, however the test ended.
+
+        The per-test ``_cleanup`` calls only run when a test reaches its final
+        line. These fixtures are soft-deleted with ``deleted_at`` values far in
+        the past, so one left behind by a failed assertion becomes eligible for
+        an unrelated suite's global retention purge and is counted by it.
+        """
+        for dataset_id, database_id in self._made:
+            row = (
+                db.session.query(SqlaTable)
+                .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+                .filter(SqlaTable.id == dataset_id)
+                .one_or_none()
+            )
+            if row:
+                db.session.delete(row)
+            database = db.session.query(Database).get(database_id)
+            if database:
+                db.session.delete(database)
+        db.session.commit()
+        super().tearDown()
+
     def _make(self, name: str) -> tuple[SqlaTable, Database]:
         admin = self.get_user("admin")
         database = Database(database_name=f"db_{name}", sqlalchemy_uri="sqlite://")
@@ -621,6 +648,7 @@ class TestDatasetArchiveListing(SupersetTestCase):
         )
         db.session.add(dataset)
         db.session.commit()
+        self._made.append((dataset.id, database.id))
         return dataset, database
 
     def _cleanup(self, dataset_id: int, database: Database) -> None:
