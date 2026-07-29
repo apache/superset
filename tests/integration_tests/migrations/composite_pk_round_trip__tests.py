@@ -90,7 +90,7 @@ def _run_with_alembic_context(engine: sa.engine.Engine, fn) -> None:
     migration module's ``op`` to point at this context so its
     ``op.get_bind()`` and ``op.batch_alter_table`` calls execute against
     the in-memory engine."""
-    with engine.connect() as conn:
+    with engine.begin() as conn:
         ctx = MigrationContext.configure(conn)
         ops = Operations(ctx)
         original_op = _migration.op
@@ -112,7 +112,7 @@ def test_round_trip_against_in_memory_sqlite() -> None:
       documented intentional asymmetry.)
     - Post-re-upgrade idempotency: shape matches the first post-upgrade.
     """
-    engine = sa.create_engine("sqlite:///:memory:")
+    engine = sa.create_engine("sqlite:///:memory:", future=True)
     _build_pre_migration_schema(engine)
 
     _run_with_alembic_context(engine, _migration.upgrade)
@@ -169,7 +169,7 @@ def test_upgrade_scrubs_null_fks_and_duplicates() -> None:
     the upgrade, and asserts exactly the distinct non-NULL pairs survive
     (the composite PK could not even be created otherwise).
     """
-    engine = sa.create_engine("sqlite:///:memory:")
+    engine = sa.create_engine("sqlite:///:memory:", future=True)
     _build_pre_migration_schema(engine)
 
     md = sa.MetaData()

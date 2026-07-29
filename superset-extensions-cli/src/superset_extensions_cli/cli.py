@@ -151,9 +151,6 @@ def build_manifest(cwd: Path, remote_entry: str | None) -> Manifest:
 
     extension = ExtensionConfig.model_validate(extension_data)
 
-    # Generate composite ID from publisher and name
-    composite_id = f"{extension.publisher}.{extension.name}"
-
     frontend: ManifestFrontend | None = None
     if remote_entry:
         frontend = ManifestFrontend(
@@ -173,7 +170,6 @@ def build_manifest(cwd: Path, remote_entry: str | None) -> Manifest:
         backend = ManifestBackend(entrypoint=entrypoint)
 
     return Manifest(
-        id=composite_id,
         publisher=extension.publisher,
         name=extension.name,
         displayName=extension.displayName,

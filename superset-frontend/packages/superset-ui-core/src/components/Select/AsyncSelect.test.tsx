@@ -870,14 +870,14 @@ test('Renders only an overflow tag if dropdown is open in oneLine mode', async (
 test('does not fire onChange when searching but no selection', async () => {
   const onChange = jest.fn();
   render(
-    <div role="main">
+    <main>
       <AsyncSelect
         {...defaultProps}
         onChange={onChange}
         mode="multiple"
         allowNewOptions
       />
-    </div>,
+    </main>,
   );
   await open();
   await type('Joh');
@@ -1513,6 +1513,28 @@ test('does not fire onChange if the same value is selected in single mode', asyn
   expect(onChange).toHaveBeenCalledTimes(1);
   await userEvent.click(await findSelectOption(optionText));
   expect(onChange).toHaveBeenCalledTimes(1);
+});
+
+test('cancels pending debounce on unmount', async () => {
+  const mockOnSearch = jest.fn();
+
+  const { unmount } = render(
+    <AsyncSelect
+      {...defaultProps}
+      allowNewOptions
+      mode="multiple"
+      onSearch={mockOnSearch}
+    />,
+  );
+
+  await type('test');
+  await new Promise(resolve => setTimeout(resolve, 300));
+  expect(mockOnSearch).toHaveBeenCalledWith('test');
+  mockOnSearch.mockClear();
+  await type('unmounted');
+  unmount();
+  await new Promise(resolve => setTimeout(resolve, 300));
+  expect(mockOnSearch).not.toHaveBeenCalled();
 });
 
 /*

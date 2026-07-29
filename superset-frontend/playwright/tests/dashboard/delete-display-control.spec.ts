@@ -25,7 +25,10 @@
  */
 import { testWithAssets, expect } from '../../helpers/fixtures';
 import { apiPost, apiPut } from '../../helpers/api/requests';
-import { apiPostDashboard } from '../../helpers/api/dashboard';
+import {
+  apiPostDashboard,
+  buildSingleRowDashboardLayout,
+} from '../../helpers/api/dashboard';
 import { getDatasetByName } from '../../helpers/api/dataset';
 import { DashboardPage } from '../../pages/DashboardPage';
 
@@ -73,36 +76,14 @@ testWithAssets(
     const chartId: number = chart.id ?? chart.result?.id;
     testAssets.trackChart(chartId);
 
-    const chartLayoutKey = `CHART-${chartId}`;
-    const positionJson = {
-      DASHBOARD_VERSION_KEY: 'v2',
-      ROOT_ID: { type: 'ROOT', id: 'ROOT_ID', children: ['GRID_ID'] },
-      GRID_ID: {
-        type: 'GRID',
-        id: 'GRID_ID',
-        children: ['ROW-1'],
-        parents: ['ROOT_ID'],
+    const positionJson = buildSingleRowDashboardLayout([
+      {
+        id: chartId,
+        sliceName: 'display_control_repro',
+        width: 6,
+        height: 50,
       },
-      'ROW-1': {
-        type: 'ROW',
-        id: 'ROW-1',
-        children: [chartLayoutKey],
-        parents: ['ROOT_ID', 'GRID_ID'],
-        meta: { background: 'BACKGROUND_TRANSPARENT' },
-      },
-      [chartLayoutKey]: {
-        type: 'CHART',
-        id: chartLayoutKey,
-        children: [],
-        parents: ['ROOT_ID', 'GRID_ID', 'ROW-1'],
-        meta: {
-          chartId,
-          width: 6,
-          height: 50,
-          sliceName: 'display_control_repro',
-        },
-      },
-    };
+    ]);
 
     // 2. json_metadata: one dashboard filter + one Display Control.
     const filterId = `NATIVE_FILTER-${Math.random().toString(36).slice(2, 10)}`;
@@ -175,6 +156,7 @@ testWithAssets(
     await dashboardPage.gotoById(dashboardId);
     await dashboardPage.waitForLoad({ timeout: 30000 });
     await dashboardPage.waitForChartsToLoad({ timeout: 8000 }).catch(() => {});
+    const filterBar = await dashboardPage.waitForFilterBar();
 
     // Both the Gender filter and the Time grain Display Control should render.
     await expect(dashboardPage.getDisplayControlsHeader()).toBeVisible();
@@ -184,7 +166,7 @@ testWithAssets(
     await shot('01-initial-bar');
 
     // 4. Open the filters config modal via the settings gear.
-    const modal = await dashboardPage.openNativeFiltersConfigModal();
+    const modal = await filterBar.openNativeFiltersConfigModal();
     await shot('02-modal-open');
 
     // 5. Delete the "Time grain" Display Control in the modal sidebar.
@@ -210,7 +192,7 @@ testWithAssets(
     );
 
     // 7. Click Apply Filters.
-    await dashboardPage.applyFiltersIfEnabled();
+    await filterBar.applyIfEnabled();
     await dashboardPage.waitForChartsToLoad({ timeout: 8000 }).catch(() => {});
     await page.waitForTimeout(1500);
     await shot('05-after-apply');

@@ -273,6 +273,22 @@ def test_normalize_dttm_col() -> None:
     assert df["__time"].astype(str).tolist() == ["2017-07-01"]
 
 
+def test_normalize_dttm_col_mismatched_format_keeps_values() -> None:
+    """A datetime format that coerces every value to NaT is a mismatch (e.g. an
+    epoch-millis column that inherited a ``%Y`` string format when used as a
+    chart's granularity); applying it would silently blank the whole column, so
+    the original values are kept instead of being nulled. Regression for the
+    Samples pane showing N/A for such columns."""
+    df = pd.DataFrame({"year": [1136073600000, 473385600000]})  # epoch ms
+    before = df["year"].tolist()
+
+    normalize_dttm_col(df, (DateColumn(col_label="year", timestamp_format="%Y"),))
+
+    # not blanked to NaT/None
+    assert df["year"].notna().all()
+    assert df["year"].tolist() == before
+
+
 def test_normalize_dttm_col_epoch_seconds() -> None:
     """Test conversion of epoch seconds."""
     df = pd.DataFrame(

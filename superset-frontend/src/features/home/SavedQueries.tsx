@@ -303,6 +303,10 @@ export const SavedQueries = ({
           {queries.map(q => (
             <CardStyles
               key={q.id}
+              // Deliberate role="button" on this card wrapper — it wraps a
+              // nested interactive control (the kebab menu button below), so
+              // a real <button> tag would produce invalid nested buttons.
+              // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
               role="button"
               tabIndex={0}
               aria-label={q.label}

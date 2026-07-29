@@ -97,6 +97,7 @@ from superset.versioning.api_helpers import (
     current_entity_version_info,
     get_version_endpoint,
     list_versions_endpoint,
+    restore_version_endpoint,
 )
 from superset.versioning.etag import set_version_etag
 from superset.versioning.schemas import VersionListItemSchema
@@ -135,6 +136,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     method_permission_name = {
         **MODEL_API_RW_METHOD_PERMISSION_MAP,
         "restore": "write",
+        "restore_version": "write",
     }
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,
@@ -152,6 +154,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "list_versions",
         "get_version",
         "activity",
+        "restore_version",
     }
     list_columns = [
         "id",
@@ -370,6 +373,52 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
 
     list_outer_default_load = True
     show_outer_default_load = True
+
+    def get_list_headless(self, **kwargs: Any) -> Response:
+        response = super().get_list_headless(**kwargs)
+        # TODO: Double-serialization note: `response.json` deserializes the
+        # response body back from bytes (produced by
+        # `super().get_list_headless()`), and then `self.response(200, **payload)`
+        # re-serializes it. For large dataset lists this is noticeable overhead.
+        # A follow-up improvement: override `_get_list_response_object` (or the
+        # equivalent Flask-AppBuilder hook) instead of `get_list_headless`, so the
+        # RLS data can be injected *before* the response is built rather than
+        # after. The current approach is functional; this TODO is an
+        # optimization to revisit.
+        if response.status_code == 200:
+            try:
+                payload = response.json
+                if payload and API_RESULT_RES_KEY in payload:
+                    dataset_ids = [
+                        item["id"]
+                        for item in payload[API_RESULT_RES_KEY]
+                        if "id" in item
+                    ]
+                    rls_map = DatasetDAO.get_rls_filters_for_datasets(dataset_ids)
+                    can_read_rls = security_manager.can_access(
+                        "can_read", "RowLevelSecurity"
+                    )
+                    for item in payload[API_RESULT_RES_KEY]:
+                        filters = rls_map.get(item.get("id"), [])
+                        if can_read_rls:
+                            item["rls_filters"] = filters
+                        else:
+                            item["rls_filters"] = [
+                                {
+                                    "id": f["id"],
+                                    "name": f["name"],
+                                    "filter_type": f["filter_type"],
+                                    "group_key": f.get("group_key"),
+                                }
+                                for f in filters
+                            ]
+                    response = self.response(200, **payload)
+            except Exception:  # noqa: BLE001
+                logger.warning(
+                    "Failed to annotate dataset list with RLS info",
+                    exc_info=True,
+                )
+        return response
 
     @expose("/", methods=("POST",))
     @protect()
@@ -1554,6 +1603,20 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             except SupersetTemplateException as ex:
                 return self.response(ex.status, message=str(ex))
 
+        detailed_rls = DatasetDAO.get_rls_filters_for_dataset(table.id)
+        if security_manager.can_access("can_read", "RowLevelSecurity"):
+            response[API_RESULT_RES_KEY]["rls_filters"] = detailed_rls
+        else:
+            response[API_RESULT_RES_KEY]["rls_filters"] = [
+                {
+                    "id": f["id"],
+                    "name": f["name"],
+                    "filter_type": f["filter_type"],
+                    "group_key": f.get("group_key"),
+                }
+                for f in detailed_rls
+            ]
+
         return set_version_etag(
             self.response(200, **response),
             current_entity_etag_uuid(SqlaTable, table.id, table.uuid),
@@ -1892,3 +1955,72 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         from superset.versioning.activity import activity_endpoint
 
         return activity_endpoint(self, SqlaTable, uuid_str, request.args)
+
+    @expose(
+        "/<uuid_str>/versions/<version_uuid_str>/restore",
+        methods=("POST",),
+    )
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.restore_version"
+        ),
+        log_to_statsd=False,
+    )
+    def restore_version(self, uuid_str: str, version_uuid_str: str) -> Response:
+        """Restore a dataset to a previous version.
+        ---
+        post:
+          summary: Revert a dataset to an earlier version (non-destructive)
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Dataset UUID
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: version_uuid_str
+            description: >-
+              Version UUID as returned by the list-versions endpoint.
+              Stable across retention pruning.
+          responses:
+            200:
+              description: Dataset was restored
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+        """
+        # pylint: disable=import-outside-toplevel
+        # Local import: the command module transitively imports the
+        # versioning bootstrap graph; see changes/listener.py.
+        from superset.commands.dataset.restore_version import (
+            RestoreDatasetVersionCommand,
+        )
+
+        return restore_version_endpoint(
+            self,
+            SqlaTable,
+            RestoreDatasetVersionCommand,
+            uuid_str,
+            version_uuid_str,
+        )

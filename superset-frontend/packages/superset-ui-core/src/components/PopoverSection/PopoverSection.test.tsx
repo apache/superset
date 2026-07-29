@@ -22,7 +22,7 @@ import PopoverSection from '.';
 test('renders with default props', async () => {
   render(
     <PopoverSection title="Title">
-      <div role="form" />
+      <form aria-label="test-form" />
     </PopoverSection>,
   );
   expect(await screen.findByRole('form')).toBeInTheDocument();
@@ -32,7 +32,7 @@ test('renders with default props', async () => {
 test('renders tooltip icon', async () => {
   render(
     <PopoverSection title="Title" info="Tooltip">
-      <div role="form" />
+      <form />
     </PopoverSection>,
   );
   expect((await screen.findAllByRole('img')).length).toBe(2);
@@ -41,7 +41,7 @@ test('renders tooltip icon', async () => {
 test('renders a tooltip when hovered', async () => {
   render(
     <PopoverSection title="Title" info="Tooltip">
-      <div role="form" />
+      <form />
     </PopoverSection>,
   );
   await userEvent.hover(screen.getAllByRole('img')[0]);
@@ -52,7 +52,7 @@ test('calls onSelect when clicked', async () => {
   const onSelect = jest.fn();
   render(
     <PopoverSection title="Title" onSelect={onSelect}>
-      <div role="form" />
+      <form />
     </PopoverSection>,
   );
   await userEvent.click(await screen.findByRole('img'));
