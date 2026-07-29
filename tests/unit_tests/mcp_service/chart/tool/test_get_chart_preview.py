@@ -509,13 +509,11 @@ class TestGetChartPreview:
         assert query["metrics"] == [metric]
         assert query["row_limit"] == 50
 
-    def test_ascii_preview_big_number_without_metric_returns_clear_error(
+    def test_ascii_preview_ignores_populated_query_after_empty_first_query(
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        """A big_number chart with no metric/columns must not hit the query
-        engine at all — it should short-circuit with a clear, specific error
-        instead of surfacing a generic "empty query" failure."""
+        """Preview validation must match the first query result it renders."""
         query_context_factory_module = importlib.import_module(
             "superset.common.query_context_factory"
         )
@@ -529,6 +527,7 @@ class TestGetChartPreview:
                     SimpleNamespace(metrics=q.get("metrics"), columns=q.get("columns"))
                     for q in kwargs["queries"]
                 ]
+                queries.append(SimpleNamespace(metrics=["secondary"], columns=[]))
                 return SimpleNamespace(queries=queries)
 
         command_calls: list[str] = []
