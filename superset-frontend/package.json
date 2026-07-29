@@ -366,7 +366,7 @@
     "tsx": "^4.23.1",
     "typescript": "5.4.5",
     "unzipper": "^0.12.5",
-    "wait-on": "^9.0.10",
+    "wait-on": "^9.1.0",
     "webpack": "^5.108.4",
     "webpack-bundle-analyzer": "^5.3.1",
     "webpack-cli": "^7.0.3",
