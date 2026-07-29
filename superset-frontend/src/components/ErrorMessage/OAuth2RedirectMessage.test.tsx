@@ -234,4 +234,22 @@ describe('OAuth2RedirectMessage Component', () => {
       ]);
     });
   });
+
+  test('runs scoped mitigation once instead of CRUD invalidation', async () => {
+    const errorMitigationFunction = jest.fn();
+    render(
+      setup({
+        source: 'crud' as ErrorSource,
+        errorMitigationFunction,
+      }),
+    );
+
+    simulateBroadcastMessage({ tabId: 'tabId' });
+    simulateStorageMessage({ tabId: 'tabId' });
+
+    await waitFor(() => {
+      expect(errorMitigationFunction).toHaveBeenCalledTimes(1);
+    });
+    expect(api.util.invalidateTags).not.toHaveBeenCalled();
+  });
 });
