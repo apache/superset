@@ -193,6 +193,7 @@ def test_explicit_temporal_column_takes_precedence(
         MixedTimeseriesChartConfig(
             x=ColumnRef(name="event_time"),
             y=[METRIC],
+            y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
             temporal_column="created_at",
         ),
     ],
