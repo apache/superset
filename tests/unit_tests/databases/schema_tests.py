@@ -588,7 +588,10 @@ def test_extra_validator_interpolates_json_decode_error() -> None:
     with pytest.raises(ValidationError) as exc_info:
         schema.load(payload)
     message = str(exc_info.value)
-    assert "Field cannot be decoded by JSON" in message
+    # Assert on the interpolated value rather than the surrounding wording. The
+    # value comes from json.JSONDecodeError, which is not translated, so this
+    # stays valid under any locale.
+    assert "line 1 column" in message
     assert "%(" not in message
 
 
