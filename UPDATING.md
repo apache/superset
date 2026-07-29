@@ -47,6 +47,22 @@ dashboard importer's behavior. This changes anything only for a user who was not
 already an editor of that chart — typically an admin overwriting a chart they do
 not own, who was previously added as an editor as a side effect of the import.
 Newly-created charts are unaffected.
+### ClickHouse: system sampling queries retry with a bounded read
+
+System-generated sampling queries — filter-value dropdowns, the Samples
+tab/dataset preview, and datetime format detection — that ClickHouse rejects
+with a `max_rows_to_read` error (`TOO_MANY_ROWS`, code 158) are now retried
+once with `SETTINGS read_overflow_mode='break'` appended, so they return a
+partial result bounded by the operator's row cap instead of failing. The retry
+applies only to statements Superset generates for physical-table datasets;
+virtual datasets and user-authored SQL remain fully governed by configured
+read limits, and queries that already succeed are never altered. Operators who
+rely on `max_rows_to_read` as a hard failure gate for these system queries can
+restore the previous behavior per database with
+`"disable_sampling_read_limit_override": true` in the database's Extra JSON.
+Note that a retried query returns partial data with no truncation indicator
+(e.g. a filter dropdown may list only a subset of values on tables above the
+row cap).
 
 ### Dashboard "Export Data to Excel" requires a Celery worker and S3 bucket
 
