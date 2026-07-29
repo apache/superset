@@ -46,7 +46,11 @@ import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import { BACKGROUND_TRANSPARENT } from 'src/dashboard/util/constants';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
-import { EMPTY_CONTAINER_Z_INDEX } from 'src/dashboard/constants';
+import {
+  EMPTY_CONTAINER_Z_INDEX,
+  FORCE_IN_VIEW_EVENT,
+  RESTORE_VIRTUALIZATION_EVENT,
+} from 'src/dashboard/constants';
 import { isCurrentUserBot } from 'src/utils/isBot';
 
 export type RowProps = {
@@ -207,6 +211,38 @@ const Row = memo((props: RowProps) => {
         observerEnabler.observe(element);
         observerDisabler.observe(element);
       }
+
+      // Client-side "Download as Image/PDF" (see src/utils/downloadUtils.ts)
+      // dispatches these events so off-screen rows render before the capture
+      // and lazy loading is restored afterwards. Without this, virtualized
+      // charts are exported as loading spinners.
+      const handleForceInView = () => {
+        observerEnabler?.disconnect();
+        observerDisabler?.disconnect();
+        setIsInView(true);
+      };
+      const handleRestoreVirtualization = () => {
+        const el = containerRef.current;
+        if (el) {
+          observerEnabler?.observe(el);
+          observerDisabler?.observe(el);
+        }
+      };
+      window.addEventListener(FORCE_IN_VIEW_EVENT, handleForceInView);
+      window.addEventListener(
+        RESTORE_VIRTUALIZATION_EVENT,
+        handleRestoreVirtualization,
+      );
+
+      return () => {
+        observerEnabler?.disconnect();
+        observerDisabler?.disconnect();
+        window.removeEventListener(FORCE_IN_VIEW_EVENT, handleForceInView);
+        window.removeEventListener(
+          RESTORE_VIRTUALIZATION_EVENT,
+          handleRestoreVirtualization,
+        );
+      };
     }
 
     return () => {
