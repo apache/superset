@@ -743,7 +743,7 @@ class TestDashboardArchiveListing(SupersetTestCase):
         dashboard = Dashboard(
             dashboard_title=title,
             slug=f"slug_{title}",
-            owners=[admin],
+            editors=subjects_from_users([admin]),
             published=True,
         )
         db.session.add(dashboard)

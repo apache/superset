@@ -616,7 +616,9 @@ class TestDatasetArchiveListing(SupersetTestCase):
         database = Database(database_name=f"db_{name}", sqlalchemy_uri="sqlite://")
         db.session.add(database)
         db.session.flush()
-        dataset = SqlaTable(table_name=name, database=database, owners=[admin])
+        dataset = SqlaTable(
+            table_name=name, database=database, editors=[_user_subject(admin)]
+        )
         db.session.add(dataset)
         db.session.commit()
         return dataset, database
