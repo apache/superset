@@ -120,6 +120,16 @@ def restore_version(
         entity = find_active_by_uuid(model_cls, entity_uuid)
         if entity is None:
             return None
+    elif entity.uuid != entity_uuid:
+        # The caller-supplied shortcut must describe the same row as
+        # *entity_uuid*: everything downstream (the version lookup, the
+        # audit stamp, the caller's logging) trusts them to agree. Fail
+        # loudly rather than restore one entity while reporting another.
+        raise ValueError(
+            f"entity.uuid ({entity.uuid!r}) does not match entity_uuid "
+            f"({entity_uuid!r}); the preloaded entity must be the one "
+            "identified by entity_uuid"
+        )
 
     ver_cls = version_class(model_cls)
     target_version = (

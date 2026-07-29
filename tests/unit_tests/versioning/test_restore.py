@@ -61,7 +61,7 @@ def test_restore_version_returns_none_for_missing_transaction(
     the row was retention-pruned between resolve and restore."""
     mock_db.session = _engine_with_target(None)
     result = restore_version(
-        MagicMock(__name__="Slice"), _UUID, 123, entity=MagicMock(id=1)
+        MagicMock(__name__="Slice"), _UUID, 123, entity=MagicMock(id=1, uuid=_UUID)
     )
     assert result is None
 
@@ -75,7 +75,7 @@ def test_restore_version_refuses_delete_row_target(mock_db, mock_version_class) 
     target = MagicMock(operation_type=OPERATION_DELETE)
     mock_db.session = _engine_with_target(target)
     result = restore_version(
-        MagicMock(__name__="Slice"), _UUID, 123, entity=MagicMock(id=1)
+        MagicMock(__name__="Slice"), _UUID, 123, entity=MagicMock(id=1, uuid=_UUID)
     )
     assert result is None
     target.revert.assert_not_called()
@@ -92,7 +92,29 @@ def test_restore_version_fails_closed_for_unregistered_model(
     mock_db.session = _engine_with_target(MagicMock(operation_type=0))
     with pytest.raises(LookupError, match="SomeNewModel"):
         restore_version(
-            MagicMock(__name__="SomeNewModel"), _UUID, 123, entity=MagicMock(id=1)
+            MagicMock(__name__="SomeNewModel"),
+            _UUID,
+            123,
+            entity=MagicMock(id=1, uuid=_UUID),
+        )
+
+
+@patch("superset.versioning.restore.version_class")
+@patch("superset.versioning.restore.db")
+def test_restore_version_rejects_entity_uuid_mismatch(
+    mock_db, mock_version_class
+) -> None:
+    """A preloaded *entity* must be the row *entity_uuid* names. If they
+    disagree the engine would restore one entity while the caller logs
+    another, so it raises instead of guessing."""
+    mock_db.session = _engine_with_target(MagicMock(operation_type=0))
+    other_uuid = UUID("00000000-0000-0000-0000-0000000000ff")
+    with pytest.raises(ValueError, match="does not match entity_uuid"):
+        restore_version(
+            MagicMock(__name__="Slice"),
+            _UUID,
+            123,
+            entity=MagicMock(id=1, uuid=other_uuid),
         )
 
 

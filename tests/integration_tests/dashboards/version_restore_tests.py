@@ -353,6 +353,8 @@ class TestDashboardRestoreApi(SupersetTestCase):
         self.login(ALPHA_USERNAME)
         rv = self._restore(str(dashboard.uuid), target_uuid)
         assert rv.status_code == 403, rv.data
+        db.session.refresh(dashboard)
+        assert dashboard.dashboard_title == "USA Births Names"
 
     def test_restore_returns_404_for_unknown_uuid(self) -> None:
         self.login(ADMIN_USERNAME)

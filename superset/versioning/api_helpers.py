@@ -310,7 +310,7 @@ def restore_version_endpoint(
     except command_cls.forbidden_exc:
         return api.response_403()
     except command_cls.failed_exc as ex:
-        logger.error("Error restoring %s version: %s", model_cls.__name__, ex)
+        logger.exception("Error restoring %s version", model_cls.__name__)
         return api.response_422(message=str(ex))
 
     message = "OK"

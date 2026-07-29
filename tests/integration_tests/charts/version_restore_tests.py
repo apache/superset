@@ -342,6 +342,8 @@ class TestChartRestoreApi(SupersetTestCase):
         self.login(ALPHA_USERNAME)
         rv = self._restore(str(chart.uuid), target_uuid)
         assert rv.status_code == 403, rv.data
+        db.session.refresh(chart)
+        assert chart.slice_name == "Girls"
 
     def test_restore_returns_404_when_capture_disabled(self) -> None:
         """With ENABLE_VERSIONING_CAPTURE off, the restore route is inert:

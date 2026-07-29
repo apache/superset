@@ -503,3 +503,5 @@ class TestDatasetRestoreApi(SupersetTestCase):
         self.login(GAMMA_USERNAME)
         rv = self._restore(table_uuid, "00000000-0000-0000-0000-000000000001")
         assert rv.status_code == 403
+        db.session.refresh(table)
+        assert table.table_name == "birth_names"
