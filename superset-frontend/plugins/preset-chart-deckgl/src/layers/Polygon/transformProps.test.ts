@@ -529,4 +529,48 @@ describe('Polygon transformProps', () => {
     expect(features[0]?.extraProps?.['SUM(population)']).toBe(50000);
     expect(features[0]?.metrics?.['SUM(population)']).toBe(50000);
   });
+
+  // Regression test for #33669: a boundary column literally named "polygon"
+  // (the same key this transform uses internally for the parsed geometry)
+  // reportedly broke rendering, because the raw column value could
+  // theoretically collide with the `polygon` key this function builds on
+  // each feature. `line_column` is excluded before spreading a record's
+  // other properties onto the feature, and the parsed `polygon` key is
+  // assigned last in the returned object literal, so it should always win
+  // over anything copied from the raw record, even when they share a name.
+  test('should correctly parse polygon geometry when the boundary column is itself named "polygon"', () => {
+    const collidingColumnNameProps = {
+      ...mockChartProps,
+      rawFormData: {
+        ...mockChartProps.rawFormData,
+        line_column: 'polygon',
+      },
+      queriesData: [
+        {
+          data: [
+            {
+              polygon: JSON.stringify([
+                [-122.4, 37.8],
+                [-122.3, 37.8],
+                [-122.3, 37.9],
+                [-122.4, 37.9],
+              ]),
+              population: 50000,
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = transformProps(collidingColumnNameProps as ChartProps);
+    const features = result.payload.data.features as PolygonFeature[];
+
+    expect(features).toHaveLength(1);
+    expect(features[0]?.polygon).toEqual([
+      [-122.4, 37.8],
+      [-122.3, 37.8],
+      [-122.3, 37.9],
+      [-122.4, 37.9],
+    ]);
+  });
 });
