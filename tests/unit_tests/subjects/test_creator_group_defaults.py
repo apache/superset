@@ -44,12 +44,21 @@ def _group_subject(id_: int) -> Subject:
 
 
 def test_gate_resolves_the_assign_creator_groups_feature_flag(app_context) -> None:
-    """The setting is a feature flag, read via ``is_feature_enabled``."""
+    """The gate is a feature flag read via ``is_feature_enabled`` and additionally
+    requires ``ENABLE_VIEWERS``."""
     with patch("superset.is_feature_enabled", return_value=True) as mock_flag:
         assert _assigns_creator_groups_as_viewers() is True
-    mock_flag.assert_called_once_with("ASSIGN_CREATOR_GROUPS_AS_VIEWERS")
+    mock_flag.assert_any_call("ENABLE_VIEWERS")
+    mock_flag.assert_any_call("ASSIGN_CREATOR_GROUPS_AS_VIEWERS")
 
     with patch("superset.is_feature_enabled", return_value=False):
+        assert _assigns_creator_groups_as_viewers() is False
+
+    # ASSIGN on but ENABLE_VIEWERS off → the gate stays closed.
+    with patch(
+        "superset.is_feature_enabled",
+        side_effect=lambda flag: flag != "ENABLE_VIEWERS",
+    ):
         assert _assigns_creator_groups_as_viewers() is False
 
 

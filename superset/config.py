@@ -851,9 +851,10 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "ENABLE_VIEWERS": False,
     # Share a newly created dashboard or chart read-only with every group its
     # creator belongs to, unless the create payload names viewers explicitly.
-    # Narrows access: an asset with no viewers falls back to datasource
-    # permissions; one with viewers is limited to its editors and viewers, and
-    # dashboards must also be published before those viewers gain access.
+    # Requires ENABLE_VIEWERS. Narrows access: an asset with no viewers falls
+    # back to datasource permissions; one with viewers is limited to its editors
+    # and viewers, and dashboards must also be published before those viewers
+    # gain access.
     # @lifecycle: testing
     # @category: security
     "ASSIGN_CREATOR_GROUPS_AS_VIEWERS": False,

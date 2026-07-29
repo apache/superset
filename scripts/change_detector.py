@@ -96,9 +96,11 @@ def _api_error_detail(err: object) -> str:
     except Exception:  # noqa: BLE001  # pylint: disable=broad-except
         return ""
     try:
-        return json.loads(body).get("message") or body
+        detail = json.loads(body).get("message") or body
     except (ValueError, AttributeError):
-        return body
+        detail = body
+    # Bound the output so a large/HTML error page can't flood the CI log.
+    return detail[:500]
 
 
 def fetch_files_github_api(url: str):  # type: ignore

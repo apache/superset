@@ -130,7 +130,15 @@ def get_user_group_subjects(user_id: int) -> list[Subject]:
 def _assigns_creator_groups_as_viewers() -> bool:
     from superset import is_feature_enabled
 
-    return has_app_context() and is_feature_enabled("ASSIGN_CREATOR_GROUPS_AS_VIEWERS")
+    # Also requires ENABLE_VIEWERS. ``raise_for_access`` enforces any non-empty
+    # ``viewers`` relationship regardless of that flag (a viewer list removes the
+    # datasource fallback), so assigning viewers while the viewers feature is off
+    # would silently restrict new assets to their editors/viewers.
+    return (
+        has_app_context()
+        and is_feature_enabled("ENABLE_VIEWERS")
+        and is_feature_enabled("ASSIGN_CREATOR_GROUPS_AS_VIEWERS")
+    )
 
 
 def get_default_viewers_for_new_asset(user_id: int | None) -> list[Subject]:

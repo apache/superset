@@ -204,16 +204,19 @@ def test_get_or_create_group_subject_handles_concurrent_insert() -> None:
             side_effect=[None, winner],
         ) as mock_get_group_subject,
         patch("superset.subjects.utils.db") as mock_db,
-        patch("superset.subjects.sync.sync_group_subject"),
+        patch(
+            "superset.subjects.sync.sync_group_subject",
+            side_effect=IntegrityError("duplicate group_id", None, Exception()),
+        ) as mock_sync,
     ):
         mock_db.session.get.return_value = group
-        mock_db.session.begin_nested.return_value.__enter__.side_effect = (
-            IntegrityError("duplicate group_id", None, Exception())
-        )
+        # The mocked savepoint must not suppress the error raised inside its body.
+        mock_db.session.begin_nested.return_value.__exit__.return_value = False
 
         assert get_or_create_group_subject(7) is winner
 
-    # First lookup misses, the reload after the conflict returns the winner.
+    # The insert (via ``sync``) ran and conflicted; the reload returns the winner.
+    mock_sync.assert_called_once_with(group)
     assert mock_get_group_subject.call_count == 2
 
 
@@ -228,15 +231,18 @@ def test_get_or_create_group_subject_reraises_unrelated_integrity_error() -> Non
     with (
         patch("superset.subjects.utils.get_group_subject", return_value=None),
         patch("superset.subjects.utils.db") as mock_db,
-        patch("superset.subjects.sync.sync_group_subject"),
+        patch(
+            "superset.subjects.sync.sync_group_subject",
+            side_effect=IntegrityError("unrelated failure", None, Exception()),
+        ) as mock_sync,
     ):
         mock_db.session.get.return_value = group
-        mock_db.session.begin_nested.return_value.__enter__.side_effect = (
-            IntegrityError("unrelated failure", None, Exception())
-        )
+        mock_db.session.begin_nested.return_value.__exit__.return_value = False
 
         with pytest.raises(IntegrityError):
             get_or_create_group_subject(7)
+
+    mock_sync.assert_called_once_with(group)
 
 
 def test_get_or_create_group_subject_missing_group_returns_none() -> None:
