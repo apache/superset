@@ -180,3 +180,21 @@ test('cross-filter does nothing when emitCrossFilters is false', () => {
 
   expect(setDataMask).not.toHaveBeenCalled();
 });
+
+test('cross-filter does nothing when name is missing from labelMap', () => {
+  const setDataMask = jest.fn();
+  const props = buildProps({
+    groupby: ['topics'],
+    labelMap: {
+      cancellations: ['cancellations'],
+    },
+    selectedValues: {},
+    setDataMask,
+  });
+
+  const handlers = allEventHandlers(props);
+  // e.g. Pie "Other" category is not present in labelMap
+  handlers.click({ name: 'Other' });
+
+  expect(setDataMask).not.toHaveBeenCalled();
+});
