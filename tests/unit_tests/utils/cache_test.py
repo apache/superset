@@ -17,6 +17,8 @@
 
 # pylint: disable=import-outside-toplevel, unused-argument
 
+from unittest.mock import MagicMock
+
 from pytest_mock import MockerFixture
 
 
@@ -49,3 +51,105 @@ def test_memoized_func(mocker: MockerFixture) -> None:
     cache.get.return_value = 43
     result = decorated(self, "public", cache=True)
     assert result == 43
+
+
+def _make_cache_instance(mocker: MockerFixture) -> MagicMock:
+    """A cache instance whose ``.cache`` is not a ``NullCache``."""
+    cache_instance = mocker.MagicMock()
+    cache_instance.cache = object()
+    return cache_instance
+
+
+def _patch_config(mocker: MockerFixture, **overrides: object) -> dict:
+    config = {
+        "CACHE_DEFAULT_TIMEOUT": 100,
+        "STATS_LOGGER": mocker.MagicMock(),
+        "STORE_CACHE_KEYS_IN_METADATA_DB": False,
+        "DATA_CACHE_MAX_VALUE_SIZE": None,
+    }
+    config.update(overrides)
+    mocker.patch("superset.utils.cache.app.config", config)
+    return config
+
+
+def test_set_and_log_cache_under_threshold(mocker: MockerFixture) -> None:
+    """A value under DATA_CACHE_MAX_VALUE_SIZE is cached normally."""
+    from superset.utils.cache import set_and_log_cache
+
+    config = _patch_config(mocker, DATA_CACHE_MAX_VALUE_SIZE=10 * 1024 * 1024)
+    cache_instance = _make_cache_instance(mocker)
+
+    set_and_log_cache(cache_instance, "my_key", {"df": "small"})
+
+    cache_instance.set.assert_called_once()
+    config["STATS_LOGGER"].incr.assert_any_call("set_cache_key")
+    assert (
+        mocker.call("skip_cache_value_too_large")
+        not in config["STATS_LOGGER"].incr.mock_calls
+    )
+
+
+def test_set_and_log_cache_over_threshold(mocker: MockerFixture) -> None:
+    """A value exceeding DATA_CACHE_MAX_VALUE_SIZE is not cached."""
+    from superset.utils.cache import set_and_log_cache
+
+    config = _patch_config(
+        mocker,
+        DATA_CACHE_MAX_VALUE_SIZE=10,
+        STORE_CACHE_KEYS_IN_METADATA_DB=True,
+    )
+    cache_instance = _make_cache_instance(mocker)
+    mock_session = mocker.patch("superset.utils.cache.db.session")
+
+    set_and_log_cache(
+        cache_instance,
+        "my_key",
+        {"df": "a value large enough to exceed the tiny threshold"},
+        datasource_uid="1__table",
+    )
+
+    cache_instance.set.assert_not_called()
+    config["STATS_LOGGER"].incr.assert_called_once_with("skip_cache_value_too_large")
+    assert mocker.call("set_cache_key") not in config["STATS_LOGGER"].incr.mock_calls
+    mock_session.add.assert_not_called()
+
+
+def test_set_and_log_cache_disabled_no_serialization(mocker: MockerFixture) -> None:
+    """When the limit is None (default), no pickling overhead is incurred."""
+    from superset.utils.cache import set_and_log_cache
+
+    _patch_config(mocker, DATA_CACHE_MAX_VALUE_SIZE=None)
+    cache_instance = _make_cache_instance(mocker)
+    mock_dumps = mocker.patch("superset.utils.cache.pickle.dumps")
+
+    set_and_log_cache(cache_instance, "my_key", {"df": "small"})
+
+    cache_instance.set.assert_called_once()
+    mock_dumps.assert_not_called()
+
+
+def test_set_and_log_cache_null_cache(mocker: MockerFixture) -> None:
+    """A NullCache backend short-circuits before any set."""
+    from flask_caching.backends import NullCache
+
+    from superset.utils.cache import set_and_log_cache
+
+    _patch_config(mocker, DATA_CACHE_MAX_VALUE_SIZE=10)
+    cache_instance = mocker.MagicMock()
+    cache_instance.cache = NullCache()
+
+    set_and_log_cache(cache_instance, "my_key", {"df": "small"})
+
+    cache_instance.set.assert_not_called()
+
+
+def test_set_and_log_cache_disabled_timeout(mocker: MockerFixture) -> None:
+    """A timeout of -1 (CACHE_DISABLED_TIMEOUT) short-circuits before any set."""
+    from superset.utils.cache import set_and_log_cache
+
+    _patch_config(mocker)
+    cache_instance = _make_cache_instance(mocker)
+
+    set_and_log_cache(cache_instance, "my_key", {"df": "small"}, cache_timeout=-1)
+
+    cache_instance.set.assert_not_called()
