@@ -74,6 +74,13 @@ const filterB: BinaryQueryObjectFilterClause = {
   formattedVal: 'Two days ago',
 };
 
+const filterNull: BinaryQueryObjectFilterClause = {
+  col: 'sample_column_3',
+  op: '==',
+  val: null as unknown as string,
+  formattedVal: '<NULL>',
+};
+
 const MockRenderChart = ({
   chartId,
   formData,
@@ -425,4 +432,15 @@ test.skip('context menu for supported chart, dimensions, all filters', async () 
   const filters = [filterA, filterB];
   await setupMenu(filters);
   await expectDrillToDetailByAll(filters);
+});
+
+test('context menu renders <NULL> for null dimension values', async () => {
+  renderMenu({
+    formData: defaultFormData,
+    isContextMenu: true,
+    filters: [filterNull],
+  });
+
+  await expectDrillToDetailByEnabled();
+  await expectDrillToDetailByDimension(filterNull);
 });

@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core/translation';
 import { SelectOptionsType, SelectProps } from './types';
 import { Select } from '.';
 
@@ -109,7 +110,7 @@ export const InteractiveSelect = ({
 
 InteractiveSelect.args = {
   mode: 'single',
-  placeholder: 'Select ...',
+  placeholder: t('Select ...'),
   showSearch: true,
   allowNewOptions: false,
   allowClear: false,
@@ -414,7 +415,7 @@ AdvancedPlayground.args = {
   oneLine: false,
   optionsCount: options.length,
   optionFilterProps: ['value', 'label', 'custom'],
-  placeholder: 'Select ...',
+  placeholder: t('Select ...'),
   showSearch: true,
 };
 

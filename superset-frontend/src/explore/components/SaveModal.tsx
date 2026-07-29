@@ -68,6 +68,7 @@ import {
   updateChartState,
 } from 'src/dashboard/actions/dashboardState';
 import { Dashboard } from 'src/types/Dashboard';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import { TabNode, TabTreeNode } from '../types';
 import { CHART_WIDTH, CHART_HEIGHT } from 'src/dashboard/constants';
 
@@ -227,14 +228,38 @@ const SaveModal = ({
   const history = useHistory();
   const theme = useTheme();
 
-  const canOverwriteSlice = useCallback(
-    (): boolean =>
+  const isCurrentUserOwner = useCallback((): boolean => {
+    const userId = user?.userId;
+    if (userId === undefined) {
+      return false;
+    }
+    // The Slice type declares `owners` as `number[]`, but the explore
+    // bootstrap payload can carry owners as API `Owner` objects (`{ id }`)
+    // instead, so normalize to the numeric id before comparing.
+    return Boolean(
+      slice?.owners?.some((owner: number | { id?: number }) =>
+        typeof owner === 'number' ? owner === userId : owner?.id === userId,
+      ),
+    );
+  }, [slice, user]);
+
+  const canOverwriteSlice = useCallback((): boolean => {
+    const userSubjects = getBootstrapData()?.common?.user_subjects ?? [];
+    const canEditSlice = Boolean(
+      slice?.editors?.some((editor: { id: number } | number) =>
+        userSubjects.includes(typeof editor === 'number' ? editor : editor.id),
+      ),
+    );
+
+    return (
+      !!slice &&
       (can_overwrite ||
         isUserAdmin(user) ||
-        slice?.owners?.includes(user.userId)) &&
-      !slice?.is_managed_externally,
-    [can_overwrite, slice, user],
-  );
+        canEditSlice ||
+        isCurrentUserOwner()) &&
+      !slice?.is_managed_externally
+    );
+  }, [can_overwrite, slice, user, isCurrentUserOwner]);
 
   const [newSliceName, setNewSliceName] = useState<string | undefined>(
     sliceName,
@@ -642,9 +667,9 @@ const SaveModal = ({
             value: search,
           },
           {
-            col: 'owners',
-            opr: 'rel_m_m',
-            value: user.userId,
+            col: 'id',
+            opr: 'is_editable',
+            value: true,
           },
         ],
         page,
@@ -666,7 +691,7 @@ const SaveModal = ({
         totalCount: count,
       };
     },
-    [user.userId],
+    [],
   );
 
   const onTabChange = useCallback(
@@ -737,7 +762,7 @@ const SaveModal = ({
                     "This chart is managed externally and can't be overwritten in Superset.",
                   )
                 : t(
-                    'Must be a chart owner to overwrite this chart. Save as a new chart instead.',
+                    'Must be a chart editor to overwrite this chart. Save as a new chart instead.',
                   )}
             </Typography.Text>
           </div>

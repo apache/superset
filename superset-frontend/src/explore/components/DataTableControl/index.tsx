@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, useEffect, useRef, RefObject } from 'react';
+import { useMemo, useState, useEffect, useRef, RefObject } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 
@@ -35,7 +35,7 @@ export const CellNull = styled('span')`
 export const CopyButton = styled(Button)`
   font-size: ${({ theme }) => theme.fontSizeSM}px;
 
-  // needed to override button's first-of-type margin: 0
+  /* needed to override button's first-of-type margin: 0 */
   && {
     margin: 0 ${({ theme }) => theme.sizeUnit * 2}px;
   }
@@ -65,11 +65,20 @@ export const CopyToClipboardButton = ({
       disabled={disabled}
       wrapped={false}
       copyNode={
-        <span
-          role="button"
+        <button
+          type="button"
           aria-label={t('Copy')}
           aria-disabled={disabled}
           tabIndex={disabled ? -1 : 0}
+          css={css`
+            appearance: none;
+            border: none;
+            background: none;
+            padding: 0;
+            font: inherit;
+            display: inline-flex;
+            align-items: center;
+          `}
         >
           <Icons.CopyOutlined
             iconColor={theme.colorIcon}
@@ -82,7 +91,7 @@ export const CopyToClipboardButton = ({
               }
             `}
           />
-        </span>
+        </button>
       }
     />
   );
@@ -91,30 +100,66 @@ export const CopyToClipboardButton = ({
 export const FilterInput = ({
   onChangeHandler,
   shouldFocus = false,
+  value: externalValue = '',
 }: {
   onChangeHandler(filterText: string): void;
   shouldFocus?: boolean;
+  value?: string;
 }) => {
   const inputRef: RefObject<any> = useRef(null);
+  const [internalValue, setInternalValue] = useState(externalValue);
+  const lastEmittedValue = useRef(externalValue);
+  const onChangeRef = useRef(onChangeHandler);
+  onChangeRef.current = onChangeHandler;
 
   useEffect(() => {
-    // Focus the input element when the component mounts
+    if (externalValue !== lastEmittedValue.current) {
+      setInternalValue(externalValue);
+    }
+    lastEmittedValue.current = externalValue;
+  }, [externalValue]);
+
+  useEffect(() => {
     if (inputRef.current && shouldFocus) {
-      inputRef.current.focus();
+      // Skip auto-focus only when an editable element already has focus (e.g.
+      // user is typing in a form control when this pane remounts after a data
+      // refresh). Non-editable focused elements like tabs/buttons still allow
+      // auto-focus so the search box focuses on first open.
+      const activeEl = document.activeElement;
+      const editableFocused =
+        activeEl instanceof HTMLElement &&
+        (activeEl.tagName === 'INPUT' ||
+          activeEl.tagName === 'TEXTAREA' ||
+          activeEl.isContentEditable);
+      if (!editableFocused) {
+        inputRef.current.focus();
+      }
     }
   }, []);
 
   const theme = useTheme();
-  const debouncedChangeHandler = debounce(
-    onChangeHandler,
-    Constants.SLOW_DEBOUNCE,
+  const debouncedChangeHandler = useMemo(
+    () =>
+      debounce((value: string) => {
+        lastEmittedValue.current = value;
+        onChangeRef.current(value);
+      }, Constants.SLOW_DEBOUNCE),
+    [],
   );
+
+  useEffect(
+    () => () => debouncedChangeHandler.flush(),
+    [debouncedChangeHandler],
+  );
+
   return (
     <Input
       prefix={<Icons.SearchOutlined iconSize="l" />}
       placeholder={t('Search')}
+      value={internalValue}
       onChange={(event: any) => {
         const filterText = event.target.value;
+        setInternalValue(filterText);
         debouncedChangeHandler(filterText);
       }}
       css={css`

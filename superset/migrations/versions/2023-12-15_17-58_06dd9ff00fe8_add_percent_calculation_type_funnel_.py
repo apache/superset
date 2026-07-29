@@ -24,7 +24,7 @@ Create Date: 2023-12-15 17:58:18.277951
 
 from alembic import op
 from sqlalchemy import Column, Integer, String, Text
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 from superset import db
 from superset.migrations.shared.utils import paginated_update
@@ -46,7 +46,7 @@ class Slice(Base):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for slc in paginated_update(
         session.query(Slice).filter(Slice.viz_type == "funnel")
@@ -61,7 +61,7 @@ def upgrade():
 
 def downgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for slc in paginated_update(
         session.query(Slice).filter(Slice.viz_type == "funnel")

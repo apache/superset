@@ -17,6 +17,7 @@
  * under the License.
  */
 import { DatasourceType, TimeGranularity, VizType } from '@superset-ui/core';
+import type { LineSeriesOption } from 'echarts';
 import { supersetTheme } from '@apache-superset/core/theme';
 import transformProps from '../../src/BigNumber/BigNumberWithTrendline/transformProps';
 import {
@@ -133,10 +134,34 @@ describe('BigNumberWithTrendline', () => {
       // bigNumberFallback is only set when bigNumber is null after aggregation
       expect(transformed.bigNumberFallback).toBeNull();
 
-      // should successfully formatTime by granularity
+      // granularity (QUARTER) is honored, so the default format renders the
+      // full quarter range rather than only the start date
       // @ts-expect-error
       expect(transformed.formatTime(new Date('2020-01-01'))).toStrictEqual(
-        '2020-01-01 00:00:00',
+        '2020 Q1',
+      );
+    });
+
+    test('should format the week range with a custom date format', () => {
+      // Regression test for #35636: a custom date format combined with a Week
+      // time grain should render the full week range, not just the start date.
+      const propsWithWeekGranularity = {
+        ...props,
+        rawFormData: {
+          ...rawFormData,
+          time_grain_sqla: TimeGranularity.WEEK,
+        },
+        formData: {
+          ...props.formData,
+          timeGrainSqla: TimeGranularity.WEEK,
+          timeFormat: '%d-%m-%Y',
+        },
+      } as unknown as BigNumberWithTrendlineChartProps;
+
+      const transformed = transformProps(propsWithWeekGranularity);
+      // @ts-expect-error
+      expect(transformed.formatTime(new Date('2025-10-13'))).toStrictEqual(
+        '13-10-2025 — 19-10-2025',
       );
     });
 
@@ -269,11 +294,18 @@ describe('BigNumberWithTrendline', () => {
       },
     });
 
+    const series = (
+      transformed.echartOptions?.series as LineSeriesOption[]
+    )?.[0];
+    const lineWidth = series?.lineStyle?.width;
+    expect(lineWidth).toBe(2);
+
+    const expectedPad = (lineWidth as number) / 2;
     expect(transformed.echartOptions?.grid).toEqual({
-      bottom: 0,
-      left: 0,
-      right: 0,
-      top: 0,
+      bottom: expectedPad,
+      left: expectedPad,
+      right: expectedPad,
+      top: expectedPad,
     });
   });
 

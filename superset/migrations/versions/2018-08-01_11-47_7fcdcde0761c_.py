@@ -27,7 +27,7 @@ import re
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 from superset import db
 from superset.utils import json
@@ -55,7 +55,7 @@ def is_v2_dash(positions):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     dashboards = session.query(Dashboard).all()
     for i, dashboard in enumerate(dashboards):  # noqa: B007

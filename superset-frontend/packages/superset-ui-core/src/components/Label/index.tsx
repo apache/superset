@@ -34,7 +34,7 @@ export const Label = forwardRef<HTMLSpanElement, LabelProps>((props, ref) => {
     onClick,
     children,
     icon,
-    id,
+    id: _id,
     ...rest
   } = props;
 
@@ -53,7 +53,7 @@ export const Label = forwardRef<HTMLSpanElement, LabelProps>((props, ref) => {
     overflow: hidden;
     text-overflow: ellipsis;
     background-color: ${backgroundColor};
-    border-radius: 8px;
+    border-radius: ${theme.labelBorderRadius ?? 8}px;
     border-color: ${borderColor};
     padding: 0.35em 0.8em;
     line-height: 1;
@@ -76,7 +76,40 @@ export const Label = forwardRef<HTMLSpanElement, LabelProps>((props, ref) => {
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       style={style}
-      icon={icon}
+      /*
+       * Ant Design v6's Tag renders the label text in a content span and spaces
+       * it from the icon via the `> .anticon + span` rule. That rule only matches
+       * when the icon is a direct `.anticon` child, which the wrapper span below
+       * breaks, so the gap is restored explicitly on the content span. Gate it on
+       * `icon` so icon-less labels keep their natural spacing regardless of how
+       * antd renders the content slot.
+       */
+      styles={
+        icon
+          ? { content: { marginInlineStart: theme.sizeUnit * 2 } }
+          : undefined
+      }
+      /*
+       * Ant Design v6's Tag clones the `icon` element and overrides its inline
+       * `style` (see antd/es/tag: cloneElement(icon, { style: mergedStyles.icon })),
+       * which would drop the icon's own color/size. Wrapping the icon in a span
+       * lets Tag override the (empty) wrapper style while the real icon keeps its
+       * own inline styling.
+       */
+      icon={
+        icon ? (
+          <span
+            css={css`
+              display: inline-flex;
+              align-items: center;
+            `}
+          >
+            {icon}
+          </span>
+        ) : (
+          icon
+        )
+      }
       css={labelStyles}
       {...rest}
     >

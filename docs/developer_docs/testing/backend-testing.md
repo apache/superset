@@ -120,7 +120,7 @@ SMTP_MAIL_FROM = "superset@localhost"
 # Must match where your frontend is running
 WEBDRIVER_BASEURL = "http://localhost:9000/"
 
-ALERT_REPORTS_EXECUTE_AS = [ExecutorType.OWNER]
+ALERT_REPORTS_EXECUTORS = [ExecutorType.EDITOR]
 
 FEATURE_FLAGS = {
     "ALERT_REPORTS": True,

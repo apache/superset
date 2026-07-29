@@ -381,7 +381,7 @@ def _find_and_authorize_dashboard(
 ) -> tuple[Any, AddChartToDashboardResponse | None]:
     """Return (dashboard, None) on success or (None, error_response) on failure.
 
-    Handles both the not-found case and the ownership check so the main tool
+    Handles both the not-found case and the editorship check so the main tool
     function doesn't need two separate branches for these pre-conditions.
     """
     from superset import security_manager
@@ -401,7 +401,7 @@ def _find_and_authorize_dashboard(
         )
 
     try:
-        security_manager.raise_for_ownership(dashboard)
+        security_manager.raise_for_editorship(dashboard)
     except SupersetSecurityException:
         return None, AddChartToDashboardResponse(
             dashboard=None,
@@ -542,10 +542,10 @@ def add_chart_to_existing_dashboard(  # noqa: C901 — complexity is structural 
 
         # Re-fetch the dashboard with eager-loaded relationships to avoid
         # "Instance is not bound to a Session" errors when serializing
-        # chart tags.  The preceding command.run() commit may
+        # chart .tags and .editors.  The preceding command.run() commit may
         # invalidate the session in multi-tenant environments; on failure,
         # return a minimal response using only scalar attributes that are
-        # already loaded — relationship fields (tags, slices) would
+        # already loaded — relationship fields (editors, tags, slices) would
         # trigger lazy-loading on the same dead session.
         from sqlalchemy.orm import subqueryload
 
@@ -558,7 +558,9 @@ def add_chart_to_existing_dashboard(  # noqa: C901 — complexity is structural 
                 DashboardDAO.find_by_id(
                     updated_dashboard.id,
                     query_options=[
+                        subqueryload(Dashboard.slices).subqueryload(Slice.editors),
                         subqueryload(Dashboard.slices).subqueryload(Slice.tags),
+                        subqueryload(Dashboard.editors),
                         subqueryload(Dashboard.tags),
                     ],
                 )
@@ -578,7 +580,7 @@ def add_chart_to_existing_dashboard(  # noqa: C901 — complexity is structural 
                     exc_info=True,
                 )
             dashboard_url = (
-                f"{get_superset_base_url()}/superset/dashboard/{updated_dashboard.id}/"
+                f"{get_superset_base_url()}/dashboard/{updated_dashboard.id}/"
             )
             position_info = {
                 "row": row_key,
@@ -602,6 +604,7 @@ def add_chart_to_existing_dashboard(  # noqa: C901 — complexity is structural 
         from superset.mcp_service.dashboard.schemas import (
             serialize_tag_object,
         )
+        from superset.mcp_service.system.schemas import serialize_subject_object
 
         include_data_model_metadata = user_can_view_data_model_metadata()
         dashboard_info = DashboardInfo(
@@ -613,8 +616,13 @@ def add_chart_to_existing_dashboard(  # noqa: C901 — complexity is structural 
             created_on=updated_dashboard.created_on,
             changed_on=updated_dashboard.changed_on,
             uuid=str(updated_dashboard.uuid) if updated_dashboard.uuid else None,
-            url=f"{get_superset_base_url()}/superset/dashboard/{updated_dashboard.id}/",
+            url=f"{get_superset_base_url()}/dashboard/{updated_dashboard.id}/",
             chart_count=len(updated_dashboard.slices),
+            editors=[
+                serialize_subject_object(editor)
+                for editor in getattr(updated_dashboard, "editors", [])
+                if serialize_subject_object(editor) is not None
+            ],
             tags=[
                 serialize_tag_object(tag)
                 for tag in getattr(updated_dashboard, "tags", [])
@@ -633,9 +641,7 @@ def add_chart_to_existing_dashboard(  # noqa: C901 — complexity is structural 
             ],
         )
 
-        dashboard_url = (
-            f"{get_superset_base_url()}/superset/dashboard/{updated_dashboard.id}/"
-        )
+        dashboard_url = f"{get_superset_base_url()}/dashboard/{updated_dashboard.id}/"
 
         logger.info(
             "Added chart %s to dashboard %s ", request.chart_id, request.dashboard_id

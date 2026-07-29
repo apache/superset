@@ -27,13 +27,7 @@ kind: PodDisruptionBudget
 metadata:
   name: {{ include "superset.fullname" $ }}-celerybeat-pdb
   labels:
-    app: {{ template "superset.name" $ }}-celerybeat
-    chart: {{ template "superset.chart" $ }}
-    release: {{ $.Release.Name }}
-    heritage: {{ $.Release.Service }}
-    {{- if $.Values.extraLabels }}
-      {{- toYaml $.Values.extraLabels | nindent 4 }}
-    {{- end }}
+    {{- include "superset.componentLabels" (dict "component" "celerybeat" "root" $) | nindent 4 }}
 spec:
   {{- if .minAvailable }}
   minAvailable: {{ .minAvailable }}

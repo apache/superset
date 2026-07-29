@@ -72,10 +72,16 @@ const StyledTabsContainer = styled.div<{ isDragging?: boolean }>`
     }
   }
 
-  /* Hide ink-bar during drag */
   ${({ isDragging }) =>
     isDragging &&
     `
+    /* Show the drag indicator during drag, over the tab title textarea too.
+       The doubled parent outranks the title's own cursor; a single & loses. */
+    && .dragdroppable-tab * {
+      cursor: move;
+    }
+
+    /* Hide ink-bar during drag */
     .ant-tabs-card > .ant-tabs-nav .ant-tabs-ink-bar,
     .ant-tabs > .ant-tabs-nav .ant-tabs-ink-bar {
       display: none !important;
@@ -117,7 +123,6 @@ interface DraggableTabNodeProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const DraggableTabNode: React.FC<Readonly<DraggableTabNodeProps>> = ({
-  className,
   disabled = false,
   ...props
 }) => {
@@ -170,7 +175,6 @@ const TabsRenderer = memo<TabsRendererProps>(
     tabBarPaddingLeft = 0,
     onTabsReorder,
     isEditingTabTitle = false,
-    onTabTitleEditingChange,
   }) => {
     const [activeId, setActiveId] = useState<string | null>(null);
 

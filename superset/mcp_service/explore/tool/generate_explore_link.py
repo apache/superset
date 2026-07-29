@@ -105,7 +105,8 @@ async def generate_explore_link(
     Only use generate_chart when user EXPLICITLY requests to save/create a
     permanent chart.
 
-    Returns explore URL for immediate use.
+    Returns explore URL for immediate use. The URL scheme matches the configured
+    instance URL (HTTPS in production/staging, HTTP in local development).
     """
     chart_type = request.config.chart_type if request.config else "none"
     await ctx.info(

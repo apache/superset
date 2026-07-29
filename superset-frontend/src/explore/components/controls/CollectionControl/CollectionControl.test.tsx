@@ -134,6 +134,14 @@ test('Should have SortableDragger icon', async () => {
   expect(await screen.findByLabelText('Drag to reorder')).toBeVisible();
 });
 
+test('Drag activator exposes aria-label="Drag to reorder"', async () => {
+  const props = createProps();
+  render(<CollectionControl {...props} />);
+  const dragActivator = await screen.findByLabelText('Drag to reorder');
+  expect(dragActivator).toHaveAttribute('aria-label', 'Drag to reorder');
+  expect(dragActivator.tagName).toBe('BUTTON');
+});
+
 test('Should call Control component', async () => {
   const props = createProps();
   render(<CollectionControl {...props} />);

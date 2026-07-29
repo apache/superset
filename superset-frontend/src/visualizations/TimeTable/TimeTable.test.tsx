@@ -91,7 +91,7 @@ test('should render table headers', () => {
   );
 
   const visibleTimeSeriesHeaders = allTimeSeriesHeaders.filter(
-    el => !el.closest('.ant-table-measure-cell-content'),
+    el => !el.closest('.ant-table-measure-row'),
   );
 
   expect(visibleTimeSeriesHeaders.length).toBe(1);
@@ -176,7 +176,7 @@ test('should handle column type sparkline correctly', () => {
     'Time series columns',
   );
   const visibleTimeSeriesColumns = allTimeSeriesElements.filter(
-    el => !el.closest('.ant-table-measure-cell-content'),
+    el => !el.closest('.ant-table-measure-row'),
   );
 
   expect(visibleTimeSeriesColumns.length).toBeGreaterThan(0);

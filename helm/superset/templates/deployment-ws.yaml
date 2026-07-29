@@ -24,13 +24,7 @@ metadata:
   name: "{{ template "superset.fullname" . }}-ws"
   namespace: {{ .Release.Namespace }}
   labels:
-    app: "{{ template "superset.name" . }}-ws"
-    chart: {{ template "superset.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
-    {{- if .Values.extraLabels }}
-      {{- toYaml .Values.extraLabels | nindent 4 }}
-    {{- end }}
+    {{- include "superset.componentLabels" (dict "component" "websocket" "root" .) | nindent 4 }}
   {{- if .Values.supersetWebsockets.deploymentAnnotations }}
   annotations: {{- toYaml .Values.supersetWebsockets.deploymentAnnotations | nindent 4 }}
   {{- end }}
@@ -50,12 +44,11 @@ spec:
         {{- if .Values.supersetWebsockets.podAnnotations }}
           {{- toYaml .Values.supersetWebsockets.podAnnotations | nindent 8 }}
         {{- end }}
-      labels:
-        app: "{{ template "superset.name" . }}-ws"
-        release: {{ .Release.Name }}
-        {{- if .Values.extraLabels }}
-          {{- toYaml .Values.extraLabels | nindent 8 }}
+        {{- with .Values.globalPodAnnotations }}
+          {{- toYaml . | nindent 8 }}
         {{- end }}
+      labels:
+        {{- include "supersetWebsockets.selectorLabels" . | nindent 8 }}
         {{- if .Values.supersetWebsockets.podLabels }}
           {{- toYaml .Values.supersetWebsockets.podLabels | nindent 8 }}
         {{- end }}
@@ -71,6 +64,15 @@ spec:
         {{- if .Values.supersetWebsockets.podSecurityContext }}
           {{- toYaml .Values.supersetWebsockets.podSecurityContext | nindent 8 }}
         {{- end }}
+      {{- if or .Values.supersetWebsockets.initContainers .Values.supersetWebsockets.extraInitContainers }}
+      initContainers:
+      {{- if .Values.supersetWebsockets.initContainers }}
+      {{- tpl (toYaml .Values.supersetWebsockets.initContainers) . | nindent 6 }}
+      {{- end }}
+      {{- if .Values.supersetWebsockets.extraInitContainers }}
+      {{- tpl (toYaml .Values.supersetWebsockets.extraInitContainers) . | nindent 6 }}
+      {{- end }}
+      {{- end }}
       {{- with .Values.hostAliases }}
       hostAliases: {{- toYaml . | nindent 6 }}
       {{- end }}

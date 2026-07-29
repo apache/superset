@@ -47,23 +47,11 @@ interface TextAreaControlProps {
   maxLines?: number;
   offerEditInModal?: boolean;
   language?:
-    | 'json'
-    | 'html'
-    | 'sql'
-    | 'markdown'
-    | 'javascript'
-    | 'handlebars'
-    | null;
+    'json' | 'html' | 'sql' | 'markdown' | 'javascript' | 'handlebars' | null;
   aboveEditorSection?: React.ReactNode;
   readOnly?: boolean;
   resize?:
-    | 'block'
-    | 'both'
-    | 'horizontal'
-    | 'inline'
-    | 'none'
-    | 'vertical'
-    | null;
+    'block' | 'both' | 'horizontal' | 'inline' | 'none' | 'vertical' | null;
   textAreaStyles?: React.CSSProperties;
   tooltipOptions?: Record<string, unknown>;
   hotkeys?: HotkeyConfig[];

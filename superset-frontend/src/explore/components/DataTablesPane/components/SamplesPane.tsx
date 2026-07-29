@@ -60,7 +60,6 @@ export const SamplesPane = ({
   queryFormData,
   queryForce,
   setForceQuery,
-  isVisible,
   canDownload,
 }: SamplesPaneProps) => {
   const [filterText, setFilterText] = useState('');
@@ -149,6 +148,7 @@ export const SamplesPane = ({
           rowcount={rowcount}
           datasourceId={datasourceId}
           onInputChange={handleInputChange}
+          filterText={filterText}
           isLoading={isLoading}
           canDownload={canDownload}
           rowLimit={rowLimit}
@@ -177,6 +177,7 @@ export const SamplesPane = ({
         rowcount={rowcount}
         datasourceId={datasourceId}
         onInputChange={handleInputChange}
+        filterText={filterText}
         isLoading={isLoading}
         canDownload={canDownload}
         rowLimit={rowLimit}

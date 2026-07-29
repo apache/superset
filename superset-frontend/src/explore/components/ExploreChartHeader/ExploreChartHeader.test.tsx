@@ -31,9 +31,11 @@ import * as downloadAsImage from 'src/utils/downloadAsImage';
 import * as exploreUtils from 'src/explore/exploreUtils';
 import {
   FeatureFlag,
+  QueryFormData,
   VizType,
   getChartMetadataRegistry,
 } from '@superset-ui/core';
+import { toChartStateHistoryState } from 'src/explore/exploreUtils/exploreHistory';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import ExploreHeader, { ExploreChartHeaderProps } from '.';
 import fs from 'fs';
@@ -117,12 +119,6 @@ const createProps = (additionalProps = {}) =>
         y_axis_label: 'count',
       },
       modified: '<span class="no-wrap">7 days ago</span>',
-      owners: [
-        {
-          text: 'Superset Admin',
-          value: 1,
-        },
-      ],
       slice_id: 318,
       slice_name: 'Age distribution of respondents',
       slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%20318%7D',
@@ -141,7 +137,7 @@ const createProps = (additionalProps = {}) =>
     metadata: {
       created_on_humanized: 'a week ago',
       changed_on_humanized: '2 days ago',
-      owners: ['John Doe'],
+      editors: ['John Doe'],
       created_by: 'John Doe',
       changed_by: 'John Doe',
       dashboards: [{ id: 1, dashboard_title: 'Test' }],
@@ -392,6 +388,33 @@ describe('ExploreChartHeader', () => {
         hasUnsavedChanges: false,
       }),
     );
+  });
+
+  test('treats chart states of the same chart as in place transitions', async () => {
+    const formData = {
+      viz_type: VizType.Histogram,
+      datasource: '49__table',
+      slice_id: 318,
+    } as QueryFormData;
+    render(<ExploreHeader {...createProps({ formData })} />, {
+      useRedux: true,
+    });
+
+    const [{ isInPlaceTransition }] = (useUnsavedChangesPrompt as jest.Mock)
+      .mock.lastCall;
+
+    expect(
+      isInPlaceTransition(
+        toChartStateHistoryState({ ...formData, row_limit: 10 }),
+      ),
+    ).toBe(true);
+    expect(
+      isInPlaceTransition(
+        toChartStateHistoryState({ ...formData, slice_id: 42 }),
+      ),
+    ).toBe(false);
+    expect(isInPlaceTransition({ fromDashboard: true })).toBe(false);
+    expect(isInPlaceTransition(undefined)).toBe(false);
   });
 
   test('Save chart', async () => {

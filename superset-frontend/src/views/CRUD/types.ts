@@ -17,9 +17,10 @@
  * under the License.
  */
 import { QueryState } from '@superset-ui/core';
-import { User } from 'src/types/bootstrapTypes';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import Database from 'src/types/Database';
-import Owner from 'src/types/Owner';
+import User from 'src/types/User';
+import Subject from 'src/types/Subject';
 
 export type FavoriteStatus = {
   [id: number]: boolean;
@@ -43,7 +44,7 @@ export type Filter = {
 export interface DashboardTableProps {
   addDangerToast: (message: string) => void;
   addSuccessToast: (message: string) => void;
-  user?: User;
+  user?: UserWithPermissionsAndRoles;
   mine: Array<Dashboard>;
   showThumbnails?: boolean;
   otherTabData?: Array<Dashboard>;
@@ -65,7 +66,8 @@ export interface Dashboard {
   published: boolean;
   url: string;
   thumbnail_url?: string | null;
-  owners: Owner[];
+  editors?: Subject[];
+  viewers?: Subject[];
   loading?: boolean;
 }
 
@@ -135,20 +137,15 @@ export enum QueryObjectColumns {
 }
 
 export type ImportResourceName =
-  | 'chart'
-  | 'dashboard'
-  | 'database'
-  | 'dataset'
-  | 'saved_query'
-  | 'theme';
+  'chart' | 'dashboard' | 'database' | 'dataset' | 'saved_query' | 'theme';
 
 export interface Tag {
   changed_on_delta_humanized: string;
-  changed_by: Owner;
+  changed_by: User;
   created_on_delta_humanized: string;
   name: string;
   id: number;
-  created_by: Owner;
+  created_by: User;
   description: string;
   type: string;
 }

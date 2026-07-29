@@ -25,16 +25,20 @@ export const DEFAULT_TOKEN_REFRESH_RETRY_MS = 10000; // wait before retrying a f
 
 // when do we refresh the guest token?
 export function getGuestTokenRefreshTiming(currentGuestToken: string) {
-  const parsedJwt = jwtDecode<Record<string, any>>(currentGuestToken);
-  // if exp is int, it is in seconds, but Date() takes milliseconds
-  const exp = new Date(
-    /[^0-9\.]/g.test(parsedJwt.exp)
-      ? parsedJwt.exp
-      : parseFloat(parsedJwt.exp) * 1000,
-  );
-  const isValidDate = exp.toString() !== "Invalid Date";
-  const ttl = isValidDate
-    ? Math.max(MIN_REFRESH_WAIT_MS, exp.getTime() - Date.now())
-    : DEFAULT_TOKEN_EXP_MS;
-  return ttl - REFRESH_TIMING_BUFFER_MS;
+  try {
+    const parsedJwt = jwtDecode<Record<string, any>>(currentGuestToken);
+    // if exp is int, it is in seconds, but Date() takes milliseconds
+    const exp = new Date(
+      /[^0-9\.]/g.test(parsedJwt.exp)
+        ? parsedJwt.exp
+        : parseFloat(parsedJwt.exp) * 1000,
+    );
+    const isValidDate = exp.toString() !== "Invalid Date";
+    const ttl = isValidDate
+      ? Math.max(MIN_REFRESH_WAIT_MS, exp.getTime() - Date.now())
+      : DEFAULT_TOKEN_EXP_MS;
+    return ttl - REFRESH_TIMING_BUFFER_MS;
+  } catch {
+    return DEFAULT_TOKEN_EXP_MS - REFRESH_TIMING_BUFFER_MS;
+  }
 }

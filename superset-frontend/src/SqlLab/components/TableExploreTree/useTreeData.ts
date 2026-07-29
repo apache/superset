@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, useReducer, useCallback } from 'react';
+import { useMemo, useReducer, useCallback, useEffect, useRef } from 'react';
 import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -24,14 +24,25 @@ import {
   type TableMetaData,
   useSchemas,
   useLazyTablesQuery,
+  useTablesQuery,
   useLazyTableMetadataQuery,
   useLazyTableExtendedMetadataQuery,
 } from 'src/hooks/apiResources';
 import { addDangerToast } from 'src/SqlLab/actions/sqlLab';
 import type { TreeNodeData } from './types';
-import { SupersetError } from '@superset-ui/core';
+import { ClientErrorObject, SupersetError } from '@superset-ui/core';
 
 export const EMPTY_NODE_ID_PREFIX = 'empty:';
+
+// Identifies the schema node whose table list failed to load, so the tree can
+// automatically recover once the underlying Tables cache is refetched (e.g.
+// after the OAuth2 redirect dispatches invalidateTags(['Tables'])).
+interface ErroredNode {
+  schemaKey: string;
+  dbId: number;
+  catalog: string | null | undefined;
+  schema: string;
+}
 
 // Reducer state and actions
 interface TreeDataState {
@@ -39,6 +50,7 @@ interface TreeDataState {
   tableSchemaData: Record<string, TableMetaData>;
   loadingNodes: Record<string, boolean>;
   errorPayload: SupersetError | null;
+  erroredNode: ErroredNode | null;
 }
 
 type TreeDataAction =
@@ -46,13 +58,18 @@ type TreeDataAction =
   | { type: 'SET_TABLE_SCHEMA_DATA'; key: string; data: TableMetaData }
   | { type: 'CLEAR_TABLE_SCHEMA_DATA'; key: string }
   | { type: 'SET_LOADING_NODE'; nodeId: string; loading: boolean }
-  | { type: 'SET_ERROR'; errorPayload: SupersetError | null };
+  | {
+      type: 'SET_ERROR';
+      errorPayload: SupersetError | null;
+      erroredNode: ErroredNode | null;
+    };
 
 const initialState: TreeDataState = {
   tableData: {},
   tableSchemaData: {},
   loadingNodes: {},
   errorPayload: null,
+  erroredNode: null,
 };
 
 function treeDataReducer(
@@ -64,6 +81,7 @@ function treeDataReducer(
       return {
         ...state,
         errorPayload: null,
+        erroredNode: null,
         tableData: { ...state.tableData, [action.key]: action.data },
       };
     case 'SET_TABLE_SCHEMA_DATA':
@@ -90,6 +108,7 @@ function treeDataReducer(
       return {
         ...state,
         errorPayload: action.errorPayload,
+        erroredNode: action.erroredNode,
       };
 
     default:
@@ -144,7 +163,67 @@ const useTreeData = ({
 
   // Combined state for table data, schema data, loading nodes, and data version
   const [state, dispatch] = useReducer(treeDataReducer, initialState);
-  const { tableData, tableSchemaData, loadingNodes, errorPayload } = state;
+  const {
+    tableData,
+    tableSchemaData,
+    loadingNodes,
+    errorPayload,
+    erroredNode,
+  } = state;
+
+  // Tables are loaded lazily on node toggle, so a schema whose table list fails
+  // (e.g. an OAuth2 auth error) has no active subscription that would recover on
+  // cache invalidation. Subscribe to the tables query for the single errored
+  // node so that when OAuth2RedirectMessage dispatches invalidateTags(['Tables'])
+  // after the redirect, this query refetches automatically. The subscribed
+  // entry shares the cache key (dbId + schema) that the lazy fetch already
+  // populated with the error, so this reflects that error and does not trigger
+  // an eager refetch of its own.
+  const erroredTablesResult = useTablesQuery(
+    {
+      dbId: erroredNode?.dbId,
+      catalog: erroredNode?.catalog,
+      schema: erroredNode?.schema,
+      forceRefresh: false,
+    },
+    { skip: !erroredNode },
+  );
+  const wasFetchingErroredRef = useRef(false);
+
+  useEffect(() => {
+    // Recover the errored schema node when its subscribed tables query finishes
+    // a fetch (driven by the Tables cache invalidation). Keying off the
+    // isFetching true->false transition avoids acting on the initial rejected
+    // state and on unrelated re-renders. On success, SET_TABLE_DATA repopulates
+    // the node and clears the banner; on renewed failure the banner is re-armed.
+    if (!erroredNode) {
+      wasFetchingErroredRef.current = erroredTablesResult.isFetching;
+      return;
+    }
+    const { isSuccess, isError, isFetching, currentData, error } =
+      erroredTablesResult;
+    const nodeId = `schema:${erroredNode.dbId}:${erroredNode.schema}`;
+    if (isFetching && !wasFetchingErroredRef.current) {
+      dispatch({ type: 'SET_LOADING_NODE', nodeId, loading: true });
+    }
+    if (!isFetching && wasFetchingErroredRef.current) {
+      if (isSuccess && currentData) {
+        dispatch({
+          type: 'SET_TABLE_DATA',
+          key: erroredNode.schemaKey,
+          data: currentData,
+        });
+      } else if (isError) {
+        dispatch({
+          type: 'SET_ERROR',
+          errorPayload: (error as ClientErrorObject)?.errors?.[0] ?? null,
+          erroredNode,
+        });
+      }
+      dispatch({ type: 'SET_LOADING_NODE', nodeId, loading: false });
+    }
+    wasFetchingErroredRef.current = isFetching;
+  }, [erroredTablesResult, erroredNode]);
 
   // Shared helper: fetch table metadata + extended metadata and store in state.
   // preferCacheValue=true on initial open (use cached data if available),
@@ -233,6 +312,12 @@ const useTreeData = ({
               dispatch({
                 type: 'SET_ERROR',
                 errorPayload: error?.errors?.[0] ?? null,
+                erroredNode: {
+                  schemaKey,
+                  dbId: parsedDbId,
+                  catalog,
+                  schema,
+                },
               });
             })
             .finally(() => {
@@ -296,6 +381,12 @@ const useTreeData = ({
           dispatch({
             type: 'SET_ERROR',
             errorPayload: error?.errors?.[0] ?? null,
+            erroredNode: {
+              schemaKey,
+              dbId: refreshDbId,
+              catalog: refreshCatalog,
+              schema,
+            },
           });
         })
         .finally(() => {

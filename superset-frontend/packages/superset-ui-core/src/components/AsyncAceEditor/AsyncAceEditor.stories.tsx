@@ -29,13 +29,7 @@ import {
 import type { AsyncAceEditorOptions } from './types';
 
 type EditorType =
-  | 'sql'
-  | 'full-sql'
-  | 'markdown'
-  | 'text-area'
-  | 'css'
-  | 'json'
-  | 'config';
+  'sql' | 'full-sql' | 'markdown' | 'text-area' | 'css' | 'json' | 'config';
 
 const editorTypes: EditorType[] = [
   'sql',

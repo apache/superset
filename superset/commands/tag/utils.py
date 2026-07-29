@@ -57,15 +57,15 @@ def to_object_model(
 def current_user_can_modify_object(model: Any) -> bool:
     """Whether the current user may create/modify tag relationships on ``model``.
 
-    Mirrors the ownership check the bulk-create path already applies (owner or
-    admin via ``raise_for_ownership``, or the object's creator), so the
-    tag-update path enforces the same boundary. Look the model up with
+    Mirrors the editorship check the bulk-create path already applies, or the
+    object's creator, so the tag-update path enforces the same boundary.
+    Look the model up with
     ``skip_base_filter=True`` before calling this, so an object the user cannot
     access reaches the check instead of resolving to ``None`` and being written
     without any check.
     """
     try:
-        security_manager.raise_for_ownership(model)
+        security_manager.raise_for_editorship(model)
         return True
     except SupersetSecurityException:
         return bool(

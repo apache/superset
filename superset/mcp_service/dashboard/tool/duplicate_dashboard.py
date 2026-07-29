@@ -116,7 +116,7 @@ def _serialize_new_dashboard(dashboard: Any) -> tuple[DashboardInfo, str]:
     """Build the response ``DashboardInfo`` and URL for the new dashboard."""
     from superset.mcp_service.dashboard.schemas import serialize_tag_object
 
-    dashboard_url = f"{get_superset_base_url()}/superset/dashboard/{dashboard.id}/"
+    dashboard_url = f"{get_superset_base_url()}/dashboard/{dashboard.id}/"
     include_data_model_metadata = user_can_view_data_model_metadata()
     info = DashboardInfo(
         id=dashboard.id,
@@ -202,9 +202,7 @@ def _refetch_and_serialize(
             exc_info=True,
         )
         _safe_rollback("dashboard re-fetch")
-        dashboard_url = (
-            f"{get_superset_base_url()}/superset/dashboard/{new_dashboard.id}/"
-        )
+        dashboard_url = f"{get_superset_base_url()}/dashboard/{new_dashboard.id}/"
         info = _sanitize_dashboard_info_for_llm_context(
             DashboardInfo(
                 id=new_dashboard.id,
