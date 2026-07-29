@@ -2558,6 +2558,13 @@ class ChartData(BaseModel):
         None, description="Absolute URL to open the chart in Superset Explore"
     )
 
+    # Subset of the instance's antd design tokens (colorPrimary, fontFamily,
+    # ...) so the MCP Apps widget renders in the deployment's own theme rather
+    # than hardcoded colors. Populated by ``render_chart``; ``None`` elsewhere.
+    theme: Dict[str, Any] | None = Field(
+        None, description="Superset theme design tokens for consistent branding"
+    )
+
     # Inherit versioning
     schema_version: str = Field("2.0", description="Response schema version")
     api_version: str = Field("v1", description="MCP API version")

@@ -24,6 +24,7 @@ import {
   applyThemeVars,
   detectPreferredScheme,
   getThemeTokens,
+  type SupersetThemeTokens,
 } from './theme';
 import {
   availableViews,
@@ -59,7 +60,13 @@ export function App(): JSX.Element {
   const [drill, setDrill] = useState<DrillState>({ active: false, label: '' });
   const [selection, setSelection] = useState<EChartClickParams | null>(null);
 
-  const theme = useMemo(() => getThemeTokens(scheme), [scheme]);
+  // Superset tokens travel with the data, so the widget renders in the
+  // deployment's own branding rather than hardcoded colors.
+  const supersetTheme = (data?.theme ?? null) as SupersetThemeTokens | null;
+  const theme = useMemo(
+    () => getThemeTokens(scheme, supersetTheme),
+    [scheme, supersetTheme],
+  );
 
   // ---- Bridge handshake + data intake ------------------------------------
   useEffect(() => {

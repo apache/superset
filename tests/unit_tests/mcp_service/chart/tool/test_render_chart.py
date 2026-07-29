@@ -236,3 +236,59 @@ async def test_requery_tool_is_app_only(app: Any) -> None:
     tool = await mcp.get_tool("render_chart_requery")
     ui = (tool.meta or {}).get("ui")
     assert ui["visibility"] == ["app"]
+
+
+# --------------------------------------------------------------------------
+# Theme pass-through (consistent branding — the reason customers use theming)
+# --------------------------------------------------------------------------
+
+
+def test_instance_theme_tokens_selects_allowlisted_keys(app: Any) -> None:
+    from superset.mcp_service.chart.tool.render_chart import _instance_theme_tokens
+
+    app.config["THEME_DEFAULT"] = {
+        "token": {
+            "colorPrimary": "#2893B3",
+            "fontFamily": "Inter, sans-serif",
+            # Not in the allow-list — must not be forwarded.
+            "brandLogoUrl": "https://example.com/logo.png",
+            # Non-string values are skipped.
+            "transitionTiming": 0.3,
+        }
+    }
+    with app.app_context():
+        tokens = _instance_theme_tokens()
+    assert tokens == {
+        "colorPrimary": "#2893B3",
+        "fontFamily": "Inter, sans-serif",
+    }
+    assert "brandLogoUrl" not in tokens
+
+
+def test_instance_theme_tokens_missing_theme(app: Any) -> None:
+    from superset.mcp_service.chart.tool.render_chart import _instance_theme_tokens
+
+    app.config["THEME_DEFAULT"] = {}
+    with app.app_context():
+        assert _instance_theme_tokens() is None
+
+
+@pytest.mark.asyncio
+async def test_render_chart_attaches_theme() -> None:
+    ctx = AsyncMock()
+    with (
+        patch(
+            f"{RENDER_MODULE}.get_chart_data_core",
+            AsyncMock(return_value=_sample_chart_data()),
+        ),
+        patch(f"{RENDER_MODULE}.get_superset_base_url", return_value="https://s.io"),
+        patch(
+            f"{RENDER_MODULE}._instance_theme_tokens",
+            return_value={"colorPrimary": "#2893B3"},
+        ),
+    ):
+        result = await render_chart_mod._render_chart_impl(
+            RenderChartRequest(identifier=42), ctx
+        )
+    assert isinstance(result, ChartData)
+    assert result.theme == {"colorPrimary": "#2893B3"}

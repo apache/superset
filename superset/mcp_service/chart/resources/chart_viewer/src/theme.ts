@@ -98,8 +98,50 @@ const DARK: ThemeTokens = {
   fontSans: FONT_SANS,
 };
 
-export function getThemeTokens(scheme: ColorScheme): ThemeTokens {
-  return scheme === 'dark' ? DARK : LIGHT;
+/**
+ * Superset design tokens forwarded by the `render_chart` tool (a subset of the
+ * deployment's antd theme). Lets the widget match the customer's configured
+ * branding instead of hardcoded colors — consistency is the reason customers
+ * asked for Superset theming in the first place.
+ */
+export interface SupersetThemeTokens {
+  colorPrimary?: string;
+  colorLink?: string;
+  colorError?: string;
+  colorWarning?: string;
+  colorSuccess?: string;
+  colorInfo?: string;
+  fontFamily?: string;
+}
+
+export function getThemeTokens(
+  scheme: ColorScheme,
+  supersetTheme?: SupersetThemeTokens | null,
+): ThemeTokens {
+  const base = scheme === 'dark' ? DARK : LIGHT;
+  if (!supersetTheme) return base;
+  // Only override what the deployment actually specifies; the rest keeps the
+  // light/dark chrome that adapts to the host.
+  return {
+    ...base,
+    accent: supersetTheme.colorPrimary || base.accent,
+    fontSans: supersetTheme.fontFamily || base.fontSans,
+  };
+}
+
+/**
+ * Categorical series palette, leading with the deployment's primary color so
+ * the first (often only) series is on-brand.
+ */
+export function getCategoricalPalette(
+  supersetTheme?: SupersetThemeTokens | null,
+): string[] {
+  const primary = supersetTheme?.colorPrimary;
+  if (!primary) return CATEGORICAL_PALETTE;
+  const rest = CATEGORICAL_PALETTE.filter(
+    (c) => c.toLowerCase() !== primary.toLowerCase(),
+  );
+  return [primary, ...rest];
 }
 
 /** Push theme tokens into CSS custom properties so chrome + chart stay in sync. */

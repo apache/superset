@@ -26,7 +26,11 @@ import {
   toDate,
   toNumber,
 } from './format';
-import { CATEGORICAL_PALETTE, type ThemeTokens } from './theme';
+import {
+  getCategoricalPalette,
+  type SupersetThemeTokens,
+  type ThemeTokens,
+} from './theme';
 
 /** Options passed to the adapter alongside the data. */
 export interface AdapterOptions {
@@ -146,7 +150,10 @@ function buildCartesian(
   const dim = roles.dimension;
   const isTemporal = roles.dimensionIsTemporal;
   const rows = data.data ?? [];
-  const palette = CATEGORICAL_PALETTE;
+  // Lead with the deployment's primary color when themed.
+  const palette = getCategoricalPalette(
+    (data.theme ?? null) as SupersetThemeTokens | null,
+  );
   const showLegend = numeric.length > 1;
 
   // Build x-axis category values (stringified) from the dimension column.

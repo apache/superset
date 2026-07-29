@@ -78,6 +78,45 @@ _REQUERY_UI_META: dict[str, Any] = {
 }
 
 
+# Design tokens the chart-viewer widget consumes. Deliberately a small,
+# explicit allow-list: only presentational values, no URLs/secrets, and bounded
+# in size so the widget payload stays small.
+_THEME_TOKEN_KEYS: tuple[str, ...] = (
+    "colorPrimary",
+    "colorLink",
+    "colorError",
+    "colorWarning",
+    "colorSuccess",
+    "colorInfo",
+    "fontFamily",
+)
+
+
+def _instance_theme_tokens() -> dict[str, Any] | None:
+    """Return the deployment's antd design tokens for the widget.
+
+    Customers configure Superset theming precisely so their visualizations look
+    consistent; without this the widget would render with hardcoded colors and
+    drift from the rest of the product. Only an allow-listed subset of
+    presentational tokens is forwarded.
+    """
+    try:
+        from flask import current_app
+
+        theme = current_app.config.get("THEME_DEFAULT") or {}
+        tokens = theme.get("token") or {}
+    except Exception:  # pragma: no cover - theming is best-effort decoration
+        return None
+    if not isinstance(tokens, dict):
+        return None
+    selected = {
+        key: tokens[key]
+        for key in _THEME_TOKEN_KEYS
+        if isinstance(tokens.get(key), str)
+    }
+    return selected or None
+
+
 def _build_explore_url(chart_id: int | None) -> str | None:
     """Best-effort absolute Explore deep link for the chart-viewer widget's
     "Open in Superset" affordance.
@@ -120,6 +159,7 @@ async def _render_chart_impl(
 
     if isinstance(result, ChartData):
         result.explore_url = _build_explore_url(result.chart_id)
+        result.theme = _instance_theme_tokens()
     return result
 
 
@@ -214,6 +254,7 @@ async def _render_chart_requery_impl(
 
     if isinstance(result, ChartData):
         result.explore_url = _build_explore_url(result.chart_id)
+        result.theme = _instance_theme_tokens()
     return result
 
 

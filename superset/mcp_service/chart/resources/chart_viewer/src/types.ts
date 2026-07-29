@@ -53,6 +53,8 @@ export interface ChartData {
   data_freshness?: string | null;
   /** Absolute Explore deep link, set by the render_chart tool. */
   explore_url?: string;
+  /** Superset design tokens (subset) so the widget matches the deployment. */
+  theme?: Record<string, string>;
   [key: string]: unknown;
 }
 
