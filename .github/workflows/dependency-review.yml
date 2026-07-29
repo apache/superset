@@ -32,7 +32,6 @@ jobs:
           persist-credentials: false
       - name: "Dependency Review"
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
-        continue-on-error: true
         with:
           fail-on-severity: critical
           # compatible/incompatible licenses addressed here: https://www.apache.org/legal/resolved.html

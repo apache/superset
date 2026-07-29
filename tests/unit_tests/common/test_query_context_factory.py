@@ -532,6 +532,42 @@ class TestQueryContextFactory:
 
         assert query_object.columns == ["ds", "other_col"]
 
+    def test_apply_granularity_no_filter_to_remove(self):
+        """No x-axis and no temporal filters leaves the filters untouched."""
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = "P1D"
+        query_object.columns = ["other_col"]
+        query_object.post_processing = []
+        query_object.filter = [{"col": "other_col", "op": "==", "val": "value"}]
+
+        datasource = Mock()
+        datasource.columns = [{"column_name": "ds", "is_dttm": True}]
+
+        self.factory._apply_granularity(query_object, {}, datasource)
+
+        assert query_object.filter == [{"col": "other_col", "op": "==", "val": "value"}]
+
+    def test_apply_granularity_with_adhoc_temporal_filter(self):
+        """An adhoc temporal filter is matched on its SQL expression."""
+        adhoc_column = {"label": "ds_expr", "sqlExpression": "DATE(ds)"}
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = "P1D"
+        query_object.columns = ["other_col"]
+        query_object.post_processing = []
+        query_object.filter = [
+            {"col": adhoc_column, "op": "TEMPORAL_RANGE", "val": "a : b"},
+            {"col": "DATE(ds)", "op": "TEMPORAL_RANGE", "val": "a : b"},
+        ]
+
+        datasource = Mock()
+        datasource.columns = [{"column_name": "ds", "is_dttm": True}]
+
+        self.factory._apply_granularity(query_object, {}, datasource)
+
+        assert query_object.filter == [
+            {"col": adhoc_column, "op": "TEMPORAL_RANGE", "val": "a : b"}
+        ]
+
     def test_apply_filters_with_time_range(self):
         """Test _apply_filters with time_range"""
         query_object = Mock(spec=QueryObject)

@@ -157,3 +157,10 @@ def test_fetch_reports_the_api_error_message(capsys) -> None:
             change_detector.fetch_files_github_api("http://api")
 
     assert "Resource not accessible by integration" in capsys.readouterr().out
+
+
+def test_image_tag_compose_changes_trigger_python_tests() -> None:
+    assert change_detector.detect_changes(
+        ["docker-compose-image-tag.yml"],
+        change_detector.PATTERNS["python"],
+    )
