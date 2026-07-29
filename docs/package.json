@@ -62,7 +62,7 @@
     "@superset-ui/core": "^0.20.4",
     "@swc/core": "^1.15.46",
     "antd": "^6.5.1",
-    "baseline-browser-mapping": "^2.10.44",
+    "baseline-browser-mapping": "^2.11.0",
     "caniuse-lite": "^1.0.30001806",
     "docusaurus-plugin-openapi-docs": "^5.1.2",
     "docusaurus-theme-openapi-docs": "^5.1.2",
@@ -78,7 +78,7 @@
     "remark-import-partial": "^0.0.2",
     "reselect": "^5.2.0",
     "storybook": "^10.5.3",
-    "swagger-ui-react": "^5.32.9",
+    "swagger-ui-react": "^5.32.11",
     "swc-loader": "^0.2.7",
     "tinycolor2": "^1.4.2",
     "unist-util-visit": "^5.1.0"

@@ -24,16 +24,10 @@ import {
   defaultStore as store,
 } from 'spec/helpers/testing-library';
 import { api } from 'src/hooks/apiResources/queryApi';
-import { useSchemas } from './schemas';
+import { useCatalogs } from './catalogs';
 
 const fakeApiResult = {
-  result: ['test schema 1', 'test schema b'],
-};
-const fakeApiResult2 = {
-  result: ['test schema 2', 'test schema a'],
-};
-const fakeApiResult3 = {
-  result: ['test schema 3', 'test schema c'],
+  result: ['test catalog 1', 'test catalog b'],
 };
 
 const expectedResult = fakeApiResult.result.map((value: string) => ({
@@ -41,19 +35,9 @@ const expectedResult = fakeApiResult.result.map((value: string) => ({
   label: value,
   title: value,
 }));
-const expectedResult2 = fakeApiResult2.result.map((value: string) => ({
-  value,
-  label: value,
-  title: value,
-}));
-const expectedResult3 = fakeApiResult3.result.map((value: string) => ({
-  value,
-  label: value,
-  title: value,
-}));
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('useSchemas hook', () => {
+describe('useCatalogs hook', () => {
   beforeEach(() => {
     fetchMock.clearHistory().removeRoutes();
     store.dispatch(api.util.resetApiState());
@@ -62,12 +46,12 @@ describe('useSchemas hook', () => {
   test('returns api response mapping json result', async () => {
     const expectDbId = 'db1';
     const forceRefresh = false;
-    const schemaApiRoute = `glob:*/api/v1/database/${expectDbId}/schemas/*`;
-    fetchMock.get(schemaApiRoute, fakeApiResult);
+    const catalogApiRoute = `glob:*/api/v1/database/${expectDbId}/catalogs/*`;
+    fetchMock.get(catalogApiRoute, fakeApiResult);
     const onSuccess = jest.fn();
     const { result } = renderHook(
       () =>
-        useSchemas({
+        useCatalogs({
           dbId: expectDbId,
           onSuccess,
         }),
@@ -79,12 +63,12 @@ describe('useSchemas hook', () => {
       },
     );
     await waitFor(() =>
-      expect(fetchMock.callHistory.calls(schemaApiRoute).length).toBe(1),
+      expect(fetchMock.callHistory.calls(catalogApiRoute).length).toBe(1),
     );
     expect(result.current.data).toEqual(expectedResult);
     expect(
       fetchMock.callHistory.calls(
-        `end:/api/v1/database/${expectDbId}/schemas/?q=${rison.encode({
+        `end:/api/v1/database/${expectDbId}/catalogs/?q=${rison.encode({
           force: forceRefresh,
         })}`,
       ).length,
@@ -94,11 +78,11 @@ describe('useSchemas hook', () => {
       result.current.refetch();
     });
     await waitFor(() =>
-      expect(fetchMock.callHistory.calls(schemaApiRoute).length).toBe(2),
+      expect(fetchMock.callHistory.calls(catalogApiRoute).length).toBe(2),
     );
     expect(
       fetchMock.callHistory.calls(
-        `end:/api/v1/database/${expectDbId}/schemas/?q=${rison.encode({
+        `end:/api/v1/database/${expectDbId}/catalogs/?q=${rison.encode({
           force: true,
         })}`,
       ).length,
@@ -107,101 +91,18 @@ describe('useSchemas hook', () => {
     expect(result.current.data).toEqual(expectedResult);
   });
 
-  test('returns cached data without api request', async () => {
-    const expectDbId = 'db1';
-    const schemaApiRoute = `glob:*/api/v1/database/${expectDbId}/schemas/*`;
-    fetchMock.get(schemaApiRoute, fakeApiResult);
-    const { result, rerender } = renderHook(
-      () =>
-        useSchemas({
-          dbId: expectDbId,
-        }),
-      {
-        wrapper: createWrapper({
-          useRedux: true,
-          store,
-        }),
-      },
-    );
-    await waitFor(() => expect(result.current.data).toEqual(expectedResult));
-    expect(fetchMock.callHistory.calls(schemaApiRoute).length).toBe(1);
-    rerender();
-    await waitFor(() => expect(result.current.data).toEqual(expectedResult));
-    expect(fetchMock.callHistory.calls(schemaApiRoute).length).toBe(1);
-  });
-
-  test('returns refreshed data after expires', async () => {
-    const expectDbId = 'db1';
-    const schemaApiRoute = `glob:*/api/v1/database/*/schemas/*`;
-    fetchMock.get(schemaApiRoute, ({ url }) =>
-      url.includes(expectDbId) ? fakeApiResult : fakeApiResult2,
-    );
-    const onSuccess = jest.fn();
-    const { result, rerender } = renderHook(
-      ({ dbId }) =>
-        useSchemas({
-          dbId,
-          onSuccess,
-        }),
-      {
-        initialProps: { dbId: expectDbId },
-        wrapper: createWrapper({
-          useRedux: true,
-          store,
-        }),
-      },
-    );
-
-    await waitFor(() =>
-      expect(result.current.currentData).toEqual(expectedResult),
-    );
-    expect(fetchMock.callHistory.calls(schemaApiRoute).length).toBe(1);
-    expect(onSuccess).toHaveBeenCalledTimes(1);
-
-    rerender({ dbId: 'db2' });
-    await waitFor(() =>
-      expect(result.current.currentData).toEqual(expectedResult2),
-    );
-    expect(fetchMock.callHistory.calls(schemaApiRoute).length).toBe(2);
-    expect(onSuccess).toHaveBeenCalledTimes(2);
-
-    rerender({ dbId: expectDbId });
-    await waitFor(() =>
-      expect(result.current.currentData).toEqual(expectedResult),
-    );
-    expect(fetchMock.callHistory.calls(schemaApiRoute).length).toBe(2);
-    expect(onSuccess).toHaveBeenCalledTimes(2);
-
-    // clean up cache
-    act(() => {
-      store.dispatch(api.util.invalidateTags(['Schemas']));
-    });
-
-    // Only the currently subscribed query (expectDbId) is refetched on
-    // invalidation; the previously visited db2 entry is no longer subscribed.
-    await waitFor(() =>
-      expect(fetchMock.callHistory.calls(schemaApiRoute).length).toBe(3),
-    );
-    expect(fetchMock.callHistory.calls(schemaApiRoute)[2].url).toContain(
-      expectDbId,
-    );
-    await waitFor(() =>
-      expect(result.current.currentData).toEqual(expectedResult),
-    );
-  });
-
   test('fires onSuccess when the subscribed query refetches after invalidateTags', async () => {
     // Regression test for the OAuth2 retry-after-redirect path (PR #41101).
     // The redirect handler dispatches invalidateTags, which refetches the
     // SUBSCRIBED query (not the lazy trigger). onSuccess must still fire so
     // consumers holding local state (e.g. an auth error banner) get cleared.
     const expectDbId = 'db1';
-    const schemaApiRoute = `glob:*/api/v1/database/${expectDbId}/schemas/*`;
-    fetchMock.get(schemaApiRoute, fakeApiResult);
+    const catalogApiRoute = `glob:*/api/v1/database/${expectDbId}/catalogs/*`;
+    fetchMock.get(catalogApiRoute, fakeApiResult);
     const onSuccess = jest.fn();
     const { result } = renderHook(
       () =>
-        useSchemas({
+        useCatalogs({
           dbId: expectDbId,
           onSuccess,
         }),
@@ -214,19 +115,19 @@ describe('useSchemas hook', () => {
     );
 
     await waitFor(() =>
-      expect(fetchMock.callHistory.calls(schemaApiRoute).length).toBe(1),
+      expect(fetchMock.callHistory.calls(catalogApiRoute).length).toBe(1),
     );
     expect(result.current.currentData).toEqual(expectedResult);
     expect(onSuccess).toHaveBeenCalledTimes(1);
 
     act(() => {
       store.dispatch(
-        api.util.invalidateTags([{ type: 'Schemas', id: 'LIST' }]),
+        api.util.invalidateTags([{ type: 'Catalogs', id: 'LIST' }]),
       );
     });
 
     await waitFor(() =>
-      expect(fetchMock.callHistory.calls(schemaApiRoute).length).toBe(2),
+      expect(fetchMock.callHistory.calls(catalogApiRoute).length).toBe(2),
     );
     await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(2));
     // isRefetched must be false so the selectors don't emit a "List refreshed"
@@ -236,16 +137,16 @@ describe('useSchemas hook', () => {
 
   test('recovers from an error when the subscribed query refetches (OAuth2 retry)', async () => {
     const expectDbId = 'db1';
-    const schemaApiRoute = `glob:*/api/v1/database/${expectDbId}/schemas/*`;
+    const catalogApiRoute = `glob:*/api/v1/database/${expectDbId}/catalogs/*`;
     let shouldFail = true;
-    fetchMock.get(schemaApiRoute, () =>
+    fetchMock.get(catalogApiRoute, () =>
       shouldFail ? { status: 500, body: {} } : fakeApiResult,
     );
     const onSuccess = jest.fn();
     const onError = jest.fn();
     renderHook(
       () =>
-        useSchemas({
+        useCatalogs({
           dbId: expectDbId,
           onSuccess,
           onError,
@@ -266,7 +167,7 @@ describe('useSchemas hook', () => {
     shouldFail = false;
     act(() => {
       store.dispatch(
-        api.util.invalidateTags([{ type: 'Schemas', id: 'LIST' }]),
+        api.util.invalidateTags([{ type: 'Catalogs', id: 'LIST' }]),
       );
     });
 
@@ -282,16 +183,16 @@ describe('useSchemas hook', () => {
     // guard then suppressed onSuccess/onError on the later invalidation refetch,
     // so the banner stayed stuck. The ref-based flag must fire the callbacks.
     const expectDbId = 'db1';
-    const schemaApiRoute = `glob:*/api/v1/database/${expectDbId}/schemas/*`;
+    const catalogApiRoute = `glob:*/api/v1/database/${expectDbId}/catalogs/*`;
     let mode: 'ok' | 'fail' = 'ok';
-    fetchMock.get(schemaApiRoute, () =>
+    fetchMock.get(catalogApiRoute, () =>
       mode === 'fail' ? { status: 500, body: {} } : fakeApiResult,
     );
     const onSuccess = jest.fn();
     const onError = jest.fn();
     const { result } = renderHook(
       () =>
-        useSchemas({
+        useCatalogs({
           dbId: expectDbId,
           onSuccess,
           onError,
@@ -321,53 +222,10 @@ describe('useSchemas hook', () => {
     mode = 'ok';
     act(() => {
       store.dispatch(
-        api.util.invalidateTags([{ type: 'Schemas', id: 'LIST' }]),
+        api.util.invalidateTags([{ type: 'Catalogs', id: 'LIST' }]),
       );
     });
     await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(2));
     expect(onSuccess).toHaveBeenLastCalledWith(expectedResult, false);
-  });
-
-  test('returns correct schema list by a catalog', async () => {
-    const dbId = '1';
-    const expectCatalog = 'catalog3';
-    const schemaApiRoute = `glob:*/api/v1/database/*/schemas/*`;
-    fetchMock.get(schemaApiRoute, ({ url }) =>
-      url.includes(`catalog:${expectCatalog}`)
-        ? fakeApiResult3
-        : fakeApiResult2,
-    );
-    const onSuccess = jest.fn();
-    const { result, rerender } = renderHook(
-      ({ dbId, catalog }) =>
-        useSchemas({
-          dbId,
-          catalog,
-          onSuccess,
-        }),
-      {
-        initialProps: { dbId, catalog: expectCatalog },
-        wrapper: createWrapper({
-          useRedux: true,
-          store,
-        }),
-      },
-    );
-
-    await waitFor(() =>
-      expect(fetchMock.callHistory.calls(schemaApiRoute).length).toBe(1),
-    );
-    expect(result.current.data).toEqual(expectedResult3);
-    expect(onSuccess).toHaveBeenCalledTimes(1);
-
-    rerender({ dbId, catalog: 'catalog2' });
-    await waitFor(() =>
-      expect(fetchMock.callHistory.calls(schemaApiRoute).length).toBe(2),
-    );
-    expect(result.current.data).toEqual(expectedResult2);
-
-    rerender({ dbId, catalog: expectCatalog });
-    expect(result.current.data).toEqual(expectedResult3);
-    expect(fetchMock.callHistory.calls(schemaApiRoute).length).toBe(2);
   });
 });
