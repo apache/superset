@@ -301,6 +301,7 @@ def test_eligible_viz_skipped_when_form_data_unusable(
         {"groupby": ["c"], "metrics": ["m"], "time_compare": ["1 year ago"]},
         {"groupby": ["c"], "metrics": ["m"], "rolling_type": "mean"},
         {"groupby": ["c"], "metrics": ["m"], "resample_rule": "1D"},
+        {"groupby": ["c"], "metrics": ["m"], "percent_metrics": ["pct"]},
         {"columns": ["a", "b"], "aggregation": "raw"},
     ],
 )

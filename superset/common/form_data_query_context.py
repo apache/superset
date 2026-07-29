@@ -128,8 +128,19 @@ def columns_from_form_data(form_data: dict[str, Any]) -> list[Any]:
     return columns
 
 
+def is_raw_query_mode(form_data: dict[str, Any]) -> bool:
+    """
+    Whether the chart runs in raw (non-aggregated) mode, mirroring the frontend's
+    ``getQueryMode``: an explicit ``query_mode`` wins, otherwise the presence of
+    ``all_columns`` implies raw mode.
+    """
+    if mode := form_data.get("query_mode"):
+        return mode == "raw"
+    return bool(form_data.get("all_columns"))
+
+
 def orderby_from_form_data(
-    form_data: dict[str, Any], metrics: list[Any]
+    form_data: dict[str, Any], metrics: list[Any], viz_type: str | None = None
 ) -> list[list[Any]]:
     """
     Derive ordering so a ``row_limit`` returns the chart's top-N, not an
@@ -155,14 +166,46 @@ def orderby_from_form_data(
     if not metrics:
         return []
 
-    order_desc = form_data.get("order_desc", True)
     sort_metric = form_data.get("timeseries_limit_metric") or (
         metrics[0] if form_data.get("sort_by_metric") else None
     )
     if sort_metric is not None:
+        # The Table plugin defaults ``order_desc`` to False (ascending); Pie and
+        # others sort by metric descending. Match that so a row limit keeps the
+        # chart's top/bottom-N rather than flipping it.
+        default_desc = viz_type != "table"
+        order_desc = form_data.get("order_desc", default_desc)
         return [[sort_metric, not order_desc]]
     # No explicit sort metric: default to the first metric, descending.
     return [[metrics[0], False]]
+
+
+def _columns_and_metrics(
+    form_data: dict[str, Any], viz_type: str | None
+) -> tuple[list[Any], list[Any], bool]:
+    """
+    Resolve the query's ``(columns, metrics, promoted_time_column)`` from form
+    data, honoring raw vs. aggregate mode and the Big Number trendline promotion.
+    """
+    if is_raw_query_mode(form_data):
+        # Raw mode returns individual rows: use only the selected columns and
+        # ignore ``metrics``/``groupby``, which stay in form data as stale values
+        # (the controls aren't reset when hidden) but are ignored by the chart.
+        columns = list(form_data.get("all_columns") or form_data.get("columns") or [])
+        return columns, [], False
+
+    metrics = list(form_data.get("metrics") or [])
+    # Single-metric charts (e.g. Big Number) store ``metric`` rather than
+    # ``metrics``.
+    if not metrics and form_data.get("metric"):
+        metrics = [form_data["metric"]]
+    columns = columns_from_form_data(form_data)
+    # Only a Big Number *with a trendline* (viz_type ``big_number``) groups by its
+    # time column; ``big_number_total`` is a single aggregate and must not be
+    # grouped, or it would return one row per timestamp instead of a total.
+    if not columns and viz_type == "big_number" and form_data.get("granularity_sqla"):
+        return [form_data["granularity_sqla"]], metrics, True
+    return columns, metrics, False
 
 
 def build_query_context_from_form_data(
@@ -179,24 +222,7 @@ def build_query_context_from_form_data(
     :param viz_type: The chart's viz type, used for viz-specific handling.
     :returns: A single-query query-context dict.
     """
-    metrics = list(form_data.get("metrics") or [])
-    # Single-metric charts (e.g. Big Number) store ``metric`` rather than
-    # ``metrics``.
-    if not metrics and form_data.get("metric"):
-        metrics = [form_data["metric"]]
-    # ``percent_metrics`` are intentionally not carried: the chart shows them as a
-    # "% of total" produced by contribution post-processing, which this rebuild
-    # does not apply, so adding them as plain metrics would export raw aggregates
-    # that don't match the chart.
-
-    columns = columns_from_form_data(form_data)
-    # Only a Big Number *with a trendline* (viz_type ``big_number``) groups by its
-    # time column; ``big_number_total`` is a single aggregate and must not be
-    # grouped, or it would return one row per timestamp instead of a total.
-    promoted_time_column = False
-    if not columns and viz_type == "big_number" and form_data.get("granularity_sqla"):
-        columns = [form_data["granularity_sqla"]]
-        promoted_time_column = True
+    columns, metrics, promoted_time_column = _columns_and_metrics(form_data, viz_type)
 
     # SIMPLE adhoc filters (+ legacy top-level ``filters``) become query filters;
     # free-form SQL predicates go into ``extras``. Only ``WHERE``-clause SIMPLE
@@ -222,7 +248,7 @@ def build_query_context_from_form_data(
     query: dict[str, Any] = {
         "columns": columns,
         "metrics": metrics,
-        "orderby": orderby_from_form_data(form_data, metrics),
+        "orderby": orderby_from_form_data(form_data, metrics, viz_type),
         "filters": filters,
         "time_range": time_range,
     }

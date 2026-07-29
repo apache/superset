@@ -143,6 +143,11 @@ _UNSUPPORTED_PROCESSING_KEYS = ("time_compare", "rolling_type", "resample_rule")
 
 def _needs_unsupported_processing(form_data: dict[str, Any]) -> bool:
     """Whether the form data relies on processing the rebuild can't reproduce."""
+    # ``percent_metrics`` are "% of total" columns produced by contribution
+    # post-processing the rebuild can't apply; skip so the export doesn't silently
+    # omit columns the user sees.
+    if form_data.get("percent_metrics"):
+        return True
     for key in _UNSUPPORTED_PROCESSING_KEYS:
         value = form_data.get(key)
         # ``rolling_type`` is often the literal string ``"None"`` when unset.

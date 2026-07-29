@@ -254,14 +254,13 @@ def test_sql_filters_and_legacy_where_go_into_extras() -> None:
     assert query["extras"]["having"] == "(SUM(x) > 5)"
 
 
-def test_table_excludes_percent_metrics_but_carries_time_grain() -> None:
-    # percent_metrics are shown as "% of total" via contribution post-processing
-    # the rebuild can't apply, so they are omitted rather than exported as raw
-    # aggregates that don't match the chart.
+def test_table_carries_time_grain() -> None:
+    # ``time_grain_sqla`` is passed through in ``extras`` so a temporal dimension
+    # is bucketed as the chart does. (Charts with percent_metrics are skipped
+    # upstream in the export, not rebuilt — see the export task tests.)
     form_data = {
         "groupby": ["c"],
         "metrics": ["count"],
-        "percent_metrics": ["pct_total"],
         "time_grain_sqla": "P1M",
     }
     query = build_query_context_from_form_data(form_data, DATASOURCE, viz_type="table")[
@@ -336,3 +335,48 @@ def test_time_range_falls_back_to_since_until() -> None:
     form_data = {"metrics": ["count"], "since": "2020-01-01", "until": "2020-12-31"}
     query = build_query_context_from_form_data(form_data, DATASOURCE)["queries"][0]
     assert query["time_range"] == "2020-01-01 : 2020-12-31"
+
+
+def test_raw_mode_ignores_stale_metrics_and_groupby() -> None:
+    # Raw-mode form data can carry stale metrics/groupby (the controls aren't
+    # reset when hidden); the rebuild must ignore them like the chart does, or it
+    # would aggregate/group and re-order by a stale metric.
+    form_data = {
+        "query_mode": "raw",
+        "all_columns": ["name", "sales"],
+        "metrics": ["count"],
+        "groupby": ["genre"],
+        "timeseries_limit_metric": "count",
+        "row_limit": 10,
+    }
+    query = build_query_context_from_form_data(form_data, DATASOURCE, viz_type="table")[
+        "queries"
+    ][0]
+    assert query["columns"] == ["name", "sales"]
+    assert query["metrics"] == []
+    # No order_by_cols and no metrics → no metric-based ordering.
+    assert query["orderby"] == []
+
+
+def test_raw_mode_inferred_from_all_columns_without_query_mode() -> None:
+    # No explicit query_mode, but all_columns present → raw (mirrors getQueryMode).
+    form_data = {"all_columns": ["a", "b"], "groupby": ["c"], "metrics": ["m"]}
+    query = build_query_context_from_form_data(form_data, DATASOURCE, viz_type="table")[
+        "queries"
+    ][0]
+    assert query["columns"] == ["a", "b"]
+    assert query["metrics"] == []
+
+
+def test_orderby_table_sort_metric_defaults_ascending() -> None:
+    # Table defaults order_desc to False → ascending (matching the chart), so a row
+    # limit keeps the chart's bottom-N rather than flipping it to top-N.
+    form_data = {
+        "metrics": ["count"],
+        "groupby": ["c"],
+        "timeseries_limit_metric": "revenue",
+    }
+    query = build_query_context_from_form_data(form_data, DATASOURCE, viz_type="table")[
+        "queries"
+    ][0]
+    assert query["orderby"] == [["revenue", True]]
