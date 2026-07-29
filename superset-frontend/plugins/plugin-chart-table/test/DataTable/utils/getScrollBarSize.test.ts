@@ -27,12 +27,8 @@ test('measures the scrollbar probe using the shared custom scrollbar size', () =
 
   const styleEl = appendSpy.mock.calls
     .map(args => args[0])
-    .find(
-      (node): node is HTMLStyleElement => node instanceof HTMLStyleElement,
-    );
-  expect(styleEl?.textContent).toContain(
-    `width: ${CUSTOM_SCROLLBAR_SIZE}px`,
-  );
+    .find((node): node is HTMLStyleElement => node instanceof HTMLStyleElement);
+  expect(styleEl?.textContent).toContain(`width: ${CUSTOM_SCROLLBAR_SIZE}px`);
 
   appendSpy.mockRestore();
 });
