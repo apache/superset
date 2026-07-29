@@ -16,6 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// Width/height of the custom `::-webkit-scrollbar` applied to the sticky
+// body and header sizer in useSticky.tsx. Shared here so the measured
+// scrollbar size always matches what actually renders.
+export const CUSTOM_SCROLLBAR_SIZE = 8;
+
 let cached: number | undefined;
 
 const css = (x: TemplateStringsArray) => x.join('\n');
@@ -25,8 +30,14 @@ export default function getScrollBarSize(forceRefresh = false) {
     return 0;
   }
   if (cached === undefined || forceRefresh) {
+    const probeClassName = 'superset-scrollbar-size-probe';
     const inner = document.createElement('div');
     const outer = document.createElement('div');
+    const style = document.createElement('style');
+    // Custom scrollbars are only styleable via a stylesheet rule, since
+    // inline styles can't express `::-webkit-scrollbar` pseudo-elements.
+    style.textContent = `.${probeClassName}::-webkit-scrollbar { width: ${CUSTOM_SCROLLBAR_SIZE}px; height: ${CUSTOM_SCROLLBAR_SIZE}px; }`;
+    inner.className = probeClassName;
     inner.style.cssText = css`
       width: auto;
       height: 100%;
@@ -40,9 +51,11 @@ export default function getScrollBarSize(forceRefresh = false) {
       height: 50px;
     `;
     outer.append(inner);
+    document.head.append(style);
     document.body.append(outer);
     cached = outer.clientWidth - inner.clientWidth;
     outer.remove();
+    style.remove();
   }
   return cached;
 }

@@ -31,7 +31,9 @@ import {
 } from 'react';
 import { TableInstance, Hooks } from 'react-table';
 import { useTheme, css } from '@apache-superset/core/theme';
-import getScrollBarSize from '../utils/getScrollBarSize';
+import getScrollBarSize, {
+  CUSTOM_SCROLLBAR_SIZE,
+} from '../utils/getScrollBarSize';
 import needScrollBar from '../utils/needScrollBar';
 import useMountedMemo from '../utils/useMountedMemo';
 
@@ -226,8 +228,8 @@ function StickyWrap({
 
   const scrollBarStyles = css`
     &::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
+      width: ${CUSTOM_SCROLLBAR_SIZE}px;
+      height: ${CUSTOM_SCROLLBAR_SIZE}px;
     }
     &::-webkit-scrollbar-track {
       background: ${theme.colorFillQuaternary};
