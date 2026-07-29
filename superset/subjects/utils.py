@@ -312,7 +312,9 @@ def get_or_create_group_subject(group_id: int) -> Subject | None:
     concurrent request backfilling the same group would otherwise fail this
     flush with an ``IntegrityError`` and poison the surrounding transaction. On
     that conflict the savepoint rolls back and the row the other request wrote
-    is reloaded instead.
+    is reloaded. Any ``IntegrityError`` that did *not* leave a matching row is
+    re-raised rather than swallowed — it isn't the expected unique-key race, so
+    masking it would silently drop the group from the resulting viewer set.
     """
     if subject := get_group_subject(group_id):
         return subject
@@ -330,7 +332,9 @@ def get_or_create_group_subject(group_id: int) -> Subject | None:
         with db.session.begin_nested():
             sync_group_subject(group)
     except IntegrityError:
-        pass
+        if subject := get_group_subject(group_id):
+            return subject
+        raise
     return get_group_subject(group_id)
 
 

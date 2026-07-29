@@ -217,6 +217,28 @@ def test_get_or_create_group_subject_handles_concurrent_insert() -> None:
     assert mock_get_group_subject.call_count == 2
 
 
+def test_get_or_create_group_subject_reraises_unrelated_integrity_error() -> None:
+    """An IntegrityError that left no matching row isn't the expected unique-key
+    race, so it propagates instead of silently dropping the group."""
+    from sqlalchemy.exc import IntegrityError
+
+    group = MagicMock()
+    group.id = 7
+
+    with (
+        patch("superset.subjects.utils.get_group_subject", return_value=None),
+        patch("superset.subjects.utils.db") as mock_db,
+        patch("superset.subjects.sync.sync_group_subject"),
+    ):
+        mock_db.session.get.return_value = group
+        mock_db.session.begin_nested.return_value.__enter__.side_effect = (
+            IntegrityError("unrelated failure", None, Exception())
+        )
+
+        with pytest.raises(IntegrityError):
+            get_or_create_group_subject(7)
+
+
 def test_get_or_create_group_subject_missing_group_returns_none() -> None:
     """A group ID with no matching group at all resolves to None."""
     with (
