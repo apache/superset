@@ -356,8 +356,18 @@ export async function embedDashboard({
     ourPort.get<string>("getDashboardPermalink", { anchor });
   const getActiveTabs = () => ourPort.get<string[]>("getActiveTabs");
   const getDataMask = () => ourPort.get<Record<string, any>>("getDataMask");
+  // `observeDataMask` hands the host a mask with the change-trigger booleans
+  // mixed in, so feeding that payload straight back into `setDataMask` is a
+  // natural thing for a host to do. Keep only the entries that look like a
+  // filter's mask, so those flags never reach the dashboard as filter ids.
   const setDataMask = (dataMask: Record<string, any>) =>
-    ourPort.emit("setDataMask", { dataMask });
+    ourPort.emit("setDataMask", {
+      dataMask: Object.fromEntries(
+        Object.entries(dataMask).filter(
+          ([, mask]) => typeof mask === "object" && mask !== null,
+        ),
+      ),
+    });
   const getChartStates = () =>
     ourPort.get<Record<string, any>>("getChartStates");
   const getChartDataPayloads = (params?: { chartId?: number }) =>

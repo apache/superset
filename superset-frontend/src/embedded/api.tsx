@@ -17,7 +17,9 @@
  * under the License.
  */
 import { DataMaskStateWithId, JsonObject } from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { partition } from 'lodash';
 import { batch } from 'react-redux';
 import { store } from '../views/store';
 import { getDashboardPermalink as getDashboardPermalinkUtil } from '../utils/urlUtils';
@@ -87,8 +89,26 @@ const getActiveTabs = () => store?.getState()?.dashboardState?.activeTabs || [];
 const getDataMask = () => store?.getState()?.dataMask || {};
 
 const setDataMask = ({ dataMask }: { dataMask: DataMaskStateWithId }) => {
+  // The dashboard's own data mask holds an entry for every native filter and
+  // every cross-filter-capable chart, so it doubles as the set of filter ids
+  // this dashboard can accept. Anything else — a filter id from a different
+  // dashboard, or the change-trigger flags that `observeDataMask` emits
+  // alongside the mask — would otherwise be inserted as a bogus filter and
+  // treated as a globally scoped filter by the active-filter derivation.
+  const knownFilterIds = new Set(Object.keys(getDataMask()));
+  const [applicable, ignored] = partition(Object.entries(dataMask), ([id]) =>
+    knownFilterIds.has(id),
+  );
+
+  if (ignored.length) {
+    logging.warn(
+      '[superset] setDataMask ignored unknown filter ids:',
+      ignored.map(([id]) => id).join(', '),
+    );
+  }
+
   batch(() => {
-    Object.entries(dataMask).forEach(([filterId, mask]) => {
+    applicable.forEach(([filterId, mask]) => {
       store?.dispatch(updateDataMask(filterId, mask));
     });
   });
