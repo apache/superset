@@ -16,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
+import { canOverwriteSlice } from 'src/explore/exploreUtils/canOverwriteSlice';
+import { Slice } from 'src/types/Chart';
 import {
   getClientErrorObject,
   QueryData,
@@ -73,8 +75,20 @@ function buildPreviewFormData(
 
 export default function ChartVersionPreview() {
   const preview = useSelector(selectVersionPreview);
-  const canRestore = useSelector<ExplorePageState, boolean>(
+  const slice = useSelector<ExplorePageState, Slice | undefined>(
+    state => state.explore?.slice ?? undefined,
+  );
+  const user = useSelector<ExplorePageState, ExplorePageState['user']>(
+    state => state.user,
+  );
+  const canOverwrite = useSelector<ExplorePageState, boolean>(
     state => state.explore?.can_overwrite ?? false,
+  );
+  // Same predicate as the panel and the menu, so an admin who can open the
+  // history can also restore from it.
+  const canRestore = useMemo(
+    () => canOverwriteSlice({ slice, user, canOverwrite }),
+    [slice, user, canOverwrite],
   );
   const datasource = useSelector<ExplorePageState, Dataset | undefined>(
     state => state.explore?.datasource as unknown as Dataset | undefined,

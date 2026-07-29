@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useDebounceValue } from 'src/hooks/useDebounceValue';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { getUrlParam } from 'src/utils/urlUtils';
+import { canOverwriteSlice } from 'src/explore/exploreUtils/canOverwriteSlice';
 import { URL_PARAMS } from 'src/constants';
 import { hydrateExplore } from 'src/explore/actions/hydrateExplore';
 import type { Slice } from 'src/types/Chart';
@@ -75,8 +76,17 @@ export default function ExploreVersionHistory() {
   const slice = useSelector<ExplorePageState, Slice | undefined>(
     state => state.explore?.slice ?? undefined,
   );
-  const canRestore = useSelector<ExplorePageState, boolean>(
+  const user = useSelector<ExplorePageState, ExplorePageState['user']>(
+    state => state.user,
+  );
+  const canOverwrite = useSelector<ExplorePageState, boolean>(
     state => state.explore?.can_overwrite ?? false,
+  );
+  // Same predicate as the menu that opens this panel: can_overwrite alone
+  // excludes admins and extra editors on charts with no explicit editors.
+  const canRestore = useMemo(
+    () => canOverwriteSlice({ slice, user, canOverwrite }),
+    [slice, user, canOverwrite],
   );
   const isPanelOpen = useSelector(selectIsVersionHistoryPanelOpen);
   const include = useSelector(selectVersionHistoryInclude);
