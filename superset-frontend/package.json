@@ -414,7 +414,9 @@
     "@luma.gl/gltf": "~9.2.5",
     "@luma.gl/shadertools": "~9.2.5",
     "@luma.gl/webgl": "~9.2.5",
-    "brace-expansion": ">=5.0.8",
+    "minimatch@>=10": {
+      "brace-expansion": ">=5.0.8"
+    },
     "fast-xml-parser": "^5.8.0",
     "fast-uri": "^3.1.4",
     "jest-mock": "^30.4.0",
