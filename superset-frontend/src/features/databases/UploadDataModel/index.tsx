@@ -315,7 +315,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   const clearModal = () => {
     setFileList([]);
     setColumns([]);
-    setCurrentSchema(undefined);
+    setCurrentSchema('');
     setCurrentDatabaseId(0);
     setSheetNames([]);
     setIsLoading(false);

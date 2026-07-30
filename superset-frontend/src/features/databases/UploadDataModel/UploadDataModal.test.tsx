@@ -472,7 +472,9 @@ describe('UploadDataModal - Form Submission', () => {
     fileType: string,
     fileName: string,
     mimeType = 'text/csv',
-    { selectSchema = true } = {},
+    // when true, the schema field is left untouched so the submitted
+    // form data must not contain a schema entry
+    { omitSchema = false } = {},
   ) => {
     const selectButton = screen.getByRole('button', { name: 'Select' });
     await userEvent.click(selectButton);
@@ -489,7 +491,7 @@ describe('UploadDataModal - Form Submission', () => {
     await waitFor(() => screen.getByText('database1'));
     await userEvent.click(screen.getByText('database1'));
 
-    if (selectSchema) {
+    if (!omitSchema) {
       const schemaCombobox = screen.getByRole('combobox', { name: /schema/i });
       await userEvent.click(schemaCombobox);
 
@@ -528,7 +530,7 @@ describe('UploadDataModal - Form Submission', () => {
     render(<UploadDataModal {...csvProps} />, { useRedux: true });
 
     const { options } = await fillForm('csv', 'test.csv', 'text/csv', {
-      selectSchema: false,
+      omitSchema: true,
     });
     const formData = options?.body as FormData;
 
