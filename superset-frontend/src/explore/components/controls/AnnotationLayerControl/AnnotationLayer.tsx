@@ -112,14 +112,23 @@ interface AnnotationLayerProps {
 
 const AUTOMATIC_COLOR = '';
 
-/** Space between the popover's side-by-side configuration sections. */
-const SECTION_GAP = 32;
+/** Space between the popover's side-by-side configuration sections, in size units. */
+const SECTION_GAP_UNITS = 8;
 
-/** Breathing room kept between the popover and the viewport edge. */
-const VIEWPORT_INSET = 8;
+/** Breathing room kept between the popover and the viewport edge, in size units. */
+const VIEWPORT_INSET_UNITS = 2;
 
-/** Below this the sections stack into a column too tall for the footer to fit. */
-const MIN_SIDE_BY_SIDE_WIDTH = 500;
+const SectionsRow = styled.div<{ $maxWidth: number | string }>`
+  display: flex;
+  flex-direction: row;
+  /* A third section can outgrow a narrow viewport, and an oversized popover
+   * cannot be shrunk by antd, only flipped. Bounding the row compresses the
+   * sections instead of pushing the footer off screen. */
+  flex-wrap: wrap;
+  gap: ${({ theme }) => theme.sizeUnit * SECTION_GAP_UNITS}px;
+  max-width: ${({ $maxWidth }) =>
+    typeof $maxWidth === 'number' ? `${$maxWidth}px` : $maxWidth};
+`;
 
 interface ChartApiResult {
   params?: string | null;
@@ -1076,6 +1085,9 @@ function AnnotationLayer({
   const sliceConfiguration = renderSliceConfiguration();
   const hasSliceConfiguration = !!sliceConfiguration;
 
+  const sectionGap = theme.sizeUnit * SECTION_GAP_UNITS;
+  const viewportInset = theme.sizeUnit * VIEWPORT_INSET_UNITS;
+
   const measureSectionsMaxWidth = useCallback(() => {
     const row = sectionsRef.current;
     const popover = row?.closest('.ant-popover');
@@ -1087,22 +1099,31 @@ function AnnotationLayer({
     const popoverInsetWidth =
       popover.getBoundingClientRect().width - row.getBoundingClientRect().width;
     const viewport = document.documentElement.clientWidth;
+    const sections = Array.from(row.children);
+    // Room the sections need to stay on one line. Wrapping them makes the popover
+    // roughly twice as tall, which no shift can pull back inside a short viewport.
+    const oneLine =
+      sections.reduce(
+        (total, section) => total + section.getBoundingClientRect().width,
+        0,
+      ) +
+      sectionGap * Math.max(sections.length - 1, 0);
     // Fitting beside the panel needs no shift, avoiding the offset antd leaves
-    // behind when it shifts. Too little room there and the viewport is the better
-    // bound: the sections stay side by side and antd shifts across the panel.
+    // behind when it shifts. Wrapping to get there costs more than the offset, so
+    // anything narrower falls back to the viewport and antd shifts across the panel.
     const besidePanel =
       viewport -
       panel.getBoundingClientRect().right -
       popoverInsetWidth -
-      VIEWPORT_INSET;
+      viewportInset;
     const available =
-      besidePanel >= MIN_SIDE_BY_SIDE_WIDTH
+      besidePanel >= oneLine
         ? besidePanel
-        : viewport - popoverInsetWidth - VIEWPORT_INSET * 2;
+        : viewport - popoverInsetWidth - viewportInset * 2;
     if (available > 0) {
       setSectionsMaxWidth(available);
     }
-  }, []);
+  }, [sectionGap, viewportInset]);
 
   // Resizing the viewport or dragging the panel moves the edge the cap derives
   // from, so remeasure while the popover is open. Observing the panel and not the
@@ -1140,19 +1161,10 @@ function AnnotationLayer({
           {t('ERROR')}: {error}
         </span>
       )}
-      <div
+      <SectionsRow
         ref={sectionsRef}
         data-test="annotation-layer-sections"
-        style={{
-          display: 'flex',
-          flexDirection: 'row',
-          // A third section can outgrow a narrow viewport, and an oversized
-          // popover cannot be shrunk by antd, only flipped. Bounding the row
-          // compresses the sections instead of pushing the footer off screen.
-          flexWrap: 'wrap',
-          maxWidth: sectionsMaxWidth ?? `calc(100vw - ${SECTION_GAP * 2}px)`,
-          gap: SECTION_GAP,
-        }}
+        $maxWidth={sectionsMaxWidth ?? `calc(100vw - ${sectionGap * 2}px)`}
       >
         <div>
           <PopoverSection
@@ -1212,7 +1224,7 @@ function AnnotationLayer({
         </div>
         {sliceConfiguration}
         {renderDisplayConfiguration()}
-      </div>
+      </SectionsRow>
       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
         {isNew ? (
           <Button

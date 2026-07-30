@@ -250,30 +250,39 @@ test('Keeps an oversized popover reachable inside the viewport', () => {
 });
 
 test('Hands the overflow options for its placement to the popover', async () => {
-  mockPopoverProps.length = 0;
-  const overflowOf = () =>
-    mockPopoverProps[mockPopoverProps.length - 1].autoAdjustOverflow;
+  // The placement is only computed once the popover opens, so each case has to
+  // open it and wait for that placement to arrive before reading the options.
+  const openAt = async (
+    placement: string,
+    props: Partial<PopoverProps> = {},
+  ) => {
+    mockPopoverProps.length = 0;
+    const { unmount } = render(<TestComponent {...createProps()} {...props} />);
+    userEvent.click(screen.getByTestId('control-popover'));
+    await waitFor(() =>
+      expect(mockPopoverProps[mockPopoverProps.length - 1].placement).toBe(
+        placement,
+      ),
+    );
+    const seen = mockPopoverProps[mockPopoverProps.length - 1];
+    unmount();
+    return seen.autoAdjustOverflow;
+  };
 
   // A corner placement, which antd would otherwise leave stranded off screen.
-  render(
-    <TestComponent
-      {...createProps()}
-      getVisibilityRatio={() => ({ yRatio: 0.9, xRatio: 0.2 })}
-    />,
-  );
-  userEvent.click(screen.getByTestId('control-popover'));
-  await waitFor(() => expect(overflowOf()).toBe(SHIFT_INTO_VIEWPORT));
+  expect(
+    await openAt('rightBottom', {
+      getVisibilityRatio: () => ({ yRatio: 0.9, xRatio: 0.2 }),
+    }),
+  ).toBe(SHIFT_INTO_VIEWPORT);
 
   // A base placement keeps antd's own capped shifting.
-  render(
-    <TestComponent
-      {...createProps()}
-      getVisibilityRatio={() => ({ yRatio: 0.5, xRatio: 0.7 })}
-    />,
-  );
-  expect(overflowOf()).toBe(true);
+  expect(
+    await openAt('left', {
+      getVisibilityRatio: () => ({ yRatio: 0.5, xRatio: 0.7 }),
+    }),
+  ).toBe(true);
 
   // Callers stay in control.
-  render(<TestComponent {...createProps()} autoAdjustOverflow={false} />);
-  expect(overflowOf()).toBe(false);
+  expect(await openAt('rightTop', { autoAdjustOverflow: false })).toBe(false);
 });

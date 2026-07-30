@@ -30,6 +30,7 @@ import {
   ChartMetadata,
   VizType,
 } from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
 import fetchMock from 'fetch-mock';
 import setupColors from 'src/setup/setupColors';
 import { ANNOTATION_TYPES_METADATA } from './AnnotationTypes';
@@ -81,16 +82,23 @@ const rect = (width: number, right: number) =>
     height: 0,
   }) as DOMRect;
 
-/** Lays the popover out beside a control panel of the given width. */
-const mockLayout = (panelWidth: () => number) =>
+const SECTIONS_TEST_ID = 'annotation-layer-sections';
+
+/**
+ * Lays the popover out beside a control panel of the given width. `sectionWidth`
+ * is what each section wants, which decides whether the row fits on one line.
+ */
+const mockLayout = (panelWidth: () => number, sectionWidth = 0) =>
   jest
     .spyOn(Element.prototype, 'getBoundingClientRect')
     .mockImplementation(function (this: Element) {
       if (this.id === 'controlSections')
         return rect(panelWidth(), panelWidth());
       if (this.classList.contains('ant-popover')) return rect(802, 1422);
-      if (this.getAttribute('data-test') === 'annotation-layer-sections')
+      if (this.getAttribute('data-test') === SECTIONS_TEST_ID)
         return rect(778, 1410);
+      if (this.parentElement?.getAttribute('data-test') === SECTIONS_TEST_ID)
+        return rect(sectionWidth, sectionWidth);
       return rect(0, 0);
     });
 
@@ -332,6 +340,71 @@ test('renders slice configuration on mount for a chart with no generated query c
   }
 });
 
+test('survives a chart endpoint that fails', async () => {
+  // The bug this replaces was an unhandled rejection that left the popover in a
+  // half-populated state, so a failure has to stay contained and reported.
+  const logError = jest.spyOn(logging, 'error').mockImplementation(() => {});
+  fetchMock.modifyRoute(chartApiWithIdRouteName, { response: 500 });
+
+  try {
+    await waitForRender({
+      name: 'Test',
+      value: 'a',
+      annotationType: ANNOTATION_TYPES_METADATA.EVENT.value,
+      sourceType: 'Table',
+    });
+
+    expect(screen.getByRole('textbox', { name: 'Name' })).toBeInTheDocument();
+    await waitFor(() =>
+      expect(logError).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to load annotation source chart a'),
+        expect.anything(),
+      ),
+    );
+    expect(screen.queryByText(/title column/i)).not.toBeInTheDocument();
+  } finally {
+    fetchMock.modifyRoute(chartApiWithIdRouteName, { response: withIdResult });
+    logError.mockRestore();
+  }
+});
+
+test('reports a chart that carries no form data at all', async () => {
+  // Neither column is guaranteed: `query_context` is backfilled lazily and
+  // `params` can be empty, and then there is nothing to build the fields from.
+  const logWarn = jest.spyOn(logging, 'warn').mockImplementation(() => {});
+  fetchMock.modifyRoute(chartApiWithIdRouteName, {
+    response: {
+      // `VizType.Table` is the registered one, so the chart clears the
+      // annotation-type check and reaches the form data.
+      result: {
+        ...withIdResult.result,
+        params: null,
+        query_context: null,
+        viz_type: VizType.Table,
+      },
+    },
+  });
+
+  try {
+    await waitForRender({
+      name: 'Test',
+      value: 'a',
+      annotationType: ANNOTATION_TYPES_METADATA.EVENT.value,
+      sourceType: 'Table',
+    });
+
+    await waitFor(() =>
+      expect(logWarn).toHaveBeenCalledWith(
+        expect.stringContaining('has no usable form data'),
+      ),
+    );
+    expect(screen.queryByText(/title column/i)).not.toBeInTheDocument();
+  } finally {
+    fetchMock.modifyRoute(chartApiWithIdRouteName, { response: withIdResult });
+    logWarn.mockRestore();
+  }
+});
+
 test('bounds the section row to the viewport so the footer stays reachable', async () => {
   // Adding the slice configuration section must not push the display
   // configuration or the Apply/OK buttons past the viewport.
@@ -354,7 +427,9 @@ test('caps the section row to the room left beside the control panel', async () 
   // popover moves as the row narrows, so measuring it feeds each cap into the
   // next one and converges on a column too narrow to lay the sections out in.
   setViewportWidth(1160);
-  mockLayout(() => 620);
+  // Two sections at 238 need 508 to stay on one line, which is what fits beside
+  // the panel here.
+  mockLayout(() => 620, 238);
 
   try {
     await waitFor(() =>
@@ -378,8 +453,8 @@ test('caps the section row to the room left beside the control panel', async () 
     );
 
     // A cap measured once would go stale across a resize. Here the room beside
-    // the panel drops to 348px, too little for two sections, so the viewport
-    // becomes the bound: 1000 - 24 padding - 2 x 8 inset.
+    // the panel drops to 348px, too little to keep both sections on one line, so
+    // the viewport becomes the bound: 1000 - 24 padding - 2 x 8 inset.
     setViewportWidth(1000);
     fireEvent(window, new Event('resize'));
 
@@ -417,7 +492,7 @@ test('caps the section row again when the control panel is dragged wider', async
 
   setViewportWidth(1160);
   let panelWidth = 620;
-  mockLayout(() => panelWidth);
+  mockLayout(() => panelWidth, 238);
 
   try {
     render(
@@ -440,8 +515,8 @@ test('caps the section row again when the control panel is dragged wider', async
     );
     expect(observed).toContain(document.getElementById('controlSections'));
 
-    // 228px is left beside the panel, too little for two sections, so the bound
-    // falls back to the viewport: 1160 - 24 padding - 2 x 8 inset.
+    // 228px is left beside the panel, too little to keep both sections on one
+    // line, so the bound falls back to the viewport: 1160 - 24 - 2 x 8 inset.
     panelWidth = 900;
     act(() => notifyResize());
 
@@ -452,6 +527,50 @@ test('caps the section row again when the control panel is dragged wider', async
     );
   } finally {
     window.ResizeObserver = NativeResizeObserver;
+    restoreViewportWidth();
+    jest.restoreAllMocks();
+  }
+});
+
+test('leaves the slice configuration section on one line rather than wrapping', async () => {
+  // Wrapping the third section roughly doubles the popover's height - measured at
+  // 620px of sections against 256px unwrapped - and a popover taller than the
+  // viewport cannot be shifted back in, so the footer ends up below the fold.
+  // Room beside the panel is preferred only while the row still fits on one line.
+  setViewportWidth(1160);
+  mockLayout(() => 620, 238);
+  fetchMock.modifyRoute(chartApiWithIdRouteName, {
+    response: {
+      result: { ...withIdResult.result, viz_type: VizType.Table },
+    },
+  });
+
+  try {
+    render(
+      <>
+        <div id="controlSections" />
+        <div className="ant-popover">
+          <AnnotationLayer
+            {...defaultProps}
+            name="Test"
+            value="a"
+            annotationType={ANNOTATION_TYPES_METADATA.EVENT.value}
+            sourceType="Table"
+          />
+        </div>
+      </>,
+    );
+
+    // Three sections need 778px for one line and only 508px is free beside the
+    // panel, so the viewport bounds it instead: 1160 - 24 padding - 2 x 8 inset.
+    expect(await screen.findByText(/title column/i)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByTestId('annotation-layer-sections')).toHaveStyle(
+        'max-width: 1120px',
+      ),
+    );
+  } finally {
+    fetchMock.modifyRoute(chartApiWithIdRouteName, { response: withIdResult });
     restoreViewportWidth();
     jest.restoreAllMocks();
   }
