@@ -638,7 +638,7 @@ def get_language_pack_template_context(common: dict[str, Any]) -> dict[str, Any]
     language = common.get("locale")
     if not language or language == "en":
         return {"language_pack_src": None, "language_pack_inline": False}
-    if common.get("language_pack"):
+    if common.get("language_pack") is not None:
         return {"language_pack_src": None, "language_pack_inline": True}
     version = get_language_pack_version(language)
     return {

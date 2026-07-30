@@ -26,8 +26,10 @@ logger = logging.getLogger(__name__)
 ALL_LANGUAGE_PACKS: dict[str, dict[str, Any]] = {"en": {}}
 
 # Global caching for language pack content hashes, used to build
-# content-addressed (cache-busting) asset URLs
-ALL_LANGUAGE_PACK_VERSIONS: dict[str, str] = {}
+# content-addressed (cache-busting) asset URLs. A locale with no pack file
+# is cached as None so repeated requests don't re-stat the filesystem or
+# re-log the same warning.
+ALL_LANGUAGE_PACK_VERSIONS: dict[str, Optional[str]] = {}
 
 DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -48,15 +50,15 @@ def get_language_pack_version(locale: str) -> Optional[str]:
     as immutable and pick up a fresh copy whenever translations change.
     Returns None when the pack file cannot be read.
     """
-    version = ALL_LANGUAGE_PACK_VERSIONS.get(locale)
-    if not version:
-        try:
-            with open(get_language_pack_filename(locale), "rb") as f:
-                version = hashlib.sha256(f.read()).hexdigest()[:12]
-            ALL_LANGUAGE_PACK_VERSIONS[locale] = version
-        except OSError:
-            logger.warning("No language pack file to version for locale %s", locale)
-            return None
+    if locale in ALL_LANGUAGE_PACK_VERSIONS:
+        return ALL_LANGUAGE_PACK_VERSIONS[locale]
+    try:
+        with open(get_language_pack_filename(locale), "rb") as f:
+            version = hashlib.sha256(f.read()).hexdigest()[:12]
+    except OSError:
+        logger.warning("No language pack file to version for locale %s", locale)
+        version = None
+    ALL_LANGUAGE_PACK_VERSIONS[locale] = version
     return version
 
 
