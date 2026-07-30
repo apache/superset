@@ -2457,6 +2457,22 @@ def test_get_sqla_query_virtual_dataset_filter_values_drill_to_detail(
         f"filters inside a virtual dataset's own SQL. Generated SQL: {sql}"
     )
 
+    # The assertion above can pass even when filter_values() itself is
+    # broken, because get_sqla_query() independently applies the native
+    # filter as an outer WHERE predicate on top of whatever the virtual
+    # dataset's own SQL renders to. Render the virtual dataset's SQL in
+    # isolation to confirm filter_values() actually resolved the native
+    # filter *inside* the templated subquery.
+    template_processor = table.get_template_processor(
+        filter=[{"col": "b", "op": "IN", "val": ["Alice"]}]
+    )
+    rendered_inner_sql = table.get_rendered_sql(template_processor)
+    assert "'Alice'" in rendered_inner_sql, (
+        "filter_values() should render the native drill-to-detail-style "
+        "filter directly into the virtual dataset's own templated SQL, "
+        f"not just the outer query. Rendered SQL: {rendered_inner_sql}"
+    )
+
 
 def test_extras_where_is_parenthesized(
     database: Database,
