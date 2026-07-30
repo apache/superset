@@ -14,10 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from . import (  # noqa: F401
-    core,
-    dynamic_plugins,
-    purge_audit_log,
-    sql_lab,
-    user_attributes,
-)
+"""Deletion retention: purge of soft-deleted entities.
+
+Shared building blocks for the scheduled purge task
+(``superset.tasks.deletion_retention``) and the operator force-purge
+command, so the cascade cannot drift between the two surfaces.
+"""
