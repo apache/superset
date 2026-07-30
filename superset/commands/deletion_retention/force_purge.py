@@ -42,26 +42,74 @@ from superset.models.helpers import skip_visibility_filter, SoftDeleteMixin
 logger: logging.Logger = logging.getLogger(__name__)
 
 
-class ForcePurgeCommand:
-    """Force-purge the entity identified by *uuid*, if any."""
+class AmbiguousPurgeTargetError(Exception):
+    """The UUID matches rows in more than one soft-delete model."""
 
-    def __init__(self, uuid: str, actor: str = "operator") -> None:
+
+class ForcePurgeCommand:
+    """Force-purge the entity identified by *uuid*, if any.
+
+    ``model_cls`` restricts resolution to a single entity type. Operators
+    reach this command with a bare UUID and no type, so it defaults to
+    searching every soft-delete model — but UUID uniqueness is only enforced
+    per table, so that search can be ambiguous. When it is, the command
+    refuses rather than guessing: picking the first match would let a
+    compliance deletion destroy an entity of a type nobody asked about.
+
+    Any caller that already knows the type — notably one acting for an end
+    user, whose authorization was necessarily checked against one specific
+    entity — must pass ``model_cls`` so resolution cannot wander.
+
+    ``require_archived`` restricts resolution to soft-deleted rows. The
+    cascade runs with ``enforce_window=False`` here (a force purge ignores
+    the retention window), which also skips its ``deleted_at`` check, so
+    without this a row restored between authorization and purge could be
+    hard-deleted while live.
+    """
+
+    def __init__(
+        self,
+        uuid: str,
+        actor: str = "operator",
+        model_cls: type[SoftDeleteMixin] | None = None,
+        require_archived: bool = False,
+    ) -> None:
         self._uuid: str = uuid
         self._actor: str = actor
+        self._model_cls = model_cls
+        self._require_archived = require_archived
 
     def _resolve(self) -> SoftDeleteMixin | None:
-        """Find the entity across every soft-delete model by UUID, matching
-        live or soft-deleted rows (visibility-filter bypassed)."""
-        for model in SoftDeleteMixin._registered_subclasses:  # noqa: SLF001
+        """Find the entity by UUID, visibility-filter bypassed.
+
+        Searches only ``model_cls`` when given, else every registered
+        soft-delete model — raising :class:`AmbiguousPurgeTargetError` if more
+        than one model matches. Matches live rows as well as soft-deleted ones
+        unless ``require_archived`` is set.
+        """
+        candidates = (
+            [self._model_cls]
+            if self._model_cls is not None
+            else SoftDeleteMixin._registered_subclasses  # noqa: SLF001
+        )
+        matches: list[SoftDeleteMixin] = []
+        for model in candidates:
             if not hasattr(model, "uuid"):
                 continue
             with skip_visibility_filter(db.session, model):
-                entity = (
-                    db.session.query(model).filter(model.uuid == self._uuid).first()
-                )
+                query = db.session.query(model).filter(model.uuid == self._uuid)
+                if self._require_archived:
+                    query = query.filter(model.deleted_at.is_not(None))
+                entity = query.first()
             if entity is not None:
-                return entity
-        return None
+                matches.append(entity)
+        if len(matches) > 1:
+            raise AmbiguousPurgeTargetError(
+                f"uuid={self._uuid!r} matches "
+                f"{', '.join(sorted(type(m).__name__ for m in matches))}; "
+                "pass the entity type to disambiguate"
+            )
+        return matches[0] if matches else None
 
     def run(self) -> dict[str, Any]:
         """Resolve + purge. Returns a summary; a no-op when nothing matches."""

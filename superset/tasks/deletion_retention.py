@@ -106,6 +106,18 @@ def _iter_eligible_ids(
         after_id = ids[-1]
 
 
+def _reconcile_unless_dry_run(dry_run: bool) -> None:
+    """Finalize stale pending audit rows, except during a dry run.
+
+    Reconciliation is a durable write. A dry run is documented as reporting
+    what *would* happen, so it must not resolve another run's audit attempts
+    as a side effect — an operator sizing up a rollout would otherwise change
+    the very record they are inspecting.
+    """
+    if not dry_run:
+        audit.reconcile_pending()
+
+
 def _purge_impl(window_days: int, dry_run: bool) -> dict[str, Any]:
     """Run one purge pass across all soft-delete models."""
     if window_days <= 0:
@@ -120,7 +132,7 @@ def _purge_impl(window_days: int, dry_run: bool) -> dict[str, Any]:
     # timezone offset, purging early west of UTC. If deleted_at ever moves
     # to UTC-aware, this must move with it.
     cutoff = datetime.now() - timedelta(days=window_days)
-    audit.reconcile_pending()
+    _reconcile_unless_dry_run(dry_run)
     purged: dict[str, int] = {}
     would_purge: dict[str, int] = {}
     failures = 0
@@ -226,6 +238,23 @@ def _purge_one(
     with skip_visibility_filter(db.session, model):
         entity = db.session.get(model, entity_id)
     if entity is None:
+        audit.fail(record_id)
+        return None
+    if entity_uuid(entity) != entity_uuid_value:
+        # The row under this id is not the row the audit describes. The
+        # cascade's conditional claim would still refuse to purge anything
+        # live, so this is an attribution guard rather than a destructive
+        # one: without it, an id reused between the snapshot and here (SQLite
+        # recycles rowids; sequences do not) could purge a genuinely eligible
+        # entity while the audit names a different one. An audit row that
+        # identifies the wrong object is worse than a skipped purge.
+        logger.warning(
+            "deletion_retention: %s id=%s changed identity before purge "
+            "(expected uuid=%s); skipping",
+            _model_table_name(model),
+            entity_id,
+            entity_uuid_value,
+        )
         audit.fail(record_id)
         return None
     try:

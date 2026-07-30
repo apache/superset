@@ -20,9 +20,14 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
+import pytest
+
 from superset import db
 from superset.commands.deletion_retention.audit import PurgeAuditLog
-from superset.commands.deletion_retention.force_purge import ForcePurgeCommand
+from superset.commands.deletion_retention.force_purge import (
+    AmbiguousPurgeTargetError,
+    ForcePurgeCommand,
+)
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -138,3 +143,42 @@ class TestForcePurge(DeletionRetentionTestBase):
             chart_uuid,
             "associated alerts or reports exist",
         )
+
+    def test_force_purge_refuses_an_ambiguous_uuid(self) -> None:
+        """A UUID matching two entity types is refused, not guessed.
+
+        UUID uniqueness is per table, and the import APIs accept
+        caller-supplied UUIDs, so an operator's bare UUID can legitimately
+        match more than one row. Purging the first match found would let a
+        compliance deletion destroy an entity nobody asked about.
+        """
+        chart = self.make_chart("ambiguous_chart")
+        dashboard = self.make_dashboard("ambiguous_dash")
+        shared = chart.uuid
+        dashboard.uuid = shared
+        db.session.commit()
+        chart_id, dashboard_id = chart.id, dashboard.id
+        self.soft_delete(chart, days_ago=90)
+
+        with pytest.raises(AmbiguousPurgeTargetError):
+            ForcePurgeCommand(str(shared)).run()
+
+        # Neither is touched.
+        assert self.exists(Slice, chart_id)
+        assert self.exists(Dashboard, dashboard_id)
+
+    def test_force_purge_with_a_model_resolves_only_that_type(self) -> None:
+        """Given the type, the same ambiguous UUID purges exactly one row."""
+        chart = self.make_chart("scoped_chart")
+        dashboard = self.make_dashboard("scoped_dash")
+        shared = chart.uuid
+        dashboard.uuid = shared
+        db.session.commit()
+        chart_id, dashboard_id = chart.id, dashboard.id
+        self.soft_delete(chart, days_ago=90)
+
+        result = ForcePurgeCommand(str(shared), model_cls=Slice).run()
+
+        assert result["purged"] is True
+        assert not self.exists(Slice, chart_id)
+        assert self.exists(Dashboard, dashboard_id)

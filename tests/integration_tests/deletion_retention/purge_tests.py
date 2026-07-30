@@ -80,6 +80,23 @@ class TestSoftDeletePurge(DeletionRetentionTestBase):
         assert _purge(window=0) == {"skipped": 1}
         assert self.exists(Slice, aged_id)
 
+    def test_dry_run_does_not_finalize_pending_audit_rows(self) -> None:
+        """A dry run reports; it does not resolve another run's audit state.
+
+        Reconciliation finalizes stale pending rows, which is a durable write.
+        An operator sizing up a rollout would otherwise alter the very record
+        they are inspecting.
+        """
+        with patch(
+            "superset.tasks.deletion_retention.audit.reconcile_pending"
+        ) as reconcile:
+            _purge(window=30, dry_run=True)
+            assert reconcile.call_count == 0
+
+            # ...and a real run still reconciles.
+            _purge(window=30, dry_run=False)
+            assert reconcile.call_count == 1
+
     def test_dry_run_removes_nothing(self) -> None:
         """Dry-run reports would_purge but deletes nothing."""
         aged = self.make_chart("aged")
