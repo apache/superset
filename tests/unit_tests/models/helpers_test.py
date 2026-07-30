@@ -4729,12 +4729,89 @@ def test_filter_adhoc_column(database: Database) -> None:
     )
     assert result is not None
 
-    # Verify the SQL contains the expression from the adhoc column
-    sql = str(result.sqla_query)
-    sql_upper = sql.upper()
-    assert "WHERE" in sql_upper
-    assert " LIKE " in sql_upper
-    assert "CUSTOMERID" in sql_upper
+    # Verify the WHERE predicate uses the resolved adhoc expression and value.
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            result.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    where_match = re.search(r"\bWHERE\b(?P<clause>.*)", sql, flags=re.IGNORECASE)
+    assert where_match is not None
+    where_clause = where_match.group("clause").upper()
+    assert "CUSTOMERID" in where_clause
+    assert "C001%" in where_clause
+
+
+def test_filter_adhoc_column_label_uses_force_type_check(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """Label-based adhoc filters should probe type for value coercion."""
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        table_name="test_table",
+        database=database,
+        columns=[
+            TableColumn(column_name="CustomerId", type="INT"),
+            TableColumn(column_name="FullName", type="TEXT"),
+        ],
+    )
+    spy = mocker.spy(table, "adhoc_column_to_sqla")
+
+    table.get_sqla_query(
+        columns=[
+            {"expressionType": "SQL", "label": "Id", "sqlExpression": "CustomerId"},
+            "FullName",
+        ],
+        orderby=[],
+        metrics=[],
+        extras={},
+        filter=[{"col": "Id", "op": "IN", "val": [1, 2]}],
+        granularity=None,
+        is_timeseries=False,
+    )
+
+    assert any(
+        call.kwargs.get("force_type_check") is True for call in spy.call_args_list
+    )
+
+
+def test_filter_adhoc_column_label_tracks_applied_filter_as_adhoc_object(
+    database: Database,
+) -> None:
+    """Applied filters for label-resolved adhoc columns keep adhoc metadata."""
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        table_name="test_table",
+        database=database,
+        columns=[
+            TableColumn(column_name="CustomerId", type="INT"),
+            TableColumn(column_name="FullName", type="TEXT"),
+        ],
+    )
+
+    result = table.get_sqla_query(
+        columns=[
+            {"expressionType": "SQL", "label": "Id", "sqlExpression": "CustomerId"},
+            "FullName",
+        ],
+        orderby=[],
+        metrics=[],
+        extras={},
+        filter=[{"col": "Id", "op": "IN", "val": [1]}],
+        granularity=None,
+        is_timeseries=False,
+    )
+
+    assert result.applied_filter_columns
+    adhoc_entry = result.applied_filter_columns[-1]
+    assert isinstance(adhoc_entry, dict)
+    assert adhoc_entry.get("label") == "Id"
 
 
 def test_find_adhoc_column_and_convert_to_sqla_found(database: Database) -> None:
@@ -4773,6 +4850,7 @@ def test_find_adhoc_column_and_convert_to_sqla_found(database: Database) -> None
     from sqlalchemy.sql.elements import ColumnElement
 
     assert isinstance(result, ColumnElement)
+    assert "CUSTOMERID" in str(result).upper()
 
 
 def test_find_adhoc_column_and_convert_to_sqla_not_found(database: Database) -> None:
@@ -4917,3 +4995,75 @@ def test_find_adhoc_column_and_convert_to_sqla_multiple_adhoc_columns(
     from sqlalchemy.sql.elements import ColumnElement
 
     assert isinstance(result, ColumnElement)
+
+
+def test_find_adhoc_column_and_convert_to_sqla_duplicate_labels_uses_last(
+    database: Database,
+) -> None:
+    """
+    Duplicate adhoc labels should resolve to the last definition.
+
+    This keeps filter-path adhoc label resolution consistent with the
+    existing order-by path that uses a dict keyed by label.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="CustomerId"),
+            TableColumn(column_name="CustomerName"),
+        ],
+    )
+
+    columns = [
+        {"expressionType": "SQL", "label": "dup", "sqlExpression": "CustomerId"},
+        {
+            "expressionType": "SQL",
+            "label": "dup",
+            "sqlExpression": "CustomerName",
+        },
+    ]
+
+    result = table.find_adhoc_column_and_convert_to_sqla(
+        columns=columns,
+        label="dup",
+        template_processor=None,
+    )
+
+    assert result is not None
+    assert "CUSTOMERNAME" in str(result).upper()
+
+
+def test_find_adhoc_column_and_convert_to_sqla_returns_none_on_conversion_error(
+    database: Database,
+) -> None:
+    """Conversion failures should be handled gracefully by returning None."""
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import ColumnNotFoundException
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="CustomerId")],
+    )
+
+    columns = [
+        {"expressionType": "SQL", "label": "Id", "sqlExpression": "CustomerId"},
+    ]
+
+    with patch.object(
+        table,
+        "adhoc_column_to_sqla",
+        side_effect=ColumnNotFoundException("invalid adhoc column"),
+    ):
+        result = table.find_adhoc_column_and_convert_to_sqla(
+            columns=columns,
+            label="Id",
+            template_processor=None,
+        )
+
+    assert result is None

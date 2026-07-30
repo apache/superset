@@ -3140,17 +3140,20 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             SQLAlchemy column element if found, None otherwise
         """
         adhoc_col = None
-        for c in columns:
+        for c in reversed(columns):
             if utils.is_adhoc_column(c):
                 if c.get("label") == label:
                     adhoc_col = c
                     break
         if adhoc_col:
-            sqla_col, _ = self.adhoc_column_to_sqla(
-                col=adhoc_col,
-                template_processor=template_processor,
-            )
-            return sqla_col
+            try:
+                sqla_col, _ = self.adhoc_column_to_sqla(
+                    col=adhoc_col,
+                    template_processor=template_processor,
+                )
+                return sqla_col
+            except ColumnNotFoundException:
+                return None
         return None
 
     def _get_top_groups(
@@ -4063,14 +4066,26 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     )
                     is_metric_filter = True
                 elif col_obj is None and isinstance(flt_col, str):
-                    sqla_col = self.find_adhoc_column_and_convert_to_sqla(
-                        columns=columns,
-                        label=flt_col,
-                        template_processor=template_processor,
+                    adhoc_col = next(
+                        (
+                            c
+                            for c in reversed(columns)
+                            if utils.is_adhoc_column(c) and c.get("label") == flt_col
+                        ),
+                        None,
                     )
-                    if sqla_col is not None:
-                        applied_adhoc_filters_columns.append(flt_col)
-                        applied_template_filters.append(get_column_name(flt_col))
+                    if adhoc_col is not None:
+                        try:
+                            sqla_col, adhoc_generic_type = self.adhoc_column_to_sqla(
+                                col=adhoc_col,
+                                force_type_check=True,
+                                template_processor=template_processor,
+                            )
+                            applied_adhoc_filters_columns.append(adhoc_col)
+                            applied_template_filters.append(get_column_name(adhoc_col))
+                        except ColumnNotFoundException:
+                            rejected_adhoc_filters_columns.append(adhoc_col)
+                            continue
             filter_grain = flt.get("grain")
 
             # Check if this filter should be skipped because it was handled in
