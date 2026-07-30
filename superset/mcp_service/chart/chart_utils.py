@@ -27,6 +27,8 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Dict, TYPE_CHECKING
 
+from sqlalchemy.exc import SQLAlchemyError
+
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
 
@@ -1079,7 +1081,15 @@ def _resolve_big_number_temporal_column(
             return config.temporal_column
         return None
 
-    dataset = _find_dataset_by_id_or_uuid(dataset_id)
+    try:
+        dataset = _find_dataset_by_id_or_uuid(dataset_id)
+    except SQLAlchemyError:
+        logger.warning(
+            "Unable to resolve a temporal column for dataset %s",
+            dataset_id,
+            exc_info=True,
+        )
+        return None
     if not dataset:
         return None
 
@@ -1087,9 +1097,7 @@ def _resolve_big_number_temporal_column(
     if dataset.main_dttm_col:
         candidates.append(dataset.main_dttm_col)
     candidates.extend(
-        column.column_name
-        for column in dataset.columns
-        if getattr(column, "is_dttm", False)
+        column.column_name for column in dataset.columns if column.column_name
     )
     for temporal_column in dict.fromkeys(candidates):
         if is_column_truly_temporal(temporal_column, dataset_id, dataset=dataset):
