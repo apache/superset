@@ -19,7 +19,7 @@
 
 import { Page, Download, Locator } from '@playwright/test';
 import { Menu } from '../components/core';
-import { NativeFiltersConfigModal } from '../components/modals';
+import { DashboardFilterBar } from '../components/dashboard';
 import { gotoWithRetry } from '../helpers/navigation';
 import { TIMEOUT } from '../utils/constants';
 
@@ -28,19 +28,18 @@ import { TIMEOUT } from '../utils/constants';
  */
 export class DashboardPage {
   private readonly page: Page;
+  private readonly filterBar: DashboardFilterBar;
 
   private static readonly SELECTORS = {
     DASHBOARD_HEADER: '[data-test="dashboard-header-container"]',
     DASHBOARD_MENU_TRIGGER: '[data-test="actions-trigger"]',
     // The header-actions-menu is the data-test for the dropdown menu content
     HEADER_ACTIONS_MENU: '[data-test="header-actions-menu"]',
-    FILTER_BAR_SETTINGS: '[data-test="filterbar-orientation-icon"]',
-    APPLY_FILTERS_BUTTON:
-      '[data-test="filter-bar__apply-button"], [data-test="filterbar-action-buttons"] button[type="submit"]',
   } as const;
 
   constructor(page: Page) {
     this.page = page;
+    this.filterBar = new DashboardFilterBar(page);
   }
 
   /**
@@ -126,31 +125,11 @@ export class DashboardPage {
   }
 
   /**
-   * Opens the native filters and Display Controls configuration modal.
+   * Waits for and returns the dashboard native-filter bar component.
    */
-  async openNativeFiltersConfigModal(): Promise<NativeFiltersConfigModal> {
-    await this.page.click(DashboardPage.SELECTORS.FILTER_BAR_SETTINGS);
-    await this.page
-      .getByText('Add or edit filters and controls', { exact: true })
-      .click();
-
-    const modal = new NativeFiltersConfigModal(this.page);
-    await modal.waitForVisible();
-    return modal;
-  }
-
-  /**
-   * Applies pending native filter changes when the Apply button is enabled.
-   */
-  async applyFiltersIfEnabled(): Promise<void> {
-    const applyButton = this.page
-      .locator(DashboardPage.SELECTORS.APPLY_FILTERS_BUTTON)
-      .first();
-    if (!(await applyButton.isEnabled().catch(() => false))) {
-      return;
-    }
-
-    await applyButton.click();
+  async waitForFilterBar(): Promise<DashboardFilterBar> {
+    await this.filterBar.waitForReady();
+    return this.filterBar;
   }
 
   /**

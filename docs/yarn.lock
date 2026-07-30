@@ -6368,10 +6368,10 @@ base64-js@^1.3.1, base64-js@^1.5.1:
   resolved "https://registry.yarnpkg.com/base64-js/-/base64-js-1.5.1.tgz#1b1b440160a5bf7ad40b650f095963481903930a"
   integrity sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==
 
-baseline-browser-mapping@^2.10.38, baseline-browser-mapping@^2.10.44, baseline-browser-mapping@^2.9.19:
-  version "2.10.44"
-  resolved "https://registry.yarnpkg.com/baseline-browser-mapping/-/baseline-browser-mapping-2.10.44.tgz#2e074675e640b67cb3835c54c11aa2dd9119c0f8"
-  integrity sha512-T3ghW+sl/ZJ8w1v/yQx3qvJ9040DWoLBz8JT/CILbAKcFyG9b2MRe75v6W5uXjv6uH1lumK2Kv46y2zSkcej0Q==
+baseline-browser-mapping@^2.10.38, baseline-browser-mapping@^2.11.0, baseline-browser-mapping@^2.9.19:
+  version "2.11.0"
+  resolved "https://registry.yarnpkg.com/baseline-browser-mapping/-/baseline-browser-mapping-2.11.0.tgz#25453328838032c7a514fbd238a171f744e9e854"
+  integrity sha512-oCu2wfipvX3AePSgmOuKkIywOu+8n9psz7hXYmk56ghpu3+7KzNIBopaOs4c9BrtdnTtW30unG9GTfHo7EwERQ==
 
 batch@0.6.1:
   version "0.6.1"
@@ -7962,7 +7962,7 @@ domhandler@^5.0.2, domhandler@^5.0.3:
   dependencies:
     domelementtype "^2.3.0"
 
-dompurify@^3.3.3, dompurify@^3.4.11:
+dompurify@^3.3.3, dompurify@^3.4.12:
   version "3.4.12"
   resolved "https://registry.yarnpkg.com/dompurify/-/dompurify-3.4.12.tgz#6fa2265e9bbdce882c4ace4107626051b448ffa8"
   integrity sha512-zQvGet8Z2sWbQhCmfFz/T5QWH2oBmjnqK3qvOjaqaNLrLEF912WamU+ohnTp0TCep/MFVHpdJuCZEdFOdTnEFg==
@@ -9567,10 +9567,10 @@ immer@^11.0.0:
   resolved "https://registry.yarnpkg.com/immer/-/immer-11.1.11.tgz#bbf825a333ae1b16fd450d8da5f61d54de6a553d"
   integrity sha512-qzXuyXAkPySAGYkfsAwodDPWT8Zm7/Uo5BNt4BjhMhG5WlWyZZ4wQqnWwdS8kjlQ1Cwu6gjw3A6+0gTQwlyYtw==
 
-immutable@^3.x.x:
-  version "3.8.3"
-  resolved "https://registry.yarnpkg.com/immutable/-/immutable-3.8.3.tgz#0a8d2494a94d4b2d4f0e99986e74dd25d1e9a859"
-  integrity sha512-AUY/VyX0E5XlibOmWt10uabJzam1zlYjwiEgQSDc5+UIkFNaF9WM0JxXKaNMGf+F/ffUF+7kRKXM9A7C0xXqMg==
+immutable@^4.3.9:
+  version "4.3.9"
+  resolved "https://registry.yarnpkg.com/immutable/-/immutable-4.3.9.tgz#c98349e05e9c6e2a4d8fe88ac0b363e0d536b544"
+  integrity sha512-ObHy4YN7ycwZOUCLI1/6svfyAFu7vL8RhAvVu/bh/RZW9EPlOyDaQ9jDQWCtdqzaXUjgXZCW1migtHE7YI7UGQ==
 
 immutable@^5.1.5:
   version "5.1.9"
@@ -10141,17 +10141,10 @@ js-levenshtein@^1.1.6:
   resolved "https://registry.yarnpkg.com/js-tokens/-/js-tokens-4.0.0.tgz#19203fb59991df98e3a287050d4647cdeaf32499"
   integrity sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==
 
-js-yaml@4.1.0, js-yaml@^4.1.0, js-yaml@^4.1.1, js-yaml@^4.2.0, js-yaml@^4.3.0:
+js-yaml@4.1.0, js-yaml@=4.3.0, js-yaml@^4.1.0, js-yaml@^4.1.1, js-yaml@^4.2.0, js-yaml@^4.3.0:
   version "4.3.0"
   resolved "https://registry.yarnpkg.com/js-yaml/-/js-yaml-4.3.0.tgz#d1900572a7f7cf0b5f540c83673e60bad3436592"
   integrity sha512-1td788aAnnZ5qs7V2QIRl1owjtYpbKt749Y3xauqQgwIIGF/xXWz1wMTEBx5O3LK3lXLVuqXPdPxj2BoFHaW9Q==
-  dependencies:
-    argparse "^2.0.1"
-
-js-yaml@=4.2.0:
-  version "4.2.0"
-  resolved "https://registry.yarnpkg.com/js-yaml/-/js-yaml-4.2.0.tgz#2bd9e85682dd91bd469afb809d816043b3d49524"
-  integrity sha512-ePWsvanv0DWuDRsW8dnt+R4jQ31SCRCQ7hhNcPXZPsoBZiemuZNYGf7adZdqX2D86j6rvKp3RpCxVTSb8WQlOw==
   dependencies:
     argparse "^2.0.1"
 
@@ -14901,10 +14894,10 @@ svgo@^3.0.2, svgo@^3.2.0:
     picocolors "^1.0.0"
     sax "^1.5.0"
 
-swagger-client@^3.37.4:
-  version "3.37.5"
-  resolved "https://registry.yarnpkg.com/swagger-client/-/swagger-client-3.37.5.tgz#2c55c034319e1aeede336524a6eeea7b35e15cd4"
-  integrity sha512-MuABJgD8vIsT5GVBTGj3HjmiEhArf58ng+YP4fo23NOJb/mKXOpKW3Rln90fnoi7ROt6IJsJy9d5kg8Yidn0/Q==
+swagger-client@^3.37.7:
+  version "3.37.7"
+  resolved "https://registry.yarnpkg.com/swagger-client/-/swagger-client-3.37.7.tgz#75cd740b6aebdebce5e7c9eada193b63d00e21ad"
+  integrity sha512-AzmF/FDSPYBcoxXarHPnqK3lSXoKH9Fh0EjLHAlP0h/D7EG1Fofl/wEuGqhYT+IBpriu3mSgWCh2xAftsYdL8w==
   dependencies:
     "@babel/runtime-corejs3" "^7.22.15"
     "@scarf/scarf" "=1.4.0"
@@ -14924,11 +14917,33 @@ swagger-client@^3.37.4:
     openapi-server-url-templating "^1.3.0"
     ramda "^0.30.1"
     ramda-adjunct "^5.1.0"
+  optionalDependencies:
+    "@swagger-api/apidom-ns-asyncapi-2" "^1.11.3"
+    "@swagger-api/apidom-ns-asyncapi-3" "^1.11.3"
+    "@swagger-api/apidom-ns-openapi-2" "^1.11.3"
+    "@swagger-api/apidom-parser-adapter-api-design-systems-json" "^1.11.3"
+    "@swagger-api/apidom-parser-adapter-api-design-systems-yaml" "^1.11.3"
+    "@swagger-api/apidom-parser-adapter-arazzo-json-1" "^1.11.3"
+    "@swagger-api/apidom-parser-adapter-arazzo-yaml-1" "^1.11.3"
+    "@swagger-api/apidom-parser-adapter-asyncapi-json-2" "^1.11.3"
+    "@swagger-api/apidom-parser-adapter-asyncapi-json-3" "^1.11.3"
+    "@swagger-api/apidom-parser-adapter-asyncapi-yaml-2" "^1.11.3"
+    "@swagger-api/apidom-parser-adapter-asyncapi-yaml-3" "^1.11.3"
+    "@swagger-api/apidom-parser-adapter-json" "^1.11.3"
+    "@swagger-api/apidom-parser-adapter-openapi-json-2" "^1.11.3"
+    "@swagger-api/apidom-parser-adapter-openapi-json-3-0" "^1.11.3"
+    "@swagger-api/apidom-parser-adapter-openapi-json-3-1" "^1.11.3"
+    "@swagger-api/apidom-parser-adapter-openapi-json-3-2" "^1.11.3"
+    "@swagger-api/apidom-parser-adapter-openapi-yaml-2" "^1.11.3"
+    "@swagger-api/apidom-parser-adapter-openapi-yaml-3-0" "^1.11.3"
+    "@swagger-api/apidom-parser-adapter-openapi-yaml-3-1" "^1.11.3"
+    "@swagger-api/apidom-parser-adapter-openapi-yaml-3-2" "^1.11.3"
+    "@swagger-api/apidom-parser-adapter-yaml-1-2" "^1.11.3"
 
-swagger-ui-react@^5.32.9:
-  version "5.32.9"
-  resolved "https://registry.yarnpkg.com/swagger-ui-react/-/swagger-ui-react-5.32.9.tgz#d0e8521091b270e35f8d87771fba49eede425b38"
-  integrity sha512-zs6PG4G6XEWG2evKHSwx32nWXIlk48a9Hw9YS9hlt55O5W0FM1cpltMrM/AnU+mohdnV7oEx0ap2TaG3fbfLIA==
+swagger-ui-react@^5.32.11:
+  version "5.32.11"
+  resolved "https://registry.yarnpkg.com/swagger-ui-react/-/swagger-ui-react-5.32.11.tgz#9a98015aca1101c086968df9e7d2897e93875a9a"
+  integrity sha512-84WYsBEs6vIpWXtqxq7kIrJRs2+YeZPQFULPJ/afjuHKw+rKWvwyA1uQsUC2VWq3oA9XIig3pjlMVE5xXaCDyA==
   dependencies:
     "@babel/runtime-corejs3" "^7.27.1"
     "@scarf/scarf" "=1.4.0"
@@ -14937,11 +14952,11 @@ swagger-ui-react@^5.32.9:
     classnames "^2.5.1"
     css.escape "1.5.1"
     deep-extend "0.6.0"
-    dompurify "^3.4.11"
+    dompurify "^3.4.12"
     ieee754 "^1.2.1"
-    immutable "^3.x.x"
+    immutable "^4.3.9"
     js-file-download "^0.4.12"
-    js-yaml "=4.2.0"
+    js-yaml "=4.3.0"
     lodash "^4.18.1"
     prop-types "^15.8.1"
     randexp "^0.5.3"
@@ -14959,7 +14974,7 @@ swagger-ui-react@^5.32.9:
     reselect "^5.1.1"
     serialize-error "^8.1.0"
     sha.js "^2.4.12"
-    swagger-client "^3.37.4"
+    swagger-client "^3.37.7"
     url-parse "^1.5.10"
     xml "=1.0.1"
     xml-but-prettier "^1.0.1"

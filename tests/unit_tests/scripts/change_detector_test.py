@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import io
 from unittest import mock
 from urllib.error import HTTPError, URLError
 
@@ -94,6 +95,68 @@ def test_fetch_gives_up_after_max_retries() -> None:
             change_detector.fetch_files_github_api("http://api")
 
     assert urlopen_mock.call_count == change_detector.MAX_RETRIES
+
+
+def _http_error(
+    status: int, headers: dict[str, str] | None = None, body: bytes = b""
+) -> HTTPError:
+    """Builds an HTTPError carrying headers and a readable body, as urllib does."""
+    return HTTPError(
+        "http://api",
+        status,
+        "Forbidden",
+        headers or {},  # type: ignore[arg-type]
+        io.BytesIO(body),
+    )
+
+
+def test_fetch_does_not_retry_a_permission_denied_403() -> None:
+    """A missing token scope is deterministic; retrying only delays the failure."""
+    error = _http_error(
+        403,
+        headers={"x-ratelimit-remaining": "4998"},
+        body=b'{"message": "Resource not accessible by integration"}',
+    )
+    with (
+        mock.patch.object(
+            change_detector, "urlopen", side_effect=error
+        ) as urlopen_mock,
+        mock.patch.object(change_detector.time, "sleep") as sleep_mock,
+    ):
+        with pytest.raises(HTTPError):
+            change_detector.fetch_files_github_api("http://api")
+
+    assert urlopen_mock.call_count == 1
+    sleep_mock.assert_not_called()
+
+
+def test_fetch_retries_a_rate_limited_403() -> None:
+    """GitHub signals rate limiting with 403 and an exhausted remaining count."""
+    side_effects: list[object] = [
+        _http_error(403, headers={"x-ratelimit-remaining": "0"}),
+        _make_response(b'[{"filename": "superset/foo.py"}]'),
+    ]
+    with (
+        mock.patch.object(change_detector, "urlopen", side_effect=side_effects),
+        mock.patch.object(change_detector.time, "sleep"),
+    ):
+        result = change_detector.fetch_files_github_api("http://api")
+
+    assert result == [{"filename": "superset/foo.py"}]
+
+
+def test_fetch_reports_the_api_error_message(capsys) -> None:
+    """The response body names the cause; without it a 403 is unactionable."""
+    error = _http_error(
+        403,
+        headers={"x-ratelimit-remaining": "4998"},
+        body=b'{"message": "Resource not accessible by integration"}',
+    )
+    with mock.patch.object(change_detector, "urlopen", side_effect=error):
+        with pytest.raises(HTTPError):
+            change_detector.fetch_files_github_api("http://api")
+
+    assert "Resource not accessible by integration" in capsys.readouterr().out
 
 
 def test_image_tag_compose_changes_trigger_python_tests() -> None:
