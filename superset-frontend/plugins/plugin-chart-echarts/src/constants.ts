@@ -21,6 +21,7 @@ import { t } from '@apache-superset/core/translation';
 import { JsonValue, TimeGranularity } from '@superset-ui/core';
 import { ReactNode } from 'react';
 import {
+  LabelPositionEnum,
   LegendFormData,
   LegendOrientation,
   LegendType,
@@ -53,6 +54,16 @@ export const TIMESERIES_CONSTANTS = {
   // One y-axis tick per this many pixels of chart height
   yAxisPixelsPerTick: 80,
 };
+
+// Radar charts use polar coordinates and only support a limited set of label positions.
+// These are the positions that ECharts correctly renders for radar series data items.
+export const RADAR_LABEL_POSITION: [LabelPositionEnum, string][] = [
+  [LabelPositionEnum.Top, t('Top')],
+  [LabelPositionEnum.Left, t('Left')],
+  [LabelPositionEnum.Right, t('Right')],
+  [LabelPositionEnum.Bottom, t('Bottom')],
+  [LabelPositionEnum.Inside, t('Inside')],
+];
 
 export enum OpacityEnum {
   Transparent = 0,
