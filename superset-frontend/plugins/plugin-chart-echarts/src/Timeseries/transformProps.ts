@@ -994,30 +994,46 @@ export default function transformProps(
   // boundary (see https://github.com/apache/superset/issues/27449).
   if (yAxisMin !== undefined || yAxisMax !== undefined) {
     const valueIndex = isHorizontal ? 0 : 1;
-    const clampAxisValue = (
-      value: string | number | null | undefined,
-    ): string | number | null | undefined => {
+    type AxisValue = string | number | null | undefined;
+    type AxisPoint = AxisValue[];
+    const clampAxisValue = (value: AxisValue): AxisValue => {
       if (typeof value !== 'number' || Number.isNaN(value)) return value;
       let clamped = value;
       if (yAxisMin !== undefined) clamped = Math.max(clamped, yAxisMin);
       if (yAxisMax !== undefined) clamped = Math.min(clamped, yAxisMax);
       return clamped;
     };
+    const clampPoint = (point: AxisPoint): AxisPoint => {
+      const newPoint = [...point];
+      newPoint[valueIndex] = clampAxisValue(newPoint[valueIndex]);
+      return newPoint;
+    };
     series.forEach(s => {
       if (!Array.isArray(s.data)) return;
       const clampedData = (
-        s.data as (string | number | null | undefined)[][]
+        s.data as (AxisPoint | Record<string, unknown>)[]
       ).map(point => {
         if (Array.isArray(point)) {
-          const newPoint = [...point];
-          newPoint[valueIndex] = clampAxisValue(newPoint[valueIndex]);
-          return newPoint;
+          return clampPoint(point);
+        }
+        // Some series paths (e.g. colorByPrimaryAxis, or negative bar
+        // label positioning) wrap the tuple in an object of the shape
+        // `{ value: [x, y], ... }` instead of passing the tuple
+        // directly; clamp the wrapped tuple in place so those points
+        // aren't skipped and left to be dropped by ECharts axis clipping.
+        if (
+          point &&
+          typeof point === 'object' &&
+          Array.isArray((point as { value?: unknown }).value)
+        ) {
+          return {
+            ...point,
+            value: clampPoint((point as { value: AxisPoint }).value),
+          };
         }
         return point;
       });
-      // Matches the existing pattern used elsewhere in this file for
-      // narrowing the broad, union-typed ECharts `SeriesOption.data` field.
-      (s as any).data = clampedData;
+      s.data = clampedData as typeof s.data;
     });
   }
 

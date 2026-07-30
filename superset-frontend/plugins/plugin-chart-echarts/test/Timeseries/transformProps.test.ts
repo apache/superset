@@ -1627,6 +1627,41 @@ test('clamps series values to the yAxis min when a value falls below it', () => 
   expect(data[0][1]).toBe(0);
 });
 
+test('clamps series values to the yAxis bounds when colorByPrimaryAxis wraps points in objects (#27449)', () => {
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData(
+        [{ 'Series A': 1 }, { 'Series A': 1000 }, { 'Series A': 2 }],
+        { intervalMs: 300000000 },
+      ),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...formData,
+      groupby: [],
+      seriesType: EchartsTimeseriesSeriesType.Line,
+      truncateYAxis: true,
+      yAxisBounds: [0, 10],
+      colorByPrimaryAxis: true,
+    },
+    queriesData,
+  });
+
+  const transformedProps = transformProps(chartProps);
+  const series = transformedProps.echartOptions.series as SeriesOption[];
+  const seriesA = series.find(s => s.name === 'Series A');
+  expect(seriesA).toBeDefined();
+  const data = seriesA!.data as { value: [number, number] }[];
+
+  // colorByPrimaryAxis wraps each point as `{ value: [x, y], itemStyle }`
+  // rather than a bare tuple; the wrapped value must still be clamped
+  // instead of being skipped and left for ECharts to drop.
+  expect(data).toHaveLength(3);
+  expect(data[1].value[1]).toBe(10);
+});
+
 test('legend is visible on tall charts when enabled by the user', () => {
   const chartProps = createTestChartProps({
     height: 400,
