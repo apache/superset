@@ -322,9 +322,6 @@ export const FormattingPopoverContent = ({
     [allColumns],
   );
   const defaultColorToken = colors[0]?.colors?.[0];
-  const defaultColorValue =
-    (defaultColorToken && theme[defaultColorToken as keyof typeof theme]) ||
-    defaultColorToken;
 
   const visibleUseGradient = useMemo(
     () =>
@@ -401,7 +398,7 @@ export const FormattingPopoverContent = ({
             name="colorScheme"
             label={t('Color scheme')}
             rules={rulesRequired}
-            initialValue={defaultColorValue}
+            initialValue={defaultColorToken}
           >
             <ColorPickerControl
               ariaLabel={t('Color scheme')}

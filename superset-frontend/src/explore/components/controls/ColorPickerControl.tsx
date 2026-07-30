@@ -18,6 +18,7 @@
  */
 import { useMemo } from 'react';
 import { getCategoricalSchemeRegistry, rgbaToHex } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import {
   ColorPicker,
   type RGBColor,
@@ -48,7 +49,7 @@ export interface ColorPickerControlProps {
 }
 
 const getReverseThemeColorMap = (
-  themeColors: Record<string, any>,
+  themeColors: Record<string, string>,
 ): Record<string, string> => {
   const reverseMap: Record<string, string> = {};
   if (!themeColors) return reverseMap;
@@ -122,7 +123,7 @@ export default function ColorPickerControl({
 
     return [
       {
-        label: 'Theme colors',
+        label: t('Theme colors'),
         colors: defaultPresets.map(c => String(c).toLowerCase()),
       },
     ];
