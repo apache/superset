@@ -73,6 +73,10 @@
     "./testing": {
       "types": "./lib/testing.d.ts",
       "default": "./lib/testing.js"
+    },
+    "./storage": {
+      "types": "./lib/storage/index.d.ts",
+      "default": "./lib/storage/index.js"
     }
   },
   "files": [
@@ -104,13 +108,13 @@
     "@emotion/styled": "^11.14.1",
     "@fontsource/ibm-plex-mono": "^5.2.7",
     "@fontsource/inter": "^5.2.6",
-    "nanoid": "^5.0.9",
+    "nanoid": "*",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "react-loadable": "^5.5.0",
     "tinycolor2": "*",
     "lodash": "^4.18.1",
-    "antd": "^5.26.0",
+    "antd": "^6.0.0",
     "jed": "^1.1.1"
   },
   "scripts": {

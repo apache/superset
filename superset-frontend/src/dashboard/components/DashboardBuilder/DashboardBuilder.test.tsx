@@ -105,6 +105,15 @@ jest.mock('src/dashboard/containers/DashboardGrid', () => {
   MockDashboardGrid.displayName = 'MockDashboardGrid';
   return MockDashboardGrid;
 });
+// The real component renders null, so mock it with a visible marker to let
+// tests assert whether DashboardBuilder mounts it.
+jest.mock('src/dashboard/components/Header/HeadlessAutoRefresh', () => {
+  const MockHeadlessAutoRefresh = () => (
+    <div data-test="mock-headless-auto-refresh" />
+  );
+  MockHeadlessAutoRefresh.displayName = 'MockHeadlessAutoRefresh';
+  return MockHeadlessAutoRefresh;
+});
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DashboardBuilder', () => {
@@ -177,6 +186,49 @@ describe('DashboardBuilder', () => {
       const { queryByTestId } = setup();
       expect(
         queryByTestId('dashboard-header-container'),
+      ).not.toBeInTheDocument();
+    } finally {
+      window.history.replaceState({}, '', originalHref);
+    }
+  });
+
+  test('should mount HeadlessAutoRefresh when the header is hidden (?standalone=2)', () => {
+    // Regression test for #25970: the auto-refresh timer lives in the header,
+    // so hiding the header must swap in the headless driver — reverting the
+    // conditional in DashboardBuilder would strand standalone dashboards with
+    // no refresh timer at all.
+    const originalHref = window.location.href;
+    window.history.replaceState({}, '', '/?standalone=2');
+    try {
+      const { queryByTestId } = setup();
+      expect(queryByTestId('mock-headless-auto-refresh')).toBeInTheDocument();
+      expect(
+        queryByTestId('dashboard-header-container'),
+      ).not.toBeInTheDocument();
+    } finally {
+      window.history.replaceState({}, '', originalHref);
+    }
+  });
+
+  test('should not mount HeadlessAutoRefresh when the header is visible', () => {
+    const { queryByTestId } = setup();
+    expect(queryByTestId('dashboard-header-container')).toBeInTheDocument();
+    expect(queryByTestId('mock-headless-auto-refresh')).not.toBeInTheDocument();
+  });
+
+  test('should not start any auto-refresh in report mode (?standalone=3)', () => {
+    // Report mode drives one-shot screenshot renders (email reports,
+    // thumbnails); a live refresh timer there could re-fetch charts
+    // mid-capture, so neither the header nor the headless driver may mount.
+    const originalHref = window.location.href;
+    window.history.replaceState({}, '', '/?standalone=3');
+    try {
+      const { queryByTestId } = setup();
+      expect(
+        queryByTestId('dashboard-header-container'),
+      ).not.toBeInTheDocument();
+      expect(
+        queryByTestId('mock-headless-auto-refresh'),
       ).not.toBeInTheDocument();
     } finally {
       window.history.replaceState({}, '', originalHref);

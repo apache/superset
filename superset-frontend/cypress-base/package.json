@@ -22,7 +22,7 @@
     "chai": "^4.5.0",
     "cy-verify-downloads": "^0.2.5",
     "cypress-fail-on-console-error": "^4.0.3",
-    "nanoid": "^5.0.9",
+    "nanoid": "^6.0.0",
     "querystringify": "^2.2.0",
     "react-dom": "^16.13.0",
     "rison": "^0.1.1"

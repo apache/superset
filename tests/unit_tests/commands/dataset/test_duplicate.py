@@ -456,6 +456,8 @@ def test_duplicate_dataset_with_columns_and_metrics() -> None:
     mock_column.is_dttm = False
     mock_column.type = "VARCHAR"
     mock_column.description = "Test column"
+    mock_column.filterable = False
+    mock_column.groupby = False
 
     mock_metric = Mock(spec=SqlMetric)
     mock_metric.metric_name = "count"
@@ -463,6 +465,10 @@ def test_duplicate_dataset_with_columns_and_metrics() -> None:
     mock_metric.expression = "COUNT(*)"
     mock_metric.metric_type = "count"
     mock_metric.description = "Row count"
+    mock_metric.d3format = ",.2f"
+    mock_metric.currency = None
+    mock_metric.warning_text = "approximate"
+    mock_metric.extra = None
 
     mock_base_model = Mock(spec=SqlaTable)
     mock_base_model.id = 1
@@ -518,7 +524,14 @@ def test_duplicate_dataset_with_columns_and_metrics() -> None:
                         # Verify columns were duplicated
                         assert len(result.columns) == 1
                         assert result.columns[0].column_name == "col1"
+                        # Non-default groupby/filterable flags must survive the
+                        # clone rather than being reset to the column defaults.
+                        assert result.columns[0].filterable is False
+                        assert result.columns[0].groupby is False
 
                         # Verify metrics were duplicated
                         assert len(result.metrics) == 1
                         assert result.metrics[0].metric_name == "count"
+                        # Formatting/metadata fields must survive the clone too.
+                        assert result.metrics[0].d3format == ",.2f"
+                        assert result.metrics[0].warning_text == "approximate"

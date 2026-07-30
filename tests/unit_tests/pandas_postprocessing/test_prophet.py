@@ -190,6 +190,40 @@ def test_prophet_incorrect_time_grain():
         )
 
 
+def test_prophet_missing_time_grain_raises_readable_error():
+    """
+    Regression for SC-113749: when the ``prophet`` post-processing operation is
+    dispatched with an options dict that lacks ``time_grain`` (e.g. a saved or
+    dashboard chart whose Time Grain was cleared, so the frontend drops the
+    ``undefined`` key during ``JSON.stringify``), the call must raise a readable
+    ``InvalidPostProcessingError`` rather than a raw ``TypeError`` about a
+    missing positional argument. This mirrors the real dispatch in
+    ``QueryObject.exec_post_processing`` which invokes the operation with
+    ``**options`` and no ``time_grain`` key.
+    """
+    options = {
+        "periods": 3,
+        "confidence_interval": 0.9,
+        "index": DTTM_ALIAS,
+    }
+    with pytest.raises(InvalidPostProcessingError, match="Time grain missing"):
+        prophet(prophet_df, **options)
+
+
+def test_prophet_explicit_none_time_grain_raises_readable_error():
+    """
+    Passing ``time_grain=None`` explicitly (the resolved value when no grain is
+    determinable) must also surface the graceful "Time grain missing" error.
+    """
+    with pytest.raises(InvalidPostProcessingError, match="Time grain missing"):
+        prophet(
+            df=prophet_df,
+            time_grain=None,
+            periods=3,
+            confidence_interval=0.9,
+        )
+
+
 def test_prophet_insufficient_data():
     single_row_df = pd.DataFrame(
         {

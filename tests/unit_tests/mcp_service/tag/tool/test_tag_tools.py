@@ -19,11 +19,12 @@ import logging
 from unittest.mock import MagicMock, patch
 
 import pytest
-from fastmcp import Client
+from fastmcp import Client, FastMCP
 from fastmcp.exceptions import ToolError
 from pydantic import ValidationError
 
 from superset.mcp_service.app import mcp
+from superset.mcp_service.constants import MAX_PAGE_SIZE
 from superset.mcp_service.tag.schemas import ListTagsRequest, TagFilter
 from superset.utils import json
 
@@ -266,3 +267,69 @@ async def test_list_tags_default_columns_are_id_name_type(mock_list, mcp_server)
         assert "type" in tag_obj
         assert "description" not in tag_obj
         assert "changed_on" not in tag_obj
+
+
+# ---------------------------------------------------------------------------
+# Pagination edge cases
+# ---------------------------------------------------------------------------
+
+
+class TestListTagsRequestPagination:
+    """Schema-level pagination boundary tests — ``page`` is PositiveInt and
+    ``page_size`` is constrained to (0, MAX_PAGE_SIZE]."""
+
+    def test_page_zero_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="greater than 0"):
+            ListTagsRequest(page=0)
+
+    def test_negative_page_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="greater than 0"):
+            ListTagsRequest(page=-1)
+
+    def test_page_size_zero_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="greater than 0"):
+            ListTagsRequest(page_size=0)
+
+    def test_page_size_over_max_rejected(self) -> None:
+        with pytest.raises(
+            ValidationError,
+            match=f"less than or equal to {MAX_PAGE_SIZE}",
+        ):
+            ListTagsRequest(page_size=MAX_PAGE_SIZE + 1)
+
+    def test_page_size_at_max_accepted(self) -> None:
+        request = ListTagsRequest(page_size=MAX_PAGE_SIZE)
+        assert request.page_size == MAX_PAGE_SIZE
+
+
+@pytest.mark.asyncio
+async def test_list_tags_invalid_page_size_surfaces_as_tool_error(
+    mcp_server: FastMCP,
+) -> None:
+    """page_size=0 is rejected before the tool body runs, surfacing as a
+    structured ToolError rather than a raw 500."""
+    async with Client(mcp_server) as client:
+        with pytest.raises(ToolError, match="greater than 0"):
+            await client.call_tool("list_tags", {"request": {"page_size": 0}})
+
+
+@patch("superset.daos.tag.TagDAO.list")
+@pytest.mark.asyncio
+async def test_list_tags_page_beyond_last_page_returns_empty(
+    mock_list: MagicMock, mcp_server: FastMCP
+) -> None:
+    """A page far past the last page returns an empty list, not an error."""
+    # DAO's offset lands past all rows; total_count still reflects the full set.
+    mock_list.return_value = ([], 3)
+    async with Client(mcp_server) as client:
+        request = ListTagsRequest(page=9999, page_size=10)
+        result = await client.call_tool("list_tags", {"request": request.model_dump()})
+        data = json.loads(result.content[0].text)
+
+    assert data["tags"] == []
+    assert data["count"] == 0
+    assert data["total_count"] == 3
+    assert data["page"] == 9999
+    assert data["total_pages"] == 1
+    assert data["has_next"] is False
+    assert data["has_previous"] is True

@@ -33,17 +33,20 @@ if TYPE_CHECKING:
 from superset.constants import NO_TIME_RANGE
 from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
+    BoxPlotChartConfig,
     ChartCapabilities,
     ChartSemantics,
     ColumnRef,
     CurrencyFormat,
     FilterConfig,
     HandlebarsChartConfig,
+    HistogramChartConfig,
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
     SortByConfig,
     TableChartConfig,
+    WaterfallChartConfig,
     XYChartConfig,
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
@@ -286,20 +289,59 @@ def _find_dataset_by_id_or_uuid(dataset_id: int | str | None) -> "SqlaTable | No
     return DatasetDAO.find_by_id_or_uuid(str(dataset_id))
 
 
+def _is_dataset_column_temporal(
+    col: Any, column_name: str, db_engine_spec: Any
+) -> bool:
+    """Decide temporality for a single dataset column, mirroring
+    TableColumn.is_temporal: native temporal SQL types are always
+    temporal, and is_dttm=True is otherwise trusted over the raw SQL
+    type -- this is the standard, supported way to mark a non-temporal
+    column (e.g. a VARCHAR "ds" partition column on Hive/Presto/Trino)
+    as a date.
+
+    The one case guarded against is a plain NUMERIC column (e.g. an
+    integer "year"/"month" column) that Superset's column-name
+    heuristics may have mis-flagged as is_dttm=True with no
+    python_date_format to parse it -- applying DATE_TRUNC/time_grain to
+    that would fail at query time.
+    """
+    from superset.utils.core import GenericDataType
+
+    is_dttm = bool(getattr(col, "is_dttm", False))
+    col_type = col.type
+    if not col_type:
+        return is_dttm  # No type info, trust is_dttm flag
+
+    column_spec = db_engine_spec.get_column_spec(col_type)
+    generic_type = column_spec.generic_type if column_spec else None
+
+    if generic_type == GenericDataType.TEMPORAL:
+        return True
+    if not is_dttm:
+        return False
+    if generic_type != GenericDataType.NUMERIC or getattr(
+        col, "python_date_format", None
+    ):
+        return True
+
+    logger.debug(
+        "Column '%s' is marked is_dttm=True but has numeric type '%s' with "
+        "no python_date_format; treating as non-temporal to avoid an "
+        "invalid DATE_TRUNC on a numeric column",
+        column_name,
+        col_type,
+    )
+    return False
+
+
 def is_column_truly_temporal(
     column_name: str,
     dataset_id: int | str | None,
     dataset: "SqlaTable | None" = None,
 ) -> bool:
     """
-    Check if a column is truly temporal based on its SQL data type.
-
-    This is important because Superset may mark columns as is_dttm=True based on
-    column name heuristics (e.g., "year", "month"), but if the actual SQL type is
-    BIGINT or INTEGER, DATE_TRUNC will fail.
-
-    Uses the database engine spec's column type mapping to determine the actual
-    GenericDataType, bypassing the is_dttm flag which may be set incorrectly.
+    Check if a column is truly temporal, mirroring TableColumn.is_temporal
+    (see ``_is_dataset_column_temporal`` for the precedence rules).
 
     Args:
         column_name: Name of the column to check
@@ -308,9 +350,8 @@ def is_column_truly_temporal(
             redundant DAO lookup when the caller already resolved it.
 
     Returns:
-        True if the column has a real temporal SQL type, False otherwise
+        True if the column should be treated as temporal, False otherwise
     """
-    from superset.utils.core import GenericDataType
 
     if not dataset_id and dataset is None:
         return True  # Default to temporal if we can't check (backward compatible)
@@ -322,34 +363,11 @@ def is_column_truly_temporal(
         if not dataset:
             return True  # Default to temporal if dataset not found
 
-        # Find the column and check its actual type using db_engine_spec
         column_lower = column_name.lower()
         for col in dataset.columns:
             if col.column_name.lower() == column_lower:
-                col_type = col.type
-                if not col_type:
-                    # No type info, trust is_dttm flag
-                    return getattr(col, "is_dttm", False)
-
-                # Use the db_engine_spec to get the actual GenericDataType
-                # This bypasses the is_dttm flag and checks the real SQL type
                 db_engine_spec = dataset.database.db_engine_spec
-                column_spec = db_engine_spec.get_column_spec(col_type)
-
-                if column_spec:
-                    is_temporal = column_spec.generic_type == GenericDataType.TEMPORAL
-                    if not is_temporal:
-                        logger.debug(
-                            "Column '%s' has type '%s' (generic: %s), "
-                            "treating as non-temporal",
-                            column_name,
-                            col_type,
-                            column_spec.generic_type,
-                        )
-                    return is_temporal
-
-                # If no column_spec, trust is_dttm flag
-                return getattr(col, "is_dttm", False)
+                return _is_dataset_column_temporal(col, column_name, db_engine_spec)
 
         return True  # Default if column not found
 
@@ -375,7 +393,7 @@ def map_config_to_form_data(
 ) -> Dict[str, Any]:
     """Map chart config to Superset form_data via the plugin registry.
 
-    The previous if/elif chain across all 7 chart types has been replaced by a
+    The previous per-chart-type if/elif chain has been replaced by a
     single registry lookup. Cross-field constraints (e.g. BigNumber trendline
     temporal check) are now owned by each plugin's post_map_validate() method
     rather than being baked into this dispatcher.
@@ -704,7 +722,9 @@ def configure_temporal_handling(
             form_data.setdefault("_mcp_warnings", []).append(
                 f"time_grain='{time_grain}' was ignored because the x-axis "
                 f"column is not a temporal type. time_grain only applies to "
-                f"DATE/DATETIME/TIMESTAMP columns."
+                f"DATE/DATETIME/TIMESTAMP columns, or other column types "
+                f"explicitly marked as temporal (is_dttm) with a "
+                f"python_date_format on the dataset."
             )
 
 
@@ -888,6 +908,99 @@ def map_pie_config(config: PieChartConfig) -> Dict[str, Any]:
     add_currency_format(form_data, config.currency_format)
     _add_adhoc_filters(form_data, config.filters)
 
+    return form_data
+
+
+def map_histogram_config(config: "HistogramChartConfig") -> Dict[str, Any]:
+    """Map histogram config to Superset form_data (viz_type histogram_v2).
+
+    Matches the frontend Histogram buildQuery contract: a single ``column``
+    string to bin, ``groupby`` name list for series, plus bins/normalize/
+    cumulative passed straight through to the histogram post-processing
+    operator.
+    """
+    form_data: Dict[str, Any] = {
+        "viz_type": "histogram_v2",
+        "column": config.column.name,
+        "groupby": [g.name for g in (config.groupby or [])],
+        "bins": config.bins,
+        "normalize": config.normalize,
+        "cumulative": config.cumulative,
+        "row_limit": config.row_limit,
+    }
+    _add_adhoc_filters(form_data, config.filters)
+    return form_data
+
+
+# The exact strings the frontend boxplotOperator understands; the percentile
+# variant must match its PERCENTILE_REGEX: "<low>/<high> percentiles".
+_WHISKER_TYPE_TO_OPTION = {
+    "tukey": "Tukey",
+    "min_max": "Min/max (no outliers)",
+}
+
+
+def map_box_plot_config(config: "BoxPlotChartConfig") -> Dict[str, Any]:
+    """Map box plot config to Superset form_data (viz_type box_plot).
+
+    Matches the frontend BoxPlot buildQuery contract: ``columns`` are the
+    distribute-across values (one box per value), ``groupby`` the series
+    dimensions, and ``whiskerOptions`` one of the strings the
+    boxplotOperator post-processor parses.
+    """
+    if config.whisker_type == "percentile":
+        whisker_options = (
+            f"{config.percentile_low}/{config.percentile_high} percentiles"
+        )
+    else:
+        whisker_options = _WHISKER_TYPE_TO_OPTION[config.whisker_type]
+
+    form_data: Dict[str, Any] = {
+        "viz_type": "box_plot",
+        "columns": [c.name for c in config.distribute_across],
+        "groupby": [d.name for d in (config.dimensions or [])],
+        "metrics": [create_metric_object(m) for m in config.metrics],
+        "whiskerOptions": whisker_options,
+        "row_limit": config.row_limit,
+        "number_format": config.number_format,
+        "date_format": config.date_format,
+    }
+    _add_adhoc_filters(form_data, config.filters)
+    return form_data
+
+
+def map_waterfall_config(config: WaterfallChartConfig) -> Dict[str, Any]:
+    """Map waterfall config to Superset form_data (viz_type waterfall).
+
+    Matches the frontend Waterfall buildQuery contract: a single ``x_axis``
+    column, an optional single-select ``groupby`` breakdown, and one
+    ``metric``; the query orders by the axis columns ascending, which the
+    frontend derives from these keys.
+    """
+    form_data: Dict[str, Any] = {
+        "viz_type": "waterfall",
+        "x_axis": config.x_axis.name,
+        "groupby": [config.breakdown.name] if config.breakdown else [],
+        "metric": create_metric_object(config.metric),
+        "show_total": config.show_total,
+        "show_legend": config.show_legend,
+        "increase_label": config.increase_label,
+        "decrease_label": config.decrease_label,
+        "total_label": config.total_label,
+        "x_axis_time_format": config.x_axis_time_format,
+        "y_axis_format": config.y_axis_format,
+        "row_limit": config.row_limit,
+    }
+    # Bucket a temporal x_axis: the grain (time_grain_sqla) needs the temporal
+    # column it applies to (granularity_sqla), mirroring the xy path's
+    # configure_temporal_handling and the frontend buildQuery's
+    # `x_axis || granularity_sqla`. Providing time_grain signals temporal
+    # intent; Superset ignores both for a non-temporal column.
+    if config.time_grain:
+        form_data["time_grain_sqla"] = config.time_grain
+        form_data["granularity_sqla"] = config.x_axis.name
+    add_currency_format(form_data, config.currency_format)
+    _add_adhoc_filters(form_data, config.filters)
     return form_data
 
 

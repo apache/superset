@@ -177,7 +177,7 @@ const actionButtonsStyle = (theme: SupersetTheme) => css`
 `;
 
 const StyledUndoRedoButton = styled(Button)`
-  // TODO: check if we need this
+  /* TODO: check if we need this */
   padding: 0;
   &:hover {
     background: transparent;
@@ -725,9 +725,11 @@ const Header = (): JSX.Element => {
                   onClick={discardChanges}
                   buttonStyle="secondary"
                   data-test="discard-changes-button"
-                  aria-label={t('Discard')}
+                  aria-label={
+                    hasUnsavedChanges ? t('Discard') : t('Exit edit mode')
+                  }
                 >
-                  {t('Discard')}
+                  {hasUnsavedChanges ? t('Discard') : t('Exit edit mode')}
                 </Button>
                 <Button
                   css={saveBtnStyle}

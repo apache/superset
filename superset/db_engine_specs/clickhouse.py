@@ -56,6 +56,57 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
     time_groupby_inline = True
     supports_multivalues_insert = True
 
+    # ClickHouse enforces max_rows_to_read against a pre-execution estimate
+    # that ignores LIMIT, so bounded sampling queries on large tables are
+    # rejected with TOO_MANY_ROWS before reading begins. Break mode keeps the
+    # operator's row cap as the read bound and returns the partial result
+    # instead of erroring. The clause is applied on its own line because the
+    # retry operates on the final statement text, which SQL mutators may have
+    # terminated with a single-line comment.
+    sampling_read_limit_override_suffix = "\nSETTINGS read_overflow_mode='break'"
+
+    @classmethod
+    def apply_sampling_read_limit_override(cls, sql: str) -> str | None:
+        """Append a read-overflow override so bounded sampling SQL succeeds.
+
+        Returns ``None`` when no retry should be attempted: the SQL already
+        carries the override, or it contains a SETTINGS clause from another
+        source (ClickHouse permits only one per statement, so appending a
+        second would produce invalid SQL — including subquery SETTINGS in
+        this check merely degrades to the engine's normal rejection). The
+        guard matches the clause shape ``SETTINGS <key> = ...`` rather than
+        the bare token, and string literals, quoted identifiers, and comments
+        are blanked out before matching, so a column named ``settings`` or a
+        literal/comment merely containing that text does not suppress the
+        retry. A trailing statement terminator is stripped so the SETTINGS
+        clause attaches to the statement itself.
+        """
+        code_only = re.sub(
+            r"'(?:[^']|'')*'"  # single-quoted string literals ('' escape)
+            r'|"(?:[^"]|"")*"'  # double-quoted identifiers
+            r"|`[^`]*`"  # backtick-quoted identifiers
+            r"|--[^\n]*"  # single-line comments
+            r"|/\*.*?\*/",  # block comments
+            " ",
+            sql,
+            flags=re.DOTALL,
+        )
+        if re.search(r"\bSETTINGS\s+\w+\s*=", code_only, re.IGNORECASE):
+            return None
+        stripped = sql.rstrip().rstrip(";").rstrip()
+        return f"{stripped}{cls.sampling_read_limit_override_suffix}"
+
+    @classmethod
+    def is_read_limit_error(cls, ex: Exception) -> bool:
+        """Recognize ClickHouse's max_rows_to_read rejection (TOO_MANY_ROWS).
+
+        Anchored to the error-code tokens ClickHouse emits ("Code: 158" /
+        "TOO_MANY_ROWS") rather than the setting name, so unrelated errors
+        that merely mention the setting are not misclassified.
+        """
+        message = str(ex)
+        return "TOO_MANY_ROWS" in message or "Code: 158" in message
+
     _time_grain_expressions = {
         None: "{col}",
         "PT1M": "toStartOfMinute(toDateTime({col}))",
@@ -531,3 +582,15 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         if schema:
             uri = uri.set(database=parse.quote(schema, safe=""))
         return uri, connect_args
+
+    @classmethod
+    def get_column_description_retry_sql(cls, sql: str) -> str | None:
+        # clickhouse-connect's cursor only backfills `cursor.description` for
+        # a zero-row result -- e.g. the `WHERE false` probe used to detect an
+        # adhoc column's type without scanning any rows -- when the operation
+        # string starts with SELECT/WITH after stripping whitespace. Leading
+        # SQL comments inserted by SQL_QUERY_MUTATOR (e.g. query attribution)
+        # defeat that check, so wrap the untouched, already-mutated SQL in a
+        # bare outer SELECT to satisfy it without altering or dropping any of
+        # the mutator's comments.
+        return f"SELECT * FROM (\n{sql}\n) AS __superset_type_probe LIMIT 0"  # noqa: S608

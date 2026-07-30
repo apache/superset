@@ -44,6 +44,9 @@ from tests.integration_tests.utils import read_fixture
 
 TEST_ID = str(uuid4())
 CSV_FILE = read_fixture("trends.csv")
+# Reports fetch tabular data as opaque bytes from the (mocked) chart export
+# endpoint, so any distinct non-empty payload is sufficient for Excel tests.
+XLSX_FILE: bytes = b"PK\x03\x04 mock xlsx bytes"
 SCREENSHOT_FILE = read_fixture("sample.png")
 DEFAULT_OWNER_EMAIL = "admin@fab.org"
 

@@ -235,3 +235,24 @@ def test_cron_schedule_window_chicago_daylight(
     assert (
         list(cron.strftime("%A, %d %B %Y, %H:%M:%S") for cron in datetimes) == expected  # noqa: C400
     )
+
+
+@pytest.mark.parametrize(
+    "current_dttm, cron, expected",
+    [
+        ("2020-01-01T08:59:01+00:00", "0 0 30 2 *", []),
+        ("2020-01-01T08:59:01+00:00", "0 0 31 4 *", []),
+    ],
+)
+def test_cron_schedule_window_invalid_cron_date(
+    current_dttm: str, cron: str, expected: list[FakeDatetime]
+) -> None:
+    """
+    Reports scheduler: Test cron schedule window for a cron that is
+    syntactically valid but can never match a real calendar date
+    """
+
+    datetimes = cron_schedule_window(datetime.fromisoformat(current_dttm), cron, "UTC")
+    assert (
+        list(cron.strftime("%A, %d %B %Y, %H:%M:%S") for cron in datetimes) == expected  # noqa: C400
+    )

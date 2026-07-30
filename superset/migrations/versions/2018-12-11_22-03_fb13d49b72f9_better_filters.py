@@ -26,7 +26,7 @@ import logging
 
 from alembic import op
 from sqlalchemy import Column, Integer, String, Text
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 from superset import db
 from superset.utils import json
@@ -75,7 +75,7 @@ def upgrade_slice(slc):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     filter_box_slices = session.query(Slice).filter_by(viz_type="filter_box")
     for slc in filter_box_slices.all():
@@ -90,7 +90,7 @@ def upgrade():
 
 def downgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     filter_box_slices = session.query(Slice).filter_by(viz_type="filter_box")
     for slc in filter_box_slices.all():

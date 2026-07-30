@@ -28,7 +28,7 @@ down_revision = "d0ac08bb5b83"
 
 from alembic import op  # noqa: E402
 from sqlalchemy import Column, Integer, String, Text  # noqa: E402
-from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
+from sqlalchemy.orm import declarative_base  # noqa: E402
 
 from superset import db  # noqa: E402
 from superset.utils import json  # noqa: E402
@@ -49,7 +49,7 @@ class Slice(Base):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     slices = session.query(Slice).filter(Slice.viz_type.like(CHART_TYPE)).all()
     for slc in slices:
@@ -72,7 +72,7 @@ def upgrade():
 
 def downgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     slices = session.query(Slice).filter(Slice.viz_type.like(CHART_TYPE)).all()
     for slc in slices:

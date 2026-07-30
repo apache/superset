@@ -25,7 +25,7 @@ Create Date: 2016-09-07 23:50:59.366779
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy import Column, Integer, String
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 from superset import db
 
@@ -50,7 +50,7 @@ class Slice(Base):
 def upgrade():
     bind = op.get_bind()
     op.add_column("slices", sa.Column("datasource_id", sa.Integer()))
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for slc in session.query(Slice).all():
         if slc.druid_datasource_id:
@@ -63,7 +63,7 @@ def upgrade():
 
 def downgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
     for slc in session.query(Slice).all():
         if slc.datasource_type == "druid":
             slc.druid_datasource_id = slc.datasource_id

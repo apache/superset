@@ -27,6 +27,7 @@ import { EmptyState, Loading } from '@superset-ui/core/components';
 import { ErrorBoundary, BasicErrorAlert } from 'src/components';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
 import DashboardHeader from 'src/dashboard/components/Header';
+import HeadlessAutoRefresh from 'src/dashboard/components/Header/HeadlessAutoRefresh';
 import { Icons } from '@superset-ui/core/components/Icons';
 import IconButton from 'src/dashboard/components/IconButton';
 import { Droppable } from 'src/dashboard/components/dnd/DragDroppable';
@@ -124,7 +125,7 @@ const StyledContent = styled.div<{
 }>`
   grid-column: 2;
   grid-row: 2;
-  // @z-index-above-dashboard-header (100) + 1 = 101
+  /* @z-index-above-dashboard-header (100) + 1 = 101 */
   ${({ fullSizeChartId }) => fullSizeChartId && `z-index: 101;`}
 `;
 
@@ -327,7 +328,7 @@ const StyledDashboardContent = styled.div<{
       box-sizing: border-box;
       overflow-y: visible;
 
-      // transitionable traits to show filter relevance
+      /* transitionable traits to show filter relevance */
       transition:
         opacity ${theme.motionDurationMid} ease-in-out,
         border-color ${theme.motionDurationMid} ease-in-out,
@@ -519,6 +520,10 @@ const DashboardBuilder = () => {
     () => (
       <>
         {!hideDashboardHeader && <DashboardHeader />}
+        {/* Report mode is a one-shot screenshot render (reports, thumbnails),
+            so it must never start a refresh timer that could re-fetch charts
+            mid-capture. */}
+        {hideDashboardHeader && !isReport && <HeadlessAutoRefresh />}
         {showFilterBar &&
           filterBarOrientation === FilterBarOrientation.Horizontal && (
             <FilterBar

@@ -66,6 +66,19 @@ test('non-element copyNode wrapper is keyboard-activatable', async () => {
   await waitFor(() => expect(onCopyEnd).toHaveBeenCalled());
 });
 
+test('custom copyNode is keyboard-activatable and focusable by default', async () => {
+  const onCopyEnd = jest.fn();
+  const copyNode = <span aria-label="Copy to clipboard">Custom node</span>;
+  render(<CopyToClipboard copyNode={copyNode} onCopyEnd={onCopyEnd} />, {
+    useRedux: true,
+  });
+  const button = screen.getByText('Custom node');
+  expect(button).toHaveAttribute('tabIndex', '0');
+  button.focus();
+  fireEvent.keyDown(button, { key: 'Enter' });
+  await waitFor(() => expect(onCopyEnd).toHaveBeenCalled());
+});
+
 test('renders without text showing', () => {
   const text = 'Text';
   render(<CopyToClipboard text={text} shouldShowText={false} />, {
