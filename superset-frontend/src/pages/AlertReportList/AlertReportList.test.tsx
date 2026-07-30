@@ -44,6 +44,12 @@ jest.mock('src/utils/getBootstrapData', () => ({
   })),
 }));
 
+// Mock withToasts HOC to be a passthrough so toast spies passed via props are preserved
+jest.mock('src/components/MessageToasts/withToasts', () => ({
+  __esModule: true,
+  default: <P extends object>(Component: React.ComponentType<P>) => Component,
+}));
+
 const mockGetBootstrapData = getBootstrapData as jest.MockedFunction<
   typeof getBootstrapData
 >;
