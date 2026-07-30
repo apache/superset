@@ -107,9 +107,23 @@ Build it with:
 ```bash
 cd superset/mcp_service/chart/resources/chart_viewer
 npm install
-npm run build          # emits dist/index.html (self-contained, ~780 KiB)
-npm test               # vitest adapter tests
+npm run build          # emits dist/index.html (self-contained, ~800 KiB)
+npm test               # vitest: adapter + bridge contract tests
 ```
+
+### Known gaps in this setup (PoC-level, must be fixed to graduate)
+
+1. **Nothing runs this in CI.** No workflow references `chart_viewer`, so the
+   widget's tests and build never execute on a PR. They will rot.
+2. **Nothing builds it at packaging time.** `MANIFEST.in` references
+   `dist/index.html`, but no release step produces it — so a packaged install
+   currently ships without the widget and serves the placeholder.
+3. **Location is unusual.** Every other bundler-based npm project in this repo
+   is a repo-root sibling (`superset-frontend/`, `superset-websocket/`,
+   `superset-embedded-sdk/`, `docs/`). This one lives inside the Python package
+   so it sits next to the resource that serves it. If this graduates, moving it
+   to a root-level sibling and copying the build output in at package time
+   (mirroring `superset/static`) is probably the more conventional shape.
 
 ## Test runbook (P4)
 
