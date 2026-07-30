@@ -1053,14 +1053,16 @@ describe('active tab highlighting (regression #36403)', () => {
   });
 
   test.each([
+    ['/tablemodelview/list/', 'the legacy FAB dataset list route'],
     ['/dataset/add/', 'the modern React dataset create route'],
     ['/dataset/42', 'a dataset detail route'],
   ])(
     'highlights the Datasets tab on %s (%s) — regression #42467',
     async (route, _label) => {
-      // Legacy list URL (``/tablemodelview/list/``) already highlights the
-      // tab; these newer React-managed routes did not until #42467 added
-      // ``/dataset`` as a second prefix in the active-tab matcher.
+      // ``/tablemodelview/list/`` is the pre-existing legacy path (kept as
+      // a coverage anchor so future prefix-matching changes cannot silently
+      // regress it); the ``/dataset/*`` routes are the modern React ones
+      // added by #42467.
       useSelectorMock.mockReturnValue({ roles: user.roles });
       window.history.pushState({}, '', route);
 
