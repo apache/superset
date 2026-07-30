@@ -123,13 +123,29 @@ interface _PostProcessingProphet {
     time_grain: TimeGranularity | undefined;
     periods: number;
     confidence_interval: number;
-    yearly_seasonality?: boolean | number;
-    weekly_seasonality?: boolean | number;
-    daily_seasonality?: boolean | number;
+    yearly_seasonality?: boolean | number | null;
+    weekly_seasonality?: boolean | number | null;
+    daily_seasonality?: boolean | number | null;
   };
 }
 export type PostProcessingProphet =
   _PostProcessingProphet | DefaultPostProcessing;
+
+interface _PostProcessingAnomalyDetection {
+  operation: 'anomaly_detection';
+  options: {
+    method: 'zscore' | 'mad' | 'prophet';
+    rolling_window?: number;
+    sensitivity?: number;
+    index?: string;
+    confidence_interval?: number;
+    yearly_seasonality?: boolean | number | null;
+    weekly_seasonality?: boolean | number | null;
+    daily_seasonality?: boolean | number | null;
+  };
+}
+export type PostProcessingAnomalyDetection =
+  _PostProcessingAnomalyDetection | DefaultPostProcessing;
 
 interface _PostProcessingDiff {
   operation: 'diff';
@@ -248,6 +264,7 @@ export type PostProcessingRule =
   | PostProcessingContribution
   | PostProcessingPivot
   | PostProcessingProphet
+  | PostProcessingAnomalyDetection
   | PostProcessingDiff
   | PostProcessingRolling
   | PostProcessingCum
@@ -287,6 +304,12 @@ export function isPostProcessingProphet(
   rule?: PostProcessingRule,
 ): rule is PostProcessingProphet {
   return rule?.operation === 'prophet';
+}
+
+export function isPostProcessingAnomalyDetection(
+  rule?: PostProcessingRule,
+): rule is PostProcessingAnomalyDetection {
+  return rule?.operation === 'anomaly_detection';
 }
 
 export function isPostProcessingDiff(

@@ -66,6 +66,24 @@ const mockControls = (
   };
 };
 
+test('should include anomalyDetectionControls section', () => {
+  const hasAnomalySection = config.controlPanelSections.some(
+    section =>
+      section &&
+      'controlSetRows' in section &&
+      section.controlSetRows?.some(row =>
+        row.some(
+          (control: any) =>
+            typeof control === 'object' &&
+            control !== null &&
+            'name' in control &&
+            control.name === 'anomalyDetectionEnabled',
+        ),
+      ),
+  );
+  expect(hasAnomalySection).toBe(true);
+});
+
 const timeFormatControl: any = getControl('x_axis_time_format');
 const numberFormatControl: any = getControl('x_axis_number_format');
 
