@@ -1383,8 +1383,9 @@ class ReportNotTriggeredErrorState(BaseReportState):
     def next(self) -> None:  # noqa: C901
         # If retries from a previous crontab window are still in-flight and
         # this is a new crontab trigger, skip — let the active retry chain
-        # finish.  The stale-window check uses normalized (naive) datetimes
-        # so tz-aware vs naive mismatches don't cause false positives.
+        # finish.  _is_retry_window_stale() returns True when the scheduled
+        # times differ, meaning this execution is from a different (newer)
+        # crontab window than the one the retry chain belongs to.
         if (
             self._report_schedule.last_state == ReportState.RETRYING
             and self._is_retry_window_stale()

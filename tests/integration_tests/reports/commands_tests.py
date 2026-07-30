@@ -2940,14 +2940,14 @@ def test_retry_notify_owners_sends_notification(
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 @patch("superset.commands.report.execute.ReportNotTriggeredErrorState._schedule_retry")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
-def test_stale_retry_window_resets_counter(
+def test_new_crontab_window_skipped_while_retrying(
     screenshot_mock: Mock,
     schedule_retry_mock: Mock,
 ) -> None:
     """
-    ExecuteReport Command: when a new crontab window fires while a previous
-    window was still retrying, the retry counter is reset so the new window
-    gets a fresh budget.
+    ExecuteReport Command: when a new crontab window fires while retries from
+    a previous window are still in-flight, the execution is skipped — the
+    retry chain is left undisturbed.
     """
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
@@ -2973,10 +2973,11 @@ def test_stale_retry_window_resets_counter(
         AsyncExecuteReportScheduleCommand(TEST_ID, report_schedule.id, new_dttm).run()
 
         db.session.refresh(report_schedule)
-        # Counter was reset to 0, then incremented to 1 for the new window
-        assert report_schedule.retry_attempt == 1
+        # Execution was skipped — state and counter are unchanged
+        assert report_schedule.retry_attempt == 2
         assert report_schedule.last_state == ReportState.RETRYING
-        schedule_retry_mock.assert_called_once()
+        schedule_retry_mock.assert_not_called()
+        screenshot_mock.assert_not_called()
     finally:
         cleanup_report_schedule(report_schedule)
 
