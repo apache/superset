@@ -37,6 +37,7 @@ from superset.exceptions import (
     SupersetParseError,
     SupersetSecurityException,
     SupersetSyntaxErrorException,
+    SupersetVirtualTableParseException,
 )
 from superset.models.core import Database
 from superset.result_set import SupersetResultSet
@@ -109,13 +110,13 @@ def get_virtual_table_metadata(dataset: SqlaTable) -> list[ResultSetColumnType]:
             dataset.sql, **dataset.template_params_dict
         )
     except SupersetSyntaxErrorException as ex:
-        raise SupersetGenericDBErrorException(
+        raise SupersetVirtualTableParseException(
             message=_("Template processing error: %(error)s", error=str(ex)),
         ) from ex
     try:
         parsed_script = SQLScript(sql, engine=db_engine_spec.engine)
     except SupersetParseError as ex:
-        raise SupersetGenericDBErrorException(
+        raise SupersetVirtualTableParseException(
             message=_("Invalid SQL: %(error)s", error=ex.error.message),
         ) from ex
     if parsed_script.has_mutation():

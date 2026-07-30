@@ -25,13 +25,19 @@ render to malformed SQL, sqlglot rejects it, and the whole PUT surfaces
 as an "Invalid SQL" toast — even though the dataset row was already
 committed successfully by ``UpdateDatasetCommand``.
 
-The command now catches ``SupersetGenericDBErrorException`` from
-``fetch_metadata()``, logs a warning, and returns the model. This tests
-both:
+``get_virtual_table_metadata`` now raises a dedicated
+``SupersetVirtualTableParseException`` for the specific template/parse
+failure paths, and ``RefreshDatasetCommand`` catches only that
+subclass. Genuine driver, connection, and permission errors still raise
+the broader ``SupersetGenericDBErrorException`` (from
+``get_columns_description``'s catch-all) and bubble up unchanged.
 
-1. Jinja parse failures become a warning (no re-raise).
-2. Other exception classes still propagate (security failures, unknown
-   errors, etc.).
+This module covers:
+
+1. Template/parse failures become a warning (no re-raise).
+2. Generic DB errors (connection, permission, driver) still propagate.
+3. Security failures still propagate.
+4. Pre-existing validation paths (not-found, forbidden) still work.
 """
 
 from __future__ import annotations
@@ -50,25 +56,22 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     SupersetGenericDBErrorException,
     SupersetSecurityException,
+    SupersetVirtualTableParseException,
 )
 
 
-def test_refresh_swallows_generic_db_error_from_jinja_sql(
+def test_refresh_swallows_virtual_table_parse_exception(
     mocker: MockerFixture, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """Jinja parse failures during metadata refresh must NOT bubble up as
-    a hard error — the dataset has already been persisted by the caller
-    (``UpdateDatasetCommand``), so the refresh is best-effort when the
-    SQL contains Jinja markers that cannot be rendered at save time.
-    See #38012.
+    """Template/parse failures during metadata refresh must NOT bubble
+    up as a hard error — the dataset has already been persisted by the
+    caller (``UpdateDatasetCommand``), so the refresh is best-effort for
+    SQL that cannot be validated at save time. See #38012.
     """
     mock_dataset_dao = mocker.patch("superset.commands.dataset.refresh.DatasetDAO")
     mock_model = mocker.MagicMock()
     mock_model.table_name = "jinja_dataset"
-    mock_model.sql = (
-        "SELECT * FROM foo {% if from_dttm %}WHERE ds > '{{ from_dttm }}'{% endif %}"
-    )
-    mock_model.fetch_metadata.side_effect = SupersetGenericDBErrorException(
+    mock_model.fetch_metadata.side_effect = SupersetVirtualTableParseException(
         message="Invalid SQL: unexpected token"
     )
     mock_dataset_dao.find_by_id.return_value = mock_model
@@ -91,18 +94,18 @@ def test_refresh_swallows_generic_db_error_from_jinja_sql(
     ), "expected a warning naming the dataset"
 
 
-def test_refresh_still_raises_generic_db_error_for_non_jinja_sql(
-    mocker: MockerFixture,
-) -> None:
-    """When the dataset SQL has NO Jinja markers, a
-    ``SupersetGenericDBErrorException`` from ``fetch_metadata`` must
-    still bubble up as a real failure — ``get_columns_description`` wraps
-    connection / permission / driver failures in the same exception
-    class, and those must NOT be silenced. See #38012."""
+def test_refresh_still_raises_generic_db_error(mocker: MockerFixture) -> None:
+    """A plain ``SupersetGenericDBErrorException`` from ``fetch_metadata``
+    (raised by ``get_columns_description`` for connection / permission /
+    driver failures) must still bubble up. The subclass-based catch in
+    the refresh command must NOT silence these — even when the same
+    dataset also contains Jinja markers. See #38012."""
     mock_dataset_dao = mocker.patch("superset.commands.dataset.refresh.DatasetDAO")
     mock_model = mocker.MagicMock()
-    mock_model.table_name = "plain_dataset"
-    mock_model.sql = "SELECT * FROM foo WHERE ds > '2024-01-01'"  # no Jinja
+    mock_model.table_name = "jinja_dataset_with_bad_connection"
+    mock_model.sql = (
+        "SELECT * FROM foo {% if from_dttm %}WHERE ds > '{{ from_dttm }}'{% endif %}"
+    )
     mock_model.fetch_metadata.side_effect = SupersetGenericDBErrorException(
         message="Connection refused"
     )
