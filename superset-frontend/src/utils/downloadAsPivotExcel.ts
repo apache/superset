@@ -23,6 +23,10 @@ export default function exportPivotExcel(
   fileName: string,
 ) {
   const table = document.querySelector(tableSelector);
-  const workbook = utils.table_to_book(table);
+  // `raw: true` keeps every cell as the literal text rendered in the DOM.
+  // Without it, SheetJS tries to infer numbers/dates from the displayed
+  // string, which mangles values that were formatted using a non-US
+  // D3_FORMAT (e.g. "1.234,56" gets misread as a date or truncated number).
+  const workbook = utils.table_to_book(table, { raw: true });
   writeFile(workbook, `${fileName}.xlsx`);
 }
