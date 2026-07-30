@@ -7387,7 +7387,7 @@ msgstr ""
 " sont présentes, le formatage revient aux nombres neutres."
 
 msgid "Formatted CSV attached in email"
-msgstr "CSV formatté attaché dans le courriel"
+msgstr "Fichier CSV mis en forme joint au courriel"
 
 msgid "Formatted Excel attached in email"
 msgstr "Fichier Excel mis en forme joint au courriel"
@@ -12675,7 +12675,7 @@ msgid "Send as CSV"
 msgstr "Envoyer comme CSV"
 
 msgid "Send as Excel"
-msgstr "Envoyer au format Excel"
+msgstr "Envoyer comme Excel"
 
 msgid "Send as PDF"
 msgstr "Envoyer comme PDF"
@@ -14044,7 +14044,7 @@ msgid "Text align"
 msgstr "Alignement du texte"
 
 msgid "Text embedded in email"
-msgstr "Text encapsulé dans le courriel"
+msgstr "Texte encapsulé dans le courriel"
 
 #, python-format
 msgid "The %(key)s in metadata_cache_timeout must be a non-negative integer."
@@ -15963,8 +15963,8 @@ msgstr "Fragment de temps"
 
 msgid "Time Grain must be specified when using Time Comparison."
 msgstr ""
-"La granularité temporelle doit être précisée lors de l'utilisation de la "
-"comparaison temporelle."
+"Le fragment de temps doit être précisé lors de l'utilisation de la "
+"comparaison de temps."
 
 msgid "Time Granularity"
 msgstr "Fragmentation de Temps"
