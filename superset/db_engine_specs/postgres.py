@@ -806,6 +806,9 @@ WHERE datistemplate = false;
         other character (e.g. ``pgsql``, ``pgstats``), not only the
         ``pg_``-prefixed system schemas. Matching on the literal ``pg_``
         prefix instead keeps those user-defined schemas.
+
+        TODO: drop this override once sqlalchemy/sqlalchemy#13471 is merged
+        and released, and SQLAlchemy is bumped past that version.
         """
         with inspector.engine.connect() as conn:
             return {
