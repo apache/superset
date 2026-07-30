@@ -16,11 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactElement, useCallback, useState } from 'react';
+import { ReactElement, useCallback, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { openInNewTab } from 'src/utils/navigationUtils';
+import { getClientErrorObject } from '@superset-ui/core';
+import {
+  closeOpenedTab,
+  navigateOpenedTab,
+  openBlankTab,
+} from 'src/utils/navigationUtils';
 import type { VersionedEntityType } from './types';
 import {
   createChartFromSnapshot,
@@ -61,11 +66,17 @@ export function useVersionActions(
   uuid: string | undefined,
 ): UseVersionActionsResult {
   const dispatch = useDispatch();
-  const { addSuccessToast, addInfoToast, addDangerToast } = useToasts();
+  const { addSuccessToast, addInfoToast, addWarningToast, addDangerToast } =
+    useToasts();
   const [restoreTarget, setRestoreTarget] =
     useState<VersionActionTarget | null>(null);
   const [isRestoring, setIsRestoring] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  // The state flags drive rendering; these refs are the actual locks. Two
+  // activations in one tick both read the pre-update state value, so a
+  // guard on state alone lets the second through and forks a duplicate.
+  const restoringRef = useRef(false);
+  const creatingRef = useRef(false);
 
   const requestRestore = useCallback((target: VersionActionTarget) => {
     setRestoreTarget(target);
@@ -97,13 +108,18 @@ export function useVersionActions(
   }, [entityType, uuid]);
 
   const confirmRestore = useCallback(async () => {
-    if (!restoreTarget || !uuid || isRestoring) {
+    if (!restoreTarget || !uuid || restoringRef.current) {
       return;
     }
+    restoringRef.current = true;
     setIsRestoring(true);
     try {
       const beforeTransactionId = await latestTransactionId();
-      await restoreVersion(entityType, uuid, restoreTarget.versionUuid);
+      const { message } = await restoreVersion(
+        entityType,
+        uuid,
+        restoreTarget.versionUuid,
+      );
       const afterTransactionId = await latestTransactionId();
       if (
         beforeTransactionId !== null &&
@@ -114,21 +130,34 @@ export function useVersionActions(
       } else {
         addSuccessToast(t("Restored to '%s' version", restoreTarget.headline));
       }
+      // A restore can succeed while dropping chart associations the snapshot
+      // referenced but that no longer exist, and the endpoint says so in its
+      // message rather than in a status code. Reporting only the success
+      // would tell the user their dashboard came back whole when it did not.
+      if (message && message !== 'OK') {
+        addWarningToast(message);
+      }
       setRestoreTarget(null);
       dispatch(clearVersionPreview());
       dispatch(versionRestored());
-    } catch {
-      addDangerToast(t('Failed to restore %s', restoreTarget.headline));
+    } catch (error) {
+      const { error: errMsg } = await getClientErrorObject(error);
+      addDangerToast(
+        errMsg
+          ? t('Failed to restore %s: %s', restoreTarget.headline, errMsg)
+          : t('Failed to restore %s', restoreTarget.headline),
+      );
     } finally {
+      restoringRef.current = false;
       setIsRestoring(false);
     }
   }, [
     addDangerToast,
     addInfoToast,
     addSuccessToast,
+    addWarningToast,
     dispatch,
     entityType,
-    isRestoring,
     latestTransactionId,
     restoreTarget,
     uuid,
@@ -138,11 +167,16 @@ export function useVersionActions(
     async (target: VersionActionTarget) => {
       // The in-flight guard mirrors isRestoring: forking awaits several
       // requests, and a double activation would create two copies.
-      if (!uuid || isCreating) {
+      if (!uuid || creatingRef.current) {
         return;
       }
+      creatingRef.current = true;
       setIsCreating(true);
       const copyDate = formatVersionMonthDay(target.issuedAt);
+      // Claim the tab now, while the click's transient activation is still
+      // live; the fork below takes two round trips, by which point the
+      // browser would refuse to open one.
+      const tab = openBlankTab();
       try {
         if (entityType === 'chart') {
           const snapshot = await fetchVersionSnapshot(
@@ -154,7 +188,7 @@ export function useVersionActions(
             snapshot,
             t('%s (copy from %s)', snapshot.slice_name, copyDate),
           );
-          openInNewTab(`/explore/?slice_id=${id}`);
+          navigateOpenedTab(tab, `/explore/?slice_id=${id}`);
         } else {
           const snapshot = await fetchVersionSnapshot(
             'dashboard',
@@ -166,20 +200,24 @@ export function useVersionActions(
             snapshot,
             t('%s (copy from %s)', snapshot.dashboard_title, copyDate),
           );
-          openInNewTab(`/dashboard/${id}/`);
+          navigateOpenedTab(tab, `/dashboard/${id}/`);
         }
         addSuccessToast(t('Created from version: %s', target.headline));
-      } catch {
-        addDangerToast(
+      } catch (error) {
+        // Leaving the claimed tab open would strand the user on about:blank.
+        closeOpenedTab(tab);
+        const { error: errMsg } = await getClientErrorObject(error);
+        const failed =
           entityType === 'chart'
             ? t('Failed to create a new chart from this version')
-            : t('Failed to create a new dashboard from this version'),
-        );
+            : t('Failed to create a new dashboard from this version');
+        addDangerToast(errMsg ? `${failed}: ${errMsg}` : failed);
       } finally {
+        creatingRef.current = false;
         setIsCreating(false);
       }
     },
-    [addDangerToast, addSuccessToast, entityType, isCreating, uuid],
+    [addDangerToast, addSuccessToast, entityType, uuid],
   );
 
   const restoreModal = (
