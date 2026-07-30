@@ -17,8 +17,8 @@
 """add_report_retry_columns
 
 Revision ID: f3a8c1d2e9b7
-Revises: e5f6a7b8c9d0
-Create Date: 2026-07-24 00:00:00.000000
+Revises: d3b9a1f6c204
+Create Date: 2026-07-28 00:00:00.000000
 
 """
 

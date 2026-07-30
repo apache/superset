@@ -161,7 +161,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             call_to_action=call_to_action,
         )
 
-    def _retry_error_template(self, text: str) -> tuple[str, dict[str, bytes]]:
+    def _retry_error_template(self, text: str) -> str:
         """HTML body for a per-retry-attempt failure notification."""
         attempt = self._content.retry_attempt
         max_attempts = self._content.retry_max_attempts
@@ -170,22 +170,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         safe_text = nh3.clean(text, tags=set(), attributes={})
         call_to_action = self._get_call_to_action()
 
-        img_tags = ""
-        if self._content.screenshots:
-            domain = self._get_smtp_domain()
-            images = {
-                make_msgid(domain)[1:-1]: screenshot
-                for screenshot in self._content.screenshots
-            }
-            img_parts = [
-                f'<div class="image"><img width="1000" src="cid:{msgid}"></div>'
-                for msgid in images
-            ]
-            img_tags = "".join(img_parts)
-        else:
-            images = {}
-
-        body = textwrap.dedent(
+        return textwrap.dedent(
             f"""
             <html>
               <head>
@@ -196,7 +181,6 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                     color: rgb(42, 63, 95);
                     padding: 4px 8px;
                   }}
-                  .image {{ margin-bottom: 18px; min-width: 1000px; }}
                 </style>
               </head>
               <body>
@@ -211,19 +195,15 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                    &nbsp;&nbsp; <b>Retries remaining:</b> {retries_remaining}</p>
                 <p><b>Error details:</b> {safe_text}</p>
                 <p><b><a href="{self._content.url}">{call_to_action}</a></b></p>
-                {img_tags}
               </body>
             </html>
             """
         )
-        return body, images
 
     def _get_content(self) -> EmailContent:
         if self._content.text and self._content.retry_attempt is not None:
-            body, images = self._retry_error_template(self._content.text)
             return EmailContent(
-                body=body,
-                images=images or None,
+                body=self._retry_error_template(self._content.text),
                 header_data=self._content.header_data,
             )
         if self._content.text:

@@ -175,6 +175,7 @@ export enum AlertState {
   Error = 'Error',
   Noop = 'Not triggered',
   Grace = 'On Grace',
+  Retrying = 'Retrying',
 }
 
 export enum RecipientIconName {

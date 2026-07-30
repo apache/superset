@@ -19,5 +19,5 @@ from typing import TypedDict
 from superset.dashboards.permalink.types import DashboardPermalinkState
 
 
-class ReportScheduleExtra(TypedDict, total=False):
+class ReportScheduleExtra(TypedDict):
     dashboard: DashboardPermalinkState

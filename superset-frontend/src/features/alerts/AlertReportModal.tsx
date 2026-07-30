@@ -2757,9 +2757,18 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                         >
                           <Switch
                             checked={!!currentAlert?.retry_on_failure}
-                            onChange={(checked: boolean) =>
-                              updateAlertState('retry_on_failure', checked)
-                            }
+                            onChange={(checked: boolean) => {
+                              updateAlertState('retry_on_failure', checked);
+                              if (!checked) {
+                                updateAlertState('send_failed_reports', false);
+                                updateAlertState('retry_notify_owners', true);
+                                updateAlertState(
+                                  'retry_notify_recipients',
+                                  false,
+                                );
+                                updateAlertState('retry_max_attempts', 3);
+                              }
+                            }}
                           />
                           <div className="switch-label">
                             {t('Enable Retries')}
@@ -2804,8 +2813,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                               </div>
                               <InfoTooltip
                                 tooltip={t(
-                                  'By default, recipients only receive reports when all charts successfully load. ' +
-                                    'Enable this to send reports even when some charts fail to render.',
+                                  'Notify all recipients when the report fails after exhausting all retry attempts.',
                                 )}
                               />
                             </StyledSwitchContainer>

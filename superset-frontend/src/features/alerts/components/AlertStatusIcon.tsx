@@ -39,6 +39,8 @@ function getStatusColor(status: string, theme: SupersetTheme) {
       return theme.colorTextSecondary;
     case AlertState.Grace:
       return theme.colorErrorText;
+    case AlertState.Retrying:
+      return theme.colorPrimaryText;
     default:
       return theme.colorText;
   }
@@ -91,6 +93,13 @@ export default function AlertStatusIcon({
       lastStateConfig.icon = Icons.WarningOutlined;
       lastStateConfig.label = t('Alert Triggered, In Grace Period');
       lastStateConfig.status = AlertState.Grace;
+      break;
+    case AlertState.Retrying:
+      lastStateConfig.icon = Icons.Running;
+      lastStateConfig.label = isReportEnabled
+        ? t('Report retrying')
+        : t('Alert retrying');
+      lastStateConfig.status = AlertState.Retrying;
       break;
     default:
       lastStateConfig.icon = Icons.CalendarOutlined;

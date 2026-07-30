@@ -337,9 +337,18 @@ function ReportModal({
       </Typography.Title>
       <Checkbox
         checked={retryEnabled}
-        onChange={(e: CheckboxChangeEvent) =>
-          setCurrentReport({ retry_on_failure: e.target.checked })
-        }
+        onChange={(e: CheckboxChangeEvent) => {
+          const { checked } = e.target;
+          setCurrentReport({
+            retry_on_failure: checked,
+            ...(!checked && {
+              send_failed_reports: false,
+              retry_notify_owners: true,
+              retry_notify_recipients: false,
+              retry_max_attempts: 3,
+            }),
+          });
+        }}
       >
         {t('Enable Retries')}
       </Checkbox>

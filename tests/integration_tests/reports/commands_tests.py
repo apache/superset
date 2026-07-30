@@ -2709,7 +2709,8 @@ def test_retry_on_failure_schedules_retry(
         assert report_schedule.last_state == ReportState.RETRYING
         assert report_schedule.retry_attempt == 1
         # Verify delay: base=60, attempt=1 → min(60 * 2^1, 3600) = 120
-        schedule_retry_mock.assert_called_once_with(120)
+        # Verify delay: base=60, attempt-1=0 → min(60 * 2^0, 3600) = 60
+        schedule_retry_mock.assert_called_once_with(60)
         # No error email should be sent on the first failure (notification is
         # sent after a *retry* fails, not after the original failure)
         email_mock.assert_not_called()
@@ -2852,7 +2853,8 @@ def test_retrying_state_schedules_another_retry(
         assert report_schedule.last_state == ReportState.RETRYING
         assert report_schedule.retry_attempt == 2
         # Verify delay: base=60, attempt=2 → min(60 * 2^2, 3600) = 240
-        schedule_retry_mock.assert_called_once_with(240)
+        # Verify delay: base=60, attempt-1=1 → min(60 * 2^1, 3600) = 120
+        schedule_retry_mock.assert_called_once_with(120)
     finally:
         cleanup_report_schedule(report_schedule)
 
@@ -3047,6 +3049,7 @@ def test_find_active_excludes_retrying_reports() -> None:
         name="retrying_report",
     )
     retrying.last_state = ReportState.RETRYING
+    retrying.last_eval_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None)
     retrying.retry_scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None)
     db.session.commit()
 
@@ -3058,6 +3061,7 @@ def test_find_active_excludes_retrying_reports() -> None:
         name="stale_retrying_report",
     )
     stale.last_state = ReportState.RETRYING
+    stale.last_eval_dttm = datetime(2020, 1, 1, 0, 0, 0)
     stale.retry_scheduled_dttm = datetime(2020, 1, 1, 0, 0, 0)
     db.session.commit()
 
@@ -3072,6 +3076,42 @@ def test_find_active_excludes_retrying_reports() -> None:
         cleanup_report_schedule(normal)
         cleanup_report_schedule(retrying)
         cleanup_report_schedule(stale)
+
+
+def test_is_retry_window_stale_naive_vs_aware() -> None:
+    """
+    _is_retry_window_stale: the comparison must work correctly when
+    retry_scheduled_dttm (DB column, always naive) is compared against
+    _scheduled_dttm which may be tz-aware in production.
+    """
+    now_naive = datetime(2026, 7, 30, 14, 0, 0)
+    now_aware = datetime(2026, 7, 30, 14, 0, 0, tzinfo=timezone.utc)
+    different_aware = datetime(2026, 7, 30, 15, 0, 0, tzinfo=timezone.utc)
+
+    report_schedule = ReportSchedule(
+        type=ReportScheduleType.REPORT,
+        name="stale_test",
+        crontab="0 * * * *",
+    )
+    # Simulate DB round-trip: anchor is always naive
+    report_schedule.retry_scheduled_dttm = now_naive
+
+    # Same time but tz-aware — should NOT be stale
+    state = BaseReportState(report_schedule, now_aware, uuid4())
+    assert not state._is_retry_window_stale()
+
+    # Same time, both naive — should NOT be stale
+    state = BaseReportState(report_schedule, now_naive, uuid4())
+    assert not state._is_retry_window_stale()
+
+    # Different time, tz-aware — should be stale
+    state = BaseReportState(report_schedule, different_aware, uuid4())
+    assert state._is_retry_window_stale()
+
+    # No anchor set — should NOT be stale
+    report_schedule.retry_scheduled_dttm = None
+    state = BaseReportState(report_schedule, now_aware, uuid4())
+    assert not state._is_retry_window_stale()
 
 
 def test_get_retry_delay_exponential_backoff() -> None:

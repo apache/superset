@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from typing import Any
 
 from sqlalchemy import or_, select
@@ -285,34 +285,11 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
     @staticmethod
     def find_active() -> list[ReportSchedule]:
         """
-        Find all active reports. Excludes reports that are currently retrying
-        unless their retry window has gone stale (retry task crashed or was
-        lost), in which case they are re-included so the scheduler can
-        recover them on the next crontab tick.
+        Find all active reports.
         """
-        from flask import current_app  # noqa: PLC0415
-
-        # A retry is considered stale if retry_scheduled_dttm is older than
-        # the maximum possible delay plus a generous buffer.
-        max_delay: int = current_app.config.get(
-            "ALERT_REPORTS_RETRY_MAX_DELAY_SECONDS", 3600
-        )
-        stale_cutoff = datetime.now(tz=timezone.utc).replace(tzinfo=None) - timedelta(
-            seconds=max_delay * 2
-        )
-
         return (
             db.session.query(ReportSchedule)
-            .filter(
-                ReportSchedule.active.is_(True),
-                or_(
-                    # Never executed or not retrying — always include
-                    ReportSchedule.last_state.is_(None),
-                    ReportSchedule.last_state != ReportState.RETRYING,
-                    # Retrying but stale — rescue it
-                    ReportSchedule.retry_scheduled_dttm < stale_cutoff,
-                ),
-            )
+            .filter(ReportSchedule.active.is_(True))
             .all()
         )
 
