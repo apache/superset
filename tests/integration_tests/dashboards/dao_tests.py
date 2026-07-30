@@ -89,26 +89,37 @@ class TestDashboardDAO(SupersetTestCase):
             )
             original_json_metadata = dashboard.json_metadata
             try:
-                # Seed an existing refresh_frequency in the stored metadata.
+                # Seed existing values in the stored metadata, including
+                # cross_filters_enabled=False -- its default is True, so this
+                # is the field that actually exercises this PR's change (the
+                # refresh_frequency preservation alone already landed in
+                # #42354).
                 metadata = json.loads(dashboard.json_metadata or "{}")
                 metadata["refresh_frequency"] = 60
+                metadata["cross_filters_enabled"] = False
                 dashboard.json_metadata = json.dumps(metadata)
                 db.session.commit()
 
-                # Payload omits refresh_frequency: it must be preserved, not
-                # reset to 0.
+                # Payload omits refresh_frequency and cross_filters_enabled:
+                # both must be preserved, not reset to their defaults.
                 DashboardDAO.set_dash_metadata(
                     dashboard, {"color_scheme": "d3Category10"}
                 )
                 db.session.commit()
                 saved = json.loads(dashboard.json_metadata)
                 assert saved["refresh_frequency"] == 60
+                assert saved["cross_filters_enabled"] is False
                 assert saved["color_scheme"] == "d3Category10"
 
                 # An explicitly-sent value still overrides.
-                DashboardDAO.set_dash_metadata(dashboard, {"refresh_frequency": 30})
+                DashboardDAO.set_dash_metadata(
+                    dashboard,
+                    {"refresh_frequency": 30, "cross_filters_enabled": True},
+                )
                 db.session.commit()
-                assert json.loads(dashboard.json_metadata)["refresh_frequency"] == 30
+                saved = json.loads(dashboard.json_metadata)
+                assert saved["refresh_frequency"] == 30
+                assert saved["cross_filters_enabled"] is True
             finally:
                 dashboard.json_metadata = original_json_metadata
                 db.session.commit()

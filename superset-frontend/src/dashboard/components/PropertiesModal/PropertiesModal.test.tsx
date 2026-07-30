@@ -334,6 +334,76 @@ describe('PropertiesModal', () => {
     expect(submitted.refresh_frequency).toBe(30);
   });
 
+  test('preserves an explicit 0 from the JSON editor over a non-zero dropdown value (#42116)', async () => {
+    // A truthy value like 30 can't tell `??` and `||` apart. Only a falsy-but-
+    // explicit `refresh_frequency: 0` in the JSON, combined with a non-zero
+    // Refresh dropdown, catches a regression from `??` back to `||` on
+    // index.tsx, which would let the dropdown's non-zero value win over an
+    // explicit "Don't refresh".
+    const put = jest.spyOn(SupersetCore.SupersetClient, 'put');
+    put.mockResolvedValue({
+      json: {
+        result: {
+          dashboard_title: 'dashboard_title',
+          slug: 'slug',
+          json_metadata: 'json_metadata',
+          editors: 'editors',
+        },
+      },
+    } as any);
+    mockedIsFeatureEnabled.mockReturnValue(false);
+    const props = createProps();
+    // A non-zero refresh_frequency in dashboardInfo so the Refresh dropdown
+    // initializes to a truthy value (dashboardInfo, when passed, is used
+    // directly instead of triggering a fetch -- see the `!currentDashboardInfo`
+    // check in the data-loading effect). handleDashboardData reads the parsed
+    // `metadata` object, not the `json_metadata` string.
+    const nonZeroMetadata = mockedJsonMetadata.replace(
+      '"refresh_frequency": 0',
+      '"refresh_frequency": 30',
+    );
+    const propsWithDashboardInfo = {
+      ...props,
+      dashboardInfo: {
+        ...dashboardInfo,
+        json_metadata: nonZeroMetadata,
+        metadata: JSON.parse(nonZeroMetadata),
+      },
+    };
+    render(<PropertiesModal {...propsWithDashboardInfo} />, {
+      useRedux: true,
+    });
+    await screen.findByTestId('dashboard-edit-properties-form');
+
+    // Confirm the Refresh dropdown actually picked up the non-zero value.
+    const refreshHeader = screen
+      .getByText('Refresh settings')
+      .closest('.ant-collapse-header');
+    await userEvent.click(refreshHeader!);
+    expect(
+      await screen.findByRole('radio', { name: '30 seconds' }),
+    ).toBeChecked();
+
+    // Edit the JSON editor to explicitly set refresh_frequency to 0 ("Don't
+    // refresh") without touching the Refresh dropdown.
+    const advancedHeader = screen
+      .getByText('Advanced settings')
+      .closest('.ant-collapse-header');
+    await userEvent.click(advancedHeader!);
+    const editor = await screen.findByTestId('mock-json-editor');
+    fireEvent.change(editor, {
+      target: { value: JSON.stringify({ refresh_frequency: 0 }) },
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(props.onSubmit).toHaveBeenCalledTimes(1);
+    });
+    const submitted = JSON.parse(props.onSubmit.mock.calls[0][0].jsonMetadata);
+    expect(submitted.refresh_frequency).toBe(0);
+  });
+
   test('should close modal', async () => {
     mockedIsFeatureEnabled.mockImplementation((flag: any) => {
       if (flag === FeatureFlag.TaggingSystem) return true;
