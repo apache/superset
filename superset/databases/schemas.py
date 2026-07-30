@@ -1455,6 +1455,19 @@ class UploadPostSchema(BaseUploadFilePostSchemaMixin):
                 ) from ex
         return data
 
+    @post_load
+    def normalize_schema(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+        # Broken clients stringify an unset schema into the multipart body as
+        # "undefined"/"null"; neither is a plausible real schema name, so both
+        # are treated as unset alongside empty/whitespace values (see #36305).
+        if (schema := data.get("schema")) is not None:
+            schema = schema.strip()
+            if not schema or schema.lower() in ("undefined", "null"):
+                data.pop("schema", None)
+            else:
+                data["schema"] = schema
+        return data
+
 
 class UploadFileMetadataPostSchema(BaseUploadFilePostSchemaMixin):
     """
