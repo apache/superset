@@ -16,7 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { recoveredToast } from './softDeleteCopy';
+import {
+  archiveConfirmDescription,
+  getSoftDeleteRetentionDays,
+  recoveredToast,
+} from './softDeleteCopy';
+import getBootstrapData from 'src/utils/getBootstrapData';
+
+jest.mock('src/utils/getBootstrapData', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({ common: { conf: {} } })),
+}));
+
+const mockBootstrapData = getBootstrapData as jest.Mock;
+
+/** Set what the server put in `common.conf` for this test. */
+const withConf = (conf: Record<string, unknown>) =>
+  mockBootstrapData.mockReturnValue({ common: { conf } });
+
+beforeEach(() => {
+  withConf({});
+});
 
 test('recoveredToast links to the asset and enables HTML when a url is present', () => {
   const { text, options } = recoveredToast(
@@ -40,4 +60,55 @@ test('recoveredToast escapes HTML in the asset name', () => {
   const { text } = recoveredToast('<b>x</b>', 'Chart', '/u');
   expect(text).toContain('&lt;b&gt;x&lt;/b&gt;');
   expect(text).not.toContain('<b>x</b>');
+});
+
+/**
+ * The retention window the server resolved. These were the untested branches
+ * that let a wrong bootstrap key ship: the copy silently lost its time bound
+ * everywhere, and nothing failed.
+ */
+
+test('the resolved retention window is read from the bootstrap payload', () => {
+  withConf({ SOFT_DELETE_RETENTION_DAYS: 7 });
+  expect(getSoftDeleteRetentionDays()).toBe(7);
+});
+
+test('a window absent from the payload reads as no time bound', () => {
+  // The key is omitted entirely when the SOFT_DELETE feature is off.
+  withConf({});
+  expect(getSoftDeleteRetentionDays()).toBe(0);
+});
+
+test('a disabled window (0) reads as no time bound rather than zero days', () => {
+  // 0 means retention is switched off, so objects are kept indefinitely --
+  // recoverable, just with no deadline to quote.
+  withConf({ SOFT_DELETE_RETENTION_DAYS: 0 });
+  expect(getSoftDeleteRetentionDays()).toBe(0);
+});
+
+test('a malformed window does not leak into the copy', () => {
+  withConf({ SOFT_DELETE_RETENTION_DAYS: 'not a number' });
+  expect(getSoftDeleteRetentionDays()).toBe(0);
+  withConf({ SOFT_DELETE_RETENTION_DAYS: -5 });
+  expect(getSoftDeleteRetentionDays()).toBe(0);
+});
+
+test('the confirm copy quotes the window when there is one', () => {
+  withConf({ SOFT_DELETE_RETENTION_DAYS: 30 });
+  expect(archiveConfirmDescription('chart')).toBe(
+    'This chart will be moved to Recently Archived. You can recover it there within 30 days.',
+  );
+  expect(archiveConfirmDescription('charts', true)).toBe(
+    'These charts will be moved to Recently Archived. You can recover them there within 30 days.',
+  );
+});
+
+test('the confirm copy omits the clause when there is no window', () => {
+  withConf({});
+  expect(archiveConfirmDescription('dashboard')).toBe(
+    'This dashboard will be moved to Recently Archived. You can recover it there.',
+  );
+  expect(archiveConfirmDescription('dashboards', true)).toBe(
+    'These dashboards will be moved to Recently Archived. You can recover them there.',
+  );
 });

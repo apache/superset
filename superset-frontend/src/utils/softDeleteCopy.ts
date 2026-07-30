@@ -26,14 +26,25 @@ export interface ToastContent {
 }
 
 /**
- * The configured soft-delete retention window (days) surfaced in the client
- * bootstrap config, or 0 when purging is disabled / unset. Drives how the
- * delete-confirmation modal phrases recoverability (sc-111760).
+ * The soft-delete retention window in days, as resolved by the server.
+ *
+ * The value is computed rather than read from static config, so it reflects a
+ * runtime override applied with `superset deletion-retention set_window`. It is
+ * absent when the SOFT_DELETE feature is off, and `0` means retention is
+ * disabled — archived objects are kept indefinitely, which is a recoverability
+ * promise rather than the lack of one. Both cases return 0 here because the
+ * copy is the same: recoverable, with no time bound to quote.
+ *
+ * Drives how the delete-confirmation modal phrases recoverability (sc-111760).
  */
 export function getSoftDeleteRetentionDays(): number {
   const conf = getBootstrapData()?.common?.conf as
     Record<string, unknown> | undefined;
-  const days = Number(conf?.SUPERSET_SOFT_DELETE_RETENTION_DAYS);
+  const raw = conf?.SOFT_DELETE_RETENTION_DAYS;
+  if (raw === undefined || raw === null) {
+    return 0;
+  }
+  const days = Number(raw);
   return Number.isFinite(days) && days > 0 ? days : 0;
 }
 
