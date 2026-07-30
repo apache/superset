@@ -454,6 +454,7 @@ class _DetachableSlice:
             "slice_name": "Concurrent chart",
             "viz_type": "table",
             "uuid": "2a0e0e0e-0000-4000-8000-000000000042",
+            "datasource_id": 1,
         }
         self._detached = False
 
@@ -494,7 +495,9 @@ async def _generate_saved_chart(
     ctx.report_progress = AsyncMock()
 
     chart = _DetachableSlice()
-    dataset = Mock(id=1, datasource_name="test_table", table_name="test_table")
+    dataset = Mock(
+        id=1, datasource_name="test_table", table_name="test_table", sql=None
+    )
     validation_result = Mock(is_valid=True, request=request, warnings={}, error=None)
     session = MagicMock()
     # The instance is detached right after the commit, before any of the reads
@@ -516,15 +519,14 @@ async def _generate_saved_chart(
             "superset.mcp_service.chart.tool.generate_chart.has_dataset_access",
             return_value=True,
         ),
+        # validate_chart_dataset is deliberately not mocked: it runs for real
+        # against the detached instance, which is where it used to raise.
+        patch("superset.mcp_service.auth.has_dataset_access", return_value=True),
         patch(
             "superset.commands.chart.create.CreateChartCommand",
             return_value=Mock(run=Mock(return_value=chart)),
         ),
         patch("superset.db.session", session),
-        patch(
-            "superset.mcp_service.chart.tool.generate_chart.validate_chart_dataset",
-            return_value=Mock(is_valid=True, error=None, warnings=[]),
-        ),
         patch(
             "superset.mcp_service.chart.tool.generate_chart._compile_chart",
             return_value=CompileResult(success=True, warnings=[]),

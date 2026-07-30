@@ -445,6 +445,7 @@ async def generate_chart(  # noqa: C901
                     chart_slice_name = chart.slice_name
                     chart_viz_type = chart.viz_type
                     chart_uuid = str(chart.uuid) if chart.uuid else None
+                    chart_datasource_id = chart.datasource_id
 
                     # Reload server-generated timestamps (created_on,
                     # changed_on) so the serializer sees real values.
@@ -469,7 +470,9 @@ async def generate_chart(  # noqa: C901
                 )
 
                 # Post-creation validation: verify the chart's dataset is accessible
-                dataset_check = validate_chart_dataset(chart, check_access=True)
+                dataset_check = validate_chart_dataset(
+                    chart_datasource_id, check_access=True
+                )
                 if not dataset_check.is_valid:
                     # Dataset validation failed - warn but don't fail the operation
                     await ctx.warning(

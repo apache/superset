@@ -68,7 +68,7 @@ class DatasetValidationResult:
 
 
 def validate_chart_dataset(
-    chart: Any,
+    datasource_id: int | None,
     check_access: bool = True,
 ) -> DatasetValidationResult:
     """
@@ -77,8 +77,12 @@ def validate_chart_dataset(
     This shared utility should be called by MCP tools after creating or retrieving
     charts to detect issues like missing or deleted datasets early.
 
+    Takes the datasource id rather than the chart so that callers holding an ORM
+    instance read it while that instance is attached; reading it here can raise
+    ``DetachedInstanceError`` when a concurrent request has torn down the session.
+
     Args:
-        chart: A chart-like object with datasource_id, datasource_type attributes
+        datasource_id: The chart's ``datasource_id``, or None if it has none
         check_access: Whether to also check user permissions (default True)
 
     Returns:
@@ -90,7 +94,6 @@ def validate_chart_dataset(
     from superset.mcp_service.auth import has_dataset_access
 
     warnings: list[str] = []
-    datasource_id = getattr(chart, "datasource_id", None)
 
     # Check if chart has a datasource reference
     if datasource_id is None:
