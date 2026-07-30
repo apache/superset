@@ -124,9 +124,19 @@ test('renders above an already-open modal without a hardcoded z-index', () => {
     name: /unsaved changes/i,
   });
 
-  const otherZIndex = Number(getComputedStyle(otherDialog).zIndex);
+  // Ant Design applies the automatically-assigned stacking z-index to the
+  // `.ant-modal-wrap` element that wraps the dialog, not to the dialog
+  // (`role="dialog"`) element itself, so the wrapper is what needs checking.
+  const otherWrap = otherDialog.closest<HTMLElement>('.ant-modal-wrap');
+  const unsavedChangesWrap =
+    unsavedChangesDialog.closest<HTMLElement>('.ant-modal-wrap');
+
+  expect(otherWrap).not.toBeNull();
+  expect(unsavedChangesWrap).not.toBeNull();
+
+  const otherZIndex = Number(getComputedStyle(otherWrap as HTMLElement).zIndex);
   const unsavedChangesZIndex = Number(
-    getComputedStyle(unsavedChangesDialog).zIndex,
+    getComputedStyle(unsavedChangesWrap as HTMLElement).zIndex,
   );
 
   expect(unsavedChangesZIndex).toBeGreaterThan(otherZIndex);
