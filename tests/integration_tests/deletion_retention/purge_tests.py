@@ -29,6 +29,7 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import sqlalchemy as sa
+from sqlalchemy.orm.attributes import set_committed_value
 from sqlalchemy.sql.dml import Delete
 
 from superset import db, security_manager
@@ -590,3 +591,41 @@ class TestPurgeIdentityGuard(DeletionRetentionTestBase):
             .one()
         )
         assert row.status == audit.STATUS_FAILED
+
+    def test_cascade_refuses_a_row_whose_uuid_no_longer_matches(self) -> None:
+        """A reused id does not let the cascade purge a stranger.
+
+        The id alone is not an identity: callers snapshot the entity well
+        before the cascade runs -- the retention task writes an audit row in
+        between -- and an id freed and reissued in that gap would otherwise be
+        purged under the snapshot's name. Re-checking the uuid before the lock
+        narrows that window; the predicate on the locked claim closes it.
+        """
+        chart = self.make_chart("uuid_drift")
+        chart_id = chart.id
+        self.soft_delete(chart, days_ago=90)
+        snapshot_uuid = str(chart.uuid)
+
+        # Stand in for the id being reissued: the stored row is now a different
+        # entity, while the caller still holds the snapshot it resolved.
+        db.session.execute(
+            sa.update(Slice.__table__)
+            .where(Slice.__table__.c.id == chart_id)
+            .values(uuid="00000000-0000-0000-0000-00000000beef")
+        )
+        db.session.commit()
+        db.session.refresh(chart)
+        # Restore the snapshot's view without marking the attribute dirty, so
+        # the cascade sees the uuid its caller resolved rather than the row's.
+        set_committed_value(chart, "uuid", snapshot_uuid)
+
+        result = cascade_hard_delete(
+            db.session,
+            chart,
+            enforce_window=True,
+            cutoff=datetime.now() - timedelta(days=30),
+        )
+        db.session.commit()
+
+        assert result.purged is False
+        assert self.exists(Slice, chart_id)

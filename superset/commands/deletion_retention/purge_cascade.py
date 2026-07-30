@@ -94,6 +94,28 @@ def entity_uuid(entity: Any) -> str | None:
     return str(value) if value is not None else None
 
 
+def _identity_predicates(table: sa.Table, entity_id: int, entity: Any) -> list[Any]:
+    """Predicates pinning a statement to the exact row *entity* came from.
+
+    The id alone is not an identity: a row can be removed and its id handed to
+    a different entity, and both SQLite rowids and a sequence wrapped by an
+    operator will reuse values. Callers snapshot the uuid well before the
+    cascade runs -- the retention task writes an audit row in between -- so the
+    locked claim and the conditional delete carry the uuid too, and a reused id
+    simply matches nothing rather than purging a stranger under the snapshot's
+    name. Checking it before the lock would only narrow that window; a
+    predicate on the claim closes it.
+
+    Falls back to the id alone for a model with no uuid column.
+    """
+    predicates: list[Any] = [table.c.id == entity_id]
+    uuid_column = table.c.get("uuid")
+    expected_uuid = entity_uuid(entity)
+    if uuid_column is not None and expected_uuid is not None:
+        predicates.append(uuid_column == expected_uuid)
+    return predicates
+
+
 def _version_tables_present(bind: Any) -> bool:
     """Whether the version-history tables exist (a testable seam, so the
     version cascade no-ops cleanly before versioning is installed)."""
@@ -161,7 +183,8 @@ def cascade_hard_delete(
 
     try:
         with session.begin_nested():
-            claim = sa.select(table.c.id).where(table.c.id == entity_id)
+            identity = _identity_predicates(table, entity_id, entity)
+            claim = sa.select(table.c.id).where(*identity)
             if enforce_window:
                 claim = claim.where(table.c.deleted_at.is_not(None)).where(
                     table.c.deleted_at < cutoff
@@ -187,7 +210,7 @@ def cascade_hard_delete(
             _delete_owned_children(session, model, entity_id)
             version_rows = _delete_version_history(session, entity, entity_id)
 
-            delete_entity = sa.delete(table).where(table.c.id == entity_id)
+            delete_entity = sa.delete(table).where(*identity)
             if enforce_window:
                 delete_entity = delete_entity.where(
                     table.c.deleted_at.is_not(None)
