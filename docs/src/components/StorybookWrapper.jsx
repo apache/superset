@@ -87,9 +87,16 @@ function getProviders() {
     // Docusaurus tracks the toggle in React context (useColorMode), so
     // mirror it onto the singleton via the toggleDarkMode() method Theme
     // already exposes for exactly this purpose.
+    //
+    // Use useLayoutEffect (not useEffect) so the sync runs before the
+    // browser paints. This component only ever mounts client-side (it's
+    // built inside a BrowserOnly callback), so there's no SSR mismatch
+    // concern -- and running synchronously before paint avoids a brief
+    // flash of the singleton's previous palette when a page loads directly
+    // in dark mode or the toggle fires during route navigation.
     function ThemeSync({ children }) {
       const { colorMode } = useColorMode();
-      React.useEffect(() => {
+      React.useLayoutEffect(() => {
         themeObject.toggleDarkMode(colorMode === 'dark');
       }, [colorMode]);
       return children;

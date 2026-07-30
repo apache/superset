@@ -25,7 +25,7 @@ import {
   CacheProvider as EmotionCacheProvider,
 } from '@emotion/react';
 import createCache from '@emotion/cache';
-import { noop, mergeWith } from 'lodash-es';
+import { mergeWith } from 'lodash-es';
 import { GlobalStyles } from './GlobalStyles';
 import {
   AntdThemeConfig,
@@ -145,8 +145,8 @@ export class Theme {
       }),
     } as SupersetTheme;
 
-    // Update the providers with the fully formed theme
-    this.updateProviders(
+    // Update every mounted provider with the fully formed theme
+    this.notifyProviders(
       this.theme,
       this.antdConfig,
       createCache({ key: 'superset' }),
@@ -193,13 +193,29 @@ export class Theme {
     return JSON.stringify(serializeThemeConfig(this.antdConfig), null, 2);
   }
 
-  private updateProviders(
+  // Every currently-mounted SupersetThemeProvider for this Theme instance
+  // registers a listener here (see the useEffect below). A single
+  // "last write wins" callback isn't enough once more than one provider can
+  // be mounted from the same Theme instance at a time -- e.g. multiple live
+  // component demos on one docs page -- since each render would overwrite
+  // the previous provider's callback and only the most-recently-rendered
+  // provider would ever hear about a setConfig/toggleDarkMode call.
+  private providerListeners = new Set<
+    (
+      theme: SupersetTheme,
+      antdConfig: AntdThemeConfig,
+      emotionCache: any,
+    ) => void
+  >();
+
+  private notifyProviders(
     theme: SupersetTheme,
     antdConfig: AntdThemeConfig,
     emotionCache: any,
   ): void {
-    noop(theme, antdConfig, emotionCache);
-    // Overridden at runtime by SupersetThemeProvider using setThemeState
+    this.providerListeners.forEach(listener =>
+      listener(theme, antdConfig, emotionCache),
+    );
   }
 
   SupersetThemeProvider({ children }: { children: React.ReactNode }) {
@@ -214,9 +230,29 @@ export class Theme {
       emotionCache: createCache({ key: 'superset' }),
     });
 
-    this.updateProviders = (theme, antdConfig, emotionCache) => {
-      setThemeState({ theme, antdConfig, emotionCache });
-    };
+    // Register (and, on unmount, deregister) this provider instance's own
+    // listener rather than assigning a single shared callback on every
+    // render, so every concurrently mounted provider for this Theme
+    // instance receives updates, not just the last one to render.
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    React.useEffect(() => {
+      const listener = (
+        nextTheme: SupersetTheme,
+        nextAntdConfig: AntdThemeConfig,
+        nextEmotionCache: any,
+      ) => {
+        setThemeState({
+          theme: nextTheme,
+          antdConfig: nextAntdConfig,
+          emotionCache: nextEmotionCache,
+        });
+      };
+      this.providerListeners.add(listener);
+      return () => {
+        this.providerListeners.delete(listener);
+      };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     return (
       <EmotionCacheProvider value={themeState.emotionCache}>
