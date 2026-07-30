@@ -162,7 +162,29 @@ jobs:
         working-directory: docs
         run: |
           yarn build
+      # The check-freshness job above narrows the window but doesn't close it: an
+      # older run can observe is-current=true, then sit through this build while a
+      # newer run's own freshness check also passes and it deploys and finishes
+      # first. If this (stale) run then wins entry into the concurrency group, it
+      # would overwrite the newer content that already deployed. Re-check right
+      # before the one step that actually mutates superset-site, so a stale run
+      # skips deploying instead of clobbering a fresher one that already ran.
+      - name: "Re-check freshness immediately before deploying"
+        id: recheck-freshness
+        if: github.event_name != 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUILD_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          latest_sha="$(gh api "repos/${{ github.repository }}/commits/master" --jq .sha)"
+          if [ "${latest_sha}" = "${BUILD_SHA}" ]; then
+            echo "still-current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "still-current=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::master has moved on to ${latest_sha} since ${BUILD_SHA} was triggered — skipping deploy of stale content."
+          fi
       - name: deploy docs
+        if: github.event_name == 'workflow_dispatch' || steps.recheck-freshness.outputs.still-current == 'true'
         uses: ./.github/actions/github-action-push-to-another-repository
         env:
           API_TOKEN_GITHUB: ${{ secrets.SUPERSET_SITE_BUILD }}
