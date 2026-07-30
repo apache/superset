@@ -75,8 +75,13 @@ are handled without weakening them globally:
 ## Data contract (tool result → widget)
 
 `render_chart` returns Superset's `ChartData` (see `chart/schemas.py`) as the
-tool's `structuredContent`, plus a concise text summary for the model. The widget
-reads `structuredContent`. `ChartData.explore_url` (new, optional) gives the
+tool's `structuredContent`, plus a concise text summary for the model.
+
+**Wire shape gotcha:** both tools are typed `-> ChartData | ChartError`, and
+FastMCP wraps union returns in a synthetic envelope, so what is actually on the
+wire is `{"result": {...ChartData...}}` (the tool's `outputSchema` carries
+`x-fastmcp-wrap-result`). The widget unwraps a lone `result` key; the text
+content block is *not* wrapped, so the model-facing path is unaffected. `ChartData.explore_url` (new, optional) gives the
 widget its "Open in Superset" deep link.
 
 `render_chart_requery` (widget → server, `visibility: ["app"]`) accepts:
@@ -84,7 +89,6 @@ widget its "Open in Superset" deep link.
 ```jsonc
 {
   "identifier": 42,               // or "chart_id"
-  "group_by": "country",          // drill-down dimension (optional)
   "filter": {"col": "country", "val": "US"},  // click-to-drill (optional; filter_col/filter_val also accepted)
   "time_range": "Last quarter",   // brush-to-zoom (optional)
   "granularity": "P1D"            // finer grain on zoom (optional)

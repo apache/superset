@@ -25,18 +25,42 @@ import { extractToolResult } from './bridge';
 // never masquerade as a real chart.
 
 describe('extractToolResult', () => {
-  it('returns ChartData from structuredContent', () => {
+  // The server's tools are typed `-> ChartData | ChartError`, and FastMCP wraps
+  // union returns in a synthetic `result` envelope (schemas carry
+  // `x-fastmcp-wrap-result`). THIS is the real wire shape — verified against a
+  // live MCP server. An earlier version of this test asserted the unwrapped
+  // shape, which the server never sends, so it passed while the widget was
+  // unable to read its own data.
+  it('returns ChartData from the FastMCP-wrapped structuredContent', () => {
     const { chartData, error } = extractToolResult({
-      structuredContent: { columns: [], data: [], chart_id: 1 },
+      structuredContent: { result: { columns: [], data: [], chart_id: 1 } },
     });
     expect(error).toBeUndefined();
     expect(chartData).not.toBeNull();
     expect(chartData?.chart_id).toBe(1);
   });
 
-  it('surfaces a Superset ChartError payload as an error (not chart data)', () => {
+  it('still accepts an unwrapped structuredContent payload', () => {
+    const { chartData } = extractToolResult({
+      structuredContent: { columns: [], data: [], chart_id: 2 },
+    });
+    expect(chartData?.chart_id).toBe(2);
+  });
+
+  it('does not unwrap when `result` is not the sole key', () => {
+    // A legitimate payload that happens to carry a `result` field alongside
+    // real ChartData fields must pass through untouched.
+    const { chartData } = extractToolResult({
+      structuredContent: { result: 'ok', columns: [], data: [], chart_id: 3 },
+    });
+    expect(chartData?.chart_id).toBe(3);
+  });
+
+  it('surfaces a wrapped Superset ChartError payload as an error', () => {
     const { chartData, error } = extractToolResult({
-      structuredContent: { error: 'Chart not found', error_type: 'NotFound' },
+      structuredContent: {
+        result: { error: 'Chart not found', error_type: 'NotFound' },
+      },
     });
     expect(chartData).toBeNull();
     expect(error).toBe('Chart not found (NotFound)');

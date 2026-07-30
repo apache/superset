@@ -443,18 +443,37 @@ export function extractToolResult(toolResult: unknown): {
   return { chartData: isChartData(coerced) ? (coerced as ChartData) : null, meta };
 }
 
+/**
+ * FastMCP wraps non-plain-object return types in a synthetic `result` envelope
+ * (such tool schemas are marked `x-fastmcp-wrap-result`). Our tools are typed
+ * `-> ChartData | ChartError`, so the payload on the wire is
+ * `{"result": {...}}` rather than the bare object.
+ *
+ * Unwrap only when `result` is the SOLE key, so a future unwrapped payload —
+ * or one that legitimately carries other fields — still passes through intact.
+ */
+function unwrapResultEnvelope(value: unknown): unknown {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+  const keys = Object.keys(value as Record<string, unknown>);
+  if (keys.length === 1 && keys[0] === 'result') {
+    const inner = (value as { result: unknown }).result;
+    if (inner && typeof inner === 'object') return inner;
+  }
+  return value;
+}
+
 /** Prefer structuredContent; else parse the first JSON text content block. */
 export function coerceToolResultData(res: {
   structuredContent?: unknown;
   content?: Array<{ type: string; text?: string }>;
 }): unknown {
   if (res?.structuredContent && typeof res.structuredContent === 'object') {
-    return res.structuredContent;
+    return unwrapResultEnvelope(res.structuredContent);
   }
   const block = res?.content?.find((c) => c.type === 'text' && c.text);
   if (block?.text) {
     try {
-      return JSON.parse(block.text);
+      return unwrapResultEnvelope(JSON.parse(block.text));
     } catch {
       return null;
     }
