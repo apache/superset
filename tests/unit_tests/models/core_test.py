@@ -1453,6 +1453,17 @@ def test_purge_oauth2_tokens_scoped_by_database_id(session: Session) -> None:
         == 0
     )
 
+    # Purging database1 must delete all of its tokens. Filtering by the
+    # token PK instead of `database_id` would delete at most one row here.
+    database1.purge_oauth2_tokens()
+
+    assert (
+        session.query(DatabaseUserOAuth2Tokens)
+        .filter_by(database_id=database1.id)
+        .count()
+        == 0
+    )
+
 
 def test_compile_sqla_query_no_optimization(query: Select) -> None:
     """
