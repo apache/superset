@@ -2443,6 +2443,29 @@ ALERT_REPORTS_WORKING_TIME_OUT_LAG = int(timedelta(seconds=10).total_seconds())
 ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG = int(timedelta(seconds=1).total_seconds())
 # Default values that user using when creating alert
 ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT = 3600
+# End-to-end wall-clock budget for a scheduled report execution. A single
+# monotonic deadline derived from this value is shared by browser setup,
+# readiness, capture/PDF generation, and notification delivery. Alerts retain
+# their per-schedule ``working_timeout`` behavior because query evaluation and
+# grace handling have different runtime characteristics.
+ALERT_REPORTS_EXECUTION_BUDGET_SECONDS = int(timedelta(minutes=15).total_seconds())
+# Capacity inside the execution budget reserved from chart-readiness polling
+# for image capture/PDF construction, notification delivery, and the terminal
+# execution-log transition, respectively. Unused capacity flows to later phases.
+ALERT_REPORTS_EXECUTION_CAPTURE_RESERVE_SECONDS = int(
+    timedelta(minutes=1).total_seconds()
+)
+ALERT_REPORTS_EXECUTION_DELIVERY_RESERVE_SECONDS = int(
+    timedelta(minutes=2).total_seconds()
+)
+ALERT_REPORTS_EXECUTION_CLEANUP_RESERVE_SECONDS = int(
+    timedelta(seconds=30).total_seconds()
+)
+# Celery raises the soft timeout at the execution deadline. The hard timeout
+# leaves this additional window for the soft-timeout handler to persist ERROR.
+ALERT_REPORTS_EXECUTION_HARD_TIMEOUT_GRACE_SECONDS = int(
+    timedelta(seconds=30).total_seconds()
+)
 ALERT_REPORTS_DEFAULT_RETENTION = 90
 ALERT_REPORTS_DEFAULT_CRON_VALUE = "0 0 * * *"  # every day
 # If set to true no notification is sent, the worker will just log a message.

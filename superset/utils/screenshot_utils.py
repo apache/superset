@@ -25,6 +25,11 @@ from typing import TYPE_CHECKING
 from celery import current_task
 from PIL import Image
 
+from superset.utils.report_execution import (
+    ReportExecutionBudgetExceededError,
+    ReportExecutionContext,
+)
+
 logger = logging.getLogger(__name__)
 
 # Time to wait after scrolling for content to settle and load (in milliseconds)
@@ -37,6 +42,10 @@ SCROLL_SETTLE_TIMEOUT_MS = 1000
 # cache error transition, and the remaining report pipeline.
 SCREENSHOT_TASK_BUDGET_MARGIN_FRACTION = 0.2
 SCREENSHOT_TASK_BUDGET_MAX_MARGIN_SECONDS = 300
+
+
+class TiledScreenshotBudgetExceededError(TimeoutError):
+    """Raised when a tiled capture exhausts its shared screenshot budget."""
 
 
 def resolve_screenshot_task_budget_seconds(
@@ -189,7 +198,11 @@ FIND_CHART_HOLDER_STATES_JS = f"""
 """
 
 CHART_HOLDERS_READY_JS = (
-    f"() => {{ {UNREADY_CHART_HOLDERS_JS_BODY} return unready.length === 0; }}"
+    f"() => {{ {UNREADY_CHART_HOLDERS_JS_BODY} "
+    "return holders.length > 0 && unready.length === 0; }"
+)
+CHART_HOLDERS_MOUNTED_JS = (
+    f"() => document.querySelectorAll('{CHART_HOLDER_SELECTOR}').length > 0"
 )
 FIND_UNREADY_CHART_HOLDERS_JS = (
     f"() => {{ {UNREADY_CHART_HOLDERS_JS_BODY} return unready; }}"
@@ -251,13 +264,15 @@ def combine_screenshot_tiles(screenshot_tiles: list[bytes]) -> bytes:
         return screenshot_tiles[0]
 
 
-def take_tiled_screenshot(
+def take_tiled_screenshot(  # noqa: C901
     page: "Page",
     element_name: str,
     tile_height: int,
     load_wait: int = 60,
     animation_wait: int = 0,
     log_context: str | None = None,
+    report_execution_context: ReportExecutionContext | None = None,
+    url: str | None = None,
 ) -> bytes | None:
     """
     Take a tiled screenshot of a large dashboard by scrolling and capturing sections.
@@ -271,10 +286,15 @@ def take_tiled_screenshot(
         log_context: Optional identifier (e.g. report execution id, or a
             cache key for thumbnails) appended to log lines so a slow/timed-out
             capture can be traced back to the run that produced it.
+        report_execution_context: Shared report identifiers, phase reserves,
+            and end-to-end deadline. Thumbnail callers leave this unset.
+        url: Dashboard URL included in structured capture logs.
 
     Returns:
         Combined screenshot bytes or None if failed
     """
+    if report_execution_context:
+        log_context = report_execution_context.log_context
     context_suffix = f" [{log_context}]" if log_context else ""
     # Set right before re-raising the per-tile readiness timeout below, and
     # checked in the except block at the bottom of this function. Deciding
@@ -286,10 +306,99 @@ def take_tiled_screenshot(
     # match `except PlaywrightTimeout` and incorrectly propagate instead of
     # degrading to `None` like every other unexpected error in this function.
     readiness_timeout = False
+    screenshot_started_at = time.monotonic()
+    task_budget = (
+        None
+        if report_execution_context
+        else resolve_screenshot_task_budget_seconds(log_context)
+    )
+
+    def _deadline_values() -> tuple[float, float | None]:
+        if report_execution_context:
+            deadline = report_execution_context.deadline
+            return deadline.elapsed_seconds, deadline.remaining_seconds
+        elapsed = max(0.0, time.monotonic() - screenshot_started_at)
+        remaining = task_budget - elapsed if task_budget is not None else None
+        return elapsed, remaining
+
+    def _timeout_seconds(
+        phase: str,
+        *,
+        requested_seconds: float | None = None,
+        reserve_seconds: float = 0.0,
+    ) -> float:
+        if report_execution_context:
+            return report_execution_context.deadline.timeout_seconds(
+                phase,
+                requested_seconds=requested_seconds,
+                reserve_seconds=reserve_seconds,
+            )
+        elapsed, remaining = _deadline_values()
+        if remaining is not None and remaining <= 0:
+            raise TiledScreenshotBudgetExceededError(
+                f"Tiled screenshot budget of {task_budget:.2f}s exhausted "
+                f"before {phase} after {elapsed:.2f}s"
+            )
+        if remaining is None:
+            return float(requested_seconds or load_wait)
+        if requested_seconds is None or requested_seconds <= 0:
+            return remaining
+        return min(float(requested_seconds), remaining)
+
     try:
         # Get the target element
         element = page.locator(f".{element_name}")
-        element.wait_for(timeout=30000)  # 30 second timeout
+        element.wait_for(
+            timeout=_timeout_seconds(
+                "dashboard_mount",
+                requested_seconds=30,
+                reserve_seconds=(
+                    report_execution_context.readiness_reserve_seconds
+                    if report_execution_context
+                    else 0.0
+                ),
+            )
+            * 1000
+        )
+
+        mount_wait = _timeout_seconds(
+            "chart_holder_mount",
+            requested_seconds=None if report_execution_context else load_wait,
+            reserve_seconds=(
+                report_execution_context.readiness_reserve_seconds
+                if report_execution_context
+                else 0.0
+            ),
+        )
+        try:
+            page.wait_for_function(
+                CHART_HOLDERS_MOUNTED_JS,
+                timeout=mount_wait * 1000,
+            )
+        except PlaywrightTimeout:
+            holder_states = page.evaluate(FIND_CHART_HOLDER_STATES_JS)
+            elapsed, remaining = _deadline_values()
+            logger.warning(
+                "report_readiness_terminal url=%s expected_holders=%s "
+                "mounted_holders=%s ready_holders=0 elapsed_seconds=%.2f "
+                "remaining_seconds=%s effective_wait_seconds=%.2f%s "
+                "terminal_reason=zero_holders_timeout states=%s; "
+                "aborting before dimensions, capture, or delivery",
+                url,
+                (
+                    report_execution_context.expected_chart_count
+                    if report_execution_context
+                    else None
+                ),
+                len(holder_states),
+                elapsed,
+                f"{remaining:.2f}" if remaining is not None else None,
+                mount_wait,
+                context_suffix,
+                holder_states,
+            )
+            readiness_timeout = True
+            raise
 
         # Get dashboard dimensions and position
         element_info = page.evaluate(f"""() => {{
@@ -339,42 +448,70 @@ def take_tiled_screenshot(
             # mounted anything yet does not satisfy this check -- unlike checking
             # for the absence of `.loading`, which passes vacuously in that case.
             tile_wait_start = time.monotonic()
+            tile_load_wait = _timeout_seconds(
+                "chart_readiness",
+                requested_seconds=None if report_execution_context else load_wait,
+                reserve_seconds=(
+                    report_execution_context.readiness_reserve_seconds
+                    if report_execution_context
+                    else 0.0
+                ),
+            )
             try:
                 page.wait_for_function(
                     CHART_HOLDERS_READY_JS,
-                    timeout=load_wait * 1000,
+                    timeout=tile_load_wait * 1000,
                 )
             except PlaywrightTimeout:
-                elapsed = time.monotonic() - tile_wait_start
+                tile_elapsed = time.monotonic() - tile_wait_start
                 unready_chart_holders = page.evaluate(FIND_UNREADY_CHART_HOLDERS_JS)
+                holder_states = page.evaluate(FIND_CHART_HOLDER_STATES_JS)
+                ready_states = {"rendered", "empty", "error", "virtualized"}
+                ready_holders = sum(
+                    holder.get("state") in ready_states for holder in holder_states
+                )
+                elapsed, remaining = _deadline_values()
                 # A chart failing to load in time is a customer chart-loading
                 # issue (slow query, error state, etc.), not a Superset system
                 # fault, so this stays at WARNING -- the report still fails
                 # loudly via the `raise` below. See #38130 / #38441, which
                 # made the same call for the other screenshot timeout paths.
                 logger.warning(
-                    "Timed out after %.2fs waiting for %s chart container(s) to "
-                    "become ready on tile %s/%s (load_wait=%ss)%s; unready chart "
-                    "holders (chart id, state): %s. Aborting tiled screenshot "
-                    "rather than capturing a blank or partially-loaded tile.",
-                    elapsed,
-                    len(unready_chart_holders),
+                    "report_readiness_terminal url=%s expected_holders=%s "
+                    "mounted_holders=%s ready_holders=%s tile=%s/%s "
+                    "tile_elapsed_seconds=%.2f elapsed_seconds=%.2f "
+                    "remaining_seconds=%s effective_wait_seconds=%.2f%s "
+                    "terminal_reason=readiness_timeout unready_holders=%s "
+                    "states=%s; aborting before capture or delivery",
+                    url,
+                    (
+                        report_execution_context.expected_chart_count
+                        if report_execution_context
+                        else None
+                    ),
+                    len(holder_states),
+                    ready_holders,
                     i + 1,
                     num_tiles,
-                    load_wait,
+                    tile_elapsed,
+                    elapsed,
+                    f"{remaining:.2f}" if remaining is not None else None,
+                    tile_load_wait,
                     context_suffix,
                     unready_chart_holders,
+                    holder_states,
                 )
                 readiness_timeout = True
                 raise
             else:
-                elapsed = time.monotonic() - tile_wait_start
+                tile_elapsed = time.monotonic() - tile_wait_start
                 logger.debug(
-                    "Tile %s/%s chart holders ready after %.2fs (load_wait=%ss)%s",
+                    "Tile %s/%s chart holders ready after %.2fs "
+                    "(effective_wait=%.2fs)%s",
                     i + 1,
                     num_tiles,
-                    elapsed,
-                    load_wait,
+                    tile_elapsed,
+                    tile_load_wait,
                     context_suffix,
                 )
 
@@ -382,7 +519,22 @@ def take_tiled_screenshot(
             # The global animation wait before tiling only covers the first tile;
             # subsequent tiles need their own wait after data loads.
             if animation_wait > 0:
-                page.wait_for_timeout(animation_wait * 1000)
+                tile_animation_wait = float(animation_wait)
+                if report_execution_context:
+                    try:
+                        tile_animation_wait = min(
+                            animation_wait,
+                            _timeout_seconds(
+                                "chart_animation",
+                                reserve_seconds=(
+                                    report_execution_context.readiness_reserve_seconds
+                                ),
+                            ),
+                        )
+                    except ReportExecutionBudgetExceededError:
+                        tile_animation_wait = 0
+                if tile_animation_wait > 0:
+                    page.wait_for_timeout(tile_animation_wait * 1000)
 
             # Calculate what portion of the element we want to capture for this tile
             tile_start_in_element = i * tile_height
@@ -420,17 +572,69 @@ def take_tiled_screenshot(
             }
 
             # Take screenshot with clipping to capture only this tile's content
-            tile_screenshot = page.screenshot(type="png", clip=clip)
+            capture_timeout = (
+                _timeout_seconds(
+                    "screenshot_capture",
+                    reserve_seconds=(
+                        report_execution_context.post_capture_reserve_seconds
+                        if report_execution_context
+                        else 0.0
+                    ),
+                )
+                if report_execution_context or task_budget is not None
+                else None
+            )
+            tile_screenshot = page.screenshot(
+                type="png",
+                clip=clip,
+                **(
+                    {"timeout": capture_timeout * 1000}
+                    if capture_timeout is not None
+                    else {}
+                ),
+            )
             screenshot_tiles.append(tile_screenshot)
 
             logger.debug("Captured tile %s/%s with clip %s", i + 1, num_tiles, clip)
 
         # Combine all tiles
+        holder_states = page.evaluate(FIND_CHART_HOLDER_STATES_JS)
+        if not isinstance(holder_states, list):
+            holder_states = []
+        ready_states = {"rendered", "empty", "error", "virtualized"}
+        elapsed, remaining = _deadline_values()
+        logger.info(
+            "report_readiness_ready url=%s expected_holders=%s mounted_holders=%s "
+            "ready_holders=%s elapsed_seconds=%.2f remaining_seconds=%s%s",
+            url,
+            (
+                report_execution_context.expected_chart_count
+                if report_execution_context
+                else None
+            ),
+            len(holder_states),
+            sum(holder.get("state") in ready_states for holder in holder_states),
+            elapsed,
+            f"{remaining:.2f}" if remaining is not None else None,
+            context_suffix,
+        )
         logger.info("Combining screenshot tiles...")
         combined_screenshot = combine_screenshot_tiles(screenshot_tiles)
 
         return combined_screenshot
 
+    except (ReportExecutionBudgetExceededError, TiledScreenshotBudgetExceededError):
+        elapsed, remaining = _deadline_values()
+        logger.warning(
+            "report_capture_terminal url=%s elapsed_seconds=%.2f "
+            "remaining_seconds=%s%s terminal_reason=budget_exhausted; "
+            "aborting before unchecked capture or delivery",
+            url,
+            elapsed,
+            f"{remaining:.2f}" if remaining is not None else None,
+            context_suffix,
+        )
+        raise
     except Exception as e:
         if readiness_timeout:
             # Let the per-tile readiness timeout propagate so the caller

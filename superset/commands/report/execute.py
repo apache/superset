@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import time
 import urllib.parse
 import urllib.request
 from collections.abc import Sequence
@@ -89,6 +90,10 @@ from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
 from superset.utils.decorators import logs_context, transaction
 from superset.utils.file import sanitize_title
 from superset.utils.pdf import build_pdf_from_screenshots
+from superset.utils.report_execution import (
+    ReportExecutionContext,
+    ReportExecutionDeadline,
+)
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.slack import get_channels_with_search, SlackChannelTypes
 from superset.utils.urls import get_url_path
@@ -123,6 +128,70 @@ def resolve_executor_user(model: ReportSchedule) -> tuple["User", str]:
     return user, username
 
 
+def mark_report_execution_terminal_error(
+    report_schedule_id: int,
+    execution_id: UUID,
+    terminal_reason: str,
+) -> bool:
+    """Idempotently terminate the WORKING row owned by a failed Celery task."""
+
+    try:
+        working_log = (
+            db.session.query(ReportExecutionLog)
+            .filter(
+                ReportExecutionLog.report_schedule_id == report_schedule_id,
+                ReportExecutionLog.uuid == execution_id,
+                ReportExecutionLog.state == ReportState.WORKING,
+                ReportExecutionLog.error_message.is_(None),
+            )
+            .first()
+        )
+        if working_log is None:
+            return False
+
+        latest_working_log = (
+            db.session.query(ReportExecutionLog)
+            .filter(
+                ReportExecutionLog.report_schedule_id == report_schedule_id,
+                ReportExecutionLog.state == ReportState.WORKING,
+                ReportExecutionLog.error_message.is_(None),
+            )
+            .order_by(ReportExecutionLog.end_dttm.desc())
+            .first()
+        )
+        report_schedule = working_log.report_schedule
+        owns_schedule_state = (
+            report_schedule.last_state == ReportState.WORKING
+            and latest_working_log is not None
+            and latest_working_log.uuid == execution_id
+        )
+        ended_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        working_log.state = ReportState.ERROR
+        working_log.error_message = terminal_reason
+        working_log.end_dttm = ended_at
+        if owns_schedule_state:
+            report_schedule.last_state = ReportState.ERROR
+            report_schedule.last_eval_dttm = ended_at
+
+        db.session.commit()  # pylint: disable=consider-using-transaction
+        logger.warning(
+            "report_execution_terminal capture_kind=report execution_id=%s "
+            "report_schedule_id=%s "
+            "dashboard_id=%s chart_id=%s state=%s terminal_reason=%s "
+            "elapsed_seconds=unknown remaining_seconds=unknown",
+            execution_id,
+            report_schedule_id,
+            report_schedule.dashboard_id,
+            report_schedule.chart_id,
+            ReportState.ERROR.value,
+            terminal_reason,
+        )
+        return True
+    except Exception:
+        db.session.rollback()  # pylint: disable=consider-using-transaction
+        raise
+
+
 class BaseReportState:
     current_states: list[ReportState] = []
     initial: bool = False
@@ -133,12 +202,41 @@ class BaseReportState:
         report_schedule: ReportSchedule,
         scheduled_dttm: datetime,
         execution_id: UUID,
+        report_execution_context: ReportExecutionContext | None = None,
     ) -> None:
         self._report_schedule = report_schedule
         self._scheduled_dttm = scheduled_dttm
         self._start_dttm: datetime = datetime.now(timezone.utc).replace(tzinfo=None)
         self._execution_id = execution_id
+        self._report_execution_context = report_execution_context
         self._filter_warnings: list[str] = []
+
+    @property
+    def _log_context(self) -> str:
+        if self._report_execution_context:
+            return self._report_execution_context.log_context
+        return f"execution_id={self._execution_id}"
+
+    def _budget_values(self) -> tuple[float | None, float | None]:
+        if not self._report_execution_context:
+            return None, None
+        deadline = self._report_execution_context.deadline
+        return deadline.elapsed_seconds, deadline.remaining_seconds
+
+    def _phase_timeout(
+        self,
+        phase: str,
+        *,
+        requested_seconds: float | None = None,
+        reserve_seconds: float = 0.0,
+    ) -> float | None:
+        if not self._report_execution_context:
+            return requested_seconds
+        return self._report_execution_context.deadline.timeout_seconds(
+            phase,
+            requested_seconds=requested_seconds,
+            reserve_seconds=reserve_seconds,
+        )
 
     def update_report_schedule_and_log(
         self,
@@ -151,6 +249,17 @@ class BaseReportState:
         """
         self.update_report_schedule(state)
         self.create_log(error_message)
+        if state != ReportState.WORKING:
+            elapsed, remaining = self._budget_values()
+            logger.info(
+                "report_execution_terminal %s state=%s terminal_reason=%s "
+                "elapsed_seconds=%s remaining_seconds=%s",
+                self._log_context,
+                state.value,
+                error_message or state.value,
+                f"{elapsed:.2f}" if elapsed is not None else None,
+                f"{remaining:.2f}" if remaining is not None else None,
+            )
 
     def update_report_schedule(self, state: ReportState) -> None:
         """
@@ -592,7 +701,9 @@ class BaseReportState:
             imges = []
             for screenshot in screenshots:
                 imge = screenshot.get_screenshot(
-                    user=user, log_context=f"execution_id={self._execution_id}"
+                    user=user,
+                    log_context=self._log_context,
+                    report_execution_context=self._report_execution_context,
                 )
                 if imge is None:
                     raise ReportScheduleScreenshotFailedError(
@@ -603,18 +714,31 @@ class BaseReportState:
                 datetime.now(timezone.utc).replace(tzinfo=None) - start_time
             ).total_seconds()
             logger.info(
-                "Screenshot capture took %.2fs - execution_id: %s",
+                "report_capture_complete %s elapsed_seconds=%.2f "
+                "remaining_seconds=%s screenshot_count=%s",
+                self._log_context,
                 elapsed_seconds,
-                self._execution_id,
+                (
+                    f"{self._report_execution_context.deadline.remaining_seconds:.2f}"
+                    if self._report_execution_context
+                    else None
+                ),
+                len(imges),
             )
         except SoftTimeLimitExceeded as ex:
             elapsed_seconds = (
                 datetime.now(timezone.utc).replace(tzinfo=None) - start_time
             ).total_seconds()
             logger.warning(
-                "Screenshot timeout after %.2fs - execution_id: %s",
+                "report_capture_terminal %s elapsed_seconds=%.2f "
+                "remaining_seconds=%s terminal_reason=celery_soft_timeout",
+                self._log_context,
                 elapsed_seconds,
-                self._execution_id,
+                (
+                    f"{self._report_execution_context.deadline.remaining_seconds:.2f}"
+                    if self._report_execution_context
+                    else None
+                ),
             )
             raise ReportScheduleScreenshotTimeout() from ex
         except Exception as ex:
@@ -622,9 +746,16 @@ class BaseReportState:
                 datetime.now(timezone.utc).replace(tzinfo=None) - start_time
             ).total_seconds()
             logger.error(
-                "Screenshot failed after %.2fs - execution_id: %s",
+                "report_capture_terminal %s elapsed_seconds=%.2f "
+                "remaining_seconds=%s terminal_reason=%s",
+                self._log_context,
                 elapsed_seconds,
-                self._execution_id,
+                (
+                    f"{self._report_execution_context.deadline.remaining_seconds:.2f}"
+                    if self._report_execution_context
+                    else None
+                ),
+                type(ex).__name__,
             )
             raise ReportScheduleScreenshotFailedError(
                 f"Failed taking a screenshot {str(ex)}"
@@ -639,7 +770,20 @@ class BaseReportState:
         :raises: ReportSchedulePdfFailedError
         """
         screenshots = self._get_screenshots()
+        reserve_seconds = (
+            self._report_execution_context.post_capture_reserve_seconds
+            if self._report_execution_context
+            else 0.0
+        )
+        self._phase_timeout(
+            "pdf_generation",
+            reserve_seconds=reserve_seconds,
+        )
         pdf = build_pdf_from_screenshots(screenshots)
+        self._phase_timeout(
+            "pdf_generation",
+            reserve_seconds=reserve_seconds,
+        )
 
         return pdf
 
@@ -789,7 +933,17 @@ class BaseReportState:
                 data = get_chart_csv_data(
                     chart_url=url,
                     auth_cookies=auth_cookies,
-                    timeout=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
+                    timeout=self._phase_timeout(
+                        "data_generation",
+                        requested_seconds=app.config[
+                            "ALERT_REPORTS_CSV_REQUEST_TIMEOUT"
+                        ],
+                        reserve_seconds=(
+                            self._report_execution_context.post_capture_reserve_seconds
+                            if self._report_execution_context
+                            else 0.0
+                        ),
+                    ),
                 )
             else:
                 request_payload = self._get_chart_data_request_payload(result_format)
@@ -798,7 +952,17 @@ class BaseReportState:
                     chart_url=url,
                     auth_cookies=auth_cookies,
                     request_payload=request_payload,
-                    timeout=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
+                    timeout=self._phase_timeout(
+                        "data_generation",
+                        requested_seconds=app.config[
+                            "ALERT_REPORTS_CSV_REQUEST_TIMEOUT"
+                        ],
+                        reserve_seconds=(
+                            self._report_execution_context.post_capture_reserve_seconds
+                            if self._report_execution_context
+                            else 0.0
+                        ),
+                    ),
                 )
             elapsed_seconds: float = (
                 datetime.now(timezone.utc).replace(tzinfo=None) - start_time
@@ -855,7 +1019,15 @@ class BaseReportState:
             dataframe = get_chart_dataframe(
                 url,
                 auth_cookies,
-                timeout=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
+                timeout=self._phase_timeout(
+                    "dataframe_generation",
+                    requested_seconds=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
+                    reserve_seconds=(
+                        self._report_execution_context.post_capture_reserve_seconds
+                        if self._report_execution_context
+                        else 0.0
+                    ),
+                ),
             )
             elapsed_seconds: float = (
                 datetime.now(timezone.utc).replace(tzinfo=None) - start_time
@@ -1052,6 +1224,24 @@ class BaseReportState:
             notification = create_notification(recipient, notification_content)
             try:
                 try:
+                    cleanup_reserve = (
+                        self._report_execution_context.cleanup_reserve_seconds
+                        if self._report_execution_context
+                        else 0.0
+                    )
+                    self._phase_timeout(
+                        "notification_delivery",
+                        reserve_seconds=cleanup_reserve,
+                    )
+                    elapsed, remaining = self._budget_values()
+                    logger.info(
+                        "report_delivery_start %s recipient_type=%s "
+                        "elapsed_seconds=%s remaining_seconds=%s",
+                        self._log_context,
+                        recipient.type,
+                        f"{elapsed:.2f}" if elapsed is not None else None,
+                        f"{remaining:.2f}" if remaining is not None else None,
+                    )
                     if app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"]:
                         logger.info(
                             "Would send notification for alert %s, to %s. "
@@ -1062,6 +1252,15 @@ class BaseReportState:
                         )
                     else:
                         notification.send()
+                    elapsed, remaining = self._budget_values()
+                    logger.info(
+                        "report_delivery_complete %s recipient_type=%s "
+                        "elapsed_seconds=%s remaining_seconds=%s",
+                        self._log_context,
+                        recipient.type,
+                        f"{elapsed:.2f}" if elapsed is not None else None,
+                        f"{remaining:.2f}" if remaining is not None else None,
+                    )
                 except SlackV1NotificationError as ex:
                     # The slack notification should be sent with the v2 api
                     logger.info(
@@ -1070,6 +1269,14 @@ class BaseReportState:
                     self.update_report_schedule_slack_v2()
                     recipient.type = ReportRecipientType.SLACKV2
                     notification = create_notification(recipient, notification_content)
+                    self._phase_timeout(
+                        "notification_delivery",
+                        reserve_seconds=(
+                            self._report_execution_context.cleanup_reserve_seconds
+                            if self._report_execution_context
+                            else 0.0
+                        ),
+                    )
                     notification.send()
             except (
                 UpdateFailedError,
@@ -1174,11 +1381,19 @@ class BaseReportState:
         )
         if not last_working:
             return False
+        working_timeout = self._report_schedule.working_timeout
+        if self._report_schedule.type == ReportScheduleType.REPORT:
+            execution_budget = app.config["ALERT_REPORTS_EXECUTION_BUDGET_SECONDS"]
+            working_timeout = (
+                min(working_timeout, execution_budget)
+                if working_timeout is not None
+                else execution_budget
+            )
         return (
-            self._report_schedule.working_timeout is not None
+            working_timeout is not None
             and self._report_schedule.last_eval_dttm is not None
             and datetime.now(timezone.utc).replace(tzinfo=None)
-            - timedelta(seconds=self._report_schedule.working_timeout)
+            - timedelta(seconds=working_timeout)
             > last_working.end_dttm
         )
 
@@ -1219,6 +1434,15 @@ class ReportNotTriggeredErrorState(BaseReportState):
             self.update_report_schedule_and_log(
                 ReportState.SUCCESS, error_message=warning_message
             )
+        except SoftTimeLimitExceeded:
+            # Persist the terminal state inside the cleanup grace period rather
+            # than spending it on an error notification. The task-level handler
+            # is a second, idempotent safety net for failures outside this state.
+            self.update_report_schedule_and_log(
+                ReportState.ERROR,
+                error_message="celery_soft_timeout",
+            )
+            raise
         except (SupersetErrorsException, Exception) as first_ex:
             error_message = str(first_ex)
             if isinstance(first_ex, SupersetErrorsException):
@@ -1306,10 +1530,36 @@ class ReportWorkingState(BaseReportState):
                 self._execution_id,
             )
             exception_timeout = ReportScheduleWorkingTimeoutError()
-            self.update_report_schedule_and_log(
-                ReportState.ERROR,
-                error_message=str(exception_timeout),
-            )
+            stale_execution_id = last_working.uuid if last_working else None
+            if stale_execution_id is not None:
+                mark_report_execution_terminal_error(
+                    self._report_schedule.id,
+                    stale_execution_id,
+                    "working_timeout_recovery",
+                )
+            if (
+                self._report_schedule.type == ReportScheduleType.REPORT
+                and stale_execution_id != self._execution_id
+            ):
+                logger.info(
+                    "report_execution_recovered %s stale_execution_id=%s "
+                    "terminal_reason=working_timeout_recovery; "
+                    "proceeding with new scheduled execution",
+                    self._log_context,
+                    stale_execution_id,
+                )
+                ReportNotTriggeredErrorState(
+                    self._report_schedule,
+                    self._scheduled_dttm,
+                    self._execution_id,
+                    self._report_execution_context,
+                ).next()
+                return
+            if stale_execution_id != self._execution_id:
+                self.update_report_schedule_and_log(
+                    ReportState.ERROR,
+                    error_message=str(exception_timeout),
+                )
             raise exception_timeout
         logger.warning(
             "Report still in working state, refusing to re-compute - execution_id: %s",
@@ -1437,10 +1687,12 @@ class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
         task_uuid: UUID,
         report_schedule: ReportSchedule,
         scheduled_dttm: datetime,
+        report_execution_context: ReportExecutionContext | None = None,
     ):
         self._execution_id = task_uuid
         self._report_schedule = report_schedule
         self._scheduled_dttm = scheduled_dttm
+        self._report_execution_context = report_execution_context
 
     @transaction()
     def run(self) -> None:
@@ -1452,6 +1704,7 @@ class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
                     self._report_schedule,
                     self._scheduled_dttm,
                     self._execution_id,
+                    self._report_execution_context,
                 ).next()
                 break
         else:
@@ -1472,10 +1725,52 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
         self._execution_id = UUID(task_id)
 
     def run(self) -> None:
+        monotonic_started_at = time.monotonic()
         try:
             self.validate()
             if not self._model:
                 raise ReportScheduleExecuteUnexpectedError()
+
+            report_execution_context = None
+            if self._model.type == ReportScheduleType.REPORT:
+                total_seconds = float(
+                    app.config["ALERT_REPORTS_EXECUTION_BUDGET_SECONDS"]
+                )
+                deadline = ReportExecutionDeadline(
+                    total_seconds=total_seconds,
+                    started_at=monotonic_started_at,
+                )
+                dashboard = self._model.dashboard
+                expected_chart_count = (
+                    len(dashboard.slices)
+                    if dashboard is not None and dashboard.slices is not None
+                    else (1 if self._model.chart_id is not None else None)
+                )
+                report_execution_context = ReportExecutionContext(
+                    execution_id=self._execution_id,
+                    report_schedule_id=self._model.id,
+                    dashboard_id=self._model.dashboard_id,
+                    chart_id=self._model.chart_id,
+                    expected_chart_count=expected_chart_count,
+                    deadline=deadline,
+                    capture_reserve_seconds=float(
+                        app.config["ALERT_REPORTS_EXECUTION_CAPTURE_RESERVE_SECONDS"]
+                    ),
+                    delivery_reserve_seconds=float(
+                        app.config["ALERT_REPORTS_EXECUTION_DELIVERY_RESERVE_SECONDS"]
+                    ),
+                    cleanup_reserve_seconds=float(
+                        app.config["ALERT_REPORTS_EXECUTION_CLEANUP_RESERVE_SECONDS"]
+                    ),
+                )
+                logger.info(
+                    "report_execution_start %s total_budget_seconds=%.2f "
+                    "elapsed_seconds=%.2f remaining_seconds=%.2f",
+                    report_execution_context.log_context,
+                    deadline.total_seconds,
+                    deadline.elapsed_seconds,
+                    deadline.remaining_seconds,
+                )
 
             # Resolve the executor at the run() boundary, tolerating a missing
             # user (find_user -> None) so the state machine still runs and its
@@ -1507,10 +1802,16 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 # already-committed row without a second INSERT.
                 if self._model.dashboard_id:
                     BaseReportState(
-                        self._model, self._scheduled_dttm, self._execution_id
+                        self._model,
+                        self._scheduled_dttm,
+                        self._execution_id,
+                        report_execution_context,
                     ).get_dashboard_urls()
                 ReportScheduleStateMachine(
-                    self._execution_id, self._model, self._scheduled_dttm
+                    self._execution_id,
+                    self._model,
+                    self._scheduled_dttm,
+                    report_execution_context,
                 ).run()
 
             elapsed_seconds: float = (
@@ -1522,7 +1823,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 elapsed_seconds,
                 self._execution_id,
             )
-        except CommandException:
+        except (CommandException, SoftTimeLimitExceeded):
             raise
         except Exception as ex:
             raise ReportScheduleUnexpectedError(str(ex)) from ex

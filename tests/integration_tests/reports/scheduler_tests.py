@@ -17,6 +17,7 @@
 
 from random import randint
 from unittest.mock import MagicMock, patch
+from uuid import UUID
 
 import pytest
 from freezegun import freeze_time
@@ -104,6 +105,25 @@ def test_scheduler_celery_timeout_utc(execute_mock, editors):
         scheduler()
         assert execute_mock.call_args[1]["soft_time_limit"] == 3601
         assert execute_mock.call_args[1]["time_limit"] == 3610
+    db.session.delete(report_schedule)
+    db.session.commit()
+
+
+@pytest.mark.usefixtures("app_context")
+@patch("superset.tasks.scheduler.execute.apply_async")
+def test_scheduler_report_timeout_uses_end_to_end_budget(execute_mock, editors):
+    report_schedule = insert_report_schedule(
+        type=ReportScheduleType.REPORT,
+        name="dashboard report",
+        crontab="0 9 * * *",
+        timezone="UTC",
+        editors=editors,
+    )
+
+    with freeze_time("2020-01-01T09:00:00Z"):
+        scheduler()
+        assert execute_mock.call_args[1]["soft_time_limit"] == 900
+        assert execute_mock.call_args[1]["time_limit"] == 930
     db.session.delete(report_schedule)
     db.session.commit()
 
@@ -251,4 +271,28 @@ def test_log_task_failure_without_sender(logger_mock):
 
     logger_mock.exception.assert_called_once_with(
         "Celery task %s failed: %s", "Unknown", mock_exception, exc_info=mock_einfo
+    )
+
+
+@patch("superset.tasks.scheduler.mark_report_execution_terminal_error")
+@patch("superset.tasks.scheduler.logger")
+def test_log_task_failure_cleans_up_report_working_state(
+    logger_mock,
+    cleanup_mock,
+):
+    task = MagicMock()
+    task.name = "reports.execute"
+    execution_id = "084e7ee6-5557-4ecd-9632-b7f39c9ec524"
+
+    log_task_failure(
+        sender=task,
+        task_id=execution_id,
+        exception=RuntimeError("worker lost"),
+        args=(11,),
+    )
+
+    cleanup_mock.assert_called_once_with(
+        11,
+        UUID(execution_id),
+        "celery_task_failure:RuntimeError",
     )

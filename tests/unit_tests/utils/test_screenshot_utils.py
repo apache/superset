@@ -194,6 +194,69 @@ class TestTakeTiledScreenshot:
             # Should have called combine function
             mock_combine.assert_called_once()
 
+    def test_slow_holder_mount_is_polled_before_dimensions_and_capture(
+        self,
+        mock_page,
+    ):
+        """Tiling waits for React to mount a holder before measuring the dashboard."""
+        events: list[str] = []
+        element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
+        wait_calls = 0
+
+        def wait_for_function(*args, **kwargs):
+            nonlocal wait_calls
+            events.append("mount" if wait_calls == 0 else "ready")
+            wait_calls += 1
+
+        def evaluate(script):
+            if "scrollWidth" in script:
+                events.append("dimensions")
+                return element_info
+            if "window.scrollTo" in script:
+                return None
+            return [{"chartId": "7", "state": "rendered"}]
+
+        def screenshot(**kwargs):
+            events.append("capture")
+            return b"tile"
+
+        mock_page.wait_for_function.side_effect = wait_for_function
+        mock_page.evaluate.side_effect = evaluate
+        mock_page.screenshot.side_effect = screenshot
+
+        with patch(
+            "superset.utils.screenshot_utils.combine_screenshot_tiles",
+            return_value=b"combined",
+        ):
+            result = take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=2000,
+                load_wait=30,
+            )
+
+        assert result == b"combined"
+        assert events == ["mount", "dimensions", "ready", "capture"]
+
+    def test_zero_holders_timeout_before_dimensions_or_capture(self, mock_page):
+        """An empty DOM cannot vacuously pass the tiled readiness gate."""
+        from superset.utils.screenshot_utils import PlaywrightTimeout
+
+        mock_page.wait_for_function.side_effect = PlaywrightTimeout("zero holders")
+        mock_page.evaluate.return_value = []
+
+        with pytest.raises(PlaywrightTimeout):
+            take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=2000,
+                load_wait=30,
+            )
+
+        assert mock_page.evaluate.call_count == 1
+        assert "state: 'rendered'" in mock_page.evaluate.call_args.args[0]
+        mock_page.screenshot.assert_not_called()
+
     def test_element_not_found_returns_none(self):
         """Test that missing element returns None."""
         mock_page = MagicMock()
@@ -362,8 +425,8 @@ class TestTakeTiledScreenshot:
             # First call is for dimensions, subsequent are for scrolling
             evaluate_calls = mock_page.evaluate.call_args_list
 
-            # Should have 1 dimension query + 3 scroll calls
-            assert len(evaluate_calls) == 4
+            # 1 dimension query + 3 scroll calls + final holder diagnostics
+            assert len(evaluate_calls) == 5
 
             # First call is for dimensions (contains querySelector)
             assert "querySelector" in str(evaluate_calls[0])
@@ -397,11 +460,14 @@ class TestTakeTiledScreenshot:
                 mock_page, "dashboard", tile_height=2000, load_wait=30
             )
 
-        # 3 tiles → 3 wait_for_function calls, one per tile
-        assert mock_page.wait_for_function.call_count == 3
+        # One initial holder-mount gate, then one readiness poll per tile.
+        assert mock_page.wait_for_function.call_count == 4
 
         # Each call uses viewport-scoped JS and the load_wait timeout
-        for call in mock_page.wait_for_function.call_args_list:
+        mount_call, *tile_calls = mock_page.wait_for_function.call_args_list
+        assert "length > 0" in mount_call.args[0]
+        assert mount_call.kwargs["timeout"] == 30 * 1000
+        for call in tile_calls:
             js = call[0][0]
             assert "getBoundingClientRect" in js
             assert "window.innerHeight" in js
@@ -418,11 +484,12 @@ class TestTakeTiledScreenshot:
         from superset.utils.screenshot_utils import PlaywrightTimeout
 
         timeout = PlaywrightTimeout("Timeout waiting for chart holders")
-        mock_page.wait_for_function.side_effect = timeout
+        mock_page.wait_for_function.side_effect = [None, timeout]
         mock_page.evaluate.side_effect = [
             {"height": 5000, "top": 100, "left": 50, "width": 800},  # dimensions
             None,  # window.scrollTo(...) for tile 1
-            [{"chartId": "42", "state": "waiting_on_database"}],  # diagnostics
+            [{"chartId": "42", "state": "waiting_on_database"}],  # unready
+            [{"chartId": "42", "state": "waiting_on_database"}],  # all states
         ]
 
         with patch("superset.utils.screenshot_utils.logger") as mock_logger:
@@ -436,9 +503,8 @@ class TestTakeTiledScreenshot:
         # a blank or partially-loaded tile.
         mock_page.screenshot.assert_not_called()
 
-        # Only the first tile's wait_for_function is attempted (the timeout
-        # aborts before any subsequent tile is processed).
-        assert mock_page.wait_for_function.call_count == 1
+        # The mount gate passes and only the first tile readiness poll runs.
+        assert mock_page.wait_for_function.call_count == 2
 
         # A chart failing to load in time is a customer chart-loading issue,
         # not a Superset system fault -- WARNING, not ERROR (#38130, #38441).
@@ -447,28 +513,32 @@ class TestTakeTiledScreenshot:
         mock_logger.warning.assert_called_once()
         warning_args = mock_logger.warning.call_args[0]
         assert "unready" in warning_args[0].lower()
-        elapsed = warning_args[1]
-        assert isinstance(elapsed, float)
-        assert elapsed >= 0
-        assert warning_args[2] == 1  # count of unready chart containers
-        assert warning_args[3] == 1  # tile index
-        assert warning_args[4] == 3  # total tiles
-        assert warning_args[5] == 30  # load_wait
-        assert warning_args[6] == ""  # no log_context passed
+        assert warning_args[3] == 1  # mounted holders
+        assert warning_args[4] == 0  # ready holders
+        assert warning_args[5] == 1  # tile index
+        assert warning_args[6] == 3  # total tiles
+        assert isinstance(warning_args[7], float)  # tile elapsed
+        assert isinstance(warning_args[8], float)  # total elapsed
+        assert warning_args[10] == 30  # effective wait
+        assert warning_args[11] == ""  # no log_context passed
         # Diagnostic payload identifies chart id AND the state it's stuck in
         # (spinner mounted vs nothing mounted vs waiting-on-database) so a
         # slow query can be told apart from the virtualization race.
-        assert warning_args[7] == [{"chartId": "42", "state": "waiting_on_database"}]
+        assert warning_args[12] == [{"chartId": "42", "state": "waiting_on_database"}]
 
     def test_timeout_warning_includes_log_context(self, mock_page):
         """The log context (e.g. report execution id) is threaded through for
         correlation with the run that triggered this screenshot."""
         from superset.utils.screenshot_utils import PlaywrightTimeout
 
-        mock_page.wait_for_function.side_effect = PlaywrightTimeout("timed out")
+        mock_page.wait_for_function.side_effect = [
+            None,
+            PlaywrightTimeout("timed out"),
+        ]
         mock_page.evaluate.side_effect = [
             {"height": 2000, "top": 0, "left": 0, "width": 800},
             None,
+            [{"chartId": "7", "state": "nothing_mounted"}],
             [{"chartId": "7", "state": "nothing_mounted"}],
         ]
 
@@ -484,7 +554,7 @@ class TestTakeTiledScreenshot:
                     )
 
         warning_args = mock_logger.warning.call_args[0]
-        assert warning_args[6] == " [execution_id=abc-123]"
+        assert warning_args[11] == " [execution_id=abc-123]"
 
     def test_chart_holder_with_nothing_mounted_blocks_wait(self, mock_page):
         """Regression test for the vacuous-pass race (PR #39895).
@@ -502,6 +572,8 @@ class TestTakeTiledScreenshot:
             # Simulate evaluating the predicate against a DOM with a chart
             # holder in viewport that has mounted nothing at all.
             assert "dashboard-component-chart-holder" in js
+            if "getBoundingClientRect" not in js:
+                return None
             raise PlaywrightTimeout("Timeout waiting for chart holders")
 
         mock_page.wait_for_function.side_effect = fake_wait_for_function
@@ -509,6 +581,7 @@ class TestTakeTiledScreenshot:
             {"height": 2000, "top": 0, "left": 0, "width": 800},  # dimensions
             None,  # window.scrollTo(...) for tile 1
             [{"chartId": "7", "state": "nothing_mounted"}],  # diagnostics
+            [{"chartId": "7", "state": "nothing_mounted"}],  # all states
         ]
 
         with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
@@ -517,7 +590,7 @@ class TestTakeTiledScreenshot:
                     mock_page, "dashboard", tile_height=2000, load_wait=5
                 )
 
-        assert js_call_count["n"] == 1
+        assert js_call_count["n"] == 2
         mock_page.screenshot.assert_not_called()
 
     def test_unready_holder_state_classification_embedded_in_js(self, mock_page):
@@ -543,6 +616,7 @@ class TestTakeTiledScreenshot:
                 '.dashboard-component-chart-holder[class*="dashboard-chart-id-"]'
             ) in js
             assert "holder.className.match(/\\bdashboard-chart-id-(\\d+)\\b/)" in js
+        assert "holders.length > 0" in CHART_HOLDERS_READY_JS
 
         assert "rendered" in FIND_CHART_HOLDER_STATES_JS
         assert "empty" in FIND_CHART_HOLDER_STATES_JS
@@ -608,7 +682,7 @@ class TestTakeTiledScreenshot:
 
         # mock_page.wait_for_function is a MagicMock by default and does not
         # raise, i.e. the readiness check passes immediately for every tile.
-        assert mock_page.wait_for_function.call_count == 3
+        assert mock_page.wait_for_function.call_count == 4
         assert mock_page.screenshot.call_count == 3
         assert result is not None
 

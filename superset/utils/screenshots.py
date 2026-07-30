@@ -33,6 +33,7 @@ from superset.exceptions import (
 )
 from superset.extensions import event_logger
 from superset.utils.hashing import hash_from_dict
+from superset.utils.report_execution import ReportExecutionContext
 from superset.utils.urls import modify_url_query
 from superset.utils.webdriver import (
     ChartStandaloneMode,
@@ -214,11 +215,16 @@ class BaseScreenshot:
         user: User,
         window_size: WindowSize | None = None,
         log_context: str | None = None,
+        report_execution_context: ReportExecutionContext | None = None,
     ) -> bytes | None:
         driver = self.driver(window_size, user)
         try:
             self.screenshot = driver.get_screenshot(
-                self.url, self.element, user, log_context=log_context
+                self.url,
+                self.element,
+                user,
+                log_context=log_context,
+                report_execution_context=report_execution_context,
             )
         finally:
             if isinstance(driver, WebDriverSelenium):

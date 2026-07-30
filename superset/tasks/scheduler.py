@@ -31,7 +31,10 @@ from superset import is_feature_enabled
 from superset.commands.exceptions import CommandException
 from superset.commands.logs.prune import LogPruneCommand
 from superset.commands.report.exceptions import ReportScheduleUnexpectedError
-from superset.commands.report.execute import AsyncExecuteReportScheduleCommand
+from superset.commands.report.execute import (
+    AsyncExecuteReportScheduleCommand,
+    mark_report_execution_terminal_error,
+)
 from superset.commands.report.log_prune import AsyncPruneReportScheduleLogCommand
 from superset.commands.sql_lab.query import QueryPruneCommand
 from superset.commands.tasks.prune import TaskPruneCommand
@@ -39,6 +42,7 @@ from superset.daos.report import ReportScheduleDAO
 from superset.daos.tasks import TaskDAO
 from superset.extensions import celery_app
 from superset.key_value.commands.prune import KeyValuePruneCommand
+from superset.reports.models import ReportScheduleType
 from superset.stats_logger import BaseStatsLogger
 from superset.tasks.ambient_context import use_context
 from superset.tasks.constants import ABORT_STATES, TERMINAL_STATES
@@ -48,6 +52,7 @@ from superset.tasks.manager import TaskManager
 from superset.tasks.registry import TaskRegistry
 from superset.utils.core import LoggerLevel
 from superset.utils.log import get_logger_from_status
+from superset.utils.report_execution import get_report_task_timeout_options
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +70,27 @@ def log_task_failure(  # pylint: disable=unused-argument
 ) -> None:
     task_name = sender.name if sender else "Unknown"
     logger.exception("Celery task %s failed: %s", task_name, exception, exc_info=einfo)
+    if task_name != "reports.execute" or task_id is None or not args:
+        return
+    try:
+        execution_id = UUID(task_id)
+        report_schedule_id = int(args[0])
+        exception_name = type(exception).__name__ if exception else "UnknownError"
+        terminal_reason = f"celery_task_failure:{exception_name}"
+        mark_report_execution_terminal_error(
+            report_schedule_id,
+            execution_id,
+            terminal_reason,
+        )
+    except Exception:
+        # Celery signal handlers must not mask the original task failure.
+        logger.exception(
+            "Failed terminal cleanup for report task capture_kind=report "
+            "execution_id=%s "
+            "report_schedule_id=%s terminal_reason=cleanup_hook_failed",
+            task_id,
+            args[0],
+        )
 
 
 @celery_app.task(
@@ -98,19 +124,14 @@ def scheduler(self: Task) -> None:  # pylint: disable=unused-argument
             triggered_at, active_schedule.crontab, active_schedule.timezone
         ):
             logger.info("Scheduling alert %s eta: %s", active_schedule.name, schedule)
-            async_options = {"eta": schedule}
-            if (
-                active_schedule.working_timeout is not None
-                and current_app.config["ALERT_REPORTS_WORKING_TIME_OUT_KILL"]
-            ):
-                async_options["time_limit"] = (
-                    active_schedule.working_timeout
-                    + current_app.config["ALERT_REPORTS_WORKING_TIME_OUT_LAG"]
-                )
-                async_options["soft_time_limit"] = (
-                    active_schedule.working_timeout
-                    + current_app.config["ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG"]
-                )
+            async_options = {
+                "eta": schedule,
+                **get_report_task_timeout_options(
+                    is_report=active_schedule.type == ReportScheduleType.REPORT,
+                    working_timeout=active_schedule.working_timeout,
+                    config=current_app.config,
+                ),
+            }
             execute.apply_async((active_schedule.id,), **async_options)
 
 
@@ -133,10 +154,33 @@ def execute(self: Task, report_schedule_id: int) -> None:
             report_schedule_id,
             scheduled_dttm,
         ).run()
+    except SoftTimeLimitExceeded:
+        logger.warning(
+            "Report execution hit Celery soft timeout; capture_kind=report "
+            "execution_id=%s "
+            "report_schedule_id=%s terminal_reason=celery_soft_timeout",
+            task_id,
+            report_schedule_id,
+            exc_info=True,
+        )
+        if task_id:
+            mark_report_execution_terminal_error(
+                report_schedule_id,
+                UUID(task_id),
+                "celery_soft_timeout",
+            )
+        self.update_state(state="FAILURE")
+        raise
     except ReportScheduleUnexpectedError:
         logger.exception(
             "An unexpected error occurred while executing the report: %s", task_id
         )
+        if task_id:
+            mark_report_execution_terminal_error(
+                report_schedule_id,
+                UUID(task_id),
+                "unexpected_execution_error",
+            )
         self.update_state(state="FAILURE")
     except CommandException as ex:
         logger_func, level = get_logger_from_status(ex.status)
