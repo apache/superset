@@ -59,7 +59,9 @@ such as: https://superset.apache.org/docs/miscellaneous/issue-codes#issue-\${iss
 export const UrlLinkPopoverContent = ({
   config,
   onChange,
-  columns = [],
+  // `columns` is accepted for API symmetry with UrlLinkPopover but is not
+  // yet used to power column-aware suggestions in this form.
+  columns: _columns = [],
 }: {
   config?: UrlLinkConfig;
   onChange: (config: UrlLinkConfig) => void;

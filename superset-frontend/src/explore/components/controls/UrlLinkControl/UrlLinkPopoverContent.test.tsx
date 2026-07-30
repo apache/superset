@@ -17,7 +17,12 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { UrlLinkPopoverContent } from './UrlLinkPopoverContent';
 
 const renderComponent = (onChange = jest.fn()) => {
@@ -29,7 +34,10 @@ test('Should render', () => {
   expect(screen.getByText('link column name')).toBeInTheDocument();
 });
 
-test('Should render required fields', () => {
+test('Should render required fields', async () => {
   renderComponent();
-  expect(screen.getAllByText('Required').length).toEqual(3);
+  fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+  await waitFor(() => {
+    expect(screen.getAllByText('Required').length).toEqual(3);
+  });
 });
