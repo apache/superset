@@ -25,7 +25,7 @@ from superset.daos.chart import ChartDAO
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.tag import TagDAO
 from superset.extensions import feature_flag_manager
-from superset.tags.models import TagType
+from superset.tags.models import ObjectType, TagType
 from superset.commands.export.models import ExportModelsCommand
 from superset.commands.tag.exceptions import TagNotFoundError
 
@@ -50,9 +50,35 @@ class ExportTagsCommand(ExportModelsCommand):
         if not feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
             return
 
+        self.validate()
+
+        dashboard_ids: list[int] = (
+            [self.dashboard_ids]
+            if isinstance(self.dashboard_ids, int)
+            else list(self.dashboard_ids or [])
+        )
+        chart_ids: list[int] = (
+            [self.chart_ids]
+            if isinstance(self.chart_ids, int)
+            else list(self.chart_ids or [])
+        )
+
+        if self.model_ids:
+            for tag in self._models:
+                for tagged_object in tag.objects:
+                    if tagged_object.object_type == ObjectType.dashboard:
+                        dashboard_ids.append(tagged_object.object_id)
+                    elif tagged_object.object_type == ObjectType.chart:
+                        chart_ids.append(tagged_object.object_id)
+
+        dashboard_ids = list(set(dashboard_ids))
+        chart_ids = list(set(chart_ids))
+
         yield (
             ExportTagsCommand._file_name(),
-            lambda: ExportTagsCommand._file_content(self.dashboard_ids, self.chart_ids),
+            lambda: ExportTagsCommand._file_content(
+                dashboard_ids or None, chart_ids or None
+            ),
         )
 
     @staticmethod
@@ -127,16 +153,3 @@ class ExportTagsCommand(ExportModelsCommand):
 
         file_content = yaml.safe_dump(payload, sort_keys=False)
         return file_content
-
-    @staticmethod
-    def export(
-        dashboard_ids: Optional[Union[int, List[Union[int, str]]]] = None,
-        chart_ids: Optional[Union[int, List[Union[int, str]]]] = None,
-    ) -> Iterator[tuple[str, Callable[[], str]]]:
-        if not feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
-            return
-
-        yield (
-            ExportTagsCommand._file_name(),
-            lambda: ExportTagsCommand._file_content(dashboard_ids, chart_ids),
-        )
