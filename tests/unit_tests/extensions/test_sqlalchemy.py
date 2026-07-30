@@ -21,6 +21,7 @@ from collections.abc import Iterator
 from typing import TYPE_CHECKING
 
 import pytest
+from flask import current_app
 from pytest_mock import MockerFixture
 from sqlalchemy import text
 from sqlalchemy.engine import create_engine
@@ -273,17 +274,10 @@ def table2_late_match(session: Session, database2: "Database") -> Iterator[None]
         db.session.commit()
 
 
-@with_config(
-    {
-        "DB_SQLA_URI_VALIDATOR": None,
-        "SUPERSET_META_DB_LIMIT": 2,
-        "DATABASE_OAUTH2_CLIENTS": {},
-        "SQLALCHEMY_CUSTOM_PASSWORD_STORE": None,
-    }
-)
 @with_feature_flags(ENABLE_SUPERSET_META_DB=True)
 def test_superset_joins_with_limit_drops_matches(
     mocker: MockerFixture,
+    monkeypatch: pytest.MonkeyPatch,
     app_context: None,
     table1_large: None,
     table2_late_match: None,
@@ -295,6 +289,17 @@ def test_superset_joins_with_limit_drops_matches(
     the per-table limit is silently dropped from the join result, with no
     error or truncation warning.
     """
+    # Use monkeypatch (rather than the `@with_config` decorator) so the
+    # config overrides are guaranteed to be undone even though this test is
+    # expected to fail its assertion until the underlying bug is fixed.
+    # `@with_config` only restores the original values after the wrapped
+    # test function returns normally, so an assertion failure here would
+    # otherwise leak SUPERSET_META_DB_LIMIT=2 into later tests.
+    monkeypatch.setitem(current_app.config, "DB_SQLA_URI_VALIDATOR", None)
+    monkeypatch.setitem(current_app.config, "SUPERSET_META_DB_LIMIT", 2)
+    monkeypatch.setitem(current_app.config, "DATABASE_OAUTH2_CLIENTS", {})
+    monkeypatch.setitem(current_app.config, "SQLALCHEMY_CUSTOM_PASSWORD_STORE", None)
+
     mocker.patch(
         "superset.extensions.metadb.security_manager.raise_for_access",
         return_value=None,
