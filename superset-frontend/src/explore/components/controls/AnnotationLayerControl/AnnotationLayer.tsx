@@ -49,6 +49,7 @@ import TextControl from 'src/explore/components/controls/TextControl';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import PopoverSection from '@superset-ui/core/components/PopoverSection';
 import ControlHeader from 'src/explore/components/ControlHeader';
+import { CONTROL_SECTIONS_ID } from 'src/explore/constants';
 import { ensureAppRoot } from 'src/utils/navigationUtils';
 import {
   ANNOTATION_SOURCE_TYPES,
@@ -113,9 +114,6 @@ const AUTOMATIC_COLOR = '';
 
 /** Space between the popover's side-by-side configuration sections. */
 const SECTION_GAP = 32;
-
-/** Explore's control panel, which the popover opens alongside. */
-const CONTROL_SECTIONS_ID = 'controlSections';
 
 /** Breathing room kept between the popover and the viewport edge. */
 const VIEWPORT_INSET = 8;

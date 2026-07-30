@@ -26,9 +26,10 @@ import {
 
 import { TooltipPlacement } from '@superset-ui/core/components/Tooltip/types';
 
-const sectionContainerId = 'controlSections';
+import { CONTROL_SECTIONS_ID } from 'src/explore/constants';
+
 export const getSectionContainerElement = () =>
-  document.getElementById(sectionContainerId)?.lastElementChild as HTMLElement;
+  document.getElementById(CONTROL_SECTIONS_ID)?.lastElementChild as HTMLElement;
 
 const getElementVisibilityRatio = (node?: HTMLElement) => {
   const containerHeight = window?.innerHeight;
