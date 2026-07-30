@@ -28,6 +28,7 @@ import { GenericDataType } from '@apache-superset/core/common';
 import {
   calculateLowerLogTick,
   dedupSeries,
+  extractDataTotalValues,
   extractGroupbyLabel,
   extractSeries,
   extractShowValueIndexes,
@@ -700,6 +701,39 @@ describe('extractGroupbyLabel', () => {
       }),
     ).toEqual('');
     expect(extractGroupbyLabel({})).toEqual('');
+  });
+});
+
+describe('extractDataTotalValues', () => {
+  test('sums numeric metric values across a stacked datum', () => {
+    const { totalStackedValues, thresholdValues } = extractDataTotalValues(
+      [{ __timestamp: '2000-01-01', metric_a: 10, metric_b: 20 }],
+      { stack: true, percentageThreshold: 50, xAxisCol: '__timestamp' },
+    );
+    expect(totalStackedValues).toEqual([30]);
+    expect(thresholdValues).toEqual([15]);
+  });
+
+  // Regression for #36401: query results containing integers beyond
+  // Number.MAX_SAFE_INTEGER are parsed as native BigInt (see
+  // packages/superset-ui-core/src/connection/callApi/parseResponse.ts).
+  // Summing a BigInt datum value against the Number accumulator here
+  // throws instead of producing a stacked total.
+  test('does not throw when a stacked datum contains a BigInt metric value', () => {
+    const data: DataRecord[] = [
+      {
+        __timestamp: '2000-01-01',
+        metric_a: 10,
+        metric_b: BigInt('9007199254740993'),
+      },
+    ];
+    expect(() =>
+      extractDataTotalValues(data, {
+        stack: true,
+        percentageThreshold: 50,
+        xAxisCol: '__timestamp',
+      }),
+    ).not.toThrow();
   });
 });
 
