@@ -14,8 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from datetime import datetime
 from unittest.mock import call, patch
 
+import pandas as pd
 from flask_appbuilder.security.sqla.models import User
 
 from superset.common.query_object import QueryObject
@@ -63,6 +65,62 @@ def test_default_query_object_to_dict():
         "time_compare_full_range": False,
         "to_dttm": None,
     }
+
+
+def test_exec_post_processing_resample_fills_time_range():
+    """
+    `fill_time_range` is resolved into the boundaries of the queried time range
+    so the resampled series covers the whole period.
+    """
+    query_object = QueryObject(
+        row_limit=1,
+        post_processing=[
+            {
+                "operation": "resample",
+                "options": {
+                    "method": "asfreq",
+                    "rule": "1D",
+                    "fill_value": 0,
+                    "fill_time_range": True,
+                },
+            }
+        ],
+        from_dttm=datetime(2019, 1, 1),
+        to_dttm=datetime(2019, 1, 5),
+    )
+    df = pd.DataFrame(
+        index=pd.to_datetime(["2019-01-03"]),
+        data={"y": [1.0]},
+    )
+
+    assert query_object.exec_post_processing(df).index.equals(
+        pd.date_range("2019-01-01", "2019-01-04", freq="1D")
+    )
+
+
+def test_exec_post_processing_resample_without_fill_time_range():
+    """
+    Without the flag the result stays bound to the extremes of the data.
+    """
+    query_object = QueryObject(
+        row_limit=1,
+        post_processing=[
+            {
+                "operation": "resample",
+                "options": {"method": "asfreq", "rule": "1D", "fill_value": 0},
+            }
+        ],
+        from_dttm=datetime(2019, 1, 1),
+        to_dttm=datetime(2019, 1, 5),
+    )
+    df = pd.DataFrame(
+        index=pd.to_datetime(["2019-01-03"]),
+        data={"y": [1.0]},
+    )
+
+    assert query_object.exec_post_processing(df).index.equals(
+        pd.to_datetime(["2019-01-03"])
+    )
 
 
 def test_cache_key_consistent_for_query_object():
