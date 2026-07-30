@@ -31,6 +31,36 @@ from flask.cli import with_appcontext
 
 logger = logging.getLogger(__name__)
 
+#: Operator-facing entity names mapped to their table. Kept as table names
+#: rather than model classes so building the ``--type`` choices costs no model
+#: imports at CLI start-up; the class is resolved when the option is used.
+_PURGE_TYPES: dict[str, str] = {
+    "chart": "slices",
+    "dashboard": "dashboards",
+    "dataset": "tables",
+}
+
+
+def _resolve_model(entity_type: str | None) -> type | None:
+    """Map a ``--type`` value to its soft-delete model, or ``None`` for all.
+
+    ``None`` preserves the default search across every registered model, which
+    is what an operator holding only a UUID has to start from.
+    """
+    if entity_type is None:
+        return None
+    from superset.models.helpers import SoftDeleteMixin
+
+    table = _PURGE_TYPES[entity_type.lower()]
+    for model in SoftDeleteMixin._registered_subclasses:  # noqa: SLF001
+        if getattr(model, "__tablename__", None) == table:
+            return model
+    # Unreachable while _PURGE_TYPES tracks the registered models; a mismatch
+    # means a model was renamed or dropped without updating the map.
+    raise click.ClickException(
+        f"No soft-delete model is registered for type {entity_type!r}."
+    )
+
 
 @click.group()
 def deletion_retention() -> None:
@@ -83,15 +113,40 @@ def show_window() -> None:
     type=click.UUID,
     help="UUID of the entity to purge.",
 )
+@click.option(
+    "--type",
+    "-t",
+    "entity_type",
+    type=click.Choice(sorted(_PURGE_TYPES), case_sensitive=False),
+    default=None,
+    help=(
+        "Restrict the purge to one entity type. UUIDs are unique per table "
+        "but not across them, so a bare UUID can match more than one entity; "
+        "the purge refuses to guess and asks for this option."
+    ),
+)
 @click.confirmation_option(
     prompt="Force-purge is irreversible — the entity and its version history "
     "will be permanently removed. Continue?"
 )
-def force_purge(uuid: UUID) -> None:
+def force_purge(uuid: UUID, entity_type: str | None) -> None:
     """Immediately and irreversibly purge an entity by UUID (compliance)."""
-    from superset.commands.deletion_retention.force_purge import ForcePurgeCommand
+    from superset.commands.deletion_retention.force_purge import (
+        AmbiguousPurgeTargetError,
+        ForcePurgeCommand,
+    )
 
-    result = ForcePurgeCommand(str(uuid)).run()
+    try:
+        result = ForcePurgeCommand(
+            str(uuid), model_cls=_resolve_model(entity_type)
+        ).run()
+    except AmbiguousPurgeTargetError as ex:
+        # The command refuses to guess between tables. Report that as a clean
+        # operator error naming the way out, not as a traceback -- this lands
+        # after the irreversible confirmation prompt has already been answered.
+        raise click.ClickException(
+            f"{ex} Re-run with --type, e.g. --type {sorted(_PURGE_TYPES)[0]}."
+        ) from ex
     if not result.get("purged"):
         if result.get("reason") == "blocked":
             click.echo(

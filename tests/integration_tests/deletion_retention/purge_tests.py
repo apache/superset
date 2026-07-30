@@ -546,3 +546,47 @@ class TestSoftDeletePurge(DeletionRetentionTestBase):
 
         assert result["purged"].get("slices") == 1
         assert not self.exists(Slice, chart_id)
+
+
+class TestPurgeIdentityGuard(DeletionRetentionTestBase):
+    """The audit row must name the entity that was actually purged."""
+
+    def test_identity_drift_between_audit_and_purge_skips_the_entity(self) -> None:
+        """A row whose identity changed after the audit write is not purged.
+
+        ``_purge_one`` snapshots the uuid, writes the write-ahead audit row,
+        then re-reads the entity by id. Ids can be recycled -- SQLite reuses
+        rowids -- so the row under that id may no longer be the one the audit
+        describes. The cascade's conditional claim would still refuse to
+        destroy anything ineligible, making this an attribution guard rather
+        than a destructive one: an audit row identifying the wrong object is
+        worse than a skipped purge.
+        """
+        chart = self.make_chart("identity_drift")
+        chart_id = chart.id
+        self.soft_delete(chart, days_ago=90)
+
+        real_uuid = str(chart.uuid)
+        # First call feeds the audit row; the second is the post-audit
+        # re-check, where the identity is made to differ.
+        uuids = iter([real_uuid, "00000000-0000-0000-0000-0000deadbeef"])
+
+        with (
+            patch(
+                "superset.tasks.deletion_retention.entity_uuid",
+                side_effect=lambda _entity: next(uuids),
+            ),
+            patch("superset.tasks.deletion_retention.cascade_hard_delete") as cascade,
+        ):
+            stats = _purge()
+
+        cascade.assert_not_called()
+        assert self.exists(Slice, chart_id)
+        assert stats["purged"] == {}
+
+        row = (
+            db.session.query(audit.PurgeAuditLog)
+            .filter(audit.PurgeAuditLog.entity_uuid == real_uuid)
+            .one()
+        )
+        assert row.status == audit.STATUS_FAILED

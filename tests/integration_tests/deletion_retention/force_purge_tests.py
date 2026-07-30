@@ -182,3 +182,53 @@ class TestForcePurge(DeletionRetentionTestBase):
         assert result["purged"] is True
         assert not self.exists(Slice, chart_id)
         assert self.exists(Dashboard, dashboard_id)
+
+    def test_cli_force_purge_reports_ambiguity_as_an_operator_error(self) -> None:
+        """The refusal reaches the operator as a message, not a traceback.
+
+        It surfaces *after* the irreversible confirmation prompt has been
+        answered, which is the failure mode the ``type=click.UUID`` validation
+        on the same command exists to avoid.
+        """
+        from click.testing import CliRunner
+
+        from superset.cli.deletion_retention import force_purge
+
+        chart = self.make_chart("cli_ambiguous_chart")
+        dashboard = self.make_dashboard("cli_ambiguous_dash")
+        shared = chart.uuid
+        dashboard.uuid = shared
+        db.session.commit()
+        chart_id, dashboard_id = chart.id, dashboard.id
+        self.soft_delete(chart, days_ago=90)
+
+        result = CliRunner().invoke(force_purge, ["--uuid", str(shared), "--yes"])
+
+        assert result.exit_code != 0
+        assert not isinstance(result.exception, AmbiguousPurgeTargetError)
+        assert "--type" in result.output
+        # The refusal is not a partial purge.
+        assert self.exists(Slice, chart_id)
+        assert self.exists(Dashboard, dashboard_id)
+
+    def test_cli_force_purge_type_option_disambiguates(self) -> None:
+        """The escape hatch the error names actually exists and works."""
+        from click.testing import CliRunner
+
+        from superset.cli.deletion_retention import force_purge
+
+        chart = self.make_chart("cli_typed_chart")
+        dashboard = self.make_dashboard("cli_typed_dash")
+        shared = chart.uuid
+        dashboard.uuid = shared
+        db.session.commit()
+        chart_id, dashboard_id = chart.id, dashboard.id
+        self.soft_delete(chart, days_ago=90)
+
+        result = CliRunner().invoke(
+            force_purge, ["--uuid", str(shared), "--type", "chart", "--yes"]
+        )
+
+        assert result.exit_code == 0, result.output
+        assert not self.exists(Slice, chart_id)
+        assert self.exists(Dashboard, dashboard_id)
