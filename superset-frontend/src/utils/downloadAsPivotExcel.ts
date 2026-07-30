@@ -23,8 +23,7 @@ import type { WorkSheet } from 'xlsx';
 // "2024-01-01 00:00:00". This layout is unambiguous under any locale
 // (unlike "1/2/2024", which means different dates depending on the
 // reader), so it's safe to restore as a native Excel date.
-const ISO_DATE_RE =
-  /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}):(\d{2}))?$/;
+const ISO_DATE_RE = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}):(\d{2}))?$/;
 
 // `raw: true` (used below) keeps every table cell as text, so ordinary
 // numbers and dates lose their native Excel type along with the
@@ -48,7 +47,7 @@ function restoreUnambiguousNumbers(sheet: WorkSheet): void {
     if (isoMatch) {
       const [y, mo, d, h, mi, s] = isoMatch
         .slice(1)
-        .map(part => Number(part ?? 0));
+        .map((part: string | undefined) => Number(part ?? 0));
       const date = new Date(y, mo - 1, d, h, mi, s);
       // The Date constructor rolls invalid components over into the next
       // month/day (e.g. day 40 becomes the 10th of the following month)
