@@ -31,10 +31,14 @@ from superset.mcp_service.dashboard.schemas import (
     _extract_cross_filters_enabled,
     _extract_native_filters,
     _safe_user_label,
+    AddChartToDashboardRequest,
     dashboard_serializer,
+    DashboardInfo,
     DuplicateDashboardRequest,
     DuplicateDashboardResponse,
     GenerateDashboardRequest,
+    GetDashboardInfoRequest,
+    ListDashboardsRequest,
     serialize_chart_summary,
     serialize_dashboard_object,
     UpdateDashboardRequest,
@@ -883,6 +887,32 @@ class TestDuplicateDashboardRequestTitleSanitization:
         assert req.sanitization_warnings == []
 
 
+class TestDashboardInfoLargeListGuidance:
+    """DashboardInfo documents how agents can retrieve charts/native_filters
+    beyond the response-size guard's list-item cap.
+
+    Regression test for the Medialab large-dashboard report: with the old
+    hardcoded 30-item cap and no documented escape hatch, agents had no way
+    to retrieve the rest of a dashboard's charts. These field descriptions
+    are the "documented, agent-usable way to access items beyond the cap"
+    called for by the story's acceptance criteria.
+    """
+
+    def test_charts_field_documents_list_charts_escape_hatch(self) -> None:
+        """The charts field description points to list_charts pagination."""
+        description: str | None = DashboardInfo.model_fields["charts"].description
+        assert description is not None
+        assert "list_charts" in description
+
+    def test_native_filters_field_documents_max_list_items_config(self) -> None:
+        """The native_filters field description mentions the configurable cap."""
+        description: str | None = DashboardInfo.model_fields[
+            "native_filters"
+        ].description
+        assert description is not None
+        assert "max_list_items" in description
+
+
 class TestDuplicateDashboardResponse:
     """Serialization and error sanitization for DuplicateDashboardResponse."""
 
@@ -904,3 +934,46 @@ class TestDuplicateDashboardResponse:
         """A null error stays null rather than being wrapped."""
         resp = DuplicateDashboardResponse(dashboard_url="http://host/d/1/")
         assert resp.error is None
+
+
+class TestRequestSchemaAliasChoices:
+    """Test that LLM-friendly field name variants are accepted on the
+    dashboard MCP tool request schemas, so callers sending 'id'/'dashboard_id'
+    instead of 'identifier' (or 'columns' instead of 'select_columns')
+    don't silently have the field dropped."""
+
+    def test_get_dashboard_info_identifier_id_alias(self) -> None:
+        req = GetDashboardInfoRequest.model_validate({"id": 42})
+        assert req.identifier == 42
+
+    def test_get_dashboard_info_identifier_dashboard_id_alias(self) -> None:
+        req = GetDashboardInfoRequest.model_validate({"dashboard_id": 42})
+        assert req.identifier == 42
+
+    def test_get_dashboard_info_identifier_still_works(self) -> None:
+        req = GetDashboardInfoRequest.model_validate({"identifier": 42})
+        assert req.identifier == 42
+
+    def test_get_dashboard_info_select_columns_columns_alias(self) -> None:
+        req = GetDashboardInfoRequest.model_validate(
+            {"id": 42, "columns": ["id", "dashboard_title"]}
+        )
+        assert req.select_columns == ["id", "dashboard_title"]
+
+    def test_list_dashboards_select_columns_columns_alias(self) -> None:
+        req = ListDashboardsRequest.model_validate(
+            {"columns": ["id", "dashboard_title"]}
+        )
+        assert req.select_columns == ["id", "dashboard_title"]
+
+    def test_add_chart_to_dashboard_dashboard_alias(self) -> None:
+        req = AddChartToDashboardRequest.model_validate({"dashboard": 1, "chart_id": 2})
+        assert req.dashboard_id == 1
+
+    def test_add_chart_to_dashboard_id_alias(self) -> None:
+        req = AddChartToDashboardRequest.model_validate({"id": 1, "chart_id": 2})
+        assert req.dashboard_id == 1
+
+    def test_add_chart_to_dashboard_chart_alias(self) -> None:
+        req = AddChartToDashboardRequest.model_validate({"dashboard_id": 1, "chart": 2})
+        assert req.chart_id == 2

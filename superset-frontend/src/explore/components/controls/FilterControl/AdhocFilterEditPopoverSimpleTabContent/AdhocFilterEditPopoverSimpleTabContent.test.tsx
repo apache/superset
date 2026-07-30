@@ -725,7 +725,7 @@ test('advanced data type operator list should update after API response', async 
 
   expect(
     await screen.findByText('Equal to (=)', {
-      selector: '.ant-select-selection-item',
+      selector: '.ant-select-content-has-value, .ant-select-selection-item',
     }),
   ).toBeInTheDocument();
 });

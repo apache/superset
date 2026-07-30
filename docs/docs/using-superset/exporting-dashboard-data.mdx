@@ -1,0 +1,99 @@
+---
+title: Exporting Dashboard Data to Excel
+hide_title: true
+sidebar_position: 7
+version: 1
+---
+
+# Exporting Dashboard Data to Excel
+
+Superset can export every chart on a dashboard to a single Excel workbook, with
+each chart's underlying data rendered as its own worksheet. The export reflects
+the dashboard's currently applied filters and runs asynchronously: when it
+finishes, the requesting user receives an email with a time-limited download
+link.
+
+## Using the export
+
+From a dashboard, open the **... (actions) → Download** submenu and choose
+**Export Data to Excel**. The action appears for users who have the dashboard
+`can_export` permission. You'll see a confirmation that the export is being
+prepared; the workbook arrives by email when it's ready.
+
+A second option, **Export Images to Excel**, embeds each non-table chart as a
+rendered image (tables stay tabular) instead of exporting raw data. Because it
+renders charts through the headless webdriver, this option only appears when the
+webdriver screenshot feature flags are enabled (see the prerequisites below);
+which viz types stay tabular is controlled by `EXCEL_EXPORT_TABLE_VIZ_TYPES`.
+
+Notes on the generated workbook:
+
+- One worksheet per chart, named `{chart_id} - {chart title}` (truncated to
+  Excel's 31-character limit; the chart id keeps names unique).
+- Charts nested in tabs are included.
+- Data reflects the dashboard's active filter state at the time of export.
+- A chart with no saved query context is skipped and listed in the email; open
+  the chart in Explore and re-save it to include it next time.
+- Row counts per sheet are capped the same way as the chart-level CSV/Excel
+  export (`ROW_LIMIT`, bounded by `SQL_MAX_ROW`), and never exceed Excel's
+  per-sheet maximum.
+
+## Prerequisites
+
+This feature is **disabled by default**. It requires:
+
+1. **The `boto3` dependency.** It is not installed by default; install it with
+   `pip install apache-superset[excel-export]`. Without it, exports fail and the
+   user receives a failure email.
+2. **An S3 bucket.** Set `EXCEL_EXPORT_S3_BUCKET`. Until it is set, the export
+   endpoint returns `501` and the menu action surfaces a "not configured"
+   message.
+3. **A running Celery worker.** The export runs as a Celery task. If no worker
+   is running, the request is accepted but nothing is produced.
+4. **A configured SMTP transport.** The download link is delivered by email
+   using the same settings as alerts & reports (`SMTP_*`,
+   `EMAIL_REPORTS_SUBJECT_PREFIX`).
+
+**Export Images to Excel** additionally requires a working headless webdriver —
+the same infrastructure scheduled reports and thumbnails use (`WEBDRIVER_*`,
+plus the `ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS` and
+`ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT` feature flags). The menu option
+is hidden when those flags are off; if the webdriver is unreachable, image
+charts come back empty even though the data export path still works.
+
+Deployments that override `CELERY_CONFIG` must add
+`"superset.tasks.export_dashboard_excel"` to the `imports` tuple, or the task
+will not register.
+
+## Configuration keys
+
+| Key | Default | Description |
+| --- | --- | --- |
+| `EXCEL_EXPORT_S3_BUCKET` | `None` | Destination bucket. Required; `501` if unset. |
+| `EXCEL_EXPORT_S3_KEY_PREFIX` | `"dashboard-exports/"` | Key prefix: `{prefix}{dashboard_id}/{job_id}.xlsx`. |
+| `EXCEL_EXPORT_LINK_TTL_SECONDS` | `86400` | Lifetime of the pre-signed download URL (24h). |
+| `EXCEL_EXPORT_S3_CLIENT_KWARGS` | `{}` | Extra kwargs for `boto3.client("s3", ...)` — e.g. `region_name`, or `endpoint_url` for MinIO/LocalStack. |
+| `EXCEL_EXPORT_TABLE_VIZ_TYPES` | `None` | Viz types kept tabular in **Export Images to Excel** mode; every other type is embedded as an image. `None` uses the built-in default (`table`, `pivot_table`, `pivot_table_v2`). |
+
+Credentials and region resolve through the standard boto3 chain (environment
+variables, shared config, or instance role) unless overridden via
+`EXCEL_EXPORT_S3_CLIENT_KWARGS`. The worker needs `s3:PutObject` on the bucket.
+
+## Security considerations
+
+- The emailed link is a **pre-signed S3 URL**: anyone who holds it can download
+  the workbook until it expires. Keep the bucket **private**, enable
+  encryption, and consider a lifecycle rule to delete objects after a few days.
+  Lower `EXCEL_EXPORT_LINK_TTL_SECONDS` if 24 hours is too long for your data.
+- The export runs with the requesting user's permissions; each chart's query is
+  access-checked, so users only ever receive data they are entitled to.
+
+## Limitations
+
+- **Embedded dashboards / guest tokens are not supported** in this version,
+  because guest users have no email address to deliver the link to. Logged-in
+  users viewing an embedded dashboard can still use the export.
+- The default **Export Data to Excel** mode exports data only (no visual
+  styling). Use **Export Images to Excel** to embed rendered chart images, which
+  requires the webdriver infrastructure described in the prerequisites.
+- Scheduled/automated exports are not part of this feature.

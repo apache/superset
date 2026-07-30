@@ -155,9 +155,14 @@ describe('logger middleware', () => {
   test.each([
     ['/dashboard/123/embedded/', 'embedded_dashboard'],
     ['/embedded/abc-def-uuid/', 'embedded_dashboard'],
+    // React Router also matches these routes without a trailing slash
+    ['/dashboard/123/embedded', 'embedded_dashboard'],
+    ['/embedded/abc-def-uuid', 'embedded_dashboard'],
     ['/dashboard/123/', 'dashboard'],
     // slug is literally "embedded" - must not be treated as embedded
     ['/dashboard/embedded/', 'dashboard'],
+    // "embedded" must be a full path segment, not a prefix
+    ['/dashboard/123/embeddedXYZ/', 'dashboard'],
   ])('classifies %s as source "%s"', (path, expectedSource) => {
     expect(getSourceForPath(`http://localhost${path}`)).toBe(expectedSource);
   });

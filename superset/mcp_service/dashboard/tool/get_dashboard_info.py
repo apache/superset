@@ -122,6 +122,14 @@ async def get_dashboard_info(
 
     Returns title, charts, and layout details.
 
+    For dashboards with many charts or native filters, the ``charts`` and
+    ``native_filters`` lists may be capped below their true size (see
+    ``chart_count`` for the real total, and ``_truncation_notes`` in the
+    response when truncation occurred). To retrieve the complete list of
+    charts on a large dashboard regardless of size, call ``list_charts``
+    with ``filters=[{"col": "dashboards", "opr": "eq", "value": <dashboard
+    id>}]`` and page through the results using ``page``/``page_size``.
+
     When permalink_key is provided, also returns the filter state from that
     permalink, allowing you to see what filters the user has applied to the
     dashboard (not just the default filter state).

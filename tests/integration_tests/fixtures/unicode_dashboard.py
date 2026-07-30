@@ -52,7 +52,8 @@ def load_unicode_data():
     yield
     with app.app_context():
         with get_example_database().get_sqla_engine() as engine:
-            engine.execute(text("DROP TABLE IF EXISTS unicode_test"))
+            with engine.begin() as conn:
+                conn.execute(text("DROP TABLE IF EXISTS unicode_test"))
 
 
 @pytest.fixture

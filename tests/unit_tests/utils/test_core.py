@@ -28,6 +28,7 @@ from pytest_mock import MockerFixture
 
 from superset.exceptions import SupersetException
 from superset.utils.core import (
+    build_email_attachment,
     cast_to_boolean,
     check_is_safe_zip,
     DateColumn,
@@ -68,6 +69,43 @@ EXTRA_FILTER: QueryObjectFilterClause = {
     "val": "bar",
     "isExtra": True,
 }
+
+
+@pytest.mark.parametrize(
+    ("name", "body", "expected_payload", "content_type"),
+    [
+        (
+            "report.xlsx",
+            b"attachment",
+            b"attachment",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ),
+        (
+            "report.zip",
+            "архив".encode("utf-8"),
+            "архив".encode("utf-8"),
+            "application/zip",
+        ),
+        (
+            "report.csv",
+            "город,value\nМосква,1",
+            "город,value\nМосква,1".encode("utf-8"),
+            "application/octet-stream",
+        ),
+    ],
+)
+def test_build_email_attachment(
+    name: str,
+    body: bytes | str,
+    expected_payload: bytes,
+    content_type: str,
+) -> None:
+    """Email attachments should expose the expected MIME type and filename."""
+    attachment = build_email_attachment(name, body)
+
+    assert attachment.get_content_type() == content_type
+    assert attachment.get_filename() == name
+    assert attachment.get_payload(decode=True) == expected_payload
 
 
 @dataclass
@@ -233,6 +271,22 @@ def test_normalize_dttm_col() -> None:
     normalize_dttm_col(df, dttm_cols)
 
     assert df["__time"].astype(str).tolist() == ["2017-07-01"]
+
+
+def test_normalize_dttm_col_mismatched_format_keeps_values() -> None:
+    """A datetime format that coerces every value to NaT is a mismatch (e.g. an
+    epoch-millis column that inherited a ``%Y`` string format when used as a
+    chart's granularity); applying it would silently blank the whole column, so
+    the original values are kept instead of being nulled. Regression for the
+    Samples pane showing N/A for such columns."""
+    df = pd.DataFrame({"year": [1136073600000, 473385600000]})  # epoch ms
+    before = df["year"].tolist()
+
+    normalize_dttm_col(df, (DateColumn(col_label="year", timestamp_format="%Y"),))
+
+    # not blanked to NaT/None
+    assert df["year"].notna().all()
+    assert df["year"].tolist() == before
 
 
 def test_normalize_dttm_col_epoch_seconds() -> None:

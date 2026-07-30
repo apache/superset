@@ -104,7 +104,11 @@ def validate_prophet_periods(value: int) -> None:
 #
 # RISON/JSON schemas for query parameters
 #
-get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
+get_delete_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
 
 width_height_schema = {
     "type": "array",
@@ -122,9 +126,17 @@ screenshot_query_schema = {
         "thumb_size": width_height_schema,
     },
 }
-get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
+get_export_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
 
-get_fav_star_ids_schema = {"type": "array", "items": {"type": "integer"}}
+get_fav_star_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
 
 #
 # Column schema descriptions
@@ -1356,6 +1368,17 @@ class ChartDataQueryObjectSchema(Schema):
             "category when series limit is reached. Prevents incomplete data."
         },
         load_default=False,
+        allow_none=True,
+    )
+    grouping_sets = fields.List(
+        fields.List(fields.String()),
+        metadata={
+            "description": "Rollup levels for non-additive totals: each entry is "
+            "the list of groupby columns to group at that level (e.g. the empty "
+            "list is the grand total). When set and the engine supports it, the "
+            "levels are computed in a single GROUPING SETS query.",
+        },
+        load_default=None,
         allow_none=True,
     )
     timeseries_limit = fields.Integer(

@@ -29,7 +29,7 @@ down_revision = "17fcea065655"
 
 from alembic import op  # noqa: E402
 from sqlalchemy import Column, Integer, String, Text  # noqa: E402
-from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
+from sqlalchemy.orm import declarative_base  # noqa: E402
 
 from superset import db  # noqa: E402
 from superset.migrations.shared.utils import paginated_update  # noqa: E402
@@ -48,7 +48,7 @@ class Slice(Base):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for slc in paginated_update(
         session.query(Slice).filter(Slice.viz_type == "pop_kpi")
@@ -71,7 +71,7 @@ def upgrade():
 
 def downgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for slc in paginated_update(
         session.query(Slice).filter(Slice.viz_type == "pop_kpi")

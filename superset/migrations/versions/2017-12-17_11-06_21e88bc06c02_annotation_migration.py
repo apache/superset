@@ -24,7 +24,7 @@ Create Date: 2017-12-17 11:06:30.180267
 
 from alembic import op
 from sqlalchemy import Column, Integer, or_, String, Text
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 from superset import db
 from superset.utils import json
@@ -45,7 +45,7 @@ class Slice(Base):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for slc in session.query(Slice).filter(
         or_(Slice.viz_type.like("line"), Slice.viz_type.like("bar"))
@@ -75,7 +75,7 @@ def upgrade():
 
 def downgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for slc in session.query(Slice).filter(
         or_(Slice.viz_type.like("line"), Slice.viz_type.like("bar"))

@@ -418,6 +418,11 @@ function AdhocFilterEditPopover({
           {t('Save')}
         </Button>
         <Icons.ArrowsAltOutlined
+          // Drag-to-resize handle activated via mousedown, not click; there's
+          // no keyboard equivalent, so role="button" (which implies a
+          // click/Enter/Space-activatable control) isn't quite right, but no
+          // native tag fits a drag handle either.
+          // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
           role="button"
           aria-label={t('Resize')}
           tabIndex={0}

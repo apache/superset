@@ -53,7 +53,7 @@ const StyledDatasourceModal = styled(Modal)`
   top: ${TOP_MARGIN_VH}vh;
   padding-bottom: 0;
 
-  && .ant-modal-content {
+  && .ant-modal-container {
     max-height: ${MODAL_HEIGHT_VH}vh;
     margin-top: 0;
     margin-bottom: 0;
@@ -119,9 +119,10 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       filter_select_enabled: datasource.filter_select_enabled,
       fetch_values_predicate: datasource.fetch_values_predicate,
       schema:
-        datasource.tableSelector?.schema ||
-        datasource.databaseSelector?.schema ||
-        datasource.schema,
+        datasource.tableSelector?.schema ??
+        datasource.databaseSelector?.schema ??
+        datasource.schema ??
+        null,
       description: datasource.description,
       main_dttm_col: datasource.main_dttm_col,
       currency_code_column: datasource.currency_code_column ?? null,

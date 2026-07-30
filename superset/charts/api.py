@@ -111,6 +111,7 @@ from superset.versioning.api_helpers import (
     current_entity_version_info,
     get_version_endpoint,
     list_versions_endpoint,
+    restore_version_endpoint,
 )
 from superset.versioning.etag import set_version_etag
 from superset.versioning.schemas import VersionListItemSchema
@@ -158,6 +159,8 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "warm_up_cache",
         "list_versions",
         "get_version",
+        "activity",
+        "restore_version",
     }
     class_permission_name = "Chart"
     # Custom methods (``restore``) need an explicit entry; FAB's @protect()
@@ -170,6 +173,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     method_permission_name = {
         **MODEL_API_RW_METHOD_PERMISSION_MAP,
         "restore": "write",
+        "restore_version": "write",
     }
 
     list_columns = [
@@ -1467,7 +1471,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        return list_versions_endpoint(self, Slice, uuid_str, access_kwarg="chart")
+        return list_versions_endpoint(self, Slice, uuid_str)
 
     @expose(
         "/<uuid_str>/versions/<version_uuid_str>/",
@@ -1524,6 +1528,147 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        return get_version_endpoint(
-            self, Slice, uuid_str, version_uuid_str, access_kwarg="chart"
+        return get_version_endpoint(self, Slice, uuid_str, version_uuid_str)
+
+    @expose("/<uuid_str>/activity/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.activity",
+        log_to_statsd=False,
+    )
+    def activity(self, uuid_str: str) -> Response:
+        """Return the cross-entity activity stream for a chart.
+        ---
+        get:
+          summary: Activity stream — chart own edits + datasets the
+            chart pointed at during association
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Chart UUID
+          - in: query
+            schema:
+              type: string
+              format: date-time
+            name: since
+          - in: query
+            schema:
+              type: string
+              format: date-time
+            name: until
+          - in: query
+            schema:
+              type: string
+              enum: [self, related, all]
+              default: all
+            name: include
+          - in: query
+            schema:
+              type: string
+            name: q
+            description: >-
+              Case-insensitive search over the full history (summary,
+              entity name, kind, path, values) — applied before
+              pagination, so `count` reflects the matches.
+          - in: query
+            schema:
+              type: integer
+              minimum: 0
+              default: 0
+            name: page
+          - in: query
+            schema:
+              type: integer
+              minimum: 1
+              maximum: 200
+              default: 25
+            name: page_size
+          responses:
+            200:
+              description: Activity stream ordered newest-first
+              content:
+                application/json:
+                  schema: ActivityResponseSchema
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.versioning.activity import activity_endpoint
+
+        return activity_endpoint(self, Slice, uuid_str, request.args)
+
+    @expose(
+        "/<uuid_str>/versions/<version_uuid_str>/restore",
+        methods=("POST",),
+    )
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.restore_version"
+        ),
+        log_to_statsd=False,
+    )
+    def restore_version(self, uuid_str: str, version_uuid_str: str) -> Response:
+        """Restore a chart to a previous version.
+        ---
+        post:
+          summary: Revert a chart to an earlier version (non-destructive)
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Chart UUID
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: version_uuid_str
+            description: >-
+              Version UUID as returned by the list-versions endpoint.
+              Stable across retention pruning.
+          responses:
+            200:
+              description: Chart was restored
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+        """
+        # pylint: disable=import-outside-toplevel
+        # Local import: the command module transitively imports the
+        # versioning bootstrap graph; see changes/listener.py.
+        from superset.commands.chart.restore_version import (
+            RestoreChartVersionCommand,
+        )
+
+        return restore_version_endpoint(
+            self, Slice, RestoreChartVersionCommand, uuid_str, version_uuid_str
         )

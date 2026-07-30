@@ -28,7 +28,10 @@ import pytest
 from fastmcp import Client, FastMCP
 
 from superset.mcp_service.app import mcp
+from superset.mcp_service.auth import is_tool_visible_to_current_user
+from superset.mcp_service.privacy import tool_requires_data_model_metadata_access
 from superset.utils import json
+from superset.utils.date_parser import get_since_until
 
 query_dataset_module = importlib.import_module(
     "superset.mcp_service.dataset.tool.query_dataset"
@@ -829,3 +832,381 @@ async def test_query_dataset_metadata_access_denied_nonexistent_dataset(
     # Must receive restricted error, not a NotFound that leaks existence
     assert data["error_type"] == "DataModelMetadataRestricted"
     assert data["error_type"] != "NotFound"
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_registered_tool_requires_metadata_access(
+    mcp_server: FastMCP,
+) -> None:
+    """The tool object FastMCP actually registers carries the data-model
+    metadata marker, so ``is_tool_visible_to_current_user`` can hide it from
+    restricted users at ``tools/list`` time — matching list_datasets and
+    get_dataset_info.
+    """
+    tool = await mcp_server.get_tool("query_dataset")
+    assert tool is not None
+    assert tool_requires_data_model_metadata_access(tool.fn) is True
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_hidden_from_tools_list_when_metadata_restricted(
+    mcp_server: FastMCP, app: Any
+) -> None:
+    """query_dataset is hidden from tools/list for metadata-restricted users,
+    mirroring list_datasets and get_dataset_info.
+    """
+    from flask import g
+
+    tool = await mcp_server.get_tool("query_dataset")
+    assert tool is not None
+
+    app.config["MCP_RBAC_ENABLED"] = True
+    try:
+        with app.app_context():
+            g.user = Mock(username="restricted-user")
+
+            with (
+                patch(
+                    "superset.mcp_service.auth.security_manager.can_access",
+                    return_value=True,
+                ),
+                patch(
+                    "superset.mcp_service.privacy.user_can_view_data_model_metadata",
+                    return_value=False,
+                ),
+            ):
+                assert is_tool_visible_to_current_user(tool) is False
+
+            with (
+                patch(
+                    "superset.mcp_service.auth.security_manager.can_access",
+                    return_value=True,
+                ),
+                patch(
+                    "superset.mcp_service.privacy.user_can_view_data_model_metadata",
+                    return_value=True,
+                ),
+            ):
+                assert is_tool_visible_to_current_user(tool) is True
+    finally:
+        app.config.pop("MCP_RBAC_ENABLED", None)
+
+
+class TestQueryDatasetBracketShorthandNormalization:
+    """QueryDatasetRequest normalizes bracket-shorthand time ranges.
+
+    LLM clients sometimes pass values like '[year]' or '[quarter]' after
+    seeing grain tokens in dashboard filter contexts.  Passed through
+    unnormalized, these separator-less tokens match none of
+    get_since_until()'s recognized prefixes and silently resolve to an
+    unbounded range (matching the whole table) instead of raising an
+    error.  The schema validator maps day-and-up units ('[day]' through
+    '[year]') to the canonical 'Last <unit>' form, and sub-day units
+    ('[second]'/'[minute]'/'[hour]') to an explicit DATEADD/DATETIME
+    expression, so get_since_until() resolves them to an actual bounded
+    range.
+    """
+
+    def test_year_bracket_normalized(self) -> None:
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(
+            {"dataset_id": 1, "metrics": ["count"], "time_range": "[year]"}
+        )
+        assert req.time_range == "Last year"
+
+    def test_quarter_bracket_normalized(self) -> None:
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(
+            {"dataset_id": 1, "metrics": ["count"], "time_range": "[quarter]"}
+        )
+        assert req.time_range == "Last quarter"
+
+    def test_month_bracket_normalized(self) -> None:
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(
+            {"dataset_id": 1, "metrics": ["count"], "time_range": "[month]"}
+        )
+        assert req.time_range == "Last month"
+
+    def test_week_bracket_normalized(self) -> None:
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(
+            {"dataset_id": 1, "metrics": ["count"], "time_range": "[week]"}
+        )
+        assert req.time_range == "Last week"
+
+    def test_day_bracket_normalized(self) -> None:
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(
+            {"dataset_id": 1, "metrics": ["count"], "time_range": "[day]"}
+        )
+        assert req.time_range == "Last day"
+
+    def test_hour_bracket_normalized(self) -> None:
+        """'[hour]' maps to an explicit DATEADD/DATETIME expression.
+
+        'Last hour' is deliberately not used: get_since_until() resolves its
+        since-expression against 'now' but its default until-expression
+        against 'today' (midnight), so since ends up after until and raises
+        a "From date cannot be larger than to date" error.
+        """
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(
+            {"dataset_id": 1, "metrics": ["count"], "time_range": "[hour]"}
+        )
+        assert req.time_range == "DATEADD(DATETIME('now'), -1, HOUR) : DATETIME('now')"
+
+    def test_minute_bracket_normalized(self) -> None:
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(
+            {"dataset_id": 1, "metrics": ["count"], "time_range": "[minute]"}
+        )
+        assert (
+            req.time_range == "DATEADD(DATETIME('now'), -1, MINUTE) : DATETIME('now')"
+        )
+
+    def test_second_bracket_normalized(self) -> None:
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(
+            {"dataset_id": 1, "metrics": ["count"], "time_range": "[second]"}
+        )
+        assert (
+            req.time_range == "DATEADD(DATETIME('now'), -1, SECOND) : DATETIME('now')"
+        )
+
+    def test_bracket_uppercase_normalized(self) -> None:
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(
+            {"dataset_id": 1, "metrics": ["count"], "time_range": "[YEAR]"}
+        )
+        assert req.time_range == "Last year"
+
+    def test_bracket_with_whitespace_normalized(self) -> None:
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(
+            {"dataset_id": 1, "metrics": ["count"], "time_range": "  [year]  "}
+        )
+        assert req.time_range == "Last year"
+
+    def test_valid_superset_range_unchanged(self) -> None:
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(
+            {"dataset_id": 1, "metrics": ["count"], "time_range": "Last 7 days"}
+        )
+        assert req.time_range == "Last 7 days"
+
+    def test_iso_range_unchanged(self) -> None:
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(
+            {
+                "dataset_id": 1,
+                "metrics": ["count"],
+                "time_range": "2024-01-01 : 2024-12-31",
+            }
+        )
+        assert req.time_range == "2024-01-01 : 2024-12-31"
+
+    def test_non_bracket_value_is_stripped(self) -> None:
+        """Non-bracket values must be trimmed too, not just the lookup key.
+
+        Otherwise leading/trailing whitespace around an otherwise valid
+        relative range (e.g. from an LLM) would propagate to
+        get_since_until() and could cause avoidable parse failures.
+        """
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(
+            {"dataset_id": 1, "metrics": ["count"], "time_range": "  Last 7 days  "}
+        )
+        assert req.time_range == "Last 7 days"
+
+    def test_time_range_field_description_examples_are_parseable(self) -> None:
+        """Every relative shorthand named in the time_range field description
+        must actually resolve to a bounded range via get_since_until().
+
+        Regression guard: the description previously named 'this week' as
+        an example, but that value has no ' : ' separator and matches none
+        of get_since_until()'s recognized prefixes, so it silently resolved
+        to an unbounded range (matching the whole table) instead of the
+        current period. 'Current week' is the working equivalent.
+        """
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        description = QueryDatasetRequest.model_fields["time_range"].description or ""
+        for example in [
+            "Last 7 days",
+            "Last month",
+            "Last year",
+            "Last quarter",
+            "Current week",
+            "previous calendar year",
+        ]:
+            assert f"'{example}'" in description, (
+                f"{example!r} missing from time_range field description"
+            )
+            since, until = get_since_until(time_range=example)
+            assert since is not None, f"{example!r} did not resolve to a bounded range"
+            assert until is not None
+            assert since < until
+
+    def test_none_unchanged(self) -> None:
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(
+            {"dataset_id": 1, "metrics": ["count"], "time_range": None}
+        )
+        assert req.time_range is None
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_bracket_year_resolves_without_parse_error(
+    mcp_server: FastMCP,
+) -> None:
+    """'[year]' as time_range must resolve to a bounded range.
+
+    Regression test: LLM clients passing '[year]' verbatim reach
+    get_since_until(time_range="[year]") unnormalized. That string contains
+    no ' : ' separator and matches none of get_since_until()'s recognized
+    prefixes, so it falls through to the unbounded default -- (None, today)
+    -- silently matching the entire table rather than raising an error.
+    The schema validator now maps '[year]' to 'Last year' before the query
+    context is built, so the range is actually bounded.
+    """
+    dataset = _make_dataset(main_dttm_col="order_date")
+    result_data = _mock_command_result()
+    captured_queries: list[dict[str, Any]] = []
+
+    def capture_create(**kwargs):
+        captured_queries.extend(kwargs.get("queries", []))
+        return MagicMock()
+
+    with (
+        patch.object(
+            query_dataset_module,
+            "resolve_dataset",
+            return_value=dataset,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate",
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            return_value=result_data,
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            side_effect=capture_create,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "time_range": "[year]",
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    # Must succeed (no error_type) and forward the normalized value
+    assert "error_type" not in data or data.get("error_type") is None
+    assert len(captured_queries) == 1
+    temporal_filters = [
+        f for f in captured_queries[0]["filters"] if f["op"] == "TEMPORAL_RANGE"
+    ]
+    assert len(temporal_filters) == 1
+    assert temporal_filters[0]["val"] == "Last year"
+    # Exercise the real parser (not mocked above) to prove the normalized
+    # value is actually parseable, not just forwarded unchanged.
+    since, until = get_since_until(time_range=temporal_filters[0]["val"])
+    assert since is not None
+    assert until is not None
+    assert since < until
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_bracket_hour_resolves_without_parse_error(
+    mcp_server: FastMCP,
+) -> None:
+    """'[hour]' as time_range must resolve to a bounded range.
+
+    Regression test: like '[year]', a raw '[hour]' token has no ' : '
+    separator and matches none of get_since_until()'s recognized prefixes,
+    so it silently falls through to (None, today) rather than raising an
+    error. Unlike the other bracket shorthands, '[hour]' also can't simply
+    normalize to 'Last hour': get_since_until() resolves that expression's
+    since-clause against 'now' but its until-clause against 'today'
+    (midnight), which raises "From date cannot be larger than to date" for
+    any sub-day unit. The schema validator instead maps '[hour]' to an
+    explicit DATEADD/DATETIME range that resolves both ends against 'now'.
+    """
+    dataset = _make_dataset(main_dttm_col="order_date")
+    result_data = _mock_command_result()
+    captured_queries: list[dict[str, Any]] = []
+
+    def capture_create(**kwargs):
+        captured_queries.extend(kwargs.get("queries", []))
+        return MagicMock()
+
+    with (
+        patch.object(
+            query_dataset_module,
+            "resolve_dataset",
+            return_value=dataset,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate",
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            return_value=result_data,
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            side_effect=capture_create,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "time_range": "[hour]",
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert "error_type" not in data or data.get("error_type") is None
+    assert len(captured_queries) == 1
+    temporal_filters = [
+        f for f in captured_queries[0]["filters"] if f["op"] == "TEMPORAL_RANGE"
+    ]
+    assert len(temporal_filters) == 1
+    assert (
+        temporal_filters[0]["val"]
+        == "DATEADD(DATETIME('now'), -1, HOUR) : DATETIME('now')"
+    )
+    # Exercise the real parser (not mocked above) to prove the normalized
+    # value is actually parseable, not just forwarded unchanged.
+    since, until = get_since_until(time_range=temporal_filters[0]["val"])
+    assert since is not None
+    assert until is not None
+    assert since < until

@@ -341,18 +341,18 @@ const StyledTableTabs = styled(Tabs)`
   display: flex;
   flex-direction: column;
 
-  .ant-tabs-content-holder {
+  .ant-tabs-body-holder {
     flex: 1;
     min-height: 0;
     overflow: auto;
     padding-top: ${({ theme }) => theme.paddingMD}px;
   }
 
-  .ant-tabs-content {
+  .ant-tabs-body {
     height: 100%;
   }
 
-  .ant-tabs-tabpane-active {
+  .ant-tabs-content-active {
     height: 100%;
   }
 `;
@@ -1753,12 +1753,16 @@ function DatasourceEditor({
     () => (
       <div>
         <EditLockContainer>
-          <span
+          <button
+            type="button"
             css={themeParam => css`
+              appearance: none;
+              border: none;
+              background: none;
+              padding: 0;
+              font: inherit;
               color: ${themeParam.colorTextTertiary};
             `}
-            role="button"
-            tabIndex={0}
             onClick={onChangeEditMode}
           >
             {isEditMode ? (
@@ -1776,7 +1780,7 @@ function DatasourceEditor({
                 })}
               />
             )}
-          </span>
+          </button>
           {!isEditMode && <div>{t('Click the lock to make changes.')}</div>}
           {isEditMode && (
             <div>{t('Click the lock to prevent further changes.')}</div>

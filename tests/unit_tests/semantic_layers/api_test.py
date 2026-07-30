@@ -1186,7 +1186,12 @@ def test_configuration_schema_enrichment_error_fallback(
 
     assert response.status_code == 200
     assert response.json["result"] == {"type": "object"}
-    assert response.json["warning"] == "connection failed"
+    # The warning is a stable, user-friendly message; the exception detail
+    # only goes to the server log.
+    assert response.json["warning"] == (
+        "Could not load metadata for this configuration; "
+        "showing the default form. See the server logs for details."
+    )
     assert mock_cls.get_configuration_schema.call_count == 2
 
 

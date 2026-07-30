@@ -35,6 +35,7 @@ from superset.daos.chart import ChartDAO
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.extensions import feature_flag_manager
+from superset.subjects.utils import get_default_viewers_for_current_user
 
 
 class ImportChartsCommand(ImportModelsCommand):
@@ -88,6 +89,10 @@ class ImportChartsCommand(ImportModelsCommand):
                 dataset = import_dataset(config, overwrite=False)
                 datasets[str(dataset.uuid)] = dataset
 
+        # Resolve the creator's default viewers once for the whole bundle
+        # rather than once per chart (a membership query each).
+        default_viewers = get_default_viewers_for_current_user()
+
         # import charts with the correct parent ref
         for file_name, config in configs.items():
             if file_name.startswith("charts/") and config["dataset_uuid"] in datasets:
@@ -103,7 +108,9 @@ class ImportChartsCommand(ImportModelsCommand):
                     "datasource_name": dataset.table_name,
                 }
                 config = update_chart_config_dataset(config, dataset_dict)
-                chart = import_chart(config, overwrite=overwrite)
+                chart = import_chart(
+                    config, overwrite=overwrite, default_viewers=default_viewers
+                )
 
                 # Handle tags using import_tag function
                 if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
