@@ -405,7 +405,14 @@ export function extractDataTotalValues(
           return prev;
         }
         const value = datum[curr] || 0;
-        return prev + (value as number);
+        // Query results with integers beyond Number.MAX_SAFE_INTEGER are
+        // parsed as native BigInt (see
+        // packages/superset-ui-core/src/connection/callApi/parseResponse.ts).
+        // Normalize to Number before summing so BigInt and Number values
+        // can be combined without throwing (see #36401).
+        const numericValue =
+          typeof value === 'bigint' ? Number(value) : (value as number);
+        return prev + numericValue;
       }, 0);
       totalStackedValues.push(values);
       thresholdValues.push(((percentageThreshold || 0) / 100) * values);
