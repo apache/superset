@@ -45,8 +45,11 @@ export default function PreviewBanner({
   canRestore = true,
 }: PreviewBannerProps) {
   const dispatch = useDispatch();
-  const { entityType: activeEntityType, preview } =
-    useSelector(selectVersionHistory);
+  const {
+    entityType: activeEntityType,
+    preview,
+    isPreviewApplying: isApplying,
+  } = useSelector(selectVersionHistory);
   const { requestRestore, openAsNew, isCreating, restoreModal } =
     useVersionActions(entityType, preview?.entityUuid);
 
@@ -67,8 +70,13 @@ export default function PreviewBanner({
   // Chart save headlines are themselves the save datetime; avoid
   // rendering the same timestamp twice.
   const issuedAtLabel = formatVersionDateTime(preview.issuedAt);
-  const message =
-    preview.headline === issuedAtLabel
+  // Applying a snapshot takes several round trips, and until they land the
+  // page below this banner is still the *live* dashboard. Saying "Previewing"
+  // then would label live data as historical -- the one reading a user must
+  // not be given, since restore acts on what they think they are looking at.
+  const message = isApplying
+    ? t('Loading historical version · %s', issuedAtLabel)
+    : preview.headline === issuedAtLabel
       ? t('Previewing historical version · %s', issuedAtLabel)
       : t(
           'Previewing historical version · %s · %s',
@@ -85,7 +93,7 @@ export default function PreviewBanner({
         message={message}
         action={
           <Actions>
-            {canRestore && (
+            {canRestore && !isApplying && (
               <Button
                 buttonSize="small"
                 buttonStyle="primary"

@@ -184,6 +184,7 @@ const versionHistoryState = (
   entityType: 'dashboard',
   include: 'all',
   preview: null,
+  isPreviewApplying: false,
   sessionLog: [],
   restoreCount: 0,
   ...overrides,

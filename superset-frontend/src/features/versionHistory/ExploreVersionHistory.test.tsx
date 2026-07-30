@@ -65,6 +65,7 @@ const versionHistoryState = (
   entityType: 'chart',
   include: 'all',
   preview: null,
+  isPreviewApplying: false,
   sessionLog: [],
   restoreCount: 0,
   ...overrides,

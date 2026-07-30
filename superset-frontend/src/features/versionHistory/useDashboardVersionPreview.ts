@@ -41,6 +41,7 @@ import {
   clearVersionPreview,
   selectVersionPreview,
   selectVersionRestoreCount,
+  versionPreviewApplied,
 } from './reducer';
 
 export interface SnapshotChartResolution {
@@ -289,12 +290,21 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
           false,
         );
       };
-      apply().catch(() => {
-        if (fetchId === fetchIdRef.current) {
-          addDangerToast(t('Failed to load version preview'));
-          dispatch(clearVersionPreview());
-        }
-      });
+      apply()
+        .then(() => {
+          // Only the request that is still current may announce completion;
+          // a superseded one resolving later must not clear the flag for the
+          // preview that replaced it.
+          if (fetchId === fetchIdRef.current) {
+            dispatch(versionPreviewApplied());
+          }
+        })
+        .catch(() => {
+          if (fetchId === fetchIdRef.current) {
+            addDangerToast(t('Failed to load version preview'));
+            dispatch(clearVersionPreview());
+          }
+        });
     } else if (!versionUuid) {
       // Preview closed (including while its request is still pending).
       // Invalidate the request unconditionally so historical data cannot be

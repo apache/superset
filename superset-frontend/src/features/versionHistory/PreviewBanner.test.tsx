@@ -40,6 +40,7 @@ const versionHistoryState = (
   isPanelOpen: true,
   entityType: 'chart',
   include: 'all',
+  isPreviewApplying: false,
   preview: {
     entityUuid: 'entity-uuid',
     versionUuid: 'version-uuid',
@@ -207,4 +208,25 @@ test('a failed restore keeps the preview active', async () => {
 
   fetchMock.removeRoute('post-restore-fail');
   fetchMock.removeRoute('get-activity-fail');
+});
+
+test('does not call the page historical while the snapshot is still loading', () => {
+  // Applying a snapshot takes several round trips; until they land the page
+  // under this banner is the live dashboard. Labelling it "Previewing
+  // historical version" would tell the user they are looking at the past
+  // when they are looking at the present -- and restore acts on what they
+  // believe is on screen.
+  renderBanner('chart', versionHistoryState({ isPreviewApplying: true }));
+  const banner = screen.getByTestId('version-preview-banner');
+
+  expect(banner).toHaveTextContent('Loading historical version');
+  expect(banner).not.toHaveTextContent('Previewing historical version');
+});
+
+test('withholds restore until the previewed version is actually on screen', () => {
+  renderBanner('chart', versionHistoryState({ isPreviewApplying: true }));
+
+  expect(
+    screen.queryByRole('button', { name: 'Restore this version' }),
+  ).not.toBeInTheDocument();
 });

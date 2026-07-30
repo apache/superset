@@ -189,6 +189,8 @@ export interface VersionHistoryState {
   entityType: VersionedEntityType | null;
   include: ActivityInclude;
   preview: VersionPreviewState | null;
+  /** True from requesting a preview until its snapshot is on screen. */
+  isPreviewApplying: boolean;
   sessionLog: SessionLogEntry[];
   /**
    * Incremented on every successful restore so page-level hooks know the

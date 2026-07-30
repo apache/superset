@@ -29,6 +29,7 @@ export const CLOSE_VERSION_HISTORY_PANEL = 'CLOSE_VERSION_HISTORY_PANEL';
 export const SET_VERSION_HISTORY_INCLUDE = 'SET_VERSION_HISTORY_INCLUDE';
 export const SET_VERSION_PREVIEW = 'SET_VERSION_PREVIEW';
 export const CLEAR_VERSION_PREVIEW = 'CLEAR_VERSION_PREVIEW';
+export const VERSION_PREVIEW_APPLIED = 'VERSION_PREVIEW_APPLIED';
 export const VERSION_RESTORED = 'VERSION_RESTORED';
 export const APPEND_VERSION_SESSION_LOG = 'APPEND_VERSION_SESSION_LOG';
 export const CLEAR_VERSION_SESSION_LOG = 'CLEAR_VERSION_SESSION_LOG';
@@ -59,6 +60,10 @@ interface ClearPreviewAction {
   type: typeof CLEAR_VERSION_PREVIEW;
 }
 
+interface PreviewAppliedAction {
+  type: typeof VERSION_PREVIEW_APPLIED;
+}
+
 interface VersionRestoredAction {
   type: typeof VERSION_RESTORED;
 }
@@ -78,6 +83,7 @@ export type VersionHistoryAction =
   | SetIncludeAction
   | SetPreviewAction
   | ClearPreviewAction
+  | PreviewAppliedAction
   | VersionRestoredAction
   | AppendSessionLogAction
   | ClearSessionLogAction;
@@ -111,6 +117,15 @@ export const clearVersionPreview = (): ClearPreviewAction => ({
   type: CLEAR_VERSION_PREVIEW,
 });
 
+/**
+ * Marks the requested preview as fully applied. Dispatched when the snapshot
+ * has been hydrated, or when applying it failed -- either way the page has
+ * stopped being in-between states.
+ */
+export const versionPreviewApplied = (): PreviewAppliedAction => ({
+  type: VERSION_PREVIEW_APPLIED,
+});
+
 export const versionRestored = (): VersionRestoredAction => ({
   type: VERSION_RESTORED,
 });
@@ -131,6 +146,7 @@ const initialState: VersionHistoryState = {
   entityType: null,
   include: 'all',
   preview: null,
+  isPreviewApplying: false,
   sessionLog: [],
   restoreCount: 0,
 };
@@ -144,13 +160,24 @@ export default function versionHistoryReducer(
       return { ...state, isPanelOpen: true, entityType: action.entityType };
     case CLOSE_VERSION_HISTORY_PANEL:
       // Closing the panel also exits any active preview.
-      return { ...state, isPanelOpen: false, preview: null };
+      return {
+        ...state,
+        isPanelOpen: false,
+        preview: null,
+        isPreviewApplying: false,
+      };
     case SET_VERSION_HISTORY_INCLUDE:
       return { ...state, include: action.include };
     case SET_VERSION_PREVIEW:
-      return { ...state, preview: action.preview };
+      // A newly requested preview is by definition not on screen yet: the
+      // snapshot takes several round trips to fetch and hydrate, and until it
+      // lands the page still shows live data. Starting in the applying state
+      // means no caller can forget to announce it.
+      return { ...state, preview: action.preview, isPreviewApplying: true };
+    case VERSION_PREVIEW_APPLIED:
+      return { ...state, isPreviewApplying: false };
     case CLEAR_VERSION_PREVIEW:
-      return { ...state, preview: null };
+      return { ...state, preview: null, isPreviewApplying: false };
     case VERSION_RESTORED:
       return { ...state, restoreCount: state.restoreCount + 1 };
     case APPEND_VERSION_SESSION_LOG: {
@@ -195,6 +222,14 @@ export const selectVersionHistoryInclude = (state: VersionHistoryRootState) =>
 
 export const selectVersionPreview = (state: VersionHistoryRootState) =>
   selectVersionHistory(state).preview;
+
+/**
+ * True while a requested preview is still being fetched and hydrated -- the
+ * window in which the banner is up but the page below it is still live data.
+ */
+export const selectIsVersionPreviewApplying = (
+  state: VersionHistoryRootState,
+) => selectVersionHistory(state).isPreviewApplying;
 
 export const selectIsChartVersionPreviewActive = (
   state: VersionHistoryRootState,
