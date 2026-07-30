@@ -20,6 +20,7 @@ from flask import current_app
 from marshmallow import ValidationError
 
 from superset.charts.schemas import (
+    ChartDataExtrasSchema,
     ChartDataProphetOptionsSchema,
     ChartDataQueryObjectSchema,
     ChartDataRollingOptionsSchema,
@@ -420,3 +421,17 @@ def test_chart_external_url_rejects_non_absolute(app_context: None, url: str) ->
             }
         )
     assert "external_url" in exc_info.value.messages
+
+
+def test_chart_data_extras_rejects_system_sampling(app_context: None) -> None:
+    """
+    ``extras["system_sampling"]`` is a server-side marker (set by the samples
+    query action) that routes physical-dataset sampling queries through the
+    engine's bounded-read retry. It must never be settable through the
+    chart-data API: this pins the schema's unknown-field rejection so a future
+    ``unknown = INCLUDE`` (or an explicit field) cannot silently make an
+    operator-limit-affecting flag client-controllable.
+    """
+    with pytest.raises(ValidationError) as exc_info:
+        ChartDataExtrasSchema().load({"system_sampling": True})
+    assert "system_sampling" in exc_info.value.messages

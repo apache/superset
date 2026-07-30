@@ -23,6 +23,12 @@ jobs:
   frontend-build:
     runs-on: ubuntu-26.04
     timeout-minutes: 30
+    # The change detector reads the PR's file list, which needs
+    # `pull-requests: read`. Public repos serve that endpoint without it;
+    # private forks return 403.
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
       should-run: ${{ steps.check.outputs.frontend }}
     steps:
