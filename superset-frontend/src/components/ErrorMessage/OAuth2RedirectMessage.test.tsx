@@ -20,7 +20,7 @@
 import * as reduxHooks from 'react-redux';
 import { Provider } from 'react-redux';
 import { createStore, Store } from 'redux';
-import { render, waitFor } from 'spec/helpers/testing-library';
+import { act, render, waitFor } from 'spec/helpers/testing-library';
 import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
 import { reRunQuery } from 'src/SqlLab/actions/sqlLab';
 import { triggerQuery } from 'src/components/Chart/chartAction';
@@ -166,15 +166,55 @@ describe('OAuth2RedirectMessage Component', () => {
     render(setup());
 
     simulateBroadcastMessage({ tabId: 'tabId' });
+    simulateStorageMessage({ tabId: 'tabId' });
+
+    await waitFor(() => {
+      expect(reRunQuery).toHaveBeenCalledWith({ sql: 'SELECT * FROM table' });
+    });
+    expect(reRunQuery).toHaveBeenCalledTimes(1);
+  });
+
+  test('dispatches reRunQuery action when storage event has matching tab ID', async () => {
+    render(setup());
+
+    simulateStorageMessage({ tabId: 'tabId' });
 
     await waitFor(() => {
       expect(reRunQuery).toHaveBeenCalledWith({ sql: 'SELECT * FROM table' });
     });
   });
 
-  test('dispatches reRunQuery action when storage event has matching tab ID', async () => {
-    render(setup());
+  test('waits for the SQL Lab query before consuming the completion', async () => {
+    const delayedQueryStore = createStore(
+      (
+        state = {
+          ...mockStoreUnsavedChart.getState(),
+          sqlLab: {
+            queries: {},
+            queryEditors: [{ id: 'editor-id', latestQueryId: 'query-id' }],
+            tabHistory: ['editor-id'],
+          },
+        },
+        action,
+      ) =>
+        action.type === 'load-query'
+          ? {
+              ...state,
+              sqlLab: {
+                ...state.sqlLab,
+                queries: { 'query-id': { sql: 'SELECT * FROM table' } },
+              },
+            }
+          : state,
+    );
+    render(setup({}, delayedQueryStore));
 
+    simulateBroadcastMessage({ tabId: 'tabId' });
+    expect(reRunQuery).not.toHaveBeenCalled();
+
+    act(() => {
+      delayedQueryStore.dispatch({ type: 'load-query' });
+    });
     simulateStorageMessage({ tabId: 'tabId' });
 
     await waitFor(() => {

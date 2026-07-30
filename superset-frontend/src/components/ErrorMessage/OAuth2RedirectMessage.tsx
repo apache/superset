@@ -111,7 +111,6 @@ export function OAuth2RedirectMessage({
       if (tabId !== extra.tab_id || tabId === lastHandledTabIdRef.current) {
         return;
       }
-      lastHandledTabIdRef.current = tabId;
 
       if (errorMitigationFunction) {
         errorMitigationFunction();
@@ -129,7 +128,11 @@ export function OAuth2RedirectMessage({
             'Tables',
           ]),
         );
+      } else {
+        return;
       }
+
+      lastHandledTabIdRef.current = tabId;
     };
 
     const channel =

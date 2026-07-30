@@ -148,7 +148,11 @@ const DatasetPanelWrapper = ({
             error_type: ErrorTypeEnum.GENERIC_BACKEND_ERROR,
             extra: null,
             level: 'error' as const,
-            message: clientError.error,
+            message:
+              clientError.error ||
+              clientError.message ||
+              clientError.statusText ||
+              t('Unable to load columns for the selected table.'),
           };
 
           setColumnList([]);

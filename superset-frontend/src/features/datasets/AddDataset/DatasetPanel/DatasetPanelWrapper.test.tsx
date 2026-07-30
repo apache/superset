@@ -20,6 +20,7 @@ import { act, render, screen, waitFor } from 'spec/helpers/testing-library';
 import { ErrorTypeEnum, SupersetClient } from '@superset-ui/core';
 import type { SupersetClientResponse } from '@superset-ui/core';
 import {
+  DatabaseErrorMessage,
   getErrorMessageComponentRegistry,
   OAuth2RedirectMessage,
 } from 'src/components/ErrorMessage';
@@ -37,6 +38,7 @@ jest.mock(
 const errorMessageRegistry = getErrorMessageComponentRegistry();
 
 afterEach(() => {
+  errorMessageRegistry.remove(ErrorTypeEnum.GENERIC_BACKEND_ERROR);
   errorMessageRegistry.remove(ErrorTypeEnum.OAUTH2_REDIRECT);
   jest.restoreAllMocks();
 });
@@ -73,6 +75,32 @@ test('fetches table metadata for schema-less database without schema', async () 
       }),
     );
   });
+});
+
+test('renders a fallback message for an unstructured metadata error', async () => {
+  jest.spyOn(SupersetClient, 'get').mockRejectedValue({
+    response: new Response('{}', {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    }),
+  });
+  errorMessageRegistry.registerValue(
+    ErrorTypeEnum.GENERIC_BACKEND_ERROR,
+    DatabaseErrorMessage,
+  );
+
+  render(
+    <DatasetPanelWrapper
+      tableName="broken_table"
+      dbId={1}
+      database={{ supports_schemas: false }}
+    />,
+    { useRouter: true },
+  );
+
+  expect(
+    await screen.findByText('Unable to load columns for the selected table.'),
+  ).toBeVisible();
 });
 
 test('retries only table metadata after matching OAuth completion', async () => {
