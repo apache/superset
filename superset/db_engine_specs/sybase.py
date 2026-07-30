@@ -31,10 +31,10 @@ class SybaseEngineSpec(MssqlEngineSpec):
     engine_name = "SAP Sybase"
     engine_aliases = {"sybase_sqlany"}  # Support SQL Anywhere dialect too
 
-    # Unlike MSSQL, SAP ASE/SQL Anywhere quote identifiers with double quotes,
-    # not square brackets, so override the values inherited from MssqlEngineSpec.
-    identifier_quote_start: str = '"'
-    identifier_quote_end: str = '"'
+    # SAP ASE's `quoted_identifier` session option defaults to OFF, in which
+    # case double-quoted strings are parsed as string literals rather than
+    # identifiers. Square brackets, inherited from MssqlEngineSpec, work
+    # regardless of that setting, so no override is needed here.
     default_driver = "pyodbc"
 
     metadata = {

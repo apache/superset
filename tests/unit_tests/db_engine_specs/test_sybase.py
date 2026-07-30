@@ -16,12 +16,13 @@
 # under the License.
 
 
-def test_identifier_quote_uses_double_quotes() -> None:
-    """SAP ASE/SQL Anywhere quote identifiers with double quotes, unlike the
-    MssqlEngineSpec parent class it otherwise reuses."""
+def test_identifier_quote_uses_square_brackets() -> None:
+    """SAP ASE's `quoted_identifier` option defaults to OFF, so double quotes
+    aren't safe for autocomplete-inserted identifiers. Square brackets work
+    unconditionally, so SybaseEngineSpec keeps the MssqlEngineSpec default."""
     from superset.db_engine_specs.sybase import SybaseEngineSpec
 
     assert SybaseEngineSpec.get_public_information()["identifier_quote"] == {
-        "start": '"',
-        "end": '"',
+        "start": "[",
+        "end": "]",
     }

@@ -195,7 +195,9 @@ export function useKeywords(
       );
     }
 
-    let { caption } = data;
+    // `caption` is optional on AceCompleterKeywordData; fall back to `name`/
+    // `value` so a missing caption can't quote `undefined` into the editor.
+    let caption = data.caption ?? data.name ?? data.value ?? '';
     if (data.meta === 'table') {
       caption = quoteIdentifier(caption, identifierQuote);
     }

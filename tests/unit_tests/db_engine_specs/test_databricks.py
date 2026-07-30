@@ -1092,3 +1092,18 @@ def test_get_oauth2_fresh_token_python(
         },
         timeout=30.0,
     )
+
+
+def test_identifier_quote_uses_backticks() -> None:
+    """Databricks SQL is Spark SQL under the hood, so identifiers are quoted
+    with backticks, not the inherited ANSI double quotes."""
+    assert DatabricksNativeEngineSpec.get_public_information()["identifier_quote"] == {
+        "start": "`",
+        "end": "`",
+    }
+    assert DatabricksPythonConnectorEngineSpec.get_public_information()[
+        "identifier_quote"
+    ] == {
+        "start": "`",
+        "end": "`",
+    }
