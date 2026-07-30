@@ -19,15 +19,22 @@
 import { utils, writeFile } from 'xlsx';
 import type { WorkSheet } from 'xlsx';
 
+// ISO 8601 date (and optional time) form, e.g. "2024-01-01" or
+// "2024-01-01 00:00:00". This layout is unambiguous under any locale
+// (unlike "1/2/2024", which means different dates depending on the
+// reader), so it's safe to restore as a native Excel date.
+const ISO_DATE_RE =
+  /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}):(\d{2}))?$/;
+
 // `raw: true` (used below) keeps every table cell as text, so ordinary
-// numbers lose their native Excel numeric type along with the
-// locale-formatted ones. A cell's text is only restored to a real number
-// when it round-trips losslessly through Number() (e.g. "42" or "-3.5"):
-// that guarantees it's a plain, unambiguous number under any locale, so
-// restoring it can't reintroduce the misparsing raw: true guards against.
-// Anything that doesn't round-trip (grouped thousands, percent suffixes,
-// trailing zero padding, other D3_FORMAT output, etc.) stays as text,
-// exactly as rendered.
+// numbers and dates lose their native Excel type along with the
+// locale-formatted values. A cell's text is only restored to a real number
+// or date when it is unambiguous under any locale: a plain number that
+// round-trips losslessly through Number() (e.g. "42" or "-3.5"), or an
+// ISO 8601 date/datetime string. Restoring those can't reintroduce the
+// misparsing raw: true guards against. Anything else (grouped thousands,
+// percent suffixes, trailing zero padding, other D3_FORMAT output, etc.)
+// stays as text, exactly as rendered.
 function restoreUnambiguousNumbers(sheet: WorkSheet): void {
   Object.keys(sheet).forEach(cellRef => {
     if (cellRef.startsWith('!')) {
@@ -36,6 +43,26 @@ function restoreUnambiguousNumbers(sheet: WorkSheet): void {
     const cell = sheet[cellRef];
     if (!cell || cell.t !== 's' || typeof cell.v !== 'string') {
       return;
+    }
+    const isoMatch = cell.v.match(ISO_DATE_RE);
+    if (isoMatch) {
+      const [y, mo, d, h, mi, s] = isoMatch
+        .slice(1)
+        .map(part => Number(part ?? 0));
+      const date = new Date(y, mo - 1, d, h, mi, s);
+      // The Date constructor rolls invalid components over into the next
+      // month/day (e.g. day 40 becomes the 10th of the following month)
+      // instead of rejecting them, so confirm the parts round-trip before
+      // trusting the result.
+      const isValid =
+        date.getFullYear() === y &&
+        date.getMonth() === mo - 1 &&
+        date.getDate() === d;
+      if (isValid) {
+        cell.t = 'd';
+        cell.v = date;
+        return;
+      }
     }
     const value = Number(cell.v);
     if (cell.v !== '' && Number.isFinite(value) && String(value) === cell.v) {

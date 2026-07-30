@@ -86,3 +86,33 @@ test('restores unambiguous plain numbers to native Excel numeric cells', () => {
   expect(sheet.C1).toMatchObject({ t: 's', v: '3.500' });
   expect(sheet.D1).toMatchObject({ t: 's', v: '1,234' });
 });
+
+test('restores unambiguous ISO date/datetime strings to native Excel date cells', () => {
+  document.body.innerHTML = `
+    <table id="pivot-table">
+      <tbody>
+        <tr>
+          <td>2024-01-01</td>
+          <td>2024-01-01 13:45:30</td>
+          <td>not-a-date</td>
+        </tr>
+      </tbody>
+    </table>
+  `;
+
+  exportPivotExcel('#pivot-table', 'export');
+
+  const workbook = mockWriteFile.mock.calls.at(-1)?.[0] as WorkBook;
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+  // ISO 8601 date/datetime strings are unambiguous under any locale, so
+  // they're restored to native Excel date cells rather than left as text.
+  expect(sheet.A1.t).toBe('d');
+  expect((sheet.A1.v as Date).getFullYear()).toBe(2024);
+  expect((sheet.A1.v as Date).getMonth()).toBe(0);
+  expect((sheet.A1.v as Date).getDate()).toBe(1);
+  expect(sheet.B1.t).toBe('d');
+  expect((sheet.B1.v as Date).getHours()).toBe(13);
+  // Non-date text is left untouched.
+  expect(sheet.C1).toMatchObject({ t: 's', v: 'not-a-date' });
+});
