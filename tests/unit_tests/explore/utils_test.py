@@ -364,7 +364,7 @@ def test_query_no_access(mocker: MockerFixture, client) -> None:
         )
 
 
-def test_unsaved_query_explore_allows_the_querys_own_author(
+def test_unsaved_query_explore_allows_the_query_author(
     mocker: MockerFixture, client
 ) -> None:
     """
