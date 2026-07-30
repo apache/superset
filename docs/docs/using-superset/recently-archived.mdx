@@ -41,9 +41,28 @@ Each row shows:
 
 The list is sorted by archive time, most recently archived first.
 
-## Restoring an object
+## Recovering an object
 
-Use the **Restore** action on a row to bring the object back. It immediately
-returns to its normal list and disappears from the archive. Restoring is limited
-to the object's owners and admins; you can only restore objects you are able to
-see in this view.
+Use the **Recover** action on a row to bring the object back. It immediately
+returns to its normal list and disappears from the archive. Recovering is
+limited to the object's editors and admins; you can only recover objects you
+are able to see in this view.
+
+## Deleting an object permanently
+
+Use the **Delete permanently** action on a row to remove an object for good.
+You will be asked to confirm.
+
+This cannot be undone. Unlike archiving, it does not move the object anywhere
+— the object and its version history are erased, and no retention window
+applies. The same audience that can recover an object can delete it
+permanently: its editors and admins.
+
+Some objects cannot be deleted permanently while something still depends on
+them. A chart used by an alert or report, for example, is refused until that
+alert or report is removed, and the reason is shown. Charts that belong to
+dashboards are removed from those dashboards as part of the deletion; the
+dashboards themselves are left in place.
+
+Objects are also deleted permanently on their own once they have been in the
+archive longer than the retention window, without anyone acting.

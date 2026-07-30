@@ -297,3 +297,23 @@ test('renders dataset names as plain text with no preview link', async () => {
   const name = await screen.findByText('deleted_table_one');
   expect(name.closest('a')).toBeNull();
 });
+
+test('a second Recover click while the first is in flight is ignored', async () => {
+  // Without a guard the retry lands after the row is already restored, so the
+  // server answers 404 and the user is shown a failure toast after a success.
+  mockRoutes();
+  renderArchivedList();
+  await screen.findByTestId('archived-list-view');
+
+  const [restore] = await screen.findAllByTestId('archived-row-restore');
+  userEvent.click(restore);
+  userEvent.click(restore);
+  userEvent.click(restore);
+
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls(restoreEndpoint).length).toBeGreaterThan(
+      0,
+    ),
+  );
+  expect(fetchMock.callHistory.calls(restoreEndpoint)).toHaveLength(1);
+});

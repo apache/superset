@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
@@ -58,8 +58,15 @@ const TypeSelectRow = styled.div`
 const StyledActions = styled.div`
   ${({ theme }) => `
     color: ${theme.colorIcon};
-    display: flex;
-    gap: ${theme.sizeUnit * 2}px;
+
+    /* TableCollection hides .actions with opacity and reveals them on row
+       hover. Without a focus companion, tabbing lands on fully transparent
+       controls — and on this page recovering and permanently deleting are
+       the only actions there are. Scoped here rather than in the shared
+       component, which has the same gap on every list view. */
+    &:focus-within {
+      opacity: 1;
+    }
   `}
 `;
 
@@ -80,11 +87,14 @@ function ArchivedRowActions({
   name,
   onRestore,
   onPurge,
+  busy = false,
 }: {
   item: ArchivedItem;
   name: string;
   onRestore: (item: ArchivedItem) => void;
   onPurge: (item: ArchivedItem) => void;
+  /** A request for this row is in flight; both actions stand down. */
+  busy?: boolean;
 }) {
   return (
     <StyledActions className="actions">
@@ -94,6 +104,7 @@ function ArchivedRowActions({
         placement="bottom"
         icon={<Icons.RollbackOutlined iconSize="l" />}
         dataTest="archived-row-restore"
+        disabled={busy}
         onClick={() => onRestore(item)}
       />
       <ConfirmStatusChange
@@ -111,6 +122,7 @@ function ArchivedRowActions({
             placement="bottom"
             icon={<Icons.DeleteOutlined iconSize="l" />}
             dataTest="archived-row-purge"
+            disabled={busy}
             onClick={confirmDelete}
           />
         )}
@@ -154,9 +166,35 @@ function ArchivedListBody({
   // so the server-side count/pagination stays consistent and the row drops out;
   // on any error surface a danger toast and leave the row in place. The list
   // read is already owner-scoped, so every visible row is restorable.
+  // A second activation while a request is in flight races the first: by the
+  // time the retry lands the row is already restored (or purged), so the
+  // server answers 404 and the user is shown a failure after a success. The
+  // ref is the guard rather than the state, because state updates are async
+  // and two quick clicks could both pass a state check; the state mirrors it
+  // so the buttons can render disabled meanwhile.
+  const inFlightRef = useRef<Set<string>>(new Set());
+  const [inFlight, setInFlight] = useState<readonly string[]>([]);
+
+  const beginAction = useCallback((uuid: string): boolean => {
+    if (inFlightRef.current.has(uuid)) {
+      return false;
+    }
+    inFlightRef.current.add(uuid);
+    setInFlight([...inFlightRef.current]);
+    return true;
+  }, []);
+
+  const endAction = useCallback((uuid: string) => {
+    inFlightRef.current.delete(uuid);
+    setInFlight([...inFlightRef.current]);
+  }, []);
+
   const handleRestore = useCallback(
     async (item: ArchivedItem) => {
       const name = String(item[config.nameField] ?? '');
+      if (!beginAction(item.uuid)) {
+        return;
+      }
       try {
         await SupersetClient.post({
           endpoint: `/api/v1/${config.resource}/${item.uuid}/restore`,
@@ -170,6 +208,8 @@ function ArchivedListBody({
         refreshData();
       } catch (error) {
         addDangerToast(t('Failed to restore %(name)s', { name }));
+      } finally {
+        endAction(item.uuid);
       }
     },
     [
@@ -179,6 +219,8 @@ function ArchivedListBody({
       addSuccessToast,
       addDangerToast,
       refreshData,
+      beginAction,
+      endAction,
     ],
   );
 
@@ -188,6 +230,9 @@ function ArchivedListBody({
   const handlePurge = useCallback(
     async (item: ArchivedItem) => {
       const name = String(item[config.nameField] ?? '');
+      if (!beginAction(item.uuid)) {
+        return;
+      }
       try {
         await SupersetClient.post({
           endpoint: `/api/v1/${config.resource}/${item.uuid}/purge`,
@@ -196,6 +241,8 @@ function ArchivedListBody({
         refreshData();
       } catch (error) {
         addDangerToast(t('Failed to delete %(name)s', { name }));
+      } finally {
+        endAction(item.uuid);
       }
     },
     [
@@ -204,6 +251,8 @@ function ArchivedListBody({
       addSuccessToast,
       addDangerToast,
       refreshData,
+      beginAction,
+      endAction,
     ],
   );
 
@@ -271,6 +320,7 @@ function ArchivedListBody({
             name={String(original[config.nameField] ?? '')}
             onRestore={handleRestore}
             onPurge={handlePurge}
+            busy={inFlight.includes(original.uuid)}
           />
         ),
         Header: t('Actions'),
@@ -279,7 +329,14 @@ function ArchivedListBody({
         size: 'sm',
       },
     ],
-    [config.nameField, config.previewable, type, handleRestore, handlePurge],
+    [
+      config.nameField,
+      config.previewable,
+      type,
+      handleRestore,
+      handlePurge,
+      inFlight,
+    ],
   );
 
   // Default to most-recently-archived first. `deleted_at` is orderable on all

@@ -350,11 +350,11 @@ function DashboardList(props: DashboardListProps) {
         addDangerToast(
           softDelete
             ? t(
-                'There was an issue archiving the selected dashboards: ',
+                'There was an issue archiving the selected dashboards: %s',
                 errMsg,
               )
             : t(
-                'There was an issue deleting the selected dashboards: ',
+                'There was an issue deleting the selected dashboards: %s',
                 errMsg,
               ),
         ),
