@@ -127,6 +127,8 @@ Docker can reuse the cached upstream layers and only rebuild what your stage add
 
 ```Dockerfile
 # Append this to the end of the repo's Dockerfile
+# Keep this tag in sync with the branch/tag of the repo you cloned, so the
+# translation files built from source match the keys the runtime expects:
 FROM apache/superset:5.0.0 AS my-custom-image
 USER root
 
@@ -153,10 +155,11 @@ came out of, credit to the community for working it out.
 
 ## Key ARGs in Dockerfile
 
-- `BUILD_TRANSLATIONS`: whether to build the translations into the image. For the
-  frontend build this tells webpack to strip out all locales other than `en` from
-  the `moment-timezone` library. For the backend this skips compiling the
-  `*.po` translation files. This only takes effect when building the image from source
+- `BUILD_TRANSLATIONS`: whether to compile non-English translations into the image.
+  When `true`, the frontend build converts the `*.po` files to locale JSON and the
+  backend runs `pybabel compile` to produce `*.mo` files; both source `*.po` files
+  are stripped afterward either way. When `false` (the default), those compile
+  steps are skipped and only `en` ships. This only takes effect when building the image from source
   (`docker build` against this repo's own `Dockerfile`); it has no effect on a downstream
   Dockerfile that just extends an already-published tag, see
   "Adding translations to a custom image" above.
