@@ -385,3 +385,37 @@ test('formatAuthor handles system, named, and nameless users', () => {
     'Unknown user',
   );
 });
+
+test('the shared-dataset headline goes through the plural machinery', () => {
+  // English resolves this branch identically for every count above one, so a
+  // hardcoded plural passes any English assertion. It is routed through tn so
+  // a locale with several plural forms can pick the right one; asserting both
+  // the count and the substituted name pins that the plural call is the one
+  // producing the string.
+  expect(
+    relatedHeadline(
+      record({
+        source: 'related',
+        entity_kind: 'dataset',
+        entity_name: 'Sales',
+        summary: 'Dataset updated: Sales',
+        impact: { charts: 2 },
+      }),
+    ),
+  ).toBe('Dataset used by 2 charts updated: Sales');
+});
+
+test('an unlabelled related record does not assemble its sentence from fragments', () => {
+  // The noun and the frame used to be translated separately and concatenated,
+  // which leaves a translator unable to inflect the noun for the sentence.
+  expect(
+    relatedHeadline(
+      record({
+        source: 'related',
+        entity_kind: 'chart',
+        entity_name: 'Revenue',
+        summary: '',
+      }),
+    ),
+  ).toBe('Item updated: Revenue');
+});

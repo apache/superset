@@ -380,13 +380,19 @@ export function relatedRollupHeadline(
 export function relatedHeadline(record: ActivityRecord): string {
   const chartCount = record.impact?.charts ?? 0;
   if (record.entity_kind === 'dataset' && chartCount > 1) {
-    return t(
+    // tn even though this branch only runs for counts above one: English has
+    // a single plural form, but languages with several (2-4 vs 5+ and so on)
+    // still need the count to pick between them.
+    return tn(
+      'Dataset used by %s chart updated: %s',
       'Dataset used by %s charts updated: %s',
+      chartCount,
       chartCount,
       entityDisplayName(record),
     );
   }
-  return (
-    record.summary || t('%s updated: %s', t('Item'), entityDisplayName(record))
-  );
+  // One whole sentence rather than t('Item') interpolated into t('%s updated'):
+  // a translator given the fragments separately cannot inflect the noun for
+  // the sentence it lands in, and many languages require that.
+  return record.summary || t('Item updated: %s', entityDisplayName(record));
 }
