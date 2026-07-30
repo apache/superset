@@ -18,7 +18,7 @@
  */
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { styled, useTheme } from '@apache-superset/core/theme';
+import { styled } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
   Comparator,
@@ -241,7 +241,6 @@ export const FormattingPopoverContent = ({
   allColumns?: ColumnOption[];
 }) => {
   const [form] = Form.useForm();
-  const theme = useTheme();
   const colors = colorScheme();
   const [showOperatorFields, setShowOperatorFields] = useState(
     config === undefined ||
