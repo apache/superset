@@ -57,3 +57,32 @@ test('preserves locale-formatted numbers exactly as rendered, without SheetJS re
   expect(sheet.B1).toMatchObject({ t: 's', v: '12,50%' });
   expect(sheet.C1).toMatchObject({ t: 's', v: '3.500' });
 });
+
+test('restores unambiguous plain numbers to native Excel numeric cells', () => {
+  document.body.innerHTML = `
+    <table id="pivot-table">
+      <tbody>
+        <tr>
+          <td>42</td>
+          <td>-3.5</td>
+          <td>3.500</td>
+          <td>1,234</td>
+        </tr>
+      </tbody>
+    </table>
+  `;
+
+  exportPivotExcel('#pivot-table', 'export');
+
+  const workbook = mockWriteFile.mock.calls.at(-1)?.[0] as WorkBook;
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+  // "42" and "-3.5" round-trip exactly through Number(), so they're
+  // unambiguous under any locale and are restored to real numbers.
+  expect(sheet.A1).toMatchObject({ t: 'n', v: 42 });
+  expect(sheet.B1).toMatchObject({ t: 'n', v: -3.5 });
+  // "3.500" (trailing zero padding) and "1,234" (grouped thousands) don't
+  // round-trip, so they stay as text rather than risk misparsing them.
+  expect(sheet.C1).toMatchObject({ t: 's', v: '3.500' });
+  expect(sheet.D1).toMatchObject({ t: 's', v: '1,234' });
+});
