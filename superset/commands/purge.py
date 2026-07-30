@@ -29,7 +29,7 @@ from typing import Any
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset import security_manager
+from superset import is_feature_enabled, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.deletion_retention.force_purge import ForcePurgeCommand
 from superset.daos.base import BaseDAO
@@ -115,6 +115,22 @@ class PurgeArchivedCommand(BaseCommand):
             )
 
     def validate(self) -> None:
+        if not is_feature_enabled("SOFT_DELETE"):
+            # Every other surface of this feature is already gated: the archive
+            # page, the Settings entry, and the retention task all stand down
+            # when the flag is off. The route staying live left an irreversible
+            # operation reachable for a feature nobody can otherwise see.
+            #
+            # Restore is deliberately *not* gated alongside it. With the flag
+            # off, deletes are hard and the visibility filter is inert, so any
+            # rows soft-deleted while it was on are plainly visible again --
+            # and undoing that state is reversible, where purging it is not.
+            # A disabled feature should lose its destructive operations, not
+            # its recovery ones.
+            raise self._binding.not_found(
+                "Permanent delete is unavailable while soft delete is disabled"
+            )
+
         # Bypass the visibility filter *and* the RBAC base filter, matching
         # BaseRestoreCommand: an editor whose base filter no longer admits the
         # row (e.g. a chart editor who lost datasource access) must still be

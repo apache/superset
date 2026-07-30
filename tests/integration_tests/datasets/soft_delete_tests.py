@@ -732,6 +732,7 @@ class TestDatasetArchiveListing(SupersetTestCase):
         # Cleanup
         self._cleanup(dataset_id, database)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_purge_by_owner_permanently_deletes(self) -> None:
         """POST /api/v1/dataset/<uuid>/purge hard-deletes an archived dataset."""
         dataset, database = self._make("arch_purge_ds")
@@ -756,6 +757,7 @@ class TestDatasetArchiveListing(SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_purge_blocked_for_non_owner(self) -> None:
         """A non-owner (Gamma) cannot permanently delete another user's archived
         dataset (SC-003)."""

@@ -685,6 +685,7 @@ class TestChartArchiveListing(InsertChartMixin, SupersetTestCase):
         # Cleanup
         _hard_delete_chart(chart_id)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_purge_by_owner_permanently_deletes(self) -> None:
         """POST /api/v1/chart/<uuid>/purge hard-deletes an archived chart."""
         admin_id = self.get_user("admin").id
@@ -707,6 +708,7 @@ class TestChartArchiveListing(InsertChartMixin, SupersetTestCase):
         )
         assert row is None
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_purge_cannot_reach_another_entity_type_sharing_the_uuid(self) -> None:
         """The chart purge route must not delete a dashboard that happens to
         carry the same UUID.
@@ -767,6 +769,7 @@ class TestChartArchiveListing(InsertChartMixin, SupersetTestCase):
                 db.session.delete(row)
                 db.session.commit()
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_purge_of_restored_chart_reports_not_found(self) -> None:
         """A chart restored between authorization and purge is not deleted.
 
@@ -805,6 +808,51 @@ class TestChartArchiveListing(InsertChartMixin, SupersetTestCase):
         finally:
             _hard_delete_chart(chart_id)
 
+    @with_feature_flags(SOFT_DELETE=False)
+    def test_purge_is_unreachable_while_soft_delete_is_disabled(self) -> None:
+        """An irreversible operation must not outlive the feature it belongs to.
+
+        With the flag off the archive page, the Settings entry and the
+        retention task all stand down, so a live purge route would be the one
+        way to permanently destroy an object through a feature nobody can see.
+        """
+        admin_id = self.get_user(ADMIN_USERNAME).id
+        chart = self.insert_chart("arch_purge_flagoff", [admin_id], 1)
+        chart_id = chart.id
+        chart_uuid = str(chart.uuid)
+        chart.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        db.session.commit()
+
+        self.login(ADMIN_USERNAME)
+        rv = self.client.post(f"/api/v1/chart/{chart_uuid}/purge")
+        assert rv.status_code == 404, rv.data
+
+        survivor = (
+            db.session.query(Slice)
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {Slice}})
+            .filter(Slice.id == chart_id)
+            .one_or_none()
+        )
+        assert survivor is not None
+
+    @with_feature_flags(SOFT_DELETE=False)
+    def test_restore_stays_reachable_while_soft_delete_is_disabled(self) -> None:
+        """Recovery survives the flag going off, unlike destruction.
+
+        Rows soft-deleted while the flag was on are still soft-deleted after it
+        goes off; clearing that state is reversible, so it stays available.
+        """
+        admin_id = self.get_user(ADMIN_USERNAME).id
+        chart = self.insert_chart("arch_restore_flagoff", [admin_id], 1)
+        chart_uuid = str(chart.uuid)
+        chart.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        db.session.commit()
+
+        self.login(ADMIN_USERNAME)
+        rv = self.client.post(f"/api/v1/chart/{chart_uuid}/restore")
+        assert rv.status_code == 200, rv.data
+
+    @with_feature_flags(SOFT_DELETE=True)
     def test_purge_blocked_by_report_does_not_report_success(self) -> None:
         """A purge the cascade refuses must not answer 200 "OK".
 
@@ -853,6 +901,7 @@ class TestChartArchiveListing(InsertChartMixin, SupersetTestCase):
                 db.session.delete(row)
                 db.session.commit()
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_purge_blocked_for_non_owner(self) -> None:
         """A non-owner (Gamma) cannot permanently delete another user's archived
         chart — purge is owner/admin only, mirroring restore (SC-003)."""
@@ -870,6 +919,7 @@ class TestChartArchiveListing(InsertChartMixin, SupersetTestCase):
         # Cleanup
         _hard_delete_chart(chart_id)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_purge_live_chart_returns_404(self) -> None:
         """The purge endpoint only operates on soft-deleted rows; a live chart
         returns 404 (use DELETE to archive first)."""
@@ -885,6 +935,7 @@ class TestChartArchiveListing(InsertChartMixin, SupersetTestCase):
         # Cleanup
         _hard_delete_chart(chart_id)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_purge_database_failure_returns_422(self) -> None:
         """A database failure during the cascade surfaces as a clean 422 (via
         the ``ChartDeleteFailedError`` handler) rather than an unhandled 500 —
@@ -909,6 +960,7 @@ class TestChartArchiveListing(InsertChartMixin, SupersetTestCase):
         # Cleanup — the row is still soft-deleted (purge never completed).
         _hard_delete_chart(chart_id)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_purge_unexpected_error_is_not_disguised_as_a_422(self) -> None:
         """An unexpected error is not laundered into a client-facing 422.
 

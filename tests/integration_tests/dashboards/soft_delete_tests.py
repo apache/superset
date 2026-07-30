@@ -844,6 +844,7 @@ class TestDashboardArchiveListing(SupersetTestCase):
         # Cleanup
         _hard_delete_dashboard(dashboard_id)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_purge_by_owner_permanently_deletes(self) -> None:
         """POST /api/v1/dashboard/<uuid>/purge hard-deletes an archived dashboard."""
         dashboard = self._make("arch_purge_dash")
@@ -864,6 +865,7 @@ class TestDashboardArchiveListing(SupersetTestCase):
         )
         assert row is None
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_purge_blocked_for_non_owner(self) -> None:
         """A non-owner (Gamma) cannot permanently delete another user's archived
         dashboard (SC-003)."""
