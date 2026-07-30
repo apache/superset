@@ -4276,7 +4276,7 @@ msgid ""
 "Create a new tag and assign it to existing entities like charts or "
 "dashboards"
 msgstr ""
-"Créer une étiquette et l'affecter à des entités existantes comme des "
+"Créer une balise et l'affecter à des entités existantes comme des "
 "graphiques ou des tableaux de bord"
 
 msgid "Create and explore dataset"
@@ -11299,13 +11299,13 @@ msgid ""
 "processes."
 msgstr ""
 "L'exécution de la planification de rapport nécessite un backend Celery "
-"configuré. Configurez un courtier Celery (Redis ou RabbitMQ) et des "
+"configuré. Configurez un broker Celery (Redis ou RabbitMQ) et des "
 "processus worker."
 
 #, python-format
 msgid "Report Schedule executor user %(username)s was not found."
 msgstr ""
-"L'utilisateur exécutant la planification de rapport %(username)s est "
+"L'utilisateur %(username)s exécutant la planification de rapport est "
 "introuvable."
 
 msgid "Report Schedule is still working, refusing to re-compute."
@@ -12015,7 +12015,7 @@ msgid "Search Metrics & Columns"
 msgstr "Rechercher les mesures et les colonnes"
 
 msgid "Search a channel by name, or paste a channel ID"
-msgstr "Recherchez un canal par son nom, ou collez un identifiant de canal"
+msgstr "Rechercher un canal par son nom, ou coller un identifiant de canal"
 
 msgid "Search all charts"
 msgstr "Rechercher tous les graphiques"
@@ -12411,10 +12411,10 @@ msgid "Select operator"
 msgstr "Sélectionner l'opérateur"
 
 msgid "Select or type BCC recipients"
-msgstr "Sélectionnez ou saisissez les destinataires en Cci"
+msgstr "Sélectionner ou saisir les destinataires en Cci"
 
 msgid "Select or type CC recipients"
-msgstr "Sélectionnez ou saisissez les destinataires en Cc"
+msgstr "Sélectionner ou saisir les destinataires en Cc"
 
 msgid "Select or type a custom value..."
 msgstr "Sélectionner ou renseigner une valeur personnalisé..."
@@ -12426,7 +12426,7 @@ msgid "Select or type dataset name"
 msgstr "Sélectionner la base de données ou taper le nom du jeu de données"
 
 msgid "Select or type email recipients"
-msgstr "Sélectionnez ou saisissez les destinataires du courriel"
+msgstr "Sélectionner ou saisir les destinataires du courriel"
 
 msgid "Select page size"
 msgstr "Sélectionner la taille de la page"
@@ -13262,7 +13262,7 @@ msgid ""
 "details."
 msgstr ""
 "Un problème est survenu lors du chargement du tableau de bord. Consultez "
-"la console de développement pour le détail."
+"la console développeur pour plus de détails."
 
 msgid "Something went wrong while saving the user info"
 msgstr "Une erreur s'est produite. Réessayez plus tard."
@@ -13914,7 +13914,7 @@ msgid "Tag created"
 msgstr "Balise créée"
 
 msgid "Tag description"
-msgstr "Description de l'étiquette"
+msgstr "Description de la balise"
 
 msgid "Tag name"
 msgstr "Nom de la balise"
@@ -14049,8 +14049,8 @@ msgstr "Text encapsulé dans le courriel"
 #, python-format
 msgid "The %(key)s in metadata_cache_timeout must be a non-negative integer."
 msgstr ""
-"La clé %(key)s de metadata_cache_timeout doit être un entier positif ou "
-"nul."
+"La valeur de %(key)s dans metadata_cache_timeout doit être un entier "
+"positif ou nul."
 
 #, python-format
 msgid "The %s"
@@ -14190,7 +14190,7 @@ msgstr ""
 " ou mettez à jour le rapport pour pointer vers un graphique actif."
 
 msgid "The chat failed to load."
-msgstr "Le chat n'a pas pu être chargé."
+msgstr "La conversation n'a pas pu être chargée."
 
 msgid ""
 "The classic. Great for showing how much of a company each investor gets, "
