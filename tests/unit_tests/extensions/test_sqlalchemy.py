@@ -229,6 +229,104 @@ def test_superset_joins(
         assert list(results) == [(10, "ten"), (20, "twenty")]
 
 
+@pytest.fixture
+def table1_large(session: Session, database1: "Database") -> Iterator[None]:
+    with database1.get_sqla_engine() as engine:
+        with engine.begin() as conn:
+            conn.execute(
+                text(
+                    "CREATE TABLE table1_large (a INTEGER NOT NULL PRIMARY KEY, "
+                    "b INTEGER)"
+                )
+            )
+            conn.execute(
+                text("INSERT INTO table1_large (a, b) VALUES (1, 10), (2, 20), (3, 30)")
+            )
+        db.session.commit()
+
+        yield
+
+        with engine.begin() as conn:
+            conn.execute(text("DROP TABLE table1_large"))
+        db.session.commit()
+
+
+@pytest.fixture
+def table2_late_match(session: Session, database2: "Database") -> Iterator[None]:
+    with database2.get_sqla_engine() as engine:
+        with engine.begin() as conn:
+            conn.execute(
+                text(
+                    "CREATE TABLE table2_late_match (a INTEGER NOT NULL PRIMARY KEY, "
+                    "b TEXT)"
+                )
+            )
+            conn.execute(
+                text("INSERT INTO table2_late_match (a, b) VALUES (3, 'thirty')")
+            )
+        db.session.commit()
+
+        yield
+
+        with engine.begin() as conn:
+            conn.execute(text("DROP TABLE table2_late_match"))
+        db.session.commit()
+
+
+@with_config(
+    {
+        "DB_SQLA_URI_VALIDATOR": None,
+        "SUPERSET_META_DB_LIMIT": 2,
+        "DATABASE_OAUTH2_CLIENTS": {},
+        "SQLALCHEMY_CUSTOM_PASSWORD_STORE": None,
+    }
+)
+@with_feature_flags(ENABLE_SUPERSET_META_DB=True)
+def test_superset_joins_with_limit_drops_matches(
+    mocker: MockerFixture,
+    app_context: None,
+    table1_large: None,
+    table2_late_match: None,
+) -> None:
+    """
+    Regression for #36304: SUPERSET_META_DB_LIMIT is applied to each
+    underlying table independently, before the in-memory join runs. A row
+    that has a genuine match on the other side of the join but falls past
+    the per-table limit is silently dropped from the join result, with no
+    error or truncation warning.
+    """
+    mocker.patch(
+        "superset.extensions.metadb.security_manager.raise_for_access",
+        return_value=None,
+    )
+
+    from flask import g
+
+    g.user = mocker.MagicMock()
+    g.user.is_anonymous = False
+
+    try:
+        engine = create_engine("superset://", future=True)
+    except Exception as e:
+        # Skip test if superset:// dialect can't be loaded (common in Docker)
+        pytest.skip(f"Superset dialect not available: {e}")
+
+    with engine.connect() as conn:
+        results = conn.execute(
+            text("""
+            SELECT t1.b, t2.b
+            FROM "database1.table1_large" AS t1
+            JOIN "database2.table2_late_match" AS t2
+            ON t1.a = t2.a
+            """)
+        )
+        # table2_late_match's only row (a=3) has a genuine match in
+        # table1_large (a=3, b=30), but SUPERSET_META_DB_LIMIT=2 truncates
+        # table1_large to its first two rows (a=1, a=2) before the join
+        # runs, so the join comes back empty instead of finding the match.
+        assert list(results) == [(30, "thirty")]
+
+
 @with_feature_flags(ENABLE_SUPERSET_META_DB=True)
 def test_dml(
     mocker: MockerFixture,
