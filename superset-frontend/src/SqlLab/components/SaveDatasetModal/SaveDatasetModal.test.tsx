@@ -291,6 +291,21 @@ describe('SaveDatasetModal', () => {
     expect(await screen.findAllByText('staging.task_instance')).toHaveLength(1);
     expect(await screen.findAllByText('prod.task_instance')).toHaveLength(1);
 
+    // The autocomplete filter matches on the label, so the schema prefix
+    // narrows the list down to a single row
+    await userEvent.type(
+      screen.getByRole('combobox', { name: /existing dataset/i }),
+      'prod.',
+    );
+    await act(async () => {
+      jest.runAllTimers();
+    });
+    await waitFor(() =>
+      expect(
+        screen.queryByText('staging.task_instance'),
+      ).not.toBeInTheDocument(),
+    );
+
     // Picking the prod row must target dataset 22, not the staging one
     await userEvent.click(screen.getByText('prod.task_instance'));
     await userEvent.click(screen.getByRole('button', { name: /overwrite/i }));
