@@ -52,5 +52,10 @@ def schema_allows_file_upload(database: Database, schema: Optional[str]) -> bool
     if not database.allow_file_upload:
         return False
     if schemas := database.get_schema_access_for_file_upload():
-        return schema in schemas
+        # Databases may report schema names in uppercase while the allow-list
+        # is inputted manually, so compare case-insensitively — mirroring the
+        # ``upload_allowed`` filtering of the database schemas endpoint.
+        return schema is not None and schema.lower() in {
+            allowed.lower() for allowed in schemas
+        }
     return security_manager.can_access_database(database)

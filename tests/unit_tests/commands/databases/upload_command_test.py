@@ -207,6 +207,33 @@ def test_validate_resolved_schema_checked_against_allowlist(
     allows.assert_called_once_with(model, "public")
 
 
+@pytest.mark.parametrize(
+    "schema,allowed,expected",
+    [
+        # databases may report schema names in uppercase while the allow-list
+        # is inputted manually; the check must be case-insensitive to match
+        # the ``upload_allowed`` filtering of the schemas endpoint
+        ("PUBLIC", {"public"}, True),
+        ("public", {"PUBLIC"}, True),
+        ("public", {"public"}, True),
+        ("other", {"public"}, False),
+        (None, {"public"}, False),
+    ],
+)
+def test_schema_allows_file_upload_is_case_insensitive(
+    schema: str | None,
+    allowed: set[str],
+    expected: bool,
+    mocker: MockerFixture,
+) -> None:
+    from superset.views.database.validators import schema_allows_file_upload
+
+    database = mocker.MagicMock()
+    database.allow_file_upload = True
+    database.get_schema_access_for_file_upload.return_value = allowed
+    assert schema_allows_file_upload(database, schema) is expected
+
+
 def _stub_run_environment(mocker: MockerFixture) -> MagicMock:
     """Stub everything ``run()`` needs up to the dataset lookup."""
     model = mocker.MagicMock()
