@@ -541,6 +541,24 @@ DEFAULT_STRUCTURED_CONTENT_KEEP_TOOLS: frozenset[str] = frozenset(
 )
 
 
+def _schema_shaped_error(exc: Exception, tool_name: str | None) -> dict[str, Any]:
+    """Build an error payload that satisfies a keep-list tool's ``outputSchema``.
+
+    Keep-list tools return a union (``ChartData | ChartError``), which FastMCP
+    advertises as ``{"result": {"anyOf": [...]}}`` with ``x-fastmcp-wrap-result``.
+    Shaping the error as the ``MCPBaseError`` branch — wrapped in ``result`` —
+    keeps the failure path conformant with what the tool declared.
+    """
+    from superset.mcp_service.common.error_schemas import MCPBaseError
+
+    payload = MCPBaseError(
+        error_type=type(exc).__name__,
+        message=str(exc),
+    ).model_dump(mode="json")
+    logger.debug("Schema-shaped error for keep-list tool %s", tool_name)
+    return {"result": payload}
+
+
 class StructuredContentStripperMiddleware(Middleware):
     """Strip ``outputSchema`` and ``structured_content`` to prevent encoding errors.
 
@@ -623,9 +641,20 @@ class StructuredContentStripperMiddleware(Middleware):
             # GlobalErrorHandlerMiddleware, ValueError, TypeError, etc. —
             # will cause encoding failures on the wire.
             mcp_call_id = _mcp_call_id_var.get(None)
+            tool_name = getattr(context.message, "name", None)
             return ToolResult(
                 content=[mt.TextContent(type="text", text=f"Error: {e}")],
                 meta={"mcp_call_id": mcp_call_id} if mcp_call_id else None,
+                # Keep-list tools keep their ``outputSchema`` advertised, so a
+                # text-only error result violates it and strict clients reject
+                # the whole call ("has an output schema but did not return
+                # structured content"). Emit a schema-shaped error instead so
+                # the failure reaches the user as a readable message.
+                structured_content=(
+                    _schema_shaped_error(e, tool_name)
+                    if tool_name in self._keep_tools()
+                    else None
+                ),
             )
         tool_name = getattr(context.message, "name", None)
         if (
