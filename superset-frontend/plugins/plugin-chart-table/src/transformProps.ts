@@ -745,7 +745,7 @@ const transformProps = (
       ),
       passedData,
       theme,
-    ) ?? [];
+    ) ?? defaultColorFormatters;
 
   const basicColorColumnFormatters = getBasicColorFormatterForColumn(
     baseQuery?.data,
