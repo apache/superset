@@ -80,6 +80,14 @@ const Dashboard = lazy(
   () => import(/* webpackChunkName: "Dashboard" */ 'src/pages/Dashboard'),
 );
 
+const Canvas = lazy(
+  () => import(/* webpackChunkName: "Canvas" */ 'src/pages/Canvas'),
+);
+
+const CanvasList = lazy(
+  () => import(/* webpackChunkName: "CanvasList" */ 'src/pages/CanvasList'),
+);
+
 const DatabaseList = lazy(
   () => import(/* webpackChunkName: "DatabaseList" */ 'src/pages/DatabaseList'),
 );
@@ -206,6 +214,10 @@ export const routes: Routes = [
   { path: RoutePaths.FILE_HANDLER, Component: FileHandler },
   { path: RoutePaths.DASHBOARD_LIST, Component: DashboardList },
   { path: RoutePaths.DASHBOARD, Component: Dashboard },
+  // CANVAS_LIST must precede CANVAS: '/canvas/:canvasId/' would otherwise
+  // match '/canvas/list/' with canvasId="list".
+  { path: RoutePaths.CANVAS_LIST, Component: CanvasList },
+  { path: RoutePaths.CANVAS, Component: Canvas },
   { path: RoutePaths.CHART_ADD, Component: ChartCreation },
   { path: RoutePaths.CHART_LIST, Component: ChartList },
   { path: RoutePaths.DATASET_LIST, Component: DatasetList },

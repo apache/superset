@@ -752,6 +752,12 @@ from superset.mcp_service.annotation_layer.tool import (  # noqa: F401, E402
     list_annotation_layers,
     list_layer_annotations,
 )
+from superset.mcp_service.canvas.tool import (  # noqa: F401, E402
+    generate_canvas,
+    get_canvas,
+    get_canvas_schema,
+    update_canvas,
+)
 from superset.mcp_service.chart import (  # noqa: F401, E402
     prompts as chart_prompts,
     resources as chart_resources,

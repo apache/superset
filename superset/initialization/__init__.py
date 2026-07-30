@@ -164,6 +164,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.async_events.api import AsyncEventsRestApi
         from superset.available_domains.api import AvailableDomainsRestApi
         from superset.cachekeys.api import CacheRestApi
+        from superset.canvas.api import CanvasRestApi
         from superset.charts.api import ChartRestApi
         from superset.charts.data.api import ChartDataRestApi
         from superset.css_templates.api import CssTemplateRestApi
@@ -201,6 +202,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.all_entities import TaggedObjectsModelView
         from superset.views.annotations import AnnotationLayerView
         from superset.views.api import Api
+        from superset.views.canvas import CanvasModelView
         from superset.views.chart.views import SliceModelView
         from superset.views.core import Superset
         from superset.views.css_templates import CssTemplateModelView
@@ -256,6 +258,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(CacheRestApi)
         appbuilder.add_api(ChartRestApi)
         appbuilder.add_api(ChartDataRestApi)
+        appbuilder.add_api(CanvasRestApi)
         appbuilder.add_api(CssTemplateRestApi)
         appbuilder.add_api(ThemeRestApi)
         appbuilder.add_api(CurrentUserRestApi)
@@ -344,6 +347,14 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             "Charts",
             label=_("Charts"),
             icon="fa-bar-chart",
+            category="",
+            category_icon="",
+        )
+        appbuilder.add_view(
+            CanvasModelView,
+            "Canvases",
+            label=_("Canvases"),
+            icon="fa-object-group",
             category="",
             category_icon="",
         )

@@ -848,6 +848,31 @@ class Superset(BaseSupersetView):
         )
 
     @has_access
+    @expose("/canvas/<int:pk>/")
+    def canvas(self, pk: int) -> FlaskResponse:
+        """Server-side entry that serves the SPA shell for a v2 canvas.
+
+        Object-level data access is enforced by ``CanvasRestApi`` (the viewer
+        fetches the definition through it); this view only gates the shell.
+        """
+        from superset.models.canvas import Canvas
+
+        canvas_obj = db.session.query(Canvas).filter(Canvas.id == pk).one_or_none()
+        if not canvas_obj:
+            if not get_current_user():
+                return redirect_to_login()
+            abort(404)
+
+        bootstrap_payload = {
+            "user": bootstrap_user_data(g.user, include_perms=True),
+            "common": common_bootstrap_payload(),
+        }
+        return self.render_app_template(
+            extra_bootstrap_data=bootstrap_payload,
+            title=canvas_obj.name,
+        )
+
+    @has_access
     @expose("/dashboard/p/<key>/", methods=("GET",))
     def dashboard_permalink(
         self,

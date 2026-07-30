@@ -201,3 +201,41 @@ report_schedule_editors = Table(
     ),
     UniqueConstraint("subject_id", "report_schedule_id"),
 )
+
+canvas_editors = Table(
+    "canvas_editors",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column(
+        "subject_id",
+        Integer,
+        ForeignKey("subjects.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    Column(
+        "canvas_id",
+        Integer,
+        ForeignKey("canvas.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    UniqueConstraint("subject_id", "canvas_id"),
+)
+
+canvas_viewers = Table(
+    "canvas_viewers",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column(
+        "subject_id",
+        Integer,
+        ForeignKey("subjects.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    Column(
+        "canvas_id",
+        Integer,
+        ForeignKey("canvas.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    UniqueConstraint("subject_id", "canvas_id"),
+)
