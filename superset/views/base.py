@@ -638,7 +638,11 @@ def get_language_pack_template_context(common: dict[str, Any]) -> dict[str, Any]
     language = common.get("locale")
     if not language or language == "en":
         return {"language_pack_src": None, "language_pack_inline": False}
-    if common.get("language_pack") is not None:
+    # Truthiness (not `is not None`) is intentional: an empty `{}` override
+    # is not a usable pack (the JS-side stash treats `{}` as truthy and would
+    # crash the translator), so it falls through to the versioned script tag
+    # like "no override" would.
+    if common.get("language_pack"):
         return {"language_pack_src": None, "language_pack_inline": True}
     version = get_language_pack_version(language)
     return {
