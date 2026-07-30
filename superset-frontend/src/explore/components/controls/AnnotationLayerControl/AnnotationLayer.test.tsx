@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  fireEvent,
   render,
   screen,
   selectOption,
@@ -359,6 +360,21 @@ test('caps the section row to the room left beside the control panel', async () 
     // 1160 viewport - 620 panel - 24 popover padding - 8 inset
     expect(screen.getByTestId('annotation-layer-sections')).toHaveStyle(
       'max-width: 508px',
+    );
+
+    // A cap measured once would go stale across a resize. Here the room beside
+    // the panel drops to 348px, too little for two sections, so the viewport
+    // becomes the bound: 1000 - 24 padding - 2 x 8 inset.
+    Object.defineProperty(document.documentElement, 'clientWidth', {
+      configurable: true,
+      value: 1000,
+    });
+    fireEvent(window, new Event('resize'));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('annotation-layer-sections')).toHaveStyle(
+        'max-width: 960px',
+      ),
     );
   } finally {
     jest.restoreAllMocks();

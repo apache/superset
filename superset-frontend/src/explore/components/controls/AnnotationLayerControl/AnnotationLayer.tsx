@@ -120,6 +120,9 @@ const CONTROL_SECTIONS_ID = 'controlSections';
 /** Breathing room kept between the popover and the viewport edge. */
 const VIEWPORT_INSET = 8;
 
+/** Below this the sections stack into a column too tall for the footer to fit. */
+const MIN_SIDE_BY_SIDE_WIDTH = 500;
+
 interface ChartApiResult {
   params?: string | null;
   query_context?: string | null;
@@ -1075,7 +1078,7 @@ function AnnotationLayer({
   const sliceConfiguration = renderSliceConfiguration();
   const hasSliceConfiguration = !!sliceConfiguration;
 
-  useLayoutEffect(() => {
+  const measureSectionsMaxWidth = useCallback(() => {
     const row = sectionsRef.current;
     const popover = row?.closest('.ant-popover');
     const panel = document.getElementById(CONTROL_SECTIONS_ID);
@@ -1085,15 +1088,40 @@ function AnnotationLayer({
     // Padding and border the popover adds around the row.
     const popoverInsetWidth =
       popover.getBoundingClientRect().width - row.getBoundingClientRect().width;
-    const available =
-      document.documentElement.clientWidth -
+    const viewport = document.documentElement.clientWidth;
+    // Fitting beside the panel needs no shift, avoiding the offset antd leaves
+    // behind when it shifts. Too little room there and the viewport is the better
+    // bound: the sections stay side by side and antd shifts across the panel.
+    const besidePanel =
+      viewport -
       panel.getBoundingClientRect().right -
       popoverInsetWidth -
       VIEWPORT_INSET;
+    const available =
+      besidePanel >= MIN_SIDE_BY_SIDE_WIDTH
+        ? besidePanel
+        : viewport - popoverInsetWidth - VIEWPORT_INSET * 2;
     if (available > 0) {
       setSectionsMaxWidth(available);
     }
-  }, [hasSliceConfiguration]);
+  }, []);
+
+  // Resizing the viewport or dragging the panel moves the edge the cap derives
+  // from, so remeasure while the popover is open. Observing the panel and not the
+  // popover keeps it stable: the cap changes the popover's width, never the panel's.
+  useLayoutEffect(() => {
+    measureSectionsMaxWidth();
+    const panel = document.getElementById(CONTROL_SECTIONS_ID);
+    const observer = new ResizeObserver(measureSectionsMaxWidth);
+    if (panel) {
+      observer.observe(panel);
+    }
+    window.addEventListener('resize', measureSectionsMaxWidth);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', measureSectionsMaxWidth);
+    };
+  }, [hasSliceConfiguration, measureSectionsMaxWidth]);
 
   const isValid = isValidForm();
   const metadata = vizType ? getChartMetadataRegistry().get(vizType) : null;
