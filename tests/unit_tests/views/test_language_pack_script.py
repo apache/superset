@@ -70,6 +70,23 @@ def test_script_404_when_pack_missing(client: Any) -> None:
     assert response.status_code == 404
 
 
+def test_script_404_when_pack_fails_to_parse(client: Any) -> None:
+    """A malformed catalog must not be masked as a success: silently
+    serving the internal English fallback under the broken locale's
+    content-addressed URL would cache the wrong translations as
+    immutable for a year."""
+    with (
+        patch(
+            "superset.views.core.get_language_pack_version",
+            return_value=FAKE_VERSION,
+        ),
+        patch("superset.views.core.get_language_pack", return_value=None),
+    ):
+        response = client.get(f"/language_pack/fr/{FAKE_VERSION}/script.js")
+
+    assert response.status_code == 404
+
+
 def test_script_rejects_malformed_lang_and_version(client: Any) -> None:
     assert client.get(f"/language_pack/../{FAKE_VERSION}/script.js").status_code in (
         400,

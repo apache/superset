@@ -21,6 +21,7 @@ import pytest
 
 from superset.translations import utils as translations_utils
 from superset.translations.utils import (
+    get_language_pack,
     get_language_pack_filename,
     get_language_pack_version,
 )
@@ -31,6 +32,14 @@ def _clear_version_cache() -> Iterator[None]:
     translations_utils.ALL_LANGUAGE_PACK_VERSIONS.clear()
     yield
     translations_utils.ALL_LANGUAGE_PACK_VERSIONS.clear()
+
+
+@pytest.fixture(autouse=True)
+def _clear_pack_cache() -> Iterator[None]:
+    saved = dict(translations_utils.ALL_LANGUAGE_PACKS)
+    yield
+    translations_utils.ALL_LANGUAGE_PACKS.clear()
+    translations_utils.ALL_LANGUAGE_PACKS.update(saved)
 
 
 def test_language_pack_filename_resolution() -> None:
@@ -69,3 +78,16 @@ def test_version_is_cached_and_changes_with_content(tmp_path, monkeypatch) -> No
 def test_version_none_when_pack_missing(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(translations_utils, "DIR", str(tmp_path))
     assert get_language_pack_version("xx") is None
+
+
+def test_pack_none_when_catalog_fails_to_parse(tmp_path, monkeypatch) -> None:
+    """A corrupt catalog must surface as None, not be silently masked as
+    the English fallback under the broken locale's cache key (which would
+    let a caller cache the wrong content as if it were correct)."""
+    pack_file = tmp_path / "fr" / "LC_MESSAGES" / "messages.json"
+    pack_file.parent.mkdir(parents=True)
+    pack_file.write_bytes(b"not valid json")
+    monkeypatch.setattr(translations_utils, "DIR", str(tmp_path))
+
+    assert get_language_pack("fr") is None
+    assert "fr" not in translations_utils.ALL_LANGUAGE_PACKS

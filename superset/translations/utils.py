@@ -65,7 +65,11 @@ def get_language_pack_version(locale: str) -> Optional[str]:
 def get_language_pack(locale: str) -> Optional[dict[str, Any]]:
     """Get/cache a language pack
 
-    Returns the language pack from cache if it exists, caches otherwise
+    Returns the language pack from cache if it exists, caches otherwise.
+    Returns None when the catalog is missing or fails to parse, so callers
+    can tell a genuine pack apart from a masked failure instead of silently
+    serving another locale's content under the requested locale's identity
+    (and, worse, caching it there forever behind a content-addressed URL).
 
     >>> get_language_pack('fr')['Dashboards']
     "Tableaux de bords"
@@ -78,8 +82,6 @@ def get_language_pack(locale: str) -> Optional[dict[str, Any]]:
                 pack = json.load(f)
                 ALL_LANGUAGE_PACKS[locale] = pack or {}
         except Exception:  # pylint: disable=broad-except
-            logger.error(
-                "Error loading language pack for, falling back on en %s", locale
-            )
-            pack = get_language_pack("en")
+            logger.error("Error loading language pack for locale %s", locale)
+            return None
     return pack
