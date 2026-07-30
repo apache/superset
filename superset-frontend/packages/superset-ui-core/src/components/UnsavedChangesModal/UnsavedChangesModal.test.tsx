@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent } from '@superset-ui/core/spec';
+import { render, screen, userEvent, within } from '@superset-ui/core/spec';
 import { Modal } from '@superset-ui/core/components';
 import { UnsavedChangesModal } from '.';
 
@@ -117,19 +117,27 @@ test('renders above an already-open modal without a hardcoded z-index', () => {
     </>,
   );
 
-  const otherDialog = screen.getByRole('dialog', {
-    name: /other open modal/i,
-  });
-  const unsavedChangesDialog = screen.getByRole('dialog', {
-    name: /unsaved changes/i,
-  });
+  // rc-util's `useId` hook always returns the same mocked id ("test-id")
+  // in test environments, so with two modals open at once their
+  // `aria-labelledby` ids collide and `getByRole('dialog', { name })` can't
+  // tell them apart. Find each dialog by its title text instead.
+  const dialogs = screen.getAllByRole('dialog');
+  const otherDialog = dialogs.find(dialog =>
+    within(dialog).queryByText('Other open modal'),
+  );
+  const unsavedChangesDialog = dialogs.find(dialog =>
+    within(dialog).queryByText('Unsaved Changes'),
+  );
+
+  expect(otherDialog).toBeDefined();
+  expect(unsavedChangesDialog).toBeDefined();
 
   // Ant Design applies the automatically-assigned stacking z-index to the
   // `.ant-modal-wrap` element that wraps the dialog, not to the dialog
   // (`role="dialog"`) element itself, so the wrapper is what needs checking.
-  const otherWrap = otherDialog.closest<HTMLElement>('.ant-modal-wrap');
+  const otherWrap = otherDialog?.closest<HTMLElement>('.ant-modal-wrap');
   const unsavedChangesWrap =
-    unsavedChangesDialog.closest<HTMLElement>('.ant-modal-wrap');
+    unsavedChangesDialog?.closest<HTMLElement>('.ant-modal-wrap');
 
   expect(otherWrap).not.toBeNull();
   expect(unsavedChangesWrap).not.toBeNull();
