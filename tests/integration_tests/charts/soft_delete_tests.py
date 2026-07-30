@@ -17,6 +17,10 @@
 """Integration tests for chart soft-delete and restore."""
 
 from datetime import datetime
+from typing import Any
+from unittest.mock import patch
+
+from sqlalchemy.exc import SQLAlchemyError
 
 from superset import security_manager
 from superset.connectors.sqla.models import SqlaTable
@@ -585,6 +589,29 @@ class TestChartArchiveListing(InsertChartMixin, SupersetTestCase):
     compose with the ``chart_deleted_state`` filter; the restore gate holds
     for a non-owner."""
 
+    def setUp(self) -> None:
+        super().setUp()
+        self._made_charts: list[int] = []
+
+    def insert_chart(self, *args: Any, **kwargs: Any) -> Slice:
+        """Track every fixture so tearDown can remove it."""
+        chart = super().insert_chart(*args, **kwargs)
+        self._made_charts.append(chart.id)
+        return chart
+
+    def tearDown(self) -> None:
+        """Remove every fixture this class created, however the test ended.
+
+        These fixtures are soft-deleted with ``deleted_at`` values years in the
+        past, which makes them eligible for the retention purge. One left
+        behind by a failed assertion is picked up and counted by an unrelated
+        suite's global purge run, so cleanup cannot depend on a test reaching
+        its final line.
+        """
+        for chart_id in self._made_charts:
+            _hard_delete_chart(chart_id)
+        super().tearDown()
+
     def test_archive_list_orders_by_deleted_at(self) -> None:
         """``order_column:deleted_at`` sorts archived charts by deletion time
         (SQL-layer ordering, not merely field presence)."""
@@ -680,6 +707,152 @@ class TestChartArchiveListing(InsertChartMixin, SupersetTestCase):
         )
         assert row is None
 
+    def test_purge_cannot_reach_another_entity_type_sharing_the_uuid(self) -> None:
+        """The chart purge route must not delete a dashboard that happens to
+        carry the same UUID.
+
+        UUIDs are unique per table but not across them, and the import APIs
+        accept caller-supplied UUIDs. The route authorizes a chart, so a purge
+        that resolved by UUID alone across every soft-delete model could
+        irreversibly delete a dashboard the caller was never checked against.
+        """
+        admin_id = self.get_user(ADMIN_USERNAME).id
+        chart = self.insert_chart("arch_uuid_collision", [admin_id], 1)
+        chart_id = chart.id
+        shared_uuid = str(chart.uuid)
+        chart.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+
+        # A live dashboard of a different type carrying the same UUID.
+        dashboard = Dashboard(
+            dashboard_title="arch_uuid_collision_dash",
+            slug="arch_uuid_collision_dash",
+            editors=subjects_from_users([self.get_user(ADMIN_USERNAME)]),
+            published=True,
+        )
+        dashboard.uuid = chart.uuid
+        db.session.add(dashboard)
+        db.session.commit()
+        dashboard_id = dashboard.id
+
+        try:
+            self.login(ADMIN_USERNAME)
+            rv = self.client.post(f"/api/v1/chart/{shared_uuid}/purge")
+            assert rv.status_code == 200, rv.data
+
+            # The chart is gone...
+            assert (
+                db.session.query(Slice)
+                .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {Slice}})
+                .filter(Slice.id == chart_id)
+                .one_or_none()
+            ) is None
+            # ...and the same-UUID dashboard is untouched.
+            survivor = (
+                db.session.query(Dashboard)
+                .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {Dashboard}})
+                .filter(Dashboard.id == dashboard_id)
+                .one_or_none()
+            )
+            assert survivor is not None
+            assert survivor.deleted_at is None
+        finally:
+            _hard_delete_chart(chart_id)
+            row = (
+                db.session.query(Dashboard)
+                .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {Dashboard}})
+                .filter(Dashboard.id == dashboard_id)
+                .one_or_none()
+            )
+            if row:
+                db.session.delete(row)
+                db.session.commit()
+
+    def test_purge_of_restored_chart_reports_not_found(self) -> None:
+        """A chart restored between authorization and purge is not deleted.
+
+        The cascade runs with ``enforce_window=False``, which skips its own
+        ``deleted_at`` check, so resolution has to re-assert archived state or
+        a live row could be hard-deleted by a purge the caller began while it
+        was still in the archive.
+        """
+        admin_id = self.get_user(ADMIN_USERNAME).id
+        chart = self.insert_chart("arch_purge_raced", [admin_id], 1)
+        chart_id = chart.id
+        chart_uuid = str(chart.uuid)
+        chart.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        db.session.commit()
+
+        self.login(ADMIN_USERNAME)
+        try:
+            # Stand in for the concurrent restore: the row is live by the time
+            # the purge resolves it.
+            with patch(
+                "superset.commands.purge.PurgeArchivedCommand.validate"
+            ) as validate:
+                validate.return_value = chart
+                chart.deleted_at = None
+                db.session.commit()
+                rv = self.client.post(f"/api/v1/chart/{chart_uuid}/purge")
+
+            assert rv.status_code == 404, rv.data
+            survivor = (
+                db.session.query(Slice)
+                .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {Slice}})
+                .filter(Slice.id == chart_id)
+                .one_or_none()
+            )
+            assert survivor is not None
+        finally:
+            _hard_delete_chart(chart_id)
+
+    def test_purge_blocked_by_report_does_not_report_success(self) -> None:
+        """A purge the cascade refuses must not answer 200 "OK".
+
+        ``ForcePurgeCommand`` reports a refusal in its result rather than
+        raising, so a caller told "permanently deleted" while the row is still
+        there would be actively misinformed — and the UI drops the row from
+        the archive on that answer.
+        """
+        admin_id = self.get_user(ADMIN_USERNAME).id
+        chart = self.insert_chart("arch_purge_blocked", [admin_id], 1)
+        chart_id = chart.id
+        chart_uuid = str(chart.uuid)
+        report = ReportSchedule(
+            type=ReportScheduleType.REPORT,
+            name="report_blocking_arch_purge",
+            crontab="0 9 * * *",
+            chart=chart,
+            creation_method=ReportCreationMethod.ALERTS_REPORTS,
+        )
+        db.session.add(report)
+        chart.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        db.session.commit()
+        report_id = report.id
+
+        self.login(ADMIN_USERNAME)
+        try:
+            rv = self.client.post(f"/api/v1/chart/{chart_uuid}/purge")
+            assert rv.status_code != 200, rv.data
+
+            # And the chart really is still there, still archived.
+            survivor = (
+                db.session.query(Slice)
+                .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {Slice}})
+                .filter(Slice.id == chart_id)
+                .one_or_none()
+            )
+            assert survivor is not None
+            assert survivor.deleted_at is not None
+        finally:
+            row = (
+                db.session.query(ReportSchedule)
+                .filter(ReportSchedule.id == report_id)
+                .one_or_none()
+            )
+            if row:
+                db.session.delete(row)
+                db.session.commit()
+
     def test_purge_blocked_for_non_owner(self) -> None:
         """A non-owner (Gamma) cannot permanently delete another user's archived
         chart — purge is owner/admin only, mirroring restore (SC-003)."""
@@ -712,12 +885,10 @@ class TestChartArchiveListing(InsertChartMixin, SupersetTestCase):
         # Cleanup
         _hard_delete_chart(chart_id)
 
-    def test_purge_failure_returns_422(self) -> None:
-        """A failure during the cascade surfaces as a clean 422 (via the
-        ``ChartDeleteFailedError`` handler) rather than an unhandled 500 —
+    def test_purge_database_failure_returns_422(self) -> None:
+        """A database failure during the cascade surfaces as a clean 422 (via
+        the ``ChartDeleteFailedError`` handler) rather than an unhandled 500 —
         mirroring the restore failure path."""
-        from unittest.mock import patch
-
         admin_id = self.get_user("admin").id
         chart = self.insert_chart("arch_purge_fail", [admin_id], 1)
         chart_id = chart.id
@@ -728,10 +899,37 @@ class TestChartArchiveListing(InsertChartMixin, SupersetTestCase):
 
         with patch(
             "superset.commands.deletion_retention.force_purge.ForcePurgeCommand.run",
-            side_effect=Exception("boom"),
+            side_effect=SQLAlchemyError("boom"),
         ):
             rv = self.client.post(f"/api/v1/chart/{chart_uuid}/purge")
         assert rv.status_code == 422
+        # The cause reaches the client rather than a generic class message.
+        assert b"boom" in rv.data
 
         # Cleanup — the row is still soft-deleted (purge never completed).
+        _hard_delete_chart(chart_id)
+
+    def test_purge_unexpected_error_is_not_disguised_as_a_422(self) -> None:
+        """An unexpected error is not laundered into a client-facing 422.
+
+        The handler catches database and DAO failures, which are real "could
+        not delete" answers. A programming error is not the caller's fault and
+        must stay a 500, or a bug in the cascade reads to an operator as a
+        deliberate refusal.
+        """
+        admin_id = self.get_user("admin").id
+        chart = self.insert_chart("arch_purge_bug", [admin_id], 1)
+        chart_id = chart.id
+        chart_uuid = str(chart.uuid)
+        chart.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        db.session.commit()
+        self.login(ADMIN_USERNAME)
+
+        with patch(
+            "superset.commands.deletion_retention.force_purge.ForcePurgeCommand.run",
+            side_effect=TypeError("a genuine bug"),
+        ):
+            rv = self.client.post(f"/api/v1/chart/{chart_uuid}/purge")
+        assert rv.status_code == 500, rv.data
+
         _hard_delete_chart(chart_id)
