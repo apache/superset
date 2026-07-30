@@ -720,6 +720,80 @@ describe('SelectFilterPlugin', () => {
     expect(options[2]).toHaveTextContent('beta');
   });
 
+  test('sorts numeric filter values numerically, not lexicographically, when no sortMetric is specified', () => {
+    // Regression for #36775: numeric filter values were sorted as strings
+    // (localeCompare on the formatted label), producing "1, 10, 100, 2"
+    // instead of the expected "1, 2, 10, 100".
+    const testData = [{ age: 10 }, { age: 2 }, { age: 100 }];
+
+    const testProps = {
+      ...selectMultipleProps,
+      formData: {
+        ...selectMultipleProps.formData,
+        groupby: ['age'],
+        sortMetric: undefined,
+        sortAscending: true,
+      },
+      queriesData: [
+        {
+          rowcount: 3,
+          colnames: ['age'],
+          coltypes: [0],
+          data: testData,
+          applied_filters: [{ column: 'age' }],
+          rejected_filters: [],
+        },
+      ],
+      filterState: {
+        value: [],
+        label: '',
+        excludeFilterValues: true,
+      },
+    };
+
+    render(
+      // @ts-expect-error
+      <SelectFilterPlugin
+        // @ts-expect-error
+        {...transformProps(testProps)}
+        setDataMask={jest.fn()}
+        showOverflow={false}
+      />,
+      {
+        useRedux: true,
+        initialState: {
+          nativeFilters: {
+            filters: {
+              'test-filter': {
+                name: 'Test Filter',
+              },
+            },
+          },
+          dataMask: {
+            'test-filter': {
+              extraFormData: {},
+              filterState: {
+                value: [],
+                label: '',
+                excludeFilterValues: true,
+              },
+            },
+          },
+        },
+      },
+    );
+
+    const filterSelect = screen.getAllByRole('combobox')[0];
+    userEvent.click(filterSelect);
+
+    // Options should appear in ascending numeric order (2, 10, 100), not
+    // ascending lexicographic order of their formatted labels (10, 100, 2).
+    const options = screen.getAllByRole('option');
+    expect(options[0]).toHaveTextContent('2');
+    expect(options[1]).toHaveTextContent('10');
+    expect(options[2]).toHaveTextContent('100');
+  });
+
   test('shows create option for multi-select creatable filter when typing', async () => {
     getWrapper({ creatable: true, multiSelect: true });
     userEvent.type(screen.getByRole('combobox'), 'brand-new');
