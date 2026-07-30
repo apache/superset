@@ -392,7 +392,15 @@ class TestCreateFormDataCommand(SupersetTestCase):
         """
         schema = get_example_default_schema()
         database = get_example_database()
-        view_menu_name = f"[{database.database_name}].[{schema}]"
+        # raise_for_access qualifies the query's tables against the
+        # database's default catalog (e.g. the Postgres database name),
+        # so the granted schema_access permission must be built the same
+        # way -- get_schema_perm() falls back to the plain [db].[schema]
+        # form when the backend (e.g. sqlite, mysql) doesn't support
+        # catalogs at all.
+        view_menu_name = security_manager.get_schema_perm(
+            database.database_name, database.get_default_catalog(), schema
+        )
 
         security_manager.add_role(FORM_DATA_SCHEMA_ACCESS_ROLE)
         db.session.commit()
