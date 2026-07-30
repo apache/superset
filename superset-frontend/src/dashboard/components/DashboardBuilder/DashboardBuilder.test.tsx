@@ -855,3 +855,35 @@ test('does not gate the dashboard grid without an active preview', async () => {
   expect(gate).toHaveAttribute('aria-disabled', 'false');
   expect(gate).not.toHaveStyleRule('pointer-events', 'none');
 });
+
+test('lets a keyboard user scroll a gated preview but not activate it', async () => {
+  // pointer-events: none stops the mouse but not the keyboard, so the gate
+  // suppresses keys. Suppressing *every* key made a long previewed dashboard
+  // unreadable without a mouse (WCAG 2.1.1): scrolling is not interaction.
+  (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
+    100,
+    jest.fn(),
+  ]);
+  (fetchFaveStar as jest.Mock).mockReturnValue({ type: 'mock-action' });
+  (setActiveTab as jest.Mock).mockReturnValue({ type: 'mock-action' });
+
+  const { findByTestId } = render(<DashboardBuilder />, {
+    useRedux: true,
+    store: storeWithState({
+      ...mockState,
+      dashboardLayout: undoableDashboardLayout,
+      versionHistory: dashboardPreviewState,
+    }),
+    useDnd: true,
+    useRouter: true,
+    useTheme: true,
+  });
+  const gate = await findByTestId('dashboard-grid-gate');
+
+  ['PageDown', 'ArrowDown', 'Home', 'End'].forEach(key => {
+    expect(fireEvent.keyDown(gate, { key })).toBe(true);
+  });
+
+  // Activation still blocked — the gate's whole purpose.
+  expect(fireEvent.keyDown(gate, { key: 'Enter' })).toBe(false);
+});

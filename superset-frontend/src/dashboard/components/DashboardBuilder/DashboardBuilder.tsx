@@ -413,6 +413,20 @@ const StyledDashboardContent = styled.div<{
   `}
 `;
 
+/** Keys that only move the viewport. A mouse user can still scroll a gated
+ * preview with the wheel, so blocking the keyboard equivalent would leave a
+ * long dashboard unreadable by keyboard alone (WCAG 2.1.1). */
+const SCROLL_KEYS = new Set([
+  'ArrowUp',
+  'ArrowDown',
+  'ArrowLeft',
+  'ArrowRight',
+  'PageUp',
+  'PageDown',
+  'Home',
+  'End',
+]);
+
 const ELEMENT_ON_SCREEN_OPTIONS = {
   threshold: [1],
 };
@@ -823,6 +837,24 @@ const DashboardBuilder = () => {
               // (WCAG 2.1.2). Activation/typing keys stay blocked outside
               // the tab navs, which remain interactive during preview.
               if (event.key === 'Tab' || event.key === 'Escape') {
+                return;
+              }
+              // Scrolling is not interaction. A mouse user can still scroll a
+              // gated preview with the wheel, so blocking the keyboard
+              // equivalent would leave a long dashboard unreadable by
+              // keyboard alone (WCAG 2.1.1).
+              if (SCROLL_KEYS.has(event.key)) {
+                return;
+              }
+              // Space scrolls too, but only where it would not also press
+              // something: the gate exists to stop activation, and
+              // pointer-events does not cover the keyboard.
+              if (
+                event.key === ' ' &&
+                !(event.target as HTMLElement).closest(
+                  'a, button, input, select, textarea, [role="button"], [tabindex]:not([tabindex="-1"])',
+                )
+              ) {
                 return;
               }
               if (!(event.target as HTMLElement).closest('.ant-tabs-nav')) {
