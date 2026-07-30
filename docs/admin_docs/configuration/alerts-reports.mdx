@@ -249,21 +249,23 @@ CELERY_CONFIG = CeleryConfig
 # this only when the complete report pipeline is expected to take longer.
 ALERT_REPORTS_EXECUTION_BUDGET_SECONDS = 900
 
-# These reserves are part of (not additions to) the total budget. Readiness
-# polling stops in time to leave capacity for the later phases.
+# These reserves are part of (not additions to) the total budget and their sum
+# must be less than it. Readiness polling stops in time to leave capacity for
+# the later phases.
 ALERT_REPORTS_EXECUTION_CAPTURE_RESERVE_SECONDS = 60
 ALERT_REPORTS_EXECUTION_DELIVERY_RESERVE_SECONDS = 120
 ALERT_REPORTS_EXECUTION_CLEANUP_RESERVE_SECONDS = 30
 
 # Celery's hard limit leaves this additional window for terminal cleanup after
-# the 15-minute soft limit.
+# the 15-minute soft limit. ALERT_REPORTS_WORKING_TIME_OUT_KILL controls these
+# Celery limits; disabling it does not disable the application deadline above.
 ALERT_REPORTS_EXECUTION_HARD_TIMEOUT_GRACE_SECONDS = 30
 
 # Screenshot-specific waits continue to apply to thumbnails and other
 # standalone screenshot calls. Scheduled reports derive their waits from the
 # shared execution deadline above.
-SCREENSHOT_LOCATE_WAIT = 10
-SCREENSHOT_LOAD_WAIT = 60
+SCREENSHOT_LOCATE_WAIT = 100
+SCREENSHOT_LOAD_WAIT = 600
 
 # Slack configuration
 SLACK_API_TOKEN = "xoxb-"

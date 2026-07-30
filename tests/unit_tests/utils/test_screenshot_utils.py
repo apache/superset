@@ -17,10 +17,15 @@
 
 import io
 from unittest.mock import MagicMock, patch
+from uuid import UUID
 
 import pytest
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 
+from superset.utils.report_execution import (
+    ReportExecutionContext,
+    ReportExecutionDeadline,
+)
 from superset.utils.screenshot_utils import (
     combine_screenshot_tiles,
     resolve_screenshot_task_budget_seconds,
@@ -28,6 +33,25 @@ from superset.utils.screenshot_utils import (
     SCROLL_SETTLE_TIMEOUT_MS,
     take_tiled_screenshot,
 )
+
+
+def _report_context() -> ReportExecutionContext:
+    """Return a deterministic context with 30 seconds available for readiness."""
+
+    return ReportExecutionContext(
+        execution_id=UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524"),
+        report_schedule_id=11,
+        dashboard_id=805,
+        expected_chart_count=52,
+        deadline=ReportExecutionDeadline(
+            total_seconds=240,
+            started_at=0,
+            _clock=lambda: 0,
+        ),
+        capture_reserve_seconds=60,
+        delivery_reserve_seconds=120,
+        cleanup_reserve_seconds=30,
+    )
 
 
 class TestResolveScreenshotTaskBudget:
@@ -152,6 +176,16 @@ class TestCombineScreenshotTiles:
             # Should return first tile as fallback
             assert result == valid_tile
 
+    def test_report_mode_rejects_partial_first_tile_fallback(self):
+        """A report must not turn a tile-combine failure into a partial image."""
+
+        valid_tile = self._create_test_image(100, 100)
+        with pytest.raises(UnidentifiedImageError):
+            combine_screenshot_tiles(
+                [valid_tile, b"invalid_image_data"],
+                allow_partial_fallback=False,
+            )
+
 
 class TestTakeTiledScreenshot:
     @pytest.fixture
@@ -233,6 +267,7 @@ class TestTakeTiledScreenshot:
                 "dashboard",
                 tile_height=2000,
                 load_wait=30,
+                report_execution_context=_report_context(),
             )
 
         assert result == b"combined"
@@ -251,6 +286,7 @@ class TestTakeTiledScreenshot:
                 "dashboard",
                 tile_height=2000,
                 load_wait=30,
+                report_execution_context=_report_context(),
             )
 
         assert mock_page.evaluate.call_count == 1
@@ -457,7 +493,11 @@ class TestTakeTiledScreenshot:
         """wait_for_function polls viewport-visible chart holders after each scroll."""
         with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
             take_tiled_screenshot(
-                mock_page, "dashboard", tile_height=2000, load_wait=30
+                mock_page,
+                "dashboard",
+                tile_height=2000,
+                load_wait=30,
+                report_execution_context=_report_context(),
             )
 
         # One initial holder-mount gate, then one readiness poll per tile.
@@ -496,7 +536,11 @@ class TestTakeTiledScreenshot:
             with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
                 with pytest.raises(PlaywrightTimeout):
                     take_tiled_screenshot(
-                        mock_page, "dashboard", tile_height=2000, load_wait=30
+                        mock_page,
+                        "dashboard",
+                        tile_height=2000,
+                        load_wait=30,
+                        report_execution_context=_report_context(),
                     )
 
         # No tile should have been captured -- fail loudly, don't snapshot
@@ -520,7 +564,7 @@ class TestTakeTiledScreenshot:
         assert isinstance(warning_args[7], float)  # tile elapsed
         assert isinstance(warning_args[8], float)  # total elapsed
         assert warning_args[10] == 30  # effective wait
-        assert warning_args[11] == ""  # no log_context passed
+        assert "capture_kind=report" in warning_args[11]
         # Diagnostic payload identifies chart id AND the state it's stuck in
         # (spinner mounted vs nothing mounted vs waiting-on-database) so a
         # slow query can be told apart from the virtualization race.
@@ -531,10 +575,7 @@ class TestTakeTiledScreenshot:
         correlation with the run that triggered this screenshot."""
         from superset.utils.screenshot_utils import PlaywrightTimeout
 
-        mock_page.wait_for_function.side_effect = [
-            None,
-            PlaywrightTimeout("timed out"),
-        ]
+        mock_page.wait_for_function.side_effect = PlaywrightTimeout("timed out")
         mock_page.evaluate.side_effect = [
             {"height": 2000, "top": 0, "left": 0, "width": 800},
             None,
@@ -590,7 +631,7 @@ class TestTakeTiledScreenshot:
                     mock_page, "dashboard", tile_height=2000, load_wait=5
                 )
 
-        assert js_call_count["n"] == 2
+        assert js_call_count["n"] == 1
         mock_page.screenshot.assert_not_called()
 
     def test_unready_holder_state_classification_embedded_in_js(self, mock_page):
@@ -605,6 +646,7 @@ class TestTakeTiledScreenshot:
             CHART_HOLDERS_READY_JS,
             FIND_CHART_HOLDER_STATES_JS,
             FIND_UNREADY_CHART_HOLDERS_JS,
+            REPORT_CHART_HOLDERS_READY_JS,
         )
 
         for js in (CHART_HOLDERS_READY_JS, FIND_UNREADY_CHART_HOLDERS_JS):
@@ -616,7 +658,8 @@ class TestTakeTiledScreenshot:
                 '.dashboard-component-chart-holder[class*="dashboard-chart-id-"]'
             ) in js
             assert "holder.className.match(/\\bdashboard-chart-id-(\\d+)\\b/)" in js
-        assert "holders.length > 0" in CHART_HOLDERS_READY_JS
+        assert "holders.length > 0" not in CHART_HOLDERS_READY_JS
+        assert "holders.length > 0" in REPORT_CHART_HOLDERS_READY_JS
 
         assert "rendered" in FIND_CHART_HOLDER_STATES_JS
         assert "empty" in FIND_CHART_HOLDER_STATES_JS
@@ -633,6 +676,7 @@ class TestTakeTiledScreenshot:
             CHART_HOLDERS_READY_JS,
             FIND_CHART_HOLDER_STATES_JS,
             FIND_UNREADY_CHART_HOLDERS_JS,
+            REPORT_CHART_HOLDERS_READY_JS,
         )
 
         for js in (
@@ -640,6 +684,7 @@ class TestTakeTiledScreenshot:
             CHART_HOLDERS_READY_JS,
             FIND_CHART_HOLDER_STATES_JS,
             FIND_UNREADY_CHART_HOLDERS_JS,
+            REPORT_CHART_HOLDERS_READY_JS,
         ):
             assert "data-test" not in js
 
@@ -682,9 +727,32 @@ class TestTakeTiledScreenshot:
 
         # mock_page.wait_for_function is a MagicMock by default and does not
         # raise, i.e. the readiness check passes immediately for every tile.
-        assert mock_page.wait_for_function.call_count == 4
+        assert mock_page.wait_for_function.call_count == 3
         assert mock_page.screenshot.call_count == 3
         assert result is not None
+
+    def test_thumbnail_zero_holders_preserves_existing_capture_behavior(
+        self,
+        mock_page,
+    ):
+        """The report-only mount gate must not make empty thumbnails time out."""
+
+        with patch(
+            "superset.utils.screenshot_utils.combine_screenshot_tiles",
+            return_value=b"thumbnail",
+        ):
+            result = take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=2000,
+                load_wait=30,
+            )
+
+        assert result == b"thumbnail"
+        assert mock_page.wait_for_function.call_count == 3
+        predicate = mock_page.wait_for_function.call_args_list[0].args[0]
+        assert "holders.length > 0" not in predicate
+        assert mock_page.screenshot.call_count == 3
 
     def test_load_wait_default_is_sixty_seconds(self):
         """load_wait defaults to 60 to match SCREENSHOT_LOAD_WAIT config default."""

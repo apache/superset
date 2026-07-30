@@ -40,11 +40,9 @@ from superset.commands.report.exceptions import (
     ReportScheduleUnexpectedError,
     ReportScheduleWorkingTimeoutError,
     ReportScheduleXlsxFailedError,
-    ReportScheduleXlsxTimeout,
 )
 from superset.commands.report.execute import (
     BaseReportState,
-    mark_report_execution_terminal_error,
     ReportNotTriggeredErrorState,
     ReportScheduleStateMachine,
     ReportSuccessState,
@@ -1435,11 +1433,6 @@ def test_get_data_xlsx_fetches_chart_data(
     ("side_effect", "expected_exception", "expected_message"),
     [
         (
-            SoftTimeLimitExceeded(),
-            ReportScheduleXlsxTimeout,
-            "timeout occurred while generating an Excel file",
-        ),
-        (
             RuntimeError("export failed"),
             ReportScheduleXlsxFailedError,
             "Failed generating excel export failed",
@@ -1671,14 +1664,10 @@ def test_get_content_raises_when_executor_user_missing(
             getattr(report_state, method_name)(*method_args)
 
 
-def test_get_data_xlsx_wraps_soft_time_limit_as_xlsx_timeout(
+def test_get_data_xlsx_propagates_celery_soft_time_limit(
     app: SupersetApp, mocker: MockerFixture
 ) -> None:
-    """
-    A ``SoftTimeLimitExceeded`` during XLSX fetch surfaces as
-    ``ReportScheduleXlsxTimeout`` (not the CSV timeout class), so Excel report
-    timeouts are classified under the format-specific error.
-    """
+    """Celery soft timeout must reach the state cleanup handler unchanged."""
     from celery.exceptions import SoftTimeLimitExceeded
 
     app.config.update({"ALERT_REPORTS_CSV_REQUEST_TIMEOUT": 60})
@@ -1698,7 +1687,7 @@ def test_get_data_xlsx_wraps_soft_time_limit_as_xlsx_timeout(
         side_effect=SoftTimeLimitExceeded(),
     )
 
-    with pytest.raises(ReportScheduleXlsxTimeout):
+    with pytest.raises(SoftTimeLimitExceeded):
         report_state._get_data(ChartDataResultFormat.XLSX)
 
 
@@ -2261,10 +2250,6 @@ def test_working_state_timeout_raises_timeout_error(mocker: MockerFixture) -> No
         "superset.commands.report.execute.ReportScheduleDAO.find_last_entered_working_log",
         return_value=mock_log,
     )
-    cleanup = mocker.patch(
-        "superset.commands.report.execute.mark_report_execution_terminal_error",
-        return_value=True,
-    )
     mocker.patch.object(state, "update_report_schedule_and_log")
 
     with pytest.raises(ReportScheduleWorkingTimeoutError):
@@ -2273,11 +2258,6 @@ def test_working_state_timeout_raises_timeout_error(mocker: MockerFixture) -> No
     state.update_report_schedule_and_log.assert_called_once_with(  # type: ignore[attr-defined]
         ReportState.ERROR,
         error_message=str(ReportScheduleWorkingTimeoutError()),
-    )
-    cleanup.assert_called_once_with(
-        state._report_schedule.id,
-        mock_log.uuid,
-        "working_timeout_recovery",
     )
 
 
@@ -2310,28 +2290,28 @@ def test_working_timeout_replay_promotes_original_execution_without_duplicate_lo
     mocker.patch.object(state, "is_on_working_timeout", return_value=True)
     working_log = mocker.Mock()
     working_log.uuid = state._execution_id
+    working_log.state = ReportState.WORKING
     working_log.end_dttm = datetime.utcnow() - timedelta(minutes=20)
     mocker.patch(
         "superset.commands.report.execute.ReportScheduleDAO.find_last_entered_working_log",
         return_value=working_log,
-    )
-    cleanup = mocker.patch(
-        "superset.commands.report.execute.mark_report_execution_terminal_error",
-        return_value=True,
     )
     update = mocker.patch.object(state, "update_report_schedule_and_log")
 
     with pytest.raises(ReportScheduleWorkingTimeoutError):
         state.next()
 
-    cleanup.assert_called_once()
-    update.assert_not_called()
+    update.assert_called_once_with(
+        ReportState.ERROR,
+        error_message=str(ReportScheduleWorkingTimeoutError()),
+    )
+    assert working_log.state == ReportState.WORKING
 
 
-def test_new_report_execution_proceeds_after_stale_working_cleanup(
+def test_new_report_execution_does_not_deliver_during_stale_recovery(
     mocker: MockerFixture,
 ) -> None:
-    """A stale execution must not consume the next distinct scheduled run."""
+    """Uncertain worker loss is terminalized before any later delivery."""
     state = _make_state_instance(
         mocker,
         ReportWorkingState,
@@ -2341,27 +2321,25 @@ def test_new_report_execution_proceeds_after_stale_working_cleanup(
     mocker.patch.object(state, "is_on_working_timeout", return_value=True)
     working_log = mocker.Mock()
     working_log.uuid = uuid4()
+    working_log.state = ReportState.WORKING
     working_log.end_dttm = datetime.utcnow() - timedelta(minutes=20)
     mocker.patch(
         "superset.commands.report.execute.ReportScheduleDAO.find_last_entered_working_log",
         return_value=working_log,
     )
-    cleanup = mocker.patch(
-        "superset.commands.report.execute.mark_report_execution_terminal_error",
-        return_value=True,
-    )
     recovered_next = mocker.patch.object(ReportNotTriggeredErrorState, "next")
     update = mocker.patch.object(state, "update_report_schedule_and_log")
 
-    state.next()
+    with pytest.raises(ReportScheduleWorkingTimeoutError):
+        state.next()
 
-    cleanup.assert_called_once_with(
-        state._report_schedule.id,
-        working_log.uuid,
-        "working_timeout_recovery",
+    update.assert_called_once_with(
+        ReportState.ERROR,
+        error_message=str(ReportScheduleWorkingTimeoutError()),
     )
-    recovered_next.assert_called_once()
-    update.assert_not_called()
+    assert working_log.state == ReportState.ERROR
+    assert working_log.error_message == str(ReportScheduleWorkingTimeoutError())
+    recovered_next.assert_not_called()
 
 
 def test_report_working_state_recovery_is_bounded_by_execution_budget(
@@ -2407,6 +2385,36 @@ def test_soft_timeout_transitions_report_out_of_working(
         ReportState.ERROR,
         error_message="celery_soft_timeout",
     )
+    send_error.assert_not_called()
+
+
+def test_budget_timeout_transitions_report_without_error_delivery(
+    mocker: MockerFixture,
+) -> None:
+    state = _make_state_instance(
+        mocker,
+        ReportNotTriggeredErrorState,
+        schedule_type=ReportScheduleType.REPORT,
+    )
+    timeout = ReportExecutionBudgetExceededError(
+        "chart_readiness",
+        elapsed_seconds=690,
+        remaining_seconds=210,
+    )
+    mocker.patch.object(state, "send", side_effect=timeout)
+    mock_update = mocker.patch.object(state, "update_report_schedule_and_log")
+    send_error = mocker.patch.object(state, "send_error")
+
+    with pytest.raises(ReportExecutionBudgetExceededError):
+        state.next()
+
+    assert mock_update.call_args_list == [
+        mocker.call(ReportState.WORKING),
+        mocker.call(
+            ReportState.ERROR,
+            error_message="report_execution_budget_exhausted:chart_readiness",
+        ),
+    ]
     send_error.assert_not_called()
 
 
@@ -2612,48 +2620,34 @@ def test_create_log_success_commits(mocker: MockerFixture) -> None:
     mock_db.session.rollback.assert_not_called()
 
 
-def test_failure_hook_cleanup_promotes_working_log_to_terminal_error(
-    app: SupersetApp,
+def test_create_log_promotes_same_execution_working_row_without_duplicate(
     mocker: MockerFixture,
 ) -> None:
     execution_id = UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524")
     schedule = mocker.Mock(spec=ReportSchedule)
-    schedule.last_state = ReportState.WORKING
-    schedule.dashboard_id = 805
-    schedule.chart_id = None
+    schedule.last_state = ReportState.ERROR
+    schedule.last_value = None
+    schedule.last_value_row_json = None
     working_log = mocker.Mock()
-    working_log.uuid = execution_id
-    working_log.report_schedule = schedule
 
     mock_db = mocker.patch("superset.commands.report.execute.db")
-    filtered_query = mock_db.session.query.return_value.filter.return_value
-    filtered_query.first.return_value = working_log
-    filtered_query.order_by.return_value.first.return_value = working_log
-
-    assert mark_report_execution_terminal_error(
-        11,
+    mock_db.session.query.return_value.filter.return_value.first.return_value = (
+        working_log
+    )
+    log_cls = mocker.patch("superset.commands.report.execute.ReportExecutionLog")
+    state = BaseReportState(
+        schedule,
+        datetime.utcnow(),
         execution_id,
-        "celery_task_failure:WorkerLostError",
     )
+
+    state.create_log(error_message="working timeout")
+
     assert working_log.state == ReportState.ERROR
-    assert working_log.error_message == "celery_task_failure:WorkerLostError"
-    assert schedule.last_state == ReportState.ERROR
+    assert working_log.error_message == "working timeout"
+    log_cls.assert_not_called()
+    mock_db.session.add.assert_not_called()
     mock_db.session.commit.assert_called_once()
-
-
-def test_failure_hook_cleanup_is_idempotent(
-    app: SupersetApp,
-    mocker: MockerFixture,
-) -> None:
-    mock_db = mocker.patch("superset.commands.report.execute.db")
-    mock_db.session.query.return_value.filter.return_value.first.return_value = None
-
-    assert not mark_report_execution_terminal_error(
-        11,
-        UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524"),
-        "celery_task_failure:WorkerLostError",
-    )
-    mock_db.session.commit.assert_not_called()
 
 
 def test_success_state_report_sends_and_logs_success(

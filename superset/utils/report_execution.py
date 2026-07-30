@@ -56,6 +56,12 @@ class ReportExecutionDeadline:
         compare=False,
     )
 
+    def __post_init__(self) -> None:
+        """Reject deadlines that cannot provide any execution time."""
+
+        if self.total_seconds <= 0:
+            raise ValueError("Report execution budget must be greater than zero")
+
     @property
     def elapsed_seconds(self) -> float:
         """Return non-negative wall-clock time consumed by this execution."""
@@ -113,6 +119,22 @@ class ReportExecutionContext:
     delivery_reserve_seconds: float = 0.0
     cleanup_reserve_seconds: float = 0.0
 
+    def __post_init__(self) -> None:
+        """Validate that configured phase reserves fit inside the deadline."""
+
+        reserves = (
+            self.capture_reserve_seconds,
+            self.delivery_reserve_seconds,
+            self.cleanup_reserve_seconds,
+        )
+        if any(reserve < 0 for reserve in reserves):
+            raise ValueError("Report execution phase reserves cannot be negative")
+        if sum(reserves) >= self.deadline.total_seconds:
+            raise ValueError(
+                "Report execution phase reserves must total less than the "
+                "execution budget"
+            )
+
     @property
     def log_context(self) -> str:
         """Return stable key/value identifiers for plain-text log formatters."""
@@ -154,6 +176,11 @@ def get_report_task_timeout_options(
     if is_report:
         budget = int(config["ALERT_REPORTS_EXECUTION_BUDGET_SECONDS"])
         hard_grace = int(config["ALERT_REPORTS_EXECUTION_HARD_TIMEOUT_GRACE_SECONDS"])
+        if budget <= 0 or hard_grace < 0:
+            raise ValueError(
+                "Report execution budget must be positive and hard-timeout "
+                "grace cannot be negative"
+            )
         return {
             "soft_time_limit": budget,
             "time_limit": budget + hard_grace,

@@ -86,6 +86,7 @@ from superset.reports.notifications.exceptions import (
 from superset.tasks.types import ExecutorType
 from superset.utils import json
 from superset.utils.database import get_example_database
+from superset.utils.report_execution import ReportExecutionContext
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
@@ -877,7 +878,9 @@ def test_email_chart_report_schedule_alpha_owner(
     username = ""
 
     def _screenshot_side_effect(
-        user: User, log_context: Optional[str] = None
+        user: User,
+        log_context: Optional[str] = None,
+        report_execution_context: ReportExecutionContext | None = None,
     ) -> Optional[bytes]:
         nonlocal username
         username = user.username
@@ -1951,6 +1954,7 @@ def test_report_schedule_working_timeout(create_report_slack_chart_working):
     assert ReportScheduleWorkingTimeoutError.message in [
         log.error_message for log in logs
     ]
+    assert {log.state for log in logs} == {ReportState.ERROR}
     assert create_report_slack_chart_working.last_state == ReportState.ERROR
 
 

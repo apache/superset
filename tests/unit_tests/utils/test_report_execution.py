@@ -85,6 +85,25 @@ def test_report_deadline_exhaustion_names_phase() -> None:
         )
 
 
+def test_report_context_rejects_reserves_that_consume_deadline() -> None:
+    deadline = ReportExecutionDeadline(total_seconds=210)
+
+    with pytest.raises(ValueError, match="must total less"):
+        ReportExecutionContext(
+            execution_id=UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524"),
+            report_schedule_id=7,
+            deadline=deadline,
+            capture_reserve_seconds=60,
+            delivery_reserve_seconds=120,
+            cleanup_reserve_seconds=30,
+        )
+
+
+def test_report_deadline_rejects_nonpositive_budget() -> None:
+    with pytest.raises(ValueError, match="greater than zero"):
+        ReportExecutionDeadline(total_seconds=0)
+
+
 def test_report_task_limits_align_soft_timeout_with_budget() -> None:
     config = {
         "ALERT_REPORTS_WORKING_TIME_OUT_KILL": True,

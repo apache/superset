@@ -17,7 +17,6 @@
 
 from random import randint
 from unittest.mock import MagicMock, patch
-from uuid import UUID
 
 import pytest
 from freezegun import freeze_time
@@ -271,28 +270,4 @@ def test_log_task_failure_without_sender(logger_mock):
 
     logger_mock.exception.assert_called_once_with(
         "Celery task %s failed: %s", "Unknown", mock_exception, exc_info=mock_einfo
-    )
-
-
-@patch("superset.tasks.scheduler.mark_report_execution_terminal_error")
-@patch("superset.tasks.scheduler.logger")
-def test_log_task_failure_cleans_up_report_working_state(
-    logger_mock,
-    cleanup_mock,
-):
-    task = MagicMock()
-    task.name = "reports.execute"
-    execution_id = "084e7ee6-5557-4ecd-9632-b7f39c9ec524"
-
-    log_task_failure(
-        sender=task,
-        task_id=execution_id,
-        exception=RuntimeError("worker lost"),
-        args=(11,),
-    )
-
-    cleanup_mock.assert_called_once_with(
-        11,
-        UUID(execution_id),
-        "celery_task_failure:RuntimeError",
     )

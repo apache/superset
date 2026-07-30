@@ -198,6 +198,9 @@ FIND_CHART_HOLDER_STATES_JS = f"""
 """
 
 CHART_HOLDERS_READY_JS = (
+    f"() => {{ {UNREADY_CHART_HOLDERS_JS_BODY} return unready.length === 0; }}"
+)
+REPORT_CHART_HOLDERS_READY_JS = (
     f"() => {{ {UNREADY_CHART_HOLDERS_JS_BODY} "
     "return holders.length > 0 && unready.length === 0; }"
 )
@@ -220,7 +223,11 @@ CHART_CONTAINER_READY_JS = f"""
 """
 
 
-def combine_screenshot_tiles(screenshot_tiles: list[bytes]) -> bytes:
+def combine_screenshot_tiles(
+    screenshot_tiles: list[bytes],
+    *,
+    allow_partial_fallback: bool = True,
+) -> bytes:
     """
     Combine multiple screenshot tiles into a single vertical image.
 
@@ -260,8 +267,11 @@ def combine_screenshot_tiles(screenshot_tiles: list[bytes]) -> bytes:
 
     except Exception as e:
         logger.exception("Failed to combine screenshot tiles: %s", e)
-        # Return the first tile as fallback
-        return screenshot_tiles[0]
+        if allow_partial_fallback:
+            # Preserve the historical thumbnail behavior. Scheduled reports
+            # opt out because delivering only the first tile is incomplete.
+            return screenshot_tiles[0]
+        raise
 
 
 def take_tiled_screenshot(  # noqa: C901
@@ -361,44 +371,36 @@ def take_tiled_screenshot(  # noqa: C901
             * 1000
         )
 
-        mount_wait = _timeout_seconds(
-            "chart_holder_mount",
-            requested_seconds=None if report_execution_context else load_wait,
-            reserve_seconds=(
-                report_execution_context.readiness_reserve_seconds
-                if report_execution_context
-                else 0.0
-            ),
-        )
-        try:
-            page.wait_for_function(
-                CHART_HOLDERS_MOUNTED_JS,
-                timeout=mount_wait * 1000,
+        if report_execution_context:
+            mount_wait = _timeout_seconds(
+                "chart_holder_mount",
+                reserve_seconds=report_execution_context.readiness_reserve_seconds,
             )
-        except PlaywrightTimeout:
-            holder_states = page.evaluate(FIND_CHART_HOLDER_STATES_JS)
-            elapsed, remaining = _deadline_values()
-            logger.warning(
-                "report_readiness_terminal url=%s expected_holders=%s "
-                "mounted_holders=%s ready_holders=0 elapsed_seconds=%.2f "
-                "remaining_seconds=%s effective_wait_seconds=%.2f%s "
-                "terminal_reason=zero_holders_timeout states=%s; "
-                "aborting before dimensions, capture, or delivery",
-                url,
-                (
-                    report_execution_context.expected_chart_count
-                    if report_execution_context
-                    else None
-                ),
-                len(holder_states),
-                elapsed,
-                f"{remaining:.2f}" if remaining is not None else None,
-                mount_wait,
-                context_suffix,
-                holder_states,
-            )
-            readiness_timeout = True
-            raise
+            try:
+                page.wait_for_function(
+                    CHART_HOLDERS_MOUNTED_JS,
+                    timeout=mount_wait * 1000,
+                )
+            except PlaywrightTimeout:
+                holder_states = page.evaluate(FIND_CHART_HOLDER_STATES_JS)
+                elapsed, remaining = _deadline_values()
+                logger.warning(
+                    "report_readiness_terminal url=%s expected_holders=%s "
+                    "mounted_holders=%s ready_holders=0 elapsed_seconds=%.2f "
+                    "remaining_seconds=%s effective_wait_seconds=%.2f%s "
+                    "terminal_reason=zero_holders_timeout states=%s; "
+                    "aborting before dimensions, capture, or delivery",
+                    url,
+                    report_execution_context.expected_chart_count,
+                    len(holder_states),
+                    elapsed,
+                    f"{remaining:.2f}" if remaining is not None else None,
+                    mount_wait,
+                    context_suffix,
+                    holder_states,
+                )
+                readiness_timeout = True
+                raise
 
         # Get dashboard dimensions and position
         element_info = page.evaluate(f"""() => {{
@@ -459,7 +461,11 @@ def take_tiled_screenshot(  # noqa: C901
             )
             try:
                 page.wait_for_function(
-                    CHART_HOLDERS_READY_JS,
+                    (
+                        REPORT_CHART_HOLDERS_READY_JS
+                        if report_execution_context
+                        else CHART_HOLDERS_READY_JS
+                    ),
                     timeout=tile_load_wait * 1000,
                 )
             except PlaywrightTimeout:
@@ -598,8 +604,16 @@ def take_tiled_screenshot(  # noqa: C901
             logger.debug("Captured tile %s/%s with clip %s", i + 1, num_tiles, clip)
 
         # Combine all tiles
-        holder_states = page.evaluate(FIND_CHART_HOLDER_STATES_JS)
-        if not isinstance(holder_states, list):
+        try:
+            holder_states = page.evaluate(FIND_CHART_HOLDER_STATES_JS)
+            if not isinstance(holder_states, list):
+                holder_states = []
+        except Exception:  # noqa: BLE001  # diagnostics must not discard valid tiles
+            logger.warning(
+                "Unable to collect final chart-holder diagnostics%s",
+                context_suffix,
+                exc_info=True,
+            )
             holder_states = []
         ready_states = {"rendered", "empty", "error", "virtualized"}
         elapsed, remaining = _deadline_values()
@@ -619,7 +633,10 @@ def take_tiled_screenshot(  # noqa: C901
             context_suffix,
         )
         logger.info("Combining screenshot tiles...")
-        combined_screenshot = combine_screenshot_tiles(screenshot_tiles)
+        combined_screenshot = combine_screenshot_tiles(
+            screenshot_tiles,
+            allow_partial_fallback=report_execution_context is None,
+        )
 
         return combined_screenshot
 

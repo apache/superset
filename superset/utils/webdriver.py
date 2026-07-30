@@ -49,6 +49,7 @@ from superset.utils.screenshot_utils import (
     CHART_CONTAINER_READY_JS,
     CHART_HOLDERS_READY_JS,
     FIND_CHART_HOLDER_STATES_JS,
+    REPORT_CHART_HOLDERS_READY_JS,
     resolve_screenshot_task_budget_seconds,
     take_tiled_screenshot,
 )
@@ -442,11 +443,15 @@ class WebDriverPlaywright(WebDriverProxy):
             elapsed,
             context_suffix,
         )
-        readiness_predicate = (
-            CHART_CONTAINER_READY_JS
-            if element_name == "chart-container"
-            else CHART_HOLDERS_READY_JS
-        )
+        if element_name == "chart-container":
+            readiness_predicate = CHART_CONTAINER_READY_JS
+        elif report_execution_context:
+            readiness_predicate = REPORT_CHART_HOLDERS_READY_JS
+        else:
+            # Preserve the thumbnail behavior introduced by #42253. The
+            # stricter zero-holder gate is report-specific because an empty
+            # dashboard thumbnail is still a valid cache artifact.
+            readiness_predicate = CHART_HOLDERS_READY_JS
         try:
             page.wait_for_function(
                 readiness_predicate,
@@ -735,15 +740,29 @@ class WebDriverPlaywright(WebDriverProxy):
                             url=url,
                         )
                         if not img:
-                            logger.warning(
-                                "Tiled screenshot failed for url %s%s and no safe "
-                                "fallback exists; terminal_reason=tiled_capture_failed",
-                                url,
-                                f" [{log_context}]" if log_context else "",
-                            )
-                            raise PlaywrightTimeout(
-                                f"Tiled screenshot failed for url {url}"
-                            )
+                            if report_execution_context is None:
+                                logger.warning(
+                                    "Tiled screenshot failed for url %s%s; "
+                                    "preserving thumbnail fallback behavior",
+                                    url,
+                                    (f" [{log_context}]" if log_context else ""),
+                                )
+                                img = WebDriverPlaywright._get_screenshot(
+                                    page,
+                                    element,
+                                    element_name,
+                                )
+                            else:
+                                logger.warning(
+                                    "Tiled screenshot failed for url %s%s and no safe "
+                                    "fallback exists; "
+                                    "terminal_reason=tiled_capture_failed",
+                                    url,
+                                    f" [{log_context}]" if log_context else "",
+                                )
+                                raise PlaywrightTimeout(
+                                    f"Tiled screenshot failed for url {url}"
+                                )
                         logger.debug(
                             "Tiled screenshot result: %d bytes for url: %s",
                             len(img) if img else 0,
@@ -1218,41 +1237,46 @@ class WebDriverSelenium(WebDriverProxy):
                 )
                 raise
 
-            if element_name == "standalone":
+            if report_execution_context and element_name in {
+                "standalone",
+                "chart-container",
+            }:
+                readiness_predicate = (
+                    REPORT_CHART_HOLDERS_READY_JS
+                    if element_name == "standalone"
+                    else CHART_CONTAINER_READY_JS
+                )
                 readiness_timeout = phase_timeout(
                     "chart_readiness",
-                    None if report_execution_context else self._screenshot_load_wait,
-                    (
-                        report_execution_context.readiness_reserve_seconds
-                        if report_execution_context
-                        else 0.0
-                    ),
+                    None,
+                    report_execution_context.readiness_reserve_seconds,
                 )
                 try:
                     WebDriverWait(driver, readiness_timeout).until(
                         lambda webdriver: webdriver.execute_script(
-                            f"return ({CHART_HOLDERS_READY_JS})()"
+                            f"return ({readiness_predicate})()"
                         )
                     )
-                    holder_states = driver.execute_script(
-                        f"return ({FIND_CHART_HOLDER_STATES_JS})()"
+                    holder_states = (
+                        driver.execute_script(
+                            f"return ({FIND_CHART_HOLDER_STATES_JS})()"
+                        )
+                        if element_name == "standalone"
+                        else [
+                            {
+                                "chartId": report_execution_context.chart_id,
+                                "state": "rendered",
+                            }
+                        ]
                     )
                     ready_states = {"rendered", "empty", "error", "virtualized"}
-                    deadline = (
-                        report_execution_context.deadline
-                        if report_execution_context
-                        else None
-                    )
+                    deadline = report_execution_context.deadline
                     logger.info(
                         "report_readiness_ready url=%s expected_holders=%s "
                         "mounted_holders=%s ready_holders=%s elapsed_seconds=%s "
                         "remaining_seconds=%s%s",
                         url,
-                        (
-                            report_execution_context.expected_chart_count
-                            if report_execution_context
-                            else None
-                        ),
+                        report_execution_context.expected_chart_count,
                         len(holder_states),
                         sum(
                             holder.get("state") in ready_states
@@ -1263,18 +1287,23 @@ class WebDriverSelenium(WebDriverProxy):
                         f" [{log_context}]" if log_context else "",
                     )
                 except TimeoutException:
-                    holder_states = driver.execute_script(
-                        f"return ({FIND_CHART_HOLDER_STATES_JS})()"
+                    holder_states = (
+                        driver.execute_script(
+                            f"return ({FIND_CHART_HOLDER_STATES_JS})()"
+                        )
+                        if element_name == "standalone"
+                        else [
+                            {
+                                "chartId": report_execution_context.chart_id,
+                                "state": "not_ready",
+                            }
+                        ]
                     )
                     ready_states = {"rendered", "empty", "error", "virtualized"}
                     ready_holders = sum(
                         holder.get("state") in ready_states for holder in holder_states
                     )
-                    deadline = (
-                        report_execution_context.deadline
-                        if report_execution_context
-                        else None
-                    )
+                    deadline = report_execution_context.deadline
                     logger.warning(
                         "report_readiness_terminal url=%s expected_holders=%s "
                         "mounted_holders=%s ready_holders=%s elapsed_seconds=%s "
@@ -1282,11 +1311,7 @@ class WebDriverSelenium(WebDriverProxy):
                         "terminal_reason=readiness_timeout states=%s; "
                         "aborting before capture or delivery",
                         url,
-                        (
-                            report_execution_context.expected_chart_count
-                            if report_execution_context
-                            else None
-                        ),
+                        report_execution_context.expected_chart_count,
                         len(holder_states),
                         ready_holders,
                         (f"{deadline.elapsed_seconds:.2f}" if deadline else None),
@@ -1317,12 +1342,31 @@ class WebDriverSelenium(WebDriverProxy):
                         )
                     )
                 except TimeoutException:
-                    logger.warning(
-                        "Selenium timed out waiting for chart to draw at url %s",
-                        url,
-                        exc_info=True,
-                    )
-                    raise
+                    if element_name == "standalone":
+                        logger.info("Timeout Exception caught")
+                        # Preserve support for empty dashboard thumbnails. Report
+                        # dashboards use the positive holder gate above instead.
+                        try:
+                            WebDriverWait(driver, 0).until(
+                                EC.visibility_of_all_elements_located(
+                                    (By.CLASS_NAME, "grid-container")
+                                )
+                            )
+                        except Exception:
+                            logger.warning(
+                                "Selenium timed out waiting for dashboard to draw "
+                                "at url %s",
+                                url,
+                                exc_info=True,
+                            )
+                            raise
+                    else:
+                        logger.warning(
+                            "Selenium timed out waiting for chart to draw at url %s",
+                            url,
+                            exc_info=True,
+                        )
+                        raise
 
                 try:
                     # charts took too long to load

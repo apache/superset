@@ -2451,7 +2451,8 @@ ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT = 3600
 ALERT_REPORTS_EXECUTION_BUDGET_SECONDS = int(timedelta(minutes=15).total_seconds())
 # Capacity inside the execution budget reserved from chart-readiness polling
 # for image capture/PDF construction, notification delivery, and the terminal
-# execution-log transition, respectively. Unused capacity flows to later phases.
+# execution-log transition, respectively. Their sum must be less than the total;
+# unused capacity flows to later phases.
 ALERT_REPORTS_EXECUTION_CAPTURE_RESERVE_SECONDS = int(
     timedelta(minutes=1).total_seconds()
 )
@@ -2461,8 +2462,10 @@ ALERT_REPORTS_EXECUTION_DELIVERY_RESERVE_SECONDS = int(
 ALERT_REPORTS_EXECUTION_CLEANUP_RESERVE_SECONDS = int(
     timedelta(seconds=30).total_seconds()
 )
-# Celery raises the soft timeout at the execution deadline. The hard timeout
-# leaves this additional window for the soft-timeout handler to persist ERROR.
+# Celery raises the soft timeout at the execution deadline when
+# ALERT_REPORTS_WORKING_TIME_OUT_KILL is enabled. The application deadline is
+# enforced independently. The hard timeout leaves this additional window for
+# the soft-timeout handler to persist ERROR.
 ALERT_REPORTS_EXECUTION_HARD_TIMEOUT_GRACE_SECONDS = int(
     timedelta(seconds=30).total_seconds()
 )
