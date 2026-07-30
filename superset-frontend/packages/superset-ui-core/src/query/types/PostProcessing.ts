@@ -196,6 +196,13 @@ interface _PostProcessingResample {
     method: string;
     rule: string;
     fill_value?: number | null;
+    /**
+     * Pad the result so it covers the whole time range of the query instead of
+     * only the span between the first and last data point. The boundaries are
+     * resolved server side, since a time range may be expressed in natural
+     * language (e.g. `Last week`).
+     */
+    fill_time_range?: boolean;
   };
 }
 export type PostProcessingResample =
