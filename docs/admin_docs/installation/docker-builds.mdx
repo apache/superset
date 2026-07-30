@@ -132,12 +132,14 @@ Docker can reuse the cached upstream layers and only rebuild what your stage add
 FROM apache/superset:5.0.0 AS my-custom-image
 USER root
 
-# Pull the compiled translation files out of the earlier build stages. These
-# only exist mid-build (frontend .json in `superset-node`, backend .mo in
-# `python-translation-compiler`) and get stripped from the final `lean`/`dev`
-# stages unless BUILD_TRANSLATIONS=true.
+# Pull the translation files out of the earlier build stages (frontend
+# .json in `superset-node`, backend .mo in `python-translation-compiler`).
+# Those stages' own cleanup only matches single-character extensions, so
+# the source `.po` files can still be present here; strip them explicitly
+# so this stage only keeps the compiled translations.
 COPY --from=superset-node /app/superset/translations superset/translations
 COPY --from=python-translation-compiler /app/translations_mo superset/translations
+RUN find superset/translations -name '*.po' -delete
 
 USER superset
 ```
