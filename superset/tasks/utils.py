@@ -52,6 +52,18 @@ logger = get_task_logger(__name__)
 logger.setLevel(logging.INFO)
 
 
+def _is_active(user: User | None) -> bool:
+    """Return ``True`` only when ``user`` is a truthy, active FAB user.
+
+    ``User.active`` may be ``None`` on in-memory instances that were
+    never persisted (the SQLA column default only applies on INSERT),
+    so a plain ``user.active`` check would erroneously treat those as
+    inactive. Wrapping in ``bool`` keeps the intent explicit and guards
+    against ``None`` on both sides. See #33584.
+    """
+    return bool(user and user.active)
+
+
 def _get_indirect_editor_user(editors: list[Any]) -> User | None:
     """Return a deterministic user represented by role/group editor subjects."""
     from flask_appbuilder.security.sqla.models import (
@@ -154,26 +166,40 @@ def get_executor(  # noqa: C901
             raise InvalidExecutorError()
         if executor == ExecutorType.CURRENT_USER and current_user:
             return executor, current_user
+        # Direct-user paths below skip inactive users so the priority chain
+        # falls through to the next candidate. An inactive user's username
+        # would otherwise be handed to ``login_user()`` downstream, which
+        # silently returns ``False`` and leaves the schedule with no auth
+        # cookie. See #33584.
         if executor == ExecutorType.CREATOR_EDITOR:
-            if (user := model.created_by) and _is_editor(user.id):
+            if (user := model.created_by) and _is_active(user) and _is_editor(user.id):
                 return executor, user.username
         if executor == ExecutorType.CREATOR:
-            if user := model.created_by:
+            if (user := model.created_by) and _is_active(user):
                 return executor, user.username
         if executor == ExecutorType.MODIFIER_EDITOR:
-            if (user := model.changed_by) and _is_editor(user.id):
+            if (user := model.changed_by) and _is_active(user) and _is_editor(user.id):
                 return executor, user.username
         if executor == ExecutorType.MODIFIER:
-            if user := model.changed_by:
+            if (user := model.changed_by) and _is_active(user):
                 return executor, user.username
         if executor == ExecutorType.EDITOR:
             # Priority: modifier → creator → direct user editor → indirect editor.
-            if (modifier := model.changed_by) and _is_editor(modifier.id):
+            if (
+                (modifier := model.changed_by)
+                and _is_active(modifier)
+                and _is_editor(modifier.id)
+            ):
                 return executor, modifier.username
-            if (creator := model.created_by) and _is_editor(creator.id):
+            if (
+                (creator := model.created_by)
+                and _is_active(creator)
+                and _is_editor(creator.id)
+            ):
                 return executor, creator.username
-            if editor_users:
-                return executor, editor_users[0].username
+            active_editor = next((u for u in editor_users if _is_active(u)), None)
+            if active_editor:
+                return executor, active_editor.username
             if indirect_editor := _get_indirect_editor_user(
                 getattr(model, "editors", [])
             ):

@@ -42,11 +42,15 @@ FIXED_USER_ID = 1234
 FIXED_USERNAME = "admin"
 
 
-def _make_user_subject(user_id: int) -> MagicMock:
-    """Create a mock user-type Subject with an underlying User."""
+def _make_user_subject(user_id: int, active: bool = True) -> MagicMock:
+    """Create a mock user-type Subject with an underlying User.
+
+    ``active`` propagates to the User instance so #33584 test cases can
+    build editor subjects backed by inactive users.
+    """
     from superset.subjects.types import SubjectType
 
-    user = User(id=user_id, username=str(user_id))
+    user = User(id=user_id, username=str(user_id), active=active)
     subject = MagicMock()
     subject.id = user_id  # deterministic subject ID
     subject.type = SubjectType.USER
@@ -83,12 +87,20 @@ def _make_group_subject(group_id: int) -> MagicMock:
 
 def _get_users(
     params: Optional[Union[int, list[int]]],
+    active: bool = True,
 ) -> Optional[Union[User, list[User]]]:
+    # ``User.active`` defaults to True at the SQLA column layer but that
+    # default only applies on INSERT — in-memory instances have
+    # ``active is None`` unless set explicitly. The ``get_executor``
+    # active-user filter added in #33584 treats ``None`` as inactive, so
+    # every helper-built User carries an explicit ``active`` flag. The
+    # default ``active=True`` preserves the historical "user is usable"
+    # test intent; #33584 cases pass ``active=False`` for inactive users.
     if params is None:
         return None
     if isinstance(params, int):
-        return User(id=params, username=str(params))
-    return [User(id=user, username=str(user)) for user in params]
+        return User(id=params, username=str(params), active=active)
+    return [User(id=user, username=str(user), active=active) for user in params]
 
 
 @dataclass
@@ -96,12 +108,18 @@ class EditorSpec:
     """Specification for building a list of mixed-type editor subjects."""
 
     user_ids: list[int]
+    # Optional inactive user-editor subjects — used by #33584 test cases
+    # that need to prove the active-user filter skips inactive editors.
+    inactive_user_ids: list[int] = field(default_factory=list)
     role_ids: list[int] | None = None
     group_ids: list[int] | None = None
 
     def build(self) -> list[MagicMock]:
         editors: list[MagicMock] = []
         editors.extend(_make_user_subject(uid) for uid in self.user_ids)
+        editors.extend(
+            _make_user_subject(uid, active=False) for uid in self.inactive_user_ids
+        )
         for rid in self.role_ids or []:
             editors.append(_make_role_subject(rid))
         for gid in self.group_ids or []:
@@ -114,6 +132,10 @@ class ModelConfig:
     editors: EditorSpec
     creator: Optional[int] = None
     modifier: Optional[int] = None
+    # #33584: build ``created_by`` / ``changed_by`` with ``active=False`` so
+    # ``get_executor`` skips them and falls through to the next candidate.
+    creator_active: bool = True
+    modifier_active: bool = True
     # Maps user_id → role_ids the user belongs to (for indirect editor resolution)
     user_roles: dict[int, list[int]] = field(default_factory=dict)
     # Maps user_id → group_ids the user belongs to (for indirect editor resolution)
@@ -530,6 +552,57 @@ class ModelType(int, Enum):
             None,
             ExecutorNotFoundError(),
         ),
+        # #33584 — CREATOR is inactive, MODIFIER is active → MODIFIER picked.
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.CREATOR, ExecutorType.MODIFIER],
+            ModelConfig(
+                editors=EditorSpec(user_ids=[]),
+                creator=3,
+                creator_active=False,
+                modifier=4,
+            ),
+            None,
+            (ExecutorType.MODIFIER, 4),
+        ),
+        # #33584 — every direct-user candidate inactive → ExecutorNotFoundError.
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.CREATOR, ExecutorType.MODIFIER],
+            ModelConfig(
+                editors=EditorSpec(user_ids=[]),
+                creator=3,
+                creator_active=False,
+                modifier=4,
+                modifier_active=False,
+            ),
+            None,
+            ExecutorNotFoundError(),
+        ),
+        # #33584 — EDITOR: inactive editor user comes first, active editor
+        # user comes second → the active one is picked.
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.EDITOR],
+            ModelConfig(
+                editors=EditorSpec(user_ids=[6], inactive_user_ids=[5]),
+            ),
+            None,
+            (ExecutorType.EDITOR, 6),
+        ),
+        # #33584 — CREATOR_EDITOR where creator IS an editor but inactive →
+        # falls through to next priority (none) → ExecutorNotFoundError.
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.CREATOR_EDITOR],
+            ModelConfig(
+                editors=EditorSpec(user_ids=[3]),
+                creator=3,
+                creator_active=False,
+            ),
+            None,
+            ExecutorNotFoundError(),
+        ),
     ],
 )
 def test_get_executor(
@@ -561,8 +634,10 @@ def test_get_executor(
 
     obj = model(
         id=1,
-        created_by=_get_users(model_config.creator),
-        changed_by=_get_users(model_config.modifier),
+        created_by=_get_users(model_config.creator, active=model_config.creator_active),
+        changed_by=_get_users(
+            model_config.modifier, active=model_config.modifier_active
+        ),
         **model_kwargs,
     )
     obj.editors = model_config.editors.build()
