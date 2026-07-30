@@ -33,9 +33,20 @@ class ArchivedAssetsView(BaseSupersetView):
 
     The page itself is a thin shell; the per-type archive data is fetched
     through the chart/dashboard/dataset list APIs, which enforce their own
-    access control, and restore is gated per object by the per-type
-    ``/restore`` endpoints. Access to the shell mirrors the chart list page
-    (``can_read`` on ``Chart`` via ``MODEL_VIEW_RW_METHOD_PERMISSION_MAP``).
+    access control, and restore and purge are gated per object by the per-type
+    endpoints. Access to the shell mirrors the chart list page (``can_read``
+    on ``Chart`` via ``MODEL_VIEW_RW_METHOD_PERMISSION_MAP``).
+
+    Known limitation: the shell fronts three independently-gated types but is
+    admitted by one of them, so a role holding only dashboard or dataset read
+    cannot open the page even though it owns archived objects of that type.
+    Such a user is not stranded — the list and ``/restore`` endpoints answer
+    them directly — but the UI is out of reach. Widening this to "any of the
+    three" means replacing ``@has_access``, which also supplies the redirect
+    to login for unauthenticated requests, so it belongs in its own change
+    rather than riding along with a permission tweak. The client already
+    offers only the types the viewer can read, so the mismatch is confined to
+    page admission. Tracked separately.
     """
 
     route_base = "/archived"

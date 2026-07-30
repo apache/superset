@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useCallback, useMemo, useRef, useState } from 'react';
+import { useSelector } from 'react-redux';
 import { SupersetClient } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
@@ -39,6 +40,8 @@ import {
 import SubMenu from 'src/features/home/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { recoveredToast } from 'src/utils/softDeleteCopy';
+import { findPermission } from 'src/utils/findPermission';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import {
   ARCHIVED_TYPES,
   ARCHIVED_TYPE_CONFIG,
@@ -414,7 +417,40 @@ function ArchivedListBody({
  * charts, dashboards, and datasets — one type at a time via the Type selector.
  */
 function ArchivedList({ addDangerToast, addSuccessToast }: ToastProps) {
-  const [type, setType] = useState<ArchivedType>('chart');
+  const roles = useSelector<
+    any,
+    UserWithPermissionsAndRoles['roles'] | undefined
+  >(state => state.user?.roles);
+
+  // Offer only the types this viewer can load. The page fronts three
+  // independently-gated list APIs, so a single all-or-nothing gate is the
+  // wrong shape in both directions: it can hide the whole archive from
+  // someone who owns archived datasets, and it can offer a type whose API
+  // will answer 403. This is presentation only — each API remains the
+  // enforcement point, so a hand-crafted request is still refused.
+  const availableTypes = useMemo(() => {
+    // Without roles we cannot say what is readable, so offer everything and
+    // let the APIs answer — the same behaviour as before this filter existed.
+    // Narrowing on missing information would hide the whole page instead.
+    if (!roles) {
+      return ARCHIVED_TYPES;
+    }
+    const readable = ARCHIVED_TYPES.filter(option =>
+      findPermission(
+        'can_read',
+        ARCHIVED_TYPE_CONFIG[option].permissionResource,
+        roles,
+      ),
+    );
+    return readable.length ? readable : ARCHIVED_TYPES;
+  }, [roles]);
+
+  // Default to the first type the viewer can actually see, not a fixed
+  // 'chart' they may have no access to. The route is unreachable when none
+  // are readable, so the fallback is defensive rather than expected.
+  const [type, setType] = useState<ArchivedType>(
+    () => availableTypes[0] ?? 'chart',
+  );
 
   return (
     <>
@@ -424,7 +460,7 @@ function ArchivedList({ addDangerToast, addSuccessToast }: ToastProps) {
           ariaLabel={t('Type')}
           value={type}
           onChange={value => setType(value as ArchivedType)}
-          options={ARCHIVED_TYPES.map(option => ({
+          options={availableTypes.map(option => ({
             value: option,
             label: TYPE_LABELS[option],
           }))}

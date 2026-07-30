@@ -38,6 +38,12 @@ export interface ArchivedTypeConfig {
   deletedStateOperator: string;
   /** Whether the name links to a preview (charts/dashboards only). */
   previewable: boolean;
+  /**
+   * FAB resource this type's list API is gated on, for `can_read` checks.
+   * Used to offer only the types the viewer can actually load; the APIs
+   * remain the enforcement point.
+   */
+  permissionResource: 'Chart' | 'Dashboard' | 'Dataset';
 }
 
 /** The supported types, in display order. */
@@ -49,18 +55,21 @@ export const ARCHIVED_TYPE_CONFIG: Record<ArchivedType, ArchivedTypeConfig> = {
     nameField: 'slice_name',
     deletedStateOperator: 'chart_deleted_state',
     previewable: true,
+    permissionResource: 'Chart',
   },
   dashboard: {
     resource: 'dashboard',
     nameField: 'dashboard_title',
     deletedStateOperator: 'dashboard_deleted_state',
     previewable: true,
+    permissionResource: 'Dashboard',
   },
   dataset: {
     resource: 'dataset',
     nameField: 'table_name',
     deletedStateOperator: 'dataset_deleted_state',
     previewable: false,
+    permissionResource: 'Dataset',
   },
 };
 

@@ -35,6 +35,17 @@ import ArchivedList from 'src/pages/ArchivedList';
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
+/** A store whose user holds `can_read` on only the given FAB resources. */
+const storeWithReadAccess = (...resources: string[]) =>
+  mockStore({
+    user: {
+      userId: 1,
+      username: 'someone',
+      permissions: {},
+      roles: { Custom: resources.map(resource => ['can_read', resource]) },
+    },
+  });
+
 const infoEndpoint = 'glob:*/api/v1/chart/_info*';
 const listEndpoint = 'glob:*/api/v1/chart/?*';
 const restoreEndpoint = 'glob:*/api/v1/chart/*/restore';
@@ -94,14 +105,14 @@ const mockRoutes = (restoreStatus = 200) => {
   });
 };
 
-const renderArchivedList = () =>
+const renderArchivedList = (withStore = store) =>
   render(
     <MemoryRouter>
       <QueryParamProvider adapter={ReactRouter5Adapter}>
         <ArchivedList />
       </QueryParamProvider>
     </MemoryRouter>,
-    { useRedux: true, store },
+    { useRedux: true, store: withStore },
   );
 
 beforeEach(() => {
@@ -316,4 +327,35 @@ test('a second Recover click while the first is in flight is ignored', async () 
     ),
   );
   expect(fetchMock.callHistory.calls(restoreEndpoint)).toHaveLength(1);
+});
+
+/**
+ * The page fronts three independently-gated list APIs. Offering a type the
+ * viewer cannot read sends them to a 403; the enforcement stays server-side,
+ * this only keeps the selector honest.
+ */
+
+test('the type selector offers only the types the viewer can read', async () => {
+  mockRoutes();
+  renderArchivedList(storeWithReadAccess('Dashboard', 'Dataset'));
+  await screen.findByTestId('archived-list-view');
+
+  userEvent.click(screen.getByRole('combobox', { name: 'Type' }));
+
+  expect(
+    await screen.findByRole('option', { name: 'Dashboard' }),
+  ).toBeInTheDocument();
+  expect(screen.getByRole('option', { name: 'Dataset' })).toBeInTheDocument();
+  expect(
+    screen.queryByRole('option', { name: 'Chart' }),
+  ).not.toBeInTheDocument();
+});
+
+test('the initial type is one the viewer can read, not a fixed default', async () => {
+  // A dataset-only viewer must not land on an empty Chart tab.
+  mockRoutes();
+  renderArchivedList(storeWithReadAccess('Dataset'));
+  await screen.findByTestId('archived-list-view');
+
+  expect(await screen.findByText('deleted_table_one')).toBeInTheDocument();
 });
