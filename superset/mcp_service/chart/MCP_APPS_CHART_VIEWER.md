@@ -53,7 +53,7 @@ Key pieces:
 | Shared authorized data path | `chart/tool/get_chart_data.py` (`get_chart_data_core`) |
 | `ui://` resource (serves the bundle) | `chart/resources/chart_viewer.py` |
 | Widget source (React + ECharts + Vite) | `chart/resources/chart_viewer/` |
-| Built single-file bundle | `chart/resources/chart_viewer/dist/index.html` |
+| Built single-file bundle (gitignored) | `chart/resources/chart_viewer/dist/index.html` |
 | Schemas | `chart/schemas.py` (`RenderChartRequest`, `RenderChartRequeryRequest`, `ChartData.explore_url`) |
 | Stripper keep-list + tool pinning | `middleware.py`, `mcp_config.py` |
 | `@tool(meta=...)` plumbing | `superset-core/.../mcp/decorators.py`, `superset/core/mcp/core_mcp_injection.py` |
@@ -97,8 +97,12 @@ the widget cannot exceed the entitlements of the principal who called it.
 
 ## Build the widget
 
-The bundle is committed (`dist/index.html`) so the server works without Node.
-To rebuild after changing the widget:
+The built bundle is **not committed** — same convention as
+`superset/static/assets` (gitignored in the repo, produced at packaging time,
+shipped via `MANIFEST.in`). Until you build it, the `ui://` resource serves a
+placeholder page telling you to run the build.
+
+Build it with:
 
 ```bash
 cd superset/mcp_service/chart/resources/chart_viewer
