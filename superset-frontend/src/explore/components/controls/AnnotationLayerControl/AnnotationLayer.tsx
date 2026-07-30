@@ -163,6 +163,9 @@ const getSliceFormData = (
   return parseJsonObject(result.params);
 };
 
+const reportChartFailure = (id: string | number) => (error: unknown) =>
+  logging.error(`Failed to load annotation source chart ${id}`, error);
+
 const toSliceData = (formData: Record<string, unknown>): SliceData => ({
   data: {
     ...formData,
@@ -423,28 +426,37 @@ function AnnotationLayer({
     [sourceType, fetchNativeAnnotations, fetchCharts],
   );
 
-  const fetchSliceData = useCallback((id: string | number): void => {
-    const queryParams = rison.encode({
-      columns: ['params', 'query_context'],
-    });
-    SupersetClient.get({
-      endpoint: `/api/v1/chart/${id}?q=${queryParams}`,
-    })
-      .then(({ json }) => {
-        const formData = getSliceFormData(json.result);
-        if (formData) {
-          setSlice(toSliceData(formData));
-        } else {
-          logging.warn(
-            `Annotation source chart ${id} has no usable form data; ` +
-              'the slice configuration fields cannot be populated.',
-          );
-        }
-      })
-      .catch(error => {
-        logging.error(`Failed to load annotation source chart ${id}`, error);
+  // Both the mount and the selection path load a chart to fill the slice
+  // configuration from, so they share how a loaded chart is applied and how a
+  // failure is reported.
+  const applySliceFormData = useCallback(
+    (id: string | number, result: ChartApiResult): void => {
+      const formData = getSliceFormData(result);
+      if (formData) {
+        setSlice(toSliceData(formData));
+        return;
+      }
+      logging.warn(
+        `Annotation source chart ${id} has no usable form data; ` +
+          'the slice configuration fields cannot be populated.',
+      );
+    },
+    [],
+  );
+
+  const fetchSliceData = useCallback(
+    (id: string | number): void => {
+      const queryParams = rison.encode({
+        columns: ['params', 'query_context'],
       });
-  }, []);
+      SupersetClient.get({
+        endpoint: `/api/v1/chart/${id}?q=${queryParams}`,
+      })
+        .then(({ json }) => applySliceFormData(id, json.result))
+        .catch(reportChartFailure(id));
+    },
+    [applySliceFormData],
+  );
 
   const fetchAppliedChart = useCallback(
     (id: string | number): void => {
@@ -465,21 +477,11 @@ function AnnotationLayer({
             value: id,
             label: result.slice_name,
           });
-          const formData = getSliceFormData(result);
-          if (formData) {
-            setSlice(toSliceData(formData));
-          } else {
-            logging.warn(
-              `Annotation source chart ${id} has no usable form data; ` +
-                'the slice configuration fields cannot be populated.',
-            );
-          }
+          applySliceFormData(id, result);
         })
-        .catch(error => {
-          logging.error(`Failed to load annotation source chart ${id}`, error);
-        });
+        .catch(reportChartFailure(id));
     },
-    [annotationType],
+    [annotationType, applySliceFormData],
   );
 
   const fetchAppliedNativeAnnotation = useCallback(
@@ -1092,6 +1094,9 @@ function AnnotationLayer({
     const row = sectionsRef.current;
     const popover = row?.closest('.ant-popover');
     const panel = document.getElementById(CONTROL_SECTIONS_ID);
+    // The cap is measured against Explore's control panel. Rendered anywhere
+    // else - or not inside a popover - there is nothing to measure from, so the
+    // row keeps the viewport-wide fallback below rather than being capped.
     if (!row || !popover || !panel) {
       return;
     }
