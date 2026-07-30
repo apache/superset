@@ -596,6 +596,14 @@ export default function transformProps(
 
     series.unshift(baselineSeries);
   }
+
+  // Snapshot the observation-series count before annotation layers are
+  // appended below. Annotation series (formula/interval/event/timeseries)
+  // carry their own configured values, which the Y axis clamp further
+  // below must not rewrite, or an annotation could be moved to a location
+  // that doesn't match its configuration.
+  const observationSeriesCount = series.length;
+
   const selectedValues = (filterState.selectedValues || []).reduce(
     (acc: Record<string, number>, selectedValue: string) => {
       const index = series.findIndex(({ name }) => name === selectedValue);
@@ -746,7 +754,10 @@ export default function transformProps(
       newPoint[valueIndex] = clampAxisValue(newPoint[valueIndex]);
       return newPoint;
     };
-    series.forEach(s => {
+    series.forEach((s, index) => {
+      // Skip annotation series appended above; only clamp the chart's own
+      // observation/legend/baseline series.
+      if (index >= observationSeriesCount) return;
       if (!Array.isArray(s.data)) return;
       const clampedData = (
         s.data as (AxisPoint | Record<string, unknown>)[]
