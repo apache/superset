@@ -31,7 +31,6 @@ import {
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import {
-  GenericLink,
   ListView,
   ListViewFilterOperator as FilterOperator,
   type ListViewProps,
@@ -266,19 +265,18 @@ function ArchivedListBody({
         // text with a tooltip explaining why no preview is offered.
         Cell: ({ row: { original } }: { row: { original: ArchivedItem } }) => {
           const name = String(original[config.nameField] ?? '');
-          if (config.previewable && original.url) {
-            return <GenericLink to={String(original.url)}>{name}</GenericLink>;
-          }
-          if (!config.previewable) {
-            return (
-              <Tooltip
-                title={t('Preview is only available for charts and dashboards')}
-              >
-                <span>{name}</span>
-              </Tooltip>
-            );
-          }
-          return <span>{name}</span>;
+          // Archived objects are not viewable in place. Verified against a
+          // running instance: an archived dashboard's page 404s, and an
+          // archived chart's explore page answers 200 with no chart and no
+          // error — the reader is shown what looks like an empty new chart
+          // rather than told anything. Neither is a preview, and the silent
+          // one is the worse of the two, so no row links out until the object
+          // is recovered.
+          return (
+            <Tooltip title={t('Recover this item to open it')}>
+              <span>{name}</span>
+            </Tooltip>
+          );
         },
         accessor: config.nameField,
         Header: t('Name'),
@@ -332,14 +330,7 @@ function ArchivedListBody({
         size: 'sm',
       },
     ],
-    [
-      config.nameField,
-      config.previewable,
-      type,
-      handleRestore,
-      handlePurge,
-      inFlight,
-    ],
+    [config.nameField, type, handleRestore, handlePurge, inFlight],
   );
 
   // Default to most-recently-archived first. `deleted_at` is orderable on all

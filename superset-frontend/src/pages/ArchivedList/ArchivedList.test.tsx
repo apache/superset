@@ -288,17 +288,19 @@ test('shows relative deletion time and the deleting user', async () => {
   expect(screen.getByText('Ada Lovelace')).toBeInTheDocument();
 });
 
-test('renders chart names as preview links', async () => {
+test('archived names do not link out, because the targets cannot show them', async () => {
+  // Verified against a running instance: an archived dashboard's page 404s,
+  // and an archived chart's explore page answers 200 with no chart and no
+  // error — an empty new-chart screen rather than an explanation. A link that
+  // silently goes nowhere is worse than no link.
   mockRoutes();
   renderArchivedList();
   await screen.findByTestId('archived-list-view');
 
-  const link = screen.getByText('Deleted Chart One').closest('a');
-  expect(link).not.toBeNull();
-  expect(link).toHaveAttribute('href', expect.stringContaining('slice_id=1'));
+  expect(screen.getByText('Deleted Chart One').closest('a')).toBeNull();
 });
 
-test('renders dataset names as plain text with no preview link', async () => {
+test('dataset names are also plain text', async () => {
   mockRoutes();
   renderArchivedList();
   await screen.findByTestId('archived-list-view');
