@@ -22,6 +22,7 @@ import {
   AnnotationType,
   AxisType,
   ComparisonType,
+  ContributionType,
   DataRecord,
   EventAnnotationLayer,
   FormulaAnnotationLayer,
@@ -1391,6 +1392,43 @@ test('should not apply axis bounds calculation when seriesType is not Bar for ho
   const xAxisRaw = transformedProps.echartOptions.xAxis as any;
   // Should not have explicit max set when seriesType is not Bar
   expect(xAxisRaw.max).toBeUndefined();
+});
+
+test('should not clip small segments when row-contribution percentages float above 1 in horizontal stacked bar charts', () => {
+  // These three shares are individually normalized (each column sums to 1),
+  // but due to floating point rounding their sum is 1.0000000000000002,
+  // fractionally over 1. See https://github.com/apache/superset/issues/30914
+  const shareA = 0.41960735305372;
+  const shareB = 0.37722784875089643;
+  const shareC = 0.20316479819538372;
+  expect(shareA + shareB + shareC).toBeGreaterThan(1);
+
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData(
+        [{ 'Series A': shareA, 'Series B': shareB, 'Series C': shareC }],
+        { intervalMs: 300000000 },
+      ),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      contributionMode: ContributionType.Row,
+      stack: StackControlsValue.Stack,
+    },
+    queriesData,
+  });
+
+  const transformedProps = transformProps(chartProps);
+
+  // In horizontal orientation, axes are swapped, so yAxis becomes xAxis.
+  // The axis max must not be hard-capped at exactly 1, otherwise echarts
+  // clips the topmost stacked segment entirely instead of just rendering
+  // a negligible sub-pixel overflow.
+  const xAxisRaw = transformedProps.echartOptions.xAxis as any;
+  expect(xAxisRaw.max).toBeGreaterThanOrEqual(shareA + shareB + shareC);
 });
 
 test('legend is visible on tall charts when enabled by the user', () => {
