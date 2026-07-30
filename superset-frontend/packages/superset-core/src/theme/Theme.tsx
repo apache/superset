@@ -234,8 +234,21 @@ export class Theme {
     // listener rather than assigning a single shared callback on every
     // render, so every concurrently mounted provider for this Theme
     // instance receives updates, not just the last one to render.
+    //
+    // Use useLayoutEffect (not useEffect) so registration happens in the
+    // same commit phase as any layout effect elsewhere that might call
+    // setConfig/toggleDarkMode on this instance during mount (e.g. the
+    // docs site's dark-mode sync in StorybookWrapper.jsx, which reads the
+    // toggle and pushes it onto the singleton via a layout effect of its
+    // own). Layout effects run bottom-up, so a listener registered here
+    // (this component is nested inside that caller) is guaranteed to be
+    // in place before an ancestor's layout effect can fire and notify it.
+    // If this were a passive effect instead, an ancestor's layout effect
+    // could call toggleDarkMode before this listener exists, dropping that
+    // notification, and the provider would render stale until a later
+    // toggle.
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    React.useEffect(() => {
+    React.useLayoutEffect(() => {
       const listener = (
         nextTheme: SupersetTheme,
         nextAntdConfig: AntdThemeConfig,
