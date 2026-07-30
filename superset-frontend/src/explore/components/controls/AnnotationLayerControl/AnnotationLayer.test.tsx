@@ -43,9 +43,12 @@ const nativeLayerApiRoute = 'glob:*/api/v1/annotation_layer/*';
 const chartApiRoute = /\/api\/v1\/chart\/\?q=.+/;
 const chartApiWithIdRoute = /\/api\/v1\/chart\/\w+\?q=.+/;
 
+const chartApiWithIdRouteName = 'chart-with-id';
+
 const withIdResult = {
   result: {
     slice_name: 'Mocked Slice',
+    params: JSON.stringify({ groupby: ['country'] }),
     query_context: JSON.stringify({
       form_data: {
         groupby: ['country'],
@@ -68,7 +71,9 @@ beforeAll(() => {
     result: [{ id: 'a', slice_name: 'Chart A', viz_type: VizType.Table }],
   });
 
-  fetchMock.get(chartApiWithIdRoute, withIdResult);
+  fetchMock.get(chartApiWithIdRoute, withIdResult, {
+    name: chartApiWithIdRouteName,
+  });
 
   setupColors();
 
@@ -229,6 +234,135 @@ test('keeps apply disabled when missing required fields', async () => {
 
   // Apply should still be disabled because name is not filled
   expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
+});
+
+test('renders slice configuration for a chart that has no generated query context', async () => {
+  // A chart never opened in Explore has `query_context: null`, so the columns
+  // have to come from its saved `params`.
+  fetchMock.modifyRoute(chartApiWithIdRouteName, {
+    response: {
+      result: {
+        slice_name: 'Mocked Slice',
+        params: JSON.stringify({ groupby: ['country'] }),
+        query_context: null,
+        viz_type: VizType.Line,
+      },
+    },
+  });
+
+  try {
+    await waitForRender({
+      annotationType: ANNOTATION_TYPES_METADATA.EVENT.value,
+      sourceType: 'Table',
+    });
+
+    await selectOption('Chart A', 'Annotation layer value');
+
+    expect(await screen.findByText(/title column/i)).toBeInTheDocument();
+
+    // The column options come from the saved `params` form data.
+    userEvent.click(
+      screen.getByRole('combobox', { name: 'Annotation layer time column' }),
+    );
+    expect(await screen.findByTitle('country')).toBeInTheDocument();
+  } finally {
+    fetchMock.modifyRoute(chartApiWithIdRouteName, { response: withIdResult });
+  }
+});
+
+test('renders slice configuration on mount for a chart with no generated query context', async () => {
+  fetchMock.modifyRoute(chartApiWithIdRouteName, {
+    response: {
+      result: {
+        slice_name: 'Mocked Slice',
+        params: JSON.stringify({ groupby: ['country'] }),
+        query_context: null,
+        viz_type: VizType.Table,
+      },
+    },
+  });
+
+  try {
+    await waitForRender({
+      name: 'Test',
+      value: 'a',
+      annotationType: ANNOTATION_TYPES_METADATA.EVENT.value,
+      sourceType: 'Table',
+    });
+
+    expect(await screen.findByText(/title column/i)).toBeInTheDocument();
+  } finally {
+    fetchMock.modifyRoute(chartApiWithIdRouteName, { response: withIdResult });
+  }
+});
+
+test('bounds the section row to the viewport so the footer stays reachable', async () => {
+  // Adding the slice configuration section must not push the display
+  // configuration or the Apply/OK buttons past the viewport.
+  await waitForRender({
+    annotationType: ANNOTATION_TYPES_METADATA.EVENT.value,
+    sourceType: 'Table',
+  });
+
+  const sections = screen.getByTestId('annotation-layer-sections');
+  expect(sections).toHaveStyle('flex-wrap: wrap');
+  expect(sections).toHaveStyle('max-width: calc(100vw - 64px)');
+  // The footer is a sibling of the sections, never inside the row.
+  expect(sections).not.toContainElement(
+    screen.getByRole('button', { name: 'Apply' }),
+  );
+});
+
+test('caps the section row to the room left beside the control panel', async () => {
+  // The cap is measured from the panel's edge, not the popover's own: the
+  // popover moves as the row narrows, so measuring it feeds each cap into the
+  // next one and converges on a column too narrow to lay the sections out in.
+  Object.defineProperty(document.documentElement, 'clientWidth', {
+    configurable: true,
+    value: 1160,
+  });
+  const rect = (width: number, right: number) =>
+    ({
+      width,
+      right,
+      left: right - width,
+      top: 0,
+      bottom: 0,
+      height: 0,
+    }) as DOMRect;
+  jest
+    .spyOn(Element.prototype, 'getBoundingClientRect')
+    .mockImplementation(function (this: Element) {
+      if (this.id === 'controlSections') return rect(620, 620);
+      if (this.classList.contains('ant-popover')) return rect(802, 1422);
+      if (this.getAttribute('data-test') === 'annotation-layer-sections')
+        return rect(778, 1410);
+      return rect(0, 0);
+    });
+
+  try {
+    await waitFor(() =>
+      render(
+        <>
+          <div id="controlSections" />
+          <div className="ant-popover">
+            <AnnotationLayer
+              {...defaultProps}
+              annotationType={ANNOTATION_TYPES_METADATA.EVENT.value}
+              sourceType="Table"
+            />
+          </div>
+        </>,
+      ),
+    );
+
+    // 1160 viewport - 620 panel - 24 popover padding - 8 inset
+    expect(screen.getByTestId('annotation-layer-sections')).toHaveStyle(
+      'max-width: 508px',
+    );
+  } finally {
+    jest.restoreAllMocks();
+  }
 });
 
 test('Disable apply button if formula is incorrect', async () => {

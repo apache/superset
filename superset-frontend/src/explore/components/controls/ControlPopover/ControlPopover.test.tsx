@@ -24,7 +24,14 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 
-import ControlPopover, { PopoverProps } from './ControlPopover';
+// Reaching into antd's internals pins the overflow behaviour ControlPopover
+// relies on, so an upgrade that changes it fails here.
+import { getOverflowOptions } from 'antd/lib/_util/placements';
+
+import ControlPopover, {
+  AUTO_ADJUST_OVERFLOW,
+  PopoverProps,
+} from './ControlPopover';
 
 const createProps = (): Partial<PopoverProps> => ({
   trigger: 'click',
@@ -181,4 +188,34 @@ test('Controlled mode', async () => {
   await waitFor(() => {
     expect(screen.queryByText('Control Popover Test')).not.toBeInTheDocument();
   });
+});
+
+test('Keeps an oversized popover reachable inside the viewport', () => {
+  // antd ships shifting only for the base placements, so the corner placements
+  // this component computes have to ask for it explicitly.
+  const arrowOffset = { arrowOffsetHorizontal: 12, arrowOffsetVertical: 12 };
+
+  expect(
+    getOverflowOptions('rightBottom', arrowOffset, 16, true),
+  ).not.toMatchObject({ shiftX: expect.anything() });
+
+  for (const placement of [
+    'right',
+    'rightTop',
+    'rightBottom',
+    'left',
+    'leftTop',
+    'leftBottom',
+    'top',
+    'bottom',
+  ]) {
+    expect(
+      getOverflowOptions(placement, arrowOffset, 16, AUTO_ADJUST_OVERFLOW),
+    ).toMatchObject({
+      adjustX: 1,
+      adjustY: 1,
+      shiftX: true,
+      shiftY: true,
+    });
+  }
 });

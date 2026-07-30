@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import rison from 'rison';
 import {
   Button,
@@ -36,6 +43,7 @@ import {
 } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { styled, useTheme } from '@apache-superset/core/theme';
+import { logging } from '@apache-superset/core/utils';
 import SelectControl from 'src/explore/components/controls/SelectControl';
 import TextControl from 'src/explore/components/controls/TextControl';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
@@ -102,6 +110,57 @@ interface AnnotationLayerProps {
 }
 
 const AUTOMATIC_COLOR = '';
+
+/** Space between the popover's side-by-side configuration sections. */
+const SECTION_GAP = 32;
+
+/** Explore's control panel, which the popover opens alongside. */
+const CONTROL_SECTIONS_ID = 'controlSections';
+
+/** Breathing room kept between the popover and the viewport edge. */
+const VIEWPORT_INSET = 8;
+
+interface ChartApiResult {
+  params?: string | null;
+  query_context?: string | null;
+}
+
+const parseJsonObject = (
+  raw: string | null | undefined,
+): Record<string, unknown> | null => {
+  if (!raw) {
+    return null;
+  }
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+};
+
+// `query_context` is only backfilled once a chart is opened in Explore, so fall
+// back to `params`, which holds the same form data and is always present.
+const getSliceFormData = (
+  result: ChartApiResult,
+): Record<string, unknown> | null => {
+  const formData = parseJsonObject(result.query_context)?.form_data;
+  if (formData && typeof formData === 'object') {
+    return formData as Record<string, unknown>;
+  }
+  return parseJsonObject(result.params);
+};
+
+const toSliceData = (formData: Record<string, unknown>): SliceData => ({
+  data: {
+    ...formData,
+    groupby: (formData.groupby as QueryFormColumn[] | undefined)?.map(column =>
+      getColumnLabel(column),
+    ),
+  },
+});
 
 const NotFoundContentWrapper = styled.div`
   && > div:first-of-type {
@@ -220,6 +279,8 @@ function AnnotationLayer({
   const [hideLine, setHideLine] = useState(propHideLine ?? false);
   const [isNew, setIsNew] = useState(!propName);
   const [slice, setSlice] = useState<SliceData | null>(null);
+  const sectionsRef = useRef<HTMLDivElement>(null);
+  const [sectionsMaxWidth, setSectionsMaxWidth] = useState<number>();
 
   const getSupportedSourceTypes = useCallback(
     (annoType: string): SelectOption[] => {
@@ -354,58 +415,59 @@ function AnnotationLayer({
 
   const fetchSliceData = useCallback((id: string | number): void => {
     const queryParams = rison.encode({
-      columns: ['query_context'],
+      columns: ['params', 'query_context'],
     });
     SupersetClient.get({
       endpoint: `/api/v1/chart/${id}?q=${queryParams}`,
-    }).then(({ json }) => {
-      const { result } = json;
-      const queryContext = result.query_context;
-      const formData = JSON.parse(queryContext).form_data;
-      const dataObject = {
-        data: {
-          ...formData,
-          groupby: formData.groupby?.map((column: QueryFormColumn) =>
-            getColumnLabel(column),
-          ),
-        },
-      };
-      setSlice(dataObject);
-    });
+    })
+      .then(({ json }) => {
+        const formData = getSliceFormData(json.result);
+        if (formData) {
+          setSlice(toSliceData(formData));
+        } else {
+          logging.warn(
+            `Annotation source chart ${id} has no usable form data; ` +
+              'the slice configuration fields cannot be populated.',
+          );
+        }
+      })
+      .catch(error => {
+        logging.error(`Failed to load annotation source chart ${id}`, error);
+      });
   }, []);
 
   const fetchAppliedChart = useCallback(
     (id: string | number): void => {
       const registry = getChartMetadataRegistry();
       const queryParams = rison.encode({
-        columns: ['slice_name', 'query_context', 'viz_type'],
+        columns: ['slice_name', 'params', 'query_context', 'viz_type'],
       });
       SupersetClient.get({
         endpoint: `/api/v1/chart/${id}?q=${queryParams}`,
-      }).then(({ json }) => {
-        const { result } = json;
-        const sliceName = result.slice_name;
-        const queryContext = result.query_context;
-        const chartVizType = result.viz_type;
-        const formData = JSON.parse(queryContext).form_data;
-        const metadata = registry.get(chartVizType);
-        const canBeAnnotationType =
-          metadata && metadata.canBeAnnotationType(annotationType);
-        if (canBeAnnotationType) {
+      })
+        .then(({ json }) => {
+          const { result } = json;
+          const metadata = registry.get(result.viz_type);
+          if (!metadata?.canBeAnnotationType(annotationType)) {
+            return;
+          }
           setValue({
             value: id,
-            label: sliceName,
+            label: result.slice_name,
           });
-          setSlice({
-            data: {
-              ...formData,
-              groupby: formData.groupby?.map((column: QueryFormColumn) =>
-                getColumnLabel(column),
-              ),
-            },
-          });
-        }
-      });
+          const formData = getSliceFormData(result);
+          if (formData) {
+            setSlice(toSliceData(formData));
+          } else {
+            logging.warn(
+              `Annotation source chart ${id} has no usable form data; ` +
+                'the slice configuration fields cannot be populated.',
+            );
+          }
+        })
+        .catch(error => {
+          logging.error(`Failed to load annotation source chart ${id}`, error);
+        });
     },
     [annotationType],
   );
@@ -740,7 +802,7 @@ function AnnotationLayer({
         ? [{ value: '__timestamp', label: '__timestamp' }].concat(columns)
         : columns;
       return (
-        <div style={{ marginRight: '2rem' }}>
+        <div>
           <PopoverSection
             isSelected
             title={t('Annotation Slice Configuration')}
@@ -1010,6 +1072,29 @@ function AnnotationLayer({
     theme,
   ]);
 
+  const sliceConfiguration = renderSliceConfiguration();
+  const hasSliceConfiguration = !!sliceConfiguration;
+
+  useLayoutEffect(() => {
+    const row = sectionsRef.current;
+    const popover = row?.closest('.ant-popover');
+    const panel = document.getElementById(CONTROL_SECTIONS_ID);
+    if (!row || !popover || !panel) {
+      return;
+    }
+    // Padding and border the popover adds around the row.
+    const popoverInsetWidth =
+      popover.getBoundingClientRect().width - row.getBoundingClientRect().width;
+    const available =
+      document.documentElement.clientWidth -
+      panel.getBoundingClientRect().right -
+      popoverInsetWidth -
+      VIEWPORT_INSET;
+    if (available > 0) {
+      setSectionsMaxWidth(available);
+    }
+  }, [hasSliceConfiguration]);
+
   const isValid = isValidForm();
   const metadata = vizType ? getChartMetadataRegistry().get(vizType) : null;
   const supportedAnnotationTypes = metadata
@@ -1029,8 +1114,21 @@ function AnnotationLayer({
           {t('ERROR')}: {error}
         </span>
       )}
-      <div style={{ display: 'flex', flexDirection: 'row' }}>
-        <div style={{ marginRight: '2rem' }}>
+      <div
+        ref={sectionsRef}
+        data-test="annotation-layer-sections"
+        style={{
+          display: 'flex',
+          flexDirection: 'row',
+          // A third section can outgrow a narrow viewport, and an oversized
+          // popover cannot be shrunk by antd, only flipped. Bounding the row
+          // compresses the sections instead of pushing the footer off screen.
+          flexWrap: 'wrap',
+          maxWidth: sectionsMaxWidth ?? `calc(100vw - ${SECTION_GAP * 2}px)`,
+          gap: SECTION_GAP,
+        }}
+      >
+        <div>
           <PopoverSection
             isSelected
             title={t('Layer configuration')}
@@ -1086,7 +1184,7 @@ function AnnotationLayer({
             {renderValueConfiguration()}
           </PopoverSection>
         </div>
-        {renderSliceConfiguration()}
+        {sliceConfiguration}
         {renderDisplayConfiguration()}
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
