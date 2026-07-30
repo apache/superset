@@ -643,3 +643,26 @@ def test_custom_snowflake_auth_error_does_not_match_unrelated_errors() -> None:
     assert not isinstance(
         ValueError("Invalid OAuth access token."), CustomSnowflakeAuthError
     )
+
+
+def test_snowflake_oauth2_exception_catches_refresh_token_error() -> None:
+    """
+    `refresh_oauth2_token()` catches failures from the (unoverridden) base
+    `get_oauth2_fresh_token()` with `except db_engine_spec.oauth2_exception`.
+    That base method raises `OAuth2TokenRefreshError`, which isn't related to
+    `CustomSnowflakeAuthError` by real subclassing, so `oauth2_exception` must
+    include it directly -- an `except` clause never triggers the metaclass's
+    `__instancecheck__`, unlike `isinstance()`.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.exceptions import OAuth2TokenRefreshError
+
+    try:
+        raise OAuth2TokenRefreshError("refresh token revoked")
+    except SnowflakeEngineSpec.oauth2_exception:
+        pass
+    else:
+        pytest.fail(
+            "OAuth2TokenRefreshError must be caught by "
+            "SnowflakeEngineSpec.oauth2_exception"
+        )

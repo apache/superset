@@ -45,6 +45,7 @@ from superset.db_engine_specs.base import (
 )
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import OAuth2TokenRefreshError
 from superset.models.sql_lab import Query
 from superset.superset_typing import (
     OAuth2ClientConfig,
@@ -245,7 +246,13 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
 
     # OAuth 2.0 support
     supports_oauth2: bool = True
-    oauth2_exception: type[Exception] = CustomSnowflakeAuthError
+    # `CustomSnowflakeAuthError` is only matched via `isinstance()` (see the
+    # metaclass docstring above), so it's paired with `OAuth2TokenRefreshError`
+    # (a real subclass) to keep `refresh_oauth2_token`'s `except` clause working.
+    oauth2_exception: type[Exception] | tuple[type[Exception], ...] = (
+        CustomSnowflakeAuthError,
+        OAuth2TokenRefreshError,
+    )
 
     @classmethod
     def is_oauth2_enabled(cls) -> bool:
