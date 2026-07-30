@@ -52,4 +52,22 @@ describe('renderNormalizedTooltip', () => {
     expect(tooltip).toContain('100');
     expect(tooltip).toContain('200');
   });
+
+  test('should render a missing metric as N/A instead of NaN', () => {
+    // A missing metric is denormalized to `null` (see #30270); the tooltip
+    // must not run it through the formatter, which would print "NaN".
+    const getDenormalizedValueWithGap = jest.fn((_, value) =>
+      value === 'null' ? null : Number(value),
+    );
+    const formatter = getNumberFormatter(',.2f');
+    const tooltip = renderNormalizedTooltip(
+      { ...params, value: [100, null] },
+      metrics,
+      getDenormalizedValueWithGap,
+      metricsWithCustomBounds,
+      formatter,
+    );
+    expect(tooltip).toContain('N/A');
+    expect(tooltip).not.toContain('NaN');
+  });
 });
