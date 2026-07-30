@@ -1431,6 +1431,34 @@ test('should not clip small segments when row-contribution percentages float abo
   expect(xAxisRaw.max).toBeGreaterThanOrEqual(shareA + shareB + shareC);
 });
 
+test('keeps the 0-1 axis range for Expand (100% stacked) charts instead of padding to the raw row total', () => {
+  // Unlike row-contribution mode, an Expand stack is not pre-normalized in
+  // the query result -- these are raw values (summing to 100, not 1) that
+  // get divided down to a 0-1 range internally. The un-normalized row total
+  // must not be used to pad the axis max, or the chart would only occupy a
+  // sliver of the plot.
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData([{ 'Series A': 42, 'Series B': 38, 'Series C': 20 }], {
+        intervalMs: 300000000,
+      }),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      stack: StackControlsValue.Expand,
+    },
+    queriesData,
+  });
+
+  const transformedProps = transformProps(chartProps);
+
+  const xAxisRaw = transformedProps.echartOptions.xAxis as any;
+  expect(xAxisRaw.max).toBe(1);
+});
+
 test('legend is visible on tall charts when enabled by the user', () => {
   const chartProps = createTestChartProps({
     height: 400,

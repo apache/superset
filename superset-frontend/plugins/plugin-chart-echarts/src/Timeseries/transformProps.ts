@@ -854,23 +854,33 @@ export default function transformProps(
   if ((contributionMode === 'row' || isAreaExpand) && stack) {
     if (yAxisMin === undefined) yAxisMin = 0;
     if (yAxisMax === undefined) {
-      // Contribution percentages are normalized so each stacked row should
-      // sum to 1, but floating point rounding can push the actual stacked
-      // total fractionally above 1 (e.g. 1.0000000000000002). Hard-capping
-      // the axis max at exactly 1 in that case causes echarts to clip the
-      // topmost stacked segment entirely rather than just rounding the
-      // pixel width, which is most visible in horizontal orientation where
-      // this axis is swapped onto the x-axis. Pad the max up to the actual
-      // stacked total when it exceeds 1 so no segment gets clipped.
-      const stackedTotalMax = Math.max(
-        ...sortedTotalValues.filter(
-          (v): v is number => typeof v === 'number' && !Number.isNaN(v),
-        ),
-      );
-      yAxisMax =
-        Number.isFinite(stackedTotalMax) && stackedTotalMax > 1
-          ? stackedTotalMax
-          : 1;
+      if (contributionMode === 'row') {
+        // Contribution percentages are normalized so each stacked row should
+        // sum to 1, but floating point rounding can push the actual stacked
+        // total fractionally above 1 (e.g. 1.0000000000000002). Hard-capping
+        // the axis max at exactly 1 in that case causes echarts to clip the
+        // topmost stacked segment entirely rather than just rounding the
+        // pixel width, which is most visible in horizontal orientation where
+        // this axis is swapped onto the x-axis. Pad the max up to the actual
+        // stacked total when it exceeds 1 so no segment gets clipped.
+        //
+        // This padding only applies in row-contribution mode: for an Expand
+        // ("100% stacked") chart, `sortedTotalValues` holds the raw,
+        // pre-normalization row totals (e.g. 100), not values near 1, so
+        // padding against them here would stretch the axis out to the raw
+        // total instead of the intended 0-1 range.
+        const stackedTotalMax = sortedTotalValues.reduce<number>(
+          (max, v) =>
+            typeof v === 'number' && !Number.isNaN(v) ? Math.max(max, v) : max,
+          Number.NEGATIVE_INFINITY,
+        );
+        yAxisMax =
+          Number.isFinite(stackedTotalMax) && stackedTotalMax > 1
+            ? stackedTotalMax
+            : 1;
+      } else {
+        yAxisMax = 1;
+      }
     }
   } else if (
     logAxis &&
