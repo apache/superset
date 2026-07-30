@@ -969,7 +969,10 @@ def map_xy_config(  # noqa: C901
 
     _add_adhoc_filters(form_data, config.filters)
 
-    if x_is_temporal:
+    # A shared explicit temporal_column is the dashboard binding source of truth.
+    # Defer to _bind_dashboard_time_range_filter instead of also binding the
+    # temporal x-axis, which would apply the dashboard range to both columns.
+    if x_is_temporal and not config.temporal_column:
         _ensure_temporal_adhoc_filter(form_data, config.x.name)
 
     _add_xy_limits(form_data, config)
