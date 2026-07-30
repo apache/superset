@@ -408,6 +408,16 @@ Entity version history (the `version_transaction` / `*_version` shadow tables th
 
 The task ships in the default `CeleryConfig.beat_schedule`; a deployment that overrides `CELERY_CONFIG` without inheriting the default will log a startup warning that the prune task is absent (so it never silently stops running). Retention only prunes whatever history exists — capture itself is gated separately by `ENABLE_VERSIONING_CAPTURE` (ships off).
 
+### Deletion retention (soft-deleted entities are eventually purged)
+
+Soft-deleted dashboards, charts, and datasets are now permanently removed after a retention window (default 30 days; `SOFT_DELETE_RETENTION_DAYS`, `0` disables; settable per workspace at runtime via the `deletion-retention set-window` CLI, which takes precedence). The `deletion_retention.purge_soft_deleted` Celery beat task runs daily and removes each aged-out entity together with its M:N join rows, owned children, datasource permission, and version-history shadow rows. After purge an entity is **unrecoverable** — its detail and `/restore` endpoints return 404 and its version history is gone.
+
+The introducing release **defaults to dry-run** (`SOFT_DELETE_PURGE_DRY_RUN=True`): the task logs `would_purge` counts but deletes nothing, so operators can validate against production before activating real purging by setting it to `False`. Note `would_purge` is an **upper bound** — it counts every entity past the retention window without evaluating deletion blockers, so a real run may purge fewer (entities referenced by report schedules or set as a user's welcome dashboard are blocked and reported separately). The task only acts while the temporary `SOFT_DELETE` rollout flag is on.
+
+Deployments that replace the default `CELERY_CONFIG` must add `superset.tasks.deletion_retention` to the Celery `imports` and schedule the `deletion_retention.purge_soft_deleted` task themselves. The shipped Docker development config includes both entries.
+
+Operators can immediately erase a specific entity for compliance (GDPR) via `superset deletion-retention force-purge --uuid <uuid>`; this applies legacy hard-delete semantics — a live chart referencing a force-purged dataset is left without a datasource until re-pointed (the chart is not modified), and it purges the named entity even when it was never soft-deleted. Every purge writes an immutable, content-free audit record to the new `purge_audit_log` table that survives the entity it names: the **scheduled** purge fails closed (an entity whose audit row cannot be written is skipped and retried next run), while **force-purge** proceeds even if the audit write fails — the operator is present and deletion outranks audit for a compliance erasure.
+
 ### Webhook alerts/reports block private/internal hosts by default
 
 Webhook alert/report dispatch (`WebhookNotification.send`) now validates the target URL's host against the same private/internal-IP block applied to dataset import URLs. If the resolved host is in a loopback, link-local, private (RFC-1918), shared-CGNAT, or multicast range, the webhook is rejected with `NotificationParamException`.
