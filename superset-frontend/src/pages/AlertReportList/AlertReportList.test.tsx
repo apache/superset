@@ -593,3 +593,99 @@ test('trigger-now action does not duplicate in-flight requests', async () => {
     expect(fetchMock.callHistory.calls('execute-report-slow')).toHaveLength(1);
   });
 });
+
+test('trigger-now action displays correct success toast for Alert', async () => {
+  const addSuccessToast = jest.fn();
+  fetchMock.post(
+    'glob:*/api/v1/report/*/execute',
+    {
+      execution_id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
+      message: 'Triggered',
+    },
+    { name: 'execute-alert-success' },
+  );
+
+  renderAlertList({ addSuccessToast });
+  await screen.findByText('Weekly Sales Alert');
+
+  const triggerButtons = screen.getAllByTestId('trigger-now-action');
+  fireEvent.click(triggerButtons[0]);
+
+  await waitFor(() => {
+    expect(addSuccessToast).toHaveBeenCalledWith(
+      'Alert "Weekly Sales Alert" triggered successfully',
+    );
+  });
+});
+
+test('trigger-now action displays correct success toast for Report', async () => {
+  const addSuccessToast = jest.fn();
+  fetchMock.post(
+    'glob:*/api/v1/report/*/execute',
+    {
+      execution_id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
+      message: 'Triggered',
+    },
+    { name: 'execute-report-success' },
+  );
+
+  renderAlertList({ isReportEnabled: true, addSuccessToast });
+  await screen.findByText('Weekly Dashboard Report');
+
+  const triggerButtons = screen.getAllByTestId('trigger-now-action');
+  fireEvent.click(triggerButtons[0]);
+
+  await waitFor(() => {
+    expect(addSuccessToast).toHaveBeenCalledWith(
+      'Report "Weekly Dashboard Report" triggered successfully',
+    );
+  });
+});
+
+test('trigger-now action displays correct failure toast for Alert', async () => {
+  const addDangerToast = jest.fn();
+  fetchMock.post(
+    'glob:*/api/v1/report/*/execute',
+    {
+      status: 500,
+      body: { message: 'Database failure' },
+    },
+    { name: 'execute-alert-failure' },
+  );
+
+  renderAlertList({ addDangerToast });
+  await screen.findByText('Weekly Sales Alert');
+
+  const triggerButtons = screen.getAllByTestId('trigger-now-action');
+  fireEvent.click(triggerButtons[0]);
+
+  await waitFor(() => {
+    expect(addDangerToast).toHaveBeenCalledWith(
+      'Failed to trigger alert "Weekly Sales Alert": Database failure',
+    );
+  });
+});
+
+test('trigger-now action displays correct failure toast for Report', async () => {
+  const addDangerToast = jest.fn();
+  fetchMock.post(
+    'glob:*/api/v1/report/*/execute',
+    {
+      status: 500,
+      body: { message: 'Renderer timeout' },
+    },
+    { name: 'execute-report-failure' },
+  );
+
+  renderAlertList({ isReportEnabled: true, addDangerToast });
+  await screen.findByText('Weekly Dashboard Report');
+
+  const triggerButtons = screen.getAllByTestId('trigger-now-action');
+  fireEvent.click(triggerButtons[0]);
+
+  await waitFor(() => {
+    expect(addDangerToast).toHaveBeenCalledWith(
+      'Failed to trigger report "Weekly Dashboard Report": Renderer timeout',
+    );
+  });
+});
