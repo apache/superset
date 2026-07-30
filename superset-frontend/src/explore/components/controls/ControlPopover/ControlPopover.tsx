@@ -48,16 +48,23 @@ export type PopoverProps = BasePopoverProps & {
   getVisibilityRatio?: typeof getElementVisibilityRatio;
 };
 
-// antd enables shifting only for the four base placements, so the corner
-// placements computed below can flip a popup across its trigger but never nudge
-// it back into the viewport, leaving an oversized one stranded off screen.
+/** Placements antd already shifts, capped so the arrow keeps touching its trigger. */
+const SHIFTING_PLACEMENTS = new Set(['top', 'bottom', 'left', 'right']);
+
 // `shiftX`/`shiftY` work but are missing from `AdjustOverflow`, hence the cast.
-export const AUTO_ADJUST_OVERFLOW = {
+export const SHIFT_INTO_VIEWPORT = {
   adjustX: 1,
   adjustY: 1,
   shiftX: true,
   shiftY: true,
 } as unknown as BasePopoverProps['autoAdjustOverflow'];
+
+// The other placements can flip a popup across its trigger but never nudge it back
+// into the viewport, leaving an oversized one stranded off screen. Only they opt in:
+// lifting the cap above would let those popups slide off a trigger scrolled out of
+// view, taking the arrow away from what it points at.
+export const getAutoAdjustOverflow = (placement: TooltipPlacement) =>
+  SHIFTING_PLACEMENTS.has(placement) ? true : SHIFT_INTO_VIEWPORT;
 
 const ControlPopover: FC<PopoverProps> = ({
   getPopupContainer,
@@ -65,7 +72,7 @@ const ControlPopover: FC<PopoverProps> = ({
   open: visibleProp,
   destroyOnHidden = false,
   placement: initialPlacement = 'right',
-  autoAdjustOverflow = AUTO_ADJUST_OVERFLOW,
+  autoAdjustOverflow,
   ...props
 }) => {
   const triggerElementRef = useRef<HTMLElement>();
@@ -209,7 +216,9 @@ const ControlPopover: FC<PopoverProps> = ({
       {...props}
       open={visible}
       arrow={{ pointAtCenter: true }}
-      autoAdjustOverflow={autoAdjustOverflow}
+      autoAdjustOverflow={
+        autoAdjustOverflow ?? getAutoAdjustOverflow(placement)
+      }
       placement={placement}
       onOpenChange={handleOnVisibleChange}
       getPopupContainer={handleGetPopupContainer}

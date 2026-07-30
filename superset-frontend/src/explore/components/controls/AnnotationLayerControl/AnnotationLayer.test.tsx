@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -58,6 +59,40 @@ const withIdResult = {
     viz_type: VizType.Line,
   },
 };
+
+const setViewportWidth = (value: number) =>
+  Object.defineProperty(document.documentElement, 'clientWidth', {
+    configurable: true,
+    value,
+  });
+
+// jsdom serves `clientWidth` from the prototype and `jest.restoreAllMocks` leaves
+// `defineProperty` alone, so drop the override or every later test inherits it.
+const restoreViewportWidth = () =>
+  Reflect.deleteProperty(document.documentElement, 'clientWidth');
+
+const rect = (width: number, right: number) =>
+  ({
+    width,
+    right,
+    left: right - width,
+    top: 0,
+    bottom: 0,
+    height: 0,
+  }) as DOMRect;
+
+/** Lays the popover out beside a control panel of the given width. */
+const mockLayout = (panelWidth: () => number) =>
+  jest
+    .spyOn(Element.prototype, 'getBoundingClientRect')
+    .mockImplementation(function (this: Element) {
+      if (this.id === 'controlSections')
+        return rect(panelWidth(), panelWidth());
+      if (this.classList.contains('ant-popover')) return rect(802, 1422);
+      if (this.getAttribute('data-test') === 'annotation-layer-sections')
+        return rect(778, 1410);
+      return rect(0, 0);
+    });
 
 beforeAll(() => {
   const supportedAnnotationTypes = Object.values(ANNOTATION_TYPES_METADATA).map(
@@ -318,28 +353,8 @@ test('caps the section row to the room left beside the control panel', async () 
   // The cap is measured from the panel's edge, not the popover's own: the
   // popover moves as the row narrows, so measuring it feeds each cap into the
   // next one and converges on a column too narrow to lay the sections out in.
-  Object.defineProperty(document.documentElement, 'clientWidth', {
-    configurable: true,
-    value: 1160,
-  });
-  const rect = (width: number, right: number) =>
-    ({
-      width,
-      right,
-      left: right - width,
-      top: 0,
-      bottom: 0,
-      height: 0,
-    }) as DOMRect;
-  jest
-    .spyOn(Element.prototype, 'getBoundingClientRect')
-    .mockImplementation(function (this: Element) {
-      if (this.id === 'controlSections') return rect(620, 620);
-      if (this.classList.contains('ant-popover')) return rect(802, 1422);
-      if (this.getAttribute('data-test') === 'annotation-layer-sections')
-        return rect(778, 1410);
-      return rect(0, 0);
-    });
+  setViewportWidth(1160);
+  mockLayout(() => 620);
 
   try {
     await waitFor(() =>
@@ -365,10 +380,7 @@ test('caps the section row to the room left beside the control panel', async () 
     // A cap measured once would go stale across a resize. Here the room beside
     // the panel drops to 348px, too little for two sections, so the viewport
     // becomes the bound: 1000 - 24 padding - 2 x 8 inset.
-    Object.defineProperty(document.documentElement, 'clientWidth', {
-      configurable: true,
-      value: 1000,
-    });
+    setViewportWidth(1000);
     fireEvent(window, new Event('resize'));
 
     await waitFor(() =>
@@ -377,6 +389,70 @@ test('caps the section row to the room left beside the control panel', async () 
       ),
     );
   } finally {
+    restoreViewportWidth();
+    jest.restoreAllMocks();
+  }
+});
+
+test('caps the section row again when the control panel is dragged wider', async () => {
+  // Dragging the panel's resizer moves the edge the cap comes from without
+  // resizing the window, and the jsdom ResizeObserver never calls back, so stand
+  // in for it here and check that the panel is what gets watched.
+  const observed: Element[] = [];
+  let notifyResize = () => {};
+  const NativeResizeObserver = window.ResizeObserver;
+  window.ResizeObserver = class {
+    constructor(callback: ResizeObserverCallback) {
+      notifyResize = () => callback([], this as unknown as ResizeObserver);
+    }
+
+    observe(target: Element) {
+      observed.push(target);
+    }
+
+    unobserve() {}
+
+    disconnect() {}
+  };
+
+  setViewportWidth(1160);
+  let panelWidth = 620;
+  mockLayout(() => panelWidth);
+
+  try {
+    render(
+      <>
+        <div id="controlSections" />
+        <div className="ant-popover">
+          <AnnotationLayer
+            {...defaultProps}
+            annotationType={ANNOTATION_TYPES_METADATA.EVENT.value}
+            sourceType="Table"
+          />
+        </div>
+      </>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId('annotation-layer-sections')).toHaveStyle(
+        'max-width: 508px',
+      ),
+    );
+    expect(observed).toContain(document.getElementById('controlSections'));
+
+    // 228px is left beside the panel, too little for two sections, so the bound
+    // falls back to the viewport: 1160 - 24 padding - 2 x 8 inset.
+    panelWidth = 900;
+    act(() => notifyResize());
+
+    await waitFor(() =>
+      expect(screen.getByTestId('annotation-layer-sections')).toHaveStyle(
+        'max-width: 1120px',
+      ),
+    );
+  } finally {
+    window.ResizeObserver = NativeResizeObserver;
+    restoreViewportWidth();
     jest.restoreAllMocks();
   }
 });

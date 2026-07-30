@@ -28,10 +28,29 @@ import {
 // relies on, so an upgrade that changes it fails here.
 import { getOverflowOptions } from 'antd/lib/_util/placements';
 
+import { TooltipPlacement } from '@superset-ui/core/components/Tooltip/types';
+
 import ControlPopover, {
-  AUTO_ADJUST_OVERFLOW,
+  SHIFT_INTO_VIEWPORT,
+  getAutoAdjustOverflow,
   PopoverProps,
 } from './ControlPopover';
+
+// Records what the underlying popover is handed, so dropping the prop that wires
+// the overflow options through fails instead of going unnoticed.
+const mockPopoverProps: PopoverProps[] = [];
+jest.mock('@superset-ui/core/components', () => {
+  const actual = jest.requireActual('@superset-ui/core/components');
+  const Probe = (props: PopoverProps) => {
+    mockPopoverProps.push(props);
+    return <actual.Popover {...props} />;
+  };
+  // The module exports lazy getters and is mid-load here, so read through to it
+  // rather than spreading it, which would resolve them all too early.
+  return new Proxy(actual, {
+    get: (target, name) => (name === 'Popover' ? Probe : target[name]),
+  });
+});
 
 const createProps = (): Partial<PopoverProps> => ({
   trigger: 'click',
@@ -191,31 +210,70 @@ test('Controlled mode', async () => {
 });
 
 test('Keeps an oversized popover reachable inside the viewport', () => {
-  // antd ships shifting only for the base placements, so the corner placements
-  // this component computes have to ask for it explicitly.
   const arrowOffset = { arrowOffsetHorizontal: 12, arrowOffsetVertical: 12 };
-
-  expect(
-    getOverflowOptions('rightBottom', arrowOffset, 16, true),
-  ).not.toMatchObject({ shiftX: expect.anything() });
+  const overflowFor = (placement: TooltipPlacement) =>
+    getOverflowOptions(
+      placement,
+      arrowOffset,
+      16,
+      getAutoAdjustOverflow(placement),
+    );
 
   for (const placement of [
-    'right',
     'rightTop',
     'rightBottom',
-    'left',
     'leftTop',
     'leftBottom',
-    'top',
-    'bottom',
-  ]) {
+    'topLeft',
+    'topRight',
+    'bottomLeft',
+    'bottomRight',
+  ] as TooltipPlacement[]) {
+    // antd ships these with no shift at all, so they have to ask for it.
     expect(
-      getOverflowOptions(placement, arrowOffset, 16, AUTO_ADJUST_OVERFLOW),
-    ).toMatchObject({
+      getOverflowOptions(placement, arrowOffset, 16, true),
+    ).not.toMatchObject({ shiftX: expect.anything() });
+    expect(overflowFor(placement)).toMatchObject({
       adjustX: 1,
       adjustY: 1,
       shiftX: true,
       shiftY: true,
     });
   }
+
+  // The base placements already shift, capped to the span the arrow needs to stay
+  // on its trigger. Asking for more would trade one broken popover for four.
+  expect(overflowFor('right')).toMatchObject({ shiftX: true, shiftY: 40 });
+  expect(overflowFor('left')).toMatchObject({ shiftX: true, shiftY: 40 });
+  expect(overflowFor('top')).toMatchObject({ shiftY: true, shiftX: 40 });
+  expect(overflowFor('bottom')).toMatchObject({ shiftY: true, shiftX: 40 });
+});
+
+test('Hands the overflow options for its placement to the popover', async () => {
+  mockPopoverProps.length = 0;
+  const overflowOf = () =>
+    mockPopoverProps[mockPopoverProps.length - 1].autoAdjustOverflow;
+
+  // A corner placement, which antd would otherwise leave stranded off screen.
+  render(
+    <TestComponent
+      {...createProps()}
+      getVisibilityRatio={() => ({ yRatio: 0.9, xRatio: 0.2 })}
+    />,
+  );
+  userEvent.click(screen.getByTestId('control-popover'));
+  await waitFor(() => expect(overflowOf()).toBe(SHIFT_INTO_VIEWPORT));
+
+  // A base placement keeps antd's own capped shifting.
+  render(
+    <TestComponent
+      {...createProps()}
+      getVisibilityRatio={() => ({ yRatio: 0.5, xRatio: 0.7 })}
+    />,
+  );
+  expect(overflowOf()).toBe(true);
+
+  // Callers stay in control.
+  render(<TestComponent {...createProps()} autoAdjustOverflow={false} />);
+  expect(overflowOf()).toBe(false);
 });
