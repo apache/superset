@@ -86,6 +86,34 @@ def test_cache_key_changes_for_new_query_object_different_params():
     assert query_object2.cache_key() != cache_key1
 
 
+def test_cache_key_stable_regardless_of_extra_cache_keys_order():
+    """
+    Regression for #34543: the cache key must not depend on the order of
+    ``extra_cache_keys``.
+
+    ``SqlaTable.get_extra_cache_keys`` (superset/connectors/sqla/models.py)
+    returns ``list(set(extra_cache_keys))``. Python's string hashing is
+    randomized per-process (``PYTHONHASHSEED``), so the same set of values
+    can iterate in a different order in the Celery worker process (which
+    writes the query results to cache) than in the web process (which
+    re-derives the cache key to read them back). Because ``hash_from_dict``
+    only sorts dict keys and not list values, two ``extra_cache_keys`` lists
+    with identical Jinja ``url_param()`` values but different order hash to
+    different cache keys, causing async chart-data lookups to 422 with
+    "Error loading data from cache" whenever more than one url_param is
+    referenced (a single-element list has only one possible order, which is
+    why the bug is only visible with multiple parameters).
+    """
+    query_object1 = QueryObject(row_limit=1)
+    query_object2 = QueryObject(row_limit=1)
+    same_values_different_order = ["CAR_IDS=1,2,3", "CHASSIS_IDS=100,200"]
+    cache_key1 = query_object1.cache_key(extra_cache_keys=same_values_different_order)
+    cache_key2 = query_object2.cache_key(
+        extra_cache_keys=list(reversed(same_values_different_order))
+    )
+    assert cache_key1 == cache_key2
+
+
 def test_cache_key_changes_for_new_query_object_same_params():
     """
     When a new query object is created with the same params,
