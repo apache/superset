@@ -244,7 +244,9 @@ export function Menu({
       case path.startsWith(Paths.Chart) || path.startsWith(Paths.Explore):
         setActiveTabs([MenuKeys.Charts]);
         break;
-      case path.startsWith(Paths.Datasets) || path.startsWith(Paths.Dataset):
+      case path.startsWith(Paths.Datasets) ||
+        path === Paths.Dataset ||
+        path.startsWith(`${Paths.Dataset}/`):
         setActiveTabs([MenuKeys.Datasets]);
         break;
       case path.startsWith(Paths.SqlLab) || path.startsWith(Paths.SavedQueries):
