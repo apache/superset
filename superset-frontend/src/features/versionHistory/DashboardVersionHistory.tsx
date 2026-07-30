@@ -41,6 +41,7 @@ import {
   setVersionHistoryInclude,
   setVersionPreview,
 } from './reducer';
+import { selectCanRestoreDashboard } from './canRestoreDashboard';
 import { openRelatedEntity } from './openRelated';
 import { useVersionActivity } from './useVersionActivity';
 import { useVersionActions } from './useVersionActions';
@@ -54,9 +55,7 @@ export default function DashboardVersionHistory() {
   const uuid = useSelector<RootState, string | undefined>(
     state => state.dashboardInfo?.uuid,
   );
-  const canRestore = useSelector<RootState, boolean>(
-    state => state.dashboardInfo?.dash_edit_perm ?? false,
-  );
+  const canRestore = useSelector(selectCanRestoreDashboard);
   const isPanelOpen = useSelector(selectIsVersionHistoryPanelOpen);
   const include = useSelector(selectVersionHistoryInclude);
   const preview = useSelector(selectVersionPreview);

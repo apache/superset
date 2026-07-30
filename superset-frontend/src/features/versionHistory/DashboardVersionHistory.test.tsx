@@ -65,7 +65,12 @@ const versionHistoryState = (
 
 interface TestState {
   versionHistory: VersionHistoryState;
-  dashboardInfo: { uuid: string; last_modified_time: number };
+  dashboardInfo: {
+    uuid: string;
+    last_modified_time: number;
+    dash_edit_perm?: boolean;
+    is_managed_externally?: boolean;
+  };
   dashboardState: { hasUnsavedChanges: boolean; lastModifiedTime: number };
 }
 
@@ -98,7 +103,11 @@ function makeTestStore(initial: TestState) {
 const makeStore = () =>
   makeTestStore({
     versionHistory: versionHistoryState(),
-    dashboardInfo: { uuid: 'dash-uuid', last_modified_time: 100 },
+    dashboardInfo: {
+      uuid: 'dash-uuid',
+      last_modified_time: 100,
+      dash_edit_perm: true,
+    },
     dashboardState: { hasUnsavedChanges: false, lastModifiedTime: 500 },
   });
 
@@ -205,4 +214,35 @@ test('preview is blocked while the dashboard has unsaved edit-mode changes', () 
   expect(
     store.actions.some(action => action.type === 'SET_VERSION_PREVIEW'),
   ).toBe(false);
+});
+
+test('offers restore to an editor of a normally managed dashboard', () => {
+  const store = makeStore();
+  renderAdapter(store);
+
+  expect(mockPanelProps).toHaveBeenCalledWith(
+    expect.objectContaining({ canRestore: true }),
+  );
+});
+
+test('withholds restore on an externally managed dashboard', () => {
+  // The header menu hides the entry for these, but the panel also opens from
+  // ?version_history=true and the restore endpoint has no
+  // is_managed_externally check -- so this gate is the only thing standing
+  // between a URL param and a restore that the next sync would undo.
+  const store = makeTestStore({
+    versionHistory: versionHistoryState(),
+    dashboardInfo: {
+      uuid: 'dash-uuid',
+      last_modified_time: 100,
+      dash_edit_perm: true,
+      is_managed_externally: true,
+    },
+    dashboardState: { hasUnsavedChanges: false, lastModifiedTime: 500 },
+  });
+  renderAdapter(store);
+
+  expect(mockPanelProps).toHaveBeenCalledWith(
+    expect.objectContaining({ canRestore: false }),
+  );
 });

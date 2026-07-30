@@ -180,6 +180,7 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
       dashboard: HydrateDashboardData,
       charts: HydrateChartData[],
       dataMask: DataMaskStateWithId,
+      editMode?: boolean,
     ) => {
       // Hydration merges into any existing dataMask entries, which would let
       // filter selections from one version leak into another; reset first so
@@ -195,6 +196,7 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
           dataMask,
           activeTabs: null,
           chartStates: null,
+          editMode,
         }),
       );
     };
@@ -281,6 +283,10 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
           } as HydrateDashboardData,
           charts,
           {},
+          // Never edit mode: `?edit=true` outlives the navigation that set
+          // it, so deriving it from the URL would leave a live Save toolbar
+          // over a historical snapshot.
+          false,
         );
       };
       apply().catch(() => {

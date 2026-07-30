@@ -99,6 +99,13 @@ interface HydrateDashboardParams {
   dataMask: DataMaskStateWithId;
   activeTabs: string[] | null;
   chartStates: DashboardChartStates | null;
+  /**
+   * Forces edit mode rather than deriving it from the `edit` URL param.
+   * Version preview passes `false`: the param outlives the navigation that
+   * set it, so a dashboard opened with `?edit=true` would otherwise keep an
+   * live Save toolbar over a historical snapshot.
+   */
+  editMode?: boolean;
 }
 
 export const hydrateDashboard =
@@ -109,6 +116,7 @@ export const hydrateDashboard =
     dataMask,
     activeTabs,
     chartStates,
+    editMode: editModeOverride,
   }: HydrateDashboardParams) =>
   (dispatch: AppDispatch, getState: GetState): AnyAction => {
     const { user, common, dashboardState } = getState();
@@ -396,7 +404,7 @@ export const hydrateDashboard =
           css: dashboard.css || '',
           colorNamespace: metadata?.color_namespace || null,
           colorScheme: metadata?.color_scheme || null,
-          editMode: canEdit && editMode,
+          editMode: editModeOverride ?? (canEdit && editMode),
           isPublished: dashboard.published,
           hasUnsavedChanges: false,
           dashboardIsSaving: false,

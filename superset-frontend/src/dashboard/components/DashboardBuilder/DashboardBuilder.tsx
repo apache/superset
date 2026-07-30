@@ -84,6 +84,7 @@ import {
   OPEN_FILTER_BAR_WIDTH,
   EMPTY_CONTAINER_Z_INDEX,
 } from 'src/dashboard/constants';
+import { selectCanRestoreDashboard } from 'src/features/versionHistory/canRestoreDashboard';
 import { selectIsDashboardVersionPreviewActive } from 'src/features/versionHistory/reducer';
 import { getRootLevelTabsComponent, shouldFocusTabs } from './utils';
 import DashboardContainer from './DashboardContainer';
@@ -433,6 +434,11 @@ const DashboardBuilder = () => {
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
+  // Deliberately not canEdit: restoring an externally managed dashboard would
+  // be undone by the next sync, and unlike editing there is no server-side
+  // check to fall back on. Shared with the history panel so the two cannot
+  // drift.
+  const canRestoreVersion = useSelector(selectCanRestoreDashboard);
   const dashboardIsSaving = useSelector<RootState, boolean>(
     ({ dashboardState }) => dashboardState.dashboardIsSaving,
   );
@@ -770,7 +776,10 @@ const DashboardBuilder = () => {
       <StyledContent fullSizeChartId={fullSizeChartId}>
         {isFeatureEnabled(FeatureFlag.VersionHistory) && (
           <Suspense fallback={null}>
-            <PreviewBanner entityType="dashboard" canRestore={canEdit} />
+            <PreviewBanner
+              entityType="dashboard"
+              canRestore={canRestoreVersion}
+            />
           </Suspense>
         )}
         {!editMode &&

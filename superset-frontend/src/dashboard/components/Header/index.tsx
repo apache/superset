@@ -552,7 +552,12 @@ const Header = (): JSX.Element => {
     !isVersionPreviewActive;
   const userCanShare =
     !!dashboardInfo.dash_share_perm && !isVersionPreviewActive;
-  const userCanSaveAs = !!dashboardInfo.dash_save_perm;
+  // Gated on preview like userCanEdit above: the Save/Discard toolbar acts on
+  // whatever is currently hydrated, and during a preview that is the
+  // snapshot's layout -- so leaving this ungated is a route to writing a
+  // historical version over the live dashboard.
+  const userCanSaveAs =
+    !!dashboardInfo.dash_save_perm && !isVersionPreviewActive;
   const userCanCurate =
     isFeatureEnabled(FeatureFlag.EmbeddedSuperset) &&
     findPermission('can_set_embedded', 'Dashboard', user.roles);
