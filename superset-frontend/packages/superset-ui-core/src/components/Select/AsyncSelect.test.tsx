@@ -989,6 +989,45 @@ test('shows all options when filterOption is false', async () => {
   expect(options[0]).toHaveTextContent('Server 0');
 });
 
+test('hides a server-matched option when its label diverges from the search term and filterOption is left at the default (regression for #42041)', async () => {
+  // Mirrors the real permissions-search bug: the remote fetch legitimately
+  // matches the raw, underscore-containing value (e.g. a schema name like
+  // "stg_silver"), but the returned option's displayed label has had
+  // underscores replaced with spaces (see formatPermissionLabel in
+  // features/roles/utils.ts). filterOption defaults to true, so AsyncSelect
+  // re-filters the already-matched options against the raw search term
+  // client-side. Since the underscore-typed search never appears as a
+  // substring of the space-formatted label, the legitimately fetched
+  // option gets hidden. Contrast with the `filterOption={false}` test
+  // above, which is the only way today's callers can avoid this.
+  const searchData = [{ label: 'stg silver', value: 100 }];
+  const loadOptions = jest.fn(async (search: string) =>
+    // totalCount must exceed the empty initial page here, otherwise
+    // AsyncSelect marks allValuesLoaded and short-circuits every later
+    // fetch, including the search request this test depends on.
+    search === ''
+      ? { data: [], totalCount: 1 }
+      : { data: searchData, totalCount: 1 },
+  );
+
+  render(<AsyncSelect {...defaultProps} options={loadOptions} />);
+  await open();
+
+  await type('stg_silver');
+  await waitFor(() =>
+    expect(loadOptions).toHaveBeenCalledWith(
+      'stg_silver',
+      expect.anything(),
+      expect.anything(),
+    ),
+  );
+
+  // The backend legitimately matched and returned this option (asserted
+  // above); it should render in the dropdown despite the search term using
+  // underscores while the label uses spaces.
+  expect(await findSelectOption('stg silver')).toBeInTheDocument();
+});
+
 test('preserves new option entry across search fetch when allowNewOptions is on', async () => {
   const page0Data = Array.from({ length: 10 }, (_, i) => ({
     label: `Option ${i}`,
