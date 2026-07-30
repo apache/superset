@@ -342,9 +342,17 @@ export const SaveDatasetModal = ({
       endpoint: `/api/v1/dataset/?q=${queryParams}`,
     }).then(response => ({
       data: response.json.result.map(
-        (r: { table_name: string; id: number; editors: Subject[] }) => ({
-          value: r.table_name,
-          label: r.table_name,
+        (r: {
+          table_name: string;
+          id: number;
+          editors: Subject[];
+          schema?: string;
+        }) => ({
+          // `id` is unique; `table_name` is not. Keying options by the table
+          // name collapses same-named datasets onto a single Select key, which
+          // renders duplicate rows and makes the overwrite target ambiguous.
+          value: r.id,
+          label: r.schema ? `${r.schema}.${r.table_name}` : r.table_name,
           datasetId: r.id,
           editors: r.editors,
         }),
@@ -424,7 +432,7 @@ export const SaveDatasetModal = ({
   const filterAutocompleteOption = (
     inputValue: string,
     option: DatasetOverwriteOption,
-  ) => option.value.toLowerCase().includes(inputValue.toLowerCase());
+  ) => option.label.toLowerCase().includes(inputValue.toLowerCase());
 
   return (
     <Modal

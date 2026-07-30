@@ -193,7 +193,7 @@ describe('SaveDatasetModal', () => {
     });
 
     // Select the first "existing dataset" from the listbox
-    const option = screen.getAllByText('coolest table 0')[1];
+    const option = screen.getAllByText('schema 0.coolest table 0')[0];
     await userEvent.click(option);
 
     // Overwrite button should now be enabled
@@ -224,7 +224,7 @@ describe('SaveDatasetModal', () => {
     });
 
     // Select the first "existing dataset" from the listbox
-    const option = screen.getAllByText('coolest table 0')[1];
+    const option = screen.getAllByText('schema 0.coolest table 0')[0];
     await userEvent.click(option);
 
     // Click the overwrite button to access the confirmation screen
@@ -244,6 +244,69 @@ describe('SaveDatasetModal', () => {
     expect(
       screen.getByRole('button', { name: /overwrite/i }),
     ).toBeInTheDocument();
+  });
+
+  test('distinguishes datasets that share a table name and overwrites the selected one', async () => {
+    // Two editable datasets in different schemas sharing one table name. Keying
+    // the options by table_name collapsed them onto a single Select key, which
+    // rendered duplicated rows and made the overwrite target ambiguous.
+    const sameNameDatasets = [
+      {
+        ...mockdatasets[0],
+        id: 11,
+        schema: 'staging',
+        table_name: 'task_instance',
+      },
+      {
+        ...mockdatasets[0],
+        id: 22,
+        schema: 'prod',
+        table_name: 'task_instance',
+      },
+    ];
+    const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+      json: { result: sameNameDatasets, count: sameNameDatasets.length },
+    } as any);
+    const putSpy = jest
+      .spyOn(SupersetClient, 'put')
+      .mockResolvedValue({ json: { result: { id: 22 } } } as any);
+
+    renderModal();
+
+    await userEvent.click(
+      screen.getByRole('radio', { name: /overwrite existing/i }),
+    );
+    await userEvent.click(
+      screen.getByRole('combobox', { name: /existing dataset/i }),
+    );
+    await act(async () => {
+      jest.runAllTimers();
+    });
+    await waitFor(() => {
+      const loading = screen.queryByText('Loading...');
+      expect(loading === null || !loading.checkVisibility()).toBe(true);
+    });
+
+    // Each dataset appears exactly once, under its own schema-qualified label
+    expect(await screen.findAllByText('staging.task_instance')).toHaveLength(1);
+    expect(await screen.findAllByText('prod.task_instance')).toHaveLength(1);
+
+    // Picking the prod row must target dataset 22, not the staging one
+    await userEvent.click(screen.getByText('prod.task_instance'));
+    await userEvent.click(screen.getByRole('button', { name: /overwrite/i }));
+    await screen.findByText(/are you sure you want to overwrite this dataset/i);
+    await userEvent.click(screen.getByRole('button', { name: /overwrite/i }));
+
+    await waitFor(() => {
+      expect(
+        putSpy.mock.calls.some(([req]) =>
+          req.endpoint?.includes('api/v1/dataset/22'),
+        ),
+      ).toBe(true);
+    });
+
+    getSpy.mockRestore();
+    putSpy.mockRestore();
   });
 
   test('sends the schema when creating the dataset', async () => {
@@ -401,8 +464,8 @@ describe('SaveDatasetModal', () => {
       expect(loading === null || !loading.checkVisibility()).toBe(true);
     });
     // Pick an existing dataset (use the listbox item, not the input mirror)
-    const options = await screen.findAllByText('coolest table 0');
-    await userEvent.click(options[1]);
+    const options = await screen.findAllByText('schema 0.coolest table 0');
+    await userEvent.click(options[0]);
     // First overwrite click → confirmation screen
     await userEvent.click(screen.getByRole('button', { name: /overwrite/i }));
     // Wait for the confirmation screen to render
