@@ -70,7 +70,7 @@ def create_tool_decorator(
     class_permission_name: Optional[str] = None,
     method_permission_name: Optional[str] = None,
     annotations: ToolAnnotations | None = None,
-    meta: Optional[dict[str, Any]] = None,
+    meta: dict[str, Any] | None = None,
 ) -> Callable[[F], F] | F:
     """
     Create the concrete MCP tool decorator implementation.
@@ -92,6 +92,7 @@ def create_tool_decorator(
         method_permission_name: FAB action name (e.g., "read", "write").
             Defaults to "write" if tags has "mutate", else "read".
         annotations: MCP tool annotations (title, readOnlyHint, destructiveHint, etc.)
+        meta: Optional ``_meta`` dict attached to the registered tool definition.
 
     Returns:
         Decorator that registers and wraps the tool with optional authentication,

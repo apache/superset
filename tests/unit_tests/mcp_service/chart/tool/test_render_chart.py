@@ -235,6 +235,7 @@ async def test_requery_tool_is_app_only(app: Any) -> None:
 
     tool = await mcp.get_tool("render_chart_requery")
     ui = (tool.meta or {}).get("ui")
+    assert ui is not None
     assert ui["visibility"] == ["app"]
 
 
