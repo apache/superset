@@ -2405,6 +2405,59 @@ def test_get_sqla_query_allows_jinja_templated_custom_sql_metric_with_columns(
     assert "{{" not in sql
 
 
+def test_get_sqla_query_virtual_dataset_filter_values_drill_to_detail(
+    database: Database,
+) -> None:
+    """
+    Regression for #35263: a Jinja-templated virtual dataset that calls
+    ``filter_values()`` in its own SQL must see filters sent in the native
+    ``{col, op, val}`` format that Drill to Detail/Drill by use, not just
+    the ``adhoc_filters`` format used by ordinary chart/explore requests.
+    Without this, Jinja-based datasets return zero rows when drilled into,
+    even though the parent chart shows data for the selected value.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        sql=(
+            "SELECT a, b FROM t WHERE 1=1 "
+            "{% if filter_values('b') %} "
+            "AND b IN {{ filter_values('b') | where_in }} "
+            "{% endif %}"
+        ),
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(column_name="b", type="TEXT"),
+        ],
+    )
+
+    result = table.get_sqla_query(
+        columns=["a", "b"],
+        metrics=[],
+        extras={},
+        filter=[{"col": "b", "op": "IN", "val": ["Alice"]}],
+        granularity=None,
+        is_timeseries=False,
+    )
+    assert result is not None
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            result.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    assert "'Alice'" in sql, (
+        "filter_values() should resolve native drill-to-detail-style "
+        f"filters inside a virtual dataset's own SQL. Generated SQL: {sql}"
+    )
+
+
 def test_extras_where_is_parenthesized(
     database: Database,
 ) -> None:
