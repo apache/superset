@@ -226,6 +226,51 @@ class TestSupersetAppInitializer:
                 assert "secretpass" not in output
                 assert "postgresql://user:***@localhost:5432/db" in output
 
+    @patch("superset.initialization.logger")
+    def test_configure_logging_installs_pkg_resources_filter_before_configurator(
+        self, mock_logger
+    ) -> None:
+        """The pkg_resources warning filter must be installed before
+        LOGGING_CONFIGURATOR.configure_logging() dispatches, so a deployment's
+        custom configurator (which may skip DefaultLoggingConfigurator's own
+        filter) still benefits from it."""
+        import re
+        import warnings
+
+        def has_pkg_resources_filter() -> bool:
+            return any(
+                f[0] == "ignore"
+                and isinstance(f[1], re.Pattern)
+                and f[1].pattern == r"pkg_resources is deprecated as an API"
+                and f[2] is UserWarning
+                and isinstance(f[3], re.Pattern)
+                and f[3].pattern == r"sqlalchemy_redshift(?:\..*)?"
+                for f in warnings.filters
+            )
+
+        seen_during_dispatch = []
+
+        class RecordingConfigurator:
+            def configure_logging(self, app_config, debug_mode):
+                seen_during_dispatch.append(has_pkg_resources_filter())
+
+        mock_app = MagicMock()
+        mock_app.config = {"LOGGING_CONFIGURATOR": RecordingConfigurator()}
+        mock_app.debug = False
+        app_initializer = SupersetAppInitializer(mock_app)
+
+        with warnings.catch_warnings():
+            # Isolate from filters registered by other tests/import side effects.
+            warnings.resetwarnings()
+            assert not has_pkg_resources_filter()
+
+            app_initializer.configure_logging()
+
+            assert seen_during_dispatch == [True], (
+                "pkg_resources filter must already be installed by the time "
+                "LOGGING_CONFIGURATOR.configure_logging() runs"
+            )
+
     def test_check_and_warn_database_connection_invalid_uri(self) -> None:
         """Test that invalid URIs are handled safely without crashing."""
         mock_app = MagicMock()
