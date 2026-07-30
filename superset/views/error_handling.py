@@ -23,12 +23,14 @@ import typing
 from importlib.resources import files
 from typing import Any, Callable, cast
 
+import sshtunnel
 from flask import (
     Flask,
     request,
     Response,
     send_file,
 )
+from flask_babel import gettext as _
 from flask_wtf.csrf import CSRFError
 from sqlalchemy import exc
 from werkzeug.exceptions import HTTPException
@@ -86,6 +88,29 @@ def json_error_response(
     )
 
 
+def handle_ssh_tunnel_error(ex: sshtunnel.BaseSSHTunnelForwarderError) -> FlaskResponse:
+    """
+    Build the structured response for an unreachable/misconfigured SSH tunnel
+    gateway. This is an expected environmental failure (analogous to a
+    database connection failure), so it is logged at WARNING rather than
+    ERROR to avoid alarm fatigue on otherwise-actionable alerting.
+    """
+    logger.warning("BaseSSHTunnelForwarderError", exc_info=True)
+    return json_error_response(
+        [
+            SupersetError(
+                message=_(
+                    "Failed to establish an SSH tunnel to the database: %(reason)s",
+                    reason=str(ex),
+                ),
+                error_type=SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
+                level=ErrorLevel.WARNING,
+            ),
+        ],
+        status=400,
+    )
+
+
 def handle_api_exception(
     f: Callable[..., FlaskResponse],
 ) -> Callable[..., FlaskResponse]:
@@ -121,6 +146,8 @@ def handle_api_exception(
         except (exc.IntegrityError, exc.DatabaseError, exc.DataError) as ex:
             logger.exception(ex)
             return json_error_response(utils.error_msg_from_exception(ex), status=422)
+        except sshtunnel.BaseSSHTunnelForwarderError as ex:
+            return handle_ssh_tunnel_error(ex)
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception(ex)
             return json_error_response(utils.error_msg_from_exception(ex))
@@ -210,6 +237,12 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
             ],
             status=ex.status,
         )
+
+    @app.errorhandler(sshtunnel.BaseSSHTunnelForwarderError)
+    def show_ssh_tunnel_error(
+        ex: sshtunnel.BaseSSHTunnelForwarderError,
+    ) -> FlaskResponse:
+        return handle_ssh_tunnel_error(ex)
 
     @app.errorhandler(Exception)
     @app.errorhandler(500)
