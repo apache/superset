@@ -971,4 +971,56 @@ describe('Bar Chart X-axis Time Formatting', () => {
       );
     });
   });
+
+  describe('Regression test for Issue #42560', () => {
+    test('custom X Axis Title is preserved verbatim, not overwritten by the axis number/currency format ("unit")', () => {
+      const formData = {
+        ...baseFormData,
+        orientation: 'vertical',
+        xAxisTitle: 'My X Axis',
+        xAxisNumberFormat: 'SMART_NUMBER',
+        yAxisFormat: '$,.2f',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as EchartsTimeseriesChartProps,
+      );
+      const xAxis = transformedProps.echartOptions.xAxis as any;
+
+      expect(xAxis.name).toBe('My X Axis');
+    });
+
+    test('X Axis Title control maps onto the rendered category (left) axis in horizontal orientation, not the bottom axis', () => {
+      // Documents the axis swap for horizontal bar charts: `xAxisTitle` ends
+      // up on `echartOptions.yAxis.name` (the vertical category axis) and
+      // `yAxisTitle` ends up on `echartOptions.xAxis.name` (the horizontal
+      // value axis). This is existing, intentional swap behavior, not the
+      // "unit" overwrite described in the issue.
+      const formData = {
+        ...baseFormData,
+        orientation: 'horizontal',
+        xAxisTitle: 'My X Axis',
+        yAxisTitle: 'My Y Axis',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as EchartsTimeseriesChartProps,
+      );
+      const renderedXAxis = transformedProps.echartOptions.xAxis as any;
+      const renderedYAxis = transformedProps.echartOptions.yAxis as any;
+
+      expect(renderedYAxis.name).toBe('My X Axis');
+      expect(renderedXAxis.name).toBe('My Y Axis');
+    });
+  });
 });
