@@ -96,23 +96,23 @@ def test_get_virtual_table_metadata_mutation_not_allowed():
 
 def test_get_virtual_table_metadata_jinja_parse_error_is_softened():
     """A parse error on SQL that contained Jinja markers is likely a
-    rendering artifact (e.g. empty ``filter_values('x')`` → ``WHERE col
-    IN ()``) — must raise the soften-able ``SupersetVirtualTableParseException``
-    so ``RefreshDatasetCommand`` can treat it as best-effort. See #38012.
+    rendering artifact (e.g. an empty ``filter_values('x')`` producing
+    ``WHERE col IN ()`` or similar) — must raise the soften-able
+    ``SupersetVirtualTableParseException`` so ``RefreshDatasetCommand``
+    can treat it as best-effort. See #38012.
     """
     mock_dataset = Mock(spec=SqlaTable)
     mock_database = Mock(spec=Database)
     mock_dataset.database = mock_database
-    mock_dataset.sql = (
-        "SELECT * FROM foo WHERE col IN {{ filter_values('col') | where_in }}"
-    )
+    # Input has Jinja markers, so ``_has_jinja_markers(original_sql)`` is True.
+    mock_dataset.sql = "SELECT INVALID SYNTAX FROM {{ some_var }}"
     mock_database.db_engine_spec.engine = "postgresql"
 
-    # Template renders (with empty runtime context) to malformed SQL
+    # Template renders (with empty runtime context) to genuinely
+    # unparseable SQL that ``SQLScript`` rejects with
+    # ``SupersetParseError``.
     mock_template_processor = Mock()
-    mock_template_processor.process_template.return_value = (
-        "SELECT * FROM foo WHERE col IN ()"
-    )
+    mock_template_processor.process_template.return_value = "SELECT INVALID SYNTAX FROM"
     mock_dataset.get_template_processor.return_value = mock_template_processor
     mock_dataset.template_params_dict = {}
 
