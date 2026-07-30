@@ -405,7 +405,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
 
         query = Query(
             sql="SELECT * FROM wb_health_population",
-            client_id="form_data_schema_access_test",
+            client_id="fd_sch_acc1",
             database=database,
             schema=schema,
             user_id=gamma_user.id,
