@@ -4306,7 +4306,7 @@ msgstr "Créé par"
 msgid "Created by me"
 msgstr "Créé par moi"
 
-, python-format
+#, python-format
 msgid "Created by: %s"
 msgstr "Créé par : %s"
 
