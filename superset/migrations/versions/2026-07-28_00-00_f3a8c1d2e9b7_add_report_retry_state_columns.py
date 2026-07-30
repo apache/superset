@@ -53,14 +53,19 @@ _STATE_COLUMNS = [
 
 def upgrade() -> None:
     """Add retry config and state columns to report_schedule."""
-    if get_table_column("report_schedule", "retry_attempt") is not None:
-        logger.info(
-            "Column report_schedule.retry_attempt already exists. Skipping migration."
-        )
+    all_columns = _CONFIG_COLUMNS + _STATE_COLUMNS
+    missing = [
+        (name, col_type, nullable, default)
+        for name, col_type, nullable, default in all_columns
+        if get_table_column("report_schedule", name) is None
+    ]
+
+    if not missing:
+        logger.info("All retry columns already exist. Skipping migration.")
         return
 
     with op.batch_alter_table("report_schedule") as batch_op:
-        for name, col_type, nullable, default in _CONFIG_COLUMNS + _STATE_COLUMNS:
+        for name, col_type, nullable, default in missing:
             batch_op.add_column(
                 sa.Column(
                     name,
@@ -73,12 +78,17 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Remove retry config and state columns from report_schedule."""
-    if get_table_column("report_schedule", "retry_attempt") is None:
-        logger.info(
-            "Column report_schedule.retry_attempt does not exist. Skipping downgrade."
-        )
+    all_columns = _CONFIG_COLUMNS + _STATE_COLUMNS
+    present = [
+        name
+        for name, _, _, _ in all_columns
+        if get_table_column("report_schedule", name) is not None
+    ]
+
+    if not present:
+        logger.info("No retry columns found. Skipping downgrade.")
         return
 
     with op.batch_alter_table("report_schedule") as batch_op:
-        for name, _, _, _ in _CONFIG_COLUMNS + _STATE_COLUMNS:
+        for name in present:
             batch_op.drop_column(name)

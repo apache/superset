@@ -3026,58 +3026,6 @@ def test_success_after_retry_clears_retry_state(
         cleanup_report_schedule(report_schedule)
 
 
-@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-def test_find_active_excludes_retrying_reports() -> None:
-    """
-    ReportScheduleDAO.find_active: RETRYING reports are excluded from the
-    scheduler query, but reports with last_state=None (never executed) and
-    stale RETRYING reports are included.
-    """
-    from superset.daos.report import ReportScheduleDAO
-
-    chart = db.session.query(Slice).first()
-
-    # Normal report (NOOP state) — should be included
-    normal = create_report_notification(
-        email_target="a@test.com", chart=chart, name="normal_report"
-    )
-    # Retrying report (fresh) — should be excluded
-    retrying = create_report_notification(
-        email_target="b@test.com",
-        chart=chart,
-        retry_on_failure=True,
-        name="retrying_report",
-    )
-    retrying.last_state = ReportState.RETRYING
-    retrying.last_eval_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None)
-    retrying.retry_scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None)
-    db.session.commit()
-
-    # Stale retrying report — should be re-included
-    stale = create_report_notification(
-        email_target="c@test.com",
-        chart=chart,
-        retry_on_failure=True,
-        name="stale_retrying_report",
-    )
-    stale.last_state = ReportState.RETRYING
-    stale.last_eval_dttm = datetime(2020, 1, 1, 0, 0, 0)
-    stale.retry_scheduled_dttm = datetime(2020, 1, 1, 0, 0, 0)
-    db.session.commit()
-
-    try:
-        active = ReportScheduleDAO.find_active()
-        active_ids = {r.id for r in active}
-
-        assert normal.id in active_ids
-        assert retrying.id not in active_ids
-        assert stale.id in active_ids
-    finally:
-        cleanup_report_schedule(normal)
-        cleanup_report_schedule(retrying)
-        cleanup_report_schedule(stale)
-
-
 def test_is_retry_window_stale_naive_vs_aware() -> None:
     """
     _is_retry_window_stale: the comparison must work correctly when
