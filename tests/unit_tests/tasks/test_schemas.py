@@ -34,12 +34,16 @@ def _task_with_error_properties() -> SimpleNamespace:
     )
 
 
-def test_get_properties_hides_debug_fields_by_default(app_context: None) -> None:
+def test_get_properties_hides_debug_fields_by_default(
+    app_context: None, mocker: MockerFixture
+) -> None:
     """
     By default (SHOW_STACKTRACE disabled) the serialized task properties must
     not disclose the stack trace or the raw exception class name (CWE-209),
     while still returning consumer-safe fields like error_message.
     """
+    mocker.patch.dict(current_app.config, {"SHOW_STACKTRACE": False})
+
     properties = TaskResponseSchema().get_properties(_task_with_error_properties())
 
     assert "stack_trace" not in properties

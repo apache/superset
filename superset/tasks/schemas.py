@@ -46,8 +46,8 @@ user_id_description = "ID of the user context for task execution"
 payload_description = "Task-specific data in JSON format"
 properties_description = (
     "Runtime state and execution config. Contains: is_abortable, progress_percent, "
-    "progress_current, progress_total, error_message, exception_type, stack_trace, "
-    "timeout"
+    "progress_current, progress_total, error_message, timeout. Also includes "
+    "exception_type and stack_trace, but only when SHOW_STACKTRACE is enabled"
 )
 duration_seconds_description = (
     "Duration in seconds - for finished tasks: execution time, "
@@ -123,8 +123,7 @@ class TaskResponseSchema(Schema):
         return obj.payload_dict  # type: ignore[attr-defined]
 
     def get_properties(self, obj: object) -> dict[str, object]:
-        """Get properties dict, filtering debugging details when SHOW_STACKTRACE
-        is disabled."""
+        """Get properties dict, filtering debug fields unless SHOW_STACKTRACE."""
         from flask import current_app
 
         properties = dict(obj.properties_dict)  # type: ignore[attr-defined]
