@@ -23,6 +23,7 @@ from unittest.mock import patch
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset import security_manager
+from superset.commands.deletion_retention.force_purge import ForcePurgeCommand
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.extensions import db
@@ -787,14 +788,23 @@ class TestChartArchiveListing(InsertChartMixin, SupersetTestCase):
 
         self.login(ADMIN_USERNAME)
         try:
-            # Stand in for the concurrent restore: the row is live by the time
-            # the purge resolves it.
-            with patch(
-                "superset.commands.purge.PurgeArchivedCommand.validate"
-            ) as validate:
-                validate.return_value = chart
-                chart.deleted_at = None
+            # Stand in for the concurrent restore: the row is archived when
+            # validate() authorizes it and live by the time the purge resolves
+            # it. Hooking _resolve rather than validate is deliberate --
+            # validate() reports through self._model, so a patched validate
+            # leaves it None and run() exits at its "cannot happen" guard
+            # without ever constructing ForcePurgeCommand, which would make
+            # this test green no matter what the purge path did.
+            original_resolve = ForcePurgeCommand._resolve  # noqa: SLF001
+
+            def restore_then_resolve(self_: ForcePurgeCommand) -> object:
+                db.session.query(Slice).filter(Slice.id == chart_id).update(
+                    {"deleted_at": None}
+                )
                 db.session.commit()
+                return original_resolve(self_)
+
+            with patch.object(ForcePurgeCommand, "_resolve", restore_then_resolve):
                 rv = self.client.post(f"/api/v1/chart/{chart_uuid}/purge")
 
             assert rv.status_code == 404, rv.data

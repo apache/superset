@@ -60,11 +60,11 @@ class ForcePurgeCommand:
     user, whose authorization was necessarily checked against one specific
     entity — must pass ``model_cls`` so resolution cannot wander.
 
-    ``require_archived`` restricts resolution to soft-deleted rows. The
-    cascade runs with ``enforce_window=False`` here (a force purge ignores
-    the retention window), which also skips its ``deleted_at`` check, so
-    without this a row restored between authorization and purge could be
-    hard-deleted while live.
+    ``require_archived`` restricts the purge to rows that are still
+    soft-deleted. It is passed through to the cascade, where it becomes a
+    predicate on the locked claim and on the conditional delete — checking it
+    only at resolution time would narrow the race without closing it, since a
+    restore can commit between the resolve and the lock.
     """
 
     def __init__(
@@ -142,7 +142,10 @@ class ForcePurgeCommand:
         try:
             with suppress_purge_association_versions(db.session):
                 result: CascadeResult = cascade_hard_delete(
-                    db.session, entity, enforce_window=False
+                    db.session,
+                    entity,
+                    enforce_window=False,
+                    require_archived=self._require_archived,
                 )
             # Commit AFTER the suppression block: Continuum executes its
             # pending association statements during flush/commit, so the

@@ -126,14 +126,24 @@ class TestRetentionWindowInBootstrap(DeletionRetentionTestBase):
         super().tearDown()
 
     def _conf(self) -> dict[str, Any]:
-        from superset.views.base import common_bootstrap_payload
+        from superset.views.base import cached_common_bootstrap_data
 
+        # Deliberately the ``.uncached`` body rather than
+        # common_bootstrap_payload(): the wrapper memoizes for 60s on
+        # (user_id, locale) alone, and every test here is the same admin in the
+        # same locale. Going through the cache, the first test's payload would
+        # be served to the rest -- the branches under test all live *inside*
+        # the memoized body and would never be re-evaluated. Clearing the cache
+        # per test would also work where a cache backend is reachable, but ties
+        # these assertions to Redis being up; calling the body directly is what
+        # is actually under test.
         self.login(ADMIN_USERNAME)
         with self.client.application.test_request_context("/"):
             from flask import g
 
-            g.user = self.get_user(ADMIN_USERNAME)
-            return common_bootstrap_payload()["conf"]
+            user = self.get_user(ADMIN_USERNAME)
+            g.user = user
+            return cached_common_bootstrap_data.uncached(user.id, "en")["conf"]
 
     @with_feature_flags(SOFT_DELETE=True)
     def test_bootstrap_reports_the_runtime_override_not_the_config_seed(self) -> None:

@@ -149,12 +149,35 @@ class PurgeRaceLostError(Exception):
     """Raised to roll back dependent cleanup when the entity delete loses."""
 
 
+def _eligibility_predicates(
+    table: sa.Table,
+    *,
+    enforce_window: bool,
+    cutoff: datetime | None,
+    require_archived: bool,
+) -> list[Any]:
+    """Row-state predicates that decide whether *entity* may still be purged.
+
+    Returned as a list so the identical set can be carried by both the locked
+    claim and the conditional delete. Eligibility has to be expressed as SQL
+    predicates on those two statements rather than as a check beforehand: a
+    restore committing between the check and the lock would otherwise go
+    unnoticed. An empty list means every row is eligible.
+    """
+    if enforce_window:
+        return [table.c.deleted_at.is_not(None), table.c.deleted_at < cutoff]
+    if require_archived:
+        return [table.c.deleted_at.is_not(None)]
+    return []
+
+
 def cascade_hard_delete(
     session: Session,
     entity: Any,
     *,
     enforce_window: bool,
     cutoff: datetime | None = None,
+    require_archived: bool = False,
 ) -> CascadeResult:
     """Remove *entity* and everything that depends on it in one transaction.
 
@@ -162,6 +185,16 @@ def cascade_hard_delete(
     dependent state is touched. Ordinary deletion blockers remain
     authoritative. All cleanup and the conditional parent delete run inside a
     savepoint so a lost race or restrictive foreign key leaves no side effects.
+
+    Eligibility means different things to the two callers, and both express it
+    here rather than upstream, because only the predicates carried by the
+    locked claim and the conditional delete are race-free. Anything checked
+    before the lock can be invalidated by a commit landing in between.
+
+    ``enforce_window`` (retention) requires the row to be soft-deleted and
+    older than *cutoff*. ``require_archived`` (force purge, which ignores the
+    window) requires only that it is still soft-deleted, so a restore
+    committed after the caller resolved the entity cannot be destroyed.
     """
     # pylint: disable=import-outside-toplevel
     from superset.connectors.sqla.models import SqlaTable
@@ -183,12 +216,17 @@ def cascade_hard_delete(
 
     try:
         with session.begin_nested():
+            # Two independent questions, both answered under the lock:
+            # identity pins which row this is (id can be reused; uuid cannot),
+            # eligibility pins whether that row may still be purged.
             identity = _identity_predicates(table, entity_id, entity)
-            claim = sa.select(table.c.id).where(*identity)
-            if enforce_window:
-                claim = claim.where(table.c.deleted_at.is_not(None)).where(
-                    table.c.deleted_at < cutoff
-                )
+            eligibility = _eligibility_predicates(
+                table,
+                enforce_window=enforce_window,
+                cutoff=cutoff,
+                require_archived=require_archived,
+            )
+            claim = sa.select(table.c.id).where(*identity).where(*eligibility)
             if session.execute(claim.with_for_update()).scalar_one_or_none() is None:
                 raise PurgeRaceLostError
 
@@ -210,11 +248,7 @@ def cascade_hard_delete(
             _delete_owned_children(session, model, entity_id)
             version_rows = _delete_version_history(session, entity, entity_id)
 
-            delete_entity = sa.delete(table).where(*identity)
-            if enforce_window:
-                delete_entity = delete_entity.where(
-                    table.c.deleted_at.is_not(None)
-                ).where(table.c.deleted_at < cutoff)
+            delete_entity = sa.delete(table).where(*identity).where(*eligibility)
             if session.execute(delete_entity).rowcount == 0:
                 raise PurgeRaceLostError
 
