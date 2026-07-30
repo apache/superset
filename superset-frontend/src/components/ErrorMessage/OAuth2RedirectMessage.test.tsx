@@ -185,18 +185,18 @@ describe('OAuth2RedirectMessage Component', () => {
   });
 
   test('waits for the SQL Lab query before consuming the completion', async () => {
+    const initialState = {
+      sqlLab: {
+        queries: {},
+        queryEditors: [{ id: 'editor-id', latestQueryId: 'query-id' }],
+        tabHistory: ['editor-id'],
+      },
+      explore: { slice: null },
+      charts: {},
+      dashboardInfo: {},
+    };
     const delayedQueryStore = createStore(
-      (
-        state = {
-          ...mockStoreUnsavedChart.getState(),
-          sqlLab: {
-            queries: {},
-            queryEditors: [{ id: 'editor-id', latestQueryId: 'query-id' }],
-            tabHistory: ['editor-id'],
-          },
-        },
-        action,
-      ) =>
+      (state: typeof initialState = initialState, action) =>
         action.type === 'load-query'
           ? {
               ...state,
