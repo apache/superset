@@ -2433,16 +2433,19 @@ SLACK_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
 # For workspaces with 10k+ channels, consider increasing to 10
 SLACK_API_RATE_LIMIT_RETRY_COUNT = 2
 
+# Cooldown (in seconds) after an on-demand Slack channel-cache refresh.
+SLACK_CHANNEL_REFRESH_COOLDOWN_SECONDS = 300
+
 # Timeout (in seconds) for outbound Slack API calls. The Slack SDK defaults to 30s;
 # exposing it here lets operators grant more time for large file uploads (multi-MB
 # CSVs, PDFs, screenshot sets) to congested or rate-limited Slack endpoints without
 # patching code, consistent with the SMTP/CSV/screenshot timeouts.
 SLACK_API_TIMEOUT = 30
 
-# Application retry budget (in seconds) for each Slack channel across all files
-# and upload phases. Increase this for slow channels or large-file reports. Each
-# channel receives an independent budget, and the effective value is always at
-# least one second longer than SLACK_API_TIMEOUT.
+# Application retry budget (in seconds) shared by all Slack channels, files, and
+# upload phases in one report execution. Increase this for slow or large-file
+# reports. The effective value is always at least one second longer than
+# SLACK_API_TIMEOUT and is clamped to the report's remaining working timeout.
 SLACK_SEND_RETRY_MAX_TIME = 150
 
 # The webdriver to use for generating reports when using Selenium (not Playwright).

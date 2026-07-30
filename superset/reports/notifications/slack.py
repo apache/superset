@@ -27,6 +27,7 @@ from slack_sdk.errors import (
     SlackTokenRotationError,
 )
 
+from superset import feature_flag_manager
 from superset.reports.models import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
 from superset.reports.notifications.exceptions import (
@@ -41,12 +42,10 @@ from superset.reports.notifications.slack_transport import (
     call_slack_api_with_timeout,
     send_to_slack_channels,
 )
-from superset.utils import json
 from superset.utils.decorators import statsd_gauge
 from superset.utils.slack import (
     get_slack_client,
     NO_SLACK_RECIPIENTS_MESSAGE,
-    parse_slack_recipient_targets,
     should_use_v2_api,
 )
 
@@ -73,24 +72,13 @@ class SlackNotification(SlackMixin, BaseNotification):  # pylint: disable=too-fe
 
     type = ReportRecipientType.SLACK
 
-    def _get_channels(self) -> list[str]:
-        """
-        Get the recipient's normalized channel list.
-
-        :returns: channel names with duplicates removed in configured order
-        """
-        try:
-            recipient_str = json.loads(self._recipient.recipient_config_json)["target"]
-        except (KeyError, TypeError, ValueError) as ex:
-            raise NotificationParamException(NO_SLACK_RECIPIENTS_MESSAGE) from ex
-
-        if not isinstance(recipient_str, str):
-            raise NotificationParamException(NO_SLACK_RECIPIENTS_MESSAGE)
-
-        return parse_slack_recipient_targets(recipient_str)
-
     @staticmethod
-    def _send_text(client: WebClient, channels: list[str], body: str) -> None:
+    def _send_text(
+        client: WebClient,
+        channels: list[str],
+        body: str,
+        retry_deadline: float | None = None,
+    ) -> None:
         """Send a text notification once to each configured channel."""
         if not channels:
             raise NotificationParamException(NO_SLACK_RECIPIENTS_MESSAGE)
@@ -104,6 +92,7 @@ class SlackNotification(SlackMixin, BaseNotification):  # pylint: disable=too-fe
                 channel=target,
                 text=body,
             ),
+            retry_deadline=retry_deadline,
         )
 
     def _send_legacy_text(self) -> None:
@@ -115,7 +104,12 @@ class SlackNotification(SlackMixin, BaseNotification):  # pylint: disable=too-fe
         try:
             client = get_slack_client(for_delivery=True)
             channels = self._get_channels()
-            self._send_text(client, channels, body)
+            self._send_text(
+                client,
+                channels,
+                body,
+                retry_deadline=self._content.slack_retry_deadline,
+            )
             logger.info(
                 "Report sent to slack",
                 extra={
@@ -148,5 +142,7 @@ class SlackNotification(SlackMixin, BaseNotification):  # pylint: disable=too-fe
     )
     def send(self) -> None:
         if should_use_v2_api(raise_on_error=self._content.has_attachments):
+            raise SlackV1NotificationError
+        if feature_flag_manager.is_feature_enabled("ALERT_REPORT_SLACK_V2"):
             raise SlackV1NotificationError
         self._send_legacy_text()

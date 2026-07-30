@@ -16,9 +16,18 @@
 # under the License.
 import logging
 import time
+from contextlib import closing
 from email.message import Message
-from typing import List
+from ssl import SSLContext
 from urllib.error import HTTPError
+from urllib.parse import urlparse
+from urllib.request import (
+    build_opener,
+    HTTPSHandler,
+    ProxyHandler,
+    Request,
+    urlopen,
+)
 
 from flask import g
 from slack_sdk import WebClient
@@ -47,15 +56,43 @@ from superset.reports.notifications.slack_transport import (
     SlackChannelResponseError,
     SlackRetryDeadlineError,
 )
-from superset.utils import json
 from superset.utils.decorators import statsd_gauge
 from superset.utils.slack import (
     get_slack_client,
     NO_SLACK_RECIPIENTS_MESSAGE,
-    parse_slack_recipient_targets,
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _upload_file_data(
+    *,
+    url: str,
+    data: bytes,
+    timeout: int,
+    proxy: str | None,
+    ssl: SSLContext | None,
+) -> tuple[int, str]:
+    """Upload bytes to Slack's issued URL using stable stdlib HTTP APIs."""
+    if urlparse(url).scheme != "https":
+        raise SlackRequestError("Slack upload URL must use HTTPS")
+    request = Request(method="POST", url=url, data=data)  # noqa: S310
+    if proxy is not None:
+        if not isinstance(proxy, str):
+            raise SlackRequestError(
+                f"Invalid proxy detected: {proxy} must be a str value"
+            )
+        response = build_opener(
+            ProxyHandler({"http": proxy, "https": proxy}),
+            HTTPSHandler(context=ssl),
+        ).open(request, timeout=timeout)
+    else:
+        response = urlopen(request, context=ssl, timeout=timeout)  # noqa: S310
+
+    with closing(response):
+        charset = response.headers.get_content_charset() or "utf-8"
+        body = response.read().decode(charset)
+        return response.status, body
 
 
 def _upload_file_to_slack(
@@ -97,26 +134,30 @@ def _upload_file_to_slack(
         remaining = retry_deadline - time.monotonic()
         if remaining <= 0:
             raise SlackRetryDeadlineError
-        # files_upload_v2 uses this SDK helper internally. Calling it directly
-        # keeps retries scoped to the raw upload rather than replaying URL creation.
-        result = client._upload_file(  # pylint: disable=protected-access
+        timeout = int(min(float(client.timeout), remaining))
+        if timeout <= 0:
+            raise SlackRetryDeadlineError
+        status, response_body = _upload_file_data(
             url=upload_url,
             data=data,
-            logger=logger,
-            timeout=min(float(client.timeout), remaining),
+            timeout=timeout,
             proxy=client.proxy,
             ssl=client.ssl,
         )
-        if result.status != 200:
+        if status != 200:
             raise HTTPError(
                 upload_url,
-                result.status,
-                f"Slack external upload failed: {result.body}",
+                status,
+                f"Slack external upload failed: {response_body}",
                 Message(),
                 None,
             )
 
-    call_slack_api(upload_file, retry_deadline=retry_deadline)
+    call_slack_api(
+        upload_file,
+        retry_deadline=retry_deadline,
+        retry_transport_errors=True,
+    )
     call_slack_api_with_timeout(
         client,
         client.files_completeUploadExternal,
@@ -134,22 +175,6 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
     """
 
     type = ReportRecipientType.SLACKV2
-
-    def _get_channels(self) -> List[str]:
-        """
-        Get the recipient's channel(s).
-        :returns: A list of channel ids: "EID676L"
-        :raises NotificationParamException or SlackApiError: If the recipient is not found
-        """  # noqa: E501
-        try:
-            recipient_str = json.loads(self._recipient.recipient_config_json)["target"]
-        except (KeyError, TypeError, ValueError) as ex:
-            raise NotificationParamException(NO_SLACK_RECIPIENTS_MESSAGE) from ex
-
-        if not isinstance(recipient_str, str):
-            raise NotificationParamException(NO_SLACK_RECIPIENTS_MESSAGE)
-
-        return parse_slack_recipient_targets(recipient_str)
 
     def _get_inline_files(
         self,
@@ -206,7 +231,11 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
                         text=body,
                     )
 
-            send_to_slack_channels(channels, send_to_channel)
+            send_to_slack_channels(
+                channels,
+                send_to_channel,
+                retry_deadline=self._content.slack_retry_deadline,
+            )
 
             logger.info(
                 "Report sent to slack",

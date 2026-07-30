@@ -18,6 +18,7 @@
 import warnings
 from email.message import Message
 from http.client import RemoteDisconnected
+from unittest.mock import call
 from urllib.error import HTTPError, URLError
 
 import pytest
@@ -41,6 +42,7 @@ from superset.utils.slack import (
     _SLACK_V1_DEPRECATION_MESSAGE,
     get_channels,
     get_channels_with_search,
+    get_channels_with_search_and_cache_status,
     get_slack_client,
     is_transient_slack_api_error,
     refresh_cached_slack_channels_with_search,
@@ -74,6 +76,7 @@ def test_delivery_client_disables_outcome_unknown_connection_retries(mocker) -> 
         },
     )
 
+    logger = mocker.patch("superset.utils.slack.logger")
     delivery_client = get_slack_client(for_delivery=True)
     discovery_client = get_slack_client()
 
@@ -93,6 +96,10 @@ def test_delivery_client_disables_outcome_unknown_connection_retries(mocker) -> 
         isinstance(handler, RateLimitErrorRetryHandler)
         for handler in discovery_client.retry_handlers
     )
+    assert logger.debug.call_args_list == [
+        call("Slack delivery client configured with SDK retries disabled"),
+        call("Slack client configured with %d rate limit retries", 2),
+    ]
 
 
 class TestGetChannelsWithSearch:
@@ -253,6 +260,20 @@ The server responded with: missing scope: channels:read"""
         with pytest.raises(expected_exception):
             get_channels_with_search(force=True)
 
+    def test_channel_listing_rate_limit_retains_operator_hint(self, mocker) -> None:
+        mock_client = mocker.Mock()
+        mock_client.conversations_list.side_effect = SlackApiError(
+            "rate limited",
+            MockResponse({"ok": False, "error": "ratelimited"}, status_code=429),
+        )
+        mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
+
+        with pytest.raises(
+            SlackChannelListingError,
+            match="consider increasing SLACK_API_RATE_LIMIT_RETRY_COUNT",
+        ):
+            get_channels_with_search(force=True)
+
     @pytest.mark.parametrize(
         "types, expected_channel_ids",
         [
@@ -306,7 +327,8 @@ The server responded with: missing scope: channels:read"""
         mock_client.conversations_list.return_value = MockResponse(mock_data)
         mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
         mocker.patch.dict(
-            "superset.utils.slack.app.config", {"SLACK_TEAM_ID": "T123456"}
+            "superset.utils.slack.app.config",
+            {"SLACK_TEAM_ID": "T123456"},
         )
 
         get_channels_with_search(force=True)
@@ -321,10 +343,11 @@ The server responded with: missing scope: channels:read"""
         )
         channel_fetch = mocker.patch("superset.utils.slack._get_channels")
         mocker.patch.dict(
-            "superset.utils.slack.app.config", {"SLACK_TEAM_ID": "T123456"}
+            "superset.utils.slack.app.config",
+            {"SLACK_TEAM_ID": "T123456"},
         )
 
-        channels, used_cache = get_channels_with_search(return_cache_status=True)
+        channels, used_cache = get_channels_with_search_and_cache_status()
 
         assert channels == cached_channels
         assert used_cache is True
@@ -372,16 +395,12 @@ The server responded with: missing scope: channels:read"""
             return_value=False,
         )
 
-        channels, used_cache = get_channels_with_search(return_cache_status=True)
+        channels, used_cache = get_channels_with_search_and_cache_status()
 
         assert channels == live_channels
         assert used_cache is False
         cache_get.assert_called_once_with("slack_conversations_list")
-        channel_fetch.assert_called_once_with(
-            "slack_conversations_list",
-            team_id=None,
-            cache=False,
-        )
+        channel_fetch.assert_called_once_with(team_id=None)
         cache_set.assert_called_once_with(
             "slack_conversations_list",
             live_channels,
@@ -405,7 +424,7 @@ The server responded with: missing scope: channels:read"""
             return_value=False,
         )
 
-        channels, used_cache = get_channels_with_search(return_cache_status=True)
+        channels, used_cache = get_channels_with_search_and_cache_status()
 
         assert channels == live_channels
         assert used_cache is False
@@ -481,7 +500,7 @@ The server responded with: missing scope: channels:read"""
             return_value=False,
         )
 
-        channels, used_cache = get_channels_with_search(return_cache_status=True)
+        channels, used_cache = get_channels_with_search_and_cache_status()
 
         assert channels == live_channels
         assert used_cache is False
@@ -500,15 +519,11 @@ The server responded with: missing scope: channels:read"""
             return_value=True,
         )
 
-        channels, used_cache = get_channels_with_search(return_cache_status=True)
+        channels, used_cache = get_channels_with_search_and_cache_status()
 
         assert channels == live_channels
         assert used_cache is False
-        channel_fetch.assert_called_once_with(
-            "slack_conversations_list",
-            team_id=None,
-            cache=False,
-        )
+        channel_fetch.assert_called_once_with(team_id=None)
         cache_set.assert_not_called()
 
     def test_forced_warmup_writes_metastore_channel_cache(self, mocker) -> None:
@@ -525,16 +540,63 @@ The server responded with: missing scope: channels:read"""
 
         assert get_channels(force=True, cache_timeout=123) == live_channels
 
-        channel_fetch.assert_called_once_with(
-            "slack_conversations_list",
-            team_id=None,
-            cache=False,
-        )
+        channel_fetch.assert_called_once_with(team_id=None)
         cache_set.assert_called_once_with(
             "slack_conversations_list",
             live_channels,
             timeout=123,
         )
+
+    def test_strict_warmup_propagates_cache_write_failure(self, mocker) -> None:
+        mocker.patch(
+            "superset.utils.slack._get_channels",
+            return_value=[{"id": "C2", "name": "live"}],
+        )
+        mocker.patch(
+            "superset.utils.slack.cache_manager.cache.set",
+            side_effect=ConnectionError("metastore unavailable"),
+        )
+        rollback = mocker.patch("superset.utils.slack.db.session.rollback")
+        mocker.patch(
+            "superset.utils.slack._slack_channel_cache_uses_report_session",
+            return_value=True,
+        )
+
+        with pytest.raises(ConnectionError, match="metastore unavailable"):
+            get_channels(
+                force=True,
+                cache_timeout=123,
+                raise_on_cache_write_error=True,
+            )
+
+        rollback.assert_called_once_with()
+
+    def test_strict_warmup_rejects_false_cache_write_result(self, mocker) -> None:
+        mocker.patch(
+            "superset.utils.slack._get_channels",
+            return_value=[{"id": "C2", "name": "live"}],
+        )
+        mocker.patch(
+            "superset.utils.slack.cache_manager.cache.set",
+            return_value=False,
+        )
+        rollback = mocker.patch("superset.utils.slack.db.session.rollback")
+        mocker.patch(
+            "superset.utils.slack._slack_channel_cache_uses_report_session",
+            return_value=True,
+        )
+
+        with pytest.raises(
+            SupersetException,
+            match="cache rejected the write",
+        ):
+            get_channels(
+                force=True,
+                cache_timeout=123,
+                raise_on_cache_write_error=True,
+            )
+
+        rollback.assert_called_once_with()
 
     @pytest.mark.parametrize("cache_set_result", [True, None])
     def test_refreshes_cached_channels_once_per_workspace_cooldown(
@@ -558,7 +620,11 @@ The server responded with: missing scope: channels:read"""
             return_value=cache_set_result,
         )
         mocker.patch.dict(
-            "superset.utils.slack.app.config", {"SLACK_TEAM_ID": "T123456"}
+            "superset.utils.slack.app.config",
+            {
+                "SLACK_TEAM_ID": "T123456",
+                "SLACK_CHANNEL_REFRESH_COOLDOWN_SECONDS": 42,
+            },
         )
 
         assert (
@@ -586,7 +652,7 @@ The server responded with: missing scope: channels:read"""
             mocker.call(
                 "slack_conversations_list_T123456_refresh_cooldown",
                 True,
-                timeout=300,
+                timeout=42,
             ),
         ]
 

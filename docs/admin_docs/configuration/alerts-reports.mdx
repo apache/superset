@@ -81,6 +81,23 @@ SLACK_CACHE_TIMEOUT = int(timedelta(days=2).total_seconds())
 SLACK_API_RATE_LIMIT_RETRY_COUNT = 5
 ```
 
+When the cache backend is `SupersetMetastoreCache`, report execution does not
+write channel listings into the cache because that backend commits the report's
+database session. Schedule the dedicated warm-up task so cache misses are
+repopulated outside report transactions:
+
+```python
+from celery.schedules import crontab
+
+class CeleryConfig:
+    beat_schedule = {
+        "slack.cache_channels": {
+            "task": "slack.cache_channels",
+            "schedule": crontab(minute="0", hour="*"),
+        },
+    }
+```
+
 #### Slack Enterprise Grid (org-scoped tokens)
 
 On a Slack Enterprise Grid org, an org-scoped token spans multiple workspaces, so
@@ -104,17 +121,22 @@ Slack delivery uses a request timeout and an application retry budget:
 # Timeout for one Slack API request, in seconds
 SLACK_API_TIMEOUT = 30
 
-# Retry budget for each destination channel across its files and upload phases
+# Retry budget shared by every Slack destination and upload phase
 SLACK_SEND_RETRY_MAX_TIME = 150
 
 # Number of explicit HTTP 429 responses retried using Slack's Retry-After value
 SLACK_API_RATE_LIMIT_RETRY_COUNT = 2
+
+# Cooldown after an on-demand channel-cache refresh
+SLACK_CHANNEL_REFRESH_COOLDOWN_SECONDS = 300
 ```
 
-Each channel receives an independent `SLACK_SEND_RETRY_MAX_TIME` budget, so a
-slow or unavailable channel does not reduce the time available to later
-channels. The effective per-channel budget is at least one second longer than
-`SLACK_API_TIMEOUT`. Increase it for large files or slow Slack workspaces.
+All channels and upload phases in one report execution share a single
+`SLACK_SEND_RETRY_MAX_TIME` budget. This prevents a large recipient list from
+multiplying the report's wall-clock retry time. The budget is also clamped to
+the report's remaining working timeout, leaving Celery's configured timeout lag
+available for final state persistence. The effective configured budget is at
+least one second longer than `SLACK_API_TIMEOUT`.
 
 To avoid posting the same report twice, Superset does not replay terminal
 `chat.postMessage` or `files.completeUploadExternal` operations after ambiguous

@@ -127,9 +127,17 @@ def _configure_v2_upload_client(client: Mock) -> Mock:
         "file_id": "F1",
         "upload_url": "https://files.slack.com/upload/F1",
     }
-    client._upload_file.return_value = Mock(status=200, body="ok")
     client.files_completeUploadExternal.return_value = {"files": [{"id": "F1"}]}
     return client
+
+
+@pytest.fixture(autouse=True)
+def slack_raw_upload_mock(mocker):
+    """Keep report integration tests off Slack's issued upload URL."""
+    return mocker.patch(
+        "superset.reports.notifications.slackv2._upload_file_data",
+        return_value=(200, "ok"),
+    )
 
 
 def get_target_from_report_schedule(report_schedule: ReportSchedule) -> list[str]:
@@ -1480,7 +1488,9 @@ def test_email_dashboard_report_schedule_force_screenshot(
 
 
 @pytest.mark.usefixtures("create_report_slack_chart")
-@patch("superset.reports.notifications.slack_channel_resolver.get_channels_with_search")
+@patch(
+    "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status"
+)
 @patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
 @patch("superset.reports.notifications.slackv2.get_slack_client")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
@@ -1490,6 +1500,7 @@ def test_slack_chart_report_schedule_converts_to_v2(
     slack_should_use_v2_api_mock,
     get_channels_with_search_mock,
     create_report_slack_chart,
+    slack_raw_upload_mock,
 ):
     """
     ExecuteReport Command: Test chart slack report schedule
@@ -1523,7 +1534,7 @@ def test_slack_chart_report_schedule_converts_to_v2(
                 slack_client.files_completeUploadExternal.call_args[1]["channel_id"]
                 == channel_id
             )
-            assert slack_client._upload_file.call_args[1]["data"] == SCREENSHOT_FILE
+            assert slack_raw_upload_mock.call_args.kwargs["data"] == SCREENSHOT_FILE
 
             # Assert that the report recipients were updated
             assert create_report_slack_chart.recipients[
@@ -1539,7 +1550,9 @@ def test_slack_chart_report_schedule_converts_to_v2(
             statsd_mock.assert_called_once_with("reports.slack.send.ok", 1)
 
 
-@patch("superset.reports.notifications.slack_channel_resolver.get_channels_with_search")
+@patch(
+    "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status"
+)
 @patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
 @patch("superset.reports.notifications.slackv2.get_slack_client")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
@@ -1548,6 +1561,7 @@ def test_slack_chart_report_schedule_converts_to_v2_channel_with_hash(
     slack_client_mock,
     slack_should_use_v2_api_mock,
     get_channels_with_search_mock,
+    slack_raw_upload_mock,
 ):
     """
     ExecuteReport Command: Test converting a Slack report to v2 when
@@ -1585,7 +1599,7 @@ def test_slack_chart_report_schedule_converts_to_v2_channel_with_hash(
                 slack_client.files_completeUploadExternal.call_args[1]["channel_id"]
                 == channel_id
             )
-            assert slack_client._upload_file.call_args[1]["data"] == SCREENSHOT_FILE
+            assert slack_raw_upload_mock.call_args.kwargs["data"] == SCREENSHOT_FILE
 
             # Assert that the report recipients were updated
             assert report_schedule.recipients[0].recipient_config_json == json.dumps(
@@ -1600,7 +1614,9 @@ def test_slack_chart_report_schedule_converts_to_v2_channel_with_hash(
     cleanup_report_schedule(report_schedule)
 
 
-@patch("superset.reports.notifications.slack_channel_resolver.get_channels_with_search")
+@patch(
+    "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status"
+)
 @patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
 @patch("superset.reports.notifications.slackv2.get_slack_client")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
@@ -1673,6 +1689,7 @@ def test_slack_chart_report_schedule_v2(
     slack_client_mock,
     slack_should_use_v2_api_mock,
     create_report_slack_chartv2,
+    slack_raw_upload_mock,
 ):
     """
     ExecuteReport Command: Test chart slack report schedule using Slack v2.
@@ -1693,7 +1710,7 @@ def test_slack_chart_report_schedule_v2(
                 slack_client.files_completeUploadExternal.call_args[1]["channel_id"]
                 == "slack_channel_id"
             )
-            assert slack_client._upload_file.call_args[1]["data"] == SCREENSHOT_FILE
+            assert slack_raw_upload_mock.call_args.kwargs["data"] == SCREENSHOT_FILE
 
             # Assert logs are correct
             assert_log(ReportState.SUCCESS)
@@ -1905,7 +1922,7 @@ def test_slack_chart_report_schedule_with_text(
     "load_birth_names_dashboard_with_slices", "create_report_slack_chart_with_text"
 )
 @patch(
-    "superset.reports.notifications.slack_channel_resolver.get_channels_with_search",
+    "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
     return_value=([], False),
 )
 @patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
@@ -1970,8 +1987,6 @@ def test_slack_text_fallback_persists_success_for_multiple_recipient_rows(
         search_string=ANY,
         types=ANY,
         exact_match=True,
-        force=False,
-        return_cache_status=True,
     )
     success_logs = (
         db.session.query(ReportExecutionLog)
@@ -1989,7 +2004,7 @@ def test_slack_text_fallback_persists_success_for_multiple_recipient_rows(
     "load_birth_names_dashboard_with_slices", "create_report_slack_chart_with_text"
 )
 @patch(
-    "superset.reports.notifications.slack_channel_resolver.get_channels_with_search",
+    "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
     return_value=([], False),
 )
 @patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
@@ -2180,7 +2195,9 @@ def test_report_schedule_success_grace(create_alert_slack_chart_success):
 
 
 @pytest.mark.usefixtures("create_alert_slack_chart_grace")
-@patch("superset.reports.notifications.slack_channel_resolver.get_channels_with_search")
+@patch(
+    "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status"
+)
 @patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
 @patch("superset.reports.notifications.slackv2.get_slack_client")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
@@ -2190,6 +2207,7 @@ def test_report_schedule_success_grace_end(
     slack_should_use_v2_api_mock,
     get_channels_with_search_mock,
     create_alert_slack_chart_grace,
+    slack_raw_upload_mock,
 ):
     """A Slack alert leaving grace upgrades to v2 and sends successfully."""
 
@@ -2233,7 +2251,7 @@ def test_report_schedule_success_grace_end(
     slack_should_use_v2_api_mock.assert_called_once_with(raise_on_error=True)
     completion_call = slack_client.files_completeUploadExternal.call_args
     assert completion_call.kwargs["channel_id"] == channel_id
-    assert slack_client._upload_file.call_args.kwargs["data"] == SCREENSHOT_FILE
+    assert slack_raw_upload_mock.call_args.kwargs["data"] == SCREENSHOT_FILE
 
 
 @pytest.mark.usefixtures("create_alert_email_chart")
@@ -2387,7 +2405,9 @@ def test_slack_chart_alert_no_attachment(email_mock, create_alert_email_chart):
     "load_birth_names_dashboard_with_slices",
     "create_report_slack_chart",
 )
-@patch("superset.reports.notifications.slack_channel_resolver.get_channels_with_search")
+@patch(
+    "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status"
+)
 @patch("superset.utils.slack.WebClient")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
 def test_slack_token_callable_chart_report(

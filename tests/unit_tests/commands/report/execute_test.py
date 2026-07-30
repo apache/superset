@@ -1776,7 +1776,7 @@ def test_update_recipient_to_slack_v2(mocker: MockerFixture):
     Test converting a Slack recipient to Slack v2 format.
     """
     mocker.patch(
-        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search",
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
         return_value=(
             [
                 {
@@ -1822,7 +1822,7 @@ def test_update_recipient_to_slack_v2_missing_channels(mocker: MockerFixture):
     in case it can't find all channels.
     """
     mocker.patch(
-        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search",
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
         return_value=(
             [
                 {
@@ -1857,7 +1857,7 @@ def test_update_recipient_to_slack_v2_preserves_permanent_listing_failure(
 ) -> None:
     """Permanent listing failures remain client errors during migration."""
     mocker.patch(
-        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search",
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
         side_effect=SlackChannelListingClientError("invalid_auth"),
     )
     state = BaseReportState(
@@ -1882,7 +1882,7 @@ def test_update_recipient_to_slack_v2_refreshes_stale_channel_cache(
 ) -> None:
     """A cache miss gets one fresh lookup before the upgrade falls back."""
     channel_search = mocker.patch(
-        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search",
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
         return_value=([], True),
     )
     refreshed_channel_search = mocker.patch(
@@ -1908,8 +1908,6 @@ def test_update_recipient_to_slack_v2_refreshes_stale_channel_cache(
         search_string="Channel-1,C2",
         types=mocker.ANY,
         exact_match=True,
-        force=False,
-        return_cache_status=True,
     )
     refreshed_channel_search.assert_called_once_with(
         search_string="Channel-1,C2",
@@ -1925,7 +1923,7 @@ def test_update_recipient_to_slack_v2_skips_refresh_after_live_cache_miss(
 ) -> None:
     """A live lookup is not repeated when no cached channel list existed."""
     channel_search = mocker.patch(
-        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search",
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
         return_value=([], False),
     )
     recipient = ReportRecipients(
@@ -1945,8 +1943,6 @@ def test_update_recipient_to_slack_v2_skips_refresh_after_live_cache_miss(
         search_string="private-channel",
         types=mocker.ANY,
         exact_match=True,
-        force=False,
-        return_cache_status=True,
     )
 
 
@@ -1955,7 +1951,7 @@ def test_update_recipient_to_slack_v2_prefers_exact_id_over_name_collision(
 ) -> None:
     """A canonical Slack ID cannot be shadowed by another channel's name."""
     mocker.patch(
-        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search",
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
         return_value=(
             [
                 {"id": "C012AB3CD", "name": "reports", "is_private": True},
@@ -1989,7 +1985,7 @@ def test_update_recipient_to_slack_v2_reports_only_unresolved_channels(
 ) -> None:
     """Diagnostics use the same case-insensitive name-or-id match as resolution."""
     mocker.patch(
-        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search",
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
         return_value=(
             [
                 {"id": "C123", "name": "private-channel", "is_private": True},
@@ -2024,7 +2020,7 @@ def test_update_recipient_to_slack_v2_multiple_recipients(
     """All recipients share one live listing, including metastore cache misses."""
 
     channel_search = mocker.patch(
-        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search",
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
         return_value=(
             [
                 {"id": "C1", "name": "channel-1", "is_private": False},
@@ -2062,8 +2058,6 @@ def test_update_recipient_to_slack_v2_multiple_recipients(
         search_string="channel-1,channel-2",
         types=mocker.ANY,
         exact_match=True,
-        force=False,
-        return_cache_status=True,
     )
 
 
@@ -2072,7 +2066,7 @@ def test_update_recipient_to_slack_v2_multiple_recipients_share_stale_refresh(
 ) -> None:
     """All recipients share one initial cache read and one stale-cache refresh."""
     channel_search = mocker.patch(
-        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search",
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
         return_value=([], True),
     )
     refreshed_channel_search = mocker.patch(
@@ -2101,8 +2095,6 @@ def test_update_recipient_to_slack_v2_multiple_recipients_share_stale_refresh(
         search_string="channel-1,channel-2",
         types=mocker.ANY,
         exact_match=True,
-        force=False,
-        return_cache_status=True,
     )
     refreshed_channel_search.assert_called_once_with(
         search_string="channel-1,channel-2",
@@ -2129,7 +2121,7 @@ def test_update_recipient_to_slack_v2_partial_failure_is_atomic(
     """
 
     channel_search = mocker.patch(
-        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search",
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
         return_value=(
             [{"id": "C1", "name": "channel-1", "is_private": False}],
             False,
@@ -2169,8 +2161,6 @@ def test_update_recipient_to_slack_v2_partial_failure_is_atomic(
         search_string="channel-1,missing-channel",
         types=mocker.ANY,
         exact_match=True,
-        force=False,
-        return_cache_status=True,
     )
 
 
@@ -2205,7 +2195,7 @@ def test_update_recipient_to_slack_v2_no_slack_recipients_is_noop(
     without raising and leaves the non-Slack recipients untouched.
     """
     mock_search = mocker.patch(
-        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search",
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
     )
     mock_report_schedule = ReportSchedule(
         recipients=[
@@ -2267,7 +2257,7 @@ def test_update_recipient_to_slack_v2_deduplicates_channels(
 ) -> None:
     """Repeated channel names resolve once and persist one channel id."""
     channel_search = mocker.patch(
-        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search",
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
         return_value=(
             [
                 {
@@ -2297,18 +2287,18 @@ def test_update_recipient_to_slack_v2_deduplicates_channels(
         search_string="private-channel",
         types=mocker.ANY,
         exact_match=True,
-        force=False,
-        return_cache_status=True,
     )
     assert recipient.type == ReportRecipientType.SLACKV2
     assert recipient.recipient_config_json == '{"target": "C1"}'
 
 
+@pytest.mark.parametrize("probe_result", [True, False])
 def test_send_falls_back_to_slack_v1_when_private_channels_upgrade_fails(
     app: SupersetApp,
     mocker: MockerFixture,
+    probe_result: bool,
 ) -> None:
-    """A failed migration must fall back for every Slack recipient row."""
+    """A failed probe or migration must record fallback for every recipient row."""
     app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"] = False
     original_configs = [
         json.dumps({"target": "private-a"}),
@@ -2347,10 +2337,14 @@ def test_send_falls_back_to_slack_v1_when_private_channels_upgrade_fails(
     )
     v2_probe = mocker.patch(
         "superset.reports.notifications.slack.should_use_v2_api",
+        return_value=probe_result,
+    )
+    mocker.patch(
+        "superset.reports.notifications.slack.feature_flag_manager.is_feature_enabled",
         return_value=True,
     )
     channel_search = mocker.patch(
-        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search",
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
         return_value=([], False),
     )
     slack_client = mocker.patch("superset.reports.notifications.slack.get_slack_client")
@@ -2365,8 +2359,6 @@ def test_send_falls_back_to_slack_v1_when_private_channels_upgrade_fails(
         search_string="private-a,private-b",
         types=mocker.ANY,
         exact_match=True,
-        force=False,
-        return_cache_status=True,
     )
     stats_logger.incr.assert_called_once_with("reports.slack.v1_fallback")
     assert len(report_state._execution_warnings) == 1
@@ -2431,7 +2423,7 @@ def test_send_records_system_upgrade_failure_when_text_fallback_succeeds(
         return_value=True,
     )
     mocker.patch(
-        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search",
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
         side_effect=SupersetException("Slack channel listing unavailable"),
     )
     slack_client = mocker.patch("superset.reports.notifications.slack.get_slack_client")
@@ -2530,8 +2522,8 @@ def test_later_successful_fallback_records_delivery_after_first_failure(
         side_effect=notifications,
     )
     mocker.patch.object(
-        state,
-        "update_report_schedule_slack_v2",
+        state._slack_v1_upgrade,
+        "update_recipients",
         side_effect=UpdateFailedError("Slack upgrade failed"),
     )
 
@@ -2608,7 +2600,7 @@ def test_failed_slack_upgrade_fallback_does_not_affect_other_recipient_types(
         return_value=True,
     )
     channel_search = mocker.patch(
-        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search",
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
         return_value=([], False),
     )
     slack_client = mocker.patch("superset.reports.notifications.slack.get_slack_client")
@@ -2671,7 +2663,7 @@ def test_send_malformed_slack_recipient_does_not_suppress_later_recipient(
         return_value=True,
     )
     channel_search = mocker.patch(
-        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search",
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
     )
     slack_client = mocker.patch("superset.reports.notifications.slack.get_slack_client")
     mocker.patch("superset.reports.notifications.slack.g", logs_context={})
@@ -2741,7 +2733,7 @@ def test_send_preserves_transient_upgrade_failure_for_file_reports(
         return_value=True,
     )
     mocker.patch(
-        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search",
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
         side_effect=SupersetException("Slack channel listing unavailable"),
     )
     slack_client = mocker.patch("superset.reports.notifications.slack.get_slack_client")
@@ -2871,7 +2863,7 @@ def test_send_classifies_malformed_file_recipient_as_client_error(
         return_value=True,
     )
     channel_search = mocker.patch(
-        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search",
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
     )
     slack_client = mocker.patch("superset.reports.notifications.slack.get_slack_client")
     mocker.patch("superset.reports.notifications.slack.g", logs_context={})
@@ -2926,7 +2918,7 @@ def test_send_does_not_fall_back_to_slack_v1_for_file_uploads(
         return_value=True,
     )
     mocker.patch(
-        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search",
+        "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status",
         return_value=([], False),
     )
     slack_client = mocker.patch("superset.reports.notifications.slack.get_slack_client")
@@ -3042,6 +3034,7 @@ def _make_notification_state(
     schedule.description = "desc"
     schedule.email_subject = email_subject
     schedule.force_screenshot = False
+    schedule.working_timeout = None
     schedule.recipients = []
     schedule.editors = []
 

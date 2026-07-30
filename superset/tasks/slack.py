@@ -37,7 +37,11 @@ def cache_channels() -> None:
     )
 
     try:
-        get_channels(force=True, cache_timeout=cache_timeout)
+        get_channels(
+            force=True,
+            cache_timeout=cache_timeout,
+            raise_on_cache_write_error=True,
+        )
     except Exception as ex:
         logger.exception(
             "Failed to cache Slack channels: %s. "

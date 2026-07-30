@@ -23,10 +23,8 @@ from http.client import RemoteDisconnected
 from typing import (
     Any,
     Callable,
-    Literal,
     NotRequired,
     Optional,
-    overload,
     TypedDict,
 )
 from urllib.error import HTTPError, URLError
@@ -40,13 +38,12 @@ from slack_sdk.errors import (
 )
 from slack_sdk.http_retry.builtin_handlers import RateLimitErrorRetryHandler
 
-from superset import feature_flag_manager
+from superset import db, feature_flag_manager
 from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.exceptions import SupersetException
 from superset.extensions import cache_manager
 from superset.extensions.metastore_cache import SupersetMetastoreCache
 from superset.reports.schemas import SlackChannelSchema
-from superset.utils import cache as cache_util
 from superset.utils.backports import StrEnum
 from superset.utils.core import recipients_string_to_list
 
@@ -128,6 +125,10 @@ class SlackChannelListingClientError(SlackChannelListingError):
     status = 422
 
 
+class SlackChannelCacheWriteError(SupersetException):
+    """The dedicated Slack channel cache warm-up could not store its result."""
+
+
 _TRANSIENT_SLACK_API_ERROR_CODES = frozenset(
     {
         "fatal_error",
@@ -147,9 +148,6 @@ SLACK_TRANSIENT_TRANSPORT_ERRORS: tuple[type[Exception], ...] = (
     RemoteDisconnected,
     TimeoutError,
 )
-
-_SLACK_CHANNEL_REFRESH_COOLDOWN_SECONDS = 300
-
 
 NO_SLACK_RECIPIENTS_MESSAGE = "No recipients saved in the report"
 
@@ -220,8 +218,11 @@ def get_slack_client(*, for_delivery: bool = False) -> WebClient:
             max_retry_count=max_retry_count,
         )
         client.retry_handlers.append(rate_limit_handler)
-
-    logger.debug("Slack client configured with %d rate limit retries", max_retry_count)
+        logger.debug(
+            "Slack client configured with %d rate limit retries", max_retry_count
+        )
+    else:
+        logger.debug("Slack delivery client configured with SDK retries disabled")
 
     return client
 
@@ -259,6 +260,7 @@ def get_channels(
     force: bool = False,
     cache_timeout: int | None = None,
     cache: bool = True,
+    raise_on_cache_write_error: bool = False,
 ) -> list[SlackChannel]:
     """
     Retrieves a list of all conversations accessible by the bot
@@ -284,6 +286,7 @@ def get_channels(
         cache=cache,
         cache_timeout=cache_timeout,
         write_metastore_cache=True,
+        raise_on_cache_write_error=raise_on_cache_write_error,
     )
     return channels
 
@@ -295,6 +298,7 @@ def _get_channels_safely(
     cache: bool,
     write_metastore_cache: bool,
     cache_timeout: int | None = None,
+    raise_on_cache_write_error: bool = False,
 ) -> tuple[list[SlackChannel], bool]:
     """Fetch channels with best-effort cache access and hit provenance."""
     cache_key = _get_slack_channels_cache_key(team_id)
@@ -315,21 +319,28 @@ def _get_channels_safely(
         if cached_channels is not None:
             return cached_channels, True
 
-    channels = _get_channels(cache_key, team_id=team_id, cache=False)
-    if cache_enabled and (
-        write_metastore_cache or not _slack_channel_cache_uses_report_session()
-    ):
+    channels = _get_channels(team_id=team_id)
+    uses_report_session = _slack_channel_cache_uses_report_session()
+    if cache_enabled and (write_metastore_cache or not uses_report_session):
         try:
-            cache_manager.cache.set(
+            cache_write_result = cache_manager.cache.set(
                 cache_key,
                 channels,
                 timeout=effective_timeout,
             )
+            if raise_on_cache_write_error and cache_write_result is False:
+                raise SlackChannelCacheWriteError(
+                    "Slack channels were fetched but the cache rejected the write"
+                )
         except Exception:  # pylint: disable=broad-exception-caught
             logger.warning(
                 "Could not cache Slack channels",
                 exc_info=True,
             )
+            if uses_report_session:
+                db.session.rollback()
+            if raise_on_cache_write_error:
+                raise
     return channels, False
 
 
@@ -343,11 +354,7 @@ def _get_channels_with_cache_status() -> tuple[list[SlackChannel], bool]:
     )
 
 
-@cache_util.memoized_func(
-    key="{cache_key}",
-    cache=cache_manager.cache,
-)
-def _get_channels(cache_key: str, team_id: Optional[str] = None) -> list[SlackChannel]:
+def _get_channels(team_id: Optional[str] = None) -> list[SlackChannel]:
     client = get_slack_client()
     channel_schema = SlackChannelSchema()
     channels: list[SlackChannel] = []
@@ -437,31 +444,7 @@ def _filter_slack_channels(
     ]
 
 
-@overload
-def get_channels_with_search(
-    search_string: str = "",
-    types: Optional[list[SlackChannelTypes]] = None,
-    exact_match: bool = False,
-    force: bool = False,
-    cache: bool = True,
-    *,
-    return_cache_status: Literal[False] = False,
-) -> list[SlackChannel]: ...
-
-
-@overload
-def get_channels_with_search(
-    search_string: str = "",
-    types: Optional[list[SlackChannelTypes]] = None,
-    exact_match: bool = False,
-    force: bool = False,
-    cache: bool = True,
-    *,
-    return_cache_status: Literal[True],
-) -> tuple[list[SlackChannel], bool]: ...
-
-
-def get_channels_with_search(
+def _get_channels_with_search(
     search_string: str = "",
     types: Optional[list[SlackChannelTypes]] = None,
     exact_match: bool = False,
@@ -469,7 +452,7 @@ def get_channels_with_search(
     cache: bool = True,
     *,
     return_cache_status: bool = False,
-) -> list[SlackChannel] | tuple[list[SlackChannel], bool]:
+) -> tuple[list[SlackChannel], bool]:
     """
     The slack api is paginated but does not include search, so we need to fetch
     all channels and filter them ourselves
@@ -494,7 +477,13 @@ def get_channels_with_search(
             if is_transient_slack_api_error(ex, error_code)
             else SlackChannelListingClientError
         )
-        raise error_class(f"Failed to list channels: {ex}") from ex
+        message = f"Failed to list channels: {ex}"
+        if get_slack_api_status_code(ex) == 429:
+            message = (
+                f"Slack API rate limit exceeded: {ex}. For large workspaces, "
+                "consider increasing SLACK_API_RATE_LIMIT_RETRY_COUNT"
+            )
+        raise error_class(message) from ex
     except SLACK_TRANSIENT_TRANSPORT_ERRORS as ex:
         error_class = (
             SlackChannelListingError
@@ -511,7 +500,39 @@ def get_channels_with_search(
         types=types,
         exact_match=exact_match,
     )
-    return (channels, used_cache) if return_cache_status else channels
+    return channels, used_cache
+
+
+def get_channels_with_search(
+    search_string: str = "",
+    types: Optional[list[SlackChannelTypes]] = None,
+    exact_match: bool = False,
+    force: bool = False,
+    cache: bool = True,
+) -> list[SlackChannel]:
+    """Fetch and filter Slack channels without exposing cache provenance."""
+    channels, _ = _get_channels_with_search(
+        search_string=search_string,
+        types=types,
+        exact_match=exact_match,
+        force=force,
+        cache=cache,
+    )
+    return channels
+
+
+def get_channels_with_search_and_cache_status(
+    search_string: str = "",
+    types: Optional[list[SlackChannelTypes]] = None,
+    exact_match: bool = False,
+) -> tuple[list[SlackChannel], bool]:
+    """Fetch filtered Slack channels and report whether the listing was cached."""
+    return _get_channels_with_search(
+        search_string=search_string,
+        types=types,
+        exact_match=exact_match,
+        return_cache_status=True,
+    )
 
 
 def refresh_cached_slack_channels_with_search(
@@ -595,7 +616,7 @@ def refresh_cached_slack_channels_with_search(
         cache_manager.cache.set(
             cooldown_key,
             True,
-            timeout=_SLACK_CHANNEL_REFRESH_COOLDOWN_SECONDS,
+            timeout=app.config.get("SLACK_CHANNEL_REFRESH_COOLDOWN_SECONDS", 300),
         )
     except Exception:  # pylint: disable=broad-exception-caught
         logger.warning(

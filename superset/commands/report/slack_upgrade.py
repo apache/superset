@@ -178,7 +178,6 @@ class SlackV1UpgradeCoordinator:
         notification: SlackNotification,
         content: NotificationContent,
         *,
-        update_recipients: Callable[[], None],
         create_upgraded_notification: Callable[[], BaseNotification],
     ) -> None:
         """Send one Slack v1 recipient, upgrading or falling back when required."""
@@ -191,7 +190,7 @@ class SlackV1UpgradeCoordinator:
         except SlackV1NotificationError as ex:
             logger.info("Attempting to upgrade the report to Slackv2: %s", ex)
             try:
-                update_recipients()
+                self.update_recipients()
             except (
                 NotificationParamException,
                 UpdateFailedError,

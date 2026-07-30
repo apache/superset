@@ -17,28 +17,11 @@
 
 from superset.reports.notifications.exceptions import NotificationParamException
 from superset.utils.slack import (
-    get_channels_with_search,
+    get_channels_with_search_and_cache_status,
     refresh_cached_slack_channels_with_search,
     SlackChannel,
     SlackChannelTypes,
 )
-
-
-def _get_slack_channels(
-    search_string: str,
-) -> tuple[list[SlackChannel], bool]:
-    """Fetch matching Slack channels and same-read cache provenance."""
-    channels, used_cache = get_channels_with_search(
-        search_string=search_string,
-        types=[
-            SlackChannelTypes.PRIVATE,
-            SlackChannelTypes.PUBLIC,
-        ],
-        exact_match=True,
-        force=False,
-        return_cache_status=True,
-    )
-    return channels, used_cache
 
 
 def _match_slack_channel(
@@ -88,7 +71,14 @@ def resolve_slack_channel_ids(
 ) -> dict[str, str]:
     """Resolve Slack names or IDs, refreshing only a stale cached listing."""
     search_string = ",".join(targets)
-    channels, used_cached_channels = _get_slack_channels(search_string)
+    channels, used_cached_channels = get_channels_with_search_and_cache_status(
+        search_string=search_string,
+        types=[
+            SlackChannelTypes.PRIVATE,
+            SlackChannelTypes.PUBLIC,
+        ],
+        exact_match=True,
+    )
     channels_by_target, missing_channels = _match_slack_channels(targets, channels)
     if missing_channels and used_cached_channels:
         channels = refresh_cached_slack_channels_with_search(

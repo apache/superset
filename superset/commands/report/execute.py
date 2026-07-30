@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import time
 import urllib.parse
 import urllib.request
 from collections.abc import Sequence
@@ -147,6 +148,16 @@ class BaseReportState:
             execution_id,
             self._execution_warnings,
         )
+
+    def _get_slack_retry_deadline(self) -> float | None:
+        """Return the monotonic deadline for Slack delivery in this execution."""
+        if self._report_schedule.working_timeout is None:
+            return None
+        elapsed = (
+            datetime.now(timezone.utc).replace(tzinfo=None) - self._start_dttm
+        ).total_seconds()
+        remaining = max(float(self._report_schedule.working_timeout) - elapsed, 0)
+        return time.monotonic() + remaining
 
     def update_report_schedule_and_log(
         self,
@@ -980,6 +991,7 @@ class BaseReportState:
                     text=error_text,
                     header_data=header_data,
                     url=url,
+                    slack_retry_deadline=self._get_slack_retry_deadline(),
                 )
 
         if (
@@ -1012,6 +1024,7 @@ class BaseReportState:
             xlsx=xlsx_data,
             embedded_data=embedded_data,
             header_data=header_data,
+            slack_retry_deadline=self._get_slack_retry_deadline(),
         )
 
     def _send_notification(
@@ -1035,7 +1048,6 @@ class BaseReportState:
             self._slack_v1_upgrade.send(
                 notification,
                 notification_content,
-                update_recipients=self.update_report_schedule_slack_v2,
                 create_upgraded_notification=lambda: create_notification(
                     recipient,
                     notification_content,

@@ -46,7 +46,7 @@ _SlackApiResult = TypeVar("_SlackApiResult")
 
 _SLACK_RETRY_DEADLINE_MESSAGE = (
     "Slack send retry deadline exceeded; increase SLACK_SEND_RETRY_MAX_TIME "
-    "for slow-channel or large-file reports"
+    "for slow Slack workspaces or large-file reports"
 )
 
 
@@ -70,8 +70,8 @@ _SLACK_CHANNEL_FAILURES = (
 
 
 def _get_slack_send_retry_max_time() -> float:
-    """Return the effective per-channel send budget in seconds."""
-    configured_budget = float(app.config["SLACK_SEND_RETRY_MAX_TIME"])
+    """Return the effective schedule-wide Slack send budget in seconds."""
+    configured_budget = float(app.config.get("SLACK_SEND_RETRY_MAX_TIME", 150))
     request_timeout = float(app.config.get("SLACK_API_TIMEOUT", 30))
     return max(
         configured_budget,
@@ -233,26 +233,9 @@ def call_slack_api_with_timeout(
     )
 
 
-def send_to_slack_channels(
-    channels: list[str],
-    send_to_channel: Callable[[str, float], None],
-) -> None:
-    """Send to each channel with an independent application retry deadline."""
-    retry_max_time = _get_slack_send_retry_max_time()
-    failures: list[tuple[str, Exception]] = []
-    for channel in channels:
-        channel_deadline = time.monotonic() + retry_max_time
-        try:
-            send_to_channel(channel, channel_deadline)
-        except _SLACK_CHANNEL_FAILURES as ex:
-            failures.append((channel, ex))
-
-    if not failures:
-        return
-
-    details = "; ".join(f"{channel}: {error}" for channel, error in failures)
-    message = f"Slack delivery failed for the following channels: {details}"
-    if any(
+def _is_transient_slack_channel_failure(error: Exception) -> bool:
+    """Return whether any failed destination requires retrying the report."""
+    return bool(
         isinstance(error, SlackRetryDeadlineError)
         or isinstance(error, SlackChannelResponseError)
         or is_transient_slack_transport_error(error)
@@ -263,7 +246,34 @@ def send_to_slack_channels(
                 get_slack_api_error_code(error),
             )
         )
-        for _, error in failures
-    ):
+    )
+
+
+def send_to_slack_channels(
+    channels: list[str],
+    send_to_channel: Callable[[str, float], None],
+    *,
+    retry_deadline: float | None = None,
+) -> None:
+    """Send to each channel within one schedule-wide application deadline."""
+    retry_max_time = _get_slack_send_retry_max_time()
+    configured_deadline = time.monotonic() + retry_max_time
+    if retry_deadline is None:
+        retry_deadline = configured_deadline
+    else:
+        retry_deadline = min(retry_deadline, configured_deadline)
+    failures: list[tuple[str, Exception]] = []
+    for channel in channels:
+        try:
+            send_to_channel(channel, retry_deadline)
+        except _SLACK_CHANNEL_FAILURES as ex:
+            failures.append((channel, ex))
+
+    if not failures:
+        return
+
+    details = "; ".join(f"{channel}: {error}" for channel, error in failures)
+    message = f"Slack delivery failed for the following channels: {details}"
+    if any(_is_transient_slack_channel_failure(error) for _, error in failures):
         raise NotificationTransientError(message) from failures[0][1]
     raise NotificationUnprocessableException(message) from failures[0][1]
