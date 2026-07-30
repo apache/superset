@@ -594,6 +594,20 @@ def test_handle_boolean_filter() -> None:
         == "test_col = false"
     )
 
+    # Regression: the original bug also affects computed boolean columns like
+    # `(is_cancelled = 1)`. Verify the equality operator also compiles
+    # correctly when the "column" is a computed expression.
+    from sqlalchemy import literal_column
+
+    computed_col = literal_column("(is_cancelled = 1)")
+    result_computed = ClickHouseBaseEngineSpec.handle_boolean_filter(
+        computed_col, FilterOperator.IS_TRUE, True
+    )
+    assert (
+        str(result_computed.compile(compile_kwargs={"literal_binds": True}))
+        == "(is_cancelled = 1) = true"
+    )
+
 
 def test_use_equality_for_boolean_filters_property() -> None:
     """
