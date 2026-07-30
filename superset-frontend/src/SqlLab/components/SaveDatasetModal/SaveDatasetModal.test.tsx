@@ -30,6 +30,7 @@ import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { createDatasource } from 'src/SqlLab/actions/sqlLab';
 import { user, testQuery, mockdatasets } from 'src/SqlLab/fixtures';
 import { FeatureFlag, SupersetClient } from '@superset-ui/core';
+import rison from 'rison';
 
 const mockedProps = {
   visible: true,
@@ -264,9 +265,39 @@ describe('SaveDatasetModal', () => {
         table_name: 'task_instance',
       },
     ];
-    const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
-      json: { result: sameNameDatasets, count: sameNameDatasets.length },
-    } as any);
+    // Pad past a single API page so searching cannot be served from options
+    // already in memory — the search term has to reach the API and come back
+    // with the right rows.
+    const PAGE_SIZE = 100;
+    const allDatasets = [
+      ...sameNameDatasets,
+      ...Array.from({ length: PAGE_SIZE * 2 }, (_, i) => ({
+        ...mockdatasets[0],
+        id: 1000 + i,
+        schema: `schema_${i}`,
+        table_name: `table_${i}`,
+      })),
+    ];
+    // Apply the requested filters and paginate the way the API does, rather
+    // than returning everything regardless of the search string. A mock that
+    // ignores the filters hides searches that match nothing server-side.
+    const getSpy = jest
+      .spyOn(SupersetClient, 'get')
+      .mockImplementation(({ endpoint }: any) => {
+        const { filters } = rison.decode(
+          endpoint.slice(endpoint.indexOf('q=') + 2),
+        ) as { filters: { col: string; opr: string; value: any }[] };
+        const matches = allDatasets.filter(dataset =>
+          filters.every(({ col, value }) => {
+            if (col === 'table_name') return dataset.table_name.includes(value);
+            if (col === 'schema') return (dataset.schema ?? '').includes(value);
+            return true;
+          }),
+        );
+        return Promise.resolve({
+          json: { result: matches.slice(0, PAGE_SIZE), count: matches.length },
+        }) as any;
+      });
     const putSpy = jest
       .spyOn(SupersetClient, 'put')
       .mockResolvedValue({ json: { result: { id: 22 } } } as any);
@@ -287,16 +318,28 @@ describe('SaveDatasetModal', () => {
       expect(loading === null || !loading.checkVisibility()).toBe(true);
     });
 
+    const combobox = screen.getByRole('combobox', {
+      name: /existing dataset/i,
+    });
+
     // Each dataset appears exactly once, under its own schema-qualified label
+    await userEvent.type(combobox, 'task_instance');
+    await act(async () => {
+      jest.runAllTimers();
+    });
     expect(await screen.findAllByText('staging.task_instance')).toHaveLength(1);
     expect(await screen.findAllByText('prod.task_instance')).toHaveLength(1);
 
-    // The autocomplete filter matches on the label, so the schema prefix
-    // narrows the list down to a single row
-    await userEvent.type(
-      screen.getByRole('combobox', { name: /existing dataset/i }),
-      'prod.',
-    );
+    // Typing a schema prefix narrows the list to a single row. The prefix has
+    // to reach the API as a `schema` filter — sending `prod.task_instance` as
+    // a table_name filter matches nothing, and with the list spanning several
+    // pages the wanted row is not in memory for a client-side filter to save.
+    await userEvent.clear(combobox);
+    await userEvent.click(combobox);
+    await userEvent.type(combobox, 'prod.task_instance');
+    await act(async () => {
+      jest.runAllTimers();
+    });
     await act(async () => {
       jest.runAllTimers();
     });

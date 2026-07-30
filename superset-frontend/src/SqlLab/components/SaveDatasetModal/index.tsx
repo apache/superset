@@ -195,6 +195,18 @@ const updateDataset = async ({
 
 const UNTITLED = t('Untitled Dataset');
 
+/**
+ * Split a search string typed against a `schema.table_name` label into its
+ * schema and table parts. Everything before the first dot is treated as the
+ * schema; a search with no dot is a plain table-name search.
+ */
+const splitQualifiedSearch = (input: string): [string, string] => {
+  const separatorIndex = input.indexOf('.');
+  return separatorIndex === -1
+    ? ['', input]
+    : [input.slice(0, separatorIndex), input.slice(separatorIndex + 1)];
+};
+
 // The filters param is only used to test jinja templates.
 // Remove the special filters entry from the templateParams
 // before saving the dataset.
@@ -321,13 +333,30 @@ export const SaveDatasetModal = ({
   };
 
   const loadDatasetOverwriteOptions = useCallback(async (input = '') => {
+    // Options are labelled `schema.table_name`, so the search string can carry
+    // a schema prefix. Split it and filter on both columns server-side: sending
+    // the whole string as a table_name filter matches nothing as soon as the
+    // user types the dot, and on a list that spans several pages the rows that
+    // should have matched may never be fetched for a client-side filter to
+    // recover.
+    const [schemaSearch, tableSearch] = splitQualifiedSearch(input);
+
     const queryParams = rison.encode({
       filters: [
         {
           col: 'table_name',
           opr: 'ct',
-          value: input,
+          value: tableSearch,
         },
+        ...(schemaSearch
+          ? [
+              {
+                col: 'schema',
+                opr: 'ct',
+                value: schemaSearch,
+              },
+            ]
+          : []),
         {
           col: 'id',
           opr: 'is_editable',
@@ -432,7 +461,21 @@ export const SaveDatasetModal = ({
   const filterAutocompleteOption = (
     inputValue: string,
     option: DatasetOverwriteOption,
-  ) => option.label.toLowerCase().includes(inputValue.toLowerCase());
+  ) => {
+    const search = inputValue.toLowerCase();
+    const label = option.label.toLowerCase();
+    if (!search.includes('.')) {
+      return label.includes(search);
+    }
+    // Mirror the server-side split, so this local pass (which only exists to
+    // hide options left over from an earlier search) can never hide a row the
+    // API deliberately returned — e.g. `prod.` matching schema `production`.
+    const [schemaSearch, tableSearch] = splitQualifiedSearch(search);
+    const [optionSchema, optionTable] = splitQualifiedSearch(label);
+    return (
+      optionSchema.includes(schemaSearch) && optionTable.includes(tableSearch)
+    );
+  };
 
   return (
     <Modal
