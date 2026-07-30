@@ -354,14 +354,20 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         return 0; // Preserve the original order from the backend
       }
 
-      // Only apply alphabetical sorting when no sortMetric is specified
-      const labelComparator = propertyComparator('label');
+      // Only apply sorting when no sortMetric is specified. `label` is always
+      // a formatted string (see getDataRecordFormatter), so comparing by it
+      // never reaches propertyComparator's numeric branch; numeric columns
+      // sort by the raw `value` instead so "2, 10, 100" doesn't collapse
+      // into lexicographic "10, 100, 2".
+      const comparator = propertyComparator(
+        datatype === GenericDataType.Numeric ? 'value' : 'label',
+      );
       if (formData.sortAscending) {
-        return labelComparator(a, b);
+        return comparator(a, b);
       }
-      return labelComparator(b, a);
+      return comparator(b, a);
     },
-    [formData.sortAscending, formData.sortMetric],
+    [formData.sortAscending, formData.sortMetric, datatype],
   );
 
   // Use effect for initialisation for filter plugin
