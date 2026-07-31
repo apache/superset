@@ -3668,6 +3668,43 @@ def test_numeric_adhoc_filter_value_is_unquoted_in_where_clause(
     assert "IN ('3')" not in sql, f"Value should not be quoted, got SQL: {sql}"
 
 
+def test_numeric_in_filter_preserves_decimals_when_integer_is_first(
+    database: Database,
+) -> None:
+    """
+    Regression for #33206: SQLAlchemy infers the type for expanding IN
+    parameters from the first value. If an integer appears first in a mixed
+    numeric IN-list, later decimal values can be coerced to integers.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="num", type="FLOAT")],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=["num"],
+        filter=[{"col": "num", "op": "IN", "val": [21, 21.8, 25.35]}],
+        is_timeseries=False,
+        row_limit=10,
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    assert "21.8" in sql, f"Expected decimal value to be preserved, got SQL: {sql}"
+    assert "25.35" in sql, f"Expected decimal value to be preserved, got SQL: {sql}"
+    assert "IN (21, 21, 25)" not in sql, f"Decimals were coerced to ints: {sql}"
+
+
 def test_filter_by_verbose_name_resolves_to_column(
     database: Database,
 ) -> None:
