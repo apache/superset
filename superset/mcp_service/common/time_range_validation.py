@@ -45,19 +45,12 @@ from superset.constants import NO_TIME_RANGE
 
 # Bracket shorthands (e.g. "[year]", "[quarter]") are not a Superset
 # time-range grammar -- they appear when an LLM copies a grain token from a
-# dashboard filter context. Map them to an equivalent form that
-# get_since_until() resolves correctly.
-#
-# "Last second"/"Last minute"/"Last hour" are excluded: get_since_until()
-# pairs a "Last <unit>" since-expression (resolved against "now" for
-# sub-day units) with a default until-expression resolved against "today"
-# (midnight), so since ends up after until and raises "From date cannot
-# be larger than to date". Explicit DATEADD/DATETIME expressions sidestep
-# that mismatch by resolving both ends against "now".
+# dashboard filter context. Map them to the equivalent "Last <unit>" form;
+# the sub-day ones are rewritten further by _normalize_sub_day_last() below.
 BRACKET_SHORTHAND_TO_TIME_RANGE: dict[str, str] = {
-    "[second]": "DATEADD(DATETIME('now'), -1, SECOND) : DATETIME('now')",
-    "[minute]": "DATEADD(DATETIME('now'), -1, MINUTE) : DATETIME('now')",
-    "[hour]": "DATEADD(DATETIME('now'), -1, HOUR) : DATETIME('now')",
+    "[second]": "Last second",
+    "[minute]": "Last minute",
+    "[hour]": "Last hour",
     "[day]": "Last day",
     "[week]": "Last week",
     "[month]": "Last month",
@@ -66,6 +59,15 @@ BRACKET_SHORTHAND_TO_TIME_RANGE: dict[str, str] = {
 }
 
 _SEPARATOR = " : "
+
+_LAST_PREFIX = "Last "
+
+# Sub-day units are the tail of a "Last ..." expression, e.g. the "5 minutes"
+# in "Last 5 minutes". Unit case is ignored because the downstream parser is
+# case-insensitive about it ("Last Hour" fails exactly like "Last hour").
+_SUB_DAY_REMAINDER = re.compile(
+    r"^(?:(\d{1,9})\s{1,5})?(second|minute|hour)s?$", re.IGNORECASE
+)
 
 # Mirrors the exact `startswith` prefixes get_since_until() checks (in
 # that order) before it will rewrite a separator-less time_range into a
@@ -99,9 +101,43 @@ _NTH_SUBUNIT_PATTERN = re.compile(
 )
 
 
+def _normalize_sub_day_last(value: str) -> str | None:
+    """Rewrite a sub-day ``Last ...`` value into an explicit ``DATEADD`` range.
+
+    ``get_since_until()`` turns a separator-less ``"Last hour"`` into
+    ``"Last hour : today"``. The since side then resolves against ``now``
+    (sub-day units carry a time component) while ``today`` resolves to
+    midnight, so since lands after until and the call raises "From date
+    cannot be larger than to date". This affects every sub-day form --
+    ``Last second``, ``Last minute``, ``Last hour``, ``Last 5 minutes``,
+    ``Last 2 hours``. Anchoring both ends on ``now`` sidesteps the mismatch.
+
+    Returns ``None`` when ``value`` is not a sub-day ``Last`` expression, in
+    which case the caller falls back to the prefix check.
+    """
+    if not value.startswith(_LAST_PREFIX):
+        return None
+    match = _SUB_DAY_REMAINDER.match(value[len(_LAST_PREFIX) :].strip())
+    if match is None:
+        return None
+    quantity = int(match.group(1) or 1)
+    unit = match.group(2).upper()
+    return f"DATEADD(DATETIME('now'), -{quantity}, {unit}) : DATETIME('now')"
+
+
 def _has_recognized_bare_prefix(value: str) -> bool:
     """Whether get_since_until() rewrites this separator-less value into a
-    bounded range, rather than silently discarding it."""
+    bounded range, rather than silently discarding it.
+
+    ``Last``/``Next`` stay a broad prefix match on purpose: get_since_until()
+    hands the remainder to a freeform parser, so ``Last Monday``,
+    ``Last January``, ``Last year to date`` and ``Last 3 days ago`` all
+    resolve. Narrowing this to a unit whitelist would reject them. An
+    unparseable unit (``Last decade``) still raises a loud
+    ``TimeRangeParseFailError`` downstream -- noisy, but not the silent
+    full-table match this validator exists to prevent. Sub-day units are the
+    one case that needs rewriting first; see ``_normalize_sub_day_last()``.
+    """
     if value.startswith("Last") or value.startswith("Next"):
         return True
     if value.startswith(_PREVIOUS_CALENDAR_PREFIXES):
@@ -135,7 +171,10 @@ def validate_time_range(value: str | None) -> str | None:
         return stripped
 
     if (canonical := BRACKET_SHORTHAND_TO_TIME_RANGE.get(stripped.lower())) is not None:
-        return canonical
+        stripped = canonical
+
+    if (rewritten := _normalize_sub_day_last(stripped)) is not None:
+        return rewritten
 
     if _SEPARATOR in stripped:
         return stripped

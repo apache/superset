@@ -98,13 +98,82 @@ class TestValidateTimeRangePassthrough:
         assert validate_time_range("  Last 7 days  ") == "Last 7 days"
 
 
+class TestValidateTimeRangeSubDayLast:
+    """Sub-day ``Last ...`` values are rewritten to an explicit DATEADD range.
+
+    get_since_until() pairs a sub-day since-expression (resolved against
+    ``now``) with a default until of ``today`` (midnight), so since lands
+    after until and it raises "From date cannot be larger than to date".
+    Anchoring both ends on ``now`` fixes that.
+    """
+
+    @pytest.mark.parametrize(
+        "value,expected",
+        [
+            ("Last second", "DATEADD(DATETIME('now'), -1, SECOND) : DATETIME('now')"),
+            ("Last minute", "DATEADD(DATETIME('now'), -1, MINUTE) : DATETIME('now')"),
+            ("Last hour", "DATEADD(DATETIME('now'), -1, HOUR) : DATETIME('now')"),
+            (
+                "Last 30 seconds",
+                "DATEADD(DATETIME('now'), -30, SECOND) : DATETIME('now')",
+            ),
+            (
+                "Last 5 minutes",
+                "DATEADD(DATETIME('now'), -5, MINUTE) : DATETIME('now')",
+            ),
+            ("Last 2 hours", "DATEADD(DATETIME('now'), -2, HOUR) : DATETIME('now')"),
+            ("Last 1 hour", "DATEADD(DATETIME('now'), -1, HOUR) : DATETIME('now')"),
+            # Unit casing is ignored -- the downstream parser is
+            # case-insensitive about it, so "Last Hour" fails identically.
+            ("Last Hour", "DATEADD(DATETIME('now'), -1, HOUR) : DATETIME('now')"),
+        ],
+    )
+    def test_sub_day_last_normalizes(self, value: str, expected: str) -> None:
+        # Confirm the premise: the raw value really does blow up downstream.
+        with pytest.raises(ValueError, match="From date cannot be larger"):
+            get_since_until(time_range=value)
+
+        result = validate_time_range(value)
+        assert result == expected
+        since, until = get_since_until(time_range=result)
+        assert since is not None
+        assert until is not None
+        assert since < until
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "Last day",
+            "Last week",
+            "Last 7 days",
+            "Last month",
+            "Last quarter",
+            "Last year",
+            # Freeform tails get_since_until() resolves via its own parser --
+            # a unit whitelist would wrongly reject these.
+            "Last Monday",
+            "Last January",
+            "Last year to date",
+            "Last 3 days ago",
+        ],
+    )
+    def test_day_and_coarser_last_values_untouched(self, value: str) -> None:
+        assert validate_time_range(value) == value
+        since, until = get_since_until(time_range=value)
+        assert since is not None
+        assert until is not None
+        assert since < until
+
+
 class TestValidateTimeRangeBracketShorthand:
     """Bracket shorthands (from apache/superset#42144) still auto-correct."""
 
     @pytest.mark.parametrize("bracket", sorted(BRACKET_SHORTHAND_TO_TIME_RANGE))
     def test_bracket_shorthand_normalizes(self, bracket: str) -> None:
         result = validate_time_range(bracket)
-        assert result == BRACKET_SHORTHAND_TO_TIME_RANGE[bracket]
+        # Sub-day shorthands route through the DATEADD rewrite; the rest
+        # resolve as the plain "Last <unit>" they map to.
+        assert result == validate_time_range(BRACKET_SHORTHAND_TO_TIME_RANGE[bracket])
         since, until = get_since_until(time_range=result)
         assert since is not None
         assert until is not None
@@ -112,6 +181,10 @@ class TestValidateTimeRangeBracketShorthand:
 
     def test_bracket_shorthand_case_insensitive(self) -> None:
         assert validate_time_range("[YEAR]") == "Last year"
+
+    def test_sub_day_bracket_shorthand_matches_bare_form(self) -> None:
+        """'[hour]' and 'Last hour' converge on the same canonical range."""
+        assert validate_time_range("[hour]") == validate_time_range("Last hour")
 
     def test_bracket_shorthand_whitespace_tolerant(self) -> None:
         assert validate_time_range("  [year]  ") == "Last year"

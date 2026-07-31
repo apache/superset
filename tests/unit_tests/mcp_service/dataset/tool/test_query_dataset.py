@@ -950,10 +950,12 @@ class TestQueryDatasetBracketShorthandNormalization:
     def test_hour_bracket_normalized(self) -> None:
         """'[hour]' maps to an explicit DATEADD/DATETIME expression.
 
-        'Last hour' is deliberately not used: get_since_until() resolves its
-        since-expression against 'now' but its default until-expression
+        A bare 'Last hour' can't be used as-is: get_since_until() resolves
+        its since-expression against 'now' but its default until-expression
         against 'today' (midnight), so since ends up after until and raises
-        a "From date cannot be larger than to date" error.
+        a "From date cannot be larger than to date" error. The validator
+        applies the same rewrite to both spellings -- see
+        test_bare_sub_day_last_normalized below.
         """
         from superset.mcp_service.dataset.schemas import QueryDatasetRequest
 
@@ -981,6 +983,34 @@ class TestQueryDatasetBracketShorthandNormalization:
         assert (
             req.time_range == "DATEADD(DATETIME('now'), -1, SECOND) : DATETIME('now')"
         )
+
+    @pytest.mark.parametrize(
+        "value,expected",
+        [
+            ("Last hour", "DATEADD(DATETIME('now'), -1, HOUR) : DATETIME('now')"),
+            (
+                "Last 15 minutes",
+                "DATEADD(DATETIME('now'), -15, MINUTE) : DATETIME('now')",
+            ),
+            (
+                "Last 30 seconds",
+                "DATEADD(DATETIME('now'), -30, SECOND) : DATETIME('now')",
+            ),
+        ],
+    )
+    def test_bare_sub_day_last_normalized(self, value: str, expected: str) -> None:
+        """Sub-day 'Last ...' gets the same rewrite as its bracket form.
+
+        Without it these reach get_since_until() as-is and raise "From date
+        cannot be larger than to date" from deep in the query path, rather
+        than being resolved to the range the caller asked for.
+        """
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(
+            {"dataset_id": 1, "metrics": ["count"], "time_range": value}
+        )
+        assert req.time_range == expected
 
     def test_bracket_uppercase_normalized(self) -> None:
         from superset.mcp_service.dataset.schemas import QueryDatasetRequest
