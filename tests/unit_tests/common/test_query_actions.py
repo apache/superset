@@ -86,3 +86,42 @@ def test_get_drill_detail_does_not_strip_filters(
         "_get_drill_detail unexpectedly stripped a filter it never touches; "
         "this guards against a regression introduced in that function, not #28562."
     )
+
+
+@patch("superset.common.query_actions._get_full")
+def test_get_samples_marks_query_as_system_sampling(
+    mock_get_full: MagicMock,
+) -> None:
+    """
+    ``_get_samples`` marks the copied query object as system-authored sampling
+    (so query generation may apply the engine's bounded-read override) without
+    mutating the caller's query object.
+    """
+    from superset.common.query_actions import _get_samples
+
+    query_obj: QueryObject = QueryObject(columns=["region"], metrics=["count"])
+    original_extras = query_obj.extras
+
+    col_region: MagicMock = MagicMock()
+    col_region.column_name = "region"
+
+    datasource = MagicMock()
+    datasource.columns = [col_region]
+
+    query_context: MagicMock = MagicMock()
+    query_context.datasource = datasource
+    query_context.result_type = ChartDataResultType.SAMPLES
+
+    captured: dict[str, QueryObject] = {}
+
+    def _capture(_ctx: MagicMock, obj: QueryObject, _force: bool) -> dict[str, Any]:
+        captured["query_obj"] = obj
+        return {}
+
+    mock_get_full.side_effect = _capture
+    _get_samples(query_context, query_obj)
+
+    assert captured["query_obj"].extras.get("system_sampling") is True
+    # the caller's query object is untouched (shallow copy must not leak)
+    assert "system_sampling" not in query_obj.extras
+    assert query_obj.extras is original_extras
