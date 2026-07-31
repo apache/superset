@@ -709,9 +709,14 @@ def format_time_humanized(timestamp: datetime) -> str:
         return humanize.naturaltime(time_diff)
     try:
         humanize.i18n.activate(locale)
-        result = humanize.naturaltime(time_diff)
-        humanize.i18n.deactivate()
-        return result
+        try:
+            return humanize.naturaltime(time_diff)
+        finally:
+            # humanize's activation is thread-local, so there is no
+            # cross-request contamination between workers -- but without the
+            # finally, a naturaltime failure would leave the locale active
+            # for whatever request this thread serves next.
+            humanize.i18n.deactivate()
     except Exception as e:
         logger.warning("Locale '%s' is not supported in humanize: %s", locale, e)
         return humanize.naturaltime(time_diff)

@@ -128,25 +128,30 @@ for (const cfg of TYPES) {
     const id = await cfg.create(page, name);
     expect(id, 'created id').toBeTruthy();
 
-    const del = await cfg.softDelete(page, id);
-    expect(del.ok(), 'soft-delete should succeed').toBeTruthy();
+    // Cleanup runs in finally so a mid-test failure cannot leave the
+    // object live in the normal lists (already-archived → the extra
+    // soft-delete just 404s and is swallowed).
+    try {
+      const del = await cfg.softDelete(page, id);
+      expect(del.ok(), 'soft-delete should succeed').toBeTruthy();
 
-    await openArchive(page, cfg.label, name);
+      await openArchive(page, cfg.label, name);
 
-    // The archived row is listed; restore it (scope to the named row so any
-    // unrelated archived residue on the instance can't make the action ambiguous).
-    const row = page.getByRole('row').filter({ hasText: name });
-    await expect(row).toBeVisible();
-    await row.getByTestId('archived-row-restore').click();
+      // The archived row is listed; restore it (scope to the named row so any
+      // unrelated archived residue on the instance can't make the action ambiguous).
+      const row = page.getByRole('row').filter({ hasText: name });
+      await expect(row).toBeVisible();
+      await row.getByTestId('archived-row-restore').click();
 
-    // Success toast, and the object is live again per the API.
-    await expect(
-      page.getByText(`${name} restored successfully`, { exact: false }),
-    ).toBeVisible({ timeout: 15000 });
-    await expect.poll(() => cfg.status(page, id)).toBe(200);
-
-    // Cleanup: re-archive so it leaves the normal lists.
-    await cfg.softDelete(page, id);
+      // Success toast, and the object is live again per the API.
+      await expect(
+        page.getByText(`${name} restored successfully`, { exact: false }),
+      ).toBeVisible({ timeout: 15000 });
+      await expect.poll(() => cfg.status(page, id)).toBe(200);
+    } finally {
+      // Re-archive so it leaves the normal lists, whatever happened above.
+      await cfg.softDelete(page, id).catch(() => {});
+    }
   });
 }
 
@@ -197,27 +202,33 @@ test('restoring an already-restored row surfaces an error without crashing', asy
   const id = await TYPES[0].create(page, name);
   // Capture the uuid before soft-delete (a soft-deleted GET returns 404).
   const { uuid } = (await (await apiGetDashboard(page, id)).json()).result;
-  expect((await apiDeleteDashboard(page, id)).ok()).toBeTruthy();
+  try {
+    expect((await apiDeleteDashboard(page, id)).ok()).toBeTruthy();
 
-  await openArchive(page, 'Dashboard', name);
-  await expect(page.getByText(name, { exact: false })).toBeVisible();
+    await openArchive(page, 'Dashboard', name);
+    await expect(page.getByText(name, { exact: false })).toBeVisible();
 
-  // Simulate another actor restoring the object out from under this view.
-  const restored = await apiPost(page, `api/v1/dashboard/${uuid}/restore`, {});
-  expect(restored.ok()).toBeTruthy();
+    // Simulate another actor restoring the object out from under this view.
+    const restored = await apiPost(
+      page,
+      `api/v1/dashboard/${uuid}/restore`,
+      {},
+    );
+    expect(restored.ok()).toBeTruthy();
 
-  // Clicking the now-stale row's Restore yields a 404 → danger toast, no crash.
-  await page
-    .getByRole('row')
-    .filter({ hasText: name })
-    .getByTestId('archived-row-restore')
-    .click();
-  await expect(
-    page.getByText(`Failed to restore ${name}`, { exact: false }),
-  ).toBeVisible({ timeout: 15000 });
-  // The page is still functional (the list view did not crash).
-  await expect(page.getByTestId('archived-list-view')).toBeVisible();
-
-  // Cleanup: re-archive the restored dashboard.
-  await apiDeleteDashboard(page, id);
+    // Clicking the now-stale row's Restore yields a 404 → danger toast, no crash.
+    await page
+      .getByRole('row')
+      .filter({ hasText: name })
+      .getByTestId('archived-row-restore')
+      .click();
+    await expect(
+      page.getByText(`Failed to restore ${name}`, { exact: false }),
+    ).toBeVisible({ timeout: 15000 });
+    // The page is still functional (the list view did not crash).
+    await expect(page.getByTestId('archived-list-view')).toBeVisible();
+  } finally {
+    // Re-archive the (possibly) restored dashboard, whatever happened above.
+    await apiDeleteDashboard(page, id).catch(() => {});
+  }
 });

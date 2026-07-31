@@ -57,13 +57,18 @@ export function DeleteModal({
     }
   }, [open]);
 
+  // Re-arm the gate alongside clearing the text: resetting only the string
+  // leaves disableChange=false behind, so a user who typed DELETE, cancelled,
+  // and reopened would face an enabled Delete button over an empty input.
   const hide = () => {
     setConfirmation('');
+    setDisableChange(true);
     onHide();
   };
 
   const confirm = () => {
     setConfirmation('');
+    setDisableChange(true);
     onConfirm();
   };
 
