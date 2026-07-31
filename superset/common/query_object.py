@@ -556,8 +556,10 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             return options
 
         resolved = {
-            key: value for key, value in options.items() if key != "fill_time_range"
+            key: value
+            for key, value in options.items()
+            if key not in ("fill_time_range", "time_range_start", "time_range_end")
         }
-        resolved.setdefault("time_range_start", self.from_dttm)
-        resolved.setdefault("time_range_end", self.to_dttm)
+        resolved["time_range_start"] = self.from_dttm
+        resolved["time_range_end"] = self.to_dttm
         return resolved
