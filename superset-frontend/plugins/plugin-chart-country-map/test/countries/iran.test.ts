@@ -53,14 +53,14 @@ test('every province in the Iran map has a unique, non-empty ISO code', () => {
 });
 
 test('Tehran, Alborz and Razavi Khorasan have their correct, distinct ISO codes', () => {
-  const provincesByIso = Object.fromEntries(
+  const isoByProvince = Object.fromEntries(
     getIranFeatures().map(feature => [
       feature.properties.NAME_1,
       feature.properties.ISO,
     ]),
   );
 
-  expect(provincesByIso.Tehran).toBe('IR-07');
-  expect(provincesByIso.Alborz).toBe('IR-30');
-  expect(provincesByIso['Razavi Khorasan']).toBe('IR-09');
+  expect(isoByProvince.Tehran).toBe('IR-07');
+  expect(isoByProvince.Alborz).toBe('IR-30');
+  expect(isoByProvince['Razavi Khorasan']).toBe('IR-09');
 });
