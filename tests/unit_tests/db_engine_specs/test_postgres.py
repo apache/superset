@@ -466,6 +466,46 @@ def test_get_timestamp_expr_string_column_epoch_not_cast() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    ("pdf", "expected"),
+    [
+        ("%d/%m/%Y", "DATE_TRUNC('day', TO_TIMESTAMP(event_ts, 'DD/MM/YYYY'))"),
+        (
+            "%Y-%m-%d %H:%M:%S",
+            "DATE_TRUNC('day', TO_TIMESTAMP(event_ts, 'YYYY-MM-DD HH24:MI:SS'))",
+        ),
+        (
+            "%Y-%m-%d %H:%M:%S.%f",
+            "DATE_TRUNC('day', TO_TIMESTAMP(event_ts, 'YYYY-MM-DD HH24:MI:SS.US'))",
+        ),
+    ],
+)
+def test_get_timestamp_expr_string_column_custom_format_uses_to_timestamp(
+    pdf: str, expected: str
+) -> None:
+    """
+    DB Eng Specs (postgres): string columns with a non-ISO ``python_date_format``
+    are parsed with ``TO_TIMESTAMP`` and the translated format mask, since a plain
+    ``CAST`` cannot parse such values.
+
+    See https://github.com/apache/superset/issues/42386.
+    """
+    col = column("event_ts", type_=types.String())
+    expr = spec.get_timestamp_expr(col, pdf, "P1D")
+    assert _compile(expr) == expected
+
+
+def test_get_timestamp_expr_string_column_unparseable_format_not_cast() -> None:
+    """
+    DB Eng Specs (postgres): string columns whose ``python_date_format`` cannot be
+    translated to a PostgreSQL ``TO_TIMESTAMP`` mask (e.g. timezone tokens) are
+    left untouched rather than receiving a ``CAST`` that fails at runtime.
+    """
+    col = column("event_ts", type_=types.String())
+    expr = spec.get_timestamp_expr(col, "%Y-%m-%d %H:%M:%S %z", "P1D")
+    assert _compile(expr) == "DATE_TRUNC('day', event_ts)"
+
+
 def test_interval_type_mutator() -> None:
     """
     DB Eng Specs (postgres): Test INTERVAL type mutator

@@ -258,6 +258,55 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
     def epoch_to_dttm(cls) -> str:
         return "(timestamp 'epoch' + {col} * interval '1 second')"
 
+    #: Mapping of Python ``strftime`` tokens to the equivalent PostgreSQL
+    #: ``TO_TIMESTAMP`` format mask tokens.
+    PYTHON_DATE_FORMAT_TO_POSTGRES: dict[str, str] = {
+        "%Y": "YYYY",
+        "%m": "MM",
+        "%d": "DD",
+        "%H": "HH24",
+        "%I": "HH12",
+        "%M": "MI",
+        "%S": "SS",
+        "%f": "US",
+        "%j": "DDD",
+        "%b": "Mon",
+        "%B": "Month",
+        "%a": "Dy",
+        "%A": "Day",
+        "%p": "AM",
+        "%%": "%",
+    }
+
+    @staticmethod
+    def _python_date_format_to_postgres(pdf: str) -> str | None:
+        """
+        Translate a Python ``strftime`` format to a PostgreSQL ``TO_TIMESTAMP``
+        format mask.
+
+        Any characters that are not ``%``-escaped tokens are treated as literal
+        text, mirroring how ``TO_TIMESTAMP`` interprets unrecognized patterns.
+
+        :param pdf: Python date format
+        :return: Equivalent PostgreSQL format mask, or ``None`` when the format
+            uses a token that cannot be represented in a ``TO_TIMESTAMP`` mask
+            (e.g. timezone or locale-specific tokens).
+        """
+        out: list[str] = []
+        i = 0
+        while i < len(pdf):
+            if pdf[i] != "%":
+                out.append(pdf[i])
+                i += 1
+                continue
+            token = pdf[i : i + 2]
+            pg_token = PostgresBaseEngineSpec.PYTHON_DATE_FORMAT_TO_POSTGRES.get(token)
+            if pg_token is None:
+                return None
+            out.append(pg_token)
+            i += 2
+        return "".join(out)
+
     @classmethod
     def get_timestamp_expr(
         cls,
@@ -277,11 +326,16 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         See https://github.com/apache/superset/issues/42254.
 
         ``DATE_TRUNC`` does not accept ``VARCHAR``/``TEXT`` arguments, so when a
-        string column is manually marked as temporal, its value is cast to
+        string column is manually marked as temporal, its value is converted to
         ``TIMESTAMP`` before the grain is applied. Otherwise the query fails with
         ``function date_trunc(unknown, character varying) does not exist``.
 
         See https://github.com/apache/superset/issues/42386.
+
+        A bare ``CAST(... AS TIMESTAMP)`` only accepts ISO-like values, so when the
+        column defines a custom ``python_date_format`` the value is parsed with
+        ``TO_TIMESTAMP`` using the translated format mask instead. Formats that use
+        tokens PostgreSQL cannot parse (e.g. timezone offsets) are left untouched.
         """
         expr = super().get_timestamp_expr(col, pdf, time_grain)
         col_type = getattr(col, "type", None)
@@ -294,8 +348,15 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
             and pdf not in ("epoch_s", "epoch_ms", "%Y")
             and isinstance(col_type, (String, Text))
         ):
+            if pdf is None:
+                string_to_timestamp = "CAST({col} AS TIMESTAMP)"
+            else:
+                postgres_format = cls._python_date_format_to_postgres(pdf)
+                if postgres_format is None:
+                    return expr
+                string_to_timestamp = f"TO_TIMESTAMP({{col}}, '{postgres_format}')"
             return TimestampExpression(
-                expr.name.replace("{col}", "CAST({col} AS TIMESTAMP)"),
+                expr.name.replace("{col}", string_to_timestamp),
                 col,
                 type_=DateTime(),
             )
