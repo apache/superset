@@ -123,6 +123,38 @@ def test_exec_post_processing_resample_fills_time_range():
     )
 
 
+def test_exec_post_processing_resample_ignores_client_time_bounds():
+    """
+    Client-supplied bounds must not override the resolved query window.
+    """
+    query_object = QueryObject(
+        row_limit=1,
+        post_processing=[
+            {
+                "operation": "resample",
+                "options": {
+                    "method": "asfreq",
+                    "rule": "1D",
+                    "fill_value": 0,
+                    "fill_time_range": True,
+                    "time_range_start": datetime(2010, 1, 1),
+                    "time_range_end": datetime(2030, 1, 1),
+                },
+            }
+        ],
+        from_dttm=datetime(2019, 1, 1),
+        to_dttm=datetime(2019, 1, 5),
+    )
+    df = pd.DataFrame(
+        index=pd.to_datetime(["2019-01-03"]),
+        data={"y": [1.0]},
+    )
+
+    assert query_object.exec_post_processing(df).index.equals(
+        pd.date_range("2019-01-01", "2019-01-04", freq="1D")
+    )
+
+
 def test_exec_post_processing_resample_without_fill_time_range():
     """
     Without the flag the result stays bound to the extremes of the data.
