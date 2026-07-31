@@ -281,6 +281,7 @@ def take_tiled_screenshot(  # noqa: C901
     load_wait: int = 60,
     animation_wait: int = 0,
     log_context: str | None = None,
+    screenshot_started_at: float | None = None,
 ) -> bytes | None:
     """
     Take a tiled screenshot of a large dashboard by scrolling and capturing sections.
@@ -294,6 +295,11 @@ def take_tiled_screenshot(  # noqa: C901
         log_context: Optional identifier (e.g. report execution id, or a
             cache key for thumbnails) appended to log lines so a slow/timed-out
             capture can be traced back to the run that produced it.
+        screenshot_started_at: Optional time.monotonic() timestamp taken at
+            the start of the overall screenshot operation (before browser
+            navigation), so time already spent on goto/headstart/element
+            waits counts against the budget -- the same clock the non-tiled
+            readiness wait uses. Falls back to "now" when not provided.
 
     Returns:
         Combined screenshot bytes or None if failed
@@ -323,7 +329,15 @@ def take_tiled_screenshot(  # noqa: C901
     wait_budget_seconds = resolve_screenshot_task_budget_seconds(log_context)
     if wait_budget_seconds is None:
         wait_budget_seconds = float(TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS)
-    start_time = time.monotonic()
+    # Anchor the budget clock at the start of the overall screenshot
+    # operation when the caller provides it: the budget is derived from the
+    # Celery task's own limit, and navigation/headstart/element waits before
+    # tiling spend that same task time. A locally-reset clock would grant
+    # the tile loop a fresh full budget on top of whatever was already
+    # spent, which on hard-limit-only tasks can still crest the task limit.
+    start_time = (
+        screenshot_started_at if screenshot_started_at is not None else time.monotonic()
+    )
     try:
         # Get the target element
         element = page.locator(f".{element_name}")

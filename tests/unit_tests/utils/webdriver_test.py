@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import ANY, MagicMock, patch, PropertyMock
 
 import pytest
 
@@ -1681,6 +1681,7 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
             load_wait=30,
             animation_wait=2,
             log_context=None,
+            screenshot_started_at=ANY,
         )
         # The only wait_for_timeout call should be the 0ms headstart; no global
         # animation wait should be issued (handled per-tile by take_tiled_screenshot)

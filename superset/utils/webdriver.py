@@ -592,6 +592,7 @@ class WebDriverPlaywright(WebDriverProxy):
                             load_wait=self._screenshot_load_wait,
                             animation_wait=selenium_animation_wait,
                             log_context=log_context,
+                            screenshot_started_at=screenshot_started_at,
                         )
                         if not img:
                             # _get_screenshot() has no wait/readiness logic at

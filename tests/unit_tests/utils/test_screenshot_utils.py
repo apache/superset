@@ -915,6 +915,64 @@ class TestTileWaitBudget:
         assert first_timeout == 96 * 1000
         assert first_timeout < 200 * 1000
 
+    def test_screenshot_started_at_counts_pre_capture_time_against_budget(
+        self, mock_page, monkeypatch
+    ):
+        """Time spent before tiling (navigation, headstart, element waits)
+        must count against the budget when the caller provides the overall
+        screenshot start time -- the budget is derived from the Celery
+        task's own limit, and that same task time was already being spent
+        before the tile loop started. Same clock the non-tiled readiness
+        wait uses via _wait_for_charts_ready."""
+        monkeypatch.setattr(
+            "superset.utils.screenshot_utils.TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS",  # noqa: E501
+            1000,
+        )
+        clock = self._FakeClock()
+        # The overall screenshot started 900s ago (goto/headstart/element
+        # waits consumed it); only 100s of the 1000s budget remains.
+        clock.now = 900.0
+
+        with patch("superset.utils.screenshot_utils.current_task", None):
+            with patch("superset.utils.screenshot_utils.time.monotonic", new=clock):
+                with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+                    take_tiled_screenshot(
+                        mock_page,
+                        "dashboard",
+                        tile_height=2000,
+                        load_wait=500,
+                        screenshot_started_at=0.0,
+                    )
+
+        first_timeout = mock_page.wait_for_function.call_args_list[0][1]["timeout"]
+        assert first_timeout == 100 * 1000
+
+    def test_omitted_screenshot_started_at_anchors_clock_locally(
+        self, mock_page, monkeypatch
+    ):
+        """Without the caller-provided anchor the clock starts at entry
+        (backward-compatible default): the same 900s of prior wall-clock
+        time does not reduce the budget."""
+        monkeypatch.setattr(
+            "superset.utils.screenshot_utils.TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS",  # noqa: E501
+            1000,
+        )
+        clock = self._FakeClock()
+        clock.now = 900.0
+
+        with patch("superset.utils.screenshot_utils.current_task", None):
+            with patch("superset.utils.screenshot_utils.time.monotonic", new=clock):
+                with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+                    take_tiled_screenshot(
+                        mock_page,
+                        "dashboard",
+                        tile_height=2000,
+                        load_wait=500,
+                    )
+
+        first_timeout = mock_page.wait_for_function.call_args_list[0][1]["timeout"]
+        assert first_timeout == 500 * 1000
+
     def test_fast_dashboard_matches_default_behavior(self, mock_page):
         """Well under budget, waits are not capped and behavior is unchanged."""
         with patch("superset.utils.screenshot_utils.current_task", None):
