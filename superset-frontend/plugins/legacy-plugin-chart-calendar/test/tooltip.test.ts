@@ -23,6 +23,13 @@ import {
   removeDisconnectedCalendarTooltips,
 } from '../src/tooltip';
 
+// The vendor file is @ts-nocheck, so its export lacks type info.
+// Mirror the minimal constructor interface defined in Calendar.ts.
+interface CalHeatMapInstance {
+  init(config: Record<string, unknown>): void;
+  destroy(): null;
+}
+
 const createSVGPointDescriptor = Object.getOwnPropertyDescriptor(
   window.SVGSVGElement.prototype,
   'createSVGPoint',
@@ -52,7 +59,11 @@ function restoreCreateSVGPointMock() {
       createSVGPointDescriptor,
     );
   } else {
-    delete window.SVGSVGElement.prototype.createSVGPoint;
+    delete (
+      window.SVGSVGElement.prototype as Partial<
+        Pick<SVGSVGElement, 'createSVGPoint'>
+      >
+    ).createSVGPoint;
   }
 }
 
@@ -171,10 +182,11 @@ test('CalHeatMap tags tips per instance without removing other mounted calendars
   const firstClassName = getCalendarTooltipClassName(firstCalendar);
   const secondClassName = getCalendarTooltipClassName(secondCalendar);
 
-  let CalHeatMap: typeof import('../src/vendor/cal-heatmap').default;
+  let CalHeatMap!: new () => CalHeatMapInstance;
   jest.isolateModules(() => {
     // eslint-disable-next-line global-require
-    CalHeatMap = require('../src/vendor/cal-heatmap').default;
+    CalHeatMap = require('../src/vendor/cal-heatmap')
+      .default as new () => CalHeatMapInstance;
   });
 
   const partiallyInitializedHeatmap = new CalHeatMap();
