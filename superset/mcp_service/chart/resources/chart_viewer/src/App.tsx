@@ -70,6 +70,10 @@ const bridge = new ChartBridge();
 const DEFAULT_WIDGET_HEIGHT = 420;
 const MAX_WIDGET_HEIGHT = 1200;
 const MIN_WIDGET_HEIGHT = 260;
+// How long a display-mode switch we requested suppresses host context naming
+// the mode we just left. Long enough to cover a transition animation, short
+// enough that a host which never confirms cannot mute us for a whole session.
+const STALE_DISPLAY_MODE_WINDOW_MS = 2000;
 
 /**
  * Rows included when handing the data to the assistant. The host feeds this
@@ -117,6 +121,36 @@ export function App(): JSX.Element {
   const downloadsBlocked = useMemo(() => isDownloadRestricted(), []);
 
   const pendingDisplayMode = useRef<DisplayMode | null>(null);
+  const pendingDisplayModeTimer = useRef<number | null>(null);
+
+  const releaseDisplayModeGuard = useCallback((): void => {
+    pendingDisplayMode.current = null;
+    if (pendingDisplayModeTimer.current !== null) {
+      window.clearTimeout(pendingDisplayModeTimer.current);
+      pendingDisplayModeTimer.current = null;
+    }
+  }, []);
+
+  /**
+   * Ignore host context naming a mode other than `mode` for a short window.
+   *
+   * The guard is time-bound rather than tied to the request's lifetime: it is
+   * released by the matching notification when one arrives, and by the timer
+   * when the host never sends one — so a host that stays silent cannot leave
+   * the widget permanently deaf to its own display-mode updates.
+   */
+  const armDisplayModeGuard = useCallback(
+    (mode: DisplayMode): void => {
+      releaseDisplayModeGuard();
+      pendingDisplayMode.current = mode;
+      pendingDisplayModeTimer.current = window.setTimeout(() => {
+        pendingDisplayMode.current = null;
+        pendingDisplayModeTimer.current = null;
+      }, STALE_DISPLAY_MODE_WINDOW_MS);
+    },
+    [releaseDisplayModeGuard],
+  );
+
   const toastTimer = useRef<number | null>(null);
   const showToast = useCallback((message: string, ms = 2600): void => {
     setToast(message);
@@ -213,21 +247,28 @@ export function App(): JSX.Element {
       // chrome, or Esc); follow it so our toggle stays in step — unless a
       // switch we asked for is still settling, in which case a push naming the
       // old mode is stale and would fight the user's click.
-      if (
-        (ctx.displayMode === 'inline' || ctx.displayMode === 'fullscreen') &&
-        (pendingDisplayMode.current === null ||
-          pendingDisplayMode.current === ctx.displayMode)
-      ) {
+      if (ctx.displayMode !== 'inline' && ctx.displayMode !== 'fullscreen') {
+        return;
+      }
+      if (pendingDisplayMode.current === null) {
+        setDisplayMode(ctx.displayMode);
+        return;
+      }
+      if (pendingDisplayMode.current === ctx.displayMode) {
+        // The switch we asked for has landed; stop filtering.
+        releaseDisplayModeGuard();
         setDisplayMode(ctx.displayMode);
       }
+      // Otherwise the push describes the mode we just left. Drop it.
     });
 
     return () => {
       alive = false;
       offResult();
       offCtx();
+      releaseDisplayModeGuard();
     };
-  }, []);
+  }, [releaseDisplayModeGuard]);
 
   // Keep chrome + chart theme in sync with the resolved scheme.
   useEffect(() => {
@@ -547,21 +588,46 @@ export function App(): JSX.Element {
   const toggleMaximize = useCallback(async () => {
     const expanding = displayMode !== 'fullscreen';
     const target: DisplayMode = expanding ? 'fullscreen' : 'inline';
-    // While a switch is in flight the host may still push context describing
-    // the *previous* mode; without this the widget would flip back and the
-    // button would look like it undid itself.
-    pendingDisplayMode.current = target;
-    try {
-      if (await bridge.requestDisplayMode(target)) {
-        setDisplayMode(target);
-        return;
+    // Arm the stale-context guard for a fixed window rather than only for the
+    // duration of the await. Hosts announce a mode change with a
+    // host-context-changed notification that arrives *after* the response, so
+    // a guard released on the way out of this function is already gone by the
+    // time the notification it exists to filter shows up.
+    armDisplayModeGuard(target);
+
+    const granted = await bridge.requestDisplayMode(target);
+
+    if (granted === target) {
+      setDisplayMode(target);
+      // Re-assert the inline height on the way down. A host that grew the
+      // frame for fullscreen may size it from the last size notification it
+      // received, and without this nothing ever tells it to shrink back.
+      if (!expanding) {
+        requestHeight(restoreHeight ?? DEFAULT_WIDGET_HEIGHT);
+        setRestoreHeight(null);
       }
-    } finally {
-      pendingDisplayMode.current = null;
+      return;
     }
-    // Hosts without display-mode support still honor size notifications, so
-    // grow the iframe instead — and remember the previous height so the same
-    // control can put it back.
+
+    if (granted) {
+      // The host answered with a different mode: it declined, and it is
+      // authoritative about its own chrome. Reflect what it reported instead
+      // of the mode we asked for — claiming the switch succeeded is what made
+      // the control appear to do nothing.
+      releaseDisplayModeGuard();
+      setDisplayMode(granted);
+      showToast(
+        granted === 'fullscreen'
+          ? 'This host manages fullscreen — use its own close control to exit.'
+          : 'This host kept the chart inline.',
+      );
+      return;
+    }
+
+    // No usable answer: the host has no display-mode support, so the widget
+    // owns its own size. Grow the iframe instead — and remember the previous
+    // height so the same control can put it back.
+    releaseDisplayModeGuard();
     if (expanding) {
       setRestoreHeight(requestedHeight);
       requestHeight(Math.max(requestedHeight, 720));
@@ -570,7 +636,15 @@ export function App(): JSX.Element {
       setRestoreHeight(null);
     }
     setDisplayMode(target);
-  }, [displayMode, requestHeight, requestedHeight, restoreHeight]);
+  }, [
+    armDisplayModeGuard,
+    releaseDisplayModeGuard,
+    displayMode,
+    requestHeight,
+    requestedHeight,
+    restoreHeight,
+    showToast,
+  ]);
 
   // Escape restores an expanded widget, matching the usual fullscreen idiom.
   useEffect(() => {

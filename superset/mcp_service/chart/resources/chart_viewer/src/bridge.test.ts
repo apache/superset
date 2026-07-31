@@ -217,7 +217,7 @@ describe('ChartBridge handshake contract', () => {
       const bridge = new ChartBridge();
       await bridge.initialize(500);
       await expect(bridge.requestDisplayMode('fullscreen', 500)).resolves.toBe(
-        true,
+        'fullscreen',
       );
       const msg = host.sent.find((m) => m.method === 'ui/request-display-mode');
       expect(msg?.params).toEqual({ mode: 'fullscreen' });
@@ -226,22 +226,71 @@ describe('ChartBridge handshake contract', () => {
     }
   });
 
-  it('treats an unsupported display-mode request as false', async () => {
+  // The spec requires the host to answer with "the resulting mode (whether
+  // updated or not)", so a decline is a *different mode*, not a failure. This
+  // must stay distinguishable from an unanswered request: the widget treats
+  // the former as "the host is authoritative and still expanded" and the
+  // latter as "the host has no display-mode support, size myself".
+  it('reports the mode the host actually applied when it declines', async () => {
     const host = withFakeHost((msg) => {
       if (msg.method === 'ui/initialize') {
         return { hostCapabilities: {}, hostContext: {} };
       }
       if (msg.method === 'ui/request-display-mode') {
-        return { mode: 'inline' };
+        return { mode: 'fullscreen' };
       }
       return undefined;
     });
     try {
       const bridge = new ChartBridge();
       await bridge.initialize(500);
-      await expect(bridge.requestDisplayMode('fullscreen', 500)).resolves.toBe(
-        false,
+      await expect(bridge.requestDisplayMode('inline', 500)).resolves.toBe(
+        'fullscreen',
       );
+    } finally {
+      host.restore();
+    }
+  });
+
+  it('reports null when the host leaves the request unanswered', async () => {
+    const host = withFakeHost((msg) =>
+      msg.method === 'ui/initialize'
+        ? { hostCapabilities: {}, hostContext: {} }
+        : undefined,
+    );
+    try {
+      const bridge = new ChartBridge();
+      await bridge.initialize(500);
+      await expect(
+        bridge.requestDisplayMode('fullscreen', 100),
+      ).resolves.toBeNull();
+    } finally {
+      host.restore();
+    }
+  });
+
+  // Spec: "View MUST check if the requested mode is in availableDisplayModes
+  // from host context before requesting a mode change." Skipping the round
+  // trip also spares the user a timeout's worth of unresponsive button.
+  it('does not ask for a mode the host did not advertise', async () => {
+    const host = withFakeHost((msg) => {
+      if (msg.method === 'ui/initialize') {
+        return {
+          hostCapabilities: {},
+          hostContext: { availableDisplayModes: ['inline'] },
+        };
+      }
+      return undefined;
+    });
+    try {
+      const bridge = new ChartBridge();
+      await bridge.initialize(500);
+      await expect(
+        bridge.requestDisplayMode('fullscreen', 5000),
+      ).resolves.toBeNull();
+      expect(
+        host.sent.some((m) => m.method === 'ui/request-display-mode'),
+      ).toBe(false);
     } finally {
       host.restore();
     }

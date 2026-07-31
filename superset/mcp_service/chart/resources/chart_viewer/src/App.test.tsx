@@ -48,7 +48,8 @@ vi.mock('./components/EChart', () => ({
 }));
 
 const reportSize = vi.fn();
-const requestDisplayMode = vi.fn().mockResolvedValue(false);
+const requestDisplayMode = vi.fn().mockResolvedValue(null);
+let contextListener: ((ctx: Record<string, unknown>) => void) | null = null;
 
 // A chart payload shaped exactly like a live render_chart result: the MCP
 // service wraps the name and insights in UNTRUSTED-CONTENT markers.
@@ -80,7 +81,14 @@ vi.mock('./bridge', () => ({
       embedded: true,
     });
     onToolResult = vi.fn(() => () => {});
-    onContextChange = vi.fn(() => () => {});
+    // Captured rather than swallowed: hosts push display-mode changes back at
+    // the widget, and the collapse path depends on how those are handled.
+    onContextChange = vi.fn((fn: (ctx: Record<string, unknown>) => void) => {
+      contextListener = fn;
+      return () => {
+        contextListener = null;
+      };
+    });
     hasTool = vi.fn(() => false);
     reportSize = reportSize;
     requestDisplayMode = requestDisplayMode;
@@ -109,8 +117,19 @@ afterEach(() => {
   container?.remove();
   container = null;
   root = null;
+  contextListener = null;
   vi.clearAllMocks();
 });
+
+function maximizeButton(): HTMLButtonElement {
+  return container!.querySelector('.sv-maximize') as HTMLButtonElement;
+}
+
+/** Height of the most recent size notification sent to the host. */
+function lastReportedHeight(): number {
+  const calls = reportSize.mock.calls as Array<[number, number]>;
+  return calls[calls.length - 1][1];
+}
 
 it('renders the chart title without UNTRUSTED-CONTENT markers', async () => {
   await renderApp();
@@ -144,7 +163,7 @@ it('offers a drag handle and a maximize toggle', async () => {
 });
 
 it('grows in place when the host refuses a fullscreen display mode', async () => {
-  requestDisplayMode.mockResolvedValueOnce(false);
+  requestDisplayMode.mockResolvedValueOnce(null);
   await renderApp();
   const button = container!.querySelector('.sv-maximize') as HTMLButtonElement;
   await act(async () => {
@@ -179,7 +198,7 @@ it('offers exports the current host can actually perform', async () => {
 });
 
 it('does not resize itself when the host accepts fullscreen', async () => {
-  requestDisplayMode.mockResolvedValueOnce(true);
+  requestDisplayMode.mockResolvedValueOnce('fullscreen');
   await renderApp();
   reportSize.mockClear();
   const button = container!.querySelector('.sv-maximize') as HTMLButtonElement;
@@ -188,4 +207,99 @@ it('does not resize itself when the host accepts fullscreen', async () => {
   });
   expect(requestDisplayMode).toHaveBeenCalledWith('fullscreen');
   expect(reportSize).not.toHaveBeenCalled();
+});
+
+// ---- Maximize round-trip -------------------------------------------------
+// Every earlier test here clicked the toggle exactly once and asserted that it
+// expanded. Nothing asserted it comes back, which is how a collapse that does
+// not collapse shipped past a green suite.
+
+it('returns to its starting height when the host refuses display modes', async () => {
+  requestDisplayMode.mockResolvedValue(null);
+  await renderApp();
+  const start = lastReportedHeight();
+
+  await act(async () => {
+    maximizeButton().click();
+  });
+  expect(lastReportedHeight()).toBeGreaterThanOrEqual(720);
+
+  await act(async () => {
+    maximizeButton().click();
+  });
+  expect(lastReportedHeight()).toBe(start);
+  expect(maximizeButton().getAttribute('aria-label')).toBe('Maximize chart');
+  expect(maximizeButton().getAttribute('aria-pressed')).toBe('false');
+});
+
+it('asks the host to return to inline when it accepts display modes', async () => {
+  // A conformant host echoes back the mode it applied.
+  requestDisplayMode.mockImplementation((mode: string) =>
+    Promise.resolve(mode),
+  );
+  await renderApp();
+
+  await act(async () => {
+    maximizeButton().click();
+  });
+  expect(maximizeButton().getAttribute('aria-pressed')).toBe('true');
+
+  await act(async () => {
+    maximizeButton().click();
+  });
+  expect(requestDisplayMode).toHaveBeenLastCalledWith('inline');
+  expect(maximizeButton().getAttribute('aria-pressed')).toBe('false');
+  expect(maximizeButton().getAttribute('aria-label')).toBe('Maximize chart');
+});
+
+it('ignores a stale fullscreen context push arriving after a collapse', async () => {
+  // A conformant host echoes back the mode it applied.
+  requestDisplayMode.mockImplementation((mode: string) =>
+    Promise.resolve(mode),
+  );
+  await renderApp();
+
+  await act(async () => {
+    maximizeButton().click();
+  });
+  await act(async () => {
+    maximizeButton().click();
+  });
+  expect(maximizeButton().getAttribute('aria-pressed')).toBe('false');
+
+  // The host acknowledged 'inline', then emitted a context update still
+  // describing the old mode. Honouring it snaps the widget back open and the
+  // collapse button looks like it did nothing.
+  await act(async () => {
+    contextListener?.({ displayMode: 'fullscreen' });
+  });
+  expect(maximizeButton().getAttribute('aria-pressed')).toBe('false');
+});
+
+it('reflects the host when it declines to leave fullscreen', async () => {
+  // Spec-legal decline: the host answers a request with the mode it is
+  // staying in. Reporting our requested mode here would leave the button
+  // showing "Maximize" over a still-expanded widget.
+  requestDisplayMode.mockImplementation(() => Promise.resolve('fullscreen'));
+  await renderApp();
+
+  await act(async () => {
+    maximizeButton().click();
+  });
+  expect(maximizeButton().getAttribute('aria-pressed')).toBe('true');
+
+  reportSize.mockClear();
+  await act(async () => {
+    maximizeButton().click();
+  });
+  expect(requestDisplayMode).toHaveBeenLastCalledWith('inline');
+  // Still fullscreen as far as the host is concerned, so say so...
+  expect(maximizeButton().getAttribute('aria-pressed')).toBe('true');
+  expect(maximizeButton().getAttribute('aria-label')).toBe('Restore chart size');
+  // ...do not shrink a frame the host is still presenting expanded...
+  expect(reportSize).not.toHaveBeenCalled();
+  // ...and tell the user why the button appeared to do nothing.
+  expect(container!.querySelector('.sv-toast')?.textContent).toContain(
+    'close control',
+  );
 });

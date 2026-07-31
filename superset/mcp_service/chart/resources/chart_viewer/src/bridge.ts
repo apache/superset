@@ -91,6 +91,8 @@ export class ChartBridge {
   private contextListeners = new Set<ContextListener>();
   private resultListeners = new Set<ToolResultListener>();
   private capabilities: HostCapabilities = emptyCapabilities();
+  /** Modes from HostContext.availableDisplayModes; null when unadvertised. */
+  private hostDisplayModes: Set<string> | null = null;
 
   private get isEmbedded(): boolean {
     return (
@@ -117,6 +119,7 @@ export class ChartBridge {
       )) as HostInitResult;
 
       this.capabilities = deriveCapabilities(result);
+      this.hostDisplayModes = readDisplayModes(result?.hostContext);
       this.notify('ui/notifications/initialized', {});
 
       const { chartData, meta, error } = extractToolResult(result?.toolResult);
@@ -270,24 +273,45 @@ export class ChartBridge {
     this.notify('ui/notifications/size-changed', { width, height });
   }
 
+  /** Display modes the host advertised, or null if it advertised none. */
+  getHostDisplayModes(): Set<string> | null {
+    return this.hostDisplayModes;
+  }
+
   /**
-   * Ask the host to switch display mode. Hosts that do not implement this
-   * request commonly leave it unanswered, so a timeout means unsupported.
+   * Ask the host to switch display mode, resolving with the mode the host
+   * actually applied.
+   *
+   * Deliberately NOT a boolean. The spec requires the host to return the
+   * resulting mode "whether updated or not", and a host that declines a switch
+   * answers with the mode it is staying in — so `null` (no usable answer) and
+   * "declined, still fullscreen" are different situations that need different
+   * handling. Collapsing both to `false` made the widget treat a refusal as
+   * "host has no display-mode support" and set its own state to the mode it
+   * had merely *asked* for, which is how the collapse control came to report
+   * success while the host stayed expanded.
+   *
+   * Returns null when the host cannot service the request at all: not embedded,
+   * the mode is absent from the host's advertised `availableDisplayModes`, or
+   * the request went unanswered.
    */
   async requestDisplayMode(
     mode: DisplayMode,
     timeoutMs = 1200,
-  ): Promise<boolean> {
-    if (!this.isEmbedded) return false;
+  ): Promise<DisplayMode | null> {
+    if (!this.isEmbedded) return null;
+    // The spec makes checking this the View's obligation, and it also spares
+    // the user a timeout's worth of dead button on hosts without mode support.
+    if (this.hostDisplayModes && !this.hostDisplayModes.has(mode)) return null;
     try {
       const result = (await this.request(
         'ui/request-display-mode',
         { mode },
         timeoutMs,
       )) as { mode?: unknown };
-      return result?.mode === mode;
+      return asDisplayMode(result?.mode);
     } catch {
-      return false;
+      return null;
     }
   }
 
@@ -416,6 +440,24 @@ function emptyCapabilities(): HostCapabilities {
     canSendMessage: false,
     canCallTools: false,
   };
+}
+
+/** Narrow a host-reported mode to one this widget knows how to render. */
+function asDisplayMode(value: unknown): DisplayMode | null {
+  return value === 'inline' || value === 'fullscreen' ? value : null;
+}
+
+/**
+ * Host's advertised display modes. Null (rather than an empty set) when the
+ * host says nothing, so "advertised none" and "did not advertise" stay
+ * distinguishable — only the former justifies skipping the request.
+ */
+function readDisplayModes(
+  ctx: Record<string, unknown> | undefined,
+): Set<string> | null {
+  const raw = ctx?.availableDisplayModes;
+  if (!Array.isArray(raw)) return null;
+  return new Set(raw.filter((m): m is string => typeof m === 'string'));
 }
 
 function parseHostContext(
