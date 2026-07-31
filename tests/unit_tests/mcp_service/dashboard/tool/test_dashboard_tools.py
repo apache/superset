@@ -90,6 +90,7 @@ async def test_list_dashboards_basic(mock_list, mcp_server):
     dashboard.css = None
     dashboard.certified_by = None
     dashboard.certification_details = None
+    dashboard.deleted_at = None
     dashboard.json_metadata = None
     dashboard.is_managed_externally = False
     dashboard.external_url = None
@@ -156,6 +157,7 @@ async def test_list_dashboards_with_filters(mock_list, mcp_server):
     dashboard.css = None
     dashboard.certified_by = None
     dashboard.certification_details = None
+    dashboard.deleted_at = None
     dashboard.json_metadata = None
     dashboard.is_managed_externally = False
     dashboard.external_url = None
@@ -251,6 +253,7 @@ async def test_list_dashboards_with_search(mock_list, mcp_server):
     dashboard.css = None
     dashboard.certified_by = None
     dashboard.certification_details = None
+    dashboard.deleted_at = None
     dashboard.json_metadata = None
     dashboard.is_managed_externally = False
     dashboard.external_url = None
@@ -304,6 +307,20 @@ async def test_list_dashboards_with_simple_filters(mock_list, mcp_server):
         )
         data = json.loads(result.content[0].text)
         assert "count" in data
+
+
+def test_get_dashboard_info_docstring_documents_list_charts_escape_hatch() -> None:
+    """The tool docstring tells agents how to page past the charts cap.
+
+    Regression test for the Medialab large-dashboard report: agents calling
+    get_dashboard_info on a dashboard with more charts than the response-size
+    guard's cap need a documented way to retrieve the rest. This is surfaced
+    to the LLM via the tool's docstring (in addition to the charts field
+    description on DashboardInfo).
+    """
+    doc = get_dashboard_info_module.get_dashboard_info.__doc__
+    assert doc is not None
+    assert "list_charts" in doc
 
 
 @patch(
@@ -504,6 +521,7 @@ async def test_get_dashboard_info_permalink_key_includes_filter_state(
     dashboard.css = None
     dashboard.certified_by = None
     dashboard.certification_details = None
+    dashboard.deleted_at = None
     dashboard.json_metadata = None
     dashboard.published = True
     dashboard.is_managed_externally = False
@@ -732,6 +750,7 @@ async def test_get_dashboard_info_does_not_expose_access_list(mock_info, mcp_ser
     dashboard.css = None
     dashboard.certified_by = None
     dashboard.certification_details = None
+    dashboard.deleted_at = None
     dashboard.json_metadata = None
     dashboard.position_json = None
     dashboard.published = True
@@ -788,6 +807,7 @@ async def test_get_dashboard_info_restricted_user_redacts_data_model_metadata(
     dashboard.css = None
     dashboard.certified_by = None
     dashboard.certification_details = None
+    dashboard.deleted_at = None
     dashboard.json_metadata = json.dumps(
         {
             "native_filter_configuration": [
@@ -854,6 +874,7 @@ async def test_get_dashboard_info_restricted_user_redacts_permalink_filter_state
     dashboard.css = None
     dashboard.certified_by = None
     dashboard.certification_details = None
+    dashboard.deleted_at = None
     dashboard.json_metadata = None
     dashboard.position_json = None
     dashboard.published = True
@@ -955,6 +976,7 @@ async def test_list_dashboards_omits_requested_user_directory_fields(
     dashboard.css = None
     dashboard.certified_by = None
     dashboard.certification_details = None
+    dashboard.deleted_at = None
     dashboard.json_metadata = None
     dashboard.position_json = None
     dashboard.is_managed_externally = False
@@ -1005,6 +1027,7 @@ async def test_get_dashboard_info_includes_embedded_uuid(mock_find_object, mcp_s
     dashboard.css = None
     dashboard.certified_by = None
     dashboard.certification_details = None
+    dashboard.deleted_at = None
     dashboard.json_metadata = "{}"
     dashboard.published = True
     dashboard.is_managed_externally = False
@@ -1048,6 +1071,7 @@ async def test_get_dashboard_info_embedded_uuid_none_when_not_embedded(
     dashboard.css = None
     dashboard.certified_by = None
     dashboard.certification_details = None
+    dashboard.deleted_at = None
     dashboard.json_metadata = "{}"
     dashboard.published = True
     dashboard.is_managed_externally = False
@@ -1086,6 +1110,7 @@ async def test_get_dashboard_info_by_uuid(mock_find_object, mcp_server):
     dashboard.css = ""
     dashboard.certified_by = None
     dashboard.certification_details = None
+    dashboard.deleted_at = None
     dashboard.json_metadata = "{}"
     dashboard.published = True
     dashboard.is_managed_externally = False
@@ -1125,6 +1150,7 @@ async def test_get_dashboard_info_by_slug(mock_find_object, mcp_server):
     dashboard.css = ""
     dashboard.certified_by = None
     dashboard.certification_details = None
+    dashboard.deleted_at = None
     dashboard.json_metadata = "{}"
     dashboard.published = True
     dashboard.is_managed_externally = False
@@ -1176,6 +1202,7 @@ async def test_list_dashboards_custom_uuid_slug_columns(mock_list, mcp_server):
     dashboard.css = None
     dashboard.certified_by = None
     dashboard.certification_details = None
+    dashboard.deleted_at = None
     dashboard.json_metadata = None
     dashboard.is_managed_externally = False
     dashboard.external_url = None
@@ -1231,6 +1258,7 @@ async def test_list_dashboards_sanitizes_dashboard_descriptions_and_filter_text(
     dashboard.dashboard_title = "Quarterly Dashboard"
     dashboard.slug = "quarterly-dashboard"
     dashboard.uuid = "uuid-quarterly-3"
+    dashboard.deleted_at = None
     dashboard.url = "/dashboard/3"
     dashboard.published = True
     dashboard.changed_by_name = "admin"
@@ -1396,6 +1424,7 @@ class TestDashboardDefaultColumnFiltering:
         dashboard.css = None
         dashboard.certified_by = None
         dashboard.certification_details = None
+        dashboard.deleted_at = None
         dashboard.json_metadata = None
         dashboard.is_managed_externally = False
         dashboard.external_url = None

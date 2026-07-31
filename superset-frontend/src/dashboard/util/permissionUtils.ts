@@ -22,6 +22,7 @@ import {
   UserWithPermissionsAndRoles,
 } from 'src/types/bootstrapTypes';
 import { Dashboard } from 'src/types/Dashboard';
+import Subject from 'src/types/Subject';
 import { findPermission } from 'src/utils/findPermission';
 import getBootstrapData from 'src/utils/getBootstrapData';
 
@@ -32,6 +33,11 @@ const ADMIN_ROLE_NAME = 'admin';
 const getUserSubjects = (): number[] =>
   getBootstrapData()?.common?.user_subjects ?? [];
 
+const isUserInEditors = (editors: Subject[] = []): boolean => {
+  const userSubjects = getUserSubjects();
+  return editors.some(editor => userSubjects.includes(editor.id));
+};
+
 export const isUserAdmin = (
   user?: UserWithPermissionsAndRoles | UndefinedUser,
 ) =>
@@ -40,12 +46,13 @@ export const isUserAdmin = (
     role => role.toLowerCase() === ADMIN_ROLE_NAME,
   );
 
-export const isUserDashboardEditor = (dashboard: Dashboard): boolean => {
-  const userSubjects = getUserSubjects();
-  return (
-    dashboard.editors?.some(editor => userSubjects.includes(editor.id)) ?? false
-  );
-};
+export const isUserEditorOrAdmin = (
+  user?: UserWithPermissionsAndRoles | UndefinedUser,
+  editors: Subject[] = [],
+): boolean => isUserInEditors(editors) || isUserAdmin(user);
+
+export const isUserDashboardEditor = (dashboard: Dashboard): boolean =>
+  isUserInEditors(dashboard.editors);
 
 export const canUserEditDashboard = (
   dashboard: Dashboard,

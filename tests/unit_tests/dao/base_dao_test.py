@@ -24,7 +24,7 @@ from unittest.mock import Mock, patch
 import pytest
 from sqlalchemy import Boolean, Column, Integer, String
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 from superset_core.common.models import CoreModel
 
 from superset.daos.base import BaseDAO, ColumnOperatorEnum

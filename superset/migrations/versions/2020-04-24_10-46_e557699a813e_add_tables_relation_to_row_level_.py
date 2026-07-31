@@ -48,7 +48,7 @@ def upgrade():
         sa.PrimaryKeyConstraint("id"),
     )
 
-    rlsf = sa.Table("row_level_security_filters", metadata, autoload=True)
+    rlsf = sa.Table("row_level_security_filters", metadata, autoload_with=bind)
     filter_ids = sa.select(rlsf.c.id, rlsf.c.table_id)
 
     for row in bind.execute(filter_ids):
@@ -81,9 +81,9 @@ def downgrade():
         ),
     )
 
-    rlsf = sa.Table("row_level_security_filters", metadata, autoload=True)
-    rls_filter_tables = sa.Table("rls_filter_tables", metadata, autoload=True)
-    rls_filter_roles = sa.Table("rls_filter_roles", metadata, autoload=True)
+    rlsf = sa.Table("row_level_security_filters", metadata, autoload_with=bind)
+    rls_filter_tables = sa.Table("rls_filter_tables", metadata, autoload_with=bind)
+    rls_filter_roles = sa.Table("rls_filter_roles", metadata, autoload_with=bind)
 
     filter_tables = sa.select(rls_filter_tables.c.rls_filter_id).group_by(
         rls_filter_tables.c.rls_filter_id

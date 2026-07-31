@@ -18,7 +18,34 @@
  */
 import { theme as antdThemeImport } from 'antd';
 import { Theme } from './Theme';
-import { AnyThemeConfig, ThemeAlgorithm } from './types';
+import { AnyThemeConfig, ThemeAlgorithm, allowedAntdTokens } from './types';
+
+/**
+ * A fixed, Superset-representative base theme used by the characterization
+ * tests below. Mirrors the real THEME_DEFAULT token set so the snapshots are
+ * stable and meaningful. Do NOT churn this casually — it is the baseline the
+ * Ant Design v6 upgrade is measured against.
+ */
+const SUPERSET_BASE_THEME: AnyThemeConfig = {
+  token: {
+    colorPrimary: '#2893B3',
+    colorError: '#e04355',
+    colorWarning: '#fcc700',
+    colorSuccess: '#5ac189',
+    colorInfo: '#66bcfe',
+    fontFamily: "'Inter', Helvetica, Arial",
+    fontFamilyCode: "'IBM Plex Mono', 'Courier New', monospace",
+  },
+};
+
+/** Collect the computed value of every allow-listed antd token, sorted. */
+function pickAllowedTokens(theme: Theme): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  [...allowedAntdTokens].sort().forEach(key => {
+    out[key] = (theme.theme as unknown as Record<string, unknown>)[key];
+  });
+  return out;
+}
 
 // Mock emotion's cache to avoid actual DOM operations
 jest.mock('@emotion/cache', () => ({
@@ -338,10 +365,10 @@ test('Theme edge cases correctly applies base theme tokens in dark mode', () => 
     algorithm: antdThemeImport.defaultAlgorithm,
   };
 
-  const baseThemeDark: AnyThemeConfig = {
+  const baseThemeDark = {
     ...baseTheme,
     algorithm: antdThemeImport.darkAlgorithm,
-  };
+  } as AnyThemeConfig;
 
   // Simulate light mode with base theme
   const lightTheme = Theme.fromConfig({}, baseTheme);
@@ -473,10 +500,10 @@ test('Theme base theme integration handles base theme with dark algorithm correc
     },
   };
 
-  const baseThemeDark: AnyThemeConfig = {
+  const baseThemeDark = {
     ...baseTheme,
     algorithm: antdThemeImport.darkAlgorithm,
-  };
+  } as AnyThemeConfig;
 
   const userDarkTheme: AnyThemeConfig = {
     algorithm: antdThemeImport.darkAlgorithm,
@@ -525,7 +552,7 @@ test('Theme base theme integration works with real-world Superset base theme con
   const darkTheme = Theme.fromConfig(themeDark, {
     ...supersetBaseTheme,
     algorithm: antdThemeImport.darkAlgorithm,
-  });
+  } as AnyThemeConfig);
   expect(darkTheme.theme.fontFamily).toBe("'Inter', Helvetica, Arial");
 
   const darkSerialized = darkTheme.toSerializedConfig();
@@ -604,7 +631,9 @@ test('Theme base theme integration handles cssVar, hashed and inherit properties
 
   // User properties override/add to base
   expect(serialized.inherit).toBe(true);
-  expect(serialized.cssVar).toBe(true);
+  // Ant Design v6 dropped boolean `cssVar`; Superset normalizes `true` to the
+  // object form `{}` at the antd boundary (CSS variables are on by default).
+  expect(serialized.cssVar).toEqual({});
   expect(serialized.hashed).toBe(false);
 
   // Tokens are still merged
@@ -908,4 +937,82 @@ test('colorLink is preserved in setConfig when explicitly set', () => {
 
   expect(theme.theme.colorPrimary).toBe('#f759ab');
   expect(theme.theme.colorLink).toBe('#ff0000');
+});
+
+// ---------------------------------------------------------------------------
+// Characterization tests — theming safety net for the Ant Design v6 upgrade.
+//
+// These lock the bridge between Superset's theme and Ant Design's design
+// tokens (getDesignToken -> allowedAntdTokens -> SupersetTheme). When antd
+// renames or removes a token, the completeness tests fail loudly instead of
+// letting a token silently resolve to `undefined`, and the snapshots make any
+// value drift reviewable. See packages/superset-core/src/theme/types.ts.
+// ---------------------------------------------------------------------------
+
+test('every allowed antd token resolves to a defined value in light mode', () => {
+  const theme = Theme.fromConfig(
+    { algorithm: antdThemeImport.defaultAlgorithm },
+    SUPERSET_BASE_THEME,
+  );
+
+  const missing = allowedAntdTokens.filter(
+    key =>
+      (theme.theme as unknown as Record<string, unknown>)[key] === undefined,
+  );
+
+  // A non-empty list means antd dropped/renamed a token we still allow-list.
+  expect(missing).toEqual([]);
+});
+
+test('every allowed antd token resolves to a defined value in dark mode', () => {
+  const theme = Theme.fromConfig(
+    { algorithm: antdThemeImport.darkAlgorithm },
+    SUPERSET_BASE_THEME,
+  );
+
+  const missing = allowedAntdTokens.filter(
+    key =>
+      (theme.theme as unknown as Record<string, unknown>)[key] === undefined,
+  );
+
+  expect(missing).toEqual([]);
+});
+
+test('allowed antd token key set is stable', () => {
+  // Locks the *set* of tokens Superset exposes (independent of their values),
+  // so additions/removals to allowedAntdTokens are an explicit, reviewed diff.
+  expect([...allowedAntdTokens].sort()).toMatchSnapshot();
+});
+
+test('computed light-mode token values match snapshot', () => {
+  const theme = Theme.fromConfig(
+    { algorithm: antdThemeImport.defaultAlgorithm },
+    SUPERSET_BASE_THEME,
+  );
+
+  expect(pickAllowedTokens(theme)).toMatchSnapshot();
+});
+
+test('computed dark-mode token values match snapshot', () => {
+  const theme = Theme.fromConfig(
+    { algorithm: antdThemeImport.darkAlgorithm },
+    SUPERSET_BASE_THEME,
+  );
+
+  expect(pickAllowedTokens(theme)).toMatchSnapshot();
+});
+
+test('dark mode actually diverges from light mode for background tokens', () => {
+  const light = Theme.fromConfig(
+    { algorithm: antdThemeImport.defaultAlgorithm },
+    SUPERSET_BASE_THEME,
+  );
+  const dark = Theme.fromConfig(
+    { algorithm: antdThemeImport.darkAlgorithm },
+    SUPERSET_BASE_THEME,
+  );
+
+  // Guards the dark algorithm wiring: base surface and text must invert.
+  expect(dark.theme.colorBgBase).not.toBe(light.theme.colorBgBase);
+  expect(dark.theme.colorTextBase).not.toBe(light.theme.colorTextBase);
 });

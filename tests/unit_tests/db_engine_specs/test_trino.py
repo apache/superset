@@ -683,11 +683,14 @@ def test_get_columns_error(mocker: MockerFixture):
         "The specified table does not exist."
     )
     Row = namedtuple("Row", ["Column", "Type"])
-    mock_inspector.bind.execute().fetchall.return_value = [
+
+    mock_connection = mocker.MagicMock()
+    mock_connection.execute().fetchall.return_value = [
         Row("field1", "row(a varchar, b date)"),
         Row("field2", "row(r1 row(a varchar, b varchar))"),
         Row("field3", "int"),
     ]
+    mock_inspector.engine.connect().__enter__.return_value = mock_connection
 
     actual = TrinoEngineSpec.get_columns(mock_inspector, Table("table", "schema"))
     expected = [
@@ -722,10 +725,11 @@ def test_get_columns_error(mocker: MockerFixture):
 
     _assert_columns_equal(actual, expected)
 
-    assert_called_with_text(
-        mock_inspector.bind.execute,
-        'SHOW COLUMNS FROM schema."table"',
-    )
+    with mock_inspector.engine.connect() as conn:
+        assert_called_with_text(
+            conn.execute,
+            'SHOW COLUMNS FROM schema."table"',
+        )
 
 
 def test_get_columns_expand_rows(mocker: MockerFixture):
@@ -758,6 +762,7 @@ def test_get_columns_expand_rows(mocker: MockerFixture):
             column_name="field1.a",
             type=types.VARCHAR(),
             is_dttm=False,
+            expression='"field1"."a"',
             query_as='"field1"."a" AS "field1.a"',
         ),
         ResultSetColumnType(
@@ -765,6 +770,7 @@ def test_get_columns_expand_rows(mocker: MockerFixture):
             column_name="field1.b",
             type=types.DATE(),
             is_dttm=True,
+            expression='"field1"."b"',
             query_as='"field1"."b" AS "field1.b"',
         ),
         ResultSetColumnType(
@@ -775,6 +781,7 @@ def test_get_columns_expand_rows(mocker: MockerFixture):
             column_name="field2.r1",
             type=datatype.parse_sqltype("row(a varchar, b varchar)"),
             is_dttm=False,
+            expression='"field2"."r1"',
             query_as='"field2"."r1" AS "field2.r1"',
         ),
         ResultSetColumnType(
@@ -782,6 +789,7 @@ def test_get_columns_expand_rows(mocker: MockerFixture):
             column_name="field2.r1.a",
             type=types.VARCHAR(),
             is_dttm=False,
+            expression='"field2"."r1"."a"',
             query_as='"field2"."r1"."a" AS "field2.r1.a"',
         ),
         ResultSetColumnType(
@@ -789,6 +797,7 @@ def test_get_columns_expand_rows(mocker: MockerFixture):
             column_name="field2.r1.b",
             type=types.VARCHAR(),
             is_dttm=False,
+            expression='"field2"."r1"."b"',
             query_as='"field2"."r1"."b" AS "field2.r1.b"',
         ),
         ResultSetColumnType(
@@ -1640,4 +1649,83 @@ def test_handle_boolean_filter() -> None:
     assert (
         str(result_computed.compile(compile_kwargs={"literal_binds": True}))
         == "(expiration = 1) = true"
+    )
+
+
+def test_mask_encrypted_extra() -> None:
+    """
+    All `auth_params` values and the OAuth2 client secret are masked, while
+    `auth_method` and other non-sensitive fields stay visible.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    config = json.dumps(
+        {
+            "auth_method": "jwt",
+            "auth_params": {"token": "my-secret-token"},
+            "oauth2_client_info": {"id": "client-id", "secret": "my-secret"},
+        }
+    )
+
+    assert TrinoEngineSpec.mask_encrypted_extra(config) == json.dumps(
+        {
+            "auth_method": "jwt",
+            "auth_params": {"token": "XXXXXXXXXX"},
+            "oauth2_client_info": {"id": "client-id", "secret": "XXXXXXXXXX"},
+        }
+    )
+
+
+def test_mask_encrypted_extra_jwt_in_connect_args() -> None:
+    """
+    A JWT passed via `connect_args.requests_kwargs` is masked without touching
+    the surrounding connection settings.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    config = json.dumps(
+        {
+            "connect_args": {
+                "protocol": "https",
+                "requests_kwargs": {"jwt": "my-secret-token"},
+            },
+        }
+    )
+
+    assert TrinoEngineSpec.mask_encrypted_extra(config) == json.dumps(
+        {
+            "connect_args": {
+                "protocol": "https",
+                "requests_kwargs": {"jwt": "XXXXXXXXXX"},
+            },
+        }
+    )
+
+
+def test_unmask_encrypted_extra() -> None:
+    """
+    Masked credentials are reused from the previous value; edited ones are kept.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    old = json.dumps(
+        {
+            "auth_method": "basic",
+            "auth_params": {"username": "alice", "password": "old-password"},
+        }
+    )
+    # `username` is not masked on read, so it comes back in cleartext; only the
+    # masked `password` is revealed from the previous value.
+    new = json.dumps(
+        {
+            "auth_method": "basic",
+            "auth_params": {"username": "alice", "password": "XXXXXXXXXX"},
+        }
+    )
+
+    assert TrinoEngineSpec.unmask_encrypted_extra(old, new) == json.dumps(
+        {
+            "auth_method": "basic",
+            "auth_params": {"username": "alice", "password": "old-password"},
+        }
     )

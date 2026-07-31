@@ -218,7 +218,7 @@ const AddSliceCard: FC<{
           color: ${theme.colorText};
 
           &:hover {
-            //background: ${theme.colorFillTertiary};
+            /* background: ${theme.colorFillTertiary}; */
           }
 
           opacity: ${isSelected ? 0.4 : 'unset'};

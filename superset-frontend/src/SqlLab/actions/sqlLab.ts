@@ -956,12 +956,24 @@ export function setActiveSouthPaneTab(tabId: string): SqlLabAction {
   return { type: SET_ACTIVE_SOUTHPANE_TAB, tabId };
 }
 
-export function toggleLeftBar(queryEditor: QueryEditor): SqlLabAction {
-  const hideLeftBar = !queryEditor.hideLeftBar;
-  return {
-    type: QUERY_EDITOR_TOGGLE_LEFT_BAR,
-    queryEditor,
-    hideLeftBar,
+export function toggleLeftBar(shouldHide: boolean): SqlLabThunkAction {
+  return (dispatch: AppDispatch, getState: GetState) => {
+    const { sqlLab } = getState();
+    const id = sqlLab.tabHistory.slice(-1)[0];
+    if (!id) return;
+    const qe = sqlLab.queryEditors.find(e => e.id === id);
+    const merged =
+      qe && sqlLab.unsavedQueryEditor?.id === id
+        ? { ...qe, ...sqlLab.unsavedQueryEditor }
+        : qe;
+    if (!merged) return;
+    const isCurrentlyHidden = Boolean(merged.hideLeftBar);
+    if (shouldHide === isCurrentlyHidden) return;
+    dispatch({
+      type: QUERY_EDITOR_TOGGLE_LEFT_BAR,
+      queryEditorId: id,
+      hideLeftBar: shouldHide,
+    });
   };
 }
 

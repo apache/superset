@@ -532,9 +532,7 @@ const RightMenu = ({
           userItems.push({
             key: 'logout',
             label: (
-              <Typography.Link
-                href={ensureAppRoot(navbarRight.user_logout_url)}
-              >
+              <Typography.Link href={navbarRight.user_logout_url}>
                 {t('Logout')}
               </Typography.Link>
             ),
@@ -755,6 +753,7 @@ const RightMenu = ({
             target="_blank"
             rel="noreferrer"
             title={navbarRight.documentation_text || t('Documentation')}
+            aria-label={navbarRight.documentation_text || t('Documentation')}
           >
             {navbarRight.documentation_icon ? (
               <Icons.BookOutlined />
@@ -772,6 +771,7 @@ const RightMenu = ({
             target="_blank"
             rel="noreferrer"
             title={navbarRight.bug_report_text || t('Report a bug')}
+            aria-label={navbarRight.bug_report_text || t('Report a bug')}
           >
             {navbarRight.bug_report_icon ? (
               <i className={navbarRight.bug_report_icon} />

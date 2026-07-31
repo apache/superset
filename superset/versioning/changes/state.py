@@ -24,7 +24,7 @@ Three concerns live here:
 2. **State capture** — :func:`_orm_to_post_state` serialises the
    in-memory ORM object; :func:`_read_pre_state` reads the corresponding
    pre-flush row directly from the DB inside ``session.no_autoflush``.
-3. **Diff dispatch** — :func:`compute_records_for_entity` routes to the
+3. **Diff dispatch** — :func:`compute_records_from_state` routes to the
    right :mod:`superset.versioning.diff` helper based on the model
    class name (string dispatch keeps this module free of hard imports
    on the three entity classes, which avoids import-order coupling at
@@ -156,36 +156,29 @@ def _read_pre_state(
     return {key: jsonable(value) for key, value in result.items()}
 
 
-def compute_records_for_entity(session: Session, obj: Any) -> list[ChangeRecord]:
-    """Diff the pre-state (from DB) against the post-state (in memory).
-
-    Dispatches to :func:`diff_slice` / :func:`diff_dashboard` /
-    :func:`diff_dataset` based on the model class name — string-based
-    dispatch is used to keep this module free of hard imports on the
-    three entity classes, which in turn avoids import-order coupling
-    at app-init time.
-    """
-    model_cls = type(obj)
+def capture_initial_state(session: Session, obj: Any) -> dict[str, Any] | None:
+    """Capture an entity's database state before its first transaction flush."""
     entity_id = getattr(obj, "id", None)
     if entity_id is None:
-        return []
-
+        return None
     try:
-        pre_state = _read_pre_state(session, model_cls, entity_id)
+        return _read_pre_state(session, type(obj), entity_id)
     except Exception:  # pylint: disable=broad-except
         logger.exception(
-            "version_changes: pre-state read failed for %s id=%s",
-            model_cls.__name__,
+            "version_changes: initial-state read failed for %s id=%s",
+            type(obj).__name__,
             entity_id,
         )
-        return []
+        return None
 
-    if pre_state is None:
-        return []
 
+def compute_records_from_state(
+    obj: Any, pre_state: dict[str, Any]
+) -> list[ChangeRecord]:
+    """Diff a retained transaction pre-state against an entity's final state."""
     post_state = _orm_to_post_state(obj)
+    model_cls = type(obj)
     fields = _cached_scalar_fields(model_cls)
-
     name = model_cls.__name__
     if name == "Slice":
         return diff_slice(pre_state, post_state, fields=fields)

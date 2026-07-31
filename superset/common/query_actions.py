@@ -211,6 +211,11 @@ def _get_samples(
     query_obj.orderby = []
     query_obj.metrics = None
     query_obj.post_processing = []
+    # Mark the query as system-authored sampling so query generation may apply
+    # the engine's bounded-read override (physical datasets only). The shallow
+    # copy above shares the extras dict with the original query object, so
+    # build a new dict instead of mutating in place.
+    query_obj.extras = {**(query_obj.extras or {}), "system_sampling": True}
     qry_obj_cols = []
     for o in datasource.columns:
         if isinstance(o, dict):

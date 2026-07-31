@@ -35,7 +35,7 @@ export class ExplorePage {
     SOUTH_PANE: '[data-test="some-purposeful-instance"]',
     EXPAND_DATA_PANEL: '[aria-label="Expand data panel"]',
     RESULTS_TAB: '[data-node-key="results"]',
-    ACTIVE_TABPANE: '.ant-tabs-tabpane-active',
+    ACTIVE_TABPANE: '.ant-tabs-content-active',
   } as const;
 
   constructor(page: Page) {

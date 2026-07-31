@@ -27,6 +27,7 @@ import { EmptyState, Loading } from '@superset-ui/core/components';
 import { ErrorBoundary, BasicErrorAlert } from 'src/components';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
 import DashboardHeader from 'src/dashboard/components/Header';
+import HeadlessAutoRefresh from 'src/dashboard/components/Header/HeadlessAutoRefresh';
 import { Icons } from '@superset-ui/core/components/Icons';
 import IconButton from 'src/dashboard/components/IconButton';
 import { Droppable } from 'src/dashboard/components/dnd/DragDroppable';
@@ -124,7 +125,7 @@ const StyledContent = styled.div<{
 }>`
   grid-column: 2;
   grid-row: 2;
-  // @z-index-above-dashboard-header (100) + 1 = 101
+  /* @z-index-above-dashboard-header (100) + 1 = 101 */
   ${({ fullSizeChartId }) => fullSizeChartId && `z-index: 101;`}
 `;
 
@@ -327,7 +328,7 @@ const StyledDashboardContent = styled.div<{
       box-sizing: border-box;
       overflow-y: visible;
 
-      // transitionable traits to show filter relevance
+      /* transitionable traits to show filter relevance */
       transition:
         opacity ${theme.motionDurationMid} ease-in-out,
         border-color ${theme.motionDurationMid} ease-in-out,
@@ -426,6 +427,14 @@ const DashboardBuilder = () => {
       : undefined;
   const standaloneMode = getUrlParam(URL_PARAMS.standalone);
   const isReport = standaloneMode === DashboardStandaloneMode.Report;
+  // Report mode (standalone=3) hides the filter bar by default, since it's used
+  // for one-shot screenshot renders (email reports, thumbnails). Embedded SDK
+  // consumers also use standalone=3 to hide the title/tabs/nav, but may still
+  // want filters visible via dashboardUiConfig.filters.visible, which maps to
+  // the show_filters URL param. An explicit show_filters=true overrides the
+  // report-mode default so the filter bar stays visible.
+  const showFiltersUrlParam = getUrlParam(URL_PARAMS.showFilters);
+  const hideFilterBar = isReport && showFiltersUrlParam !== true;
   const hideDashboardHeader =
     uiConfig.hideTitle ||
     standaloneMode === DashboardStandaloneMode.HideNavAndTitle ||
@@ -519,16 +528,20 @@ const DashboardBuilder = () => {
     () => (
       <>
         {!hideDashboardHeader && <DashboardHeader />}
+        {/* Report mode is a one-shot screenshot render (reports, thumbnails),
+            so it must never start a refresh timer that could re-fetch charts
+            mid-capture. */}
+        {hideDashboardHeader && !isReport && <HeadlessAutoRefresh />}
         {showFilterBar &&
           filterBarOrientation === FilterBarOrientation.Horizontal && (
             <FilterBar
               orientation={FilterBarOrientation.Horizontal}
-              hidden={isReport}
+              hidden={hideFilterBar}
             />
           )}
       </>
     ),
-    [hideDashboardHeader, showFilterBar, filterBarOrientation, isReport],
+    [hideDashboardHeader, showFilterBar, filterBarOrientation, hideFilterBar],
   );
 
   const renderDraggableContent = useCallback(
@@ -590,7 +603,7 @@ const DashboardBuilder = () => {
       return (
         <FiltersPanel
           width={filterBarWidth}
-          hidden={isReport}
+          hidden={hideFilterBar}
           data-test="dashboard-filters-panel"
         >
           <StickyPanel ref={containerRef} width={filterBarWidth}>
@@ -615,7 +628,7 @@ const DashboardBuilder = () => {
       toggleDashboardFiltersOpen,
       filterBarHeight,
       filterBarOffset,
-      isReport,
+      hideFilterBar,
     ],
   );
 

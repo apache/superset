@@ -560,17 +560,21 @@ export default function DrillByModal({
                 {paths}
               </span>
             ) : (
-              <span
+              <button
+                type="button"
                 data-test="drill-by-breadcrumb-item"
-                role="button"
-                tabIndex={0}
                 onClick={route.onClick}
                 css={css`
+                  appearance: none;
+                  border: none;
+                  background: none;
+                  padding: 0;
+                  font: inherit;
                   cursor: pointer;
                 `}
               >
                 {route.title}
-              </span>
+              </button>
             );
           }}
         />

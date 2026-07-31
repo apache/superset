@@ -17,8 +17,9 @@
  * under the License.
  */
 
-import { Page, Download } from '@playwright/test';
+import { Page, Download, Locator } from '@playwright/test';
 import { Menu } from '../components/core';
+import { DashboardFilterBar } from '../components/dashboard';
 import { gotoWithRetry } from '../helpers/navigation';
 import { TIMEOUT } from '../utils/constants';
 
@@ -27,6 +28,7 @@ import { TIMEOUT } from '../utils/constants';
  */
 export class DashboardPage {
   private readonly page: Page;
+  private readonly filterBar: DashboardFilterBar;
 
   private static readonly SELECTORS = {
     DASHBOARD_HEADER: '[data-test="dashboard-header-container"]',
@@ -37,6 +39,7 @@ export class DashboardPage {
 
   constructor(page: Page) {
     this.page = page;
+    this.filterBar = new DashboardFilterBar(page);
   }
 
   /**
@@ -63,6 +66,15 @@ export class DashboardPage {
     await this.page.waitForSelector(DashboardPage.SELECTORS.DASHBOARD_HEADER, {
       timeout,
     });
+  }
+
+  /**
+   * Get a chart grid component by its chart ID.
+   */
+  getChart(chartId: number): Locator {
+    return this.page.locator(
+      `[data-test="chart-grid-component"][data-test-chart-id="${chartId}"]`,
+    );
   }
 
   /**
@@ -95,6 +107,32 @@ export class DashboardPage {
   }
 
   /**
+   * Gets the Display controls section heading in the filter bar.
+   */
+  getDisplayControlsHeader(): Locator {
+    return this.page.getByRole('heading', {
+      name: 'Display controls',
+      exact: true,
+    });
+  }
+
+  /**
+   * Gets a Display Control heading by name.
+   * @param name - The Display Control name
+   */
+  getDisplayControl(name: string): Locator {
+    return this.page.getByRole('heading', { name, exact: true });
+  }
+
+  /**
+   * Waits for and returns the dashboard native-filter bar component.
+   */
+  async waitForFilterBar(): Promise<DashboardFilterBar> {
+    await this.filterBar.waitForReady();
+    return this.filterBar;
+  }
+
+  /**
    * Open the dashboard header actions menu (three-dot menu)
    */
   async openHeaderActionsMenu(): Promise<void> {
@@ -109,6 +147,23 @@ export class DashboardPage {
   }
 
   /**
+   * The dashboard header actions dropdown menu. Call after
+   * {@link openHeaderActionsMenu}, which is what makes the menu visible.
+   */
+  private headerActionsMenu(): Menu {
+    return new Menu(this.page, DashboardPage.SELECTORS.HEADER_ACTIONS_MENU);
+  }
+
+  /**
+   * Trigger a dashboard-level force refresh via the header actions menu.
+   * Re-runs every chart's query with `force=true`, bypassing the cache.
+   */
+  async forceRefresh(): Promise<void> {
+    await this.openHeaderActionsMenu();
+    await this.headerActionsMenu().selectItem('Refresh dashboard');
+  }
+
+  /**
    * Selects an option from the Download submenu.
    * Opens the header actions menu, navigates to Download submenu,
    * and clicks the specified option.
@@ -118,10 +173,7 @@ export class DashboardPage {
   async selectDownloadOption(optionText: string): Promise<Download> {
     await this.openHeaderActionsMenu();
 
-    const menu = new Menu(
-      this.page,
-      DashboardPage.SELECTORS.HEADER_ACTIONS_MENU,
-    );
+    const menu = this.headerActionsMenu();
     const downloadPromise = this.page.waitForEvent('download');
     await menu.selectSubmenuItem('Download', optionText);
     return downloadPromise;

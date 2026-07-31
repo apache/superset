@@ -27,7 +27,7 @@ import {
 import { styled } from '@apache-superset/core/theme';
 import rison from 'rison';
 import { Collapse, ListViewCard } from '@superset-ui/core/components';
-import { User } from 'src/types/bootstrapTypes';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { reject } from 'lodash-es';
 import {
   dangerouslyGetItemDoNotUse,
@@ -53,13 +53,13 @@ import { userHasPermission } from 'src/dashboard/util/permissionUtils';
 import { WelcomePageLastTab } from 'src/features/home/types';
 import ActivityTable from 'src/features/home/ActivityTable';
 import ChartTable from 'src/features/home/ChartTable';
-import SavedQueries from 'src/features/home/SavedQueries';
+import ToastedSavedQueries from 'src/features/home/SavedQueries';
 import DashboardTable from 'src/features/home/DashboardTable';
 
 const extensionsRegistry = getExtensionsRegistry();
 
 interface WelcomeProps {
-  user: User;
+  user: UserWithPermissionsAndRoles;
   addDangerToast: (arg0: string) => void;
 }
 
@@ -422,7 +422,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                         children: !queryData ? (
                           <LoadingCards cover={checked} />
                         ) : (
-                          <SavedQueries
+                          <ToastedSavedQueries
                             showThumbnails={checked}
                             user={user}
                             mine={queryData}

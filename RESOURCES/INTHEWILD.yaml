@@ -168,6 +168,11 @@ categories:
       url: https://www.now.vn/
       contributors: ["@davidkohcw"]
 
+    - name: Pattern
+      url: https://www.pattern.com
+      contributors: ["@alephys26", "@hladush", "@sanketjadhavSF"]
+      logo: pattern_logo.png
+
     - name: Qunar
       url: https://www.qunar.com/
       contributors: ["@flametest"]

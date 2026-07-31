@@ -299,11 +299,11 @@ test('should offer the full set of page-size options', async () => {
   await waitForRender();
 
   // The page-size changer renders as an antd Select. In jsdom, antd opens
-  // its overlay on mouseDown of the .ant-select-selector element rather
+  // its overlay on mouseDown of the .ant-select-content element rather
   // than via a click on the inner combobox input.
   const selector = await waitFor(() => {
     const el = document.querySelector(
-      '.ant-pagination-options-size-changer .ant-select-selector',
+      '.ant-pagination-options-size-changer .ant-select-content',
     ) as HTMLElement | null;
     expect(el).toBeTruthy();
     return el!;

@@ -201,6 +201,11 @@ export function Menu({
   const screens = useBreakpoint();
   const uiConfig = useUiConfig();
   const theme = useTheme();
+  // screens.md is undefined on the first render before breakpoints are measured;
+  // fall back to the actual viewport width (using the same threshold as antd's
+  // md media query) so the first paint matches the device layout instead of
+  // flashing to the wrong mode on either desktop or mobile
+  const isMd = screens.md ?? window.innerWidth >= theme.screenMDMin;
 
   enum Paths {
     Explore = '/explore',
@@ -265,11 +270,7 @@ export function Menu({
       return {
         key,
         label: (
-          <NavLink
-            role="button"
-            to={stripAppRoot(url)}
-            activeClassName="is-active"
-          >
+          <NavLink to={stripAppRoot(url)} activeClassName="is-active">
             {label}
           </NavLink>
         ),
@@ -313,7 +314,7 @@ export function Menu({
     return {
       key,
       label,
-      ...(screens.md && {
+      ...(isMd && {
         icon: <Icons.DownOutlined iconSize="xs" />,
         popupOffset: NAVBAR_MENU_POPUP_OFFSET,
       }),
@@ -394,9 +395,9 @@ export function Menu({
   };
   return (
     <StyledHeader
+      as="nav"
       className="top"
       id="main-menu"
-      role="navigation"
       aria-label={t('Main navigation')}
     >
       <StyledRow>
@@ -417,7 +418,7 @@ export function Menu({
             </StyledBrandText>
           )}
           <StyledMainNav
-            mode={screens.md ? 'horizontal' : 'inline'}
+            mode={isMd ? 'horizontal' : 'inline'}
             data-test="navbar-top"
             className="main-nav"
             selectedKeys={activeTabs}
@@ -445,7 +446,7 @@ export function Menu({
         </StyledCol>
         <Col md={8} xs={24}>
           <RightMenu
-            align={screens.md ? 'flex-end' : 'flex-start'}
+            align={isMd ? 'flex-end' : 'flex-start'}
             settings={settings}
             navbarRight={navbarRight}
             isFrontendRoute={isFrontendRoute}

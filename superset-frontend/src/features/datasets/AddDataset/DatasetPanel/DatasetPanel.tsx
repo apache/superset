@@ -18,7 +18,7 @@
  */
 import { t } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
-import { styled } from '@apache-superset/core/theme';
+import { css, styled } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Loading } from '@superset-ui/core/components';
 import Table, {
@@ -225,8 +225,8 @@ const renderExistingDatasetAlert = (dataset?: DatasetObject) => (
     description={
       <>
         {EXISTING_DATASET_DESCRIPTION}
-        <span
-          role="button"
+        <button
+          type="button"
           onClick={() => {
             if (dataset?.explore_url) {
               // `explore_url` is router-relative from the backend (rooted under
@@ -235,11 +235,18 @@ const renderExistingDatasetAlert = (dataset?: DatasetObject) => (
               openInNewTab(stripAppRoot(dataset.explore_url));
             }
           }}
-          tabIndex={0}
           className="view-dataset-button"
+          css={css`
+            appearance: none;
+            border: none;
+            background: none;
+            padding: 0;
+            font: inherit;
+            cursor: pointer;
+          `}
         >
           {VIEW_DATASET}
-        </span>
+        </button>
       </>
     }
   />
