@@ -1007,6 +1007,13 @@ def init_fastmcp_server(
     # circular import: flask_singleton imports from superset.extensions which
     # re-enters mcp_service during startup; must stay lazy inside the function.
     from superset.mcp_service.flask_singleton import app as flask_app  # noqa: PLC0415
+    from superset.mcp_service.session_scope import (  # noqa: PLC0415
+        install_mcp_session_scoping,
+    )
+
+    # Give each tool call its own SQLAlchemy session; the greenlet-scoped
+    # default lets concurrent async calls share (and tear down) one session.
+    install_mcp_session_scoping()
 
     # Derive branding from Superset's APP_NAME config (defaults to "Superset")
     app_name = flask_app.config.get("APP_NAME", "Superset")
