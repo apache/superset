@@ -43,6 +43,7 @@ from superset.commands.report.exceptions import (
 )
 from superset.commands.report.execute import (
     BaseReportState,
+    persist_owned_report_execution_terminal_error,
     ReportNotTriggeredErrorState,
     ReportScheduleStateMachine,
     ReportSuccessState,
@@ -2686,6 +2687,70 @@ def test_create_log_promotes_same_execution_working_row_without_duplicate(
     assert working_log.error_message == "working timeout"
     log_cls.assert_not_called()
     mock_db.session.add.assert_not_called()
+    mock_db.session.commit.assert_called_once()
+
+
+def test_terminal_persistence_retry_promotes_owned_working_execution(
+    mocker: MockerFixture,
+) -> None:
+    execution_id = UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524")
+    schedule = mocker.Mock(spec=ReportSchedule)
+    schedule.last_state = ReportState.WORKING
+    schedule.dashboard_id = 805
+    schedule.chart_id = None
+    working_log = mocker.Mock()
+    working_log.uuid = execution_id
+    working_log.report_schedule = schedule
+
+    mock_db = mocker.patch("superset.commands.report.execute.db")
+    filtered_query = mock_db.session.query.return_value.filter.return_value
+    filtered_query.first.return_value = working_log
+    filtered_query.order_by.return_value.first.return_value = working_log
+
+    assert persist_owned_report_execution_terminal_error(
+        11,
+        execution_id,
+        "Failed taking a screenshot readiness allocation expired",
+        "ReportScheduleScreenshotFailedError",
+    )
+
+    assert working_log.state == ReportState.ERROR
+    assert (
+        working_log.error_message
+        == "Failed taking a screenshot readiness allocation expired"
+    )
+    assert schedule.last_state == ReportState.ERROR
+    mock_db.session.commit.assert_called_once()
+
+
+def test_terminal_persistence_retry_does_not_overwrite_newer_execution(
+    mocker: MockerFixture,
+) -> None:
+    execution_id = UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524")
+    schedule = mocker.Mock(spec=ReportSchedule)
+    schedule.last_state = ReportState.WORKING
+    schedule.dashboard_id = 805
+    schedule.chart_id = None
+    working_log = mocker.Mock()
+    working_log.uuid = execution_id
+    working_log.report_schedule = schedule
+    newer_working_log = mocker.Mock()
+    newer_working_log.uuid = uuid4()
+
+    mock_db = mocker.patch("superset.commands.report.execute.db")
+    filtered_query = mock_db.session.query.return_value.filter.return_value
+    filtered_query.first.return_value = working_log
+    filtered_query.order_by.return_value.first.return_value = newer_working_log
+
+    assert persist_owned_report_execution_terminal_error(
+        11,
+        execution_id,
+        "Failed taking a screenshot readiness allocation expired",
+        "ReportScheduleScreenshotFailedError",
+    )
+
+    assert working_log.state == ReportState.ERROR
+    assert schedule.last_state == ReportState.WORKING
     mock_db.session.commit.assert_called_once()
 
 

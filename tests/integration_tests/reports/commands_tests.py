@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
@@ -35,6 +36,7 @@ from slack_sdk.errors import (
     SlackRequestError,
     SlackTokenRotationError,
 )
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.sql import func, text
 
 try:
@@ -86,6 +88,7 @@ from superset.tasks.types import ExecutorType
 from superset.utils import json
 from superset.utils.database import get_example_database
 from superset.utils.report_execution import ReportExecutionContext
+from superset.utils.webdriver import PlaywrightTimeout
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
@@ -2406,6 +2409,95 @@ def test_fail_screenshot(screenshot_mock, email_mock, create_report_email_chart)
     assert_log(
         ReportState.ERROR, error_message="Failed taking a screenshot Unexpected error"
     )
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_report_email_chart"
+)
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_readiness_timeout_retries_terminal_persistence_and_allows_next_schedule(
+    screenshot_mock,
+    email_mock,
+    create_report_email_chart,
+    caplog,
+    monkeypatch,
+):
+    """A failed first terminal write must not leave a timed-out report WORKING."""
+
+    original_update = BaseReportState.update_report_schedule_and_log
+    terminal_write_failed = False
+
+    def fail_first_terminal_write(
+        state: BaseReportState,
+        report_state: ReportState,
+        error_message: Optional[str] = None,
+    ) -> None:
+        nonlocal terminal_write_failed
+        if report_state == ReportState.ERROR and not terminal_write_failed:
+            terminal_write_failed = True
+            raise OperationalError(
+                "UPDATE report_execution_log",
+                {},
+                RuntimeError("connection lost before terminal commit"),
+            )
+        original_update(state, report_state, error_message)
+
+    monkeypatch.setattr(
+        BaseReportState,
+        "update_report_schedule_and_log",
+        fail_first_terminal_write,
+    )
+    caplog.set_level(logging.INFO, logger="superset.commands.report.execute")
+    screenshot_mock.side_effect = PlaywrightTimeout(
+        "readiness allocation expired with 12/52 holders ready"
+    )
+    create_report_email_chart.last_state = ReportState.SUCCESS
+    db.session.commit()
+
+    with pytest.raises(ReportScheduleScreenshotFailedError):
+        AsyncExecuteReportScheduleCommand(
+            TEST_ID,
+            create_report_email_chart.id,
+            datetime.utcnow(),
+        ).run()
+
+    assert terminal_write_failed
+    db.session.refresh(create_report_email_chart)
+    timed_out_log = (
+        db.session.query(ReportExecutionLog)
+        .filter(ReportExecutionLog.uuid == UUID(TEST_ID))
+        .one()
+    )
+    assert timed_out_log.state == ReportState.ERROR
+    assert "readiness allocation expired" in timed_out_log.error_message
+    assert create_report_email_chart.last_state == ReportState.ERROR
+    email_mock.assert_not_called()
+    assert any(
+        "report_execution_terminal" in record.message
+        and TEST_ID in record.message
+        and "terminal_reason=ReportScheduleScreenshotFailedError" in record.message
+        for record in caplog.records
+    )
+
+    next_execution_id = str(uuid4())
+    screenshot_mock.side_effect = None
+    screenshot_mock.return_value = SCREENSHOT_FILE
+
+    AsyncExecuteReportScheduleCommand(
+        next_execution_id,
+        create_report_email_chart.id,
+        datetime.utcnow(),
+    ).run()
+
+    db.session.refresh(create_report_email_chart)
+    next_log = (
+        db.session.query(ReportExecutionLog)
+        .filter(ReportExecutionLog.uuid == UUID(next_execution_id))
+        .one()
+    )
+    assert next_log.state == ReportState.SUCCESS
+    assert create_report_email_chart.last_state == ReportState.SUCCESS
 
 
 @pytest.mark.usefixtures(

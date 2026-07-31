@@ -28,6 +28,7 @@ from uuid import UUID
 import pandas as pd
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app as app
+from sqlalchemy.exc import SQLAlchemyError
 
 from superset import db, security_manager
 from superset.commands.base import BaseCommand
@@ -155,6 +156,109 @@ def log_report_delivery_phase(
         deadline.elapsed_seconds,
         deadline.remaining_seconds,
     )
+
+
+def persist_owned_report_execution_terminal_error(
+    report_schedule_id: int,
+    execution_id: UUID,
+    error_message: str,
+    terminal_reason: str,
+    report_context: ReportExecutionContext | None = None,
+) -> bool:
+    """
+    Terminalize this command's WORKING row from its application-owned boundary.
+
+    Report states normally persist their terminal result before re-raising. If
+    that first write loses its transaction or database connection, the command
+    boundary is the last safe in-process retry: it still has Flask application
+    context and knows the execution UUID it owns. A compare against the latest
+    active WORKING row prevents an old worker from changing the schedule state
+    after a newer execution has started.
+    """
+
+    try:
+        # The state-machine transaction has already rolled back on its way to
+        # this boundary. Roll back again so a failed terminal flush cannot leave
+        # the scoped session unusable for the retry.
+        db.session.rollback()  # pylint: disable=consider-using-transaction
+        working_log = (
+            db.session.query(ReportExecutionLog)
+            .filter(
+                ReportExecutionLog.report_schedule_id == report_schedule_id,
+                ReportExecutionLog.uuid == execution_id,
+                ReportExecutionLog.state == ReportState.WORKING,
+                ReportExecutionLog.error_message.is_(None),
+            )
+            .first()
+        )
+        if working_log is None:
+            return False
+
+        latest_working_log = (
+            db.session.query(ReportExecutionLog)
+            .filter(
+                ReportExecutionLog.report_schedule_id == report_schedule_id,
+                ReportExecutionLog.state == ReportState.WORKING,
+                ReportExecutionLog.error_message.is_(None),
+            )
+            .order_by(ReportExecutionLog.end_dttm.desc())
+            .first()
+        )
+        report_schedule = working_log.report_schedule
+        owns_schedule_state = (
+            report_schedule.last_state == ReportState.WORKING
+            and latest_working_log is not None
+            and latest_working_log.uuid == execution_id
+        )
+        ended_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        working_log.state = ReportState.ERROR
+        working_log.error_message = error_message
+        working_log.end_dttm = ended_at
+        if owns_schedule_state:
+            report_schedule.last_state = ReportState.ERROR
+            report_schedule.last_eval_dttm = ended_at
+
+        db.session.commit()  # pylint: disable=consider-using-transaction
+        log_context = (
+            report_context.log_context
+            if report_context is not None
+            else (
+                f"capture_kind=report execution_id={execution_id} "
+                f"report_schedule_id={report_schedule_id} "
+                f"dashboard_id={report_schedule.dashboard_id} "
+                f"chart_id={report_schedule.chart_id}"
+            )
+        )
+        elapsed_seconds = (
+            f"{report_context.deadline.elapsed_seconds:.2f}"
+            if report_context is not None
+            else "unknown"
+        )
+        remaining_seconds = (
+            f"{report_context.deadline.remaining_seconds:.2f}"
+            if report_context is not None
+            else "unknown"
+        )
+        logger.info(
+            "report_execution_terminal %s state=%s terminal_reason=%s "
+            "elapsed_seconds=%s remaining_seconds=%s",
+            log_context,
+            ReportState.ERROR.value,
+            terminal_reason,
+            elapsed_seconds,
+            remaining_seconds,
+        )
+        return True
+    except Exception:  # noqa: BLE001  # never mask the report's original exception
+        db.session.rollback()  # pylint: disable=consider-using-transaction
+        logger.exception(
+            "Failed terminal persistence retry for report execution "
+            "capture_kind=report execution_id=%s report_schedule_id=%s "
+            "terminal_reason=terminal_persistence_retry_failed",
+            execution_id,
+            report_schedule_id,
+        )
+        return False
 
 
 class BaseReportState:
@@ -1422,9 +1526,10 @@ class ReportNotTriggeredErrorState(BaseReportState):
                 self.update_report_schedule_and_log(
                     ReportState.ERROR, error_message=error_message
                 )
-            except ReportScheduleUnexpectedError as logging_ex:
+            except (ReportScheduleUnexpectedError, SQLAlchemyError) as logging_ex:
                 # Logging failed (likely StaleDataError), but we still want to
                 # raise the original error so the root cause remains visible
+                db.session.rollback()  # pylint: disable=consider-using-transaction
                 logger.warning(
                     "Failed to log error for report schedule (execution %s) "
                     "due to database issue",
@@ -1611,9 +1716,10 @@ class ReportSuccessState(BaseReportState):
                 self.update_report_schedule_and_log(
                     ReportState.ERROR, error_message=str(ex)
                 )
-            except ReportScheduleUnexpectedError as logging_ex:
+            except (ReportScheduleUnexpectedError, SQLAlchemyError) as logging_ex:
                 # Logging failed (likely StaleDataError), but we still want to
                 # raise the original error so the root cause remains visible
+                db.session.rollback()  # pylint: disable=consider-using-transaction
                 logger.warning(
                     "Failed to log error for report schedule (execution %s) "
                     "due to database issue",
@@ -1676,12 +1782,12 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
 
     def run(self) -> None:
         monotonic_started_at = time.monotonic()
+        report_execution_context: ReportExecutionContext | None = None
         try:
             self.validate()
             if not self._model:
                 raise ReportScheduleExecuteUnexpectedError()
 
-            report_execution_context = None
             if self._model.type == ReportScheduleType.REPORT:
                 total_seconds = float(
                     app.config["ALERT_REPORTS_EXECUTION_BUDGET_SECONDS"]
@@ -1773,9 +1879,25 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 elapsed_seconds,
                 self._execution_id,
             )
-        except (CommandException, SoftTimeLimitExceeded):
+        except (CommandException, SoftTimeLimitExceeded) as ex:
+            if self._model and self._model.type == ReportScheduleType.REPORT:
+                persist_owned_report_execution_terminal_error(
+                    self._model.id,
+                    self._execution_id,
+                    str(ex) or type(ex).__name__,
+                    type(ex).__name__,
+                    report_execution_context,
+                )
             raise
         except Exception as ex:
+            if self._model and self._model.type == ReportScheduleType.REPORT:
+                persist_owned_report_execution_terminal_error(
+                    self._model.id,
+                    self._execution_id,
+                    str(ex) or type(ex).__name__,
+                    type(ex).__name__,
+                    report_execution_context,
+                )
             raise ReportScheduleUnexpectedError(str(ex)) from ex
 
     def validate(self) -> None:
