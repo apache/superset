@@ -965,11 +965,13 @@ def _add_soft_delete_filter(execute_state: ORMExecuteState) -> None:
     (``do_orm_execute`` + ``with_loader_criteria`` — see
     https://github.com/sqlalchemy/sqlalchemy/issues/7973#issuecomment-1112561295).
 
-    Skips relationship and column loader paths: those propagate the
-    criteria from the parent statement via
-    ``with_loader_criteria(..., propagate_to_loaders=True)`` (the default)
-    rather than re-attaching it here, which would stack redundant
-    ``deleted_at IS NULL`` clauses.
+    Which statements get the criteria is decided by
+    ``_should_attach_soft_delete_criteria`` -- and note that relationship
+    loads are deliberately INCLUDED (only column loads are skipped). An
+    earlier revision of this docstring claimed relationship loads were
+    skipped because ``propagate_to_loaders`` covered them; that predicate's
+    own docstring explains at length why that assumption was unreliable and
+    leaked soft-deleted rows through lazy loads. Defer to it.
 
     Per-class scoping: the listener iterates concrete ``SoftDeleteMixin``
     subclasses and attaches a ``with_loader_criteria`` only for those
