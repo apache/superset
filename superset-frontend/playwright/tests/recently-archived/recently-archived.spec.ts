@@ -20,13 +20,17 @@
 /**
  * End-to-end coverage for the Archive (Recently-Archived) view.
  *
- * Requires the running instance to have the SOFT_DELETE feature flag enabled
- * (the docker dev stack does). Each test creates a disposable object via the
- * authenticated REST API, soft-deletes it, then drives the real UI to restore
- * it and asserts — via the API — that it is live again.
+ * Requires the running instance to have the SOFT_DELETE feature flag enabled.
+ * The flag is off by default everywhere — including the docker dev stack — so
+ * these specs skip unless the instance opts in; in CI that is the dedicated
+ * "Soft-delete Tests" step in superset-e2e.yml, which boots its server with
+ * SUPERSET_FEATURE_SOFT_DELETE=true. Each test creates a disposable object via
+ * the authenticated REST API, soft-deletes it, then drives the real UI to
+ * restore it and asserts — via the API — that it is live again.
  */
 import { test, expect, Page } from '@playwright/test';
 import { apiGet, apiPost } from '../../helpers/api/requests';
+import { extractIdFromResponse } from '../../helpers/api/assertions';
 import {
   apiPostChart,
   apiGetChart,
@@ -67,8 +71,9 @@ const TYPES: TypeConfig[] = [
     key: 'dashboard',
     label: 'Dashboard',
     create: async (page, name) =>
-      (await (await apiPostDashboard(page, { dashboard_title: name })).json())
-        .id,
+      extractIdFromResponse(
+        await apiPostDashboard(page, { dashboard_title: name }),
+      ),
     softDelete: (page, id) => apiDeleteDashboard(page, id),
     status: async (page, id) => (await apiGetDashboard(page, id)).status(),
   },
@@ -83,7 +88,7 @@ const TYPES: TypeConfig[] = [
         datasource_type: 'table',
         viz_type: 'table',
       });
-      return (await res.json()).id;
+      return extractIdFromResponse(res);
     },
     softDelete: (page, id) => apiDeleteChart(page, id),
     status: async (page, id) => (await apiGetChart(page, id)).status(),
@@ -154,9 +159,11 @@ test('permanently deletes an archived item from the view', async ({ page }) => {
   const row = page.getByRole('row').filter({ hasText: name });
   await expect(row).toBeVisible();
 
-  // "Delete permanently" opens a plain danger confirm (no type-to-confirm).
+  // "Delete permanently" keeps the platform's type-to-confirm gate — the
+  // most destructive action on the page must not carry less friction than
+  // an ordinary delete.
   await row.getByTestId('archived-row-purge').click();
-  await expect(page.getByTestId('delete-modal-input')).toHaveCount(0);
+  await page.getByTestId('delete-modal-input').fill('DELETE');
   await page.getByRole('button', { name: 'Delete', exact: true }).click();
 
   // Success toast, and the row is gone for good.

@@ -652,6 +652,36 @@ class TestDeletedRecencyAndHumanized(InsertChartMixin, SupersetTestCase):
             _hard_delete_chart(old_id)
 
     @with_feature_flags(SOFT_DELETE=True)
+    def test_recency_filter_survives_an_absurdly_large_day_count(self) -> None:
+        """A day count beyond timedelta's ~2.7-million-day bound must answer
+        200 unfiltered, not 500.
+
+        int() parses arbitrarily large values, so the malformed-value guard
+        around it never fires; the OverflowError comes from timedelta (or the
+        datetime subtraction) afterwards. A window wider than the datetime
+        range keeps every archived row, so unfiltered is also the correct
+        answer, matching what every other malformed FAB filter value produces.
+        """
+        admin_id = self.get_user("admin").id
+        chart = self.insert_chart("recency_overflow", [admin_id], self._datasource_id)
+        chart_id = chart.id
+        chart.deleted_at = datetime.now() - timedelta(days=2)
+        db.session.commit()
+        self.login(ADMIN_USERNAME)
+        try:
+            rison_query = (
+                "(filters:!((col:id,opr:chart_deleted_state,value:only),"
+                "(col:deleted_at,opr:chart_deleted_recency,"
+                "value:999999999999999999999)),page_size:200)"
+            )
+            rv = self.client.get(f"/api/v1/chart/?q={rison_query}")
+            assert rv.status_code == 200, rv.data
+            ids = {row["id"] for row in json.loads(rv.data)["result"]}
+            assert chart_id in ids
+        finally:
+            _hard_delete_chart(chart_id)
+
+    @with_feature_flags(SOFT_DELETE=True)
     def test_archived_age_is_humanized_by_the_server(self) -> None:
         """Rows carry deleted_at_delta_humanized so no client parses the raw
         naive-local timestamp (the UI used to parse it as UTC)."""
@@ -703,6 +733,7 @@ class TestChartArchiveListing(InsertChartMixin, SupersetTestCase):
             _hard_delete_chart(chart_id)
         super().tearDown()
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_archive_list_orders_by_deleted_at(self) -> None:
         """``order_column:deleted_at`` sorts archived charts by deletion time
         (SQL-layer ordering, not merely field presence)."""
@@ -731,6 +762,7 @@ class TestChartArchiveListing(InsertChartMixin, SupersetTestCase):
         _hard_delete_chart(older_id)
         _hard_delete_chart(newer_id)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_archive_list_filters_by_deleted_at_cutoff(self) -> None:
         """A ``deleted_at`` ``gt`` cutoff narrows the archive and composes with
         the deleted-state filter."""
@@ -759,6 +791,7 @@ class TestChartArchiveListing(InsertChartMixin, SupersetTestCase):
         _hard_delete_chart(old_id)
         _hard_delete_chart(recent_id)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_archive_restore_blocked_for_non_owner(self) -> None:
         """A non-owner (Gamma) cannot restore another user's archived chart —
         the restore gate is owner/admin only (SC-003)."""

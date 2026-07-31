@@ -673,6 +673,7 @@ class TestDatasetArchiveListing(SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_archive_list_orders_by_deleted_at(self) -> None:
         """``order_column:deleted_at`` sorts archived datasets by deletion time
         (SQL-layer ordering, not merely field presence)."""
@@ -699,6 +700,7 @@ class TestDatasetArchiveListing(SupersetTestCase):
         self._cleanup(older_id, older_db)
         self._cleanup(newer_id, newer_db)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_archive_list_filters_by_deleted_at_cutoff(self) -> None:
         """A ``deleted_at`` ``gt`` cutoff narrows the archive and composes with
         the deleted-state filter."""
@@ -726,6 +728,7 @@ class TestDatasetArchiveListing(SupersetTestCase):
         self._cleanup(old_id, old_db)
         self._cleanup(recent_id, recent_db)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_archive_restore_blocked_for_non_owner(self) -> None:
         """A non-owner (Gamma) cannot restore another user's archived
         dataset — the restore gate is owner/admin only (SC-003)."""

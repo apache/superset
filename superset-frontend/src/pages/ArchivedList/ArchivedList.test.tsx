@@ -226,15 +226,22 @@ test('row actions are keyboard-operable (Enter restores)', async () => {
   });
 });
 
-test('delete permanently confirms then posts to the purge endpoint and refetches', async () => {
+test('delete permanently requires typing DELETE, then posts to the purge endpoint and refetches', async () => {
   mockRoutes();
   renderArchivedList();
   await screen.findByTestId('archived-list-view');
 
   // Open the "delete forever" confirm for the first row...
   fireEvent.click((await screen.findAllByTestId('archived-row-purge'))[0]);
-  // ...which is a plain danger confirm (no "type DELETE" input).
-  expect(screen.queryByTestId('delete-modal-input')).not.toBeInTheDocument();
+  // ...which keeps the platform's type-to-confirm gate: this is the most
+  // destructive action on the page, so it must not carry less friction
+  // than an ordinary delete elsewhere in the product.
+  const confirmInput = await screen.findByTestId('delete-modal-input');
+  // Nothing typed yet: confirming must not fire the request.
+  fireEvent.click(await screen.findByText('Delete'));
+  expect(fetchMock.callHistory.calls(/chart\/uuid-1\/purge/)).toHaveLength(0);
+
+  fireEvent.change(confirmInput, { target: { value: 'DELETE' } });
   fireEvent.click(await screen.findByText('Delete'));
 
   await waitFor(() => {
@@ -279,6 +286,41 @@ test('switching Type fetches the newly selected resource with its deleted-state 
     expect(calls[calls.length - 1].url).toContain(
       'col:id,opr:dashboard_deleted_state,value:only',
     );
+  });
+});
+
+test('a Name sort does not leak its per-type column into the next type', async () => {
+  // The Name column sorts under a per-type id (slice_name / dashboard_title /
+  // table_name), and ListView persists the active sort into the shared URL.
+  // Flask-AppBuilder *rejects* an unknown order column rather than ignoring
+  // it, so a chart sort carried across a Type switch would 400 the dashboard
+  // list — and, being in the URL, stay broken across reloads. The type-change
+  // handler clears the sort/pagination params so the new type starts from its
+  // own defaults.
+  mockRoutes();
+  renderArchivedList();
+  await screen.findByTestId('archived-list-view');
+
+  // Sort by Name on the chart list (the header, not the filter label)...
+  fireEvent.click(screen.getByRole('columnheader', { name: 'Name' }));
+  await waitFor(() => {
+    expect(
+      fetchMock.callHistory
+        .calls(/chart\/\?q/)
+        .some(call => call.url.includes('order_column:slice_name')),
+    ).toBe(true);
+  });
+
+  // ...then switch to Dashboard.
+  await selectOption('Dashboard', 'Type');
+
+  await waitFor(() => {
+    const calls = fetchMock.callHistory.calls(/dashboard\/\?q/);
+    expect(calls.length).toBeGreaterThanOrEqual(1);
+    // No call may replay the chart sort column against the dashboard API.
+    calls.forEach(call => {
+      expect(call.url).not.toContain('order_column:slice_name');
+    });
   });
 });
 
@@ -440,6 +482,9 @@ test('a blocked permanent delete tells the user what is blocking it', async () =
   await screen.findByTestId('archived-list-view');
 
   fireEvent.click((await screen.findAllByTestId('archived-row-purge'))[0]);
+  fireEvent.change(await screen.findByTestId('delete-modal-input'), {
+    target: { value: 'DELETE' },
+  });
   fireEvent.click(await screen.findByText('Delete'));
 
   await waitFor(() => {

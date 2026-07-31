@@ -790,6 +790,7 @@ class TestDashboardArchiveListing(SupersetTestCase):
         self._made.append(dashboard.id)
         return dashboard
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_archive_list_orders_by_deleted_at(self) -> None:
         """``order_column:deleted_at`` sorts archived dashboards by deletion
         time (SQL-layer ordering, not merely field presence)."""
@@ -816,6 +817,7 @@ class TestDashboardArchiveListing(SupersetTestCase):
         _hard_delete_dashboard(older_id)
         _hard_delete_dashboard(newer_id)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_archive_list_filters_by_deleted_at_cutoff(self) -> None:
         """A ``deleted_at`` ``gt`` cutoff narrows the archive and composes with
         the deleted-state filter."""
@@ -843,6 +845,7 @@ class TestDashboardArchiveListing(SupersetTestCase):
         _hard_delete_dashboard(old_id)
         _hard_delete_dashboard(recent_id)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_archive_restore_blocked_for_non_owner(self) -> None:
         """A non-owner (Gamma) cannot restore another user's archived
         dashboard — the restore gate is owner/admin only (SC-003)."""

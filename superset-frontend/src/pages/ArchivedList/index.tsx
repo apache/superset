@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useCallback, useMemo, useRef, useState } from 'react';
+import { useHistory } from 'react-router-dom';
 import { useAppSelector } from 'src/views/store';
 import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
@@ -121,7 +122,6 @@ function ArchivedRowActions({
           "If you delete this item, you won't be able to recover it.",
         )}
         onConfirm={() => onPurge(item)}
-        requireConfirmationText={false}
       >
         {confirmDelete => (
           <ActionButton
@@ -241,8 +241,10 @@ function ArchivedListBody({
   );
 
   // Permanent delete (force-purge) of an archived item — irreversible. Owner/
-  // admin-gated server-side (mirrors restore). The confirmation is a plain
-  // danger modal (no type-to-confirm), per the "delete forever" design.
+  // admin-gated server-side (mirrors restore). The confirmation keeps the
+  // platform's type-to-confirm gate: this is the most destructive action on
+  // the page, so it must not carry *less* friction than an ordinary delete.
+  // The recoverable archive path is the one that earned reduced friction.
   const handlePurge = useCallback(
     async (item: ArchivedItem) => {
       const name = String(item[config.nameField] ?? '');
@@ -444,6 +446,7 @@ function ArchivedListBody({
  * charts, dashboards, and datasets — one type at a time via the Type selector.
  */
 function ArchivedList({ addDangerToast, addSuccessToast }: ToastProps) {
+  const history = useHistory();
   const roles = useAppSelector(
     state =>
       (state.user as UserWithPermissionsAndRoles | undefined)?.roles ??
@@ -463,11 +466,12 @@ function ArchivedList({ addDangerToast, addSuccessToast }: ToastProps) {
     if (!roles) {
       return ARCHIVED_TYPES;
     }
-    // A viewer whose roles resolve to NO readable type gets the empty state
-    // below, not all three: offering types whose APIs answer 403 turns a
-    // permissions fact into what reads like a broken page. (The server-side
-    // shell admission refuses such viewers anyway; this is the client
-    // agreeing with it rather than contradicting it.)
+    // A viewer whose roles resolve to NO readable type is refused by the
+    // server-side shell admission with a 403 before this component ever
+    // loads — that 403 page is the user-visible behaviour for such
+    // viewers. This client-side filter exists for the partial case
+    // (some-but-not-all types readable): offering a type whose API answers
+    // 403 turns a permissions fact into what reads like a broken page.
     return ARCHIVED_TYPES.filter(option =>
       findPermission(
         'can_read',
@@ -488,6 +492,34 @@ function ArchivedList({ addDangerToast, addSuccessToast }: ToastProps) {
       ? chosenType
       : availableTypes[0];
 
+  // ListView persists sort (`sortColumn`/`sortOrder`) and pagination
+  // (`pageIndex`) in the shared URL and replays them on every mount. The
+  // Name column's sort id is per-type (slice_name / dashboard_title /
+  // table_name), and Flask-AppBuilder *rejects* an unknown order column
+  // rather than ignoring it — so a Name sort carried across a Type switch
+  // 400s the new type's list and, because the bad value is in the URL,
+  // stays broken across reloads. A stale pageIndex is the milder sibling:
+  // page 4 of charts against a one-page dataset list shows an empty table.
+  // Clearing the per-collection axes on switch lets the new type start
+  // from its defaults; ?filters= survives because its keys are made
+  // type-stable via `urlDisplay` in the body's filter config.
+  const handleTypeChange = useCallback(
+    (value: unknown) => {
+      const params = new URLSearchParams(history.location.search);
+      params.delete('sortColumn');
+      params.delete('sortOrder');
+      params.delete('pageIndex');
+      history.replace({ search: params.toString() });
+      setType(value as ArchivedType);
+    },
+    [history],
+  );
+
+  // Defence-in-depth, not a user-visible path: the server-side shell
+  // admission 403s a viewer with no readable type before the SPA loads, so
+  // this renders only if the client's role map and the server's admission
+  // ever disagree (and TypeScript requires the guard regardless, since
+  // `availableTypes[0]` is `ArchivedType | undefined`).
   if (!type) {
     return (
       <>
@@ -506,7 +538,7 @@ function ArchivedList({ addDangerToast, addSuccessToast }: ToastProps) {
         <Select
           ariaLabel={t('Type')}
           value={type}
-          onChange={value => setType(value as ArchivedType)}
+          onChange={handleTypeChange}
           options={availableTypes.map(option => ({
             value: option,
             label: TYPE_LABELS[option],

@@ -341,7 +341,16 @@ class BaseDeletedRecencyFilter(BaseFilter):  # pylint: disable=too-few-public-me
             return query
         if days <= 0:
             return query
-        cutoff = datetime.now() - timedelta(days=days)
+        try:
+            cutoff = datetime.now() - timedelta(days=days)
+        except OverflowError:
+            # int() parses arbitrarily large values, and both timedelta()
+            # and the subtraction raise OverflowError beyond their bounds
+            # (~2.7 million days) -- which would be exactly the 500 the
+            # comment above promises to avoid. A window wider than the
+            # datetime range keeps every archived row, so unfiltered is
+            # also the semantically correct answer.
+            return query
         return query.filter(self.model.deleted_at > cutoff)
 
 
