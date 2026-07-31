@@ -271,3 +271,27 @@ def test_adhoc_column_to_sqla_casts_string_temporal_column_for_postgres() -> Non
         )
     )
     assert compiled == "DATE_TRUNC('day', CAST(event_ts AS TIMESTAMP))"
+
+
+def test_adhoc_column_to_sqla_unknown_column_stays_untyped() -> None:
+    """
+    An adhoc column whose expression is not backed by result-column metadata
+    keeps an untyped ``literal_column`` and is not treated as temporal, so no
+    time grain is applied and no engine-specific cast is introduced.
+    """
+    query = _query_with_column(
+        {"column_name": "ds", "is_dttm": True, "type": "VARCHAR"}
+    )
+
+    col: AdhocColumn = {
+        "sqlExpression": "unknown_col",
+        "label": "unknown_col",
+        "isColumnReference": True,
+        "timeGrain": "P1D",
+        "columnType": "BASE_AXIS",
+    }
+
+    result, generic_type = query.adhoc_column_to_sqla(col)
+
+    assert _compile(result) == "unknown_col"
+    assert generic_type is None
