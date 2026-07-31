@@ -335,29 +335,30 @@ test('shows loading spinner when dataset parameter is present in URL', async () 
 
 test('dataset dropdown sorts options alphabetically by table name regardless of id order', async () => {
   fetchMock.clearHistory().removeRoutes();
-  // table_name values are deliberately NOT in alphabetical order so the test
-  // only passes when the client-side sortComparator actually reorders them.
+  // Mixed-case names are required: code-point comparison would place every
+  // uppercase name before every lowercase one (Mango, Zebra, apple), while
+  // localeCompare produces the correct case-insensitive order (apple, Mango, Zebra).
   // IDs are also out of alphabetical order to rule out ID-based sorting.
   fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, {
     body: {
       result: [
         {
           id: 2,
-          table_name: 'gamma_table',
+          table_name: 'Zebra_table',
           datasource_type: 'table',
           database: { database_name: 'test_db' },
           schema: 'public',
         },
         {
           id: 3,
-          table_name: 'alpha_table',
+          table_name: 'apple_table',
           datasource_type: 'table',
           database: { database_name: 'test_db' },
           schema: 'public',
         },
         {
           id: 1,
-          table_name: 'beta_table',
+          table_name: 'Mango_table',
           datasource_type: 'table',
           database: { database_name: 'test_db' },
           schema: 'public',
@@ -374,20 +375,20 @@ test('dataset dropdown sorts options alphabetically by table name regardless of 
   userEvent.click(datasourceSelect);
 
   // Wait for all three to appear
-  await screen.findByText('alpha_table');
-  expect(screen.getByText('beta_table')).toBeInTheDocument();
-  expect(screen.getByText('gamma_table')).toBeInTheDocument();
+  await screen.findByText('apple_table');
+  expect(screen.getByText('Mango_table')).toBeInTheDocument();
+  expect(screen.getByText('Zebra_table')).toBeInTheDocument();
 
-  const alpha = screen.getByText('alpha_table');
-  const beta = screen.getByText('beta_table');
-  const gamma = screen.getByText('gamma_table');
+  const apple = screen.getByText('apple_table');
+  const mango = screen.getByText('Mango_table');
+  const zebra = screen.getByText('Zebra_table');
 
-  // Verify DOM order: alpha before beta before gamma
+  // Verify case-insensitive order: apple < Mango < Zebra
   expect(
-    alpha.compareDocumentPosition(beta) & Node.DOCUMENT_POSITION_FOLLOWING,
+    apple.compareDocumentPosition(mango) & Node.DOCUMENT_POSITION_FOLLOWING,
   ).toBeTruthy();
   expect(
-    beta.compareDocumentPosition(gamma) & Node.DOCUMENT_POSITION_FOLLOWING,
+    mango.compareDocumentPosition(zebra) & Node.DOCUMENT_POSITION_FOLLOWING,
   ).toBeTruthy();
 });
 

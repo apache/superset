@@ -30,6 +30,7 @@ import {
   Loading,
   Steps,
 } from '@superset-ui/core/components';
+import { propertyComparator } from '@superset-ui/core/components/Select/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 
 import VizTypeGallery, {
@@ -343,13 +344,7 @@ export const ChartCreation = ({
                   optionFilterProps={['id', 'table_name']}
                   placeholder={t('Choose a %s', datasetLabelLower())}
                   showSearch
-                  sortComparator={(a, b) => {
-                    const aName =
-                      (a as { table_name?: string }).table_name ?? '';
-                    const bName =
-                      (b as { table_name?: string }).table_name ?? '';
-                    return aName.localeCompare(bName);
-                  }}
+                  sortComparator={propertyComparator('table_name')}
                   value={datasource}
                 />
                 {datasetHelpText}
