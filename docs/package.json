@@ -61,8 +61,8 @@
     "@storybook/addon-docs": "^10.5.3",
     "@superset-ui/core": "^0.20.4",
     "@swc/core": "^1.15.46",
-    "antd": "^6.5.1",
-    "baseline-browser-mapping": "^2.11.0",
+    "antd": "^6.5.2",
+    "baseline-browser-mapping": "^2.11.1",
     "caniuse-lite": "^1.0.30001806",
     "docusaurus-plugin-openapi-docs": "^5.1.2",
     "docusaurus-theme-openapi-docs": "^5.1.2",
@@ -99,7 +99,7 @@
     "prettier": "^3.9.6",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.65.0",
-    "webpack": "^5.108.2"
+    "webpack": "^5.109.0"
   },
   "browserslist": {
     "production": [
