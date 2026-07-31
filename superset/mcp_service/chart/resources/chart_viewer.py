@@ -20,9 +20,9 @@ MCP Apps UI resource: the Superset chart-viewer widget.
 
 Serves the self-contained HTML bundle (built from
 ``chart_viewer/`` via Vite + vite-plugin-singlefile) at
-``ui://superset/chart-viewer/v4``. MCP Apps hosts fetch this resource and render
-it in a sandboxed iframe to display ``render_chart`` results as interactive
-charts.
+``ui://superset/chart-viewer/v4-<digest>``. MCP Apps hosts fetch this resource
+and render it in a sandboxed iframe to display ``render_chart`` results as
+interactive charts.
 
 The bundle is fully inlined (all JS/CSS), so the resource needs no external
 network access — the declared CSP (see ``render_chart``'s ``_meta.ui.csp``)

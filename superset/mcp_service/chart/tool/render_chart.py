@@ -19,7 +19,7 @@
 MCP tool: render_chart (MCP Apps interactive chart widget)
 
 ``render_chart`` returns a chart's data together with a ``_meta.ui.resourceUri``
-descriptor pointing at the ``ui://superset/chart-viewer/v4`` UI resource. MCP
+descriptor pointing at the ``ui://superset/chart-viewer/v4-<digest>`` UI resource. MCP
 Apps hosts (Claude, ChatGPT, VS Code Copilot, Cursor, Goose, ...) fetch that
 resource and render the chart-viewer widget in a sandboxed iframe, turning the
 tool result into a real interactive visualization instead of a prose summary.

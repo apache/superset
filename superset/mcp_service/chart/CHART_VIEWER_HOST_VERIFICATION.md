@@ -38,10 +38,12 @@ Reconnecting the connector does not help.
 > **Every time the bundle changes, start a BRAND-NEW conversation.**
 
 If you are looking at stale behavior, this is almost certainly why. A second
-defense is already in place: the resource URI is versioned
-(`ui://superset/chart-viewer/v4`), so bumping it forces hosts to treat it as a
-different resource — but the fresh-conversation rule is what you actually rely
-on day to day.
+defense is in place: the resource URI is content-addressed
+(`ui://superset/chart-viewer/v4-<digest>`, where the digest is a hash of the
+built bundle), so any rebuild publishes under a URI the host has never seen and
+cannot have cached. That happens on its own — there is no version to remember
+to bump. The fresh-conversation rule still applies to the host's cache of the
+*tool descriptor*, which is what points at the URI in the first place.
 
 ## Setup
 

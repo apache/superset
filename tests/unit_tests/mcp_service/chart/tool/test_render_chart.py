@@ -229,9 +229,13 @@ async def test_render_chart_registered_with_ui_meta(app: Any) -> None:
     assert ui is not None
     assert CHART_VIEWER_URI == RESOURCE_CHART_VIEWER_URI
     # Version suffix is required: hosts cache the bundle by URI, so shipping a
-    # changed widget depends on being able to bump it. The specific number is
-    # not pinned here, or every bump would fail this test.
-    assert re.fullmatch(r"ui://superset/chart-viewer/v\d+", CHART_VIEWER_URI)
+    # changed widget depends on the URI changing with it. The digest segment is
+    # present whenever the bundle has been built and absent in a bare source
+    # checkout, so both shapes are accepted; neither value is pinned, or every
+    # rebuild would fail this test.
+    assert re.fullmatch(
+        r"ui://superset/chart-viewer/v\d+(-[0-9a-f]{12})?", CHART_VIEWER_URI
+    )
     assert ui["resourceUri"] == CHART_VIEWER_URI
     assert ui["visibility"] == ["model", "app"]
     # Exempt from structured-content stripping, so the widget can read it.

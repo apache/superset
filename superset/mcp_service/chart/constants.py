@@ -17,24 +17,51 @@
 
 """Shared chart-module constants.
 
-Deliberately import-free so both the ``ui://`` resource (which imports the
-FastMCP app) and the tools (which must not) can depend on it without creating
-an import cycle.
+Kept dependency-light so both the ``ui://`` resource (which imports the FastMCP
+app) and the tools (which must not) can depend on it without creating an import
+cycle.
 """
+
+import hashlib
+from pathlib import Path
+
+# Schema version of the widget contract. Bump only for a change hosts should
+# treat as a different app, not for ordinary bundle edits — those are covered
+# by the content digest appended below.
+CHART_VIEWER_SCHEMA_VERSION = "v4"
+
+_BUNDLE_PATH = (
+    Path(__file__).parent / "resources" / "chart_viewer" / "dist" / "index.html"
+)
+
+
+def _chart_viewer_version() -> str:
+    """Version segment of the chart-viewer URI, content-addressed by bundle.
+
+    MCP Apps hosts cache a ``ui://`` resource by URI and do not re-fetch it —
+    restarting Superset does not invalidate it. Deriving the version from a
+    digest of the built bundle means any rebuild publishes under a new URI and
+    hosts pick it up on their own. Hand-bumping a literal was the alternative,
+    and forgetting the bump made corrected code look broken twice.
+
+    Falls back to the bare schema version when the bundle has not been built,
+    which keeps a source checkout (and the placeholder page the resource serves
+    in that case) working.
+    """
+    try:
+        digest = hashlib.sha256(_BUNDLE_PATH.read_bytes()).hexdigest()[:12]
+    except OSError:
+        return CHART_VIEWER_SCHEMA_VERSION
+    return f"{CHART_VIEWER_SCHEMA_VERSION}-{digest}"
+
 
 # Versioned URI of the MCP Apps chart-viewer resource.
 #
-# MCP Apps hosts cache a ``ui://`` resource per conversation and never re-fetch
-# it for that conversation — restarting Superset does not invalidate it. Bumping
-# this version is the only reliable way to force hosts to pick up a rebuilt
-# bundle, so **bump it whenever the widget's behaviour changes** in a way
-# testers need to see.
-#
-# This is the single source of truth: the resource that serves the bundle
+# Single source of truth: the resource that serves the bundle
 # (``chart/resources/chart_viewer.py``) and the tool descriptors that point at
-# it (``chart/tool/render_chart.py``) both import it. They were separate
+# it (``chart/tool/render_chart.py``) both import this. They were separate
 # constants once, which meant a bump could be applied to one and not the other.
-CHART_VIEWER_URI = "ui://superset/chart-viewer/v4"
+CHART_VIEWER_URI = f"ui://superset/chart-viewer/{_chart_viewer_version()}"
 
 # MIME type the MCP Apps spec defines for an HTML app resource.
 CHART_VIEWER_MIME_TYPE = "text/html;profile=mcp-app"
