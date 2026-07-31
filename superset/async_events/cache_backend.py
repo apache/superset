@@ -99,6 +99,15 @@ class RedisCacheBackend(RedisCache):
         """
         return self._cache.set(name, value, ex=ex, px=px, nx=nx, xx=xx)
 
+    def get(self, name: str) -> Any:
+        """
+        Get the raw value at key ``name``.
+
+        :param name: Key name
+        :returns: The stored value (bytes), or None if the key is absent
+        """
+        return self._cache.get(name)
+
     def delete(self, *names: str) -> int:
         """
         Delete one or more keys.
@@ -282,6 +291,15 @@ class RedisSentinelCacheBackend(RedisSentinelCache):
         :returns: True if set successfully, None if nx/xx condition not met
         """
         return self._cache.set(name, value, ex=ex, px=px, nx=nx, xx=xx)
+
+    def get(self, name: str) -> Any:
+        """
+        Get the raw value at key ``name``.
+
+        :param name: Key name
+        :returns: The stored value (bytes), or None if the key is absent
+        """
+        return self._cache.get(name)
 
     def delete(self, *names: str) -> int:
         """

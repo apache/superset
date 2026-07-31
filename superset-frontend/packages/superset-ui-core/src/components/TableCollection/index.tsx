@@ -66,12 +66,6 @@ const StyledTable = styled(Table)<{
   showRowCount?: boolean;
 }>`
   ${({ theme, isPaginationSticky, showRowCount }) => `
-    th.ant-column-cell {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
     .actions {
       opacity: 0;
       font-size: ${theme.fontSizeXL}px;

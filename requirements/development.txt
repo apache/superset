@@ -276,7 +276,7 @@ flask-babel==3.1.0
     # via
     #   -c requirements/base-constraint.txt
     #   flask-appbuilder
-flask-caching==2.3.1
+flask-caching==2.4.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -341,7 +341,7 @@ geopy==2.4.1
     #   apache-superset
 gevent==26.4.0
     # via apache-superset
-google-api-core==2.23.0
+google-api-core==2.33.0
     # via
     #   google-cloud-bigquery
     #   google-cloud-core
@@ -362,7 +362,7 @@ google-auth-oauthlib==1.2.1
     # via
     #   pandas-gbq
     #   pydata-google-auth
-google-cloud-bigquery==3.42.1
+google-cloud-bigquery==3.42.2
     # via
     #   apache-superset
     #   pandas-gbq
@@ -386,7 +386,7 @@ greenlet==3.5.3
     #   sqlalchemy
 griffelib==2.0.2
     # via fastmcp-slim
-grpcio==1.81.1
+grpcio==1.83.0
     # via
     #   apache-superset
     #   google-api-core
@@ -721,7 +721,7 @@ psycopg2-binary==2.9.12
     # via apache-superset
 py-key-value-aio==0.4.4
     # via fastmcp-slim
-pyarrow==24.0.0
+pyarrow==25.0.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -795,7 +795,7 @@ pyopenssl==26.3.0
     #   -c requirements/base-constraint.txt
     #   google-auth
     #   shillelagh
-pyparsing==3.2.3
+pyparsing==3.3.2
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset

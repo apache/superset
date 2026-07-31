@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { handleKeyboardActivation } from '@superset-ui/core';
 import {
   Fragment,
   useCallback,
@@ -28,7 +27,7 @@ import {
 } from 'react';
 import classNames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
-import { styled } from '@apache-superset/core/theme';
+import { css, styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 
 import { EditableTitle, EmptyState } from '@superset-ui/core/components';
@@ -348,16 +347,21 @@ const Tab = (props: TabProps): ReactElement => {
                     ) : (
                       <span>
                         {t('You can add the components in the')}{' '}
-                        <span
-                          role="button"
-                          tabIndex={0}
+                        <button
+                          type="button"
                           onClick={() => dispatch(setEditMode(true))}
-                          onKeyDown={handleKeyboardActivation(() =>
-                            dispatch(setEditMode(true)),
-                          )}
+                          css={css`
+                            appearance: none;
+                            border: none;
+                            background: none;
+                            padding: 0;
+                            font: inherit;
+                            cursor: pointer;
+                            text-decoration: underline;
+                          `}
                         >
                           {t('edit mode')}
-                        </span>
+                        </button>
                       </span>
                     ))
                   }
