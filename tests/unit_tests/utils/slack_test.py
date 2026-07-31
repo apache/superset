@@ -556,7 +556,6 @@ The server responded with: missing scope: channels:read"""
             "superset.utils.slack.cache_manager.cache.set",
             side_effect=ConnectionError("metastore unavailable"),
         )
-        rollback = mocker.patch("superset.utils.slack.db.session.rollback")
         mocker.patch(
             "superset.utils.slack._slack_channel_cache_uses_report_session",
             return_value=True,
@@ -569,8 +568,6 @@ The server responded with: missing scope: channels:read"""
                 raise_on_cache_write_error=True,
             )
 
-        rollback.assert_called_once_with()
-
     def test_strict_warmup_rejects_false_cache_write_result(self, mocker) -> None:
         mocker.patch(
             "superset.utils.slack._get_channels",
@@ -581,7 +578,6 @@ The server responded with: missing scope: channels:read"""
             return_value=False,
         )
         logger = mocker.patch("superset.utils.slack.logger")
-        rollback = mocker.patch("superset.utils.slack.db.session.rollback")
         mocker.patch(
             "superset.utils.slack._slack_channel_cache_uses_report_session",
             return_value=True,
@@ -597,7 +593,6 @@ The server responded with: missing scope: channels:read"""
                 raise_on_cache_write_error=True,
             )
 
-        rollback.assert_not_called()
         logger.warning.assert_not_called()
 
     @pytest.mark.parametrize("cache_set_result", [True, None])

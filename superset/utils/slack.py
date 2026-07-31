@@ -38,7 +38,7 @@ from slack_sdk.errors import (
 )
 from slack_sdk.http_retry.builtin_handlers import RateLimitErrorRetryHandler
 
-from superset import db, feature_flag_manager
+from superset import feature_flag_manager
 from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.exceptions import SupersetException
 from superset.extensions import cache_manager
@@ -285,7 +285,7 @@ def get_channels(
         force=force,
         cache=cache,
         cache_timeout=cache_timeout,
-        write_metastore_cache=True,
+        write_cache=True,
         raise_on_cache_write_error=raise_on_cache_write_error,
     )
     return channels
@@ -296,7 +296,7 @@ def _get_channels_safely(
     team_id: str | None,
     force: bool,
     cache: bool,
-    write_metastore_cache: bool,
+    write_cache: bool,
     cache_timeout: int | None = None,
     raise_on_cache_write_error: bool = False,
 ) -> tuple[list[SlackChannel], bool]:
@@ -320,8 +320,7 @@ def _get_channels_safely(
             return cached_channels, True
 
     channels = _get_channels(team_id=team_id)
-    uses_report_session = _slack_channel_cache_uses_report_session()
-    if cache_enabled and (write_metastore_cache or not uses_report_session):
+    if cache_enabled and write_cache:
         cache_write_result: bool | None = None
         try:
             cache_write_result = cache_manager.cache.set(
@@ -334,8 +333,6 @@ def _get_channels_safely(
                 "Could not cache Slack channels",
                 exc_info=True,
             )
-            if uses_report_session:
-                db.session.rollback()
             if raise_on_cache_write_error:
                 raise
         if raise_on_cache_write_error and cache_write_result is False:
@@ -351,7 +348,7 @@ def _get_channels_with_cache_status() -> tuple[list[SlackChannel], bool]:
         team_id=get_team_id(),
         force=False,
         cache=True,
-        write_metastore_cache=False,
+        write_cache=not _slack_channel_cache_uses_report_session(),
     )
 
 

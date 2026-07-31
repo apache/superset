@@ -20,12 +20,14 @@ from flask import current_app
 
 from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.extensions import celery_app
+from superset.utils.decorators import transaction
 from superset.utils.slack import get_channels
 
 logger = logging.getLogger(__name__)
 
 
 @celery_app.task(name="slack.cache_channels")
+@transaction()
 def cache_channels() -> None:
     cache_timeout = current_app.config["SLACK_CACHE_TIMEOUT"]
     retry_count = current_app.config.get("SLACK_API_RATE_LIMIT_RETRY_COUNT", 2)

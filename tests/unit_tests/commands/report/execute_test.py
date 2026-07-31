@@ -3074,6 +3074,52 @@ def test_get_notification_content_png_screenshot(
     assert content.text is None
 
 
+def test_slack_retry_deadline_flows_from_report_state_to_transport(
+    app: SupersetApp,
+    mocker: MockerFixture,
+) -> None:
+    """One absolute execution deadline reaches every Slack v2 destination."""
+    app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"] = False
+    state = _make_notification_state(mocker, report_format=ReportDataFormat.PNG)
+    mocker.patch.object(state, "_get_screenshots", return_value=[b"img"])
+    deadline_factory = mocker.patch(
+        "superset.commands.report.execute.get_slack_send_retry_deadline",
+        return_value=123.0,
+    )
+    mocker.patch("superset.reports.notifications.slackv2.get_slack_client")
+    send_to_channels = mocker.patch(
+        "superset.reports.notifications.slackv2.send_to_slack_channels"
+    )
+    recipient = ReportRecipients(
+        type=ReportRecipientType.SLACKV2,
+        recipient_config_json='{"target": "C1"}',
+    )
+
+    content = state._get_notification_content()
+    state._send_notification(content, recipient)
+
+    assert content.slack_retry_deadline == 123.0
+    deadline_factory.assert_called_once_with(None)
+    assert send_to_channels.call_args.kwargs["retry_deadline"] == 123.0
+
+
+def test_slack_retry_deadline_clamps_elapsed_working_timeout(
+    mocker: MockerFixture,
+) -> None:
+    """An exhausted report timeout produces an already-expired Slack deadline."""
+    state = _make_notification_state(mocker)
+    state._report_schedule.working_timeout = 10
+    state._start_dttm = datetime.utcnow() - timedelta(seconds=11)
+    mocker.patch("superset.commands.report.execute.time.monotonic", return_value=50.0)
+    deadline_factory = mocker.patch(
+        "superset.commands.report.execute.get_slack_send_retry_deadline",
+        side_effect=lambda deadline: deadline,
+    )
+
+    assert state._get_slack_retry_deadline() == 50.0
+    deadline_factory.assert_called_once_with(50.0)
+
+
 @patch("superset.commands.report.execute.feature_flag_manager")
 def test_get_notification_content_png_empty_returns_error(
     mock_ff, mocker: MockerFixture

@@ -79,6 +79,28 @@ def _get_slack_send_retry_max_time() -> float:
     )
 
 
+def get_slack_send_retry_deadline(max_deadline: float | None = None) -> float:
+    """Return one configured Slack deadline, optionally clamped by its caller."""
+    configured_deadline = time.monotonic() + _get_slack_send_retry_max_time()
+    if max_deadline is None:
+        return configured_deadline
+    return min(max_deadline, configured_deadline)
+
+
+def get_slack_request_timeout(
+    client_timeout: int | float,
+    retry_deadline: float,
+) -> int:
+    """Clamp one Slack request timeout to the remaining delivery budget."""
+    remaining = retry_deadline - time.monotonic()
+    if remaining <= 0:
+        raise SlackRetryDeadlineError
+    request_timeout = int(min(float(client_timeout), remaining))
+    if request_timeout <= 0:
+        raise SlackRetryDeadlineError
+    return request_timeout
+
+
 def _give_up_slack_api_retry(
     ex: Exception,
     *,
@@ -215,13 +237,7 @@ def call_slack_api_with_timeout(
     original_timeout = client.timeout
 
     def call() -> _SlackApiResult:
-        remaining = retry_deadline - time.monotonic()
-        if remaining <= 0:
-            raise SlackRetryDeadlineError
-        request_timeout = int(min(float(original_timeout), remaining))
-        if request_timeout <= 0:
-            raise SlackRetryDeadlineError
-        client.timeout = request_timeout
+        client.timeout = get_slack_request_timeout(original_timeout, retry_deadline)
         try:
             return method(**kwargs)
         finally:
@@ -233,6 +249,23 @@ def call_slack_api_with_timeout(
         retry_transient_errors=retry_transient_errors,
         retry_transport_errors=retry_transport_errors,
         retry_rate_limits=retry_rate_limits,
+    )
+
+
+def send_slack_text(
+    client: WebClient,
+    channel: str,
+    text: str,
+    retry_deadline: float,
+) -> None:
+    """Post one Slack text message without replaying an ambiguous terminal write."""
+    call_slack_api_with_timeout(
+        client,
+        client.chat_postMessage,
+        retry_deadline=retry_deadline,
+        retry_transient_errors=False,
+        channel=channel,
+        text=text,
     )
 
 
@@ -259,12 +292,7 @@ def send_to_slack_channels(
     retry_deadline: float | None = None,
 ) -> None:
     """Send to each channel within one schedule-wide application deadline."""
-    retry_max_time = _get_slack_send_retry_max_time()
-    configured_deadline = time.monotonic() + retry_max_time
-    if retry_deadline is None:
-        retry_deadline = configured_deadline
-    else:
-        retry_deadline = min(retry_deadline, configured_deadline)
+    retry_deadline = get_slack_send_retry_deadline(retry_deadline)
     failures: list[tuple[str, Exception]] = []
     for channel in channels:
         try:

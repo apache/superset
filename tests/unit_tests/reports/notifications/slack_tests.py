@@ -1260,10 +1260,6 @@ def test_v2_upload_does_not_start_completion_after_deadline(
         "superset.reports.notifications.slack_transport.time.monotonic",
         side_effect=lambda: clock[0],
     )
-    mocker.patch(
-        "superset.reports.notifications.slackv2.time.monotonic",
-        side_effect=lambda: clock[0],
-    )
 
     def cross_deadline(**kwargs: object) -> tuple[int, str]:
         clock[0] = 151.0
@@ -1288,13 +1284,19 @@ def test_raw_upload_timeout_is_clamped_to_remaining_deadline(
 ) -> None:
     client = _configure_v2_upload_client(MagicMock())
     client.timeout = 300
+    clock = [0.0]
+
+    def return_upload_metadata(**kwargs: object) -> dict[str, str]:
+        clock[0] = 140.0
+        return {
+            "file_id": "F1",
+            "upload_url": "https://files.slack.com/upload/F1",
+        }
+
+    client.files_getUploadURLExternal.side_effect = return_upload_metadata
     mocker.patch(
         "superset.reports.notifications.slack_transport.time.monotonic",
-        return_value=0.0,
-    )
-    mocker.patch(
-        "superset.reports.notifications.slackv2.time.monotonic",
-        return_value=140.0,
+        side_effect=lambda: clock[0],
     )
 
     _upload_file_to_slack(

@@ -25,7 +25,7 @@ class NotificationError(SupersetException):
 
 
 class NotificationTransientError(NotificationError):
-    """Temporary third-party delivery failure that should be retried later."""
+    """Temporary third-party delivery failure surfaced as a report system error."""
 
 
 class SlackV1NotificationError(SupersetException):

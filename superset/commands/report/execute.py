@@ -83,6 +83,9 @@ from superset.reports.notifications.exceptions import (
     NotificationParamException,
 )
 from superset.reports.notifications.slack import SlackNotification
+from superset.reports.notifications.slack_transport import (
+    get_slack_send_retry_deadline,
+)
 from superset.subjects.types import SubjectType
 from superset.tasks.utils import get_executor
 from superset.utils import json
@@ -149,15 +152,19 @@ class BaseReportState:
             self._execution_warnings,
         )
 
-    def _get_slack_retry_deadline(self) -> float | None:
+    def _get_slack_retry_deadline(self) -> float:
         """Return the monotonic deadline for Slack delivery in this execution."""
-        if self._report_schedule.working_timeout is None:
-            return None
-        elapsed = (
-            datetime.now(timezone.utc).replace(tzinfo=None) - self._start_dttm
-        ).total_seconds()
-        remaining = max(float(self._report_schedule.working_timeout) - elapsed, 0)
-        return time.monotonic() + remaining
+        report_deadline = None
+        if self._report_schedule.working_timeout is not None:
+            elapsed = (
+                datetime.now(timezone.utc).replace(tzinfo=None) - self._start_dttm
+            ).total_seconds()
+            remaining = max(
+                float(self._report_schedule.working_timeout) - elapsed,
+                0,
+            )
+            report_deadline = time.monotonic() + remaining
+        return get_slack_send_retry_deadline(report_deadline)
 
     def update_report_schedule_and_log(
         self,

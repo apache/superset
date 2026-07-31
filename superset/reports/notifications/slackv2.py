@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-import time
 from contextlib import closing
 from email.message import Message
 from ssl import SSLContext
@@ -52,9 +51,10 @@ from superset.reports.notifications.slack_mixin import SlackMixin
 from superset.reports.notifications.slack_transport import (
     call_slack_api,
     call_slack_api_with_timeout,
+    get_slack_request_timeout,
+    send_slack_text,
     send_to_slack_channels,
     SlackChannelResponseError,
-    SlackRetryDeadlineError,
 )
 from superset.utils.decorators import statsd_gauge
 from superset.utils.slack import (
@@ -131,12 +131,7 @@ def _upload_file_to_slack(
         raise SlackChannelResponseError("Slack did not return a file ID and upload URL")
 
     def upload_file() -> None:
-        remaining = retry_deadline - time.monotonic()
-        if remaining <= 0:
-            raise SlackRetryDeadlineError
-        timeout = int(min(float(client.timeout), remaining))
-        if timeout <= 0:
-            raise SlackRetryDeadlineError
+        timeout = get_slack_request_timeout(client.timeout, retry_deadline)
         status, response_body = _upload_file_data(
             url=upload_url,
             data=data,
@@ -222,13 +217,11 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
                             filename=file_name,
                         )
                 else:
-                    call_slack_api_with_timeout(
+                    send_slack_text(
                         client,
-                        client.chat_postMessage,
+                        channel,
+                        body,
                         retry_deadline=retry_deadline,
-                        retry_transient_errors=False,
-                        channel=channel,
-                        text=body,
                     )
 
             send_to_slack_channels(

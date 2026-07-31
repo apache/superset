@@ -39,7 +39,7 @@ from superset.reports.notifications.exceptions import (
 )
 from superset.reports.notifications.slack_mixin import SlackMixin
 from superset.reports.notifications.slack_transport import (
-    call_slack_api_with_timeout,
+    send_slack_text,
     send_to_slack_channels,
 )
 from superset.utils.decorators import statsd_gauge
@@ -84,13 +84,11 @@ class SlackNotification(SlackMixin, BaseNotification):  # pylint: disable=too-fe
             raise NotificationParamException(NO_SLACK_RECIPIENTS_MESSAGE)
         send_to_slack_channels(
             channels,
-            lambda target, retry_deadline: call_slack_api_with_timeout(
+            lambda target, retry_deadline: send_slack_text(
                 client,
-                client.chat_postMessage,
+                target,
+                body,
                 retry_deadline=retry_deadline,
-                retry_transient_errors=False,
-                channel=target,
-                text=body,
             ),
             retry_deadline=retry_deadline,
         )
@@ -144,5 +142,7 @@ class SlackNotification(SlackMixin, BaseNotification):  # pylint: disable=too-fe
         if should_use_v2_api(raise_on_error=self._content.has_attachments):
             raise SlackV1NotificationError
         if feature_flag_manager.is_feature_enabled("ALERT_REPORT_SLACK_V2"):
+            # A text-only probe can fail transiently. Still enter the coordinator
+            # so a successful legacy fallback records its warning and metric.
             raise SlackV1NotificationError
         self._send_legacy_text()

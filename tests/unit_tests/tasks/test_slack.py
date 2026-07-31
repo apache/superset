@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import pytest
 from pytest_mock import MockerFixture
 
 from superset.app import SupersetApp
@@ -54,3 +55,21 @@ def test_cache_channels_warns_when_caching_is_disabled(
         "Skipping Slack channels cache warm-up because "
         "SLACK_CACHE_TIMEOUT disables caching"
     )
+
+
+def test_cache_channels_rolls_back_a_failed_cache_write(
+    app: SupersetApp,
+    mocker: MockerFixture,
+) -> None:
+    app.config["SLACK_CACHE_TIMEOUT"] = 123
+    mocker.patch(
+        "superset.tasks.slack.get_channels",
+        side_effect=ConnectionError("metastore unavailable"),
+    )
+    db = mocker.patch("superset.db")
+
+    with pytest.raises(ConnectionError, match="metastore unavailable"):
+        cache_channels.run()
+
+    db.session.commit.assert_not_called()
+    db.session.rollback.assert_called_once_with()
