@@ -39,7 +39,7 @@ Reconnecting the connector does not help.
 
 If you are looking at stale behavior, this is almost certainly why. A second
 defense is already in place: the resource URI is versioned
-(`ui://superset/chart-viewer/v3`), so bumping it forces hosts to treat it as a
+(`ui://superset/chart-viewer/v4`), so bumping it forces hosts to treat it as a
 different resource — but the fresh-conversation rule is what you actually rely
 on day to day.
 

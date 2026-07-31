@@ -34,7 +34,7 @@ LLM host (Claude/ChatGPT)
   ▼
 render_chart tool ──► get_chart_data_core ──► ChartDataCommand (RBAC + RLS)
   │  returns ChartData (structuredContent) + text summary
-  │  tool descriptor carries _meta.ui.resourceUri = ui://superset/chart-viewer/v3
+  │  tool descriptor carries _meta.ui.resourceUri = ui://superset/chart-viewer/v4
   ▼
 host fetches ui:// resource ──► chart_viewer/dist/index.html (sandboxed iframe)
   │  bridge: JSON-RPC 2.0 over postMessage
@@ -177,7 +177,7 @@ npm test               # vitest: adapter + bridge contract tests
 ### 1. Local — MCP Inspector / MCPJam / ext-apps basic-host
 Run the MCP server (streamable-http) and point an MCP Apps-capable inspector at
 it. Confirm: `render_chart` appears with `_meta.ui.resourceUri`; calling it
-renders the widget; the `ui://superset/chart-viewer/v3` resource loads.
+renders the widget; the `ui://superset/chart-viewer/v4` resource loads.
 
 ### 2. ChatGPT web — developer mode
 Requires an eligible **Business/Enterprise/Edu** workspace. Settings → Connectors

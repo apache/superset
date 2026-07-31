@@ -34,7 +34,7 @@ an import cycle.
 # (``chart/resources/chart_viewer.py``) and the tool descriptors that point at
 # it (``chart/tool/render_chart.py``) both import it. They were separate
 # constants once, which meant a bump could be applied to one and not the other.
-CHART_VIEWER_URI = "ui://superset/chart-viewer/v3"
+CHART_VIEWER_URI = "ui://superset/chart-viewer/v4"
 
 # MIME type the MCP Apps spec defines for an HTML app resource.
 CHART_VIEWER_MIME_TYPE = "text/html;profile=mcp-app"
