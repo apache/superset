@@ -73,16 +73,23 @@ from sqlalchemy.sql import Select, select
 from superset import db, feature_flag_manager, security_manager
 from superset.sql.parse import Table
 
-# Detects a `JOIN` keyword anywhere in the statement being executed against the
-# `superset://` engine. Shillelagh calls `SupersetShillelaghAdapter.get_data` once
-# per underlying table, independently of any other table referenced by the same
-# statement, so it has no way on its own to tell whether it's being asked for a
-# standalone table or for one side of a join. `SupersetAPSWDialect.do_execute*`
-# populates `_executing_join_query` for the duration of a statement so that
-# `get_data` can tell the two cases apart (see `get_data` for why this matters).
-_JOIN_KEYWORD_RE = re.compile(r"\bJOIN\b", re.IGNORECASE)
-_executing_join_query: contextvars.ContextVar[bool] = contextvars.ContextVar(
-    "_executing_join_query", default=False
+# Counts references to `superset://` virtual tables in the statement being
+# executed against the engine. Those tables are always addressed as
+# double-quoted `database[[.catalog].schema].table` identifiers (see the
+# dialect docstring below), since the literal dot(s) would otherwise be
+# parsed as a schema/catalog separator, so this also catches multi-table
+# statements that don't use the `JOIN` keyword, e.g. an implicit comma join
+# like `FROM "database1.table1", "database2.table2" WHERE ...`. Shillelagh
+# calls `SupersetShillelaghAdapter.get_data` once per underlying table,
+# independently of any other table referenced by the same statement, so it
+# has no way on its own to tell whether it's being asked for a standalone
+# table or for one side of a multi-table query.
+# `SupersetAPSWDialect.do_execute*` populates `_executing_multi_table_query`
+# for the duration of a statement so that `get_data` can tell the two cases
+# apart (see `get_data` for why this matters).
+_TABLE_REF_RE = re.compile(r'"[^"]*\.[^"]*"')
+_executing_multi_table_query: contextvars.ContextVar[bool] = contextvars.ContextVar(
+    "_executing_multi_table_query", default=False
 )
 
 
@@ -141,7 +148,7 @@ class SupersetAPSWDialect(APSWDialect):
         parameters: Any,
         context: Any = None,
     ) -> None:
-        with self._flag_join_query(statement):
+        with self._flag_multi_table_query(statement):
             super().do_execute(cursor, statement, parameters, context)
 
     def do_execute_no_params(
@@ -150,7 +157,7 @@ class SupersetAPSWDialect(APSWDialect):
         statement: str,
         context: Any = None,
     ) -> None:
-        with self._flag_join_query(statement):
+        with self._flag_multi_table_query(statement):
             super().do_execute_no_params(cursor, statement, context)
 
     def do_executemany(
@@ -160,24 +167,26 @@ class SupersetAPSWDialect(APSWDialect):
         parameters: Any,
         context: Any = None,
     ) -> None:
-        with self._flag_join_query(statement):
+        with self._flag_multi_table_query(statement):
             super().do_executemany(cursor, statement, parameters, context)
 
     @staticmethod
     @contextmanager
-    def _flag_join_query(statement: str) -> Iterator[None]:
+    def _flag_multi_table_query(statement: str) -> Iterator[None]:
         """
-        Record, for the duration of executing ``statement``, whether it contains a
-        join.
+        Record, for the duration of executing ``statement``, whether it references
+        more than one `superset://` virtual table.
 
         `SupersetShillelaghAdapter.get_data` reads this to decide whether it's safe
         to apply `SUPERSET_META_DB_LIMIT` to the table it's fetching (see `get_data`).
         """
-        token = _executing_join_query.set(bool(_JOIN_KEYWORD_RE.search(statement)))
+        token = _executing_multi_table_query.set(
+            len(_TABLE_REF_RE.findall(statement)) > 1
+        )
         try:
             yield
         finally:
-            _executing_join_query.reset(token)
+            _executing_multi_table_query.reset(token)
 
 
 F = TypeVar("F", bound=Callable[..., Any])
@@ -472,13 +481,14 @@ class SupersetShillelaghAdapter(Adapter):
             # Shillelagh calls `get_data` once per table, independently of any
             # other table referenced by the same statement, so a value of `None`
             # here doesn't necessarily mean this table is the whole query -- it
-            # can equally mean this table is one side of a join. Applying the
-            # app-wide default in that case would silently truncate this table
-            # before the in-memory join runs, dropping rows that have a genuine
-            # match on the other side with no error (see #36304). Only fall back
-            # to the default for statements that don't join, where truncating
-            # this table can't hide otherwise-valid matches.
-            if app_limit is not None and not _executing_join_query.get():
+            # can equally mean this table is one side of a join (or other
+            # multi-table statement). Applying the app-wide default in that case
+            # would silently truncate this table before the in-memory join runs,
+            # dropping rows that have a genuine match on the other side with no
+            # error (see #36304). Only fall back to the default for statements
+            # that reference a single table, where truncating it can't hide
+            # otherwise-valid matches.
+            if app_limit is not None and not _executing_multi_table_query.get():
                 limit = app_limit
         elif app_limit is not None:
             limit = min(limit, app_limit)

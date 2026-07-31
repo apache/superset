@@ -333,6 +333,56 @@ def test_superset_joins_with_limit_drops_matches(
 
 
 @with_feature_flags(ENABLE_SUPERSET_META_DB=True)
+def test_superset_comma_join_with_limit_drops_matches(
+    mocker: MockerFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    app_context: None,
+    table1_large: None,
+    table2_late_match: None,
+) -> None:
+    """
+    Regression for #36304: an implicit comma join (``FROM a, b WHERE ...``)
+    references two tables just like an explicit ``JOIN``, but doesn't contain
+    the literal `JOIN` keyword. Multi-table detection has to catch this shape
+    too, or the per-table limit still gets applied and silently drops matches.
+    """
+    # See test_superset_joins_with_limit_drops_matches for why monkeypatch is
+    # used here instead of `@with_config`.
+    monkeypatch.setitem(current_app.config, "DB_SQLA_URI_VALIDATOR", None)
+    monkeypatch.setitem(current_app.config, "SUPERSET_META_DB_LIMIT", 2)
+    monkeypatch.setitem(current_app.config, "DATABASE_OAUTH2_CLIENTS", {})
+    monkeypatch.setitem(current_app.config, "SQLALCHEMY_CUSTOM_PASSWORD_STORE", None)
+
+    mocker.patch(
+        "superset.extensions.metadb.security_manager.raise_for_access",
+        return_value=None,
+    )
+
+    from flask import g
+
+    g.user = mocker.MagicMock()
+    g.user.is_anonymous = False
+
+    try:
+        engine = create_engine("superset://", future=True)
+    except Exception as e:
+        # Skip test if superset:// dialect can't be loaded (common in Docker)
+        pytest.skip(f"Superset dialect not available: {e}")
+
+    with engine.connect() as conn:
+        results = conn.execute(
+            text("""
+            SELECT t1.b, t2.b
+            FROM "database1.table1_large" AS t1, "database2.table2_late_match" AS t2
+            WHERE t1.a = t2.a
+            """)
+        )
+        # Same scenario as test_superset_joins_with_limit_drops_matches, but
+        # using a comma join instead of the `JOIN` keyword.
+        assert list(results) == [(30, "thirty")]
+
+
+@with_feature_flags(ENABLE_SUPERSET_META_DB=True)
 def test_dml(
     mocker: MockerFixture,
     app_context: None,
