@@ -38,5 +38,10 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+    // Run in a non-UTC zone on purpose. Temporal formatting is UTC-based
+    // (Superset returns UTC timestamps), and a UTC test machine cannot tell a
+    // correct UTC formatter from a local one — that is how a whole-day date
+    // shift shipped green. Anything that regresses to local time fails here.
+    env: { TZ: 'America/New_York' },
   },
 });

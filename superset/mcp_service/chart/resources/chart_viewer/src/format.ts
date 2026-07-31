@@ -17,7 +17,7 @@
  * under the License.
  */
 import { format as d3Format } from 'd3-format';
-import { timeFormat } from 'd3-time-format';
+import { utcFormat } from 'd3-time-format';
 import type { DataColumn } from './types';
 
 const compact = d3Format('.3~s'); // e.g. 1.2M, 3.4k
@@ -71,16 +71,26 @@ export function formatByColumn(value: unknown, column?: DataColumn): string {
   return stripUntrustedMarkers(String(value));
 }
 
-const fmtDate = timeFormat('%b %-d, %Y');
-const fmtDateTime = timeFormat('%b %-d, %Y %H:%M');
-const fmtMonth = timeFormat('%b %Y');
+// Superset returns UTC timestamps, and the axis path normalises to an ISO
+// string before formatting. Rendering in the viewer's local zone shifted every
+// temporal value by their offset — a UTC-midnight date became the previous day
+// — so the widget disagreed with Superset itself, and the chart's axis (month
+// granularity) hid the shift while the accessible summary and table cells
+// exposed it. Format in UTC everywhere so every surface agrees.
+const fmtDate = utcFormat('%b %-d, %Y');
+const fmtDateTime = utcFormat('%b %-d, %Y %H:%M');
+const fmtMonth = utcFormat('%b %Y');
 
 /** Locale-aware date formatting that adapts granularity to the value. */
 export function formatDate(value: unknown): string {
   const d = toDate(value);
   if (!d) return String(value ?? '');
+  // UTC getters, to match the UTC formatters above: a date-only value must not
+  // acquire a spurious time component just because the viewer is offset.
   const hasTime =
-    d.getHours() !== 0 || d.getMinutes() !== 0 || d.getSeconds() !== 0;
+    d.getUTCHours() !== 0 ||
+    d.getUTCMinutes() !== 0 ||
+    d.getUTCSeconds() !== 0;
   if (hasTime) return fmtDateTime(d);
   return fmtDate(d);
 }

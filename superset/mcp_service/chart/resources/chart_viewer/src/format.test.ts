@@ -17,7 +17,12 @@
  * under the License.
  */
 import { describe, expect, it } from 'vitest';
-import { formatByColumn, stripUntrustedMarkers } from './format';
+import {
+  formatAxisDate,
+  formatByColumn,
+  formatDate,
+  stripUntrustedMarkers,
+} from './format';
 import type { DataColumn } from './types';
 
 describe('stripUntrustedMarkers', () => {
@@ -74,5 +79,30 @@ describe('formatByColumn', () => {
     expect(
       formatByColumn('<UNTRUSTED-CONTENT>Ships</UNTRUSTED-CONTENT>'),
     ).toBe('Ships');
+  });
+});
+
+describe('temporal values render in UTC, not the viewer’s zone', () => {
+  // Superset returns UTC timestamps. Formatting them locally shifted every
+  // date by the viewer's offset — a UTC-midnight date became the previous day
+  // with a spurious time — so table cells, tooltips and the accessible summary
+  // disagreed with Superset itself. The suite runs in America/New_York (see
+  // vite.config.ts) so a regression to local time fails here.
+  it('keeps a UTC-midnight date on its own calendar day', () => {
+    expect(formatDate('2026-01-01')).toBe('Jan 1, 2026');
+    expect(formatDate('2026-01-01T00:00:00Z')).toBe('Jan 1, 2026');
+  });
+
+  it('does not invent a time component for a date-only value', () => {
+    expect(formatDate('2026-03-15')).not.toMatch(/\d\d:\d\d/);
+  });
+
+  it('still shows the time when the timestamp genuinely has one', () => {
+    expect(formatDate('2026-01-01T13:45:00Z')).toBe('Jan 1, 2026 13:45');
+  });
+
+  it('agrees with the axis formatter on the month', () => {
+    // The axis renders at month granularity, which previously hid the shift.
+    expect(formatAxisDate('2026-01-01')).toBe('Jan 2026');
   });
 });
