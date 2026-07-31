@@ -115,6 +115,15 @@ const Footer = styled.div`
   `}
 `;
 
+const TruncationNotice = styled.div`
+  ${({ theme }) => `
+    padding: ${theme.sizeUnit * 2}px;
+    text-align: center;
+    color: ${theme.colorTextTertiary};
+    font-size: ${theme.fontSizeSM}px;
+  `}
+`;
+
 const PaddedContent = styled.div`
   ${({ theme }) => `
     padding: ${theme.sizeUnit * 4}px;
@@ -168,7 +177,7 @@ export default function VersionHistoryPanel({
   onOpenRelated,
   sessionEntries = [],
 }: VersionHistoryPanelProps) {
-  const { timeline, newestGroup, isLoading, error, hasMore, loadMore } =
+  const { timeline, newestGroup, isLoading, error, hasMore, truncated, loadMore } =
     activity;
 
   const includeOptions = useMemo(
@@ -298,6 +307,13 @@ export default function VersionHistoryPanel({
               {t('Load more')}
             </Button>
           </Footer>
+        )}
+        {!hasMore && truncated && timeline.length > 0 && (
+          // The server clips very long histories at a fetch ceiling; without
+          // saying so, the last loaded page reads as the beginning of time.
+          <TruncationNotice role="note">
+            {t('Older history exists but is beyond what can be shown here.')}
+          </TruncationNotice>
         )}
       </Body>
     </Panel>

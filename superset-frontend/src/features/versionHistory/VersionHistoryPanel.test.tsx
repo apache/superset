@@ -81,6 +81,7 @@ const activity = (
   isLoading: false,
   error: null,
   hasMore: false,
+  truncated: false,
   loadMore: jest.fn(),
   refresh: jest.fn(),
   ...overrides,
@@ -374,6 +375,25 @@ test('same-transaction related cascades roll up into one pluralized row', async 
   // The rolled-up entity names are listed in a tooltip.
   await userEvent.hover(headline);
   expect(await screen.findByText('Chart 7')).toBeInTheDocument();
+});
+
+test('a clipped history says so once the last page is reached', () => {
+  const props = defaultProps([group()]);
+  props.activity = activity([group()], { hasMore: false, truncated: true });
+  render(<VersionHistoryPanel {...props} />);
+
+  expect(
+    screen.getByText(/Older history exists but is beyond/),
+  ).toBeInTheDocument();
+});
+
+test('a complete history shows no truncation notice', () => {
+  const props = defaultProps([group()]);
+  render(<VersionHistoryPanel {...props} />);
+
+  expect(
+    screen.queryByText(/Older history exists but is beyond/),
+  ).not.toBeInTheDocument();
 });
 
 test('load more requests the next page', async () => {

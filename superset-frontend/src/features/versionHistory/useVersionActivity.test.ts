@@ -124,6 +124,39 @@ test('loadMore stops chaining after the per-click page cap', async () => {
   expect(result.current.hasMore).toBe(true);
 });
 
+test('surfaces the server truncation flag instead of dropping it', async () => {
+  // The server marks a clipped history with truncated ("count is a floor").
+  // Consuming it is what lets the panel say the history was cut rather than
+  // presenting the last loaded page as the beginning of time.
+  mockedFetchActivity.mockResolvedValue({
+    count: 1,
+    truncated: true,
+    result: [record(100, 0)],
+  });
+
+  const { result } = renderHook(() =>
+    useVersionActivity('chart', 'uuid-1', 'all'),
+  );
+
+  await waitFor(() => expect(result.current.timeline).toHaveLength(1));
+  expect(result.current.truncated).toBe(true);
+  expect(result.current.hasMore).toBe(false);
+});
+
+test('a response without the truncation flag reads as complete', async () => {
+  mockedFetchActivity.mockResolvedValue({
+    count: 1,
+    result: [record(100, 0)],
+  });
+
+  const { result } = renderHook(() =>
+    useVersionActivity('chart', 'uuid-1', 'all'),
+  );
+
+  await waitFor(() => expect(result.current.timeline).toHaveLength(1));
+  expect(result.current.truncated).toBe(false);
+});
+
 test('changing the search term refetches from page 0 with q', async () => {
   mockedFetchActivity.mockImplementation(async (_type, _uuid, options) => ({
     count: 1,

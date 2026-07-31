@@ -66,6 +66,13 @@ export interface ActivityRecord {
 export interface ActivityResponse {
   result: ActivityRecord[];
   count: number;
+  /**
+   * True when the server hit its per-kind fetch ceiling before reaching the
+   * oldest records — `count` is then a floor, and history older than the
+   * last page exists but cannot be paged to. Optional for resilience against
+   * older backend responses that predate the field.
+   */
+  truncated?: boolean;
 }
 
 export interface VersionChangedBy extends ActivityChangedBy {
@@ -197,4 +204,10 @@ export interface VersionHistoryState {
    * live entity changed underneath them (refetch + rehydrate).
    */
   restoreCount: number;
+  /**
+   * The entity the last restore happened to. The store outlives SPA
+   * navigation, so hooks must ignore restore bumps for entities other than
+   * the one their page shows.
+   */
+  lastRestoredEntityUuid: string | null;
 }

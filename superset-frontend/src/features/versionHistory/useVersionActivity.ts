@@ -49,6 +49,13 @@ export interface UseVersionActivityResult {
   isLoading: boolean;
   error: string | null;
   hasMore: boolean;
+  /**
+   * True when the server clipped the history at its fetch ceiling: `count`
+   * is a floor, and records older than the last page exist but cannot be
+   * paged to. The panel says so rather than presenting the clipped history
+   * as complete.
+   */
+  truncated: boolean;
   loadMore: () => void;
   refresh: () => void;
 }
@@ -65,6 +72,7 @@ export function useVersionActivity(
   const [records, setRecords] = useState<ActivityRecord[]>([]);
   const [newestGroup, setNewestGroup] = useState<SaveGroup | null>(null);
   const [count, setCount] = useState(0);
+  const [truncated, setTruncated] = useState(false);
   const [page, setPage] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -110,6 +118,7 @@ export function useVersionActivity(
           return;
         }
         setCount(response.count);
+        setTruncated(!!response.truncated);
         setPage(pageToLoad);
         const next = reset
           ? response.result
@@ -144,6 +153,7 @@ export function useVersionActivity(
   useEffect(() => {
     applyRecords([]);
     setCount(0);
+    setTruncated(false);
     setPage(0);
     fetchPage(0, true);
   }, [applyRecords, fetchPage]);
@@ -176,6 +186,7 @@ export function useVersionActivity(
           return;
         }
         total = response.count;
+        setTruncated(!!response.truncated);
         merged = mergeActivityPages(merged, response.result);
         const exhausted = (nextPage + 1) * PAGE_SIZE >= total;
         if (buildTimeline(merged).length > visibleBefore || exhausted) {
@@ -217,6 +228,7 @@ export function useVersionActivity(
     // server total, so cross-page duplicates can't strand a dead
     // "Load more" button.
     hasMore: (page + 1) * PAGE_SIZE < count,
+    truncated,
     loadMore,
     refresh,
   };
