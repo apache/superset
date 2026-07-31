@@ -892,17 +892,31 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # retention work doesn't add latency to user saves.
 
     _RETENTION_TASK_NAME: str = "version_history.prune_old_versions"
+    _PURGE_TASK_NAME: str = "deletion_retention.purge_soft_deleted"
 
     def _warn_if_retention_beat_missing(self) -> None:
-        """WARN at startup when the resolved Celery beat schedule has no
-        ``version_history.prune_old_versions`` entry.
+        """WARN at startup when the resolved Celery beat schedule is
+        missing a time-based retention task:
+
+        * ``version_history.prune_old_versions`` — checked always, since
+          shadow rows written by prior deploys keep ageing even when
+          capture is off;
+        * ``deletion_retention.purge_soft_deleted`` — checked only when
+          the ``SOFT_DELETE`` feature flag resolves on at the config
+          level, because the purge task itself no-ops while the flag is
+          off, so a missing entry is only actionable once soft delete is
+          live. (Flags supplied dynamically via ``GET_FEATURE_FLAGS_FUNC``
+          are not consulted here; this startup check reads configuration
+          only.)
 
         Operators who redefine ``CeleryConfig`` in ``superset_config.py``
         — instead of subclassing or merging the default — silently lose
-        the retention task. Capture continues writing rows; the prune
-        never runs; disk grows until paged. The default config carries
-        the entry; this check makes the misconfiguration visible in the
-        deploy log before disk pressure makes it visible at 03:00.
+        these tasks. Capture continues writing rows; the prune
+        never runs; disk grows until paged. Archived objects likewise
+        accumulate forever instead of purging after the retention window.
+        The default config carries both entries; this check makes the
+        misconfiguration visible in the deploy log before disk pressure
+        makes it visible at 03:00.
 
         Handles four shapes of ``CELERY_CONFIG``:
         * ``None`` — Celery deliberately disabled, no retention either
@@ -944,6 +958,24 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 "tables will grow unbounded. Either inherit from the "
                 "default CeleryConfig or add the entry to your override.",
                 self._RETENTION_TASK_NAME,
+            )
+        # Config-level flag resolution: the deployment's explicit
+        # FEATURE_FLAGS overrides the shipped defaults, mirroring how
+        # FeatureFlagManager.init_app seeds its dict before dynamic
+        # overrides.
+        feature_flags = {
+            **self.config.get("DEFAULT_FEATURE_FLAGS", {}),
+            **self.config.get("FEATURE_FLAGS", {}),
+        }
+        if feature_flags.get("SOFT_DELETE") and (
+            not beat_schedule or self._PURGE_TASK_NAME not in registered_tasks
+        ):
+            logger.warning(
+                "soft-delete: CELERY_CONFIG.beat_schedule is missing the "
+                "%r entry — archived objects will never be purged and "
+                "will accumulate indefinitely. Either inherit from the "
+                "default CeleryConfig or add the entry to your override.",
+                self._PURGE_TASK_NAME,
             )
 
     def init_app_in_ctx(self) -> None:
