@@ -72,6 +72,22 @@ def test_get_table_comment_empty(mocker: MockerFixture):
     )
 
 
+def test_get_table_comment_unexpected_error(mocker: MockerFixture):
+    """
+    Test that `get_table_comment` returns `None` instead of raising
+    when the inspector call fails unexpectedly.
+    """
+    from superset.db_engine_specs.db2 import Db2EngineSpec
+
+    mock_inspector = mocker.MagicMock()
+    mock_inspector.get_table_comment.side_effect = Exception("boom")
+
+    assert (
+        Db2EngineSpec.get_table_comment(mock_inspector, Table("my_table", "my_schema"))
+        is None
+    )
+
+
 def test_get_prequeries(mocker: MockerFixture) -> None:
     """
     Test the ``get_prequeries`` method.
