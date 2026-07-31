@@ -24,6 +24,46 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Principal listing APIs now honour related-field filters
+
+Two authorization-related listing behaviors changed for API clients. Neither
+affects the Superset UI — `include_ids` and `security/subject` have no frontend
+callers — but external clients will notice:
+
+- `GET /api/v1/<resource>/related/<column>?include_ids=...` now applies the
+  endpoint's `base_related_field_filters`. Previously the forced IDs were fetched
+  with no filtering, so a caller could resolve principals the related-field
+  filters deliberately hide; those IDs are now omitted from the response.
+- `GET /api/v1/security/subject/` now honours `EXCLUDE_USERS_FROM_LISTS` and
+  `EXTRA_RELATED_QUERY_FILTERS`, matching every other principal-listing endpoint.
+  List counts may drop, and fetching an excluded principal via
+  `GET /api/v1/security/subject/<id>` now returns `404`.
+
+### v1 chart import no longer re-adds the importer as editor on overwrite
+
+Re-importing over an existing chart (an overwrite or a soft-delete restore) no
+longer appends the importing user to the chart's `editors`, matching the
+dashboard importer's behavior. This changes anything only for a user who was not
+already an editor of that chart — typically an admin overwriting a chart they do
+not own, who was previously added as an editor as a side effect of the import.
+Newly-created charts are unaffected.
+### ClickHouse: system sampling queries retry with a bounded read
+
+System-generated sampling queries — filter-value dropdowns, the Samples
+tab/dataset preview, and datetime format detection — that ClickHouse rejects
+with a `max_rows_to_read` error (`TOO_MANY_ROWS`, code 158) are now retried
+once with `SETTINGS read_overflow_mode='break'` appended, so they return a
+partial result bounded by the operator's row cap instead of failing. The retry
+applies only to statements Superset generates for physical-table datasets;
+virtual datasets and user-authored SQL remain fully governed by configured
+read limits, and queries that already succeed are never altered. Operators who
+rely on `max_rows_to_read` as a hard failure gate for these system queries can
+restore the previous behavior per database with
+`"disable_sampling_read_limit_override": true` in the database's Extra JSON.
+Note that a retried query returns partial data with no truncation indicator
+(e.g. a filter dropdown may list only a subset of values on tables above the
+row cap).
+
 ### Dashboard "Export Data to Excel" requires a Celery worker and S3 bucket
 
 A new dashboard action exports every chart's data to a single multi-sheet
@@ -368,6 +408,16 @@ Entity version history (the `version_transaction` / `*_version` shadow tables th
 
 The task ships in the default `CeleryConfig.beat_schedule`; a deployment that overrides `CELERY_CONFIG` without inheriting the default will log a startup warning that the prune task is absent (so it never silently stops running). Retention only prunes whatever history exists — capture itself is gated separately by `ENABLE_VERSIONING_CAPTURE` (ships off).
 
+### Deletion retention (soft-deleted entities are eventually purged)
+
+Soft-deleted dashboards, charts, and datasets are now permanently removed after a retention window (default 30 days; `SOFT_DELETE_RETENTION_DAYS`, `0` disables; settable per workspace at runtime via the `deletion-retention set-window` CLI, which takes precedence). The `deletion_retention.purge_soft_deleted` Celery beat task runs daily and removes each aged-out entity together with its M:N join rows, owned children, datasource permission, and version-history shadow rows. After purge an entity is **unrecoverable** — its detail and `/restore` endpoints return 404 and its version history is gone.
+
+The introducing release **defaults to dry-run** (`SOFT_DELETE_PURGE_DRY_RUN=True`): the task logs `would_purge` counts but deletes nothing, so operators can validate against production before activating real purging by setting it to `False`. Note `would_purge` is an **upper bound** — it counts every entity past the retention window without evaluating deletion blockers, so a real run may purge fewer (entities referenced by report schedules or set as a user's welcome dashboard are blocked and reported separately). The task only acts while the temporary `SOFT_DELETE` rollout flag is on.
+
+Deployments that replace the default `CELERY_CONFIG` must add `superset.tasks.deletion_retention` to the Celery `imports` and schedule the `deletion_retention.purge_soft_deleted` task themselves. The shipped Docker development config includes both entries.
+
+Operators can immediately erase a specific entity for compliance (GDPR) via `superset deletion-retention force-purge --uuid <uuid>`; this applies legacy hard-delete semantics — a live chart referencing a force-purged dataset is left without a datasource until re-pointed (the chart is not modified), and it purges the named entity even when it was never soft-deleted. Every purge writes an immutable, content-free audit record to the new `purge_audit_log` table that survives the entity it names: the **scheduled** purge fails closed (an entity whose audit row cannot be written is skipped and retried next run), while **force-purge** proceeds even if the audit write fails — the operator is present and deletion outranks audit for a compliance erasure.
+
 ### Webhook alerts/reports block private/internal hosts by default
 
 Webhook alert/report dispatch (`WebhookNotification.send`) now validates the target URL's host against the same private/internal-IP block applied to dataset import URLs. If the resolved host is in a loopback, link-local, private (RFC-1918), shared-CGNAT, or multicast range, the webhook is rejected with `NotificationParamException`.
@@ -655,6 +705,12 @@ Added a new combined datasource list endpoint at `GET /api/v1/datasource/` to se
 - The endpoint is available to users with at least one of `can_read` on `Dataset` or `SemanticView`.
 - Semantic views are included only when the `SEMANTIC_LAYERS` feature flag is enabled.
 - The endpoint enforces strict `order_column` validation and returns `400` for invalid sort columns.
+
+### Custom time range "Now"/"Today" anchors resolve in local time
+
+Custom time ranges that use the "Now" or "Today" anchor (for the Start, End, or the relative anchor itself) previously resolved that anchor in UTC before formatting it into a naive datetime string, which was then re-parsed elsewhere as local time. For users outside UTC, this made the resolved anchor drift by their browser's UTC offset. "Now"/"Today" now resolve directly in local time, matching the later local re-parse.
+
+Charts and dashboards using these anchors will compute a different (correct) timestamp after upgrading; if a chart's filters or drill-downs were tuned to compensate for the old offset, review them after upgrading.
 
 ## 6.1.0
 

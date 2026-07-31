@@ -131,3 +131,34 @@ def test_time_grain_expressions(dttm: str, grain: str, expected: str) -> None:  
     with engine.connect() as connection:
         result = connection.execute(text(sql)).scalar()
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "year,expected",
+    [
+        (2013, "2013-01-01 00:00:00"),
+        (2013.0, "2013-01-01 00:00:00"),
+        (None, None),
+    ],
+)
+def test_year_pdf_time_grain(year: Optional[float], expected: Optional[str]) -> None:
+    """A bare four-digit year (e.g. the `year` column on the `video_game_sales`
+    example dataset) has no native date type; without `year_to_dttm` the raw
+    value is passed straight into the grain function, which SQLite reads as a
+    Julian day number rather than a calendar year, silently producing NULL."""
+    from sqlalchemy import column
+
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    engine = create_engine("sqlite://", future=True)
+    with engine.begin() as connection:
+        connection.execute(text("CREATE TABLE t (year REAL)"))
+        connection.execute(text("INSERT INTO t VALUES (:year)"), {"year": year})
+
+    expression = SqliteEngineSpec.get_timestamp_expr(
+        col=column("year"), pdf="%Y", time_grain=TimeGrain.YEAR
+    )
+    sql = f"SELECT {expression} FROM t"  # noqa: S608
+    with engine.connect() as connection:
+        result = connection.execute(text(sql)).scalar()
+    assert result == expected
