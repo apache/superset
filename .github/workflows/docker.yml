@@ -51,6 +51,42 @@ jobs:
           echo "matrix_config=${MATRIX_CONFIG}" >> $GITHUB_OUTPUT
           echo $GITHUB_OUTPUT
 
+  # Runs unconditionally (no dependency on `changes`, and no build-preset
+  # matrix restriction) so a regression in the PY_VER override logic is
+  # always caught on PRs. Without this, the real docker-build job only runs
+  # when the change detector flags docker/python/frontend changes (a
+  # workflow-only edit like this one does not), and even then the PR build
+  # matrix never includes the "py311"/"py312" presets that logic protects -
+  # so a break here would otherwise first surface on a push to master.
+  pyver-override-check:
+    name: verify docker build PY_VER override
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Assert PY_VER override applies to every preset except py311/py312
+        shell: bash
+        run: |
+          set -euo pipefail
+          for preset in dev lean websocket dockerize; do
+            flags="$(scripts/docker-build-extra-flags.sh "$preset" dummy-tag)"
+            if [[ "$flags" != *"--build-arg PY_VER=3.11.14-slim-trixie"* ]]; then
+              echo "::error::expected PY_VER override for preset '$preset', got: $flags"
+              exit 1
+            fi
+          done
+          for preset in py311 py312; do
+            flags="$(scripts/docker-build-extra-flags.sh "$preset" dummy-tag)"
+            if [[ "$flags" == *"--build-arg PY_VER="* ]]; then
+              echo "::error::preset '$preset' must keep its own PY_VER pin, but override was applied: $flags"
+              exit 1
+            fi
+          done
+          echo "PY_VER override logic verified for all build presets"
+
   docker-build:
     name: docker-build
     needs: [setup_matrix, changes]
@@ -124,23 +160,13 @@ jobs:
           # the whole job. buildx reuses the buildkit layer cache from the
           # failed attempt, so a retry mostly re-does just the failed push.
           #
-          # supersetbot's "dev"/"lean" presets pin their own --build-arg
-          # PY_VER, which lands ahead of --extra-flags on the assembled
-          # buildx command line; docker/buildx keeps the last value for a
-          # repeated --build-arg key, so appending PY_VER here overrides
-          # supersetbot's pin and keeps the build on the Dockerfile's own
-          # supported Python version.
-          #
-          # The "py311"/"py312" presets exist specifically to pin a
-          # *different* PY_VER than "dev"/"lean" (that's the whole point of
-          # those two presets), so they're excluded from this override.
-          # Without this exclusion, the PY_VER above clobbers theirs too
-          # (same last-value-wins rule), making "py311"/"py312" silently
-          # build the exact same image as "lean".
-          EXTRA_FLAGS="--build-arg INCLUDE_CHROMIUM=false --tag $IMAGE_TAG"
-          if [ "$BUILD_PRESET" != "py311" ] && [ "$BUILD_PRESET" != "py312" ]; then
-            EXTRA_FLAGS="--build-arg PY_VER=3.11.14-slim-trixie $EXTRA_FLAGS"
-          fi
+          # See scripts/docker-build-extra-flags.sh for why "py311"/"py312"
+          # are excluded from the PY_VER override applied to every other
+          # preset; that logic is also exercised on every PR by the
+          # always-on pyver-override-check job below, since this job itself
+          # only runs when the change detector flags docker/python/frontend
+          # changes and the PR build matrix never includes py311/py312.
+          EXTRA_FLAGS="$(scripts/docker-build-extra-flags.sh "$BUILD_PRESET" "$IMAGE_TAG")"
 
           for attempt in 1 2 3; do
             if supersetbot docker \
