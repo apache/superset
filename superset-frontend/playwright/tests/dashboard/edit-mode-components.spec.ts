@@ -87,24 +87,37 @@ async function createChart(
   return sliceName;
 }
 
-/** Options for the empty published dashboard every test in this file starts from. */
-const DASHBOARD_OPTIONS = { prefix: 'edit_mode', published: true } as const;
+/**
+ * Create the empty published dashboard every test in this file starts from,
+ * open it, and enter edit mode. Returns the page object positioned on the
+ * builder, ready for a drag.
+ */
+async function openEmptyDashboardInEditMode(
+  page: Page,
+  testAssets: TestAssets,
+  testInfo: TestInfo,
+): Promise<DashboardPage> {
+  const { id } = await createTestDashboard(page, testAssets, testInfo, {
+    prefix: 'edit_mode',
+    published: true,
+  });
+
+  const dashboard = new DashboardPage(page);
+  await dashboard.gotoById(id);
+  await dashboard.waitForLoad();
+  await dashboard.enterEditMode();
+  return dashboard;
+}
 
 testWithAssets(
   'edit mode: add a chart to the dashboard via drag-and-drop',
   async ({ page, testAssets }, testInfo) => {
     const sliceName = await createChart(page, testAssets, testInfo);
-    const { id: dashboardId } = await createTestDashboard(
+    const dashboard = await openEmptyDashboardInEditMode(
       page,
       testAssets,
       testInfo,
-      DASHBOARD_OPTIONS,
     );
-
-    const dashboard = new DashboardPage(page);
-    await dashboard.gotoById(dashboardId);
-    await dashboard.waitForLoad();
-    await dashboard.enterEditMode();
 
     await expect(dashboard.getChartHolders()).toHaveCount(0);
     await dashboard.addChartByName(sliceName);
@@ -116,17 +129,11 @@ testWithAssets(
   'edit mode: remove an added chart from the dashboard',
   async ({ page, testAssets }, testInfo) => {
     const sliceName = await createChart(page, testAssets, testInfo);
-    const { id: dashboardId } = await createTestDashboard(
+    const dashboard = await openEmptyDashboardInEditMode(
       page,
       testAssets,
       testInfo,
-      DASHBOARD_OPTIONS,
     );
-
-    const dashboard = new DashboardPage(page);
-    await dashboard.gotoById(dashboardId);
-    await dashboard.waitForLoad();
-    await dashboard.enterEditMode();
 
     await dashboard.addChartByName(sliceName);
     await expect(dashboard.getChartHolders()).toHaveCount(1);
@@ -142,17 +149,11 @@ testWithAssets(
     // Heaviest edit-mode flow (drag + ace edit + commit + mouse resize); give it
     // extra headroom so it stays reliable when the suite runs in parallel.
     testWithAssets.slow();
-    const { id: dashboardId } = await createTestDashboard(
+    const dashboard = await openEmptyDashboardInEditMode(
       page,
       testAssets,
       testInfo,
-      DASHBOARD_OPTIONS,
     );
-
-    const dashboard = new DashboardPage(page);
-    await dashboard.gotoById(dashboardId);
-    await dashboard.waitForLoad();
-    await dashboard.enterEditMode();
 
     await dashboard.addLayoutElement('Text / Markdown');
     const editor = dashboard.getMarkdownEditors().first();
