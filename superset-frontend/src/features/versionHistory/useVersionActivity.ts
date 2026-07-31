@@ -80,6 +80,12 @@ export function useVersionActivity(
   const [error, setError] = useState<string | null>(null);
   // Monotonic id so stale responses from a previous uuid/include are dropped.
   const fetchIdRef = useRef(0);
+  // The newest-self probe gets its own staleness counter: loadMore bumps
+  // fetchIdRef, and a click landing between a reset's page-0 response and
+  // its probe's response would otherwise discard the probe permanently —
+  // leaving the newest save untagged. Only a newer reset (or a uuid clear)
+  // supersedes a probe.
+  const probeIdRef = useRef(0);
   // Mirror of `records` so the chained loadMore loop can see the merged
   // result immediately. Kept in lock-step with setRecords by applyRecords —
   // never write either one directly.
@@ -103,7 +109,10 @@ export function useVersionActivity(
       const fetchId = fetchIdRef.current;
       if (!uuid) {
         // The invalidated in-flight request can no longer clear the
-        // spinner from its own finally block; clear it here.
+        // spinner from its own finally block; clear it here. In-flight
+        // probes are invalidated too — their result describes an entity
+        // this hook no longer shows.
+        probeIdRef.current += 1;
         setIsLoading(false);
         return;
       }
@@ -134,13 +143,15 @@ export function useVersionActivity(
         // one of those states, and refreshes after restores made while a
         // search is active.
         if (reset) {
+          probeIdRef.current += 1;
+          const probeId = probeIdRef.current;
           fetchActivity(entityType, uuid, {
             include: 'self',
             page: 0,
             pageSize: 1,
           })
             .then(probe => {
-              if (fetchId !== fetchIdRef.current) {
+              if (probeId !== probeIdRef.current) {
                 return;
               }
               setNewestGroup(

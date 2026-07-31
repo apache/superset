@@ -271,8 +271,11 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
           }
           liveDataRef.current = data;
           // A restored version behaves like a fresh page load: its own
-          // filter defaults, no carried-over selections.
-          hydrateWith(data.dashboard, data.charts, {});
+          // filter defaults, no carried-over selections. Explicitly not
+          // edit mode: a stale `?edit=true` in the URL (it outlives the
+          // navigation that set it) must not flip the page into edit mode
+          // as a side effect of the reload.
+          hydrateWith(data.dashboard, data.charts, {}, false);
         })
         .catch(() => {
           if (fetchId === fetchIdRef.current) {
@@ -382,10 +385,15 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
       appliedVersionRef.current = null;
       const liveData = liveDataRef.current;
       if (liveData) {
+        // Explicitly not edit mode: previews can only be entered from view
+        // mode (the unsaved-changes gate), so exit returns there. Without
+        // the override, a stale `?edit=true` in the URL would flip the page
+        // into edit mode as a side effect of closing the preview.
         hydrateWith(
           liveData.dashboard,
           liveData.charts,
           liveDataMaskRef.current ?? {},
+          false,
         );
       }
       liveDataMaskRef.current = null;

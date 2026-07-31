@@ -66,6 +66,13 @@ A dashboard preview reconstructs the layout as it was, including charts that
 have since been removed from the dashboard. A chart that has been deleted
 outright cannot be reconstructed; its slot shows a placeholder instead.
 
+Preview is a close approximation of the version, not a pixel-faithful
+replay: charts render with their current definitions rather than the
+definitions they had at that version, and properties outside the layout —
+the theme and description among them — show their live values. Restore
+applies the full captured state, so a restored dashboard can differ from
+its preview in these respects.
+
 ## Restoring a version
 
 **Restore** rewrites the entity back to the selected version. Two things are

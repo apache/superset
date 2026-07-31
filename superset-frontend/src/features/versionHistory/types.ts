@@ -23,7 +23,14 @@ export type ActivityInclude = 'self' | 'related' | 'all';
 
 export type ActivityEntityKind = 'chart' | 'dashboard' | 'dataset';
 
-export type ActivityOperation = 'add' | 'remove' | 'move' | 'edit' | 'announce';
+export type ActivityOperation =
+  | 'add'
+  | 'remove'
+  | 'move'
+  | 'edit'
+  // The server's summary verb for a field group collapsed at the record cap.
+  | 'update'
+  | 'announce';
 
 export type ActivityActionKind = 'restore' | 'import' | 'clone' | null;
 
