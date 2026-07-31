@@ -66,11 +66,7 @@ export const createAdhocMetricFromColumn = (
   } as Partial<AdhocMetric>;
   if (column.type_generic === GenericDataType.Numeric) {
     config.aggregate = AGGREGATES.SUM;
-  } else if (
-    column.type_generic === GenericDataType.String ||
-    column.type_generic === GenericDataType.Boolean ||
-    column.type_generic === GenericDataType.Temporal
-  ) {
+  } else {
     config.aggregate = AGGREGATES.COUNT_DISTINCT;
   }
   return new AdhocMetric(config);
