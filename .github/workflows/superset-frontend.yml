@@ -294,6 +294,14 @@ jobs:
 
       # Comparison + alert only -- this job never persists. See
       # frontend-bundle-size-nightly.yml for why.
+      #
+      # comment-on-alert is gated to same-repo PRs: on a fork PR,
+      # GITHUB_TOKEN is forced read-only regardless of the `permissions`
+      # block above, so once the alert threshold is crossed the action's
+      # `pulls.createReview` call 403s. That error isn't gated by
+      # fail-on-alert (which only governs the deliberate alert-threshold
+      # failure) -- it propagates and fails the job outright. Fork PRs
+      # still get the comparison via the job summary (summary-always).
       - name: Compare bundle size against nightly baseline
         uses: benchmark-action/github-action-benchmark@52576c92bccf6ac60c8223ec7eb2565637cae9ba # v1.22.1
         with:
@@ -301,7 +309,7 @@ jobs:
           output-file-path: bundle-size-summary.json
           external-data-json-path: bundle-size-history.json
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          comment-on-alert: true
+          comment-on-alert: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
           alert-threshold: "110%"
           fail-on-alert: false
           summary-always: true

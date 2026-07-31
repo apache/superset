@@ -27,6 +27,8 @@ jobs:
   refresh-baseline:
     runs-on: ubuntu-26.04
     timeout-minutes: 30
+    env:
+      NETLIFY_SITE_ID: ${{ secrets.NETLIFY_BUNDLE_ANALYZER_SITE_ID }}
     steps:
       - name: "Checkout master"
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -120,10 +122,9 @@ jobs:
       # that secret to turn this on; nothing else in this workflow depends
       # on it.
       - name: Publish bundle analyzer report to Netlify
-        if: ${{ secrets.NETLIFY_BUNDLE_ANALYZER_SITE_ID != '' }}
+        if: ${{ env.NETLIFY_SITE_ID != '' }}
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_BUNDLE_ANALYZER_SITE_ID }}
         run: |
           mkdir -p netlify-publish
           cp superset/static/assets/report.html netlify-publish/index.html
