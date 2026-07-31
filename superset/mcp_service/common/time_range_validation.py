@@ -35,13 +35,25 @@ The MCP tools are the surface that accepts free-form, model-generated
 strings, so the guard lives here instead: reject anything
 ``get_since_until()`` would silently discard, with a message that lists the
 accepted forms so the caller (an LLM) can self-correct.
+
+Acceptance is decided by *calling* ``get_since_until()`` and checking what
+comes back, not by re-implementing its grammar here. Mirroring the grammar
+would drift from the real parser and force a choice between rejecting valid
+freeform values (``Last Monday``, ``Last year to date``) and admitting
+malformed ones (``Last nonsense``, a bare ``Last``). Delegating gets both
+right by construction.
 """
 
 from __future__ import annotations
 
 import re
 
+from superset.commands.chart.exceptions import (
+    TimeRangeAmbiguousError,
+    TimeRangeParseFailError,
+)
 from superset.constants import NO_TIME_RANGE
+from superset.utils.date_parser import get_since_until
 
 # Bracket shorthands (e.g. "[year]", "[quarter]") are not a Superset
 # time-range grammar -- they appear when an LLM copies a grain token from a
@@ -73,37 +85,6 @@ _SUB_DAY_REMAINDER = re.compile(
     r"^(?:(\d{1,9})\s{1,5})?(second|minute|hour)s?$", re.IGNORECASE
 )
 
-# Mirrors the exact `startswith` prefixes get_since_until() checks (in
-# that order) before it will rewrite a separator-less time_range into a
-# " : "-bounded range. Case-sensitive to match get_since_until() exactly --
-# e.g. "Last week" parses, "last week" does not.
-_PREVIOUS_CALENDAR_PREFIXES = (
-    "previous calendar week",
-    "previous calendar month",
-    "previous calendar quarter",
-    "previous calendar year",
-)
-_CURRENT_PREFIXES = (
-    "Current day",
-    "Current week",
-    "Current month",
-    "Current quarter",
-    "Current year",
-)
-
-# Mirrors date_parser.get_since_until()'s nth_subunit_pattern, the one
-# separator-less grammar handled by a regex rather than a literal prefix
-# (e.g. "first week of this year"). Kept byte-for-byte in sync with that
-# pattern; the existing date_parser test suite is the guard against drift.
-_NTH_SUBUNIT_PATTERN = re.compile(
-    r"^(first|1st)\s{1,5}"
-    r"(week|month|quarter)\s{1,5}of\s{1,5}"
-    r"(?:(this|last|next|prior)\s{1,5})?"
-    r"(?:the\s{1,5})?"
-    r"(week|month|quarter|year)$",
-    re.IGNORECASE,
-)
-
 
 def _normalize_sub_day_last(value: str) -> str | None:
     """Rewrite a sub-day ``Last ...`` value into an explicit ``DATEADD`` range.
@@ -117,7 +98,7 @@ def _normalize_sub_day_last(value: str) -> str | None:
     ``Last 2 hours``. Anchoring both ends on ``now`` sidesteps the mismatch.
 
     Returns ``None`` when ``value`` is not a sub-day ``Last`` expression, in
-    which case the caller falls back to the prefix check.
+    which case the caller falls back to ``_resolves_to_bounded_range()``.
     """
     if not value.startswith(_LAST_PREFIX):
         return None
@@ -129,29 +110,34 @@ def _normalize_sub_day_last(value: str) -> str | None:
     return f"DATEADD(DATETIME('now'), -{quantity}, {unit}) : DATETIME('now')"
 
 
-def _has_recognized_bare_prefix(value: str) -> bool:
-    """Whether get_since_until() rewrites this separator-less value into a
-    bounded range, rather than silently discarding it.
+def _resolves_to_bounded_range(value: str) -> bool:
+    """Whether get_since_until() turns this separator-less value into a
+    range bounded on both ends.
 
-    Callers must check ``_normalize_sub_day_last()`` first: a bare "Last
-    <second|minute|hour>" value matches ``startswith("Last")`` here but
-    needs rewriting, not pass-through, so it isn't re-admitted as-is.
+    Asks the real parser instead of re-implementing its grammar, which is
+    what makes the accept/reject split exact:
 
-    ``Last``/``Next`` otherwise stay a broad prefix match on purpose:
-    get_since_until() hands the remainder to a freeform parser, so
-    ``Last Monday``, ``Last January``, ``Last year to date`` and
-    ``Last 3 days ago`` all resolve. Narrowing this to a unit whitelist
-    would reject them. An unparseable unit (``Last decade``) still raises a
-    loud ``TimeRangeParseFailError`` downstream -- noisy, but not the silent
-    full-table match this validator exists to prevent.
+    * ``Last 7 days``, ``Current week``, ``previous calendar year``,
+      ``first week of this year`` -- and freeform tails the parser handles
+      on its own, like ``Last Monday``, ``Last January``,
+      ``Last year to date`` -- all resolve, so they're accepted.
+    * ``banana``, ``this month``, lowercase ``last week`` resolve to an
+      unbounded ``(None, today)``: the silent full-table match this module
+      exists to catch.
+    * ``Last nonsense``, ``Last decade`` and a bare ``Last`` raise inside
+      the parser. Rejecting them here turns what would surface as a
+      low-level parse error deep in the query path into a field-level
+      ``ValidationError`` carrying the accepted-format guidance.
+
+    Sub-day ``Last`` values must be rewritten by ``_normalize_sub_day_last()``
+    before reaching this check -- they raise here, but the fix is to
+    normalize them, not to reject them.
     """
-    if value.startswith("Last") or value.startswith("Next"):
-        return True
-    if value.startswith(_PREVIOUS_CALENDAR_PREFIXES):
-        return True
-    if value.startswith(_CURRENT_PREFIXES):
-        return True
-    return bool(_NTH_SUBUNIT_PATTERN.match(value))
+    try:
+        since, until = get_since_until(time_range=value)
+    except (ValueError, TimeRangeParseFailError, TimeRangeAmbiguousError):
+        return False
+    return since is not None and until is not None
 
 
 def validate_time_range(value: str | None) -> str | None:
@@ -183,10 +169,15 @@ def validate_time_range(value: str | None) -> str | None:
     if (rewritten := _normalize_sub_day_last(stripped)) is not None:
         return rewritten
 
+    # A value carrying the separator is already an explicit "<start> : <end>"
+    # range, so it can't hit the silent unbounded fallback. Any parse failure
+    # in either half raises loudly downstream, which is a signal the caller
+    # can act on -- leave those to the parser rather than second-guessing
+    # them here, where the relative anchors may differ from the query's.
     if _SEPARATOR in stripped:
         return stripped
 
-    if _has_recognized_bare_prefix(stripped):
+    if _resolves_to_bounded_range(stripped):
         return stripped
 
     raise ValueError(

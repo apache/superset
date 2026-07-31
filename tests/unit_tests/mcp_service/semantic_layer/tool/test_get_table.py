@@ -588,3 +588,53 @@ class TestGetTableTimeRangeValidation:
             {"dataset_id": 1, "metrics": ["count"], "time_range": None}
         )
         assert req.time_range is None
+
+
+class TestGetTableTemporalRangeFilterValidation:
+    """A TEMPORAL_RANGE spelled out longhand in `filters` gets the same
+    validation as the dedicated `time_range` field -- otherwise the
+    identical silent full-table match stays reachable through that field.
+    """
+
+    @staticmethod
+    def _request(val: Any) -> dict[str, Any]:
+        return {
+            "dataset_id": 1,
+            "metrics": ["count"],
+            "filters": [{"col": "ts", "op": "TEMPORAL_RANGE", "val": val}],
+        }
+
+    @pytest.mark.parametrize("bad_value", ["banana", "this month", "Last nonsense"])
+    def test_malformed_temporal_range_filter_rejected(self, bad_value: str) -> None:
+        from pydantic import ValidationError
+
+        from superset.mcp_service.semantic_layer.schemas import GetTableRequest
+
+        with pytest.raises(ValidationError, match="Unrecognized time_range"):
+            GetTableRequest.model_validate(self._request(bad_value))
+
+    def test_temporal_range_filter_normalizes_like_time_range(self) -> None:
+        from superset.mcp_service.semantic_layer.schemas import GetTableRequest
+
+        req = GetTableRequest.model_validate(self._request("Last hour"))
+        assert req.filters[0].val == (
+            "DATEADD(DATETIME('now'), -1, HOUR) : DATETIME('now')"
+        )
+
+    def test_valid_temporal_range_filter_unchanged(self) -> None:
+        from superset.mcp_service.semantic_layer.schemas import GetTableRequest
+
+        req = GetTableRequest.model_validate(self._request("Last 7 days"))
+        assert req.filters[0].val == "Last 7 days"
+
+    def test_non_temporal_operator_value_untouched(self) -> None:
+        from superset.mcp_service.semantic_layer.schemas import GetTableRequest
+
+        req = GetTableRequest.model_validate(
+            {
+                "dataset_id": 1,
+                "metrics": ["count"],
+                "filters": [{"col": "fruit", "op": "==", "val": "banana"}],
+            }
+        )
+        assert req.filters[0].val == "banana"

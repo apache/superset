@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from superset.mcp_service.chart.schemas import DataColumn, PerformanceMetadata
 from superset.mcp_service.common.cache_schemas import CacheStatus
@@ -147,6 +147,18 @@ class GetTableFilter(BaseModel):
         default=None,
         description="Filter value. Use a list for 'IN'/'NOT IN' operators.",
     )
+
+    @model_validator(mode="after")
+    def _validate_temporal_range_val(self) -> "GetTableFilter":
+        """Hold a TEMPORAL_RANGE filter to the same grammar as ``time_range``.
+
+        This operator resolves through ``get_since_until()`` exactly like the
+        dedicated ``time_range`` field does, so an unparseable value here
+        produces the same silent full-table match.
+        """
+        if self.op == "TEMPORAL_RANGE" and isinstance(self.val, str):
+            self.val = validate_time_range(self.val)
+        return self
 
 
 class GetTableRequest(BaseModel):

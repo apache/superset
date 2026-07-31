@@ -1130,6 +1130,74 @@ class TestQueryDatasetTimeRangeValidation:
             )
 
 
+class TestQueryDatasetTemporalRangeFilterValidation:
+    """A TEMPORAL_RANGE spelled out longhand in `filters` gets the same
+    validation as the dedicated `time_range` field.
+
+    query_dataset forwards request.filters into the query verbatim, and
+    TEMPORAL_RANGE values resolve through get_since_until() just like
+    time_range does -- so validating only time_range would leave the
+    identical silent full-table match reachable through this field.
+    """
+
+    @staticmethod
+    def _request(val: Any) -> dict[str, Any]:
+        return {
+            "dataset_id": 1,
+            "metrics": ["count"],
+            "filters": [{"col": "ts", "op": "TEMPORAL_RANGE", "val": val}],
+        }
+
+    @pytest.mark.parametrize(
+        "bad_value",
+        ["banana", "this month", "last week", "[decade]", "Last nonsense"],
+    )
+    def test_malformed_temporal_range_filter_rejected(self, bad_value: str) -> None:
+        from pydantic import ValidationError
+
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        with pytest.raises(ValidationError, match="Unrecognized time_range"):
+            QueryDatasetRequest.model_validate(self._request(bad_value))
+
+    def test_temporal_range_filter_normalizes_like_time_range(self) -> None:
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(self._request("Last hour"))
+        assert req.filters[0].val == (
+            "DATEADD(DATETIME('now'), -1, HOUR) : DATETIME('now')"
+        )
+
+    @pytest.mark.parametrize("good_value", ["Last 7 days", "2024-01-01 : 2024-12-31"])
+    def test_valid_temporal_range_filter_unchanged(self, good_value: str) -> None:
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(self._request(good_value))
+        assert req.filters[0].val == good_value
+
+    def test_non_temporal_operator_value_untouched(self) -> None:
+        """Only TEMPORAL_RANGE goes through the time grammar -- 'banana' is
+        a perfectly good value to compare a text column against."""
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(
+            {
+                "dataset_id": 1,
+                "metrics": ["count"],
+                "filters": [{"col": "fruit", "op": "==", "val": "banana"}],
+            }
+        )
+        assert req.filters[0].val == "banana"
+
+    def test_non_string_temporal_value_left_to_downstream(self) -> None:
+        """A non-string val isn't a time_range expression at all; the time
+        grammar has nothing to say about it."""
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(self._request(None))
+        assert req.filters[0].val is None
+
+
 @pytest.mark.asyncio
 async def test_query_dataset_bracket_year_resolves_without_parse_error(
     mcp_server: FastMCP,

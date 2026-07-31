@@ -737,6 +737,20 @@ class QueryDatasetFilter(BaseModel):
         description="Filter value (omit for IS NULL/IS NOT NULL)",
     )
 
+    @model_validator(mode="after")
+    def _validate_temporal_range_val(self) -> "QueryDatasetFilter":
+        """Hold a TEMPORAL_RANGE filter to the same grammar as ``time_range``.
+
+        This operator resolves through ``get_since_until()`` exactly like the
+        dedicated ``time_range`` field does, so an unparseable value here
+        produces the same silent full-table match. Validating only
+        ``time_range`` would leave that gap open to any caller that spells
+        the same filter out longhand.
+        """
+        if self.op == "TEMPORAL_RANGE" and isinstance(self.val, str):
+            self.val = validate_time_range(self.val)
+        return self
+
 
 class QueryDatasetRequest(QueryCacheControl):
     """Request schema for query_dataset tool."""

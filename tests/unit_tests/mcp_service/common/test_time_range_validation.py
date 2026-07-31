@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import pytest
 
+from superset.commands.chart.exceptions import TimeRangeParseFailError
 from superset.mcp_service.common.time_range_validation import (
     BRACKET_SHORTHAND_TO_TIME_RANGE,
     validate_time_range,
@@ -237,3 +238,43 @@ class TestValidateTimeRangeRejectsSilentFailures:
 
         with pytest.raises(ValueError, match="Unrecognized time_range"):
             validate_time_range(value)
+
+
+class TestValidateTimeRangeRejectsMalformedPrefixes:
+    """A recognized prefix is not enough -- the value has to actually parse.
+
+    These start with "Last"/"Next" but blow up inside get_since_until(),
+    so they'd otherwise surface as a low-level parse error deep in the
+    query path instead of a field-level ValidationError the caller can act
+    on.
+    """
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "Last nonsense",
+            "Next nonsense",
+            "Last",
+            "Next",
+            "Lastly",
+            "Lastminute",
+            "Last decade",
+            "Last fortnight",
+        ],
+    )
+    def test_unparseable_prefixed_values_rejected(self, value: str) -> None:
+        # Confirm the premise: the raw value doesn't survive the parser.
+        with pytest.raises(TimeRangeParseFailError):
+            get_since_until(time_range=value)
+
+        with pytest.raises(ValueError, match="Unrecognized time_range"):
+            validate_time_range(value)
+
+    def test_prefix_lookalike_that_silently_matches_is_rejected(self) -> None:
+        """'Lasagna' starts with neither prefix but shares 'Las' -- it takes
+        the silent unbounded path, not the raising one."""
+        since, _ = get_since_until(time_range="Lasagna")
+        assert since is None
+
+        with pytest.raises(ValueError, match="Unrecognized time_range"):
+            validate_time_range("Lasagna")
