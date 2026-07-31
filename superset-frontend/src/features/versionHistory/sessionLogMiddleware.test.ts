@@ -106,6 +106,26 @@ test('clears the session log when the explore page hydrates', () => {
   });
 });
 
+test('a chart rename is logged as an unsaved change', () => {
+  // Renames travel through UPDATE_CHART_TITLE, not SET_FIELD_VALUE; without
+  // this the restore gate's dirty signal missed them and a restore silently
+  // discarded the rename.
+  const store = buildStore({
+    user: { firstName: 'Ada', lastName: 'Lovelace' },
+  });
+  run(store, { type: 'UPDATE_CHART_TITLE', sliceName: 'New name' });
+  expect(store.dispatch).toHaveBeenCalledWith(
+    expect.objectContaining({
+      type: APPEND_VERSION_SESSION_LOG,
+      entry: expect.objectContaining({
+        label: 'Renamed chart',
+        controlName: 'slice_name',
+        user: 'Ada Lovelace',
+      }),
+    }),
+  );
+});
+
 test('does nothing when the feature flag is disabled', () => {
   mockedIsFeatureEnabled.mockReturnValue(false);
   const store = buildStore();
@@ -129,5 +149,6 @@ test('inlined action-type literals match the real explore constants', async () =
   const exploreActions = await import('src/explore/actions/exploreActions');
   const hydrateExplore = await import('src/explore/actions/hydrateExplore');
   expect(middleware.SET_FIELD_VALUE).toBe(exploreActions.SET_FIELD_VALUE);
+  expect(middleware.UPDATE_CHART_TITLE).toBe(exploreActions.UPDATE_CHART_TITLE);
   expect(middleware.HYDRATE_EXPLORE).toBe(hydrateExplore.HYDRATE_EXPLORE);
 });

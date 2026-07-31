@@ -27,6 +27,7 @@ import { appendVersionSessionLog, clearVersionSessionLog } from './reducer';
 // suite can assert they match the real explore constants — a rename
 // there would otherwise silently kill the session log.
 export const SET_FIELD_VALUE = 'SET_FIELD_VALUE';
+export const UPDATE_CHART_TITLE = 'UPDATE_CHART_TITLE';
 export const HYDRATE_EXPLORE = 'HYDRATE_EXPLORE';
 
 interface SessionLogState {
@@ -63,6 +64,20 @@ export const versionSessionLogMiddleware: Middleware =
     }
     if (action.type === HYDRATE_EXPLORE) {
       store.dispatch(clearVersionSessionLog());
+    } else if (action.type === UPDATE_CHART_TITLE) {
+      // Renaming the chart is an unsaved change like any control edit, but it
+      // travels through its own action — without this branch the restore
+      // gate's dirty signal missed it and a restore silently discarded the
+      // rename.
+      const state = store.getState() as SessionLogState;
+      store.dispatch(
+        appendVersionSessionLog({
+          label: t('Renamed chart'),
+          controlName: 'slice_name',
+          ts: Date.now(),
+          user: userName(state),
+        }),
+      );
     } else if (
       action.type === SET_FIELD_VALUE &&
       typeof action.controlName === 'string' &&
