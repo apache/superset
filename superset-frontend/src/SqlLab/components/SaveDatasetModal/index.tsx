@@ -196,15 +196,38 @@ const updateDataset = async ({
 const UNTITLED = t('Untitled Dataset');
 
 /**
- * Split a search string typed against a `schema.table_name` label into its
- * schema and table parts. Everything before the first dot is treated as the
- * schema; a search with no dot is a plain table-name search.
+ * Datasets are unique by database, catalog, schema and table name, so the
+ * overwrite options are labelled with every part that is set — e.g.
+ * `examples.public.cleaned_sales_data`. Two datasets can otherwise render the
+ * same label and leave the user unable to tell which one they are about to
+ * overwrite.
  */
-const splitQualifiedSearch = (input: string): [string, string] => {
-  const separatorIndex = input.indexOf('.');
-  return separatorIndex === -1
-    ? ['', input]
-    : [input.slice(0, separatorIndex), input.slice(separatorIndex + 1)];
+const qualifiedLabel = (dataset: {
+  database?: { database_name?: string };
+  catalog?: string | null;
+  schema?: string | null;
+  table_name: string;
+}) =>
+  [
+    dataset.database?.database_name,
+    dataset.catalog,
+    dataset.schema,
+    dataset.table_name,
+  ]
+    .filter(Boolean)
+    .join('.');
+
+/**
+ * Break a search typed against those labels into its dot-separated parts. The
+ * trailing part is the table name the user is after — unless they have just
+ * typed a separator, in which case everything so far is qualification.
+ */
+const parseQualifiedSearch = (input: string) => {
+  const parts = input.split('.').filter(Boolean);
+  return {
+    parts,
+    tableSearch: input.endsWith('.') ? '' : (parts[parts.length - 1] ?? ''),
+  };
 };
 
 // The filters param is only used to test jinja templates.
@@ -333,13 +356,13 @@ export const SaveDatasetModal = ({
   };
 
   const loadDatasetOverwriteOptions = useCallback(async (input = '') => {
-    // Options are labelled `schema.table_name`, so the search string can carry
-    // a schema prefix. Split it and filter on both columns server-side: sending
-    // the whole string as a table_name filter matches nothing as soon as the
-    // user types the dot, and on a list that spans several pages the rows that
-    // should have matched may never be fetched for a client-side filter to
-    // recover.
-    const [schemaSearch, tableSearch] = splitQualifiedSearch(input);
+    // Only the table-name part of the search can be pushed to the API: the
+    // qualifiers in a label are spread over three columns, one of which
+    // (`database`) is a relationship the list endpoint cannot match on by
+    // name. Sending the whole string as a `table_name` filter would match
+    // nothing the moment the user types a separator, so send the table part
+    // and let filterAutocompleteOption narrow the qualifiers.
+    const { tableSearch } = parseQualifiedSearch(input);
 
     const queryParams = rison.encode({
       filters: [
@@ -348,15 +371,6 @@ export const SaveDatasetModal = ({
           opr: 'ct',
           value: tableSearch,
         },
-        ...(schemaSearch
-          ? [
-              {
-                col: 'schema',
-                opr: 'ct',
-                value: schemaSearch,
-              },
-            ]
-          : []),
         {
           col: 'id',
           opr: 'is_editable',
@@ -375,13 +389,15 @@ export const SaveDatasetModal = ({
           table_name: string;
           id: number;
           editors: Subject[];
-          schema?: string;
+          database?: { database_name?: string };
+          catalog?: string | null;
+          schema?: string | null;
         }) => ({
           // `id` is unique; `table_name` is not. Keying options by the table
           // name collapses same-named datasets onto a single Select key, which
           // renders duplicate rows and makes the overwrite target ambiguous.
           value: r.id,
-          label: r.schema ? `${r.schema}.${r.table_name}` : r.table_name,
+          label: qualifiedLabel(r),
           datasetId: r.id,
           editors: r.editors,
         }),
@@ -462,18 +478,12 @@ export const SaveDatasetModal = ({
     inputValue: string,
     option: DatasetOverwriteOption,
   ) => {
-    const search = inputValue.toLowerCase();
     const label = option.label.toLowerCase();
-    if (!search.includes('.')) {
-      return label.includes(search);
-    }
-    // Mirror the server-side split, so this local pass (which only exists to
-    // hide options left over from an earlier search) can never hide a row the
-    // API deliberately returned — e.g. `prod.` matching schema `production`.
-    const [schemaSearch, tableSearch] = splitQualifiedSearch(search);
-    const [optionSchema, optionTable] = splitQualifiedSearch(label);
-    return (
-      optionSchema.includes(schemaSearch) && optionTable.includes(tableSearch)
+    // Every part the user typed has to appear somewhere in the label, but not
+    // in any particular position: a dataset may or may not have a catalog, and
+    // a search like `examples.sales` skipping the schema should still match.
+    return parseQualifiedSearch(inputValue.toLowerCase()).parts.every(part =>
+      label.includes(part),
     );
   };
 

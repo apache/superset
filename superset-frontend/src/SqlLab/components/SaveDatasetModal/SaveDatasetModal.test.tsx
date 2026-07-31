@@ -248,19 +248,31 @@ describe('SaveDatasetModal', () => {
   });
 
   test('distinguishes datasets that share a table name and overwrites the selected one', async () => {
-    // Two editable datasets in different schemas sharing one table name. Keying
-    // the options by table_name collapsed them onto a single Select key, which
+    // Datasets are unique by database, catalog, schema and table name, so the
+    // same table name can legitimately appear several times. Keying the
+    // options by table_name collapsed them onto a single Select key, which
     // rendered duplicated rows and made the overwrite target ambiguous.
     const sameNameDatasets = [
       {
         ...mockdatasets[0],
         id: 11,
+        database: { database_name: 'warehouse' },
         schema: 'staging',
         table_name: 'task_instance',
       },
       {
         ...mockdatasets[0],
         id: 22,
+        database: { database_name: 'warehouse' },
+        schema: 'prod',
+        table_name: 'task_instance',
+      },
+      // Same schema and table as the one above — only the database differs
+      {
+        ...mockdatasets[0],
+        id: 33,
+        database: { database_name: 'analytics' },
+        catalog: 'reporting',
         schema: 'prod',
         table_name: 'task_instance',
       },
@@ -274,6 +286,7 @@ describe('SaveDatasetModal', () => {
       ...Array.from({ length: PAGE_SIZE * 2 }, (_, i) => ({
         ...mockdatasets[0],
         id: 1000 + i,
+        database: { database_name: 'warehouse' },
         schema: `schema_${i}`,
         table_name: `table_${i}`,
       })),
@@ -288,11 +301,9 @@ describe('SaveDatasetModal', () => {
           endpoint.slice(endpoint.indexOf('q=') + 2),
         ) as { filters: { col: string; opr: string; value: any }[] };
         const matches = allDatasets.filter(dataset =>
-          filters.every(({ col, value }) => {
-            if (col === 'table_name') return dataset.table_name.includes(value);
-            if (col === 'schema') return (dataset.schema ?? '').includes(value);
-            return true;
-          }),
+          filters.every(({ col, value }) =>
+            col === 'table_name' ? dataset.table_name.includes(value) : true,
+          ),
         );
         return Promise.resolve({
           json: { result: matches.slice(0, PAGE_SIZE), count: matches.length },
@@ -300,16 +311,17 @@ describe('SaveDatasetModal', () => {
       });
     const putSpy = jest
       .spyOn(SupersetClient, 'put')
-      .mockResolvedValue({ json: { result: { id: 22 } } } as any);
+      .mockResolvedValue({ json: { result: { id: 33 } } } as any);
 
     renderModal();
 
     await userEvent.click(
       screen.getByRole('radio', { name: /overwrite existing/i }),
     );
-    await userEvent.click(
-      screen.getByRole('combobox', { name: /existing dataset/i }),
-    );
+    const combobox = screen.getByRole('combobox', {
+      name: /existing dataset/i,
+    });
+    await userEvent.click(combobox);
     await act(async () => {
       jest.runAllTimers();
     });
@@ -318,25 +330,29 @@ describe('SaveDatasetModal', () => {
       expect(loading === null || !loading.checkVisibility()).toBe(true);
     });
 
-    const combobox = screen.getByRole('combobox', {
-      name: /existing dataset/i,
-    });
-
-    // Each dataset appears exactly once, under its own schema-qualified label
+    // Each dataset appears exactly once, under its own fully qualified label
     await userEvent.type(combobox, 'task_instance');
     await act(async () => {
       jest.runAllTimers();
     });
-    expect(await screen.findAllByText('staging.task_instance')).toHaveLength(1);
-    expect(await screen.findAllByText('prod.task_instance')).toHaveLength(1);
+    expect(
+      await screen.findAllByText('warehouse.staging.task_instance'),
+    ).toHaveLength(1);
+    expect(
+      await screen.findAllByText('warehouse.prod.task_instance'),
+    ).toHaveLength(1);
+    expect(
+      await screen.findAllByText('analytics.reporting.prod.task_instance'),
+    ).toHaveLength(1);
 
-    // Typing a schema prefix narrows the list to a single row. The prefix has
-    // to reach the API as a `schema` filter — sending `prod.task_instance` as
-    // a table_name filter matches nothing, and with the list spanning several
-    // pages the wanted row is not in memory for a client-side filter to save.
+    // Qualifying the search narrows the list down — skipping the catalog is
+    // fine, the parts just have to be present. The table part still has to
+    // reach the API: sending the whole string as a table_name filter would
+    // match nothing, and with the list spanning several pages the wanted row
+    // is not in memory for the local filter to fall back on.
     await userEvent.clear(combobox);
     await userEvent.click(combobox);
-    await userEvent.type(combobox, 'prod.task_instance');
+    await userEvent.type(combobox, 'analytics.prod.task_instance');
     await act(async () => {
       jest.runAllTimers();
     });
@@ -345,12 +361,17 @@ describe('SaveDatasetModal', () => {
     });
     await waitFor(() =>
       expect(
-        screen.queryByText('staging.task_instance'),
+        screen.queryByText('warehouse.prod.task_instance'),
       ).not.toBeInTheDocument(),
     );
+    expect(
+      screen.queryByText('warehouse.staging.task_instance'),
+    ).not.toBeInTheDocument();
 
-    // Picking the prod row must target dataset 22, not the staging one
-    await userEvent.click(screen.getByText('prod.task_instance'));
+    // Picking that row must target dataset 33, not either warehouse dataset
+    await userEvent.click(
+      screen.getByText('analytics.reporting.prod.task_instance'),
+    );
     await userEvent.click(screen.getByRole('button', { name: /overwrite/i }));
     await screen.findByText(/are you sure you want to overwrite this dataset/i);
     await userEvent.click(screen.getByRole('button', { name: /overwrite/i }));
@@ -358,7 +379,7 @@ describe('SaveDatasetModal', () => {
     await waitFor(() => {
       expect(
         putSpy.mock.calls.some(([req]) =>
-          req.endpoint?.includes('api/v1/dataset/22'),
+          req.endpoint?.includes('api/v1/dataset/33'),
         ),
       ).toBe(true);
     });
