@@ -32,7 +32,11 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { SVGRenderer } from 'echarts/renderers';
 import { echarts } from './echarts';
 
-import { chartDataToEChartsOption, buildSparklineOption } from './adapter';
+import {
+  buildSparklineOption,
+  chartDataToEChartsOption,
+  resolveBigNumber,
+} from './adapter';
 import { getThemeTokens } from './theme';
 import type { ChartData, DataColumn, ViewType } from './types';
 
@@ -174,14 +178,17 @@ describe('ECharts renders the adapter’s options for real', () => {
     }
   });
 
-  it('renders the big-number sparkline option', () => {
+  it('renders the big-number sparkline via the real resolve -> build path', () => {
     const chart = echarts.init(el, undefined, RENDER_OPTS);
     try {
-      const option = buildSparklineOption(timeSeries(['revenue']), theme);
-      // buildSparklineOption may legitimately return null when there is no
-      // temporal column; with one present it must produce a usable option.
-      expect(option).not.toBeNull();
-      expect(() => chart.setOption(option!)).not.toThrow();
+      // Mirror BigNumber.tsx: resolveBigNumber produces the spark series,
+      // which is what buildSparklineOption consumes.
+      const { spark } = resolveBigNumber(timeSeries(['revenue']));
+      // A temporal column is present, so a sparkline must be derivable.
+      expect(spark).not.toBeNull();
+      expect(() =>
+        chart.setOption(buildSparklineOption(spark!, theme)),
+      ).not.toThrow();
     } finally {
       chart.dispose();
     }
