@@ -19,14 +19,14 @@
 import { SqlaFormData } from '@superset-ui/core';
 
 // Mock getStandardizedControls so we can assert the Waterfall control panel
-// actually consumes (shifts/pops) the queued metrics and columns instead of
+// actually consumes (shifts) the queued metric and column instead of
 // leaving them for the next viz-type switch to pick up again. Regression
 // test for https://github.com/apache/superset/issues/32835, where switching
 // away from and back to another chart type (e.g. Line) produced duplicate
 // metrics because Waterfall never drained the shared standardized-controls
 // queue.
 const mockShiftMetric = jest.fn(() => 'shiftedMetric');
-const mockPopAllColumns = jest.fn(() => ['poppedColumn']);
+const mockShiftColumn = jest.fn(() => 'shiftedColumn');
 
 jest.mock('@superset-ui/chart-controls', () => {
   const actual = jest.requireActual('@superset-ui/chart-controls');
@@ -34,7 +34,7 @@ jest.mock('@superset-ui/chart-controls', () => {
     ...actual,
     getStandardizedControls: jest.fn(() => ({
       shiftMetric: mockShiftMetric,
-      popAllColumns: mockPopAllColumns,
+      shiftColumn: mockShiftColumn,
     })),
   };
 });
@@ -42,7 +42,7 @@ jest.mock('@superset-ui/chart-controls', () => {
 // eslint-disable-next-line import/first
 import controlPanel from '../../src/Waterfall/controlPanel';
 
-test('formDataOverrides consumes a single metric and all columns from getStandardizedControls', () => {
+test('formDataOverrides consumes a single metric and a single column from getStandardizedControls', () => {
   expect(controlPanel.formDataOverrides).toBeDefined();
 
   const dummyFormData = { someProp: 'test' } as unknown as SqlaFormData;
@@ -56,7 +56,10 @@ test('formDataOverrides consumes a single metric and all columns from getStandar
   expect(newFormData.metric).toBe('shiftedMetric');
   expect(mockShiftMetric).toHaveBeenCalled();
 
-  // all queued columns are consumed for the (single) groupby control
-  expect(newFormData.groupby).toEqual(['poppedColumn']);
-  expect(mockPopAllColumns).toHaveBeenCalled();
+  // only a single column is taken for the (single-value) groupby control,
+  // leaving any remaining queued columns for the next viz-type switch;
+  // popping the whole queue here would let buildQuery group by columns
+  // that transformProps (which only reads groupby[0]) never renders.
+  expect(newFormData.groupby).toEqual(['shiftedColumn']);
+  expect(mockShiftColumn).toHaveBeenCalled();
 });

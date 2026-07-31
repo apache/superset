@@ -17,6 +17,7 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
+import { ensureIsArray } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlSubSectionHeader,
@@ -249,7 +250,13 @@ const config: ControlPanelConfig = {
   formDataOverrides: formData => ({
     ...formData,
     metric: getStandardizedControls().shiftMetric(),
-    groupby: getStandardizedControls().popAllColumns(),
+    // Waterfall's `groupby` is a single-value control (multi: false;
+    // buildQuery groups by the whole array but transformProps only reads
+    // groupby[0]), so only one column should be taken off the queue here.
+    // Using popAllColumns() would let a memorized multi-column breakdown
+    // (e.g. from Table/Pivot) push extra dimensions into the SQL query
+    // that never surface in the rendered chart.
+    groupby: ensureIsArray(getStandardizedControls().shiftColumn()),
   }),
 };
 
