@@ -30,6 +30,7 @@ from flask import g
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.dashboard.schemas import (
+    DashboardInfo,
     ListDashboardsRequest,
 )
 from superset.mcp_service.dashboard.tool.get_dashboard_info import (
@@ -577,6 +578,43 @@ async def test_get_dashboard_info_permalink_key_includes_filter_state(
     assert "filter_state" in result.data
     assert result.data["is_permalink_state"] is True
     assert result.data["permalink_key"] == "some-key"
+
+
+@patch("superset.mcp_service.mcp_core.ModelGetInfoCore.run_tool")
+@patch.object(get_dashboard_info_module, "_get_permalink_state")
+@pytest.mark.asyncio
+async def test_get_dashboard_info_resolves_permalink_without_identifier(
+    mock_permalink, mock_run_tool, mcp_server
+):
+    mock_permalink.return_value = {
+        "dashboardId": "42",
+        "state": {"activeTabs": ["TAB-A"], "dataMask": {}},
+    }
+    mock_run_tool.return_value = DashboardInfo(id=42, dashboard_title="Sales Dashboard")
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_dashboard_info", {"request": {"permalink_key": "shared-key"}}
+        )
+
+    assert result.data["id"] == 42
+    assert result.data["permalink_key"] == "shared-key"
+    assert result.data["filter_state"]["activeTabs"] == [_wrapped("TAB-A")]
+    mock_run_tool.assert_called_once_with("42")
+
+
+@patch.object(get_dashboard_info_module, "_get_permalink_state", return_value=None)
+@pytest.mark.asyncio
+async def test_get_dashboard_info_invalid_permalink_is_actionable(
+    mock_permalink, mcp_server
+):
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_dashboard_info", {"request": {"permalink_key": "expired-key"}}
+        )
+
+    assert result.data["error_type"] == "permalink_not_found"
+    assert "fresh shared dashboard link" in result.data["error"]
 
 
 def test_refresh_request_user_for_permalink_access(
