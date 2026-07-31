@@ -1104,10 +1104,12 @@ def test_monkeypatch_handles_missing_bigquery_package() -> None:
 
 
 def test_identifier_quote_uses_backticks() -> None:
-    """BigQuery quotes identifiers with backticks, not ANSI double quotes."""
+    """BigQuery quotes identifiers with backticks, not ANSI double quotes, and
+    escapes an embedded backtick with a backslash rather than by doubling it."""
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 
     assert BigQueryEngineSpec.get_public_information()["identifier_quote"] == {
         "start": "`",
         "end": "`",
+        "escape_by_doubling": False,
     }

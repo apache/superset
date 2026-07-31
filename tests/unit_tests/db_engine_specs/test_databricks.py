@@ -1100,10 +1100,12 @@ def test_identifier_quote_uses_backticks() -> None:
     assert DatabricksNativeEngineSpec.get_public_information()["identifier_quote"] == {
         "start": "`",
         "end": "`",
+        "escape_by_doubling": True,
     }
     assert DatabricksPythonConnectorEngineSpec.get_public_information()[
         "identifier_quote"
     ] == {
         "start": "`",
         "end": "`",
+        "escape_by_doubling": True,
     }

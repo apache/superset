@@ -25,4 +25,5 @@ def test_identifier_quote_uses_square_brackets() -> None:
     assert SybaseEngineSpec.get_public_information()["identifier_quote"] == {
         "start": "[",
         "end": "]",
+        "escape_by_doubling": True,
     }

@@ -399,4 +399,5 @@ def test_identifier_quote_uses_backticks() -> None:
     assert MySQLEngineSpec.get_public_information()["identifier_quote"] == {
         "start": "`",
         "end": "`",
+        "escape_by_doubling": True,
     }

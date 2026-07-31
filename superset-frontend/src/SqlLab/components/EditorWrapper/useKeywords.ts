@@ -55,21 +55,34 @@ const getHelperText = (value: string) =>
   };
 
 // Names that aren't simple identifiers (spaces, punctuation, leading digits)
-// must be quoted to be valid SQL. The quote characters are dialect-specific
-// (e.g. ANSI double quotes, MySQL/MariaDB backticks, SQL Server square brackets)
-// and are provided by the backend's database engine spec via `engine_information`
-// so the mapping isn't duplicated here. Embedded quote characters are escaped by
-// doubling the closing character.
-type IdentifierQuote = { start: string; end: string };
-const ANSI_QUOTE: IdentifierQuote = { start: '"', end: '"' };
+// must be quoted to be valid SQL. The quote characters (and how an embedded
+// closing-quote character is escaped) are dialect-specific and are provided
+// by the backend's database engine spec via `engine_information` so the
+// mapping isn't duplicated here. Most dialects (ANSI double quotes,
+// MySQL/MariaDB backticks, SQL Server square brackets) escape by doubling
+// the closing character; BigQuery's GoogleSQL backtick identifiers are the
+// documented exception, escaping with a backslash instead.
+type IdentifierQuote = {
+  start: string;
+  end: string;
+  escape_by_doubling?: boolean;
+};
+const ANSI_QUOTE: IdentifierQuote = {
+  start: '"',
+  end: '"',
+  escape_by_doubling: true,
+};
 const SIMPLE_IDENTIFIER_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const quoteIdentifier = (
   identifier: string,
-  { start, end }: IdentifierQuote = ANSI_QUOTE,
-) =>
-  SIMPLE_IDENTIFIER_RE.test(identifier)
-    ? identifier
-    : `${start}${identifier.split(end).join(`${end}${end}`)}${end}`;
+  { start, end, escape_by_doubling = true }: IdentifierQuote = ANSI_QUOTE,
+) => {
+  if (SIMPLE_IDENTIFIER_RE.test(identifier)) {
+    return identifier;
+  }
+  const escapedEnd = escape_by_doubling ? `${end}${end}` : `\\${end}`;
+  return `${start}${identifier.split(end).join(escapedEnd)}${end}`;
+};
 
 const extensionsRegistry = getExtensionsRegistry();
 

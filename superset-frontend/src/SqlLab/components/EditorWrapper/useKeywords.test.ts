@@ -216,6 +216,11 @@ test.each([
   ['mariadb', { start: '`', end: '`' }, '`COVID Vaccines`'],
   ['mssql', { start: '[', end: ']' }, '[COVID Vaccines]'],
   ['postgresql', { start: '"', end: '"' }, '"COVID Vaccines"'],
+  [
+    'bigquery',
+    { start: '`', end: '`', escape_by_doubling: false },
+    '`COVID Vaccines`',
+  ],
 ])(
   'quotes table identifiers using the engine-provided quote characters for %s',
   async (_dialect, identifierQuote, expectedValue) => {
@@ -301,6 +306,84 @@ test.each([
     });
     expect(editor.completer.insertMatch).toHaveBeenCalledWith(
       `${expectedValue} `,
+    );
+  },
+);
+
+test.each([
+  [
+    'mysql',
+    { start: '`', end: '`', escape_by_doubling: true },
+    '`COVID``Vaccines`',
+  ],
+  [
+    'bigquery',
+    { start: '`', end: '`', escape_by_doubling: false },
+    '`COVID\\`Vaccines`',
+  ],
+])(
+  'escapes an embedded closing-quote character per the %s engine-provided escape strategy',
+  async (_dialect, identifierQuote, expectedValue) => {
+    const dbFunctionNamesApiRoute = `glob:*/api/v1/database/${expectDbId}/function_names/`;
+    fetchMock.get(dbFunctionNamesApiRoute, fakeFunctionNamesApiResult);
+
+    const storeWithBackend = createStore(
+      {
+        ...initialState,
+        sqlLab: {
+          ...initialState.sqlLab,
+          databases: {
+            [expectDbId]: {
+              engine_information: { identifier_quote: identifierQuote },
+            },
+          },
+        },
+      },
+      reducers,
+    );
+
+    act(() => {
+      storeWithBackend.dispatch(
+        tableApiUtil.upsertQueryData(
+          'tables',
+          { dbId: expectDbId, schema: expectSchema },
+          {
+            options: [
+              {
+                value: 'COVID`Vaccines',
+                label: 'COVID`Vaccines',
+                type: 'table',
+              },
+            ],
+            hasMore: false,
+          },
+        ),
+      );
+    });
+
+    const { result } = renderHook(
+      () =>
+        useKeywords({
+          queryEditorId: 'testqueryid',
+          dbId: expectDbId,
+          schema: expectSchema,
+        }),
+      {
+        wrapper: createWrapper({
+          useRedux: true,
+          store: storeWithBackend,
+        }),
+      },
+    );
+
+    await waitFor(() =>
+      expect(result.current).toContainEqual(
+        expect.objectContaining({
+          name: 'COVID`Vaccines',
+          value: expectedValue,
+          meta: 'table',
+        }),
+      ),
     );
   },
 );

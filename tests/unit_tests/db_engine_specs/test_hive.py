@@ -261,6 +261,7 @@ def test_identifier_quote_uses_backticks() -> None:
     assert HiveEngineSpec.get_public_information()["identifier_quote"] == {
         "start": "`",
         "end": "`",
+        "escape_by_doubling": True,
     }
 
 
@@ -271,4 +272,5 @@ def test_spark_identifier_quote_uses_backticks() -> None:
     assert SparkEngineSpec.get_public_information()["identifier_quote"] == {
         "start": "`",
         "end": "`",
+        "escape_by_doubling": True,
     }

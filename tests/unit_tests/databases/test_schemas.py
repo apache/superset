@@ -57,3 +57,35 @@ def test_engine_information_schema_includes_identifier_quote() -> None:
     )
 
     assert result["identifier_quote"] == {"start": "`", "end": "`"}
+
+
+def test_engine_information_schema_includes_identifier_quote_escape_by_doubling() -> (
+    None
+):
+    """
+    escape_by_doubling tells the client whether an embedded closing-quote
+    character is escaped by doubling it or with a backslash (e.g. BigQuery).
+    """
+    from superset.databases.schemas import EngineInformationSchema
+
+    schema = EngineInformationSchema()
+    result = schema.dump(
+        {
+            "supports_file_upload": True,
+            "disable_ssh_tunneling": False,
+            "supports_dynamic_catalog": False,
+            "supports_oauth2": False,
+            "supports_offset": False,
+            "identifier_quote": {
+                "start": "`",
+                "end": "`",
+                "escape_by_doubling": False,
+            },
+        }
+    )
+
+    assert result["identifier_quote"] == {
+        "start": "`",
+        "end": "`",
+        "escape_by_doubling": False,
+    }

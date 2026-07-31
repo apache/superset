@@ -1179,6 +1179,15 @@ class IdentifierQuoteSchema(Schema):
     end = fields.String(
         metadata={"description": "Character that closes a quoted identifier"}
     )
+    escape_by_doubling = fields.Boolean(
+        metadata={
+            "description": (
+                "Whether an embedded closing-quote character is escaped by "
+                "doubling it (True) or with a backslash escape (False, e.g. "
+                "BigQuery's GoogleSQL backtick identifiers)"
+            )
+        }
+    )
 
 
 class EngineInformationSchema(Schema):
