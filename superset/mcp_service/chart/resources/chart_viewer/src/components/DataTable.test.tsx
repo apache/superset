@@ -174,7 +174,7 @@ test('sorting applies across all rows, not just the visible page', () => {
   render(<DataTable data={bigTable()} />);
   // Descending on the numeric column must surface the global maximum, which
   // lives on the last page of the unsorted data.
-  const salesHeader = container!.querySelectorAll('th')[1] as HTMLElement;
+  const salesHeader = container!.querySelectorAll('.sv-th-sort')[1] as HTMLElement;
   act(() => salesHeader.click()); // asc
   act(() => salesHeader.click()); // desc
   expect(cellText(0, 1)).toBe('999');
@@ -184,11 +184,31 @@ test('sorting applies across all rows, not just the visible page', () => {
 test('re-sorting returns to the first page', () => {
   render(<DataTable data={bigTable()} />);
   click('[aria-label="Next page"]');
-  const header = container!.querySelectorAll('th')[0] as HTMLElement;
+  const header = container!.querySelectorAll('.sv-th-sort')[0] as HTMLElement;
   act(() => header.click());
   expect(container!.querySelector('.sv-page-count')!.textContent).toContain(
     '1 /',
   );
+});
+
+test('sorting is reachable by keyboard and announced', () => {
+  render(<DataTable data={bigTable()} />);
+  // A click handler on a <th> is invisible to keyboard and screen-reader
+  // users; the control has to be a real button inside the header cell.
+  const headers = Array.from(container!.querySelectorAll('th'));
+  expect(headers.every((th) => th.querySelector('button.sv-th-sort'))).toBe(
+    true,
+  );
+  expect(headers.map((th) => th.getAttribute('aria-sort'))).toEqual([
+    'none',
+    'none',
+  ]);
+  act(() => (headers[0].querySelector('button') as HTMLElement).click());
+  expect(headers[0].getAttribute('aria-sort')).toBe('ascending');
+  // The table announces what it is and how big it is.
+  const caption = container!.querySelector('caption')!;
+  expect(caption.textContent).toContain('Orders');
+  expect(caption.textContent).toContain('1000 rows');
 });
 
 test('strips untrusted-content markers from paginated cells', () => {

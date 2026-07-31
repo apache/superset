@@ -53,6 +53,9 @@ export function ExportMenu({ actions, note }: Props): JSX.Element | null {
     };
     const onKeyDown = (e: KeyboardEvent): void => {
       if (e.key === 'Escape') {
+        // The menu is the top-most layer, so it consumes Escape rather than
+        // letting it also collapse a maximized widget.
+        e.stopPropagation();
         setOpen(false);
         triggerRef.current?.focus();
       }

@@ -19,6 +19,7 @@
 import type { JSX } from 'react';
 import type { DataColumn, ViewType } from '../types';
 import { CATEGORICAL_PALETTE } from '../theme';
+import { ChipGroup } from './ChipGroup';
 import { ExportMenu, type ExportAction } from './ExportMenu';
 
 const VIEW_LABELS: Record<ViewType, string> = {
@@ -66,45 +67,49 @@ export function Toolbar({
     activeView !== 'scatter';
 
   return (
-    <div className="sv-toolbar">
+    <div className="sv-toolbar" role="toolbar" aria-label="Chart controls">
       {views.length > 1 && (
-        <div className="sv-chip-group" role="group" aria-label="View type">
-          {views.map((v) => (
-            <button
-              key={v}
-              type="button"
-              className="sv-chip"
-              aria-pressed={activeView === v}
-              onClick={() => onViewChange(v)}
-            >
-              {VIEW_LABELS[v]}
-            </button>
-          ))}
-        </div>
+        <ChipGroup
+          label="View type"
+          chips={views.map((v) => ({
+            key: v,
+            label: VIEW_LABELS[v],
+            ariaLabel: `${VIEW_LABELS[v]} view`,
+            pressed: activeView === v,
+            onSelect: () => onViewChange(v),
+          }))}
+        />
       )}
 
       {showMetricChips && (
-        <div className="sv-chip-group" role="group" aria-label="Metrics">
-          {metricColumns.map((col, i) => {
-            const active = activeMetrics.includes(col.name);
-            return (
-              <button
-                key={col.name}
-                type="button"
-                className="sv-chip sv-metric-chip"
-                aria-pressed={active}
-                onClick={() => onToggleMetric(col.name)}
-                style={{ opacity: active ? 1 : 0.5 }}
-              >
-                <span
-                  className="sv-metric-swatch"
-                  style={{ background: CATEGORICAL_PALETTE[i % CATEGORICAL_PALETTE.length] }}
-                />
-                {col.display_name || col.name}
-              </button>
-            );
+        <ChipGroup
+          label="Metrics"
+          chips={metricColumns.map((col, i) => {
+            const name = col.display_name || col.name;
+            return {
+              key: col.name,
+              className: 'sv-metric-chip',
+              ariaLabel: `Show ${name}`,
+              pressed: activeMetrics.includes(col.name),
+              onSelect: () => onToggleMetric(col.name),
+              style: {
+                opacity: activeMetrics.includes(col.name) ? 1 : 0.5,
+              },
+              label: (
+                <>
+                  <span
+                    className="sv-metric-swatch"
+                    style={{
+                      background:
+                        CATEGORICAL_PALETTE[i % CATEGORICAL_PALETTE.length],
+                    }}
+                  />
+                  {name}
+                </>
+              ),
+            };
           })}
-        </div>
+        />
       )}
 
       <div className="sv-spacer" />

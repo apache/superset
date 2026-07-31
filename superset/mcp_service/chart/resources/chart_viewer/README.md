@@ -214,6 +214,32 @@ report success without the clipboard changing — which is why "Show CSV" exists
 None of this has been exercised against Claude or ChatGPT themselves; the
 verification above is a faithful local emulation of the sandbox, not the hosts.
 
+## Accessibility
+
+- **Text alternative for the chart.** `describeChart()` produces a sentence
+  naming the view, the measures, the dimension and the span ("Pie chart
+  \"Sales\": share of Sold by Product Line across 4 categories. Largest is
+  Classic Cars at 33,992 (45%)…"). It is fed to ECharts' `aria` option, which
+  puts `role="img"` + `aria-label` on the chart container, and repeated in a
+  `role="status"` region so switching views is announced.
+- **Keyboard.** Each chip group is a single tab stop with arrow-key/Home/End
+  movement inside it (WAI-ARIA toolbar pattern) — otherwise reaching the export
+  menu meant tabbing through every view and metric chip. The export menu opens
+  with ArrowDown, cycles with arrows and closes with Escape, restoring focus to
+  its trigger. Table sorting is a real `<button>` inside each `<th>`, not a
+  click handler on the cell.
+- **Announced state.** `aria-pressed` on chips, `aria-sort` on table headers, a
+  screen-reader `<caption>` on the table, `aria-live` on the row-range readout,
+  `role="status"`/`role="alert"` on the empty/error states.
+- **Focus and motion.** One `:focus-visible` ring for every control, and
+  `prefers-reduced-motion` collapses the widget's animations.
+
+Verified in headless Chrome inside the sandboxed frame: the chart container
+carries `role="img"` with the description, the six view chips expose exactly one
+tab stop, the tab order is Maximize → chips → Export, and arrow keys plus Enter
+switch views with a visible focus ring. Not audited with a real screen reader,
+and no automated axe/WCAG scan runs in CI.
+
 ## Magic moments implemented
 
 1. **Animated view morphing** — switching line ⇄ bar ⇄ area uses ECharts

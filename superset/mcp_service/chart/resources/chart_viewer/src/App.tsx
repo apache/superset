@@ -43,6 +43,7 @@ import {
   chartDataToEChartsOption,
   classifyColumns,
   defaultViewForChartType,
+  describeChart,
   isCartesianView,
   isEChartsView,
 } from './adapter';
@@ -621,6 +622,12 @@ export function App(): JSX.Element {
     <DataTable data={data} />
   ) : (
     <>
+      {/* The canvas itself is opaque to assistive tech. ECharts labels its
+          container; this status region additionally announces the change
+          when the user switches views. */}
+      <p className="sv-sr-only" role="status">
+        {describeChart(data, view, roles?.numeric)}
+      </p>
       {drill.active && (
         <div className="sv-reset-pill">
           <button

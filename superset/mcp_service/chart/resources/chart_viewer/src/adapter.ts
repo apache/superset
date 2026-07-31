@@ -161,30 +161,120 @@ export function chartDataToEChartsOption(
       ? roles.numeric.filter((c) => options.activeMetrics!.includes(c.name))
       : roles.numeric;
 
+  if (viewType === 'big_number') {
+    // Big number is rendered by a React component, not ECharts; return an
+    // empty option (App decides which renderer to mount).
+    return {};
+  }
+
+  let option: EChartsOption;
   switch (viewType) {
-    case 'big_number':
-      // Big number is rendered by a React component, not ECharts; return an
-      // empty option (App decides which renderer to mount).
-      return {};
     case 'pie':
-      return buildPie(data, roles, activeNumeric, options.theme);
+      option = buildPie(data, roles, activeNumeric, options.theme);
+      break;
     case 'scatter':
       // A scatter needs two measures. Metric chips can narrow the active set
       // below that, so fall back to the full numeric set before giving up.
-      return buildScatter(
+      option = buildScatter(
         data,
         roles,
         activeNumeric.length >= 2 ? activeNumeric : roles.numeric,
         options.theme,
       );
+      break;
     case 'bar':
-      return buildCartesian(data, roles, activeNumeric, options.theme, 'bar');
+      option = buildCartesian(data, roles, activeNumeric, options.theme, 'bar');
+      break;
     case 'area':
-      return buildCartesian(data, roles, activeNumeric, options.theme, 'area');
+      option = buildCartesian(data, roles, activeNumeric, options.theme, 'area');
+      break;
     case 'line':
     default:
-      return buildCartesian(data, roles, activeNumeric, options.theme, 'line');
+      option = buildCartesian(data, roles, activeNumeric, options.theme, 'line');
   }
+
+  // A canvas is opaque to assistive technology, so every rendered option
+  // carries a text alternative that ECharts puts on the container element.
+  return {
+    ...option,
+    aria: {
+      enabled: true,
+      label: {
+        enabled: true,
+        description: describeChart(data, viewType, activeNumeric),
+      },
+    },
+  };
+}
+
+const VIEW_NOUNS: Record<ViewType, string> = {
+  line: 'Line chart',
+  bar: 'Bar chart',
+  area: 'Area chart',
+  pie: 'Pie chart',
+  scatter: 'Scatter plot',
+  table: 'Table',
+  big_number: 'Big number',
+};
+
+/**
+ * One-sentence text alternative for a rendered chart: what it plots, over how
+ * many points, and where the shape actually is. Pure and exported so the
+ * wording is testable rather than buried in a canvas.
+ */
+export function describeChart(
+  data: ChartData,
+  viewType: ViewType,
+  numeric?: DataColumn[],
+): string {
+  const roles = classifyColumns(data);
+  const measures = (numeric?.length ? numeric : roles.numeric).map(
+    (c) => c.display_name || c.name,
+  );
+  const rows = data.data ?? [];
+  const noun = VIEW_NOUNS[viewType] ?? 'Chart';
+  const name = stripUntrustedMarkers(data.chart_name || 'Chart');
+  if (!rows.length) return `${noun} "${name}": no data.`;
+
+  const dim = roles.strings[0] ?? roles.dimension;
+  if (viewType === 'pie' && dim && measures.length) {
+    const slices = buildPieSlices(
+      data,
+      (numeric?.length ? numeric : roles.numeric)[0],
+      dim,
+    );
+    const total = slices.reduce((sum, s) => sum + s.value, 0);
+    const top = slices[0];
+    const share = top && total > 0 ? Math.round((top.value / total) * 100) : 0;
+    return (
+      `${noun} "${name}": share of ${measures[0]} by ` +
+      `${dim.display_name || dim.name} across ${slices.length} categories. ` +
+      `Largest is ${top?.name} at ${formatFull(top?.value)} (${share}%). ` +
+      `Switch to the table view for every value.`
+    );
+  }
+
+  if (viewType === 'scatter' && measures.length >= 2) {
+    return (
+      `${noun} "${name}": ${measures[1]} against ${measures[0]} ` +
+      `over ${rows.length} points. Switch to the table view for every value.`
+    );
+  }
+
+  const dimension = roles.dimension;
+  const span =
+    dimension && rows.length > 1
+      ? `, from ${formatByColumn(rows[0][dimension.name], dimension)} to ` +
+        `${formatByColumn(rows[rows.length - 1][dimension.name], dimension)}`
+      : '';
+  const by = dimension
+    ? ` by ${dimension.display_name || dimension.name}`
+    : '';
+  return (
+    `${noun} "${name}": ${measures.join(', ') || 'no measures'}${by} ` +
+    `over ${rows.length} points${span}. ` +
+    `Switch to the table view for every value.`
+  );
 }
 
 type SeriesKind = 'line' | 'bar' | 'area';

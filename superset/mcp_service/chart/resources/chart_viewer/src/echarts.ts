@@ -25,6 +25,7 @@
 import * as echarts from 'echarts/core';
 import { LineChart, BarChart, PieChart, ScatterChart } from 'echarts/charts';
 import {
+  AriaComponent,
   GridComponent,
   TooltipComponent,
   LegendComponent,
@@ -40,6 +41,8 @@ echarts.use([
   BarChart,
   PieChart,
   ScatterChart,
+  // Puts a text alternative on the chart container for screen readers.
+  AriaComponent,
   GridComponent,
   TooltipComponent,
   LegendComponent,

@@ -39,7 +39,11 @@ export function CopyPanel({ title, text, onClose }: Props): JSX.Element {
     areaRef.current?.focus();
     areaRef.current?.select();
     const onKeyDown = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        // Dismiss this layer only; do not also collapse a maximized widget.
+        e.stopPropagation();
+        onClose();
+      }
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);

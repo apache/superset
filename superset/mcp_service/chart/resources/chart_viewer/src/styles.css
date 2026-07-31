@@ -26,6 +26,37 @@
   box-sizing: border-box;
 }
 
+/* Available to screen readers, invisible on screen. */
+.sv-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* One visible focus ring for every interactive control. Keyboard focus must
+   never be invisible; :focus-visible keeps it off pointer interactions. */
+:focus-visible {
+  outline: 2px solid var(--sv-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 html,
 body,
 #root {
@@ -499,15 +530,33 @@ body {
   color: var(--sv-text-secondary);
   font-weight: 600;
   text-align: left;
-  padding: 9px 12px;
+  padding: 0;
   border-bottom: 1px solid var(--sv-border);
-  cursor: pointer;
   user-select: none;
   white-space: nowrap;
 }
 
-.sv-table thead th:hover {
+/* The sort control fills the header cell so the click target is unchanged. */
+.sv-th-sort {
+  appearance: none;
+  width: 100%;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  text-align: inherit;
+  padding: 9px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.sv-table thead th:hover .sv-th-sort {
   color: var(--sv-text-primary);
+}
+
+.sv-table th.sv-num .sv-th-sort {
+  text-align: right;
 }
 
 .sv-table th.sv-num,

@@ -18,7 +18,7 @@
  */
 import { useEffect, useMemo, useState, type JSX } from 'react';
 import type { ChartData, DataColumn } from '../types';
-import { formatByColumn, toNumber } from '../format';
+import { formatByColumn, stripUntrustedMarkers, toNumber } from '../format';
 
 type SortDir = 'asc' | 'desc';
 
@@ -123,6 +123,10 @@ export function DataTable({
     <div className="sv-table-view">
       <div className="sv-table-scroll">
         <table className="sv-table">
+          <caption className="sv-sr-only">
+            {stripUntrustedMarkers(data.chart_name)} — {slice.total} rows,{' '}
+            {columns.length} columns. Column headers sort the whole result.
+          </caption>
           <thead>
             <tr>
               {columns.map((col) => (
@@ -137,15 +141,22 @@ export function DataTable({
                         : 'descending'
                       : 'none'
                   }
-                  onClick={() => toggleSort(col.name)}
-                  title={`Sort by ${col.display_name || col.name}`}
                 >
-                  {col.display_name || col.name}
-                  {sortCol === col.name && (
-                    <span className="sv-sort-caret">
-                      {sortDir === 'asc' ? '▲' : '▼'}
-                    </span>
-                  )}
+                  {/* A button, not a click handler on the th: sorting has to
+                      be reachable by keyboard and announced as actionable. */}
+                  <button
+                    type="button"
+                    className="sv-th-sort"
+                    onClick={() => toggleSort(col.name)}
+                    title={`Sort by ${col.display_name || col.name}`}
+                  >
+                    {col.display_name || col.name}
+                    {sortCol === col.name && (
+                      <span className="sv-sort-caret" aria-hidden="true">
+                        {sortDir === 'asc' ? '▲' : '▼'}
+                      </span>
+                    )}
+                  </button>
                 </th>
               ))}
             </tr>

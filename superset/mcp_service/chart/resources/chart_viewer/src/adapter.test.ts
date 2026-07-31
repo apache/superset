@@ -24,6 +24,7 @@ import {
   chartDataToEChartsOption,
   classifyColumns,
   defaultViewForChartType,
+  describeChart,
   isCartesianView,
   isEChartsView,
   pieTooltipFormatter,
@@ -495,6 +496,80 @@ describe('scatter view', () => {
     expect(html).not.toContain('<script>');
     expect(html).not.toContain('<b>x</b>');
     expect(html).toContain('&lt;script&gt;');
+  });
+});
+
+describe('text alternative for the chart', () => {
+  const series = makeData({
+    chart_name: '<UNTRUSTED-CONTENT>\nRevenue\n</UNTRUSTED-CONTENT>',
+    columns: [
+      col({ name: 'ds', display_name: 'Date', data_type: 'temporal' }),
+      col({ name: 'rev', display_name: 'Revenue', data_type: 'numeric' }),
+    ],
+    data: [
+      { ds: '2026-01-01', rev: 10 },
+      { ds: '2026-02-01', rev: 20 },
+    ],
+    row_count: 2,
+  });
+
+  test('every ECharts-backed option carries an aria description', () => {
+    for (const view of ['line', 'bar', 'area'] as const) {
+      const option = chartDataToEChartsOption(series, view, opts) as any;
+      expect(option.aria.enabled).toBe(true);
+      expect(option.aria.label.description).toContain('Revenue');
+    }
+    // The big-number view is plain DOM text; no ECharts instance to label.
+    expect(chartDataToEChartsOption(series, 'big_number', opts)).toEqual({});
+  });
+
+  test('names the view, the measures, the dimension and the span', () => {
+    const text = describeChart(series, 'line');
+    expect(text).toContain('Line chart');
+    expect(text).toContain('Revenue by Date');
+    expect(text).toContain('over 2 points');
+    expect(text).toContain('Jan 1, 2026 to Feb 1, 2026');
+    // Never leak the model-facing trust markers into the accessible name.
+    expect(text).not.toContain('UNTRUSTED-CONTENT');
+  });
+
+  test('a pie is described by its largest share', () => {
+    const pie = makeData({
+      chart_name: 'Sales',
+      chart_type: 'pie',
+      columns: [
+        col({ name: 'country', display_name: 'Country', data_type: 'string' }),
+        col({ name: 'sales', display_name: 'Sales', data_type: 'numeric' }),
+      ],
+      data: [
+        { country: 'US', sales: 75 },
+        { country: 'CA', sales: 25 },
+      ],
+      row_count: 2,
+    });
+    const text = describeChart(pie, 'pie');
+    expect(text).toContain('share of Sales by Country');
+    expect(text).toContain('2 categories');
+    expect(text).toContain('Largest is US at 75 (75%)');
+  });
+
+  test('a scatter names both axes', () => {
+    const scatter = makeData({
+      columns: [
+        col({ name: 'spend', display_name: 'Spend', data_type: 'numeric' }),
+        col({ name: 'rev', display_name: 'Revenue', data_type: 'numeric' }),
+      ],
+      data: [{ spend: 1, rev: 2 }],
+      row_count: 1,
+    });
+    expect(describeChart(scatter, 'scatter')).toContain(
+      'Revenue against Spend',
+    );
+  });
+
+  test('an empty result says so rather than describing nothing', () => {
+    const empty = makeData({ chart_name: 'Nothing', columns: [], data: [] });
+    expect(describeChart(empty, 'line')).toBe('Line chart "Nothing": no data.');
   });
 });
 
