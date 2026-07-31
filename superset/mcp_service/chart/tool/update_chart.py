@@ -117,6 +117,13 @@ def _build_update_payload(
             parsed_config, dataset_id=effective_dataset_id
         )
         new_form_data.pop("_mcp_warnings", None)
+        if getattr(parsed_config, "column_config", None) is None:
+            try:
+                existing_form_data = json.loads(chart.params) if chart.params else {}
+            except (ValueError, TypeError):
+                existing_form_data = {}
+            if existing_column_config := existing_form_data.get("column_config"):
+                new_form_data["column_config"] = existing_column_config
 
         chart_name = (
             request.chart_name

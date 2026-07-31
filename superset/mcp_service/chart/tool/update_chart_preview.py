@@ -186,6 +186,10 @@ def update_chart_preview(  # noqa: C901
                 old_adhoc_filters = previous_form_data.get("adhoc_filters")
                 if old_adhoc_filters:
                     new_form_data["adhoc_filters"] = old_adhoc_filters
+            if getattr(config, "column_config", None) is None and previous_form_data:
+                old_column_config = previous_form_data.get("column_config")
+                if old_column_config:
+                    new_form_data["column_config"] = old_column_config
 
             # Tier-1 schema validation against the dataset (no DB roundtrip).
             # Runs AFTER the filter merge so filter columns are also validated.
