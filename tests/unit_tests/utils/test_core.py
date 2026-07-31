@@ -359,6 +359,46 @@ def test_normalize_dttm_col_with_offset() -> None:
     assert df["date_col"][2].strftime("%Y-%m-%d %H:%M:%S") == "2022-01-01 03:00:00"
 
 
+def test_normalize_dttm_col_second_precision_no_offset_matches_source() -> None:
+    """Regression test for #37925: second-precision timestamps with no
+    dataset offset configured ("UTC", i.e. offset=0) and no time shift must
+    pass through ``normalize_dttm_col`` unchanged and identically to their
+    source values, with no per-row drift.
+
+    The issue reports charts showing datetimes shifted by inconsistent,
+    non-uniform amounts versus the same data in SQL Lab, with the reporter's
+    own examples showing each shift exactly equal to that row's own
+    time-of-day (e.g. 16:30:00 shifted by +16h30m, 10:00:00 by +10h,
+    14:20:00 by +14h20m). ``normalize_dttm_col`` applies a single
+    ``_col.offset``/``_col.time_shift`` uniformly via ``timedelta(...)`` to
+    the whole column (see ``test_normalize_dttm_col_with_offset`` above,
+    already green), which cannot structurally produce a shift that varies
+    per row based on that row's own value, so this function is not the
+    mechanism the issue describes. This test locks in the specific
+    reported config (offset=0, no time_shift, second-level grain, multiple
+    distinct timestamps) end to end to make that explicit.
+    """
+    source_values = [
+        "2026-02-15 16:30:00",
+        "2026-02-15 10:00:00",
+        "2026-02-11 14:20:00",
+    ]
+    df = pd.DataFrame({"dttm": source_values})
+    dttm_cols = (
+        DateColumn(
+            col_label="dttm",
+            timestamp_format="%Y-%m-%d %H:%M:%S",
+            offset=0,
+            time_shift=None,
+        ),
+    )
+
+    normalize_dttm_col(df, dttm_cols)
+
+    assert is_datetime64_dtype(df["dttm"])
+    assert df["dttm"].dt.strftime("%Y-%m-%d %H:%M:%S").tolist() == source_values
+
+
 def test_normalize_dttm_col_with_time_shift() -> None:
     """Test with time shift."""
     df = pd.DataFrame({"date_col": ["2020-01-01", "2021-01-01", "2022-01-01"]})
