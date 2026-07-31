@@ -18,6 +18,7 @@
 """Unit tests for the render_chart MCP Apps tools."""
 
 import importlib
+import re
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
@@ -227,7 +228,10 @@ async def test_render_chart_registered_with_ui_meta(app: Any) -> None:
     ui = (tool.meta or {}).get("ui")
     assert ui is not None
     assert CHART_VIEWER_URI == RESOURCE_CHART_VIEWER_URI
-    assert CHART_VIEWER_URI.endswith("/v2")
+    # Version suffix is required: hosts cache the bundle by URI, so shipping a
+    # changed widget depends on being able to bump it. The specific number is
+    # not pinned here, or every bump would fail this test.
+    assert re.fullmatch(r"ui://superset/chart-viewer/v\d+", CHART_VIEWER_URI)
     assert ui["resourceUri"] == CHART_VIEWER_URI
     assert ui["visibility"] == ["model", "app"]
     # Exempt from structured-content stripping, so the widget can read it.

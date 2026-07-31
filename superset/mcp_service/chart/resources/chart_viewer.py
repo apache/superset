@@ -20,7 +20,7 @@ MCP Apps UI resource: the Superset chart-viewer widget.
 
 Serves the self-contained HTML bundle (built from
 ``chart_viewer/`` via Vite + vite-plugin-singlefile) at
-``ui://superset/chart-viewer/v2``. MCP Apps hosts fetch this resource and render
+``ui://superset/chart-viewer/v3``. MCP Apps hosts fetch this resource and render
 it in a sandboxed iframe to display ``render_chart`` results as interactive
 charts.
 
@@ -38,7 +38,7 @@ from superset.mcp_service.auth import mcp_auth_hook
 
 logger = logging.getLogger(__name__)
 
-CHART_VIEWER_URI = "ui://superset/chart-viewer/v2"
+CHART_VIEWER_URI = "ui://superset/chart-viewer/v3"
 CHART_VIEWER_MIME_TYPE = "text/html;profile=mcp-app"
 
 # Built single-file bundle: chart_viewer/dist/index.html (produced by
