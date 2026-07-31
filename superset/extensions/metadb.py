@@ -37,11 +37,14 @@ joins and unions are done in memory, using the SQLite engine.
 
 from __future__ import annotations
 
+import contextvars
 import datetime
 import decimal
 import operator
+import re
 import urllib.parse
 from collections.abc import Iterator
+from contextlib import contextmanager
 from functools import partial, wraps
 from typing import Any, Callable, cast, TypeVar
 
@@ -69,6 +72,18 @@ from sqlalchemy.sql import Select, select
 
 from superset import db, feature_flag_manager, security_manager
 from superset.sql.parse import Table
+
+# Detects a `JOIN` keyword anywhere in the statement being executed against the
+# `superset://` engine. Shillelagh calls `SupersetShillelaghAdapter.get_data` once
+# per underlying table, independently of any other table referenced by the same
+# statement, so it has no way on its own to tell whether it's being asked for a
+# standalone table or for one side of a join. `SupersetAPSWDialect.do_execute*`
+# populates `_executing_join_query` for the duration of a statement so that
+# `get_data` can tell the two cases apart (see `get_data` for why this matters).
+_JOIN_KEYWORD_RE = re.compile(r"\bJOIN\b", re.IGNORECASE)
+_executing_join_query: contextvars.ContextVar[bool] = contextvars.ContextVar(
+    "_executing_join_query", default=False
+)
 
 
 # pylint: disable=abstract-method
@@ -118,6 +133,51 @@ class SupersetAPSWDialect(APSWDialect):
                 "isolation_level": self.isolation_level,
             },
         )
+
+    def do_execute(
+        self,
+        cursor: Any,
+        statement: str,
+        parameters: Any,
+        context: Any = None,
+    ) -> None:
+        with self._flag_join_query(statement):
+            super().do_execute(cursor, statement, parameters, context)
+
+    def do_execute_no_params(
+        self,
+        cursor: Any,
+        statement: str,
+        context: Any = None,
+    ) -> None:
+        with self._flag_join_query(statement):
+            super().do_execute_no_params(cursor, statement, context)
+
+    def do_executemany(
+        self,
+        cursor: Any,
+        statement: str,
+        parameters: Any,
+        context: Any = None,
+    ) -> None:
+        with self._flag_join_query(statement):
+            super().do_executemany(cursor, statement, parameters, context)
+
+    @staticmethod
+    @contextmanager
+    def _flag_join_query(statement: str) -> Iterator[None]:
+        """
+        Record, for the duration of executing ``statement``, whether it contains a
+        join.
+
+        `SupersetShillelaghAdapter.get_data` reads this to decide whether it's safe
+        to apply `SUPERSET_META_DB_LIMIT` to the table it's fetching (see `get_data`).
+        """
+        token = _executing_join_query.set(bool(_JOIN_KEYWORD_RE.search(statement)))
+        try:
+            yield
+        finally:
+            _executing_join_query.reset(token)
 
 
 F = TypeVar("F", bound=Callable[..., Any])
@@ -409,7 +469,17 @@ class SupersetShillelaghAdapter(Adapter):
         """
         app_limit: int | None = current_app.config["SUPERSET_META_DB_LIMIT"]
         if limit is None:
-            limit = app_limit
+            # Shillelagh calls `get_data` once per table, independently of any
+            # other table referenced by the same statement, so a value of `None`
+            # here doesn't necessarily mean this table is the whole query -- it
+            # can equally mean this table is one side of a join. Applying the
+            # app-wide default in that case would silently truncate this table
+            # before the in-memory join runs, dropping rows that have a genuine
+            # match on the other side with no error (see #36304). Only fall back
+            # to the default for statements that don't join, where truncating
+            # this table can't hide otherwise-valid matches.
+            if app_limit is not None and not _executing_join_query.get():
+                limit = app_limit
         elif app_limit is not None:
             limit = min(limit, app_limit)
 
