@@ -49,6 +49,31 @@ export interface SnapshotChartResolution {
   positionData: JsonObject | null;
 }
 
+// /api/v1/explore/ resolves a single chart per request, so unlike
+// fetchReachableChartIds there is nothing to batch. Bound the concurrency
+// instead: a snapshot whose layout references many charts the dashboard no
+// longer holds would otherwise open one request per chart at once.
+const EXPLORE_REHYDRATION_CONCURRENCY = 6;
+
+/** Runs `worker` over `items`, with at most `limit` in flight at a time. */
+async function forEachWithConcurrency<T>(
+  items: T[],
+  limit: number,
+  worker: (item: T) => Promise<void>,
+): Promise<void> {
+  let cursor = 0;
+  const runner = async () => {
+    while (cursor < items.length) {
+      const item = items[cursor];
+      cursor += 1;
+      await worker(item);
+    }
+  };
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, runner),
+  );
+}
+
 /**
  * A version snapshot stores the layout (position_json) but not the charts
  * themselves, while the live dashboard payload only includes the charts the
@@ -94,8 +119,10 @@ export async function resolveSnapshotCharts(
   });
 
   const unreachable = new Set<number>();
-  await Promise.all(
-    missingIds.map(async id => {
+  await forEachWithConcurrency(
+    missingIds,
+    EXPLORE_REHYDRATION_CONCURRENCY,
+    async id => {
       try {
         const { slice, form_data } = await fetchExploreRehydrationData(id);
         charts.push({
@@ -112,7 +139,7 @@ export async function resolveSnapshotCharts(
       } catch {
         unreachable.add(id);
       }
-    }),
+    },
   );
 
   return {
@@ -155,6 +182,18 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
     ].join('|'),
   );
   const lastSaveSignalRef = useRef(saveSignal);
+  // Hydration writes to the global store, which outlives this hook. The
+  // fetch-id guard below only invalidates requests superseded by another
+  // preview; nothing bumps it on unmount, so an apply() still in flight when
+  // the user navigates away would hydrate a dashboard over whatever page
+  // mounted next.
+  const isMountedRef = useRef(true);
+  useEffect(
+    () => () => {
+      isMountedRef.current = false;
+    },
+    [],
+  );
 
   const versionUuid = preview?.versionUuid;
 
@@ -183,6 +222,9 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
       dataMask: DataMaskStateWithId,
       editMode?: boolean,
     ) => {
+      if (!isMountedRef.current) {
+        return;
+      }
       // Hydration merges into any existing dataMask entries, which would let
       // filter selections from one version leak into another; reset first so
       // each hydrate starts from exactly the dataMask passed in. The two

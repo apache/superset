@@ -121,6 +121,44 @@ test('resolveSnapshotCharts fetches charts removed from the dashboard since the 
   expect(positionData).toBe(layout);
 });
 
+test('resolveSnapshotCharts bounds how many chart lookups it runs at once', async () => {
+  // One request per chart with no cap would open as many connections as the
+  // snapshot has charts the dashboard no longer holds.
+  const missingCount = 20;
+  let inFlight = 0;
+  let peakInFlight = 0;
+  const release: Array<() => void> = [];
+  const layout: JsonObject = {};
+
+  for (let i = 0; i < missingCount; i += 1) {
+    const sliceId = 100 + i;
+    Object.assign(layout, chartSlot(`CHART-${sliceId}`, sliceId));
+    fetchMock.get(`glob:*/api/v1/explore/?slice_id=${sliceId}`, async () => {
+      inFlight += 1;
+      peakInFlight = Math.max(peakInFlight, inFlight);
+      await new Promise<void>(resolve => {
+        release.push(resolve);
+      });
+      inFlight -= 1;
+      return {
+        result: { slice: { slice_name: `Chart ${sliceId}` }, form_data: {} },
+      };
+    });
+  }
+
+  const resolution = resolveSnapshotCharts([], layout);
+  // Drain in waves until every request has been served.
+  for (let drained = 0; drained < missingCount; drained += 1) {
+    // eslint-disable-next-line no-await-in-loop
+    await waitFor(() => expect(release.length).toBeGreaterThan(drained));
+    release[drained]();
+  }
+  const { charts } = await resolution;
+
+  expect(charts).toHaveLength(missingCount);
+  expect(peakInFlight).toBeLessThanOrEqual(6);
+});
+
 test('resolveSnapshotCharts swaps unreachable charts for a markdown placeholder', async () => {
   fetchMock.get('glob:*/api/v1/explore/?slice_id=9', 404);
   const layout = { ...chartSlot('CHART-a', 1), ...chartSlot('CHART-b', 9) };
@@ -366,6 +404,34 @@ test('closing a pending preview prevents historical hydration', async () => {
   act(() => {
     store.setState({ versionHistory: versionHistoryState() });
   });
+  await act(async () => {
+    resolveSnapshot(snapshot);
+  });
+
+  expect(mockedHydrateDashboard).not.toHaveBeenCalled();
+});
+
+test('unmounting during a pending preview prevents historical hydration', async () => {
+  // Hydration writes to the global store, so a request still in flight when
+  // the user navigates away would apply a dashboard over the next page. The
+  // fetch-id guard does not cover this: nothing supersedes the request.
+  let resolveSnapshot: (value: DashboardVersionSnapshot) => void = () => {};
+  mockedFetchSnapshot.mockReturnValue(
+    new Promise(resolve => {
+      resolveSnapshot = resolve;
+    }),
+  );
+  const store = makePreviewStore();
+  const { unmount } = renderPreviewHook(store);
+
+  act(() => {
+    store.setState({
+      versionHistory: versionHistoryState({ preview: previewOf('v1') }),
+    });
+  });
+  await waitFor(() => expect(mockedFetchSnapshot).toHaveBeenCalledTimes(1));
+
+  unmount();
   await act(async () => {
     resolveSnapshot(snapshot);
   });
