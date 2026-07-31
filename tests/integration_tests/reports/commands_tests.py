@@ -1935,6 +1935,37 @@ def test_report_schedule_working(create_report_slack_chart_working):
 
 
 @pytest.mark.usefixtures("create_report_slack_chart_working")
+def test_report_schedule_same_execution_replay_stays_working(
+    create_report_slack_chart_working,
+):
+    """A fresh replay must not terminalize the active execution it duplicates."""
+
+    active_log = (
+        db.session.query(ReportExecutionLog)
+        .filter(
+            ReportExecutionLog.report_schedule == create_report_slack_chart_working,
+            ReportExecutionLog.state == ReportState.WORKING,
+            ReportExecutionLog.error_message.is_(None),
+        )
+        .one()
+    )
+
+    with freeze_time("2020-01-01T00:00:00Z"):
+        with pytest.raises(ReportSchedulePreviousWorkingError):
+            AsyncExecuteReportScheduleCommand(
+                str(active_log.uuid),
+                create_report_slack_chart_working.id,
+                datetime.utcnow(),
+            ).run()
+
+    db.session.refresh(active_log)
+    db.session.refresh(create_report_slack_chart_working)
+    assert active_log.state == ReportState.WORKING
+    assert active_log.error_message is None
+    assert create_report_slack_chart_working.last_state == ReportState.WORKING
+
+
+@pytest.mark.usefixtures("create_report_slack_chart_working")
 def test_report_schedule_working_timeout(create_report_slack_chart_working):
     """
     ExecuteReport Command: Test report schedule still working but should timed out

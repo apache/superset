@@ -1880,7 +1880,11 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 self._execution_id,
             )
         except (CommandException, SoftTimeLimitExceeded) as ex:
-            if self._model and self._model.type == ReportScheduleType.REPORT:
+            if (
+                self._model
+                and self._model.type == ReportScheduleType.REPORT
+                and not isinstance(ex, ReportSchedulePreviousWorkingError)
+            ):
                 persist_owned_report_execution_terminal_error(
                     self._model.id,
                     self._execution_id,
