@@ -107,12 +107,15 @@ export function useVersionActivity(
       // in-flight response so it cannot land afterwards.
       fetchIdRef.current += 1;
       const fetchId = fetchIdRef.current;
+      // Invalidate in-flight probes here, not when this reset's own probe
+      // starts: a uuid switch runs a new fetchPage immediately, and the old
+      // entity's probe resolving before the new page-0 response would
+      // otherwise pass its id check and write the previous entity's newest
+      // save into newestGroup.
+      probeIdRef.current += 1;
       if (!uuid) {
         // The invalidated in-flight request can no longer clear the
-        // spinner from its own finally block; clear it here. In-flight
-        // probes are invalidated too — their result describes an entity
-        // this hook no longer shows.
-        probeIdRef.current += 1;
+        // spinner from its own finally block; clear it here.
         setIsLoading(false);
         return;
       }
@@ -143,7 +146,6 @@ export function useVersionActivity(
         // one of those states, and refreshes after restores made while a
         // search is active.
         if (reset) {
-          probeIdRef.current += 1;
           const probeId = probeIdRef.current;
           fetchActivity(entityType, uuid, {
             include: 'self',

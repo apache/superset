@@ -442,6 +442,11 @@ test('unmounting during a pending preview prevents historical hydration', async 
   });
 
   expect(mockedHydrateDashboard).not.toHaveBeenCalled();
+  // The global versionHistory slice must not be touched either: dispatching
+  // completion after unmount would mutate the next page's preview state.
+  expect(
+    store.actions.some(action => action.type === 'VERSION_PREVIEW_APPLIED'),
+  ).toBe(false);
 });
 
 test('switching previewed versions keeps the original live dataMask for exit', async () => {

@@ -224,6 +224,40 @@ test('newestGroup comes from a self probe, not the visible page', async () => {
   });
 });
 
+test("switching entities discards the previous entity's in-flight probe", async () => {
+  // uuid A's probe resolving after the hook moved to uuid B must not write
+  // A's newest save into B's Current marker.
+  let releaseProbeA: (value: unknown) => void = () => {};
+  mockedFetchActivity.mockImplementation(async (_type, uuid, options) => {
+    if (options?.pageSize === 1) {
+      if (uuid === 'uuid-A') {
+        return new Promise(resolve => {
+          releaseProbeA = () => resolve({ count: 1, result: [record(111, 0)] });
+        });
+      }
+      return { count: 1, result: [record(222, 0)] };
+    }
+    return { count: 1, result: [record(5, 0)] };
+  });
+
+  const { result, rerender } = renderHook(
+    ({ uuid }: { uuid: string }) => useVersionActivity('chart', uuid, 'all'),
+    { initialProps: { uuid: 'uuid-A' } },
+  );
+  await waitFor(() => expect(result.current.timeline).toHaveLength(1));
+
+  rerender({ uuid: 'uuid-B' });
+  await waitFor(() =>
+    expect(result.current.newestGroup?.transactionId).toBe(222),
+  );
+
+  // A's probe finally lands; it must be discarded, not adopted by B.
+  await act(async () => {
+    releaseProbeA(undefined);
+  });
+  expect(result.current.newestGroup?.transactionId).toBe(222);
+});
+
 test('a refresh while a search is active still refreshes newestGroup', async () => {
   // After a restore made from a filtered timeline, the newest self save
   // changed; the probe must move with it even though the visible fetch

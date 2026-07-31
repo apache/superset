@@ -148,6 +148,23 @@ test('work turning dirty while the modal is open still blocks the restore', asyn
   expect(result.current.restoreModal?.props.target).toBeNull();
 });
 
+test('a pending confirmation is dropped when the page entity changes', () => {
+  // An in-place slice swap changes the uuid under an open modal; confirming
+  // would combine the new entity with the old version uuid.
+  const { result, rerender } = renderHook(
+    ({ uuid }: { uuid: string }) => useVersionActions('chart', uuid),
+    { initialProps: { uuid: 'entity-uuid' } },
+  );
+  act(() => {
+    result.current.requestRestore(target);
+  });
+  expect(result.current.restoreModal?.props.target).toEqual(target);
+
+  rerender({ uuid: 'another-entity-uuid' });
+
+  expect(result.current.restoreModal?.props.target).toBeNull();
+});
+
 test('unsaved explore control changes block restore the same way', () => {
   // Explore's dirty signal is the session log — the list the panel itself
   // presents as unsaved changes under "Current version".

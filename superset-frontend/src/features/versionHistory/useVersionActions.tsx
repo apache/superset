@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactElement, useCallback, useRef, useState } from 'react';
+import { ReactElement, useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -100,6 +100,15 @@ export function useVersionActions(
       ? !!state.dashboardState?.hasUnsavedChanges
       : selectVersionSessionLog(state).length > 0,
   );
+
+  // A pending confirmation names a version of the entity it was opened for.
+  // If the page's entity changes underneath it (an in-place slice swap), the
+  // modal must not survive to combine the new uuid with the old version —
+  // the server would refuse the mismatch, but the user would be shown a
+  // confusing failure for an action they aimed at something else.
+  useEffect(() => {
+    setRestoreTarget(null);
+  }, [entityType, uuid]);
 
   const requestRestore = useCallback(
     (target: VersionActionTarget) => {

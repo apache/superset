@@ -193,6 +193,12 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
   useEffect(
     () => () => {
       isMountedRef.current = false;
+      // The versionHistory slice is global and outlives this page; an
+      // apply() settling after unmount must not dispatch completion (or, on
+      // its failure path, clear a preview the *next* page just requested).
+      // Invalidating the fetch id silences every guarded continuation at
+      // once.
+      fetchIdRef.current += 1;
     },
     [],
   );
