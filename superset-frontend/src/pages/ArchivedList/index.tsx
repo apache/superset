@@ -359,6 +359,16 @@ function ArchivedListBody({
         Header: t('Name'),
         key: 'search',
         id: config.nameField,
+        // The API column differs per type (slice_name / dashboard_title /
+        // table_name) but ListView persists applied filters in the shared
+        // ?filters= param keyed by this id. Switching Type remounts the body
+        // without touching the URL, so a per-type key would come back as a
+        // stale entry that the new type's filter list cannot claim -- it
+        // reaches fetchData with operator undefined and rison refuses to
+        // encode it, leaving the list permanently empty. A stable URL key is
+        // claimed by whichever type is mounted, which then rewrites the id
+        // back to its own column.
+        urlDisplay: 'name',
         input: 'search',
         // Charts expose an all-text search on slice_name (chart_all_text)
         // rather than a plain `ct`; dashboards/datasets accept `ct` on their

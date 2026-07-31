@@ -361,3 +361,40 @@ test('the initial type is one the viewer can read, not a fixed default', async (
 
   expect(await screen.findByText('deleted_table_one')).toBeInTheDocument();
 });
+
+test('a name search survives switching Type instead of breaking the list', async () => {
+  // The Name filter queries a different column per type (slice_name /
+  // dashboard_title / table_name), but ListView persists applied filters in
+  // one shared ?filters= param. Keyed by the API column, the entry left
+  // behind by the previous type could not be claimed by the new type's
+  // filter list, so it reached fetchData with no operator and rison refused
+  // to encode it -- the list then never loaded at all.
+  mockRoutes();
+  renderArchivedList();
+  await screen.findByTestId('archived-list-view');
+
+  fireEvent.change(screen.getByPlaceholderText(/type a value/i), {
+    target: { value: 'quarterly' },
+  });
+  fireEvent.keyDown(screen.getByPlaceholderText(/type a value/i), {
+    key: 'Enter',
+    keyCode: 13,
+  });
+  await waitFor(() => {
+    expect(
+      fetchMock.callHistory.calls(/chart\/\?q/).length,
+    ).toBeGreaterThanOrEqual(1);
+  });
+
+  await selectOption('Dashboard', 'Type');
+
+  await waitFor(() => {
+    const calls = fetchMock.callHistory.calls(/dashboard\/\?q/);
+    expect(calls.length).toBeGreaterThanOrEqual(1);
+    // The search carries over onto the dashboard's own name column, and the
+    // request is well-formed rather than never issued.
+    const last = calls[calls.length - 1].url;
+    expect(last).toContain('dashboard_title');
+    expect(last).not.toContain('slice_name');
+  });
+});
