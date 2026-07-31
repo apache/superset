@@ -1,0 +1,94 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+suite: superset_config.py rendering
+templates:
+  - secret-superset-config.yaml
+tests:
+  - it: builds SQLALCHEMY_DATABASE_URI from env with percent-encoded creds
+    set: {database: {host: pg.svc, port: 5432, user: su, password: pw, name: sset}}
+    asserts:
+      - matchRegex: {path: 'stringData["superset_config.py"]', pattern: 'SQLALCHEMY_DATABASE_URI = f"postgresql\+psycopg2://\{quote\(env\(.DB_USER'}
+  - it: honors database.uri override
+    set: {database.uri: "postgresql://x:y@h:5432/d"}
+    asserts:
+      - matchRegex: {path: 'stringData["superset_config.py"]', pattern: 'SQLALCHEMY_DATABASE_URI = "postgresql://x:y@h:5432/d"'}
+  - it: imports required for env/json handling are present
+    asserts:
+      - matchRegex: {path: 'stringData["superset_config.py"]', pattern: 'import json'}
+      - matchRegex: {path: 'stringData["superset_config.py"]', pattern: 'from urllib\.parse import quote'}
+  - it: redis creds are percent-encoded and read from env
+    set: {cache: {enabled: true, password: "p@ss"}}
+    asserts:
+      - matchRegex: {path: 'stringData["superset_config.py"]', pattern: 'quote\(env\(.REDIS_PASSWORD'}
+  - it: config map values render via json.loads
+    set: {config: {MY_MAP: {enabled: true}}}
+    asserts:
+      - matchRegex: {path: 'stringData["superset_config.py"]', pattern: 'MY_MAP = json\.loads\('}
+  - it: config nil values render as None
+    set: {config: {MY_NIL: null}}
+    asserts:
+      - matchRegex: {path: 'stringData["superset_config.py"]', pattern: 'MY_NIL = None'}
+  - it: supersetWorker healthCheck enabled renders readiness file path
+    set: {supersetWorker: {healthCheck: {enabled: true}}}
+    asserts:
+      - matchRegex: {path: 'stringData["superset_config.py"]', pattern: '/tmp/celery_worker_ready'}
+  - it: SQLALCHEMY_TRACK_MODIFICATIONS defaults False
+    asserts:
+      - matchRegex: {path: 'stringData["superset_config.py"]', pattern: 'SQLALCHEMY_TRACK_MODIFICATIONS = False'}
+  - it: renders feature flags
+    set: {featureFlags: {ALERT_REPORTS: true}}
+    asserts:
+      - matchRegex: {path: 'stringData["superset_config.py"]', pattern: '"ALERT_REPORTS": True'}
+  - it: SQLALCHEMY_TRACK_MODIFICATIONS user-set true renders Python True
+    set: {config: {SQLALCHEMY_TRACK_MODIFICATIONS: true}}
+    asserts:
+      - matchRegex: {path: 'stringData["superset_config.py"]', pattern: 'SQLALCHEMY_TRACK_MODIFICATIONS = True'}
+  - it: celeryConfig without imports emits a safe empty CELERY_IMPORTS (no AttributeError)
+    set: {config: {celeryConfig: {broker_url: "redis://x"}}}
+    asserts:
+      - matchRegex: {path: 'stringData["superset_config.py"]', pattern: 'CELERY_IMPORTS = \(\)'}
+      - notMatchRegex: {path: 'stringData["superset_config.py"]', pattern: 'CELERY_IMPORTS = CeleryConfig\.imports'}
+  - it: legacy db_type maps to the SQLAlchemy driver (deprecation path)
+    set: {supersetNode: {connections: {db_type: "postgresql+pg8000"}}}
+    asserts:
+      - matchRegex: {path: 'stringData["superset_config.py"]', pattern: 'SQLALCHEMY_DATABASE_URI = f"postgresql\+pg8000://'}
+  - it: init script single-quotes the admin username (no shell injection)
+    set: {init: {createAdmin: true, adminUser: {password: "x"}}}
+    asserts:
+      - matchRegex: {path: 'stringData["superset_init.sh"]', pattern: "grep -qF 'username:"}
+      - notMatchRegex: {path: 'stringData["superset_init.sh"]', pattern: 'create-admin[\s\S]*\|\| true'}
+  - it: sentinel disabled does not fail render
+    set: {cache: {enabled: true, sentinel: {enabled: false}}}
+    asserts:
+      - hasDocuments:
+          count: 1
+  - it: ssl certfile path is quoted
+    set: {cache: {enabled: true, ssl: {enabled: true, certfile: "/etc/ssl/cert.pem"}}}
+    asserts:
+      - matchRegex: {path: 'stringData["superset_config.py"]', pattern: '"CACHE_REDIS_SSL_CERTFILE": "/etc/ssl/cert.pem"'}
+  - it: explicit JWT cookie secure false is respected
+    set: {supersetWebsockets: {enabled: true}, config: {GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE: false}}
+    asserts:
+      - matchRegex: {path: 'stringData["superset_config.py"]', pattern: 'GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE = False'}
+  - it: celeryConfig non-string values render as valid Python via json.loads
+    set: {config: {celeryConfig: {broker_url: "redis://x", task_acks_late: true}}}
+    asserts:
+      - matchRegex: {path: 'stringData["superset_config.py"]', pattern: 'task_acks_late = json\.loads\('}
+  - it: featureFlags non-scalar values render as valid Python via json.loads
+    set: {featureFlags: {SOME_MAP: {nested: true}}}
+    asserts:
+      - matchRegex: {path: 'stringData["superset_config.py"]', pattern: '"SOME_MAP": json\.loads\('}

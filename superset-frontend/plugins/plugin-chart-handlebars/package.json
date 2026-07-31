@@ -30,7 +30,7 @@
     "currencyformatter.js": "^1.0.5",
     "handlebars-group-by": "^1.0.1",
     "just-handlebars-helpers": "^1.0.19",
-    "lodash-es": "^4.17.21"
+    "lodash-es": "^4.18.1"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",

@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timezone
 from typing import Annotated, Any, List, Literal
 
@@ -28,24 +29,23 @@ from pydantic import (
     Field,
     field_validator,
     model_serializer,
-    model_validator,
-    PositiveInt,
 )
+from sqlalchemy.orm.exc import DetachedInstanceError
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
-from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
-from superset.mcp_service.system.schemas import PaginationInfo
-from superset.mcp_service.utils import sanitize_for_llm_context
-from superset.mcp_service.utils.schema_utils import (
-    parse_json_or_list,
-    parse_json_or_model_list,
+from superset.mcp_service.common.pagination_schemas import (
+    PaginatedListRequest,
+    PaginatedResponse,
 )
+from superset.mcp_service.utils import sanitize_for_llm_context
 
 DEFAULT_ROLE_COLUMNS = ["id", "name"]
 
 ROLE_ALL_COLUMNS = ["id", "name"]
 
 ROLE_SORTABLE_COLUMNS = ["id", "name"]
+
+logger = logging.getLogger(__name__)
 
 
 class RoleFilter(ColumnOperator):
@@ -95,112 +95,19 @@ class RoleInfo(BaseModel):
         return data
 
 
-class RoleList(BaseModel):
+class RoleList(PaginatedResponse[RoleFilter]):
     roles: List[RoleInfo]
-    count: int
-    total_count: int
-    page: int
-    page_size: int
-    total_pages: int
-    has_previous: bool
-    has_next: bool
-    columns_requested: List[str] = Field(
-        default_factory=list,
-        description="Requested columns for the response",
-    )
-    columns_loaded: List[str] = Field(
-        default_factory=list,
-        description="Columns that were actually loaded for each role",
-    )
-    columns_available: List[str] = Field(
-        default_factory=list,
-        description="All columns available for selection via select_columns parameter",
-    )
-    sortable_columns: List[str] = Field(
-        default_factory=list,
-        description="Columns that can be used with order_column parameter",
-    )
-    filters_applied: List[RoleFilter] = Field(
-        default_factory=list,
-        description="List of advanced filter dicts applied to the query.",
-    )
-    pagination: PaginationInfo | None = None
-    timestamp: datetime | None = None
-    model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 
-class ListRolesRequest(BaseModel):
+class ListRolesRequest(PaginatedListRequest[RoleFilter]):
     """Request schema for list_roles."""
 
-    filters: Annotated[
-        List[RoleFilter],
-        Field(
-            default_factory=list,
-            description="List of filter objects (column, operator, value). Each "
-            "filter is an object with 'col', 'opr', and 'value' properties. "
-            "Cannot be used together with 'search'.",
-        ),
-    ]
-    select_columns: Annotated[
-        List[str],
-        Field(
-            default_factory=list,
-            description="List of columns to select. Defaults to common columns if "
-            "not specified.",
-        ),
-    ]
-    search: Annotated[
-        str | None,
-        Field(
-            default=None,
-            description="Text search string to match against role name. Cannot be "
-            "used together with 'filters'.",
-        ),
-    ]
-    order_column: Annotated[
-        str | None, Field(default=None, description="Column to order results by")
-    ]
     order_direction: Annotated[
         Literal["asc", "desc"],
         Field(
             default="asc", description="Direction to order results ('asc' or 'desc')"
         ),
     ]
-    page: Annotated[
-        PositiveInt,
-        Field(default=1, description="Page number for pagination (1-based)"),
-    ]
-    page_size: Annotated[
-        int,
-        Field(
-            default=DEFAULT_PAGE_SIZE,
-            gt=0,
-            le=MAX_PAGE_SIZE,
-            description=f"Number of items per page (max {MAX_PAGE_SIZE})",
-        ),
-    ]
-
-    @field_validator("filters", mode="before")
-    @classmethod
-    def parse_filters(cls, v: Any) -> List[RoleFilter]:
-        """Accept both JSON string and list of objects."""
-        return parse_json_or_model_list(v, RoleFilter, "filters")
-
-    @field_validator("select_columns", mode="before")
-    @classmethod
-    def parse_columns(cls, v: Any) -> List[str]:
-        """Accept JSON array, list, or comma-separated string."""
-        return parse_json_or_list(v, "select_columns")
-
-    @model_validator(mode="after")
-    def validate_search_and_filters(self) -> "ListRolesRequest":
-        if self.search and self.filters:
-            raise ValueError(
-                "Cannot use both 'search' and 'filters' parameters simultaneously. "
-                "Use either 'search' for text-based searching or 'filters' for "
-                "precise column-based filtering, but not both."
-            )
-        return self
 
 
 class RoleError(BaseModel):
@@ -232,6 +139,19 @@ class GetRoleInfoRequest(BaseModel):
     ]
 
 
+def _serialize_permission_name(permission: Any) -> str | None:
+    """Return direct permission names or FAB permission/view pairs."""
+    if (name := getattr(permission, "name", None)) is not None:
+        return str(name)
+
+    permission_name = getattr(getattr(permission, "permission", None), "name", None)
+    view_menu_name = getattr(getattr(permission, "view_menu", None), "name", None)
+    if permission_name and view_menu_name:
+        return f"{permission_name} on {view_menu_name}"
+
+    return None
+
+
 def serialize_role_object(
     role: Any, include_permissions: bool = False
 ) -> RoleInfo | None:
@@ -244,12 +164,38 @@ def serialize_role_object(
         return None
     permissions: list[str] | None = None
     if include_permissions:
-        raw_perms = getattr(role, "permissions", None)
-        if raw_perms is not None:
+        try:
+            raw_permissions = getattr(role, "permissions", None)
+        except DetachedInstanceError:
+            logger.debug(
+                "Role permissions relationship is detached: role_id=%s",
+                getattr(role, "id", None),
+                exc_info=True,
+            )
+            raw_permissions = None
+
+        if raw_permissions is not None:
+            permissions = []
             try:
-                permissions = [p.name for p in raw_perms if hasattr(p, "name")]
-            except (AttributeError, TypeError):
-                permissions = None
+                for permission in raw_permissions:
+                    try:
+                        permission_name = _serialize_permission_name(permission)
+                    except (DetachedInstanceError, TypeError):
+                        logger.debug(
+                            "Skipping unserializable role permission: role_id=%s",
+                            getattr(role, "id", None),
+                            exc_info=True,
+                        )
+                        continue
+
+                    if permission_name is not None:
+                        permissions.append(permission_name)
+            except (DetachedInstanceError, TypeError):
+                logger.debug(
+                    "Could not iterate role permissions: role_id=%s",
+                    getattr(role, "id", None),
+                    exc_info=True,
+                )
     return RoleInfo(
         id=getattr(role, "id", None),
         name=sanitize_for_llm_context(

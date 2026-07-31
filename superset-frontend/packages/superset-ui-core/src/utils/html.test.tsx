@@ -95,6 +95,17 @@ describe('isProbablyHTML', () => {
     expect(isProbablyHTML('price < $100')).toBe(false);
   });
 
+  test('should return false for angle-bracketed data values (issue #34082)', () => {
+    // MySQL column values wrapped in angle brackets must not be treated as
+    // HTML, otherwise they get swallowed and appear truncated in SQL Lab
+    // and Table chart results
+    expect(isProbablyHTML('<Buddhist Blue Duck-No Giblets>')).toBe(false);
+    expect(isProbablyHTML('<Roasted Chicken-Whole>')).toBe(false);
+    expect(
+      isProbablyHTML('prefix <Buddhist Blue Duck-No Giblets> suffix'),
+    ).toBe(false);
+  });
+
   test('should return true for all known HTML tags', () => {
     expect(isProbablyHTML('<section>Content</section>')).toBe(true);
     expect(isProbablyHTML('<article>Content</article>')).toBe(true);
@@ -145,6 +156,12 @@ describe('safeHtmlSpan', () => {
     const plainText = 'Just a plain text';
     const result = safeHtmlSpan(plainText);
     expect(result).toEqual(plainText);
+  });
+
+  test('should return angle-bracketed data values untouched (issue #34082)', () => {
+    const dataValue = '<Buddhist Blue Duck-No Giblets>';
+    expect(safeHtmlSpan(dataValue)).toBe(dataValue);
+    expect(sanitizeHtmlIfNeeded(dataValue)).toBe(dataValue);
   });
 });
 

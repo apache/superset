@@ -223,11 +223,12 @@ test('can drag and reorder items', () => {
 
   // Reorder is dispatched via the active sortable item's onShiftOptions,
   // which the control registers on each OptionWrapper. Drag index 0
-  // (column_a) onto index 2 (column_b) and verify the swap.
+  // (column_a) onto index 2 (column_b) and verify the arrayMove: column_a is
+  // removed from the front and reinserted at index 2, shifting the rest left.
   simulateReorder(sortables, 0, 2);
   expect(onChange).toHaveBeenLastCalledWith([
-    'column_b',
     'metric_a',
+    'column_b',
     'column_a',
   ]);
 });

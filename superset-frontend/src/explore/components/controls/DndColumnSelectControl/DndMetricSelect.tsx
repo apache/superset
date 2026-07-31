@@ -19,7 +19,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { nanoid } from 'nanoid';
-import { t } from '@apache-superset/core/translation';
+import { t, tn } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
   isAdhocMetricSimple,
@@ -27,8 +27,8 @@ import {
   Metric,
   QueryFormMetric,
 } from '@superset-ui/core';
-import { tn } from '@apache-superset/core/translation';
 import { GenericDataType } from '@apache-superset/core/common';
+import { arrayMove } from '@dnd-kit/sortable';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import AdhocMetric, {
   dedupeAdhocMetricOptionName,
@@ -287,14 +287,15 @@ const DndMetricSelect = (props: any) => {
 
   const moveLabel = useCallback(
     (dragIndex: number, hoverIndex: number) => {
-      const newValues = [...value];
-      [newValues[hoverIndex], newValues[dragIndex]] = [
-        newValues[dragIndex],
-        newValues[hoverIndex],
-      ];
+      // @dnd-kit fires the reorder once at drag-end with the final indices, so
+      // this must be a full arrayMove, not an adjacent swap. Commit through
+      // handleChange immediately — relying on onDropLabel to persist would
+      // re-commit the stale pre-move value captured in its render closure.
+      const newValues = arrayMove(value, dragIndex, hoverIndex);
       setValue(newValues);
+      handleChange(newValues);
     },
-    [value],
+    [handleChange, value],
   );
 
   const newSavedMetricOptions = useMemo(
@@ -312,10 +313,9 @@ const DndMetricSelect = (props: any) => {
     [props.savedMetrics, props.value],
   );
 
-  const handleDropLabel = useCallback(
-    () => onChange(multi ? value : value[0]),
-    [multi, onChange, value],
-  );
+  // Reorder now commits through moveLabel; keep a no-op so the sortable's drop
+  // hook does not re-commit stale, pre-move values captured in this closure.
+  const handleDropLabel = useCallback(() => {}, []);
 
   const valueRenderer = useCallback(
     (option: ValueType, index: number) => (

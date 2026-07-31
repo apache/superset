@@ -26,6 +26,9 @@ import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import DatasetList from 'src/pages/DatasetList';
 import handleResourceExport from 'src/utils/export';
+import type Subject from 'src/types/Subject';
+import { SubjectType } from 'src/types/Subject';
+import type { RlsFilterSummary } from '@superset-ui/core/components/RlsBadge';
 
 export const mockHandleResourceExport =
   handleResourceExport as jest.MockedFunction<typeof handleResourceExport>;
@@ -44,6 +47,15 @@ export interface RisonFilter {
   value: string | number | boolean;
 }
 
+export const mockDatasetEditors = {
+  admin: { id: 1, label: 'Admin User', type: SubjectType.User },
+  jane: { id: 2, label: 'Jane Smith', type: SubjectType.User },
+  alpha: { id: 3, label: 'Alpha', type: SubjectType.Role },
+  alice: { id: 4, label: 'Alice Johnson', type: SubjectType.User },
+  charlie: { id: 5, label: 'Charlie Brown', type: SubjectType.User },
+  external: { id: 999, label: 'External Editor', type: SubjectType.User },
+} satisfies Record<string, Subject>;
+
 // Test-only dataset type that matches the VirtualDataset interface from index.tsx
 // Includes extra/sql fields that exist in actual API responses
 export interface DatasetFixture {
@@ -55,18 +67,19 @@ export interface DatasetFixture {
     id: string;
     database_name: string;
   };
-  owners: Array<{ first_name: string; last_name: string; id: number }>;
   changed_by_name: string;
   changed_by: {
     first_name: string;
     last_name: string;
     id: number;
   };
+  editors: Subject[];
   changed_on_delta_humanized: string;
   explore_url: string;
   extra: string; // JSON-serialized metadata (always present in API)
   sql: string | null; // SQL query for virtual datasets
   description?: string; // Optional description field
+  rls_filters?: RlsFilterSummary[]; // RLS filters applied to this dataset
 }
 
 interface StoreState {
@@ -98,13 +111,13 @@ export const mockDatasets: DatasetFixture[] = [
       id: '1',
       database_name: 'PostgreSQL',
     },
-    owners: [{ first_name: 'John', last_name: 'Doe', id: 1 }],
     changed_by_name: 'John Doe',
     changed_by: {
       first_name: 'John',
       last_name: 'Doe',
       id: 1,
     },
+    editors: [mockDatasetEditors.admin],
     changed_on_delta_humanized: '1 day ago',
     explore_url: '/explore/?datasource=1__table',
     extra: JSON.stringify({}),
@@ -119,16 +132,13 @@ export const mockDatasets: DatasetFixture[] = [
       id: '2',
       database_name: 'MySQL',
     },
-    owners: [
-      { first_name: 'Jane', last_name: 'Smith', id: 2 },
-      { first_name: 'Bob', last_name: 'Jones', id: 3 },
-    ],
     changed_by_name: 'Jane Smith',
     changed_by: {
       first_name: 'Jane',
       last_name: 'Smith',
       id: 2,
     },
+    editors: [mockDatasetEditors.jane],
     changed_on_delta_humanized: '2 hours ago',
     explore_url: '/explore/?datasource=2__table',
     extra: JSON.stringify({
@@ -148,13 +158,13 @@ export const mockDatasets: DatasetFixture[] = [
       id: '1',
       database_name: 'PostgreSQL',
     },
-    owners: [],
     changed_by_name: 'System',
     changed_by: {
       first_name: 'System',
       last_name: 'User',
       id: 999,
     },
+    editors: [mockDatasetEditors.admin, mockDatasetEditors.alpha],
     changed_on_delta_humanized: '5 days ago',
     explore_url: '/explore/?datasource=3__table',
     extra: JSON.stringify({
@@ -171,13 +181,13 @@ export const mockDatasets: DatasetFixture[] = [
       id: '3',
       database_name: 'Redshift',
     },
-    owners: [{ first_name: 'Alice', last_name: 'Johnson', id: 4 }],
     changed_by_name: 'Alice Johnson',
     changed_by: {
       first_name: 'Alice',
       last_name: 'Johnson',
       id: 4,
     },
+    editors: [mockDatasetEditors.alice],
     changed_on_delta_humanized: '3 weeks ago',
     explore_url: '/explore/?datasource=4__table',
     extra: JSON.stringify({
@@ -198,22 +208,46 @@ export const mockDatasets: DatasetFixture[] = [
       id: '2',
       database_name: 'MySQL',
     },
-    owners: [
-      { first_name: 'Charlie', last_name: 'Brown', id: 5 },
-      { first_name: 'David', last_name: 'Lee', id: 6 },
-      { first_name: 'Eve', last_name: 'Taylor', id: 7 },
-      { first_name: 'Frank', last_name: 'Wilson', id: 8 },
-    ],
     changed_by_name: 'Charlie Brown',
     changed_by: {
       first_name: 'Charlie',
       last_name: 'Brown',
       id: 5,
     },
+    editors: [mockDatasetEditors.charlie],
     changed_on_delta_humanized: '1 month ago',
     explore_url: '/explore/?datasource=5__table',
     extra: JSON.stringify({}),
     sql: 'SELECT quarter, SUM(revenue) FROM sales GROUP BY quarter',
+  },
+  {
+    id: 6,
+    table_name: 'Restricted Sales',
+    kind: 'physical',
+    schema: 'public',
+    database: {
+      id: '1',
+      database_name: 'PostgreSQL',
+    },
+    changed_by_name: 'Admin User',
+    changed_by: {
+      first_name: 'Admin',
+      last_name: 'User',
+      id: 1,
+    },
+    editors: [mockDatasetEditors.admin],
+    changed_on_delta_humanized: '2 days ago',
+    explore_url: '/explore/?datasource=6__table',
+    extra: JSON.stringify({}),
+    sql: null,
+    rls_filters: [
+      {
+        id: 1,
+        name: 'Region filter',
+        filter_type: 'Regular',
+        group_key: 'region',
+      },
+    ],
   },
 ];
 
@@ -222,6 +256,11 @@ export const mockAdminUser = {
   userId: 1,
   firstName: 'Admin',
   lastName: 'User',
+  username: 'admin',
+  permissions: {
+    database_access: [],
+    datasource_access: [],
+  },
   roles: {
     Admin: [
       ['can_read', 'Dataset'],
@@ -232,7 +271,7 @@ export const mockAdminUser = {
   },
 };
 
-export const mockOwnerUser = {
+export const mockEditorUser = {
   userId: 1,
   firstName: 'John',
   lastName: 'Doe',
@@ -327,7 +366,6 @@ export const API_ENDPOINTS = {
   DATASET_FAVORITE_STATUS: 'glob:*/api/v1/dataset/favorite_status*',
   DATASET_RELATED_DATABASE: 'glob:*/api/v1/dataset/related/database*',
   DATASET_RELATED_SCHEMA: 'glob:*/api/v1/dataset/distinct/schema*',
-  DATASET_RELATED_OWNERS: 'glob:*/api/v1/dataset/related/owners*',
   DATASET_RELATED_CHANGED_BY: 'glob:*/api/v1/dataset/related/changed_by*',
 };
 
@@ -566,12 +604,6 @@ export const setupMocks = () => {
       count: 4,
     },
     { name: API_ENDPOINTS.DATASET_RELATED_SCHEMA },
-  );
-
-  fetchMock.get(
-    API_ENDPOINTS.DATASET_RELATED_OWNERS,
-    { result: [], count: 0 },
-    { name: API_ENDPOINTS.DATASET_RELATED_OWNERS },
   );
 
   fetchMock.get(

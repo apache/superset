@@ -24,7 +24,7 @@ Create Date: 2018-04-03 08:19:34.098789
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 from superset import db
 
@@ -57,7 +57,7 @@ def upgrade():
         ),
     )
 
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     # Use Slice class defined here instead of models.Slice
     for tbl in session.query(Table).all():

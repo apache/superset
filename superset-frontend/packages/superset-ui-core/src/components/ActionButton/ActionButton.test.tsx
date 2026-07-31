@@ -103,6 +103,6 @@ test('has proper accessibility attributes', () => {
   render(<ActionButton {...defaultProps} />);
 
   const button = screen.getByRole('button');
-  expect(button).toHaveAttribute('tabIndex', '0');
-  expect(button).toHaveAttribute('role', 'button');
+  expect(button.tagName).toBe('BUTTON');
+  expect(button).toHaveAttribute('type', 'button');
 });

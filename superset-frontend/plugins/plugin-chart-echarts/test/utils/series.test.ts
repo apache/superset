@@ -33,6 +33,7 @@ import {
   extractShowValueIndexes,
   extractTooltipKeys,
   formatSeriesName,
+  getAreaScaledSymbolSize,
   getAxisType,
   getChartPadding,
   getLegendProps,
@@ -67,11 +68,7 @@ const {
     chartHeight: number;
     chartWidth: number;
     legendItems?: (
-      | string
-      | number
-      | null
-      | undefined
-      | { name?: string | number | null }
+      string | number | null | undefined | { name?: string | number | null }
     )[];
     legendMargin?: string | number | null;
     orientation: LegendOrientation;
@@ -94,11 +91,7 @@ const {
     chartHeight: number;
     chartWidth: number;
     legendItems?: (
-      | string
-      | number
-      | null
-      | undefined
-      | { name?: string | number | null }
+      string | number | null | undefined | { name?: string | number | null }
     )[];
     legendMargin?: string | number | null;
     orientation: LegendOrientation;
@@ -1001,6 +994,62 @@ test('getLegendLayoutResult keeps plain horizontal legends when they fit within 
   });
 });
 
+test('getLegendLayoutResult honors user-selected plain type for many horizontal legend items given ample width (#39540)', () => {
+  // Regression contract for issue #39540: a legend with enough items to be
+  // scrollable must still honor a user-selected plain type when the chart is
+  // wide enough, instead of being unconditionally forced to scroll.
+  const layout = getLegendLayoutResult({
+    chartHeight: 600,
+    chartWidth: 1600,
+    legendItems: Array.from({ length: 10 }, (_, i) => `Series ${i + 1}`),
+    legendMargin: null,
+    orientation: LegendOrientation.Top,
+    show: true,
+    theme,
+    type: LegendType.Plain,
+  });
+
+  expect(layout.effectiveType).toBe(LegendType.Plain);
+  expect(layout.effectiveMargin).toBeGreaterThanOrEqual(
+    defaultLegendPadding[LegendOrientation.Top],
+  );
+});
+
+test('getLegendLayoutResult keeps user-selected plain type for bottom-oriented legends when space allows', () => {
+  expect(
+    getLegendLayoutResult({
+      chartHeight: 400,
+      chartWidth: 800,
+      legendItems: ['Alpha', 'Beta', 'Gamma', 'Delta'],
+      legendMargin: null,
+      orientation: LegendOrientation.Bottom,
+      show: true,
+      theme,
+      type: LegendType.Plain,
+    }),
+  ).toEqual({
+    effectiveMargin: defaultLegendPadding[LegendOrientation.Bottom],
+    effectiveType: LegendType.Plain,
+  });
+});
+
+test('getLegendLayoutResult passes a user-selected scroll type through untouched', () => {
+  expect(
+    getLegendLayoutResult({
+      chartHeight: 400,
+      chartWidth: 800,
+      legendItems: ['Alpha', 'Beta'],
+      legendMargin: null,
+      orientation: LegendOrientation.Top,
+      show: true,
+      theme,
+      type: LegendType.Scroll,
+    }),
+  ).toEqual({
+    effectiveType: LegendType.Scroll,
+  });
+});
+
 test('getLegendLayoutResult adds extra margin for wrapped plain horizontal legends', () => {
   const layout = getLegendLayoutResult({
     chartHeight: 400,
@@ -1597,4 +1646,30 @@ test('extractTooltipKeys with rich tooltip and sorting by metrics', () => {
 test('extractTooltipKeys with non-rich tooltip', () => {
   const result = extractTooltipKeys(forecastValue, 1, false, false);
   expect(result).toEqual(['foo']);
+});
+
+test('getAreaScaledSymbolSize maps the value extent to the size range', () => {
+  // smallest value renders at the minimum diameter
+  expect(getAreaScaledSymbolSize(10, [10, 40], [5, 30])).toBe(5);
+  // largest value renders at the maximum diameter
+  expect(getAreaScaledSymbolSize(40, [10, 40], [5, 30])).toBe(30);
+});
+
+test('getAreaScaledSymbolSize scales area, not diameter', () => {
+  // the midpoint value's *area* is halfway between the min and max areas
+  const midSize = getAreaScaledSymbolSize(25, [10, 40], [5, 30]);
+  expect(midSize ** 2).toBeCloseTo((5 ** 2 + 30 ** 2) / 2);
+});
+
+test('getAreaScaledSymbolSize clamps values outside the extent', () => {
+  expect(getAreaScaledSymbolSize(-100, [10, 40], [5, 30])).toBe(5);
+  expect(getAreaScaledSymbolSize(1000, [10, 40], [5, 30])).toBe(30);
+});
+
+test('getAreaScaledSymbolSize handles degenerate extents and bad values', () => {
+  const midAreaSize = Math.sqrt((5 ** 2 + 30 ** 2) / 2);
+  expect(getAreaScaledSymbolSize(7, [7, 7], [5, 30])).toBeCloseTo(midAreaSize);
+  expect(getAreaScaledSymbolSize(NaN, [10, 40], [5, 30])).toBeCloseTo(
+    midAreaSize,
+  );
 });

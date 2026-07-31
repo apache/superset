@@ -24,7 +24,7 @@ from unittest.mock import Mock, patch
 import pytest
 from sqlalchemy import Boolean, Column, Integer, String
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 from superset_core.common.models import CoreModel
 
 from superset.daos.base import BaseDAO, ColumnOperatorEnum
@@ -309,3 +309,67 @@ def test_list_page_size_below_one_is_floored():
     mock_query = _list_with_page_size(0)
 
     mock_query.limit.assert_called_once_with(1)
+
+
+def test_like_operators_none_value_matches_no_rows() -> None:
+    """A ``None`` value on a LIKE-family operator must match no rows.
+
+    Mirrors SQL three-valued logic (``x LIKE NULL`` is NULL). The failure
+    modes this pins against: raising ``AttributeError`` (``None`` has no
+    ``.replace``) and, worse, coercing ``None`` to ``""`` — which builds a
+    wildcard-only pattern (``%%``/``%``) that silently matches every row.
+    """
+    Base_test = declarative_base()  # noqa: N806
+
+    class NoneValueModel(Base_test):  # type: ignore
+        __tablename__ = "none_value_model"
+        id = Column(Integer, primary_key=True)
+        name = Column(String(50))
+
+    like_family = [
+        ColumnOperatorEnum.sw,
+        ColumnOperatorEnum.ew,
+        ColumnOperatorEnum.ct,
+        ColumnOperatorEnum.like,
+        ColumnOperatorEnum.ilike,
+    ]
+    for operator in like_family:
+        clause = operator.apply(NoneValueModel.name, None)
+        sql = str(clause.compile(compile_kwargs={"literal_binds": True}))
+        assert sql.strip().lower() == "false", (
+            f"{operator.name} with None should compile to a no-match clause, "
+            f"got: {sql!r}"
+        )
+        assert "%" not in sql, (
+            f"{operator.name} with None must not build a wildcard pattern "
+            f"(would match every row): {sql!r}"
+        )
+
+
+def test_like_operators_non_string_value_matches_literally() -> None:
+    """Non-string scalars (e.g. numeric JSON payloads) degrade to a literal
+    match instead of raising ``AttributeError``."""
+    Base_test = declarative_base()  # noqa: N806
+
+    class NumericValueModel(Base_test):  # type: ignore
+        __tablename__ = "numeric_value_model"
+        id = Column(Integer, primary_key=True)
+        name = Column(String(50))
+
+    clause = ColumnOperatorEnum.ct.apply(NumericValueModel.name, 123)
+    sql = str(clause.compile(compile_kwargs={"literal_binds": True}))
+    assert "'%123%'" in sql
+
+
+def test_like_operators_escape_wildcards_in_value() -> None:
+    """User-supplied ``%``/``_`` are escaped, not treated as wildcards."""
+    Base_test = declarative_base()  # noqa: N806
+
+    class WildcardValueModel(Base_test):  # type: ignore
+        __tablename__ = "wildcard_value_model"
+        id = Column(Integer, primary_key=True)
+        name = Column(String(50))
+
+    clause = ColumnOperatorEnum.ct.apply(WildcardValueModel.name, "100%_done")
+    sql = str(clause.compile(compile_kwargs={"literal_binds": True}))
+    assert "100\\%\\_done" in sql

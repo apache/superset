@@ -500,6 +500,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     allows_sql_comments = True
     allows_escaped_colons = True
 
+    # Whether the engine supports OFFSET in SQL queries. Defaults to True;
+    # engines like Elasticsearch SQL that do not support OFFSET set this to
+    # False and are expected to implement `fetch_data_with_cursor` for
+    # pagination via another mechanism (e.g. Elasticsearch's cursor API).
+    supports_offset = True
+
     # Whether ORDER BY clause can use aliases created in SELECT
     # that are the same as a source column
     allows_alias_to_source_column = True
@@ -560,6 +566,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # if True, database will be listed as option in the upload file form
     supports_file_upload = True
 
+    # Whether the engine supports SQL GROUPING SETS / ROLLUP / CUBE. When True,
+    # consumers (e.g. the pivot table's non-additive totals) can collapse the
+    # per-rollup-level queries into a single GROUPING SETS query instead of
+    # issuing one query per level. Conservative default of False; engines opt in.
+    supports_grouping_sets = False
+
     # Is the DB engine spec able to change the default schema? This requires implementing  # noqa: E501
     # a custom `adjust_engine_params` method.
     supports_dynamic_schema = False
@@ -608,6 +620,40 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # is determined only after the specific query is executed and it will update
     # the `cancel_query` value in the `extra` field of the `query` object
     has_query_id_before_execute = True
+
+    @classmethod
+    def apply_sampling_read_limit_override(cls, sql: str) -> str | None:
+        """Build the bounded-read retry form of system-authored sampling SQL.
+
+        Some engines reject bounded queries from a pre-execution row estimate
+        that ignores LIMIT (e.g. ClickHouse ``max_rows_to_read``), which breaks
+        Superset-authored sampling queries (filter values, samples/preview,
+        datetime format detection) on large tables. Engine specs that support
+        a bounded-read override return a modified query; ``None`` (the base
+        implementation, mirroring ``get_column_description_retry_sql``) means
+        no retry is available.
+
+        The override must only be applied to sampling queries whose statement
+        Superset generated (a physical-table dataset, not a virtual dataset's
+        user-authored base query), and only as a retry after the engine
+        rejected the un-modified statement with a read-limit error (see
+        ``is_read_limit_error``), so deployments whose queries already succeed
+        — including ClickHouse users connected with ``readonly=1``, which
+        rejects in-query SETTINGS changes — never see altered SQL. Callers go
+        through ``Database.sampling_read_limit_retry_sql`` so the per-database
+        opt-out is honored.
+        """
+        return None
+
+    @classmethod
+    def is_read_limit_error(cls, ex: Exception) -> bool:
+        """Return True when the exception is this engine's read-limit rejection.
+
+        Used to decide whether a failed system-sampling query should be
+        retried with ``apply_sampling_read_limit_override``. The base
+        implementation recognizes nothing.
+        """
+        return False
 
     @classmethod
     def encrypted_extra_sensitive_field_paths(cls) -> set[str]:
@@ -1098,8 +1144,30 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             time_expr = time_expr.replace("{col}", cls.epoch_to_dttm())
         elif pdf == "epoch_ms":
             time_expr = time_expr.replace("{col}", cls.epoch_ms_to_dttm())
+        elif pdf == "%Y":
+            # a bare four-digit year (e.g. the `year` column on the `video_game_sales`
+            # example dataset) has no native date type to lean on; without this the
+            # column value is passed straight into the grain function below, which
+            # every engine interprets as something other than a calendar year (SQLite
+            # reads a bare integer as a Julian day number, for instance), silently
+            # producing NULL for every row.
+            time_expr = cls._apply_year_to_dttm(time_expr)
 
         return TimestampExpression(time_expr, col, type_=col.type)
+
+    @classmethod
+    def _apply_year_to_dttm(cls, time_expr: str) -> str:
+        """
+        Substitute `{col}` in ``time_expr`` with the ``year_to_dttm`` expression.
+
+        Engine specs that have not implemented `year_to_dttm` fall back to the
+        prior behavior of passing the raw column through, rather than raising
+        for every dataset with a bare-year column.
+        """
+        try:
+            return time_expr.replace("{col}", cls.year_to_dttm())
+        except NotImplementedError:
+            return time_expr
 
     @classmethod
     def get_time_grains(cls) -> tuple[TimeGrain, ...]:
@@ -1249,6 +1317,26 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             raise cls.get_dbapi_mapped_exception(ex) from ex
 
     @classmethod
+    def fetch_data_with_cursor(
+        cls,
+        database: Database,
+        sql: str,
+        page_index: int,
+        page_size: int,
+    ) -> tuple[list[list[Any]], list[str]]:
+        """
+        Fetch a single page of results via engine-native cursor pagination.
+
+        Only called when ``cls.supports_offset`` is False and a non-first
+        page is requested (see ``superset/views/datasource/utils.py``).
+        Engines that set ``supports_offset = False`` must override this.
+        """
+        raise NotImplementedError(
+            f"{cls.__name__} sets supports_offset=False but does not "
+            "implement fetch_data_with_cursor()"
+        )
+
+    @classmethod
     def expand_data(
         cls, columns: list[ResultSetColumnType], data: list[dict[Any, Any]]
     ) -> tuple[
@@ -1293,6 +1381,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return: SQL Expression
         """
         return cls.epoch_to_dttm().replace("{col}", "({col}/1000)")
+
+    @classmethod
+    def year_to_dttm(cls) -> str:
+        """
+        SQL expression that converts a bare four-digit year value to the January 1st
+        datetime of that year, for use in a query. The reference column should be
+        denoted as `{col}` in the return expression, e.g. "MAKE_DATE({col}, 1, 1)"
+
+        :return: SQL Expression
+        """
+        raise NotImplementedError()
 
     @classmethod
     def get_datatype(cls, type_code: Any) -> str | None:
@@ -2327,6 +2426,36 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         return 1
 
+    @classmethod
+    def get_column_description_retry_sql(cls, sql: str) -> str | None:
+        """
+        Build a comment-safe fallback query for ``get_columns_description`` to
+        retry with when a zero-row metadata probe unexpectedly comes back with
+        an empty ``cursor.description``.
+
+        Some DB-API drivers only run their own "empty result" metadata
+        fallback -- used to populate ``cursor.description`` when a query
+        legitimately returns zero rows -- when the executed SQL text starts
+        with ``SELECT``/``WITH``. ``SQL_QUERY_MUTATOR`` can prepend comments
+        (e.g. query attribution) ahead of the ``SELECT`` keyword, which
+        defeats that startswith check on those drivers even though the query
+        itself is valid.
+
+        Engine specs affected by this can override this hook to wrap the
+        already-mutated SQL passed in so that the outer statement always
+        starts with a bare ``SELECT``. The original SQL -- including any
+        comments added by ``SQL_QUERY_MUTATOR`` -- is preserved verbatim, so
+        no mutation/audit behavior is lost, and the wrapped query still
+        returns zero rows.
+
+        Returning ``None`` (the default) means the engine doesn't support or
+        need this retry.
+
+        :param sql: The already limited and mutated SQL that was executed
+        :return: A comment-safe SQL string to retry with, or ``None``
+        """
+        return None
+
     @staticmethod
     def pyodbc_rows_to_tuples(data: list[Any]) -> list[tuple[Any, ...]]:
         """
@@ -2596,6 +2725,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "supports_dynamic_catalog": cls.supports_dynamic_catalog,
             "supports_oauth2": cls.supports_oauth2,
             "supports_schemas": cls.supports_schemas,
+            "supports_offset": cls.supports_offset,
         }
 
     @classmethod

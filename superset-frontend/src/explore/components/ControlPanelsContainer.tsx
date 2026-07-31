@@ -79,7 +79,7 @@ import ControlRow from './ControlRow';
 import Control from './Control';
 import { ExploreAlert } from './ExploreAlert';
 import { RunQueryButton } from './RunQueryButton';
-import { Operators } from '../constants';
+import { CONTROL_SECTIONS_ID, Operators } from '../constants';
 import { Clauses } from './controls/FilterControl/types';
 import StashFormDataContainer from './StashFormDataContainer';
 
@@ -152,8 +152,8 @@ const Styles = styled.div`
   display: flex;
   flex-direction: column;
 
-  // Resizable add overflow-y: auto as a style to this div
-  // To override it, we need to use !important
+  /* Resizable adds overflow-y: auto as a style to this div */
+  /* To override it, we need to use !important */
   overflow: visible !important;
 
   #controlSections {
@@ -166,28 +166,28 @@ const Styles = styled.div`
     flex: 1 1 100%;
   }
 
-  // Ensure Ant Design tabs allow content to expand
+  /* Ensure Ant Design tabs allow content to expand */
+  .ant-tabs-body {
+    overflow: visible;
+    height: auto;
+  }
+
+  .ant-tabs-body-holder {
+    overflow: visible;
+    height: auto;
+  }
+
   .ant-tabs-content {
     overflow: visible;
     height: auto;
   }
 
-  .ant-tabs-content-holder {
-    overflow: visible;
-    height: auto;
-  }
-
-  .ant-tabs-tabpane {
-    overflow: visible;
-    height: auto;
-  }
-
-  // Ensure collapse components can expand
-  .ant-collapse-content {
+  /* Ensure collapse components can expand */
+  .ant-collapse-panel {
     overflow: visible;
   }
 
-  .ant-collapse-content-box {
+  .ant-collapse-body {
     overflow: visible;
   }
 
@@ -941,7 +941,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     <>
       <Styles ref={containerRef}>
         <Tabs
-          id="controlSections"
+          id={CONTROL_SECTIONS_ID}
           data-test="control-tabs"
           allowOverflow={false}
           activeKey={activeTabKey}

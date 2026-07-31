@@ -15,12 +15,18 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
+from typing import TYPE_CHECKING
+from zipfile import ZipExtFile
 
 import pandas as pd
+import pytest
 from freezegun import freeze_time
 from pytz import timezone
 
 from tests.unit_tests.conftest import with_feature_flags
+
+if TYPE_CHECKING:
+    from superset.reports.notifications.email import EmailNotification
 
 
 def test_render_description_with_html() -> None:
@@ -43,7 +49,7 @@ def test_render_description_with_html() -> None:
         header_data={
             "notification_format": "PNG",
             "notification_type": "Alert",
-            "owners": [1],
+            "editors": [1],
             "notification_source": None,
             "chart_id": None,
             "dashboard_id": None,
@@ -78,7 +84,7 @@ def test_error_template_sanitizes_html() -> None:
         header_data={
             "notification_format": "PNG",
             "notification_type": "Alert",
-            "owners": [1],
+            "editors": [1],
             "notification_source": None,
             "chart_id": None,
             "dashboard_id": None,
@@ -121,7 +127,7 @@ def test_email_subject_with_datetime() -> None:
         header_data={
             "notification_format": "PNG",
             "notification_type": "Alert",
-            "owners": [1],
+            "editors": [1],
             "notification_source": None,
             "chart_id": None,
             "dashboard_id": None,
@@ -144,3 +150,121 @@ def test_email_subject_with_datetime() -> None:
         subject = notification._get_subject()
     assert datetime_pattern not in subject
     assert frozen_now.strftime(datetime_pattern) in subject
+
+
+def _make_notification(xlsx: bytes) -> "EmailNotification":
+    """Build an email notification for attachment tests."""
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+    from superset.reports.notifications.email import EmailNotification
+
+    recipient = ReportRecipients(type=ReportRecipientType.EMAIL)
+    content = NotificationContent(
+        name="test report",
+        text=None,
+        xlsx=xlsx,
+        header_data={
+            "notification_format": "XLSX",
+            "notification_type": "Report",
+            "editors": [1],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "slack_channels": None,
+            "execution_id": "test-execution-id",
+        },
+    )
+    return EmailNotification(recipient=recipient, content=content)
+
+
+def test_get_xlsx_attachment_extension_for_non_zip_content() -> None:
+    """Non-ZIP responses retain the XLSX extension."""
+    from superset.reports.notifications.email import (
+        _get_xlsx_attachment_extension,
+    )
+
+    assert _get_xlsx_attachment_extension(b"xlsx-response") == "xlsx"
+
+
+def test_get_xlsx_attachment_extension_for_xlsx_content() -> None:
+    """An OOXML workbook is identified as XLSX."""
+    from superset.reports.notifications.email import (
+        _get_xlsx_attachment_extension,
+    )
+    from superset.utils import excel
+
+    xlsx = excel.df_to_excel(pd.DataFrame({"value": [1, 2]}), index=False)
+
+    assert _get_xlsx_attachment_extension(xlsx) == "xlsx"
+
+
+def test_get_xlsx_attachment_extension_for_invalid_xlsx_zip_content() -> None:
+    """A ZIP with invalid XLSX entries is not identified as a report archive."""
+    from superset.reports.notifications.email import (
+        _get_xlsx_attachment_extension,
+    )
+    from superset.utils.core import create_zip
+
+    archive = create_zip({"query_1.xlsx": b"xlsx-response"}).getvalue()
+
+    assert _get_xlsx_attachment_extension(archive) == "xlsx"
+
+
+def test_get_xlsx_attachment_extension_reads_nested_zip_signatures_only(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Nested XLSX detection should not read each workbook into memory."""
+    from superset.reports.notifications.email import (
+        _get_xlsx_attachment_extension,
+    )
+    from superset.utils import excel
+    from superset.utils.core import create_zip
+
+    read_sizes: list[int] = []
+    original_read = ZipExtFile.read
+
+    def read_signature(self: ZipExtFile, n: int = -1) -> bytes:
+        read_sizes.append(n)
+        return original_read(self, n)
+
+    monkeypatch.setattr(ZipExtFile, "read", read_signature)
+
+    xlsx = excel.df_to_excel(pd.DataFrame({"value": [1, 2]}), index=False)
+    archive = create_zip({"query_1.xlsx": xlsx, "query_2.xlsx": xlsx}).getvalue()
+
+    assert _get_xlsx_attachment_extension(archive) == "zip"
+    assert read_sizes == [4, 4]
+
+
+@pytest.mark.parametrize(
+    ("server_pagination", "expected_extension"),
+    [
+        (False, "xlsx"),
+        (True, "zip"),
+    ],
+)
+def test_xlsx_report_attachment_extension(
+    server_pagination: bool,
+    expected_extension: str,
+) -> None:
+    """Server-paginated XLSX reports should be attached as ZIP archives."""
+    from superset.utils import excel
+    from superset.utils.core import create_zip
+
+    xlsx = excel.df_to_excel(pd.DataFrame({"value": [1, 2]}), index=False)
+    attachment = (
+        create_zip(
+            {
+                "query_1.xlsx": xlsx,
+                "query_2.xlsx": xlsx,
+            }
+        ).getvalue()
+        if server_pagination
+        else xlsx
+    )
+
+    email_content = _make_notification(xlsx=attachment)._get_content()
+
+    assert email_content.data == {
+        f"test report.{expected_extension}": attachment,
+    }

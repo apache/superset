@@ -39,6 +39,7 @@ jest.mock(
   '@superset-ui/core/components/Icons/AsyncIcon',
   () =>
     ({ fileName }: { fileName: string }) => (
+      // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- mirrors AsyncIcon's real span+role="img" shape
       <span role="img" aria-label={fileName.replace('_', '-')} />
     ),
 );
@@ -62,7 +63,7 @@ describe('DatasetPanel', () => {
       exact: false,
     });
     expect(blankDatasetDescription2).toBeVisible();
-    const sqlLabLink = screen.getByRole('button', {
+    const sqlLabLink = screen.getByRole('link', {
       name: CREATE_MESSAGE,
     });
     expect(sqlLabLink).toBeVisible();

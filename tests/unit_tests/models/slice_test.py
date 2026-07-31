@@ -19,6 +19,7 @@ import uuid
 from unittest.mock import MagicMock, patch, PropertyMock
 
 import pytest
+from flask import current_app
 from parameterized import parameterized
 
 from superset.models.slice import id_or_uuid_filter, Slice
@@ -146,3 +147,60 @@ class TestSlice:
         # The injected tag and attribute-breakout quote are escaped.
         assert "<img" not in html
         assert '"onmouseover' not in html
+
+
+def test_thumbnail_url_is_router_relative_at_root(app_context: None) -> None:
+    """thumbnail_url uses url_for, so at root it keeps the legacy shape."""
+    slc = Slice()
+    slc.id = 42
+
+    with patch.object(
+        Slice, "digest", new_callable=PropertyMock, return_value="abc123"
+    ):
+        with current_app.test_request_context("/"):
+            url = slc.thumbnail_url
+
+    assert url == "/api/v1/chart/42/thumbnail/abc123/"
+
+
+def test_thumbnail_url_carries_app_root_prefix(app_context: None) -> None:
+    """Under a subdirectory deployment the serialized thumbnail URL must carry
+    the application root, because the frontend treats thumbnail_url as an
+    already-prefixed raw fetch target (it is excluded from
+    normalizeBackendUrls and never passed through ensureAppRoot)."""
+    slc = Slice()
+    slc.id = 42
+
+    with patch.object(
+        Slice, "digest", new_callable=PropertyMock, return_value="abc123"
+    ):
+        with current_app.test_request_context(
+            "/", base_url="http://example.com/superset/"
+        ):
+            url = slc.thumbnail_url
+
+    assert url == "/superset/api/v1/chart/42/thumbnail/abc123/"
+
+
+def test_thumbnail_url_is_none_without_digest(app_context: None) -> None:
+    slc = Slice()
+    slc.id = 42
+
+    with patch.object(Slice, "digest", new_callable=PropertyMock, return_value=None):
+        with current_app.test_request_context("/"):
+            assert slc.thumbnail_url is None
+
+
+def test_thumbnail_url_works_outside_request_context(app_context: None) -> None:
+    """The property must stay callable from out-of-request callers (CLI,
+    celery tasks): with no request there is no SCRIPT_NAME to honor, so it
+    falls back to the router-relative shape instead of raising."""
+    slc = Slice()
+    slc.id = 42
+
+    with patch.object(
+        Slice, "digest", new_callable=PropertyMock, return_value="abc123"
+    ):
+        url = slc.thumbnail_url
+
+    assert url == "/api/v1/chart/42/thumbnail/abc123/"

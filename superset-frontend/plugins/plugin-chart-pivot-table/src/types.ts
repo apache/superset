@@ -42,12 +42,29 @@ export type FilterType = Record<string, DataRecordValue>;
 export type SelectedFiltersType = Record<string, DataRecordValue[]>;
 
 export type DateFormatter =
-  | TimeFormatter
-  | NumberFormatter
-  | ((value: DataRecordValue) => string);
+  TimeFormatter | NumberFormatter | ((value: DataRecordValue) => string);
 export enum MetricsLayoutEnum {
   ROWS = 'ROWS',
   COLUMNS = 'COLUMNS',
+}
+
+/**
+ * One rollup level for non-additive totals: a prefix of the row dimensions and
+ * a prefix of the column dimensions. See `plugin/utilities.ts`.
+ */
+export interface Groupby {
+  rows: QueryFormColumn[];
+  columns: QueryFormColumn[];
+}
+
+/**
+ * The result of one rollup-level query: the rows the database returned for that
+ * level, tagged with the level (`groupby`) they belong to so the pivot can slot
+ * each pre-computed value into the right cell/subtotal/total.
+ */
+export interface QueryData {
+  data: DataRecord[];
+  groupby: Groupby;
 }
 
 interface PivotTableCustomizeProps {
@@ -57,7 +74,6 @@ interface PivotTableCustomizeProps {
   tableRenderer: string;
   colOrder: string;
   rowOrder: string;
-  aggregateFunction: string;
   transposePivot: boolean;
   combineMetric: boolean;
   rowSubtotalPosition: boolean;
@@ -98,5 +114,5 @@ export type PivotTableQueryFormData = QueryFormData &
 
 export type PivotTableProps = PivotTableStylesProps &
   PivotTableCustomizeProps & {
-    data: DataRecord[];
+    data: QueryData[];
   };

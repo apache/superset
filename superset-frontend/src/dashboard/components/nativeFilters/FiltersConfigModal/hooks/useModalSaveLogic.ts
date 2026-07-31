@@ -329,8 +329,7 @@ export function useModalSaveLogic({
             ),
           )
           .filter(Boolean) as (
-          | ChartCustomization
-          | ChartCustomizationDivider
+          ChartCustomization | ChartCustomizationDivider
         )[];
 
         saveChanges.customizationChanges = {

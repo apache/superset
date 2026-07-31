@@ -216,7 +216,7 @@ class TestTagCreationMySQLCompatibility(SupersetTestCase):
         tag_types = [
             (TagType.custom, "test-custom-tag"),
             (TagType.type, "type:chart"),
-            (TagType.owner, "owner:123"),
+            (TagType.editor, "editor:123"),
             (TagType.favorited_by, "favorited_by:456"),
         ]
 

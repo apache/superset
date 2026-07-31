@@ -28,9 +28,11 @@ from pytest_mock import MockerFixture
 
 from superset.exceptions import SupersetException
 from superset.utils.core import (
+    build_email_attachment,
     cast_to_boolean,
     check_is_safe_zip,
     DateColumn,
+    extract_dataframe_dtypes,
     FilterOperator,
     generic_find_constraint_name,
     generic_find_fk_constraint_name,
@@ -67,6 +69,43 @@ EXTRA_FILTER: QueryObjectFilterClause = {
     "val": "bar",
     "isExtra": True,
 }
+
+
+@pytest.mark.parametrize(
+    ("name", "body", "expected_payload", "content_type"),
+    [
+        (
+            "report.xlsx",
+            b"attachment",
+            b"attachment",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ),
+        (
+            "report.zip",
+            "архив".encode("utf-8"),
+            "архив".encode("utf-8"),
+            "application/zip",
+        ),
+        (
+            "report.csv",
+            "город,value\nМосква,1",
+            "город,value\nМосква,1".encode("utf-8"),
+            "application/octet-stream",
+        ),
+    ],
+)
+def test_build_email_attachment(
+    name: str,
+    body: bytes | str,
+    expected_payload: bytes,
+    content_type: str,
+) -> None:
+    """Email attachments should expose the expected MIME type and filename."""
+    attachment = build_email_attachment(name, body)
+
+    assert attachment.get_content_type() == content_type
+    assert attachment.get_filename() == name
+    assert attachment.get_payload(decode=True) == expected_payload
 
 
 @dataclass
@@ -234,6 +273,22 @@ def test_normalize_dttm_col() -> None:
     assert df["__time"].astype(str).tolist() == ["2017-07-01"]
 
 
+def test_normalize_dttm_col_mismatched_format_keeps_values() -> None:
+    """A datetime format that coerces every value to NaT is a mismatch (e.g. an
+    epoch-millis column that inherited a ``%Y`` string format when used as a
+    chart's granularity); applying it would silently blank the whole column, so
+    the original values are kept instead of being nulled. Regression for the
+    Samples pane showing N/A for such columns."""
+    df = pd.DataFrame({"year": [1136073600000, 473385600000]})  # epoch ms
+    before = df["year"].tolist()
+
+    normalize_dttm_col(df, (DateColumn(col_label="year", timestamp_format="%Y"),))
+
+    # not blanked to NaT/None
+    assert df["year"].notna().all()
+    assert df["year"].tolist() == before
+
+
 def test_normalize_dttm_col_epoch_seconds() -> None:
     """Test conversion of epoch seconds."""
     df = pd.DataFrame(
@@ -302,6 +357,46 @@ def test_normalize_dttm_col_with_offset() -> None:
     assert df["date_col"][0].strftime("%Y-%m-%d %H:%M:%S") == "2020-01-01 03:00:00"
     assert df["date_col"][1].strftime("%Y-%m-%d %H:%M:%S") == "2021-01-01 03:00:00"
     assert df["date_col"][2].strftime("%Y-%m-%d %H:%M:%S") == "2022-01-01 03:00:00"
+
+
+def test_normalize_dttm_col_second_precision_no_offset_matches_source() -> None:
+    """Regression test for #37925: second-precision timestamps with no
+    dataset offset configured ("UTC", i.e. offset=0) and no time shift must
+    pass through ``normalize_dttm_col`` unchanged and identically to their
+    source values, with no per-row drift.
+
+    The issue reports charts showing datetimes shifted by inconsistent,
+    non-uniform amounts versus the same data in SQL Lab, with the reporter's
+    own examples showing each shift exactly equal to that row's own
+    time-of-day (e.g. 16:30:00 shifted by +16h30m, 10:00:00 by +10h,
+    14:20:00 by +14h20m). ``normalize_dttm_col`` applies a single
+    ``_col.offset``/``_col.time_shift`` uniformly via ``timedelta(...)`` to
+    the whole column (see ``test_normalize_dttm_col_with_offset`` above,
+    already green), which cannot structurally produce a shift that varies
+    per row based on that row's own value, so this function is not the
+    mechanism the issue describes. This test locks in the specific
+    reported config (offset=0, no time_shift, second-level grain, multiple
+    distinct timestamps) end to end to make that explicit.
+    """
+    source_values = [
+        "2026-02-15 16:30:00",
+        "2026-02-15 10:00:00",
+        "2026-02-11 14:20:00",
+    ]
+    df = pd.DataFrame({"dttm": source_values})
+    dttm_cols = (
+        DateColumn(
+            col_label="dttm",
+            timestamp_format="%Y-%m-%d %H:%M:%S",
+            offset=0,
+            time_shift=None,
+        ),
+    )
+
+    normalize_dttm_col(df, dttm_cols)
+
+    assert is_datetime64_dtype(df["dttm"])
+    assert df["dttm"].dt.strftime("%Y-%m-%d %H:%M:%S").tolist() == source_values
 
 
 def test_normalize_dttm_col_with_time_shift() -> None:
@@ -637,8 +732,29 @@ def test_get_datasource_full_name():
         (None, None),
         ("https://mysuperset.com/abc", None),
         ("https://mysuperset.com/superset/dashboard/", QuerySource.DASHBOARD),
+        ("https://mysuperset.com/dashboard/1/", QuerySource.DASHBOARD),
+        ("https://mysuperset.com/myapp/dashboard/1/", QuerySource.DASHBOARD),
         ("https://mysuperset.com/explore/", QuerySource.CHART),
+        ("https://mysuperset.com/myapp/explore/", QuerySource.CHART),
         ("https://mysuperset.com/sqllab/", QuerySource.SQL_LAB),
+        ("https://mysuperset.com/myapp/sqllab/", QuerySource.SQL_LAB),
+        # Matching is path-scoped: a query-string payload embedding another
+        # route segment must not win over (or fabricate) an attribution.
+        ("https://mysuperset.com/explore/?next=/dashboard/1/", QuerySource.CHART),
+        ("https://mysuperset.com/?next=/dashboard/1/", None),
+        # Substring match is slash-bounded: a sibling route that merely shares
+        # the leading token (`/dashboardx/`, `/explorer/`) must NOT match. Pins
+        # the trailing `/` in the `"/dashboard/" in path` checks against a
+        # future loosening to a prefix/startswith compare.
+        ("https://mysuperset.com/dashboardx/", None),
+        ("https://mysuperset.com/explorer/", None),
+        ("https://mysuperset.com/sqllab_extra/", None),
+        # The bare token without a trailing slash is also not a match — the
+        # canonical routes always carry the trailing slash.
+        ("https://mysuperset.com/dashboard", None),
+        # Referer is client-controlled: a malformed URL (unclosed IPv6
+        # bracket makes urlparse raise ValueError) must yield None, not 500.
+        ("http://[/explore/", None),
     ],
 )
 def test_get_query_source_from_request(
@@ -1827,3 +1943,10 @@ def test_sanitize_cookie_token_accepts_valid(token: str) -> None:
 )
 def test_sanitize_cookie_token_rejects_invalid(token: Optional[str]) -> None:
     assert sanitize_cookie_token(token) is None
+
+
+def test_extract_dataframe_dtypes_with_duplicate_columns() -> None:
+    """extract_dataframe_dtypes should not crash on duplicate column names."""
+    df = pd.DataFrame([[1, 2, 3]], columns=["a", "b", "a"])
+    result = extract_dataframe_dtypes(df)
+    assert len(result) == 3

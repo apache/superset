@@ -184,6 +184,25 @@ describe('ExtraOptions Component', () => {
     expect(onExtraInputChange).toHaveBeenCalled();
   });
 
+  test('schema cache timeout input has min=0 to prevent negative values', () => {
+    renderComponent();
+    const performanceHeader = screen.getByText(t('Performance'));
+    fireEvent.click(performanceHeader);
+    const input = screen.getByTestId('schema-cache-timeout-test');
+    expect(input).toHaveAttribute('min', '0');
+  });
+
+  test('schema cache timeout rejects negative values', () => {
+    renderComponent();
+    const performanceHeader = screen.getByText(t('Performance'));
+    fireEvent.click(performanceHeader);
+    const input = screen.getByTestId('schema-cache-timeout-test');
+    fireEvent.change(input, {
+      target: { value: '-4', name: 'schema_cache_timeout' },
+    });
+    expect(onExtraInputChange).not.toHaveBeenCalled();
+  });
+
   test('handles input change for table cache timeout', () => {
     renderComponent();
     const performanceHeader = screen.getByText(t('Performance'));
@@ -191,6 +210,55 @@ describe('ExtraOptions Component', () => {
     const input = screen.getByTestId('table-cache-timeout-test');
     fireEvent.change(input, { target: { value: '1000' } });
     expect(onExtraInputChange).toHaveBeenCalled();
+  });
+
+  test('table cache timeout input has min=0 to prevent negative values', () => {
+    renderComponent();
+    const performanceHeader = screen.getByText(t('Performance'));
+    fireEvent.click(performanceHeader);
+    const input = screen.getByTestId('table-cache-timeout-test');
+    expect(input).toHaveAttribute('min', '0');
+  });
+
+  test('table cache timeout rejects negative values', () => {
+    renderComponent();
+    const performanceHeader = screen.getByText(t('Performance'));
+    fireEvent.click(performanceHeader);
+    const input = screen.getByTestId('table-cache-timeout-test');
+    fireEvent.change(input, {
+      target: { value: '-1', name: 'table_cache_timeout' },
+    });
+    expect(onExtraInputChange).not.toHaveBeenCalled();
+  });
+
+  test('chart cache timeout input has min=-1', () => {
+    renderComponent();
+    const performanceHeader = screen.getByText(t('Performance'));
+    fireEvent.click(performanceHeader);
+    const input = screen.getByTestId('cache-timeout-test');
+    expect(input).toHaveAttribute('min', '-1');
+  });
+
+  test('chart cache timeout allows -1 (bypass cache)', () => {
+    renderComponent();
+    const performanceHeader = screen.getByText(t('Performance'));
+    fireEvent.click(performanceHeader);
+    const input = screen.getByTestId('cache-timeout-test');
+    fireEvent.change(input, {
+      target: { value: '-1', name: 'cache_timeout' },
+    });
+    expect(onInputChange).toHaveBeenCalled();
+  });
+
+  test('chart cache timeout rejects values less than -1', () => {
+    renderComponent();
+    const performanceHeader = screen.getByText(t('Performance'));
+    fireEvent.click(performanceHeader);
+    const input = screen.getByTestId('cache-timeout-test');
+    fireEvent.change(input, {
+      target: { value: '-5', name: 'cache_timeout' },
+    });
+    expect(onInputChange).not.toHaveBeenCalled();
   });
 
   test('renders the collaps tab correctly and resets to default tab after closing', () => {

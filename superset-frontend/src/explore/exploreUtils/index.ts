@@ -33,7 +33,7 @@ import {
 import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
 import { optionLabel } from 'src/utils/common';
-import { ensureAppRoot } from 'src/utils/pathUtils';
+import { ensureAppRoot } from 'src/utils/navigationUtils';
 import { downloadBlob, getFilenameFromResponse } from 'src/utils/export';
 import { URL_PARAMS } from 'src/constants';
 import {
@@ -166,7 +166,7 @@ export function getURIDirectory(
     'results',
     'samples',
   ].includes(endpointType)
-    ? '/superset/explore_json/'
+    ? '/explore_json/'
     : '/explore/';
   return includeAppRoot ? ensureAppRoot(uri) : uri;
 }

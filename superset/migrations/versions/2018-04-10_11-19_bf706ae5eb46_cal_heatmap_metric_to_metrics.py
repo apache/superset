@@ -24,7 +24,7 @@ Create Date: 2018-04-10 11:19:47.621878
 
 from alembic import op
 from sqlalchemy import Column, Integer, String, Text
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 from superset import db
 from superset.utils import json
@@ -49,7 +49,7 @@ class Slice(Base):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     slices = session.query(Slice).filter_by(viz_type="cal_heatmap").all()
     slice_len = len(slices)

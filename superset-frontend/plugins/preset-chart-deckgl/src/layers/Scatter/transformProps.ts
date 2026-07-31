@@ -43,7 +43,6 @@ function processScatterData(
   spatial: DeckScatterFormData['spatial'],
   radiusMetricLabel?: string,
   categoryColumn?: string,
-  jsColumns?: string[],
   fixedRadiusValue?: number | string | null,
 ): ScatterPoint[] {
   if (!spatial || !records.length) {
@@ -65,7 +64,6 @@ function processScatterData(
       : []),
     radiusMetricLabel,
     categoryColumn,
-    ...(jsColumns || []),
   ]);
 
   return spatialFeatures.map(feature => {
@@ -105,7 +103,7 @@ function processScatterData(
 
 export default function transformProps(chartProps: ChartProps) {
   const { rawFormData: formData } = chartProps;
-  const { spatial, point_radius_fixed, dimension, js_columns } =
+  const { spatial, point_radius_fixed, dimension } =
     formData as DeckScatterFormData;
 
   // Check if this is a fixed value or metric
@@ -121,7 +119,6 @@ export default function transformProps(chartProps: ChartProps) {
     spatial,
     radiusMetricLabel,
     dimension,
-    js_columns,
     fixedRadiusValue,
   );
 

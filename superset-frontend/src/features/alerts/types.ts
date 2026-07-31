@@ -18,8 +18,8 @@
  */
 
 import type { ReactNode } from 'react';
-import Owner from 'src/types/Owner';
 import { NotificationFormats } from 'src/features/reports/types';
+import type Subject from 'src/types/Subject';
 
 type user = {
   id: number;
@@ -139,7 +139,7 @@ export type AlertObject = {
   last_state?: 'Success' | 'Working' | 'Error' | 'Not triggered' | 'On Grace';
   log_retention?: number;
   name?: string;
-  owners?: Array<Owner | MetaObject>;
+  editors?: Subject[];
   sql?: string;
   timezone?: string;
   recipients?: Array<Recipient>;

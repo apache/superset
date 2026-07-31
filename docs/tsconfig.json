@@ -30,7 +30,6 @@
   "exclude": [
     "node_modules",
     "../superset-frontend/**/*",
-    "src/webpack.extend.ts",
     "src/shims/**"
   ]
 }

@@ -18,8 +18,8 @@
  */
 import { FC, memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
+import type { Location } from 'history';
 import { useDispatch } from 'react-redux';
-import { QueryFormData, JsonObject } from '@superset-ui/core';
 import {
   Tooltip,
   Button,
@@ -28,6 +28,8 @@ import {
 } from '@superset-ui/core/components';
 import { AlteredSliceTag } from 'src/components';
 import {
+  QueryFormData,
+  JsonObject,
   SupersetClient,
   isMatrixifyEnabled,
   MatrixifyFormData,
@@ -44,6 +46,10 @@ import { applyColors, resetColors } from 'src/utils/colorScheme';
 import ReportModal from 'src/features/reports/ReportModal';
 import { deleteActiveReport } from 'src/features/reports/ReportModal/actions';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
+import {
+  getChartStateFromHistoryState,
+  isSameChartState,
+} from 'src/explore/exploreUtils/exploreHistory';
 import { getChartFormDiffs } from 'src/utils/getChartFormDiffs';
 import { StreamingExportModal } from 'src/components/StreamingExportModal';
 import { Tag } from 'src/components/Tag';
@@ -51,6 +57,7 @@ import { ChartState, ExplorePageInitialData } from 'src/explore/types';
 import { Slice } from 'src/types/Chart';
 import { ReportObject } from 'src/features/reports/types';
 import { User } from 'src/types/bootstrapTypes';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
 import { useExploreMetadataBar } from './useExploreMetadataBar';
 
@@ -241,6 +248,17 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     [originalFormData, currentFormData],
   );
 
+  // Explore's own chart-state entries (see updateHistory) keep the user on the
+  // chart, so stepping through them isn't leaving unsaved changes behind.
+  const isChartStateTransition = useCallback(
+    (state: Location['state']) =>
+      isSameChartState(getChartStateFromHistoryState(state), {
+        ...formData,
+        slice_id: formData?.slice_id ?? slice?.slice_id,
+      }),
+    [formData, slice?.slice_id],
+  );
+
   const {
     showModal: showUnsavedChangesModal,
     setShowModal: setShowUnsavedChangesModal,
@@ -254,6 +272,7 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     },
     isSaveModalVisible,
     manualSaveOnUnsavedChanges: true,
+    isInPlaceTransition: isChartStateTransition,
   });
 
   const showModal = useCallback(() => {
@@ -270,19 +289,23 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     }
   }, [showUnsavedChangesModal, shouldForceCloseModal]);
 
+  const userSubjects = useMemo(
+    () => new Set(getBootstrapData()?.common?.user_subjects ?? []),
+    [],
+  );
+
   const editableTitleProps = useMemo(
     () => ({
       title: sliceName ?? '',
       canEdit:
         !slice ||
         canOverwrite ||
-        (user?.userId !== undefined &&
-          (slice?.owners || []).includes(user.userId)),
+        Boolean(slice?.editors?.some(editor => userSubjects.has(editor))),
       onSave: actions.updateChartTitle,
       placeholder: t('Add the name of the chart'),
       label: t('Chart title'),
     }),
-    [actions.updateChartTitle, canOverwrite, slice, sliceName, user?.userId],
+    [actions.updateChartTitle, canOverwrite, slice, sliceName, userSubjects],
   );
 
   const certificatiedBadgeProps = useMemo(
@@ -387,7 +410,6 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
       )}
 
       <ReportModal
-        userId={user.userId}
         show={isReportModalOpen}
         onHide={closeReportModal}
         userEmail={user.email}

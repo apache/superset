@@ -342,3 +342,72 @@ test('formatForecastTooltipSeries should format forecast with only confidence ba
     }),
   ).toEqual(['<img>qwerty', '(7, 15)']);
 });
+
+test('formatForecastTooltipSeries should show forecast trend equal to zero', () => {
+  expect(
+    formatForecastTooltipSeries({
+      seriesName: 'qwerty',
+      marker: '<img>',
+      observation: 10,
+      forecastTrend: 0,
+      forecastLower: 5,
+      forecastUpper: 7,
+      formatter,
+    }),
+  ).toEqual(['<img>qwerty', '10, ŷ = 0 (5, 12)']);
+});
+
+test('formatForecastTooltipSeries should show confidence band when lower bound is zero', () => {
+  expect(
+    formatForecastTooltipSeries({
+      seriesName: 'qwerty',
+      marker: '<img>',
+      observation: 10,
+      forecastTrend: 5,
+      forecastLower: 0,
+      forecastUpper: 7,
+      formatter,
+    }),
+  ).toEqual(['<img>qwerty', '10, ŷ = 5 (0, 7)']);
+});
+
+test('formatForecastTooltipSeries should show confidence band when band height is zero', () => {
+  expect(
+    formatForecastTooltipSeries({
+      seriesName: 'qwerty',
+      marker: '<img>',
+      observation: 10,
+      forecastTrend: 5,
+      forecastLower: 4,
+      forecastUpper: 0,
+      formatter,
+    }),
+  ).toEqual(['<img>qwerty', '10, ŷ = 5 (4, 4)']);
+});
+
+test('formatForecastTooltipSeries should show forecast trend and band all at zero', () => {
+  expect(
+    formatForecastTooltipSeries({
+      seriesName: 'qwerty',
+      marker: '<img>',
+      forecastTrend: 0,
+      forecastLower: 0,
+      forecastUpper: 0,
+      formatter,
+    }),
+  ).toEqual(['<img>qwerty', 'ŷ = 0 (0, 0)']);
+});
+
+test('formatForecastTooltipSeries should skip non-finite forecast values', () => {
+  expect(
+    formatForecastTooltipSeries({
+      seriesName: 'qwerty',
+      marker: '<img>',
+      observation: 10,
+      forecastTrend: NaN,
+      forecastLower: Infinity,
+      forecastUpper: -Infinity,
+      formatter,
+    }),
+  ).toEqual(['<img>qwerty', '10']);
+});

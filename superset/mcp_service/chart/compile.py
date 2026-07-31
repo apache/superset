@@ -40,7 +40,10 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.exceptions import CommandException
 from superset.errors import SupersetErrorType
-from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
+from superset.mcp_service.chart.validation.dataset_validator import (
+    build_dataset_context_from_orm,
+    DatasetValidator,
+)
 from superset.mcp_service.common.error_schemas import (
     ChartGenerationError,
     ColumnSuggestion,
@@ -92,52 +95,6 @@ class CompileResult:
     error_obj: ChartGenerationError | None = None
     warnings: List[str] = field(default_factory=list)
     row_count: int | None = None
-
-
-def build_dataset_context_from_orm(dataset: Any) -> DatasetContext | None:
-    """Construct a ``DatasetContext`` from an already-fetched ORM dataset.
-
-    Mirrors :py:meth:`DatasetValidator._get_dataset_context` but skips the
-    ``DatasetDAO.find_by_id`` round trip. Callers that have already loaded
-    the dataset (for permission checks, etc.) should use this instead.
-    """
-    if dataset is None:
-        return None
-
-    columns: List[Dict[str, Any]] = []
-    for col in getattr(dataset, "columns", []) or []:
-        columns.append(
-            {
-                "name": col.column_name,
-                "type": str(col.type) if col.type else "UNKNOWN",
-                "is_temporal": getattr(col, "is_temporal", False),
-                "is_numeric": getattr(col, "is_numeric", False),
-            }
-        )
-
-    metrics: List[Dict[str, Any]] = []
-    for metric in getattr(dataset, "metrics", []) or []:
-        metrics.append(
-            {
-                "name": metric.metric_name,
-                "expression": metric.expression,
-                "description": metric.description,
-            }
-        )
-
-    database = getattr(dataset, "database", None)
-    # ``DatasetContext.database_name`` is typed as required ``str``; default to
-    # an empty string when the relationship isn't loaded so we don't blow up
-    # Pydantic validation. The field is purely informational in error messages.
-    database_name = getattr(database, "database_name", None) or ""
-    return DatasetContext(
-        id=dataset.id,
-        table_name=dataset.table_name,
-        schema=dataset.schema,
-        database_name=database_name,
-        available_columns=columns,
-        available_metrics=metrics,
-    )
 
 
 def _compile_chart(

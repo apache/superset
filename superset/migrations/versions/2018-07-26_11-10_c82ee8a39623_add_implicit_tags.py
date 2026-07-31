@@ -31,7 +31,7 @@ from datetime import datetime  # noqa: E402
 from alembic import op  # noqa: E402
 from flask_appbuilder.models.mixins import AuditMixin  # noqa: E402
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String  # noqa: E402
-from sqlalchemy.ext.declarative import declarative_base, declared_attr  # noqa: E402
+from sqlalchemy.orm import declarative_base, declared_attr  # noqa: E402
 
 from superset.tags.models import ObjectType, TagType  # noqa: E402
 from superset.utils.core import get_user_id  # noqa: E402

@@ -23,13 +23,21 @@ import pytest
 from pydantic import ValidationError
 
 from superset.mcp_service.chart.schemas import (
+    BigNumberChartConfig,
     ColumnRef,
+    FilterConfig,
     GenerateChartRequest,
     GenerateChartResponse,
+    GetChartDataRequest,
+    GetChartInfoRequest,
+    GetChartPreviewRequest,
+    GetChartSqlRequest,
+    ListChartsRequest,
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
     TableChartConfig,
+    UpdateChartRequest,
     XYChartConfig,
 )
 
@@ -47,6 +55,44 @@ class TestGenerateChartResponse:
         )
 
         assert response.chart_type_label == "table chart"
+
+
+class TestColumnNameSanitization:
+    """Test relaxed column names retain SQL-injection protection."""
+
+    def test_column_ref_rejects_sql_injection(self) -> None:
+        """ColumnRef rejects SQL injection patterns."""
+        with pytest.raises(ValidationError, match="potentially unsafe"):
+            ColumnRef(name="revenue; DROP TABLE users")
+
+    def test_filter_column_rejects_sql_injection(self) -> None:
+        """FilterConfig.column rejects SQL injection patterns."""
+        with pytest.raises(ValidationError, match="potentially unsafe"):
+            FilterConfig(column="status; DROP TABLE users", op="=", value="active")
+
+    def test_temporal_column_rejects_sql_injection(self) -> None:
+        """BigNumberChartConfig.temporal_column rejects SQL injection patterns."""
+        with pytest.raises(ValidationError, match="potentially unsafe"):
+            BigNumberChartConfig(
+                chart_type="big_number",
+                metric={"name": "revenue", "aggregate": "SUM"},
+                show_trendline=True,
+                temporal_column="created_at; DROP TABLE users",
+            )
+
+    def test_relaxed_column_names_still_pass(self) -> None:
+        """Digit-prefixed, dotted, and hyphenated column names are accepted."""
+        assert ColumnRef(name="1Q_revenue").name == "1Q_revenue"
+        assert FilterConfig(column="order-date", op="=", value="active").column == (
+            "order-date"
+        )
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric={"name": "revenue", "aggregate": "SUM"},
+            show_trendline=True,
+            temporal_column="events.created-at",
+        )
+        assert config.temporal_column == "events.created-at"
 
 
 class TestTableChartConfig:
@@ -926,6 +972,14 @@ class TestSqlExpressionRejectedOnDimensionPositions:
                 metric=ColumnRef(name="sales", aggregate="SUM"),
             )
 
+    def test_pie_config_rejects_saved_metric_on_dimension(self) -> None:
+        with pytest.raises(ValidationError):
+            PieChartConfig(
+                chart_type="pie",
+                dimension=ColumnRef(name="Total Revenue", saved_metric=True),
+                metric=ColumnRef(name="sales", aggregate="SUM"),
+            )
+
     def test_pivot_config_rejects_sql_expression_on_rows(self) -> None:
         with pytest.raises(ValidationError):
             PivotTableChartConfig(
@@ -1089,3 +1143,64 @@ class TestSqlMetricLlmContextWrapping:
         assert "<UNTRUSTED-CONTENT>" in metric["label"]
         assert metric["expressionType"] == "SQL"
         assert "<UNTRUSTED-CONTENT>" not in metric["optionName"]
+
+
+class TestRequestSchemaAliasChoices:
+    """Test that LLM-friendly field name variants are accepted on the
+    chart MCP tool request schemas, so callers sending 'id'/'chart_id'
+    instead of 'identifier' (or 'columns' instead of 'select_columns')
+    don't silently have the field dropped."""
+
+    def test_get_chart_info_identifier_id_alias(self) -> None:
+        req = GetChartInfoRequest.model_validate({"id": 42})
+        assert req.identifier == 42
+
+    def test_get_chart_info_identifier_chart_id_alias(self) -> None:
+        req = GetChartInfoRequest.model_validate({"chart_id": 42})
+        assert req.identifier == 42
+
+    def test_get_chart_info_identifier_still_works(self) -> None:
+        req = GetChartInfoRequest.model_validate({"identifier": 42})
+        assert req.identifier == 42
+
+    def test_get_chart_info_select_columns_columns_alias(self) -> None:
+        req = GetChartInfoRequest.model_validate(
+            {"id": 42, "columns": ["id", "slice_name"]}
+        )
+        assert req.select_columns == ["id", "slice_name"]
+
+    def test_get_chart_data_identifier_id_alias(self) -> None:
+        req = GetChartDataRequest.model_validate({"id": 7})
+        assert req.identifier == 7
+
+    def test_get_chart_data_identifier_chart_id_alias(self) -> None:
+        req = GetChartDataRequest.model_validate({"chart_id": 7})
+        assert req.identifier == 7
+
+    def test_get_chart_preview_identifier_id_alias(self) -> None:
+        req = GetChartPreviewRequest.model_validate({"id": 7})
+        assert req.identifier == 7
+
+    def test_get_chart_preview_identifier_chart_id_alias(self) -> None:
+        req = GetChartPreviewRequest.model_validate({"chart_id": 7})
+        assert req.identifier == 7
+
+    def test_get_chart_sql_identifier_id_alias(self) -> None:
+        req = GetChartSqlRequest.model_validate({"id": 7})
+        assert req.identifier == 7
+
+    def test_get_chart_sql_identifier_chart_id_alias(self) -> None:
+        req = GetChartSqlRequest.model_validate({"chart_id": 7})
+        assert req.identifier == 7
+
+    def test_update_chart_identifier_id_alias(self) -> None:
+        req = UpdateChartRequest.model_validate({"id": 7})
+        assert req.identifier == 7
+
+    def test_update_chart_identifier_chart_id_alias(self) -> None:
+        req = UpdateChartRequest.model_validate({"chart_id": 7})
+        assert req.identifier == 7
+
+    def test_list_charts_select_columns_columns_alias(self) -> None:
+        req = ListChartsRequest.model_validate({"columns": ["id", "slice_name"]})
+        assert req.select_columns == ["id", "slice_name"]

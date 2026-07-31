@@ -54,7 +54,7 @@ import {
 } from 'spec/fixtures/mockSliceEntities';
 import { emptyFilters } from 'spec/fixtures/mockDashboardFilters';
 import mockDashboardData from 'spec/fixtures/mockDashboardData';
-import { navigateTo } from 'src/utils/navigationUtils';
+import { navigateTo, navigateWithState } from 'src/utils/navigationUtils';
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
@@ -72,6 +72,7 @@ jest.mock('src/utils/navigationUtils', () => ({
 
 const mockIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 const mockNavigateTo = navigateTo as jest.Mock;
+const mockNavigateWithState = navigateWithState as jest.Mock;
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('dashboardState actions', () => {
@@ -253,7 +254,48 @@ describe('dashboardState actions', () => {
 
       await waitFor(() => expect(postStub.mock.calls.length).toBe(1));
       expect(mockNavigateTo).toHaveBeenCalledWith(
-        `/superset/dashboard/${newDashboardId}/`,
+        `/dashboard/${newDashboardId}/`,
+      );
+    });
+
+    // `navigateWithState` regression for the
+    // dashboard-properties-changed save path. Two assertions in one shape:
+    //   (a) the emitted path is router-relative (`/dashboard/<id>/`), not
+    //       the pre-migration `/superset/dashboard/<id>/` literal that under
+    //       subdirectory deployment would double-prefix to
+    //       `/superset/superset/dashboard/<id>/`;
+    //   (b) the `event: 'dashboard_properties_changed'` history-state arg is
+    //       preserved verbatim. A previous attempt to swap `navigateWithState`
+    //       for a plain `navigateTo` would silently drop this state object and
+    //       the dashboard would lose its post-save UX cue.
+    test('saves dashboard properties via navigateWithState with state preserved', async () => {
+      const updatedId = 777;
+      const { getState, dispatch } = setup({
+        dashboardState: { hasUnsavedChanges: true },
+      });
+
+      mockNavigateWithState.mockClear();
+      putStub.mockRestore();
+      putStub = jest.spyOn(SupersetClient, 'put').mockResolvedValue({
+        json: {
+          result: { ...mockDashboardData, id: updatedId, slug: null },
+          last_modified_time: 0,
+        },
+      } as any);
+
+      const thunk = saveDashboardRequest(
+        newDashboardData,
+        updatedId,
+        SAVE_TYPE_OVERWRITE,
+      );
+      await thunk(dispatch, getState);
+
+      await waitFor(() => expect(putStub.mock.calls.length).toBe(1));
+      await waitFor(() => expect(mockNavigateWithState).toHaveBeenCalled());
+
+      expect(mockNavigateWithState).toHaveBeenCalledWith(
+        `/dashboard/${updatedId}/`,
+        { event: 'dashboard_properties_changed' },
       );
     });
   });
@@ -302,6 +344,50 @@ describe('dashboardState actions', () => {
     jest.useRealTimers();
 
     expect(refreshChart).toHaveBeenCalledTimes(chartIds.length);
+  });
+
+  test('fetchCharts fires each chart at evenly spaced staggered offsets', async () => {
+    jest.useFakeTimers();
+    (refreshChart as jest.Mock).mockClear();
+    const { getState } = setup({
+      dashboardInfo: {
+        metadata: { stagger_time: 4000, stagger_refresh: true },
+        common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } },
+      },
+    });
+    const dispatch = (action: unknown): unknown => {
+      if (typeof action === 'function') {
+        return (action as Function)(dispatch, getState);
+      }
+      return action;
+    };
+    // refreshTime = max(interval, stagger_time) = 4000;
+    // delay between charts = 4000 / (3 - 1) = 2000.
+    const chartIds = [1, 2, 3];
+    const promise = fetchCharts(chartIds, false, 4000, 10)(dispatch, getState);
+
+    // First chart fires immediately (offset = delay * 0 = 0).
+    jest.advanceTimersByTime(0);
+    expect(refreshChart).toHaveBeenCalledTimes(1);
+    expect((refreshChart as jest.Mock).mock.calls[0][0]).toBe(1);
+
+    // Second chart fires one window later, at t = 2000.
+    jest.advanceTimersByTime(2000);
+    expect(refreshChart).toHaveBeenCalledTimes(2);
+    expect((refreshChart as jest.Mock).mock.calls[1][0]).toBe(2);
+
+    // Nothing fires in between windows.
+    jest.advanceTimersByTime(1999);
+    expect(refreshChart).toHaveBeenCalledTimes(2);
+
+    // Last chart fires at t = refreshTime = 4000.
+    jest.advanceTimersByTime(1);
+    expect(refreshChart).toHaveBeenCalledTimes(3);
+    expect((refreshChart as jest.Mock).mock.calls[2][0]).toBe(3);
+
+    jest.runAllTimers();
+    await promise;
+    jest.useRealTimers();
   });
 
   test('fetchCharts rejects for staggered refreshes when any chart refresh fails', async () => {
@@ -513,13 +599,11 @@ describe('dashboardState actions', () => {
       });
 
       getStub.mockRestore();
-      getStub = jest
-        .spyOn(SupersetClient, 'get')
-        .mockRejectedValue(
-          new Response(JSON.stringify({ message: 'Not found' }), {
-            status: 404,
-          }),
-        );
+      getStub = jest.spyOn(SupersetClient, 'get').mockRejectedValue(
+        new Response(JSON.stringify({ message: 'Not found' }), {
+          status: 404,
+        }),
+      );
 
       await fetchFaveStar(id)(dispatch, getState);
 
@@ -536,13 +620,11 @@ describe('dashboardState actions', () => {
       });
 
       getStub.mockRestore();
-      getStub = jest
-        .spyOn(SupersetClient, 'get')
-        .mockRejectedValue(
-          new Response(JSON.stringify({ message: 'Server error' }), {
-            status: 500,
-          }),
-        );
+      getStub = jest.spyOn(SupersetClient, 'get').mockRejectedValue(
+        new Response(JSON.stringify({ message: 'Server error' }), {
+          status: 500,
+        }),
+      );
 
       await fetchFaveStar(id)(dispatch, getState);
 

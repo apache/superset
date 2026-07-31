@@ -62,6 +62,7 @@ from superset.reports.schemas import (
     ReportSchedulePutSchema,
     ReportScheduleSubscribeSchema,
 )
+from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
 from superset.utils.slack import get_channels_with_search
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
@@ -69,7 +70,7 @@ from superset.views.base_api import (
     requires_json,
     statsd_metrics,
 )
-from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedUsers
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +99,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     extra_fields_rel_fields = {
         **BaseSupersetModelRestApi.extra_fields_rel_fields,
         "created_by": ["email", "active"],
+        "editors": ["type", "active", "secondary_label", "img"],
     }
 
     base_filters = [
@@ -119,6 +121,9 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "database.database_name",
         "database.id",
         "description",
+        "editors.id",
+        "editors.label",
+        "editors.type",
         "extra",
         "force_screenshot",
         "grace_period",
@@ -128,10 +133,9 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "last_value_row_json",
         "log_retention",
         "name",
-        "owners.first_name",
-        "owners.id",
-        "owners.last_name",
-        "owners.email",
+        "editors.id",
+        "editors.label",
+        "editors.type",
         "recipients.id",
         "recipients.recipient_config_json",
         "recipients.type",
@@ -163,15 +167,14 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "crontab_humanized",
         "dashboard_id",
         "description",
+        "editors.id",
+        "editors.label",
+        "editors.type",
         "extra",
         "id",
         "last_eval_dttm",
         "last_state",
         "name",
-        "owners.first_name",
-        "owners.id",
-        "owners.last_name",
-        "owners.email",
         "recipients.id",
         "recipients.type",
         "timezone",
@@ -187,12 +190,12 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "dashboard",
         "database",
         "description",
+        "editors",
         "extra",
         "force_screenshot",
         "grace_period",
         "log_retention",
         "name",
-        "owners",
         "recipients",
         "report_format",
         "sql",
@@ -226,7 +229,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "active",
         "changed_by",
         "created_by",
-        "owners",
+        "editors",
         "type",
         "last_state",
         "creation_method",
@@ -235,34 +238,41 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     ]
     search_filters = {"name": [ReportScheduleAllTextFilter]}
     allowed_rel_fields = {
-        "owners",
         "chart",
         "dashboard",
         "database",
         "created_by",
         "changed_by",
+        "editors",
     }
 
     base_related_field_filters = {
         "chart": [["id", ChartFilter, lambda: []]],
         "dashboard": [["id", DashboardAccessFilter, lambda: []]],
         "database": [["id", DatabaseFilter, lambda: []]],
-        "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
         "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
         "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "editors": [
+            [
+                "type",
+                subject_type_filter("SUBJECTS_RELATED_TYPES_ALERT_REPORTS"),
+                lambda: [],
+            ]
+        ],
     }
     text_field_rel_fields = {
         "dashboard": "dashboard_title",
         "chart": "slice_name",
         "database": "database_name",
+        "editors": "label",
     }
     related_field_filters = {
         "dashboard": "dashboard_title",
         "chart": "slice_name",
         "database": "database_name",
-        "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
-        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
-        "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "created_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
+        "editors": RelatedFieldFilter("label", FilterRelatedSubjects),
     }
 
     apispec_parameter_schemas = {
@@ -621,9 +631,9 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self,
-        *args,
-        **kwargs: f"{self.__class__.__name__}.slack_channels",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.slack_channels"
+        ),
         log_to_statsd=False,
     )
     def slack_channels(self, **kwargs: Any) -> Response:
@@ -673,13 +683,22 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
             types = params.get("types", [])
             exact_match = params.get("exact_match", False)
             force = params.get("force", False)
+            page = params.get("page")
+            page_size = params.get("page_size")
             channels = get_channels_with_search(
                 search_string=search_string,
                 types=types,
                 exact_match=exact_match,
                 force=force,
             )
-            return self.response(200, result=channels)
+            # Paginate at the API layer so large workspaces (tens of thousands of
+            # channels) never ship the full list to the browser at once. The
+            # filtered set is served from the warm cache, so slicing is cheap.
+            count = len(channels)
+            if page is not None and page_size is not None:
+                start = page * page_size
+                channels = channels[start : start + page_size]
+            return self.response(200, count=count, result=channels)
         except SupersetException as ex:
             logger.error("Error fetching slack channels %s", str(ex))
             return self.response_422(message=str(ex))

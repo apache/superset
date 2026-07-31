@@ -129,6 +129,6 @@ class ExecuteReportScheduleNowCommand(BaseCommand):
             raise ReportScheduleNotFoundError()
 
         try:
-            security_manager.raise_for_ownership(self._model)
+            security_manager.raise_for_editorship(self._model)
         except SupersetSecurityException as ex:
             raise ReportScheduleForbiddenError() from ex

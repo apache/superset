@@ -26,7 +26,7 @@ authors = [
 ]
 license = "Apache-2.0"
 license-files = ["LICENSE.txt"]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 keywords = ["superset", "apache", "analytics", "business-intelligence", "extensions", "visualization"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -34,7 +34,6 @@ classifiers = [
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Database",
@@ -42,7 +41,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    "flask-appbuilder>=5.0.2,<6",
+    "flask-appbuilder>=5.2.0,<6",
     "isodate>=0.7.0",
     "pyarrow>=16.0.0",
     "pydantic>=2.8.0",

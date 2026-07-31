@@ -165,7 +165,7 @@ test('should have an empty state when query editors is empty', async () => {
   });
 
   // Clear the new tab applied in componentDidMount and check the state of the empty tab
-  const removeTabButton = getByRole('tab', { name: 'remove' });
+  const removeTabButton = getByRole('button', { name: 'remove' });
   fireEvent.click(removeTabButton);
 
   await waitFor(() =>

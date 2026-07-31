@@ -102,8 +102,7 @@ export const areAllValuesNumbers = (
 };
 
 type SortComparator =
-  | ((a: SelectOption, b: SelectOption) => number)
-  | undefined;
+  ((a: SelectOption, b: SelectOption) => number) | undefined;
 
 export const getSortComparator = (
   choices: unknown[] | undefined,
