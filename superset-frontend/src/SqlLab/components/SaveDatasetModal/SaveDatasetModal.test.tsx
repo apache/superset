@@ -249,9 +249,7 @@ describe('SaveDatasetModal', () => {
 
   test('distinguishes datasets that share a table name and overwrites the selected one', async () => {
     // Datasets are unique by database, catalog, schema and table name, so the
-    // same table name can legitimately appear several times. Keying the
-    // options by table_name collapsed them onto a single Select key, which
-    // rendered duplicated rows and made the overwrite target ambiguous.
+    // same table name can legitimately appear several times.
     const sameNameDatasets = [
       {
         ...mockdatasets[0],
@@ -277,9 +275,8 @@ describe('SaveDatasetModal', () => {
         table_name: 'task_instance',
       },
     ];
-    // Pad past a single API page so searching cannot be served from options
-    // already in memory — the search term has to reach the API and come back
-    // with the right rows.
+    // Pad past a single API page so the search cannot be served from options
+    // already in memory — it has to reach the API.
     const PAGE_SIZE = 100;
     const allDatasets = [
       ...sameNameDatasets,
@@ -291,9 +288,8 @@ describe('SaveDatasetModal', () => {
         table_name: `table_${i}`,
       })),
     ];
-    // Apply the requested filters and paginate the way the API does, rather
-    // than returning everything regardless of the search string. A mock that
-    // ignores the filters hides searches that match nothing server-side.
+    // Filter and paginate the way the API does — a mock that returns
+    // everything regardless of the search hides server-side mismatches.
     const getSpy = jest
       .spyOn(SupersetClient, 'get')
       .mockImplementation(({ endpoint }: any) => {
@@ -330,7 +326,6 @@ describe('SaveDatasetModal', () => {
       expect(loading === null || !loading.checkVisibility()).toBe(true);
     });
 
-    // Each dataset appears exactly once, under its own fully qualified label
     await userEvent.type(combobox, 'task_instance');
     await act(async () => {
       jest.runAllTimers();
@@ -345,11 +340,7 @@ describe('SaveDatasetModal', () => {
       await screen.findAllByText('analytics.reporting.prod.task_instance'),
     ).toHaveLength(1);
 
-    // Qualifying the search narrows the list down — skipping the catalog is
-    // fine, the parts just have to be present. The table part still has to
-    // reach the API: sending the whole string as a table_name filter would
-    // match nothing, and with the list spanning several pages the wanted row
-    // is not in memory for the local filter to fall back on.
+    // Qualifying the search narrows the list, skipping the catalog included.
     await userEvent.clear(combobox);
     await userEvent.click(combobox);
     await userEvent.type(combobox, 'analytics.prod.task_instance');
@@ -368,7 +359,6 @@ describe('SaveDatasetModal', () => {
       screen.queryByText('warehouse.staging.task_instance'),
     ).not.toBeInTheDocument();
 
-    // Picking that row must target dataset 33, not either warehouse dataset
     await userEvent.click(
       screen.getByText('analytics.reporting.prod.task_instance'),
     );

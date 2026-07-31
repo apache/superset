@@ -196,11 +196,8 @@ const updateDataset = async ({
 const UNTITLED = t('Untitled Dataset');
 
 /**
- * Datasets are unique by database, catalog, schema and table name, so the
- * overwrite options are labelled with every part that is set — e.g.
- * `examples.public.cleaned_sales_data`. Two datasets can otherwise render the
- * same label and leave the user unable to tell which one they are about to
- * overwrite.
+ * Datasets are unique by database, catalog, schema and table name, so a label
+ * built from anything less can be ambiguous — e.g. `examples.public.sales`.
  */
 const qualifiedLabel = (dataset: {
   database?: { database_name?: string };
@@ -218,9 +215,8 @@ const qualifiedLabel = (dataset: {
     .join('.');
 
 /**
- * Break a search typed against those labels into its dot-separated parts. The
- * trailing part is the table name the user is after — unless they have just
- * typed a separator, in which case everything so far is qualification.
+ * Break a search typed against those labels into its parts. The trailing part
+ * is the table name, unless the user has just typed a separator.
  */
 const parseQualifiedSearch = (input: string) => {
   const parts = input.split('.').filter(Boolean);
@@ -356,12 +352,10 @@ export const SaveDatasetModal = ({
   };
 
   const loadDatasetOverwriteOptions = useCallback(async (input = '') => {
-    // Only the table-name part of the search can be pushed to the API: the
-    // qualifiers in a label are spread over three columns, one of which
-    // (`database`) is a relationship the list endpoint cannot match on by
-    // name. Sending the whole string as a `table_name` filter would match
-    // nothing the moment the user types a separator, so send the table part
-    // and let filterAutocompleteOption narrow the qualifiers.
+    // Only the table part can be filtered server-side — `database` is a
+    // relationship the list endpoint cannot match on by name. Sending the
+    // whole search as a `table_name` filter matches nothing once the user
+    // types a separator; filterAutocompleteOption narrows the qualifiers.
     const { tableSearch } = parseQualifiedSearch(input);
 
     const queryParams = rison.encode({
@@ -393,9 +387,8 @@ export const SaveDatasetModal = ({
           catalog?: string | null;
           schema?: string | null;
         }) => ({
-          // `id` is unique; `table_name` is not. Keying options by the table
-          // name collapses same-named datasets onto a single Select key, which
-          // renders duplicate rows and makes the overwrite target ambiguous.
+          // `id` is unique; `table_name` is not. Keying by the table name
+          // collapses same-named datasets onto a single Select key.
           value: r.id,
           label: qualifiedLabel(r),
           datasetId: r.id,
@@ -479,9 +472,8 @@ export const SaveDatasetModal = ({
     option: DatasetOverwriteOption,
   ) => {
     const label = option.label.toLowerCase();
-    // Every part the user typed has to appear somewhere in the label, but not
-    // in any particular position: a dataset may or may not have a catalog, and
-    // a search like `examples.sales` skipping the schema should still match.
+    // Position-independent: a dataset may or may not have a catalog, and a
+    // search skipping a part (`examples.sales`) should still match.
     return parseQualifiedSearch(inputValue.toLowerCase()).parts.every(part =>
       label.includes(part),
     );
