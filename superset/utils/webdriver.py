@@ -47,6 +47,7 @@ from superset.utils.screenshot_utils import (
     CHART_HOLDERS_READY_JS,
     FIND_CHART_HOLDER_STATES_JS,
     resolve_screenshot_task_budget_seconds,
+    ScreenshotTaskBudgetExceededError,
     take_tiled_screenshot,
 )
 
@@ -59,10 +60,6 @@ PLAYWRIGHT_INSTALL_MESSAGE = (
     "and enable WebGL/DeckGL screenshot support, install Playwright with: "
     "pip install playwright && playwright install chromium"
 )
-
-
-class ScreenshotTaskBudgetExceededError(RuntimeError):
-    """Raised when no safe task budget remains before screenshot capture."""
 
 
 if TYPE_CHECKING:
