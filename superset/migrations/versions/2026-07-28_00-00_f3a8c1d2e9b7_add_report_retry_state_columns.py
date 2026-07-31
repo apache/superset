@@ -22,73 +22,79 @@ Create Date: 2026-07-28 00:00:00.000000
 
 """
 
-import logging
-
 import sqlalchemy as sa
 from alembic import op
-
-from superset.migrations.shared.utils import get_table_column
-
-logger = logging.getLogger("alembic.env")
 
 # revision identifiers, used by Alembic.
 revision = "f3a8c1d2e9b7"
 down_revision = "d3b9a1f6c204"
 
-# Configuration columns (user-configurable)
-_CONFIG_COLUMNS = [
-    ("retry_on_failure", sa.Boolean(), False, "0"),
-    ("retry_max_attempts", sa.Integer(), False, "3"),
-    ("send_failed_reports", sa.Boolean(), False, "0"),
-    ("retry_notify_owners", sa.Boolean(), False, "1"),
-    ("retry_notify_recipients", sa.Boolean(), False, "0"),
-]
-
-# State columns (written by the execution engine)
-_STATE_COLUMNS = [
-    ("retry_attempt", sa.Integer(), False, "0"),
-    ("retry_scheduled_dttm", sa.DateTime(), True, None),
-]
-
 
 def upgrade() -> None:
     """Add retry config and state columns to report_schedule."""
-    all_columns = _CONFIG_COLUMNS + _STATE_COLUMNS
-    missing = [
-        (name, col_type, nullable, default)
-        for name, col_type, nullable, default in all_columns
-        if get_table_column("report_schedule", name) is None
-    ]
-
-    if not missing:
-        logger.info("All retry columns already exist. Skipping migration.")
-        return
-
     with op.batch_alter_table("report_schedule") as batch_op:
-        for name, col_type, nullable, default in missing:
-            batch_op.add_column(
-                sa.Column(
-                    name,
-                    col_type,
-                    nullable=nullable,
-                    server_default=default,
-                )
+        # User-configurable
+        batch_op.add_column(
+            sa.Column(
+                "retry_on_failure",
+                sa.Boolean(),
+                nullable=False,
+                server_default="0",
             )
+        )
+        batch_op.add_column(
+            sa.Column(
+                "retry_max_attempts",
+                sa.Integer(),
+                nullable=False,
+                server_default="3",
+            )
+        )
+        batch_op.add_column(
+            sa.Column(
+                "send_failed_reports",
+                sa.Boolean(),
+                nullable=False,
+                server_default="0",
+            )
+        )
+        batch_op.add_column(
+            sa.Column(
+                "retry_notify_owners",
+                sa.Boolean(),
+                nullable=False,
+                server_default="1",
+            )
+        )
+        batch_op.add_column(
+            sa.Column(
+                "retry_notify_recipients",
+                sa.Boolean(),
+                nullable=False,
+                server_default="0",
+            )
+        )
+        # Execution engine state
+        batch_op.add_column(
+            sa.Column(
+                "retry_attempt",
+                sa.Integer(),
+                nullable=False,
+                server_default="0",
+            )
+        )
+        batch_op.add_column(
+            sa.Column("retry_scheduled_dttm", sa.DateTime(), nullable=True)
+        )
 
 
 def downgrade() -> None:
     """Remove retry config and state columns from report_schedule."""
-    all_columns = _CONFIG_COLUMNS + _STATE_COLUMNS
-    present = [
-        name
-        for name, _, _, _ in all_columns
-        if get_table_column("report_schedule", name) is not None
-    ]
-
-    if not present:
-        logger.info("No retry columns found. Skipping downgrade.")
-        return
-
     with op.batch_alter_table("report_schedule") as batch_op:
-        for name in present:
-            batch_op.drop_column(name)
+        batch_op.drop_column("retry_scheduled_dttm")
+        batch_op.drop_column("retry_attempt")
+        batch_op.drop_column("retry_notify_recipients")
+        batch_op.drop_column("retry_notify_owners")
+        batch_op.drop_column("send_failed_reports")
+        batch_op.drop_column("retry_max_attempts")
+        batch_op.drop_column("retry_on_failure")

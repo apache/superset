@@ -2745,7 +2745,7 @@ def test_retry_exhausted_transitions_to_error(
     # Use the same timestamp for both so _is_retry_window_stale() returns False.
     # Truncate microseconds — MySQL DateTime columns drop them, which would make
     # the round-tripped value differ from the in-memory one.
-    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None, microsecond=0)
+    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None)
     report_schedule.retry_attempt = 2
     report_schedule.retry_scheduled_dttm = scheduled_dttm
     db.session.commit()
@@ -2794,7 +2794,7 @@ def test_send_failed_reports_sends_to_recipients(
         retry_notify_owners=False,
         retry_notify_recipients=False,
     )
-    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None, microsecond=0)
+    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None)
     report_schedule.retry_attempt = 1
     report_schedule.retry_scheduled_dttm = scheduled_dttm
     db.session.commit()
@@ -2835,7 +2835,7 @@ def test_retrying_state_schedules_another_retry(
         retry_notify_owners=False,
         retry_notify_recipients=False,
     )
-    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None, microsecond=0)
+    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None)
     report_schedule.last_state = ReportState.RETRYING
     report_schedule.retry_attempt = 1
     report_schedule.retry_scheduled_dttm = scheduled_dttm
@@ -2918,7 +2918,7 @@ def test_retry_notify_owners_sends_notification(
         retry_notify_recipients=False,
     )
     # Set up as a retry attempt (current_attempt=1) so the notification fires
-    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None, microsecond=0)
+    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None)
     report_schedule.last_state = ReportState.RETRYING
     report_schedule.retry_attempt = 1
     report_schedule.retry_scheduled_dttm = scheduled_dttm
@@ -2968,7 +2968,7 @@ def test_new_crontab_window_skipped_while_retrying(
     try:
         screenshot_mock.side_effect = Exception("screenshot failed")
         # Pass a *different* scheduled_dttm (new crontab window)
-        new_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None, microsecond=0)
+        new_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None)
 
         AsyncExecuteReportScheduleCommand(TEST_ID, report_schedule.id, new_dttm).run()
 
@@ -3004,7 +3004,7 @@ def test_success_after_retry_clears_retry_state(
         retry_notify_owners=False,
         retry_notify_recipients=False,
     )
-    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None, microsecond=0)
+    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None)
     report_schedule.last_state = ReportState.RETRYING
     report_schedule.retry_attempt = 2
     report_schedule.retry_scheduled_dttm = scheduled_dttm

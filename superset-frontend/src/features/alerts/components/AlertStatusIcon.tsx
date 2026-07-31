@@ -96,9 +96,7 @@ export default function AlertStatusIcon({
       break;
     case AlertState.Retrying:
       lastStateConfig.icon = Icons.Running;
-      lastStateConfig.label = isReportEnabled
-        ? t('Report retrying')
-        : t('Alert retrying');
+      lastStateConfig.label = t('Report retrying');
       lastStateConfig.status = AlertState.Retrying;
       break;
     default:

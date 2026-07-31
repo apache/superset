@@ -1173,9 +1173,12 @@ class BaseReportState:
 
     @staticmethod
     def _normalize_dttm(dt: Optional[datetime]) -> Optional[datetime]:
-        """Strip timezone info so naive/aware datetimes can be compared."""
-        if dt is not None and dt.tzinfo is not None:
-            return dt.replace(tzinfo=None)
+        """Strip timezone info and microseconds so naive/aware datetimes can
+        be compared safely.  MySQL DateTime columns truncate microseconds,
+        so without this the round-tripped anchor would differ from the
+        in-memory value."""
+        if dt is not None:
+            return dt.replace(tzinfo=None, microsecond=0)
         return dt
 
     def _is_retry_window_stale(self) -> bool:

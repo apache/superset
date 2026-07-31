@@ -2916,3 +2916,32 @@ test('shows retry options when Enable Retries is toggled on', async () => {
     expect(screen.getByText('Report Recipients')).toBeInTheDocument();
   });
 });
+
+test('hides retry options and resets state when Enable Retries is toggled off', async () => {
+  render(<AlertReportModal {...generateMockedProps(true)} />, {
+    useRedux: true,
+  });
+  const errorHandlingTab = screen.getByText('Error handling');
+  await userEvent.click(errorHandlingTab);
+
+  // Toggle ON
+  const switches = screen.getAllByRole('switch');
+  const enableRetriesSwitch = switches[switches.length - 1];
+  await userEvent.click(enableRetriesSwitch);
+
+  await waitFor(() => {
+    expect(screen.getByText('Maximum Retry Attempts')).toBeInTheDocument();
+  });
+
+  // Toggle OFF
+  await userEvent.click(enableRetriesSwitch);
+
+  // Retry options should be hidden again
+  await waitFor(() => {
+    expect(
+      screen.queryByText('Maximum Retry Attempts'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Send Failed Reports')).not.toBeInTheDocument();
+    expect(screen.queryByText('Failure Notifications')).not.toBeInTheDocument();
+  });
+});

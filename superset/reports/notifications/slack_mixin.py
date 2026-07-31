@@ -72,6 +72,21 @@ Error: %(text)s
                 remaining=retries_remaining,
                 text=text,
             )
+        if retry_max_attempts is not None:
+            return __(
+                """*Report Failed - All Retries Exhausted: %(name)s*
+
+%(description)s
+
+The report failed after %(max)s retry attempts.
+
+Error: %(text)s
+""",
+                name=name,
+                description=description,
+                max=retry_max_attempts,
+                text=text,
+            )
         return __(
             """*%(name)s*
 

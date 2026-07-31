@@ -354,6 +354,13 @@ class ReportSchedulePostSchema(Schema):
                     ]
                 }
             )
+        # Retry is only supported for reports, not alerts.
+        if data.get("type") == ReportScheduleType.ALERT and data.get(
+            "retry_on_failure"
+        ):
+            raise ValidationError(
+                {"retry_on_failure": [_("Retries are not supported for alerts")]}
+            )
 
 
 class ReportScheduleSubscribeSchema(ReportSchedulePostSchema):
