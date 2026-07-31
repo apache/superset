@@ -41,6 +41,45 @@ comfortably under the 1.5 MB budget. ECharts is imported via `echarts/core` with
 only the Line/Bar charts, Grid/Tooltip/Legend/DataZoom/Brush/MarkArea components,
 and the UniversalTransition + LabelLayout features registered (tree-shaken).
 
+## Packaging
+
+`dist/index.html` is gitignored and produced at build time, mirroring how
+`superset/static/assets` is handled. `MANIFEST.in` ships that single file:
+
+```
+include superset/mcp_service/chart/resources/chart_viewer/dist/index.html
+```
+
+Verified behaviour of that entry (built locally with setuptools 80.9.0):
+
+- **Wheel** — contains `superset/mcp_service/chart/resources/chart_viewer/dist/index.html`
+  whenever the file exists at build time, via `include_package_data=True`.
+- **sdist** — contains *only* `dist/index.html`. The widget's `package.json`,
+  `package-lock.json` and `src/` are **not** in the sdist, so the widget
+  **cannot** be rebuilt from a released tarball.
+
+**Nothing in `setup.py` / `pyproject.toml` builds this widget** — exactly as
+nothing in them builds `superset-frontend`. Both are separate steps owned by the
+release process, so the build must happen *before* `python -m build`:
+
+- **PyPI release** — wired into `RELEASING/README.md`, in the "Create the
+  distribution" block, next to the existing `superset-frontend` build.
+- **Docker image (known gap)** — `Dockerfile` builds `superset-frontend` in the
+  `superset-node` stage and copies `superset/static/assets` into the final
+  image, but has no equivalent step for this widget. `COPY superset superset`
+  brings the widget's *source* into the image, not its build output (`dist/` is
+  gitignored, so it is absent from a clean checkout). Official images therefore
+  serve the placeholder resource. Closing this requires an `npm ci && npm run
+  build` for this directory in the `superset-node` stage, a
+  `COPY --from=superset-node .../chart_viewer/dist` after `COPY superset
+  superset`, and a `superset/mcp_service/chart/resources/chart_viewer/dist/`
+  entry in `.dockerignore` (matching the existing `superset/static/assets/`
+  entry).
+
+When `dist/index.html` is missing, `chart_viewer.py` serves a placeholder rather
+than failing, so a mis-built artifact degrades quietly — check for the file
+explicitly. CI asserts it is emitted (`.github/workflows/mcp-chart-viewer.yml`).
+
 ## Input data contract (`ChartData`)
 
 The tool result the widget receives mirrors `ChartData` in
