@@ -20,6 +20,7 @@ import contextlib
 import logging
 import os
 import sys
+import warnings
 from typing import Any, Callable, TYPE_CHECKING
 
 import wtforms_json
@@ -788,8 +789,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 "versioning: ENABLE_VERSIONING_CAPTURE is False; "
                 "skipping baseline + change-record listener registration "
                 "and detaching Continuum's write listeners. Save-path "
-                "capture is disabled; existing shadow tables and "
-                "/versions/ endpoints continue to work read-only."
+                "capture is disabled; existing shadow tables and the "
+                "read-side /versions/ endpoints continue to work "
+                "read-only, and the version-restore endpoints refuse "
+                "with 404 (a restore without capture would be a "
+                "destructive, untracked write)."
             )
             self._remove_continuum_write_listeners()
             return
@@ -1389,6 +1393,20 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             )
 
     def configure_logging(self) -> None:
+        # sqlalchemy-redshift's own __init__ still imports pkg_resources (see
+        # superset/db_engine_specs/redshift.py for the full rationale). This
+        # filter used to live in DefaultLoggingConfigurator.configure_logging(),
+        # but LOGGING_CONFIGURATOR is a deployment-replaceable hook -- any
+        # custom configurator skipped it entirely and still hit the warning.
+        # Registering it here, before LOGGING_CONFIGURATOR runs, guarantees
+        # it's installed regardless of which configurator is configured.
+        warnings.filterwarnings(
+            "ignore",
+            message=r"pkg_resources is deprecated as an API",
+            category=UserWarning,
+            module=r"sqlalchemy_redshift(?:\..*)?",
+        )
+
         self.config["LOGGING_CONFIGURATOR"].configure_logging(
             self.config, self.superset_app.debug
         )

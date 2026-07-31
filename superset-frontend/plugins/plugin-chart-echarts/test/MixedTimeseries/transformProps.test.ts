@@ -694,9 +694,11 @@ test('should add a formula annotation when X-axis column has dataset-level label
     result.echartOptions.series as SeriesOption[] | undefined
   )?.find((s: SeriesOption) => s.name === 'My Formula');
   expect(formulaSeries).toBeDefined();
-  expect(formulaSeries?.data).toBeDefined();
-  expect(Array.isArray(formulaSeries?.data)).toBe(true);
-  expect((formulaSeries!.data as unknown[]).length).toBeGreaterThan(0);
+  const series = formulaSeries as SeriesOption;
+  expect(series.data).toBeDefined();
+  const data = series.data as unknown[];
+  expect(Array.isArray(data)).toBe(true);
+  expect(data.length).toBeGreaterThan(0);
 });
 
 test('numeric x coltype never gets silently coerced to the Time axis', () => {

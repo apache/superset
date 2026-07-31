@@ -2140,3 +2140,35 @@ class TestDashboardSerializationEagerLoading:
             assert "editors" not in dash
             assert dash["tags"] == []
             assert dash["charts"] == []
+
+
+class TestGenerateDashboardCreatorGroups:
+    """The tool creates dashboards outside CreateDashboardCommand, so it has to
+    apply the creator's default viewers itself."""
+
+    @patch("superset.models.dashboard.Dashboard")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generated_dashboard_gets_the_creators_default_viewers(
+        self, mock_db_session, mock_find_by_id, mock_dashboard_cls, mcp_server
+    ):
+        charts = [_mock_chart(id=1, slice_name="Sales Chart")]
+        mock_dashboard = _mock_dashboard(id=10, title="Analytics Dashboard")
+        mock_dashboard.viewers = []
+        _setup_generate_dashboard_mocks(
+            mock_db_session, mock_find_by_id, mock_dashboard_cls, charts, mock_dashboard
+        )
+        viewer = Mock()
+
+        with patch(
+            "superset.subjects.utils.get_default_viewers_for_new_asset",
+            return_value=[viewer],
+        ):
+            async with Client(mcp_server) as client:
+                await client.call_tool(
+                    "generate_dashboard",
+                    {"request": {"chart_ids": [1], "dashboard_title": "Analytics"}},
+                )
+
+        assert mock_dashboard.viewers == [viewer]
