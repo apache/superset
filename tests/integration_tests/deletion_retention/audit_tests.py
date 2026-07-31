@@ -86,9 +86,14 @@ class TestPurgeAudit(DeletionRetentionTestBase):
         )
         db.session.expire_all()
 
-        assert result == {"reconciled": 1, "confirmed": 1, "failed": 0}
-        assert row.status == audit.STATUS_CONFIRMED
-        assert row.confirmed_on is not None
+        assert result == {"reconciled": 1, "absent": 1, "failed": 0}
+        # reconciled_absent, NOT confirmed: the entity being gone proves some
+        # purge committed, but a concurrent attempt or unrelated deletion fits
+        # the evidence equally well -- the compliance record must not
+        # attribute a success it did not witness.
+        assert row.status == audit.STATUS_RECONCILED_ABSENT
+        # No confirmed_on: nothing was confirmed -- only inferred absent.
+        assert row.confirmed_on is None
 
     def test_reconcile_fails_pending_when_entity_survives(self) -> None:
         """A stale attempt with a surviving entity is closed as failed."""
@@ -105,5 +110,22 @@ class TestPurgeAudit(DeletionRetentionTestBase):
         )
         db.session.expire_all()
 
-        assert result == {"reconciled": 1, "confirmed": 0, "failed": 1}
+        assert result == {"reconciled": 1, "absent": 0, "failed": 1}
         assert db.session.get(PurgeAuditLog, record_id).status == audit.STATUS_FAILED
+
+    def test_blocked_attempt_does_not_keep_the_intended_removal_count(self) -> None:
+        """The write-ahead row records what the purge INTENDED to remove;
+        a blocked attempt rolled that work back, so keeping the count would
+        assert removals that never happened."""
+        record_id = audit.write_ahead(
+            trigger=audit.TRIGGER_RETENTION,
+            actor=audit.ACTOR_SYSTEM,
+            entity_type="dashboards",
+            entity_uuid="00000000-0000-0000-0000-00000000cafe",
+            removed_dashboard_slices=7,
+        )
+        audit.block(record_id)
+
+        row = db.session.query(PurgeAuditLog).filter_by(id=record_id).one()
+        assert row.status == audit.STATUS_BLOCKED
+        assert row.removed_dashboard_slices == 0

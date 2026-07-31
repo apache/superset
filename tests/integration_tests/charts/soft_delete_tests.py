@@ -1054,8 +1054,12 @@ class TestChartArchiveListing(InsertChartMixin, SupersetTestCase):
         ):
             rv = self.client.post(f"/api/v1/chart/{chart_uuid}/purge")
         assert rv.status_code == 422
-        # The cause reaches the client rather than a generic class message.
-        assert b"boom" in rv.data
+        # The cause is logged but must NOT reach the client: str(ex) on a
+        # driver error carries the failing SQL and bind parameters, and this
+        # message travels into a user-facing toast. A stable sentence is the
+        # whole answer the caller gets.
+        assert b"boom" not in rv.data
+        assert b"could not complete the delete" in rv.data
 
         # Cleanup — the row is still soft-deleted (purge never completed).
         _hard_delete_chart(chart_id)

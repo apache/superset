@@ -24,6 +24,7 @@ audit, and the commit). Restricted to *soft-deleted* rows so it only operates on
 items the user already sees in the archive.
 """
 
+import logging
 from dataclasses import dataclass
 from typing import Any
 
@@ -41,6 +42,8 @@ from superset.tasks.utils import get_current_user
 #: Recorded when the audit trail cannot name the acting user. The purge routes
 #: are ``@protect()``-ed, so this should be unreachable; it exists so an
 #: anomaly is visible as one rather than disguised as a plausible username.
+logger = logging.getLogger(__name__)
+
 UNKNOWN_ACTOR = "unknown"
 
 
@@ -101,7 +104,16 @@ class PurgeArchivedCommand(BaseCommand):
             # "could not delete" answer and belongs in a 422. Anything else —
             # a programming error, a misconfiguration — is not the caller's
             # fault and must surface as a 500 rather than be disguised as one.
-            raise self._binding.delete_failed(str(ex)) from ex
+            #
+            # The cause is logged, not returned: str(ex) on a driver error
+            # carries the failing SQL and bind parameters, and this message
+            # travels into a user-facing toast.
+            logger.warning(
+                "purge: database failure for uuid=%s", self._model_uuid, exc_info=True
+            )
+            raise self._binding.delete_failed(
+                "The database could not complete the delete"
+            ) from ex
 
         # A force purge reports its outcome rather than raising: a blocked or
         # vanished entity is still there afterwards, so reporting success would

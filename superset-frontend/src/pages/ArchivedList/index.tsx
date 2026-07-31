@@ -206,7 +206,10 @@ function ArchivedListBody({
           item.url ?? item.explore_url,
         );
         addSuccessToast(text, options);
-        refreshData();
+        // Awaited so the finally's endAction does not re-enable this row's
+        // buttons while the stale, already-restored row is still rendered --
+        // a keyboard user could re-activate it and get a 404 after success.
+        await refreshData();
       } catch (error) {
         const { error: errMsg } = await getClientErrorObject(error);
         addDangerToast(
@@ -244,7 +247,9 @@ function ArchivedListBody({
           endpoint: `/api/v1/${config.resource}/${item.uuid}/purge`,
         });
         addSuccessToast(t('%(name)s deleted successfully', { name }));
-        refreshData();
+        // Awaited for the same reason as the restore path: the in-flight
+        // guard must outlive the stale row.
+        await refreshData();
       } catch (error) {
         // A blocked purge answers 422 carrying the reason -- an alert or
         // report still referencing the object. The docs promise that reason

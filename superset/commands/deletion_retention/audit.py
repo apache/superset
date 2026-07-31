@@ -53,6 +53,7 @@ from superset.models.purge_audit_log import (
     STATUS_CONFIRMED,
     STATUS_FAILED,
     STATUS_PENDING,
+    STATUS_RECONCILED_ABSENT,
 )
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -135,6 +136,11 @@ def finalize(record_id: UUID | None, status: str, **details: Any) -> None:
         removed_dashboard_slices = details.get("removed_dashboard_slices")
         if removed_dashboard_slices is not None:
             values["removed_dashboard_slices"] = removed_dashboard_slices
+        elif status in (STATUS_FAILED, STATUS_BLOCKED):
+            # The write-ahead row recorded the count the purge INTENDED to
+            # remove. On a failed or blocked attempt the cleanup rolled back,
+            # so leaving it would assert removals that never happened.
+            values["removed_dashboard_slices"] = 0
         # Conditional UPDATE, not read-then-write: only pending rows may
         # transition (a delayed worker must not overwrite an outcome
         # reconcile_pending() already recorded — the audit history is
@@ -199,12 +205,15 @@ def _entity_exists(session: Session, record: PurgeAuditLog) -> bool | None:
 def reconcile_pending(stale_before: datetime | None = None) -> dict[str, int]:
     """Finalize stale pending attempts left by a process crash.
 
-    Missing entities prove the entity transaction committed, so the attempt is
-    confirmed. A surviving or unresolvable entity means the attempt did not
-    durably purge it and is finalized as failed; normal selection may retry.
+    A missing entity proves *some* purge committed -- but not that it was this
+    attempt: a concurrent attempt or an unrelated deletion fits the evidence
+    equally well, so the row is finalized ``reconciled_absent`` rather than
+    ``confirmed``. A surviving or unresolvable entity means the attempt did
+    not durably purge it and is finalized as failed; normal selection may
+    retry.
     """
     cutoff = stale_before or _utc_now() - _PENDING_STALE_AFTER
-    reconciled = confirmed = failed = 0
+    reconciled = absent = failed = 0
     session = _dedicated_session()
     try:
         records = (
@@ -219,9 +228,8 @@ def reconcile_pending(stale_before: datetime | None = None) -> dict[str, int]:
         )
         for record in records:
             if _entity_exists(session, record) is False:
-                record.status = STATUS_CONFIRMED
-                record.confirmed_on = _utc_now()
-                confirmed += 1
+                record.status = STATUS_RECONCILED_ABSENT
+                absent += 1
             else:
                 record.status = STATUS_FAILED
                 failed += 1
@@ -235,4 +243,4 @@ def reconcile_pending(stale_before: datetime | None = None) -> dict[str, int]:
         )
     finally:
         session.close()
-    return {"reconciled": reconciled, "confirmed": confirmed, "failed": failed}
+    return {"reconciled": reconciled, "absent": absent, "failed": failed}

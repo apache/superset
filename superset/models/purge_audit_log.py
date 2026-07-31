@@ -34,6 +34,11 @@ STATUS_PENDING = "pending"
 STATUS_CONFIRMED = "confirmed"
 STATUS_FAILED = "failed"
 STATUS_BLOCKED = "blocked"
+#: Reconciliation found the target durably gone but cannot prove THIS attempt
+#: removed it -- a concurrent purge or an unrelated deletion is equally
+#: consistent with the evidence. Deliberately distinct from ``confirmed`` so
+#: the compliance record never attributes a success it did not witness.
+STATUS_RECONCILED_ABSENT = "reconciled_absent"
 
 
 class PurgeAuditLog(Model):
