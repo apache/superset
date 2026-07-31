@@ -1362,7 +1362,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           recoverable={softDelete}
           description={
             <>
-              {softDelete && <p>{archiveConfirmDescription(t('dataset'))}</p>}
+              {softDelete && (
+                <p>{archiveConfirmDescription(datasetLabelLower())}</p>
+              )}
               <p>
                 {t('The %s', datasetLabelLower())}
                 <b> {datasetCurrentlyDeleting.table_name} </b>
@@ -1524,11 +1526,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       <ConfirmStatusChange
         recoverable={softDelete}
         title={
-          softDelete ? t('Archive selected datasets?') : t('Please confirm')
+          softDelete
+            ? t('Archive selected %s?', datasetsLabelLower())
+            : t('Please confirm')
         }
         description={
           softDelete
-            ? archiveConfirmDescription(t('datasets'), true)
+            ? archiveConfirmDescription(datasetsLabelLower(), true)
             : t(
                 'Are you sure you want to delete the selected %s?',
                 datasetsLabelLower(),

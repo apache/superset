@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { useSelector } from 'react-redux';
+import { useAppSelector } from 'src/views/store';
 import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
@@ -275,8 +275,6 @@ function ArchivedListBody({
   const columns = useMemo<ListViewProps['columns']>(
     () => [
       {
-        // Chart/dashboard names link to a preview; dataset names are plain
-        // text with a tooltip explaining why no preview is offered.
         Cell: ({ row: { original } }: { row: { original: ArchivedItem } }) => {
           const name = String(original[config.nameField] ?? '');
           // Archived objects are not viewable in place. Verified against a
@@ -432,10 +430,11 @@ function ArchivedListBody({
  * charts, dashboards, and datasets — one type at a time via the Type selector.
  */
 function ArchivedList({ addDangerToast, addSuccessToast }: ToastProps) {
-  const roles = useSelector<
-    any,
-    UserWithPermissionsAndRoles['roles'] | undefined
-  >(state => state.user?.roles);
+  const roles = useAppSelector(
+    state =>
+      (state.user as UserWithPermissionsAndRoles | undefined)?.roles ??
+      undefined,
+  );
 
   // Offer only the types this viewer can load. The page fronts three
   // independently-gated list APIs, so a single all-or-nothing gate is the

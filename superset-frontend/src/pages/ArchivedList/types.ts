@@ -45,7 +45,14 @@ export interface ArchivedTypeConfig {
 }
 
 /** The supported types, in display order. */
-export const ARCHIVED_TYPES: ArchivedType[] = ['chart', 'dashboard', 'dataset'];
+/** Readonly: both fail-open branches in `availableTypes` hand this exact
+ * reference back to the caller, so a mutable array would let one consumer
+ * corrupt the type list process-wide. */
+export const ARCHIVED_TYPES: readonly ArchivedType[] = [
+  'chart',
+  'dashboard',
+  'dataset',
+];
 
 export const ARCHIVED_TYPE_CONFIG: Record<ArchivedType, ArchivedTypeConfig> = {
   chart: {

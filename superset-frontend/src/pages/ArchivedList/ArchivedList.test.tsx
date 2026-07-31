@@ -102,7 +102,10 @@ jest.mock('src/components/MessageToasts/withToasts', () => ({
     ),
 }));
 
-const mockRoutes = (restoreStatus = 200, purgeResponse: unknown = {}) => {
+const mockRoutes = (
+  restoreStatus = 200,
+  purgeResponse: Parameters<typeof fetchMock.post>[1] = {},
+) => {
   fetchMock.get(infoEndpoint, { permissions: ['can_read', 'can_write'] });
   fetchMock.get(listEndpoint, { result: mockCharts, count: mockCharts.length });
   fetchMock.post(restoreEndpoint, restoreStatus === 200 ? {} : restoreStatus);
