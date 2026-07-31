@@ -177,8 +177,15 @@ export default function VersionHistoryPanel({
   onOpenRelated,
   sessionEntries = [],
 }: VersionHistoryPanelProps) {
-  const { timeline, newestGroup, isLoading, error, hasMore, truncated, loadMore } =
-    activity;
+  const {
+    timeline,
+    newestGroup,
+    isLoading,
+    error,
+    hasMore,
+    truncated,
+    loadMore,
+  } = activity;
 
   const includeOptions = useMemo(
     () => [

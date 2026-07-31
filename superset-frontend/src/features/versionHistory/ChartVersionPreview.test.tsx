@@ -25,6 +25,7 @@ import {
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import type { VersionHistoryState } from './types';
+import type { VersionHistoryRootState } from './reducer';
 import { fetchDatasourceMetadata, fetchVersionSnapshot } from './api';
 import ChartVersionPreview from './ChartVersionPreview';
 
@@ -125,8 +126,8 @@ test('announces the applied preview so the banner can offer Restore', async () =
 
   await waitFor(() => {
     expect(
-      (store.getState() as { versionHistory: VersionHistoryState })
-        .versionHistory.isPreviewApplying,
+      (store.getState() as unknown as VersionHistoryRootState).versionHistory
+        .isPreviewApplying,
     ).toBe(false);
   });
 });
@@ -142,8 +143,8 @@ test('announces completion even when the preview fails to load', async () => {
 
   await waitFor(() => {
     expect(
-      (store.getState() as { versionHistory: VersionHistoryState })
-        .versionHistory.isPreviewApplying,
+      (store.getState() as unknown as VersionHistoryRootState).versionHistory
+        .isPreviewApplying,
     ).toBe(false);
   });
 });

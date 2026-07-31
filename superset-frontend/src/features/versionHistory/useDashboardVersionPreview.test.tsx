@@ -499,7 +499,10 @@ test('reloading after a restore hydrates with no carried-over dataMask', async (
 
   act(() => {
     store.setState({
-      versionHistory: versionHistoryState({ restoreCount: 1, lastRestoredEntityUuid: 'dash-uuid' }),
+      versionHistory: versionHistoryState({
+        restoreCount: 1,
+        lastRestoredEntityUuid: 'dash-uuid',
+      }),
     });
   });
 

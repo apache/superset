@@ -83,16 +83,12 @@ test('skips programmatic control writes so untouched charts stay clean', async (
   // edits the user never made. Built with the REAL action creator so the
   // `programmatic` key is pinned across modules — a rename on either side
   // fails here rather than silently reviving phantom entries.
-  const { setControlValue } = await import(
-    'src/explore/actions/exploreActions'
-  );
+  const { setControlValue } =
+    await import('src/explore/actions/exploreActions');
   const store = buildStore({
     explore: { controls: { metrics: { label: 'Metrics' } } },
   });
-  run(
-    store,
-    setControlValue('metrics', [], undefined, { programmatic: true }),
-  );
+  run(store, setControlValue('metrics', [], undefined, { programmatic: true }));
   expect(store.dispatch).not.toHaveBeenCalled();
 
   // The same creator without the mark still logs.

@@ -182,7 +182,10 @@ test('a restore that also moves the save signal refreshes exactly once', () => {
 
   act(() => {
     store.setState({
-      versionHistory: versionHistoryState({ restoreCount: 1, lastRestoredEntityUuid: 'dash-uuid' }),
+      versionHistory: versionHistoryState({
+        restoreCount: 1,
+        lastRestoredEntityUuid: 'dash-uuid',
+      }),
       dashboardState: { hasUnsavedChanges: false, lastModifiedTime: 700 },
     });
   });

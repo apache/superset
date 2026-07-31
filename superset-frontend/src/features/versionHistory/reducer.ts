@@ -262,9 +262,8 @@ export const selectIsDashboardVersionPreviewActive = (
 export const selectVersionRestoreCount = (state: VersionHistoryRootState) =>
   selectVersionHistory(state).restoreCount;
 
-export const selectVersionLastRestoredUuid = (
-  state: VersionHistoryRootState,
-) => selectVersionHistory(state).lastRestoredEntityUuid;
+export const selectVersionLastRestoredUuid = (state: VersionHistoryRootState) =>
+  selectVersionHistory(state).lastRestoredEntityUuid;
 
 export const selectVersionSessionLog = (state: VersionHistoryRootState) =>
   selectVersionHistory(state).sessionLog;

@@ -167,7 +167,10 @@ test('a restore refreshes exactly once even when it also moves the slice', async
 
   act(() => {
     store.setState({
-      versionHistory: versionHistoryState({ restoreCount: 1, lastRestoredEntityUuid: 'chart-uuid' }),
+      versionHistory: versionHistoryState({
+        restoreCount: 1,
+        lastRestoredEntityUuid: 'chart-uuid',
+      }),
       explore: { slice: slice('2025-12-08T18:00:00') },
     });
   });
