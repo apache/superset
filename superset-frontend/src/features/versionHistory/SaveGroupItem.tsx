@@ -94,7 +94,7 @@ const Headline = styled.div`
 
 const Meta = styled.div`
   ${({ theme }) => `
-    color: ${theme.colorTextQuaternary};
+    color: ${theme.colorTextTertiary};
     font-size: ${theme.fontSizeSM}px;
     line-height: ${theme.lineHeightSM};
   `}

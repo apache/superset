@@ -97,7 +97,7 @@ const EntryLabel = styled.div`
 
 const EntryMeta = styled.div`
   ${({ theme }) => `
-    color: ${theme.colorTextQuaternary};
+    color: ${theme.colorTextTertiary};
     font-size: ${theme.fontSizeSM}px;
     line-height: ${theme.lineHeightSM};
   `}
