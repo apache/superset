@@ -462,6 +462,8 @@ test('should set the default temporal column', async () => {
     expect(props.actions.setControlValue).toHaveBeenCalledWith(
       'granularity_sqla',
       'test-default',
+      undefined,
+      { programmatic: true },
     );
   });
 });
@@ -498,6 +500,8 @@ test('should set the first available temporal column', async () => {
     expect(props.actions.setControlValue).toHaveBeenCalledWith(
       'granularity_sqla',
       'test-first',
+      undefined,
+      { programmatic: true },
     );
   });
 });
@@ -534,6 +538,8 @@ test('should not set the temporal column', async () => {
     expect(props.actions.setControlValue).toHaveBeenCalledWith(
       'granularity_sqla',
       null,
+      undefined,
+      { programmatic: true },
     );
   });
 });
