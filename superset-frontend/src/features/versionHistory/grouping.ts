@@ -37,6 +37,12 @@ export function recordKey(record: ActivityRecord): string {
     record.kind,
     record.operation,
     JSON.stringify(record.path),
+    // kind/operation/path can repeat within one transaction — the same field
+    // touched twice, or two entries under one collection path. Without the
+    // values, the second record is taken for a re-served copy of the first and
+    // dropped on page merge, so the timeline silently under-reports the save.
+    JSON.stringify(record.from_value ?? null),
+    JSON.stringify(record.to_value ?? null),
   ].join('|');
 }
 

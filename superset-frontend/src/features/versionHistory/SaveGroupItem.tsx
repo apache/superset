@@ -340,9 +340,9 @@ export default function SaveGroupItem({
         <>
           {visibleRecords.map((record, index) => (
             <ActionRow
-              // kind/operation/path alone can repeat within one save
-              // (grouping's recordKey needs more discriminators for the
-              // same reason); the index breaks any remaining ties.
+              // kind/operation/path alone can repeat within one save — the
+              // same collision grouping's recordKey guards against with the
+              // record values; the index breaks any remaining ties here.
               key={`${record.kind}-${record.operation}-${JSON.stringify(
                 record.path,
               )}-${index}`}

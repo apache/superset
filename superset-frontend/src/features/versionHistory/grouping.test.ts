@@ -419,3 +419,22 @@ test('recordKey distinguishes records within one transaction', () => {
   const b = record({ path: ['params', 'metrics', 'Profit'] });
   expect(recordKey(a)).not.toBe(recordKey(b));
 });
+
+test('recordKey separates same-path records that differ only by value', () => {
+  // One save touching the same path twice, or two entries under one collection
+  // path, share kind/operation/path. Keyed on those alone the second row reads
+  // as a re-served copy of the first and is dropped when pages merge.
+  const first = record({
+    path: ['params', 'adhoc_filters'],
+    from_value: null,
+    to_value: 'region = US',
+  });
+  const second = record({
+    path: ['params', 'adhoc_filters'],
+    from_value: null,
+    to_value: 'channel = web',
+  });
+
+  expect(recordKey(first)).not.toBe(recordKey(second));
+  expect(mergeActivityPages([first], [second])).toHaveLength(2);
+});
