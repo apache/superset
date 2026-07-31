@@ -164,6 +164,24 @@ class TestValidateTimeRangeSubDayLast:
         assert until is not None
         assert since < until
 
+    def test_lowercase_last_sub_day_not_normalized(self) -> None:
+        """The "Last" prefix stays case-sensitive, mirroring
+        get_since_until()'s own check -- "last hour" doesn't match its
+        rewrite either, so it's an unrecognized bare value, not a
+        normalization target."""
+        with pytest.raises(ValueError, match="Unrecognized time_range"):
+            validate_time_range("last hour")
+
+    def test_next_sub_day_passes_through_unchanged(self) -> None:
+        """ "Next <sub-day unit>" doesn't hit the since/until mismatch --
+        get_since_until() pairs it with a "today" (midnight) since, which
+        is always <= the "now"-based until -- so it needs no normalization."""
+        assert validate_time_range("Next hour") == "Next hour"
+        since, until = get_since_until(time_range="Next hour")
+        assert since is not None
+        assert until is not None
+        assert since < until
+
 
 class TestValidateTimeRangeBracketShorthand:
     """Bracket shorthands (from apache/superset#42144) still auto-correct."""

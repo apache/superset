@@ -46,7 +46,8 @@ from superset.constants import NO_TIME_RANGE
 # Bracket shorthands (e.g. "[year]", "[quarter]") are not a Superset
 # time-range grammar -- they appear when an LLM copies a grain token from a
 # dashboard filter context. Map them to the equivalent "Last <unit>" form;
-# the sub-day ones are rewritten further by _normalize_sub_day_last() below.
+# the sub-day ones are rewritten further by _normalize_sub_day_last() below,
+# so "[hour]" and a bare "Last hour" converge on one canonical range.
 BRACKET_SHORTHAND_TO_TIME_RANGE: dict[str, str] = {
     "[second]": "Last second",
     "[minute]": "Last minute",
@@ -62,9 +63,12 @@ _SEPARATOR = " : "
 
 _LAST_PREFIX = "Last "
 
-# Sub-day units are the tail of a "Last ..." expression, e.g. the "5 minutes"
-# in "Last 5 minutes". Unit case is ignored because the downstream parser is
+# The sub-day tail of a "Last ..." expression, e.g. the "5 minutes" in
+# "Last 5 minutes". Unit case is ignored because the downstream parser is
 # case-insensitive about it ("Last Hour" fails exactly like "Last hour").
+# "Next <second|minute|hour>" needs no equivalent treatment:
+# get_since_until() pairs it with a "today" (midnight) *since*, so
+# since <= until always holds.
 _SUB_DAY_REMAINDER = re.compile(
     r"^(?:(\d{1,9})\s{1,5})?(second|minute|hour)s?$", re.IGNORECASE
 )
@@ -129,14 +133,17 @@ def _has_recognized_bare_prefix(value: str) -> bool:
     """Whether get_since_until() rewrites this separator-less value into a
     bounded range, rather than silently discarding it.
 
-    ``Last``/``Next`` stay a broad prefix match on purpose: get_since_until()
-    hands the remainder to a freeform parser, so ``Last Monday``,
-    ``Last January``, ``Last year to date`` and ``Last 3 days ago`` all
-    resolve. Narrowing this to a unit whitelist would reject them. An
-    unparseable unit (``Last decade``) still raises a loud
-    ``TimeRangeParseFailError`` downstream -- noisy, but not the silent
-    full-table match this validator exists to prevent. Sub-day units are the
-    one case that needs rewriting first; see ``_normalize_sub_day_last()``.
+    Callers must check ``_normalize_sub_day_last()`` first: a bare "Last
+    <second|minute|hour>" value matches ``startswith("Last")`` here but
+    needs rewriting, not pass-through, so it isn't re-admitted as-is.
+
+    ``Last``/``Next`` otherwise stay a broad prefix match on purpose:
+    get_since_until() hands the remainder to a freeform parser, so
+    ``Last Monday``, ``Last January``, ``Last year to date`` and
+    ``Last 3 days ago`` all resolve. Narrowing this to a unit whitelist
+    would reject them. An unparseable unit (``Last decade``) still raises a
+    loud ``TimeRangeParseFailError`` downstream -- noisy, but not the silent
+    full-table match this validator exists to prevent.
     """
     if value.startswith("Last") or value.startswith("Next"):
         return True
@@ -185,7 +192,8 @@ def validate_time_range(value: str | None) -> str | None:
     raise ValueError(
         f"Unrecognized time_range value: {value!r}. A bare (non-range) "
         "time_range must be one of: 'Last <unit>' (e.g. 'Last 7 days', "
-        "'Last month', 'Last year'), 'Next <unit>', 'previous calendar "
+        "'Last month', 'Last year', 'Last hour', 'Last 5 minutes'), "
+        "'Next <unit>', 'previous calendar "
         "<week|month|quarter|year>', 'Current <day|week|month|quarter|"
         "year>', 'first <week|month|quarter> of [this|last|next|prior] "
         "<week|month|quarter|year>', or a bracket shorthand like "
