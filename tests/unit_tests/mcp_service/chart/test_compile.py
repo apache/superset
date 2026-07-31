@@ -210,9 +210,9 @@ class TestValidateAndCompileChartTypeCoverage:
             metrics=[ColumnRef(name="name", aggregate="MIN")],
         )
         result = validate_and_compile(config, {}, ds, run_compile_check=False)
-        assert result.success, (
-            "MIN on a text column should not be rejected by Tier-1 validation"
-        )
+        assert (
+            result.success
+        ), "MIN on a text column should not be rejected by Tier-1 validation"
 
     def test_table_with_invalid_filter_column_rejected(self):
         ds = _orm_dataset()
@@ -224,6 +224,25 @@ class TestValidateAndCompileChartTypeCoverage:
         result = validate_and_compile(config, {}, ds, run_compile_check=False)
         assert not result.success
         assert result.error_obj is not None
+
+    def test_inert_stale_filter_column_is_ignored(self):
+        """A No filter placeholder produces no predicate and cannot block edits."""
+        ds = _orm_dataset()
+        config = TableChartConfig(columns=[ColumnRef(name="gender")])
+        form_data = {
+            "adhoc_filters": [
+                {
+                    "expressionType": "SIMPLE",
+                    "subject": "dropped_column",
+                    "operator": "TEMPORAL_RANGE",
+                    "comparator": "No filter",
+                }
+            ]
+        }
+
+        result = validate_and_compile(config, form_data, ds, run_compile_check=False)
+
+        assert result.success
 
 
 class TestSavedMetricNotMarked:
@@ -245,9 +264,9 @@ class TestSavedMetricNotMarked:
             ],
         )
         result = validate_and_compile(config, {}, ds, run_compile_check=False)
-        assert not result.success, (
-            "ref.name matches a saved metric but saved_metric=False -> reject"
-        )
+        assert (
+            not result.success
+        ), "ref.name matches a saved metric but saved_metric=False -> reject"
         assert result.error_obj is not None
         assert result.error_obj.error_code == "SAVED_METRIC_NOT_MARKED"
         # Suggestion should point the LLM at the right correction.
@@ -360,9 +379,9 @@ class TestAdhocFiltersFromFormData:
             ]
         }
         result = validate_and_compile(config, form_data, ds, run_compile_check=False)
-        assert not result.success, (
-            "A saved-metric name used in a WHERE filter must not pass Tier-1"
-        )
+        assert (
+            not result.success
+        ), "A saved-metric name used in a WHERE filter must not pass Tier-1"
         assert result.error_obj is not None
         assert "sum_boys" in (result.error_obj.message or "")
 
@@ -388,9 +407,9 @@ class TestAdhocFiltersFromFormData:
             ]
         }
         result = validate_and_compile(config, form_data, ds, run_compile_check=False)
-        assert result.success, (
-            "A saved-metric name in a HAVING filter should pass Tier-1 validation"
-        )
+        assert (
+            result.success
+        ), "A saved-metric name in a HAVING filter should pass Tier-1 validation"
 
 
 class TestValidateAndCompileTier2:

@@ -43,6 +43,7 @@ from superset.mcp_service.chart.tool.update_chart import (
     _build_preview_form_data,
     _build_update_payload,
 )
+from superset.utils import json
 
 # The __init__.py re-exports the update_chart *function*, so a plain
 # `from ... import update_chart` gives the function, not the module.
@@ -75,6 +76,10 @@ class TestUpdateChart:
         assert len(table_request.config.columns) == 2
         assert table_request.config.columns[0].name == "region"
         assert table_request.config.columns[1].aggregate == "SUM"
+
+        # Dataset column names may contain punctuation supported by Superset.
+        parenthesized = ColumnRef(name="New Draft Apps (This Week)")
+        assert parenthesized.name == "New Draft Apps (This Week)"
 
         # XY chart update with UUID
         xy_config = XYChartConfig(
@@ -638,6 +643,36 @@ class TestBuildUpdatePayload:
         # query_context must be cleared so get_chart_data uses updated params
         assert result["query_context"] is None
 
+    def test_add_columns_preserves_existing_columns_and_metrics(self):
+        """An additive update does not require reconstructing the table."""
+        request = UpdateChartRequest(
+            identifier=1,
+            add_columns=[
+                ColumnRef(
+                    name="go_live_date", aggregate="MIN", label="Earliest Go Live Date"
+                )
+            ],
+        )
+        chart = Mock()
+        chart.slice_name = "Existing"
+        chart.params = json.dumps(
+            {
+                "viz_type": "ag-grid-table",
+                "query_mode": "aggregate",
+                "groupby": ["employer"],
+                "metrics": ["count"],
+            }
+        )
+
+        result = _build_update_payload(request, chart)
+
+        assert isinstance(result, dict)
+        params = json.loads(result["params"])
+        assert params["groupby"] == ["employer"]
+        assert params["metrics"][0] == "count"
+        assert params["metrics"][1]["label"] == "Earliest Go Live Date"
+        assert params["metrics"][1]["aggregate"] == "MIN"
+
 
 class TestUpdateChartNameOnly:
     """Integration-style tests for name-only update via MCP tool."""
@@ -935,6 +970,37 @@ class TestBuildPreviewFormData:
         assert isinstance(result, dict)
         assert result["slice_id"] == 9
         assert result["slice_name"] == "Broken"
+
+    def test_explicit_empty_filters_clear_saved_filters(self):
+        """filters=[] must honor the remedy advertised by validation errors."""
+        config = TableChartConfig(
+            columns=[ColumnRef(name="region")],
+            filters=[],
+        )
+        request = UpdateChartRequest(identifier=1, config=config)
+        chart = Mock(
+            id=9,
+            datasource_id=4,
+            slice_name="Filtered",
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "adhoc_filters": [
+                        {
+                            "expressionType": "SIMPLE",
+                            "subject": "dropped_column",
+                            "operator": "TEMPORAL_RANGE",
+                            "comparator": "No filter",
+                        }
+                    ],
+                }
+            ),
+        )
+
+        result = _build_preview_form_data(request, chart, parsed_config=config)
+
+        assert isinstance(result, dict)
+        assert "adhoc_filters" not in result
 
 
 class TestUpdateChartSaveWithConfig:
