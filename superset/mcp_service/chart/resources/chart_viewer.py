@@ -35,11 +35,12 @@ from pathlib import Path
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.auth import mcp_auth_hook
+from superset.mcp_service.chart.constants import (
+    CHART_VIEWER_MIME_TYPE,
+    CHART_VIEWER_URI,
+)
 
 logger = logging.getLogger(__name__)
-
-CHART_VIEWER_URI = "ui://superset/chart-viewer/v3"
-CHART_VIEWER_MIME_TYPE = "text/html;profile=mcp-app"
 
 # Built single-file bundle: chart_viewer/dist/index.html (produced by
 # ``npm run build`` in the chart_viewer directory).

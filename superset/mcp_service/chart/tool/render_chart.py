@@ -40,6 +40,7 @@ from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
+from superset.mcp_service.chart.constants import CHART_VIEWER_URI
 from superset.mcp_service.chart.schemas import (
     ChartData,
     ChartError,
@@ -51,10 +52,6 @@ from superset.mcp_service.chart.tool.get_chart_data import get_chart_data_core
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 
 logger = logging.getLogger(__name__)
-
-# UI resource that renders these tools' results. Versioned so the widget bundle
-# and the tools can evolve together without breaking cached hosts.
-CHART_VIEWER_URI = "ui://superset/chart-viewer/v3"
 
 # Tool-descriptor _meta for the MCP Apps extension. Note: the iframe CSP is
 # declared on the ``ui://`` resource itself (see chart_viewer.py), not here — the
