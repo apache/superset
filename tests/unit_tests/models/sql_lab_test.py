@@ -273,6 +273,45 @@ def test_adhoc_column_to_sqla_casts_string_temporal_column_for_postgres() -> Non
     assert compiled == "DATE_TRUNC('day', CAST(event_ts AS TIMESTAMP))"
 
 
+def test_adhoc_column_to_sqla_casts_temporal_column_with_unknown_type() -> None:
+    """
+    A temporal column whose result-column type cannot be mapped to a SQLAlchemy
+    spec must still carry a type so the engine spec applies the VARCHAR/TEXT
+    cast before ``DATE_TRUNC``, instead of emitting an untyped ``literal_column``.
+    """
+    query = Query(
+        database=Database(
+            database_name="db",
+            sqlalchemy_uri="postgresql://user:password@host/db",
+        ),
+        database_id=1,
+        sql="SELECT event_ts FROM website_events",
+    )
+    query.extra = {
+        "columns": [
+            {"column_name": "event_ts", "is_dttm": True, "type": "MY_WEIRD_TYPE"}
+        ]
+    }
+
+    col: AdhocColumn = {
+        "sqlExpression": "event_ts",
+        "label": "event_ts",
+        "isColumnReference": True,
+        "timeGrain": "P1D",
+        "columnType": "BASE_AXIS",
+    }
+
+    result, _ = query.adhoc_column_to_sqla(col)
+
+    compiled = str(
+        result.compile(
+            dialect=postgresql.dialect(),
+            compile_kwargs={"literal_binds": True},
+        )
+    )
+    assert compiled == "DATE_TRUNC('day', CAST(event_ts AS TIMESTAMP))"
+
+
 def test_adhoc_column_to_sqla_unknown_column_stays_untyped() -> None:
     """
     An adhoc column whose expression is not backed by result-column metadata
