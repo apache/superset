@@ -1010,7 +1010,7 @@ test('should return solid hex color when useGradient is false or true', () => {
   expect(colorFormatters[1].getColorFromValue(100)).toEqual('#ffa600FF');
 });
 
-test('should return hex color when colorScheme is an RGB object', () => {
+test('should return hex color without alpha for GreaterThan operator with RGB colorScheme', () => {
   const config = {
     operator: Comparator.GreaterThan,
     targetValue: 50,
