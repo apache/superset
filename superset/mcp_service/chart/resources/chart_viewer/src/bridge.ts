@@ -241,6 +241,22 @@ export class ChartBridge {
     this.notify('ui/notifications/size-changed', { width, height });
   }
 
+  /**
+   * Ask the host to switch display mode. The handshake advertises `inline` and
+   * `fullscreen` as supported; hosts that do not implement the request simply
+   * never answer, so a rejection here is expected and callers fall back to
+   * resizing the content in place.
+   */
+  async requestDisplayMode(mode: string): Promise<boolean> {
+    if (!this.isEmbedded) return false;
+    try {
+      await this.request('ui/request-display-mode', { mode }, 1500);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   // ---- transport internals -------------------------------------------------
 
   private request(method: string, params: unknown, timeoutMs = 8000): Promise<unknown> {

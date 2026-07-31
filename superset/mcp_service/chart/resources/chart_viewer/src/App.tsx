@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type JSX,
+  type PointerEvent as ReactPointerEvent,
+} from 'react';
 import type { ChartData, ChartMeta, ColorScheme, ViewType } from './types';
 import { REQUERY_TOOL_NAME } from './types';
 import { ChartBridge, type HostCapabilities } from './bridge';
@@ -32,7 +39,7 @@ import {
   classifyColumns,
   defaultViewForChartType,
 } from './adapter';
-import { formatByColumn } from './format';
+import { formatByColumn, stripUntrustedMarkers } from './format';
 import { EChart, type EChartClickParams } from './components/EChart';
 import { BigNumber } from './components/BigNumber';
 import { DataTable } from './components/DataTable';
@@ -41,6 +48,12 @@ import { EmptyState, ErrorState, LoadingSkeleton } from './components/States';
 import { SAMPLE_CHART_DATA } from './sample-data';
 
 const bridge = new ChartBridge();
+
+/** Frame height requested from the host: chart area plus header and insight bar. */
+const PREFERRED_HEIGHT = 520;
+/** Bounds for the drag-to-resize handle. */
+const MIN_HEIGHT = 260;
+const MAX_HEIGHT = 1200;
 
 interface DrillState {
   active: boolean;
@@ -59,6 +72,8 @@ export function App(): JSX.Element {
   const [toast, setToast] = useState<string | null>(null);
   const [drill, setDrill] = useState<DrillState>({ active: false, label: '' });
   const [selection, setSelection] = useState<EChartClickParams | null>(null);
+  const [frameHeight, setFrameHeight] = useState<number | null>(null);
+  const [maximized, setMaximized] = useState(false);
 
   // Superset tokens travel with the data, so the widget renders in the
   // deployment's own branding rather than hardcoded colors.
@@ -153,6 +168,65 @@ export function App(): JSX.Element {
     return () => mq.removeEventListener('change', handler);
   }, []);
 
+  // Ask the host for enough vertical room once there is a chart to show. A host that
+  // honours ui/notifications/size-changed grows the frame; one that does not keeps its
+  // own sizing and the CSS min-heights still apply.
+  useEffect(() => {
+    if (!data) return;
+    bridge.reportSize(document.documentElement.clientWidth || 640, frameHeight ?? PREFERRED_HEIGHT);
+    // Only on first data arrival — later reports come from the resize controls.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
+
+  // Drive the document's own height from the user's choice so hosts that size the
+  // iframe to its content follow the drag as well.
+  useEffect(() => {
+    const h = frameHeight ? `${frameHeight}px` : '';
+    document.documentElement.style.height = h;
+    document.body.style.height = h;
+    const rootEl = document.getElementById('root');
+    if (rootEl) rootEl.style.height = h;
+  }, [frameHeight]);
+
+  const applyHeight = useCallback((next: number) => {
+    const clamped = Math.max(MIN_HEIGHT, Math.min(Math.round(next), MAX_HEIGHT));
+    setFrameHeight(clamped);
+    bridge.reportSize(document.documentElement.clientWidth || 640, clamped);
+  }, []);
+
+  const handleResizeStart = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      const startY = e.clientY;
+      const startHeight = frameHeight ?? document.documentElement.clientHeight ?? PREFERRED_HEIGHT;
+      const handle = e.currentTarget;
+      handle.setPointerCapture(e.pointerId);
+      const onMove = (ev: PointerEvent): void => applyHeight(startHeight + (ev.clientY - startY));
+      const onUp = (ev: PointerEvent): void => {
+        handle.releasePointerCapture(ev.pointerId);
+        handle.removeEventListener('pointermove', onMove);
+        handle.removeEventListener('pointerup', onUp);
+      };
+      handle.addEventListener('pointermove', onMove);
+      handle.addEventListener('pointerup', onUp);
+    },
+    [applyHeight, frameHeight],
+  );
+
+  // Prefer a real host display-mode switch; fall back to growing in place when the
+  // host does not implement the request.
+  const toggleMaximize = useCallback(async () => {
+    if (maximized) {
+      setMaximized(false);
+      await bridge.requestDisplayMode('inline');
+      applyHeight(PREFERRED_HEIGHT);
+      return;
+    }
+    setMaximized(true);
+    const accepted = await bridge.requestDisplayMode('fullscreen');
+    if (!accepted) applyHeight(MAX_HEIGHT);
+  }, [maximized, applyHeight]);
+
   const roles = useMemo(() => (data ? classifyColumns(data) : null), [data]);
   const views = useMemo(() => (data ? availableViews(data) : []), [data]);
 
@@ -240,7 +314,10 @@ export function App(): JSX.Element {
     const msg = `User is looking at ${selection.seriesName}=${formatByColumn(
       selection.value,
       roles.numeric.find((c) => (c.display_name || c.name) === selection.seriesName),
-    )} for ${dimLabel}=${formatByColumn(xVal, roles.dimension ?? undefined)} in "${data.chart_name}".`;
+    )} for ${dimLabel}=${formatByColumn(
+      xVal,
+      roles.dimension ?? undefined,
+    )} in "${stripUntrustedMarkers(data.chart_name)}".`;
     await bridge.updateModelContext(msg, {
       chart_id: data.chart_id,
       metric: selection.seriesName,
@@ -338,7 +415,21 @@ export function App(): JSX.Element {
       </div>
     ) : null,
     toast,
+    {
+      height: frameHeight,
+      maximized,
+      onResizeStart: handleResizeStart,
+      onToggleMaximize: toggleMaximize,
+    },
   );
+}
+
+/** User-driven sizing controls threaded into the app chrome. */
+interface FrameControls {
+  height: number | null;
+  maximized: boolean;
+  onResizeStart: (e: ReactPointerEvent<HTMLDivElement>) => void;
+  onToggleMaximize: () => void;
 }
 
 /** Consistent app chrome: header + toolbar + body + insight footer. */
@@ -349,12 +440,16 @@ function shell(
   drillLabel?: string,
   actionToast?: JSX.Element | null,
   toast?: string | null,
+  frame?: FrameControls,
 ): JSX.Element {
   return (
-    <div className="sv-app">
+    <div
+      className="sv-app"
+      style={frame?.height ? { height: `${frame.height}px` } : undefined}
+    >
       <div className="sv-header">
         <div className="sv-title-wrap">
-          <h1 className="sv-title">{data?.chart_name ?? 'Chart'}</h1>
+          <h1 className="sv-title">{data ? stripUntrustedMarkers(data.chart_name) : 'Chart'}</h1>
           <div className="sv-subtitle">
             <span className="sv-accent-dot" />
             {drillLabel ? (
@@ -371,6 +466,18 @@ function shell(
             )}
           </div>
         </div>
+        {frame && (
+          <button
+            type="button"
+            className="sv-btn sv-btn--subtle sv-maximize"
+            onClick={frame.onToggleMaximize}
+            aria-pressed={frame.maximized}
+            aria-label={frame.maximized ? 'Restore chart size' : 'Maximize chart'}
+            title={frame.maximized ? 'Restore size' : 'Maximize'}
+          >
+            {frame.maximized ? '⤡' : '⤢'}
+          </button>
+        )}
       </div>
       {toolbar}
       <div className="sv-body">
@@ -380,8 +487,18 @@ function shell(
       </div>
       {data?.insights && data.insights.length > 0 && (
         <div className="sv-insights">
-          <strong>Insight:</strong> {data.insights[0]}
+          <strong>Insight:</strong> {stripUntrustedMarkers(data.insights[0])}
         </div>
+      )}
+      {frame && (
+        <div
+          className="sv-resize"
+          onPointerDown={frame.onResizeStart}
+          role="separator"
+          aria-orientation="horizontal"
+          aria-label="Drag to resize the chart"
+          title="Drag to resize"
+        />
       )}
     </div>
   );

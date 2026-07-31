@@ -23,6 +23,7 @@ import {
   formatDate,
   formatFull,
   formatNumber,
+  stripUntrustedMarkers,
   toDate,
   toNumber,
 } from './format';
@@ -368,7 +369,8 @@ export function resolveBigNumber(data: ChartData): {
       y: rows.map((r) => toNumber(r[col.name])),
     };
   }
-  return { value, label: col ? col.display_name || col.name : data.chart_name, column: col, spark };
+  const label = col ? col.display_name || col.name : stripUntrustedMarkers(data.chart_name);
+  return { value, label, column: col, spark };
 }
 
 /** Build a minimal sparkline option for the big-number view. */

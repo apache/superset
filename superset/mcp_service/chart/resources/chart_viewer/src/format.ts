@@ -20,6 +20,19 @@ import { format as d3Format } from 'd3-format';
 import { timeFormat } from 'd3-time-format';
 import type { DataColumn } from './types';
 
+/**
+ * The MCP service wraps user-authored strings (chart names, summaries, insights) in
+ * `<UNTRUSTED-CONTENT>` markers so the *model* treats them as data rather than
+ * instructions. They mean nothing to a human reader, so strip them wherever text is
+ * shown. Values remain untrusted after stripping — React escapes them on render.
+ */
+const UNTRUSTED_MARKER = /<\/?UNTRUSTED-CONTENT>/g;
+
+/** Remove `<UNTRUSTED-CONTENT>` markers from a display string. */
+export function stripUntrustedMarkers(value: string): string {
+  return value.replace(UNTRUSTED_MARKER, '').trim();
+}
+
 const compact = d3Format('.3~s'); // e.g. 1.2M, 3.4k
 const fixed2 = d3Format(',.2~f');
 const pct = d3Format('.1~%');

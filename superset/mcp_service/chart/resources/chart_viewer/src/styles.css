@@ -192,6 +192,40 @@ body {
   color: var(--sv-text-primary);
 }
 
+/* Maximize / restore toggle, pinned to the header's trailing edge. */
+.sv-maximize {
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  font-size: 13px;
+  line-height: 1;
+}
+
+/* ---- Resize handle ---- */
+.sv-resize {
+  flex: 0 0 auto;
+  height: 12px;
+  /* Bleed into the app padding so the grip sits on the bottom edge. */
+  margin: -4px -16px -16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: ns-resize;
+  touch-action: none;
+}
+
+.sv-resize::after {
+  content: '';
+  width: 40px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--sv-border);
+  transition: background 0.15s ease;
+}
+
+.sv-resize:hover::after {
+  background: var(--sv-text-muted);
+}
+
 /* ---- Chart area ---- */
 .sv-body {
   position: relative;
