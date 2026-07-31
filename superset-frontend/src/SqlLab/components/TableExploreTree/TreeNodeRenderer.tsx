@@ -184,6 +184,9 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
         <ColumnElement
           column={data.columnData}
           actions={
+            // Pure event-boundary wrapper: only stops the click/keydown from
+            // reaching the row's select handler, not itself interactive.
+            // eslint-disable-next-line jsx-a11y/no-static-element-interactions
             <span
               className="col-copy-action"
               onClick={e => e.stopPropagation()}
@@ -205,6 +208,11 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
   }
 
   return (
+    // react-arborist's row wrapper (an ancestor of this element) already
+    // supplies role="treeitem" and roving tabIndex/keyboard nav; this div
+    // just forwards clicks/keys to node.select()/toggle(), so adding its
+    // own role would create a nested-interactive-role anti-pattern.
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div
       className="tree-node"
       style={style}
@@ -245,6 +253,9 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
         {highlightText(data.name, searchTerm)}
       </Typography.Text>
       {identifier === 'schema' && (
+        // Pure event-boundary wrapper: only stops the click/keydown from
+        // reaching the row's select handler, not itself interactive.
+        // eslint-disable-next-line jsx-a11y/no-static-element-interactions
         <div
           className="side-action-container"
           onClick={e => e.stopPropagation()}
@@ -313,6 +324,9 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
           const isPinned = pinnedTableKeys.has(tableKey);
           const selectStar = selectStarMap[tableKey];
           return (
+            // Pure event-boundary wrapper: only stops the click/keydown from
+            // reaching the row's select handler, not itself interactive.
+            // eslint-disable-next-line jsx-a11y/no-static-element-interactions
             <div
               className="side-action-container"
               onClick={e => e.stopPropagation()}

@@ -25,7 +25,7 @@ import difflib
 import logging
 import re
 from datetime import datetime
-from typing import Annotated, Any, cast, Dict, List, Literal, Protocol
+from typing import Annotated, Any, Dict, List, Literal, Protocol
 
 from pydantic import (
     AliasChoices,
@@ -36,7 +36,6 @@ from pydantic import (
     field_validator,
     model_serializer,
     model_validator,
-    PositiveInt,
     ValidationError,
 )
 from typing_extensions import Self
@@ -52,13 +51,15 @@ from superset.mcp_service.common.cache_schemas import (
     QueryCacheControl,
 )
 from superset.mcp_service.common.error_schemas import ChartGenerationError, MCPBaseError
-from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+from superset.mcp_service.common.pagination_schemas import (
+    PaginatedListRequest,
+    PaginatedResponse,
+)
 from superset.mcp_service.privacy import (
     filter_user_directory_fields,
     strip_user_directory_fields_from_schema,
 )
 from superset.mcp_service.system.schemas import (
-    PaginationInfo,
     serialize_subject_object,
     SubjectInfo,
     TagInfo,
@@ -142,6 +143,13 @@ class ChartInfo(BaseModel):
         None, description="Certification details or reason"
     )
     uuid: str | None = Field(None, description="Chart UUID")
+    deleted_at: str | datetime | None = Field(
+        None,
+        description=(
+            "When the chart was moved to trash (soft-deleted); null for live "
+            "charts. Only populated when listing with deleted_state."
+        ),
+    )
     tags: List[TagInfo] = Field(default_factory=list, description="Chart tags")
     editors: List[SubjectInfo] = Field(
         default_factory=list, description="Chart editors"
@@ -626,6 +634,7 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
             uuid=str(getattr(chart, "uuid", ""))
             if getattr(chart, "uuid", None)
             else None,
+            deleted_at=getattr(chart, "deleted_at", None),
             tags=[
                 TagInfo.model_validate(tag, from_attributes=True)
                 for tag in getattr(chart, "tags", [])
@@ -680,38 +689,8 @@ class ChartFilter(ColumnOperator):
     )
 
 
-class ChartList(BaseModel):
+class ChartList(PaginatedResponse[ChartFilter]):
     charts: List[ChartInfo]
-    count: int
-    total_count: int
-    page: int
-    page_size: int
-    total_pages: int
-    has_previous: bool
-    has_next: bool
-    columns_requested: List[str] = Field(
-        default_factory=list,
-        description="Requested columns for the response",
-    )
-    columns_loaded: List[str] = Field(
-        default_factory=list,
-        description="Columns that were actually loaded for each chart",
-    )
-    columns_available: List[str] = Field(
-        default_factory=list,
-        description="All columns available for selection via select_columns parameter",
-    )
-    sortable_columns: List[str] = Field(
-        default_factory=list,
-        description="Columns that can be used with order_column parameter",
-    )
-    filters_applied: List[ChartFilter] = Field(
-        default_factory=list,
-        description="List of advanced filter dicts applied to the query.",
-    )
-    pagination: PaginationInfo | None = None
-    timestamp: datetime | None = None
-    model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 
 # --- Simplified schemas for generate_chart tool ---
@@ -1413,7 +1392,7 @@ class BigNumberChartConfig(UnknownFieldCheckMixin):
             "Temporal column for the trendline x-axis. Required when "
             "show_trendline is True. Also used (whether or not a trendline is "
             "shown) to bind the chart's dashboard time-range filter; when "
-            "omitted, the dataset's main temporal column is used instead."
+            "omitted, the dataset's default temporal column is used instead."
         ),
         min_length=1,
         max_length=255,
@@ -2009,6 +1988,116 @@ class BoxPlotChartConfig(UnknownFieldCheckMixin):
         return self
 
 
+class WaterfallChartConfig(UnknownFieldCheckMixin):
+    """Config for waterfall charts (viz_type ``waterfall``)."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    chart_type: Literal["waterfall"] = "waterfall"
+    x_axis: ColumnRef = Field(
+        ...,
+        description="Category or period column along the x-axis (often "
+        "temporal, e.g. month); each value is one waterfall step",
+    )
+    metric: ColumnRef = Field(
+        ...,
+        description="Metric whose per-step change is plotted (use aggregate "
+        "e.g. SUM for ad-hoc, or saved_metric=True for a saved metric)",
+    )
+    breakdown: ColumnRef | None = Field(
+        None,
+        validation_alias=AliasChoices("breakdown", "groupby"),
+        description="Optional single category column that breaks each "
+        "x-axis period into per-category steps (form_data 'groupby'; the "
+        "frontend Breakdowns control is single-select)",
+    )
+    time_grain: TimeGrain | None = Field(
+        None,
+        description="Time bucket for a temporal x_axis (PT1H, P1D, P1W, "
+        "P1M, P1Y); each bucket becomes one waterfall step. Ignored for a "
+        "non-temporal x_axis.",
+        validation_alias=AliasChoices("time_grain", "time_grain_sqla"),
+    )
+    show_total: bool = Field(
+        True, description="Append a total bar per period (frontend default)"
+    )
+    show_legend: bool = Field(
+        False, description="Show the legend (frontend default: off)"
+    )
+    increase_label: str = Field("Increase", max_length=50)
+    decrease_label: str = Field("Decrease", max_length=50)
+    total_label: str = Field("Total", max_length=50)
+    x_axis_time_format: str = Field(
+        "smart_date",
+        description="Time format for a temporal x-axis (e.g. 'smart_date', '%Y-%m-%d')",
+        max_length=50,
+    )
+    y_axis_format: str = Field("SMART_NUMBER", max_length=50)
+    currency_format: CurrencyFormat | None = Field(
+        None,
+        description="Currency symbol applied to the metric value",
+    )
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description="Structured filters (column/op/value). "
+        "Do NOT use adhoc_filters or raw SQL expressions.",
+    )
+    row_limit: int = Field(
+        10000,
+        description="Max grouped rows (frontend shared default)",
+        ge=1,
+        le=50000,
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def unwrap_list_breakdown(cls, data: Any) -> Any:
+        """Accept the native form_data shape where ``groupby`` is a list.
+
+        The frontend Breakdowns control is single-select but stores its value
+        as a one-item list (e.g. ``["region"]``), so a config round-tripped
+        from existing waterfall form_data sends a list. Unwrap a length-1
+        list to the single value; reject longer lists rather than silently
+        dropping breakdowns. Native form_data also names physical columns as
+        bare strings, so a bare string in groupby/breakdown/x_axis is coerced to
+        ``{"name": ...}``.
+        """
+
+        def _coerce(value: Any) -> Any:
+            if isinstance(value, list):
+                if len(value) > 1:
+                    raise ValueError(
+                        "waterfall breakdown is single-select; pass at most one column"
+                    )
+                value = value[0] if value else None
+            if isinstance(value, str):
+                return {"name": value}
+            return value
+
+        if isinstance(data, dict):
+            for key in ("groupby", "breakdown"):
+                if key in data:
+                    data[key] = _coerce(data[key])
+            # x_axis is a bare column name in native form_data too.
+            if isinstance(data.get("x_axis"), str):
+                data["x_axis"] = {"name": data["x_axis"]}
+        return data
+
+    @model_validator(mode="after")
+    def reject_metric_style_dimensions(self) -> "WaterfallChartConfig":
+        """x_axis and breakdown are dimensions, not metrics."""
+        for ref, field_name in ((self.x_axis, "x_axis"), (self.breakdown, "breakdown")):
+            if ref is None:
+                continue
+            _reject_sql_expression_on_dimension(ref, field_name)
+            if ref.saved_metric:
+                raise ValueError(
+                    f"{field_name} cannot use saved_metric=True; "
+                    "saved metrics belong in the 'metric' field"
+                )
+        return self
+
+
 # Discriminated union for runtime validation (not exposed in JSON Schema)
 ChartConfig = Annotated[
     XYChartConfig
@@ -2019,13 +2108,14 @@ ChartConfig = Annotated[
     | HandlebarsChartConfig
     | BigNumberChartConfig
     | HistogramChartConfig
-    | BoxPlotChartConfig,
+    | BoxPlotChartConfig
+    | WaterfallChartConfig,
     Field(
         discriminator="chart_type",
         description=(
             "Chart configuration - specify chart_type as 'xy', 'table', "
             "'pie', 'pivot_table', 'mixed_timeseries', 'handlebars', "
-            "'big_number', 'histogram', or 'box_plot'"
+            "'big_number', 'histogram', 'box_plot', or 'waterfall'"
         ),
     ),
 ]
@@ -2100,69 +2190,27 @@ class ChartRequestNormalizerMixin(BaseModel):
         return _normalize_chart_request_input(data)
 
 
-class ListChartsRequest(EditedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
+class ListChartsRequest(
+    EditedByMeMixin,
+    CreatedByMeMixin,
+    MetadataCacheControl,
+    PaginatedListRequest[ChartFilter],
+):
     """Request schema for list_charts with clear, unambiguous types."""
 
-    model_config = ConfigDict(populate_by_name=True)
-
-    filters: Annotated[
-        List[ChartFilter],
-        Field(
-            default_factory=list,
-            description="List of filter objects (column, operator, value). Each "
-            "filter is an object with 'col', 'opr', and 'value' "
-            "properties. Cannot be used together with 'search'.",
-        ),
-    ]
-    select_columns: Annotated[
-        List[str],
-        Field(
-            default_factory=list,
-            description="List of columns to select. Defaults to common columns if not "
-            "specified.",
-            validation_alias=AliasChoices("select_columns", "columns"),
-        ),
-    ]
-
-    @field_validator("filters", mode="before")
-    @classmethod
-    def parse_filters(cls, v: Any) -> List[ChartFilter]:
-        """
-        Parse filters from JSON string or list.
-
-        Handles Claude Code bug where objects are double-serialized as strings.
-        See: https://github.com/anthropics/claude-code/issues/5504
-        """
-        from superset.mcp_service.utils.schema_utils import parse_json_or_model_list
-
-        return cast(
-            List[ChartFilter],
-            parse_json_or_model_list(v, ChartFilter, "filters"),
-        )
-
-    @field_validator("select_columns", mode="before")
-    @classmethod
-    def parse_select_columns(cls, v: Any) -> List[str]:
-        """
-        Parse select_columns from JSON string, list, or CSV string.
-
-        Handles Claude Code bug where arrays are double-serialized as strings.
-        See: https://github.com/anthropics/claude-code/issues/5504
-        """
-        from superset.mcp_service.utils.schema_utils import parse_json_or_list
-
-        return parse_json_or_list(v, "select_columns")
-
-    search: Annotated[
-        str | None,
+    deleted_state: Annotated[
+        Literal["include", "only"] | None,
         Field(
             default=None,
-            description="Text search string to match against chart fields. Cannot be "
-            "used together with 'filters'.",
+            description=(
+                "Surface soft-deleted (trashed) charts: 'only' returns just "
+                "trashed charts, 'include' returns live and trashed charts "
+                "together. Omit for live charts only (default). Trashed rows "
+                "carry a non-null deleted_at and are limited to charts the "
+                "caller owns (admins see all); requires the SOFT_DELETE "
+                "feature flag to have produced trashed rows."
+            ),
         ),
-    ]
-    order_column: Annotated[
-        str | None, Field(default=None, description="Column to order results by")
     ]
     order_direction: Annotated[
         Literal["asc", "desc"],
@@ -2170,30 +2218,6 @@ class ListChartsRequest(EditedByMeMixin, CreatedByMeMixin, MetadataCacheControl)
             default="asc", description="Direction to order results ('asc' or 'desc')"
         ),
     ]
-    page: Annotated[
-        PositiveInt,
-        Field(default=1, description="Page number for pagination (1-based)"),
-    ]
-    page_size: Annotated[
-        int,
-        Field(
-            default=DEFAULT_PAGE_SIZE,
-            gt=0,
-            le=MAX_PAGE_SIZE,
-            description=f"Number of items per page (max {MAX_PAGE_SIZE})",
-        ),
-    ]
-
-    @model_validator(mode="after")
-    def validate_search_and_filters(self) -> "ListChartsRequest":
-        """Prevent using both search and filters simultaneously."""
-        if self.search and self.filters:
-            raise ValueError(
-                "Cannot use both 'search' and 'filters' parameters simultaneously. "
-                "Use either 'search' for text-based searching across multiple fields, "
-                "or 'filters' for precise column-based filtering, but not both."
-            )
-        return self
 
 
 # The tool input models
@@ -2483,6 +2507,17 @@ class ChartData(BaseModel):
     # Data insights
     row_count: int = Field(description="Rows returned")
     total_rows: int | None = Field(description="Total available rows")
+
+    @field_validator("total_rows", mode="before")
+    @classmethod
+    def _coerce_total_rows(cls, v: Any) -> int | None:
+        if v is None:
+            return None
+        try:
+            return int(v)
+        except (TypeError, ValueError):
+            return None
+
     data_freshness: datetime | None = Field(description="When data was last updated")
 
     # LLM-friendly summaries

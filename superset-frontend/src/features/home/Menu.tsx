@@ -201,12 +201,23 @@ export function Menu({
   const screens = useBreakpoint();
   const uiConfig = useUiConfig();
   const theme = useTheme();
+  // screens.md is undefined on the first render before breakpoints are measured;
+  // fall back to the actual viewport width (using the same threshold as antd's
+  // md media query) so the first paint matches the device layout instead of
+  // flashing to the wrong mode on either desktop or mobile
+  const isMd = screens.md ?? window.innerWidth >= theme.screenMDMin;
 
   enum Paths {
     Explore = '/explore',
     Dashboard = '/dashboard',
     Chart = '/chart',
     Datasets = '/tablemodelview',
+    // The legacy FAB dataset list still lives at ``/tablemodelview/list/``,
+    // but the modern React-managed dataset add + detail routes are under
+    // ``/dataset/*`` (``/dataset/add/``, ``/dataset/:datasetId``). Both
+    // prefixes must map to the Datasets tab so the top-nav highlight
+    // survives navigation into the create/edit flow. See #42467.
+    Dataset = '/dataset',
     SqlLab = '/sqllab',
     SavedQueries = '/savedqueryview',
   }
@@ -233,7 +244,9 @@ export function Menu({
       case path.startsWith(Paths.Chart) || path.startsWith(Paths.Explore):
         setActiveTabs([MenuKeys.Charts]);
         break;
-      case path.startsWith(Paths.Datasets):
+      case path.startsWith(Paths.Datasets) ||
+        path === Paths.Dataset ||
+        path.startsWith(`${Paths.Dataset}/`):
         setActiveTabs([MenuKeys.Datasets]);
         break;
       case path.startsWith(Paths.SqlLab) || path.startsWith(Paths.SavedQueries):
@@ -265,11 +278,7 @@ export function Menu({
       return {
         key,
         label: (
-          <NavLink
-            role="button"
-            to={stripAppRoot(url)}
-            activeClassName="is-active"
-          >
+          <NavLink to={stripAppRoot(url)} activeClassName="is-active">
             {label}
           </NavLink>
         ),
@@ -313,7 +322,7 @@ export function Menu({
     return {
       key,
       label,
-      ...(screens.md && {
+      ...(isMd && {
         icon: <Icons.DownOutlined iconSize="xs" />,
         popupOffset: NAVBAR_MENU_POPUP_OFFSET,
       }),
@@ -394,9 +403,9 @@ export function Menu({
   };
   return (
     <StyledHeader
+      as="nav"
       className="top"
       id="main-menu"
-      role="navigation"
       aria-label={t('Main navigation')}
     >
       <StyledRow>
@@ -417,7 +426,7 @@ export function Menu({
             </StyledBrandText>
           )}
           <StyledMainNav
-            mode={screens.md ? 'horizontal' : 'inline'}
+            mode={isMd ? 'horizontal' : 'inline'}
             data-test="navbar-top"
             className="main-nav"
             selectedKeys={activeTabs}
@@ -445,7 +454,7 @@ export function Menu({
         </StyledCol>
         <Col md={8} xs={24}>
           <RightMenu
-            align={screens.md ? 'flex-end' : 'flex-start'}
+            align={isMd ? 'flex-end' : 'flex-start'}
             settings={settings}
             navbarRight={navbarRight}
             isFrontendRoute={isFrontendRoute}

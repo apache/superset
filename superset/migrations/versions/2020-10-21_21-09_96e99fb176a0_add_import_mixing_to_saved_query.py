@@ -56,7 +56,7 @@ default_batch_size = int(os.environ.get("BATCH_SIZE", 200))
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     # Add uuid column
     try:
@@ -86,7 +86,7 @@ def upgrade():
 
 def downgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)  # noqa: F841
+    session = db.Session(bind=bind, future=True)  # noqa: F841
 
     # Remove uuid column
     with op.batch_alter_table("saved_query") as batch_op:

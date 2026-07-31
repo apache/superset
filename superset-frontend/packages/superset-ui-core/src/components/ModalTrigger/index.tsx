@@ -127,10 +127,15 @@ export const ModalTrigger = forwardRef(
           </Button>
         )}
         {!isButton && (
+          // Generic wrapper used by 19+ callers passing arbitrary
+          // triggerNode content that relies on block-level <div> layout;
+          // swapping to <button> risks a layout regression across callers
+          // with no shared CSS to guide a safe reset.
           <div
             data-test="span-modal-trigger"
             onClick={open}
             onKeyDown={handleKeyboardActivation(open)}
+            // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
             role="button"
             tabIndex={0}
           >
@@ -156,6 +161,9 @@ export const ModalTrigger = forwardRef(
           draggableConfig={draggableConfig}
           destroyOnHidden={destroyOnHidden}
         >
+          {/* Pure event-boundary wrapper: only stops menu-navigation keys
+              from bubbling out of the modal, not itself interactive. */}
+          {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
           <div
             style={{ display: 'contents' }}
             onKeyDown={e => {

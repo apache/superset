@@ -49,7 +49,6 @@ function compareValues(
  * @param rowA - First row to compare
  * @param rowB - Second row to compare
  * @param columnId - Column identifier for sorting
- * @param descending - Whether to sort in descending order
  * @returns Numeric comparison result for react-table
  * react-table handles the asc/desc direction flip internally after calling
  * this function, so we only return the raw comparison result.
@@ -63,32 +62,48 @@ export function sortNumberWithMixedTypes(
   const cellB = rowB.values?.[columnId];
 
   // Both ValueCell and Sparkline cells pass React elements here.
-  // ValueCell uses { valueField, column, reversedEntries }
-  // Sparkline/SparklineCell uses { valueField, column, entries }
-  // Normalize to reversedEntries before delegating to calculateCellValue.
+  // ValueCell provides the precomputed value directly.
+  // Sparkline provides { valueField, column, entries } and requires
+  // calculating the sortable value from its entries.
   const propsA = cellA?.props as
     | {
-        valueField: string;
-        column: ColumnConfig;
-        reversedEntries?: Entry[];
+        value?: number | null;
+        valueField?: string;
+        column?: ColumnConfig;
         entries?: Entry[];
       }
     | undefined;
+
   const propsB = cellB?.props as
     | {
-        valueField: string;
-        column: ColumnConfig;
-        reversedEntries?: Entry[];
+        value?: number | null;
+        valueField?: string;
+        column?: ColumnConfig;
         entries?: Entry[];
       }
     | undefined;
 
-  const reversedEntriesA =
-    propsA?.reversedEntries ?? propsA?.entries?.slice().reverse();
-  const reversedEntriesB =
-    propsB?.reversedEntries ?? propsB?.entries?.slice().reverse();
+  if (!propsA || !propsB) {
+    return 0;
+  }
 
-  if (!propsA || !propsB || !reversedEntriesA || !reversedEntriesB) {
+  // ValueCell already provides the computed value.
+  if ('value' in propsA && 'value' in propsB) {
+    return compareValues(propsA.value, propsB.value, 'asSmallest');
+  }
+
+  // Sparkline still needs calculation.
+  const reversedEntriesA = propsA.entries?.slice().reverse();
+  const reversedEntriesB = propsB.entries?.slice().reverse();
+
+  if (
+    !reversedEntriesA ||
+    !reversedEntriesB ||
+    !propsA.valueField ||
+    !propsA.column ||
+    !propsB.valueField ||
+    !propsB.column
+  ) {
     return 0;
   }
 
@@ -97,6 +112,7 @@ export function sortNumberWithMixedTypes(
     propsA.column,
     reversedEntriesA,
   );
+
   const { value: valueB } = calculateCellValue(
     propsB.valueField,
     propsB.column,
