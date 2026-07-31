@@ -31,6 +31,7 @@ export function addToast({
   text,
   duration = 8000,
   noDuplicate = false,
+  allowHtml = false,
 }: Omit<ToastMeta, 'id'>) {
   return {
     type: ADD_TOAST,
@@ -40,6 +41,11 @@ export function addToast({
       text,
       duration,
       noDuplicate,
+      // Must ride the payload explicitly: the destructure-and-rebuild above
+      // silently dropped it once, which stripped the anchor from every toast
+      // that asked for HTML while all tests stayed green -- they injected the
+      // flag downstream of this hop.
+      allowHtml,
     },
   };
 }

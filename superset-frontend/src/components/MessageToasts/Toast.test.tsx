@@ -105,3 +105,25 @@ test('a toast without allowHtml renders markup as inert text', () => {
   expect(queryByRole('link')).not.toBeInTheDocument();
   expect(getByTestId('toast-container')).toHaveTextContent('nope');
 });
+
+test('a link requested through the action creator survives to the rendered toast', () => {
+  // Integration-shaped on purpose: the flag has to cross the addToast hop,
+  // where it was once dropped by a destructure-and-rebuild while every test
+  // stayed green -- they all injected allowHtml downstream of the drop. This
+  // is the only test that would have caught it.
+  const { addSuccessToast } = jest.requireActual(
+    'src/components/MessageToasts/actions',
+  );
+  const action = addSuccessToast(
+    'Chart restored. <a href="/explore/?slice_id=1">View</a>',
+    { allowHtml: true },
+  );
+
+  const toast = action.payload as ToastMeta;
+  expect(toast.allowHtml).toBe(true);
+
+  const { getByTestId } = setup({ toast });
+  const link = getByTestId('toast-container').querySelector('a');
+  expect(link).not.toBeNull();
+  expect(link).toHaveAttribute('href', '/explore/?slice_id=1');
+});
