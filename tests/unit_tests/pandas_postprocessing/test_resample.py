@@ -411,7 +411,8 @@ def test_resample_empty_frame_without_time_range_stays_empty():
 
 def test_resample_rejects_too_many_buckets():
     """
-    A fine rule over a wide range must fail before pandas materializes the frame.
+    A fine rule over a wide *bounded* range must fail before pandas materializes
+    the frame. The cap only applies when time-range bounds expand the series.
     """
     df = pd.DataFrame(
         index=to_datetime(["2020-01-01"]),
@@ -426,6 +427,21 @@ def test_resample_rejects_too_many_buckets():
             time_range_start=datetime(2020, 1, 1),
             time_range_end=datetime(2020, 1, 2),
         )
+
+
+def test_resample_without_bounds_allows_large_historical_spans():
+    """
+    Unbounded resamples of existing data must not hit the padded-path bucket cap,
+    so long historical charts keep working.
+    """
+    df = pd.DataFrame(
+        index=to_datetime(["1990-01-01", "2020-01-01"]),
+        data={"y": [1.0, 2.0]},
+    )
+    post_df = pp.resample(df=df, rule="1D", method="asfreq", fill_value=0)
+    assert len(post_df) > 10_000
+    assert post_df.index[0] == pd.Timestamp("1990-01-01")
+    assert post_df.index[-1] == pd.Timestamp("2020-01-01")
 
 
 def test_resample_should_raise_ex():

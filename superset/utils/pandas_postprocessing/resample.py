@@ -18,12 +18,13 @@ from datetime import datetime, tzinfo
 from typing import Optional, Union
 
 import pandas as pd
+from flask import current_app, has_app_context
 from flask_babel import gettext as _
 from pandas.tseries.frequencies import to_offset
 
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils.pandas_postprocessing.utils import (
-    MAX_RESAMPLE_BUCKETS,
+    DEFAULT_MAX_RESAMPLE_BUCKETS,
     RESAMPLE_METHOD,
 )
 
@@ -114,20 +115,36 @@ def _estimate_bucket_count(start: pd.Timestamp, end: pd.Timestamp, rule: str) ->
     return int((end - start) / pd.Timedelta(nanoseconds=nanos)) + 1
 
 
+def _get_max_resample_buckets() -> int:
+    """Return the configured padded-resample bucket cap."""
+    if has_app_context():
+        configured = current_app.config.get(
+            "MAX_RESAMPLE_BUCKETS", DEFAULT_MAX_RESAMPLE_BUCKETS
+        )
+    else:
+        configured = DEFAULT_MAX_RESAMPLE_BUCKETS
+    try:
+        normalized = int(configured)
+    except (TypeError, ValueError):
+        return DEFAULT_MAX_RESAMPLE_BUCKETS
+    return normalized if normalized > 0 else DEFAULT_MAX_RESAMPLE_BUCKETS
+
+
 def _validate_bucket_count(start: pd.Timestamp, end: pd.Timestamp, rule: str) -> None:
+    max_buckets = _get_max_resample_buckets()
     try:
         estimated = _estimate_bucket_count(start, end, rule)
     except (TypeError, ValueError) as ex:
         raise InvalidPostProcessingError(
             _("Invalid resample rule: %(rule)s", rule=rule)
         ) from ex
-    if estimated > MAX_RESAMPLE_BUCKETS:
+    if estimated > max_buckets:
         raise InvalidPostProcessingError(
             _(
                 "The resample operation generated too many time buckets "
                 "(maximum allowed is %(max_buckets)s). Please use a larger "
                 "time grain or a smaller time range.",
-                max_buckets=MAX_RESAMPLE_BUCKETS,
+                max_buckets=max_buckets,
             )
         )
 
@@ -148,6 +165,10 @@ def resample(  # pylint: disable=too-many-arguments
     is fully equipped to expand empty DataFrames when given explicit bounds,
     zero-row query results will be returned as empty frames by upstream engine
     behavior.
+
+    When ``time_range_start`` / ``time_range_end`` are set, the number of buckets
+    that would be materialized is capped by ``MAX_RESAMPLE_BUCKETS`` (default
+    50000). Unbounded resamples of existing data are not subject to that cap.
 
     :param df: DataFrame to resample.
     :param rule: The offset string representing target conversion.
@@ -172,6 +193,9 @@ def resample(  # pylint: disable=too-many-arguments
         )
 
     tz = df.index.tz
+    # Cap only the padded/bounded path. Unbounded resamples of existing data
+    # must keep working for long historical series.
+    apply_bucket_cap = time_range_start is not None or time_range_end is not None
     df = _pad_to_time_range(
         df,
         _coerce_bound(time_range_start, tz),
@@ -183,7 +207,8 @@ def resample(  # pylint: disable=too-many-arguments
     if df.empty:
         return df
 
-    _validate_bucket_count(df.index.min(), df.index.max(), rule)
+    if apply_bucket_cap:
+        _validate_bucket_count(df.index.min(), df.index.max(), rule)
 
     if method == "asfreq" and fill_value is not None:
         _df = df.resample(rule).asfreq(fill_value=fill_value)
