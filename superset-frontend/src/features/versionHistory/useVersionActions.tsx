@@ -143,6 +143,17 @@ export function useVersionActions(
     if (!restoreTarget || !uuid || restoringRef.current) {
       return;
     }
+    if (hasUnsavedChanges) {
+      // The request-time gate can be outrun: work turning dirty while the
+      // confirmation modal sits open (an in-flight edit resolving late)
+      // would still be wiped by the rehydration. Re-check at the moment of
+      // mutation.
+      addDangerToast(
+        t('Save or discard your unsaved changes to restore a version.'),
+      );
+      setRestoreTarget(null);
+      return;
+    }
     restoringRef.current = true;
     setIsRestoring(true);
     try {
@@ -190,6 +201,7 @@ export function useVersionActions(
     addWarningToast,
     dispatch,
     entityType,
+    hasUnsavedChanges,
     latestTransactionId,
     restoreTarget,
     uuid,

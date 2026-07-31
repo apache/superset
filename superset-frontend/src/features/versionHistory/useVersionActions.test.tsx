@@ -123,6 +123,31 @@ test('a dirty dashboard blocks restore with the save-or-discard toast', () => {
   expect(result.current.restoreModal?.props.target).toBeNull();
 });
 
+test('work turning dirty while the modal is open still blocks the restore', async () => {
+  // The request-time gate can be outrun: an in-flight edit resolving after
+  // the confirmation modal opened makes the page dirty. Confirm must
+  // re-check at the moment of mutation, not trust the gate that ran earlier.
+  const { result, rerender } = renderHook(() =>
+    useVersionActions('dashboard', 'entity-uuid'),
+  );
+  act(() => {
+    result.current.requestRestore(target);
+  });
+  expect(result.current.restoreModal?.props.target).toEqual(target);
+
+  mockState.dashboardState.hasUnsavedChanges = true;
+  rerender();
+  await act(async () => {
+    await result.current.restoreModal?.props.onConfirm();
+  });
+
+  expect(restoreVersion).not.toHaveBeenCalled();
+  expect(mockToasts.addDangerToast).toHaveBeenCalledWith(
+    expect.stringContaining('Save or discard'),
+  );
+  expect(result.current.restoreModal?.props.target).toBeNull();
+});
+
 test('unsaved explore control changes block restore the same way', () => {
   // Explore's dirty signal is the session log — the list the panel itself
   // presents as unsaved changes under "Current version".
