@@ -31,11 +31,12 @@ To regenerate after an intentional signature change, see the ``REGENERATE``
 note below.
 """
 
-import json
 from pathlib import Path
 from typing import Any
 
 import pytest
+
+from superset.utils import json
 
 # tests/unit_tests/mcp_service/chart/tool/<this file> -> repo root
 FIXTURE = (
