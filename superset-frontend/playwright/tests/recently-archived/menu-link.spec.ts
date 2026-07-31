@@ -38,6 +38,9 @@ test('Settings menu links to the Recently Archived view', async ({ page }) => {
   await expect(link).toBeVisible();
   await link.click();
 
-  await expect(page).toHaveURL(/\/archived\/?$/);
+  // Tolerate a query string: ListView immediately persists its sort and
+  // pagination state (?pageIndex=0&sortColumn=…) into the URL on mount, so
+  // a bare-path pattern only matches if the assertion races that write.
+  await expect(page).toHaveURL(/\/archived\/?(\?.*)?$/);
   await expect(page.getByTestId('archived-list-view')).toBeVisible();
 });

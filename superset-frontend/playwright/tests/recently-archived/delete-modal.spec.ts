@@ -37,9 +37,12 @@ test('chart delete confirmation reflects soft-delete (archive) semantics', async
   await page.locator('[data-test="chart-row-delete"]').first().waitFor();
   await page.locator('[data-test="chart-row-delete"]').first().click();
 
-  // The action reads as "Archive", not "Delete".
-  await expect(page.getByText(/^Archive .+\?$/)).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Archive' })).toBeVisible();
+  // The action reads as "Archive", not "Delete". Scope to the dialog: with
+  // the flag on, every list row's delete action is also named "Archive", so
+  // an unscoped button query is a strict-mode violation (25 rows + modal).
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByText(/^Archive .+\?$/)).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Archive' })).toBeVisible();
 
   // Recoverable copy instead of "Are you sure … permanently".
   await expect(page.getByText(/moved to Recently Archived/i)).toBeVisible();

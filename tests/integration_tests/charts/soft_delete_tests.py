@@ -688,7 +688,11 @@ class TestDeletedRecencyAndHumanized(InsertChartMixin, SupersetTestCase):
         admin_id = self.get_user("admin").id
         chart = self.insert_chart("recency_humanized", [admin_id], self._datasource_id)
         chart_id = chart.id
-        chart.deleted_at = datetime.now() - timedelta(days=10)
+        # An extra hour keeps the assertion off the day boundary: MySQL
+        # DATETIME(0) *rounds* fractional seconds (up to +0.5s), so an exact
+        # now()-10d stamp can read back a hair under 10 days and humanize
+        # floors it to "9 days ago" — a coin-flip dialect flake.
+        chart.deleted_at = datetime.now() - timedelta(days=10, hours=1)
         db.session.commit()
         self.login(ADMIN_USERNAME)
         try:
