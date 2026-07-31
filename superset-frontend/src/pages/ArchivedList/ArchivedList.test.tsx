@@ -448,3 +448,19 @@ test('a blocked permanent delete tells the user what is blocking it', async () =
     );
   });
 });
+
+test('a viewer who can read none of the types gets an empty state, not three 403s', async () => {
+  // The old fallback offered all three types when the roles yielded nothing
+  // readable, so the page immediately fetched an API that answers 403 and
+  // read as broken. A permissions fact deserves a sentence, and the shell's
+  // server-side admission refuses such viewers anyway -- the client should
+  // agree with it, not contradict it.
+  mockRoutes();
+  renderArchivedList(storeWithReadAccess());
+
+  expect(
+    await screen.findByTestId('archived-no-readable-types'),
+  ).toBeInTheDocument();
+  // No list fetch was ever issued.
+  expect(fetchMock.callHistory.calls(/chart\/\?q/)).toHaveLength(0);
+});

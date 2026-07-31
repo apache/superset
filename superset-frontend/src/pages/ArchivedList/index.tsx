@@ -71,6 +71,13 @@ const StyledActions = styled.div`
   `}
 `;
 
+const EmptyStateRow = styled.div`
+  ${({ theme }) => `
+    padding: ${theme.sizeUnit * 6}px;
+    color: ${theme.colorTextSecondary};
+  `}
+`;
+
 const TYPE_LABELS: Record<ArchivedType, string> = {
   chart: t('Chart'),
   dashboard: t('Dashboard'),
@@ -456,22 +463,41 @@ function ArchivedList({ addDangerToast, addSuccessToast }: ToastProps) {
     if (!roles) {
       return ARCHIVED_TYPES;
     }
-    const readable = ARCHIVED_TYPES.filter(option =>
+    // A viewer whose roles resolve to NO readable type gets the empty state
+    // below, not all three: offering types whose APIs answer 403 turns a
+    // permissions fact into what reads like a broken page. (The server-side
+    // shell admission refuses such viewers anyway; this is the client
+    // agreeing with it rather than contradicting it.)
+    return ARCHIVED_TYPES.filter(option =>
       findPermission(
         'can_read',
         ARCHIVED_TYPE_CONFIG[option].permissionResource,
         roles,
       ),
     );
-    return readable.length ? readable : ARCHIVED_TYPES;
   }, [roles]);
 
-  // Default to the first type the viewer can actually see, not a fixed
-  // 'chart' they may have no access to. The route is unreachable when none
-  // are readable, so the fallback is defensive rather than expected.
-  const [type, setType] = useState<ArchivedType>(
-    () => availableTypes[0] ?? 'chart',
-  );
+  // Derived, not stored: the selection must track availableTypes if roles
+  // resolve after mount (userReducer hydrates synchronously today, but the
+  // SET_USER action exists precisely because that is not guaranteed). A
+  // once-only useState initializer would leave a Select showing a value its
+  // options no longer contain, fetching an API that answers 403.
+  const [chosenType, setType] = useState<ArchivedType | undefined>(undefined);
+  const type =
+    chosenType && availableTypes.includes(chosenType)
+      ? chosenType
+      : availableTypes[0];
+
+  if (!type) {
+    return (
+      <>
+        <SubMenu name={t('Recently archived')} />
+        <EmptyStateRow data-test="archived-no-readable-types">
+          {t('You do not have permission to view any archived object types.')}
+        </EmptyStateRow>
+      </>
+    );
+  }
 
   return (
     <>

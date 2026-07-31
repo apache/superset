@@ -17,15 +17,20 @@
 
 import logging
 
-from flask import abort
-from flask_appbuilder import expose, has_access
+from flask import abort, g
+from flask_appbuilder import expose
 
-from superset import is_feature_enabled
-from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP
+from superset import is_feature_enabled, security_manager
 from superset.superset_typing import FlaskResponse
 from superset.views.base import BaseSupersetView
+from superset.views.utils import redirect_to_login
 
 logger = logging.getLogger(__name__)
+
+#: The FAB resources whose read permission admits a viewer to the shell.
+#: Must stay in step with ARCHIVED_TYPES on the client, which offers each
+#: viewer only the types they can read.
+_ADMITTING_RESOURCES = ("Chart", "Dashboard", "Dataset")
 
 
 class ArchivedAssetsView(BaseSupersetView):
@@ -33,29 +38,29 @@ class ArchivedAssetsView(BaseSupersetView):
 
     The page itself is a thin shell; the per-type archive data is fetched
     through the chart/dashboard/dataset list APIs, which enforce their own
-    access control, and restore and purge are gated per object by the per-type
-    endpoints. Access to the shell mirrors the chart list page (``can_read``
-    on ``Chart`` via ``MODEL_VIEW_RW_METHOD_PERMISSION_MAP``).
+    access control, and restore and purge are gated per object by the
+    per-type endpoints.
 
-    Known limitation: the shell fronts three independently-gated types but is
-    admitted by one of them, so a role holding only dashboard or dataset read
-    cannot open the page even though it owns archived objects of that type.
-    Such a user is not stranded — the list and ``/restore`` endpoints answer
-    them directly — but the UI is out of reach. Widening this to "any of the
-    three" means replacing ``@has_access``, which also supplies the redirect
-    to login for unauthenticated requests, so it belongs in its own change
-    rather than riding along with a permission tweak. The client already
-    offers only the types the viewer can read, so the mismatch is confined to
-    page admission. Tracked separately.
+    Admission mirrors what the shell fronts: any viewer holding ``can_read``
+    on **any** of the three archived types may open the page (the client then
+    offers only the types they can read). ``@has_access`` cannot express
+    "any of three resources" -- it binds one ``class_permission_name`` -- so
+    the gate is explicit: unauthenticated requests get the same redirect to
+    login that ``@has_access`` would issue, and an authenticated viewer with
+    none of the three read permissions gets 403.
     """
 
     route_base = "/archived"
-    class_permission_name = "Chart"
-    method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
 
-    @has_access
     @expose("/")
     def list(self) -> FlaskResponse:
         if not is_feature_enabled("SOFT_DELETE"):
             abort(404)
+        if not g.user or g.user.is_anonymous:
+            return redirect_to_login()
+        if not any(
+            security_manager.can_access("can_read", resource)
+            for resource in _ADMITTING_RESOURCES
+        ):
+            abort(403)
         return super().render_app_template()
