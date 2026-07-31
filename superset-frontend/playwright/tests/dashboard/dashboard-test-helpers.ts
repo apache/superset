@@ -88,7 +88,8 @@ export async function createTestDashboard(
 
   const response = await apiPostDashboard(page, {
     dashboard_title: name,
-    ...(options?.published !== undefined && { published: options.published }),
+    // Serialized as JSON, which drops undefined — no need to omit the key.
+    published: options?.published,
   });
 
   if (!response.ok()) {

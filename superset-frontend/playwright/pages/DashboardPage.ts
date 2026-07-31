@@ -45,6 +45,9 @@ export class DashboardPage {
   private static readonly SELECTORS = {
     DASHBOARD_HEADER: '[data-test="dashboard-header-container"]',
     CHART_GRID_COMPONENT: '[data-test="chart-grid-component"]',
+    // `:visible` so the locator empties out as loaders hide; see
+    // waitForLoadersToSettle.
+    LOADING_INDICATOR: '[aria-label="Loading"]:visible',
     DASHBOARD_MENU_TRIGGER: '[data-test="actions-trigger"]',
     // The header-actions-menu is the data-test for the dropdown menu content
     HEADER_ACTIONS_MENU: '[data-test="header-actions-menu"]',
@@ -159,33 +162,26 @@ export class DashboardPage {
   /**
    * Resolve once no loading indicator is visible.
    *
-   * Uses browser-context evaluation to check visibility directly. Loading
-   * indicators ([aria-label="Loading"]) may persist in the DOM as hidden
-   * elements after charts finish loading, so this checks that none are
-   * currently visible, returning immediately when they are already settled (no
-   * timeout penalty).
+   * Loading indicators persist in the DOM as hidden elements after charts
+   * finish, so this waits for none to be *visible* rather than for none to
+   * exist. The `:visible` engine resolves to zero elements when they are all
+   * hidden, which is what `detached` then matches — and it returns immediately
+   * when they are already settled, with no timeout penalty.
+   *
+   * Deliberately not a `getComputedStyle` check in an evaluated function:
+   * `display` does not inherit, so a loader inside a `display: none` ancestor
+   * computes to its own `display: block` and reads as visible, hanging the wait
+   * until the timeout. Playwright's visibility check accounts for ancestors.
    *
    * Loader absence is also the state of a dashboard that has not started
    * rendering, which is why every caller pairs this with a wait for the content
    * it expects.
    */
   private async waitForLoadersToSettle(timeout: number): Promise<void> {
-    await this.page.waitForFunction(
-      () => {
-        const loaders = document.querySelectorAll('[aria-label="Loading"]');
-        if (loaders.length === 0) return true;
-        return Array.from(loaders).every(el => {
-          const style = getComputedStyle(el);
-          return (
-            style.display === 'none' ||
-            style.visibility === 'hidden' ||
-            style.opacity === '0'
-          );
-        });
-      },
-      undefined,
-      { timeout },
-    );
+    await this.page
+      .locator(DashboardPage.SELECTORS.LOADING_INDICATOR)
+      .first()
+      .waitFor({ state: 'detached', timeout });
   }
 
   /**
@@ -277,21 +273,21 @@ export class DashboardPage {
   /**
    * The builder side pane's tab bar (Charts / Layout elements).
    */
-  private builderTabs(): Tabs {
-    return new Tabs(
-      this.page,
-      this.page
-        .locator(`${DashboardPage.SELECTORS.BUILDER_PANE} .ant-tabs`)
-        .first(),
-    );
-  }
 
   /**
    * Switch the builder side pane to one of its tabs.
    * @param tab - 'Charts' (existing slices) or 'Layout elements' (new components)
    */
   private async openBuilderTab(tab: BuilderTab): Promise<void> {
-    await this.builderTabs().clickTab(tab);
+    // Scoped to `.ant-tabs` because that is the root the shared Tabs component
+    // expects.
+    const builderTabs = new Tabs(
+      this.page,
+      this.page
+        .locator(`${DashboardPage.SELECTORS.BUILDER_PANE} .ant-tabs`)
+        .first(),
+    );
+    await builderTabs.clickTab(tab);
   }
 
   /**
