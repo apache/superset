@@ -1783,12 +1783,20 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
     def run(self) -> None:
         monotonic_started_at = time.monotonic()
         report_execution_context: ReportExecutionContext | None = None
+        owns_report_working_state = False
         try:
             self.validate()
             if not self._model:
                 raise ReportScheduleExecuteUnexpectedError()
 
             if self._model.type == ReportScheduleType.REPORT:
+                # An invocation that enters on WORKING is a duplicate or stale
+                # recovery, not the owner that created the active row. Its state
+                # handler may terminalize a stale execution, but the command
+                # boundary must never infer ownership from a replayed UUID.
+                owns_report_working_state = (
+                    self._model.last_state != ReportState.WORKING
+                )
                 total_seconds = float(
                     app.config["ALERT_REPORTS_EXECUTION_BUDGET_SECONDS"]
                 )
@@ -1883,7 +1891,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
             if (
                 self._model
                 and self._model.type == ReportScheduleType.REPORT
-                and not isinstance(ex, ReportSchedulePreviousWorkingError)
+                and owns_report_working_state
             ):
                 persist_owned_report_execution_terminal_error(
                     self._model.id,
@@ -1894,7 +1902,11 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 )
             raise
         except Exception as ex:
-            if self._model and self._model.type == ReportScheduleType.REPORT:
+            if (
+                self._model
+                and self._model.type == ReportScheduleType.REPORT
+                and owns_report_working_state
+            ):
                 persist_owned_report_execution_terminal_error(
                     self._model.id,
                     self._execution_id,

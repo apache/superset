@@ -59,6 +59,7 @@ from superset.commands.report.exceptions import (
     ReportScheduleScreenshotFailedError,
     ReportScheduleScreenshotTimeout,
     ReportScheduleSystemErrorsException,
+    ReportScheduleUnexpectedError,
     ReportScheduleWorkingTimeoutError,
 )
 from superset.commands.report.execute import (
@@ -1952,6 +1953,55 @@ def test_report_schedule_same_execution_replay_stays_working(
 
     with freeze_time("2020-01-01T00:00:00Z"):
         with pytest.raises(ReportSchedulePreviousWorkingError):
+            AsyncExecuteReportScheduleCommand(
+                str(active_log.uuid),
+                create_report_slack_chart_working.id,
+                datetime.utcnow(),
+            ).run()
+
+    db.session.refresh(active_log)
+    db.session.refresh(create_report_slack_chart_working)
+    assert active_log.state == ReportState.WORKING
+    assert active_log.error_message is None
+    assert create_report_slack_chart_working.last_state == ReportState.WORKING
+
+
+@pytest.mark.usefixtures("create_report_slack_chart_working")
+def test_same_execution_replay_write_failure_does_not_claim_active_row(
+    create_report_slack_chart_working,
+    monkeypatch,
+):
+    """A failed refusal write must not make a replay own the active row."""
+
+    active_log = (
+        db.session.query(ReportExecutionLog)
+        .filter(
+            ReportExecutionLog.report_schedule == create_report_slack_chart_working,
+            ReportExecutionLog.state == ReportState.WORKING,
+            ReportExecutionLog.error_message.is_(None),
+        )
+        .one()
+    )
+
+    def fail_refusal_write(
+        state: BaseReportState,
+        report_state: ReportState,
+        error_message: Optional[str] = None,
+    ) -> None:
+        raise OperationalError(
+            "INSERT report_execution_log",
+            {},
+            RuntimeError("connection lost while refusing replay"),
+        )
+
+    monkeypatch.setattr(
+        BaseReportState,
+        "update_report_schedule_and_log",
+        fail_refusal_write,
+    )
+
+    with freeze_time("2020-01-01T00:00:00Z"):
+        with pytest.raises(ReportScheduleUnexpectedError):
             AsyncExecuteReportScheduleCommand(
                 str(active_log.uuid),
                 create_report_slack_chart_working.id,
