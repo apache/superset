@@ -44,7 +44,9 @@ def test_column_with_invalid_operation():
     column = "my_column"
     with patch("superset.utils.core.logger.debug") as mock_debug:
         assert (get_metric_type_from_column(column, datasource)) == ""
-        mock_debug.assert_called_once()
+        mock_debug.assert_called_once_with(
+            "Unexpected metric expression type: %s", "INVALID(my_column)"
+        )
 
 
 def test_empty_datasource():
