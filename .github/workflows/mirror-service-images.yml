@@ -1,0 +1,113 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
+# Mirror the Docker Hub service-container images that CI relies on into the
+# repository's GitHub Container Registry (GHCR) namespace.
+#
+# WHY: CI jobs declare Postgres/MySQL/Redis/Presto as `services:` containers
+# pulled anonymously from Docker Hub. Anonymous pulls share the runner's IP
+# rate limit, which causes intermittent timeouts / 429s / 502s on `master`
+# and same-repo PRs. The obvious fix — adding `credentials:` to the service
+# blocks — breaks fork PRs hard: forks can't read secrets, so the templated
+# username/password resolve to '' and GitHub rejects the workflow at parse
+# time ("Unexpected value ''"), failing every fork job at "Set up job".
+#
+# Mirroring to GHCR sidesteps both problems: public GHCR images are pulled
+# without Docker Hub's anonymous rate limit AND without any credentials, so
+# the consuming workflows need no `credentials:` block and forks work
+# unchanged.
+#
+# ONE-TIME BOOTSTRAP (maintainer, after this lands on the default branch):
+#   1. Run this workflow once (Actions tab → "Mirror service images to GHCR"
+#      → Run workflow), or wait for the weekly schedule.
+#   2. In the org's Packages settings, set each mirrored package's visibility
+#      to **public** (apache/superset → ci/postgres, ci/mysql, ci/redis,
+#      ci/presto). Public visibility is what lets fork CI pull without auth.
+#   3. Only then merge the follow-up that repoints the `services.*.image`
+#      refs at these GHCR copies and drops the `credentials:` blocks.
+#
+# NOTE: this mirrors only the images declared as `services:` containers (the
+# ones that broke forks). The `bde2020` hive-metastore image pulled via
+# `docker compose` in the Presto/Hive job is a separate path and is left for
+# a follow-up.
+
+name: Mirror service images to GHCR
+
+on:
+  schedule:
+    # Weekly, Monday 06:00 UTC — keeps the mirror fresh as upstream tags move.
+    - cron: "0 6 * * 1"
+  workflow_dispatch: {}
+
+concurrency:
+  group: mirror-service-images
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  mirror:
+    # Never run on forks: they lack both the secrets and write access to the
+    # apache GHCR namespace, so a scheduled run there would only ever fail.
+    if: github.repository == 'apache/superset'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Keep this list in sync with the `services.*.image` refs in
+        # superset-e2e.yml, superset-python-integrationtest.yml, and
+        # superset-python-presto-hive.yml.
+        image:
+          - postgres:17-alpine
+          - redis:7-alpine
+          - mysql:8.0
+          - starburstdata/presto:350-e.6
+    steps:
+      - name: Log in to Docker Hub (authenticated source pulls)
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Log in to GHCR (push target)
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+      - name: Copy image to GHCR
+        env:
+          # Pass the matrix value through the environment rather than
+          # interpolating it into the shell, to avoid template injection.
+          SRC_IMAGE: ${{ matrix.image }}
+        run: |
+          set -euo pipefail
+          # Destination keeps the image's short name (drop any namespace),
+          # under a `ci/` prefix in this repo's GHCR namespace.
+          name="${SRC_IMAGE##*/}"
+          dst="ghcr.io/${GITHUB_REPOSITORY}/ci/${name}"
+          echo "Mirroring docker.io/${SRC_IMAGE} -> ${dst}"
+          # imagetools copies the full (multi-arch) manifest registry-to-
+          # registry without a local pull/retag/push round trip.
+          docker buildx imagetools create --tag "${dst}" "docker.io/${SRC_IMAGE}"
+          echo "- \`docker.io/${SRC_IMAGE}\` → \`${dst}\`" >> "${GITHUB_STEP_SUMMARY}"
