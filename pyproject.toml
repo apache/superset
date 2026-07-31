@@ -148,8 +148,8 @@ bigquery = [
 clickhouse = ["clickhouse-connect>=1.6.0, <2.0"]
 cockroachdb = ["cockroachdb>=0.3.5, <0.4"]
 crate = ["sqlalchemy-cratedb>=0.43.1, <1"]
-# sqlalchemy-d1 is very young (single release, Nov 2025); no SQLAlchemy 2.0
-# signal either way. See superset/db_engine_specs/d1.py's
+# sqlalchemy-d1's only release (0.1.0, Nov 2025) pins sqlalchemy<2,>=1.4,
+# explicitly excluding SQLAlchemy 2.0. See superset/db_engine_specs/d1.py's
 # known_incompatibilities metadata.
 d1 = [
     "superset-engine-d1>=0.1.0",

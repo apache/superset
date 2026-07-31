@@ -52,8 +52,9 @@ class CloudflareD1EngineSpec(SqliteEngineSpec):
             {
                 "dependency": "SQLAlchemy 2.0",
                 "reason": (
-                    "sqlalchemy-d1 is very young (single release, Nov 2025); "
-                    "no confirmed SQLAlchemy 2.0 support either way yet."
+                    "sqlalchemy-d1 is very young (single release, Nov 2025) "
+                    "and its only release pins sqlalchemy<2,>=1.4, "
+                    "explicitly excluding SQLAlchemy 2.0."
                 ),
                 "tracking_url": ("https://github.com/sqlalchemy-cf-d1/sqlalchemy-d1"),
                 "since": "2026-07-28",
