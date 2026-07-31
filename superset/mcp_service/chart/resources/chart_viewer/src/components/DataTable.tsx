@@ -16,17 +16,68 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, useState, type JSX } from 'react';
+import { useEffect, useMemo, useState, type JSX } from 'react';
 import type { ChartData, DataColumn } from '../types';
 import { formatByColumn, toNumber } from '../format';
 
 type SortDir = 'asc' | 'desc';
 
-/** A dense, sortable, zebra-striped table with right-aligned numerics. */
-export function DataTable({ data }: { data: ChartData }): JSX.Element {
+/** Selectable page sizes. Superset returns up to ~1000 rows per result. */
+export const PAGE_SIZE_OPTIONS = [25, 50, 100, 250] as const;
+
+export const DEFAULT_PAGE_SIZE = 25;
+
+/** Rows for one page, plus the bookkeeping the footer needs to describe it. */
+export interface PageSlice<T> {
+  rows: T[];
+  /** Zero-based index of the page actually shown (clamped into range). */
+  page: number;
+  pageCount: number;
+  /** One-based row numbers of the visible window, for "x–y of z". */
+  from: number;
+  to: number;
+  total: number;
+}
+
+/**
+ * Clamp a requested page into range and slice it out. Pure so the paging
+ * arithmetic — the part that silently drops rows when it is wrong — is
+ * testable without a DOM.
+ */
+export function paginate<T>(
+  rows: T[],
+  page: number,
+  pageSize: number,
+): PageSlice<T> {
+  const total = rows.length;
+  const size = Math.max(1, pageSize);
+  const pageCount = Math.max(1, Math.ceil(total / size));
+  const current = Math.min(Math.max(0, page), pageCount - 1);
+  const start = current * size;
+  const slice = rows.slice(start, start + size);
+  return {
+    rows: slice,
+    page: current,
+    pageCount,
+    from: total === 0 ? 0 : start + 1,
+    to: start + slice.length,
+    total,
+  };
+}
+
+/** A dense, sortable, zebra-striped, paginated table with sticky headers. */
+export function DataTable({
+  data,
+  initialPageSize = DEFAULT_PAGE_SIZE,
+}: {
+  data: ChartData;
+  initialPageSize?: number;
+}): JSX.Element {
   const columns = data.columns;
   const [sortCol, setSortCol] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const [pageSize, setPageSize] = useState(initialPageSize);
+  const [page, setPage] = useState(0);
 
   const sorted = useMemo(() => {
     const rows = [...(data.data ?? [])];
@@ -47,6 +98,18 @@ export function DataTable({ data }: { data: ChartData }): JSX.Element {
     return rows;
   }, [data.data, sortCol, sortDir, columns]);
 
+  // A re-query, a re-sort or a bigger page all invalidate the current offset;
+  // land the reader back at the top rather than on an arbitrary window.
+  useEffect(() => {
+    setPage(0);
+  }, [data.data, sortCol, sortDir, pageSize]);
+
+  const slice = useMemo(
+    () => paginate(sorted, page, pageSize),
+    [sorted, page, pageSize],
+  );
+  const multiPage = slice.total > PAGE_SIZE_OPTIONS[0];
+
   function toggleSort(name: string): void {
     if (sortCol === name) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
@@ -57,37 +120,99 @@ export function DataTable({ data }: { data: ChartData }): JSX.Element {
   }
 
   return (
-    <div className="sv-table-scroll">
-      <table className="sv-table">
-        <thead>
-          <tr>
-            {columns.map((col) => (
-              <th
-                key={col.name}
-                className={isNumeric(col) ? 'sv-num' : undefined}
-                onClick={() => toggleSort(col.name)}
-                title={`Sort by ${col.display_name || col.name}`}
-              >
-                {col.display_name || col.name}
-                {sortCol === col.name && (
-                  <span className="sv-sort-caret">{sortDir === 'asc' ? '▲' : '▼'}</span>
-                )}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {sorted.map((row, i) => (
-            <tr key={i}>
+    <div className="sv-table-view">
+      <div className="sv-table-scroll">
+        <table className="sv-table">
+          <thead>
+            <tr>
               {columns.map((col) => (
-                <td key={col.name} className={isNumeric(col) ? 'sv-num' : undefined}>
-                  {formatByColumn(row[col.name], col)}
-                </td>
+                <th
+                  key={col.name}
+                  scope="col"
+                  className={isNumeric(col) ? 'sv-num' : undefined}
+                  aria-sort={
+                    sortCol === col.name
+                      ? sortDir === 'asc'
+                        ? 'ascending'
+                        : 'descending'
+                      : 'none'
+                  }
+                  onClick={() => toggleSort(col.name)}
+                  title={`Sort by ${col.display_name || col.name}`}
+                >
+                  {col.display_name || col.name}
+                  {sortCol === col.name && (
+                    <span className="sv-sort-caret">
+                      {sortDir === 'asc' ? '▲' : '▼'}
+                    </span>
+                  )}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {slice.rows.map((row, i) => (
+              <tr key={slice.page * pageSize + i}>
+                {columns.map((col) => (
+                  <td
+                    key={col.name}
+                    className={isNumeric(col) ? 'sv-num' : undefined}
+                  >
+                    {formatByColumn(row[col.name], col)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {multiPage && (
+        <div className="sv-pagination">
+          <span className="sv-page-range" aria-live="polite">
+            {slice.from.toLocaleString()}–{slice.to.toLocaleString()} of{' '}
+            {slice.total.toLocaleString()}
+          </span>
+          <span className="sv-spacer" />
+          <label className="sv-page-size">
+            Rows
+            <select
+              value={pageSize}
+              aria-label="Rows per page"
+              onChange={(e) => setPageSize(Number(e.target.value))}
+            >
+              {PAGE_SIZE_OPTIONS.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="sv-page-nav">
+            <button
+              type="button"
+              className="sv-btn sv-btn--subtle"
+              aria-label="Previous page"
+              disabled={slice.page === 0}
+              onClick={() => setPage(slice.page - 1)}
+            >
+              ‹
+            </button>
+            <span className="sv-page-count">
+              {slice.page + 1} / {slice.pageCount}
+            </span>
+            <button
+              type="button"
+              className="sv-btn sv-btn--subtle"
+              aria-label="Next page"
+              disabled={slice.page >= slice.pageCount - 1}
+              onClick={() => setPage(slice.page + 1)}
+            >
+              ›
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

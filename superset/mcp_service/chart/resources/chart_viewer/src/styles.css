@@ -296,12 +296,76 @@ body {
 }
 
 /* ---- Table ---- */
+.sv-table-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 220px;
+  gap: 8px;
+}
+
 .sv-table-scroll {
   height: 100%;
   min-height: 220px;
   overflow: auto;
   border: 1px solid var(--sv-border);
   border-radius: var(--sv-radius-sm);
+}
+
+/* Inside the paginated view the scroller shares the box with the footer, so
+   it has to be allowed to shrink below its content height. */
+.sv-table-view .sv-table-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.sv-pagination {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: var(--sv-text-secondary);
+}
+
+.sv-page-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sv-page-size select {
+  font: inherit;
+  font-size: 12px;
+  color: var(--sv-text-primary);
+  background: var(--sv-panel);
+  border: 1px solid var(--sv-border);
+  border-radius: 6px;
+  padding: 3px 6px;
+  cursor: pointer;
+}
+
+.sv-page-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sv-page-nav .sv-btn {
+  padding: 3px 10px;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.sv-page-nav .sv-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.sv-page-count {
+  font-variant-numeric: tabular-nums;
+  min-width: 46px;
+  text-align: center;
 }
 
 .sv-table {
