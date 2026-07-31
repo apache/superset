@@ -37,6 +37,32 @@ AMBIGUOUS_OPENERS: set[str] = {"IF", "REPEAT"}
 
 BODY_KEYWORDS: tuple[str, str] = ("RETURN", "BEGIN")
 
+# ``BEGIN``, ``CASE``, and ``END`` are reserved words in sqlglot's Trino
+# tokenizer, so they always carry one of these dedicated token types when
+# used as keywords, and a different one (``STRING``/``IDENTIFIER``) when
+# used as a string literal or quoted identifier, e.g. the string ``'END'``
+# or the quoted identifier ``"end"``. ``IF``, ``LOOP``, ``REPEAT``, and
+# ``WHILE`` are not reserved, so the tokenizer emits ``VAR`` for them both
+# when they're used as a keyword and when they're an unquoted identifier;
+# requiring ``VAR`` still rules out string literals and quoted identifiers,
+# which is the ambiguity ``_is_routine_keyword`` guards against.
+_RESERVED_BLOCK_TOKEN_TYPES: dict[str, TokenType] = {
+    "BEGIN": TokenType.BEGIN,
+    "CASE": TokenType.CASE,
+    "END": TokenType.END,
+}
+
+
+def _is_routine_keyword(token: Token, text: str) -> bool:
+    """
+    Determine whether ``token`` (whose upper-cased text is ``text``) is an
+    actual occurrence of a routine block keyword, as opposed to a string
+    literal or quoted identifier that happens to spell the same word.
+    """
+    if (expected := _RESERVED_BLOCK_TOKEN_TYPES.get(text)) is not None:
+        return token.token_type == expected
+    return token.token_type == TokenType.VAR
+
 
 def _is_paren_condition_block(tokens: t.Sequence[Token], paren_index: int) -> bool:
     """
@@ -126,8 +152,11 @@ class Trino(SqlglotTrino):
             Compute the block nesting change contributed by the routine token
             at ``tokens[index]``.
             """
-            text = tokens[index].text.upper()
+            token = tokens[index]
+            text = token.text.upper()
             if text in BLOCK_OPENERS:
+                if not _is_routine_keyword(token, text):
+                    return 0  # string literal or quoted identifier, not a keyword
                 if prev_text == "END":
                     return 0  # block terminator, e.g. `END IF`, `END CASE`
                 next_token = tokens[index + 1] if index + 1 < len(tokens) else None
@@ -140,7 +169,7 @@ class Trino(SqlglotTrino):
                         return 1  # procedural `IF (...) THEN`, not a call
                     return 0  # scalar function call, e.g. `IF(a, b, c)`
                 return 1
-            if text == "END":
+            if text == "END" and _is_routine_keyword(token, text):
                 return -1
             return 0
 
@@ -298,8 +327,9 @@ class Trino(SqlglotTrino):
             """
             depth: int = 0
             while self._curr:
-                text = self._curr.text.upper()
-                if text in BLOCK_OPENERS:
+                token = self._curr
+                text = token.text.upper()
+                if text in BLOCK_OPENERS and _is_routine_keyword(token, text):
                     is_scalar_call = (
                         text in AMBIGUOUS_OPENERS
                         and self._next
@@ -314,13 +344,14 @@ class Trino(SqlglotTrino):
                     else:
                         depth += 1
                     self._advance()
-                elif text == "END":
+                elif text == "END" and _is_routine_keyword(token, text):
                     depth -= 1
                     self._advance()
                     if (
                         depth > 0
                         and self._curr
                         and self._curr.text.upper() in BLOCK_OPENERS
+                        and _is_routine_keyword(self._curr, self._curr.text.upper())
                     ):
                         # block terminator, e.g. `END IF`, `END CASE`
                         self._advance()

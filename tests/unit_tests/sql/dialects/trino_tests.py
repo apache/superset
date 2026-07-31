@@ -345,3 +345,45 @@ SELECT 42
     """.strip()
     statements = sqlglot.parse(sql, dialect=Trino)
     assert len(statements) == 2
+
+
+def test_create_or_replace_function_not_split() -> None:
+    """
+    ``CREATE OR REPLACE FUNCTION`` bodies should not be split on semicolons
+    either, and the routine is followed by the next statement.
+    """
+    sql = """
+CREATE OR REPLACE FUNCTION meaning_of_life()
+  RETURNS tinyint
+  BEGIN
+    DECLARE a tinyint DEFAULT CAST(6 AS tinyint);
+    DECLARE b tinyint DEFAULT CAST(7 AS tinyint);
+    RETURN a * b;
+  END;
+SELECT 42
+    """.strip()
+    statements = sqlglot.parse(sql, dialect=Trino)
+    assert len(statements) == 2
+
+
+def test_block_keywords_in_string_literals_and_identifiers_ignored() -> None:
+    """
+    Block keywords (``BEGIN``, ``CASE``, ``END``, ``IF``, ...) that appear as
+    the text of a string literal or a quoted identifier must not be mistaken
+    for actual routine keywords when tracking block depth, since they carry
+    the same text but a different token type.
+    """
+    sql = """
+WITH FUNCTION describe_status(status varchar)
+  RETURNS varchar
+  BEGIN
+    IF status = 'END' THEN
+      RETURN 'terminal';
+    END IF;
+    RETURN "case";
+  END
+SELECT describe_status('END')
+    """.strip()
+    statements = sqlglot.parse(sql, dialect=Trino)
+    assert len(statements) == 1
+    assert len(list(statements[0].find_all(InlineUDF))) == 1
