@@ -187,6 +187,40 @@ test('a restore refreshes exactly once even when it also moves the slice', async
   );
 });
 
+test('a restore rehydration resolving after unmount is discarded', async () => {
+  // hydrateExplore rewrites the whole explore store; a rehydration fetch
+  // resolving after the user navigated away would overwrite the next page's
+  // chart with this one's payload.
+  let resolveRehydration: (value: object) => void = () => {};
+  mockedFetchRehydration.mockReturnValue(
+    new Promise(resolve => {
+      resolveRehydration = resolve;
+    }),
+  );
+  const store = makeStore();
+  const { unmount } = renderAdapter(store);
+
+  act(() => {
+    store.setState({
+      versionHistory: versionHistoryState({
+        restoreCount: 1,
+        lastRestoredEntityUuid: 'chart-uuid',
+      }),
+    });
+  });
+  await waitFor(() => expect(mockedFetchRehydration).toHaveBeenCalled());
+
+  unmount();
+  await act(async () => {
+    resolveRehydration({});
+  });
+
+  expect(mockedHydrateExplore).not.toHaveBeenCalled();
+  expect(
+    store.actions.some(action => action.type === HYDRATE_EXPLORE_TEST),
+  ).toBe(false);
+});
+
 test('the initial slice hydration does not trigger a refresh', () => {
   const store = makeTestStore({
     versionHistory: versionHistoryState(),

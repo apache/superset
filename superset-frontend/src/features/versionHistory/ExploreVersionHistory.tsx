@@ -181,31 +181,39 @@ export default function ExploreVersionHistory() {
   const lastSaveSignalRef = useRef(saveSignal);
   const refreshActivity = activity.refresh;
   useEffect(() => {
+    // Cancels the in-flight rehydration when the effect re-runs or the page
+    // unmounts. hydrateExplore rewrites the whole explore store, so a fetch
+    // resolving after the user navigated away — or after a save-as swapped
+    // the slice in place — would overwrite the newly loaded chart's state
+    // with the old chart's payload.
+    let cancelled = false;
     if (restoreCount !== lastRestoreCountRef.current) {
       lastRestoreCountRef.current = restoreCount;
-      if (lastRestoredUuid !== uuid) {
-        // A restore of some other entity, resolving after navigation. This
-        // chart did not change on the server; rehydrating would discard its
-        // state for someone else's restore.
-        return;
+      // Guard: a restore of some other entity, resolving after navigation.
+      // This chart did not change on the server; rehydrating would discard
+      // its state for someone else's restore.
+      if (lastRestoredUuid === uuid) {
+        // The restore refresh covers any save-signal movement caused by
+        // the same change; sync it so it does not refetch again.
+        lastSaveSignalRef.current = saveSignal;
+        refreshActivity();
+        if (sliceId) {
+          fetchExploreRehydrationData(sliceId)
+            .then(result => {
+              if (!cancelled) {
+                dispatch(
+                  hydrateExplore({ ...result, saveAction: 'overwrite' }),
+                );
+              }
+            })
+            .catch(() => {
+              if (!cancelled) {
+                addDangerToast(t('Failed to reload the restored version'));
+              }
+            });
+        }
       }
-      // The restore refresh covers any save-signal movement caused by
-      // the same change; sync it so it does not refetch again.
-      lastSaveSignalRef.current = saveSignal;
-      refreshActivity();
-      if (!sliceId) {
-        return;
-      }
-      fetchExploreRehydrationData(sliceId)
-        .then(result => {
-          dispatch(hydrateExplore({ ...result, saveAction: 'overwrite' }));
-        })
-        .catch(() => {
-          addDangerToast(t('Failed to reload the restored version'));
-        });
-      return;
-    }
-    if (saveSignal !== lastSaveSignalRef.current) {
+    } else if (saveSignal !== lastSaveSignalRef.current) {
       // A signal appearing where none existed is the page's initial
       // hydration, not a save.
       const isInitialHydration = lastSaveSignalRef.current === undefined;
@@ -214,6 +222,9 @@ export default function ExploreVersionHistory() {
         refreshActivity();
       }
     }
+    return () => {
+      cancelled = true;
+    };
   }, [
     addDangerToast,
     dispatch,
