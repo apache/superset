@@ -156,7 +156,7 @@ Two defaults in our MCP service conflict with the MCP Apps pattern and must be a
 
 Revised architecture (post-review):
 
-1. **Dedicated, read-only, always-visible viz tool** — e.g. `get_chart_preview` (or a thin `render_chart` wrapper) exempted from tool-search hiding. Put **`_meta.ui.resourceUri` on its tool descriptor**, pointing at a versioned URI like `ui://superset/chart-viewer/v1`.
+1. **Dedicated, read-only, always-visible viz tool** — e.g. `get_chart_preview` (or a thin `render_chart` wrapper) exempted from tool-search hiding. Put **`_meta.ui.resourceUri` on its tool descriptor**, pointing at a versioned URI like `ui://superset/chart-viewer/v2`.
 2. **v1 widget = polished ECharts bundle** (Superset theme, tooltips, legends, formatting, loading/error states) with a scoped adapter mapping `get_chart_data` payloads → ECharts options for line/bar/area/big-number/table; styled-table fallback for unsupported types. *(Team decision 2026-07-22: the reviewer's cheaper vega-embed path was rejected — the quality bar is Superset-grade rendering.)* Never promise full saved-chart fidelity across all viz types; broaden the adapter later.
 3. **Every result carries a concise `text` block** (title, summary, provenance, Explore link) as the portable model-facing representation; `structuredContent` carries the bounded, versioned viz payload (host-dependent model visibility); result `_meta` only for widget-only data. Requires fixing the stripper middleware (§6.5).
 4. **Interactivity via dedicated app-visible tools** (drill-down, pagination, timeframe) with `_meta.ui.visibility`. **Never expose the generic `call_tool` proxy to the widget** — it would hand the iframe a path to every tool the user can reach.

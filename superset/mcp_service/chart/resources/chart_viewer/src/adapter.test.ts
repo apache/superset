@@ -31,7 +31,9 @@ import type { ChartData, DataColumn } from './types';
 const theme = getThemeTokens('light');
 const opts = { theme };
 
-function col(partial: Partial<DataColumn> & { name: string; data_type: string }): DataColumn {
+function col(
+  partial: Partial<DataColumn> & { name: string; data_type: string },
+): DataColumn {
   return {
     display_name: partial.name,
     sample_values: [],
@@ -128,7 +130,9 @@ describe('chartDataToEChartsOption', () => {
   test('big number resolves a single KPI value', () => {
     const data = makeData({
       chart_type: 'big_number_total',
-      columns: [col({ name: 'revenue', display_name: 'Revenue', data_type: 'numeric' })],
+      columns: [
+        col({ name: 'revenue', display_name: 'Revenue', data_type: 'numeric' }),
+      ],
       data: [{ revenue: 4820000 }],
       row_count: 1,
       total_rows: 1,
@@ -250,5 +254,19 @@ describe('tooltip HTML escaping (XSS)', () => {
       false,
     );
     expect(html).toContain('1,234');
+  });
+});
+
+describe('big-number fallback label', () => {
+  test('strips model-facing trust markers from chart_name', () => {
+    const result = resolveBigNumber(
+      makeData({
+        chart_name: '<UNTRUSTED-CONTENT> Monthly Revenue </UNTRUSTED-CONTENT>',
+        chart_type: 'big_number_total',
+        columns: [],
+        data: [],
+      }),
+    );
+    expect(result.label).toBe('Monthly Revenue');
   });
 });

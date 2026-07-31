@@ -23,6 +23,7 @@ import {
   formatDate,
   formatFull,
   formatNumber,
+  stripUntrustedMarkers,
   toDate,
   toNumber,
 } from './format';
@@ -68,12 +69,17 @@ export function classifyColumns(data: ChartData): ColumnRoles {
 }
 
 /** Map an incoming Superset viz_type to the best-fit default view. */
-export function defaultViewForChartType(chartType: string, data?: ChartData): ViewType {
+export function defaultViewForChartType(
+  chartType: string,
+  data?: ChartData,
+): ViewType {
   const t = (chartType || '').toLowerCase();
   if (t.includes('big_number')) return 'big_number';
-  if (t === 'table' || t === 'pivot_table' || t.includes('table')) return 'table';
+  if (t === 'table' || t === 'pivot_table' || t.includes('table'))
+    return 'table';
   if (t.includes('area')) return 'area';
-  if (t.includes('bar') || t.includes('histogram') || t.includes('dist_bar')) return 'bar';
+  if (t.includes('bar') || t.includes('histogram') || t.includes('dist_bar'))
+    return 'bar';
   if (t.includes('line') || t.includes('timeseries')) return 'line';
   if (t === 'pie') return 'bar';
   // Fall back based on data shape when the viz_type is unknown.
@@ -104,7 +110,9 @@ export function availableViews(data: ChartData): ViewType[] {
 const AXIS_LABEL_LIMIT = 24;
 
 function truncate(label: string): string {
-  return label.length > AXIS_LABEL_LIMIT ? `${label.slice(0, AXIS_LABEL_LIMIT - 1)}…` : label;
+  return label.length > AXIS_LABEL_LIMIT
+    ? `${label.slice(0, AXIS_LABEL_LIMIT - 1)}…`
+    : label;
 }
 
 /**
@@ -183,7 +191,9 @@ function buildCartesian(
       lineStyle: isBar ? undefined : { width: 2.5, color },
       itemStyle: {
         color,
-        borderRadius: isBar ? ([3, 3, 0, 0] as [number, number, number, number]) : 0,
+        borderRadius: isBar
+          ? ([3, 3, 0, 0] as [number, number, number, number])
+          : 0,
       },
       emphasis: { focus: 'series' as const },
       areaStyle: isArea ? gradient(color, theme) : undefined,
@@ -220,13 +230,17 @@ function buildCartesian(
     grid,
     tooltip: {
       trigger: 'axis',
-      axisPointer: { type: kind === 'bar' ? 'shadow' : 'line', lineStyle: { color: theme.axisLine } },
+      axisPointer: {
+        type: kind === 'bar' ? 'shadow' : 'line',
+        lineStyle: { color: theme.axisLine },
+      },
       backgroundColor: theme.tooltipBg,
       borderColor: theme.tooltipBorder,
       borderWidth: 1,
       padding: [8, 12],
       textStyle: { color: theme.textPrimary, fontSize: 12 },
-      extraCssText: 'box-shadow: 0 4px 16px rgba(0,0,0,0.12); border-radius: 8px;',
+      extraCssText:
+        'box-shadow: 0 4px 16px rgba(0,0,0,0.12); border-radius: 8px;',
       formatter: (params: unknown) => tooltipFormatter(params, dim, isTemporal),
     },
     xAxis: {
@@ -243,7 +257,8 @@ function buildCartesian(
         color: theme.textMuted,
         fontSize: 11,
         hideOverlap: true,
-        formatter: (v: string) => (isTemporal ? formatAxisDate(v) : truncate(String(v))),
+        formatter: (v: string) =>
+          isTemporal ? formatAxisDate(v) : truncate(String(v)),
       },
     },
     yAxis: {
@@ -307,7 +322,9 @@ export function tooltipFormatter(
   dim: DataColumn | null,
   isTemporal: boolean,
 ): string {
-  const list = (Array.isArray(params) ? params : [params]) as AxisTooltipParam[];
+  const list = (
+    Array.isArray(params) ? params : [params]
+  ) as AxisTooltipParam[];
   if (!list.length) return '';
   const header = isTemporal
     ? formatDate(list[0].axisValue)
@@ -368,7 +385,14 @@ export function resolveBigNumber(data: ChartData): {
       y: rows.map((r) => toNumber(r[col.name])),
     };
   }
-  return { value, label: col ? col.display_name || col.name : data.chart_name, column: col, spark };
+  return {
+    value,
+    label: col
+      ? col.display_name || col.name
+      : stripUntrustedMarkers(data.chart_name),
+    column: col,
+    spark,
+  };
 }
 
 /** Build a minimal sparkline option for the big-number view. */

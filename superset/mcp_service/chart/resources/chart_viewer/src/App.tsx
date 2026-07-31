@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type JSX,
+  type PointerEvent as ReactPointerEvent,
+} from 'react';
 import type { ChartData, ChartMeta, ColorScheme, ViewType } from './types';
 import { REQUERY_TOOL_NAME } from './types';
 import { ChartBridge, type HostCapabilities } from './bridge';
@@ -32,7 +39,7 @@ import {
   classifyColumns,
   defaultViewForChartType,
 } from './adapter';
-import { formatByColumn } from './format';
+import { formatByColumn, stripUntrustedMarkers } from './format';
 import { EChart, type EChartClickParams } from './components/EChart';
 import { BigNumber } from './components/BigNumber';
 import { DataTable } from './components/DataTable';
@@ -41,6 +48,9 @@ import { EmptyState, ErrorState, LoadingSkeleton } from './components/States';
 import { SAMPLE_CHART_DATA } from './sample-data';
 
 const bridge = new ChartBridge();
+const DEFAULT_WIDGET_HEIGHT = 420;
+const MAX_WIDGET_HEIGHT = 1200;
+const MIN_WIDGET_HEIGHT = 260;
 
 interface DrillState {
   active: boolean;
@@ -59,6 +69,7 @@ export function App(): JSX.Element {
   const [toast, setToast] = useState<string | null>(null);
   const [drill, setDrill] = useState<DrillState>({ active: false, label: '' });
   const [selection, setSelection] = useState<EChartClickParams | null>(null);
+  const [requestedHeight, setRequestedHeight] = useState(DEFAULT_WIDGET_HEIGHT);
 
   // Superset tokens travel with the data, so the widget renders in the
   // deployment's own branding rather than hardcoded colors.
@@ -93,6 +104,12 @@ export function App(): JSX.Element {
       setActiveMetrics(classifyColumns(next).numeric.map((c) => c.name));
       setError(null);
       setLoading(false);
+      window.requestAnimationFrame(() => {
+        bridge.reportSize(
+          Math.max(window.innerWidth, 320),
+          DEFAULT_WIDGET_HEIGHT,
+        );
+      });
     }
 
     bridge
@@ -148,7 +165,8 @@ export function App(): JSX.Element {
   useEffect(() => {
     if (!window.matchMedia) return undefined;
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const handler = (e: MediaQueryListEvent): void => setScheme(e.matches ? 'dark' : 'light');
+    const handler = (e: MediaQueryListEvent): void =>
+      setScheme(e.matches ? 'dark' : 'light');
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
   }, []);
@@ -166,7 +184,10 @@ export function App(): JSX.Element {
   const canAsk = !!caps?.canUpdateModelContext || !!caps?.canSendMessage;
 
   const requery = useCallback(
-    async (args: Parameters<ChartBridge['callTool']>[1], drillLabel: string) => {
+    async (
+      args: Parameters<ChartBridge['callTool']>[1],
+      drillLabel: string,
+    ) => {
       if (!data) return;
       setLoading(true);
       try {
@@ -177,7 +198,10 @@ export function App(): JSX.Element {
         if (next && Array.isArray(next.columns)) {
           setData(next);
           setActiveMetrics(classifyColumns(next).numeric.map((c) => c.name));
-          setDrill({ active: true, label: drillLabel });
+          setDrill({
+            active: true,
+            label: stripUntrustedMarkers(drillLabel),
+          });
         }
       } catch {
         setToast('Drill-down is unavailable in this host.');
@@ -195,9 +219,13 @@ export function App(): JSX.Element {
       if (!roles?.dimension) return;
       const xVal = data?.data?.[params.dataIndex]?.[roles.dimension.name];
       if (canRequery && roles.dimensionIsTemporal) {
-        // Drill into the clicked time bucket with a finer granularity.
+        // Ask for a finer granularity where the saved query context supports
+        // overriding it. Some chart query contexts ignore this hint.
         void requery(
-          { filter: { col: roles.dimension.name, val: xVal }, granularity: 'P1D' },
+          {
+            filter: { col: roles.dimension.name, val: xVal },
+            granularity: 'P1D',
+          },
           `${params.seriesName} · ${formatByColumn(xVal, roles.dimension)}`,
         );
       }
@@ -208,10 +236,19 @@ export function App(): JSX.Element {
   // ---- Magic moment: brush-to-zoom re-query ------------------------------
   const handleBrushEnd = useCallback(
     (range: { startIndex: number; endIndex: number }) => {
-      if (!canRequery || !roles?.dimensionIsTemporal || !roles.dimension || !data) return;
+      if (
+        !canRequery ||
+        !roles?.dimensionIsTemporal ||
+        !roles.dimension ||
+        !data
+      )
+        return;
       const rows = data.data ?? [];
       const lo = Math.max(0, Math.min(range.startIndex, range.endIndex));
-      const hi = Math.min(rows.length - 1, Math.max(range.startIndex, range.endIndex));
+      const hi = Math.min(
+        rows.length - 1,
+        Math.max(range.startIndex, range.endIndex),
+      );
       const start = rows[lo]?.[roles.dimension.name];
       const end = rows[hi]?.[roles.dimension.name];
       if (start == null || end == null) return;
@@ -235,12 +272,21 @@ export function App(): JSX.Element {
   // ---- Magic moment: "Ask about this" ------------------------------------
   const askAboutSelection = useCallback(async () => {
     if (!selection || !data || !roles) return;
-    const xVal = data.data?.[selection.dataIndex]?.[roles.dimension?.name ?? ''];
-    const dimLabel = roles.dimension?.display_name ?? roles.dimension?.name ?? 'x';
-    const msg = `User is looking at ${selection.seriesName}=${formatByColumn(
-      selection.value,
-      roles.numeric.find((c) => (c.display_name || c.name) === selection.seriesName),
-    )} for ${dimLabel}=${formatByColumn(xVal, roles.dimension ?? undefined)} in "${data.chart_name}".`;
+    const xVal =
+      data.data?.[selection.dataIndex]?.[roles.dimension?.name ?? ''];
+    const dimLabel =
+      roles.dimension?.display_name ?? roles.dimension?.name ?? 'x';
+    const msg = stripUntrustedMarkers(
+      `User is looking at ${selection.seriesName}=${formatByColumn(
+        selection.value,
+        roles.numeric.find(
+          (c) => (c.display_name || c.name) === selection.seriesName,
+        ),
+      )} for ${dimLabel}=${formatByColumn(
+        xVal,
+        roles.dimension ?? undefined,
+      )} in "${data.chart_name}".`,
+    );
     await bridge.updateModelContext(msg, {
       chart_id: data.chart_id,
       metric: selection.seriesName,
@@ -271,10 +317,78 @@ export function App(): JSX.Element {
     });
   }, []);
 
+  const requestHeight = useCallback((height: number) => {
+    const next = Math.max(
+      MIN_WIDGET_HEIGHT,
+      Math.min(MAX_WIDGET_HEIGHT, Math.round(height)),
+    );
+    setRequestedHeight(next);
+    bridge.reportSize(Math.max(window.innerWidth, 320), next);
+  }, []);
+
+  const startResize = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      const startY = event.clientY;
+      const startHeight = requestedHeight;
+      const onMove = (moveEvent: PointerEvent): void => {
+        requestHeight(startHeight + moveEvent.clientY - startY);
+      };
+      const onUp = (): void => {
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
+      };
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+    },
+    [requestHeight, requestedHeight],
+  );
+
+  const maximize = useCallback(async () => {
+    const switched = await bridge.requestDisplayMode('fullscreen');
+    if (!switched) {
+      // Hosts without display-mode support still honor size notifications.
+      requestHeight(Math.max(requestedHeight, 720));
+    }
+  }, [requestHeight, requestedHeight]);
+
   // ---- Render ------------------------------------------------------------
-  if (error) return shell(<ErrorState message={error} />, null);
-  if (loading && !data) return shell(<LoadingSkeleton />, null);
-  if (!data) return shell(<EmptyState />, null);
+  if (error)
+    return shell(
+      <ErrorState message={error} />,
+      null,
+      null,
+      '',
+      null,
+      null,
+      requestedHeight,
+      startResize,
+      maximize,
+    );
+  if (loading && !data)
+    return shell(
+      <LoadingSkeleton />,
+      null,
+      null,
+      '',
+      null,
+      null,
+      requestedHeight,
+      startResize,
+      maximize,
+    );
+  if (!data)
+    return shell(
+      <EmptyState />,
+      null,
+      null,
+      '',
+      null,
+      null,
+      requestedHeight,
+      startResize,
+      maximize,
+    );
 
   const isEmpty = !data.data || data.data.length === 0;
   const isChartView = view === 'line' || view === 'bar' || view === 'area';
@@ -290,7 +404,11 @@ export function App(): JSX.Element {
     <>
       {drill.active && (
         <div className="sv-reset-pill">
-          <button type="button" className="sv-btn sv-btn--subtle" onClick={resetDrill}>
+          <button
+            type="button"
+            className="sv-btn sv-btn--subtle"
+            onClick={resetDrill}
+          >
             ← Reset drill
           </button>
         </div>
@@ -322,9 +440,14 @@ export function App(): JSX.Element {
     selection && canAsk ? (
       <div className="sv-toast">
         <span>
-          {selection.seriesName}: <strong>{formatByColumn(selection.value)}</strong>
+          {selection.seriesName}:{' '}
+          <strong>{formatByColumn(selection.value)}</strong>
         </span>
-        <button type="button" className="sv-btn sv-btn--ghost" onClick={askAboutSelection}>
+        <button
+          type="button"
+          className="sv-btn sv-btn--ghost"
+          onClick={askAboutSelection}
+        >
           Ask about this
         </button>
         <button
@@ -338,6 +461,9 @@ export function App(): JSX.Element {
       </div>
     ) : null,
     toast,
+    requestedHeight,
+    startResize,
+    maximize,
   );
 }
 
@@ -349,12 +475,17 @@ function shell(
   drillLabel?: string,
   actionToast?: JSX.Element | null,
   toast?: string | null,
+  requestedHeight = DEFAULT_WIDGET_HEIGHT,
+  onResizeStart?: (event: ReactPointerEvent<HTMLDivElement>) => void,
+  onMaximize?: () => void,
 ): JSX.Element {
   return (
-    <div className="sv-app">
+    <div className="sv-app" style={{ minHeight: requestedHeight }}>
       <div className="sv-header">
         <div className="sv-title-wrap">
-          <h1 className="sv-title">{data?.chart_name ?? 'Chart'}</h1>
+          <h1 className="sv-title">
+            {stripUntrustedMarkers(data?.chart_name ?? 'Chart')}
+          </h1>
           <div className="sv-subtitle">
             <span className="sv-accent-dot" />
             {drillLabel ? (
@@ -371,6 +502,17 @@ function shell(
             )}
           </div>
         </div>
+        {onMaximize && (
+          <button
+            type="button"
+            className="sv-btn sv-btn--subtle sv-maximize"
+            onClick={onMaximize}
+            aria-label="Maximize chart"
+            title="Maximize"
+          >
+            ⛶
+          </button>
+        )}
       </div>
       {toolbar}
       <div className="sv-body">
@@ -380,8 +522,17 @@ function shell(
       </div>
       {data?.insights && data.insights.length > 0 && (
         <div className="sv-insights">
-          <strong>Insight:</strong> {data.insights[0]}
+          <strong>Insight:</strong> {stripUntrustedMarkers(data.insights[0])}
         </div>
+      )}
+      {onResizeStart && (
+        <div
+          className="sv-resize-handle"
+          role="separator"
+          aria-label="Resize chart"
+          aria-orientation="horizontal"
+          onPointerDown={onResizeStart}
+        />
       )}
     </div>
   );

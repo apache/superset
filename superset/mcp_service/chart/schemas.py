@@ -3139,7 +3139,8 @@ class RenderChartRequeryRequest(QueryCacheControl):
         default=None,
         description=(
             "Time grain override for the narrowed range (e.g. P1D, PT1H) when "
-            "zooming into a time-series."
+            "zooming into a time-series. This is a best-effort hint: saved query "
+            "contexts for some chart configurations ignore time_grain_sqla."
         ),
     )
     limit: int | None = Field(

@@ -34,7 +34,7 @@ LLM host (Claude/ChatGPT)
   ▼
 render_chart tool ──► get_chart_data_core ──► ChartDataCommand (RBAC + RLS)
   │  returns ChartData (structuredContent) + text summary
-  │  tool descriptor carries _meta.ui.resourceUri = ui://superset/chart-viewer/v1
+  │  tool descriptor carries _meta.ui.resourceUri = ui://superset/chart-viewer/v2
   ▼
 host fetches ui:// resource ──► chart_viewer/dist/index.html (sandboxed iframe)
   │  bridge: JSON-RPC 2.0 over postMessage
@@ -95,9 +95,22 @@ widget its "Open in Superset" deep link.
 }
 ```
 
+`granularity` is forwarded as `extra_form_data.time_grain_sqla`, but it is a
+best-effort hint rather than a guaranteed re-bucketing operation. Some saved
+query contexts—including observed `echarts_timeseries_line` configurations—
+ignore the override and return rows at their original grain. Filtering and
+`time_range` narrowing still apply; clients must not claim that the returned
+data was re-granularized without inspecting it.
+
 All re-query paths go back through `get_chart_data_core`, so the caller's
 Chart/dataset RBAC, guest scoping, and RLS are re-applied on every interaction —
 the widget cannot exceed the entitlements of the principal who called it.
+
+> [!IMPORTANT]
+> MCP Apps hosts commonly cache both `ui://` resources and tool descriptors for
+> the lifetime of a client session or conversation. Restarting Superset does
+> not invalidate that cache. Bump the versioned chart-viewer URI whenever the
+> bundle changes, and verify a new version only from a brand-new client session.
 
 ## Build the widget
 
@@ -134,7 +147,7 @@ npm test               # vitest: adapter + bridge contract tests
 ### 1. Local — MCP Inspector / MCPJam / ext-apps basic-host
 Run the MCP server (streamable-http) and point an MCP Apps-capable inspector at
 it. Confirm: `render_chart` appears with `_meta.ui.resourceUri`; calling it
-renders the widget; the `ui://superset/chart-viewer/v1` resource loads.
+renders the widget; the `ui://superset/chart-viewer/v2` resource loads.
 
 ### 2. ChatGPT web — developer mode
 Requires an eligible **Business/Enterprise/Edu** workspace. Settings → Connectors

@@ -90,7 +90,7 @@ Drill-down and brush-to-zoom call an **app-visible** server tool (a tool with
   chart_id: number;
   filter?: { col: string; val: any };// drill into a clicked value
   time_range?: string;               // e.g. "2026-01-01 : 2026-01-08"
-  granularity?: string;              // e.g. "P1D" for finer time buckets
+  granularity?: string;              // best-effort time-grain hint
 }
 // Note: dimension-pivot (group_by) was removed — Superset's extra_form_data
 // merge ignores groupby, so it was a silent no-op. Drill via filter/time_range.
@@ -142,8 +142,10 @@ bundled sample data — useful for local dev and for minimal hosts.
    `universalTransition` with stable per-metric series `id`s, so bars morph into
    lines.
 2. **Click-to-drill** — clicking a temporal data point calls
-   `render_chart_requery` with a `filter` + finer `granularity` and swaps in the
-   returned `ChartData` (gated on host capability).
+   `render_chart_requery` with a `filter` + best-effort `granularity` hint and
+   swaps in the returned `ChartData` (gated on host capability). Some saved
+   query contexts ignore the time-grain override, so the widget does not claim
+   that returned rows were re-bucketed.
 3. **Brush-to-zoom re-query** — dragging a range on a time series calls
    `render_chart_requery` with a narrowed `time_range`; a **Reset drill** pill
    restores the full view.
