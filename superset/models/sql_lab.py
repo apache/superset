@@ -453,10 +453,12 @@ class Query(
         has_timegrain = col.get("columnType") == "BASE_AXIS" and time_grain
         is_dttm = False
         pdf = None
+        col_spec = None
 
         if col_in_metadata := self.get_column(sql_expression):
             is_dttm = col_in_metadata.is_temporal
             pdf = col_in_metadata.python_date_format
+            col_spec = self.db_engine_spec.get_column_spec(col_in_metadata.type)
 
         expression = self._process_sql_expression(
             expression=sql_expression,
@@ -465,7 +467,17 @@ class Query(
             schema=self.schema,
             template_processor=template_processor,
         )
-        sqla_column = literal_column(expression)
+        if col_spec:
+            sqla_type = col_spec.sqla_type
+        elif is_dttm:
+            # The result metadata marks the column as temporal but does not map
+            # to a SQLAlchemy type, so fall back to ``String``. Without a type the
+            # engine spec cannot tell string columns apart and skips the VARCHAR
+            # -> TIMESTAMP cast before ``DATE_TRUNC``, producing an invalid query.
+            sqla_type = String
+        else:
+            sqla_type = None
+        sqla_column = literal_column(expression, type_=sqla_type)
 
         if is_dttm and has_timegrain:
             sqla_column = self.db_engine_spec.get_timestamp_expr(

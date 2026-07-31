@@ -417,6 +417,95 @@ def test_get_timestamp_expr_untyped_column_not_cast() -> None:
     assert _compile(expr) == "DATE_TRUNC('year', some_expr)"
 
 
+@pytest.mark.parametrize(
+    "col_type",
+    [
+        types.String(),
+        types.Unicode(),
+        types.Text(),
+        types.UnicodeText(),
+        types.VARCHAR(),
+    ],
+)
+def test_get_timestamp_expr_string_column_cast_to_timestamp(
+    col_type: types.TypeEngine,
+) -> None:
+    """
+    DB Eng Specs (postgres): string columns manually marked as temporal are cast
+    to TIMESTAMP before the grain is applied, since DATE_TRUNC rejects VARCHAR
+    arguments.
+
+    See https://github.com/apache/superset/issues/42386.
+    """
+    col = column("event_ts", type_=col_type)
+    expr = spec.get_timestamp_expr(col, None, "P1D")
+    assert _compile(expr) == "DATE_TRUNC('day', CAST(event_ts AS TIMESTAMP))"
+
+
+def test_get_timestamp_expr_string_column_without_grain_not_cast() -> None:
+    """
+    DB Eng Specs (postgres): without a time grain a string column is left
+    untouched, even when marked as temporal.
+    """
+    col = column("event_ts", type_=types.String())
+    expr = spec.get_timestamp_expr(col, None, None)
+    assert _compile(expr) == "event_ts"
+
+
+def test_get_timestamp_expr_string_column_epoch_not_cast() -> None:
+    """
+    DB Eng Specs (postgres): epoch-based string columns keep their existing
+    expression so the value is parsed from the numeric epoch instead of being
+    cast directly to TIMESTAMP.
+    """
+    col = column("event_ts", type_=types.String())
+    expr = spec.get_timestamp_expr(col, "epoch_s", "P1D")
+    assert (
+        _compile(expr)
+        == "DATE_TRUNC('day', (timestamp 'epoch' + event_ts * interval '1 second'))"
+    )
+
+
+@pytest.mark.parametrize(
+    ("pdf", "expected"),
+    [
+        ("%d/%m/%Y", "DATE_TRUNC('day', TO_TIMESTAMP(event_ts, 'DD/MM/YYYY'))"),
+        (
+            "%Y-%m-%d %H:%M:%S",
+            "DATE_TRUNC('day', TO_TIMESTAMP(event_ts, 'YYYY-MM-DD HH24:MI:SS'))",
+        ),
+        (
+            "%Y-%m-%d %H:%M:%S.%f",
+            "DATE_TRUNC('day', TO_TIMESTAMP(event_ts, 'YYYY-MM-DD HH24:MI:SS.US'))",
+        ),
+    ],
+)
+def test_get_timestamp_expr_string_column_custom_format_uses_to_timestamp(
+    pdf: str, expected: str
+) -> None:
+    """
+    DB Eng Specs (postgres): string columns with a non-ISO ``python_date_format``
+    are parsed with ``TO_TIMESTAMP`` and the translated format mask, since a plain
+    ``CAST`` cannot parse such values.
+
+    See https://github.com/apache/superset/issues/42386.
+    """
+    col = column("event_ts", type_=types.String())
+    expr = spec.get_timestamp_expr(col, pdf, "P1D")
+    assert _compile(expr) == expected
+
+
+def test_get_timestamp_expr_string_column_unparseable_format_not_cast() -> None:
+    """
+    DB Eng Specs (postgres): string columns whose ``python_date_format`` cannot be
+    translated to a PostgreSQL ``TO_TIMESTAMP`` mask (e.g. timezone tokens) are
+    left untouched rather than receiving a ``CAST`` that fails at runtime.
+    """
+    col = column("event_ts", type_=types.String())
+    expr = spec.get_timestamp_expr(col, "%Y-%m-%d %H:%M:%S %z", "P1D")
+    assert _compile(expr) == "DATE_TRUNC('day', event_ts)"
+
+
 def test_interval_type_mutator() -> None:
     """
     DB Eng Specs (postgres): Test INTERVAL type mutator
