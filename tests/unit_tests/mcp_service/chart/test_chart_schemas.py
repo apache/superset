@@ -19,12 +19,16 @@
 Unit tests for MCP chart schema validation.
 """
 
+from typing import Any
+
 import pytest
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from superset.mcp_service.chart.schemas import (
+    AxisConfig,
     BigNumberChartConfig,
     ColumnRef,
+    CurrencyFormat,
     FilterConfig,
     GenerateChartRequest,
     GenerateChartResponse,
@@ -32,10 +36,12 @@ from superset.mcp_service.chart.schemas import (
     GetChartInfoRequest,
     GetChartPreviewRequest,
     GetChartSqlRequest,
+    LegendConfig,
     ListChartsRequest,
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
+    SortByConfig,
     TableChartConfig,
     UpdateChartRequest,
     XYChartConfig,
@@ -719,6 +725,54 @@ class TestUnknownFieldDetection:
         assert config.stacked is True
         assert config.row_limit == 10000
         assert config.group_by is not None
+
+    @pytest.mark.parametrize(
+        "model,payload",
+        [
+            (AxisConfig, {"title": "Sales", "sort_by": "metric"}),
+            (ColumnRef, {"name": "sales", "aggregat": "SUM"}),
+            (LegendConfig, {"show": True, "positon": "top"}),
+            (CurrencyFormat, {"symbol": "USD", "placement": "prefix"}),
+            (
+                FilterConfig,
+                {"column": "region", "op": "=", "value": "east", "clause": "WHERE"},
+            ),
+            (SortByConfig, {"column": "sales", "descending": True}),
+        ],
+    )
+    def test_nested_models_reject_unknown_fields(
+        self, model: type[BaseModel], payload: dict[str, Any]
+    ) -> None:
+        """Nested config models reject unknown fields like top-level configs do."""
+        with pytest.raises(ValidationError, match="Unknown field"):
+            model.model_validate(payload)
+
+    def test_unknown_field_nested_in_axis_config_rejected(self) -> None:
+        """An unknown field one level down is not silently dropped."""
+        with pytest.raises(ValidationError, match="Unknown field 'sort_by'"):
+            XYChartConfig.model_validate(
+                {
+                    "chart_type": "xy",
+                    "x": {"name": "category"},
+                    "y": [{"name": "sales", "aggregate": "SUM"}],
+                    "x_axis": {"title": "Category", "sort_by": "metric"},
+                }
+            )
+
+    def test_nested_aliases_still_accepted(self) -> None:
+        """Aliases on nested models keep working under strict field checking."""
+        config = XYChartConfig.model_validate(
+            {
+                "chart_type": "xy",
+                "x": {"column_name": "category"},
+                "y": [{"name": "sales", "aggregate": "SUM"}],
+                "filters": [{"col": "region", "opr": "=", "val": "east"}],
+            }
+        )
+        assert config.x is not None
+        assert config.x.name == "category"
+        assert config.filters is not None
+        assert config.filters[0].column == "region"
 
 
 class TestColumnRefSavedMetric:

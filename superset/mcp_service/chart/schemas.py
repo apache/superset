@@ -771,7 +771,7 @@ class UnknownFieldCheckMixin(BaseModel):
         return _check_unknown_fields(data, cls)
 
 
-class ColumnRef(BaseModel):
+class ColumnRef(UnknownFieldCheckMixin):
     model_config = ConfigDict(populate_by_name=True)
 
     name: str | None = Field(
@@ -892,18 +892,18 @@ class ColumnRef(BaseModel):
         )
 
 
-class AxisConfig(BaseModel):
+class AxisConfig(UnknownFieldCheckMixin):
     title: str | None = Field(None, max_length=200)
     scale: Literal["linear", "log"] | None = "linear"
     format: str | None = Field(None, description="e.g. '$,.2f'", max_length=50)
 
 
-class LegendConfig(BaseModel):
+class LegendConfig(UnknownFieldCheckMixin):
     show: bool = True
     position: Literal["top", "bottom", "left", "right"] | None = "right"
 
 
-class CurrencyFormat(BaseModel):
+class CurrencyFormat(UnknownFieldCheckMixin):
     """Currency symbol and placement applied to numeric values."""
 
     model_config = ConfigDict(populate_by_name=True)
@@ -926,7 +926,7 @@ class CurrencyFormat(BaseModel):
 LEGEND_POSITION_LITERAL = Literal["top", "bottom", "left", "right"]
 
 
-class FilterConfig(BaseModel):
+class FilterConfig(UnknownFieldCheckMixin):
     model_config = ConfigDict(populate_by_name=True)
 
     column: str = Field(
@@ -994,7 +994,7 @@ class FilterConfig(BaseModel):
         return self
 
 
-class SortByConfig(BaseModel):
+class SortByConfig(UnknownFieldCheckMixin):
     """Sort specification with explicit direction.
 
     Accepts either this object or a bare column-name string in `sort_by`
