@@ -23,10 +23,7 @@ from flask_babel import gettext as _
 from pandas.tseries.frequencies import to_offset
 
 from superset.exceptions import InvalidPostProcessingError
-from superset.utils.pandas_postprocessing.utils import (
-    DEFAULT_MAX_RESAMPLE_BUCKETS,
-    RESAMPLE_METHOD,
-)
+from superset.utils.pandas_postprocessing.utils import RESAMPLE_METHOD
 
 TimeBound = Union[datetime, str]
 
@@ -117,17 +114,20 @@ def _estimate_bucket_count(start: pd.Timestamp, end: pd.Timestamp, rule: str) ->
 
 def _get_max_resample_buckets() -> int:
     """Return the configured padded-resample bucket cap."""
+    # Lazy import avoids a circular import: ``superset.config`` pulls in
+    # ``superset.utils``, which can load this package during app init.
+    from superset import config
+
+    default = config.MAX_RESAMPLE_BUCKETS
     if has_app_context():
-        configured = current_app.config.get(
-            "MAX_RESAMPLE_BUCKETS", DEFAULT_MAX_RESAMPLE_BUCKETS
-        )
+        configured = current_app.config.get("MAX_RESAMPLE_BUCKETS", default)
     else:
-        configured = DEFAULT_MAX_RESAMPLE_BUCKETS
+        configured = default
     try:
         normalized = int(configured)
     except (TypeError, ValueError):
-        return DEFAULT_MAX_RESAMPLE_BUCKETS
-    return normalized if normalized > 0 else DEFAULT_MAX_RESAMPLE_BUCKETS
+        return default
+    return normalized if normalized > 0 else default
 
 
 def _validate_bucket_count(start: pd.Timestamp, end: pd.Timestamp, rule: str) -> None:

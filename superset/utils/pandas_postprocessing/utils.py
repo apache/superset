@@ -105,10 +105,6 @@ PROPHET_TIME_GRAIN_MAP: dict[str, str] = {
 
 RESAMPLE_METHOD = ("asfreq", "bfill", "ffill", "linear", "median", "mean", "sum")
 
-# Fallback when ``MAX_RESAMPLE_BUCKETS`` cannot be read from app config (for
-# example outside an app context). Keep in sync with ``superset.config``.
-DEFAULT_MAX_RESAMPLE_BUCKETS = 50_000
-
 FLAT_COLUMN_SEPARATOR = ", "
 
 
