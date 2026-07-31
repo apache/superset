@@ -48,12 +48,16 @@ from superset.constants import NO_TIME_RANGE
 # dashboard filter context. Map them to an equivalent form that
 # get_since_until() resolves correctly.
 #
-# "Last second"/"Last minute"/"Last hour" are excluded: get_since_until()
-# pairs a "Last <unit>" since-expression (resolved against "now" for
-# sub-day units) with a default until-expression resolved against "today"
-# (midnight), so since ends up after until and raises "From date cannot
-# be larger than to date". Explicit DATEADD/DATETIME expressions sidestep
-# that mismatch by resolving both ends against "now".
+# "[second]"/"[minute]"/"[hour]" map to explicit DATEADD/DATETIME
+# expressions rather than "Last second"/"Last minute"/"Last hour": bare
+# "Last <sub-day unit>" pairs a since-expression resolved against "now"
+# with a default until-expression resolved against "today" (midnight), so
+# since ends up after until and get_since_until() raises "From date cannot
+# be larger than to date" (or, for "hour" specifically, the literal-string
+# fallback parser resolves it to a nonsensical timestamp that trips the
+# same check -- "hour" isn't in get_since_until()'s scope+unit regex, see
+# _SUB_DAY_LAST_PATTERN below). Explicit DATEADD/DATETIME expressions
+# sidestep that mismatch by resolving both ends against "now".
 BRACKET_SHORTHAND_TO_TIME_RANGE: dict[str, str] = {
     "[second]": "DATEADD(DATETIME('now'), -1, SECOND) : DATETIME('now')",
     "[minute]": "DATEADD(DATETIME('now'), -1, MINUTE) : DATETIME('now')",
@@ -63,6 +67,19 @@ BRACKET_SHORTHAND_TO_TIME_RANGE: dict[str, str] = {
     "[month]": "Last month",
     "[quarter]": "Last quarter",
     "[year]": "Last year",
+}
+
+# Bare "Last <n>? <second|minute|hour>[s]" values hit the same since/until
+# mismatch as the bracket shorthands above -- normalize them the same way,
+# to an explicit DATEADD/DATETIME range resolved against "now" on both
+# ends, instead of rejecting them outright. "Next <second|minute|hour>"
+# does not need the same treatment: get_since_until() pairs it with a
+# "today" (midnight) *since*, so since <= until always holds.
+_SUB_DAY_LAST_PATTERN = re.compile(r"^Last\s+(?:(\d+)\s+)?(second|minute|hour)s?$")
+_SUB_DAY_UNIT_TO_DATEADD_UNIT = {
+    "second": "SECOND",
+    "minute": "MINUTE",
+    "hour": "HOUR",
 }
 
 _SEPARATOR = " : "
@@ -99,9 +116,25 @@ _NTH_SUBUNIT_PATTERN = re.compile(
 )
 
 
+def _normalize_sub_day_last(value: str) -> str | None:
+    """Rewrite a bare "Last <n>? <second|minute|hour>[s]" value into an
+    explicit DATEADD/DATETIME range resolved against "now" on both ends.
+    Returns ``None`` if ``value`` isn't a sub-day "Last ..." value."""
+    if (match := _SUB_DAY_LAST_PATTERN.match(value)) is None:
+        return None
+    delta = int(match.group(1)) if match.group(1) else 1
+    unit = _SUB_DAY_UNIT_TO_DATEADD_UNIT[match.group(2)]
+    return f"DATEADD(DATETIME('now'), -{delta}, {unit}) : DATETIME('now')"
+
+
 def _has_recognized_bare_prefix(value: str) -> bool:
     """Whether get_since_until() rewrites this separator-less value into a
-    bounded range, rather than silently discarding it."""
+    bounded range, rather than silently discarding it.
+
+    Callers must check ``_normalize_sub_day_last()`` first: a bare "Last
+    <second|minute|hour>" value matches ``startswith("Last")`` here but
+    needs rewriting, not pass-through, so it isn't re-admitted as-is.
+    """
     if value.startswith("Last") or value.startswith("Next"):
         return True
     if value.startswith(_PREVIOUS_CALENDAR_PREFIXES):
@@ -140,13 +173,17 @@ def validate_time_range(value: str | None) -> str | None:
     if _SEPARATOR in stripped:
         return stripped
 
+    if (normalized := _normalize_sub_day_last(stripped)) is not None:
+        return normalized
+
     if _has_recognized_bare_prefix(stripped):
         return stripped
 
     raise ValueError(
         f"Unrecognized time_range value: {value!r}. A bare (non-range) "
         "time_range must be one of: 'Last <unit>' (e.g. 'Last 7 days', "
-        "'Last month', 'Last year'), 'Next <unit>', 'previous calendar "
+        "'Last month', 'Last year', 'Last hour', 'Last 5 minutes'), "
+        "'Next <unit>', 'previous calendar "
         "<week|month|quarter|year>', 'Current <day|week|month|quarter|"
         "year>', 'first <week|month|quarter> of [this|last|next|prior] "
         "<week|month|quarter|year>', or a bracket shorthand like "

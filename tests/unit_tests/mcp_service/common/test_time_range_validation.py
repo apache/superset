@@ -122,6 +122,74 @@ class TestValidateTimeRangeBracketShorthand:
             validate_time_range("[decade]")
 
 
+class TestValidateTimeRangeSubDayLast:
+    """Bare "Last <second|minute|hour>" values previously passed through
+    unchanged and crashed downstream in get_since_until() with "From date
+    cannot be larger than to date" (since resolves against "now", the
+    default until resolves against "today" midnight). They must now
+    normalize to an explicit range resolved against "now" on both ends,
+    the same treatment already given to the "[second]"/"[minute]"/"[hour]"
+    bracket shorthands."""
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "Last second",
+            "Last minute",
+            "Last hour",
+            "Last 5 minutes",
+            "Last 2 hours",
+        ],
+    )
+    def test_previously_crashing_sub_day_values_now_resolve(self, value: str) -> None:
+        # Confirm the premise: get_since_until() really does raise on the
+        # bare value before asserting our validator normalizes it away.
+        with pytest.raises(ValueError, match="From date cannot be larger"):
+            get_since_until(time_range=value)
+
+        result = validate_time_range(value)
+        assert result is not None
+        assert result != value
+        assert "DATEADD(DATETIME('now')" in result
+
+        since, until = get_since_until(time_range=result)
+        assert since is not None
+        assert until is not None
+        assert since < until
+
+    def test_last_second_uses_delta_one(self) -> None:
+        assert validate_time_range("Last second") == (
+            "DATEADD(DATETIME('now'), -1, SECOND) : DATETIME('now')"
+        )
+
+    def test_last_5_minutes_uses_parsed_delta(self) -> None:
+        assert validate_time_range("Last 5 minutes") == (
+            "DATEADD(DATETIME('now'), -5, MINUTE) : DATETIME('now')"
+        )
+
+    def test_last_2_hours_uses_parsed_delta(self) -> None:
+        assert validate_time_range("Last 2 hours") == (
+            "DATEADD(DATETIME('now'), -2, HOUR) : DATETIME('now')"
+        )
+
+    def test_lowercase_last_sub_day_not_normalized(self) -> None:
+        """Case-sensitive, mirroring get_since_until()'s exact "Last" check
+        -- "last hour" doesn't match get_since_until()'s rewrite either, so
+        it's still an unrecognized bare value, not a normalization target."""
+        with pytest.raises(ValueError, match="Unrecognized time_range"):
+            validate_time_range("last hour")
+
+    def test_next_sub_day_passes_through_unchanged(self) -> None:
+        """ "Next <sub-day unit>" doesn't hit the since/until mismatch --
+        get_since_until() pairs it with a "today" (midnight) since, which
+        is always <= the "now"-based until -- so it needs no normalization."""
+        assert validate_time_range("Next hour") == "Next hour"
+        since, until = get_since_until(time_range="Next hour")
+        assert since is not None
+        assert until is not None
+        assert since < until
+
+
 class TestValidateTimeRangeRejectsSilentFailures:
     """Regression guard: values that silently produced a full-table match
     (SC-114824) must now raise instead."""
