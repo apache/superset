@@ -21,7 +21,7 @@ import pytest
 from flask_appbuilder import Model
 from jinja2.exceptions import TemplateError
 from pytest_mock import MockerFixture
-from sqlalchemy.dialects import sqlite
+from sqlalchemy.dialects import postgresql, sqlite
 
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -230,3 +230,44 @@ def test_adhoc_column_to_sqla_skips_time_grain_for_non_temporal_column() -> None
     result, _ = query.adhoc_column_to_sqla(col)
 
     assert "start of day" not in _compile(result)
+
+
+def test_adhoc_column_to_sqla_casts_string_temporal_column_for_postgres() -> None:
+    """
+    A string column from SQL Lab results that is manually marked temporal must
+    be cast to TIMESTAMP when a time grain is applied, so ``DATE_TRUNC`` does
+    not receive a VARCHAR argument.
+
+    The adhoc column used to be built as an untyped ``literal_column``, which
+    hid the string type from the engine spec and produced the invalid
+    ``DATE_TRUNC('day', event_ts)`` query reported in #42386.
+    """
+    query = Query(
+        database=Database(
+            database_name="db",
+            sqlalchemy_uri="postgresql://user:password@host/db",
+        ),
+        database_id=1,
+        sql="SELECT event_ts FROM website_events",
+    )
+    query.extra = {
+        "columns": [{"column_name": "event_ts", "is_dttm": True, "type": "VARCHAR"}]
+    }
+
+    col: AdhocColumn = {
+        "sqlExpression": "event_ts",
+        "label": "event_ts",
+        "isColumnReference": True,
+        "timeGrain": "P1D",
+        "columnType": "BASE_AXIS",
+    }
+
+    result, _ = query.adhoc_column_to_sqla(col)
+
+    compiled = str(
+        result.compile(
+            dialect=postgresql.dialect(),
+            compile_kwargs={"literal_binds": True},
+        )
+    )
+    assert compiled == "DATE_TRUNC('day', CAST(event_ts AS TIMESTAMP))"

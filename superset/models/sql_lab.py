@@ -453,10 +453,12 @@ class Query(
         has_timegrain = col.get("columnType") == "BASE_AXIS" and time_grain
         is_dttm = False
         pdf = None
+        col_spec = None
 
         if col_in_metadata := self.get_column(sql_expression):
             is_dttm = col_in_metadata.is_temporal
             pdf = col_in_metadata.python_date_format
+            col_spec = self.db_engine_spec.get_column_spec(col_in_metadata.type)
 
         expression = self._process_sql_expression(
             expression=sql_expression,
@@ -465,7 +467,10 @@ class Query(
             schema=self.schema,
             template_processor=template_processor,
         )
-        sqla_column = literal_column(expression)
+        sqla_column = literal_column(
+            expression,
+            type_=col_spec.sqla_type if col_spec else None,
+        )
 
         if is_dttm and has_timegrain:
             sqla_column = self.db_engine_spec.get_timestamp_expr(
