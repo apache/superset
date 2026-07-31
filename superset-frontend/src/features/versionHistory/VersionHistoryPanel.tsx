@@ -125,6 +125,11 @@ export interface VersionHistoryPanelProps {
   entityType: VersionedEntityType;
   activity: UseVersionActivityResult;
   include: ActivityInclude;
+  /**
+   * Whether to offer Restore. Defaults to false: this is a permission term,
+   * and a call site that forgets to pass it should lose the affordance rather
+   * than gain an unguarded one.
+   */
   canRestore?: boolean;
   onIncludeChange: (include: ActivityInclude) => void;
   /**
@@ -150,7 +155,7 @@ export default function VersionHistoryPanel({
   entityType,
   activity,
   include,
-  canRestore = true,
+  canRestore = false,
   onIncludeChange,
   searchTerm,
   onSearchChange,

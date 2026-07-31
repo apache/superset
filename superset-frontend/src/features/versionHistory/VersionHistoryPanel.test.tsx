@@ -93,6 +93,8 @@ const defaultProps = (
   entityType,
   activity: activity(timeline),
   include: 'all',
+  // Explicit rather than relying on the default, which fails closed.
+  canRestore: true,
   onIncludeChange: jest.fn(),
   searchTerm: '',
   onSearchChange: jest.fn(),

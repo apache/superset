@@ -97,6 +97,20 @@ test('hides restore when the user cannot edit the entity', () => {
   ).toBeInTheDocument();
 });
 
+test('omitting canRestore hides restore rather than offering it', () => {
+  // canRestore is a permission term, so the default has to fail closed: a call
+  // site that forgets it should lose the affordance, not gain an unguarded one.
+  const store = createStore(
+    { versionHistory: versionHistoryState() },
+    reducerIndex,
+  );
+  render(<PreviewBanner entityType="chart" />, { store });
+
+  expect(
+    screen.queryByRole('button', { name: 'Restore this version' }),
+  ).not.toBeInTheDocument();
+});
+
 test('shows headline and date when the headline carries its own label', () => {
   renderBanner(
     'chart',
