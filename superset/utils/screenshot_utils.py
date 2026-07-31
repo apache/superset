@@ -44,10 +44,6 @@ SCREENSHOT_TASK_BUDGET_MARGIN_FRACTION = 0.2
 SCREENSHOT_TASK_BUDGET_MAX_MARGIN_SECONDS = 300
 
 
-class TiledScreenshotBudgetExceededError(TimeoutError):
-    """Raised when a tiled capture exhausts its shared screenshot budget."""
-
-
 def resolve_screenshot_task_budget_seconds(
     log_context: str | None = None,
 ) -> float | None:
@@ -94,6 +90,29 @@ def resolve_screenshot_task_budget_seconds(
             exc_info=True,
         )
         return None
+
+
+# Fallback wall-clock budget, in seconds, for the entire tiled-screenshot
+# operation (element lookup plus all per-tile readiness/animation waits
+# combined), used when resolve_screenshot_task_budget_seconds() returns None
+# (no Celery task context -- e.g. synchronous thumbnail generation -- or no
+# usable task limit). The non-tiled readiness path treats None as "keep the
+# configured SCREENSHOT_LOAD_WAIT" because it makes exactly one bounded wait;
+# the tiled path cannot, because its per-tile waits accumulate: with N tiles,
+# an uncapped load_wait allows N * load_wait of total wall-clock time, so the
+# operation still needs one fixed total ceiling. Sized against the longest
+# Celery hard task_time_limit observed in production for report execution
+# (1740s), minus the same 300s cleanup margin the runtime derivation reserves
+# for combining tiles, building the PDF, and delivering the notification.
+TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS = 1440  # 1740s limit - 300s margin
+
+
+class ScreenshotTaskBudgetExceededError(RuntimeError):
+    """Raised when no safe task budget remains before screenshot capture."""
+
+
+class TiledScreenshotBudgetExceededError(ScreenshotTaskBudgetExceededError):
+    """Raised when the tiled-screenshot time budget runs out mid-capture."""
 
 
 try:
@@ -302,6 +321,12 @@ def take_tiled_screenshot(  # noqa: C901
 
     Returns:
         Combined screenshot bytes or None if failed
+
+    Raises:
+        TiledScreenshotBudgetExceededError: If the total time budget for the
+            tiled-screenshot operation runs out before every tile has been
+            verifiably captured. Callers must treat this as a hard failure
+            rather than fall back to an unchecked/partial screenshot.
     """
     if report_execution_context:
         log_context = report_execution_context.log_context
@@ -322,6 +347,13 @@ def take_tiled_screenshot(  # noqa: C901
         if report_execution_context
         else resolve_screenshot_task_budget_seconds(log_context)
     )
+    # Non-report callers (thumbnails) have no execution deadline; cap the
+    # whole tiled operation against the running Celery task's own limit,
+    # falling back to a fixed total ceiling when no usable limit exists --
+    # per-tile waits accumulate, so "no budget" must not mean "uncapped"
+    # (#42118; see TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS).
+    if report_execution_context is None and task_budget is None:
+        task_budget = float(TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS)
 
     def _deadline_values() -> tuple[float, float | None]:
         if report_execution_context:
@@ -431,9 +463,40 @@ def take_tiled_screenshot(  # noqa: C901
         num_tiles = max(1, (dashboard_height + tile_height - 1) // tile_height)
         logger.info("Taking %s screenshot tiles", num_tiles)
 
-        screenshot_tiles = []
+        screenshot_tiles: list[bytes] = []
+
+        def _raise_if_budget_exhausted() -> None:
+            elapsed, remaining = _deadline_values()
+            if remaining is None or remaining > 0:
+                return
+            # A customer-side chart-loading issue (a slow/hung dashboard),
+            # not a Superset system fault, so this is a WARNING rather
+            # than an ERROR -- consistent with #38130/#38441, which
+            # deliberately downgraded screenshot timeout logs the same way.
+            logger.warning(
+                "Tiled screenshot time budget exhausted on tile %s/%s: "
+                "%s/%s tiles captured so far, %.1fs elapsed. Aborting "
+                "instead of capturing remaining tiles unchecked.%s",
+                i + 1,
+                num_tiles,
+                len(screenshot_tiles),
+                num_tiles,
+                elapsed,
+                context_suffix,
+            )
+            raise TiledScreenshotBudgetExceededError(
+                f"Tiled screenshot budget exhausted "
+                f"after {len(screenshot_tiles)}/{num_tiles} tiles"
+            )
 
         for i in range(num_tiles):
+            # Check the time budget before starting this tile's readiness wait.
+            # If it's already exhausted, we can no longer verify this (or any
+            # later) tile is actually ready to capture -- fail loudly instead
+            # of silently snapshotting a spinner or blank chart, or running
+            # past the Celery task time limit and getting SIGKILLed.
+            _raise_if_budget_exhausted()
+
             # Calculate scroll position to show this tile's content
             scroll_y = dashboard_top + (i * tile_height)
 
@@ -443,8 +506,18 @@ def take_tiled_screenshot(  # noqa: C901
             )
             # Wait for scroll to settle and content to load
             page.wait_for_timeout(SCROLL_SETTLE_TIMEOUT_MS)
+
+            # Re-check after the scroll-settle sleep -- which itself consumes
+            # real wall-clock time -- so the readiness-check timeout below is
+            # derived from a fresh remaining value instead of a stale one
+            # that would let each tile overrun the budget by up to one settle
+            # interval (_timeout_seconds also recomputes at call time).
+            _raise_if_budget_exhausted()
+
             # Wait for every chart holder visible in the current viewport to reach
-            # a terminal state (rendered chart or error/empty state). Only check
+            # a terminal state (rendered chart or error/empty state), capped at
+            # whatever remains of the total time budget so a slow dashboard
+            # degrades gracefully instead of exceeding it. Only check
             # viewport-visible chart holders to avoid blocking on virtualization
             # placeholders rendered for off-screen charts. A holder that hasn't
             # mounted anything yet does not satisfy this check -- unlike checking
@@ -485,6 +558,7 @@ def take_tiled_screenshot(  # noqa: C901
                 logger.warning(
                     "report_readiness_terminal url=%s expected_holders=%s "
                     "mounted_holders=%s ready_holders=%s tile=%s/%s "
+                    "tiles_captured=%s/%s "
                     "tile_elapsed_seconds=%.2f elapsed_seconds=%.2f "
                     "remaining_seconds=%s effective_wait_seconds=%.2f%s "
                     "terminal_reason=readiness_timeout unready_holders=%s "
@@ -498,6 +572,8 @@ def take_tiled_screenshot(  # noqa: C901
                     len(holder_states),
                     ready_holders,
                     i + 1,
+                    num_tiles,
+                    len(screenshot_tiles),
                     num_tiles,
                     tile_elapsed,
                     elapsed,
@@ -520,16 +596,23 @@ def take_tiled_screenshot(  # noqa: C901
                     tile_load_wait,
                     context_suffix,
                 )
+            readiness_wait_elapsed = time.monotonic() - tile_wait_start
 
             # Wait for chart animations (e.g. ECharts) to finish after spinner clears.
             # The global animation wait before tiling only covers the first tile;
-            # subsequent tiles need their own wait after data loads.
+            # subsequent tiles need their own wait after data loads. Capped at
+            # whatever remains of the budget; unlike the readiness wait above this
+            # is cosmetic settling, not a readiness check, so we simply skip it
+            # (rather than raise) once the budget runs out.
+            animation_wait_elapsed = 0.0
             if animation_wait > 0:
-                tile_animation_wait = float(animation_wait)
+                # Cosmetic settling, not a readiness check: cap at whatever
+                # remains and simply skip (rather than raise) once the
+                # deadline/budget runs out.
                 if report_execution_context:
                     try:
                         tile_animation_wait = min(
-                            animation_wait,
+                            float(animation_wait),
                             _timeout_seconds(
                                 "chart_animation",
                                 reserve_seconds=(
@@ -538,9 +621,32 @@ def take_tiled_screenshot(  # noqa: C901
                             ),
                         )
                     except ReportExecutionBudgetExceededError:
-                        tile_animation_wait = 0
+                        tile_animation_wait = 0.0
+                else:
+                    try:
+                        tile_animation_wait = _timeout_seconds(
+                            "chart_animation",
+                            requested_seconds=float(animation_wait),
+                        )
+                    except TiledScreenshotBudgetExceededError:
+                        tile_animation_wait = 0.0
                 if tile_animation_wait > 0:
+                    animation_wait_start = time.monotonic()
                     page.wait_for_timeout(tile_animation_wait * 1000)
+                    animation_wait_elapsed = time.monotonic() - animation_wait_start
+
+            # Per-tile timing breakdown so slow dashboards can be profiled from
+            # logs alone. DEBUG rather than INFO: this fires once per tile, and
+            # large dashboards can have dozens of tiles per report run.
+            logger.debug(
+                "Tile %s/%s timing: %.2fs waiting for chart readiness, "
+                "%.2fs waiting for animations.%s",
+                i + 1,
+                num_tiles,
+                readiness_wait_elapsed,
+                animation_wait_elapsed,
+                context_suffix,
+            )
 
             # Calculate what portion of the element we want to capture for this tile
             tile_start_in_element = i * tile_height
@@ -641,6 +747,10 @@ def take_tiled_screenshot(  # noqa: C901
         return combined_screenshot
 
     except (ReportExecutionBudgetExceededError, TiledScreenshotBudgetExceededError):
+        # Budget/deadline exhaustion must fail cleanly, not be swallowed into
+        # the generic `return None` degradation below -- the raise carries the
+        # diagnostics to the caller, which fails the capture loudly (#42273)
+        # instead of receiving an anonymous empty result.
         elapsed, remaining = _deadline_values()
         logger.warning(
             "report_capture_terminal url=%s elapsed_seconds=%.2f "

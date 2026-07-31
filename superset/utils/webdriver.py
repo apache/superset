@@ -51,6 +51,7 @@ from superset.utils.screenshot_utils import (
     FIND_CHART_HOLDER_STATES_JS,
     REPORT_CHART_HOLDERS_READY_JS,
     resolve_screenshot_task_budget_seconds,
+    ScreenshotTaskBudgetExceededError,
     take_tiled_screenshot,
 )
 
@@ -63,10 +64,6 @@ PLAYWRIGHT_INSTALL_MESSAGE = (
     "and enable WebGL/DeckGL screenshot support, install Playwright with: "
     "pip install playwright && playwright install chromium"
 )
-
-
-class ScreenshotTaskBudgetExceededError(RuntimeError):
-    """Raised when no safe task budget remains before screenshot capture."""
 
 
 if TYPE_CHECKING:
@@ -627,11 +624,17 @@ class WebDriverPlaywright(WebDriverProxy):
                     logger.exception("Timed out requesting url %s", url)
                     raise
 
+                slice_container_elems: list[Locator] = []
+                rendered_chart_count = 0
                 try:
                     # chart containers didn't render
                     logger.debug("Wait for chart containers to draw at url: %s", url)
                     slice_container_locator = page.locator(".chart-container")
-                    for slice_container_elem in slice_container_locator.all():
+                    # One-time snapshot: containers mounting after this point
+                    # are neither waited on nor counted, so the progress
+                    # numbers below describe the snapshot, not the final DOM.
+                    slice_container_elems = slice_container_locator.all()
+                    for slice_container_elem in slice_container_elems:
                         slice_wait_timeout = (
                             report_execution_context.deadline.timeout_seconds(
                                 "chart_mount",
@@ -649,10 +652,19 @@ class WebDriverPlaywright(WebDriverProxy):
                                 else {}
                             )
                         )
+                        rendered_chart_count += 1
                 except PlaywrightTimeout:
-                    logger.exception(
-                        "Timed out waiting for chart containers to draw at url %s",
+                    # Customer-side chart loading is often just slow, not a
+                    # Superset bug, so this is a WARNING (matching the other
+                    # locate-wait timeouts below) rather than an ERROR -- but
+                    # it still fails the screenshot; see the `raise` below.
+                    logger.warning(
+                        "Timed out waiting for chart containers to draw at url %s "
+                        "(%s of %s chart containers rendered before the timeout)",
                         url,
+                        rendered_chart_count,
+                        len(slice_container_elems),
+                        exc_info=True,
                     )
                     raise
                 selenium_animation_wait = app.config[
@@ -699,19 +711,38 @@ class WebDriverPlaywright(WebDriverProxy):
                         "SCREENSHOT_TILED_VIEWPORT_HEIGHT", viewport_height
                     )
 
-                    if dashboard_height == 0:
-                        logger.warning(
+                    # A height of 0 means the DOM query above found no matching
+                    # element (or it hadn't laid out yet), not that the
+                    # dashboard is actually empty. Treat it as "unknown" rather
+                    # than "fits in a single tile": chart_count alone already
+                    # tells us whether this looks like a large dashboard, and
+                    # that signal must not be silently vetoed just because we
+                    # couldn't measure height, or a large dashboard could skip
+                    # tiling and ship with unrendered below-the-fold charts.
+                    height_unknown = dashboard_height == 0
+                    likely_large_dashboard = (
+                        chart_count >= chart_threshold
+                        or dashboard_height > height_threshold
+                    )
+                    if height_unknown:
+                        log_fn = (
+                            logger.warning if likely_large_dashboard else logger.debug
+                        )
+                        log_fn(
                             "Could not determine dashboard height for element %s "
-                            "at url %s; falling back to standard screenshot behavior",
+                            "at url %s (%s chart containers found); %s",
                             element_name,
                             url,
+                            chart_count,
+                            "attempting tiled screenshot anyway"
+                            if likely_large_dashboard
+                            else "falling back to standard screenshot behavior",
                         )
 
                     # Use tiled screenshots for large dashboards
-                    use_tiled = (
-                        chart_count >= chart_threshold
-                        or dashboard_height > height_threshold
-                    ) and dashboard_height > tile_height
+                    use_tiled = likely_large_dashboard and (
+                        height_unknown or dashboard_height > tile_height
+                    )
 
                     if use_tiled:
                         logger.info(
@@ -740,32 +771,28 @@ class WebDriverPlaywright(WebDriverProxy):
                             url=url,
                         )
                         if not img:
-                            if report_execution_context is None:
-                                logger.warning(
-                                    "Tiled screenshot failed for url %s%s; "
-                                    "preserving thumbnail fallback behavior",
-                                    url,
-                                    (f" [{log_context}]" if log_context else ""),
-                                )
-                                img = WebDriverPlaywright._get_screenshot(
-                                    page,
-                                    element,
-                                    element_name,
-                                )
-                            else:
-                                logger.warning(
-                                    "Tiled screenshot failed for url %s%s and no safe "
-                                    "fallback exists; "
-                                    "terminal_reason=tiled_capture_failed",
-                                    url,
-                                    f" [{log_context}]" if log_context else "",
-                                )
-                                raise PlaywrightTimeout(
-                                    f"Tiled screenshot failed for url {url}"
-                                )
+                            # _get_screenshot() has no wait/readiness logic at
+                            # all, so falling back to it here would risk
+                            # silently delivering a screenshot of spinners or
+                            # a blank dashboard. Fail the capture loudly
+                            # (report error, thumbnail cache ERROR) instead of
+                            # guessing at a "safer" fallback (#42273) -- for
+                            # thumbnails too, since the caller treats the
+                            # raise as a clean cache-ERROR, never caching or
+                            # serving a blank.
+                            logger.warning(
+                                "Tiled screenshot failed for url %s%s and no safe "
+                                "fallback exists; "
+                                "terminal_reason=tiled_capture_failed",
+                                url,
+                                f" [{log_context}]" if log_context else "",
+                            )
+                            raise PlaywrightTimeout(
+                                f"Tiled screenshot failed for url {url}"
+                            )
                         logger.debug(
                             "Tiled screenshot result: %d bytes for url: %s",
-                            len(img) if img else 0,
+                            len(img),
                             url,
                         )
                     else:

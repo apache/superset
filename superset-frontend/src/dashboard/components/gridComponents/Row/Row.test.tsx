@@ -240,6 +240,15 @@ test('should call deleteComponent when deleted', () => {
   expect(deleteComponent).toHaveBeenCalledTimes(1);
 });
 
+test('settings IconButton exposes an accessible name without visible label text', () => {
+  setup({ component: rowWithoutChildren, editMode: true });
+
+  expect(
+    screen.getByRole('button', { name: 'Row settings' }),
+  ).toBeInTheDocument();
+  expect(screen.queryByText('Row settings')).not.toBeInTheDocument();
+});
+
 test('should pass appropriate availableColumnCount to children', () => {
   const { getByTestId } = setup();
   expect(getByTestId('mock-dashboard-component')).toHaveTextContent(

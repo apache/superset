@@ -16,28 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { MouseEventHandler, FC } from 'react';
+import { render, screen, fireEvent } from 'spec/helpers/testing-library';
+import DeleteComponentButton from './DeleteComponentButton';
 
-import { t } from '@apache-superset/core/translation';
-import { Icons } from '@superset-ui/core/components/Icons';
-import type { IconType } from '@superset-ui/core/components/Icons/types';
-import IconButton from './IconButton';
+test('exposes an accessible name without rendering visible label text', () => {
+  render(<DeleteComponentButton onDelete={jest.fn()} />);
 
-type DeleteComponentButtonProps = {
-  onDelete: MouseEventHandler<HTMLButtonElement>;
-  iconSize?: IconType['iconSize'];
-};
+  expect(
+    screen.getByRole('button', { name: 'Delete component' }),
+  ).toBeInTheDocument();
+  expect(screen.queryByText('Delete component')).not.toBeInTheDocument();
+});
 
-const DeleteComponentButton: FC<DeleteComponentButtonProps> = ({
-  onDelete,
-  iconSize,
-}) => (
-  <IconButton
-    onClick={onDelete}
-    label={t('Delete component')}
-    hideVisibleLabel
-    icon={<Icons.DeleteOutlined iconSize={iconSize ?? 'l'} />}
-  />
-);
+test('calls onDelete when clicked', () => {
+  const onDelete = jest.fn();
+  render(<DeleteComponentButton onDelete={onDelete} />);
 
-export default DeleteComponentButton;
+  fireEvent.click(screen.getByRole('button', { name: 'Delete component' }));
+
+  expect(onDelete).toHaveBeenCalledTimes(1);
+});
