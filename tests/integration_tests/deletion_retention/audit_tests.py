@@ -87,11 +87,11 @@ class TestPurgeAudit(DeletionRetentionTestBase):
         db.session.expire_all()
 
         assert result == {"reconciled": 1, "absent": 1, "failed": 0}
-        # reconciled_absent, NOT confirmed: the entity being gone proves some
+        # target_absent, NOT confirmed: the entity being gone proves some
         # purge committed, but a concurrent attempt or unrelated deletion fits
         # the evidence equally well -- the compliance record must not
         # attribute a success it did not witness.
-        assert row.status == audit.STATUS_RECONCILED_ABSENT
+        assert row.status == audit.STATUS_TARGET_ABSENT
         # No confirmed_on: nothing was confirmed -- only inferred absent.
         assert row.confirmed_on is None
 

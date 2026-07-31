@@ -53,7 +53,7 @@ from superset.models.purge_audit_log import (
     STATUS_CONFIRMED,
     STATUS_FAILED,
     STATUS_PENDING,
-    STATUS_RECONCILED_ABSENT,
+    STATUS_TARGET_ABSENT,
 )
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -207,7 +207,7 @@ def reconcile_pending(stale_before: datetime | None = None) -> dict[str, int]:
 
     A missing entity proves *some* purge committed -- but not that it was this
     attempt: a concurrent attempt or an unrelated deletion fits the evidence
-    equally well, so the row is finalized ``reconciled_absent`` rather than
+    equally well, so the row is finalized ``target_absent`` rather than
     ``confirmed``. A surviving or unresolvable entity means the attempt did
     not durably purge it and is finalized as failed; normal selection may
     retry.
@@ -228,7 +228,7 @@ def reconcile_pending(stale_before: datetime | None = None) -> dict[str, int]:
         )
         for record in records:
             if _entity_exists(session, record) is False:
-                record.status = STATUS_RECONCILED_ABSENT
+                record.status = STATUS_TARGET_ABSENT
                 absent += 1
             else:
                 record.status = STATUS_FAILED
