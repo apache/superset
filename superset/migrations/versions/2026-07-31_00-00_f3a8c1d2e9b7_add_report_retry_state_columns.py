@@ -17,8 +17,8 @@
 """add_report_retry_columns
 
 Revision ID: f3a8c1d2e9b7
-Revises: d3b9a1f6c204
-Create Date: 2026-07-28 00:00:00.000000
+Revises: e7d93a524ff6
+Create Date: 2026-07-31 00:00:00.000000
 
 """
 
@@ -27,7 +27,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "f3a8c1d2e9b7"
-down_revision = "d3b9a1f6c204"
+down_revision = "e7d93a524ff6"
 
 
 def upgrade() -> None:
