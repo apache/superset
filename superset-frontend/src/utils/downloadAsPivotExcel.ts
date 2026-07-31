@@ -50,13 +50,17 @@ function restoreUnambiguousNumbers(sheet: WorkSheet): void {
         .map((part: string | undefined) => Number(part ?? 0));
       const date = new Date(y, mo - 1, d, h, mi, s);
       // The Date constructor rolls invalid components over into the next
-      // month/day (e.g. day 40 becomes the 10th of the following month)
-      // instead of rejecting them, so confirm the parts round-trip before
-      // trusting the result.
+      // unit (e.g. day 40 becomes the 10th of the following month, minute
+      // 60 becomes the top of the next hour) instead of rejecting them, so
+      // confirm every part - date and time - round-trips before trusting
+      // the result.
       const isValid =
         date.getFullYear() === y &&
         date.getMonth() === mo - 1 &&
-        date.getDate() === d;
+        date.getDate() === d &&
+        date.getHours() === h &&
+        date.getMinutes() === mi &&
+        date.getSeconds() === s;
       if (isValid) {
         cell.t = 'd';
         cell.v = date;

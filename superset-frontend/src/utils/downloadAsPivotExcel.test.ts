@@ -116,3 +116,31 @@ test('restores unambiguous ISO date/datetime strings to native Excel date cells'
   // Non-date text is left untouched.
   expect(sheet.C1).toMatchObject({ t: 's', v: 'not-a-date' });
 });
+
+test('leaves ISO-shaped strings with out-of-range time components as text', () => {
+  document.body.innerHTML = `
+    <table id="pivot-table">
+      <tbody>
+        <tr>
+          <td>2024-01-01 13:60:30</td>
+          <td>2024-01-01 24:00:00</td>
+          <td>2024-01-01 12:30:61</td>
+        </tr>
+      </tbody>
+    </table>
+  `;
+
+  exportPivotExcel('#pivot-table', 'export');
+
+  const workbook = mockWriteFile.mock.calls.at(-1)?.[0] as WorkBook;
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+  // The Date constructor rolls an out-of-range minute/hour/second over into
+  // the next unit (e.g. 13:60:30 becomes 14:00:30) instead of rejecting it.
+  // If only the date fields were round-tripped, these would be silently
+  // exported as native cells holding the wrong time, so they must stay as
+  // text - exactly as rendered - instead.
+  expect(sheet.A1).toMatchObject({ t: 's', v: '2024-01-01 13:60:30' });
+  expect(sheet.B1).toMatchObject({ t: 's', v: '2024-01-01 24:00:00' });
+  expect(sheet.C1).toMatchObject({ t: 's', v: '2024-01-01 12:30:61' });
+});
