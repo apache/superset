@@ -2010,6 +2010,44 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         db.session.delete(model)
         db.session.commit()
 
+    def test_update_dashboard_preserves_unsent_json_metadata_fields(self):
+        """
+        Dashboard API: a PUT whose ``json_metadata`` omits a field must not
+        reset that field to its default. ``UpdateDashboardCommand`` routes
+        the incoming ``json_metadata`` through ``DashboardDAO.update``'s
+        generic attribute assignment before calling
+        ``DashboardDAO.set_dash_metadata`` -- if that assignment overwrites
+        ``dashboard.json_metadata`` first, the merge in
+        ``set_dash_metadata`` (which reads ``dashboard.params_dict``) has
+        nothing but the new, partial payload to merge against, silently
+        collapsing the merge into a no-op (see #42142).
+        """
+        admin = self.get_user("admin")
+        dashboard_id = self.insert_dashboard(
+            "title1",
+            "slug1",
+            [admin.id],
+            json_metadata=json.dumps(
+                {"refresh_frequency": 60, "cross_filters_enabled": False}
+            ),
+        ).id
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard_id}"
+        rv = self.put_assert_metric(
+            uri,
+            {"json_metadata": json.dumps({"color_scheme": "d3Category10"})},
+            "put",
+        )
+        assert rv.status_code == 200
+        model = db.session.query(Dashboard).get(dashboard_id)
+        saved_metadata = json.loads(model.json_metadata)
+        assert saved_metadata["refresh_frequency"] == 60
+        assert saved_metadata["cross_filters_enabled"] is False
+        assert saved_metadata["color_scheme"] == "d3Category10"
+
+        db.session.delete(model)
+        db.session.commit()
+
     def test_add_dashboard_filters(self):
         """
         Dashboard API: Test that a filter was added
