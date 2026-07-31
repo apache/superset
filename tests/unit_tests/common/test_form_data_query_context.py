@@ -236,6 +236,23 @@ def test_orderby_raw_mode_parses_order_by_cols() -> None:
     assert query["orderby"] == [["a", True], ["b", False]]
 
 
+def test_aggregate_mode_ignores_stale_order_by_cols() -> None:
+    # order_by_cols is a raw-mode-only control (resetOnHide: false), so it isn't
+    # reset when switching to aggregate mode. The rebuild must ignore a stale value
+    # and order by the metric like the chart does, or a row_limit would return a
+    # different top-N than the chart shows.
+    form_data = {
+        "metrics": ["count"],
+        "groupby": ["c"],
+        "order_by_cols": ['["a", true]'],
+        "row_limit": 10,
+    }
+    query = build_query_context_from_form_data(form_data, DATASOURCE, viz_type="table")[
+        "queries"
+    ][0]
+    assert query["orderby"] == [["count", False]]
+
+
 def test_sql_filters_and_legacy_where_go_into_extras() -> None:
     form_data = {
         "groupby": ["c"],

@@ -29,6 +29,13 @@ grain — mirroring the shared parts of the viz plugins' ``buildQuery``. It does
 **not** reproduce plugin post-processing (pivot, contribution/percent
 transforms, rolling/forecast) or multi-query fan-out, so callers must restrict it
 to viz types whose data maps faithfully to a single plain query.
+
+The mirrored logic lives on the frontend in
+``superset-frontend/plugins/plugin-chart-table/src/buildQuery.ts`` (query mode,
+ordering), ``superset-frontend/packages/superset-ui-core/src/query/`` (field
+extraction, ``processFilters``). There is no automated tripwire tying the two
+across the language boundary; the per-helper pointers below must be kept in sync
+when that frontend logic changes.
 """
 
 from __future__ import annotations
@@ -52,9 +59,10 @@ def adhoc_filters_to_query_filters(
 
     By default all ``SIMPLE`` filters are converted (the behavior the MCP
     compile/preview path relies on). Pass ``where_only=True`` to convert only
-    ``WHERE``-clause filters, matching the frontend's ``processFilters`` — the
-    dashboard export uses this so it applies the same rows the chart shows and
-    does not additionally filter on ``SIMPLE`` ``HAVING`` clauses.
+    ``WHERE``-clause filters, matching the frontend's ``processFilters``
+    (``superset-ui-core/src/query/processFilters.ts``) — the dashboard export uses
+    this so it applies the same rows the chart shows and does not additionally
+    filter on ``SIMPLE`` ``HAVING`` clauses.
     """
     result: list[dict[str, Any]] = []
     for flt in adhoc_filters or []:
@@ -76,8 +84,9 @@ def freeform_where_having(form_data: dict[str, Any]) -> dict[str, str]:
     """
     Collect free-form SQL predicates into a query ``extras`` mapping.
 
-    Mirrors ``processFilters`` on the frontend: ``SQL`` adhoc filters (and a
-    legacy top-level ``where``) join into ``extras.where`` / ``extras.having`` by
+    Mirrors ``processFilters`` on the frontend
+    (``superset-ui-core/src/query/processFilters.ts``): ``SQL`` adhoc filters (and
+    a legacy top-level ``where``) join into ``extras.where`` / ``extras.having`` by
     clause, so a chart restricted by a custom SQL predicate exports the same rows
     it displays instead of the full, unrestricted result.
     """
@@ -131,8 +140,8 @@ def columns_from_form_data(form_data: dict[str, Any]) -> list[Any]:
 def is_raw_query_mode(form_data: dict[str, Any]) -> bool:
     """
     Whether the chart runs in raw (non-aggregated) mode, mirroring the frontend's
-    ``getQueryMode``: an explicit ``query_mode`` wins, otherwise the presence of
-    ``all_columns`` implies raw mode.
+    ``getQueryMode`` (``plugin-chart-table/src/buildQuery.ts``): an explicit
+    ``query_mode`` wins, otherwise the presence of ``all_columns`` implies raw mode.
     """
     if mode := form_data.get("query_mode"):
         return mode == "raw"
@@ -151,10 +160,18 @@ def orderby_from_form_data(
     (``timeseries_limit_metric``, or the first metric when ``sort_by_metric`` is
     set), otherwise fall back to the first metric descending — matching the
     table/pie ``buildQuery`` defaults.
+
+    ``order_by_cols`` is a raw-mode-only control (``resetOnHide: false`` in the
+    plugin control panels), so an aggregate chart can carry a stale value from a
+    previous raw-mode configuration. Aggregate mode must ignore it, mirroring the
+    frontend, where ``plugin-chart-table/src/buildQuery.ts:136-145`` overrides
+    ``orderby`` with the sort metric (``order_by_cols`` reaches ``orderby`` only
+    via the alias in ``extractQueryFields.ts``, then gets overwritten in aggregate
+    mode).
     """
-    if order_by_cols := form_data.get("order_by_cols") or []:
+    if is_raw_query_mode(form_data):
         parsed: list[list[Any]] = []
-        for col in order_by_cols:
+        for col in form_data.get("order_by_cols") or []:
             if isinstance(col, str):
                 try:
                     col = json.loads(col)
