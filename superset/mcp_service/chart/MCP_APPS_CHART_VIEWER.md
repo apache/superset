@@ -58,6 +58,32 @@ Key pieces:
 | Stripper keep-list + tool pinning | `middleware.py`, `mcp_config.py` |
 | `@tool(meta=...)` plumbing | `superset-core/.../mcp/decorators.py`, `superset/core/mcp/core_mcp_injection.py` |
 
+## Extension capability declaration (`io.modelcontextprotocol/ui`)
+
+Superset declares nothing here, and deliberately so. FastMCP's low-level server
+adds the extension to the `initialize` response itself, unconditionally:
+
+```
+"capabilities": {..., "extensions": {"io.modelcontextprotocol/ui": {}}}
+```
+
+Verified by round-tripping `initialize` against the real
+`superset.mcp_service.app.mcp` instance (fastmcp 3.4.2). `mcp.types.ServerCapabilities`
+has no `extensions` field, but it is `extra="allow"`, so FastMCP attaches it as
+a pydantic extra and it survives serialization — the same trick it uses for
+`tasks`.
+
+`FastMCP(...)` does accept an `experimental_capabilities=` kwarg, and passing
+`{"io.modelcontextprotocol/ui": {...}}` through it works without error — but it
+lands under the legacy `experimental` map, *alongside* the already-correct
+`extensions` entry. That would give hosts two sources of truth for one
+capability, so it is intentionally not done.
+
+Because the declaration comes from the SDK rather than from Superset code, it is
+pinned by `tests/unit_tests/mcp_service/test_mcp_apps_capability.py`: an SDK bump
+that stops advertising the extension fails there instead of silently degrading
+every MCP Apps host to a plain-text tool result.
+
 ## Why the two infra changes were required
 
 Superset's MCP service has two defaults that block MCP Apps out of the box; both
@@ -130,11 +156,15 @@ npm test               # vitest: adapter + bridge contract tests
 
 ### Known gaps in this setup (PoC-level, must be fixed to graduate)
 
-1. **Nothing runs this in CI.** No workflow references `chart_viewer`, so the
-   widget's tests and build never execute on a PR. They will rot.
-2. **Nothing builds it at packaging time.** `MANIFEST.in` references
-   `dist/index.html`, but no release step produces it — so a packaged install
-   currently ships without the widget and serves the placeholder.
+1. ~~**Nothing runs this in CI.**~~ Fixed: `.github/workflows/mcp-chart-viewer.yml`
+   runs `npm ci` / `npm test` / `npm run build` on any change under
+   `chart_viewer/`, and fails if `dist/index.html` is not emitted.
+2. **Nothing builds it at packaging time — partially fixed.** The PyPI release
+   path is wired (`RELEASING/README.md`, "Create the distribution", before
+   `python -m build`). The **Docker image is still a gap**: `Dockerfile` has no
+   widget build step, so official images serve the placeholder. See
+   "Packaging" in `resources/chart_viewer/README.md` for exactly what closing
+   it requires.
 3. **Location is unusual.** Every other bundler-based npm project in this repo
    is a repo-root sibling (`superset-frontend/`, `superset-websocket/`,
    `superset-embedded-sdk/`, `docs/`). This one lives inside the Python package
