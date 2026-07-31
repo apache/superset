@@ -43,6 +43,19 @@ export const UnsavedChangesModal: FC<UnsavedChangesModalProps> = ({
     onHide={onHide}
     show={showModal}
     width="444px"
+    // This modal always interrupts something already on screen (a draggable
+    // "View query" modal, an in-progress form, etc). Ant Design only assigns
+    // a higher z-index automatically when a Modal is nested inside another
+    // open Modal's React tree; two top-level siblings both fall back to the
+    // same static z-index and are tie-broken by DOM order instead. Without
+    // destroyOnHidden, a Modal's portal node is created once (lazily, on
+    // first open) and then left in place forever, so if this dialog is ever
+    // opened once before whatever it's interrupting is opened, a later
+    // reopen would go right back to that stale, now-too-early DOM position
+    // and render behind it again. destroyOnHidden tears the portal down on
+    // every close, so every open recreates it at the end of the DOM and it
+    // reliably paints on top -- no z-index, hardcoded or otherwise, needed.
+    destroyOnHidden
     title={
       <>
         <Icons.WarningOutlined iconSize="m" style={{ marginRight: 8 }} />
