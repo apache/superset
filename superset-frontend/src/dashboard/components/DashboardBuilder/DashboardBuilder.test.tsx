@@ -596,6 +596,7 @@ describe('DashboardBuilder', () => {
       dashboardFiltersOpen: true,
       toggleDashboardFiltersOpen: jest.fn(),
       nativeFiltersEnabled: true,
+      hasFilters: true,
     });
     try {
       const { getByTestId } = setup();
@@ -621,6 +622,7 @@ describe('DashboardBuilder', () => {
       dashboardFiltersOpen: true,
       toggleDashboardFiltersOpen: jest.fn(),
       nativeFiltersEnabled: true,
+      hasFilters: true,
     });
     try {
       const { getByTestId } = setup();
@@ -642,6 +644,7 @@ describe('DashboardBuilder', () => {
       dashboardFiltersOpen: true,
       toggleDashboardFiltersOpen: jest.fn(),
       nativeFiltersEnabled: true,
+      hasFilters: true,
     });
     try {
       const { getByTestId } = setup();
