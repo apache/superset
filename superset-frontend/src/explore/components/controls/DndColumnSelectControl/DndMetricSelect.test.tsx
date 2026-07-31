@@ -604,13 +604,17 @@ const stringColumn = {
   column_name: 'string_col',
   type_generic: GenericDataType.String,
 };
+const unknowTypeColumn = {
+  column_name: 'unknown_type_col',
+  type_generic: 'not_a_real_type',
+};
 
 test('folder drop appends a saved metric as-is and columns as adhoc metrics with default aggregation', () => {
   const onChange = jest.fn();
   render(
     <DndMetricSelect
       {...defaultProps}
-      columns={[numericColumn, stringColumn]}
+      columns={[numericColumn, stringColumn, unknowTypeColumn]}
       value={['metric_b']}
       onChange={onChange}
       multi
@@ -622,6 +626,7 @@ test('folder drop appends a saved metric as-is and columns as adhoc metrics with
     { type: DndItemType.Metric, value: { metric_name: 'metric_a' } as any },
     { type: DndItemType.Column, value: numericColumn as any },
     { type: DndItemType.Column, value: stringColumn as any },
+    { type: DndItemType.Column, value: unknowTypeColumn as any },
   ]);
 
   expect(onChange).toHaveBeenCalledTimes(1);
@@ -632,10 +637,14 @@ test('folder drop appends a saved metric as-is and columns as adhoc metrics with
   expect(committed[2]).toBeInstanceOf(AdhocMetric);
   expect(committed[2].column.column_name).toBe('numeric_col');
   expect(committed[2].aggregate).toBe(AGGREGATES.SUM);
-  // String/boolean/temporal columns default to COUNT_DISTINCT.
+  // Text columns default to COUNT_DISTINCT.
   expect(committed[3]).toBeInstanceOf(AdhocMetric);
   expect(committed[3].column.column_name).toBe('string_col');
   expect(committed[3].aggregate).toBe(AGGREGATES.COUNT_DISTINCT);
+  // Other columns default to COUNT_DISTINCT as well.
+  expect(committed[4]).toBeInstanceOf(AdhocMetric);
+  expect(committed[4].column.column_name).toBe('unknown_type_col');
+  expect(committed[4].aggregate).toBe(AGGREGATES.COUNT_DISTINCT);
 });
 
 test('folder drop replaces (not appends) the existing value for a single-value control', () => {
