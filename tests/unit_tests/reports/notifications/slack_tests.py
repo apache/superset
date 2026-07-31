@@ -663,8 +663,7 @@ def test_send_slack(
     execution_id = uuid.uuid4()
     flask_global_mock.logs_context = {"execution_id": execution_id}
     mocker.patch(
-        "superset.reports.notifications.slack.feature_flag_manager"
-        ".is_feature_enabled",
+        "superset.reports.notifications.slack.feature_flag_manager.is_feature_enabled",
         return_value=False,
     )
     slack_client_mock.return_value.chat_postMessage.return_value = {"ok": True}
