@@ -131,14 +131,13 @@ def _get_max_resample_buckets() -> int:
 
 
 def _validate_bucket_count(start: pd.Timestamp, end: pd.Timestamp, rule: str) -> None:
-    max_buckets = _get_max_resample_buckets()
     try:
         estimated = _estimate_bucket_count(start, end, rule)
     except (TypeError, ValueError) as ex:
         raise InvalidPostProcessingError(
             _("Invalid resample rule: %(rule)s", rule=rule)
         ) from ex
-    if estimated > max_buckets:
+    if estimated > (max_buckets := _get_max_resample_buckets()):
         raise InvalidPostProcessingError(
             _(
                 "The resample operation generated too many time buckets "
