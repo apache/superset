@@ -20,13 +20,18 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type JSX,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 import type { ChartData, ChartMeta, ColorScheme, ViewType } from './types';
 import { REQUERY_TOOL_NAME } from './types';
-import { ChartBridge, type HostCapabilities } from './bridge';
+import {
+  ChartBridge,
+  type DisplayMode,
+  type HostCapabilities,
+} from './bridge';
 import {
   applyThemeVars,
   detectPreferredScheme,
@@ -80,6 +85,19 @@ export function App(): JSX.Element {
   const [drill, setDrill] = useState<DrillState>({ active: false, label: '' });
   const [selection, setSelection] = useState<EChartClickParams | null>(null);
   const [requestedHeight, setRequestedHeight] = useState(DEFAULT_WIDGET_HEIGHT);
+  // Tracked so the maximize control can toggle rather than only ever expand.
+  const [displayMode, setDisplayMode] = useState<DisplayMode>('inline');
+  const [restoreHeight, setRestoreHeight] = useState<number | null>(null);
+
+  const toastTimer = useRef<number | null>(null);
+  const showToast = useCallback((message: string, ms = 2600): void => {
+    setToast(message);
+    if (toastTimer.current !== null) window.clearTimeout(toastTimer.current);
+    toastTimer.current = window.setTimeout(() => {
+      setToast(null);
+      toastTimer.current = null;
+    }, ms);
+  }, []);
 
   // Superset tokens travel with the data, so the widget renders in the
   // deployment's own branding rather than hardcoded colors.
@@ -128,6 +146,12 @@ export function App(): JSX.Element {
         if (!alive) return;
         setCaps(init.capabilities);
         setScheme(init.context.scheme);
+        if (
+          init.context.displayMode === 'inline' ||
+          init.context.displayMode === 'fullscreen'
+        ) {
+          setDisplayMode(init.context.displayMode);
+        }
         if (init.error) {
           intake(null, {}, init.error);
         } else if (init.chartData) {
@@ -157,6 +181,11 @@ export function App(): JSX.Element {
     const offResult = bridge.onToolResult((d, m, e) => intake(d, m, e));
     const offCtx = bridge.onContextChange((ctx) => {
       if (ctx.scheme) setScheme(ctx.scheme);
+      // The host can change display mode on its own (its own fullscreen
+      // chrome, or Esc); follow it so our toggle stays in step.
+      if (ctx.displayMode === 'inline' || ctx.displayMode === 'fullscreen') {
+        setDisplayMode(ctx.displayMode);
+      }
     });
 
     return () => {
@@ -218,8 +247,7 @@ export function App(): JSX.Element {
           });
         }
       } catch {
-        setToast('Drill-down is unavailable in this host.');
-        window.setTimeout(() => setToast(null), 2600);
+        showToast('Drill-down is unavailable in this host.');
       } finally {
         setLoading(false);
       }
@@ -317,16 +345,32 @@ export function App(): JSX.Element {
     });
     await bridge.sendMessage(msg);
     setSelection(null);
-    setToast('Shared this data point with the assistant.');
-    window.setTimeout(() => setToast(null), 2600);
+    showToast('Shared this data point with the assistant.');
   }, [selection, data, roles]);
 
   // explore_url is a field on the ChartData (structuredContent), with a
   // legacy fallback to tool-result _meta for older servers.
   const exploreUrl = data?.explore_url ?? meta.explore_url;
-  const openInSuperset = useCallback(() => {
-    if (exploreUrl) void bridge.openLink(exploreUrl);
-  }, [exploreUrl]);
+  const openInSuperset = useCallback(async () => {
+    if (!exploreUrl) return;
+    if (await bridge.openLink(exploreUrl)) return;
+    // Neither the host nor a direct window.open could take us there (a
+    // sandboxed iframe with no popup permission). Hand over the URL rather
+    // than letting the click do nothing.
+    let copied = false;
+    try {
+      await navigator.clipboard?.writeText(exploreUrl);
+      copied = true;
+    } catch {
+      copied = false;
+    }
+    showToast(
+      copied
+        ? 'Could not open it here — link copied to your clipboard.'
+        : `Open in Superset: ${exploreUrl}`,
+      copied ? 2600 : 8000,
+    );
+  }, [exploreUrl, showToast]);
 
   const toggleMetric = useCallback((name: string) => {
     setActiveMetrics((cur) => {
@@ -365,13 +409,35 @@ export function App(): JSX.Element {
     [requestHeight, requestedHeight],
   );
 
-  const maximize = useCallback(async () => {
-    const switched = await bridge.requestDisplayMode('fullscreen');
-    if (!switched) {
-      // Hosts without display-mode support still honor size notifications.
-      requestHeight(Math.max(requestedHeight, 720));
+  const toggleMaximize = useCallback(async () => {
+    const expanding = displayMode !== 'fullscreen';
+    const target: DisplayMode = expanding ? 'fullscreen' : 'inline';
+    if (await bridge.requestDisplayMode(target)) {
+      setDisplayMode(target);
+      return;
     }
-  }, [requestHeight, requestedHeight]);
+    // Hosts without display-mode support still honor size notifications, so
+    // grow the iframe instead — and remember the previous height so the same
+    // control can put it back.
+    if (expanding) {
+      setRestoreHeight(requestedHeight);
+      requestHeight(Math.max(requestedHeight, 720));
+    } else {
+      requestHeight(restoreHeight ?? DEFAULT_WIDGET_HEIGHT);
+      setRestoreHeight(null);
+    }
+    setDisplayMode(target);
+  }, [displayMode, requestHeight, requestedHeight, restoreHeight]);
+
+  // Escape restores an expanded widget, matching the usual fullscreen idiom.
+  useEffect(() => {
+    if (displayMode !== 'fullscreen') return undefined;
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') void toggleMaximize();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [displayMode, toggleMaximize]);
 
   // ---- Render ------------------------------------------------------------
   if (error)
@@ -384,7 +450,8 @@ export function App(): JSX.Element {
       null,
       requestedHeight,
       startResize,
-      maximize,
+      toggleMaximize,
+      displayMode,
     );
   if (loading && !data)
     return shell(
@@ -396,7 +463,8 @@ export function App(): JSX.Element {
       null,
       requestedHeight,
       startResize,
-      maximize,
+      toggleMaximize,
+      displayMode,
     );
   if (!data)
     return shell(
@@ -408,7 +476,8 @@ export function App(): JSX.Element {
       null,
       requestedHeight,
       startResize,
-      maximize,
+      toggleMaximize,
+      displayMode,
     );
 
   const isEmpty = !data.data || data.data.length === 0;
@@ -486,7 +555,8 @@ export function App(): JSX.Element {
     toast,
     requestedHeight,
     startResize,
-    maximize,
+    toggleMaximize,
+    displayMode,
   );
 }
 
@@ -500,8 +570,10 @@ function shell(
   toast?: string | null,
   requestedHeight = DEFAULT_WIDGET_HEIGHT,
   onResizeStart?: (event: ReactPointerEvent<HTMLDivElement>) => void,
-  onMaximize?: () => void,
+  onToggleMaximize?: () => void,
+  displayMode: DisplayMode = 'inline',
 ): JSX.Element {
+  const expanded = displayMode === 'fullscreen';
   return (
     <div className="sv-app" style={{ minHeight: requestedHeight }}>
       <div className="sv-header">
@@ -525,15 +597,16 @@ function shell(
             )}
           </div>
         </div>
-        {onMaximize && (
+        {onToggleMaximize && (
           <button
             type="button"
             className="sv-btn sv-btn--subtle sv-maximize"
-            onClick={onMaximize}
-            aria-label="Maximize chart"
-            title="Maximize"
+            onClick={onToggleMaximize}
+            aria-label={expanded ? 'Restore chart size' : 'Maximize chart'}
+            aria-pressed={expanded}
+            title={expanded ? 'Restore (Esc)' : 'Maximize'}
           >
-            ⛶
+            {expanded ? '⤡' : '⛶'}
           </button>
         )}
       </div>

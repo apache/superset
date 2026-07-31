@@ -247,6 +247,57 @@ describe('ChartBridge handshake contract', () => {
     }
   });
 
+  // "Open in Superset" did nothing in a real host: ui/open-link went
+  // unanswered, the widget waited out the full default timeout, and the
+  // rejection was swallowed with no fallback and nothing shown to the user.
+  it('falls back to window.open when the host ignores ui/open-link', async () => {
+    const host = withFakeHost((msg) => {
+      if (msg.method === 'ui/initialize') {
+        return { hostCapabilities: {}, hostContext: {} };
+      }
+      return undefined; // ui/open-link deliberately unanswered
+    });
+    const opened: string[] = [];
+    const realOpen = window.open;
+    window.open = ((url: string) => {
+      opened.push(url);
+      return {} as Window;
+    }) as typeof window.open;
+    try {
+      const bridge = new ChartBridge();
+      await bridge.initialize(500);
+      await expect(
+        bridge.openLink('https://superset.example/explore/?slice_id=1', 100),
+      ).resolves.toBe(true);
+      expect(opened).toEqual(['https://superset.example/explore/?slice_id=1']);
+    } finally {
+      window.open = realOpen;
+      host.restore();
+    }
+  });
+
+  it('reports failure when neither the host nor window.open can open it', async () => {
+    const host = withFakeHost((msg) => {
+      if (msg.method === 'ui/initialize') {
+        return { hostCapabilities: {}, hostContext: {} };
+      }
+      return undefined;
+    });
+    const realOpen = window.open;
+    // A sandboxed iframe without allow-popups returns null.
+    window.open = (() => null) as typeof window.open;
+    try {
+      const bridge = new ChartBridge();
+      await bridge.initialize(500);
+      await expect(
+        bridge.openLink('https://superset.example/explore/?slice_id=1', 100),
+      ).resolves.toBe(false);
+    } finally {
+      window.open = realOpen;
+      host.restore();
+    }
+  });
+
   it('reports requested widget dimensions to the host', async () => {
     const host = withFakeHost((msg) => {
       if (msg.method === 'ui/initialize') {

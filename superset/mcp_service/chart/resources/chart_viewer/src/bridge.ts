@@ -30,6 +30,9 @@
  */
 import type { ChartData, ChartMeta, ColorScheme } from './types';
 
+/** Display modes the widget can ask the host to switch between. */
+export type DisplayMode = 'inline' | 'fullscreen';
+
 export interface HostContext {
   scheme: ColorScheme;
   displayMode?: string;
@@ -228,22 +231,31 @@ export class ChartBridge {
     }
   }
 
-  /** Request the host open an external link (deep link to Superset). */
-  async openLink(url: string): Promise<boolean> {
-    if (!this.isEmbedded) {
+  /**
+   * Request the host open an external link (deep link to Superset).
+   *
+   * Hosts that do not implement ``ui/open-link`` typically leave the request
+   * unanswered, so this uses a short timeout rather than the default: a click
+   * must not sit for eight seconds doing nothing. On any failure it falls back
+   * to opening directly, which works unless the iframe sandbox forbids popups.
+   * Returns false when the link could not be opened by either route, so the
+   * caller can offer the URL another way instead of failing silently.
+   */
+  async openLink(url: string, timeoutMs = 1500): Promise<boolean> {
+    if (this.isEmbedded) {
       try {
-        window.open(url, '_blank', 'noopener');
+        await this.request('ui/open-link', { url }, timeoutMs);
         return true;
       } catch {
-        return false;
+        // Unimplemented or unanswered — fall through to a direct attempt.
       }
     }
     try {
-      await this.request('ui/open-link', { url });
-      return true;
+      if (window.open(url, '_blank', 'noopener,noreferrer')) return true;
     } catch {
-      return false;
+      // Sandboxed without allow-popups.
     }
+    return false;
   }
 
   /** Report intrinsic content size so the host can size the iframe. */
@@ -257,7 +269,7 @@ export class ChartBridge {
    * request commonly leave it unanswered, so a timeout means unsupported.
    */
   async requestDisplayMode(
-    mode: 'inline' | 'fullscreen',
+    mode: DisplayMode,
     timeoutMs = 1200,
   ): Promise<boolean> {
     if (!this.isEmbedded) return false;
