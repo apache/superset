@@ -166,8 +166,8 @@ def assert_log(state: str, error_message: Optional[str] = None):
     logs = db.session.query(ReportExecutionLog).all()
 
     if state == ReportState.WORKING:
-        # A report that is already in the WORKING state logs an extra WORKING row
-        # for the refused re-computation, on top of the row seeded by the fixture.
+        # A refused invocation gets its own terminal ERROR audit row while the
+        # active owner's seeded row and schedule remain WORKING.
         assert len(logs) == 2
     elif state == ReportState.ERROR:
         # On error we also send a notification, which is recorded as a separate
@@ -190,6 +190,33 @@ def assert_log(state: str, error_message: Optional[str] = None):
         if log.state == ReportState.WORKING:
             assert log.value is None
             assert log.value_row_json is None
+
+
+def assert_refused_execution_history(report_schedule: ReportSchedule) -> None:
+    """Assert a refusal is terminal without adding another active WORKING row."""
+
+    logs = (
+        db.session.query(ReportExecutionLog)
+        .filter(ReportExecutionLog.report_schedule == report_schedule)
+        .all()
+    )
+    active_logs = [
+        log
+        for log in logs
+        if log.state == ReportState.WORKING and log.error_message is None
+    ]
+    refused_logs = [
+        log
+        for log in logs
+        if log.state == ReportState.ERROR
+        and log.error_message == str(ReportSchedulePreviousWorkingError())
+    ]
+    assert len(active_logs) == 1
+    assert len(refused_logs) == 1
+    refused_log = refused_logs[0]
+    assert refused_log.start_dttm is not None
+    assert refused_log.end_dttm is not None
+    assert refused_log.end_dttm >= refused_log.start_dttm
 
 
 @contextmanager
@@ -1932,6 +1959,7 @@ def test_report_schedule_working(create_report_slack_chart_working):
             ReportState.WORKING,
             error_message=ReportSchedulePreviousWorkingError.message,
         )
+        assert_refused_execution_history(create_report_slack_chart_working)
         assert create_report_slack_chart_working.last_state == ReportState.WORKING
 
 
@@ -1963,6 +1991,7 @@ def test_report_schedule_same_execution_replay_stays_working(
     db.session.refresh(create_report_slack_chart_working)
     assert active_log.state == ReportState.WORKING
     assert active_log.error_message is None
+    assert_refused_execution_history(create_report_slack_chart_working)
     assert create_report_slack_chart_working.last_state == ReportState.WORKING
 
 
@@ -1985,8 +2014,10 @@ def test_same_execution_replay_write_failure_does_not_claim_active_row(
 
     def fail_refusal_write(
         state: BaseReportState,
-        report_state: ReportState,
         error_message: Optional[str] = None,
+        *,
+        log_state: ReportState | None = None,
+        reuse_working_log: bool = True,
     ) -> None:
         raise OperationalError(
             "INSERT report_execution_log",
@@ -1996,7 +2027,7 @@ def test_same_execution_replay_write_failure_does_not_claim_active_row(
 
     monkeypatch.setattr(
         BaseReportState,
-        "update_report_schedule_and_log",
+        "create_log",
         fail_refusal_write,
     )
 
@@ -2552,6 +2583,9 @@ def test_readiness_timeout_retries_terminal_persistence_and_allows_next_schedule
     )
     assert timed_out_log.state == ReportState.ERROR
     assert "readiness allocation expired" in timed_out_log.error_message
+    assert timed_out_log.start_dttm is not None
+    assert timed_out_log.end_dttm is not None
+    assert timed_out_log.end_dttm > timed_out_log.start_dttm
     assert create_report_email_chart.last_state == ReportState.ERROR
     email_mock.assert_not_called()
     assert any(

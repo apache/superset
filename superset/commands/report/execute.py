@@ -402,7 +402,13 @@ class BaseReportState:
             recipient.type = ReportRecipientType.SLACKV2
             recipient.recipient_config_json = recipient_config_json
 
-    def create_log(self, error_message: Optional[str] = None) -> None:
+    def create_log(
+        self,
+        error_message: Optional[str] = None,
+        *,
+        log_state: ReportState | None = None,
+        reuse_working_log: bool = True,
+    ) -> None:
         """
         Creates a Report execution log, uses the current computed last_value for Alerts
 
@@ -415,13 +421,16 @@ class BaseReportState:
         for working-timeout detection), so promoting it in place keeps one row per
         execution ``uuid`` without losing that behavior. The intentional
         error-notification marker row is a terminal-to-terminal transition, so it is
-        still recorded as a distinct row.
+        still recorded as a distinct row. A refused duplicate also needs a distinct
+        terminal audit row without changing the active owner's schedule state;
+        ``log_state`` and ``reuse_working_log`` support that case.
         """
         from sqlalchemy.orm.exc import StaleDataError
 
         try:
             # Reuse the in-flight WORKING trigger row for this execution, if any,
             # so a single execution surfaces as a single log entry.
+            effective_state = log_state or self._report_schedule.last_state
             log = (
                 db.session.query(ReportExecutionLog)
                 .filter(
@@ -430,7 +439,7 @@ class BaseReportState:
                     ReportExecutionLog.error_message.is_(None),
                 )
                 .first()
-                if self._report_schedule.last_state != ReportState.WORKING
+                if reuse_working_log and effective_state != ReportState.WORKING
                 else None
             )
             if log is None:
@@ -444,7 +453,7 @@ class BaseReportState:
             log.end_dttm = datetime.now(timezone.utc).replace(tzinfo=None)
             log.value = self._report_schedule.last_value
             log.value_row_json = self._report_schedule.last_value_row_json
-            log.state = self._report_schedule.last_state
+            log.state = effective_state
             log.error_message = error_message
             db.session.commit()  # pylint: disable=consider-using-transaction
         except StaleDataError as ex:
@@ -1621,9 +1630,23 @@ class ReportWorkingState(BaseReportState):
             self._execution_id,
         )
         exception_working = ReportSchedulePreviousWorkingError()
-        self.update_report_schedule_and_log(
-            ReportState.WORKING,
+        # This invocation is terminal even though the active owner's schedule
+        # must remain WORKING. Record a distinct ERROR audit row rather than
+        # accumulating another WORKING row or unblocking the active schedule.
+        self.create_log(
             error_message=str(exception_working),
+            log_state=ReportState.ERROR,
+            reuse_working_log=False,
+        )
+        elapsed, remaining = self._budget_values()
+        logger.info(
+            "report_execution_terminal %s state=%s terminal_reason=%s "
+            "elapsed_seconds=%s remaining_seconds=%s",
+            self._log_context,
+            ReportState.ERROR.value,
+            type(exception_working).__name__,
+            f"{elapsed:.2f}" if elapsed is not None else None,
+            f"{remaining:.2f}" if remaining is not None else None,
         )
         raise exception_working
 

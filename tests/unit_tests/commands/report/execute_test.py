@@ -2306,14 +2306,15 @@ def test_working_state_still_working_raises_previous_working(
     """Working state not yet timed out should raise PreviousWorkingError."""
     state = _make_state_instance(mocker, ReportWorkingState)
     mocker.patch.object(state, "is_on_working_timeout", return_value=False)
-    mocker.patch.object(state, "update_report_schedule_and_log")
+    mocker.patch.object(state, "create_log")
 
     with pytest.raises(ReportSchedulePreviousWorkingError):
         state.next()
 
-    state.update_report_schedule_and_log.assert_called_once_with(  # type: ignore[attr-defined]
-        ReportState.WORKING,
+    state.create_log.assert_called_once_with(  # type: ignore[attr-defined]
         error_message=str(ReportSchedulePreviousWorkingError()),
+        log_state=ReportState.ERROR,
+        reuse_working_log=False,
     )
 
 
