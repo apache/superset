@@ -191,9 +191,13 @@ export function App(): JSX.Element {
       if (!data) return;
       setLoading(true);
       try {
+        // The tool takes a single `request` model keyed by `identifier`;
+        // a flat payload is rejected by schema validation.
         const next = (await bridge.callTool(REQUERY_TOOL_NAME, {
-          chart_id: data.chart_id,
-          ...args,
+          request: {
+            identifier: data.chart_id,
+            ...args,
+          },
         })) as ChartData;
         if (next && Array.isArray(next.columns)) {
           setData(next);
@@ -217,7 +221,11 @@ export function App(): JSX.Element {
     (params: EChartClickParams) => {
       setSelection(params);
       if (!roles?.dimension) return;
-      const xVal = data?.data?.[params.dataIndex]?.[roles.dimension.name];
+      const rawX = data?.data?.[params.dataIndex]?.[roles.dimension.name];
+      // Filter values go back to Superset as-is, so the trust delimiters have
+      // to come off or the `==` comparison matches nothing.
+      const xVal =
+        typeof rawX === 'string' ? stripUntrustedMarkers(rawX) : rawX;
       if (canRequery && roles.dimensionIsTemporal) {
         // Ask for a finer granularity where the saved query context supports
         // overriding it. Some chart query contexts ignore this hint.

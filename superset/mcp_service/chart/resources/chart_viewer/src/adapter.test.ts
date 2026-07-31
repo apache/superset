@@ -257,6 +257,37 @@ describe('tooltip HTML escaping (XSS)', () => {
   });
 });
 
+describe('categorical axis values', () => {
+  test('strips trust markers from category labels', () => {
+    const data = makeData({
+      chart_type: 'table',
+      columns: [
+        col({
+          name: 'product_line',
+          display_name: 'Product Line',
+          data_type: 'string',
+        }),
+        col({ name: 'sold', display_name: 'Sold', data_type: 'numeric' }),
+      ],
+      data: [
+        {
+          product_line: '<UNTRUSTED-CONTENT>\nClassic Cars\n</UNTRUSTED-CONTENT>',
+          sold: 33992,
+        },
+        {
+          product_line: '<UNTRUSTED-CONTENT>\nShips\n</UNTRUSTED-CONTENT>',
+          sold: 8127,
+        },
+      ],
+      row_count: 2,
+    });
+
+    const option = chartDataToEChartsOption(data, 'bar', opts) as any;
+
+    expect(option.xAxis.data).toEqual(['Classic Cars', 'Ships']);
+  });
+});
+
 describe('big-number fallback label', () => {
   test('strips model-facing trust markers from chart_name', () => {
     const result = resolveBigNumber(

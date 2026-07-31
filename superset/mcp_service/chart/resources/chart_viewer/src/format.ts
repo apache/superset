@@ -66,7 +66,9 @@ export function formatByColumn(value: unknown, column?: DataColumn): string {
   if (column?.semantic_type === 'percentage') return formatPercent(value);
   if (column?.data_type === 'temporal') return formatDate(value);
   if (column?.data_type === 'numeric') return formatFull(value);
-  return String(value);
+  // String cells carry the model-facing trust delimiters; strip them so the
+  // markers never reach the rendered table.
+  return stripUntrustedMarkers(String(value));
 }
 
 const fmtDate = timeFormat('%b %-d, %Y');

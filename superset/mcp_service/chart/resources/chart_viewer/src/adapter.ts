@@ -279,9 +279,11 @@ function buildCartesian(
 function normalizeDim(value: unknown, isTemporal: boolean): string {
   if (isTemporal) {
     const d = toDate(value);
-    return d ? d.toISOString() : String(value ?? '');
+    if (d) return d.toISOString();
   }
-  return String(value ?? '');
+  // Category values reach axis labels, tooltips, and drill payloads, so the
+  // trust delimiters have to come off here rather than at each display site.
+  return stripUntrustedMarkers(String(value ?? ''));
 }
 
 function gradient(color: string, theme: ThemeTokens) {

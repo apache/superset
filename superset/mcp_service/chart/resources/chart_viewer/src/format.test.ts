@@ -17,7 +17,8 @@
  * under the License.
  */
 import { describe, expect, it } from 'vitest';
-import { stripUntrustedMarkers } from './format';
+import { formatByColumn, stripUntrustedMarkers } from './format';
+import type { DataColumn } from './types';
 
 describe('stripUntrustedMarkers', () => {
   it('removes a complete delimiter pair', () => {
@@ -54,5 +55,24 @@ describe('stripUntrustedMarkers', () => {
 
   it('leaves ordinary text unchanged', () => {
     expect(stripUntrustedMarkers('Monthly Revenue')).toBe('Monthly Revenue');
+  });
+});
+
+describe('formatByColumn', () => {
+  const stringCol = { name: 'product_line', data_type: 'string' } as DataColumn;
+
+  it('strips trust delimiters from string cells', () => {
+    expect(
+      formatByColumn(
+        '<UNTRUSTED-CONTENT>\nClassic Cars\n</UNTRUSTED-CONTENT>',
+        stringCol,
+      ),
+    ).toBe('Classic Cars');
+  });
+
+  it('strips delimiters when no column type is known', () => {
+    expect(
+      formatByColumn('<UNTRUSTED-CONTENT>Ships</UNTRUSTED-CONTENT>'),
+    ).toBe('Ships');
   });
 });
