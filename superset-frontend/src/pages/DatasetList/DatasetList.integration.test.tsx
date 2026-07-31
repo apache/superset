@@ -259,3 +259,63 @@ test('bulk action orchestration: selection → action → cleanup cycle works co
   // This confirms the full bulk operation cycle coordinates correctly:
   // selection state → action handler → list refresh → state cleanup
 }, 45000);
+
+test('a bulk archive containing a semantic view drops the recoverable promise', async () => {
+  // Semantic views have no soft-delete: their endpoint hard-deletes. A mixed
+  // selection must therefore not be confirmed with "you can recover them
+  // there" copy and the type-DELETE friction removed -- that is a recoverable
+  // promise attached to an irreversible action. The modal keeps the danger
+  // treatment and says plainly which part of the selection dies.
+  window.featureFlags = { SOFT_DELETE: true } as never;
+  try {
+    setupBulkDeleteMocks();
+    const semanticView = {
+      ...mockDatasets[1],
+      id: 99,
+      table_name: 'orders_semantic',
+      source_type: 'semantic_layer',
+    };
+    mockDatasetListEndpoints({
+      result: [mockDatasets[0], semanticView],
+      count: 2,
+    });
+
+    renderDatasetList(mockAdminUser);
+    await waitFor(() => {
+      expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: /bulk select/i }));
+    const bulkSelectControls = await screen.findByTestId(
+      'bulk-select-controls',
+    );
+    const table = screen.getByTestId('listview-table');
+    await within(table).findAllByRole('checkbox');
+
+    for (const name of [mockDatasets[0].table_name, 'orders_semantic']) {
+      // eslint-disable-next-line no-await-in-loop
+      const cell = await within(table).findByText(name);
+      // eslint-disable-next-line no-await-in-loop
+      await userEvent.click(within(cell.closest('tr')!).getByRole('checkbox'));
+    }
+    await waitFor(() => {
+      expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
+        /2 Selected/i,
+      );
+    });
+
+    await userEvent.click(
+      await within(bulkSelectControls).findByRole('button', {
+        name: 'Archive',
+      }),
+    );
+
+    const modal = await screen.findByRole('dialog');
+    expect(modal).toHaveTextContent(/deleted permanently/i);
+    expect(modal).not.toHaveTextContent(/recover them there/i);
+    // The type-DELETE gate returns for the irreversible part.
+    expect(within(modal).getByTestId('delete-modal-input')).toBeInTheDocument();
+  } finally {
+    window.featureFlags = {} as never;
+  }
+});

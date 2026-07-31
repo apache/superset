@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core/translation';
+import { t, tn } from '@apache-superset/core/translation';
 import {
   getExtensionsRegistry,
   SupersetClient,
@@ -198,6 +198,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   );
 
   // Combined endpoint state
+  // Semantic views in a pending bulk delete cannot be archived -- the
+  // semantic_view API hard-deletes -- so the confirm copy and friction must
+  // change with the selection. Captured when the bulk action fires, before
+  // the modal opens.
+  const [pendingBulkSemanticCount, setPendingBulkSemanticCount] = useState(0);
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [datasetCount, setDatasetCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -1303,11 +1308,23 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       // Always refresh so the list reflects whatever actually got deleted.
       refreshData();
       if (failures.length === 0) {
-        addSuccessToast(
-          softDelete
-            ? t('Archived %s item(s)', datasetsToDelete.length)
-            : t('Deleted %s item(s)', datasetsToDelete.length),
-        );
+        if (softDelete && semanticViews.length) {
+          // Semantic views were hard-deleted, not archived; counting them as
+          // archived would tell the user they are recoverable.
+          addSuccessToast(
+            t(
+              'Archived %s item(s); permanently deleted %s semantic view(s)',
+              datasets.length,
+              semanticViews.length,
+            ),
+          );
+        } else {
+          addSuccessToast(
+            softDelete
+              ? t('Archived %s item(s)', datasetsToDelete.length)
+              : t('Deleted %s item(s)', datasetsToDelete.length),
+          );
+        }
       } else {
         addDangerToast(
           softDelete
@@ -1524,19 +1541,41 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         addSuccessToast={addSuccessToast}
       />
       <ConfirmStatusChange
-        recoverable={softDelete}
+        // A selection containing semantic views is not recoverable: the
+        // semantic_view API hard-deletes. Promising the archive while part of
+        // the selection is destroyed for good -- with the type-DELETE friction
+        // removed -- is the one lie this modal must never tell, so mixed
+        // selections keep the full danger treatment.
+        recoverable={softDelete && pendingBulkSemanticCount === 0}
         title={
-          softDelete
+          softDelete && pendingBulkSemanticCount === 0
             ? t('Archive selected %s?', datasetsLabelLower())
             : t('Please confirm')
         }
         description={
-          softDelete
-            ? archiveConfirmDescription(datasetsLabelLower(), true)
-            : t(
-                'Are you sure you want to delete the selected %s?',
-                datasetsLabelLower(),
-              )
+          softDelete ? (
+            pendingBulkSemanticCount === 0 ? (
+              archiveConfirmDescription(datasetsLabelLower(), true)
+            ) : (
+              <>
+                {tn(
+                  '%s of the selected items is a semantic view, which cannot be archived: it will be deleted permanently and cannot be recovered.',
+                  '%s of the selected items are semantic views, which cannot be archived: they will be deleted permanently and cannot be recovered.',
+                  pendingBulkSemanticCount,
+                  pendingBulkSemanticCount,
+                )}{' '}
+                {t(
+                  'The remaining %s will be moved to Recently Archived.',
+                  datasetsLabelLower(),
+                )}
+              </>
+            )
+          ) : (
+            t(
+              'Are you sure you want to delete the selected %s?',
+              datasetsLabelLower(),
+            )
+          )
         }
         onConfirm={handleBulkDatasetDelete}
       >
@@ -1546,7 +1585,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             bulkActions.push({
               key: 'delete',
               name: softDelete ? t('Archive') : t('Delete'),
-              onSelect: confirmDelete,
+              onSelect: (selected: Dataset[]) => {
+                setPendingBulkSemanticCount(
+                  selected.filter(d => d.source_type === 'semantic_layer')
+                    .length,
+                );
+                confirmDelete(selected);
+              },
               type: 'danger',
             });
           }
