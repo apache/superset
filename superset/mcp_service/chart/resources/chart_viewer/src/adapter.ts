@@ -473,6 +473,11 @@ function buildPie(
   const slices = buildPieSlices(data, metric, dimension);
   const total = slices.reduce((sum, s) => sum + s.value, 0);
   const metricLabel = metric.display_name || metric.name;
+  // The collapsed remainder is not a category; a palette color would let it
+  // pass for one, and on a high-cardinality dimension it is the biggest wedge.
+  const wedges = slices.map((s) =>
+    s.rowIndex === -1 ? { ...s, itemStyle: { color: theme.textMuted } } : s,
+  );
 
   return {
     color: palette,
@@ -544,7 +549,7 @@ function buildPie(
         },
         universalTransition: { enabled: true },
         animationDurationUpdate: 500,
-        data: slices,
+        data: wedges,
       },
     ],
   };
