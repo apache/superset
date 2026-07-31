@@ -59,9 +59,16 @@ jest.mock('./RestoreConfirmModal', () => ({
 }));
 
 const mockDispatch = jest.fn();
+// The hook reads the page's dirty signal itself (so no call site can forget
+// it); tests control that signal through this state object.
+let mockState: {
+  versionHistory: { sessionLog: unknown[] };
+  dashboardState: { hasUnsavedChanges: boolean };
+};
 jest.mock('react-redux', () => ({
   ...jest.requireActual('react-redux'),
   useDispatch: () => mockDispatch,
+  useSelector: (selector: (state: unknown) => unknown) => selector(mockState),
 }));
 
 const target = {
@@ -81,12 +88,57 @@ const restoreOnce = async (entity: 'chart' | 'dashboard' = 'dashboard') => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockState = {
+    versionHistory: { sessionLog: [] },
+    dashboardState: { hasUnsavedChanges: false },
+  };
   // Distinct ids so the "already at this version" branch is not taken.
+  // mockReset first: clearAllMocks does NOT drop queued ...Once values, so
+  // without it every beforeEach stacks another tx-1 and a test that doesn't
+  // consume its pair silently shifts the queue for every test after it.
   (fetchActivity as jest.Mock)
+    .mockReset()
     .mockResolvedValueOnce({ result: [{ transaction_id: 1 }] })
     .mockResolvedValue({ result: [{ transaction_id: 2 }] });
   (restoreVersion as jest.Mock).mockResolvedValue({ message: 'OK' });
   mockOpenBlankTab.mockReturnValue({ closed: false });
+});
+
+test('a dirty dashboard blocks restore with the save-or-discard toast', () => {
+  // Restoring rehydrates the page from the server, wiping unsaved edits and
+  // undo history — the same hazard the preview entry gate guards.
+  mockState.dashboardState.hasUnsavedChanges = true;
+  const { result } = renderHook(() =>
+    useVersionActions('dashboard', 'entity-uuid'),
+  );
+
+  act(() => {
+    result.current.requestRestore(target);
+  });
+
+  expect(mockToasts.addDangerToast).toHaveBeenCalledWith(
+    expect.stringContaining('Save or discard'),
+  );
+  // The confirmation modal never opens, so no restore can proceed.
+  expect(result.current.restoreModal?.props.target).toBeNull();
+});
+
+test('unsaved explore control changes block restore the same way', () => {
+  // Explore's dirty signal is the session log — the list the panel itself
+  // presents as unsaved changes under "Current version".
+  mockState.versionHistory.sessionLog = [{ label: "Changed 'Metrics'" }];
+  const { result } = renderHook(() =>
+    useVersionActions('chart', 'entity-uuid'),
+  );
+
+  act(() => {
+    result.current.requestRestore(target);
+  });
+
+  expect(mockToasts.addDangerToast).toHaveBeenCalledWith(
+    expect.stringContaining('Save or discard'),
+  );
+  expect(result.current.restoreModal?.props.target).toBeNull();
 });
 
 test('surfaces the partial-restore message rather than reporting plain success', async () => {

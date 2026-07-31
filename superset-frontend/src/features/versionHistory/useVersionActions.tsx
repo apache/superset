@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ReactElement, useCallback, useRef, useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { getClientErrorObject } from '@superset-ui/core';
@@ -34,7 +34,12 @@ import {
   fetchVersionSnapshot,
   restoreVersion,
 } from './api';
-import { clearVersionPreview, versionRestored } from './reducer';
+import {
+  clearVersionPreview,
+  selectVersionSessionLog,
+  versionRestored,
+  type VersionHistoryRootState,
+} from './reducer';
 import { formatVersionMonthDay } from './display';
 import RestoreConfirmModal from './RestoreConfirmModal';
 
@@ -78,9 +83,36 @@ export function useVersionActions(
   const restoringRef = useRef(false);
   const creatingRef = useRef(false);
 
-  const requestRestore = useCallback((target: VersionActionTarget) => {
-    setRestoreTarget(target);
-  }, []);
+  // A restore rehydrates the page from the server, which silently wipes
+  // in-progress edits and their undo history — the same hazard the preview
+  // entry gate guards against. The dirty signal is page-specific: dashboards
+  // track hasUnsavedChanges; explore's signal is the session log, which lists
+  // exactly the unsaved control changes the panel shows under "Current
+  // version". Read here rather than passed in, so no call site (panel kebab,
+  // preview banner) can forget it.
+  const hasUnsavedChanges = useSelector<
+    VersionHistoryRootState & {
+      dashboardState?: { hasUnsavedChanges?: boolean };
+    },
+    boolean
+  >(state =>
+    entityType === 'dashboard'
+      ? !!state.dashboardState?.hasUnsavedChanges
+      : selectVersionSessionLog(state).length > 0,
+  );
+
+  const requestRestore = useCallback(
+    (target: VersionActionTarget) => {
+      if (hasUnsavedChanges) {
+        addDangerToast(
+          t('Save or discard your unsaved changes to restore a version.'),
+        );
+        return;
+      }
+      setRestoreTarget(target);
+    },
+    [addDangerToast, hasUnsavedChanges],
+  );
 
   const cancelRestore = useCallback(() => {
     setRestoreTarget(null);
