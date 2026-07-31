@@ -60,6 +60,13 @@ body {
   gap: 12px;
 }
 
+.sv-maximize {
+  flex: 0 0 auto;
+  font-size: 16px;
+  line-height: 1;
+  padding: 5px 9px;
+}
+
 .sv-title-wrap {
   min-width: 0;
 }
@@ -120,7 +127,9 @@ body {
   padding: 5px 11px;
   border-radius: 6px;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
   line-height: 1;
   white-space: nowrap;
 }
@@ -168,7 +177,9 @@ body {
   background: var(--sv-accent);
   color: #fff;
   cursor: pointer;
-  transition: filter 0.15s ease, opacity 0.15s ease;
+  transition:
+    filter 0.15s ease,
+    opacity 0.15s ease;
   white-space: nowrap;
 }
 
@@ -190,40 +201,6 @@ body {
 
 .sv-btn--subtle:hover {
   color: var(--sv-text-primary);
-}
-
-/* Maximize / restore toggle, pinned to the header's trailing edge. */
-.sv-maximize {
-  flex: 0 0 auto;
-  padding: 6px 10px;
-  font-size: 13px;
-  line-height: 1;
-}
-
-/* ---- Resize handle ---- */
-.sv-resize {
-  flex: 0 0 auto;
-  height: 12px;
-  /* Bleed into the app padding so the grip sits on the bottom edge. */
-  margin: -4px -16px -16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: ns-resize;
-  touch-action: none;
-}
-
-.sv-resize::after {
-  content: '';
-  width: 40px;
-  height: 3px;
-  border-radius: 999px;
-  background: var(--sv-border);
-  transition: background 0.15s ease;
-}
-
-.sv-resize:hover::after {
-  background: var(--sv-text-muted);
 }
 
 /* ---- Chart area ---- */
@@ -250,6 +227,36 @@ body {
 
 .sv-insights strong {
   color: var(--sv-text-primary);
+}
+
+/* Fixed to the iframe edge so the grip remains reachable even when a host
+   initially allocates only a very short frame. */
+.sv-resize-handle {
+  position: fixed;
+  z-index: 20;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 12px;
+  cursor: ns-resize;
+  touch-action: none;
+  background: linear-gradient(
+    to bottom,
+    transparent 4px,
+    var(--sv-border) 4px,
+    var(--sv-border) 6px,
+    transparent 6px
+  );
+}
+
+.sv-resize-handle:hover {
+  background: linear-gradient(
+    to bottom,
+    transparent 4px,
+    var(--sv-accent) 4px,
+    var(--sv-accent) 7px,
+    transparent 7px
+  );
 }
 
 /* ---- Big number ---- */

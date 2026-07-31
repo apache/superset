@@ -20,30 +20,27 @@ import { format as d3Format } from 'd3-format';
 import { timeFormat } from 'd3-time-format';
 import type { DataColumn } from './types';
 
-/**
- * The MCP service wraps user-authored strings (chart names, summaries, insights) in
- * `<UNTRUSTED-CONTENT>` markers so the *model* treats them as data rather than
- * instructions. They mean nothing to a human reader, so strip them wherever text is
- * shown. Values remain untrusted after stripping — React escapes them on render.
- */
-const UNTRUSTED_MARKER = /<\/?UNTRUSTED-CONTENT>/g;
-
-/** Remove `<UNTRUSTED-CONTENT>` markers from a display string. */
-export function stripUntrustedMarkers(value: string): string {
-  return value.replace(UNTRUSTED_MARKER, '').trim();
-}
-
 const compact = d3Format('.3~s'); // e.g. 1.2M, 3.4k
 const fixed2 = d3Format(',.2~f');
 const pct = d3Format('.1~%');
 const int = d3Format(',d');
+
+/**
+ * Remove model-facing trust-boundary delimiters before displaying text.
+ * React still escapes the returned text; only the exact delimiter tags are
+ * removed, so angle brackets in the value itself remain literal.
+ */
+export function stripUntrustedMarkers(value: string): string {
+  return value.replace(/<\/?UNTRUSTED-CONTENT>/g, '').trim();
+}
 
 /** Compact, human-friendly number: 1.2M / 3.4k / 987. */
 export function formatNumber(value: unknown): string {
   const n = toNumber(value);
   if (n === null) return String(value ?? '');
   const abs = Math.abs(n);
-  if (abs !== 0 && (abs >= 1_000_000 || abs < 0.001)) return compact(n).replace('G', 'B');
+  if (abs !== 0 && (abs >= 1_000_000 || abs < 0.001))
+    return compact(n).replace('G', 'B');
   if (Number.isInteger(n) && abs < 1_000_000) return int(n);
   if (abs >= 1000) return compact(n).replace('G', 'B');
   return fixed2(n);
@@ -80,7 +77,8 @@ const fmtMonth = timeFormat('%b %Y');
 export function formatDate(value: unknown): string {
   const d = toDate(value);
   if (!d) return String(value ?? '');
-  const hasTime = d.getHours() !== 0 || d.getMinutes() !== 0 || d.getSeconds() !== 0;
+  const hasTime =
+    d.getHours() !== 0 || d.getMinutes() !== 0 || d.getSeconds() !== 0;
   if (hasTime) return fmtDateTime(d);
   return fmtDate(d);
 }
@@ -102,7 +100,8 @@ export function toNumber(value: unknown): number | null {
 }
 
 export function toDate(value: unknown): Date | null {
-  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  if (value instanceof Date)
+    return Number.isNaN(value.getTime()) ? null : value;
   if (typeof value === 'number') {
     // Heuristic: treat large integers as epoch millis, else epoch seconds.
     const ms = value > 1e11 ? value : value * 1000;

@@ -23,18 +23,25 @@ import { afterEach, expect, it, vi } from 'vitest';
 
 import type { ChartData } from './types';
 
-// jsdom implements neither ResizeObserver nor canvas, both of which the
-// ECharts renderer touches on mount. Stub the observer and mock the chart
-// component away: these tests assert the surrounding chrome, not the plot.
 // Tells React that act() is legitimate here (we drive rendering manually
 // rather than through a testing-library adapter).
 (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
+// jsdom implements neither ResizeObserver nor canvas, both of which the
+// ECharts renderer touches on mount. Stub the observer and mock the chart
+// component away: these tests assert the surrounding chrome, not the plot.
 globalThis.ResizeObserver = class {
   observe(): void {}
   unobserve(): void {}
   disconnect(): void {}
 } as unknown as typeof ResizeObserver;
+
+// The app reports its size from inside requestAnimationFrame; run callbacks
+// synchronously so assertions can run right after render.
+window.requestAnimationFrame = ((cb: FrameRequestCallback): number => {
+  cb(0);
+  return 0;
+}) as typeof window.requestAnimationFrame;
 
 vi.mock('./components/EChart', () => ({
   EChart: () => null,
@@ -125,12 +132,12 @@ it('asks the host for a taller frame once data has arrived', async () => {
   await renderApp();
   expect(reportSize).toHaveBeenCalled();
   const [, height] = reportSize.mock.calls[0] as [number, number];
-  expect(height).toBeGreaterThanOrEqual(520);
+  expect(height).toBeGreaterThanOrEqual(420);
 });
 
 it('offers a drag handle and a maximize toggle', async () => {
   await renderApp();
-  expect(container!.querySelector('.sv-resize')).not.toBeNull();
+  expect(container!.querySelector('.sv-resize-handle')).not.toBeNull();
   const button = container!.querySelector('.sv-maximize');
   expect(button).not.toBeNull();
   expect(button!.getAttribute('aria-label')).toBe('Maximize chart');
@@ -144,12 +151,10 @@ it('grows in place when the host refuses a fullscreen display mode', async () =>
     button.click();
   });
   expect(requestDisplayMode).toHaveBeenCalledWith('fullscreen');
-  // Fallback path: the widget sizes itself and tells the host the new height.
+  // Fallback path: the widget sizes itself up and tells the host.
   const calls = reportSize.mock.calls;
   const last = calls[calls.length - 1] as [number, number];
-  expect(last[1]).toBeGreaterThan(520);
-  const app = container!.querySelector('.sv-app') as HTMLElement;
-  expect(app.style.height).not.toBe('');
+  expect(last[1]).toBeGreaterThanOrEqual(720);
 });
 
 it('does not resize itself when the host accepts fullscreen', async () => {

@@ -90,7 +90,9 @@ export class ChartBridge {
   private capabilities: HostCapabilities = emptyCapabilities();
 
   private get isEmbedded(): boolean {
-    return typeof window !== 'undefined' && window.parent && window.parent !== window;
+    return (
+      typeof window !== 'undefined' && window.parent && window.parent !== window
+    );
   }
 
   /** Perform the ui/initialize handshake. Resolves with host-provided data. */
@@ -169,11 +171,17 @@ export class ChartBridge {
   }
 
   /** Call an app-visible server tool (e.g. render_chart_requery). */
-  async callTool<T = unknown>(name: string, args: Record<string, unknown>): Promise<T> {
+  async callTool<T = unknown>(
+    name: string,
+    args: Record<string, unknown>,
+  ): Promise<T> {
     if (!this.isEmbedded || !this.capabilities.canCallTools) {
       throw new Error('tools/call unavailable outside a host');
     }
-    const res = (await this.request('tools/call', { name, arguments: args })) as {
+    const res = (await this.request('tools/call', {
+      name,
+      arguments: args,
+    })) as {
       structuredContent?: unknown;
       content?: Array<{ type: string; text?: string }>;
     };
@@ -192,7 +200,10 @@ export class ChartBridge {
   }
 
   /** Push a concise context string for the model's next turn ("Ask about this"). */
-  async updateModelContext(text: string, structured?: Record<string, unknown>): Promise<void> {
+  async updateModelContext(
+    text: string,
+    structured?: Record<string, unknown>,
+  ): Promise<void> {
     if (!this.isEmbedded || !this.capabilities.canUpdateModelContext) return;
     try {
       await this.request('ui/update-model-context', {
@@ -242,16 +253,21 @@ export class ChartBridge {
   }
 
   /**
-   * Ask the host to switch display mode. The handshake advertises `inline` and
-   * `fullscreen` as supported; hosts that do not implement the request simply
-   * never answer, so a rejection here is expected and callers fall back to
-   * resizing the content in place.
+   * Ask the host to switch display mode. Hosts that do not implement this
+   * request commonly leave it unanswered, so a timeout means unsupported.
    */
-  async requestDisplayMode(mode: string): Promise<boolean> {
+  async requestDisplayMode(
+    mode: 'inline' | 'fullscreen',
+    timeoutMs = 1200,
+  ): Promise<boolean> {
     if (!this.isEmbedded) return false;
     try {
-      await this.request('ui/request-display-mode', { mode }, 1500);
-      return true;
+      const result = (await this.request(
+        'ui/request-display-mode',
+        { mode },
+        timeoutMs,
+      )) as { mode?: unknown };
+      return result?.mode === mode;
     } catch {
       return false;
     }
@@ -259,7 +275,11 @@ export class ChartBridge {
 
   // ---- transport internals -------------------------------------------------
 
-  private request(method: string, params: unknown, timeoutMs = 8000): Promise<unknown> {
+  private request(
+    method: string,
+    params: unknown,
+    timeoutMs = 8000,
+  ): Promise<unknown> {
     return new Promise((resolve, reject) => {
       const id = ++this.id;
       this.pending.set(id, { resolve, reject });
@@ -292,7 +312,7 @@ export class ChartBridge {
     if (!msg || msg.jsonrpc !== '2.0') return;
 
     // Response to one of our requests.
-    if (msg.id !== undefined && (('result' in msg) || 'error' in msg)) {
+    if (msg.id !== undefined && ('result' in msg || 'error' in msg)) {
       const pending = this.pending.get(msg.id as number);
       if (!pending) return;
       this.pending.delete(msg.id as number);
@@ -341,18 +361,22 @@ interface HostInitResult {
   toolResult?: unknown;
 }
 
-function deriveCapabilities(result: HostInitResult | undefined): HostCapabilities {
+function deriveCapabilities(
+  result: HostInitResult | undefined,
+): HostCapabilities {
   const caps = (result?.hostCapabilities ?? {}) as Record<string, unknown>;
   const appTools = new Set<string>();
   // Hosts may advertise app-visible tools under a few shapes; be liberal.
   const toolList =
     (caps.appTools as unknown) ??
     (caps.tools as unknown) ??
-    ((caps.experimental as Record<string, unknown> | undefined)?.appTools as unknown);
+    ((caps.experimental as Record<string, unknown> | undefined)
+      ?.appTools as unknown);
   if (Array.isArray(toolList)) {
     for (const t of toolList) {
       if (typeof t === 'string') appTools.add(t);
-      else if (t && typeof t === 'object' && 'name' in t) appTools.add(String((t as { name: unknown }).name));
+      else if (t && typeof t === 'object' && 'name' in t)
+        appTools.add(String((t as { name: unknown }).name));
     }
   }
   const has = (k: string): boolean => k in caps && caps[k] !== false;
@@ -376,10 +400,15 @@ function emptyCapabilities(): HostCapabilities {
   };
 }
 
-function parseHostContext(ctx: Record<string, unknown> | undefined): HostContext {
+function parseHostContext(
+  ctx: Record<string, unknown> | undefined,
+): HostContext {
   return {
     scheme: readScheme(ctx) ?? detectScheme(),
-    displayMode: typeof ctx?.displayMode === 'string' ? (ctx.displayMode as string) : undefined,
+    displayMode:
+      typeof ctx?.displayMode === 'string'
+        ? (ctx.displayMode as string)
+        : undefined,
     container: readContainer(ctx),
   };
 }
@@ -396,12 +425,15 @@ function parsePartialHostContext(params: unknown): Partial<HostContext> | null {
   return Object.keys(out).length ? out : null;
 }
 
-function readScheme(ctx: Record<string, unknown> | undefined): ColorScheme | null {
+function readScheme(
+  ctx: Record<string, unknown> | undefined,
+): ColorScheme | null {
   if (!ctx) return null;
   const raw =
     (ctx.theme as unknown) ??
     (ctx.colorScheme as unknown) ??
-    ((ctx.styles as Record<string, unknown> | undefined)?.colorScheme as unknown);
+    ((ctx.styles as Record<string, unknown> | undefined)
+      ?.colorScheme as unknown);
   if (typeof raw === 'string') {
     const v = raw.toLowerCase();
     if (v.includes('dark')) return 'dark';
@@ -431,7 +463,8 @@ export function extractToolResult(toolResult: unknown): {
   meta: ChartMeta;
   error?: string;
 } {
-  if (!toolResult || typeof toolResult !== 'object') return { chartData: null, meta: {} };
+  if (!toolResult || typeof toolResult !== 'object')
+    return { chartData: null, meta: {} };
   const tr = toolResult as {
     structuredContent?: unknown;
     content?: Array<{ type: string; text?: string }>;
@@ -444,7 +477,11 @@ export function extractToolResult(toolResult: unknown): {
   // MCP tool-level error: surface the text content as the message.
   if (tr.isError) {
     const block = tr.content?.find((c) => c.type === 'text' && c.text);
-    return { chartData: null, meta, error: block?.text || 'The chart tool returned an error.' };
+    return {
+      chartData: null,
+      meta,
+      error: block?.text || 'The chart tool returned an error.',
+    };
   }
   // Superset ChartError payload: { error, error_type } with no columns/data.
   if (
@@ -454,9 +491,35 @@ export function extractToolResult(toolResult: unknown): {
     typeof (coerced as { error?: unknown }).error === 'string'
   ) {
     const e = coerced as { error: string; error_type?: string };
-    return { chartData: null, meta, error: e.error_type ? `${e.error} (${e.error_type})` : e.error };
+    return {
+      chartData: null,
+      meta,
+      error: e.error_type ? `${e.error} (${e.error_type})` : e.error,
+    };
   }
-  return { chartData: isChartData(coerced) ? (coerced as ChartData) : null, meta };
+  return {
+    chartData: isChartData(coerced) ? (coerced as ChartData) : null,
+    meta,
+  };
+}
+
+/**
+ * FastMCP wraps non-plain-object return types in a synthetic `result` envelope
+ * (such tool schemas are marked `x-fastmcp-wrap-result`). Our tools are typed
+ * `-> ChartData | ChartError`, so the payload on the wire is
+ * `{"result": {...}}` rather than the bare object.
+ *
+ * Unwrap only when `result` is the SOLE key, so a future unwrapped payload —
+ * or one that legitimately carries other fields — still passes through intact.
+ */
+function unwrapResultEnvelope(value: unknown): unknown {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+  const keys = Object.keys(value as Record<string, unknown>);
+  if (keys.length === 1 && keys[0] === 'result') {
+    const inner = (value as { result: unknown }).result;
+    if (inner && typeof inner === 'object') return inner;
+  }
+  return value;
 }
 
 /** Prefer structuredContent; else parse the first JSON text content block. */
@@ -465,12 +528,12 @@ export function coerceToolResultData(res: {
   content?: Array<{ type: string; text?: string }>;
 }): unknown {
   if (res?.structuredContent && typeof res.structuredContent === 'object') {
-    return res.structuredContent;
+    return unwrapResultEnvelope(res.structuredContent);
   }
   const block = res?.content?.find((c) => c.type === 'text' && c.text);
   if (block?.text) {
     try {
-      return JSON.parse(block.text);
+      return unwrapResultEnvelope(JSON.parse(block.text));
     } catch {
       return null;
     }
@@ -489,7 +552,9 @@ function isChartData(v: unknown): v is ChartData {
 
 function detectScheme(): ColorScheme {
   if (typeof window !== 'undefined' && window.matchMedia) {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light';
   }
   return 'light';
 }

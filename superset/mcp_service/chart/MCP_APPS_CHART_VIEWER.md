@@ -53,7 +53,7 @@ Key pieces:
 | Shared authorized data path | `chart/tool/get_chart_data.py` (`get_chart_data_core`) |
 | `ui://` resource (serves the bundle) | `chart/resources/chart_viewer.py` |
 | Widget source (React + ECharts + Vite) | `chart/resources/chart_viewer/` |
-| Built single-file bundle | `chart/resources/chart_viewer/dist/index.html` |
+| Built single-file bundle (gitignored) | `chart/resources/chart_viewer/dist/index.html` |
 | Schemas | `chart/schemas.py` (`RenderChartRequest`, `RenderChartRequeryRequest`, `ChartData.explore_url`) |
 | Stripper keep-list + tool pinning | `middleware.py`, `mcp_config.py` |
 | `@tool(meta=...)` plumbing | `superset-core/.../mcp/decorators.py`, `superset/core/mcp/core_mcp_injection.py` |
@@ -75,8 +75,13 @@ are handled without weakening them globally:
 ## Data contract (tool result → widget)
 
 `render_chart` returns Superset's `ChartData` (see `chart/schemas.py`) as the
-tool's `structuredContent`, plus a concise text summary for the model. The widget
-reads `structuredContent`. `ChartData.explore_url` (new, optional) gives the
+tool's `structuredContent`, plus a concise text summary for the model.
+
+**Wire shape gotcha:** both tools are typed `-> ChartData | ChartError`, and
+FastMCP wraps union returns in a synthetic envelope, so what is actually on the
+wire is `{"result": {...ChartData...}}` (the tool's `outputSchema` carries
+`x-fastmcp-wrap-result`). The widget unwraps a lone `result` key; the text
+content block is *not* wrapped, so the model-facing path is unaffected. `ChartData.explore_url` (new, optional) gives the
 widget its "Open in Superset" deep link.
 
 `render_chart_requery` (widget → server, `visibility: ["app"]`) accepts:
@@ -84,28 +89,58 @@ widget its "Open in Superset" deep link.
 ```jsonc
 {
   "identifier": 42,               // or "chart_id"
-  "group_by": "country",          // drill-down dimension (optional)
   "filter": {"col": "country", "val": "US"},  // click-to-drill (optional; filter_col/filter_val also accepted)
   "time_range": "Last quarter",   // brush-to-zoom (optional)
   "granularity": "P1D"            // finer grain on zoom (optional)
 }
 ```
 
+`granularity` is forwarded as `extra_form_data.time_grain_sqla`, but it is a
+best-effort hint rather than a guaranteed re-bucketing operation. Some saved
+query contexts—including observed `echarts_timeseries_line` configurations—
+ignore the override and return rows at their original grain. Filtering and
+`time_range` narrowing still apply; clients must not claim that the returned
+data was re-granularized without inspecting it.
+
 All re-query paths go back through `get_chart_data_core`, so the caller's
 Chart/dataset RBAC, guest scoping, and RLS are re-applied on every interaction —
 the widget cannot exceed the entitlements of the principal who called it.
 
+> [!IMPORTANT]
+> MCP Apps hosts commonly cache both `ui://` resources and tool descriptors for
+> the lifetime of a client session or conversation. Restarting Superset does
+> not invalidate that cache. Bump the versioned chart-viewer URI whenever the
+> bundle changes, and verify a new version only from a brand-new client session.
+
 ## Build the widget
 
-The bundle is committed (`dist/index.html`) so the server works without Node.
-To rebuild after changing the widget:
+The built bundle is **not committed** — same convention as
+`superset/static/assets` (gitignored in the repo, produced at packaging time,
+shipped via `MANIFEST.in`). Until you build it, the `ui://` resource serves a
+placeholder page telling you to run the build.
+
+Build it with:
 
 ```bash
 cd superset/mcp_service/chart/resources/chart_viewer
 npm install
-npm run build          # emits dist/index.html (self-contained, ~780 KiB)
-npm test               # vitest adapter tests
+npm run build          # emits dist/index.html (self-contained, ~800 KiB)
+npm test               # vitest: adapter + bridge contract tests
 ```
+
+### Known gaps in this setup (PoC-level, must be fixed to graduate)
+
+1. **Nothing runs this in CI.** No workflow references `chart_viewer`, so the
+   widget's tests and build never execute on a PR. They will rot.
+2. **Nothing builds it at packaging time.** `MANIFEST.in` references
+   `dist/index.html`, but no release step produces it — so a packaged install
+   currently ships without the widget and serves the placeholder.
+3. **Location is unusual.** Every other bundler-based npm project in this repo
+   is a repo-root sibling (`superset-frontend/`, `superset-websocket/`,
+   `superset-embedded-sdk/`, `docs/`). This one lives inside the Python package
+   so it sits next to the resource that serves it. If this graduates, moving it
+   to a root-level sibling and copying the build output in at package time
+   (mirroring `superset/static`) is probably the more conventional shape.
 
 ## Test runbook (P4)
 

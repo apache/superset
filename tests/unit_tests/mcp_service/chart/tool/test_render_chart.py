@@ -219,10 +219,15 @@ async def test_render_chart_requery_applies_filter_and_time_range() -> None:
 @pytest.mark.asyncio
 async def test_render_chart_registered_with_ui_meta(app: Any) -> None:
     from superset.mcp_service.app import mcp
+    from superset.mcp_service.chart.resources.chart_viewer import (
+        CHART_VIEWER_URI as RESOURCE_CHART_VIEWER_URI,
+    )
 
     tool = await mcp.get_tool("render_chart")
     ui = (tool.meta or {}).get("ui")
     assert ui is not None
+    assert CHART_VIEWER_URI == RESOURCE_CHART_VIEWER_URI
+    assert CHART_VIEWER_URI.endswith("/v2")
     assert ui["resourceUri"] == CHART_VIEWER_URI
     assert ui["visibility"] == ["model", "app"]
     # Exempt from structured-content stripping, so the widget can read it.

@@ -25,18 +25,42 @@ import { extractToolResult } from './bridge';
 // never masquerade as a real chart.
 
 describe('extractToolResult', () => {
-  it('returns ChartData from structuredContent', () => {
+  // The server's tools are typed `-> ChartData | ChartError`, and FastMCP wraps
+  // union returns in a synthetic `result` envelope (schemas carry
+  // `x-fastmcp-wrap-result`). THIS is the real wire shape — verified against a
+  // live MCP server. An earlier version of this test asserted the unwrapped
+  // shape, which the server never sends, so it passed while the widget was
+  // unable to read its own data.
+  it('returns ChartData from the FastMCP-wrapped structuredContent', () => {
     const { chartData, error } = extractToolResult({
-      structuredContent: { columns: [], data: [], chart_id: 1 },
+      structuredContent: { result: { columns: [], data: [], chart_id: 1 } },
     });
     expect(error).toBeUndefined();
     expect(chartData).not.toBeNull();
     expect(chartData?.chart_id).toBe(1);
   });
 
-  it('surfaces a Superset ChartError payload as an error (not chart data)', () => {
+  it('still accepts an unwrapped structuredContent payload', () => {
+    const { chartData } = extractToolResult({
+      structuredContent: { columns: [], data: [], chart_id: 2 },
+    });
+    expect(chartData?.chart_id).toBe(2);
+  });
+
+  it('does not unwrap when `result` is not the sole key', () => {
+    // A legitimate payload that happens to carry a `result` field alongside
+    // real ChartData fields must pass through untouched.
+    const { chartData } = extractToolResult({
+      structuredContent: { result: 'ok', columns: [], data: [], chart_id: 3 },
+    });
+    expect(chartData?.chart_id).toBe(3);
+  });
+
+  it('surfaces a wrapped Superset ChartError payload as an error', () => {
     const { chartData, error } = extractToolResult({
-      structuredContent: { error: 'Chart not found', error_type: 'NotFound' },
+      structuredContent: {
+        result: { error: 'Chart not found', error_type: 'NotFound' },
+      },
     });
     expect(chartData).toBeNull();
     expect(error).toBe('Chart not found (NotFound)');
@@ -54,7 +78,10 @@ describe('extractToolResult', () => {
   it('parses ChartData from a JSON text content block when no structuredContent', () => {
     const { chartData } = extractToolResult({
       content: [
-        { type: 'text', text: JSON.stringify({ columns: [], data: [], chart_id: 9 }) },
+        {
+          type: 'text',
+          text: JSON.stringify({ columns: [], data: [], chart_id: 9 }),
+        },
       ],
     });
     expect(chartData?.chart_id).toBe(9);
@@ -97,10 +124,17 @@ function withFakeHost(
       }
     },
   };
-  Object.defineProperty(window, 'parent', { value: fakeParent, configurable: true });
+  Object.defineProperty(window, 'parent', {
+    value: fakeParent,
+    configurable: true,
+  });
   return {
     sent,
-    restore: () => Object.defineProperty(window, 'parent', { value: realParent, configurable: true }),
+    restore: () =>
+      Object.defineProperty(window, 'parent', {
+        value: realParent,
+        configurable: true,
+      }),
   };
 }
 
@@ -109,7 +143,11 @@ describe('ChartBridge handshake contract', () => {
     const host = withFakeHost((msg) => {
       if (msg.method === 'ui/initialize') {
         // Host advertises NO capabilities.
-        return { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} };
+        return {
+          protocolVersion: '2026-01-26',
+          hostCapabilities: {},
+          hostContext: {},
+        };
       }
       return undefined;
     });
@@ -160,6 +198,70 @@ describe('ChartBridge handshake contract', () => {
       await bridge.sendMessage('hello');
       const msg = host.sent.find((m) => m.method === 'ui/message');
       expect(Array.isArray(msg?.params.content)).toBe(true);
+    } finally {
+      host.restore();
+    }
+  });
+
+  it('requests fullscreen mode with the spec-defined params', async () => {
+    const host = withFakeHost((msg) => {
+      if (msg.method === 'ui/initialize') {
+        return { hostCapabilities: {}, hostContext: {} };
+      }
+      if (msg.method === 'ui/request-display-mode') {
+        return { mode: 'fullscreen' };
+      }
+      return undefined;
+    });
+    try {
+      const bridge = new ChartBridge();
+      await bridge.initialize(500);
+      await expect(bridge.requestDisplayMode('fullscreen', 500)).resolves.toBe(
+        true,
+      );
+      const msg = host.sent.find((m) => m.method === 'ui/request-display-mode');
+      expect(msg?.params).toEqual({ mode: 'fullscreen' });
+    } finally {
+      host.restore();
+    }
+  });
+
+  it('treats an unsupported display-mode request as false', async () => {
+    const host = withFakeHost((msg) => {
+      if (msg.method === 'ui/initialize') {
+        return { hostCapabilities: {}, hostContext: {} };
+      }
+      if (msg.method === 'ui/request-display-mode') {
+        return { mode: 'inline' };
+      }
+      return undefined;
+    });
+    try {
+      const bridge = new ChartBridge();
+      await bridge.initialize(500);
+      await expect(bridge.requestDisplayMode('fullscreen', 500)).resolves.toBe(
+        false,
+      );
+    } finally {
+      host.restore();
+    }
+  });
+
+  it('reports requested widget dimensions to the host', async () => {
+    const host = withFakeHost((msg) => {
+      if (msg.method === 'ui/initialize') {
+        return { hostCapabilities: {}, hostContext: {} };
+      }
+      return undefined;
+    });
+    try {
+      const bridge = new ChartBridge();
+      await bridge.initialize(500);
+      bridge.reportSize(640, 420);
+      const msg = host.sent.find(
+        (m) => m.method === 'ui/notifications/size-changed',
+      );
+      expect(msg?.params).toEqual({ width: 640, height: 420 });
     } finally {
       host.restore();
     }

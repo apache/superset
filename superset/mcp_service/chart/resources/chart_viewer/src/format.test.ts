@@ -16,36 +16,43 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import { expect, it } from 'vitest';
-
+import { describe, expect, it } from 'vitest';
 import { stripUntrustedMarkers } from './format';
 
-it('strips the UNTRUSTED-CONTENT wrapper the MCP service adds', () => {
-  expect(stripUntrustedMarkers('<UNTRUSTED-CONTENT>\nMonthly Revenue Trend\n</UNTRUSTED-CONTENT>')).toBe(
-    'Monthly Revenue Trend',
-  );
-});
+describe('stripUntrustedMarkers', () => {
+  it('removes a complete delimiter pair', () => {
+    expect(
+      stripUntrustedMarkers(
+        '<UNTRUSTED-CONTENT> Monthly Revenue </UNTRUSTED-CONTENT>',
+      ),
+    ).toBe('Monthly Revenue');
+  });
 
-it('leaves an unwrapped string untouched', () => {
-  expect(stripUntrustedMarkers('Monthly Revenue Trend')).toBe('Monthly Revenue Trend');
-});
+  it('removes repeated delimiters', () => {
+    expect(
+      stripUntrustedMarkers(
+        '<UNTRUSTED-CONTENT>A</UNTRUSTED-CONTENT> <UNTRUSTED-CONTENT>B</UNTRUSTED-CONTENT>',
+      ),
+    ).toBe('A B');
+  });
 
-it('strips a stray or unbalanced marker rather than leaving a fragment', () => {
-  expect(stripUntrustedMarkers('<UNTRUSTED-CONTENT>\nOrders')).toBe('Orders');
-  expect(stripUntrustedMarkers('Orders</UNTRUSTED-CONTENT>')).toBe('Orders');
-});
+  it('removes an opening delimiter by itself', () => {
+    expect(stripUntrustedMarkers('<UNTRUSTED-CONTENT>value')).toBe('value');
+  });
 
-it('strips markers embedded mid-string, not just at the edges', () => {
-  expect(stripUntrustedMarkers('a <UNTRUSTED-CONTENT>b</UNTRUSTED-CONTENT> c')).toBe('a b c');
-});
+  it('removes a closing delimiter by itself', () => {
+    expect(stripUntrustedMarkers('value</UNTRUSTED-CONTENT>')).toBe('value');
+  });
 
-it('preserves inner angle brackets so escaping stays the renderer job', () => {
-  expect(stripUntrustedMarkers('<UNTRUSTED-CONTENT>\n<b>Bold</b>\n</UNTRUSTED-CONTENT>')).toBe(
-    '<b>Bold</b>',
-  );
-});
+  it('preserves unrelated angle brackets for React to escape', () => {
+    expect(
+      stripUntrustedMarkers(
+        '<UNTRUSTED-CONTENT><script>alert(1)</script></UNTRUSTED-CONTENT>',
+      ),
+    ).toBe('<script>alert(1)</script>');
+  });
 
-it('returns an empty string when the payload is only markers', () => {
-  expect(stripUntrustedMarkers('<UNTRUSTED-CONTENT>\n\n</UNTRUSTED-CONTENT>')).toBe('');
+  it('leaves ordinary text unchanged', () => {
+    expect(stripUntrustedMarkers('Monthly Revenue')).toBe('Monthly Revenue');
+  });
 });

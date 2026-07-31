@@ -25,6 +25,7 @@ recursive-include superset/templates *
 recursive-include superset/translations *
 recursive-include superset/static *
 # Built MCP Apps widget bundle (served as the ui:// chart-viewer resource).
-# Only the built artifact ships — not the widget's source or node_modules.
+# Like superset/static, this is produced at build time and is not committed to
+# the repo; only the built artifact ships — not the source or node_modules.
 include superset/mcp_service/chart/resources/chart_viewer/dist/index.html
 recursive-exclude tests *

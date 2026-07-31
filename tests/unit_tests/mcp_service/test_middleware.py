@@ -1685,3 +1685,29 @@ class TestStructuredContentStripperKeepList:
         # the widget can render results before and after an interaction.
         assert "render_chart" in DEFAULT_STRUCTURED_CONTENT_KEEP_TOOLS
         assert "render_chart_requery" in DEFAULT_STRUCTURED_CONTENT_KEEP_TOOLS
+
+    @pytest.mark.asyncio
+    async def test_error_result_keeps_structured_content_for_exempt_tool(self) -> None:
+        """A keep-list tool still advertises outputSchema, so its error result
+        must carry structured content or strict clients reject the call with
+        'has an output schema but did not return structured content'."""
+        mw = StructuredContentStripperMiddleware(keep_tools=frozenset({"render_chart"}))
+
+        async def boom(_ctx: Any) -> ToolResult:
+            raise RuntimeError("kaboom")
+
+        kept = await mw.on_call_tool(
+            SimpleNamespace(message=SimpleNamespace(name="render_chart")), boom
+        )
+        assert kept.structured_content is not None
+        payload = kept.structured_content["result"]
+        assert payload["error_type"] == "RuntimeError"
+        assert "kaboom" in payload["message"]
+        # `error` mirrors `message`, which is what the widget reads.
+        assert "kaboom" in payload["error"]
+
+        # Non-exempt tools had their schema stripped, so text-only stays correct.
+        stripped = await mw.on_call_tool(
+            SimpleNamespace(message=SimpleNamespace(name="get_chart_data")), boom
+        )
+        assert stripped.structured_content is None

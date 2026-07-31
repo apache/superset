@@ -38,9 +38,6 @@ from superset.mcp_service.auth import mcp_auth_hook
 
 logger = logging.getLogger(__name__)
 
-# Hosts cache a UI resource per conversation keyed by this URI, so bump the
-# version whenever the widget's rendered output changes in a way clients must
-# pick up — an unchanged URI keeps serving the copy a conversation already holds.
 CHART_VIEWER_URI = "ui://superset/chart-viewer/v2"
 CHART_VIEWER_MIME_TYPE = "text/html;profile=mcp-app"
 
