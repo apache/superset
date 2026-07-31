@@ -39,13 +39,16 @@ def test_epoch_to_dttm() -> None:
 def test_get_table_comment(mocker: MockerFixture):
     """
     Test the `get_table_comment` method.
+
+    ibm_db_sa >= 0.4.1 returns the comment as a plain string (fixed in
+    https://github.com/ibmdb/python-ibmdbsa/pull/135), not a tuple as it
+    used to. Indexing into that string with `comment[0]` truncates every
+    DB2 table comment to its first character; this guards against that.
     """
     from superset.db_engine_specs.db2 import Db2EngineSpec
 
     mock_inspector = mocker.MagicMock()
-    mock_inspector.get_table_comment.return_value = {
-        "text": ("This is a table comment",)
-    }
+    mock_inspector.get_table_comment.return_value = {"text": "This is a table comment"}
 
     assert (
         Db2EngineSpec.get_table_comment(mock_inspector, Table("my_table", "my_schema"))
