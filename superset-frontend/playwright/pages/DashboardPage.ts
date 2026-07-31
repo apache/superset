@@ -19,7 +19,7 @@
 
 import { Page, Download, Locator } from '@playwright/test';
 import { Button, Input, Menu, Tabs } from '../components/core';
-import { NativeFiltersConfigModal } from '../components/modals';
+import { DashboardFilterBar } from '../components/dashboard';
 import { gotoWithRetry } from '../helpers/navigation';
 import { html5DragAndDrop } from '../helpers/dnd';
 import { TIMEOUT } from '../utils/constants';
@@ -40,6 +40,7 @@ type LayoutElementLabel =
  */
 export class DashboardPage {
   private readonly page: Page;
+  private readonly filterBar: DashboardFilterBar;
 
   private static readonly SELECTORS = {
     DASHBOARD_HEADER: '[data-test="dashboard-header-container"]',
@@ -47,9 +48,6 @@ export class DashboardPage {
     DASHBOARD_MENU_TRIGGER: '[data-test="actions-trigger"]',
     // The header-actions-menu is the data-test for the dropdown menu content
     HEADER_ACTIONS_MENU: '[data-test="header-actions-menu"]',
-    FILTER_BAR_SETTINGS: '[data-test="filterbar-orientation-icon"]',
-    APPLY_FILTERS_BUTTON:
-      '[data-test="filter-bar__apply-button"], [data-test="filterbar-action-buttons"] button[type="submit"]',
     EDIT_BUTTON: '[data-test="edit-dashboard-button"]',
     BUILDER_PANE: '[data-test="dashboard-builder-sidepane"]',
     CHARTS_SEARCH: '[data-test="dashboard-charts-filter-search-input"]',
@@ -69,6 +67,7 @@ export class DashboardPage {
 
   constructor(page: Page) {
     this.page = page;
+    this.filterBar = new DashboardFilterBar(page);
   }
 
   /**
@@ -208,38 +207,11 @@ export class DashboardPage {
   }
 
   /**
-   * Opens the native filters and Display Controls configuration modal.
+   * Waits for and returns the dashboard native-filter bar component.
    */
-  async openNativeFiltersConfigModal(): Promise<NativeFiltersConfigModal> {
-    await this.page
-      .locator(DashboardPage.SELECTORS.FILTER_BAR_SETTINGS)
-      .click();
-    await this.page
-      .getByText('Add or edit filters and controls', { exact: true })
-      .click();
-
-    const modal = new NativeFiltersConfigModal(this.page);
-    await modal.waitForVisible();
-    return modal;
-  }
-
-  /**
-   * Applies pending native filter changes when the Apply button is enabled.
-   *
-   * A disabled button means there is nothing pending, which is a valid state to
-   * skip. A *missing* button is not — the button is waited for rather than
-   * having its absence collapse into the same no-op as "nothing to apply".
-   */
-  async applyFiltersIfEnabled(): Promise<void> {
-    const applyButton = this.page
-      .locator(DashboardPage.SELECTORS.APPLY_FILTERS_BUTTON)
-      .first();
-    await applyButton.waitFor({ state: 'attached' });
-    if (!(await applyButton.isEnabled())) {
-      return;
-    }
-
-    await applyButton.click();
+  async waitForFilterBar(): Promise<DashboardFilterBar> {
+    await this.filterBar.waitForReady();
+    return this.filterBar;
   }
 
   /**

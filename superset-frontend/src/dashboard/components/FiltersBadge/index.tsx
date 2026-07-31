@@ -55,8 +55,11 @@ export interface FiltersBadgeProps {
   chartId: number;
 }
 
-const StyledFilterCount = styled.div`
+const StyledFilterCount = styled.button`
   ${({ theme }) => `
+    appearance: none;
+    border: none;
+    font: inherit;
     display: flex;
     justify-items: center;
     align-items: center;
@@ -135,7 +138,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   );
   const [popoverVisible, setPopoverVisible] = useState(false);
   const popoverContentRef = useRef<HTMLDivElement>(null);
-  const popoverTriggerRef = useRef<HTMLDivElement>(null);
+  const popoverTriggerRef = useRef<HTMLButtonElement>(null);
 
   const onHighlightFilterSource = useCallback(
     (path: string[]) => {
@@ -144,7 +147,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     [dispatch],
   );
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+  const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
     if (event.key === 'Enter') {
       setPopoverVisible(true);
     }
@@ -306,15 +309,14 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
       popoverTriggerRef={popoverTriggerRef}
     >
       <StyledFilterCount
+        type="button"
         aria-label={t('Applied filters (%s)', filterCount)}
         aria-haspopup="true"
-        role="button"
         ref={popoverTriggerRef}
         className={cx(
           'filter-counts',
           !!appliedCrossFilterIndicators.length && 'has-cross-filters',
         )}
-        tabIndex={0}
         onKeyDown={handleKeyDown}
       >
         <Icons.FilterOutlined iconSize="m" />

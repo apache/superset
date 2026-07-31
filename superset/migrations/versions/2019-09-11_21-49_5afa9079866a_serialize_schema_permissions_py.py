@@ -71,7 +71,7 @@ def upgrade():
     op.add_column("tables", Column("schema_perm", String(length=1000), nullable=True))
 
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
     for t in session.query(Sqlatable).all():
         db_name = (
             t.database.verbose_name
