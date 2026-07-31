@@ -91,6 +91,10 @@ class PurgeArchivedCommand(BaseCommand):
                 actor=get_current_user() or UNKNOWN_ACTOR,
                 model_cls=type(model),
                 require_archived=True,
+                # An end user's irreversible purge must never run unaudited;
+                # the CLI's fail-open default is an operator-trust decision
+                # that does not extend to REST principals.
+                require_audit=True,
             ).run()
         except (SQLAlchemyError, DAODeleteFailedError) as ex:
             # Deliberately narrow: a database or DAO failure is a real
@@ -104,6 +108,11 @@ class PurgeArchivedCommand(BaseCommand):
         # tell the caller their data is gone when it is not.
         if not result.get("purged"):
             reason = result.get("reason")
+            if reason == "audit_unavailable":
+                raise self._binding.delete_failed(
+                    "The purge was not performed because it could not be "
+                    "recorded in the audit log"
+                )
             if reason == "not_found":
                 raise self._binding.not_found(
                     f"Row with uuid={self._model_uuid!r} was restored or removed "

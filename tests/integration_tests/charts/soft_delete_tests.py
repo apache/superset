@@ -1085,3 +1085,38 @@ class TestChartArchiveListing(InsertChartMixin, SupersetTestCase):
         assert rv.status_code == 500, rv.data
 
         _hard_delete_chart(chart_id)
+
+
+class TestAuditRequiredOnRestPurge(InsertChartMixin, SupersetTestCase):
+    """An end user's irreversible purge must never execute unrecorded."""
+
+    @with_feature_flags(SOFT_DELETE=True)
+    def test_rest_purge_refuses_when_the_audit_cannot_be_written(self) -> None:
+        """The CLI fails open on audit failure because a shell operator is
+        present to see it; a REST principal is not, so the route fails closed
+        -- 422, entity untouched, nothing destroyed off the record."""
+        admin_id = self.get_user("admin").id
+        chart = self.insert_chart("audit_required", [admin_id], 1)
+        chart_id = chart.id
+        chart_uuid = str(chart.uuid)
+        chart.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        db.session.commit()
+        self.login(ADMIN_USERNAME)
+        try:
+            with patch(
+                "superset.commands.deletion_retention.force_purge.audit.write_ahead",
+                return_value=None,
+            ):
+                rv = self.client.post(f"/api/v1/chart/{chart_uuid}/purge")
+
+            assert rv.status_code == 422, rv.data
+            assert b"audit" in rv.data
+            survivor = (
+                db.session.query(Slice)
+                .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {Slice}})
+                .filter(Slice.id == chart_id)
+                .one_or_none()
+            )
+            assert survivor is not None
+        finally:
+            _hard_delete_chart(chart_id)

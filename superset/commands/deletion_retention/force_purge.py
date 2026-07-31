@@ -73,11 +73,13 @@ class ForcePurgeCommand:
         actor: str = "operator",
         model_cls: type[SoftDeleteMixin] | None = None,
         require_archived: bool = False,
+        require_audit: bool = False,
     ) -> None:
         self._uuid: str = uuid
         self._actor: str = actor
         self._model_cls = model_cls
         self._require_archived = require_archived
+        self._require_audit = require_audit
 
     def _resolve(self) -> SoftDeleteMixin | None:
         """Find the entity by UUID, visibility-filter bypassed.
@@ -131,6 +133,22 @@ class ForcePurgeCommand:
             entity_uuid=self._uuid,
             removed_dashboard_slices=removed_dashboard_slices,
         )
+        if record_id is None and self._require_audit:
+            # The scheduled task always fails closed here; this command's
+            # default fail-open is licensed by "a human operator is present at
+            # a shell" -- a rationale that does not transfer to the REST
+            # caller, which passes require_audit so an end user's irreversible
+            # purge can never execute unrecorded.
+            logger.warning(
+                "force_purge: refused uuid=%s -- write-ahead audit "
+                "unavailable and the caller requires one",
+                self._uuid,
+            )
+            return {
+                "purged": False,
+                "reason": "audit_unavailable",
+                "uuid": self._uuid,
+            }
         entity = self._resolve()
         if entity is None:
             audit.fail(record_id)

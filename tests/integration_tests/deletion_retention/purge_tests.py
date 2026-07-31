@@ -41,6 +41,7 @@ from superset.connectors.sqla.models import (
     RowLevelSecurityFilter,
     SqlaTable,
 )
+from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.user_attributes import UserAttribute
@@ -719,3 +720,38 @@ class TestExplicitBlockerGuards(DeletionRetentionTestBase):
         assert result.blocked_reason == "blocked by database references"
         assert "SQL:" not in result.blocked_reason
         assert self.exists(Slice, chart_id)
+
+
+class TestFailClosedAudienceDefault(DeletionRetentionTestBase):
+    """A soft-delete model without editors must not enumerate to everyone."""
+
+    def test_editorless_model_enumerates_nothing_to_non_admins(self) -> None:
+        """_scope_to_restore_audience fails CLOSED for a model without an
+        editors relationship. All three shipped models have one, so this
+        pins the default the next SoftDeleteMixin adopter inherits: no
+        audience to scope to means nothing enumerable, not everything.
+        """
+        from superset.views.filters import BaseDeletedStateFilter
+
+        chart = self.make_chart("failclosed")
+        self.soft_delete(chart, days_ago=1)
+
+        class ProbeFilter(BaseDeletedStateFilter):
+            arg_name = "probe_deleted_state"
+            model = Slice
+
+        instance = ProbeFilter.__new__(ProbeFilter)
+        base_query = db.session.query(Slice).execution_options(
+            **{SKIP_VISIBILITY_FILTER_CLASSES: {Slice}}
+        )
+        with (
+            patch(
+                "superset.views.filters.security_manager.is_admin",
+                return_value=False,
+            ),
+            patch.object(Slice, "editors", None),
+        ):
+            scoped = instance._scope_to_restore_audience(  # noqa: SLF001
+                base_query.filter(Slice.deleted_at.is_not(None)), "only"
+            )
+            assert scoped.count() == 0

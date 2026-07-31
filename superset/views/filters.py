@@ -21,7 +21,7 @@ from typing import Any, cast, ClassVar, Optional
 from flask import current_app as app, g
 from flask_appbuilder.models.filters import BaseFilter
 from flask_babel import lazy_gettext
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, false as sa_false, or_
 from sqlalchemy.orm import Query
 
 from superset import security_manager
@@ -231,11 +231,29 @@ class BaseDeletedStateFilter(BaseFilter):  # pylint: disable=too-few-public-meth
         (``arg_name`` + ``model``) instead of carrying verbatim copies of
         this body. ``any()`` emits an EXISTS subquery so it composes with
         the entity's base access filter without duplicate rows from a join.
-        Entities without an ``editors`` relationship opt out automatically.
+
+        "Mirrors" is deliberately approximate in two known, fail-safe ways:
+        editorship granted through ``EXTRA_EDITORS_RESOLVER`` and guest users
+        whose editorship derives from roles have no SQL form (the resolver is
+        arbitrary per-deployment Python), so both can restore via a direct
+        ``POST /restore`` yet see an under-enumerated archive. Narrower than
+        the true audience, never wider.
+
+        A model *without* an ``editors`` relationship fails closed for
+        non-admins: there is no audience to scope to, so nothing is
+        enumerable. Returning the query unfiltered here would hand every
+        soft-deleted row of a future ``SoftDeleteMixin`` adopter to anyone
+        with list access -- a fail-open default on a security-scoped filter.
         """
-        editors = getattr(self.model, "editors", None)
-        if editors is None or security_manager.is_admin():
+        if security_manager.is_admin():
             return query
+        editors = getattr(self.model, "editors", None)
+        if editors is None:
+            if normalized == "only":
+                # Nothing is enumerable; emit an always-false predicate rather
+                # than an empty result-set hack so pagination stays coherent.
+                return query.filter(sa_false())
+            return query.filter(self.model.deleted_at.is_(None))
         user_id = get_user_id()
         from superset.subjects.models import Subject  # noqa: PLC0415
         from superset.subjects.utils import (  # noqa: PLC0415
