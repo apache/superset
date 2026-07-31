@@ -44,6 +44,11 @@ interface Props extends EChartHandlers {
   option: EChartsOption;
   scheme: 'light' | 'dark';
   enableBrush?: boolean;
+  /**
+   * Receives the live instance on mount and `null` on unmount, so the app can
+   * reach imperative APIs (image export) without owning the lifecycle.
+   */
+  onInstance?: (chart: EChartsType | null) => void;
 }
 
 /**
@@ -57,17 +62,21 @@ export function EChart({
   enableBrush,
   onDataPointClick,
   onBrushEnd,
+  onInstance,
 }: Props): JSX.Element {
   const elRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<EChartsType | null>(null);
   const handlersRef = useRef<EChartHandlers>({});
   handlersRef.current = { onDataPointClick, onBrushEnd };
+  const onInstanceRef = useRef(onInstance);
+  onInstanceRef.current = onInstance;
 
   // Create / dispose the instance and keep it responsive to container size.
   useEffect(() => {
     if (!elRef.current) return undefined;
     const chart = echarts.init(elRef.current, undefined, { renderer: 'canvas' });
     chartRef.current = chart;
+    onInstanceRef.current?.(chart);
 
     chart.on('click', (params: unknown) => {
       const p = params as {
@@ -111,6 +120,7 @@ export function EChart({
       ro.disconnect();
       chart.dispose();
       chartRef.current = null;
+      onInstanceRef.current?.(null);
     };
   }, []);
 

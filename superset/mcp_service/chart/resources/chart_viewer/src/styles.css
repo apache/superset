@@ -203,6 +203,122 @@ body {
   color: var(--sv-text-primary);
 }
 
+/* ---- Export menu ---- */
+.sv-menu-root {
+  position: relative;
+  display: inline-flex;
+}
+
+.sv-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 10;
+  min-width: 210px;
+  padding: 4px;
+  background: var(--sv-panel);
+  border: 1px solid var(--sv-border);
+  border-radius: var(--sv-radius-sm);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  animation: sv-rise-plain 0.14s ease;
+}
+
+@keyframes sv-rise-plain {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sv-menu-item {
+  appearance: none;
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--sv-text-primary);
+  padding: 7px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.sv-menu-item:hover {
+  background: var(--sv-hover);
+}
+
+.sv-menu-note {
+  margin: 4px 6px 2px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--sv-text-muted);
+  max-width: 230px;
+  white-space: normal;
+}
+
+/* ---- Copy panel (download-blocked fallback) ---- */
+.sv-panel-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  background: color-mix(in srgb, var(--sv-bg) 78%, transparent);
+}
+
+.sv-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 560px;
+  max-height: 100%;
+  padding: 12px;
+  background: var(--sv-panel);
+  border: 1px solid var(--sv-border);
+  border-radius: var(--sv-radius);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.22);
+}
+
+.sv-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--sv-text-primary);
+}
+
+.sv-panel-hint {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--sv-text-secondary);
+}
+
+.sv-panel-text {
+  flex: 1 1 auto;
+  min-height: 140px;
+  resize: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--sv-text-primary);
+  background: var(--sv-bg);
+  border: 1px solid var(--sv-border);
+  border-radius: var(--sv-radius-sm);
+  padding: 8px;
+  white-space: pre;
+}
+
 /* ---- Chart area ---- */
 .sv-body {
   position: relative;

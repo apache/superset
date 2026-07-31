@@ -19,6 +19,7 @@
 import type { JSX } from 'react';
 import type { DataColumn, ViewType } from '../types';
 import { CATEGORICAL_PALETTE } from '../theme';
+import { ExportMenu, type ExportAction } from './ExportMenu';
 
 const VIEW_LABELS: Record<ViewType, string> = {
   line: 'Line',
@@ -39,6 +40,8 @@ interface Props {
   onToggleMetric: (name: string) => void;
   exploreUrl?: string;
   onOpenInSuperset?: () => void;
+  exportActions?: ExportAction[];
+  exportNote?: string;
 }
 
 /** Compact toolbar: view switcher chips, metric toggles, "Open in Superset". */
@@ -51,6 +54,8 @@ export function Toolbar({
   onToggleMetric,
   exploreUrl,
   onOpenInSuperset,
+  exportActions,
+  exportNote,
 }: Props): JSX.Element {
   // Scatter consumes two measures positionally (x and y), so toggling one off
   // would not narrow the plot, it would break it.
@@ -103,6 +108,10 @@ export function Toolbar({
       )}
 
       <div className="sv-spacer" />
+
+      {exportActions && exportActions.length > 0 && (
+        <ExportMenu actions={exportActions} note={exportNote} />
+      )}
 
       {exploreUrl && (
         <button type="button" className="sv-btn" onClick={onOpenInSuperset}>

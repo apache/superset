@@ -151,9 +151,16 @@ cleanly and the widget remains a great static chart.
 - **line / area / bar** — x from the temporal column (else first string column),
   y from numeric columns; multiple numeric columns become multiple series with a
   legend. Smooth lines, area gradients, rich axis-aware tooltips, responsive grid.
+- **pie** — donut of one measure split by a categorical dimension, largest wedge
+  first, with wedges past the twelfth collapsed into a single "Other" and
+  non-positive values dropped (they cannot be a share of a whole).
+- **scatter** — first measure on x, second on y, value axes on both; offered
+  only when the result carries two measures.
 - **big number** — a single large KPI value with the metric name and an optional
   trend sparkline when a temporal column exists.
-- **table** — dense, sortable, sticky-header, zebra-striped, right-aligned numerics.
+- **table** — dense, sortable, sticky-header, zebra-striped, right-aligned
+  numerics, paged at 25/50/100/250 rows. Sorting runs across the whole result
+  and then pages, so it never merely reorders the visible window.
 
 Unknown `chart_type` values fall back to the styled **table** view; the incoming
 `chart_type` is mapped to a sensible default view on load. Numbers and dates are
@@ -174,6 +181,38 @@ during the `ui/initialize` handshake (`bridge.ts`):
 
 When no host answers the handshake, the widget runs in **standalone mode** with
 bundled sample data — useful for local dev and for minimal hosts.
+
+### Export, and why the buttons change
+
+`export.ts` serializes the current result to CSV (RFC 4180, with the same
+formula-injection hardening as `superset/utils/csv.py`) and the chart to PNG via
+ECharts' `getDataURL()`. Which actions are offered depends on the frame:
+
+| Action | Offered when |
+| --- | --- |
+| Download CSV / Download PNG | the document can initiate a download |
+| Copy CSV | always (falls back to a selectable panel if the clipboard is denied) |
+| Show CSV | when downloads are blocked — a path that cannot silently fail |
+| Send data to the assistant | `ui/update-model-context` and/or `ui/message` supported |
+
+**Measured, not assumed:** loading the built bundle in a `sandbox="allow-scripts"`
+iframe under the declared empty CSP (headless Chrome 146) gives the document an
+opaque origin (`window.origin === "null"`), and a blob-URL download there throws
+nothing and downloads nothing — no `downloadWillBegin`, no file. A "Download CSV"
+button in a host would therefore have been a dead button, so
+`isDownloadRestricted()` hides the download actions in that case and explains
+why in the menu. Loaded top-level, the same bundle downloads a real CSV and a
+valid PNG. `navigator.clipboard.writeText` rejects with `NotAllowedError` in the
+sandboxed frame (a cross-origin iframe has no `clipboard-write` permission), so
+"Copy CSV" falls through to `document.execCommand('copy')` and, if that fails
+too, to the panel.
+
+Two caveats, stated plainly: a host that grants `allow-same-origin` but withholds
+`allow-downloads` would still block the download while passing the probe (there
+is no feature detection for `allow-downloads`), and `execCommand('copy')` can
+report success without the clipboard changing — which is why "Show CSV" exists.
+None of this has been exercised against Claude or ChatGPT themselves; the
+verification above is a faithful local emulation of the sandbox, not the hosts.
 
 ## Magic moments implemented
 
@@ -223,6 +262,7 @@ chart_viewer/
     ├── App.tsx           # orchestration, states, magic moments
     ├── adapter.ts        # ChartData -> EChartsOption (pure, tested)
     ├── adapter.test.ts   # vitest unit tests
+    ├── export.ts         # CSV/PNG export + sandbox capability probe
     ├── bridge.ts         # MCP Apps postMessage bridge (isolated)
     ├── theme.ts          # Superset palette + light/dark tokens
     ├── format.ts         # d3 number/date formatting

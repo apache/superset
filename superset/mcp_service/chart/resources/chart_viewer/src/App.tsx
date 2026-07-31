@@ -44,12 +44,24 @@ import {
   classifyColumns,
   defaultViewForChartType,
   isCartesianView,
+  isEChartsView,
 } from './adapter';
 import { formatByColumn, stripUntrustedMarkers } from './format';
+import {
+  copyText,
+  downloadDataUrl,
+  downloadFile,
+  exportFilename,
+  isDownloadRestricted,
+  toCsv,
+} from './export';
 import { EChart, type EChartClickParams } from './components/EChart';
+import type { EChartsType } from './echarts';
 import { BigNumber } from './components/BigNumber';
+import { CopyPanel } from './components/CopyPanel';
 import { DataTable } from './components/DataTable';
 import { Toolbar } from './components/Toolbar';
+import type { ExportAction } from './components/ExportMenu';
 import { EmptyState, ErrorState, LoadingSkeleton } from './components/States';
 import { SAMPLE_CHART_DATA } from './sample-data';
 
@@ -57,6 +69,13 @@ const bridge = new ChartBridge();
 const DEFAULT_WIDGET_HEIGHT = 420;
 const MAX_WIDGET_HEIGHT = 1200;
 const MIN_WIDGET_HEIGHT = 260;
+
+/**
+ * Rows included when handing the data to the assistant. The host feeds this
+ * straight into the model's context, so it is capped well below the result
+ * size the widget itself can hold.
+ */
+const SHARE_ROW_LIMIT = 100;
 
 interface DrillState {
   active: boolean;
@@ -88,6 +107,13 @@ export function App(): JSX.Element {
   // Tracked so the maximize control can toggle rather than only ever expand.
   const [displayMode, setDisplayMode] = useState<DisplayMode>('inline');
   const [restoreHeight, setRestoreHeight] = useState<number | null>(null);
+  const [copyPanel, setCopyPanel] = useState<{
+    title: string;
+    text: string;
+  } | null>(null);
+  const chartInstance = useRef<EChartsType | null>(null);
+  // The host sandbox decides this once, at load; it cannot change mid-session.
+  const downloadsBlocked = useMemo(() => isDownloadRestricted(), []);
 
   const toastTimer = useRef<number | null>(null);
   const showToast = useCallback((message: string, ms = 2600): void => {
@@ -372,6 +398,107 @@ export function App(): JSX.Element {
     );
   }, [exploreUrl, showToast]);
 
+  // ---- Export -------------------------------------------------------------
+  const exportActions = useMemo<ExportAction[]>(() => {
+    if (!data) return [];
+    const csv = (): string => toCsv(data);
+    const actions: ExportAction[] = [];
+
+    if (!downloadsBlocked) {
+      actions.push({
+        key: 'csv',
+        label: 'Download CSV',
+        onSelect: () => {
+          const ok = downloadFile(
+            exportFilename(data, 'csv'),
+            'text/csv',
+            csv(),
+          );
+          showToast(ok ? 'CSV downloaded.' : 'The host blocked the download.');
+        },
+      });
+      if (isEChartsView(view)) {
+        actions.push({
+          key: 'png',
+          label: 'Download PNG',
+          onSelect: () => {
+            const chart = chartInstance.current;
+            if (!chart) {
+              showToast('The chart is not ready yet.');
+              return;
+            }
+            const url = chart.getDataURL({
+              type: 'png',
+              pixelRatio: 2,
+              // Transparent PNGs are unreadable pasted into a light document.
+              backgroundColor: theme.bg,
+            });
+            const ok = downloadDataUrl(exportFilename(data, 'png'), url);
+            showToast(ok ? 'Image downloaded.' : 'The host blocked the download.');
+          },
+        });
+      }
+    }
+
+    actions.push({
+      key: 'copy',
+      label: 'Copy CSV',
+      onSelect: () => {
+        const text = csv();
+        void copyText(text).then((ok) => {
+          if (ok) showToast('CSV copied to the clipboard.');
+          // No clipboard permission in this frame — show it instead so the
+          // user can copy it with their own keystroke.
+          else setCopyPanel({ title: 'CSV', text });
+        });
+      },
+    });
+
+    if (downloadsBlocked) {
+      // A programmatic copy can report success without the clipboard actually
+      // changing (permissions vary by host), so a path that cannot lie —
+      // the text, on screen, for the user to copy — is always offered.
+      actions.push({
+        key: 'show',
+        label: 'Show CSV',
+        onSelect: () => setCopyPanel({ title: 'CSV', text: csv() }),
+      });
+    }
+
+    if (canAsk) {
+      actions.push({
+        key: 'share',
+        label: 'Send data to the assistant',
+        onSelect: () => {
+          const truncated = data.row_count > SHARE_ROW_LIMIT;
+          const text = toCsv(data, SHARE_ROW_LIMIT);
+          const preamble = stripUntrustedMarkers(
+            `Data behind "${data.chart_name}"${
+              truncated
+                ? ` (first ${SHARE_ROW_LIMIT} of ${data.row_count} rows)`
+                : ''
+            }, as CSV:`,
+          );
+          void (async () => {
+            await bridge.updateModelContext(`${preamble}\n${text}`, {
+              chart_id: data.chart_id,
+              row_count: data.row_count,
+              shared_rows: Math.min(SHARE_ROW_LIMIT, data.row_count),
+            });
+            await bridge.sendMessage(`${preamble}\n${text}`);
+            showToast('Sent the data to the assistant.');
+          })();
+        },
+      });
+    }
+
+    return actions;
+  }, [canAsk, data, downloadsBlocked, showToast, theme.bg, view]);
+
+  const exportNote = downloadsBlocked
+    ? 'This host sandboxes the widget, so it cannot save files. Copy the data or send it to the assistant instead.'
+    : undefined;
+
   const toggleMetric = useCallback((name: string) => {
     setActiveMetrics((cur) => {
       if (cur.includes(name)) {
@@ -511,6 +638,9 @@ export function App(): JSX.Element {
         enableBrush={enableBrush}
         onDataPointClick={handlePointClick}
         onBrushEnd={handleBrushEnd}
+        onInstance={(chart) => {
+          chartInstance.current = chart;
+        }}
       />
     </>
   );
@@ -526,10 +656,18 @@ export function App(): JSX.Element {
       onToggleMetric={toggleMetric}
       exploreUrl={exploreUrl}
       onOpenInSuperset={openInSuperset}
+      exportActions={exportActions}
+      exportNote={exportNote}
     />,
     data,
     drill.label,
-    selection && canAsk ? (
+    copyPanel ? (
+      <CopyPanel
+        title={copyPanel.title}
+        text={copyPanel.text}
+        onClose={() => setCopyPanel(null)}
+      />
+    ) : selection && canAsk ? (
       <div className="sv-toast">
         <span>
           {selection.seriesName}:{' '}

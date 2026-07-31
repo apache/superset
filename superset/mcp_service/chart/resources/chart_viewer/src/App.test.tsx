@@ -157,6 +157,27 @@ it('grows in place when the host refuses a fullscreen display mode', async () =>
   expect(last[1]).toBeGreaterThanOrEqual(720);
 });
 
+it('offers exports the current host can actually perform', async () => {
+  await renderApp();
+  const exportButton = container!.querySelector(
+    '[aria-haspopup="menu"]',
+  ) as HTMLButtonElement;
+  expect(exportButton).not.toBeNull();
+  await act(async () => {
+    exportButton.click();
+  });
+  const labels = Array.from(
+    container!.querySelectorAll('[role="menuitem"]'),
+  ).map((b) => b.textContent);
+  // jsdom is a top-level document, so file downloads are on offer...
+  expect(labels).toContain('Download CSV');
+  expect(labels).toContain('Copy CSV');
+  // ...but this mocked host advertises neither ui/message nor
+  // ui/update-model-context, so handing the data to the assistant is not
+  // offered as a button that would silently do nothing.
+  expect(labels).not.toContain('Send data to the assistant');
+});
+
 it('does not resize itself when the host accepts fullscreen', async () => {
   requestDisplayMode.mockResolvedValueOnce(true);
   await renderApp();
