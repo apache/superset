@@ -171,7 +171,7 @@ export function useVersionActions(
       }
       setRestoreTarget(null);
       dispatch(clearVersionPreview());
-      dispatch(versionRestored());
+      dispatch(versionRestored(uuid));
     } catch (error) {
       const { error: errMsg } = await getClientErrorObject(error);
       addDangerToast(

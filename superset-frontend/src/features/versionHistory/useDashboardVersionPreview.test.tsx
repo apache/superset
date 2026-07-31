@@ -225,6 +225,7 @@ const versionHistoryState = (
   isPreviewApplying: false,
   sessionLog: [],
   restoreCount: 0,
+  lastRestoredEntityUuid: null,
   ...overrides,
 });
 
@@ -468,13 +469,37 @@ test('switching previewed versions keeps the original live dataMask for exit', a
   expect(hydrateMaskArg(2)).toEqual(liveMask);
 });
 
+test("another entity's restore does not rehydrate this dashboard", async () => {
+  // The store outlives SPA navigation: a restore confirmed on page A can
+  // resolve after the user is already on page B. Reacting to it here would
+  // clear B's filters and refetch every chart for a change B never had.
+  const store = makePreviewStore();
+  renderPreviewHook(store);
+
+  act(() => {
+    store.setState({
+      versionHistory: versionHistoryState({
+        restoreCount: 1,
+        lastRestoredEntityUuid: 'some-other-dashboard-uuid',
+      }),
+    });
+  });
+
+  // Give any (wrong) fetch/hydrate a chance to happen before asserting.
+  await act(async () => {
+    await Promise.resolve();
+  });
+  expect(mockedFetchHydration).not.toHaveBeenCalled();
+  expect(mockedHydrateDashboard).not.toHaveBeenCalled();
+});
+
 test('reloading after a restore hydrates with no carried-over dataMask', async () => {
   const store = makePreviewStore();
   renderPreviewHook(store);
 
   act(() => {
     store.setState({
-      versionHistory: versionHistoryState({ restoreCount: 1 }),
+      versionHistory: versionHistoryState({ restoreCount: 1, lastRestoredEntityUuid: 'dash-uuid' }),
     });
   });
 

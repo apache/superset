@@ -50,6 +50,7 @@ const versionHistoryState = (
   },
   sessionLog: [],
   restoreCount: 0,
+  lastRestoredEntityUuid: null,
   ...overrides,
 });
 

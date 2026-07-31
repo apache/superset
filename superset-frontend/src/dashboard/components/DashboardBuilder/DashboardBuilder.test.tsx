@@ -807,6 +807,7 @@ const dashboardPreviewState = {
   },
   sessionLog: [],
   restoreCount: 0,
+  lastRestoredEntityUuid: null,
 };
 
 test('gates the dashboard grid while a version preview is active', async () => {

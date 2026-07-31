@@ -37,6 +37,7 @@ import {
   selectIsVersionHistoryPanelOpen,
   selectVersionHistoryInclude,
   selectVersionPreview,
+  selectVersionLastRestoredUuid,
   selectVersionRestoreCount,
   setVersionHistoryInclude,
   setVersionPreview,
@@ -128,6 +129,7 @@ export default function DashboardVersionHistory() {
   // here only the activity timeline needs a refresh so the new
   // "Restored version" entry shows up.
   const restoreCount = useSelector(selectVersionRestoreCount);
+  const lastRestoredUuid = useSelector(selectVersionLastRestoredUuid);
   // Saves made while the panel is open must surface as new timeline
   // entries without reopening it. Saves bump one of two redux signals
   // depending on the path: edit-mode saves round-trip through ON_SAVE
@@ -145,6 +147,11 @@ export default function DashboardVersionHistory() {
   useEffect(() => {
     if (restoreCount !== lastRestoreCountRef.current) {
       lastRestoreCountRef.current = restoreCount;
+      if (lastRestoredUuid !== uuid) {
+        // A restore of some other entity, resolving after navigation. This
+        // dashboard's timeline gained nothing; don't refetch it.
+        return;
+      }
       // The restore refresh covers any save-signal movement caused by
       // the same change; sync it so it does not refetch again.
       lastSaveSignalRef.current = saveSignal;
@@ -160,7 +167,7 @@ export default function DashboardVersionHistory() {
         refreshActivity();
       }
     }
-  }, [refreshActivity, restoreCount, saveSignal]);
+  }, [lastRestoredUuid, refreshActivity, restoreCount, saveSignal, uuid]);
 
   const handleClose = useCallback(() => {
     dispatch(closeVersionHistoryPanel());

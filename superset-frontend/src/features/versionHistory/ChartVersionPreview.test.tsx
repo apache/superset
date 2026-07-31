@@ -74,6 +74,7 @@ const previewState = (): VersionHistoryState => ({
   },
   sessionLog: [],
   restoreCount: 0,
+  lastRestoredEntityUuid: null,
 });
 
 const LIVE_DATASOURCE = { id: 5, type: 'table', columns: [], metrics: [] };

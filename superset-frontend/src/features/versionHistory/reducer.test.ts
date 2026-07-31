@@ -82,10 +82,13 @@ test('include filter persists', () => {
   expect(state.include).toBe('related');
 });
 
-test('versionRestored increments the restore counter', () => {
-  let state = versionHistoryReducer(initial, versionRestored());
-  state = versionHistoryReducer(state, versionRestored());
+test('versionRestored increments the counter and records the entity', () => {
+  let state = versionHistoryReducer(initial, versionRestored('uuid-a'));
+  state = versionHistoryReducer(state, versionRestored('uuid-b'));
   expect(state.restoreCount).toBe(2);
+  // Consumers use this to ignore restores of entities other than the one
+  // their page shows — the store outlives SPA navigation.
+  expect(state.lastRestoredEntityUuid).toBe('uuid-b');
 });
 
 test('session log collapses consecutive edits of the same control', () => {

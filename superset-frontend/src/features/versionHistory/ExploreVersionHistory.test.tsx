@@ -68,6 +68,7 @@ const versionHistoryState = (
   isPreviewApplying: false,
   sessionLog: [],
   restoreCount: 0,
+  lastRestoredEntityUuid: null,
   ...overrides,
 });
 
@@ -132,6 +133,7 @@ beforeEach(() => {
     isLoading: false,
     error: null,
     hasMore: false,
+    truncated: false,
     loadMore: jest.fn(),
     refresh,
   });
@@ -165,7 +167,7 @@ test('a restore refreshes exactly once even when it also moves the slice', async
 
   act(() => {
     store.setState({
-      versionHistory: versionHistoryState({ restoreCount: 1 }),
+      versionHistory: versionHistoryState({ restoreCount: 1, lastRestoredEntityUuid: 'chart-uuid' }),
       explore: { slice: slice('2025-12-08T18:00:00') },
     });
   });

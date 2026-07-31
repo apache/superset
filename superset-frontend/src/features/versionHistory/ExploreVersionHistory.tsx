@@ -36,6 +36,7 @@ import {
   selectIsVersionHistoryPanelOpen,
   selectVersionHistoryInclude,
   selectVersionPreview,
+  selectVersionLastRestoredUuid,
   selectVersionRestoreCount,
   selectVersionSessionLog,
   setVersionHistoryInclude,
@@ -167,6 +168,7 @@ export default function ExploreVersionHistory() {
   // refresh the activity timeline so the new "Restored version" entry
   // shows up.
   const restoreCount = useSelector(selectVersionRestoreCount);
+  const lastRestoredUuid = useSelector(selectVersionLastRestoredUuid);
   // An overwrite save re-hydrates explore in place (no remount), which
   // replaces the slice with a fresh server copy; watch its changed_on
   // so the save surfaces as a new timeline entry while the panel is
@@ -181,6 +183,12 @@ export default function ExploreVersionHistory() {
   useEffect(() => {
     if (restoreCount !== lastRestoreCountRef.current) {
       lastRestoreCountRef.current = restoreCount;
+      if (lastRestoredUuid !== uuid) {
+        // A restore of some other entity, resolving after navigation. This
+        // chart did not change on the server; rehydrating would discard its
+        // state for someone else's restore.
+        return;
+      }
       // The restore refresh covers any save-signal movement caused by
       // the same change; sync it so it does not refetch again.
       lastSaveSignalRef.current = saveSignal;
@@ -209,10 +217,12 @@ export default function ExploreVersionHistory() {
   }, [
     addDangerToast,
     dispatch,
+    lastRestoredUuid,
     refreshActivity,
     restoreCount,
     saveSignal,
     sliceId,
+    uuid,
   ]);
 
   const handleClose = useCallback(() => {

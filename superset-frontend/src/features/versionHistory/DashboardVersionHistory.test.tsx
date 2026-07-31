@@ -61,6 +61,7 @@ const versionHistoryState = (
   isPreviewApplying: false,
   sessionLog: [],
   restoreCount: 0,
+  lastRestoredEntityUuid: null,
   ...overrides,
 });
 
@@ -124,6 +125,7 @@ beforeEach(() => {
     isLoading: false,
     error: null,
     hasMore: false,
+    truncated: false,
     loadMore: jest.fn(),
     refresh,
   });
@@ -180,7 +182,7 @@ test('a restore that also moves the save signal refreshes exactly once', () => {
 
   act(() => {
     store.setState({
-      versionHistory: versionHistoryState({ restoreCount: 1 }),
+      versionHistory: versionHistoryState({ restoreCount: 1, lastRestoredEntityUuid: 'dash-uuid' }),
       dashboardState: { hasUnsavedChanges: false, lastModifiedTime: 700 },
     });
   });

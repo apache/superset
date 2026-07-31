@@ -66,6 +66,14 @@ interface PreviewAppliedAction {
 
 interface VersionRestoredAction {
   type: typeof VERSION_RESTORED;
+  /**
+   * The entity the restore happened to. The store outlives SPA navigation
+   * and a restore is a multi-request sequence, so an unscoped broadcast
+   * resolving after the user moved on would make the *next* page rehydrate —
+   * clearing its filters and edits for a restore that happened elsewhere.
+   * Consumers compare this against their own entity before reacting.
+   */
+  entityUuid: string;
 }
 
 interface AppendSessionLogAction {
@@ -126,8 +134,9 @@ export const versionPreviewApplied = (): PreviewAppliedAction => ({
   type: VERSION_PREVIEW_APPLIED,
 });
 
-export const versionRestored = (): VersionRestoredAction => ({
+export const versionRestored = (entityUuid: string): VersionRestoredAction => ({
   type: VERSION_RESTORED,
+  entityUuid,
 });
 
 export const appendVersionSessionLog = (
@@ -149,6 +158,7 @@ const initialState: VersionHistoryState = {
   isPreviewApplying: false,
   sessionLog: [],
   restoreCount: 0,
+  lastRestoredEntityUuid: null,
 };
 
 export default function versionHistoryReducer(
@@ -179,7 +189,11 @@ export default function versionHistoryReducer(
     case CLEAR_VERSION_PREVIEW:
       return { ...state, preview: null, isPreviewApplying: false };
     case VERSION_RESTORED:
-      return { ...state, restoreCount: state.restoreCount + 1 };
+      return {
+        ...state,
+        restoreCount: state.restoreCount + 1,
+        lastRestoredEntityUuid: action.entityUuid,
+      };
     case APPEND_VERSION_SESSION_LOG: {
       const last = state.sessionLog[state.sessionLog.length - 1];
       // Collapse consecutive edits of the same control into one entry.
@@ -247,6 +261,10 @@ export const selectIsDashboardVersionPreviewActive = (
 
 export const selectVersionRestoreCount = (state: VersionHistoryRootState) =>
   selectVersionHistory(state).restoreCount;
+
+export const selectVersionLastRestoredUuid = (
+  state: VersionHistoryRootState,
+) => selectVersionHistory(state).lastRestoredEntityUuid;
 
 export const selectVersionSessionLog = (state: VersionHistoryRootState) =>
   selectVersionHistory(state).sessionLog;

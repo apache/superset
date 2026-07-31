@@ -39,6 +39,7 @@ import {
 } from './api';
 import {
   clearVersionPreview,
+  selectVersionLastRestoredUuid,
   selectVersionPreview,
   selectVersionRestoreCount,
   versionPreviewApplied,
@@ -170,6 +171,7 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
   const appliedVersionRef = useRef<string | null>(null);
   const fetchIdRef = useRef(0);
   const restoreCount = useSelector(selectVersionRestoreCount);
+  const lastRestoredUuid = useSelector(selectVersionLastRestoredUuid);
   const lastRestoreCountRef = useRef(restoreCount);
   // Saves bump one of two redux signals depending on the path: edit-mode
   // saves round-trip through ON_SAVE (dashboardState.lastModifiedTime),
@@ -245,9 +247,15 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
     };
 
     if (restoreCount !== lastRestoreCountRef.current) {
+      lastRestoreCountRef.current = restoreCount;
+      if (lastRestoredUuid !== uuid) {
+        // A restore of some other entity, resolving after navigation. This
+        // dashboard did not change on the server; rehydrating would clear its
+        // filters and unsaved state for someone else's restore.
+        return;
+      }
       // The dashboard changed on the server (a version was restored);
       // drop the cached live data and rehydrate with a fresh copy.
-      lastRestoreCountRef.current = restoreCount;
       appliedVersionRef.current = null;
       liveDataRef.current = null;
       liveDataMaskRef.current = null;
@@ -373,6 +381,7 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
     dashboardId,
     dispatch,
     history,
+    lastRestoredUuid,
     restoreCount,
     store,
     uuid,
