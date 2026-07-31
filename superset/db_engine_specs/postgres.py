@@ -30,7 +30,7 @@ from sqlalchemy.dialects.postgresql.base import PGInspector
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.expression import ColumnClause
-from sqlalchemy.types import Date, DateTime, String
+from sqlalchemy.types import Date, DateTime, String, Text
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import (
@@ -266,7 +266,8 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         time_grain: str | None,
     ) -> TimestampExpression:
         """
-        Construct a timestamp expression while preserving pure ``DATE`` semantics.
+        Construct a timestamp expression while preserving pure ``DATE`` semantics
+        and handling string columns marked as temporal.
 
         Applying ``DATE_TRUNC`` to a ``DATE`` column implicitly casts the value to
         ``TIMESTAMP``, which can trigger unwanted timezone conversion on the client
@@ -274,6 +275,13 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         cast back to ``DATE`` when the source column is a pure ``DATE`` type.
 
         See https://github.com/apache/superset/issues/42254.
+
+        ``DATE_TRUNC`` does not accept ``VARCHAR``/``TEXT`` arguments, so when a
+        string column is manually marked as temporal, its value is cast to
+        ``TIMESTAMP`` before the grain is applied. Otherwise the query fails with
+        ``function date_trunc(unknown, character varying) does not exist``.
+
+        See https://github.com/apache/superset/issues/42386.
         """
         expr = super().get_timestamp_expr(col, pdf, time_grain)
         col_type = getattr(col, "type", None)
@@ -281,6 +289,16 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         # of ``Date``), so this only matches pure ``DATE`` columns.
         if time_grain and isinstance(col_type, Date):
             return TimestampExpression(f"CAST({expr.name} AS DATE)", col, type_=Date())
+        if (
+            time_grain
+            and pdf not in ("epoch_s", "epoch_ms", "%Y")
+            and isinstance(col_type, (String, Text))
+        ):
+            return TimestampExpression(
+                expr.name.replace("{col}", "CAST({col} AS TIMESTAMP)"),
+                col,
+                type_=DateTime(),
+            )
         return expr
 
     @classmethod
