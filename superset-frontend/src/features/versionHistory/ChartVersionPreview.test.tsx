@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  createStore,
+  render,
+  screen,
+  waitFor,
+} from 'spec/helpers/testing-library';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import type { VersionHistoryState } from './types';
 import { fetchDatasourceMetadata, fetchVersionSnapshot } from './api';
@@ -55,7 +61,10 @@ const previewState = (): VersionHistoryState => ({
   isPanelOpen: true,
   entityType: 'chart',
   include: 'all',
-  isPreviewApplying: false,
+  // SET_VERSION_PREVIEW always enters the applying state; starting from the
+  // real post-dispatch shape keeps these tests honest about the lifecycle —
+  // the component itself must announce completion.
+  isPreviewApplying: true,
   preview: {
     entityUuid: 'chart-uuid',
     versionUuid: 'version-uuid',
@@ -69,16 +78,18 @@ const previewState = (): VersionHistoryState => ({
 
 const LIVE_DATASOURCE = { id: 5, type: 'table', columns: [], metrics: [] };
 
-const renderPreview = (liveDatasource: unknown = LIVE_DATASOURCE) =>
-  render(<ChartVersionPreview />, {
-    useRedux: true,
-    useTheme: true,
-    initialState: {
+const renderPreview = (liveDatasource: unknown = LIVE_DATASOURCE) => {
+  const store = createStore(
+    {
       versionHistory: previewState(),
       explore: { datasource: liveDatasource, slice: { editors: [{ id: 1 }] } },
       user: { userId: 1, roles: {} },
     },
-  });
+    reducerIndex,
+  );
+  render(<ChartVersionPreview />, { useTheme: true, store });
+  return store;
+};
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -103,6 +114,37 @@ test('renders the snapshot against the datasource the version was built on', asy
   });
   // The live datasource already matches, so no extra metadata round trip.
   expect(fetchDatasourceMetadata).not.toHaveBeenCalled();
+});
+
+test('announces the applied preview so the banner can offer Restore', async () => {
+  // The store enters isPreviewApplying on SET_VERSION_PREVIEW and only this
+  // component's announcement leaves it; without it the banner reads "Loading
+  // historical version" forever and never renders the Restore button.
+  const store = renderPreview();
+
+  await waitFor(() => {
+    expect(
+      (store.getState() as { versionHistory: VersionHistoryState })
+        .versionHistory.isPreviewApplying,
+    ).toBe(false);
+  });
+});
+
+test('announces completion even when the preview fails to load', async () => {
+  // A failed load shows the error alert in place of the chart; the applying
+  // state must still clear so the banner is not stuck reporting a load that
+  // has already settled.
+  (getChartDataRequest as jest.Mock).mockRejectedValue(
+    new Response(JSON.stringify({ message: 'boom' }), { status: 500 }),
+  );
+  const store = renderPreview();
+
+  await waitFor(() => {
+    expect(
+      (store.getState() as { versionHistory: VersionHistoryState })
+        .versionHistory.isPreviewApplying,
+    ).toBe(false);
+  });
 });
 
 test('fetches metadata when the version used a different datasource', async () => {

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { canOverwriteSlice } from 'src/explore/exploreUtils/canOverwriteSlice';
 import { Slice } from 'src/types/Chart';
 import {
@@ -37,7 +37,7 @@ import {
 import { getQuerySettings } from 'src/explore/exploreUtils';
 import type { Dataset } from 'src/components/Chart/types';
 import type { ExplorePageState } from 'src/explore/types';
-import { selectVersionPreview } from './reducer';
+import { selectVersionPreview, versionPreviewApplied } from './reducer';
 import { fetchDatasourceMetadata, fetchVersionSnapshot } from './api';
 import PreviewBanner from './PreviewBanner';
 
@@ -74,6 +74,7 @@ function buildPreviewFormData(
 }
 
 export default function ChartVersionPreview() {
+  const dispatch = useDispatch();
   const preview = useSelector(selectVersionPreview);
   const slice = useSelector<ExplorePageState, Slice | undefined>(
     state => state.explore?.slice ?? undefined,
@@ -193,6 +194,14 @@ export default function ChartVersionPreview() {
       .finally(() => {
         if (fetchId === fetchIdRef.current) {
           setIsLoading(false);
+          // SET_VERSION_PREVIEW put the store into the applying state; only
+          // this announcement leaves it, and the banner withholds Restore
+          // until it fires. Announce on failure too: the error alert replaces
+          // the chart, so the page is not mislabeling live content as
+          // historical, and Restore stays available exactly as it is from the
+          // panel kebab — a version whose data can't render is still a valid
+          // restore target.
+          dispatch(versionPreviewApplied());
         }
       });
 
@@ -202,7 +211,7 @@ export default function ChartVersionPreview() {
     return () => {
       fetchIdRef.current += 1;
     };
-  }, [entityUuid, versionUuid]);
+  }, [dispatch, entityUuid, versionUuid]);
 
   if (!preview) {
     return null;
