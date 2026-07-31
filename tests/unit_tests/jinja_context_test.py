@@ -2118,9 +2118,10 @@ def test_get_rendered_sql_filter_values_index_error_on_empty_list() -> None:
     A virtual dataset template that indexes into ``filter_values()`` (e.g.
     ``filter_values('col')[0]``) raises a Jinja ``UndefinedError`` when no
     dashboard filter is active for that column, since the call returns an
-    empty list. ``get_rendered_sql`` must surface this as a
-    ``QueryObjectValidationError`` instead of letting the raw
-    ``UndefinedError`` propagate as an unhandled 500.
+    empty list. ``get_rendered_sql`` must surface this with the dedicated
+    "Virtual dataset template error" message rather than the generic
+    "Error while rendering virtual dataset query" message used for other
+    template errors.
     """
     database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
     table = SqlaTable(
@@ -2136,6 +2137,6 @@ def test_get_rendered_sql_filter_values_index_error_on_empty_list() -> None:
 
     with pytest.raises(
         QueryObjectValidationError,
-        match="list object has no element 0",
+        match=r"Virtual dataset template error: list object has no element 0",
     ):
         table.get_rendered_sql(processor)
