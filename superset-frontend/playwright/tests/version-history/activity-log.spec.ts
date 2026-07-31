@@ -21,26 +21,34 @@
  * Activity-log (version history) coverage for charts.
  *
  * Requires the running instance to have VERSION_HISTORY +
- * ENABLE_VERSIONING_CAPTURE enabled (the docker dev stack does). Each
- * target chart is renamed twice via the authenticated REST API to
- * guarantee a deterministic, non-"first tracked save" entry, then the
- * Explore version-history panel is opened and its rendered entries are
- * asserted — exercising the descriptive-row rendering (no raw layout
- * node ids / UUIDs leaking into the timeline).
+ * ENABLE_VERSIONING_CAPTURE enabled (the docker dev stack does).
+ *
+ * The test creates its own chart and renames it twice via the authenticated
+ * REST API to guarantee a deterministic, non-"first tracked save" entry, then
+ * opens the Explore version-history panel and asserts the rendered entries —
+ * exercising the descriptive-row rendering (no raw layout node ids / UUIDs
+ * leaking into the timeline).
+ *
+ * It deliberately does not touch the seeded example charts. Renaming those
+ * made the test order-dependent (it picked the most recently changed charts),
+ * unsafe to run on parallel workers, and left version records behind that no
+ * revert could remove — version history being append-only is the point.
  */
-import { test, expect, APIRequestContext, Page } from '@playwright/test';
+import { APIRequestContext, Page } from '@playwright/test';
+import rison from 'rison';
+import { testWithAssets, expect } from '../../helpers/fixtures';
+import { apiGet } from '../../helpers/api/requests';
+import { apiPostChart, apiPutChart } from '../../helpers/api/chart';
+import { getDatasetByName } from '../../helpers/api/dataset';
+import { TIMEOUT } from '../../utils/constants';
+
+const DATASET_NAME = 'birth_names';
 
 // Visible row text must never expose synthetic identifiers (layout node
 // ids like CHART-xyz / ROW-… or bare UUIDs) — the rendering layer maps
 // these to human names or kind-only phrasing.
 const OPAQUE_ID =
   /\b(CHART|ROW|COLUMN|TAB|TABS|HEADER|MARKDOWN|DIVIDER|GRID)-|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
-
-async function csrfToken(request: APIRequestContext): Promise<string> {
-  const res = await request.get('/api/v1/security/csrf_token/');
-  expect(res.ok(), 'csrf token request').toBeTruthy();
-  return (await res.json()).result;
-}
 
 /**
  * Resolve the current user's USER-type subject id. Chart `editors` (and the
@@ -67,44 +75,25 @@ async function currentUserSubjectId(
   return subjects[0].id;
 }
 
-/** First few charts (id + name) the API exposes. */
-async function listCharts(
-  request: APIRequestContext,
-  limit: number,
-): Promise<Array<{ id: number; slice_name: string }>> {
-  const q = encodeURIComponent(
-    `(columns:!(id,slice_name),page_size:${limit},order_column:changed_on_delta_humanized,order_direction:desc)`,
+/**
+ * Any dataset will do: the chart exists only to carry version records, and
+ * nothing here asserts on rendered data. Prefer the conventional example so
+ * this reads like its sibling specs, but fall back to whatever the instance
+ * has rather than requiring a particular fixture to be loaded.
+ */
+async function anyDatasetId(page: Page): Promise<number> {
+  const named = await getDatasetByName(page, DATASET_NAME);
+  if (named) {
+    return named.id;
+  }
+  const res = await apiGet(
+    page,
+    `api/v1/dataset/?q=${rison.encode({ columns: ['id'], page_size: 1 })}`,
   );
-  const res = await request.get(`/api/v1/chart/?q=${q}`);
-  expect(res.ok(), 'chart list request').toBeTruthy();
-  return (await res.json()).result;
-}
-
-async function updateChart(
-  request: APIRequestContext,
-  csrf: string,
-  id: number,
-  data: Record<string, unknown>,
-): Promise<void> {
-  const res = await request.put(`/api/v1/chart/${id}`, {
-    headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' },
-    data,
-  });
-  expect(res.ok(), `update chart ${id}: ${JSON.stringify(data)}`).toBeTruthy();
-}
-
-/** The chart's current editor subject ids, for restoring after the test. */
-async function chartEditors(
-  request: APIRequestContext,
-  id: number,
-): Promise<number[]> {
-  const res = await request.get(`/api/v1/chart/${id}`);
-  expect(res.ok(), `fetch chart ${id}`).toBeTruthy();
-  const editors: Array<{ id: number } | number> =
-    (await res.json()).result.editors ?? [];
-  return editors.map(editor =>
-    typeof editor === 'number' ? editor : editor.id,
-  );
+  expect(res.ok(), 'dataset list request').toBeTruthy();
+  const [first] = (await res.json()).result;
+  expect(first, 'the instance has at least one dataset').toBeTruthy();
+  return first.id;
 }
 
 /** Open the Explore "Additional actions → View version history" panel. */
@@ -117,73 +106,70 @@ async function openVersionHistory(page: Page): Promise<void> {
   ).toBeVisible();
 }
 
-test('chart activity log renders deterministic descriptive entries for multiple charts', async ({
-  page,
-}) => {
-  const charts = await listCharts(page.request, 3);
-  expect(charts.length, 'at least one chart exists').toBeGreaterThan(0);
+testWithAssets(
+  'chart activity log renders deterministic descriptive entries',
+  async ({ page, testAssets }) => {
+    testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
 
-  const csrf = await csrfToken(page.request);
-  const adminSubjectId = await currentUserSubjectId(page.request);
+    const datasetId = await anyDatasetId(page);
 
-  for (const chart of charts) {
-    const original = chart.slice_name;
-    const originalEditors = await chartEditors(page.request, chart.id);
-    try {
-      // Version history is only offered on charts the user can overwrite,
-      // i.e. can edit — so claim editorship first (example charts ship
-      // without editors).
-      // Two renames: the first edit on an as-yet-untracked chart collapses
-      // into "first tracked save"; the second is a normal descriptive save.
-      await updateChart(page.request, csrf, chart.id, {
-        editors: [adminSubjectId],
-        slice_name: `${original} ·vh1`,
-      });
-      await updateChart(page.request, csrf, chart.id, {
-        slice_name: `${original} ·vh2`,
-      });
+    const baseName = `version_history_${Date.now()}`;
+    const chartResp = await apiPostChart(page, {
+      slice_name: baseName,
+      viz_type: 'table',
+      datasource_id: datasetId,
+      datasource_type: 'table',
+      // Raw mode with no column references, so the chart is valid against any
+      // dataset.
+      params: JSON.stringify({
+        datasource: `${datasetId}__table`,
+        viz_type: 'table',
+        query_mode: 'raw',
+        all_columns: [],
+        adhoc_filters: [],
+        row_limit: 10,
+      }),
+    });
+    expect(chartResp.ok(), 'chart creation').toBeTruthy();
+    const chartBody = await chartResp.json();
+    const chartId: number = chartBody.result?.id ?? chartBody.id;
+    expect(chartId, 'chart creation should return an id').toBeTruthy();
+    testAssets.trackChart(chartId);
 
-      await page.goto(`explore/?slice_id=${chart.id}`);
-      await openVersionHistory(page);
+    // Version history is only offered on charts the user can overwrite, i.e.
+    // can edit — so claim editorship. A chart created through the API starts
+    // without editors.
+    // Two renames: the first edit on an as-yet-untracked chart collapses into
+    // "first tracked save"; the second is a normal descriptive save.
+    const adminSubjectId = await currentUserSubjectId(page.request);
+    await apiPutChart(page, chartId, {
+      editors: [adminSubjectId],
+      slice_name: `${baseName} ·vh1`,
+    });
+    await apiPutChart(page, chartId, { slice_name: `${baseName} ·vh2` });
 
-      const groups = page.locator('[data-test="version-history-save-group"]');
-      await expect(
-        groups.first(),
-        `chart ${chart.id} shows a save group`,
-      ).toBeVisible();
+    await page.goto(`explore/?slice_id=${chartId}`);
+    await openVersionHistory(page);
 
-      // The newest save is the live one and is tagged "Current".
-      await expect(
-        page.locator('[aria-label="Version history"]').getByText('Current'),
-      ).toBeVisible();
+    const panel = page.locator('[aria-label="Version history"]');
+    const groups = panel.locator('[data-test="version-history-save-group"]');
+    await expect(groups.first(), 'shows a save group').toBeVisible();
 
-      // Expand the newest group and confirm the rename rendered as a
-      // descriptive action row — not a raw field path.
-      await groups.first().getByRole('button').first().click();
-      const rows = page.locator('[data-test="version-history-action-row"]');
-      await expect(
-        rows.first(),
-        `chart ${chart.id} shows action rows`,
-      ).toBeVisible();
-      await expect(page.getByText(/Chart renamed to /).first()).toBeVisible();
+    // The newest save is the live one and is tagged "Current".
+    await expect(panel.getByText('Current')).toBeVisible();
 
-      // No synthetic identifiers may surface in any visible timeline row.
-      const panelText =
-        (await page.locator('[aria-label="Version history"]').innerText()) ??
-        '';
-      expect(
-        OPAQUE_ID.test(panelText),
-        `chart ${chart.id} panel leaks a raw id/uuid:\n${panelText}`,
-      ).toBeFalsy();
-    } finally {
-      // Restore the original name and editorship even when an assertion
-      // fails mid-loop, so the shared fixtures stay clean for re-runs.
-      // Plain request (no assertion) — a failed restore must not mask the
-      // original test failure.
-      await page.request.put(`/api/v1/chart/${chart.id}`, {
-        headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' },
-        data: { slice_name: original, editors: originalEditors },
-      });
-    }
-  }
-});
+    // Expand the newest group and confirm the rename rendered as a descriptive
+    // action row — not a raw field path.
+    await groups.first().getByRole('button').first().click();
+    const rows = panel.locator('[data-test="version-history-action-row"]');
+    await expect(rows.first(), 'shows action rows').toBeVisible();
+    await expect(panel.getByText(/Chart renamed to /).first()).toBeVisible();
+
+    // No synthetic identifiers may surface in any visible timeline row.
+    const panelText = (await panel.innerText()) ?? '';
+    expect(
+      OPAQUE_ID.test(panelText),
+      `panel leaks a raw id/uuid:\n${panelText}`,
+    ).toBeFalsy();
+  },
+);
