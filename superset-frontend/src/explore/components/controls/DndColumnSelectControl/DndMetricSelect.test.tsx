@@ -670,6 +670,42 @@ test('folder drop replaces (not appends) the existing value for a single-value c
   expect(committed.column.column_name).toBe('numeric_col');
 });
 
+test('folder drop skips columns already present as adhoc metrics, keeping new ones', () => {
+  const onChange = jest.fn();
+  const existingAdhocMetric = {
+    expressionType: EXPRESSION_TYPES.SIMPLE,
+    column: numericColumn,
+    aggregate: AGGREGATES.SUM,
+    optionName: 'existing_numeric',
+  };
+  render(
+    <DndMetricSelect
+      {...defaultProps}
+      columns={[numericColumn, stringColumn]}
+      value={[existingAdhocMetric]}
+      onChange={onChange}
+      multi
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  // numeric_col is already an adhoc metric in value, so re-dropping it must
+  // not add a duplicate; string_col is new and should still be appended.
+  simulateFolderDrop(captured, [
+    { type: DndItemType.Column, value: numericColumn as any },
+    { type: DndItemType.Column, value: stringColumn as any },
+  ]);
+
+  expect(onChange).toHaveBeenCalledTimes(1);
+  const committed = onChange.mock.calls[0][0];
+  expect(committed).toHaveLength(2);
+  expect(committed[0]).toBeInstanceOf(AdhocMetric);
+  expect(committed[0].column.column_name).toBe('numeric_col');
+  expect(committed[1]).toBeInstanceOf(AdhocMetric);
+  expect(committed[1].column.column_name).toBe('string_col');
+  expect(committed[1].aggregate).toBe(AGGREGATES.COUNT_DISTINCT);
+});
+
 test('folder drop is a no-op when no item is accepted', () => {
   const onChange = jest.fn();
   render(

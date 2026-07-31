@@ -253,7 +253,16 @@ const DndMetricSelect = (props: any) => {
 
       const isMetricAlreadyInValues =
         item.type === 'metric' ? value.includes(item.value.metric_name) : false;
-      return !isMetricAlreadyInValues;
+      const isColumnAlreadyInValues =
+        item.type === DndItemType.Column
+          ? value.some(
+              currentValue =>
+                isAdhocMetricSimple(currentValue) &&
+                currentValue.column?.column_name ===
+                  (item.value as ColumnMeta).column_name,
+            )
+          : false;
+      return !isMetricAlreadyInValues && !isColumnAlreadyInValues;
     },
     [value, extra, savedMetricSet],
   );
