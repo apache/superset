@@ -43,8 +43,10 @@ from superset.mcp_service.chart.chart_utils import (
 from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
+    ColumnRef,
     GenerateChartResponse,
     PerformanceMetadata,
+    TableChartConfig,
     UpdateChartRequest,
     wrap_sql_adhoc_metrics,
 )
@@ -77,11 +79,14 @@ def _validation_error_response(message: str, details: str) -> GenerateChartRespo
 
 def _missing_config_or_name_error() -> GenerateChartResponse:
     return _validation_error_response(
-        message="Either 'config', 'chart_name', or 'dataset_id' must be provided.",
+        message=(
+            "Either 'config', 'add_columns', 'chart_name', or 'dataset_id' must be "
+            "provided."
+        ),
         details=(
-            "Either 'config', 'chart_name', or 'dataset_id' must be provided. "
-            "Use config for visualization changes, chart_name for renaming, "
-            "dataset_id to rebind the chart to a different dataset."
+            "Use config for full visualization changes, add_columns to append table "
+            "columns without replacing existing columns, chart_name for renaming, "
+            "or dataset_id to rebind the chart to a different dataset."
         ),
     )
 
@@ -93,6 +98,48 @@ def _wrapped_form_data_for_response(
     payload = dict(new_form_data) if new_form_data is not None else {}
     wrap_sql_adhoc_metrics(payload)
     return payload
+
+
+def _append_table_columns(
+    existing_form_data: dict[str, Any],
+    columns: list[ColumnRef],
+) -> dict[str, Any] | GenerateChartResponse:
+    """Append table columns/metrics without replacing the saved column lists."""
+    if existing_form_data.get("viz_type") not in {"table", "ag-grid-table"}:
+        return _validation_error_response(
+            message="'add_columns' is only supported for table charts.",
+            details=(
+                "Use 'config' to replace the full configuration of a non-table chart."
+            ),
+        )
+
+    patch = map_config_to_form_data(TableChartConfig(columns=columns))
+    merged = dict(existing_form_data)
+    query_mode = existing_form_data.get("query_mode")
+    if query_mode == "raw":
+        merged["all_columns"] = list(existing_form_data.get("all_columns") or [])
+        merged["all_columns"].extend(
+            column.name for column in columns if column.name is not None
+        )
+        return merged
+
+    merged["groupby"] = list(existing_form_data.get("groupby") or [])
+    merged["metrics"] = list(existing_form_data.get("metrics") or [])
+    merged["groupby"].extend(patch.get("groupby") or [])
+    merged["metrics"].extend(patch.get("metrics") or [])
+    return merged
+
+
+def _merge_replacement_config(
+    existing_form_data: dict[str, Any],
+    new_form_data: dict[str, Any],
+    parsed_config: Any,
+) -> dict[str, Any]:
+    """Merge a replacement config, honoring an explicit empty filter list."""
+    merged = {**existing_form_data, **new_form_data}
+    if getattr(parsed_config, "filters", None) == []:
+        merged.pop("adhoc_filters", None)
+    return merged
 
 
 def _build_update_payload(
@@ -135,6 +182,22 @@ def _build_update_payload(
             payload["datasource_id"] = request.dataset_id
             payload["datasource_type"] = "table"
         return payload
+
+    if request.add_columns is not None:
+        try:
+            existing_form_data = json.loads(chart.params) if chart.params else {}
+        except (ValueError, TypeError):
+            existing_form_data = {}
+        patched = _append_table_columns(existing_form_data, request.add_columns)
+        if isinstance(patched, GenerateChartResponse):
+            return patched
+        chart_name = request.chart_name or chart.slice_name
+        return {
+            "slice_name": chart_name,
+            "viz_type": patched["viz_type"],
+            "params": json.dumps(patched),
+            "query_context": None,
+        }
 
     # Dataset-only update: rebind chart to a different dataset without changing viz
     if request.dataset_id is not None:
@@ -185,7 +248,16 @@ def _build_preview_form_data(
             parsed_config, dataset_id=effective_dataset_id
         )
         new_form_data.pop("_mcp_warnings", None)
-        merged = {**existing_form_data, **new_form_data}
+        # An explicit filters list, including [], replaces saved filters. An
+        # omitted filters field preserves them through the shallow merge.
+        merged = _merge_replacement_config(
+            existing_form_data, new_form_data, parsed_config
+        )
+    elif request.add_columns is not None:
+        patched = _append_table_columns(existing_form_data, request.add_columns)
+        if isinstance(patched, GenerateChartResponse):
+            return patched
+        merged = patched
     else:
         if not request.chart_name and request.dataset_id is None:
             return _missing_config_or_name_error()
@@ -352,6 +424,7 @@ async def update_chart(  # noqa: C901
     - LLM clients MUST display the returned explore URL to users.
     - Use numeric ID or UUID string to identify the chart (NOT chart name).
     - config is optional — omit it to rename a chart without changing its visualization
+    - To append table columns without restating the existing list, use add_columns
 
     Example usage (preview, default):
     ```json
@@ -380,6 +453,14 @@ async def update_chart(  # noqa: C901
         "identifier": 123,
         "generate_preview": false,
         "config": {"chart_type": "table", "columns": [{"name": "region"}]}
+    }
+    ```
+
+    Add a table column while preserving existing columns and metrics:
+    ```json
+    {
+        "identifier": 123,
+        "add_columns": [{"name": "go_live_date", "aggregate": "MIN"}]
     }
     ```
 
@@ -470,6 +551,9 @@ async def update_chart(  # noqa: C901
 
         # config is already a typed ChartConfig | None (validated by Pydantic)
         parsed_config = request.config
+        validation_config = parsed_config
+        if request.add_columns is not None:
+            validation_config = TableChartConfig(columns=request.add_columns)
 
         # Normalize column case to match dataset canonical names
         # (mirrors generate_chart pipeline layer 4)
@@ -481,16 +565,22 @@ async def update_chart(  # noqa: C901
             if request.dataset_id is not None
             else getattr(chart, "datasource_id", None)
         )
-        if parsed_config is not None and effective_norm_dataset_id is not None:
+        if validation_config is not None and effective_norm_dataset_id is not None:
             from superset.mcp_service.chart.validation.dataset_validator import (
                 DatasetValidator,
                 NORMALIZATION_EXCEPTIONS,
             )
 
             try:
-                parsed_config = DatasetValidator.normalize_column_names(
-                    parsed_config, effective_norm_dataset_id
+                validation_config = DatasetValidator.normalize_column_names(
+                    validation_config, effective_norm_dataset_id
                 )
+                if parsed_config is not None:
+                    parsed_config = validation_config
+                else:
+                    request = request.model_copy(
+                        update={"add_columns": validation_config.columns}
+                    )
             except NORMALIZATION_EXCEPTIONS as e:
                 logger.warning(
                     "Column normalization failed for chart %s: %s", chart.id, e
@@ -511,10 +601,10 @@ async def update_chart(  # noqa: C901
             # SQL errors so we don't commit a chart that can't be queried.
             # Renames (no parsed_config and no dataset_id) skip validation since
             # form_data is untouched and no rebind is requested.
-            if parsed_config is not None and new_form_data is not None:
+            if validation_config is not None and new_form_data is not None:
                 with event_logger.log_context(action="mcp.update_chart.validation"):
                     validation_error = _validate_update_against_dataset(
-                        parsed_config,
+                        validation_config,
                         new_form_data,
                         chart,
                         dataset_id=request.dataset_id,
@@ -549,10 +639,10 @@ async def update_chart(  # noqa: C901
                 return preview_or_error
 
             # Validate before caching the form_data — same rationale as above.
-            if parsed_config is not None:
+            if validation_config is not None:
                 with event_logger.log_context(action="mcp.update_chart.validation"):
                     validation_error = _validate_update_against_dataset(
-                        parsed_config,
+                        validation_config,
                         preview_or_error,
                         chart,
                         dataset_id=request.dataset_id,
