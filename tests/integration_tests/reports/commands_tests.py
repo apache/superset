@@ -2745,7 +2745,9 @@ def test_retry_exhausted_transitions_to_error(
     # Use the same timestamp for both so _is_retry_window_stale() returns False.
     # Truncate microseconds — MySQL DateTime columns drop them, which would make
     # the round-tripped value differ from the in-memory one.
-    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None)
+    # Truncate microseconds — MySQL DATETIME columns drop them, causing
+    # _is_retry_window_stale() to see a mismatch after DB round-trip.
+    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None, microsecond=0)
     report_schedule.retry_attempt = 2
     report_schedule.retry_scheduled_dttm = scheduled_dttm
     report_schedule.last_state = ReportState.RETRYING
@@ -2795,7 +2797,7 @@ def test_send_failed_reports_sends_to_recipients(
         retry_notify_owners=False,
         retry_notify_recipients=False,
     )
-    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None)
+    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None, microsecond=0)
     report_schedule.retry_attempt = 1
     report_schedule.retry_scheduled_dttm = scheduled_dttm
     report_schedule.last_state = ReportState.RETRYING
@@ -2837,7 +2839,7 @@ def test_retrying_state_schedules_another_retry(
         retry_notify_owners=False,
         retry_notify_recipients=False,
     )
-    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None)
+    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None, microsecond=0)
     report_schedule.last_state = ReportState.RETRYING
     report_schedule.retry_attempt = 1
     report_schedule.retry_scheduled_dttm = scheduled_dttm
@@ -2920,7 +2922,7 @@ def test_retry_notify_owners_sends_notification(
         retry_notify_recipients=False,
     )
     # Set up as a retry attempt (current_attempt=1) so the notification fires
-    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None)
+    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None, microsecond=0)
     report_schedule.last_state = ReportState.RETRYING
     report_schedule.retry_attempt = 1
     report_schedule.retry_scheduled_dttm = scheduled_dttm
@@ -2961,10 +2963,13 @@ def test_new_crontab_window_skipped_while_retrying(
         retry_notify_recipients=False,
     )
     # Simulate: previous window set retry_attempt=2 with an old anchor
+    # last_eval_dttm must be recent so the guard's timeout considers the
+    # retry chain still alive (not stale/crashed).
     old_anchor = datetime(2020, 1, 1, 0, 0, 0)
     report_schedule.retry_attempt = 2
     report_schedule.retry_scheduled_dttm = old_anchor
     report_schedule.last_state = ReportState.RETRYING
+    report_schedule.last_eval_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None)
     db.session.commit()
 
     try:
@@ -3006,7 +3011,7 @@ def test_success_after_retry_clears_retry_state(
         retry_notify_owners=False,
         retry_notify_recipients=False,
     )
-    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None)
+    scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None, microsecond=0)
     report_schedule.last_state = ReportState.RETRYING
     report_schedule.retry_attempt = 2
     report_schedule.retry_scheduled_dttm = scheduled_dttm
