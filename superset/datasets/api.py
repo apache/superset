@@ -67,6 +67,7 @@ from superset.daos.dataset import DatasetDAO
 from superset.databases.filters import DatabaseFilter
 from superset.datasets.filters import (
     DatasetCertifiedFilter,
+    DatasetDeletedRecencyFilter,
     DatasetDeletedStateFilter,
     DatasetEditableFilter,
     DatasetIsNullOrEmptyFilter,
@@ -346,6 +347,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "editors": ["type", "active", "secondary_label", "img"],
     }
     search_filters = {
+        "deleted_at": [DatasetDeletedRecencyFilter],
         "sql": [DatasetIsNullOrEmptyFilter],
         "id": [
             DatasetCertifiedFilter,

@@ -70,6 +70,7 @@ const mockCharts = [
     slice_name: 'Deleted Chart One',
     changed_by: { first_name: 'Ada', last_name: 'Lovelace' },
     deleted_at: '2026-06-20T10:00:00',
+    deleted_at_delta_humanized: '5 weeks ago',
     url: '/explore/?slice_id=1',
   },
   {
@@ -78,6 +79,7 @@ const mockCharts = [
     slice_name: 'Deleted Chart Two',
     changed_by: null,
     deleted_at: '2026-06-19T10:00:00',
+    deleted_at_delta_humanized: '6 weeks ago',
   },
 ];
 
@@ -280,7 +282,7 @@ test('switching Type fetches the newly selected resource with its deleted-state 
   });
 });
 
-test('time-range preset refetches with a deleted_at greater-than filter', async () => {
+test('time-range preset sends a day count for the server to resolve', async () => {
   mockRoutes();
   renderArchivedList();
   await screen.findByTestId('archived-list-view');
@@ -293,7 +295,12 @@ test('time-range preset refetches with a deleted_at greater-than filter', async 
   await waitFor(() => {
     const hit = fetchMock.callHistory
       .calls(/chart\/\?q/)
-      .find(call => call.url.includes('col:deleted_at,opr:gt'));
+      // A day count, not an absolute cutoff: deleted_at is server-local, so
+      // only the server's clock can window it correctly -- and a client
+      // timestamp here was also frozen at mount and unstable in the URL.
+      .find(call =>
+        call.url.includes('col:deleted_at,opr:chart_deleted_recency,value:30'),
+      );
     expect(hit).toBeTruthy();
   });
 });

@@ -21,7 +21,6 @@ import { useAppSelector } from 'src/views/store';
 import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
-import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import {
   ActionButton,
   ConfirmStatusChange,
@@ -301,12 +300,15 @@ function ArchivedListBody({
         disableSortBy: true,
       },
       {
-        // Relative archive time. Sortable — `deleted_at` is in order_columns
-        // on all three list APIs.
+        // Relative archive time, humanized by the SERVER (like
+        // changed_on_delta_humanized on the sibling pages). deleted_at is
+        // stamped with the server's naive-local clock, so parsing it here
+        // means guessing the server's timezone -- this page used to guess
+        // UTC, shifting every age by the server offset on non-UTC
+        // deployments. Sortable: id stays deleted_at, which is in
+        // order_columns on all three list APIs.
         Cell: ({ row: { original } }: { row: { original: ArchivedItem } }) =>
-          original.deleted_at
-            ? extendedDayjs.utc(String(original.deleted_at)).fromNow()
-            : '',
+          String(original.deleted_at_delta_humanized ?? ''),
         Header: t('Archived'),
         id: 'deleted_at',
       },
@@ -349,21 +351,21 @@ function ArchivedListBody({
   // three list endpoints, so it's the natural sort.
   const initialSort = useMemo(() => [{ id: 'deleted_at', desc: true }], []);
 
-  // Time-range presets map to a `deleted_at` greater-than cutoff. FAB exposes
-  // `gt` (not `ge`) for a DateTime column; for a relative window the half-open
-  // boundary is equivalent. "All time" is the unfiltered default.
-  const timeRangeOptions = useMemo(() => {
-    const cutoff = (days: number) => {
-      const date = new Date();
-      date.setDate(date.getDate() - days);
-      return date.toISOString();
-    };
-    return [
-      { label: t('Last 7 days'), value: cutoff(7) },
-      { label: t('Last 30 days'), value: cutoff(30) },
-      { label: t('Last 90 days'), value: cutoff(90) },
-    ];
-  }, []);
+  // Time-range presets send a day count; the server resolves the cutoff with
+  // the same clock that stamped deleted_at. An absolute cutoff computed here
+  // was wrong three ways: it was client-UTC against a server-local column
+  // (shifted by the server offset), it was frozen at mount (a long-lived tab
+  // drifted a day per day), and it was persisted into ?filters= as a
+  // timestamp no regenerated option could ever match. A day count has none
+  // of those failure modes. "All time" is the unfiltered default.
+  const timeRangeOptions = useMemo(
+    () => [
+      { label: t('Last 7 days'), value: 7 },
+      { label: t('Last 30 days'), value: 30 },
+      { label: t('Last 90 days'), value: 90 },
+    ],
+    [],
+  );
 
   const filters: ListViewFilters = useMemo(
     () => [
@@ -395,7 +397,7 @@ function ArchivedListBody({
         key: 'deleted_at',
         id: 'deleted_at',
         input: 'select',
-        operator: FilterOperator.GreaterThan,
+        operator: config.deletedRecencyOperator as FilterOperator,
         unfilteredLabel: t('All time'),
         selects: timeRangeOptions,
       },

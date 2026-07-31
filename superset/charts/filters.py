@@ -40,7 +40,7 @@ from superset.utils.filters import (
 )
 from superset.views.base import BaseFilter
 from superset.views.base_api import BaseFavoriteFilter
-from superset.views.filters import BaseDeletedStateFilter
+from superset.views.filters import BaseDeletedRecencyFilter, BaseDeletedStateFilter
 
 
 class ChartAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -273,6 +273,14 @@ class ChartOwnedCreatedFavoredByMeFilter(BaseFilter):  # pylint: disable=too-few
                 FavStar.user_id == get_user_id(),
             )
         )
+
+
+class ChartDeletedRecencyFilter(  # pylint: disable=too-few-public-methods
+    BaseDeletedRecencyFilter
+):
+    """Archive time-range preset: rows archived within the last N days."""
+
+    arg_name = "chart_deleted_recency"
 
 
 class ChartDeletedStateFilter(  # pylint: disable=too-few-public-methods

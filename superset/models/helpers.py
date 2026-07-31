@@ -692,6 +692,31 @@ def _user(user: User) -> str:
     return escape(user)
 
 
+def format_time_humanized(timestamp: datetime) -> str:
+    """Humanize *timestamp* against the server's naive-local clock.
+
+    Module-level rather than a mixin method so values projected outside an
+    entity (the archive list reads ``deleted_at`` in a bare column query) can
+    be humanized identically. The subtraction uses ``datetime.now()`` because
+    the audit columns and ``deleted_at`` are stamped with it; humanizing here,
+    on the clock that did the stamping, is what spares every client from
+    guessing the server's timezone.
+    """
+    locale = str(get_locale())
+    time_diff = datetime.now() - timestamp
+    # Skip activation for 'en' locale as it's humanize's default locale
+    if locale == "en":
+        return humanize.naturaltime(time_diff)
+    try:
+        humanize.i18n.activate(locale)
+        result = humanize.naturaltime(time_diff)
+        humanize.i18n.deactivate()
+        return result
+    except Exception as e:
+        logger.warning("Locale '%s' is not supported in humanize: %s", locale, e)
+        return humanize.naturaltime(time_diff)
+
+
 class AuditMixinNullable(AuditMixin):
     """Altering the AuditMixin to use nullable fields
 
@@ -764,19 +789,7 @@ class AuditMixinNullable(AuditMixin):
         return self.changed_on.astimezone(pytz.utc).strftime("%Y-%m-%dT%H:%M:%S.%f%z")
 
     def _format_time_humanized(self, timestamp: datetime) -> str:
-        locale = str(get_locale())
-        time_diff = datetime.now() - timestamp
-        # Skip activation for 'en' locale as it's humanize's default locale
-        if locale == "en":
-            return humanize.naturaltime(time_diff)
-        try:
-            humanize.i18n.activate(locale)
-            result = humanize.naturaltime(time_diff)
-            humanize.i18n.deactivate()
-            return result
-        except Exception as e:
-            logger.warning("Locale '%s' is not supported in humanize: %s", locale, e)
-            return humanize.naturaltime(time_diff)
+        return format_time_humanized(timestamp)
 
     @property
     def changed_on_humanized(self) -> str:

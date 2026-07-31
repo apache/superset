@@ -35,6 +35,7 @@ from superset.charts.filters import (
     ChartAllTextFilter,
     ChartCertifiedFilter,
     ChartCreatedByMeFilter,
+    ChartDeletedRecencyFilter,
     ChartDeletedStateFilter,
     ChartEditableFilter,
     ChartFavoriteFilter,
@@ -277,6 +278,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     base_order = ("changed_on", "desc")
     base_filters = [["id", ChartFilter, lambda: []]]
     search_filters = {
+        "deleted_at": [ChartDeletedRecencyFilter],
         "id": [
             ChartFavoriteFilter,
             ChartCertifiedFilter,

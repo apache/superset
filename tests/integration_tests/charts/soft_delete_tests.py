@@ -16,7 +16,7 @@
 # under the License.
 """Integration tests for chart soft-delete and restore."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import patch
 
@@ -27,6 +27,7 @@ from superset.commands.deletion_retention.force_purge import ForcePurgeCommand
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.extensions import db
+from superset.models.core import Database
 from superset.models.dashboard import Dashboard, dashboard_slices
 from superset.models.slice import Slice
 from superset.reports.models import (
@@ -582,6 +583,95 @@ class TestChartRestore(InsertChartMixin, SupersetTestCase):
 
         # Cleanup
         _hard_delete_chart(chart_id)
+
+
+class TestDeletedRecencyAndHumanized(InsertChartMixin, SupersetTestCase):
+    """The archive's time filter and displayed age both use the server clock.
+
+    Self-contained: builds its own database + dataset rather than assuming
+    the example fixtures, so it runs on a bare schema.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        self._db = Database(
+            database_name="recency_probe_db", sqlalchemy_uri="sqlite://"
+        )
+        db.session.add(self._db)
+        db.session.flush()
+        self._table = SqlaTable(
+            table_name="recency_probe_tbl", database=self._db, schema=None
+        )
+        db.session.add(self._table)
+        db.session.commit()
+        self._datasource_id = self._table.id
+
+    def tearDown(self) -> None:
+        db.session.query(SqlaTable).filter(SqlaTable.id == self._datasource_id).delete()
+        db.session.query(Database).filter(Database.id == self._db.id).delete()
+        db.session.commit()
+        super().tearDown()
+
+    @with_feature_flags(SOFT_DELETE=True)
+    def test_recency_filter_windows_on_the_clock_that_stamped_the_column(
+        self,
+    ) -> None:
+        """chart_deleted_recency keeps rows newer than N days, server-local.
+
+        The preset used to arrive as an absolute client-UTC cutoff compared
+        against the naive-local column, which shifted the window by the
+        server's UTC offset. Sending a day count and resolving it here, with
+        the same datetime.now() that stamped deleted_at, cannot disagree with
+        the column no matter the deployment timezone.
+        """
+        admin_id = self.get_user("admin").id
+        recent = self.insert_chart("recency_recent", [admin_id], self._datasource_id)
+        old = self.insert_chart("recency_old", [admin_id], self._datasource_id)
+        recent_id, old_id = recent.id, old.id
+        recent.deleted_at = datetime.now() - timedelta(days=2)
+        old.deleted_at = datetime.now() - timedelta(days=45)
+        db.session.commit()
+        self.login(ADMIN_USERNAME)
+        try:
+            rison_query = (
+                "(filters:!((col:id,opr:chart_deleted_state,value:only),"
+                "(col:deleted_at,opr:chart_deleted_recency,value:7)),page_size:200)"
+            )
+            rv = self.client.get(f"/api/v1/chart/?q={rison_query}")
+            assert rv.status_code == 200, rv.data
+            ids = {row["id"] for row in json.loads(rv.data)["result"]}
+            assert recent_id in ids
+            assert old_id not in ids
+
+            wide = rison_query.replace("value:7", "value:90")
+            rv = self.client.get(f"/api/v1/chart/?q={wide}")
+            ids = {row["id"] for row in json.loads(rv.data)["result"]}
+            assert {recent_id, old_id} <= ids
+        finally:
+            _hard_delete_chart(recent_id)
+            _hard_delete_chart(old_id)
+
+    @with_feature_flags(SOFT_DELETE=True)
+    def test_archived_age_is_humanized_by_the_server(self) -> None:
+        """Rows carry deleted_at_delta_humanized so no client parses the raw
+        naive-local timestamp (the UI used to parse it as UTC)."""
+        admin_id = self.get_user("admin").id
+        chart = self.insert_chart("recency_humanized", [admin_id], self._datasource_id)
+        chart_id = chart.id
+        chart.deleted_at = datetime.now() - timedelta(days=10)
+        db.session.commit()
+        self.login(ADMIN_USERNAME)
+        try:
+            rison_query = (
+                "(filters:!((col:id,opr:chart_deleted_state,value:only)),page_size:200)"
+            )
+            rv = self.client.get(f"/api/v1/chart/?q={rison_query}")
+            row = next(r for r in json.loads(rv.data)["result"] if r["id"] == chart_id)
+            assert row["deleted_at_delta_humanized"] == "10 days ago"
+            # The raw value stays for API consumers; only the display moved.
+            assert row["deleted_at"] is not None
+        finally:
+            _hard_delete_chart(chart_id)
 
 
 class TestChartArchiveListing(InsertChartMixin, SupersetTestCase):

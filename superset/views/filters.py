@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, cast, ClassVar, Optional
 
 from flask import current_app as app, g
@@ -26,7 +26,11 @@ from sqlalchemy.orm import Query
 
 from superset import security_manager
 from superset.extensions import db
-from superset.models.helpers import SKIP_VISIBILITY_FILTER_CLASSES, SoftDeleteMixin
+from superset.models.helpers import (
+    format_time_humanized,
+    SKIP_VISIBILITY_FILTER_CLASSES,
+    SoftDeleteMixin,
+)
 from superset.utils.core import get_user_id
 
 logger = logging.getLogger(__name__)
@@ -292,6 +296,37 @@ class BaseDeletedStateFilter(BaseFilter):  # pylint: disable=too-few-public-meth
         setattr(g, AUGMENT_RESPONSE_WITH_DELETED_AT, True)
 
 
+class BaseDeletedRecencyFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    """Keep rows archived within the last *value* days, by the server's clock.
+
+    The archive UI's time-range presets used to send an absolute cutoff
+    computed client-side in UTC. ``deleted_at`` is stamped with the server's
+    naive-local ``datetime.now()``, so on any non-UTC deployment those
+    cutoffs were shifted by the server offset -- and because the cutoff was
+    frozen when the page mounted, a long-lived tab drifted further. Taking a
+    day count and resolving it here, on the clock that stamped the column,
+    removes both failure modes and lets the client keep stable, shareable
+    filter values.
+
+    Subclasses set ``arg_name`` (e.g. ``"chart_deleted_recency"``).
+    """
+
+    name = lazy_gettext("Archived within")
+
+    def apply(self, query: Query, value: Any) -> Query:
+        try:
+            days = int(value)
+        except (TypeError, ValueError):
+            # Filter values arrive from the URL; refusing loudly would turn a
+            # mangled query string into a 500. An unfiltered list is the same
+            # answer every other malformed FAB filter value produces.
+            return query
+        if days <= 0:
+            return query
+        cutoff = datetime.now() - timedelta(days=days)
+        return query.filter(self.model.deleted_at > cutoff)
+
+
 class SoftDeleteApiMixin:
     """API mixin that augments list responses with a ``deleted_at``
     field on each row when the request opted into surfacing soft-deleted
@@ -365,9 +400,18 @@ class SoftDeleteApiMixin:
         ids = cast(list[Any], data.get("ids", []))
         deleted_at_map = self._get_deleted_at_map(ids)
         for row, row_id in zip(data.get("result", []), ids, strict=False):
-            row["deleted_at"] = deleted_at_map.get(row_id)
+            iso_value, humanized = deleted_at_map.get(row_id, (None, None))
+            row["deleted_at"] = iso_value
+            # Humanized on the server, like changed_on_delta_humanized on the
+            # sibling list pages: deleted_at is stamped with the server's
+            # naive-local clock, so any client-side parse has to guess the
+            # timezone -- and the archive UI guessed UTC, shifting every
+            # displayed age by the server offset on non-UTC deployments.
+            row["deleted_at_delta_humanized"] = humanized
 
-    def _get_deleted_at_map(self, ids: list[Any]) -> dict[Any, str | None]:
+    def _get_deleted_at_map(
+        self, ids: list[Any]
+    ) -> dict[Any, tuple[str | None, str | None]]:
         if not ids:
             return {}
         # Raw session query — read-only projection of two columns on
@@ -384,7 +428,10 @@ class SoftDeleteApiMixin:
             .all()
         )
         return {
-            row_id: self._serialize_deleted_at(deleted_at)
+            row_id: (
+                self._serialize_deleted_at(deleted_at),
+                format_time_humanized(deleted_at) if deleted_at else None,
+            )
             for row_id, deleted_at in rows
         }
 

@@ -36,6 +36,8 @@ export interface ArchivedTypeConfig {
   nameField: 'slice_name' | 'dashboard_title' | 'table_name';
   /** The rison filter operator that returns only soft-deleted (archived) rows. */
   deletedStateOperator: string;
+  /** Rison operator for the archived-within-N-days preset filter. */
+  deletedRecencyOperator: string;
   /**
    * FAB resource this type's list API is gated on, for `can_read` checks.
    * Used to offer only the types the viewer can actually load; the APIs
@@ -59,18 +61,21 @@ export const ARCHIVED_TYPE_CONFIG: Record<ArchivedType, ArchivedTypeConfig> = {
     resource: 'chart',
     nameField: 'slice_name',
     deletedStateOperator: 'chart_deleted_state',
+    deletedRecencyOperator: 'chart_deleted_recency',
     permissionResource: 'Chart',
   },
   dashboard: {
     resource: 'dashboard',
     nameField: 'dashboard_title',
     deletedStateOperator: 'dashboard_deleted_state',
+    deletedRecencyOperator: 'dashboard_deleted_recency',
     permissionResource: 'Dashboard',
   },
   dataset: {
     resource: 'dataset',
     nameField: 'table_name',
     deletedStateOperator: 'dataset_deleted_state',
+    deletedRecencyOperator: 'dataset_deleted_recency',
     permissionResource: 'Dataset',
   },
 };

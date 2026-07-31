@@ -95,6 +95,7 @@ from superset.dashboards.filters import (
     DashboardAccessFilter,
     DashboardCertifiedFilter,
     DashboardCreatedByMeFilter,
+    DashboardDeletedRecencyFilter,
     DashboardDeletedStateFilter,
     DashboardEditableFilter,
     DashboardFavoriteFilter,
@@ -450,6 +451,7 @@ class DashboardRestApi(
         "uuid",
     )
     search_filters = {
+        "deleted_at": [DashboardDeletedRecencyFilter],
         "dashboard_title": [DashboardTitleOrSlugFilter],
         "id": [
             DashboardFavoriteFilter,
