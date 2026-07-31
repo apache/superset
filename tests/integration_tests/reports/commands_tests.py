@@ -52,7 +52,6 @@ from superset.commands.report.exceptions import (
     AlertQueryMultipleRowsError,
     ReportScheduleClientErrorsException,
     ReportScheduleCsvFailedError,
-    ReportScheduleCsvTimeout,
     ReportScheduleNotFoundError,
     ReportSchedulePreviousWorkingError,
     ReportScheduleScreenshotFailedError,
@@ -2328,19 +2327,18 @@ def test_soft_timeout_csv(
     mock_urlopen.return_value = response
     mock_urlopen.return_value.getcode.side_effect = SoftTimeLimitExceeded()
 
-    with pytest.raises(ReportScheduleCsvTimeout):
+    with pytest.raises(SoftTimeLimitExceeded):
         AsyncExecuteReportScheduleCommand(
             TEST_ID, create_report_email_chart_with_csv.id, datetime.utcnow()
         ).run()
 
-    get_target_from_report_schedule(create_report_email_chart_with_csv)  # noqa: F841
-    # Assert the email smtp address, asserts a notification was sent with the error
-    assert email_mock.call_args[0][0] == DEFAULT_OWNER_EMAIL
+    # Reports preserve the hard-limit grace for terminal persistence instead
+    # of attempting an error notification after Celery's soft deadline.
+    email_mock.assert_not_called()
 
-    assert_log(
-        ReportState.ERROR,
-        error_message="A timeout occurred while generating a csv.",
-    )
+    logs = get_error_logs_query(create_report_email_chart_with_csv).all()
+    assert len(logs) == 1
+    assert logs[0].error_message == "celery_soft_timeout"
 
 
 @pytest.mark.usefixtures(

@@ -38,7 +38,9 @@ from superset.commands.report.exceptions import (
     ReportScheduleAlertGracePeriodError,
     ReportScheduleClientErrorsException,
     ReportScheduleCsvFailedError,
+    ReportScheduleCsvTimeout,
     ReportScheduleDataFrameFailedError,
+    ReportScheduleDataFrameTimeout,
     ReportScheduleExecuteUnexpectedError,
     ReportScheduleExecutorNotFoundError,
     ReportScheduleNotFoundError,
@@ -52,6 +54,7 @@ from superset.commands.report.exceptions import (
     ReportScheduleUnexpectedError,
     ReportScheduleWorkingTimeoutError,
     ReportScheduleXlsxFailedError,
+    ReportScheduleXlsxTimeout,
 )
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.daos.report import (
@@ -687,7 +690,7 @@ class BaseReportState:
                 ),
                 len(imges),
             )
-        except SoftTimeLimitExceeded:
+        except SoftTimeLimitExceeded as ex:
             elapsed_seconds = (
                 datetime.now(timezone.utc).replace(tzinfo=None) - start_time
             ).total_seconds()
@@ -702,7 +705,12 @@ class BaseReportState:
                     else None
                 ),
             )
-            raise
+            if self._report_schedule.type == ReportScheduleType.REPORT:
+                raise
+            # Alerts that attach a screenshot retain their established
+            # format-specific timeout and error-notification behavior. Report
+            # executions propagate the Celery signal to terminal cleanup.
+            raise ReportScheduleScreenshotTimeout() from ex
         except ReportExecutionBudgetExceededError:
             raise
         except Exception as ex:
@@ -867,15 +875,18 @@ class BaseReportState:
                 f"Unsupported chart data result format: {result_format}"
             )
 
+        timeout_error: type[CommandException]
         failed_error: type[CommandException]
         if result_format == ChartDataResultFormat.XLSX:
-            label, failed_error = (
+            label, timeout_error, failed_error = (
                 "Excel",
+                ReportScheduleXlsxTimeout,
                 ReportScheduleXlsxFailedError,
             )
         else:
-            label, failed_error = (
+            label, timeout_error, failed_error = (
                 "CSV",
+                ReportScheduleCsvTimeout,
                 ReportScheduleCsvFailedError,
             )
 
@@ -936,7 +947,7 @@ class BaseReportState:
                 elapsed_seconds,
                 self._execution_id,
             )
-        except SoftTimeLimitExceeded:
+        except SoftTimeLimitExceeded as ex:
             elapsed_seconds = (
                 datetime.now(timezone.utc).replace(tzinfo=None) - start_time
             ).total_seconds()
@@ -946,7 +957,9 @@ class BaseReportState:
                 elapsed_seconds,
                 self._execution_id,
             )
-            raise
+            if self._report_schedule.type == ReportScheduleType.REPORT:
+                raise
+            raise timeout_error() from ex
         except ReportExecutionBudgetExceededError:
             raise
         except Exception as ex:
@@ -1002,7 +1015,7 @@ class BaseReportState:
                 elapsed_seconds,
                 self._execution_id,
             )
-        except SoftTimeLimitExceeded:
+        except SoftTimeLimitExceeded as ex:
             elapsed_seconds = (
                 datetime.now(timezone.utc).replace(tzinfo=None) - start_time
             ).total_seconds()
@@ -1011,7 +1024,9 @@ class BaseReportState:
                 elapsed_seconds,
                 self._execution_id,
             )
-            raise
+            if self._report_schedule.type == ReportScheduleType.REPORT:
+                raise
+            raise ReportScheduleDataFrameTimeout() from ex
         except ReportExecutionBudgetExceededError:
             raise
         except Exception as ex:

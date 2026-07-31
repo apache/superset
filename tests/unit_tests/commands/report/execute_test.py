@@ -1691,6 +1691,44 @@ def test_get_data_xlsx_propagates_celery_soft_time_limit(
         report_state._get_data(ChartDataResultFormat.XLSX)
 
 
+@pytest.mark.parametrize(
+    ("schedule_type", "expected_exception"),
+    [
+        (ReportScheduleType.REPORT, SoftTimeLimitExceeded),
+        (ReportScheduleType.ALERT, ReportScheduleScreenshotTimeout),
+    ],
+)
+def test_screenshot_soft_timeout_distinguishes_reports_from_alert_attachments(
+    app: SupersetApp,
+    mocker: MockerFixture,
+    schedule_type: ReportScheduleType,
+    expected_exception: type[Exception],
+) -> None:
+    """Only reports reserve hard-limit grace for terminal cleanup."""
+    app.config.update(
+        {
+            "ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH": 1600,
+            "WEBDRIVER_WINDOW": {"slice": (800, 600), "dashboard": (800, 600)},
+        }
+    )
+    schedule = create_report_schedule(mocker)
+    schedule.type = schedule_type
+    schedule.chart.digest = "chart-digest"
+    state = BaseReportState(schedule, datetime.now(), uuid4())
+    mocker.patch(
+        "superset.commands.report.execute.resolve_executor_user",
+        return_value=(mocker.MagicMock(), "executor"),
+    )
+    mocker.patch.object(state, "_get_url", return_value="/chart/1")
+    screenshot = mocker.patch(
+        "superset.commands.report.execute.ChartScreenshot"
+    ).return_value
+    screenshot.get_screenshot.side_effect = SoftTimeLimitExceeded()
+
+    with pytest.raises(expected_exception):
+        state._get_screenshots()
+
+
 def test_executor_not_found_error_message_without_username() -> None:
     """
     When no username is available, the message falls back to ``(unknown)``
