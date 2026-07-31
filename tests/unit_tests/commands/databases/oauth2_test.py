@@ -15,11 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import logging
 from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
 from pytest_mock import MockerFixture
+from requests.exceptions import HTTPError
 
 from superset.commands.database.exceptions import DatabaseNotFoundError
 from superset.commands.database.oauth2 import OAuth2StoreTokenCommand
@@ -33,6 +35,7 @@ from superset.utils.oauth2 import decode_oauth2_state, encode_oauth2_state
 @pytest.fixture
 def mock_database(mocker: MockerFixture) -> MagicMock:
     database = mocker.MagicMock(spec=Database)
+    database.backend = "postgresql"
     database.get_oauth2_config.return_value = {
         "client_id": "test",
         "client_secret": "secret",
@@ -133,6 +136,33 @@ def test_run_success(
 
     assert result == "new_token"
     mock_create.assert_called_once()
+
+
+def test_run_logs_token_exchange_failure(
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    mock_database: MagicMock,
+    mock_parameters: OAuth2ProviderResponseSchema,
+) -> None:
+    mocker.patch.object(
+        DatabaseUserOAuth2TokensDAO,
+        "get_database",
+        return_value=mock_database,
+    )
+    mock_database.db_engine_spec.get_oauth2_token.side_effect = HTTPError(
+        "token endpoint unavailable"
+    )
+
+    with (
+        caplog.at_level(logging.ERROR, logger="superset.commands.database.oauth2"),
+        pytest.raises(HTTPError),
+    ):
+        OAuth2StoreTokenCommand(mock_parameters).run()
+
+    assert (
+        "OAuth2 token exchange failed: database_id=123 engine=postgresql "
+        "error_type=HTTPError"
+    ) in caplog.messages
 
 
 def test_run_existing_token(

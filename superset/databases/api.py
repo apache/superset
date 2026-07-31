@@ -1454,10 +1454,11 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response_404()
 
     @expose("/oauth2/", methods=["GET"])
+    @statsd_metrics
     @transaction()
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.oauth2",
-        log_to_statsd=True,
+        log_to_statsd=False,
     )
     def oauth2(self) -> FlaskResponse:
         """
