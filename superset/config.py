@@ -848,6 +848,15 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: testing
     # @category: security
     "ENABLE_VIEWERS": False,
+    # Share a newly created dashboard or chart read-only with every group its
+    # creator belongs to, unless the create payload names viewers explicitly.
+    # Requires ENABLE_VIEWERS. Narrows access: an asset with no viewers falls
+    # back to datasource permissions; one with viewers is limited to its editors
+    # and viewers, and dashboards must also be published before those viewers
+    # gain access.
+    # @lifecycle: testing
+    # @category: security
+    "ASSIGN_CREATOR_GROUPS_AS_VIEWERS": False,
     # Supports simultaneous data and dashboard virtualization for backend performance
     # @lifecycle: stable
     # @category: runtime_config
@@ -986,6 +995,12 @@ USER_AGENT_FUNC: Callable[[Database, utils.QuerySource | None], str] | None = No
 
 # This is merely a default.
 FEATURE_FLAGS: dict[str, bool] = {}
+
+# Retention policy for soft-deleted dashboards, charts, and datasets. A value of
+# zero disables scheduled purging. Dry-run mode is enabled by default so operators
+# must explicitly opt in to irreversible deletion.
+SOFT_DELETE_RETENTION_DAYS: int = 30
+SOFT_DELETE_PURGE_DRY_RUN: bool = True
 
 # A function that receives a dict of all feature flags
 # (DEFAULT_FEATURE_FLAGS merged with FEATURE_FLAGS)
@@ -1339,6 +1354,15 @@ CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
 
 # Cache for datasource metadata and query results
 DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
+
+# Upper bound, in bytes, on the serialized size of a single value written to the
+# data cache (chart and SQL query results). When a result's pickled size exceeds
+# this threshold the value is NOT written to the cache: the chart still renders,
+# but the next load re-queries the datasource instead of getting a cache hit. This
+# protects the cache backend (e.g. Redis/Memcached) from being flooded by very
+# large result sets. Set to ``None`` to disable the check (the default). Example:
+# 10 * 1024 * 1024 for a 10 MB limit.
+DATA_CACHE_MAX_VALUE_SIZE: int | None = None
 
 # Cache for dashboard filter state. `CACHE_TYPE` defaults to `SupersetMetastoreCache`
 # that stores the values in the key-value table in the Superset metastore, as it's
@@ -1739,6 +1763,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
     broker_url = "sqla+sqlite:///celerydb.sqlite"
     imports = (
         "superset.sql_lab",
+        "superset.tasks.deletion_retention",
         "superset.tasks.scheduler",
         "superset.tasks.thumbnails",
         "superset.tasks.cache",
@@ -1770,6 +1795,10 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         "version_history.prune_old_versions": {
             "task": "version_history.prune_old_versions",
             "schedule": crontab(minute=0, hour=3),
+        },
+        "deletion_retention.purge_soft_deleted": {
+            "task": "deletion_retention.purge_soft_deleted",
+            "schedule": crontab(minute=0, hour=0),
         },
         # Uncomment to enable pruning of the query table
         # "prune_query": {

@@ -160,6 +160,7 @@ const SqlEditorLeftBar = ({
         }
         schema={modalSchema?.value}
         sqlLabMode={false}
+        filterBySqlLab
       />
       <Flex justify="flex-end" gap="small">
         <Button
