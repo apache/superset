@@ -44,6 +44,10 @@ from superset.mcp_service.chart.chart_helpers import (
     merge_extra_form_data_filters_into_query,
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
+from superset.mcp_service.chart.constants import (
+    LARGE_RESULT_ROW_THRESHOLD,
+    WIDE_RESULT_COLUMN_THRESHOLD,
+)
 from superset.mcp_service.chart.schemas import (
     ChartData,
     ChartError,
@@ -118,6 +122,25 @@ def _coerce_row_limit(value: Any, default: int) -> int:
         return int(value)
     except (TypeError, ValueError):
         return default
+
+
+def build_shape_insights(row_count: int, column_count: int) -> list[str]:
+    """Advice about the *shape* of a result, or nothing at all.
+
+    Only speaks up when a reader could act on it. The row threshold used to sit
+    at 100, which fires on results that are entirely ordinary for a chart, so
+    the advice appeared constantly and meant nothing — and a field that always
+    warns is a field people learn to skip.
+    """
+    insights: list[str] = []
+    if row_count > LARGE_RESULT_ROW_THRESHOLD:
+        insights.append(
+            f"Large result ({row_count:,} rows) - consider filtering "
+            "or a coarser time grain"
+        )
+    if column_count > WIDE_RESULT_COLUMN_THRESHOLD:
+        insights.append("Many columns available - focus on key metrics")
+    return insights
 
 
 def _recommend_visualizations(
@@ -723,13 +746,7 @@ async def get_chart_data_core(  # noqa: C901
             )
 
             # Generate insights and recommendations
-            insights = []
-            if len(data) > 100:
-                insights.append(
-                    "Large dataset - consider filtering for better performance"
-                )
-            if len(raw_columns) > 10:
-                insights.append("Many columns available - focus on key metrics")
+            insights = build_shape_insights(len(data), len(raw_columns))
 
             # Add cache-specific insights
             if cache_status.cache_hit:

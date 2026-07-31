@@ -65,3 +65,15 @@ CHART_VIEWER_URI = f"ui://superset/chart-viewer/{_chart_viewer_version()}"
 
 # MIME type the MCP Apps spec defines for an HTML app resource.
 CHART_VIEWER_MIME_TYPE = "text/html;profile=mcp-app"
+
+# Row count above which a result is worth calling out as large.
+#
+# This was 100, which is an ordinary size for a chart — a two-year daily series
+# is ~700 rows — so the advice fired on results that needed no action at all and
+# read as the tool struggling. Advice nobody should act on is worse than none:
+# it trains readers to ignore the field.
+LARGE_RESULT_ROW_THRESHOLD = 5000
+
+# Column count above which narrowing the selection is genuinely worth
+# suggesting. A wide table is not itself a problem; an unreadable one is.
+WIDE_RESULT_COLUMN_THRESHOLD = 25
