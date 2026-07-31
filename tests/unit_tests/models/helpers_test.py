@@ -3705,6 +3705,38 @@ def test_numeric_in_filter_preserves_decimals_when_integer_is_first(
     assert "IN (21, 21, 25)" not in sql, f"Decimals were coerced to ints: {sql}"
 
 
+def test_numeric_in_filter_preserves_order_when_decimal_is_first(
+    database: Database,
+) -> None:
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="num", type="FLOAT")],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=["num"],
+        filter=[{"col": "num", "op": "IN", "val": [21.8, 21, 25.35]}],
+        is_timeseries=False,
+        row_limit=10,
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    assert "IN (21.8, 21, 25.35)" in sql, (
+        f"Expected decimal-first IN-list order to be preserved, got SQL: {sql}"
+    )
+
+
 def test_filter_by_verbose_name_resolves_to_column(
     database: Database,
 ) -> None:
