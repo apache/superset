@@ -78,7 +78,8 @@ test('loadMore chases zero-yield pages until a new entry becomes visible', async
   );
 
   await waitFor(() => expect(result.current.timeline).toHaveLength(1));
-  expect(mockedFetchActivity).toHaveBeenCalledTimes(1);
+  // One visible-page fetch plus the newest-self probe.
+  expect(mockedFetchActivity).toHaveBeenCalledTimes(2);
 
   await act(async () => {
     result.current.loadMore();
@@ -87,9 +88,10 @@ test('loadMore chases zero-yield pages until a new entry becomes visible', async
   await waitFor(() => expect(result.current.isLoading).toBe(false));
   expect(result.current.timeline).toHaveLength(2);
   // pages 1 and 2 yielded nothing visible and were auto-chained
-  const requestedPages = mockedFetchActivity.mock.calls.map(
-    ([, , options]) => options?.page,
-  );
+  // The newest-self probe (pageSize 1) is not part of the paging sequence.
+  const requestedPages = mockedFetchActivity.mock.calls
+    .filter(([, , options]) => options?.pageSize !== 1)
+    .map(([, , options]) => options?.page);
   expect(requestedPages).toEqual([0, 1, 2, 3]);
   expect(result.current.hasMore).toBe(false);
 });
@@ -115,9 +117,10 @@ test('loadMore stops chaining after the per-click page cap', async () => {
   });
 
   await waitFor(() => expect(result.current.isLoading).toBe(false));
-  const requestedPages = mockedFetchActivity.mock.calls.map(
-    ([, , options]) => options?.page,
-  );
+  // The newest-self probe (pageSize 1) is not part of the paging sequence.
+  const requestedPages = mockedFetchActivity.mock.calls
+    .filter(([, , options]) => options?.pageSize !== 1)
+    .map(([, , options]) => options?.page);
   expect(requestedPages).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8]);
   expect(result.current.timeline).toHaveLength(1);
   // still more raw pages on the server; the button stays available
@@ -169,7 +172,7 @@ test('changing the search term refetches from page 0 with q', async () => {
   );
 
   await waitFor(() => expect(result.current.timeline).toHaveLength(1));
-  expect(mockedFetchActivity).toHaveBeenLastCalledWith('chart', 'uuid-1', {
+  expect(mockedFetchActivity).toHaveBeenCalledWith('chart', 'uuid-1', {
     include: 'all',
     page: 0,
     pageSize: PAGE_SIZE,
@@ -179,12 +182,74 @@ test('changing the search term refetches from page 0 with q', async () => {
   rerender({ q: 'revenue' });
 
   await waitFor(() =>
-    expect(mockedFetchActivity).toHaveBeenLastCalledWith('chart', 'uuid-1', {
+    expect(mockedFetchActivity).toHaveBeenCalledWith('chart', 'uuid-1', {
       include: 'all',
       page: 0,
       pageSize: PAGE_SIZE,
       q: 'revenue',
     }),
+  );
+});
+
+test('newestGroup comes from a self probe, not the visible page', async () => {
+  // Page 0 filled entirely by newer related records — the newest self save is
+  // beyond it. Deriving "Current" from the page would drop the tag (or, with
+  // a search active, freeze it on a stale save after a restore).
+  mockedFetchActivity.mockImplementation(async (_type, _uuid, options) => {
+    if (options?.pageSize === 1) {
+      // The dedicated include='self' probe.
+      return { count: 1, result: [record(77, 0)] };
+    }
+    return {
+      count: PAGE_SIZE,
+      result: Array.from({ length: PAGE_SIZE }, (_, i) => ({
+        ...record(200, i),
+        source: 'related' as const,
+        entity_kind: 'dataset' as const,
+      })),
+    };
+  });
+
+  const { result } = renderHook(() =>
+    useVersionActivity('chart', 'uuid-1', 'all'),
+  );
+
+  await waitFor(() =>
+    expect(result.current.newestGroup?.transactionId).toBe(77),
+  );
+  expect(mockedFetchActivity).toHaveBeenCalledWith('chart', 'uuid-1', {
+    include: 'self',
+    page: 0,
+    pageSize: 1,
+  });
+});
+
+test('a refresh while a search is active still refreshes newestGroup', async () => {
+  // After a restore made from a filtered timeline, the newest self save
+  // changed; the probe must move with it even though the visible fetch
+  // carries the q filter.
+  let newestTx = 10;
+  mockedFetchActivity.mockImplementation(async (_type, _uuid, options) => {
+    if (options?.pageSize === 1) {
+      return { count: 1, result: [record(newestTx, 0)] };
+    }
+    return { count: 1, result: [record(5, 0)] };
+  });
+
+  const { result } = renderHook(() =>
+    useVersionActivity('chart', 'uuid-1', 'all', 'revenue'),
+  );
+  await waitFor(() =>
+    expect(result.current.newestGroup?.transactionId).toBe(10),
+  );
+
+  newestTx = 11; // a restore created a newer self save
+  act(() => {
+    result.current.refresh();
+  });
+
+  await waitFor(() =>
+    expect(result.current.newestGroup?.transactionId).toBe(11),
   );
 });
 

@@ -39,10 +39,12 @@ export interface UseVersionActivityResult {
   records: ActivityRecord[];
   timeline: TimelineEntry[];
   /**
-   * The newest save group from the last *unfiltered* fetch. The timeline is
-   * server-filtered by the search term, so its first group is merely the
-   * newest match — using that for "Current" tagging or restore gating would
-   * mislabel an older save while a search is active.
+   * The entity's newest self save, fetched by a dedicated one-record probe
+   * on every reset. The visible timeline cannot be trusted for this: it is
+   * server-filtered by the search term (its first group is merely the newest
+   * match), scoped by the include filter, and its first page can be filled
+   * entirely by newer related records — any of which would mislabel the
+   * "Current" version or drop it.
    */
   newestGroup: SaveGroup | null;
   count: number;
@@ -124,14 +126,33 @@ export function useVersionActivity(
           ? response.result
           : mergeActivityPages(recordsRef.current, response.result);
         applyRecords(next);
-        if (reset && !q.trim()) {
-          // Only an unfiltered first page is authoritative about which
-          // save is truly the newest.
-          setNewestGroup(
-            (buildTimeline(response.result).find(
-              entry => entry.type === 'group',
-            ) as SaveGroup | undefined) ?? null,
-          );
+        // Deliberately not derived from the page above: that one is filtered
+        // by q/include and mixes self with related records, so the newest
+        // self save can be absent from it (an active search that excludes it,
+        // an include='related' filter, or newer related records filling the
+        // page). A dedicated one-record self probe is authoritative in every
+        // one of those states, and refreshes after restores made while a
+        // search is active.
+        if (reset) {
+          fetchActivity(entityType, uuid, {
+            include: 'self',
+            page: 0,
+            pageSize: 1,
+          })
+            .then(probe => {
+              if (fetchId !== fetchIdRef.current) {
+                return;
+              }
+              setNewestGroup(
+                (buildTimeline(probe.result).find(
+                  entry => entry.type === 'group',
+                ) as SaveGroup | undefined) ?? null,
+              );
+            })
+            .catch(() => {
+              // Keep the previous value: a failed probe should not strip the
+              // Current tag from a timeline that is otherwise rendering.
+            });
         }
       } catch (response) {
         if (fetchId !== fetchIdRef.current) {
