@@ -177,6 +177,21 @@ test('renders an OAuth2 authorization prompt when metadata errors with OAUTH2_RE
   );
 });
 
+test('renders the error message when metadata fails without a structured error', async () => {
+  fetchMock.removeRoutes();
+  fetchMock.get(getTableMetadataEndpoint, {
+    status: 500,
+    body: { message: 'Something went wrong' },
+  });
+  fetchMock.get(getExtraTableMetadataEndpoint, {});
+
+  render(<TablePreview {...mockedProps} />, { useRedux: true, initialState });
+
+  // Without an errors[] array there is no SupersetError to hand to the
+  // registry, so the plain message must still surface to the user.
+  expect(await screen.findByText('Something went wrong')).toBeInTheDocument();
+});
+
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('table actions', () => {
   test('refreshes table metadata when triggered', async () => {

@@ -266,10 +266,16 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
     // "Authorization needed" link and auto-retry once the OAuth2 dance completes.
     // The source="crud" value drives the tag-invalidation retry in
     // OAuth2RedirectMessage.tsx (which invalidates the TableMetadatas tag).
-    const errorPayload = (
-      (metadataError || metadataExtrError) as ClientErrorObject
-    )?.errors?.[0];
-    return <ErrorMessageWithStackTrace error={errorPayload} source="crud" />;
+    // Errors without a structured errors[] array (raw 500s, timeouts, network
+    // failures) fall back to the plain message so it isn't swallowed.
+    const clientError = (metadataError ||
+      metadataExtrError) as ClientErrorObject;
+    const errorPayload = clientError?.errors?.[0];
+    return errorPayload ? (
+      <ErrorMessageWithStackTrace error={errorPayload} source="crud" />
+    ) : (
+      <Alert type="warning" message={clientError?.error} />
+    );
   }
   if (!data) {
     return (
