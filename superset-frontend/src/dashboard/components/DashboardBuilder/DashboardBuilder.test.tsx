@@ -42,7 +42,14 @@ import {
 } from 'spec/fixtures/mockDashboardLayout';
 import { storeWithState } from 'spec/fixtures/mockStore';
 import mockState from 'spec/fixtures/mockState';
-import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
+import {
+  DASHBOARD_GRID_ID,
+  DASHBOARD_ROOT_ID,
+} from 'src/dashboard/util/constants';
+import {
+  DASHBOARD_GRID_TYPE,
+  DASHBOARD_ROOT_TYPE,
+} from 'src/dashboard/util/componentTypes';
 import * as useNativeFiltersModule from './state';
 
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
@@ -886,4 +893,72 @@ test('lets a keyboard user scroll a gated preview but not activate it', async ()
 
   // Activation still blocked — the gate's whole purpose.
   expect(fireEvent.keyDown(gate, { key: 'Enter' })).toBe(false);
+});
+
+// The empty-state call to action renders above DashboardContentWrapper, so the
+// grid gate does not cover it. Previewing a version whose layout is empty would
+// otherwise offer a route into edit mode over a historical snapshot.
+const emptyDashboardLayout = {
+  past: [],
+  future: [],
+  present: {
+    [DASHBOARD_ROOT_ID]: {
+      type: DASHBOARD_ROOT_TYPE,
+      id: DASHBOARD_ROOT_ID,
+      children: [DASHBOARD_GRID_ID],
+    },
+    [DASHBOARD_GRID_ID]: {
+      type: DASHBOARD_GRID_TYPE,
+      id: DASHBOARD_GRID_ID,
+      children: [],
+      meta: {},
+    },
+  },
+};
+
+const renderEmptyDashboard = (
+  versionHistory?: typeof dashboardPreviewState,
+) => {
+  (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
+    100,
+    jest.fn(),
+  ]);
+  (fetchFaveStar as jest.Mock).mockReturnValue({ type: 'mock-action' });
+  (setActiveTab as jest.Mock).mockReturnValue({ type: 'mock-action' });
+
+  return render(<DashboardBuilder />, {
+    useRedux: true,
+    store: storeWithState({
+      ...mockState,
+      dashboardInfo: { ...mockState.dashboardInfo, dash_edit_perm: true },
+      dashboardLayout: emptyDashboardLayout,
+      ...(versionHistory ? { versionHistory } : {}),
+    }),
+    useDnd: true,
+    useRouter: true,
+    useTheme: true,
+  });
+};
+
+test('offers the empty-state edit action to an editor', async () => {
+  const { findByRole } = renderEmptyDashboard();
+
+  expect(
+    await findByRole('button', { name: 'Edit the dashboard' }),
+  ).toBeVisible();
+});
+
+test('withholds the empty-state edit action while previewing a version', async () => {
+  const { findByText, queryByRole } = renderEmptyDashboard(
+    dashboardPreviewState,
+  );
+
+  // The empty-state message itself still describes what is on screen; only the
+  // edit affordance is withdrawn.
+  expect(
+    await findByText('There are no charts added to this dashboard'),
+  ).toBeInTheDocument();
+  expect(
+    queryByRole('button', { name: 'Edit the dashboard' }),
+  ).not.toBeInTheDocument();
 });

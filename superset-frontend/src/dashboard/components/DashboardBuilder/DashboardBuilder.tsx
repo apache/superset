@@ -465,6 +465,11 @@ const DashboardBuilder = () => {
   const isVersionPreviewActive = useSelector(
     selectIsDashboardVersionPreviewActive,
   );
+  // The empty-state call to action sits outside the preview gate below, so it
+  // needs its own term: a previewed version whose layout happens to be empty
+  // would otherwise offer "Edit the dashboard" over a historical snapshot and
+  // clear the undo history on the way in. Mirrors userCanEdit in the Header.
+  const canEnterEditMode = canEdit && !isVersionPreviewActive;
 
   const handleChangeTab = useCallback(
     ({ pathToTabIndex }: { pathToTabIndex: string[] }) => {
@@ -803,12 +808,12 @@ const DashboardBuilder = () => {
               title={t('There are no charts added to this dashboard')}
               size="large"
               description={
-                canEdit &&
+                canEnterEditMode &&
                 t(
                   'Go to the edit mode to configure the dashboard and add charts',
                 )
               }
-              buttonText={canEdit && t('Edit the dashboard')}
+              buttonText={canEnterEditMode && t('Edit the dashboard')}
               buttonAction={() => {
                 dispatch(setEditMode(true));
                 dispatch(clearDashboardHistory());
