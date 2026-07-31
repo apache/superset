@@ -120,6 +120,26 @@ class TestUpdateChart:
         )
         assert request2.chart_name == "Updated Sales Report"
 
+    def test_unrelated_config_update_preserves_existing_column_config(self) -> None:
+        chart = Mock(
+            datasource_id=7,
+            params='{"column_config":{"Revenue":{"columnWidth":160}}}',
+            slice_name="Revenue table",
+        )
+        request = UpdateChartRequest(
+            identifier=123,
+            config=TableChartConfig(
+                chart_type="table",
+                columns=[ColumnRef(name="revenue", aggregate="SUM")],
+                row_limit=500,
+            ),
+        )
+
+        payload = _build_update_payload(request, chart, request.config)
+
+        assert isinstance(payload, dict)
+        assert '"column_config": {"Revenue": {"columnWidth": 160}}' in payload["params"]
+
     @pytest.mark.asyncio
     async def test_update_chart_preview_formats(self):
         """Test preview_formats options in update request."""
