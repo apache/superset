@@ -18,6 +18,7 @@
 from pytest_mock import MockerFixture
 
 from superset.app import SupersetApp
+from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.tasks.slack import cache_channels
 
 
@@ -35,4 +36,21 @@ def test_cache_channels_requires_a_successful_cache_write(
         force=True,
         cache_timeout=123,
         raise_on_cache_write_error=True,
+    )
+
+
+def test_cache_channels_warns_when_caching_is_disabled(
+    app: SupersetApp,
+    mocker: MockerFixture,
+) -> None:
+    app.config["SLACK_CACHE_TIMEOUT"] = CACHE_DISABLED_TIMEOUT
+    get_channels = mocker.patch("superset.tasks.slack.get_channels")
+    logger = mocker.patch("superset.tasks.slack.logger")
+
+    cache_channels.run()
+
+    get_channels.assert_not_called()
+    logger.warning.assert_called_once_with(
+        "Skipping Slack channels cache warm-up because "
+        "SLACK_CACHE_TIMEOUT disables caching"
     )

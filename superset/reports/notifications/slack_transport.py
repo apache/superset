@@ -218,7 +218,10 @@ def call_slack_api_with_timeout(
         remaining = retry_deadline - time.monotonic()
         if remaining <= 0:
             raise SlackRetryDeadlineError
-        client.timeout = min(float(original_timeout), remaining)
+        request_timeout = int(min(float(original_timeout), remaining))
+        if request_timeout <= 0:
+            raise SlackRetryDeadlineError
+        client.timeout = request_timeout
         try:
             return method(**kwargs)
         finally:

@@ -2523,8 +2523,8 @@ SLACK_API_TIMEOUT = 30
 
 # Application retry budget (in seconds) shared by all Slack channels, files, and
 # upload phases in one report execution. Increase this for slow or large-file
-# reports. The effective value is always at least one second longer than
-# SLACK_API_TIMEOUT and is clamped to the report's remaining working timeout.
+# reports. The effective configured value is floored at one second longer than
+# SLACK_API_TIMEOUT, then clamped to the report's remaining working timeout.
 SLACK_SEND_RETRY_MAX_TIME = 150
 
 # The webdriver to use for generating reports when using Selenium (not Playwright).

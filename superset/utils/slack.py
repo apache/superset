@@ -322,16 +322,13 @@ def _get_channels_safely(
     channels = _get_channels(team_id=team_id)
     uses_report_session = _slack_channel_cache_uses_report_session()
     if cache_enabled and (write_metastore_cache or not uses_report_session):
+        cache_write_result: bool | None = None
         try:
             cache_write_result = cache_manager.cache.set(
                 cache_key,
                 channels,
                 timeout=effective_timeout,
             )
-            if raise_on_cache_write_error and cache_write_result is False:
-                raise SlackChannelCacheWriteError(
-                    "Slack channels were fetched but the cache rejected the write"
-                )
         except Exception:  # pylint: disable=broad-exception-caught
             logger.warning(
                 "Could not cache Slack channels",
@@ -341,6 +338,10 @@ def _get_channels_safely(
                 db.session.rollback()
             if raise_on_cache_write_error:
                 raise
+        if raise_on_cache_write_error and cache_write_result is False:
+            raise SlackChannelCacheWriteError(
+                "Slack channels were fetched but the cache rejected the write"
+            )
     return channels, False
 
 

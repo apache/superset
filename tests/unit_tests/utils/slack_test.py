@@ -580,6 +580,7 @@ The server responded with: missing scope: channels:read"""
             "superset.utils.slack.cache_manager.cache.set",
             return_value=False,
         )
+        logger = mocker.patch("superset.utils.slack.logger")
         rollback = mocker.patch("superset.utils.slack.db.session.rollback")
         mocker.patch(
             "superset.utils.slack._slack_channel_cache_uses_report_session",
@@ -596,7 +597,8 @@ The server responded with: missing scope: channels:read"""
                 raise_on_cache_write_error=True,
             )
 
-        rollback.assert_called_once_with()
+        rollback.assert_not_called()
+        logger.warning.assert_not_called()
 
     @pytest.mark.parametrize("cache_set_result", [True, None])
     def test_refreshes_cached_channels_once_per_workspace_cooldown(

@@ -18,6 +18,7 @@ import logging
 
 from flask import current_app
 
+from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.extensions import celery_app
 from superset.utils.slack import get_channels
 
@@ -28,6 +29,13 @@ logger = logging.getLogger(__name__)
 def cache_channels() -> None:
     cache_timeout = current_app.config["SLACK_CACHE_TIMEOUT"]
     retry_count = current_app.config.get("SLACK_API_RATE_LIMIT_RETRY_COUNT", 2)
+
+    if cache_timeout == CACHE_DISABLED_TIMEOUT:
+        logger.warning(
+            "Skipping Slack channels cache warm-up because "
+            "SLACK_CACHE_TIMEOUT disables caching"
+        )
+        return
 
     logger.info(
         "Starting Slack channels cache warm-up task "

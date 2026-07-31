@@ -1653,6 +1653,7 @@ def test_v2_text_send_clamps_timeout_to_shared_deadline(
 
     def assert_timeout(**kwargs: object) -> dict[str, bool]:
         assert client.timeout == 10
+        assert type(client.timeout) is int
         if send_fails:
             raise SlackApiError(
                 message="service unavailable",
