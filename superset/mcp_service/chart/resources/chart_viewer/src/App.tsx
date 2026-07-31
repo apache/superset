@@ -38,6 +38,7 @@ import {
   chartDataToEChartsOption,
   classifyColumns,
   defaultViewForChartType,
+  isCartesianView,
 } from './adapter';
 import { formatByColumn, stripUntrustedMarkers } from './format';
 import { EChart, type EChartClickParams } from './components/EChart';
@@ -55,6 +56,15 @@ const MIN_WIDGET_HEIGHT = 260;
 interface DrillState {
   active: boolean;
   label: string;
+}
+
+/**
+ * Resolve a clicked mark back to its source row. Cartesian series are built
+ * one mark per row so `dataIndex` is the row; pie and scatter reorder or
+ * collapse rows and carry the original index on the data item instead.
+ */
+function sourceRowIndex(params: EChartClickParams): number {
+  return params.rowIndex ?? params.dataIndex;
 }
 
 export function App(): JSX.Element {
@@ -221,7 +231,9 @@ export function App(): JSX.Element {
     (params: EChartClickParams) => {
       setSelection(params);
       if (!roles?.dimension) return;
-      const rawX = data?.data?.[params.dataIndex]?.[roles.dimension.name];
+      const row = sourceRowIndex(params);
+      if (row < 0) return;
+      const rawX = data?.data?.[row]?.[roles.dimension.name];
       // Filter values go back to Superset as-is, so the trust delimiters have
       // to come off or the `==` comparison matches nothing.
       const xVal =
@@ -280,8 +292,9 @@ export function App(): JSX.Element {
   // ---- Magic moment: "Ask about this" ------------------------------------
   const askAboutSelection = useCallback(async () => {
     if (!selection || !data || !roles) return;
+    const row = sourceRowIndex(selection);
     const xVal =
-      data.data?.[selection.dataIndex]?.[roles.dimension?.name ?? ''];
+      row >= 0 ? data.data?.[row]?.[roles.dimension?.name ?? ''] : undefined;
     const dimLabel =
       roles.dimension?.display_name ?? roles.dimension?.name ?? 'x';
     const msg = stripUntrustedMarkers(
@@ -399,8 +412,10 @@ export function App(): JSX.Element {
     );
 
   const isEmpty = !data.data || data.data.length === 0;
-  const isChartView = view === 'line' || view === 'bar' || view === 'area';
-  const enableBrush = isChartView && canRequery && !!roles?.dimensionIsTemporal;
+  // Brushing selects a range along a category x-axis, which only exists on the
+  // cartesian views — a pie or scatter has nothing to sweep.
+  const enableBrush =
+    isCartesianView(view) && canRequery && !!roles?.dimensionIsTemporal;
 
   const body = isEmpty ? (
     <EmptyState />

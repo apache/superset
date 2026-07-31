@@ -66,7 +66,14 @@ export interface ChartMeta {
 }
 
 /** The view modes the widget can render. */
-export type ViewType = 'line' | 'bar' | 'area' | 'table' | 'big_number';
+export type ViewType =
+  | 'line'
+  | 'bar'
+  | 'area'
+  | 'pie'
+  | 'scatter'
+  | 'table'
+  | 'big_number';
 
 /** Host color scheme. */
 export type ColorScheme = 'light' | 'dark';

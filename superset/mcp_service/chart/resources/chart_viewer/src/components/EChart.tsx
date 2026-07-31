@@ -31,6 +31,13 @@ export interface EChartClickParams {
   name: string;
   dataIndex: number;
   value: unknown;
+  /**
+   * Index of the source row this mark came from. Pie and scatter reorder or
+   * collapse rows, so `dataIndex` is not a row index for them; builders carry
+   * the original position on the data item instead. -1 means "no single row"
+   * (e.g. a collapsed "Other" wedge).
+   */
+  rowIndex?: number;
 }
 
 interface Props extends EChartHandlers {
@@ -69,14 +76,17 @@ export function EChart({
         name?: string;
         dataIndex?: number;
         value?: unknown;
+        data?: unknown;
       };
       if (p && typeof p.dataIndex === 'number') {
+        const carried = (p.data as { rowIndex?: unknown } | undefined)?.rowIndex;
         handlersRef.current.onDataPointClick?.({
           seriesName: p.seriesName ?? '',
           seriesId: p.seriesId,
           name: p.name ?? '',
           dataIndex: p.dataIndex,
           value: p.value,
+          rowIndex: typeof carried === 'number' ? carried : undefined,
         });
       }
     });

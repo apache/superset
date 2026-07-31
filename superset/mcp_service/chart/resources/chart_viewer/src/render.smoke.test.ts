@@ -212,6 +212,97 @@ describe('ECharts renders the adapter’s options for real', () => {
     }
   });
 
+  it('renders a categorical pie for real (PieChart must be registered)', () => {
+    const chart = echarts.init(el, undefined, RENDER_OPTS);
+    try {
+      const data: ChartData = {
+        chart_id: 4,
+        chart_name: 'Share by product line',
+        chart_type: 'pie',
+        columns: [col('product_line', 'string'), col('sold', 'numeric')],
+        data: [
+          { product_line: 'Classic Cars', sold: 33992 },
+          { product_line: 'Vintage Cars', sold: 21069 },
+          { product_line: 'Ships', sold: 8127 },
+        ],
+        row_count: 3,
+        total_rows: 3,
+      };
+      expect(() =>
+        chart.setOption(chartDataToEChartsOption(data, 'pie', { theme })),
+      ).not.toThrow();
+      const applied = chart.getOption() as {
+        series?: Array<{ type?: string; data?: unknown[] }>;
+      };
+      expect(applied.series?.[0]?.type).toBe('pie');
+      expect(applied.series?.[0]?.data?.length).toBe(3);
+    } finally {
+      chart.dispose();
+    }
+  });
+
+  it('renders a scatter for real (ScatterChart must be registered)', () => {
+    const chart = echarts.init(el, undefined, RENDER_OPTS);
+    try {
+      const data: ChartData = {
+        chart_id: 5,
+        chart_name: 'Spend vs revenue',
+        chart_type: 'echarts_scatter',
+        columns: [
+          col('label', 'string'),
+          col('spend', 'numeric'),
+          col('revenue', 'numeric'),
+        ],
+        data: [
+          { label: 'a', spend: 10, revenue: 40 },
+          { label: 'b', spend: 20, revenue: 30 },
+          { label: 'c', spend: 30, revenue: 90 },
+        ],
+        row_count: 3,
+        total_rows: 3,
+      };
+      expect(() =>
+        chart.setOption(chartDataToEChartsOption(data, 'scatter', { theme })),
+      ).not.toThrow();
+      const applied = chart.getOption() as {
+        series?: Array<{ type?: string; data?: unknown[] }>;
+      };
+      expect(applied.series?.[0]?.type).toBe('scatter');
+      expect(applied.series?.[0]?.data?.length).toBe(3);
+    } finally {
+      chart.dispose();
+    }
+  });
+
+  it('morphs bar -> pie -> bar on a live instance', () => {
+    // Pie and the cartesian series share a series id, which is what lets
+    // universalTransition morph between them. A mismatch throws here.
+    const chart = echarts.init(el, undefined, RENDER_OPTS);
+    try {
+      const data: ChartData = {
+        chart_id: 6,
+        chart_name: 'Morph',
+        chart_type: 'pie',
+        columns: [col('country', 'string'), col('sales', 'numeric')],
+        data: [
+          { country: 'US', sales: 100 },
+          { country: 'CA', sales: 60 },
+        ],
+        row_count: 2,
+        total_rows: 2,
+      };
+      for (const view of ['bar', 'pie', 'bar', 'scatter'] as ViewType[]) {
+        expect(() =>
+          chart.setOption(chartDataToEChartsOption(data, view, { theme }), {
+            notMerge: false,
+          }),
+        ).not.toThrow();
+      }
+    } finally {
+      chart.dispose();
+    }
+  });
+
   it('renders empty data without throwing', () => {
     const chart = echarts.init(el, undefined, RENDER_OPTS);
     try {

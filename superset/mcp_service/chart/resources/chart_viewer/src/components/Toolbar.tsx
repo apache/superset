@@ -24,6 +24,8 @@ const VIEW_LABELS: Record<ViewType, string> = {
   line: 'Line',
   bar: 'Bar',
   area: 'Area',
+  pie: 'Pie',
+  scatter: 'Scatter',
   table: 'Table',
   big_number: 'Big Number',
 };
@@ -50,8 +52,13 @@ export function Toolbar({
   exploreUrl,
   onOpenInSuperset,
 }: Props): JSX.Element {
+  // Scatter consumes two measures positionally (x and y), so toggling one off
+  // would not narrow the plot, it would break it.
   const showMetricChips =
-    metricColumns.length > 1 && activeView !== 'big_number' && activeView !== 'table';
+    metricColumns.length > 1 &&
+    activeView !== 'big_number' &&
+    activeView !== 'table' &&
+    activeView !== 'scatter';
 
   return (
     <div className="sv-toolbar">

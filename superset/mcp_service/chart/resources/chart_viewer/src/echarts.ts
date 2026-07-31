@@ -23,7 +23,7 @@
  * morphing) lives in the SVG/Canvas renderer + the transition feature.
  */
 import * as echarts from 'echarts/core';
-import { LineChart, BarChart } from 'echarts/charts';
+import { LineChart, BarChart, PieChart, ScatterChart } from 'echarts/charts';
 import {
   GridComponent,
   TooltipComponent,
@@ -38,6 +38,8 @@ import { CanvasRenderer } from 'echarts/renderers';
 echarts.use([
   LineChart,
   BarChart,
+  PieChart,
+  ScatterChart,
   GridComponent,
   TooltipComponent,
   LegendComponent,

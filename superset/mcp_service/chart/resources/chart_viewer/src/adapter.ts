@@ -20,6 +20,7 @@ import type { EChartsOption } from 'echarts';
 import type { ChartData, DataColumn, ViewType } from './types';
 import {
   formatAxisDate,
+  formatByColumn,
   formatDate,
   formatFull,
   formatNumber,
@@ -68,23 +69,50 @@ export function classifyColumns(data: ChartData): ColumnRoles {
   };
 }
 
+/** True for the view types rendered by an ECharts instance. */
+export function isEChartsView(view: ViewType): boolean {
+  return view !== 'table' && view !== 'big_number';
+}
+
+/** True for the views drawn on a cartesian grid with a category x-axis. */
+export function isCartesianView(view: ViewType): boolean {
+  return view === 'line' || view === 'bar' || view === 'area';
+}
+
+/** A pie needs one slice dimension and one measure. */
+function canRenderPie(roles: ColumnRoles): boolean {
+  return !!roles.dimension && roles.numeric.length >= 1;
+}
+
+/** A scatter needs two measures (x and y). */
+function canRenderScatter(roles: ColumnRoles): boolean {
+  return roles.numeric.length >= 2;
+}
+
 /** Map an incoming Superset viz_type to the best-fit default view. */
 export function defaultViewForChartType(
   chartType: string,
   data?: ChartData,
 ): ViewType {
   const t = (chartType || '').toLowerCase();
+  const roles = data ? classifyColumns(data) : null;
   if (t.includes('big_number')) return 'big_number';
   if (t === 'table' || t === 'pivot_table' || t.includes('table'))
     return 'table';
+  // `pie` / `donut` / `rose` all map onto the same part-of-whole renderer.
+  // Without a dimension + measure there is nothing to slice, so fall through.
+  if (t.includes('pie') || t.includes('donut') || t.includes('rose')) {
+    if (!roles || canRenderPie(roles)) return 'pie';
+  }
+  if (t.includes('scatter') || t.includes('bubble')) {
+    if (!roles || canRenderScatter(roles)) return 'scatter';
+  }
   if (t.includes('area')) return 'area';
   if (t.includes('bar') || t.includes('histogram') || t.includes('dist_bar'))
     return 'bar';
   if (t.includes('line') || t.includes('timeseries')) return 'line';
-  if (t === 'pie') return 'bar';
   // Fall back based on data shape when the viz_type is unknown.
-  if (data) {
-    const roles = classifyColumns(data);
+  if (data && roles) {
     if (roles.numeric.length === 1 && data.row_count <= 1) return 'big_number';
     if (roles.dimension && roles.numeric.length) {
       return roles.dimensionIsTemporal ? 'line' : 'bar';
@@ -102,6 +130,8 @@ export function availableViews(data: ChartData): ViewType[] {
   if (hasSeries) {
     views.push('line', 'bar', 'area');
   }
+  if (canRenderPie(roles)) views.push('pie');
+  if (canRenderScatter(roles)) views.push('scatter');
   if (roles.numeric.length >= 1) views.push('big_number');
   views.push('table');
   return views;
@@ -136,6 +166,17 @@ export function chartDataToEChartsOption(
       // Big number is rendered by a React component, not ECharts; return an
       // empty option (App decides which renderer to mount).
       return {};
+    case 'pie':
+      return buildPie(data, roles, activeNumeric, options.theme);
+    case 'scatter':
+      // A scatter needs two measures. Metric chips can narrow the active set
+      // below that, so fall back to the full numeric set before giving up.
+      return buildScatter(
+        data,
+        roles,
+        activeNumeric.length >= 2 ? activeNumeric : roles.numeric,
+        options.theme,
+      );
     case 'bar':
       return buildCartesian(data, roles, activeNumeric, options.theme, 'bar');
     case 'area':
@@ -274,6 +315,307 @@ function buildCartesian(
     },
     series,
   };
+}
+
+/**
+ * Slices beyond this are collapsed into a single "Other" wedge. A pie stops
+ * communicating anything past a dozen or so slices, and Superset routinely
+ * returns high-cardinality dimensions.
+ */
+export const PIE_MAX_SLICES = 12;
+
+/** One pie wedge. `rowIndex` maps back to the source row (-1 for "Other"). */
+export interface PieSlice {
+  name: string;
+  value: number;
+  rowIndex: number;
+}
+
+/**
+ * Build the wedges for a pie: label from the dimension, value from the first
+ * active measure, largest first, with a long tail collapsed into "Other".
+ * Exported so the slice math can be tested without an ECharts instance.
+ */
+export function buildPieSlices(
+  data: ChartData,
+  metric: DataColumn,
+  dimension: DataColumn,
+): PieSlice[] {
+  const rows = data.data ?? [];
+  const all: PieSlice[] = rows.map((r, rowIndex) => ({
+    // formatByColumn strips the untrusted-content markers and renders dates
+    // readably; wedge labels are display text, never filter values.
+    name: formatByColumn(r[dimension.name], dimension) || String(rowIndex),
+    value: toNumber(r[metric.name]) ?? 0,
+    rowIndex,
+  }));
+  // Negative measures cannot be expressed as a share of a whole; drop them
+  // rather than drawing a wedge that lies about its proportion.
+  const usable = all.filter((s) => s.value > 0);
+  const ordered = usable.slice().sort((a, b) => b.value - a.value);
+  if (ordered.length <= PIE_MAX_SLICES) return ordered;
+  const head = ordered.slice(0, PIE_MAX_SLICES);
+  const tail = ordered.slice(PIE_MAX_SLICES);
+  head.push({
+    name: `Other (${tail.length})`,
+    value: tail.reduce((sum, s) => sum + s.value, 0),
+    rowIndex: -1,
+  });
+  return head;
+}
+
+function buildPie(
+  data: ChartData,
+  roles: ColumnRoles,
+  numeric: DataColumn[],
+  theme: ThemeTokens,
+): EChartsOption {
+  const metric = numeric[0] ?? roles.numeric[0] ?? null;
+  // Prefer a categorical dimension: a pie of time buckets is legal but a
+  // string dimension is almost always the intended part-of-whole split.
+  const dimension = roles.strings[0] ?? roles.dimension;
+  const palette = getCategoricalPalette(
+    (data.theme ?? null) as SupersetThemeTokens | null,
+  );
+  if (!metric || !dimension) {
+    return { color: palette, series: [] };
+  }
+  const slices = buildPieSlices(data, metric, dimension);
+  const total = slices.reduce((sum, s) => sum + s.value, 0);
+  const metricLabel = metric.display_name || metric.name;
+
+  return {
+    color: palette,
+    animation: true,
+    animationDuration: 600,
+    animationEasing: 'cubicOut',
+    textStyle: { fontFamily: theme.fontSans, color: theme.textSecondary },
+    legend: {
+      show: slices.length > 1,
+      type: 'scroll',
+      bottom: 0,
+      left: 'center',
+      icon: 'circle',
+      itemWidth: 10,
+      itemHeight: 10,
+      itemGap: 14,
+      textStyle: { color: theme.textSecondary, fontSize: 11 },
+    },
+    tooltip: {
+      trigger: 'item',
+      backgroundColor: theme.tooltipBg,
+      borderColor: theme.tooltipBorder,
+      borderWidth: 1,
+      padding: [8, 12],
+      textStyle: { color: theme.textPrimary, fontSize: 12 },
+      extraCssText:
+        'box-shadow: 0 4px 16px rgba(0,0,0,0.12); border-radius: 8px;',
+      formatter: (params: unknown) =>
+        pieTooltipFormatter(params, metricLabel, total),
+    },
+    series: [
+      {
+        // Shares the measure's id with the cartesian series so switching
+        // between bar and pie morphs rather than cutting.
+        id: metric.name,
+        name: metricLabel,
+        type: 'pie' as const,
+        // A donut reads more precisely than a full pie and leaves room for
+        // the centre label.
+        radius: ['44%', '70%'],
+        center: ['50%', '46%'],
+        avoidLabelOverlap: true,
+        minAngle: 2,
+        padAngle: 1,
+        itemStyle: {
+          borderColor: theme.panel,
+          borderWidth: 2,
+          borderRadius: 4,
+        },
+        label: {
+          show: slices.length <= 8,
+          color: theme.textSecondary,
+          fontSize: 11,
+          formatter: '{b}  {d}%',
+        },
+        labelLine: {
+          length: 8,
+          length2: 10,
+          lineStyle: { color: theme.axisLine },
+        },
+        emphasis: {
+          focus: 'self' as const,
+          label: {
+            show: true,
+            fontSize: 13,
+            fontWeight: 600,
+            color: theme.textPrimary,
+          },
+        },
+        universalTransition: { enabled: true },
+        animationDurationUpdate: 500,
+        data: slices,
+      },
+    ],
+  };
+}
+
+interface ItemTooltipParam {
+  marker: string;
+  name: unknown;
+  value: unknown;
+  percent?: number;
+}
+
+/** Tooltip for a pie wedge: label, absolute value and share of the whole. */
+export function pieTooltipFormatter(
+  params: unknown,
+  metricLabel: string,
+  total: number,
+): string {
+  const p = (Array.isArray(params) ? params[0] : params) as ItemTooltipParam;
+  if (!p) return '';
+  const value = toNumber(p.value) ?? 0;
+  const percent =
+    typeof p.percent === 'number'
+      ? p.percent
+      : total > 0
+        ? (value / total) * 100
+        : 0;
+  // ECharts renders this as HTML, so every data-derived string is escaped.
+  // ``p.marker`` is ECharts-generated markup, not user data.
+  return `<div style="font-weight:600;margin-bottom:2px;">${escapeHtml(
+    String(p.name ?? ''),
+  )}</div>
+          <div style="display:flex;justify-content:space-between;gap:16px;">
+            <span>${p.marker} ${escapeHtml(metricLabel)}</span>
+            <strong>${escapeHtml(formatFull(p.value))} (${percent.toFixed(1)}%)</strong>
+          </div>`;
+}
+
+/** One scatter point: `[x, y]` plus the row it came from. */
+export interface ScatterPoint {
+  value: [number | null, number | null];
+  name: string;
+  rowIndex: number;
+}
+
+function buildScatter(
+  data: ChartData,
+  roles: ColumnRoles,
+  numeric: DataColumn[],
+  theme: ThemeTokens,
+): EChartsOption {
+  const palette = getCategoricalPalette(
+    (data.theme ?? null) as SupersetThemeTokens | null,
+  );
+  const xCol = numeric[0] ?? null;
+  const yCol = numeric[1] ?? null;
+  if (!xCol || !yCol) {
+    // Not enough measures to plot one against the other — degrade to the
+    // cartesian renderer rather than emitting a broken option.
+    return buildCartesian(data, roles, numeric, theme, 'line');
+  }
+  const rows = data.data ?? [];
+  const label = roles.dimension;
+  const points: ScatterPoint[] = rows.map((r, rowIndex) => ({
+    value: [toNumber(r[xCol.name]), toNumber(r[yCol.name])],
+    name: label
+      ? formatByColumn(r[label.name], label)
+      : `Row ${rowIndex + 1}`,
+    rowIndex,
+  }));
+  const xLabel = xCol.display_name || xCol.name;
+  const yLabel = yCol.display_name || yCol.name;
+
+  return {
+    color: palette,
+    animation: true,
+    animationDuration: 600,
+    animationEasing: 'cubicOut',
+    textStyle: { fontFamily: theme.fontSans, color: theme.textSecondary },
+    legend: { show: false },
+    grid: { left: 8, right: 20, top: 20, bottom: 8, containLabel: true },
+    tooltip: {
+      trigger: 'item',
+      backgroundColor: theme.tooltipBg,
+      borderColor: theme.tooltipBorder,
+      borderWidth: 1,
+      padding: [8, 12],
+      textStyle: { color: theme.textPrimary, fontSize: 12 },
+      extraCssText:
+        'box-shadow: 0 4px 16px rgba(0,0,0,0.12); border-radius: 8px;',
+      formatter: (params: unknown) =>
+        scatterTooltipFormatter(params, xLabel, yLabel),
+    },
+    xAxis: {
+      type: 'value',
+      scale: true,
+      name: xLabel,
+      nameLocation: 'middle',
+      nameGap: 30,
+      nameTextStyle: { color: theme.textMuted, fontSize: 11, fontWeight: 500 },
+      axisLine: { lineStyle: { color: theme.axisLine } },
+      axisTick: { show: false },
+      splitLine: { lineStyle: { color: theme.gridLine } },
+      axisLabel: {
+        color: theme.textMuted,
+        fontSize: 11,
+        formatter: (v: number) => formatNumber(v),
+      },
+    },
+    yAxis: {
+      type: 'value',
+      scale: true,
+      name: yLabel,
+      nameTextStyle: { color: theme.textMuted, fontSize: 11, fontWeight: 500 },
+      axisLine: { show: false },
+      axisTick: { show: false },
+      splitLine: { lineStyle: { color: theme.gridLine } },
+      axisLabel: {
+        color: theme.textMuted,
+        fontSize: 11,
+        formatter: (v: number) => formatNumber(v),
+      },
+    },
+    series: [
+      {
+        id: `${xCol.name}~${yCol.name}`,
+        name: `${yLabel} vs ${xLabel}`,
+        type: 'scatter' as const,
+        symbolSize: 11,
+        itemStyle: { color: palette[0], opacity: 0.78 },
+        emphasis: { focus: 'series' as const, scale: 1.4 },
+        data: points,
+      },
+    ],
+  };
+}
+
+/** Tooltip for a scatter point: row label plus both measures. */
+export function scatterTooltipFormatter(
+  params: unknown,
+  xLabel: string,
+  yLabel: string,
+): string {
+  const p = (Array.isArray(params) ? params[0] : params) as {
+    marker: string;
+    name: unknown;
+    value: unknown;
+  };
+  if (!p) return '';
+  const pair = Array.isArray(p.value) ? p.value : [null, null];
+  const row = (name: string, value: unknown): string =>
+    `<div style="display:flex;justify-content:space-between;gap:16px;margin-top:4px;">
+       <span>${escapeHtml(name)}</span>
+       <strong>${escapeHtml(formatFull(value))}</strong>
+     </div>`;
+  // Escaped for the same reason as the axis tooltip: ECharts renders HTML.
+  return `<div style="font-weight:600;margin-bottom:2px;">${p.marker} ${escapeHtml(
+    String(p.name ?? ''),
+  )}</div>
+          ${row(xLabel, pair[0])}
+          ${row(yLabel, pair[1])}`;
 }
 
 function normalizeDim(value: unknown, isTemporal: boolean): string {
