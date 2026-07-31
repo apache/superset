@@ -288,17 +288,17 @@ def test_get_xlsx_attachment_extension_reads_nested_zip_signatures_only(
 
 
 @pytest.mark.parametrize(
-    ("server_pagination", "expected_extension"),
+    ("is_multi_query_bundle", "expected_extension"),
     [
         (False, "xlsx"),
         (True, "zip"),
     ],
 )
 def test_xlsx_report_attachment_extension(
-    server_pagination: bool,
+    is_multi_query_bundle: bool,
     expected_extension: str,
 ) -> None:
-    """Server-paginated XLSX reports should be attached as ZIP archives."""
+    """Multi-query XLSX bundles should be attached as ZIP archives."""
     from superset.utils import excel
     from superset.utils.core import create_zip
 
@@ -310,7 +310,7 @@ def test_xlsx_report_attachment_extension(
                 "query_2.xlsx": xlsx,
             }
         ).getvalue()
-        if server_pagination
+        if is_multi_query_bundle
         else xlsx
     )
 
@@ -322,17 +322,17 @@ def test_xlsx_report_attachment_extension(
 
 
 @pytest.mark.parametrize(
-    ("server_pagination", "expected_extension"),
+    ("is_multi_query_bundle", "expected_extension"),
     [
         (False, "csv"),
         (True, "zip"),
     ],
 )
 def test_csv_report_attachment_extension(
-    server_pagination: bool,
+    is_multi_query_bundle: bool,
     expected_extension: str,
 ) -> None:
-    """Server-paginated CSV reports should be attached as ZIP archives."""
+    """Multi-query CSV bundles should be attached as ZIP archives."""
     from superset.utils.core import create_zip
 
     csv = b"value\n1\n2\n"
@@ -343,7 +343,7 @@ def test_csv_report_attachment_extension(
                 "query_2.csv": csv,
             }
         ).getvalue()
-        if server_pagination
+        if is_multi_query_bundle
         else csv
     )
 
