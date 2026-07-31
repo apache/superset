@@ -65,7 +65,12 @@ export const versionSessionLogMiddleware: Middleware =
       store.dispatch(clearVersionSessionLog());
     } else if (
       action.type === SET_FIELD_VALUE &&
-      typeof action.controlName === 'string'
+      typeof action.controlName === 'string' &&
+      // Effects rewrite controls with no user gesture (transferred-control
+      // cleanup after load, derived values set alongside another control);
+      // logging those would tell the user they have unsaved edits they never
+      // made. Only user-initiated changes belong in the session log.
+      !action.programmatic
     ) {
       const state = store.getState() as SessionLogState;
       store.dispatch(

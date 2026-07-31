@@ -842,6 +842,8 @@ test('automatic axis title margin adjustment sets X axis margin to 30 when title
       expect(setControlValueSpy).toHaveBeenCalledWith(
         'x_axis_title_margin',
         30,
+        undefined,
+        { programmatic: true },
       );
     });
   } finally {
@@ -887,6 +889,8 @@ test('automatic axis title margin adjustment sets Y axis margin to 30 when title
       expect(setControlValueSpy).toHaveBeenCalledWith(
         'y_axis_title_margin',
         30,
+        undefined,
+        { programmatic: true },
       );
     });
   } finally {
@@ -927,7 +931,7 @@ test('automatic axis title margin adjustment resets X axis margin to 0 when titl
     store.dispatch(exploreActions.setControlValue('x_axis_title', ''));
 
     await waitFor(() => {
-      expect(setControlValueSpy).toHaveBeenCalledWith('x_axis_title_margin', 0);
+      expect(setControlValueSpy).toHaveBeenCalledWith('x_axis_title_margin', 0, undefined, { programmatic: true });
     });
   } finally {
     getChartControlPanelRegistry().remove('table');
@@ -967,7 +971,7 @@ test('automatic axis title margin adjustment resets Y axis margin to 0 when titl
     store.dispatch(exploreActions.setControlValue('y_axis_title', ''));
 
     await waitFor(() => {
-      expect(setControlValueSpy).toHaveBeenCalledWith('y_axis_title_margin', 0);
+      expect(setControlValueSpy).toHaveBeenCalledWith('y_axis_title_margin', 0, undefined, { programmatic: true });
     });
   } finally {
     getChartControlPanelRegistry().remove('table');
@@ -1067,7 +1071,7 @@ test('automatic axis title margin adjustment changes X axis margin when title is
     });
 
     // Should call setControlValue since margin is less than 30
-    expect(setControlValueSpy).toHaveBeenCalledWith('x_axis_title_margin', 30);
+    expect(setControlValueSpy).toHaveBeenCalledWith('x_axis_title_margin', 30, undefined, { programmatic: true });
   } finally {
     getChartControlPanelRegistry().remove('table');
     jest.restoreAllMocks();
@@ -1166,7 +1170,7 @@ test('automatic axis title margin adjustment changes Y axis margin when title is
     });
 
     // Should call setControlValue since margin is less than 30
-    expect(setControlValueSpy).toHaveBeenCalledWith('y_axis_title_margin', 30);
+    expect(setControlValueSpy).toHaveBeenCalledWith('y_axis_title_margin', 30, undefined, { programmatic: true });
   } finally {
     getChartControlPanelRegistry().remove('table');
     jest.restoreAllMocks();
@@ -1215,10 +1219,14 @@ test('automatic axis title margin adjustment handles both X and Y axis titles be
       expect(setControlValueSpy).toHaveBeenCalledWith(
         'x_axis_title_margin',
         30,
+        undefined,
+        { programmatic: true },
       );
       expect(setControlValueSpy).toHaveBeenCalledWith(
         'y_axis_title_margin',
         30,
+        undefined,
+        { programmatic: true },
       );
     });
   } finally {

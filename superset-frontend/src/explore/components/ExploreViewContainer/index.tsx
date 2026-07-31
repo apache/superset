@@ -769,7 +769,12 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
               (currentTemplate ? ' ' : '') +
               newVariables.join(' ');
 
-            props.actions.setControlValue('tooltip_template', updatedTemplate);
+            props.actions.setControlValue(
+              'tooltip_template',
+              updatedTemplate,
+              undefined,
+              { programmatic: true },
+            );
           }
         }
       }
@@ -782,9 +787,13 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         );
 
         if (xAxisTitle && currentMargin < 30) {
-          props.actions.setControlValue('x_axis_title_margin', 30);
+          props.actions.setControlValue('x_axis_title_margin', 30, undefined, {
+            programmatic: true,
+          });
         } else if (!xAxisTitle && currentMargin !== 0) {
-          props.actions.setControlValue('x_axis_title_margin', 0);
+          props.actions.setControlValue('x_axis_title_margin', 0, undefined, {
+            programmatic: true,
+          });
         }
       }
 
@@ -795,9 +804,13 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         );
 
         if (yAxisTitle && currentMargin < 30) {
-          props.actions.setControlValue('y_axis_title_margin', 30);
+          props.actions.setControlValue('y_axis_title_margin', 30, undefined, {
+            programmatic: true,
+          });
         } else if (!yAxisTitle && currentMargin !== 0) {
-          props.actions.setControlValue('y_axis_title_margin', 0);
+          props.actions.setControlValue('y_axis_title_margin', 0, undefined, {
+            programmatic: true,
+          });
         }
       }
 

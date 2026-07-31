@@ -77,6 +77,31 @@ test('falls back to a humanized control name when no label exists', () => {
   );
 });
 
+test('skips programmatic control writes so untouched charts stay clean', async () => {
+  // Effects rewrite controls with no user gesture (transferred-control
+  // cleanup after load, derived margins); logging them would report unsaved
+  // edits the user never made. Built with the REAL action creator so the
+  // `programmatic` key is pinned across modules — a rename on either side
+  // fails here rather than silently reviving phantom entries.
+  const { setControlValue } = await import(
+    'src/explore/actions/exploreActions'
+  );
+  const store = buildStore({
+    explore: { controls: { metrics: { label: 'Metrics' } } },
+  });
+  run(
+    store,
+    setControlValue('metrics', [], undefined, { programmatic: true }),
+  );
+  expect(store.dispatch).not.toHaveBeenCalled();
+
+  // The same creator without the mark still logs.
+  run(store, setControlValue('metrics', []));
+  expect(store.dispatch).toHaveBeenCalledWith(
+    expect.objectContaining({ type: APPEND_VERSION_SESSION_LOG }),
+  );
+});
+
 test('clears the session log when the explore page hydrates', () => {
   const store = buildStore();
   run(store, { type: 'HYDRATE_EXPLORE', data: {} });
