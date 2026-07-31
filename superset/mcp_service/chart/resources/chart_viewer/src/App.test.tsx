@@ -48,6 +48,7 @@ vi.mock('./components/EChart', () => ({
 }));
 
 const reportSize = vi.fn();
+const initialize = vi.fn();
 const requestDisplayMode = vi.fn().mockResolvedValue(null);
 let contextListener: ((ctx: Record<string, unknown>) => void) | null = null;
 
@@ -72,14 +73,7 @@ const WRAPPED: ChartData = {
 
 vi.mock('./bridge', () => ({
   ChartBridge: class {
-    initialize = vi.fn().mockResolvedValue({
-      chartData: WRAPPED,
-      meta: {},
-      context: { scheme: 'light' },
-      capabilities: { canCallTool: false },
-      connected: true,
-      embedded: true,
-    });
+    initialize = initialize;
     onToolResult = vi.fn(() => () => {});
     // Captured rather than swallowed: hosts push display-mode changes back at
     // the widget, and the collapse path depends on how those are handled.
@@ -90,6 +84,19 @@ vi.mock('./bridge', () => ({
       };
     });
     hasTool = vi.fn(() => false);
+    getDiagnostics = vi.fn(() => ({
+      protocolVersion: '2026-01-26',
+      hostCapabilities: {},
+      hostContext: {},
+      origin: 'null',
+      embedded: true,
+      derived: {
+        appTools: new Set<string>(),
+        canCallTools: false,
+        canUpdateModelContext: false,
+        canSendMessage: false,
+      },
+    }));
     reportSize = reportSize;
     requestDisplayMode = requestDisplayMode;
     callTool = vi.fn();
@@ -102,7 +109,21 @@ vi.mock('./bridge', () => ({
 let container: HTMLDivElement | null = null;
 let root: Root | null = null;
 
+// Default handshake. Re-armed after each test because clearAllMocks() drops
+// implementations as well as call history.
+const CONNECTED_HANDSHAKE = {
+  chartData: WRAPPED,
+  meta: {},
+  context: { scheme: 'light' },
+  capabilities: { canCallTool: false },
+  connected: true,
+  embedded: true,
+};
+
+initialize.mockResolvedValue(CONNECTED_HANDSHAKE);
+
 async function renderApp(): Promise<void> {
+
   const { App } = await import('./App');
   container = document.createElement('div');
   document.body.appendChild(container);
@@ -119,6 +140,7 @@ afterEach(() => {
   root = null;
   contextListener = null;
   vi.clearAllMocks();
+  initialize.mockResolvedValue(CONNECTED_HANDSHAKE);
 });
 
 function maximizeButton(): HTMLButtonElement {
@@ -302,4 +324,55 @@ it('reflects the host when it declines to leave fullscreen', async () => {
   expect(container!.querySelector('.sv-toast')?.textContent).toContain(
     'close control',
   );
+});
+
+// ---- Host diagnostics ----------------------------------------------------
+// The panel exists to answer "did the host not offer this, or did we fail to
+// recognise it?" when a gated affordance is missing. It is only useful if it
+// renders on the paths where things are going wrong, so pin that.
+
+it('always renders the host diagnostics panel with the raw handshake', async () => {
+  await renderApp();
+  const diag = container!.querySelector('.sv-diag');
+  expect(diag).not.toBeNull();
+  // Native <details>, deliberately: it must not depend on the React click
+  // handling it is there to help diagnose.
+  expect(diag!.tagName).toBe('DETAILS');
+  const body = diag!.querySelector('.sv-diag-body');
+  expect(body!.textContent).toContain('hostCapabilities');
+  expect(body!.textContent).toContain('derived');
+});
+
+it('renders diagnostics even when the handshake failed outright', async () => {
+  // Embedded, but the host never answered: the widget shows a connection
+  // error. That is precisely when someone needs to see what the host sent.
+  initialize.mockResolvedValue({
+    chartData: null,
+    meta: {},
+    context: { scheme: 'light' },
+    capabilities: { canCallTool: false },
+    connected: false,
+    embedded: true,
+  });
+  await renderApp();
+  expect(container!.querySelector('.sv-error, .sv-diag')).not.toBeNull();
+  // The error state is exactly when someone needs to know what the host said.
+  expect(container!.querySelector('.sv-diag')).not.toBeNull();
+});
+
+it('always offers "Show CSV", the one export that needs no host support', async () => {
+  await renderApp();
+  const exportButton = container!.querySelector(
+    '[aria-haspopup="menu"]',
+  ) as HTMLButtonElement;
+  await act(async () => {
+    exportButton.click();
+  });
+  const labels = Array.from(
+    container!.querySelectorAll('[role="menuitem"]'),
+  ).map((b) => b.textContent);
+  // jsdom is top-level, so downloads are on offer here — Show CSV must still
+  // be present, because a download's success is not observable either way.
+  expect(labels).toContain('Download CSV');
+  expect(labels).toContain('Show CSV');
 });

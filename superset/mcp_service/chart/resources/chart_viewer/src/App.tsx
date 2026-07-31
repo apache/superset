@@ -428,7 +428,13 @@ export function App(): JSX.Element {
   const exploreUrl = data?.explore_url ?? meta.explore_url;
   const openInSuperset = useCallback(async () => {
     if (!exploreUrl) return;
-    if (await bridge.openLink(exploreUrl)) return;
+    if (await bridge.openLink(exploreUrl)) {
+      // The host acknowledged the request. Whether it actually opened a window
+      // is not observable from in here, so say what we know rather than
+      // nothing — a silent no-op is indistinguishable from a dead button.
+      showToast('Opening in Superset…');
+      return;
+    }
     // Neither the host nor a direct window.open could take us there (a
     // sandboxed iframe with no popup permission). Hand over the URL rather
     // than letting the click do nothing.
@@ -463,7 +469,14 @@ export function App(): JSX.Element {
             'text/csv',
             csv(),
           );
-          showToast(ok ? 'CSV downloaded.' : 'The host blocked the download.');
+          // `ok` only means the click dispatched. A sandbox without
+          // allow-downloads blocks it silently, without throwing, so claiming
+          // "downloaded" here would be a success we cannot observe.
+          showToast(
+            ok
+              ? 'Saving CSV — if nothing arrives, use "Show CSV".'
+              : 'The host blocked the download. Use "Show CSV" instead.',
+          );
         },
       });
       if (isEChartsView(view)) {
@@ -483,7 +496,11 @@ export function App(): JSX.Element {
               backgroundColor: theme.bg,
             });
             const ok = downloadDataUrl(exportFilename(data, 'png'), url);
-            showToast(ok ? 'Image downloaded.' : 'The host blocked the download.');
+            showToast(
+              ok
+                ? 'Saving image — if nothing arrives, the host blocked it.'
+                : 'The host blocked the download.',
+            );
           },
         });
       }
@@ -503,16 +520,15 @@ export function App(): JSX.Element {
       },
     });
 
-    if (downloadsBlocked) {
-      // A programmatic copy can report success without the clipboard actually
-      // changing (permissions vary by host), so a path that cannot lie —
-      // the text, on screen, for the user to copy — is always offered.
-      actions.push({
-        key: 'show',
-        label: 'Show CSV',
-        onSelect: () => setCopyPanel({ title: 'CSV', text: csv() }),
-      });
-    }
+    // Always offered, on every host. Downloads and clipboard writes can both
+    // report success the widget cannot verify; rendering the text on screen is
+    // the one export path that depends on nothing outside this frame, so it is
+    // never gated behind a capability guess.
+    actions.push({
+      key: 'show',
+      label: 'Show CSV',
+      onSelect: () => setCopyPanel({ title: 'CSV', text: csv() }),
+    });
 
     if (canAsk) {
       actions.push({
@@ -795,6 +811,52 @@ export function App(): JSX.Element {
 }
 
 /** Consistent app chrome: header + toolbar + body + insight footer. */
+/**
+ * Raw host handshake, rendered inline and always present.
+ *
+ * Deliberately built from the least machinery available: a native `<details>`
+ * (no React click handler), no toast, no host round-trip, no capability gate.
+ * Every other feedback surface in this widget was a suspect when this was
+ * written, so the one that reports on them cannot share their dependencies.
+ *
+ * `deriveCapabilities` guesses at capability key spellings the spec does not
+ * pin. When a gated affordance is missing in a host, this answers "did the
+ * host not offer it, or did we fail to recognise it?" — which is otherwise
+ * indistinguishable from the outside.
+ */
+function HostDiagnosticsPanel(): JSX.Element {
+  const d = bridge.getDiagnostics();
+  const flag = (on: boolean): string => (on ? 'yes' : 'no');
+  return (
+    <details className="sv-diag">
+      <summary>
+        Host: {d.embedded ? 'embedded' : 'standalone'}
+        {' · '}proto {d.protocolVersion ?? 'none'}
+        {' · '}origin {d.origin}
+        {' · '}tools {flag(d.derived.canCallTools)}
+        {' · '}context {flag(d.derived.canUpdateModelContext)}
+        {' · '}message {flag(d.derived.canSendMessage)}
+      </summary>
+      <pre className="sv-diag-body">
+        {JSON.stringify(
+          {
+            protocolVersion: d.protocolVersion,
+            hostCapabilities: d.hostCapabilities,
+            hostContext: d.hostContext,
+            origin: d.origin,
+            derived: {
+              ...d.derived,
+              appTools: Array.from(d.derived.appTools),
+            },
+          },
+          null,
+          2,
+        )}
+      </pre>
+    </details>
+  );
+}
+
 function shell(
   body: JSX.Element,
   toolbar: JSX.Element | null,
@@ -855,6 +917,7 @@ function shell(
           <strong>Insight:</strong> {stripUntrustedMarkers(data.insights[0])}
         </div>
       )}
+      <HostDiagnosticsPanel />
       {onResizeStart && (
         <div
           className="sv-resize-handle"

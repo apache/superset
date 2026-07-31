@@ -710,3 +710,43 @@ body {
   right: 8px;
   z-index: 4;
 }
+
+/* ---- Host diagnostics ----
+   Native <details>: no React handler, no host round-trip, so it still works
+   when the machinery it reports on does not. */
+.sv-diag {
+  flex: 0 0 auto;
+  font-size: 10.5px;
+  color: var(--sv-text-secondary);
+  border-top: 1px solid var(--sv-border);
+  padding-top: 6px;
+  margin-top: 2px;
+}
+
+.sv-diag > summary {
+  cursor: pointer;
+  list-style: none;
+  opacity: 0.72;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sv-diag > summary:hover {
+  opacity: 1;
+}
+
+.sv-diag-body {
+  max-height: 220px;
+  overflow: auto;
+  margin: 6px 0 0;
+  padding: 8px;
+  background: var(--sv-panel);
+  border: 1px solid var(--sv-border);
+  border-radius: var(--sv-radius-sm);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

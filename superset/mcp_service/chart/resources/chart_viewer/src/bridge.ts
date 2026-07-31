@@ -50,11 +50,34 @@ export interface HostCapabilities {
   canCallTools: boolean;
 }
 
+/**
+ * Everything the host told us at handshake, verbatim.
+ *
+ * `deriveCapabilities` guesses at several key spellings (`tools`, `toolCalls`,
+ * `appTools`, `experimental.appTools`, ...) because the spec does not pin them.
+ * A host that advertises under a name we do not read leaves every gated
+ * affordance silently switched off, which is indistinguishable from a broken
+ * feature. The raw maps are kept so that question can be answered by looking
+ * rather than by guessing.
+ */
+export interface HostDiagnostics {
+  protocolVersion?: string;
+  /** Exactly what the host sent — no normalisation. */
+  hostCapabilities: Record<string, unknown>;
+  hostContext: Record<string, unknown>;
+  /** 'null' in a sandboxed iframe without allow-same-origin. */
+  origin: string;
+  embedded: boolean;
+  /** What we concluded from the above. */
+  derived: HostCapabilities;
+}
+
 export interface BridgeInit {
   chartData: ChartData | null;
   meta: ChartMeta;
   context: HostContext;
   capabilities: HostCapabilities;
+  diagnostics: HostDiagnostics;
   /** True when a real MCP host answered the handshake. */
   connected: boolean;
   /**
@@ -93,6 +116,22 @@ export class ChartBridge {
   private capabilities: HostCapabilities = emptyCapabilities();
   /** Modes from HostContext.availableDisplayModes; null when unadvertised. */
   private hostDisplayModes: Set<string> | null = null;
+  private diagnostics: HostDiagnostics = buildDiagnostics(
+    undefined,
+    emptyCapabilities(),
+    false,
+  );
+
+  /**
+   * Raw handshake data, for the in-widget diagnostics panel.
+   *
+   * Read directly by the panel rather than threaded through props: it must
+   * stay available on every render path (loading, error, chart) without
+   * depending on component state that a failed handshake never populates.
+   */
+  getDiagnostics(): HostDiagnostics {
+    return this.diagnostics;
+  }
 
   private get isEmbedded(): boolean {
     return (
@@ -120,6 +159,7 @@ export class ChartBridge {
 
       this.capabilities = deriveCapabilities(result);
       this.hostDisplayModes = readDisplayModes(result?.hostContext);
+      this.diagnostics = buildDiagnostics(result, this.capabilities, true);
       this.notify('ui/notifications/initialized', {});
 
       const { chartData, meta, error } = extractToolResult(result?.toolResult);
@@ -128,6 +168,7 @@ export class ChartBridge {
         meta,
         context: parseHostContext(result?.hostContext),
         capabilities: this.capabilities,
+        diagnostics: this.diagnostics,
         connected: true,
         embedded: true,
         error,
@@ -137,11 +178,13 @@ export class ChartBridge {
       // data — that would render fake numbers as if they were the user's chart.
       // Signal embedded+disconnected so the app shows a connection error.
       this.capabilities = emptyCapabilities();
+      this.diagnostics = buildDiagnostics(undefined, this.capabilities, true);
       return {
         chartData: null,
         meta: {},
         context: { scheme: detectScheme() },
         capabilities: this.capabilities,
+        diagnostics: this.diagnostics,
         connected: false,
         embedded: true,
       };
@@ -150,11 +193,13 @@ export class ChartBridge {
 
   private standaloneInit(): BridgeInit {
     this.capabilities = emptyCapabilities();
+    this.diagnostics = buildDiagnostics(undefined, this.capabilities, false);
     return {
       chartData: null,
       meta: {},
       context: { scheme: detectScheme() },
       capabilities: this.capabilities,
+      diagnostics: this.diagnostics,
       connected: false,
       embedded: false,
     };
@@ -401,6 +446,27 @@ interface HostInitResult {
   hostCapabilities?: Record<string, unknown>;
   hostContext?: Record<string, unknown>;
   toolResult?: unknown;
+}
+
+function buildDiagnostics(
+  result: HostInitResult | undefined,
+  derived: HostCapabilities,
+  embedded: boolean,
+): HostDiagnostics {
+  let origin = 'unknown';
+  try {
+    origin = window.origin || 'null';
+  } catch {
+    origin = 'null';
+  }
+  return {
+    protocolVersion: result?.protocolVersion,
+    hostCapabilities: (result?.hostCapabilities ?? {}) as Record<string, unknown>,
+    hostContext: (result?.hostContext ?? {}) as Record<string, unknown>,
+    origin,
+    embedded,
+    derived,
+  };
 }
 
 function deriveCapabilities(
