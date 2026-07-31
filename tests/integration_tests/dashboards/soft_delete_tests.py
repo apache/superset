@@ -195,37 +195,47 @@ class TestDashboardSoftDelete(SupersetTestCase):
         from superset.models.slice import Slice
 
         admin = self.get_user("admin")
-        database = Database(database_name="sd_acl_db", sqlalchemy_uri="sqlite://")
-        db.session.add(database)
-        db.session.flush()
-        table = SqlaTable(table_name="sd_acl_tbl", database=database)
-        db.session.add(table)
-        db.session.flush()
-        chart = Slice(
-            slice_name="sd_acl_slice",
-            datasource_id=table.id,
-            datasource_type="table",
-            viz_type="table",
-        )
-        db.session.add(chart)
-        dashboard = Dashboard(
-            dashboard_title="sd_acl_dash",
-            slug="sd_acl_dash",
-            editors=subjects_from_users([admin]),
-            slices=[chart],
-            published=True,
-        )
-        db.session.add(dashboard)
-        db.session.commit()
-        dashboard_id = dashboard.id
-
-        gamma_role = security_manager.find_role("Gamma")
-        pvm = security_manager.add_permission_view_menu("datasource_access", table.perm)
-        gamma_role.permissions.append(pvm)
-        db.session.commit()
-
+        # Every fixture is created INSIDE the try: a failure during setup used
+        # to leak the rows past the finally, and one leaked sd_acl_slice was
+        # observed poisoning 28 unrelated chart tests on the shared DB (their
+        # example lookups take query(Slice).first()). The names are seeded
+        # None so the finally can clean up exactly as far as setup got.
+        database = table = chart = None
+        dashboard_id = None
+        gamma_role = None
         title_filter = "(col:dashboard_title,opr:title_or_slug,value:sd_acl_dash)"
         try:
+            database = Database(database_name="sd_acl_db", sqlalchemy_uri="sqlite://")
+            db.session.add(database)
+            db.session.flush()
+            table = SqlaTable(table_name="sd_acl_tbl", database=database)
+            db.session.add(table)
+            db.session.flush()
+            chart = Slice(
+                slice_name="sd_acl_slice",
+                datasource_id=table.id,
+                datasource_type="table",
+                viz_type="table",
+            )
+            db.session.add(chart)
+            dashboard = Dashboard(
+                dashboard_title="sd_acl_dash",
+                slug="sd_acl_dash",
+                editors=subjects_from_users([admin]),
+                slices=[chart],
+                published=True,
+            )
+            db.session.add(dashboard)
+            db.session.commit()
+            dashboard_id = dashboard.id
+
+            gamma_role = security_manager.find_role("Gamma")
+            pvm = security_manager.add_permission_view_menu(
+                "datasource_access", table.perm
+            )
+            gamma_role.permissions.append(pvm)
+            db.session.commit()
+
             # Precondition: gamma can see the dashboard while it is live.
             self.login(GAMMA_USERNAME)
             rv = self.client.get(f"/api/v1/dashboard/?q=(filters:!({title_filter}))")
@@ -255,15 +265,20 @@ class TestDashboardSoftDelete(SupersetTestCase):
                     f"dashboard via deleted_state={value}"
                 )
         finally:
-            pvm = security_manager.find_permission_view_menu(
-                "datasource_access", table.perm
-            )
-            if pvm:
-                security_manager.del_permission_role(gamma_role, pvm)
-            _hard_delete_dashboard(dashboard_id)
-            db.session.delete(chart)
-            db.session.delete(table)
-            db.session.delete(database)
+            # A failed setup leaves the session mid-transaction; clear it so
+            # the cleanup deletes below run against a working session.
+            db.session.rollback()
+            if gamma_role is not None and table is not None:
+                pvm = security_manager.find_permission_view_menu(
+                    "datasource_access", table.perm
+                )
+                if pvm:
+                    security_manager.del_permission_role(gamma_role, pvm)
+            if dashboard_id is not None:
+                _hard_delete_dashboard(dashboard_id)
+            for leftover in (chart, table, database):
+                if leftover is not None:
+                    db.session.delete(leftover)
             db.session.commit()
 
     @with_feature_flags(SOFT_DELETE=True)

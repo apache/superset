@@ -224,24 +224,31 @@ class TestDatasetSoftDelete(SupersetTestCase):
         """
         admin = self.get_user(ADMIN_USERNAME)
         admin_subject = _user_subject(admin)
-        database = Database(database_name="sd_acl_db", sqlalchemy_uri="sqlite://")
-        db.session.add(database)
-        db.session.flush()
-        dataset = SqlaTable(
-            table_name="sd_acl_tbl", database=database, editors=[admin_subject]
-        )
-        db.session.add(dataset)
-        db.session.commit()
-        dataset_id = dataset.id
-
-        gamma_role = security_manager.find_role("Gamma")
-        pvm = security_manager.add_permission_view_menu(
-            "datasource_access", dataset.perm
-        )
-        gamma_role.permissions.append(pvm)
-        db.session.commit()
-
+        # Created inside the try so a setup failure cannot leak fixtures past
+        # the finally (a leaked sd_acl row was observed poisoning unrelated
+        # suites on a shared DB). Names seeded None; the finally cleans up
+        # exactly as far as setup got.
+        database = dataset = None
+        dataset_id = None
+        gamma_role = None
         try:
+            database = Database(database_name="sd_acl_db", sqlalchemy_uri="sqlite://")
+            db.session.add(database)
+            db.session.flush()
+            dataset = SqlaTable(
+                table_name="sd_acl_tbl", database=database, editors=[admin_subject]
+            )
+            db.session.add(dataset)
+            db.session.commit()
+            dataset_id = dataset.id
+
+            gamma_role = security_manager.find_role("Gamma")
+            pvm = security_manager.add_permission_view_menu(
+                "datasource_access", dataset.perm
+            )
+            gamma_role.permissions.append(pvm)
+            db.session.commit()
+
             # Precondition: gamma can see the dataset while it is live.
             self.login(GAMMA_USERNAME)
             rv = self.client.get("/api/v1/dataset/?q=(page_size:200)")
@@ -271,13 +278,16 @@ class TestDatasetSoftDelete(SupersetTestCase):
                     f"dataset via dataset_deleted_state={value}"
                 )
         finally:
-            pvm = security_manager.find_permission_view_menu(
-                "datasource_access", dataset.perm
-            )
-            if pvm:
-                security_manager.del_permission_role(gamma_role, pvm)
+            db.session.rollback()
+            if gamma_role is not None and dataset is not None:
+                pvm = security_manager.find_permission_view_menu(
+                    "datasource_access", dataset.perm
+                )
+                if pvm:
+                    security_manager.del_permission_role(gamma_role, pvm)
             db.session.commit()
-            self._hard_delete_created(dataset_id, database)
+            if dataset_id is not None and database is not None:
+                self._hard_delete_created(dataset_id, database)
 
     @with_feature_flags(SOFT_DELETE=True)
     def test_deleted_state_list_shows_gamma_editor_without_datasource_grant(
