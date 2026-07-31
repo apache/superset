@@ -40,8 +40,12 @@ import {
 jest.mock('src/dashboard/actions/hydrate', () => ({
   hydrateDashboard: jest.fn(),
 }));
+const mockAddDangerToast = jest.fn();
 jest.mock('src/components/MessageToasts/withToasts', () => ({
-  useToasts: () => ({ addDangerToast: jest.fn() }),
+  // Stable across renders, as the real hook is: a fresh fn per render would
+  // change the main effect's dependency identity and re-run the apply on
+  // every store update, masking staleness bugs these tests exist to catch.
+  useToasts: () => ({ addDangerToast: mockAddDangerToast }),
 }));
 jest.mock('./api', () => ({
   ...jest.requireActual('./api'),
@@ -467,6 +471,37 @@ test('switching previewed versions keeps the original live dataMask for exit', a
   });
   await waitFor(() => expect(mockedHydrateDashboard).toHaveBeenCalledTimes(3));
   expect(hydrateMaskArg(2)).toEqual(liveMask);
+});
+
+test('a save landing while a preview is applying refreshes the cached live copy', async () => {
+  // A save confirmed just before the preview opened can resolve while the
+  // apply is still fetching. The copy in hand then predates the save, and
+  // caching it would let exit-preview resurrect pre-save state.
+  let resolveSnapshot: (value: DashboardVersionSnapshot) => void = () => {};
+  mockedFetchSnapshot.mockReturnValue(
+    new Promise(resolve => {
+      resolveSnapshot = resolve;
+    }),
+  );
+  const store = makePreviewStore();
+  renderPreviewHook(store);
+
+  act(() => {
+    store.setState({
+      versionHistory: versionHistoryState({ preview: previewOf('v1') }),
+    });
+  });
+  await waitFor(() => expect(mockedFetchHydration).toHaveBeenCalledTimes(1));
+
+  // The save signal moves mid-apply.
+  act(() => {
+    store.setState({ dashboardInfo: { id: 6, last_modified_time: 999 } });
+  });
+  await act(async () => {
+    resolveSnapshot(snapshot);
+  });
+
+  await waitFor(() => expect(mockedFetchHydration).toHaveBeenCalledTimes(2));
 });
 
 test("another entity's restore does not rehydrate this dashboard", async () => {

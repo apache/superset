@@ -288,6 +288,11 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
       }
       fetchIdRef.current += 1;
       const fetchId = fetchIdRef.current;
+      // A save resolving while this apply is in flight (e.g. a properties
+      // save confirmed just before the preview opened) moves the save signal
+      // and outdates the copy being fetched below; capture the generation so
+      // the cache commit can tell.
+      const saveSignalAtStart = lastSaveSignalRef.current;
       const apply = async () => {
         // Work on a local copy and commit it to the cache only after the
         // staleness check below — an in-flight fetch resolving after a
@@ -311,6 +316,15 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
         );
         if (fetchId !== fetchIdRef.current) {
           return;
+        }
+        if (lastSaveSignalRef.current !== saveSignalAtStart) {
+          // A save landed mid-flight: the copy in hand predates it, and
+          // caching it would let exit-preview resurrect pre-save state (and
+          // a later edit-mode save persist it). Fetch a fresh copy instead.
+          liveData = await fetchDashboardHydrationData(dashboardId);
+          if (fetchId !== fetchIdRef.current) {
+            return;
+          }
         }
         liveDataRef.current = liveData;
         const { dashboard } = liveData;
