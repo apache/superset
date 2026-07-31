@@ -1386,20 +1386,27 @@ class ReportNotTriggeredErrorState(BaseReportState):
     def next(self) -> None:  # noqa: C901
         # If retries from a previous crontab window are still in-flight and
         # this is a new crontab trigger, skip — let the active retry chain
-        # finish.  _is_retry_window_stale() returns True when the scheduled
-        # times differ, meaning this execution is from a different (newer)
-        # crontab window than the one the retry chain belongs to.
+        # finish.  If the report hasn't been touched in longer than the max
+        # retry delay, consider the retry chain dead and let the new window
+        # proceed (e.g., apply_async failed after committing RETRYING).
         if (
             self._report_schedule.last_state == ReportState.RETRYING
             and self._is_retry_window_stale()
         ):
-            logger.info(
-                "Skipping crontab execution for report %s — retries from a "
-                "previous window are still in-flight (execution %s)",
-                self._report_schedule.id,
-                self._execution_id,
+            max_delay: int = app.config.get(
+                "ALERT_REPORTS_RETRY_MAX_DELAY_SECONDS", 3600
             )
-            return
+            last_touched = self._report_schedule.last_eval_dttm
+            now = datetime.now(timezone.utc).replace(tzinfo=None)
+            if last_touched and (now - last_touched).total_seconds() < max_delay:
+                logger.info(
+                    "Skipping crontab execution for report %s — retries "
+                    "from a previous window are still in-flight "
+                    "(execution %s)",
+                    self._report_schedule.id,
+                    self._execution_id,
+                )
+                return
 
         self.update_report_schedule_and_log(ReportState.WORKING)
         try:
@@ -1606,15 +1613,6 @@ class ReportSuccessState(BaseReportState):
 
         try:
             self.send()
-            # Include filter warnings in the log if any were collected
-            warning_message = (
-                ";".join(self._filter_warnings) if self._filter_warnings else None
-            )
-            # Clear any retry state from previous failed attempts in this window.
-            self._reset_retry_counter()
-            self.update_report_schedule_and_log(
-                ReportState.SUCCESS, error_message=warning_message
-            )
         except Exception as ex:  # pylint: disable=broad-except
             if self._handle_retry_or_error(str(ex), ex):
                 return  # retry scheduled — exit cleanly
@@ -1635,6 +1633,16 @@ class ReportSuccessState(BaseReportState):
                 # Re-raise the original exception, not the logging failure
                 raise ex from logging_ex
             raise
+
+        # send() succeeded — clear retry state and log success.
+        # Include filter warnings in the log if any were collected.
+        warning_message = (
+            ";".join(self._filter_warnings) if self._filter_warnings else None
+        )
+        self._reset_retry_counter()
+        self.update_report_schedule_and_log(
+            ReportState.SUCCESS, error_message=warning_message
+        )
 
 
 class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods

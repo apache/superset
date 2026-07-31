@@ -184,6 +184,11 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "recipients.type",
         "timezone",
         "type",
+        "retry_on_failure",
+        "retry_max_attempts",
+        "send_failed_reports",
+        "retry_notify_owners",
+        "retry_notify_recipients",
     ]
     add_columns = [
         "active",

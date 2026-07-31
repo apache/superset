@@ -136,7 +136,8 @@ export type AlertObject = {
   grace_period?: number;
   id: number;
   last_eval_dttm?: number;
-  last_state?: 'Success' | 'Working' | 'Error' | 'Not triggered' | 'On Grace';
+  last_state?:
+    'Success' | 'Working' | 'Error' | 'Not triggered' | 'On Grace' | 'Retrying';
   log_retention?: number;
   name?: string;
   editors?: Subject[];

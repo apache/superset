@@ -192,5 +192,11 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
             msg = _("send_failed_reports requires retry_on_failure to be enabled")
             exceptions.append(ValidationError({"send_failed_reports": [msg]}))
 
+        # Retries are only supported for reports, not alerts.
+        report_type = self._properties.get("type", self._model.type)
+        if report_type == ReportScheduleType.ALERT and retry_enabled:
+            msg = _("Retries are not supported for alerts")
+            exceptions.append(ValidationError({"retry_on_failure": [msg]}))
+
         if exceptions:
             raise ReportScheduleInvalidError(exceptions=exceptions)

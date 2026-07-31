@@ -2748,6 +2748,7 @@ def test_retry_exhausted_transitions_to_error(
     scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None)
     report_schedule.retry_attempt = 2
     report_schedule.retry_scheduled_dttm = scheduled_dttm
+    report_schedule.last_state = ReportState.RETRYING
     db.session.commit()
 
     try:
@@ -2797,6 +2798,7 @@ def test_send_failed_reports_sends_to_recipients(
     scheduled_dttm = datetime.now(tz=timezone.utc).replace(tzinfo=None)
     report_schedule.retry_attempt = 1
     report_schedule.retry_scheduled_dttm = scheduled_dttm
+    report_schedule.last_state = ReportState.RETRYING
     db.session.commit()
 
     try:
