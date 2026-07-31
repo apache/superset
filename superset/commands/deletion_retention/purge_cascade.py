@@ -261,7 +261,7 @@ def cascade_hard_delete(
             entity_id,
         )
         return CascadeResult(purged=False, entity_type=entity_type, entity_uuid=uuid)
-    except (PurgeBlockedError, IntegrityError) as ex:
+    except PurgeBlockedError as ex:
         logger.info(
             "deletion_retention: %s id=%s blocked by existing deletion rules",
             entity_type,
@@ -272,6 +272,28 @@ def cascade_hard_delete(
             entity_type=entity_type,
             entity_uuid=uuid,
             blocked_reason=str(ex),
+        )
+    except IntegrityError as ex:
+        # Not a policy decision: a restrictive FK the cascade did not handle.
+        # Two audiences, two messages. The curated reason goes to the caller
+        # (and from there into a user toast), because raw driver text carries
+        # the failing SQL and bind parameters. The constraint detail goes to
+        # the log at WARNING, because an entity permanently unpurgeable via an
+        # unknown FK is a cascade-coverage bug someone has to be able to
+        # diagnose -- reported at INFO as a policy block, it read as intended
+        # behaviour.
+        logger.warning(
+            "deletion_retention: %s id=%s purge failed on a restrictive "
+            "foreign key the cascade does not handle: %s",
+            entity_type,
+            entity_id,
+            ex,
+        )
+        return CascadeResult(
+            purged=False,
+            entity_type=entity_type,
+            entity_uuid=uuid,
+            blocked_reason="blocked by database references",
         )
 
     return CascadeResult(
@@ -298,6 +320,7 @@ def _validate_deletion_allowed(
     # pylint: disable=import-outside-toplevel
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
+    from superset.models.user_attributes import UserAttribute
     from superset.reports.models import ReportSchedule
 
     column: Any | None = None
@@ -312,6 +335,23 @@ def _validate_deletion_allowed(
         ).first()
     ):
         raise PurgeBlockedError("associated alerts or reports exist")
+
+    # The welcome-dashboard reference must be an explicit guard, not a hope
+    # that the database enforces it: user_attributes.welcome_dashboard_id has
+    # no ondelete, so on FK-enforcing backends the delete fails with an
+    # IntegrityError misreported as a policy block -- while on SQLite with
+    # FKs off the dashboard purges "successfully", strands a dangling pointer
+    # (a broken user homepage), and the audit row says confirmed. One check,
+    # both dialect families, and a reason the blocked entity can be named by.
+    if (
+        model is Dashboard
+        and session.execute(
+            sa.select(UserAttribute.id)
+            .where(UserAttribute.welcome_dashboard_id == entity_id)
+            .limit(1)
+        ).first()
+    ):
+        raise PurgeBlockedError("a user has this dashboard set as their welcome page")
 
 
 def _count_dashboard_slices(session: Session, model: type[Any], entity_id: int) -> int:

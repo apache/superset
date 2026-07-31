@@ -29,6 +29,7 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import sqlalchemy as sa
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.attributes import set_committed_value
 from sqlalchemy.sql.dml import Delete
 
@@ -628,4 +629,93 @@ class TestPurgeIdentityGuard(DeletionRetentionTestBase):
         db.session.commit()
 
         assert result.purged is False
+        assert self.exists(Slice, chart_id)
+
+
+class TestExplicitBlockerGuards(DeletionRetentionTestBase):
+    """Blockers must be policy checks, not side effects of FK enforcement."""
+
+    def _set_welcome(self, dashboard_id: int) -> tuple[UserAttribute, bool, int | None]:
+        user = self.get_user("admin")
+        attribute = (
+            db.session.query(UserAttribute).filter_by(user_id=user.id).one_or_none()
+        )
+        created = attribute is None
+        if attribute is None:
+            attribute = UserAttribute(user_id=user.id)
+            db.session.add(attribute)
+        previous = attribute.welcome_dashboard_id
+        attribute.welcome_dashboard_id = dashboard_id
+        db.session.commit()
+        return attribute, created, previous
+
+    def _restore_welcome(
+        self, attribute: UserAttribute, created: bool, previous: int | None
+    ) -> None:
+        if created:
+            db.session.delete(attribute)
+        else:
+            attribute.welcome_dashboard_id = previous
+        db.session.commit()
+
+    def test_welcome_dashboard_blocks_even_without_fk_enforcement(self) -> None:
+        """The guard must hold where the database will not.
+
+        SQLite runs with foreign keys unenforced, which is exactly the
+        configuration where relying on the FK let the dashboard purge
+        "successfully" -- stranding user_attributes.welcome_dashboard_id as a
+        broken homepage pointer while the audit row said confirmed.
+        """
+        dashboard = self.make_dashboard("welcome_fkoff")
+        dashboard_id = dashboard.id
+        self.soft_delete(dashboard, days_ago=90)
+        attribute, created, previous = self._set_welcome(dashboard_id)
+        try:
+            result = cascade_hard_delete(
+                db.session,
+                dashboard,
+                enforce_window=True,
+                cutoff=datetime.now() - timedelta(days=30),
+            )
+            db.session.commit()
+
+            assert result.purged is False
+            assert result.blocked_reason is not None
+            assert "welcome page" in result.blocked_reason
+            assert self.exists(Dashboard, dashboard_id)
+        finally:
+            self._restore_welcome(attribute, created, previous)
+
+    def test_unhandled_fk_failure_reports_a_curated_reason(self) -> None:
+        """Raw driver text must not become the blocked reason.
+
+        An IntegrityError from a restrictive FK the cascade does not handle
+        carries the failing SQL and bind parameters; the blocked_reason
+        travels to a 422 and from there into a user-facing toast. The caller
+        gets a curated sentence; the constraint detail belongs in the log,
+        at WARNING, where a cascade-coverage bug can actually be diagnosed.
+        """
+        chart = self.make_chart("fk_surprise")
+        chart_id = chart.id
+        self.soft_delete(chart, days_ago=90)
+
+        driver_text = (
+            "(sqlite3.IntegrityError) FOREIGN KEY constraint failed "
+            "[SQL: DELETE FROM slices WHERE slices.id = ?] [parameters: (1,)]"
+        )
+        with patch(
+            "superset.commands.deletion_retention.purge_cascade._delete_m2m_joins",
+            side_effect=IntegrityError(driver_text, None, Exception("fk")),
+        ):
+            result = cascade_hard_delete(
+                db.session,
+                chart,
+                enforce_window=True,
+                cutoff=datetime.now() - timedelta(days=30),
+            )
+            db.session.commit()
+
+        assert result.purged is False
+        assert result.blocked_reason == "blocked by database references"
+        assert "SQL:" not in result.blocked_reason
         assert self.exists(Slice, chart_id)
