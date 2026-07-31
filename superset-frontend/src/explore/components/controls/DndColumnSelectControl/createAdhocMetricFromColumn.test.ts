@@ -42,6 +42,8 @@ test('string, boolean and temporal columns default to COUNT_DISTINCT', () => {
   });
 });
 
-test('columns with an unknown data type get no default aggregate', () => {
-  expect(createAdhocMetricFromColumn(column(undefined)).aggregate).toBeFalsy();
+test('columns with an unknown data type default to COUNT_DISTINCT', () => {
+  expect(createAdhocMetricFromColumn(column(undefined)).aggregate).toBe(
+    AGGREGATES.COUNT_DISTINCT,
+  );
 });
