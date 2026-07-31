@@ -719,7 +719,7 @@ describe('extractDataTotalValues', () => {
   // packages/superset-ui-core/src/connection/callApi/parseResponse.ts).
   // Summing a BigInt datum value against the Number accumulator here
   // throws instead of producing a stacked total.
-  test('does not throw when a stacked datum contains a BigInt metric value', () => {
+  test('sums a stacked datum containing a BigInt metric value without throwing', () => {
     const data: DataRecord[] = [
       {
         __timestamp: '2000-01-01',
@@ -727,13 +727,20 @@ describe('extractDataTotalValues', () => {
         metric_b: BigInt('9007199254740993'),
       },
     ];
-    expect(() =>
-      extractDataTotalValues(data, {
+    const { totalStackedValues, thresholdValues } = extractDataTotalValues(
+      data,
+      {
         stack: true,
         percentageThreshold: 50,
         xAxisCol: '__timestamp',
-      }),
-    ).not.toThrow();
+      },
+    );
+    // BigInt('9007199254740993') exceeds Number.MAX_SAFE_INTEGER, so
+    // converting it to a Number loses precision (rounds to
+    // 9007199254740992). The assertions reflect that expected,
+    // best-effort numeric representation rather than exact BigInt math.
+    expect(totalStackedValues).toEqual([9007199254741002]);
+    expect(thresholdValues).toEqual([4503599627370501]);
   });
 });
 
