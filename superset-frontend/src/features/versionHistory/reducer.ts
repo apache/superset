@@ -179,6 +179,14 @@ export default function versionHistoryReducer(
     case SET_VERSION_HISTORY_INCLUDE:
       return { ...state, include: action.include };
     case SET_VERSION_PREVIEW:
+      // Re-selecting the version already being previewed must be a no-op.
+      // The appliers' effects key on versionUuid and would never re-run for
+      // an identical value, so re-entering the applying state here would
+      // leave it stuck: the banner reporting a load forever and Restore
+      // withheld until the preview is exited.
+      if (action.preview.versionUuid === state.preview?.versionUuid) {
+        return state;
+      }
       // A newly requested preview is by definition not on screen yet: the
       // snapshot takes several round trips to fetch and hydrate, and until it
       // lands the page still shows live data. Starting in the applying state
