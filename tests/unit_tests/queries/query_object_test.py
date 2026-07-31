@@ -90,6 +90,29 @@ def test_default_query_object_to_dict():
     }
 
 
+def test_exec_post_processing_rejects_unsupported_operation():
+    """
+    An unknown operation reports itself in the error message rather than failing
+    to interpolate it.
+    """
+    query_object = QueryObject(
+        row_limit=1,
+        post_processing=[{"operation": "no_such_operation"}],
+    )
+
+    with pytest.raises(InvalidPostProcessingError) as excinfo:
+        query_object.exec_post_processing(pd.DataFrame({"y": [1.0]}))
+
+    assert "no_such_operation" in excinfo.value.message
+
+
+def test_exec_post_processing_requires_an_operation():
+    query_object = QueryObject(row_limit=1, post_processing=[{"options": {}}])
+
+    with pytest.raises(InvalidPostProcessingError):
+        query_object.exec_post_processing(pd.DataFrame({"y": [1.0]}))
+
+
 def test_exec_post_processing_resample_fills_time_range():
     """
     `fill_time_range` is resolved into the boundaries of the queried time range
