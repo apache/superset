@@ -29,6 +29,7 @@ import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
+import { addTranslation } from '@apache-superset/core/translation';
 import AlertListComponent from 'src/pages/AlertReportList';
 import { SubjectType } from 'src/types/Subject';
 import getBootstrapData from 'src/utils/getBootstrapData';
@@ -44,10 +45,21 @@ jest.mock('src/utils/getBootstrapData', () => ({
   })),
 }));
 
-// Mock withToasts HOC to be a passthrough so toast spies passed via props are preserved
+// Mock withToasts HOC to inject default toast functions while preserving explicit test spies passed via props
 jest.mock('src/components/MessageToasts/withToasts', () => ({
   __esModule: true,
-  default: <P extends object>(Component: React.ComponentType<P>) => Component,
+  default: <P extends object>(Component: React.ComponentType<P>) =>
+    function MockWithToasts(props: P) {
+      return (
+        <Component
+          addDangerToast={jest.fn()}
+          addSuccessToast={jest.fn()}
+          addInfoToast={jest.fn()}
+          addWarningToast={jest.fn()}
+          {...props}
+        />
+      );
+    },
 }));
 
 const mockGetBootstrapData = getBootstrapData as jest.MockedFunction<
@@ -265,6 +277,18 @@ beforeEach(() => {
   mockGetBootstrapData.mockReturnValue(mockBootstrapData([1]));
   fetchMock.removeRoutes().clearHistory();
   setupMocks();
+  addTranslation('Alert "%(alertName)s" triggered successfully', [
+    'Alert "%(alertName)s" triggered successfully [L10N]',
+  ]);
+  addTranslation('Report "%(alertName)s" triggered successfully', [
+    'Report "%(alertName)s" triggered successfully [L10N]',
+  ]);
+  addTranslation('Failed to trigger alert "%(alertName)s": %(error)s', [
+    'Failed to trigger alert "%(alertName)s": %(error)s [L10N]',
+  ]);
+  addTranslation('Failed to trigger report "%(alertName)s": %(error)s', [
+    'Failed to trigger report "%(alertName)s": %(error)s [L10N]',
+  ]);
 });
 
 afterEach(() => {
@@ -619,7 +643,7 @@ test('trigger-now action displays correct success toast for Alert', async () => 
 
   await waitFor(() => {
     expect(addSuccessToast).toHaveBeenCalledWith(
-      'Alert "Weekly Sales Alert" triggered successfully',
+      'Alert "Weekly Sales Alert" triggered successfully [L10N]',
     );
   });
 });
@@ -643,7 +667,7 @@ test('trigger-now action displays correct success toast for Report', async () =>
 
   await waitFor(() => {
     expect(addSuccessToast).toHaveBeenCalledWith(
-      'Report "Weekly Dashboard Report" triggered successfully',
+      'Report "Weekly Dashboard Report" triggered successfully [L10N]',
     );
   });
 });
@@ -667,7 +691,7 @@ test('trigger-now action displays correct failure toast for Alert', async () => 
 
   await waitFor(() => {
     expect(addDangerToast).toHaveBeenCalledWith(
-      'Failed to trigger alert "Weekly Sales Alert": Database failure',
+      'Failed to trigger alert "Weekly Sales Alert": Database failure [L10N]',
     );
   });
 });
@@ -691,7 +715,7 @@ test('trigger-now action displays correct failure toast for Report', async () =>
 
   await waitFor(() => {
     expect(addDangerToast).toHaveBeenCalledWith(
-      'Failed to trigger report "Weekly Dashboard Report": Renderer timeout',
+      'Failed to trigger report "Weekly Dashboard Report": Renderer timeout [L10N]',
     );
   });
 });
