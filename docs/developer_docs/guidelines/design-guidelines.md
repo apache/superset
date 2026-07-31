@@ -85,7 +85,7 @@ Often a product page will have the same title as the objects it contains. In thi
    Examples: Query A, Query B
 
 6. **Database names.** Always capitalize names of database engines and connectors.
-   Examples: Presto, Trino, Drill, Hive, Google Sheets
+   Examples: Presto, Trino, Drill, Hive, Databricks, Google Sheets
 
 ## Button Design Guidelines
 

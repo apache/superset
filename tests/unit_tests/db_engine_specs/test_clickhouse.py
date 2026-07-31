@@ -562,3 +562,57 @@ def test_run_with_sampling_read_limit_retry_honors_opt_out() -> None:
     with pytest.raises(Exception, match="TOO_MANY_ROWS"):
         database.run_with_sampling_read_limit_retry("SELECT 1", run)
     assert executed == ["SELECT 1"]
+
+
+def test_handle_boolean_filter() -> None:
+    """
+    Test that ClickHouse uses equality operators for boolean filters instead of IS.
+
+    ClickHouse rejects the ``column IS true/false`` form, so boolean filters must
+    render as ``column = true/false``.
+    """
+    from sqlalchemy import Boolean, Column
+
+    from superset.db_engine_specs.clickhouse import ClickHouseBaseEngineSpec
+    from superset.utils.core import FilterOperator
+
+    bool_col = Column("test_col", Boolean)
+
+    result_true = ClickHouseBaseEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_TRUE, True
+    )
+    assert (
+        str(result_true.compile(compile_kwargs={"literal_binds": True}))
+        == "test_col = true"
+    )
+
+    result_false = ClickHouseBaseEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_FALSE, False
+    )
+    assert (
+        str(result_false.compile(compile_kwargs={"literal_binds": True}))
+        == "test_col = false"
+    )
+
+    # Regression: the original bug also affects computed boolean columns like
+    # `(is_cancelled = 1)`. Verify the equality operator also compiles
+    # correctly when the "column" is a computed expression.
+    from sqlalchemy import literal_column
+
+    computed_col = literal_column("(is_cancelled = 1)")
+    result_computed = ClickHouseBaseEngineSpec.handle_boolean_filter(
+        computed_col, FilterOperator.IS_TRUE, True
+    )
+    assert (
+        str(result_computed.compile(compile_kwargs={"literal_binds": True}))
+        == "(is_cancelled = 1) = true"
+    )
+
+
+def test_use_equality_for_boolean_filters_property() -> None:
+    """
+    Test that ClickHouse has the use_equality_for_boolean_filters property set.
+    """
+    from superset.db_engine_specs.clickhouse import ClickHouseBaseEngineSpec
+
+    assert ClickHouseBaseEngineSpec.use_equality_for_boolean_filters is True
