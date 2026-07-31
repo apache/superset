@@ -84,11 +84,29 @@ const mockCharts = [
 // Register routes for a single test. `restoreStatus` lets a test exercise the
 // success path (200) or a failure (e.g. 422/404). Info is registered before the
 // list so `_info` requests resolve to it rather than the broader list glob.
-const mockRoutes = (restoreStatus = 200) => {
+// withToasts injects the toast callbacks as props; the harness renders no
+// toast container, so the spy is the only way to pin what the user is told.
+const mockAddDangerToast = jest.fn();
+jest.mock('src/components/MessageToasts/withToasts', () => ({
+  __esModule: true,
+  default:
+    (Component: React.ComponentType<Record<string, unknown>>) =>
+    (props: Record<string, unknown>) => (
+      <Component
+        {...props}
+        addDangerToast={mockAddDangerToast}
+        addSuccessToast={jest.fn()}
+        addInfoToast={jest.fn()}
+        addWarningToast={jest.fn()}
+      />
+    ),
+}));
+
+const mockRoutes = (restoreStatus = 200, purgeResponse: unknown = {}) => {
   fetchMock.get(infoEndpoint, { permissions: ['can_read', 'can_write'] });
   fetchMock.get(listEndpoint, { result: mockCharts, count: mockCharts.length });
   fetchMock.post(restoreEndpoint, restoreStatus === 200 ? {} : restoreStatus);
-  fetchMock.post(purgeEndpoint, {});
+  fetchMock.post(purgeEndpoint, purgeResponse);
   fetchMock.get(dashboardInfoEndpoint, {
     permissions: ['can_read', 'can_write'],
   });
@@ -396,5 +414,27 @@ test('a name search survives switching Type instead of breaking the list', async
     const last = calls[calls.length - 1].url;
     expect(last).toContain('dashboard_title');
     expect(last).not.toContain('slice_name');
+  });
+});
+
+test('a blocked permanent delete tells the user what is blocking it', async () => {
+  // The backend answers 422 carrying the reason (an alert or report still
+  // referencing the chart), and the docs promise that reason is shown. It is
+  // the only thing telling the user what to remove before retrying, so a
+  // generic "Failed to delete" leaves them stuck.
+  mockRoutes(200, {
+    status: 422,
+    body: { message: 'Chart is referenced by alert "Daily revenue"' },
+  });
+  renderArchivedList();
+  await screen.findByTestId('archived-list-view');
+
+  fireEvent.click((await screen.findAllByTestId('archived-row-purge'))[0]);
+  fireEvent.click(await screen.findByText('Delete'));
+
+  await waitFor(() => {
+    expect(mockAddDangerToast).toHaveBeenCalledWith(
+      expect.stringContaining('Daily revenue'),
+    );
   });
 });

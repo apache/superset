@@ -18,7 +18,7 @@
  */
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { SupersetClient } from '@superset-ui/core';
+import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
@@ -209,7 +209,12 @@ function ArchivedListBody({
         addSuccessToast(text, options);
         refreshData();
       } catch (error) {
-        addDangerToast(t('Failed to restore %(name)s', { name }));
+        const { error: errMsg } = await getClientErrorObject(error);
+        addDangerToast(
+          errMsg
+            ? t('Failed to restore %(name)s: %(errMsg)s', { name, errMsg })
+            : t('Failed to restore %(name)s', { name }),
+        );
       } finally {
         endAction(item.uuid);
       }
@@ -242,7 +247,16 @@ function ArchivedListBody({
         addSuccessToast(t('%(name)s deleted successfully', { name }));
         refreshData();
       } catch (error) {
-        addDangerToast(t('Failed to delete %(name)s', { name }));
+        // A blocked purge answers 422 carrying the reason -- an alert or
+        // report still referencing the object. The docs promise that reason
+        // is shown, and it is the only thing telling the user what to remove
+        // before retrying.
+        const { error: errMsg } = await getClientErrorObject(error);
+        addDangerToast(
+          errMsg
+            ? t('Failed to delete %(name)s: %(errMsg)s', { name, errMsg })
+            : t('Failed to delete %(name)s', { name }),
+        );
       } finally {
         endAction(item.uuid);
       }

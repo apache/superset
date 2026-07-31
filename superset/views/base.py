@@ -516,6 +516,13 @@ def _soft_delete_conf() -> dict[str, Any]:
     try:
         return {"SOFT_DELETE_RETENTION_DAYS": resolve_retention_window()}
     except Exception:  # pylint: disable=broad-except
+        # resolve_retention_window() issues a real key_value SELECT, so a
+        # failure can leave the request's session in a failed-transaction
+        # state. Swallowing the error without rolling back would make the
+        # *next* unrelated query in this request fail with
+        # PendingRollbackError, attributing the fault to whatever ran after
+        # rather than to this lookup.
+        db.session.rollback()  # pylint: disable=consider-using-transaction
         logger.warning(
             "Could not resolve the soft-delete retention window for the client "
             "bootstrap; the delete modal will omit the recovery window.",
