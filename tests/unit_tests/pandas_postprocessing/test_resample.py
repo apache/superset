@@ -377,6 +377,38 @@ def test_resample_without_time_range_is_unchanged():
     )
 
 
+def test_resample_expands_empty_frame_across_time_range():
+    """
+    An empty result set with a DatetimeIndex should still produce zero-filled
+    buckets for every period of the queried time range.
+    """
+    empty_df = pd.DataFrame(
+        {"y": pd.Series(dtype="float64")},
+        index=pd.DatetimeIndex([], name="__timestamp"),
+    )
+    post_df = pp.resample(
+        df=empty_df,
+        rule="1D",
+        method="asfreq",
+        fill_value=0,
+        time_range_start=datetime(2019, 1, 1),
+        time_range_end=datetime(2019, 1, 5),
+    )
+    assert post_df.index.equals(pd.date_range("2019-01-01", "2019-01-04", freq="1D"))
+    assert post_df.index.name == "__timestamp"
+    assert post_df["y"].tolist() == [0.0, 0.0, 0.0, 0.0]
+
+
+def test_resample_empty_frame_without_time_range_stays_empty():
+    empty_df = pd.DataFrame(
+        {"y": pd.Series(dtype="float64")},
+        index=pd.DatetimeIndex([]),
+    )
+    post_df = pp.resample(df=empty_df, rule="1D", method="asfreq", fill_value=0)
+    assert post_df.empty
+    assert isinstance(post_df.index, pd.DatetimeIndex)
+
+
 def test_resample_should_raise_ex():
     with pytest.raises(InvalidPostProcessingError):
         pp.resample(

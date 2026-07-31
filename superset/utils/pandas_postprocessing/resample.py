@@ -110,7 +110,9 @@ def resample(  # pylint: disable=too-many-arguments
     :param fill_value: What values do fill missing.
     :param time_range_start: Inclusive start of the period to cover. When set, the
                              result is padded so it starts at the beginning of the
-                             period even if the data starts later.
+                             period even if the data starts later. An empty
+                             DataFrame with a DatetimeIndex is expanded into
+                             zero-filled buckets across the period.
     :param time_range_end: Exclusive end of the period to cover. When set, the
                            result is padded so it ends at the end of the period
                            even if the data ends earlier.
@@ -130,6 +132,11 @@ def resample(  # pylint: disable=too-many-arguments
         _coerce_bound(time_range_start, tz),
         _coerce_bound(time_range_end, tz),
     )
+    # An empty frame with no time-range anchors has nothing to bin. Returning
+    # early keeps the DatetimeIndex intact; ``resample`` on a zero-length index
+    # would otherwise degrade it to an object Index.
+    if df.empty:
+        return df
 
     if method == "asfreq" and fill_value is not None:
         _df = df.resample(rule).asfreq(fill_value=fill_value)
