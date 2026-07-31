@@ -20,6 +20,7 @@ Tests for the list_charts request schema
 """
 
 import importlib
+from copy import copy
 from unittest.mock import Mock, patch
 
 import pytest
@@ -354,3 +355,56 @@ async def test_list_charts_no_arguments(mock_list, mcp_server):
         result = await client.call_tool("list_charts", {})
     data = json.loads(result.content[0].text)
     assert "charts" in data
+
+
+@patch("superset.daos.chart.ChartDAO.list")
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("certified", "expected_names"),
+    [
+        (True, ["Certified"]),
+        (False, ["Uncertified"]),
+        (None, ["Certified", "Uncertified"]),
+    ],
+)
+async def test_list_charts_certified_filter(
+    mock_list, mcp_server, mock_chart, certified, expected_names
+):
+    """Certification is opt-in and supports certified, uncertified, and all."""
+    certified_chart = copy(mock_chart)
+    certified_chart.id = 1
+    certified_chart.slice_name = "Certified"
+    certified_chart.certified_by = "Data Governance"
+    certified_chart.deleted_at = None
+    uncertified_chart = mock_chart
+    uncertified_chart.id = 2
+    uncertified_chart.slice_name = "Uncertified"
+    uncertified_chart.deleted_at = None
+    charts = [certified_chart, uncertified_chart]
+
+    def list_side_effect(**kwargs):
+        custom_filter = (kwargs.get("custom_filters") or {}).get("certified")
+        if custom_filter is None:
+            selected = charts
+        else:
+            selected = [
+                chart
+                for chart in charts
+                if bool(chart.certified_by) is custom_filter._value
+            ]
+        return selected, len(selected)
+
+    mock_list.side_effect = list_side_effect
+    request = ListChartsRequest(certified=certified)
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "list_charts", {"request": request.model_dump()}
+        )
+
+    data = json.loads(result.content[0].text)
+    actual_names = [chart["slice_name"] for chart in data["charts"]]
+    assert len(actual_names) == len(expected_names)
+    assert all(
+        expected in actual
+        for expected, actual in zip(expected_names, actual_names, strict=False)
+    )

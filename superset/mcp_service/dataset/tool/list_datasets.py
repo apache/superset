@@ -26,12 +26,13 @@ import logging
 from typing import TYPE_CHECKING
 
 from fastmcp import Context
+from flask_appbuilder.models.sqla.interface import SQLAInterface
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
 
-from superset.extensions import event_logger
+from superset.extensions import db, event_logger
 from superset.mcp_service.dataset.schemas import (
     DatasetError,
     DatasetFilter,
@@ -40,7 +41,7 @@ from superset.mcp_service.dataset.schemas import (
     ListDatasetsRequest,
     serialize_dataset_object,
 )
-from superset.mcp_service.mcp_core import ModelListCore
+from superset.mcp_service.mcp_core import BoundFilter, ModelListCore
 from superset.mcp_service.privacy import (
     DATA_MODEL_METADATA_ERROR_TYPE,
     requires_data_model_metadata_access,
@@ -94,7 +95,9 @@ async def list_datasets(
     """List datasets with filtering and search.
 
     Returns dataset metadata including table name, schema, and last modified
-    time.
+    time. Set ``request.certified`` to true to prioritize governed,
+    semantic-layer datasets; false returns only uncertified datasets, while
+    omitting it preserves the unfiltered behavior.
 
     **IMPORTANT**: All parameters must be wrapped in a ``request`` object.
     Do NOT pass ``search``, ``page``, ``page_size``, etc. as top-level
@@ -160,6 +163,7 @@ async def list_datasets(
 
     try:
         from superset.daos.dataset import DatasetDAO
+        from superset.datasets.filters import DatasetCertifiedFilter
         from superset.mcp_service.common.schema_discovery import (
             DATASET_SORTABLE_COLUMNS,
             get_all_column_names,
@@ -191,6 +195,14 @@ async def list_datasets(
         )
 
         with event_logger.log_context(action="mcp.list_datasets.query"):
+            custom_filters = None
+            if request.certified is not None:
+                certified_filter = DatasetCertifiedFilter(
+                    "id", SQLAInterface(DatasetDAO.model_cls, db.session)
+                )
+                custom_filters = {
+                    "certified": BoundFilter(certified_filter, request.certified)
+                }
             result = tool.run_tool(
                 filters=request.filters,
                 search=request.search,
@@ -201,6 +213,7 @@ async def list_datasets(
                 page_size=request.page_size,
                 created_by_me=request.created_by_me,
                 edited_by_me=request.edited_by_me,
+                custom_filters=custom_filters,
             )
 
         await ctx.info(

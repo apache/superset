@@ -246,6 +246,19 @@ class ListDatasetsRequest(
     test_list_datasets_with_string_filters.
     """
 
+    certified: Annotated[
+        bool | None,
+        Field(
+            default=None,
+            description=(
+                "Filter by governance certification status. Use true to return "
+                "only certified datasets (preferred when selecting governed "
+                "semantic-layer assets), false to return only uncertified "
+                "datasets, or omit to return both (default)."
+            ),
+        ),
+    ]
+
     @field_validator("filters", mode="before")
     @classmethod
     def parse_filters(cls, v: Any) -> Any:

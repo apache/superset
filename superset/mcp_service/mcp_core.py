@@ -137,6 +137,22 @@ class DeletedStateBoundFilter:
         return self._inner.apply(query, self._value)
 
 
+class BoundFilter:
+    """Bind a caller value to a FAB filter used by ``BaseDAO.list``.
+
+    ``BaseDAO.list`` invokes custom filters with ``None`` because REST filters
+    normally receive their values outside the DAO. MCP request fields already
+    contain the value, so this adapter preserves it for the shared FAB filter.
+    """
+
+    def __init__(self, inner: Any, value: Any) -> None:
+        self._inner = inner
+        self._value = value
+
+    def apply(self, query: Any, value: Any) -> Any:
+        return self._inner.apply(query, self._value)
+
+
 class ModelListCore(BaseCore, Generic[L]):
     """
     Generic tool for listing model objects with filtering, search, pagination, and
@@ -352,6 +368,7 @@ class ModelListCore(BaseCore, Generic[L]):
         created_by_me: bool = False,
         edited_by_me: bool = False,
         deleted_state: str | None = None,
+        custom_filters: Dict[str, Any] | None = None,
     ) -> L:
         # Clamp page_size to MAX_PAGE_SIZE as defense-in-depth
         page_size = min(page_size, MAX_PAGE_SIZE)
@@ -401,7 +418,9 @@ class ModelListCore(BaseCore, Generic[L]):
             "search": search,
             "columns_to_load": columns_to_load,
         }
+        dao_custom_filters = dict(custom_filters or {})
         if deleted_state_bound is not None:
+            dao_custom_filters["deleted_state"] = deleted_state_bound
             # The soft-delete ORM listener appends ``deleted_at IS NULL`` at
             # execution time, so the session-scoped bypass must span both
             # executions inside DAO.list (count + fetch). The context manager
@@ -410,11 +429,13 @@ class ModelListCore(BaseCore, Generic[L]):
             # which unhidden rows the caller may actually see.
             with skip_visibility_filter(db.session, deleted_state_bound.model):
                 items, total_count = self._call_dao_list(
-                    custom_filters={"deleted_state": deleted_state_bound},
+                    custom_filters=dao_custom_filters,
                     **dao_kwargs,
                 )
         else:
-            items, total_count = self._call_dao_list(**dao_kwargs)
+            items, total_count = self._call_dao_list(
+                custom_filters=dao_custom_filters or None, **dao_kwargs
+            )
         # Serialize items
         item_objs = []
         for item in items:

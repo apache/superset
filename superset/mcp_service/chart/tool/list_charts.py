@@ -23,12 +23,13 @@ import logging
 from typing import cast, TYPE_CHECKING
 
 from fastmcp import Context
+from flask_appbuilder.models.sqla.interface import SQLAInterface
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 if TYPE_CHECKING:
     from superset.models.slice import Slice
 
-from superset.extensions import event_logger
+from superset.extensions import db, event_logger
 from superset.mcp_service.chart.schemas import (
     ChartError,
     ChartFilter,
@@ -38,7 +39,7 @@ from superset.mcp_service.chart.schemas import (
     ListChartsRequest,
     serialize_chart_object,
 )
-from superset.mcp_service.mcp_core import ModelListCore
+from superset.mcp_service.mcp_core import BoundFilter, ModelListCore
 from superset.mcp_service.privacy import (
     DATA_MODEL_METADATA_ERROR_TYPE,
     remove_chart_data_model_columns,
@@ -80,7 +81,9 @@ async def list_charts(
     """List charts with filtering and search.
 
     Returns chart metadata including id, name, viz_type, URL, and last
-    modified time.
+    modified time. Set ``request.certified`` to true to prioritize governed
+    charts; false returns only uncertified charts, while omitting it preserves
+    the unfiltered behavior.
 
     **IMPORTANT**: All parameters must be wrapped in a ``request`` object.
     Do NOT pass ``search``, ``page``, ``page_size``, etc. as top-level
@@ -124,7 +127,7 @@ async def list_charts(
         )
     )
 
-    from superset.charts.filters import ChartDeletedStateFilter
+    from superset.charts.filters import ChartCertifiedFilter, ChartDeletedStateFilter
     from superset.daos.chart import ChartDAO
     from superset.mcp_service.common.schema_discovery import (
         CHART_SORTABLE_COLUMNS,
@@ -179,6 +182,14 @@ async def list_charts(
 
     try:
         with event_logger.log_context(action="mcp.list_charts.query"):
+            custom_filters = None
+            if request.certified is not None:
+                certified_filter = ChartCertifiedFilter(
+                    "id", SQLAInterface(ChartDAO.model_cls, db.session)
+                )
+                custom_filters = {
+                    "certified": BoundFilter(certified_filter, request.certified)
+                }
             result = tool.run_tool(
                 filters=request.filters,
                 search=request.search,
@@ -190,6 +201,7 @@ async def list_charts(
                 created_by_me=request.created_by_me,
                 edited_by_me=request.edited_by_me,
                 deleted_state=request.deleted_state,
+                custom_filters=custom_filters,
             )
         count = len(result.charts) if hasattr(result, "charts") else 0
         total_pages = getattr(result, "total_pages", None)

@@ -183,7 +183,7 @@ def mock_auth():
 
 
 @pytest.fixture(autouse=True)
-def allow_data_model_metadata():
+def allow_data_model_metadata():  # noqa: PT004
     """Keep dataset tests in the normal metadata-allowed path by default."""
     with (
         patch.object(
@@ -312,6 +312,48 @@ async def test_list_datasets_basic(mock_list, mcp_server):
         # Verify changed_on_humanized is in default columns
         assert "changed_on_humanized" in data["columns_requested"]
         assert "changed_on_humanized" in data["columns_loaded"]
+
+
+@patch("superset.daos.dataset.DatasetDAO.list")
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("certified", "expected_names"),
+    [
+        (True, ["Certified"]),
+        (False, ["Uncertified"]),
+        (None, ["Certified", "Uncertified"]),
+    ],
+)
+async def test_list_datasets_certified_filter(
+    mock_list, mcp_server, certified, expected_names
+):
+    """Certification is opt-in and supports certified, uncertified, and all."""
+    certified_dataset = create_mock_dataset(1, "Certified")
+    certified_dataset.certified_by = "Data Governance"
+    uncertified_dataset = create_mock_dataset(2, "Uncertified")
+    datasets = [certified_dataset, uncertified_dataset]
+
+    def list_side_effect(**kwargs):
+        custom_filter = (kwargs.get("custom_filters") or {}).get("certified")
+        if custom_filter is None:
+            selected = datasets
+        else:
+            selected = [
+                dataset
+                for dataset in datasets
+                if bool(dataset.certified_by) is custom_filter._value
+            ]
+        return selected, len(selected)
+
+    mock_list.side_effect = list_side_effect
+    request = ListDatasetsRequest(certified=certified)
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "list_datasets", {"request": request.model_dump()}
+        )
+
+    data = json.loads(result.content[0].text)
+    assert [dataset["table_name"] for dataset in data["datasets"]] == expected_names
 
 
 @patch("superset.daos.dataset.DatasetDAO.list")
