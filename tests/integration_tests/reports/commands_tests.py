@@ -2585,7 +2585,8 @@ def test_readiness_timeout_retries_terminal_persistence_and_allows_next_schedule
     assert "readiness allocation expired" in timed_out_log.error_message
     assert timed_out_log.start_dttm is not None
     assert timed_out_log.end_dttm is not None
-    assert timed_out_log.end_dttm > timed_out_log.start_dttm
+    # MySQL's metadata schema can store these values with one-second precision.
+    assert timed_out_log.end_dttm >= timed_out_log.start_dttm
     assert create_report_email_chart.last_state == ReportState.ERROR
     email_mock.assert_not_called()
     assert any(
