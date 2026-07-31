@@ -27,6 +27,8 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Dict, TYPE_CHECKING
 
+from sqlalchemy.exc import SQLAlchemyError
+
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
 
@@ -1067,23 +1069,39 @@ def _resolve_big_number_temporal_column(
 ) -> str | None:
     """Resolve the column to bind a Big Number's TEMPORAL_RANGE filter to.
 
-    Falls back to the dataset's main_dttm_col when the caller didn't specify
-    temporal_column, and guards the result with is_column_truly_temporal (same
-    check map_xy_config applies to its x-axis) so a non-temporal column never
-    gets a TEMPORAL_RANGE filter. The dataset is fetched at most once here and
-    reused by is_column_truly_temporal instead of letting it re-query by
-    dataset_id.
+    Matches the Explore UI default: use the dataset's main_dttm_col, or its
+    first temporal column when no main column is configured. Guards candidates
+    with is_column_truly_temporal (the same check map_xy_config applies to its
+    x-axis) so a non-temporal column never gets a TEMPORAL_RANGE filter. The
+    dataset is fetched at most once here and reused by the temporal checks
+    instead of letting them re-query by dataset_id.
     """
-    dataset = None
-    if not config.temporal_column:
+    if config.temporal_column:
+        if is_column_truly_temporal(config.temporal_column, dataset_id):
+            return config.temporal_column
+        return None
+
+    try:
         dataset = _find_dataset_by_id_or_uuid(dataset_id)
-    temporal_column = config.temporal_column or (
-        dataset.main_dttm_col if dataset else None
+    except SQLAlchemyError:
+        logger.warning(
+            "Unable to resolve a temporal column for dataset %s",
+            dataset_id,
+            exc_info=True,
+        )
+        return None
+    if not dataset:
+        return None
+
+    candidates: list[str] = []
+    if dataset.main_dttm_col:
+        candidates.append(dataset.main_dttm_col)
+    candidates.extend(
+        column.column_name for column in dataset.columns if column.column_name
     )
-    if temporal_column and is_column_truly_temporal(
-        temporal_column, dataset_id, dataset=dataset
-    ):
-        return temporal_column
+    for temporal_column in dict.fromkeys(candidates):
+        if is_column_truly_temporal(temporal_column, dataset_id, dataset=dataset):
+            return temporal_column
     return None
 
 
