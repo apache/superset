@@ -80,6 +80,11 @@ class EmailContent:
     images: Optional[dict[str, bytes]] = None
 
 
+def _get_csv_attachment_extension(content: bytes) -> str:
+    """Return ``zip`` for bundled CSV responses and ``csv`` otherwise."""
+    return "zip" if content.startswith(ZIP_LOCAL_FILE_HEADER) else "csv"
+
+
 def _get_xlsx_attachment_extension(content: bytes) -> str:
     """
     Return the attachment extension for bytes returned by the XLSX export endpoint.
@@ -243,7 +248,14 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         # so at most one tabular attachment is present in the data dict.
         attachment_data: dict[str, bytes | str] | None = None
         if self._content.csv:
-            attachment_data = {__("%(name)s.csv", name=self._name): self._content.csv}
+            extension = _get_csv_attachment_extension(self._content.csv)
+            attachment_data = {
+                __(
+                    "%(name)s.%(extension)s",
+                    name=self._name,
+                    extension=extension,
+                ): self._content.csv
+            }
         elif self._content.xlsx:
             extension = _get_xlsx_attachment_extension(self._content.xlsx)
             attachment_data = {

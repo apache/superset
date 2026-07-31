@@ -15,8 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
+from io import BytesIO
 from typing import TYPE_CHECKING
-from zipfile import ZipExtFile
+from zipfile import is_zipfile, ZipExtFile
 
 import pandas as pd
 import pytest
@@ -152,7 +153,11 @@ def test_email_subject_with_datetime() -> None:
     assert frozen_now.strftime(datetime_pattern) in subject
 
 
-def _make_notification(xlsx: bytes) -> "EmailNotification":
+def _make_notification(
+    *,
+    csv: bytes | None = None,
+    xlsx: bytes | None = None,
+) -> "EmailNotification":
     """Build an email notification for attachment tests."""
     from superset.reports.models import ReportRecipients, ReportRecipientType
     from superset.reports.notifications.base import NotificationContent
@@ -162,9 +167,10 @@ def _make_notification(xlsx: bytes) -> "EmailNotification":
     content = NotificationContent(
         name="test report",
         text=None,
+        csv=csv,
         xlsx=xlsx,
         header_data={
-            "notification_format": "XLSX",
+            "notification_format": "CSV" if csv is not None else "XLSX",
             "notification_type": "Report",
             "editors": [1],
             "notification_source": None,
@@ -175,6 +181,51 @@ def _make_notification(xlsx: bytes) -> "EmailNotification":
         },
     )
     return EmailNotification(recipient=recipient, content=content)
+
+
+def test_get_csv_attachment_extension_for_csv_content() -> None:
+    """Plain CSV bytes keep the CSV extension."""
+    from superset.reports.notifications.email import (
+        _get_csv_attachment_extension,
+    )
+
+    assert _get_csv_attachment_extension(b"value\n1\n2\n") == "csv"
+
+
+def test_get_csv_attachment_extension_for_zip_content() -> None:
+    """A ZIP bundling one CSV per query is identified as an archive."""
+    from superset.reports.notifications.email import (
+        _get_csv_attachment_extension,
+    )
+    from superset.utils.core import create_zip
+
+    archive = create_zip({"query_1.csv": b"value\n1\n2\n"}).getvalue()
+
+    assert _get_csv_attachment_extension(archive) == "zip"
+
+
+def test_get_csv_attachment_extension_for_damaged_zip_content() -> None:
+    """Bytes carrying the archive signature stay an archive even if unreadable.
+
+    A truncated bundle no longer parses as a ZIP, but it is still what the
+    endpoint produced, so naming it ``.zip`` describes it correctly. Naming it
+    ``.csv`` would produce an attachment that opens as neither format.
+    """
+    from superset.reports.notifications.email import (
+        _get_csv_attachment_extension,
+    )
+    from superset.utils.core import create_zip
+
+    archive = create_zip(
+        {
+            "query_1.csv": b"value\n1\n2\n",
+            "query_2.csv": b"value\n3\n4\n",
+        }
+    ).getvalue()
+    truncated = archive[: len(archive) // 2]
+
+    assert not is_zipfile(BytesIO(truncated))
+    assert _get_csv_attachment_extension(truncated) == "zip"
 
 
 def test_get_xlsx_attachment_extension_for_non_zip_content() -> None:
@@ -264,6 +315,39 @@ def test_xlsx_report_attachment_extension(
     )
 
     email_content = _make_notification(xlsx=attachment)._get_content()
+
+    assert email_content.data == {
+        f"test report.{expected_extension}": attachment,
+    }
+
+
+@pytest.mark.parametrize(
+    ("server_pagination", "expected_extension"),
+    [
+        (False, "csv"),
+        (True, "zip"),
+    ],
+)
+def test_csv_report_attachment_extension(
+    server_pagination: bool,
+    expected_extension: str,
+) -> None:
+    """Server-paginated CSV reports should be attached as ZIP archives."""
+    from superset.utils.core import create_zip
+
+    csv = b"value\n1\n2\n"
+    attachment = (
+        create_zip(
+            {
+                "query_1.csv": csv,
+                "query_2.csv": csv,
+            }
+        ).getvalue()
+        if server_pagination
+        else csv
+    )
+
+    email_content = _make_notification(csv=attachment)._get_content()
 
     assert email_content.data == {
         f"test report.{expected_extension}": attachment,
