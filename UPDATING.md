@@ -418,6 +418,19 @@ Deployments that replace the default `CELERY_CONFIG` must add `superset.tasks.de
 
 Operators can immediately erase a specific entity for compliance (GDPR) via `superset deletion-retention force-purge --uuid <uuid>`; this applies legacy hard-delete semantics — a live chart referencing a force-purged dataset is left without a datasource until re-pointed (the chart is not modified), and it purges the named entity even when it was never soft-deleted. Every purge writes an immutable, content-free audit record to the new `purge_audit_log` table that survives the entity it names: the **scheduled** purge fails closed (an entity whose audit row cannot be written is skipped and retried next run), while **force-purge** proceeds even if the audit write fails — the operator is present and deletion outranks audit for a compliance erasure.
 
+### Recently Archived view and permanent delete (purge) endpoints
+
+Behind the same `SOFT_DELETE` flag, a **Recently Archived** page (Settings menu, `/archived/`) lists soft-deleted charts, dashboards, and datasets with their archive time and archiving user, and offers **Recover** and **Delete permanently** row actions. Known limitation: page admission is currently gated on `can_read` on Chart, so a role holding only Dashboard or Dataset read cannot open the page even though the per-type list/restore endpoints serve it directly; widening the admission is tracked separately.
+
+**New endpoints** — `POST /api/v1/{chart,dashboard,dataset}/<uuid>/purge` permanently delete a single **soft-deleted** row, running the same cascade as the retention task. Irreversible. Requires `can_write` on the entity plus editorship of the row (or admin), mirroring `/restore`. The endpoints answer 404 while `SOFT_DELETE` is off (restore deliberately stays live so rows archived before a flag-off remain recoverable), 404 for rows that are not soft-deleted, and 422 with a reason when the purge is blocked (an alert/report references the entity, a user has the dashboard as their welcome page, or a restrictive foreign key intervenes). A purge that cannot write its audit record is refused with 422 rather than executed unrecorded — unlike the operator CLI, an end user's purge never outranks the audit.
+
+With the flag on, delete confirmations across the chart/dashboard/dataset list pages change shape: a recoverable archive is confirmed with a primary **Archive** button and no type-DELETE friction, and the copy states the retention window when one is configured. A bulk dataset selection that includes semantic views keeps the full danger treatment, because semantic views have no soft-delete — they are deleted permanently and the confirmation says so.
+
+This also resolves the limitation noted under *Soft delete and restore for datasets*: a database blocked by soft-deleted datasets can now be freed by purging those datasets (per-entity endpoint, retention task, or `force-purge` CLI) instead of hard-deleting `tables` rows out-of-band.
+
+The `purge_audit_log` table is **never pruned by design** — the audit must survive the entities it names; operators who need to age it out should prune manually.
+
+
 ### Webhook alerts/reports block private/internal hosts by default
 
 Webhook alert/report dispatch (`WebhookNotification.send`) now validates the target URL's host against the same private/internal-IP block applied to dataset import URLs. If the resolved host is in a loopback, link-local, private (RFC-1918), shared-CGNAT, or multicast range, the webhook is rejected with `NotificationParamException`.
