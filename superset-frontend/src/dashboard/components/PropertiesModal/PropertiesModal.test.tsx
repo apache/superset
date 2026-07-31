@@ -404,6 +404,55 @@ describe('PropertiesModal', () => {
     expect(submitted.refresh_frequency).toBe(0);
   });
 
+  test('propagates a Refresh dropdown-only change into the submitted JSON metadata', async () => {
+    // Selecting a value from the Refresh dropdown without touching the
+    // Advanced JSON editor must still make it into the submitted payload --
+    // handleRefreshFrequencyChange writes the new value into the JSON
+    // metadata object on change (#42116, requested in review).
+    const put = jest.spyOn(SupersetCore.SupersetClient, 'put');
+    put.mockResolvedValue({
+      json: {
+        result: {
+          dashboard_title: 'dashboard_title',
+          slug: 'slug',
+          json_metadata: 'json_metadata',
+          editors: 'editors',
+        },
+      },
+    } as any);
+    mockedIsFeatureEnabled.mockReturnValue(false);
+    const props = createProps();
+    const propsWithDashboardInfo = {
+      ...props,
+      dashboardInfo: {
+        ...dashboardInfo,
+        json_metadata: mockedJsonMetadata,
+      },
+    };
+    render(<PropertiesModal {...propsWithDashboardInfo} />, {
+      useRedux: true,
+    });
+    await screen.findByTestId('dashboard-edit-properties-form');
+
+    // mockedJsonMetadata starts at refresh_frequency: 0, so selecting
+    // "1 minute" (60) is a real change coming only from the dropdown.
+    const refreshHeader = screen
+      .getByText('Refresh settings')
+      .closest('.ant-collapse-header');
+    await userEvent.click(refreshHeader!);
+    await userEvent.click(
+      await screen.findByRole('radio', { name: '1 minute' }),
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(props.onSubmit).toHaveBeenCalledTimes(1);
+    });
+    const submitted = JSON.parse(props.onSubmit.mock.calls[0][0].jsonMetadata);
+    expect(submitted.refresh_frequency).toBe(60);
+  });
+
   test('should close modal', async () => {
     mockedIsFeatureEnabled.mockImplementation((flag: any) => {
       if (flag === FeatureFlag.TaggingSystem) return true;
