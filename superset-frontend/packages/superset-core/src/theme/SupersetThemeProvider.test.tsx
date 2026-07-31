@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useLayoutEffect, type ReactNode } from 'react';
 import { render, screen, act } from '@testing-library/react';
 import { theme as antdThemeImport } from 'antd';
 import { Theme } from './Theme';
@@ -157,4 +158,48 @@ test('a toggleDarkMode call after a provider unmounts does not throw and no long
   // have re-rendered (or updated) in response to the toggle.
   expect(getRenderCount()).toBe(rendersBefore);
   expect(getLastColorBgBase()).toBe(tokenBefore);
+});
+
+test('a toggleDarkMode call from an ancestor layout effect during the initial commit is not dropped', () => {
+  // Regression harness for the initial-mount race: StorybookWrapper.jsx
+  // toggles the singleton from its own layout effect (ThemeSync) as soon
+  // as a demo mounts. SupersetThemeProvider must have its listener
+  // registered *before* that ancestor effect fires, which only holds if
+  // registration itself runs in a layout effect -- layout effects fire
+  // bottom-up, so this component (nested inside the toggling ancestor)
+  // registers first. If that registration ever regresses to a plain
+  // useEffect, it runs after the ancestor's toggle (passive effects are
+  // deferred until after all layout effects), the notification is
+  // dropped, and this probe would still show the pre-toggle palette.
+  const lightBaseline = Theme.fromConfig();
+  const baseline = makeProbe();
+
+  render(
+    <lightBaseline.SupersetThemeProvider>
+      <baseline.Probe />
+    </lightBaseline.SupersetThemeProvider>,
+  );
+
+  const lightColorBgBase = baseline.getLastColorBgBase();
+
+  const themeObject = Theme.fromConfig();
+  const { Probe, getLastColorBgBase } = makeProbe();
+
+  function AncestorToggler({ children }: { children: ReactNode }) {
+    useLayoutEffect(() => {
+      themeObject.toggleDarkMode(true);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+    return children;
+  }
+
+  render(
+    <AncestorToggler>
+      <themeObject.SupersetThemeProvider>
+        <Probe />
+      </themeObject.SupersetThemeProvider>
+    </AncestorToggler>,
+  );
+
+  expect(getLastColorBgBase()).not.toBe(lightColorBgBase);
 });
