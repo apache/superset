@@ -105,6 +105,11 @@ PROPHET_TIME_GRAIN_MAP: dict[str, str] = {
 
 RESAMPLE_METHOD = ("asfreq", "bfill", "ffill", "linear", "median", "mean", "sum")
 
+# Caps how many buckets a single resample may materialize. Without this, a fine
+# rule over a wide time range (e.g. seconds over years) can amplify a few input
+# rows into an in-memory frame that ``row_limit`` does not bound.
+MAX_RESAMPLE_BUCKETS = 10_000
+
 FLAT_COLUMN_SEPARATOR = ", "
 
 

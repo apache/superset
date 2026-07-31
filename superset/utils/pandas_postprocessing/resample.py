@@ -19,9 +19,13 @@ from typing import Optional, Union
 
 import pandas as pd
 from flask_babel import gettext as _
+from pandas.tseries.frequencies import to_offset
 
 from superset.exceptions import InvalidPostProcessingError
-from superset.utils.pandas_postprocessing.utils import RESAMPLE_METHOD
+from superset.utils.pandas_postprocessing.utils import (
+    MAX_RESAMPLE_BUCKETS,
+    RESAMPLE_METHOD,
+)
 
 TimeBound = Union[datetime, str]
 
@@ -93,6 +97,41 @@ def _pad_to_time_range(
     return pd.concat([df, padding]).sort_index(kind="stable")
 
 
+def _estimate_bucket_count(start: pd.Timestamp, end: pd.Timestamp, rule: str) -> int:
+    """
+    Estimate how many buckets ``resample(rule)`` would produce between two bounds
+    without materializing the full index when the rule is a fixed duration.
+    """
+    if end < start:
+        return 0
+    offset = to_offset(rule)
+    try:
+        nanos = offset.nanos
+    except ValueError:
+        # Calendar frequencies (months, years, …) are coarse enough that
+        # building the range for the estimate is cheap.
+        return len(pd.date_range(start=start, end=end, freq=rule))
+    return int((end - start) / pd.Timedelta(nanoseconds=nanos)) + 1
+
+
+def _validate_bucket_count(start: pd.Timestamp, end: pd.Timestamp, rule: str) -> None:
+    try:
+        estimated = _estimate_bucket_count(start, end, rule)
+    except (TypeError, ValueError) as ex:
+        raise InvalidPostProcessingError(
+            _("Invalid resample rule: %(rule)s", rule=rule)
+        ) from ex
+    if estimated > MAX_RESAMPLE_BUCKETS:
+        raise InvalidPostProcessingError(
+            _(
+                "The resample operation generated too many time buckets "
+                "(maximum allowed is %(max_buckets)s). Please use a larger "
+                "time grain or a smaller time range.",
+                max_buckets=MAX_RESAMPLE_BUCKETS,
+            )
+        )
+
+
 def resample(  # pylint: disable=too-many-arguments
     df: pd.DataFrame,
     rule: str,
@@ -103,6 +142,12 @@ def resample(  # pylint: disable=too-many-arguments
 ) -> pd.DataFrame:
     """
     support upsampling in resample
+
+    Note: If a query returns 0 rows, Superset's primary execution path in
+    ``helpers.py`` skips ``exec_post_processing`` entirely. While ``resample``
+    is fully equipped to expand empty DataFrames when given explicit bounds,
+    zero-row query results will be returned as empty frames by upstream engine
+    behavior.
 
     :param df: DataFrame to resample.
     :param rule: The offset string representing target conversion.
@@ -137,6 +182,8 @@ def resample(  # pylint: disable=too-many-arguments
     # would otherwise degrade it to an object Index.
     if df.empty:
         return df
+
+    _validate_bucket_count(df.index.min(), df.index.max(), rule)
 
     if method == "asfreq" and fill_value is not None:
         _df = df.resample(rule).asfreq(fill_value=fill_value)

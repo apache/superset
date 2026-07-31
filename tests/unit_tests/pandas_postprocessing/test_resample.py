@@ -409,6 +409,25 @@ def test_resample_empty_frame_without_time_range_stays_empty():
     assert isinstance(post_df.index, pd.DatetimeIndex)
 
 
+def test_resample_rejects_too_many_buckets():
+    """
+    A fine rule over a wide range must fail before pandas materializes the frame.
+    """
+    df = pd.DataFrame(
+        index=to_datetime(["2020-01-01"]),
+        data={"y": [1.0]},
+    )
+    with pytest.raises(InvalidPostProcessingError, match="too many time buckets"):
+        pp.resample(
+            df=df,
+            rule="1s",
+            method="asfreq",
+            fill_value=0,
+            time_range_start=datetime(2020, 1, 1),
+            time_range_end=datetime(2020, 1, 2),
+        )
+
+
 def test_resample_should_raise_ex():
     with pytest.raises(InvalidPostProcessingError):
         pp.resample(
