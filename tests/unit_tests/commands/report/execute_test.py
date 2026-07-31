@@ -2387,7 +2387,12 @@ def test_report_working_state_recovery_is_bounded_by_execution_budget(
     app: SupersetApp,
     mocker: MockerFixture,
 ) -> None:
-    """A lost report worker cannot leave WORKING blocked for its legacy hour."""
+    """A lost report worker is unblocked once the effective budget elapses.
+
+    The effective budget is min(global budget, working_timeout); with a
+    deployment-tightened 900s budget, a schedule whose working_timeout is
+    still the one-hour default stops blocking after 15 minutes, not 60.
+    """
     state = _make_state_instance(
         mocker,
         ReportWorkingState,
@@ -2402,8 +2407,11 @@ def test_report_working_state_recovery_is_bounded_by_execution_budget(
         return_value=working_log,
     )
 
-    assert app.config["ALERT_REPORTS_EXECUTION_BUDGET_SECONDS"] == 900
-    assert state.is_on_working_timeout()
+    app.config["ALERT_REPORTS_EXECUTION_BUDGET_SECONDS"] = 900
+    try:
+        assert state.is_on_working_timeout()
+    finally:
+        app.config["ALERT_REPORTS_EXECUTION_BUDGET_SECONDS"] = 3600
 
 
 def test_soft_timeout_transitions_report_out_of_working(

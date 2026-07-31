@@ -20,9 +20,11 @@ import pytest
 
 from superset.utils.report_execution import (
     get_report_task_timeout_options,
+    MIN_REPORT_EXECUTION_WORK_SECONDS,
     ReportExecutionBudgetExceededError,
     ReportExecutionContext,
     ReportExecutionDeadline,
+    resolve_report_execution_budget_seconds,
     validate_report_execution_config,
 )
 
@@ -133,6 +135,48 @@ def test_report_task_limits_align_soft_timeout_with_budget() -> None:
         working_timeout=3600,
         config=config,
     ) == {"soft_time_limit": 3601, "time_limit": 3610}
+
+
+def test_working_timeout_caps_report_budget() -> None:
+    """A per-schedule working_timeout below the global budget keeps its
+    historical user-facing meaning: it caps the effective budget and the
+    derived Celery limits."""
+    config = _report_config()
+
+    assert resolve_report_execution_budget_seconds(config, working_timeout=600) == 600.0
+    assert get_report_task_timeout_options(
+        is_report=True,
+        working_timeout=600,
+        config=config,
+    ) == {"soft_time_limit": 600, "time_limit": 630}
+
+
+def test_working_timeout_above_budget_does_not_raise_it() -> None:
+    config = _report_config()
+
+    assert (
+        resolve_report_execution_budget_seconds(config, working_timeout=7200) == 900.0
+    )
+
+
+def test_missing_working_timeout_uses_global_budget() -> None:
+    config = _report_config()
+
+    assert (
+        resolve_report_execution_budget_seconds(config, working_timeout=None) == 900.0
+    )
+
+
+def test_tiny_working_timeout_floors_at_minimum_viable_budget() -> None:
+    """A working_timeout below the summed phase reserves cannot construct a
+    valid execution context; it is floored (with a warning) so the report
+    fails cleanly at its first phase check instead of erroring at setup."""
+    config = _report_config()
+    reserves_total = 60 + 120 + 30
+
+    budget = resolve_report_execution_budget_seconds(config, working_timeout=120)
+
+    assert budget == reserves_total + MIN_REPORT_EXECUTION_WORK_SECONDS
 
 
 @pytest.mark.parametrize(

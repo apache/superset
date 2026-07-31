@@ -95,6 +95,7 @@ from superset.utils.report_execution import (
     ReportExecutionBudgetExceededError,
     ReportExecutionContext,
     ReportExecutionDeadline,
+    resolve_report_execution_budget_seconds,
 )
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.slack import get_channels_with_search, SlackChannelTypes
@@ -1460,11 +1461,14 @@ class BaseReportState:
             return False
         working_timeout = self._report_schedule.working_timeout
         if self._report_schedule.type == ReportScheduleType.REPORT:
-            execution_budget = app.config["ALERT_REPORTS_EXECUTION_BUDGET_SECONDS"]
-            working_timeout = (
-                min(working_timeout, execution_budget)
-                if working_timeout is not None
-                else execution_budget
+            # Same effective budget the execution enforces (global budget
+            # capped by the schedule's working_timeout, floored at the phase
+            # reserves), so stale detection and enforcement share one number.
+            working_timeout = int(
+                resolve_report_execution_budget_seconds(
+                    app.config,
+                    working_timeout=working_timeout,
+                )
             )
         return (
             working_timeout is not None
@@ -1820,8 +1824,9 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 owns_report_working_state = (
                     self._model.last_state != ReportState.WORKING
                 )
-                total_seconds = float(
-                    app.config["ALERT_REPORTS_EXECUTION_BUDGET_SECONDS"]
+                total_seconds = resolve_report_execution_budget_seconds(
+                    app.config,
+                    working_timeout=self._model.working_timeout,
                 )
                 deadline = ReportExecutionDeadline(
                     total_seconds=total_seconds,

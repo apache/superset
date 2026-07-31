@@ -18,11 +18,21 @@
 
 from __future__ import annotations
 
+import logging
 import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
 from uuid import UUID
+
+logger = logging.getLogger(__name__)
+
+# Minimum working allowance kept above the summed phase reserves when a
+# per-schedule working_timeout would otherwise squeeze the effective budget
+# below what the execution context can represent. A floored budget still
+# fails fast (budget-exceeded on the first phase) rather than erroring while
+# constructing the deadline.
+MIN_REPORT_EXECUTION_WORK_SECONDS = 30.0
 
 
 def validate_report_execution_config(config: Mapping[str, Any]) -> None:
@@ -48,6 +58,44 @@ def validate_report_execution_config(config: Mapping[str, Any]) -> None:
         )
     if hard_timeout_grace < 0:
         raise ValueError("Report execution hard-timeout grace cannot be negative")
+
+
+def resolve_report_execution_budget_seconds(
+    config: Mapping[str, Any],
+    working_timeout: int | None = None,
+) -> float:
+    """Return the effective execution budget for one REPORT schedule.
+
+    The per-schedule ``working_timeout`` keeps its historical, user-facing
+    meaning ("kill my report after N seconds"): when it is lower than the
+    global ``ALERT_REPORTS_EXECUTION_BUDGET_SECONDS`` it caps the budget, so
+    introducing the global deadline does not silently grant a schedule more
+    time than its owner configured. The result is floored at the summed
+    phase reserves plus a minimal working allowance so the execution context
+    remains constructible; a floored budget fails cleanly on its first phase
+    check instead of raising at setup.
+    """
+    budget = float(config["ALERT_REPORTS_EXECUTION_BUDGET_SECONDS"])
+    if working_timeout is not None:
+        budget = min(budget, float(working_timeout))
+    reserves_total = (
+        float(config["ALERT_REPORTS_EXECUTION_CAPTURE_RESERVE_SECONDS"])
+        + float(config["ALERT_REPORTS_EXECUTION_DELIVERY_RESERVE_SECONDS"])
+        + float(config["ALERT_REPORTS_EXECUTION_CLEANUP_RESERVE_SECONDS"])
+    )
+    min_viable = reserves_total + MIN_REPORT_EXECUTION_WORK_SECONDS
+    if budget < min_viable:
+        logger.warning(
+            "Report working_timeout=%s is below the minimum viable execution "
+            "budget (%.0fs phase reserves + %.0fs working allowance); "
+            "flooring the effective budget at %.0fs.",
+            working_timeout,
+            reserves_total,
+            MIN_REPORT_EXECUTION_WORK_SECONDS,
+            min_viable,
+        )
+        return min_viable
+    return budget
 
 
 class ReportExecutionBudgetExceededError(TimeoutError):
@@ -201,7 +249,12 @@ def get_report_task_timeout_options(
     if not config["ALERT_REPORTS_WORKING_TIME_OUT_KILL"]:
         return {}
     if is_report:
-        budget = int(config["ALERT_REPORTS_EXECUTION_BUDGET_SECONDS"])
+        budget = int(
+            resolve_report_execution_budget_seconds(
+                config,
+                working_timeout=working_timeout,
+            )
+        )
         hard_grace = int(config["ALERT_REPORTS_EXECUTION_HARD_TIMEOUT_GRACE_SECONDS"])
         return {
             "soft_time_limit": budget,

@@ -24,6 +24,34 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Scheduled report execution now enforces one application deadline
+
+Scheduled report (not alert) executions are now governed by a single
+end-to-end deadline shared by browser readiness, capture/PDF generation,
+notification delivery, and terminal-state persistence, configured via
+`ALERT_REPORTS_EXECUTION_BUDGET_SECONDS` (with per-phase reserve settings).
+Behavior changes to be aware of:
+
+- The effective budget for a schedule is
+  `min(ALERT_REPORTS_EXECUTION_BUDGET_SECONDS, working_timeout)`. The default
+  budget (one hour) matches the historical `working_timeout` model default,
+  so default installations see no change in how long a report may run —
+  but reports now fail cleanly (with an error notification) at the deadline
+  instead of being killed silently by Celery.
+- For REPORT schedules, the Celery `soft_time_limit`/`time_limit` are now
+  derived from that same effective budget plus
+  `ALERT_REPORTS_EXECUTION_HARD_TIMEOUT_GRACE_SECONDS`, replacing the
+  previous `working_timeout + ALERT_REPORTS_WORKING_TIME_OUT_LAG` /
+  `+ ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG` derivation. Alert schedules
+  keep the previous behavior.
+- A `working_timeout` smaller than the summed phase reserves is floored at
+  the minimum viable budget (reserves + 30s) with a warning; such reports
+  fail fast at the first phase check rather than erroring at setup.
+- Dashboard reports whose charts have not mounted are no longer captured
+  blank: readiness is polled until the deadline, and the report fails loudly
+  if charts never mount. Thumbnails and non-report screenshots keep their
+  previous behavior.
+
 ### Principal listing APIs now honour related-field filters
 
 Two authorization-related listing behaviors changed for API clients. Neither

@@ -2445,10 +2445,15 @@ ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG = int(timedelta(seconds=1).total_seconds
 ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT = 3600
 # End-to-end wall-clock budget for a scheduled report execution. A single
 # monotonic deadline derived from this value is shared by browser setup,
-# readiness, capture/PDF generation, and notification delivery. Alerts retain
-# their per-schedule ``working_timeout`` behavior because query evaluation and
-# grace handling have different runtime characteristics.
-ALERT_REPORTS_EXECUTION_BUDGET_SECONDS = int(timedelta(minutes=15).total_seconds())
+# readiness, capture/PDF generation, and notification delivery. The effective
+# budget for a given schedule is min(this value, the schedule's
+# working_timeout), so the per-schedule field keeps its historical meaning as
+# a user-facing cap. The default matches the historical effective ceiling
+# (the working_timeout model default of one hour), so upgrading changes no
+# default behavior; deployments with tighter SLAs should lower it. Alerts
+# retain their per-schedule ``working_timeout`` + lag behavior because query
+# evaluation and grace handling have different runtime characteristics.
+ALERT_REPORTS_EXECUTION_BUDGET_SECONDS = int(timedelta(hours=1).total_seconds())
 # Capacity inside the execution budget reserved from chart-readiness polling
 # for image capture/PDF construction, notification delivery, and the terminal
 # execution-log transition, respectively. Their sum must be less than the total;
