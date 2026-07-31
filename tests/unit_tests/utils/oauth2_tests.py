@@ -19,6 +19,7 @@
 
 import base64
 import hashlib
+import logging
 from datetime import datetime
 from typing import cast
 
@@ -144,6 +145,7 @@ def test_refresh_oauth2_token_deletes_token_on_oauth2_exception(
 
 def test_refresh_oauth2_token_keeps_token_on_other_exception(
     mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """
     Test that refresh_oauth2_token keeps the token on non-OAuth2 exceptions.
@@ -159,6 +161,7 @@ def test_refresh_oauth2_token_keeps_token_on_other_exception(
         pass
 
     db_engine_spec = mocker.MagicMock()
+    db_engine_spec.engine = "postgresql"
     db_engine_spec.oauth2_exception = OAuth2ExceptionError
     db_engine_spec.get_oauth2_fresh_token.side_effect = Exception("Network error")
     token = mocker.MagicMock()
@@ -166,10 +169,17 @@ def test_refresh_oauth2_token_keeps_token_on_other_exception(
     token.refresh_token = "refresh-token"  # noqa: S105
     db.session.query().filter_by().one_or_none.return_value = token
 
-    with pytest.raises(Exception, match="Network error"):
+    with (
+        caplog.at_level(logging.ERROR, logger="superset.utils.oauth2"),
+        pytest.raises(Exception, match="Network error"),
+    ):
         refresh_oauth2_token(DUMMY_OAUTH2_CONFIG, 1, 1, db_engine_spec)
 
     db.session.delete.assert_not_called()
+    assert (
+        "OAuth2 token refresh failed: database_id=1 engine=postgresql "
+        "error_type=Exception"
+    ) in caplog.messages
 
 
 def test_refresh_oauth2_token_no_access_token_in_response(
