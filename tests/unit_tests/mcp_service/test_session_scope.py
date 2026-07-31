@@ -30,11 +30,19 @@ import pytest
 from sqlalchemy import text
 
 from superset.extensions import db
-from superset.mcp_service.auth import _get_app_context_manager
+from superset.mcp_service.auth import _mcp_tool_call_context
 from superset.mcp_service.session_scope import (
     install_mcp_session_scoping,
     mcp_session_scopefunc,
 )
+
+# NOTE: these tests enter tool-call contexts via _mcp_tool_call_context()
+# directly rather than _get_app_context_manager(). The latter returns a
+# nullcontext() whenever a request context is active, which would skip the
+# per-call session token entirely — and earlier tests in the full unit-test
+# run can leak a request context into the worker process (e.g.
+# tests/unit_tests/sql_lab_test.py pushes one and never pops it), making
+# the outcome depend on suite ordering rather than on the code under test.
 
 
 @pytest.fixture
@@ -75,7 +83,7 @@ async def test_concurrent_tool_calls_get_isolated_sessions(
     outcome: dict[str, Any] = {}
 
     async def call_a() -> None:
-        with _get_app_context_manager():
+        with _mcp_tool_call_context():
             session_a = db.session()
             outcome["a"] = session_a
             a_ready.set()
@@ -87,7 +95,7 @@ async def test_concurrent_tool_calls_get_isolated_sessions(
 
     async def call_b() -> None:
         await a_ready.wait()
-        with _get_app_context_manager():
+        with _mcp_tool_call_context():
             outcome["b"] = db.session()
         # Leaving the context pops it, so teardown removes B's session here.
         b_done.set()
@@ -117,7 +125,7 @@ async def test_shared_session_teardown_breaks_other_call_without_fix(
         outcome: dict[str, Any] = {}
 
         async def call_a() -> None:
-            with _get_app_context_manager():
+            with _mcp_tool_call_context():
                 outcome["a"] = db.session()
                 a_ready.set()
                 await b_done.wait()
@@ -125,7 +133,7 @@ async def test_shared_session_teardown_breaks_other_call_without_fix(
 
         async def call_b() -> None:
             await a_ready.wait()
-            with _get_app_context_manager():
+            with _mcp_tool_call_context():
                 outcome["b"] = db.session()
             b_done.set()
 
@@ -142,9 +150,9 @@ async def test_shared_session_teardown_breaks_other_call_without_fix(
 async def test_nested_tool_calls_keep_separate_sessions(mcp_scoping: Any) -> None:
     """A nested tool-call context gets its own session and its teardown does
     not disturb the enclosing call's session."""
-    with _get_app_context_manager():
+    with _mcp_tool_call_context():
         outer = db.session()
-        with _get_app_context_manager():
+        with _mcp_tool_call_context():
             inner = db.session()
             assert inner is not outer
         # inner context popped: outer session untouched
