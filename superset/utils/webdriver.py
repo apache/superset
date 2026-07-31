@@ -708,10 +708,10 @@ class WebDriverPlaywright(WebDriverProxy):
                         )
 
                     # Use tiled screenshots for large dashboards
-                    use_tiled = chart_count >= chart_threshold or (
-                        dashboard_height > height_threshold
-                        and dashboard_height > tile_height
-                    )
+                    use_tiled = (
+                        chart_count >= chart_threshold
+                        or dashboard_height > height_threshold
+                    ) and dashboard_height > tile_height
 
                     if use_tiled:
                         logger.info(

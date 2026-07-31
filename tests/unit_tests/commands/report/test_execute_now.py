@@ -229,6 +229,9 @@ def test_execute_now_report_uses_end_to_end_budget_time_limits() -> None:
             mock_app.config = {
                 "ALERT_REPORTS_WORKING_TIME_OUT_KILL": True,
                 "ALERT_REPORTS_EXECUTION_BUDGET_SECONDS": 900,
+                "ALERT_REPORTS_EXECUTION_CAPTURE_RESERVE_SECONDS": 60,
+                "ALERT_REPORTS_EXECUTION_DELIVERY_RESERVE_SECONDS": 120,
+                "ALERT_REPORTS_EXECUTION_CLEANUP_RESERVE_SECONDS": 30,
                 "ALERT_REPORTS_EXECUTION_HARD_TIMEOUT_GRACE_SECONDS": 30,
             }
             ExecuteReportScheduleNowCommand(1).run()

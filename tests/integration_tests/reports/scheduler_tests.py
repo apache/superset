@@ -201,6 +201,41 @@ def test_execute_task(update_state_mock, command_mock, init_mock, editors):
 @patch("superset.commands.report.execute.AsyncExecuteReportScheduleCommand.__init__")
 @patch("superset.commands.report.execute.AsyncExecuteReportScheduleCommand.run")
 @patch("superset.tasks.scheduler.execute.update_state")
+def test_execute_soft_timeout_emits_operator_metric(
+    update_state_mock,
+    command_mock,
+    init_mock,
+    editors,
+):
+    from celery.exceptions import SoftTimeLimitExceeded
+
+    report_schedule = insert_report_schedule(
+        type=ReportScheduleType.REPORT,
+        name=f"report-{randint(0, 1000)}",  # noqa: S311
+        crontab="0 4 * * *",
+        timezone="America/New_York",
+        editors=editors,
+    )
+    stats_logger = MagicMock()
+    init_mock.return_value = None
+    command_mock.side_effect = SoftTimeLimitExceeded()
+
+    with (
+        patch.dict(app.config, {"STATS_LOGGER": stats_logger}),
+        pytest.raises(SoftTimeLimitExceeded),
+    ):
+        execute(report_schedule.id)
+
+    stats_logger.incr.assert_any_call("reports.execute.celery_soft_timeout")
+    update_state_mock.assert_called_once_with(state="FAILURE")
+    db.session.delete(report_schedule)
+    db.session.commit()
+
+
+@pytest.mark.usefixtures("app_context")
+@patch("superset.commands.report.execute.AsyncExecuteReportScheduleCommand.__init__")
+@patch("superset.commands.report.execute.AsyncExecuteReportScheduleCommand.run")
+@patch("superset.tasks.scheduler.execute.update_state")
 @patch("superset.utils.log.logger")
 def test_execute_task_with_command_exception(
     logger_mock, update_state_mock, command_mock, init_mock, editors

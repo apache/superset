@@ -131,6 +131,7 @@ def execute(self: Task, report_schedule_id: int) -> None:
             scheduled_dttm,
         ).run()
     except SoftTimeLimitExceeded:
+        stats_logger.incr("reports.execute.celery_soft_timeout")
         logger.warning(
             "Alert/report execution hit Celery soft timeout; execution_id=%s "
             "report_schedule_id=%s terminal_reason=celery_soft_timeout",

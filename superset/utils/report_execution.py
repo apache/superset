@@ -25,6 +25,31 @@ from typing import Any
 from uuid import UUID
 
 
+def validate_report_execution_config(config: Mapping[str, Any]) -> None:
+    """Validate the scheduled-report budget invariant during application startup."""
+
+    budget = float(config["ALERT_REPORTS_EXECUTION_BUDGET_SECONDS"])
+    reserves = (
+        float(config["ALERT_REPORTS_EXECUTION_CAPTURE_RESERVE_SECONDS"]),
+        float(config["ALERT_REPORTS_EXECUTION_DELIVERY_RESERVE_SECONDS"]),
+        float(config["ALERT_REPORTS_EXECUTION_CLEANUP_RESERVE_SECONDS"]),
+    )
+    hard_timeout_grace = float(
+        config["ALERT_REPORTS_EXECUTION_HARD_TIMEOUT_GRACE_SECONDS"]
+    )
+
+    if budget <= 0:
+        raise ValueError("Report execution budget must be greater than zero")
+    if any(reserve < 0 for reserve in reserves):
+        raise ValueError("Report execution phase reserves cannot be negative")
+    if sum(reserves) >= budget:
+        raise ValueError(
+            "Report execution phase reserves must total less than the execution budget"
+        )
+    if hard_timeout_grace < 0:
+        raise ValueError("Report execution hard-timeout grace cannot be negative")
+
+
 class ReportExecutionBudgetExceededError(TimeoutError):
     """Raised before a report phase would overrun its execution deadline."""
 
@@ -171,16 +196,13 @@ def get_report_task_timeout_options(
 ) -> dict[str, int]:
     """Return Celery time limits aligned with the application execution budget."""
 
+    if is_report:
+        validate_report_execution_config(config)
     if not config["ALERT_REPORTS_WORKING_TIME_OUT_KILL"]:
         return {}
     if is_report:
         budget = int(config["ALERT_REPORTS_EXECUTION_BUDGET_SECONDS"])
         hard_grace = int(config["ALERT_REPORTS_EXECUTION_HARD_TIMEOUT_GRACE_SECONDS"])
-        if budget <= 0 or hard_grace < 0:
-            raise ValueError(
-                "Report execution budget must be positive and hard-timeout "
-                "grace cannot be negative"
-            )
         return {
             "soft_time_limit": budget,
             "time_limit": budget + hard_grace,

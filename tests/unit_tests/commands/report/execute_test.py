@@ -2349,7 +2349,7 @@ def test_working_timeout_replay_promotes_original_execution_without_duplicate_lo
 def test_new_report_execution_does_not_deliver_during_stale_recovery(
     mocker: MockerFixture,
 ) -> None:
-    """Uncertain worker loss is terminalized before any later delivery."""
+    """Recovery unblocks the schedule without racing the old worker's audit row."""
     state = _make_state_instance(
         mocker,
         ReportWorkingState,
@@ -2360,6 +2360,7 @@ def test_new_report_execution_does_not_deliver_during_stale_recovery(
     working_log = mocker.Mock()
     working_log.uuid = uuid4()
     working_log.state = ReportState.WORKING
+    working_log.error_message = None
     working_log.end_dttm = datetime.utcnow() - timedelta(minutes=20)
     mocker.patch(
         "superset.commands.report.execute.ReportScheduleDAO.find_last_entered_working_log",
@@ -2375,8 +2376,8 @@ def test_new_report_execution_does_not_deliver_during_stale_recovery(
         ReportState.ERROR,
         error_message=str(ReportScheduleWorkingTimeoutError()),
     )
-    assert working_log.state == ReportState.ERROR
-    assert working_log.error_message == str(ReportScheduleWorkingTimeoutError())
+    assert working_log.state == ReportState.WORKING
+    assert working_log.error_message is None
     recovered_next.assert_not_called()
 
 

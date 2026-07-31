@@ -261,6 +261,17 @@ ALERT_REPORTS_EXECUTION_CLEANUP_RESERVE_SECONDS = 30
 # Celery limits; disabling it does not disable the application deadline above.
 ALERT_REPORTS_EXECUTION_HARD_TIMEOUT_GRACE_SECONDS = 30
 
+# Invalid budget/reserve combinations fail application startup instead of
+# allowing every scheduled report to fail later. A report Celery soft timeout
+# records ERROR and increments `reports.execute.celery_soft_timeout`; it does
+# not attempt an in-band customer error notification during the hard-limit
+# grace window. Alert schedules retain their existing timeout notifications.
+#
+# The application deadline is cooperative between synchronous phases. The
+# Celery limits provide the final preemption boundary when the worker pool
+# supports them; PDF construction is checked immediately before and after the
+# synchronous builder but cannot be interrupted inside that call.
+
 # Screenshot-specific waits continue to apply to thumbnails and other
 # standalone screenshot calls. Scheduled reports derive their waits from the
 # shared execution deadline above.

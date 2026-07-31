@@ -1953,7 +1953,8 @@ def test_report_schedule_working_timeout(create_report_slack_chart_working):
     assert ReportScheduleWorkingTimeoutError.message in [
         log.error_message for log in logs
     ]
-    assert {log.state for log in logs} == {ReportState.ERROR}
+    assert sum(log.state == ReportState.WORKING for log in logs) == 1
+    assert sum(log.state == ReportState.ERROR for log in logs) == 1
     assert create_report_slack_chart_working.last_state == ReportState.ERROR
 
 

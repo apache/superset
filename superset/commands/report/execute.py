@@ -1500,27 +1500,12 @@ class ReportWorkingState(BaseReportState):
                 self._execution_id,
             )
             exception_timeout = ReportScheduleWorkingTimeoutError()
-            if last_working and last_working.uuid != self._execution_id:
-                # This invocation is the first application-owned opportunity to
-                # recover a worker-lost execution. Terminalize the stale row in
-                # the same session as the recovery invocation's ERROR row; the
-                # create_log() commit below persists both changes together.
-                last_working.state = ReportState.ERROR
-                last_working.error_message = str(exception_timeout)
-                last_working.end_dttm = datetime.now(timezone.utc).replace(tzinfo=None)
-                logger.info(
-                    "report_execution_terminal %s lost_execution_id=%s "
-                    "state=%s terminal_reason=working_timeout_recovered",
-                    self._log_context,
-                    last_working.uuid,
-                    ReportState.ERROR.value,
-                )
-            # Keep the established state-machine recovery transaction: the
-            # recovery invocation records ERROR and stops. If it reuses the
-            # original execution id, create_log promotes that exact WORKING row;
-            # a distinct id terminalizes the lost row and records its own ERROR
-            # without risking an uncertain duplicate delivery after worker loss.
-            # The following schedule can start from ERROR normally.
+            # Keep recovery owned by this invocation. If it reuses the original
+            # execution id, create_log promotes that exact WORKING row. A distinct
+            # invocation must not mutate the old audit row: Celery hard limits do
+            # not preempt every worker pool, so the original worker may still be
+            # alive. The recovery ERROR still unblocks the schedule without risking
+            # a lost update or uncertain duplicate delivery.
             self.update_report_schedule_and_log(
                 ReportState.ERROR,
                 error_message=str(exception_timeout),

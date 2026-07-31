@@ -23,7 +23,23 @@ from superset.utils.report_execution import (
     ReportExecutionBudgetExceededError,
     ReportExecutionContext,
     ReportExecutionDeadline,
+    validate_report_execution_config,
 )
+
+
+def _report_config(**overrides: int) -> dict[str, int | bool]:
+    config: dict[str, int | bool] = {
+        "ALERT_REPORTS_WORKING_TIME_OUT_KILL": True,
+        "ALERT_REPORTS_EXECUTION_BUDGET_SECONDS": 900,
+        "ALERT_REPORTS_EXECUTION_CAPTURE_RESERVE_SECONDS": 60,
+        "ALERT_REPORTS_EXECUTION_DELIVERY_RESERVE_SECONDS": 120,
+        "ALERT_REPORTS_EXECUTION_CLEANUP_RESERVE_SECONDS": 30,
+        "ALERT_REPORTS_EXECUTION_HARD_TIMEOUT_GRACE_SECONDS": 30,
+        "ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG": 1,
+        "ALERT_REPORTS_WORKING_TIME_OUT_LAG": 10,
+    }
+    config.update(overrides)
+    return config
 
 
 def test_report_deadline_derives_phase_timeout_from_one_clock() -> None:
@@ -105,13 +121,7 @@ def test_report_deadline_rejects_nonpositive_budget() -> None:
 
 
 def test_report_task_limits_align_soft_timeout_with_budget() -> None:
-    config = {
-        "ALERT_REPORTS_WORKING_TIME_OUT_KILL": True,
-        "ALERT_REPORTS_EXECUTION_BUDGET_SECONDS": 900,
-        "ALERT_REPORTS_EXECUTION_HARD_TIMEOUT_GRACE_SECONDS": 30,
-        "ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG": 1,
-        "ALERT_REPORTS_WORKING_TIME_OUT_LAG": 10,
-    }
+    config = _report_config()
 
     assert get_report_task_timeout_options(
         is_report=True,
@@ -123,3 +133,33 @@ def test_report_task_limits_align_soft_timeout_with_budget() -> None:
         working_timeout=3600,
         config=config,
     ) == {"soft_time_limit": 3601, "time_limit": 3610}
+
+
+@pytest.mark.parametrize(
+    ("overrides", "message"),
+    [
+        ({"ALERT_REPORTS_EXECUTION_BUDGET_SECONDS": 0}, "greater than zero"),
+        (
+            {"ALERT_REPORTS_EXECUTION_CAPTURE_RESERVE_SECONDS": -1},
+            "cannot be negative",
+        ),
+        (
+            {"ALERT_REPORTS_EXECUTION_DELIVERY_RESERVE_SECONDS": 810},
+            "must total less",
+        ),
+        (
+            {"ALERT_REPORTS_EXECUTION_HARD_TIMEOUT_GRACE_SECONDS": -1},
+            "grace cannot be negative",
+        ),
+    ],
+)
+def test_report_execution_config_rejects_invalid_startup_values(
+    overrides: dict[str, int],
+    message: str,
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        validate_report_execution_config(_report_config(**overrides))
+
+
+def test_report_execution_config_accepts_defaults() -> None:
+    validate_report_execution_config(_report_config())
