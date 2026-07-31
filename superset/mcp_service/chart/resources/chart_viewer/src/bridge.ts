@@ -242,18 +242,24 @@ export class ChartBridge {
    * caller can offer the URL another way instead of failing silently.
    */
   async openLink(url: string, timeoutMs = 1500): Promise<boolean> {
+    // Direct open first, while still synchronously inside the click's user
+    // gesture — awaiting the host first would spend transient activation and
+    // get this popup-blocked. In a sandboxed iframe (what hosts actually give
+    // us) this fails immediately and we reach the host path with no delay, so
+    // the sandbox itself routes each environment to the right branch.
+    try {
+      if (window.open(url, '_blank', 'noopener,noreferrer')) return true;
+    } catch {
+      // Sandboxed without allow-popups.
+    }
     if (this.isEmbedded) {
       try {
         await this.request('ui/open-link', { url }, timeoutMs);
         return true;
       } catch {
-        // Unimplemented or unanswered — fall through to a direct attempt.
+        // The spec says hosts SHOULD implement ui/open-link, not MUST, so an
+        // unanswered request is conformant and the caller must handle false.
       }
-    }
-    try {
-      if (window.open(url, '_blank', 'noopener,noreferrer')) return true;
-    } catch {
-      // Sandboxed without allow-popups.
     }
     return false;
   }

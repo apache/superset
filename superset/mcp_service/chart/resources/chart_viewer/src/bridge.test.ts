@@ -250,13 +250,18 @@ describe('ChartBridge handshake contract', () => {
   // "Open in Superset" did nothing in a real host: ui/open-link went
   // unanswered, the widget waited out the full default timeout, and the
   // rejection was swallowed with no fallback and nothing shown to the user.
-  it('falls back to window.open when the host ignores ui/open-link', async () => {
-    const host = withFakeHost((msg) => {
-      if (msg.method === 'ui/initialize') {
-        return { hostCapabilities: {}, hostContext: {} };
-      }
-      return undefined; // ui/open-link deliberately unanswered
-    });
+  //
+  // Ordering matters and is the point of these three. window.open must be
+  // attempted synchronously inside the click's user gesture; awaiting the host
+  // first spends transient activation and gets the popup blocked.
+  const LINK = 'https://superset.example/explore/?slice_id=1';
+
+  it('opens directly without asking the host when popups are allowed', async () => {
+    const host = withFakeHost((msg) =>
+      msg.method === 'ui/initialize'
+        ? { hostCapabilities: {}, hostContext: {} }
+        : undefined,
+    );
     const opened: string[] = [];
     const realOpen = window.open;
     window.open = ((url: string) => {
@@ -266,21 +271,22 @@ describe('ChartBridge handshake contract', () => {
     try {
       const bridge = new ChartBridge();
       await bridge.initialize(500);
-      await expect(
-        bridge.openLink('https://superset.example/explore/?slice_id=1', 100),
-      ).resolves.toBe(true);
-      expect(opened).toEqual(['https://superset.example/explore/?slice_id=1']);
+      await expect(bridge.openLink(LINK, 100)).resolves.toBe(true);
+      expect(opened).toEqual([LINK]);
+      // The host is never consulted on this path.
+      expect(host.sent.some((m) => m.method === 'ui/open-link')).toBe(false);
     } finally {
       window.open = realOpen;
       host.restore();
     }
   });
 
-  it('reports failure when neither the host nor window.open can open it', async () => {
+  it('asks the host when the sandbox blocks window.open', async () => {
     const host = withFakeHost((msg) => {
       if (msg.method === 'ui/initialize') {
         return { hostCapabilities: {}, hostContext: {} };
       }
+      if (msg.method === 'ui/open-link') return {};
       return undefined;
     });
     const realOpen = window.open;
@@ -289,9 +295,29 @@ describe('ChartBridge handshake contract', () => {
     try {
       const bridge = new ChartBridge();
       await bridge.initialize(500);
-      await expect(
-        bridge.openLink('https://superset.example/explore/?slice_id=1', 100),
-      ).resolves.toBe(false);
+      await expect(bridge.openLink(LINK, 500)).resolves.toBe(true);
+      const msg = host.sent.find((m) => m.method === 'ui/open-link');
+      expect(msg?.params).toEqual({ url: LINK });
+    } finally {
+      window.open = realOpen;
+      host.restore();
+    }
+  });
+
+  it('reports failure when neither route can open it', async () => {
+    const host = withFakeHost((msg) =>
+      msg.method === 'ui/initialize'
+        ? { hostCapabilities: {}, hostContext: {} }
+        : undefined,
+    );
+    const realOpen = window.open;
+    window.open = (() => null) as typeof window.open;
+    try {
+      const bridge = new ChartBridge();
+      await bridge.initialize(500);
+      // ui/open-link unanswered: the spec says hosts SHOULD implement it, so
+      // this is conformant and the caller has to cope with false.
+      await expect(bridge.openLink(LINK, 100)).resolves.toBe(false);
     } finally {
       window.open = realOpen;
       host.restore();

@@ -116,6 +116,7 @@ export function App(): JSX.Element {
   // The host sandbox decides this once, at load; it cannot change mid-session.
   const downloadsBlocked = useMemo(() => isDownloadRestricted(), []);
 
+  const pendingDisplayMode = useRef<DisplayMode | null>(null);
   const toastTimer = useRef<number | null>(null);
   const showToast = useCallback((message: string, ms = 2600): void => {
     setToast(message);
@@ -209,8 +210,14 @@ export function App(): JSX.Element {
     const offCtx = bridge.onContextChange((ctx) => {
       if (ctx.scheme) setScheme(ctx.scheme);
       // The host can change display mode on its own (its own fullscreen
-      // chrome, or Esc); follow it so our toggle stays in step.
-      if (ctx.displayMode === 'inline' || ctx.displayMode === 'fullscreen') {
+      // chrome, or Esc); follow it so our toggle stays in step — unless a
+      // switch we asked for is still settling, in which case a push naming the
+      // old mode is stale and would fight the user's click.
+      if (
+        (ctx.displayMode === 'inline' || ctx.displayMode === 'fullscreen') &&
+        (pendingDisplayMode.current === null ||
+          pendingDisplayMode.current === ctx.displayMode)
+      ) {
         setDisplayMode(ctx.displayMode);
       }
     });
@@ -540,9 +547,17 @@ export function App(): JSX.Element {
   const toggleMaximize = useCallback(async () => {
     const expanding = displayMode !== 'fullscreen';
     const target: DisplayMode = expanding ? 'fullscreen' : 'inline';
-    if (await bridge.requestDisplayMode(target)) {
-      setDisplayMode(target);
-      return;
+    // While a switch is in flight the host may still push context describing
+    // the *previous* mode; without this the widget would flip back and the
+    // button would look like it undid itself.
+    pendingDisplayMode.current = target;
+    try {
+      if (await bridge.requestDisplayMode(target)) {
+        setDisplayMode(target);
+        return;
+      }
+    } finally {
+      pendingDisplayMode.current = null;
     }
     // Hosts without display-mode support still honor size notifications, so
     // grow the iframe instead — and remember the previous height so the same
