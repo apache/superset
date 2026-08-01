@@ -902,7 +902,7 @@ const SqlEditor: FC<Props> = ({
       css={css`
         margin-bottom: ${theme.sizeUnit * 2}px;
         padding-top: ${theme.sizeUnit * 4}px;
-        .ant-alert-action {
+        .ant-alert-actions {
           align-self: center;
         }
       `}

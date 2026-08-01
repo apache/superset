@@ -1106,3 +1106,138 @@ test('tooltip time grain wiring: chart-level time grain drives the tooltip when 
   expect(result).toContain('2021');
   expect(result).not.toContain('2021-01-07');
 });
+
+const createTemporalMixedChartProps = (timeFormat: string) => {
+  const rows = [
+    { __timestamp: Date.UTC(2003, 4, 1), metric: 10 },
+    { __timestamp: Date.UTC(2004, 0, 1), metric: 20 },
+    { __timestamp: Date.UTC(2005, 4, 1), metric: 30 },
+  ];
+  const q = createTestQueryData(rows, {
+    colnames: ['__timestamp', 'metric'],
+    coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+    label_map: { __timestamp: ['__timestamp'], metric: ['metric'] },
+  });
+  return createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [q, q],
+    formData: {
+      ...formData,
+      x_axis: '__timestamp',
+      metrics: ['metric'],
+      metricsB: ['metric'],
+      groupby: [],
+      groupbyB: [],
+      timeGrainSqla: TimeGranularity.MONTH,
+      xAxisTimeFormat: timeFormat,
+    },
+    queriesData: [q, q],
+  });
+};
+
+test('x-axis forces showMinLabel for time grains so the beginning date stays visible (mixed)', () => {
+  const xAxis = transformProps(createTemporalMixedChartProps('smart_date'))
+    .echartOptions.xAxis as any;
+  expect(xAxis.axisLabel.showMinLabel).toBe(true);
+});
+
+test('x-axis dedup keeps the forced min label when the endpoints format identically (mixed)', () => {
+  // May→May range renders "May" at both boundaries; the dedup must reset per
+  // ECharts pass so the forced min label survives the second pass.
+  const { formatter } = (
+    transformProps(createTemporalMixedChartProps('%b')).echartOptions
+      .xAxis as any
+  ).axisLabel;
+  const min = Date.UTC(2003, 4, 1);
+  const mid = Date.UTC(2004, 0, 1);
+  const max = Date.UTC(2005, 4, 1);
+
+  formatter(min);
+  formatter(mid);
+  formatter(max);
+
+  expect(formatter(min)).toBe('May');
+});
+
+test('regression #37921: multi-metric Query A with groupby does not duplicate first metric in series names', () => {
+  // Regression test for https://github.com/apache/superset/issues/37921
+  // ("Residual" follow-up to #37055).
+  //
+  // When Query A has multiple metrics + at least one Group By dimension,
+  // the display-name builder in transformProps.ts used to prepend the FIRST
+  // metric's display name to every series that didn't literally contain it:
+  //   name: `${MetricDisplayNameA}, ${entryName}`
+  // For series belonging to the *second* metric, this produced a
+  // cross-contaminated label like `score_one, score_two, A` — the
+  // user-visible "first metric duplicated" symptom in the legend / tooltip.
+  // The fix derives each series' metric from its label-map tuple instead.
+  const multiMetricRows = [
+    {
+      'score_one, A': 1,
+      'score_one, B': 2,
+      'score_two, A': 3,
+      'score_two, B': 4,
+      ds: 599616000000,
+    },
+    {
+      'score_one, A': 5,
+      'score_one, B': 6,
+      'score_two, A': 7,
+      'score_two, B': 8,
+      ds: 599916000000,
+    },
+  ];
+  const multiMetricLabelMap = {
+    ds: ['ds'],
+    'score_one, A': ['score_one', 'A'],
+    'score_one, B': ['score_one', 'B'],
+    'score_two, A': ['score_two', 'A'],
+    'score_two, B': ['score_two', 'B'],
+  };
+
+  const queryAData = createTestQueryData(multiMetricRows, {
+    label_map: multiMetricLabelMap,
+  });
+  // Query B keeps the existing single-metric shape — the bug is on
+  // Query A's path so we just need a valid Query B alongside.
+  const queryBData = createTestQueryData(defaultQueryRows, {
+    label_map: defaultLabelMap,
+  });
+
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [queryAData, queryBData],
+    formData: {
+      ...formData,
+      metrics: ['score_one', 'score_two'],
+      groupby: ['category'],
+    },
+    queriesData: [queryAData, queryBData],
+  });
+  const transformed = transformProps(chartProps);
+
+  const queryASeriesNames = (transformed.echartOptions.series as any[])
+    .map((s: any) => String(s.name))
+    .filter((n: string) => n.includes('score_'));
+
+  // Each (metric, dim_value) combo from Query A should appear exactly once
+  // with the *correct* metric prefix — not the first-metric-prepended-to-
+  // everything-else form. Comparing the sorted array (rather than using
+  // separate toContain assertions) also catches a regression that emits
+  // duplicate series for the same name.
+  expect([...queryASeriesNames].sort()).toEqual(
+    ['score_one, A', 'score_one, B', 'score_two, A', 'score_two, B'].sort(),
+  );
+
+  // And explicitly: no series name should contain *both* metric names —
+  // that's the smoking gun for the duplication bug.
+  for (const name of queryASeriesNames) {
+    expect(name).not.toMatch(/score_one,\s+score_two/);
+  }
+});

@@ -20,7 +20,11 @@ from marshmallow import fields, Schema
 from marshmallow.fields import Method
 
 # RISON/JSON schemas for query parameters
-get_delete_ids_schema = {"type": "array", "items": {"type": "string"}}
+get_delete_ids_schema = {
+    "type": "array",
+    "items": {"type": "string"},
+    "example": ["task_id_1", "task_id_2"],
+}
 
 # Field descriptions
 uuid_description = "The unique identifier (UUID) of the task"

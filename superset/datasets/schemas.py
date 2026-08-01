@@ -36,8 +36,16 @@ from superset.models.sql_types import parse_currency_string
 from superset.subjects.schemas import SubjectResponseSchema
 from superset.utils import json
 
-get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
-get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
+get_delete_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
+get_export_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
 get_drill_info_schema = {
     "type": "object",
     "properties": {

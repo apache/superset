@@ -96,7 +96,6 @@ from superset.exceptions import (
     SupersetException,
     SupersetTimeoutException,
 )
-from superset.sql.parse import sanitize_clause
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
@@ -1434,12 +1433,15 @@ def convert_legacy_filters_into_adhoc(  # pylint: disable=invalid-name
 
 def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
     form_data: FormData,
-    engine: str,
+    engine: str | None = None,  # pylint: disable=unused-argument
 ) -> None:
     """
     Mutates form data to restructure the adhoc filters in the form of the three base
     filters, `where`, `having`, and `filters` which represent free form where sql,
     free form having sql, and structured where clauses.
+
+    ``engine`` is retained for backwards compatibility and is unused: clauses are
+    validated downstream, after Jinja templates are rendered.
     """
     adhoc_filters = form_data.get("adhoc_filters")
     if isinstance(adhoc_filters, list):
@@ -1460,7 +1462,9 @@ def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
                     )
             elif expression_type == "SQL":
                 sql_expression = adhoc_filter.get("sqlExpression")
-                sql_expression = sanitize_clause(sql_expression, engine)
+                # keep a trailing line comment from swallowing the " AND " join
+                if sql_expression and "--" in sql_expression:
+                    sql_expression = f"{sql_expression}\n"
                 if clause == "WHERE":
                     sql_where_filters.append(sql_expression)
                 elif clause == "HAVING":
@@ -2013,13 +2017,26 @@ def _process_datetime_column(
 
         # Parse with or without format (suppress warning if no format)
         if format_to_use:
-            df[col.col_label] = pd.to_datetime(
+            converted = pd.to_datetime(
                 df[col.col_label],
                 utc=False,
                 format=format_to_use,
                 errors="coerce",
                 exact=False,
             )
+            # A format that coerces every non-null value to NaT is a mismatch
+            # (e.g. an epoch-millis column that inherited a '%Y' string format
+            # when used as a chart's granularity). Assigning it would silently
+            # blank the whole column, so keep the original values instead.
+            if df[col.col_label].notna().any() and not converted.notna().any():
+                logger.warning(
+                    "Datetime format %s coerced every value of column %s to NaT; "
+                    "keeping the original values",
+                    format_to_use,
+                    col.col_label,
+                )
+            else:
+                df[col.col_label] = converted
         else:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", message=".*Could not infer format.*")
