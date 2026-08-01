@@ -38,11 +38,11 @@ if TYPE_CHECKING:
 
 def record_statsd_gauge_failure(metric_prefix: str, ex: Exception) -> None:
     """Record a warning or error gauge using the shared exception contract."""
-    suffix = (
-        "warning"
-        if hasattr(ex, "status") and ex.status < 500  # pylint: disable=no-member
-        else "error"
-    )
+    try:
+        status = getattr(ex, "status", None)
+    except Exception:  # pylint: disable=broad-exception-caught
+        status = None
+    suffix = "warning" if isinstance(status, int) and status < 500 else "error"
     app.config["STATS_LOGGER"].gauge(f"{metric_prefix}.{suffix}", 1)
 
 

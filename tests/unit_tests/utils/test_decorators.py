@@ -40,6 +40,16 @@ class WarningError(Exception):
     status = 400
 
 
+class InvalidStatusError(Exception):
+    status = "400"
+
+
+class UnreadableStatusError(Exception):
+    @property
+    def status(self) -> int:
+        raise RuntimeError("status is unavailable")
+
+
 def test_debounce() -> None:
     mock = Mock()
 
@@ -119,6 +129,8 @@ def test_statsd_gauge_ignores_configured_exception() -> None:
     [
         (ValueError("failure"), "custom.prefix.error"),
         (WarningError("warning"), "custom.prefix.warning"),
+        (InvalidStatusError("invalid status"), "custom.prefix.error"),
+        (UnreadableStatusError("unreadable status"), "custom.prefix.error"),
     ],
 )
 def test_record_statsd_gauge_failure_uses_shared_severity_contract(
