@@ -1998,7 +1998,13 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert model.slug == self.dashboard_data["slug"]
         assert model.position_json == self.dashboard_data["position_json"]
         assert model.css == self.dashboard_data["css"]
-        assert model.json_metadata == self.dashboard_data["json_metadata"]
+        # Compare parsed JSON rather than raw strings: ``set_dash_metadata``
+        # merges against the dashboard's previously stored metadata, so key
+        # insertion order (and therefore serialized key order) is an
+        # implementation detail, not part of the contract being tested.
+        assert json.loads(model.json_metadata) == json.loads(
+            self.dashboard_data["json_metadata"]
+        )
         assert model.published == self.dashboard_data["published"]
         admin_subject = (
             db.session.query(Subject)
@@ -2641,7 +2647,11 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert rv.status_code == 200
 
         model = db.session.query(Dashboard).get(dashboard_id)
-        assert model.json_metadata == self.dashboard_data["json_metadata"]
+        # Compare parsed JSON rather than raw strings; see the equivalent
+        # comment in ``test_update_dashboard``.
+        assert json.loads(model.json_metadata) == json.loads(
+            self.dashboard_data["json_metadata"]
+        )
         assert model.dashboard_title == self.dashboard_data["dashboard_title"]
         assert model.slug == self.dashboard_data["slug"]
 
