@@ -119,10 +119,22 @@ def test_scheduler_report_timeout_uses_end_to_end_budget(execute_mock, editors):
         editors=editors,
     )
 
+    # The default budget (1h) matches the working_timeout column default, so
+    # the derived limits preserve the historical runtime ceiling out of the box.
+    with freeze_time("2020-01-01T09:00:00Z"):
+        scheduler()
+        assert execute_mock.call_args[1]["soft_time_limit"] == 3600
+        assert execute_mock.call_args[1]["time_limit"] == 3630
+
+    # A lower per-schedule working_timeout caps the effective budget and the
+    # derived Celery limits.
+    report_schedule.working_timeout = 900
+    db.session.commit()
     with freeze_time("2020-01-01T09:00:00Z"):
         scheduler()
         assert execute_mock.call_args[1]["soft_time_limit"] == 900
         assert execute_mock.call_args[1]["time_limit"] == 930
+
     db.session.delete(report_schedule)
     db.session.commit()
 
