@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { test, expect, devices } from '@playwright/test';
+import { test, expect, devices, Page } from '@playwright/test';
 
 // NOTE: These tests exercise the mobile consumption experience and require
 // the MOBILE_CONSUMPTION_MODE feature flag to be enabled in the target
@@ -34,6 +34,62 @@ import { URL } from '../../utils/urls';
 
 // Use iPhone 12 viewport for mobile tests
 const mobileViewport = devices['iPhone 12'];
+
+/**
+ * Navigates to the dashboard list, clicks the first available dashboard
+ * card, and waits for navigation into that dashboard. Skips the current
+ * test when no dashboards are available to open.
+ */
+async function openFirstDashboard(page: Page): Promise<void> {
+  await page.goto(URL.DASHBOARD_LIST);
+  await page.waitForLoadState('networkidle');
+
+  const cards = page.locator('[data-test="styled-card"]');
+  const cardCount = await cards.count();
+
+  test.skip(cardCount === 0, 'No dashboards available to open on mobile');
+
+  await cards.first().click();
+
+  await page.waitForURL(url => /\/dashboard\/(?!list)/.test(url.pathname), {
+    timeout: TIMEOUT.PAGE_LOAD,
+  });
+}
+
+/**
+ * Navigates to the World Bank's Health dashboard and returns a locator
+ * for its mobile filter button. Skips the current test when the fixture
+ * has no native filters configured.
+ */
+async function getMobileFilterButton(page: Page) {
+  // Navigate directly to the World Bank's Health dashboard, which this
+  // spec's fixtures require, rather than an arbitrary first card from
+  // the list. Whether it has native filters configured depends on the
+  // fixture, so callers skip themselves when none are present.
+  await page.goto('dashboard/world_health/');
+  await page.waitForLoadState('networkidle');
+
+  // Give filters time to load
+  await page.waitForTimeout(2000);
+
+  const filterButton = page
+    .locator('[data-test="filter-icon"]')
+    .or(
+      page
+        .locator('[aria-label="Filters"]')
+        .or(page.locator('.mobile-filter-button')),
+    );
+
+  const filterCount = await filterButton.count();
+
+  test.skip(
+    filterCount === 0,
+    'world_health dashboard fixture has no native filters configured; ' +
+      'cannot verify mobile filter behavior.',
+  );
+
+  return filterButton;
+}
 
 test.describe('Mobile Dashboard Viewing', () => {
   test.use({
@@ -137,22 +193,7 @@ test.describe('Mobile Dashboard Interaction', () => {
   });
 
   test('dashboard loads and shows charts on mobile', async ({ page }) => {
-    // Navigate to dashboard list
-    await page.goto(URL.DASHBOARD_LIST);
-    await page.waitForLoadState('networkidle');
-
-    // Click first dashboard
-    const cards = page.locator('[data-test="styled-card"]');
-    const cardCount = await cards.count();
-
-    test.skip(cardCount === 0, 'No dashboards available to open on mobile');
-
-    await cards.first().click();
-
-    // Wait for dashboard to load
-    await page.waitForURL(url => /\/dashboard\/(?!list)/.test(url.pathname), {
-      timeout: TIMEOUT.PAGE_LOAD,
-    });
+    await openFirstDashboard(page);
 
     // Dashboard content should be visible
     await expect(
@@ -173,22 +214,7 @@ test.describe('Mobile Dashboard Interaction', () => {
   });
 
   test('dashboard header shows hamburger menu on mobile', async ({ page }) => {
-    // Navigate to dashboard list
-    await page.goto(URL.DASHBOARD_LIST);
-    await page.waitForLoadState('networkidle');
-
-    // Click first dashboard
-    const cards = page.locator('[data-test="styled-card"]');
-    const cardCount = await cards.count();
-
-    test.skip(cardCount === 0, 'No dashboards available to open on mobile');
-
-    await cards.first().click();
-
-    // Wait for dashboard
-    await page.waitForURL(url => /\/dashboard\/(?!list)/.test(url.pathname), {
-      timeout: TIMEOUT.PAGE_LOAD,
-    });
+    await openFirstDashboard(page);
 
     // Look for the hamburger menu / more actions button
     const menuButton = page
@@ -201,22 +227,7 @@ test.describe('Mobile Dashboard Interaction', () => {
   });
 
   test('refresh dashboard works from mobile menu', async ({ page }) => {
-    // Navigate to dashboard list
-    await page.goto(URL.DASHBOARD_LIST);
-    await page.waitForLoadState('networkidle');
-
-    // Click first dashboard
-    const cards = page.locator('[data-test="styled-card"]');
-    const cardCount = await cards.count();
-
-    test.skip(cardCount === 0, 'No dashboards available to open on mobile');
-
-    await cards.first().click();
-
-    // Wait for dashboard
-    await page.waitForURL(url => /\/dashboard\/(?!list)/.test(url.pathname), {
-      timeout: TIMEOUT.PAGE_LOAD,
-    });
+    await openFirstDashboard(page);
 
     // Open the actions menu
     const menuButton = page
@@ -255,63 +266,13 @@ test.describe('Mobile Filter Drawer', () => {
   });
 
   test('filter button appears on dashboards with filters', async ({ page }) => {
-    // Navigate directly to the World Bank's Health dashboard, which this
-    // spec's fixtures require, rather than an arbitrary first card from
-    // the list. Whether it has native filters configured depends on the
-    // fixture, so the test below skips itself when none are present.
-    await page.goto('dashboard/world_health/');
-    await page.waitForLoadState('networkidle');
-
-    // Give filters time to load
-    await page.waitForTimeout(2000);
-
-    // Check for filter button (only visible if dashboard has filters)
-    const filterButton = page
-      .locator('[data-test="filter-icon"]')
-      .or(
-        page
-          .locator('[aria-label="Filters"]')
-          .or(page.locator('.mobile-filter-button')),
-      );
-
-    const filterCount = await filterButton.count();
-
-    test.skip(
-      filterCount === 0,
-      'world_health dashboard fixture has no native filters configured; ' +
-        'cannot verify the mobile filter button.',
-    );
+    const filterButton = await getMobileFilterButton(page);
 
     await expect(filterButton.first()).toBeVisible();
   });
 
   test('filter drawer opens when filter button is tapped', async ({ page }) => {
-    // Navigate directly to the World Bank's Health dashboard, which this
-    // spec's fixtures require, rather than an arbitrary first card from
-    // the list. Whether it has native filters configured depends on the
-    // fixture, so the test below skips itself when none are present.
-    await page.goto('dashboard/world_health/');
-    await page.waitForLoadState('networkidle');
-
-    // Give filters time to load
-    await page.waitForTimeout(2000);
-
-    // Check for filter button
-    const filterButton = page
-      .locator('[data-test="filter-icon"]')
-      .or(
-        page
-          .locator('[aria-label="Filters"]')
-          .or(page.locator('.mobile-filter-button')),
-      );
-
-    const filterCount = await filterButton.count();
-
-    test.skip(
-      filterCount === 0,
-      'world_health dashboard fixture has no native filters configured; ' +
-        'cannot verify the mobile filter drawer.',
-    );
+    const filterButton = await getMobileFilterButton(page);
 
     await filterButton.first().click();
 
