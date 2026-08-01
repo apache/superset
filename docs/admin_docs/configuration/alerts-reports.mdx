@@ -260,8 +260,10 @@ ALERT_REPORTS_EXECUTION_DELIVERY_RESERVE_SECONDS = 120
 ALERT_REPORTS_EXECUTION_CLEANUP_RESERVE_SECONDS = 30
 
 # Celery's hard limit leaves this additional window for terminal cleanup after
-# the 15-minute soft limit. ALERT_REPORTS_WORKING_TIME_OUT_KILL controls these
-# Celery limits; disabling it does not disable the application deadline above.
+# the soft limit, which equals the resolved execution budget (the configured
+# budget capped by each schedule's working_timeout).
+# ALERT_REPORTS_WORKING_TIME_OUT_KILL controls these Celery limits; disabling
+# it does not disable the application deadline above.
 ALERT_REPORTS_EXECUTION_HARD_TIMEOUT_GRACE_SECONDS = 30
 
 # Invalid budget/reserve combinations fail application startup instead of
