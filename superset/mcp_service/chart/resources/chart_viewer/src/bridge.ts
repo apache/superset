@@ -70,6 +70,18 @@ export interface HostDiagnostics {
   embedded: boolean;
   /** What we concluded from the above. */
   derived: HostCapabilities;
+  /**
+   * Top-level keys the host actually sent, verbatim.
+   *
+   * Surfaced in the collapsed summary because that one line has twice now been
+   * the only diagnostic that made it out of a host — reading the expanded JSON
+   * depends on a human transcribing it, which kept failing. The key names are
+   * what identify a spelling mismatch, so they belong where they can be read
+   * at a glance.
+   */
+  capabilityKeys: string[];
+  /** Sandbox permissions the host granted (clipboard-write, etc.), if stated. */
+  sandboxPermissions: string[];
 }
 
 export interface BridgeInit {
@@ -459,13 +471,17 @@ function buildDiagnostics(
   } catch {
     origin = 'null';
   }
+  const caps = (result?.hostCapabilities ?? {}) as Record<string, unknown>;
+  const sandbox = caps.sandbox as { permissions?: object } | undefined;
   return {
     protocolVersion: result?.protocolVersion,
-    hostCapabilities: (result?.hostCapabilities ?? {}) as Record<string, unknown>,
+    hostCapabilities: caps,
     hostContext: (result?.hostContext ?? {}) as Record<string, unknown>,
     origin,
     embedded,
     derived,
+    capabilityKeys: Object.keys(caps),
+    sandboxPermissions: Object.keys(sandbox?.permissions ?? {}),
   };
 }
 
@@ -491,9 +507,19 @@ function deriveCapabilities(
   // An unknown capability is treated as UNSUPPORTED (no optimistic `|| true`),
   // so host-dependent affordances (drill re-query, "ask about this") only light
   // up when the host actually advertises them.
+  //
+  // `serverTools` is the SPEC name for "host can proxy tool calls to the MCP
+  // server" (HostCapabilities, 2026-01-26). Reading only the pre-spec guesses
+  // below made every conformant host look like it forbade tool calls, which
+  // silently disabled click-to-drill everywhere — the host was offering the
+  // capability under the name the spec defines and we were not looking at it.
   return {
     appTools,
-    canCallTools: has('tools') || has('toolCalls') || appTools.size > 0,
+    canCallTools:
+      has('serverTools') ||
+      has('tools') ||
+      has('toolCalls') ||
+      appTools.size > 0,
     canUpdateModelContext: has('updateModelContext') || has('modelContext'),
     canSendMessage: has('message') || has('messages'),
   };

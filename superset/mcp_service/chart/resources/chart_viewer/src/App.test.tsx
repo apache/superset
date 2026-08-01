@@ -90,6 +90,8 @@ vi.mock('./bridge', () => ({
       hostContext: {},
       origin: 'null',
       embedded: true,
+      capabilityKeys: [],
+      sandboxPermissions: [],
       derived: {
         appTools: new Set<string>(),
         canCallTools: false,

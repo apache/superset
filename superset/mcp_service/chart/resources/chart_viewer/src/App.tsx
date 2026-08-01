@@ -836,6 +836,10 @@ function HostDiagnosticsPanel(): JSX.Element {
         {' · '}tools {flag(d.derived.canCallTools)}
         {' · '}context {flag(d.derived.canUpdateModelContext)}
         {' · '}message {flag(d.derived.canSendMessage)}
+        {' · '}caps [{d.capabilityKeys.join(',') || 'none'}]
+        {d.sandboxPermissions.length
+          ? ` · grants [${d.sandboxPermissions.join(',')}]`
+          : ''}
       </summary>
       <pre className="sv-diag-body">
         {JSON.stringify(
@@ -848,6 +852,8 @@ function HostDiagnosticsPanel(): JSX.Element {
               ...d.derived,
               appTools: Array.from(d.derived.appTools),
             },
+            capabilityKeys: d.capabilityKeys,
+            sandboxPermissions: d.sandboxPermissions,
           },
           null,
           2,

@@ -393,3 +393,55 @@ describe('ChartBridge handshake contract', () => {
     }
   });
 });
+
+// `serverTools` is the spec's HostCapabilities key for "host can proxy tool
+// calls to the MCP server". Reading only the pre-spec guesses made every
+// conformant host report tools=no, which silently disabled click-to-drill in
+// BOTH hosts we tested — it looked like hosts forbade tool calls when in fact
+// we were not reading the name the spec defines.
+describe('capability derivation', () => {
+  async function capsFrom(hostCapabilities: Record<string, unknown>) {
+    const host = withFakeHost((msg) =>
+      msg.method === 'ui/initialize'
+        ? { hostCapabilities, hostContext: {} }
+        : undefined,
+    );
+    try {
+      const bridge = new ChartBridge();
+      return await bridge.initialize(500);
+    } finally {
+      host.restore();
+    }
+  }
+
+  it('recognises the spec-defined `serverTools` capability', async () => {
+    const init = await capsFrom({ serverTools: {} });
+    expect(init.capabilities.canCallTools).toBe(true);
+  });
+
+  it('still recognises the pre-spec spellings', async () => {
+    expect((await capsFrom({ tools: {} })).capabilities.canCallTools).toBe(true);
+    expect((await capsFrom({ toolCalls: {} })).capabilities.canCallTools).toBe(
+      true,
+    );
+  });
+
+  it('reports tools unsupported when the host advertises none of them', async () => {
+    const init = await capsFrom({ openLinks: {} });
+    expect(init.capabilities.canCallTools).toBe(false);
+  });
+
+  it('surfaces the raw capability keys and sandbox grants for diagnosis', async () => {
+    const init = await capsFrom({
+      serverTools: {},
+      openLinks: {},
+      sandbox: { permissions: { clipboardWrite: {} } },
+    });
+    expect(init.diagnostics.capabilityKeys).toEqual([
+      'serverTools',
+      'openLinks',
+      'sandbox',
+    ]);
+    expect(init.diagnostics.sandboxPermissions).toEqual(['clipboardWrite']);
+  });
+});
