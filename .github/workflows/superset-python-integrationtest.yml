@@ -257,7 +257,7 @@ jobs:
           echo "test-postgres result: $RESULT"
 
   actions-timeline:
-    needs: [test-mysql, test-postgres, test-sqlite]
+    needs: [test-mysql, test-postgres, test-sqlite, test-postgres-required]
     if: always()
     runs-on: ubuntu-26.04
     permissions:

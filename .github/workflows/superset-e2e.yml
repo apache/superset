@@ -342,7 +342,7 @@ jobs:
           echo "playwright-tests result: $RESULT (changes: $CHANGES)"
 
   actions-timeline:
-    needs: [cypress-matrix, playwright-tests]
+    needs: [cypress-matrix, playwright-tests, cypress-matrix-required, playwright-tests-required]
     if: always()
     runs-on: ubuntu-26.04
     permissions:
