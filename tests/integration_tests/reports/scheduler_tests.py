@@ -23,7 +23,7 @@ from freezegun import freeze_time
 from freezegun.api import FakeDatetime
 
 from superset.extensions import db
-from superset.reports.models import ReportScheduleType
+from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.subjects.models import Subject
 from superset.subjects.types import SubjectType
 from superset.tasks.scheduler import execute, log_task_failure, scheduler
@@ -127,8 +127,11 @@ def test_scheduler_report_timeout_uses_end_to_end_budget(execute_mock, editors):
         assert execute_mock.call_args[1]["time_limit"] == 3630
 
     # A lower per-schedule working_timeout caps the effective budget and the
-    # derived Celery limits.
-    report_schedule.working_timeout = 900
+    # derived Celery limits. Update via query so persistence does not depend
+    # on which session the fixture object is bound to.
+    db.session.query(ReportSchedule).filter(
+        ReportSchedule.id == report_schedule.id
+    ).update({"working_timeout": 900})
     db.session.commit()
     with freeze_time("2020-01-01T09:00:00Z"):
         scheduler()

@@ -83,8 +83,7 @@ def resolve_report_execution_budget_seconds(
         + float(config["ALERT_REPORTS_EXECUTION_DELIVERY_RESERVE_SECONDS"])
         + float(config["ALERT_REPORTS_EXECUTION_CLEANUP_RESERVE_SECONDS"])
     )
-    min_viable = reserves_total + MIN_REPORT_EXECUTION_WORK_SECONDS
-    if budget < min_viable:
+    if budget < (min_viable := reserves_total + MIN_REPORT_EXECUTION_WORK_SECONDS):
         logger.warning(
             "Report working_timeout=%s is below the minimum viable execution "
             "budget (%.0fs phase reserves + %.0fs working allowance); "

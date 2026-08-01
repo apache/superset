@@ -2318,7 +2318,7 @@ def test_working_state_still_working_raises_previous_working(
     )
 
 
-def test_working_timeout_replay_promotes_original_execution_without_duplicate_log(
+def test_working_timeout_replay_delegates_single_terminal_update(
     mocker: MockerFixture,
 ) -> None:
     state = _make_state_instance(
@@ -2348,7 +2348,7 @@ def test_working_timeout_replay_promotes_original_execution_without_duplicate_lo
     assert working_log.state == ReportState.WORKING
 
 
-def test_new_report_execution_does_not_deliver_during_stale_recovery(
+def test_stale_recovery_delegates_terminal_update_without_delivery(
     mocker: MockerFixture,
 ) -> None:
     """Recovery unblocks the schedule without racing the old worker's audit row."""
