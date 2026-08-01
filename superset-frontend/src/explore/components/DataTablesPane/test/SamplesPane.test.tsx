@@ -84,10 +84,14 @@ describe('SamplesPane', () => {
     const props = createSamplesPaneProps({
       datasourceId: 36,
     });
-    const { findByText } = render(<SamplesPane {...props} />, {
+    const { findByText, findByRole } = render(<SamplesPane {...props} />, {
       useRedux: true,
     });
 
+    // The error is now rendered inside an Alert component, with a clear
+    // headline message and the raw error text as the description.
+    expect(await findByRole('alert')).toBeVisible();
+    expect(await findByText('Failed to load samples')).toBeVisible();
     expect(await findByText('Error: Bad request')).toBeVisible();
   });
 
