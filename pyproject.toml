@@ -90,7 +90,7 @@ dependencies = [
     "paramiko>=3.4.0, <4.0", # 4.0 removed DSSKey, still referenced by sshtunnel
     "pgsanity",
     "Pillow>=11.0.0, <13",
-    "polyline>=2.0.0, <3.0",
+    "polyline>=2.0.4, <3.0",
     "pydantic>=2.8.0",
     "pyparsing>=3.3.2, <4",
     "python-dateutil",
