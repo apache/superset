@@ -35,7 +35,8 @@ from superset.utils.oauth2 import decode_oauth2_state, encode_oauth2_state
 @pytest.fixture
 def mock_database(mocker: MockerFixture) -> MagicMock:
     database = mocker.MagicMock(spec=Database)
-    database.backend = "postgresql"
+    database.id = 123
+    database.db_engine_spec.engine = "postgresql"
     database.get_oauth2_config.return_value = {
         "client_id": "test",
         "client_secret": "secret",
@@ -144,13 +145,17 @@ def test_run_logs_token_exchange_failure(
     mock_database: MagicMock,
     mock_parameters: OAuth2ProviderResponseSchema,
 ) -> None:
+    mock_parameters["code"] = "oauth-code-sentinel"
+    mock_database.get_oauth2_config.return_value["client_secret"] = (
+        "client-secret-sentinel"  # noqa: S105
+    )
     mocker.patch.object(
         DatabaseUserOAuth2TokensDAO,
         "get_database",
         return_value=mock_database,
     )
     mock_database.db_engine_spec.get_oauth2_token.side_effect = HTTPError(
-        "token endpoint unavailable"
+        "provider-payload-sentinel"
     )
 
     with (
@@ -163,6 +168,9 @@ def test_run_logs_token_exchange_failure(
         "OAuth2 token exchange failed: database_id=123 engine=postgresql "
         "error_type=HTTPError"
     ) in caplog.messages
+    assert "oauth-code-sentinel" not in caplog.text
+    assert "client-secret-sentinel" not in caplog.text
+    assert "provider-payload-sentinel" not in caplog.text
 
 
 def test_run_existing_token(

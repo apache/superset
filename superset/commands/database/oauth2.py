@@ -74,18 +74,18 @@ class OAuth2StoreTokenCommand(BaseCommand):
                 code_verifier = kv_value.get("code_verifier")
                 KeyValueDAO.delete_entry(KeyValueResource.PKCE_CODE_VERIFIER, tab_uuid)
 
+        engine_spec = self._database.db_engine_spec
         try:
-            token_response = self._database.db_engine_spec.get_oauth2_token(
+            token_response = engine_spec.get_oauth2_token(
                 oauth2_config,
                 self._parameters["code"],
                 code_verifier=code_verifier,
             )
         except Exception as ex:
             logger.error(
-                "OAuth2 token exchange failed: database_id=%s engine=%s "
-                "error_type=%s",
-                self._state["database_id"],
-                self._database.backend,
+                "OAuth2 token exchange failed: database_id=%s engine=%s error_type=%s",
+                self._database.id,
+                engine_spec.engine,
                 type(ex).__name__,
             )
             raise
