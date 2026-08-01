@@ -42,11 +42,11 @@ FIXED_USER_ID = 1234
 FIXED_USERNAME = "admin"
 
 
-def _make_user_subject(user_id: int) -> MagicMock:
+def _make_user_subject(user_id: int, active: bool = True) -> MagicMock:
     """Create a mock user-type Subject with an underlying User."""
     from superset.subjects.types import SubjectType
 
-    user = User(id=user_id, username=str(user_id))
+    user = User(id=user_id, username=str(user_id), active=active)
     subject = MagicMock()
     subject.id = user_id  # deterministic subject ID
     subject.type = SubjectType.USER
@@ -83,12 +83,13 @@ def _make_group_subject(group_id: int) -> MagicMock:
 
 def _get_users(
     params: Optional[Union[int, list[int]]],
+    active: bool = True,
 ) -> Optional[Union[User, list[User]]]:
     if params is None:
         return None
     if isinstance(params, int):
-        return User(id=params, username=str(params))
-    return [User(id=user, username=str(user)) for user in params]
+        return User(id=params, username=str(params), active=active)
+    return [User(id=user, username=str(user), active=active) for user in params]
 
 
 @dataclass
@@ -98,10 +99,14 @@ class EditorSpec:
     user_ids: list[int]
     role_ids: list[int] | None = None
     group_ids: list[int] | None = None
+    # Direct user-type editors that should be built as inactive users
+    inactive_user_ids: list[int] | None = None
 
     def build(self) -> list[MagicMock]:
         editors: list[MagicMock] = []
         editors.extend(_make_user_subject(uid) for uid in self.user_ids)
+        for uid in self.inactive_user_ids or []:
+            editors.append(_make_user_subject(uid, active=False))
         for rid in self.role_ids or []:
             editors.append(_make_role_subject(rid))
         for gid in self.group_ids or []:
@@ -114,6 +119,8 @@ class ModelConfig:
     editors: EditorSpec
     creator: Optional[int] = None
     modifier: Optional[int] = None
+    creator_active: bool = True
+    modifier_active: bool = True
     # Maps user_id → role_ids the user belongs to (for indirect editor resolution)
     user_roles: dict[int, list[int]] = field(default_factory=dict)
     # Maps user_id → group_ids the user belongs to (for indirect editor resolution)
@@ -530,6 +537,105 @@ class ModelType(int, Enum):
             None,
             ExecutorNotFoundError(),
         ),
+        # CREATOR: an inactive creator is skipped (no other executor configured)
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.CREATOR],
+            ModelConfig(
+                editors=EditorSpec(user_ids=[]),
+                creator=3,
+                creator_active=False,
+            ),
+            None,
+            ExecutorNotFoundError(),
+        ),
+        # CREATOR: an inactive creator is skipped, falling through to an active
+        # MODIFIER later in the executor chain.
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.CREATOR, ExecutorType.MODIFIER],
+            ModelConfig(
+                editors=EditorSpec(user_ids=[]),
+                creator=3,
+                creator_active=False,
+                modifier=4,
+            ),
+            None,
+            (ExecutorType.MODIFIER, 4),
+        ),
+        # CREATOR_EDITOR: creator is an editor but inactive → not resolved
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.CREATOR_EDITOR],
+            ModelConfig(
+                editors=EditorSpec(user_ids=[4]),
+                creator=4,
+                creator_active=False,
+            ),
+            None,
+            ExecutorNotFoundError(),
+        ),
+        # MODIFIER_EDITOR: modifier is an editor but inactive → not resolved
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.MODIFIER_EDITOR],
+            ModelConfig(
+                editors=EditorSpec(user_ids=[4]),
+                modifier=4,
+                modifier_active=False,
+            ),
+            None,
+            ExecutorNotFoundError(),
+        ),
+        # EDITOR: creator (the only editor) is inactive, so scheduling falls
+        # through to the still-active direct-user editor instead of failing.
+        # This is the scenario from #33584: the original report creator has
+        # gone inactive but a currently-active owner/editor should still be
+        # usable as the executor.
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.EDITOR],
+            ModelConfig(
+                editors=EditorSpec(user_ids=[2], inactive_user_ids=[3]),
+                creator=3,
+                creator_active=False,
+            ),
+            None,
+            (ExecutorType.EDITOR, 2),
+        ),
+        # EDITOR: both modifier and creator are inactive editors, and the only
+        # direct-user editor is also inactive → falls through to the indirect
+        # (role/group) editor resolution.
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.EDITOR],
+            ModelConfig(
+                editors=EditorSpec(
+                    user_ids=[], inactive_user_ids=[3, 4], role_ids=[10]
+                ),
+                creator=3,
+                creator_active=False,
+                modifier=4,
+                modifier_active=False,
+                user_roles={6: [10]},
+            ),
+            None,
+            (ExecutorType.EDITOR, 6),
+        ),
+        # EDITOR: modifier is an inactive editor, creator is an active editor →
+        # resolves to the creator instead of failing outright.
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.EDITOR],
+            ModelConfig(
+                editors=EditorSpec(user_ids=[3], inactive_user_ids=[4]),
+                creator=3,
+                modifier=4,
+                modifier_active=False,
+            ),
+            None,
+            (ExecutorType.EDITOR, 3),
+        ),
     ],
 )
 def test_get_executor(
@@ -561,8 +667,10 @@ def test_get_executor(
 
     obj = model(
         id=1,
-        created_by=_get_users(model_config.creator),
-        changed_by=_get_users(model_config.modifier),
+        created_by=_get_users(model_config.creator, active=model_config.creator_active),
+        changed_by=_get_users(
+            model_config.modifier, active=model_config.modifier_active
+        ),
         **model_kwargs,
     )
     obj.editors = model_config.editors.build()

@@ -16,24 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { render, screen, fireEvent } from 'spec/helpers/testing-library';
+import DeleteComponentButton from './DeleteComponentButton';
 
-import { StoryFn, Meta } from '@storybook/react-webpack5';
-import DatasetPanel from './DatasetPanel';
-import { exampleColumns } from './fixtures';
+test('exposes an accessible name without rendering visible label text', () => {
+  render(<DeleteComponentButton onDelete={jest.fn()} />);
 
-export default {
-  title: 'Superset App/views/CRUD/data/dataset/DatasetPanel',
-  component: DatasetPanel,
-} as Meta<typeof DatasetPanel>;
+  expect(
+    screen.getByRole('button', { name: 'Delete component' }),
+  ).toBeInTheDocument();
+  expect(screen.queryByText('Delete component')).not.toBeInTheDocument();
+});
 
-export const Basic: StoryFn<typeof DatasetPanel> = args => (
-  <div style={{ height: '350px' }}>
-    <DatasetPanel {...args} />
-  </div>
-);
+test('calls onDelete when clicked', () => {
+  const onDelete = jest.fn();
+  render(<DeleteComponentButton onDelete={onDelete} />);
 
-Basic.args = {
-  tableName: 'example_table',
-  loading: false,
-  columnList: exampleColumns,
-};
+  fireEvent.click(screen.getByRole('button', { name: 'Delete component' }));
+
+  expect(onDelete).toHaveBeenCalledTimes(1);
+});
