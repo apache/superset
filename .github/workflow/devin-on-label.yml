@@ -1,0 +1,43 @@
+name: devin-verify
+
+on:
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Changed Python files
+        id: changed
+        run: |
+          FILES=$(git diff --name-only origin/master...HEAD -- '*.py' | tr '\n' ' ')
+          echo "files=$FILES" >> $GITHUB_OUTPUT
+          echo "Changed: $FILES"
+
+      - name: Install
+        run: |
+          pip install -e ".[development]" || pip install -r requirements/development.txt
+          pip install ruff mypy pytest pytest-timeout
+
+      - name: Lint changed files
+        if: steps.changed.outputs.files != ''
+        run: ruff check ${{ steps.changed.outputs.files }}
+
+      - name: Type-check changed files
+        if: steps.changed.outputs.files != ''
+        continue-on-error: true
+        run: mypy ${{ steps.changed.outputs.files }}
+
+      - name: Unit tests
+        run: pytest tests/unit_tests -x -q --timeout=300
