@@ -58,7 +58,7 @@ import { addColorToFeatures } from '../utils/addColor';
 import { COLOR_SCHEME_TYPES, ColorSchemeType } from '../utilities/utils';
 import layerGenerators from '../layers';
 import fitViewport, { Viewport } from '../utils/fitViewport';
-import { getMapboxApiKey } from '../utils/mapbox';
+import { getMapboxApiKey, getDeckMultiMaxSlices } from '../utils/mapbox';
 import { TooltipProps } from '../components/Tooltip';
 
 import { getPoints as getPointsArc } from '../layers/Arc/Arc';
@@ -175,12 +175,15 @@ const DeckMulti = (props: DeckMultiProps) => {
   // Per-slice error messages for layers that failed to load, so the failure is
   // surfaced in the chart instead of only the browser console.
   const [layerErrors, setLayerErrors] = useState<Record<number, string>>({});
-  // Accumulates each layer's fetched features (keyed by viz_type) so autozoom
-  // can fit the viewport to the combined data. In the v1 path the features are
+  // Accumulates each layer's fetched features (keyed by slice_id, so two
+  // layers sharing a viz_type don't clobber one another) so autozoom can fit
+  // the viewport to the combined data. In the v1 path the features are
   // fetched per layer rather than pre-merged into props.payload, so the initial
   // getAdjustedViewport has nothing to fit to and the viewport is recomputed
   // here as each layer arrives.
-  const layerFeaturesRef = useRef<JsonObject>({});
+  const layerFeaturesRef = useRef<
+    Record<number, { vizType: string; features: JsonObject[] }>
+  >({});
   // Bumped at the start of every loadLayers call. Each in-flight layer fetch
   // captures the generation it was started under; if deck_slices (or the
   // layer-visibility filter) changes again before that fetch resolves, its
@@ -417,9 +420,22 @@ const DeckMulti = (props: DeckMultiProps) => {
             if (formData.autozoom !== false && Array.isArray(layerFeatures)) {
               layerFeaturesRef.current = {
                 ...layerFeaturesRef.current,
-                [vizType]: layerFeatures,
+                [subsliceCopy.slice_id]: { vizType, features: layerFeatures },
               };
-              const points = collectPoints(layerFeaturesRef.current);
+              // Bucket the per-slice features back by viz_type -- concatenating
+              // rather than overwriting -- so collectPoints fits the viewport to
+              // every layer even when several layers share the same viz_type.
+              const bucketedFeatures: JsonObject = {};
+              Object.values(layerFeaturesRef.current).forEach(
+                ({ vizType: bucketVizType, features }) => {
+                  bucketedFeatures[bucketVizType] = [
+                    ...((bucketedFeatures[bucketVizType] as JsonObject[]) ||
+                      []),
+                    ...features,
+                  ];
+                },
+              );
+              const points = collectPoints(bucketedFeatures);
               if (points.length > 0) {
                 const fitted = fitViewport(
                   { ...props.viewport },
@@ -567,22 +583,38 @@ const DeckMulti = (props: DeckMultiProps) => {
     );
 
     if (deckSlicesChanged || visibilityFilterChanged) {
+      const sliceIds = ensureIsArray(formData.deck_slices) as number[];
+      const maxSlices = getDeckMultiMaxSlices();
+      if (sliceIds.length > maxSlices) {
+        // Mirrors the cap the legacy viz.py pipeline enforced server-side:
+        // refuse to fan out a metadata + data request per sub-slice beyond
+        // the configured limit instead of stalling the dashboard/server.
+        fetchGenerationRef.current += 1;
+        setSubSlicesLayers({});
+        setLayerOrder([]);
+        setLayerErrors({
+          [-1]: t(
+            'Too many sub-slices requested. The maximum allowed is ' +
+              '%(max)s, but %(count)s were requested.',
+            { max: maxSlices, count: sliceIds.length },
+          ),
+        });
+        return;
+      }
       // deck_multi issues no query of its own (see buildQuery.ts), so each
       // sub-slice's saved form_data is always fetched client-side here --
       // there is no pre-merged payload to read subslice metadata from.
       fetchGenerationRef.current += 1;
       const { current: fetchGeneration } = fetchGenerationRef;
-      fetchSubslices(ensureIsArray(formData.deck_slices) as number[]).then(
-        slices => {
-          // A newer deck_slices/visibility change already started its own
-          // fetch; let that one (or whichever of them resolves) call
-          // loadLayers instead of this abandoned, possibly slower one.
-          if (fetchGenerationRef.current !== fetchGeneration) {
-            return;
-          }
-          loadLayers(formData, slices, visibleDeckLayersFromRedux);
-        },
-      );
+      fetchSubslices(sliceIds).then(slices => {
+        // A newer deck_slices/visibility change already started its own
+        // fetch; let that one (or whichever of them resolves) call
+        // loadLayers instead of this abandoned, possibly slower one.
+        if (fetchGenerationRef.current !== fetchGeneration) {
+          return;
+        }
+        loadLayers(formData, slices, visibleDeckLayersFromRedux);
+      });
     }
   }, [
     loadLayers,

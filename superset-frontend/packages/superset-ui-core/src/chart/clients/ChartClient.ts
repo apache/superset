@@ -108,17 +108,15 @@ export default class ChartClient {
         (await buildQueryRegistry.get(visType)) ?? (() => formData);
       const requestConfig: RequestConfig = {
         endpoint: '/api/v1/chart/data',
-        jsonPayload: {
-          query_context: buildQuery(formData),
-        },
+        jsonPayload: buildQuery(formData),
         ...options,
       };
 
-      return this.client
-        .post(requestConfig)
-        .then(response =>
-          Array.isArray(response.json) ? response.json : [response.json],
-        );
+      return this.client.post(requestConfig).then(response => {
+        const { result } = response.json as { result?: QueryData[] };
+
+        return Array.isArray(result) ? result : [response.json as QueryData];
+      });
     }
 
     return Promise.reject(new Error(`Unknown chart type: ${visType}`));

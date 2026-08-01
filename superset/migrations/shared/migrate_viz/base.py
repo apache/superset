@@ -45,6 +45,14 @@ class Slice(Base):  # type: ignore
 FORM_DATA_BAK_FIELD_NAME = "form_data_bak"
 QUERIES_BAK_FIELD_NAME = "queries_bak"
 
+# Sentinel wrapper key used only when a stored query_context is missing its
+# "queries" key (an atypical/hand-edited context). It lets downgrade_slice
+# tell "no queries key on the original context" apart from "there was no
+# stored context at all" -- both of which would otherwise back up as a bare
+# `None` -- without changing the shape of a normal, list-valued backup, so
+# backups written by older releases still downgrade the same way.
+FULL_CONTEXT_BAK_KEY = "__query_context_bak__"
+
 
 class MigrateViz:
     remove_keys: set[str] = set()
@@ -164,16 +172,21 @@ class MigrateViz:
             queries_bak = None
 
             if query_context:
-                if "form_data" in query_context:
-                    query_context["form_data"] = clz.data
-
                 # A stored query_context is expected to carry "queries", but
                 # an atypical/malformed one (e.g. hand-edited via the API)
                 # missing it must not raise here: viz_type was already
                 # flipped above, so an uncaught exception at this point
                 # would leave the slice half-migrated (new viz_type, but
-                # stale params/query_context in the old shape).
-                queries_bak = copy.deepcopy(query_context.get("queries"))
+                # stale params/query_context in the old shape). Back up the
+                # whole context in that case so downgrade can restore it
+                # verbatim instead of losing it (see FULL_CONTEXT_BAK_KEY).
+                if "queries" in query_context:
+                    queries_bak = copy.deepcopy(query_context["queries"])
+                else:
+                    queries_bak = {FULL_CONTEXT_BAK_KEY: copy.deepcopy(query_context)}
+
+                if "form_data" in query_context:
+                    query_context["form_data"] = clz.data
 
                 queries = clz._build_query()["queries"]
                 query_context["queries"] = queries
@@ -200,7 +213,16 @@ class MigrateViz:
                 slc.viz_type = form_data_bak.get("viz_type")
                 query_context = try_load_json(slc.query_context)
                 queries_bak = form_data.get(QUERIES_BAK_FIELD_NAME, {})
-                if queries_bak:
+                if (
+                    isinstance(queries_bak, dict)
+                    and FULL_CONTEXT_BAK_KEY in queries_bak
+                ):
+                    # The original context had no "queries" key, so it was
+                    # backed up wholesale on upgrade -- restore it verbatim
+                    # rather than patching "queries" onto the upgraded
+                    # context.
+                    slc.query_context = json.dumps(queries_bak[FULL_CONTEXT_BAK_KEY])
+                elif queries_bak:
                     query_context["queries"] = queries_bak
                     if "form_data" in query_context:
                         query_context["form_data"] = form_data_bak
