@@ -29,14 +29,15 @@ jest.mock('xlsx', () => {
   };
 });
 
-test('preserves locale-formatted numbers exactly as rendered, without SheetJS reinterpreting them', () => {
+// Renders a single-row pivot table with the given cell values, runs the
+// export, and returns the resulting sheet so each test only has to state
+// its input cells and assertions.
+function exportRowAndGetSheet(cells: string[]): WorkBook['Sheets'][string] {
   document.body.innerHTML = `
     <table id="pivot-table">
       <tbody>
         <tr>
-          <td>1.234,56</td>
-          <td>12,50%</td>
-          <td>3.500</td>
+          ${cells.map(cell => `<td>${cell}</td>`).join('\n          ')}
         </tr>
       </tbody>
     </table>
@@ -44,9 +45,14 @@ test('preserves locale-formatted numbers exactly as rendered, without SheetJS re
 
   exportPivotExcel('#pivot-table', 'export');
 
+  const workbook = mockWriteFile.mock.calls.at(-1)?.[0] as WorkBook;
+  return workbook.Sheets[workbook.SheetNames[0]];
+}
+
+test('preserves locale-formatted numbers exactly as rendered, without SheetJS reinterpreting them', () => {
+  const sheet = exportRowAndGetSheet(['1.234,56', '12,50%', '3.500']);
+
   expect(mockWriteFile).toHaveBeenCalledTimes(1);
-  const workbook = mockWriteFile.mock.calls[0][0] as WorkBook;
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
   // These are Spanish-locale D3_FORMAT strings ("." as thousands separator,
   // "," as decimal separator). Each must survive the export untouched, as a
@@ -59,23 +65,7 @@ test('preserves locale-formatted numbers exactly as rendered, without SheetJS re
 });
 
 test('restores unambiguous plain numbers to native Excel numeric cells', () => {
-  document.body.innerHTML = `
-    <table id="pivot-table">
-      <tbody>
-        <tr>
-          <td>42</td>
-          <td>-3.5</td>
-          <td>3.500</td>
-          <td>1,234</td>
-        </tr>
-      </tbody>
-    </table>
-  `;
-
-  exportPivotExcel('#pivot-table', 'export');
-
-  const workbook = mockWriteFile.mock.calls.at(-1)?.[0] as WorkBook;
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const sheet = exportRowAndGetSheet(['42', '-3.5', '3.500', '1,234']);
 
   // "42" and "-3.5" round-trip exactly through Number(), so they're
   // unambiguous under any locale and are restored to real numbers.
@@ -88,22 +78,11 @@ test('restores unambiguous plain numbers to native Excel numeric cells', () => {
 });
 
 test('restores unambiguous ISO date/datetime strings to native Excel date cells', () => {
-  document.body.innerHTML = `
-    <table id="pivot-table">
-      <tbody>
-        <tr>
-          <td>2024-01-01</td>
-          <td>2024-01-01 13:45:30</td>
-          <td>not-a-date</td>
-        </tr>
-      </tbody>
-    </table>
-  `;
-
-  exportPivotExcel('#pivot-table', 'export');
-
-  const workbook = mockWriteFile.mock.calls.at(-1)?.[0] as WorkBook;
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const sheet = exportRowAndGetSheet([
+    '2024-01-01',
+    '2024-01-01 13:45:30',
+    'not-a-date',
+  ]);
 
   // ISO 8601 date/datetime strings are unambiguous under any locale, so
   // they're restored to native Excel date cells rather than left as text.
@@ -118,22 +97,11 @@ test('restores unambiguous ISO date/datetime strings to native Excel date cells'
 });
 
 test('leaves ISO-shaped strings with out-of-range time components as text', () => {
-  document.body.innerHTML = `
-    <table id="pivot-table">
-      <tbody>
-        <tr>
-          <td>2024-01-01 13:60:30</td>
-          <td>2024-01-01 24:00:00</td>
-          <td>2024-01-01 12:30:61</td>
-        </tr>
-      </tbody>
-    </table>
-  `;
-
-  exportPivotExcel('#pivot-table', 'export');
-
-  const workbook = mockWriteFile.mock.calls.at(-1)?.[0] as WorkBook;
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const sheet = exportRowAndGetSheet([
+    '2024-01-01 13:60:30',
+    '2024-01-01 24:00:00',
+    '2024-01-01 12:30:61',
+  ]);
 
   // The Date constructor rolls an out-of-range minute/hour/second over into
   // the next unit (e.g. 13:60:30 becomes 14:00:30) instead of rejecting it.
