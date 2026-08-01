@@ -507,6 +507,20 @@ class ImportExportMixin(UUIDMixin):
             obj_query = db.session.query(cls).filter(and_(*filters))
             obj = obj_query.one_or_none()
         except MultipleResultsFound:
+            # Now that children carry a ``uuid``, this match is a disjunction
+            # (name-match OR uuid-match), so a payload child can match one DB row
+            # by name and a different one by uuid — e.g. metrics renamed/swapped
+            # in the UI, then an older export re-imported with overwrite.
+            #
+            # That stays a hard error on purpose. Resolving it by preferring the
+            # uuid match would rename the uuid-matched row while the name-matched
+            # row still holds that name, trading this clear failure for an opaque
+            # ``UNIQUE constraint failed: (table_id, <name>)`` at the next flush.
+            # Callers own the recovery contract instead — see the legacy
+            # NULL-schema handling in
+            # ``superset/commands/dataset/importers/v1/utils.py`` (including its
+            # ``deleted_at`` rollback) and the ``continue`` in
+            # ``superset/commands/importers/v1/examples.py`` (issue #16051).
             logger.error(
                 "Error importing %s \n %s \n %s",
                 cls.__name__,
@@ -516,23 +530,32 @@ class ImportExportMixin(UUIDMixin):
             )
             raise
 
+        # A child ``uuid`` is globally unique, but the match above is scoped to
+        # this ``parent`` (and also matches on name). Importing a config as a
+        # clone — e.g. a dataset re-imported under an edited uuid while the
+        # original still exists — can leave the incoming child uuid owned by a
+        # different row. Writing it, whether on INSERT (new obj) or on an
+        # overwrite UPDATE (obj matched by name), would violate the ``uuid``
+        # unique constraint at flush. Drop the incoming uuid whenever it belongs
+        # to some other row so ``UUIDMixin`` keeps/assigns a distinct one,
+        # reverting to the pre-uuid-export behavior for that clone.
+        if parent is not None and "uuid" in dict_rep:
+            if dict_rep["uuid"] is None:
+                # The child import schemas accept ``uuid: null``. On the
+                # overwrite UPDATE that would write a literal NULL over an
+                # existing child's uuid — silently, since the column is nullable
+                # and ``unique`` permits repeated NULLs — leaving a child no
+                # folder can reference and no export can round-trip.
+                del dict_rep["uuid"]
+            else:
+                uuid_owner = (
+                    db.session.query(cls).filter(cls.uuid == dict_rep["uuid"]).first()
+                )
+                if uuid_owner is not None and uuid_owner is not obj:
+                    del dict_rep["uuid"]
+
         if not obj:
             is_new_obj = True
-            # A child ``uuid`` is globally unique, but the match above is scoped
-            # to this ``parent``. Cloning a config into a new parent (e.g.
-            # importing a dataset under an edited uuid while the original still
-            # exists) would treat an unchanged child uuid as new here and hit
-            # the ``uuid`` unique constraint on INSERT. Drop the incoming uuid
-            # so ``UUIDMixin`` assigns a fresh one, reverting to the
-            # pre-uuid-export behavior for that clone.
-            if (
-                parent is not None
-                and dict_rep.get("uuid") is not None
-                and db.session.query(cls.uuid)
-                .filter(cls.uuid == dict_rep["uuid"])
-                .first()
-            ):
-                del dict_rep["uuid"]
             # Create new DB object
             obj = cls(**dict_rep)
             logger.debug("Importing new %s %s", obj.__tablename__, str(obj))

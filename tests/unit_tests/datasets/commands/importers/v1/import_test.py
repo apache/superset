@@ -348,8 +348,9 @@ def test_export_import_round_trip_preserves_metric_folder_membership(
     imported_column = next(c for c in imported.columns if c.column_name == "profit")
     assert imported_column.uuid == column_uuid
 
-    # The whole folder structure round-trips, and its metric/column leaves point
-    # at UUIDs that exist among the imported children.
+    # The folders JSON is stored verbatim (it round-trips with or without the
+    # fix); the uuid assertions above are the real gate that its leaves still
+    # resolve to the imported children. This just documents the expected shape.
     assert imported.folders == [
         {
             "uuid": str(folder_uuid),
@@ -421,6 +422,118 @@ def test_import_dataset_clone_with_duplicate_child_uuid_gets_fresh_uuid(
     assert str(clone.columns[0].uuid) != column_uuid
     assert str(original.metrics[0].uuid) == metric_uuid
     assert str(original.columns[0].uuid) == column_uuid
+
+
+def test_import_dataset_clone_overwrite_reimport_keeps_fresh_child_uuid(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Overwriting a cloned dataset with its own bundle must not resurrect the
+    original's child UUIDs.
+
+    On the overwrite path children sync with ``sync=["columns", "metrics"]`` and
+    are matched within the parent by name, so re-importing the clone bundle
+    (which still carries the original's metric/column UUIDs) would otherwise
+    ``setattr`` those UUIDs onto the clone's children and violate the global
+    unique constraint at flush. The importer drops any incoming child UUID owned
+    by a different row on the UPDATE branch too, so the overwrite succeeds and
+    the clone's children keep the fresh UUIDs assigned on first import.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    metric_uuid = "00000000-0000-0000-0000-0000000000d6"
+    column_uuid = "00000000-0000-0000-0000-0000000000e7"
+    config = {
+        "table_name": "my_table",
+        "uuid": str(uuid.uuid4()),
+        "metrics": [
+            {"metric_name": "cnt", "expression": "COUNT(*)", "uuid": metric_uuid},
+        ],
+        "columns": [
+            {"column_name": "profit", "type": "INTEGER", "uuid": column_uuid},
+        ],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    original = import_dataset(copy.deepcopy(config))
+
+    # Clone under a new dataset UUID and name; its children get fresh UUIDs
+    # because the originals still exist.
+    clone_config = copy.deepcopy(config)
+    clone_config["table_name"] = "my_table_clone"
+    clone_config["uuid"] = str(uuid.uuid4())
+    clone = import_dataset(copy.deepcopy(clone_config))
+    fresh_metric_uuid = str(clone.metrics[0].uuid)
+    fresh_column_uuid = str(clone.columns[0].uuid)
+    assert fresh_metric_uuid != metric_uuid
+    assert fresh_column_uuid != column_uuid
+
+    # Re-import the same clone bundle with overwrite=True. The children match by
+    # (table_id, name), and the bundle still carries the original's UUIDs; the
+    # guard must keep this from writing them onto the clone's children.
+    reimported = import_dataset(copy.deepcopy(clone_config), overwrite=True)
+
+    assert reimported.id == clone.id
+    assert [m.metric_name for m in reimported.metrics] == ["cnt"]
+    assert [c.column_name for c in reimported.columns] == ["profit"]
+    # The clone keeps its fresh child UUIDs and the original is untouched.
+    assert str(reimported.metrics[0].uuid) == fresh_metric_uuid
+    assert str(reimported.columns[0].uuid) == fresh_column_uuid
+    assert str(original.metrics[0].uuid) == metric_uuid
+    assert str(original.columns[0].uuid) == column_uuid
+
+
+def test_import_dataset_null_child_uuid_keeps_existing(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    An explicit ``uuid: null`` must not wipe an existing child's UUID.
+
+    The child import schemas accept ``uuid=None``. Without the guard the
+    overwrite path would ``setattr`` that ``None`` onto the matched child and
+    persist a literal NULL — the column is nullable and ``unique`` permits
+    repeated NULLs, so it would fail silently and orphan every folder leaf
+    pointing at that child.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    metric_uuid = "00000000-0000-0000-0000-0000000000f8"
+    config: dict[str, Any] = {
+        "table_name": "my_table",
+        "uuid": str(uuid.uuid4()),
+        "metrics": [
+            {"metric_name": "cnt", "expression": "COUNT(*)", "uuid": metric_uuid},
+        ],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+    dataset = import_dataset(copy.deepcopy(config))
+    assert str(dataset.metrics[0].uuid) == metric_uuid
+
+    # Re-import the same bundle with the child uuid explicitly nulled.
+    nulled = copy.deepcopy(config)
+    nulled["metrics"][0]["uuid"] = None
+    reimported = import_dataset(nulled, overwrite=True)
+
+    assert reimported.id == dataset.id
+    assert reimported.metrics[0].uuid is not None
+    assert str(reimported.metrics[0].uuid) == metric_uuid
 
 
 def test_import_dataset_no_folder(mocker: MockerFixture, session: Session) -> None:
