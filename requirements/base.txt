@@ -86,7 +86,7 @@ colorama==0.4.6
     #   flask-appbuilder
 cron-descriptor==1.4.5
     # via apache-superset (pyproject.toml)
-croniter==6.2.2
+croniter==6.2.4
     # via apache-superset (pyproject.toml)
 cryptography==49.0.0
     # via
