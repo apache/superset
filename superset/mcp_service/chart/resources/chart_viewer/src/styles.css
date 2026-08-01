@@ -440,6 +440,18 @@ body {
 .sv-bignum-spark {
   height: 64px;
   margin-top: 10px;
+  /* Belt and braces: even if the chart mis-sizes, it cannot paint over the
+     insight and diagnostics rows that follow it. */
+  overflow: hidden;
+}
+
+/* `.sv-echart` carries `min-height: 220px`, which is right for a primary chart
+   view and wrong here: min-height wins over the parent's `height`, so the
+   sparkline's canvas could not shrink into its 64px slot and overflowed by
+   ~156px onto the rows below. Scope the floor away for this one use. */
+.sv-bignum-spark > .sv-echart {
+  min-height: 0;
+  height: 100%;
 }
 
 /* ---- Table ---- */

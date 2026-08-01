@@ -378,3 +378,28 @@ it('always offers "Show CSV", the one export that needs no host support', async 
   expect(labels).toContain('Download CSV');
   expect(labels).toContain('Show CSV');
 });
+
+// ---- Open in Superset ----------------------------------------------------
+
+it('renders the explore URL as selectable text when it cannot be opened', async () => {
+  // Observed on a real host: window.open blocked, ui/open-link unanswered,
+  // AND navigator.clipboard.writeText rejected (cross-origin sandboxed iframe
+  // with no clipboard-write grant). Every automatic route failed and the
+  // clipboard was verified empty afterwards, so the URL has to end up on
+  // screen — a toast that disappears is not a way to hand over a link.
+  initialize.mockResolvedValue({
+    ...CONNECTED_HANDSHAKE,
+    chartData: { ...WRAPPED, explore_url: 'https://superset.example/explore/?slice_id=113' },
+  });
+  await renderApp();
+  const open = Array.from(container!.querySelectorAll('button')).find((b) =>
+    (b.textContent ?? '').includes('Superset'),
+  ) as HTMLButtonElement;
+  expect(open).toBeTruthy();
+  await act(async () => {
+    open.click();
+  });
+  const panel = container!.querySelector('.sv-panel-text');
+  expect(panel).not.toBeNull();
+  expect(panel!.textContent).toContain('slice_id=113');
+});

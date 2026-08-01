@@ -432,25 +432,20 @@ export function App(): JSX.Element {
       // The host acknowledged the request. Whether it actually opened a window
       // is not observable from in here, so say what we know rather than
       // nothing — a silent no-op is indistinguishable from a dead button.
-      showToast('Opening in Superset…');
+      showToast('Opening in Superset\u2026');
       return;
     }
-    // Neither the host nor a direct window.open could take us there (a
-    // sandboxed iframe with no popup permission). Hand over the URL rather
-    // than letting the click do nothing.
-    let copied = false;
-    try {
-      await navigator.clipboard?.writeText(exploreUrl);
-      copied = true;
-    } catch {
-      copied = false;
-    }
-    showToast(
-      copied
-        ? 'Could not open it here — link copied to your clipboard.'
-        : `Open in Superset: ${exploreUrl}`,
-      copied ? 2600 : 8000,
-    );
+    // Neither the host nor a direct window.open could take us there. Attempt
+    // the clipboard, but do not depend on it: a cross-origin sandboxed iframe
+    // without clipboard-write rejects writeText, and observed hosts do reject
+    // it. Either way the URL is rendered as selectable text — a toast that
+    // disappears after a few seconds is not a way to hand someone a link they
+    // still have to click.
+    const copied = await copyText(exploreUrl);
+    setCopyPanel({
+      title: copied ? 'Link copied \u2014 Open in Superset' : 'Open in Superset',
+      text: exploreUrl,
+    });
   }, [exploreUrl, showToast]);
 
   // ---- Export -------------------------------------------------------------
