@@ -538,13 +538,12 @@ def refresh_cached_slack_channels_with_search(
     types: Optional[list[SlackChannelTypes]] = None,
     exact_match: bool = False,
 ) -> list[SlackChannel]:
-    """Refresh stale channels with a best-effort cache-backend cooldown.
+    """Refresh stale channels with a best-effort atomic cache claim.
 
-    External cache backends record a cooldown only after the refreshed listing
-    is stored successfully. Disabled and metastore-backed caches use an uncached
-    request without a cooldown because metastore writes commit the report
-    transaction. Concurrent workers can still refresh in parallel when the
-    backend cannot provide transaction-safe coordination.
+    External cache backends atomically claim the refresh cooldown before listing
+    channels. A failed listing or cache write releases that claim. Disabled and
+    metastore-backed caches use an uncached request without a claim because
+    metastore writes commit the report transaction.
     """
     team_id = get_team_id()
     cache_key = _get_slack_channels_cache_key(team_id)
@@ -563,17 +562,40 @@ def refresh_cached_slack_channels_with_search(
             cache=False,
         )
 
+    cooldown_timeout = app.config.get(
+        "SLACK_CHANNEL_REFRESH_COOLDOWN_SECONDS",
+        300,
+    )
+    claim_recorded = False
+    should_refresh = True
     try:
-        refresh_is_recent = cache_manager.cache.get(cooldown_key) is not None
+        claim_recorded = (
+            cache_manager.cache.add(
+                cooldown_key,
+                True,
+                timeout=cooldown_timeout,
+            )
+            is not False
+        )
+        should_refresh = claim_recorded
     except Exception:  # pylint: disable=broad-exception-caught
-        refresh_is_recent = False
         logger.warning(
-            "Could not read Slack channel refresh cooldown; refreshing from Slack",
+            "Could not claim Slack channel refresh cooldown; refreshing from Slack",
             exc_info=True,
         )
 
-    if refresh_is_recent:
-        channels, _ = _get_channels_with_cache_status()
+    if not should_refresh:
+        try:
+            cached_channels = cache_manager.cache.get(cache_key)
+        except Exception:  # pylint: disable=broad-exception-caught
+            cached_channels = None
+            logger.warning(
+                "Could not read Slack channels after another worker claimed refresh",
+                exc_info=True,
+            )
+        channels: list[SlackChannel] = (
+            cached_channels if isinstance(cached_channels, list) else []
+        )
         return _filter_slack_channels(
             channels,
             search_string=search_string,
@@ -581,47 +603,44 @@ def refresh_cached_slack_channels_with_search(
             exact_match=exact_match,
         )
 
-    refreshed_channels = get_channels_with_search(
-        force=True,
-        cache=False,
-    )
+    keep_claim = False
     try:
-        cache_updated = (
-            cache_manager.cache.set(
-                cache_key,
-                refreshed_channels,
-                timeout=cache_timeout,
+        refreshed_channels = get_channels_with_search(
+            force=True,
+            cache=False,
+        )
+        try:
+            cache_updated = (
+                cache_manager.cache.set(
+                    cache_key,
+                    refreshed_channels,
+                    timeout=cache_timeout,
+                )
+                is not False
             )
-            is not False
-        )
-    except Exception:  # pylint: disable=broad-exception-caught
-        cache_updated = False
-        logger.warning(
-            "Could not cache refreshed Slack channels",
-            exc_info=True,
-        )
+        except Exception:  # pylint: disable=broad-exception-caught
+            cache_updated = False
+            logger.warning(
+                "Could not cache refreshed Slack channels",
+                exc_info=True,
+            )
 
-    channels = _filter_slack_channels(
-        refreshed_channels,
-        search_string=search_string,
-        types=types,
-        exact_match=exact_match,
-    )
-    if not cache_updated:
-        return channels
-
-    try:
-        cache_manager.cache.set(
-            cooldown_key,
-            True,
-            timeout=app.config.get("SLACK_CHANNEL_REFRESH_COOLDOWN_SECONDS", 300),
+        keep_claim = cache_updated
+        return _filter_slack_channels(
+            refreshed_channels,
+            search_string=search_string,
+            types=types,
+            exact_match=exact_match,
         )
-    except Exception:  # pylint: disable=broad-exception-caught
-        logger.warning(
-            "Could not record Slack channel refresh cooldown",
-            exc_info=True,
-        )
-    return channels
+    finally:
+        if not keep_claim:
+            try:
+                cache_manager.cache.delete(cooldown_key)
+            except Exception:  # pylint: disable=broad-exception-caught
+                logger.warning(
+                    "Could not release Slack channel refresh cooldown",
+                    exc_info=True,
+                )
 
 
 _SCOPE_MISSING_ERROR_CODES = frozenset(

@@ -70,6 +70,26 @@ class SlackV1UpgradeCoordinator:
             None
         )
         self._fallback_recorded = False
+        self._upgraded_recipient_state: list[
+            tuple[ReportRecipients, ReportRecipientType, str]
+        ] = []
+
+    def is_upgraded_recipient(self, recipient: ReportRecipients) -> bool:
+        """Return whether this execution converted the recipient to Slack v2."""
+        return any(
+            upgraded is recipient for upgraded, _, _ in self._upgraded_recipient_state
+        )
+
+    def restore_upgraded_recipients(self) -> None:
+        """Restore recipients when an upgraded Slack delivery does not complete."""
+        for (
+            recipient,
+            recipient_type,
+            recipient_config_json,
+        ) in self._upgraded_recipient_state:
+            recipient.type = recipient_type
+            recipient.recipient_config_json = recipient_config_json
+        self._upgraded_recipient_state = []
 
     def update_recipients(self) -> None:
         """Resolve and atomically convert every Slack v1 recipient to Slack v2."""
@@ -124,6 +144,10 @@ class SlackV1UpgradeCoordinator:
             logger.exception(message)
             raise UpdateFailedError(message) from ex
 
+        self._upgraded_recipient_state = [
+            (recipient, recipient.type, recipient.recipient_config_json)
+            for recipient, _ in resolved
+        ]
         for recipient, recipient_config_json in resolved:
             recipient.type = ReportRecipientType.SLACKV2
             recipient.recipient_config_json = recipient_config_json

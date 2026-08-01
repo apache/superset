@@ -1075,6 +1075,7 @@ class BaseReportState:
         :raises: CommandException
         """
         notification_errors: list[SupersetError] = []
+        upgraded_delivery_failed = False
         self._slack_v1_upgrade.reset()
         for recipient in recipients:
             try:
@@ -1085,6 +1086,10 @@ class BaseReportState:
                 NotificationError,
                 SupersetException,
             ) as ex:
+                upgraded_delivery_failed = (
+                    upgraded_delivery_failed
+                    or self._slack_v1_upgrade.is_upgraded_recipient(recipient)
+                )
                 # collect errors but keep processing them
                 notification_errors.append(
                     SupersetError(
@@ -1095,6 +1100,12 @@ class BaseReportState:
                         ),
                     )
                 )
+            except Exception:
+                if self._slack_v1_upgrade.is_upgraded_recipient(recipient):
+                    self._slack_v1_upgrade.restore_upgraded_recipients()
+                raise
+        if upgraded_delivery_failed:
+            self._slack_v1_upgrade.restore_upgraded_recipients()
         if notification_errors:
             # log all errors but raise based on the most severe
             for error in notification_errors:
