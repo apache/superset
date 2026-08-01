@@ -769,6 +769,7 @@ class WebDriverPlaywright(WebDriverProxy):
                             log_context=log_context,
                             report_execution_context=report_execution_context,
                             url=url,
+                            screenshot_started_at=screenshot_started_at,
                         )
                         if not img:
                             # _get_screenshot() has no wait/readiness logic at

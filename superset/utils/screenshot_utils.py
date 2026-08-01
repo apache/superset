@@ -302,6 +302,7 @@ def take_tiled_screenshot(  # noqa: C901
     log_context: str | None = None,
     report_execution_context: ReportExecutionContext | None = None,
     url: str | None = None,
+    screenshot_started_at: float | None = None,
 ) -> bytes | None:
     """
     Take a tiled screenshot of a large dashboard by scrolling and capturing sections.
@@ -318,6 +319,12 @@ def take_tiled_screenshot(  # noqa: C901
         report_execution_context: Shared report identifiers, phase reserves,
             and end-to-end deadline. Thumbnail callers leave this unset.
         url: Dashboard URL included in structured capture logs.
+        screenshot_started_at: Optional time.monotonic() timestamp taken at
+            the start of the overall screenshot operation (before browser
+            navigation), so pre-capture time counts against the non-report
+            task budget -- the same clock _wait_for_charts_ready uses.
+            Ignored when a report_execution_context provides its own
+            deadline; falls back to "now" when omitted.
 
     Returns:
         Combined screenshot bytes or None if failed
@@ -341,7 +348,8 @@ def take_tiled_screenshot(  # noqa: C901
     # match `except PlaywrightTimeout` and incorrectly propagate instead of
     # degrading to `None` like every other unexpected error in this function.
     readiness_timeout = False
-    screenshot_started_at = time.monotonic()
+    if screenshot_started_at is None:
+        screenshot_started_at = time.monotonic()
     task_budget = (
         None
         if report_execution_context
