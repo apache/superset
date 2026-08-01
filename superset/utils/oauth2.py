@@ -164,8 +164,8 @@ def refresh_oauth2_token(
         except db_engine_spec.oauth2_exception as ex:
             # OAuth token is no longer valid, delete it and start OAuth2 dance
             logger.warning(
-                "OAuth2 token refresh failed: database_id=%s engine=%s "
-                "error_type=%s; deleting token",
+                "OAuth2 token refresh failed: database_id=%s engine=%s error_type=%s; "
+                "deleting token",
                 database_id,
                 db_engine_spec.engine,
                 type(ex).__name__,
@@ -176,8 +176,7 @@ def refresh_oauth2_token(
         except Exception as ex:
             # Non-OAuth failure: preserve the token and log structured context
             logger.error(
-                "OAuth2 token refresh failed: database_id=%s engine=%s "
-                "error_type=%s",
+                "OAuth2 token refresh failed: database_id=%s engine=%s error_type=%s",
                 database_id,
                 db_engine_spec.engine,
                 type(ex).__name__,
