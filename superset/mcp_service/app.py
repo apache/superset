@@ -704,6 +704,27 @@ def create_mcp_app(
     # Log instance creation
     _log_instance_creation(name, auth, include_tags, exclude_tags)
 
+    # Install per-tool-call session scoping for callers that serve the app
+    # straight from the factory. init_fastmcp_server() and run_server()
+    # install it as well, but a deployment that only calls create_mcp_app()
+    # would otherwise keep the greenlet-scoped default and re-introduce the
+    # shared-session race between concurrent tool calls (#42622).
+    # The import stays lazy because this function also runs at module
+    # import time (``mcp = create_mcp_app()`` below), where
+    # superset.extensions can still be mid-initialization; in that case the
+    # server entry points install the scopefunc deterministically later.
+    try:
+        from superset.mcp_service.session_scope import (  # noqa: PLC0415
+            install_mcp_session_scoping,
+        )
+
+        install_mcp_session_scoping()
+    except ImportError:
+        logger.debug(
+            "superset.extensions not fully initialized during create_mcp_app(); "
+            "MCP session scoping deferred to the server entry point"
+        )
+
     return mcp_instance
 
 

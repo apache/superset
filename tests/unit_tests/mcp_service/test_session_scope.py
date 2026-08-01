@@ -146,6 +146,28 @@ async def test_shared_session_teardown_breaks_other_call_without_fix(
         registry.scopefunc = original
 
 
+def test_create_mcp_app_installs_session_scoping() -> None:
+    """Direct factory callers get per-call scoping without a server entry point.
+
+    Deployments that serve the app straight from ``create_mcp_app()`` never
+    pass through ``init_fastmcp_server()`` or ``run_server()``; the factory
+    itself must swap the scopefunc or concurrent tool calls share one
+    greenlet-scoped session again.
+    """
+    import greenlet
+
+    from superset.mcp_service.app import create_mcp_app
+
+    registry = db.session.registry
+    original_scopefunc = registry.scopefunc
+    try:
+        registry.scopefunc = greenlet.getcurrent
+        create_mcp_app(name="scoping-test")
+        assert registry.scopefunc is mcp_session_scopefunc
+    finally:
+        registry.scopefunc = original_scopefunc
+
+
 @pytest.mark.asyncio
 async def test_nested_tool_calls_keep_separate_sessions(mcp_scoping: Any) -> None:
     """A nested tool-call context gets its own session and its teardown does
