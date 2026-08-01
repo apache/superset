@@ -22,7 +22,7 @@ included in the notifications delivered for that schedule. The column defaults t
 true and NULL is treated as true, so existing schedules keep the link.
 
 Revision ID: 2d6ad72e4af6
-Revises: e5f6a7b8c9d0
+Revises: f3a8c1d2e9b7
 Create Date: 2026-07-28 10:00:00.000000
 
 """
@@ -33,7 +33,7 @@ from superset.migrations.shared.utils import add_columns, drop_columns
 
 # revision identifiers, used by Alembic.
 revision = "2d6ad72e4af6"
-down_revision = "e5f6a7b8c9d0"
+down_revision = "f3a8c1d2e9b7"
 
 
 def upgrade() -> None:
