@@ -1310,8 +1310,8 @@ class WebDriverSelenium(WebDriverProxy):
                             holder.get("state") in ready_states
                             for holder in holder_states
                         ),
-                        (f"{deadline.elapsed_seconds:.2f}" if deadline else None),
-                        (f"{deadline.remaining_seconds:.2f}" if deadline else None),
+                        f"{deadline.elapsed_seconds:.2f}",
+                        f"{deadline.remaining_seconds:.2f}",
                         f" [{log_context}]" if log_context else "",
                     )
                 except TimeoutException:
@@ -1342,8 +1342,8 @@ class WebDriverSelenium(WebDriverProxy):
                         report_execution_context.expected_chart_count,
                         len(holder_states),
                         ready_holders,
-                        (f"{deadline.elapsed_seconds:.2f}" if deadline else None),
-                        (f"{deadline.remaining_seconds:.2f}" if deadline else None),
+                        f"{deadline.elapsed_seconds:.2f}",
+                        f"{deadline.remaining_seconds:.2f}",
                         readiness_timeout,
                         f" [{log_context}]" if log_context else "",
                         holder_states,

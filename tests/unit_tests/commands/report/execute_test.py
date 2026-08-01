@@ -16,6 +16,7 @@
 # under the License.
 
 import json  # noqa: TID251
+import time
 from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
@@ -43,6 +44,7 @@ from superset.commands.report.exceptions import (
 )
 from superset.commands.report.execute import (
     BaseReportState,
+    log_report_delivery_phase,
     persist_owned_report_execution_terminal_error,
     ReportNotTriggeredErrorState,
     ReportScheduleStateMachine,
@@ -2730,6 +2732,88 @@ def test_terminal_persistence_retry_promotes_owned_working_execution(
     )
     assert schedule.last_state == ReportState.ERROR
     mock_db.session.commit.assert_called_once()
+
+
+def test_terminal_persistence_retry_survives_database_failure(
+    mocker: MockerFixture,
+) -> None:
+    """The last-resort retry must swallow its own DB failure: roll back, log,
+    and return False so the report's original exception is never masked."""
+    execution_id = UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524")
+    mock_db = mocker.patch("superset.commands.report.execute.db")
+    mock_logger = mocker.patch("superset.commands.report.execute.logger")
+    mock_db.session.query.side_effect = Exception("database connection lost")
+
+    assert not persist_owned_report_execution_terminal_error(
+        11,
+        execution_id,
+        "boom",
+        "ReportScheduleWorkingTimeoutError",
+    )
+
+    # One pre-emptive rollback on entry, one in the exception handler.
+    assert mock_db.session.rollback.call_count == 2
+    mock_db.session.commit.assert_not_called()
+    assert any(
+        "terminal_persistence_retry_failed" in call.args[0]
+        for call in mock_logger.exception.call_args_list
+    )
+
+
+def _exhausted_report_context(execution_id: UUID) -> ReportExecutionContext:
+    return ReportExecutionContext(
+        execution_id=execution_id,
+        report_schedule_id=11,
+        deadline=ReportExecutionDeadline(
+            total_seconds=0.01,
+            started_at=time.monotonic() - 10,
+        ),
+    )
+
+
+def test_delivery_phase_gate_noops_without_report_context(
+    mocker: MockerFixture,
+) -> None:
+    mock_logger = mocker.patch("superset.commands.report.execute.logger")
+
+    log_report_delivery_phase(None, None, "start", enforce_budget=True)
+
+    mock_logger.info.assert_not_called()
+
+
+def test_delivery_phase_gate_raises_when_budget_exhausted(
+    mocker: MockerFixture,
+) -> None:
+    execution_id = UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524")
+
+    with pytest.raises(ReportExecutionBudgetExceededError):
+        log_report_delivery_phase(
+            _exhausted_report_context(execution_id),
+            None,
+            "start",
+            enforce_budget=True,
+        )
+
+
+def test_delivery_phase_logging_without_enforcement_does_not_raise(
+    mocker: MockerFixture,
+) -> None:
+    """enforce_budget=False is the post-send log call: it must record the
+    phase even when the budget is exhausted, not raise mid-notification."""
+    execution_id = UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524")
+    mock_logger = mocker.patch("superset.commands.report.execute.logger")
+
+    log_report_delivery_phase(
+        _exhausted_report_context(execution_id),
+        None,
+        "sent",
+        enforce_budget=False,
+    )
+
+    assert any(
+        call.args and call.args[0].startswith("report_delivery_")
+        for call in mock_logger.info.call_args_list
+    )
 
 
 def test_terminal_persistence_retry_does_not_overwrite_newer_execution(
