@@ -20,8 +20,10 @@ import React, { useEffect, useRef } from 'react';
 import { Flex, Image, Spin, Tag, Typography } from 'antd';
 import { PaperClipOutlined } from '@ant-design/icons';
 import { theme, translation } from '@apache-superset/core';
+import { referenceKey } from '../utils/entityRef';
 import type { DisplayItem, FoldSignal } from '../types';
 import AssistantMessage from './AssistantMessage';
+import ReferenceTag from './ReferenceTag';
 import ToolCallCard from './ToolCallCard';
 
 const { t } = translation;
@@ -69,6 +71,25 @@ function MessageBubble({
           overflowWrap: 'break-word',
         }}
       >
+        {item.references?.length ? (
+          // Above the question, as they were in the composer when it was
+          // asked, and linked so the object is one click away
+          <Flex
+            wrap
+            gap={theme.marginXXS}
+            style={{ marginBottom: theme.marginXXS }}
+            data-test="chat-message-references"
+          >
+            {item.references.map(reference => (
+              <ReferenceTag
+                key={referenceKey(reference)}
+                reference={reference}
+                linked
+                data-test="chat-message-reference"
+              />
+            ))}
+          </Flex>
+        ) : null}
         <Typography.Text style={{ color: 'inherit' }}>
           {item.content}
         </Typography.Text>

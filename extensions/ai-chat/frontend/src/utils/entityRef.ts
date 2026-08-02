@@ -96,6 +96,27 @@ export function parseEntityUrl(raw: string): ResourceContext | null {
   return null;
 }
 
+/**
+ * Where a reference points, in the same form Superset's own models build, so
+ * a tag in the transcript opens what the user dropped. Kept as a path so the
+ * link can only lead back into this instance.
+ *
+ * `parseEntityUrl` reads these back, which is what the round-trip test pins:
+ * a reference that could be attached is a reference that can be opened.
+ */
+export function entityHref(reference: ResourceContext): string {
+  const id = encodeURIComponent(reference.id_or_slug);
+  switch (reference.kind) {
+    case 'dashboard':
+      return `/dashboard/${id}/`;
+    case 'chart':
+      return `/explore/?slice_id=${id}`;
+    // Only table datasources are ever parsed into a reference.
+    default:
+      return `/explore/?datasource_type=table&datasource_id=${id}`;
+  }
+}
+
 /** The URL text a drop carries, in the order browsers prefer. */
 export function droppedText(transfer: DataTransfer | null): string {
   if (!transfer) return '';

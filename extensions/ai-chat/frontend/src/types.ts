@@ -184,6 +184,12 @@ export type DisplayItem =
       content: string;
       /** File names shown in the transcript; their text lives in history */
       attachments?: AttachmentRef[];
+      /**
+       * Objects that were attached when the turn was sent. A snapshot, not a
+       * view of what is attached now: the transcript records the context each
+       * question actually carried, and references come and go between turns.
+       */
+      references?: ResourceContext[];
     }
   | {
       kind: 'tool';

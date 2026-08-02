@@ -32,6 +32,7 @@ import type {
   PendingApproval,
   ProtocolImage,
   ProtocolMessage,
+  ResourceContext,
 } from '../types';
 
 export const MAX_HISTORY_MESSAGES = 60;
@@ -66,6 +67,8 @@ export type ConversationAction =
        */
       sent?: string;
       attachments?: AttachmentRef[];
+      /** Dropped objects this turn carried, recorded beside the message */
+      references?: ResourceContext[];
       images?: ProtocolImage[];
     }
   | { type: 'events'; events: ChatEvent[] }
@@ -321,6 +324,9 @@ export function conversationReducer(
             content: action.content,
             ...(action.attachments?.length
               ? { attachments: action.attachments }
+              : {}),
+            ...(action.references?.length
+              ? { references: action.references }
               : {}),
           },
         ],

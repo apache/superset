@@ -113,6 +113,7 @@ export default function ChatPanel() {
         content,
         sent,
         attachments: attachmentRefs(attachments),
+        references: entities.references,
         images,
       });
       run(signal =>
@@ -186,6 +187,7 @@ export default function ChatPanel() {
       data-test="ai-chat-panel"
       vertical
       style={{
+        boxSizing: 'border-box',
         width: mode === 'panel' ? '100%' : 600,
         height: mode === 'panel' ? '100%' : 'min(760px, 90vh)',
         background: theme.colorBgElevated,

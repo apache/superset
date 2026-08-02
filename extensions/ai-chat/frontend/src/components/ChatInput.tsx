@@ -28,10 +28,7 @@ import {
   Typography,
 } from 'antd';
 import {
-  BarChartOutlined,
   CloseCircleFilled,
-  DatabaseOutlined,
-  DashboardOutlined,
   EyeOutlined,
   PaperClipOutlined,
   PlusOutlined,
@@ -48,26 +45,10 @@ import {
 } from '../utils/attachments';
 import { droppedText, referenceKey } from '../utils/entityRef';
 import type { EntityReferences } from '../hooks/useEntityReferences';
-import type { ResourceContext } from '../types';
+import ReferenceTag from './ReferenceTag';
 
 const { t } = translation;
 const { useTheme } = theme;
-
-const REFERENCE_ICON: Record<ResourceContext['kind'], React.ReactNode> = {
-  dashboard: <DashboardOutlined />,
-  chart: <BarChartOutlined />,
-  dataset: <DatabaseOutlined />,
-};
-
-function referenceLabel(reference: ResourceContext): string {
-  const kind: Record<ResourceContext['kind'], string> = {
-    dashboard: t('Dashboard'),
-    chart: t('Chart'),
-    dataset: t('Dataset'),
-  };
-  // Until the name resolves, the id is what identifies it.
-  return reference.name || `${kind[reference.kind]} ${reference.id_or_slug}`;
-}
 
 interface ChatInputProps {
   disabled: boolean;
@@ -191,27 +172,12 @@ export default function ChatInput({
           data-test="chat-references"
         >
           {entities.references.map(reference => (
-            <Tag
+            <ReferenceTag
               key={referenceKey(reference)}
-              icon={REFERENCE_ICON[reference.kind]}
-              closable
+              reference={reference}
               onClose={() => entities.remove(referenceKey(reference))}
               data-test="chat-reference"
-              title={referenceLabel(reference)}
-              // Same tokens as the host's secondary button, matching the
-              // scope tag in the header. Set through `style` rather than
-              // Tag's `color` prop, which pairs a custom background with
-              // white text.
-              style={{
-                color: theme.buttonSecondaryColor || theme.colorPrimary,
-                background: theme.buttonSecondaryBg || theme.colorPrimaryBg,
-                borderColor: theme.buttonSecondaryBorderColor || 'transparent',
-                maxWidth: 200,
-                overflow: 'hidden',
-              }}
-            >
-              {referenceLabel(reference)}
-            </Tag>
+            />
           ))}
           {dragging && entities.references.length === 0 && (
             <Typography.Text type="secondary">

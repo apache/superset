@@ -557,6 +557,11 @@ test('dragging a chart in pins it as context for every later message', async () 
     { kind: 'chart', id_or_slug: '100' },
   ]);
 
+  // The question records what it was asked about, linked to the chart.
+  const tag = screen.getByTestId('chat-message-reference');
+  expect(tag).toHaveTextContent('Chart 100');
+  expect(tag.closest('a')).toHaveAttribute('href', '/explore/?slice_id=100');
+
   // Still attached for the next question: that is the point of dropping it.
   await userEvent.type(input, 'and now?{Enter}');
   await waitFor(() =>
@@ -584,6 +589,34 @@ test('a dropped object can be removed, and duplicates are ignored', async () => 
   await waitFor(() =>
     expect(screen.getAllByTestId('chat-reference')).toHaveLength(1),
   );
+});
+
+test('a question keeps the context it was asked with once detached', async () => {
+  mockConfigAndChat(ENABLED_CONFIG, [
+    { type: 'message.completed', id: 'm1', content: 'Sure.' },
+    { type: 'request.completed' },
+  ]);
+  render(<ChatPanel />);
+  const input = await screen.findByTestId('chat-input');
+  await waitFor(() => expect(input).toBeEnabled());
+
+  dropUrl(
+    screen.getByTestId('chat-composer'),
+    '/superset/dashboard/world_health/',
+  );
+  await screen.findByTestId('chat-reference');
+  await userEvent.type(input, 'what is in here?{Enter}');
+  await screen.findByText('Sure.');
+
+  // Detaching stops it riding along with later turns. The transcript still
+  // shows what this one carried, since that is what the model was asked.
+  await userEvent.click(screen.getByLabelText('Close'));
+  await waitFor(() =>
+    expect(screen.queryByTestId('chat-reference')).toBeNull(),
+  );
+  const tag = screen.getByTestId('chat-message-reference');
+  expect(tag).toHaveTextContent('Dashboard world_health');
+  expect(tag.closest('a')).toHaveAttribute('href', '/dashboard/world_health/');
 });
 
 test('dropping something that is not a Superset object explains itself', async () => {

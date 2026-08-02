@@ -342,7 +342,9 @@ provider-agnostic and needs no changes.
   same-origin URLs are read. They stay attached until removed with the chip's
   X or until the conversation is cleared, and travel as page context on every
   turn — so they are hints the assistant verifies with a tool, exactly like
-  the page's own resource.
+  the page's own resource. Each message records the objects it was sent with
+  above the question, as links back to them: a snapshot of the context that
+  turn carried, kept even after the object is detached.
 
 - **Attachments live in the turn**: file text counts toward
   `MAX_INPUT_CHARS`, and both files and images leave context once history

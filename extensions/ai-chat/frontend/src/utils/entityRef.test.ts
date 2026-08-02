@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { droppedText, parseEntityUrl, referenceKey } from './entityRef';
+import {
+  droppedText,
+  entityHref,
+  parseEntityUrl,
+  referenceKey,
+} from './entityRef';
 
 test('a chart title dragged from a dashboard names its chart', () => {
   // The href Superset renders on a dashboard chart header.
@@ -71,6 +76,27 @@ test('a uri-list drop uses its first real line', () => {
 
 test('references are keyed by kind and id', () => {
   expect(referenceKey({ kind: 'chart', id_or_slug: '100' })).toBe('chart:100');
+});
+
+test('every reference links back to what it names', () => {
+  const references = [
+    { kind: 'dashboard', id_or_slug: 'world_health' },
+    { kind: 'dashboard', id_or_slug: '5' },
+    { kind: 'chart', id_or_slug: '100' },
+    { kind: 'dataset', id_or_slug: '42' },
+  ] as const;
+  // Whatever could be attached can be opened: the link parses back to it.
+  references.forEach(reference =>
+    expect(parseEntityUrl(entityHref(reference))).toEqual(reference),
+  );
+  expect(entityHref(references[0])).toBe('/dashboard/world_health/');
+  expect(entityHref(references[2])).toBe('/explore/?slice_id=100');
+});
+
+test('a slug is escaped rather than trusted into the link', () => {
+  expect(entityHref({ kind: 'dashboard', id_or_slug: '../../evil?x=1' })).toBe(
+    '/dashboard/..%2F..%2Fevil%3Fx%3D1/',
+  );
 });
 
 test('a drop prefers the uri-list flavour over plain text', () => {
