@@ -625,7 +625,8 @@ export default function transformProps(
     }
 
     let symbolSizeFn:
-      ((value: (number | string | null)[]) => number) | undefined;
+      | ((value: (number | string | null)[]) => number)
+      | undefined;
     if (sizeExtent) {
       const extent = sizeExtent;
       const sizeLookup = sizeLookups?.get(getSeriesDimsKey(entryName));
