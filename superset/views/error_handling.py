@@ -175,6 +175,15 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
     def show_superset_exception(ex: SupersetException) -> FlaskResponse:
         logger_func, _ = get_logger_from_status(ex.status)
         logger_func(ex.message, exc_info=True)
+
+        if "text/html" in request.accept_mimetypes and not app.config["DEBUG"]:
+            path = files("superset") / "static/assets/500.html"
+            # Try to serve HTML file; fall back to JSON if not built
+            try:
+                return send_file(path, max_age=0), ex.status
+            except FileNotFoundError:
+                pass
+
         return json_error_response(
             [
                 SupersetError(

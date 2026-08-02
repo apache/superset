@@ -16,6 +16,7 @@
 # under the License.
 import logging
 from typing import cast
+from unittest.mock import patch
 
 import pytest
 import sshtunnel
@@ -164,3 +165,18 @@ class TestShowSupersetException:
         payload = json.loads(response.data)
         assert payload["errors"][0]["message"] == "boom"
         assert any(record.levelno >= logging.ERROR for record in caplog.records)
+
+    def test_html_accept_serves_branded_error_page_not_raw_json(self):
+        client = self._build_app_with_handlers().test_client()
+
+        with patch(
+            "superset.views.error_handling.send_file",
+            return_value=Response("<html>500</html>", mimetype="text/html"),
+        ) as mock_send_file:
+            response = client.get(
+                "/generic-superset-exception", headers={"Accept": "text/html"}
+            )
+
+        assert response.status_code == 500
+        assert response.content_type.startswith("text/html")
+        mock_send_file.assert_called_once()
