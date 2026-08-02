@@ -164,12 +164,21 @@ class TestGetChannelsWithSearch:
 The server responded with: missing scope: channels:read"""
         )
 
-    @pytest.mark.parametrize("error_code", ["not_authed", "invalid_auth"])
+    @pytest.mark.parametrize(
+        "error_code",
+        [
+            "not_authed",
+            "invalid_auth",
+            "account_inactive",
+            "token_revoked",
+            "token_expired",
+        ],
+    )
     def test_logs_slack_api_error_at_warning_not_error(self, error_code: str, mocker):
-        """An expired/revoked bot token (``not_authed``/``invalid_auth``) is an
-        expected multi-tenant config state that is already handled end-to-end
-        (re-raised as a ``SupersetException`` and turned into a 422), so it
-        should be logged at WARNING, not ERROR, to avoid polluting Sentry."""
+        """An expired/revoked/inactive bot token is an expected multi-tenant
+        config state that is already handled end-to-end (re-raised as a
+        ``SupersetException`` and turned into a 422), so it should be logged
+        at WARNING, not ERROR, to avoid polluting Sentry."""
         from superset.exceptions import SupersetException
 
         mock_client = mocker.Mock()

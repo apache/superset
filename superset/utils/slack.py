@@ -139,7 +139,9 @@ def get_channels(
     return _get_channels(cache_key, team_id=team_id, **kwargs)
 
 
-_AUTH_ERROR_CODES = frozenset({"not_authed", "invalid_auth"})
+_AUTH_ERROR_CODES = frozenset(
+    {"not_authed", "invalid_auth", "account_inactive", "token_revoked", "token_expired"}
+)
 
 
 def _get_slack_error_code(ex: SlackApiError) -> str:
