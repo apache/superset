@@ -1,0 +1,46 @@
+{
+  "name": "ai-chat",
+  "version": "0.1.0",
+  "main": "dist/main.js",
+  "scripts": {
+    "test": "jest",
+    "start": "webpack serve --mode development",
+    "build": "webpack --stats-error-details --mode production",
+    "type": "tsc --noEmit -p tsconfig.test.json"
+  },
+  "keywords": [],
+  "private": true,
+  "author": "",
+  "license": "Apache-2.0",
+  "description": "Frontend for the Superset AI Assistant chat extension",
+  "peerDependencies": {
+    "@apache-superset/core": "*",
+    "antd": "^6.0.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
+  },
+  "dependencies": {
+    "@ant-design/icons": "^6.1.0"
+  },
+  "devDependencies": {
+    "@apache-superset/core": "file:../../../superset-frontend/packages/superset-core",
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/user-event": "^14.5.2",
+    "@types/jest": "^29.5.14",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "antd": "^6.5.1",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "ts-jest": "^29.2.5",
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.8.2",
+    "webpack": "^5.98.0",
+    "webpack-cli": "^6.0.1",
+    "webpack-dev-server": "^5.2.0"
+  }
+}

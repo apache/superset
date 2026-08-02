@@ -1,0 +1,9 @@
+{
+  "publisher": "apache-superset",
+  "name": "ai-chat",
+  "displayName": "Superset AI Assistant",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "description": "AI assistant chat for Apache Superset. Registers a chat trigger and panel through the chat contribution API and talks to the server-side AI gateway, which orchestrates MCP tools under the current user's permissions with server-enforced approvals for mutations.",
+  "permissions": []
+}
