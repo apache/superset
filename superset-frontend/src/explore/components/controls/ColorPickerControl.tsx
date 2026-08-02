@@ -58,10 +58,10 @@ const normalizeColorToHex = (color: string): string => {
 
   const div = document.createElement('div');
   div.style.color = color;
-  const normalized = div.style.color;
+  const normalized = div.style.color || '';
 
-  const match = normalized.match(
-    /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/,
+  const match = /^rgba?\((\d+),\s+(\d+),\s+(\d+)(?:,\s*([\d.]+))?\)$/.exec(
+    normalized,
   );
   if (match) {
     return rgbaToHex({
@@ -100,8 +100,11 @@ function toDisplayHex(
     if (value in SPECIAL_COLORS) {
       return rgbaToHex(SPECIAL_COLORS[value as SpecialColorKey]).toLowerCase();
     }
-    if (themeColors && value in themeColors) {
-      return themeColors[value].toLowerCase();
+    if (
+      themeColors &&
+      Object.prototype.hasOwnProperty.call(themeColors, value)
+    ) {
+      return themeColors[value as string].toLowerCase();
     }
     return value.toLowerCase();
   }
@@ -159,8 +162,11 @@ export default function ColorPickerControl({
               SPECIAL_COLORS[color as SpecialColorKey],
             ).toLowerCase();
           }
-          if (themeColors && color in themeColors) {
-            return themeColors[color].toLowerCase();
+          if (
+            themeColors &&
+            Object.prototype.hasOwnProperty.call(themeColors, color as string)
+          ) {
+            return themeColors[color as string].toLowerCase();
           }
           return String(color).toLowerCase();
         }),

@@ -508,7 +508,7 @@ export type ColorFormatters = {
   objectFormatting?: ObjectFormattingEnum;
   getColorFromValue: (
     value: number | string | boolean | null,
-  ) => RgbaColor | string | undefined;
+  ) => string | undefined;
 }[];
 
 export type ResolvedColorFormatterResult = {
