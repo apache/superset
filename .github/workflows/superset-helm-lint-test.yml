@@ -38,6 +38,11 @@ jobs:
         with:
           install-superset: "false"
 
+      # Still vendored (not de-vendored like chart-releaser-action below): the
+      # allowlisted helm/chart-testing-action@v2.8.0 depends internally on
+      # astral-sh/setup-uv@v7.0.0, which isn't itself on the ASF Actions
+      # allowlist (only v8.1.0+ are, at apache/infrastructure-actions'
+      # actions.yml). Needs an INFRA request before this can de-vendor too.
       - name: Set up chart-testing
         uses: ./.github/actions/chart-testing-action
 

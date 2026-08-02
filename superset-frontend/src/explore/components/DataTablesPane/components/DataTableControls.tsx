@@ -60,6 +60,7 @@ export const TableControls = ({
   data,
   datasourceId,
   onInputChange,
+  filterText,
   columnNames,
   columnTypes,
   rowcount,
@@ -93,7 +94,11 @@ export const TableControls = ({
   const { canCopyClipboard: copyEnabled } = usePermissions();
   return (
     <TableControlsWrapper>
-      <FilterInput onChangeHandler={onInputChange} shouldFocus />
+      <FilterInput
+        onChangeHandler={onInputChange}
+        shouldFocus
+        value={filterText}
+      />
       <div
         css={css`
           display: flex;
@@ -135,11 +140,12 @@ export const TableControls = ({
         )}
         {onReload && (
           <Tooltip title={t('Reload')}>
+            {/* role is auto-computed by BaseIconComponent as "button" since
+                onClick is present, so no explicit role needed here. */}
             <Icons.ReloadOutlined
               iconColor={theme.colorIcon}
               iconSize="l"
               aria-label={t('Reload')}
-              role="button"
               tabIndex={0}
               onClick={onReload}
             />

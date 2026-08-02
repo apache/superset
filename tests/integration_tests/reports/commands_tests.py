@@ -19,7 +19,7 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from unittest.mock import call, Mock, patch
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from flask.ctx import AppContext
@@ -161,15 +161,26 @@ def assert_log(state: str, error_message: Optional[str] = None):
     db.session.commit()
     logs = db.session.query(ReportExecutionLog).all()
 
-    if state == ReportState.ERROR:
-        # On error we send an email
-        assert len(logs) == 3
-    else:
+    if state == ReportState.WORKING:
+        # A report that is already in the WORKING state logs an extra WORKING row
+        # for the refused re-computation, on top of the row seeded by the fixture.
         assert len(logs) == 2
+    elif state == ReportState.ERROR:
+        # On error we also send a notification, which is recorded as a separate
+        # error-notification marker row.
+        assert len(logs) == 2
+    else:
+        # A single execution yields a single log row: the terminal result replaces
+        # the WORKING "trigger" row rather than adding a second row (issue #29857).
+        assert len(logs) == 1
     log_states = [log.state for log in logs]
-    assert ReportState.WORKING in log_states
     assert state in log_states
-    assert error_message in [log.error_message for log in logs]
+    # Previously a standalone WORKING "trigger" row always contributed a ``None``
+    # error_message, so the default ``None`` match was trivially satisfied and never
+    # verified the terminal row. With the result now written onto that single row,
+    # only assert an explicitly expected message.
+    if error_message is not None:
+        assert error_message in [log.error_message for log in logs]
 
     for log in logs:
         if log.state == ReportState.WORKING:
@@ -803,6 +814,45 @@ def test_email_chart_report_schedule(
         assert smtp_images[list(smtp_images.keys())[0]] == SCREENSHOT_FILE
         # Assert logs are correct
         assert_log(ReportState.SUCCESS)
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_report_email_chart"
+)
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_email_chart_report_schedule_single_log_per_execution(
+    screenshot_mock,
+    email_mock,
+    create_report_email_chart,
+):
+    """
+    ExecuteReport Command: a single execution should produce a single log row.
+
+    Regression for #29857: the Alerts & Reports execution log shows duplicated
+    entries for a single execution. Each execution transitions through the
+    WORKING state and then a terminal state (SUCCESS/ERROR), and every
+    transition writes a ReportExecutionLog row sharing the same execution
+    ``uuid``. As a result one execution surfaces as two rows in the log view
+    (the "trigger" row and the "result" row). This test asserts that one
+    execution -- identified by its execution uuid -- yields exactly one log row.
+    """
+    screenshot_mock.return_value = SCREENSHOT_FILE
+
+    with freeze_time("2020-01-01T00:00:00Z"):
+        AsyncExecuteReportScheduleCommand(
+            TEST_ID, create_report_email_chart.id, datetime.utcnow()
+        ).run()
+
+        db.session.commit()
+        logs = (
+            db.session.query(ReportExecutionLog)
+            .filter(ReportExecutionLog.uuid == UUID(TEST_ID))
+            .all()
+        )
+        # A single execution (one uuid) must map to a single log entry, not one
+        # row per intermediate state transition.
+        assert len(logs) == 1
 
 
 @pytest.mark.usefixtures(

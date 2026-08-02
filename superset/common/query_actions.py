@@ -211,6 +211,11 @@ def _get_samples(
     query_obj.orderby = []
     query_obj.metrics = None
     query_obj.post_processing = []
+    # Mark the query as system-authored sampling so query generation may apply
+    # the engine's bounded-read override (physical datasets only). The shallow
+    # copy above shares the extras dict with the original query object, so
+    # build a new dict instead of mutating in place.
+    query_obj.extras = {**(query_obj.extras or {}), "system_sampling": True}
     qry_obj_cols = []
     for o in datasource.columns:
         if isinstance(o, dict):
@@ -230,6 +235,15 @@ def _get_drill_detail(
     # todo(yongjie): Remove this function,
     #  when determining whether samples should be applied to the time filter.
     datasource = _get_datasource(query_context, query_obj)
+    # Refuse for datasource types that don't model raw rows (e.g. semantic
+    # views). Mirrors the ``supports_samples`` gate on the ``/samples``
+    # endpoint so drill-detail is hard-blocked on the backend, not just
+    # hidden in the frontend menu. Defaults to ``True`` for any datasource
+    # class that doesn't explicitly opt out.
+    if not getattr(datasource, "supports_drill_to_detail", True):
+        raise QueryObjectValidationError(
+            _("Drill to detail is not available for this datasource type.")
+        )
     query_obj = copy.copy(query_obj)
     query_obj.is_timeseries = False
     query_obj.metrics = None

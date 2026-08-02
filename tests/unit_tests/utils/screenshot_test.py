@@ -33,6 +33,10 @@ from superset.utils.screenshots import (
 
 BASE_SCREENSHOT_PATH = "superset.utils.screenshots.BaseScreenshot"
 
+# A minimal valid PNG header, used wherever a test needs bytes that pass
+# ScreenshotCachePayload's image validation.
+FAKE_PNG_BYTES = b"\x89PNG\r\n\x1a\n" + b"fake-png-body"
+
 
 class MockCache:
     """A class to manage screenshot cache."""
@@ -92,7 +96,7 @@ def test_get_cache_key(app_context, screenshot_obj):
 def test_get_from_cache_key(mocker: MockerFixture, screenshot_obj):
     """get_from_cache_key should always return a ScreenshotCachePayload Object"""
     # backwards compatibility test for retrieving plain bytes
-    fake_bytes = b"fake_screenshot_data"
+    fake_bytes = FAKE_PNG_BYTES
     BaseScreenshot.cache = MockCache()
     BaseScreenshot.cache.set("key", fake_bytes)
     cache_payload = screenshot_obj.get_from_cache_key("key")
@@ -108,10 +112,10 @@ class TestComputeAndCache:
             BASE_SCREENSHOT_PATH + ".get_from_cache_key", return_value=None
         )
         get_screenshot = mocker.patch(
-            BASE_SCREENSHOT_PATH + ".get_screenshot", return_value=b"new_image_data"
+            BASE_SCREENSHOT_PATH + ".get_screenshot", return_value=FAKE_PNG_BYTES
         )
         resize_image = mocker.patch(
-            BASE_SCREENSHOT_PATH + ".resize_image", return_value=b"resized_image_data"
+            BASE_SCREENSHOT_PATH + ".resize_image", return_value=FAKE_PNG_BYTES
         )
         BaseScreenshot.cache = MockCache()
         return {

@@ -46,6 +46,11 @@ CONTINUUM_BOOKKEEPING_COLUMNS: frozenset[str] = frozenset(
     {"transaction_id", "end_transaction_id", "operation_type"}
 )
 
+#: Continuum ``operation_type`` code for a DELETE version row. Shared by
+#: every validity-window predicate (a DELETE shadow row is never "live at
+#: tx") and by the restore engine's refuse-DELETE-target guard.
+OPERATION_DELETE: int = 2
+
 
 def insert_baseline_shadow_row(
     conn: Any,

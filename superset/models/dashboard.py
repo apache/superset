@@ -71,7 +71,10 @@ def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Dashboard) 
     if dashboard_id is None:
         return
 
-    from superset.subjects.utils import get_user_subject
+    from superset.subjects.utils import (
+        get_default_viewers_for_groups,
+        get_user_subject,
+    )
 
     session = sqla.inspect(target).session  # pylint: disable=disallowed-name
     new_user = session.query(User).filter_by(id=target.id).first()
@@ -91,6 +94,11 @@ def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Dashboard) 
         json_metadata=template.json_metadata,
         slices=template.slices,
         editors=editors,
+        # Resolved from the in-memory collection: this runs in ``after_insert``
+        # for the user, before their ``ab_user_group`` rows are written.
+        viewers=get_default_viewers_for_groups(
+            list(getattr(new_user, "groups", []) or [])
+        ),
     )
     session.add(dashboard)
 

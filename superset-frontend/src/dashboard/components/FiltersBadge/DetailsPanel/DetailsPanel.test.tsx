@@ -37,7 +37,7 @@ const mockPopoverTriggerRef = {
   current: {
     focus: jest.fn(),
   },
-} as unknown as RefObject<HTMLDivElement>;
+} as unknown as RefObject<HTMLButtonElement>;
 
 const createProps = () => ({
   popoverVisible: true,
