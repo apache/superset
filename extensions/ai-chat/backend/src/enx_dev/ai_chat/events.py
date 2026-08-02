@@ -23,13 +23,18 @@ same events incrementally without changing the frontend event model.
 Event types:
 
 - ``message.completed``: an assistant text message
-- ``tool.running``: a read-only tool call started
+- ``tool.running``: a tool call started
 - ``tool.completed``: a tool call finished successfully
 - ``tool.failed``: a tool call failed
-- ``tool.approval_required``: a mutating or destructive call awaits approval
+- ``tool.approval_required``: a call awaits the user's approval
 - ``tool.rejected``: the user rejected a proposed call
 - ``request.completed``: the turn finished normally
 - ``request.failed``: the turn aborted with an error
+
+The approval events appear only for calls the configured
+``TOOL_APPROVAL_MODE`` gates. With approval disabled a turn never emits them,
+and the frontend renders approval controls strictly in response to
+``tool.approval_required`` rather than from anything it knows about the mode.
 """
 
 from __future__ import annotations
@@ -113,7 +118,7 @@ def tool_approval_required(  # noqa: PLR0913  pylint: disable=too-many-arguments
     reversible: bool,
     warnings: list[str],
 ) -> dict[str, Any]:
-    """A mutating call is paused, waiting on the user's decision."""
+    """A gated call is paused, waiting on the user's decision."""
     return {
         "type": EventTypes.TOOL_APPROVAL_REQUIRED,
         "id": tool_call_id,

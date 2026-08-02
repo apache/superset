@@ -34,24 +34,34 @@ from enx_dev.ai_chat.approvals import RESOURCE
 from pytest_mock import MockerFixture
 from superset_core.common import models as core_models
 
-AI_CHAT_E2E_APP = pytest.mark.parametrize(
-    "app",
-    [
-        {
-            "FEATURE_FLAGS": {"ENABLE_EXTENSIONS": True},
-            "AI_CHAT_CONFIG": {
-                "ENABLED": True,
-                "PROVIDER": "mock",
-                "ALLOWED_MCP_TOOLS": ["list_dashboards", "delete_dashboard"],
-                "REQUIRE_APPROVAL_FOR_MUTATIONS": True,
-            },
-            # Tool-level RBAC is covered by the MCP service's own suite; the
-            # e2e flow here focuses on the gateway contract.
-            "MCP_RBAC_ENABLED": False,
-        }
-    ],
-    indirect=True,
-)
+
+def _e2e_app(**ai_chat: Any) -> Any:
+    return pytest.mark.parametrize(
+        "app",
+        [
+            {
+                "FEATURE_FLAGS": {"ENABLE_EXTENSIONS": True},
+                "AI_CHAT_CONFIG": {
+                    "ENABLED": True,
+                    "PROVIDER": "mock",
+                    "ALLOWED_MCP_TOOLS": ["list_dashboards", "delete_dashboard"],
+                    **ai_chat,
+                },
+                # Tool-level RBAC is covered by the MCP service's own suite;
+                # the e2e flow here focuses on the gateway contract.
+                "MCP_RBAC_ENABLED": False,
+            }
+        ],
+        indirect=True,
+    )
+
+
+#: The approval flow needs a mode that gates something.
+AI_CHAT_E2E_APP = _e2e_app(TOOL_APPROVAL_MODE="mutations_only")
+
+#: Deliberately says nothing about approval, so what it exercises is the
+#: default an operator gets by enabling the assistant and nothing else.
+AI_CHAT_E2E_DEFAULT_APP = _e2e_app()
 
 
 @pytest.fixture(autouse=True)
@@ -176,6 +186,89 @@ def test_read_only_flow_executes_real_mcp_tool(
     assert "Test Dashboard" in completed["result"]
     # The mock provider summarized the real tool output.
     assert "list_dashboards" in events[2]["content"]
+
+
+def _approval_rows(app: Any) -> int:
+    with app.app_context():
+        return (
+            core_models.get_session()
+            .query(core_models.KeyValue)
+            .filter(core_models.KeyValue.resource == RESOURCE)
+            .count()
+        )
+
+
+@AI_CHAT_E2E_DEFAULT_APP
+def test_default_flow_executes_a_mutation_without_any_approval(
+    app: Any, client: Any, full_api_access: None
+) -> None:
+    """Enabling the assistant and configuring nothing else runs tools directly.
+
+    The dashboard is made to not exist, so the destructive tool reports a
+    failure rather than deleting anything -- what matters here is that it was
+    reached at all, through the same MCP bridge that enforces RBAC.
+    """
+    assert _approval_rows(app) == 0
+
+    with patch(
+        "superset.daos.dashboard.DashboardDAO.find_by_id", return_value=None
+    ) as mock_find:
+        response = client.post(
+            f"{API_BASE}/chat",
+            json={
+                "conversation_id": "conv_e2e_direct",
+                "messages": [{"role": "user", "content": "delete dashboard 42"}],
+            },
+        )
+        # The tool really ran: MCP looked the dashboard up under this user.
+        mock_find.assert_called()
+
+    assert response.status_code == 200
+    types = [event["type"] for event in response.json["result"]["events"]]
+    assert "tool.running" in types
+    assert "tool.approval_required" not in types
+    # Nothing was persisted, so there is nothing to replay, expire or tamper
+    # with: in this mode the gateway keeps no server-side state at all.
+    assert _approval_rows(app) == 0
+
+
+@AI_CHAT_E2E_DEFAULT_APP
+def test_default_mode_refuses_a_forged_approval(
+    app: Any, client: Any, full_api_access: None
+) -> None:
+    """A browser cannot talk its way onto the approval path.
+
+    With approval disabled the endpoint refuses outright, so a crafted
+    approval_id is not even looked up.
+    """
+    with patch("superset.daos.dashboard.DashboardDAO.find_by_id") as mock_find:
+        response = client.post(
+            f"{API_BASE}/tool_approval",
+            json={
+                "conversation_id": "conv_e2e_forged",
+                "messages": [{"role": "user", "content": "delete dashboard 42"}],
+                "approval_id": "3e7a2ab8-bcaf-49b0-a5df-dfb432f291cc",
+                "decision": "approve",
+                "tool_call": {
+                    "id": "tc1",
+                    "name": "delete_dashboard",
+                    "arguments": {"request": {"identifier": 42}},
+                },
+            },
+        )
+        mock_find.assert_not_called()
+    assert response.status_code == 400
+    assert response.json["error_code"] == "AI_CHAT_APPROVAL_EXPIRED"
+    assert _approval_rows(app) == 0
+
+
+@AI_CHAT_E2E_DEFAULT_APP
+def test_default_mode_is_reported_by_the_config_endpoint(
+    client: Any, full_api_access: None
+) -> None:
+    response = client.get(f"{API_BASE}/config")
+    assert response.status_code == 200
+    assert response.json["result"]["tool_approval_mode"] == "disabled"
 
 
 @AI_CHAT_E2E_APP

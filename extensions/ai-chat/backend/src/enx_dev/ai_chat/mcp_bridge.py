@@ -42,9 +42,9 @@ import asyncio
 import logging
 from typing import Any, TYPE_CHECKING
 
-from enx_dev.ai_chat.classification import classify_tool
 from enx_dev.ai_chat.exceptions import AiChatIdentityMismatchError
 from enx_dev.ai_chat.settings import get_ai_chat_config
+from enx_dev.ai_chat.tool_policy import classify_tool
 from enx_dev.ai_chat.types import ToolExecution, ToolSpec
 from flask import current_app
 

@@ -16,14 +16,20 @@
 # under the License.
 from __future__ import annotations
 
-from enx_dev.ai_chat.classification import (
+import itertools
+
+import pytest
+from enx_dev.ai_chat.tool_policy import (
     approval_warnings,
     classify_tool,
     is_reversible,
     requires_approval,
 )
-from enx_dev.ai_chat.types import redact_sensitive, ToolClassification
-from flask.ctx import AppContext
+from enx_dev.ai_chat.types import (
+    redact_sensitive,
+    ToolApprovalMode,
+    ToolClassification,
+)
 
 REDACTED = "***redacted***"
 
@@ -63,41 +69,74 @@ def test_classify_conflicting_hints_prefers_read_only_declaration() -> None:
     )
 
 
-def test_requires_approval_read_only_never(app_context: AppContext) -> None:
-    assert requires_approval(ToolClassification.READ_ONLY) is False
+@pytest.mark.parametrize("classification", list(ToolClassification))
+def test_disabled_gates_nothing(classification: ToolClassification) -> None:
+    """Every class, destructive included, runs directly in the default mode.
+
+    Authentication, the allowlist, argument validation and Superset's own
+    RBAC still apply to each of them; what is gone is the confirmation step.
+    """
+    assert requires_approval(classification, ToolApprovalMode.DISABLED) is False
 
 
-def test_requires_approval_mutating_follows_config(
-    app_context: AppContext,
+@pytest.mark.parametrize("classification", list(ToolClassification))
+def test_all_tools_gates_everything(classification: ToolClassification) -> None:
+    assert requires_approval(classification, ToolApprovalMode.ALL_TOOLS) is True
+
+
+def test_mutations_only_lets_read_only_through() -> None:
+    assert (
+        requires_approval(ToolClassification.READ_ONLY, ToolApprovalMode.MUTATIONS_ONLY)
+        is False
+    )
+
+
+@pytest.mark.parametrize(
+    "classification",
+    [
+        ToolClassification.MUTATING,
+        ToolClassification.DESTRUCTIVE,
+        ToolClassification.UNKNOWN,
+    ],
+)
+def test_mutations_only_gates_everything_else(
+    classification: ToolClassification,
 ) -> None:
-    from flask import current_app
-
-    config = current_app.config["AI_CHAT_CONFIG"]
-    original = config.get("REQUIRE_APPROVAL_FOR_MUTATIONS", True)
-    try:
-        config["REQUIRE_APPROVAL_FOR_MUTATIONS"] = True
-        assert requires_approval(ToolClassification.MUTATING) is True
-        config["REQUIRE_APPROVAL_FOR_MUTATIONS"] = False
-        assert requires_approval(ToolClassification.MUTATING) is False
-    finally:
-        config["REQUIRE_APPROVAL_FOR_MUTATIONS"] = original
+    """UNKNOWN is gated alongside the rest: an allowlisted tool that declares
+    no annotations must not become the cheapest way past the gate."""
+    assert requires_approval(classification, ToolApprovalMode.MUTATIONS_ONLY) is True
 
 
-def test_requires_approval_destructive_and_unknown_always(
-    app_context: AppContext,
-) -> None:
-    from flask import current_app
+def test_policy_matrix_is_exhaustive() -> None:
+    """Every classification/mode pair has an answer, and only the documented
+    cells go ungated. Adding a mode or a class fails here until it is
+    deliberately placed."""
+    ungated = {
+        pair
+        for pair in itertools.product(ToolClassification, ToolApprovalMode)
+        if not requires_approval(*pair)
+    }
+    assert ungated == {
+        *((c, ToolApprovalMode.DISABLED) for c in ToolClassification),
+        (ToolClassification.READ_ONLY, ToolApprovalMode.MUTATIONS_ONLY),
+    }
 
-    config = current_app.config["AI_CHAT_CONFIG"]
-    original = config.get("REQUIRE_APPROVAL_FOR_MUTATIONS", True)
-    try:
-        # Even when the operator disables approvals for plain mutations,
-        # destructive and unknown tools still require approval.
-        config["REQUIRE_APPROVAL_FOR_MUTATIONS"] = False
-        assert requires_approval(ToolClassification.DESTRUCTIVE) is True
-        assert requires_approval(ToolClassification.UNKNOWN) is True
-    finally:
-        config["REQUIRE_APPROVAL_FOR_MUTATIONS"] = original
+
+def test_policy_reads_no_configuration() -> None:
+    """The decision is a pure function of its two arguments.
+
+    Nothing is read from Flask config here -- these calls run with no
+    application context at all -- so the mode cannot change between the check
+    and the call it guards.
+    """
+    assert (
+        requires_approval(ToolClassification.DESTRUCTIVE, ToolApprovalMode.DISABLED)
+        is False
+    )
+    assert (
+        requires_approval(ToolClassification.READ_ONLY, ToolApprovalMode.ALL_TOOLS)
+        is True
+    )
 
 
 def test_reversibility_hints() -> None:

@@ -35,7 +35,9 @@ const ENABLED_CONFIG: AiChatConfig = {
   provider: 'mock',
   provider_configured: true,
   mcp_available: true,
-  require_approval_for_mutations: true,
+  // The instance's default. Every approval test below still drives the
+  // approval UI, because it is the events that put it on screen.
+  tool_approval_mode: 'disabled',
   tools: [
     {
       name: 'list_dashboards',
@@ -235,6 +237,57 @@ const APPROVAL_EVENT: ChatEvent = {
   reversible: false,
   warnings: ['This action is classified as destructive.'],
 };
+
+test('a directly executed tool renders without any approval controls', async () => {
+  // What the default mode produces: no approval event, so nothing to decide.
+  mockConfigAndChat(ENABLED_CONFIG, [
+    {
+      type: 'tool.running',
+      id: 'tc1',
+      tool: 'delete_dashboard',
+      arguments: { request: { identifier: 42 } },
+    },
+    {
+      type: 'tool.completed',
+      id: 'tc1',
+      tool: 'delete_dashboard',
+      result: '{"deleted": true}',
+      truncated: false,
+    },
+    { type: 'message.completed', id: 'm1', content: 'Deleted.' },
+    { type: 'request.completed' },
+  ]);
+  render(<ChatPanel />);
+  const input = await screen.findByTestId('chat-input');
+  await waitFor(() => expect(input).toBeEnabled());
+  await userEvent.type(input, 'delete dashboard 42{Enter}');
+
+  expect(await screen.findByText('Deleted.')).toBeInTheDocument();
+  const card = screen.getByTestId('tool-call-delete_dashboard');
+  expect(card).toHaveTextContent('Succeeded');
+  expect(screen.queryByTestId('approval-card')).toBeNull();
+  expect(screen.queryByTestId('approval-approve')).toBeNull();
+  // The composer is never blocked waiting on a decision nobody was asked for.
+  expect(screen.getByTestId('chat-input')).toBeEnabled();
+});
+
+test('the reported approval mode does not decide what is gated', async () => {
+  // The config says approval is disabled, yet the backend sent an approval
+  // event. The card appears: the browser follows events, and a config value
+  // it could have tampered with locally is not a way around the gate.
+  mockConfigAndChat(
+    { ...ENABLED_CONFIG, tool_approval_mode: 'disabled' },
+    [APPROVAL_EVENT],
+    [{ type: 'request.completed' }],
+  );
+  render(<ChatPanel />);
+  const input = await screen.findByTestId('chat-input');
+  await waitFor(() => expect(input).toBeEnabled());
+  await userEvent.type(input, 'delete dashboard 42{Enter}');
+
+  expect(await screen.findByTestId('approval-card')).toBeInTheDocument();
+  expect(screen.getByTestId('chat-input')).toBeDisabled();
+});
 
 test('approval flow: approve sends the exact approval payload', async () => {
   mockConfigAndChat(

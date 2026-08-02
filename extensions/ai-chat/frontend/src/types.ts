@@ -29,6 +29,13 @@ export type DisplayMode = ReturnType<typeof chat.getDisplayMode>;
 export type ToolClassification =
   'read_only' | 'mutating' | 'destructive' | 'unknown';
 
+/**
+ * How much of the tool surface the operator gates behind an approval.
+ * Reported for display only — which calls are actually gated is decided
+ * server-side, and reaches the panel as `tool.approval_required` events.
+ */
+export type ToolApprovalMode = 'disabled' | 'mutations_only' | 'all_tools';
+
 export interface ProtocolToolCall {
   id: string;
   name: string;
@@ -165,7 +172,8 @@ export interface AiChatConfig {
   provider: string | null;
   provider_configured: boolean;
   mcp_available: boolean;
-  require_approval_for_mutations: boolean;
+  /** Informational only; never consulted before rendering approval controls */
+  tool_approval_mode: ToolApprovalMode;
   tools: AiChatToolInfo[];
   limits: {
     max_messages_per_request: number;

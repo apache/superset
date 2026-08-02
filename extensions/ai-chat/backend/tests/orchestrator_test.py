@@ -25,6 +25,7 @@ import pytest
 from enx_dev.ai_chat.approvals import Approval
 from enx_dev.ai_chat.exceptions import (
     AiChatApprovalExpiredError,
+    AiChatConfigurationError,
     AiChatIdentityMismatchError,
     AiChatProviderError,
     AiChatRequestTooLargeError,
@@ -38,6 +39,7 @@ from enx_dev.ai_chat.types import (
     ChatRole,
     FinishReason,
     ProviderResult,
+    ToolApprovalMode,
     ToolCall,
     ToolClassification,
     ToolExecution,
@@ -102,6 +104,22 @@ def ai_chat_config(app_context: AppContext) -> Generator[dict[str, Any], None, N
     current_app.config["AI_CHAT_CONFIG"] = {**original, "ENABLED": True}
     yield current_app.config["AI_CHAT_CONFIG"]
     current_app.config["AI_CHAT_CONFIG"] = original
+
+
+@pytest.fixture
+def mutations_gated(ai_chat_config: dict[str, Any]) -> None:
+    """Turn on the approval gate for the tests that exercise that path.
+
+    Approval is off by default, so a test about approvals has to ask for it
+    -- which is the point: nothing here passes by accident under a mode the
+    test did not choose.
+    """
+    ai_chat_config["TOOL_APPROVAL_MODE"] = ToolApprovalMode.MUTATIONS_ONLY.value
+
+
+@pytest.fixture
+def all_tools_gated(ai_chat_config: dict[str, Any]) -> None:
+    ai_chat_config["TOOL_APPROVAL_MODE"] = ToolApprovalMode.ALL_TOOLS.value
 
 
 @pytest.fixture
@@ -445,7 +463,10 @@ def test_oversized_image_payload_is_rejected(
 
 
 def test_approval_attaches_the_call_to_the_assistant_message_before_it(
-    user: MagicMock, mocker: MockerFixture, harness: dict[str, Any]
+    user: MagicMock,
+    mocker: MockerFixture,
+    harness: dict[str, Any],
+    mutations_gated: None,
 ) -> None:
     """One model turn stays one assistant message.
 
@@ -483,7 +504,10 @@ def test_approval_attaches_the_call_to_the_assistant_message_before_it(
 
 
 def test_approval_from_a_principal_without_an_account_fails_cleanly(
-    user: MagicMock, mocker: MockerFixture, harness: dict[str, Any]
+    user: MagicMock,
+    mocker: MockerFixture,
+    harness: dict[str, Any],
+    mutations_gated: None,
 ) -> None:
     """A guest token authenticates a user object with no numeric id."""
     guest = MagicMock(spec=["username", "roles"])
@@ -537,8 +561,182 @@ def test_read_only_tool_executes_inline(
     harness["create_approval"].assert_not_called()
 
 
-def test_mutating_tool_pauses_for_approval(
+def _destructive_call_turn() -> ScriptedProvider:
+    """A model turn that asks to delete dashboard 42."""
+    return ScriptedProvider(
+        [
+            ProviderResult(
+                content="I can delete it.",
+                tool_calls=[
+                    ToolCall(
+                        id="tc1",
+                        name="delete_dashboard",
+                        arguments={"request": {"identifier": 42}},
+                    )
+                ],
+                finish_reason=FinishReason.TOOL_CALLS,
+            ),
+            ProviderResult(content="Deleted."),
+        ]
+    )
+
+
+def test_destructive_tool_executes_directly_by_default(
     user: MagicMock, mocker: MockerFixture, harness: dict[str, Any]
+) -> None:
+    """The default mode runs even a destructive call without an approval.
+
+    The gate is what is gone; the tool still had to be allowlisted, and it
+    still runs under the user's own permissions inside MCP.
+    """
+    provider = _destructive_call_turn()
+    events = _runner(user, mocker, provider).run_chat()
+
+    assert _types(events) == [
+        "message.completed",
+        "tool.running",
+        "tool.completed",
+        "message.completed",
+        "request.completed",
+    ]
+    harness["call_tool"].assert_awaited_once_with(
+        "delete_dashboard", {"request": {"identifier": 42}}
+    )
+    # Nothing was written, nothing was read, and the browser was never
+    # offered a decision to make.
+    harness["create_approval"].assert_not_called()
+    harness["consume_approval"].assert_not_called()
+
+
+def test_all_tools_mode_gates_a_read_only_call(
+    user: MagicMock,
+    mocker: MockerFixture,
+    harness: dict[str, Any],
+    all_tools_gated: None,
+) -> None:
+    provider = ScriptedProvider(
+        [
+            ProviderResult(
+                content=None,
+                tool_calls=[
+                    ToolCall(id="tc1", name="list_dashboards", arguments={}),
+                ],
+                finish_reason=FinishReason.TOOL_CALLS,
+            ),
+        ]
+    )
+    events = _runner(user, mocker, provider).run_chat()
+    assert _types(events) == ["tool.approval_required"]
+    assert events[0]["classification"] == "read_only"
+    harness["call_tool"].assert_not_awaited()
+
+
+def test_approval_endpoint_is_refused_when_approval_is_disabled(
+    user: MagicMock, mocker: MockerFixture, harness: dict[str, Any]
+) -> None:
+    """A crafted approval request cannot execute a tool the gate never saw.
+
+    The store is not consulted at all: there is no row to consult, and
+    reaching for one would be the only storage access the default mode makes.
+    """
+    provider = ScriptedProvider([ProviderResult(content="Deleted.")])
+    with pytest.raises(AiChatApprovalExpiredError):
+        _runner(user, mocker, provider).run_approval(
+            approval_id="3e7a2ab8-bcaf-49b0-a5df-dfb432f291cc",
+            decision="approve",
+            tool_call=ToolCall(
+                id="tc1",
+                name="delete_dashboard",
+                arguments={"request": {"identifier": 42}},
+            ),
+        )
+    harness["consume_approval"].assert_not_called()
+    harness["call_tool"].assert_not_awaited()
+
+
+def test_direct_execution_still_refuses_tools_outside_the_allowlist(
+    user: MagicMock, mocker: MockerFixture, harness: dict[str, Any]
+) -> None:
+    """Removing the gate does not widen what the model may call."""
+    provider = ScriptedProvider(
+        [
+            ProviderResult(
+                content=None,
+                tool_calls=[
+                    ToolCall(id="tc1", name="drop_everything", arguments={}),
+                ],
+                finish_reason=FinishReason.TOOL_CALLS,
+            ),
+            ProviderResult(content="I cannot do that."),
+        ]
+    )
+    events = _runner(user, mocker, provider).run_chat()
+    assert _types(events) == [
+        "tool.failed",
+        "message.completed",
+        "request.completed",
+    ]
+    harness["call_tool"].assert_not_awaited()
+
+
+def test_direct_execution_reports_tool_failure_without_claiming_success(
+    user: MagicMock, mocker: MockerFixture, harness: dict[str, Any]
+) -> None:
+    harness["call_tool"].return_value = ToolExecution(
+        ok=False, error="Dashboard 42 not found."
+    )
+    provider = _destructive_call_turn()
+    events = _runner(user, mocker, provider).run_chat()
+
+    assert "tool.completed" not in _types(events)
+    failure = next(event for event in events if event["type"] == "tool.failed")
+    assert failure["error"] == "Dashboard 42 not found."
+    # The model is told, as a tool result, so it can correct itself.
+    assert provider.calls[1][0][-1].content == "Error: Dashboard 42 not found."
+
+
+def test_direct_execution_tells_the_model_the_gate_is_off(
+    user: MagicMock, mocker: MockerFixture, harness: dict[str, Any]
+) -> None:
+    """The prompt describes the mode in force, not a fixed policy."""
+    provider = ScriptedProvider([ProviderResult(content="ok")])
+    _runner(user, mocker, provider).run_chat()
+    system = provider.calls[0][0][0].content
+    assert "no confirmation step" in system
+    assert "require the user's explicit approval" not in system
+
+
+def test_gated_mode_tells_the_model_approval_is_enforced(
+    user: MagicMock,
+    mocker: MockerFixture,
+    harness: dict[str, Any],
+    mutations_gated: None,
+) -> None:
+    provider = ScriptedProvider([ProviderResult(content="ok")])
+    _runner(user, mocker, provider).run_chat()
+    system = provider.calls[0][0][0].content
+    assert "require the user's explicit approval" in system
+    assert "no confirmation step" not in system
+
+
+def test_invalid_approval_mode_fails_the_turn(
+    user: MagicMock,
+    mocker: MockerFixture,
+    harness: dict[str, Any],
+    ai_chat_config: dict[str, Any],
+) -> None:
+    """A misconfigured mode stops the turn rather than picking one."""
+    ai_chat_config["TOOL_APPROVAL_MODE"] = "mutations"
+    provider = ScriptedProvider([ProviderResult(content="ok")])
+    with pytest.raises(AiChatConfigurationError):
+        _runner(user, mocker, provider).run_chat()
+
+
+def test_mutating_tool_pauses_for_approval(
+    user: MagicMock,
+    mocker: MockerFixture,
+    harness: dict[str, Any],
+    mutations_gated: None,
 ) -> None:
     provider = ScriptedProvider(
         [
@@ -571,7 +769,10 @@ def test_mutating_tool_pauses_for_approval(
 
 
 def test_approval_approve_executes_exact_call(
-    user: MagicMock, mocker: MockerFixture, harness: dict[str, Any]
+    user: MagicMock,
+    mocker: MockerFixture,
+    harness: dict[str, Any],
+    mutations_gated: None,
 ) -> None:
     provider = ScriptedProvider([ProviderResult(content="Deleted.")])
     events = _runner(user, mocker, provider).run_approval(
@@ -602,7 +803,10 @@ def test_approval_approve_executes_exact_call(
 
 
 def test_approval_reject_never_executes(
-    user: MagicMock, mocker: MockerFixture, harness: dict[str, Any]
+    user: MagicMock,
+    mocker: MockerFixture,
+    harness: dict[str, Any],
+    mutations_gated: None,
 ) -> None:
     provider = ScriptedProvider([ProviderResult(content="Understood.")])
     events = _runner(user, mocker, provider).run_approval(
@@ -627,7 +831,10 @@ def test_approval_reject_never_executes(
 
 
 def test_approval_expired_propagates(
-    user: MagicMock, mocker: MockerFixture, harness: dict[str, Any]
+    user: MagicMock,
+    mocker: MockerFixture,
+    harness: dict[str, Any],
+    mutations_gated: None,
 ) -> None:
     harness["consume_approval"].side_effect = AiChatApprovalExpiredError()
     provider = ScriptedProvider([])
@@ -747,7 +954,10 @@ def test_identity_mismatch_degrades_chat_to_no_tools(
 
 
 def test_identity_mismatch_blocks_approval_turn(
-    user: MagicMock, mocker: MockerFixture, harness: dict[str, Any]
+    user: MagicMock,
+    mocker: MockerFixture,
+    harness: dict[str, Any],
+    mutations_gated: None,
 ) -> None:
     harness["assert_identity_alignment"].side_effect = AiChatIdentityMismatchError()
     provider = ScriptedProvider([])

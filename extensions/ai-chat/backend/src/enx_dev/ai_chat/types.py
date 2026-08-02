@@ -49,6 +49,23 @@ class ToolClassification(StrEnum):
     UNKNOWN = "unknown"
 
 
+class ToolApprovalMode(StrEnum):
+    """How much of the tool surface an operator gates behind an approval.
+
+    The mode is operator configuration, never something the model or the
+    browser can influence, and ``DISABLED`` is the default: authentication,
+    the allowlist, argument validation and Superset's own RBAC still apply to
+    every call, and approval adds a human confirmation step on top of them.
+    """
+
+    #: Every allowlisted tool runs as soon as validation passes.
+    DISABLED = "disabled"
+    #: Read-only tools run inline; mutating and destructive ones are gated.
+    MUTATIONS_ONLY = "mutations_only"
+    #: Every tool call is gated, including read-only ones.
+    ALL_TOOLS = "all_tools"
+
+
 class FinishReason(StrEnum):
     STOP = "stop"
     TOOL_CALLS = "tool_calls"

@@ -25,6 +25,13 @@ Superset application. Rather than standing up a second one, they borrow the
 fixtures from Superset's own unit-test suite, located through the installed
 ``superset`` package -- which means running them requires a Superset source
 checkout (a development install), not just the wheel.
+
+When the host is configured to load this extension (``LOCAL_EXTENSIONS``), it
+imports the backend out of ``dist/`` through its own importer, which takes
+precedence over the ``src`` entry added below. The routes under test are then
+the built copy rather than the working tree, so :func:`dist_matches_source`
+refuses to run against a stale build instead of quietly reporting that code
+nobody changed still passes.
 """
 
 from __future__ import annotations
@@ -49,6 +56,48 @@ from tests.unit_tests.conftest import (  # noqa: E402
     client,  # noqa: F401
     full_api_access,  # noqa: F401
 )
+
+
+@pytest.fixture(scope="session", autouse=True)
+def dist_matches_source() -> None:
+    """Refuse to run against a build that no longer matches the source.
+
+    Only a mismatch is an error; no build at all is fine, since then nothing
+    shadows the working tree.
+    """
+    source = Path(__file__).resolve().parents[1] / "src" / "enx_dev" / "ai_chat"
+    built = (
+        Path(__file__).resolve().parents[2]
+        / "dist"
+        / "backend"
+        / "src"
+        / "enx_dev"
+        / "ai_chat"
+    )
+    if not built.is_dir():
+        return
+
+    # Compared in both directions: a module the build failed to prune shadows
+    # nothing in the working tree, so walking the source alone would never
+    # notice it, and it would keep serving a route that no longer has a
+    # definition.
+    in_source = {path.relative_to(source) for path in source.rglob("*.py")}
+    in_build = {path.relative_to(built) for path in built.rglob("*.py")}
+    stale = {
+        path
+        for path in in_source & in_build
+        if (source / path).read_bytes() != (built / path).read_bytes()
+    }
+    stale |= in_source ^ in_build
+
+    if stale:
+        pytest.exit(
+            "extensions/ai-chat/dist does not match backend/src, and the host "
+            "serves the built copy, so these tests would exercise stale "
+            "code. Run `superset-extensions build`. Differing: "
+            f"{', '.join(sorted(str(path) for path in stale))}",
+            returncode=1,
+        )
 
 
 @pytest.fixture(autouse=True)

@@ -49,7 +49,7 @@ from enx_dev.ai_chat.schemas import (
     ChatRequestSchema,
     ToolApprovalRequestSchema,
 )
-from enx_dev.ai_chat.settings import get_ai_chat_config
+from enx_dev.ai_chat.settings import get_ai_chat_config, get_tool_approval_mode
 from enx_dev.ai_chat.types import ToolCall
 from flask import g, request, Response
 from flask_appbuilder.api import expose, protect, safe
@@ -179,7 +179,9 @@ class AiChatRestApi(RestApi):
           description: >-
             Returns whether the AI chat feature is enabled, whether the model
             provider is configured, whether MCP tool execution is available,
-            and the classified tool list. Never includes secrets.
+            the classified tool list, and the configured tool approval mode.
+            The approval mode is informational, for what the UI displays; the
+            server enforces it regardless. Never includes secrets.
           responses:
             200:
               description: AI chat configuration status
@@ -199,6 +201,10 @@ class AiChatRestApi(RestApi):
         """
         config = get_ai_chat_config()
         enabled = bool(config.get("ENABLED"))
+        try:
+            approval_mode = get_tool_approval_mode(config)
+        except AiChatError as ex:
+            return self._error_response(ex)
         tools_available, tools = self._mcp_status_and_tools(enabled)
         return self.response(
             200,
@@ -207,9 +213,10 @@ class AiChatRestApi(RestApi):
                 "provider": config.get("PROVIDER") if enabled else None,
                 "provider_configured": enabled and is_provider_configured(config),
                 "mcp_available": tools_available,
-                "require_approval_for_mutations": bool(
-                    config.get("REQUIRE_APPROVAL_FOR_MUTATIONS", True)
-                ),
+                # Informational: it tells the UI what to expect, and the
+                # server still decides. A browser that lies about it to
+                # itself changes nothing about which calls are gated.
+                "tool_approval_mode": approval_mode.value,
                 "tools": tools,
                 "limits": {
                     "max_messages_per_request": int(
@@ -268,7 +275,9 @@ class AiChatRestApi(RestApi):
             current user, conversation, tool name and exact arguments. On
             approval the tool executes under the user's authorization and
             the turn continues; on rejection the assistant is informed and
-            responds without executing.
+            responds without executing. Only reachable when TOOL_APPROVAL_MODE
+            gates something; with approval disabled, no approval exists to
+            consume and the request is refused.
           requestBody:
             required: true
             content:

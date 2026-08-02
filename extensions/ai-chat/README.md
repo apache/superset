@@ -23,42 +23,59 @@ An AI assistant inside the Superset chat host. The extension registers a
 trigger and panel through the public `chat` contribution API (SIP-214) and
 talks to a server-side gateway (`backend/`) that invokes a
 configured model provider and orchestrates the Superset MCP tools under the
-current user's own permissions. Mutating operations require an explicit,
-server-enforced user approval.
+current user's own permissions. Tool calls can optionally be gated behind an
+explicit, server-enforced user approval; see
+[Tool approval](#tool-approval-optional).
 
 ## Architecture
 
 ```mermaid
 flowchart LR
     subgraph Browser
-        T[Chat trigger] --- P[Chat panel]
-        P -->|"fetch + CSRF"| G
+        T["Chat trigger"] --- P["Chat panel"]
+        P -->|"HTTPS + CSRF"| G
     end
+
     subgraph "Superset backend"
-        G["AI gateway REST API<br/>/extensions/enx-dev/ai-chat"] --> O[Orchestrator]
+        G["AI gateway REST API<br/>/extensions/enx-dev/ai-chat"] --> O["AI orchestrator"]
+        O --> Policy["Tool policy<br/>allowlist + classification"]
+        Policy -->|"approval not required"| B["MCP bridge"]
+        Policy -->|"approval required"| A["Approval store<br/>(key-value, single-use)"]
+        A --> B
         O --> PR["Provider abstraction<br/>mock / openai_compatible / anthropic"]
-        O --> A["Approval store<br/>(key-value, single-use)"]
-        O --> B["MCP bridge<br/>(allowlist + classification)"]
-        B --> M["MCP service tools<br/>(RBAC under current user)"]
+        B --> M["Superset MCP tools<br/>(RBAC under current user)"]
     end
-    PR -->|HTTPS| LLM["Model provider API<br/>(server-side key)"]
+
+    PR -->|"HTTPS"| LLM["Model provider API<br/>(server-side key)"]
 ```
+
+Every call passes through the tool policy, which asks one question: does the
+configured `TOOL_APPROVAL_MODE` gate a tool of this class? In the default
+`disabled` mode the answer is always no, the left-hand branch is the only one
+taken, and **the approval store is never reached** — no row is written, no
+token is minted, and the approval endpoint refuses requests outright.
 
 - **Frontend** (`frontend/`): conversation UI, tool-activity cards, approval
   cards, page-context awareness (`navigation` API), file attachments, local
   persistence, retry and cancellation. It holds no secrets and performs no
-  Superset operations itself.
+  Superset operations itself. It renders approval controls strictly in
+  response to a `tool.approval_required` event, never from what it knows
+  about the configured mode.
 
 - **Gateway** (`backend/`): authenticates the session user (CSRF
   enforced), validates payloads, calls the provider, executes allowlisted
   MCP tools in-process through the in-memory FastMCP client (full RBAC
-  middleware chain), enforces approvals, caps sizes, sanitizes errors.
+  middleware chain), enforces approvals where the mode calls for them, caps
+  sizes, sanitizes errors.
 
 - **Protocol**: one POST per turn returning an ordered list of typed events
   (`message.completed`, `tool.running`, `tool.completed`, `tool.failed`,
   `tool.approval_required`, `tool.rejected`, `request.completed`,
-  `request.failed`). The event vocabulary is transport-agnostic so a future
-  SSE transport can stream the same events; see Limitations.
+  `request.failed`). A directly executed call produces `tool.running` then
+  `tool.completed`; `tool.approval_required` is emitted only for calls the
+  configured mode gates, and never at all in `disabled` mode. The event
+  vocabulary is transport-agnostic so a future SSE transport can stream the
+  same events; see Limitations.
 
 ## Registration
 
@@ -102,6 +119,10 @@ Four independent switches, all server-side:
 When configuration is incomplete the panel shows an administrator-friendly
 disabled state; no secrets are ever included in any response.
 
+Approval is not one of these switches: with the above in place the assistant
+works, and tools run directly. Turning approval on is a separate, optional
+decision — see [Tool approval](#tool-approval-optional).
+
 ## Provider configuration
 
 Everything lives in `AI_CHAT_CONFIG` in `superset_config.py`. Superset
@@ -123,9 +144,11 @@ AI_CHAT_CONFIG = {
 ```
 
 The mock provider is deterministic: `list dashboards` runs a read-only tool,
-`delete dashboard <id>` proposes a destructive tool (approval flow),
-`run sql: <query> on database <id>` proposes SQL execution, and anything
-else returns a help message.
+`delete dashboard <id>` calls a destructive tool, `run sql: <query> on
+database <id>` calls SQL execution, and anything else returns a help
+message. Whether the two tool-calling phrases execute directly or stop for
+an approval card depends on `TOOL_APPROVAL_MODE`, which makes the mock a
+convenient way to try each mode.
 
 ### OpenAI-compatible endpoint
 
@@ -138,6 +161,9 @@ AI_CHAT_CONFIG = {
     # Optional: any /chat/completions-compatible server (vLLM, llama.cpp,
     # OpenRouter, an internal gateway). Operator-configured only.
     # "BASE_URL": "https://internal-llm.example.com/v1",
+    # Recommended where mutating MCP tools are exposed; defaults to
+    # "disabled". See Tool approval.
+    # "TOOL_APPROVAL_MODE": "mutations_only",
 }
 ```
 
@@ -175,31 +201,77 @@ the requesting user. On top of that:
   outside it. An empty list disables tool use.
 
 - Every tool is classified from its declared `ToolAnnotations`:
-  `readOnlyHint=True` → **read-only** (executes immediately);
-  `destructiveHint=True` → **destructive** (always requires approval);
-  `readOnlyHint=False` → **mutating** (requires approval unless the
-  operator disables `REQUIRE_APPROVAL_FOR_MUTATIONS`); missing/unknown
-  annotations → **unknown**, treated like destructive and never
-  auto-executed.
+  `readOnlyHint=True` → **read-only**; `destructiveHint=True` →
+  **destructive**; `readOnlyHint=False` → **mutating**; missing or
+  unrecognizable annotations → **unknown**, which is gated wherever mutating
+  tools are, so an unannotated tool is never the cheapest way past a gate.
+  What the class then means for execution is decided by `TOOL_APPROVAL_MODE`
+  below.
 
 - SQL execution goes through the MCP `execute_sql` tool, which fail-closes
   on unparseable SQL, blocks destructive DDL unconditionally and leaves DML
   to the per-database `allow_dml` flag — classification by code, not by the
-  model.
+  model. These limits are part of the tool and apply in every approval mode.
 
 **Adding a tool**: append its name to `ALLOWED_MCP_TOOLS`. Its class is
-derived automatically from its annotations; if it has none it will require
-approval every time until annotated. Optional presentation-only warnings can
-be added in `backend/src/enx_dev/ai_chat/classification.py::TOOL_APPROVAL_WARNINGS`.
+derived automatically from its annotations. Optional presentation-only
+warnings can be added in
+`backend/src/enx_dev/ai_chat/tool_policy.py::TOOL_APPROVAL_WARNINGS`.
 
-## Approval behavior
+## Tool approval (optional)
 
-Before any mutating/destructive call, the gateway creates a single-use
-approval record in the metadata database bound to the user id, conversation
-id, tool name and a SHA-256 hash of the canonicalized arguments, with a TTL
-(`APPROVAL_TTL_SECONDS`, default 5 minutes). The panel shows the exact
-action, target arguments, classification, reversibility hint and warnings
-with Approve/Reject buttons.
+Approval is an **optional confirmation step, disabled by default**. It does
+not replace any other control: session authentication, the `can read on
+AiChat` permission, the `ALLOWED_MCP_TOOLS` allowlist, schema and argument
+validation, and Superset's own RBAC inside each MCP tool apply to every call
+in every mode. What approval adds is a human saying yes first.
+
+Configure it with a single key, and only an administrator can:
+
+```python
+AI_CHAT_CONFIG = {
+    "ENABLED": True,
+    "PROVIDER": "openai_compatible",
+    "MODEL": "gpt-4o-mini",
+    "API_KEY_ENV_VAR": "OPENAI_API_KEY",
+    "TOOL_APPROVAL_MODE": "disabled",  # or "mutations_only", "all_tools"
+}
+```
+
+| Mode | Read-only tools | Mutating / destructive / unknown | Approval store |
+| --- | --- | --- | --- |
+| `disabled` *(default)* | run directly | run directly | never touched |
+| `mutations_only` | run directly | require approval | used when gated |
+| `all_tools` | require approval | require approval | used for every call |
+
+- **`disabled`** is the default and what you get by saying nothing about
+  approval. Every allowlisted tool executes as soon as authentication, the
+  allowlist, argument and schema validation, and RBAC have passed. No
+  approval row is written, no approval token is minted, no
+  `tool.approval_required` event is emitted, and the `/tool_approval`
+  endpoint refuses requests — a forged approval has nothing to consume.
+
+- **`mutations_only`** is recommended for production instances that expose
+  mutating MCP tools. Read-only tools stay immediate, so the assistant is
+  still quick to ask questions of, while anything that writes waits for a
+  person.
+
+- **`all_tools`** gates every call, read-only ones included. Intended for
+  highly restricted environments where even a read is worth confirming; it
+  makes ordinary use slow by design.
+
+An unrecognized value is a configuration error: the gateway refuses the
+request rather than silently choosing a mode, in either direction.
+
+### What an approval is, when one is used
+
+In a gating mode, the gateway creates a single-use approval record in the
+metadata database bound to the user id, conversation id, tool name and a
+SHA-256 hash of the canonicalized arguments, with a TTL
+(`APPROVAL_TTL_SECONDS`, default 5 minutes). Storage is shared, so
+enforcement holds across workers. The panel shows the exact action, target
+arguments, classification, reversibility hint and warnings with
+Approve/Reject buttons.
 
 - Approving sends the approval id; the server re-validates every bound
   property and consumes the record atomically before executing. Changing
@@ -210,7 +282,26 @@ with Approve/Reject buttons.
   model, which responds without executing.
 
 - Approval is enforced server-side; nothing the model, the page content or
-  the client sends can bypass it.
+  the client sends can bypass it. `/config` reports `tool_approval_mode` so
+  the UI can describe the instance, but that value is informational — the
+  browser renders approval controls only in response to a
+  `tool.approval_required` event, and lying to itself about the mode changes
+  nothing about which calls are gated.
+
+### Migrating from `REQUIRE_APPROVAL_FOR_MUTATIONS`
+
+The previous `REQUIRE_APPROVAL_FOR_MUTATIONS` boolean is deprecated and read
+only when `TOOL_APPROVAL_MODE` is unset. It logs a warning and will be
+removed.
+
+| Old setting | Resolves to | Why |
+| --- | --- | --- |
+| `True` | `mutations_only` | Exactly the old behavior. |
+| `False` | `mutations_only` | The old `False` still gated destructive and unknown tools while letting plain mutations through. No mode expresses that, so it resolves to the stricter neighbour rather than quietly ungating deletions. Set `TOOL_APPROVAL_MODE` explicitly to choose. |
+
+**Behavior change**: approval used to be mandatory for mutating and
+destructive tools and is now off unless configured. An instance that relied
+on the old default should set `TOOL_APPROVAL_MODE = "mutations_only"`.
 
 ## Security model
 
@@ -218,15 +309,19 @@ with Approve/Reject buttons.
 AiChat` permission lets operators grant the assistant per role.
 
 - All Superset operations run through MCP tools under the requesting user —
-  the gateway adds no privileged path. If `MCP_DEV_USERNAME` is set to a
-  different user than the session user, tool execution fails closed
-  (identity alignment guard).
+  the gateway adds no privileged path, in any approval mode. If
+  `MCP_DEV_USERNAME` is set to a different user than the session user, tool
+  execution fails closed (identity alignment guard). A user can therefore
+  only ever reach, through the assistant, what they could reach themselves;
+  approval narrows that further when enabled, and never widens it.
 
 - Prompt-injection defense in depth: trusted system prompt kept separate
   from all retrieved data; MCP wraps user-authored strings in
   `<UNTRUSTED-CONTENT>` tags; tool output is size-capped and carried only
-  as tool-role data; the tool allowlist, classification and approvals are
-  code-enforced; no shell/filesystem/URL-fetch/code-execution tools exist.
+  as tool-role data; the tool allowlist, classification and approval policy
+  are code-enforced, and the model is told what the policy is but never
+  consulted about it; no shell/filesystem/URL-fetch/code-execution tools
+  exist.
 
 - The frontend renders Markdown through a minimal React-element renderer:
   no raw HTML, no `dangerouslySetInnerHTML`, unsafe link schemes refused.
@@ -259,6 +354,11 @@ npm run build            # webpack production build into dist/
 pytest extensions/ai-chat/backend/tests/
 ```
 
+When the host is configured to load this extension, it imports the backend
+out of `dist/`, which shadows the working tree — so build before running the
+backend tests. They refuse to run against a stale `dist/` rather than report
+a pass on code you did not write.
+
 To load the extension locally, run `superset-extensions build` in this
 directory (produces `dist/manifest.json` + `dist/frontend/dist/*`) and add
 the directory to `LOCAL_EXTENSIONS`. `superset-extensions bundle` packages
@@ -272,8 +372,11 @@ True` with the mock provider, and this extension in `LOCAL_EXTENSIONS`.
    opens in floating mode; the header toggle docks it as a sidebar.
 3. Send `list dashboards` — a read-only tool card runs and the mock
    summarizes the result.
-4. Send `delete dashboard <id>` — an approval card appears; Reject and
-   verify nothing was deleted; repeat and Approve to execute.
+4. Send `delete dashboard <id>` — with the default
+   `TOOL_APPROVAL_MODE`, the tool runs straight away and reports its result.
+   Set `"TOOL_APPROVAL_MODE": "mutations_only"`, restart, and send it again:
+   an approval card appears; Reject and verify nothing was deleted, then
+   repeat and Approve to execute.
 5. Navigate between pages — the header context tag updates and a note marks
    the transition; the conversation is retained.
 6. Set `"PROVIDER": "openai_compatible"` without a key — the panel shows the

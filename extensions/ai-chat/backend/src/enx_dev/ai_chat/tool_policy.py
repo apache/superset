@@ -16,19 +16,27 @@
 # under the License.
 """Server-side tool impact classification and approval policy.
 
+This module owns both halves of the question "may this call run now": what
+class of tool it is, and whether the operator's configured approval mode gates
+that class. Nothing else in the gateway decides either, so a change of policy
+happens here rather than in the orchestrator, the API or the browser.
+
 Classification derives from the ``readOnlyHint`` and ``destructiveHint``
-annotations every MCP tool declares, and the orchestrator enforces it before
-any execution rather than through prompt instructions. Tools with missing or
-unrecognizable annotations fall into ``UNKNOWN``, which is handled with the
-same caution as ``DESTRUCTIVE`` and never executes automatically.
+annotations every MCP tool declares. Tools with missing or unrecognizable
+annotations fall into ``UNKNOWN``, which is treated as at least as sensitive
+as ``MUTATING`` for approval purposes -- an allowlisted tool that declares
+nothing must not be the cheapest way past a gate.
+
+Approval is a confirmation step, not the authorization itself. Authentication,
+the allowlist, argument and schema validation, and Superset's own RBAC apply
+to every call in every mode, including ``DISABLED``.
 """
 
 from __future__ import annotations
 
 from typing import Any, Mapping
 
-from enx_dev.ai_chat.settings import get_ai_chat_config
-from enx_dev.ai_chat.types import ToolClassification
+from enx_dev.ai_chat.types import ToolApprovalMode, ToolClassification
 
 # Extra human-readable warnings surfaced in the approval card for specific
 # tools. Presentation only: enforcement does not depend on this map.
@@ -79,20 +87,26 @@ def classify_tool(annotations: Mapping[str, Any] | None) -> ToolClassification:
     return ToolClassification.UNKNOWN
 
 
-def requires_approval(classification: ToolClassification) -> bool:
-    """Whether a tool of this class needs a server-enforced user approval.
+def requires_approval(
+    tool_classification: ToolClassification,
+    approval_mode: ToolApprovalMode,
+) -> bool:
+    """Whether this call must be confirmed by the user before it runs.
 
-    Destructive and unknown tools always require approval. Mutating tools
-    require it unless the operator opted out via
-    ``AI_CHAT_CONFIG["REQUIRE_APPROVAL_FOR_MUTATIONS"]``, and read-only tools
-    never do.
+    The single policy question the orchestrator asks. Pure by design: the mode
+    is resolved once per turn and passed in, so the answer cannot drift
+    mid-turn and the whole matrix is exhaustively testable.
+
+    ``DISABLED`` gates nothing. ``ALL_TOOLS`` gates everything. In between,
+    ``MUTATIONS_ONLY`` lets read-only tools through and gates the rest --
+    including ``UNKNOWN``, which is where an allowlisted tool with unreadable
+    annotations lands.
     """
-    if classification == ToolClassification.READ_ONLY:
+    if approval_mode == ToolApprovalMode.DISABLED:
         return False
-    if classification == ToolClassification.MUTATING:
-        config = get_ai_chat_config()
-        return bool(config.get("REQUIRE_APPROVAL_FOR_MUTATIONS", True))
-    return True
+    if approval_mode == ToolApprovalMode.ALL_TOOLS:
+        return True
+    return tool_classification != ToolClassification.READ_ONLY
 
 
 def is_reversible(classification: ToolClassification) -> bool:

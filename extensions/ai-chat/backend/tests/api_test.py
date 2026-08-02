@@ -131,7 +131,9 @@ def test_config_when_enabled(
     assert result["provider"] == "mock"
     assert result["provider_configured"] is True
     assert result["mcp_available"] is True
-    assert result["require_approval_for_mutations"] is True
+    # Reported so the UI can describe the instance; it is not what decides
+    # which calls are gated.
+    assert result["tool_approval_mode"] == "disabled"
     assert result["tools"] == [
         {
             "name": "list_dashboards",

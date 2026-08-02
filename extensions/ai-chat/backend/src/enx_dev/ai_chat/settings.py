@@ -21,13 +21,22 @@ whatever the operator put in ``AI_CHAT_CONFIG`` over them. That makes a
 minimal enablement possible -- ``{"ENABLED": True, "PROVIDER": "mock"}`` keeps
 the curated tool allowlist and the size limits intact -- and it means Superset
 itself carries no default for a key it knows nothing about.
+
+This is also where ``TOOL_APPROVAL_MODE`` is parsed and validated, so the rest
+of the gateway asks for a :class:`ToolApprovalMode` and never re-reads or
+re-interprets the raw configuration value.
 """
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
+from enx_dev.ai_chat.exceptions import AiChatConfigurationError
+from enx_dev.ai_chat.types import ToolApprovalMode
 from flask import current_app
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_AI_CHAT_CONFIG: dict[str, Any] = {
     # Master switch for the AI chat gateway endpoints
@@ -81,8 +90,8 @@ DEFAULT_AI_CHAT_CONFIG: dict[str, Any] = {
         "generate_dashboard",
         "create_virtual_dataset",
         "add_chart_to_existing_dashboard",
-        # Modification workflows (destructive tools require approval with
-        # an explicit warning in the UI)
+        # Modification workflows (gated behind an approval, with an explicit
+        # warning in the UI, in every mode but "disabled")
         "update_chart",
         "update_dashboard",
         "manage_native_filters",
@@ -93,15 +102,84 @@ DEFAULT_AI_CHAT_CONFIG: dict[str, Any] = {
         # honors the per-database allow_dml flag)
         "execute_sql",
     ],
-    # When True, which is strongly recommended, every mutating or destructive
-    # tool call requires a server-enforced, single-use user approval. Setting
-    # it to False lifts the requirement for mutating tools only; destructive
-    # tools always require approval.
-    "REQUIRE_APPROVAL_FOR_MUTATIONS": True,
+    # How much of the tool surface is gated behind an explicit user approval:
+    # "disabled", "mutations_only" or "all_tools". Approval is a confirmation
+    # step layered on top of authentication, the allowlist, argument
+    # validation and Superset's own RBAC, all of which apply in every mode.
+    # Left unset here so an operator who never mentions approval can be told
+    # apart from one who asked for DEFAULT_TOOL_APPROVAL_MODE by name; both
+    # resolve to it. See ToolApprovalMode and get_tool_approval_mode.
+    "TOOL_APPROVAL_MODE": None,
 }
+
+#: What an operator who configures nothing gets: direct execution.
+DEFAULT_TOOL_APPROVAL_MODE = ToolApprovalMode.DISABLED
+
+#: Superseded by TOOL_APPROVAL_MODE. Read only when the new key is unset.
+DEPRECATED_APPROVAL_KEY = "REQUIRE_APPROVAL_FOR_MUTATIONS"
 
 
 def get_ai_chat_config() -> dict[str, Any]:
     """Return the shipped defaults merged with operator overrides."""
     configured = current_app.config.get("AI_CHAT_CONFIG") or {}
     return {**DEFAULT_AI_CHAT_CONFIG, **configured}
+
+
+def get_tool_approval_mode(config: dict[str, Any] | None = None) -> ToolApprovalMode:
+    """Resolve and validate the configured approval mode.
+
+    Raises :class:`AiChatConfigurationError` on an unrecognized value rather
+    than falling back to a default: an operator who misspells the mode they
+    wanted must not silently get a different security posture, in either
+    direction.
+    """
+    config = get_ai_chat_config() if config is None else config
+    raw = config.get("TOOL_APPROVAL_MODE")
+    if raw is None:
+        return _mode_from_deprecated_key(config)
+    try:
+        return ToolApprovalMode(raw)
+    except ValueError as ex:
+        # What was misconfigured goes to the log, where the operator who can
+        # fix it looks; the browser gets the same non-specific message every
+        # other configuration failure returns.
+        logger.error(
+            "AI_CHAT_CONFIG['TOOL_APPROVAL_MODE'] is %r, which is not a "
+            "recognized approval mode. Valid values are: %s.",
+            raw,
+            ", ".join(mode.value for mode in ToolApprovalMode),
+        )
+        raise AiChatConfigurationError(
+            "The AI chat tool approval mode is not configured correctly. "
+            "Please contact an administrator."
+        ) from ex
+
+
+def _mode_from_deprecated_key(config: dict[str, Any]) -> ToolApprovalMode:
+    """Translate the superseded REQUIRE_APPROVAL_FOR_MUTATIONS flag.
+
+    The old flag only ever answered "do plain mutating tools need approval",
+    with destructive and unknown tools gated either way. ``True`` maps exactly
+    onto ``mutations_only``; ``False`` has no equivalent, because no mode
+    gates destructive tools alone. Rather than quietly ungate them, that case
+    resolves to the stricter mode and says so -- the operator can then choose
+    deliberately.
+    """
+    if config.get(DEPRECATED_APPROVAL_KEY) is None:
+        return DEFAULT_TOOL_APPROVAL_MODE
+
+    required = bool(config[DEPRECATED_APPROVAL_KEY])
+    logger.warning(
+        "AI_CHAT_CONFIG['%s'] is deprecated and will be removed; set "
+        "'TOOL_APPROVAL_MODE' to one of %s instead.%s",
+        DEPRECATED_APPROVAL_KEY,
+        ", ".join(repr(mode.value) for mode in ToolApprovalMode),
+        ""
+        if required
+        else (
+            f" {DEPRECATED_APPROVAL_KEY}=False gated destructive tools while "
+            "letting plain mutations through, which no mode expresses; "
+            "'mutations_only' is being used so nothing is ungated silently."
+        ),
+    )
+    return ToolApprovalMode.MUTATIONS_ONLY

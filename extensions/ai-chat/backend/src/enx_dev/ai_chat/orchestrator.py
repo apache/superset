@@ -17,14 +17,19 @@
 """Agent loop for the AI chat gateway.
 
 One request is one turn: the model is called with the client-replayed
-conversation, read-only tools execute inline, and the first mutating or
-destructive tool call pauses the turn with a server-generated approval. A
-follow-up approval request resumes the loop with the approved or rejected
-outcome.
+conversation and the tool calls it asks for are dispatched down one of two
+paths, chosen per call by :func:`tool_policy.requires_approval`.
 
-The server holds no conversation state and approvals are the only persisted
-artifact. Clients replay trimmed history each turn, capped by the schemas in
-message count and total size. Fabricated history degrades the client's own
+Direct execution is the default and the only path when ``TOOL_APPROVAL_MODE``
+is ``disabled``: a validated, allowlisted call runs immediately under the
+user's own permissions. The approval path pauses the turn instead, persisting
+a single-use approval the user must confirm; a follow-up approval request
+resumes the loop with the approved or rejected outcome.
+
+The server holds no conversation state, and approvals are the only persisted
+artifact -- so in ``disabled`` mode the gateway persists nothing at all.
+Clients replay trimmed history each turn, capped by the schemas in message
+count and total size. Fabricated history degrades the client's own
 conversation only; authorization and approval integrity never depend on it.
 """
 
@@ -38,13 +43,9 @@ from typing import Any, TYPE_CHECKING
 
 from enx_dev.ai_chat import events as ev
 from enx_dev.ai_chat.approvals import consume_approval, create_approval
-from enx_dev.ai_chat.classification import (
-    approval_warnings,
-    is_reversible,
-    requires_approval,
-)
 from enx_dev.ai_chat.exceptions import (
     AiChatApprovalError,
+    AiChatApprovalExpiredError,
     AiChatIdentityMismatchError,
     AiChatProviderError,
     AiChatRequestTooLargeError,
@@ -62,13 +63,19 @@ from enx_dev.ai_chat.schemas import (
     MAX_TOTAL_IMAGE_BASE64_CHARS,
     RESOURCE_NAME_MAX_CHARS,
 )
-from enx_dev.ai_chat.settings import get_ai_chat_config
+from enx_dev.ai_chat.settings import get_ai_chat_config, get_tool_approval_mode
+from enx_dev.ai_chat.tool_policy import (
+    approval_warnings,
+    is_reversible,
+    requires_approval,
+)
 from enx_dev.ai_chat.types import (
     ChatMessage,
     ChatRole,
     FinishReason,
     ImageAttachment,
     redact_sensitive,
+    ToolApprovalMode,
     ToolCall,
     ToolSpec,
 )
@@ -87,6 +94,26 @@ REJECTION_TOOL_RESULT = (
     "The user rejected this action. It was NOT executed. Do not retry it "
     "unless the user explicitly asks again; offer an alternative instead."
 )
+
+#: What the model is told about the gate, per mode. Advisory only: the server
+#: decides, and a model that ignores this reaches exactly the same policy.
+TOOL_POLICY_INSTRUCTIONS = {
+    ToolApprovalMode.DISABLED: (
+        "Tool policy: the tools you have run as soon as you call them, under "
+        "the user's own Superset permissions. There is no confirmation step, "
+        "so say what you are about to change before you change it."
+    ),
+    ToolApprovalMode.MUTATIONS_ONLY: (
+        "Tool policy: read-only tools run immediately. Mutating and "
+        "destructive tools require the user's explicit approval, which the "
+        "server enforces — you cannot bypass it."
+    ),
+    ToolApprovalMode.ALL_TOOLS: (
+        "Tool policy: every tool call, read-only ones included, requires the "
+        "user's explicit approval, which the server enforces — you cannot "
+        "bypass it."
+    ),
+}
 
 PAGE_LABELS = {
     "dashboard": "viewing a dashboard",
@@ -172,6 +199,7 @@ def build_system_prompt(
     user: User,
     context: dict[str, Any] | None,
     tools: list[ToolSpec],
+    approval_mode: ToolApprovalMode,
 ) -> str:
     """Trusted system instructions, kept strictly separate from user data."""
     roles = getattr(user, "roles", None) or []
@@ -220,21 +248,19 @@ def build_system_prompt(
         parts.append(attached)
     if tools:
         parts.append(
-            "Tool policy: read-only tools run immediately. Mutating or "
-            "destructive tools require the user's explicit approval, which "
-            "the server enforces — you cannot bypass it, and you must never "
-            "present an action as done without a successful tool result. "
-            "Report partial failures honestly."
+            f"{TOOL_POLICY_INSTRUCTIONS[approval_mode]} Never present an "
+            "action as done without a successful tool result, and report "
+            "partial failures honestly."
         )
         parts.append(
             "Never guess the target of a mutating operation. When the user "
             "says 'this dashboard', 'this chart' or similar, use the "
             "identifier from the page context above; if none is available, "
             "resolve the target with read-only tools and confirm it with the "
-            "user before mutating. When asking for approval, always name the "
-            "target with its human-readable title AND its id — e.g. remove "
-            "'deck.gl Path' from dashboard 'deck.gl Demo' (id 5) — so the "
-            "user can catch a wrong target."
+            "user before mutating. Always name the target with its "
+            "human-readable title AND its id — e.g. remove 'deck.gl Path' "
+            "from dashboard 'deck.gl Demo' (id 5) — so the user can catch a "
+            "wrong target."
         )
         parts.append(
             "After a mutation changes a dashboard or chart the user is "
@@ -342,6 +368,10 @@ class ChatTurnRunner:
         self.messages = normalize_messages(raw_messages)
         self.events: list[dict[str, Any]] = []
         self.config = get_ai_chat_config()
+        # Resolved once, so every call in this turn is judged by the same
+        # policy even if an operator edits configuration while it runs, and
+        # so an invalid mode fails the request instead of the tool call.
+        self.approval_mode = get_tool_approval_mode(self.config)
         self.provider = get_provider(self.config)
         self.deadline = time.monotonic() + int(
             self.config.get("REQUEST_TIMEOUT_SECONDS") or 120
@@ -392,7 +422,9 @@ class ChatTurnRunner:
             0,
             ChatMessage(
                 role=ChatRole.SYSTEM,
-                content=build_system_prompt(self.user, self.context, tools),
+                content=build_system_prompt(
+                    self.user, self.context, tools, self.approval_mode
+                ),
             ),
         )
         # The system prompt sits before the whole conversation, so in a long
@@ -415,6 +447,12 @@ class ChatTurnRunner:
         decision: str,
         tool_call: ToolCall,
     ) -> list[dict[str, Any]]:
+        # Nothing issues approvals in this mode, so nothing can be consumed in
+        # it either. Refusing here keeps the approval store untouched when
+        # approval is disabled, rather than reaching it to learn that a row
+        # the gateway never wrote is missing.
+        if self.approval_mode == ToolApprovalMode.DISABLED:
+            raise AiChatApprovalExpiredError()
         # A tool is about to execute, or be recorded as rejected, so identity
         # must be aligned rather than silently degraded.
         assert_identity_alignment(self.user)
@@ -563,11 +601,12 @@ class ChatTurnRunner:
         call: ToolCall,
         specs_by_name: dict[str, ToolSpec],
     ) -> bool:
-        """Handle one requested tool call.
+        """Send one requested tool call down the direct or approval path.
 
-        Returns ``True`` when the turn must pause for user approval. Only
-        allowlisted tools whose classification does not require approval run
-        here; everything else is refused or gated.
+        A call the model invented, or one outside the allowlist, has no spec
+        and is refused without either. Everything else asks the policy once:
+        gated calls pause the turn (returning ``True``), and the rest execute
+        here under the user's own permissions.
         """
         spec = specs_by_name.get(call.name)
         if spec is None:
@@ -579,7 +618,7 @@ class ChatTurnRunner:
             self._append_tool_result(call, "Error: this tool is not available.")
             return False
 
-        if requires_approval(spec.classification):
+        if requires_approval(spec.classification, self.approval_mode):
             approval = create_approval(
                 self.user_id,
                 self.conversation_id,
