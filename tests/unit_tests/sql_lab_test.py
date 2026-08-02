@@ -37,6 +37,7 @@ from superset.sql_lab import (
     execute_sql_statements,
     get_query,
     get_sql_results,
+    SqlLabException,
 )
 from superset.utils.rls import apply_rls, get_predicates_for_table
 from tests.conftest import with_config
@@ -98,6 +99,30 @@ def test_get_query_rolls_back_session_before_retrying(
     assert result is expected_query
     assert mock_one.return_value.filter_by.return_value.one.call_count == 2
     mock_rollback.assert_called_once()
+
+
+def test_get_query_swallows_rollback_failure(
+    mocker: MockerFixture, app: SupersetApp
+) -> None:
+    """
+    If the session/connection is too broken for `rollback()` itself to succeed,
+    that failure must not replace the original lookup error: `get_query` still
+    needs to raise `SqlLabException` so the `backoff` decorator's retry contract
+    (which only matches on `SqlLabException`) isn't bypassed.
+    """
+    mocker.patch("backoff._sync.time.sleep")
+
+    mock_one = mocker.patch("superset.sql_lab.db.session.query")
+    mock_one.return_value.filter_by.return_value.one.side_effect = Exception(
+        "session is broken"
+    )
+    mocker.patch(
+        "superset.sql_lab.db.session.rollback",
+        side_effect=Exception("connection already closed"),
+    )
+
+    with pytest.raises(SqlLabException):
+        get_query(query_id=1)
 
 
 @with_config(
