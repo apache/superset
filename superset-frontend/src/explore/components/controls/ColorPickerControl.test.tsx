@@ -105,7 +105,7 @@ test('calls onChange with string key "Green" when resolveThemeTokens is true', a
     <ColorPickerControl
       {...defaultProps}
       onChange={onChange}
-      resolveThemeTokens={true}
+      resolveThemeTokens
       presets={[{ label: 'Special Colors', colors: ['Green', 'Red'] }]}
     />,
   );
