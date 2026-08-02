@@ -46,6 +46,7 @@ export interface ColorPickerControlProps {
   warning?: string;
   presets?: { label: string; colors: string[] }[];
   ariaLabel?: string;
+  resolveThemeTokens?: boolean;
 }
 
 const getReverseThemeColorMap = (
@@ -87,6 +88,7 @@ export default function ColorPickerControl({
   value,
   presets: customPresets,
   ariaLabel,
+  resolveThemeTokens = false,
   ...headerProps
 }: ColorPickerControlProps) {
   const categoricalScheme = getCategoricalSchemeRegistry().get();
@@ -135,16 +137,18 @@ export default function ColorPickerControl({
     const rgb = color.toRgb();
     const hex = rgbaToHex(rgb).toLowerCase();
 
-    const specialEntry = Object.entries(SPECIAL_COLORS).find(
-      ([, rgba]) => rgbaToHex(rgba).toLowerCase() === hex,
-    );
+    const specialEntry = resolveThemeTokens
+      ? Object.entries(SPECIAL_COLORS).find(
+          ([, rgba]) => rgbaToHex(rgba).toLowerCase() === hex,
+        )
+      : undefined;
 
     if (specialEntry) {
       onChange(specialEntry[0] as SpecialColorKey);
       return;
     }
 
-    if (reverseMap[hex]) {
+    if (resolveThemeTokens && reverseMap[hex]) {
       onChange(reverseMap[hex]);
       return;
     }

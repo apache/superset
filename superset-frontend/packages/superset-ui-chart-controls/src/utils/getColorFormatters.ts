@@ -289,7 +289,7 @@ export const getColorFunction = (
       }
       return colorScheme;
     }
-    const baseHexColor = rgbaToHex(colorScheme);
+    const baseHexColor = rgbaToHex({ ...colorScheme, a: 1 });
     // If useGradient is explicitly false, return solid color
     if (useGradient === false) {
       return baseHexColor;

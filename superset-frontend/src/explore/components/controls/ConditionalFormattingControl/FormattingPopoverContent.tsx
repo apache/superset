@@ -403,6 +403,7 @@ export const FormattingPopoverContent = ({
               ariaLabel={t('Color scheme')}
               onChange={event => handleChange(event)}
               presets={[...colors, ...extraColorChoices]}
+              resolveThemeTokens
             />
           </FormItem>
         </Col>

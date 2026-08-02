@@ -135,7 +135,12 @@ test('renders None for operator when Green for increase is selected', async () =
   });
 
   const presets = document.querySelectorAll('.ant-color-picker-presets-color');
-  const greenPreset = presets[0];
+  const greenPreset = presets[6];
+
+  const innerColorBlock = greenPreset.querySelector(
+    '.ant-color-picker-color-block-inner',
+  );
+  expect(innerColorBlock).toHaveStyle({ background: 'rgba(0, 150, 0, 0.2)' });
 
   expect(greenPreset).toBeInTheDocument();
   await userEvent.click(greenPreset);

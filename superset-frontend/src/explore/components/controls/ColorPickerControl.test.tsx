@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import {
   CategoricalScheme,
   getCategoricalSchemeRegistry,
@@ -91,4 +96,70 @@ describe('ColorPickerControl', () => {
     );
     expect(colorPickerTrigger).toBeInTheDocument();
   });
+});
+
+test('calls onChange with string key "Green" when resolveThemeTokens is true', async () => {
+  const onChange = jest.fn();
+
+  render(
+    <ColorPickerControl
+      {...defaultProps}
+      onChange={onChange}
+      resolveThemeTokens={true}
+      presets={[{ label: 'Special Colors', colors: ['Green', 'Red'] }]}
+    />,
+  );
+
+  const colorPickerTrigger = document.querySelector(
+    '.ant-color-picker-trigger',
+  );
+  expect(colorPickerTrigger).toBeInTheDocument();
+  await userEvent.click(colorPickerTrigger!);
+
+  await waitFor(() => {
+    expect(
+      document.querySelector('.ant-color-picker-presets-color'),
+    ).toBeInTheDocument();
+  });
+
+  const presets = document.querySelectorAll('.ant-color-picker-presets-color');
+  const greenPreset = presets[0];
+
+  expect(greenPreset).toBeInTheDocument();
+  await userEvent.click(greenPreset);
+
+  expect(onChange).toHaveBeenCalledWith('Green');
+});
+
+test('calls onChange with RGB object when resolveThemeTokens is false', async () => {
+  const onChange = jest.fn();
+
+  render(
+    <ColorPickerControl
+      {...defaultProps}
+      onChange={onChange}
+      resolveThemeTokens={false}
+      presets={[{ label: 'Special Colors', colors: ['Green', 'Red'] }]}
+    />,
+  );
+
+  const colorPickerTrigger = document.querySelector(
+    '.ant-color-picker-trigger',
+  );
+  expect(colorPickerTrigger).toBeInTheDocument();
+  await userEvent.click(colorPickerTrigger!);
+
+  await waitFor(() => {
+    expect(
+      document.querySelector('.ant-color-picker-presets-color'),
+    ).toBeInTheDocument();
+  });
+
+  const presets = document.querySelectorAll('.ant-color-picker-presets-color');
+  const greenPreset = presets[0];
+
+  expect(greenPreset).toBeInTheDocument();
+  await userEvent.click(greenPreset);
+
+  expect(onChange).toHaveBeenCalledWith({ r: 0, g: 150, b: 0, a: 0.2 });
 });
