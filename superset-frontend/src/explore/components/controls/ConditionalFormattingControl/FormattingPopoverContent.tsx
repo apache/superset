@@ -367,6 +367,14 @@ export const FormattingPopoverContent = ({
     }
   }, [column, columns, previousColumnType]);
 
+  const trendColorsTooltip = (
+    <div>
+      <div>{t('Trend colors are added (for time-based comparison):')}</div>
+      <div>{t('green — increase / red — decrease')}</div>
+      <div>{t('red — increase / green — decrease')}</div>
+    </div>
+  );
+
   return (
     <Form
       form={form}
@@ -398,6 +406,7 @@ export const FormattingPopoverContent = ({
             label={t('Color scheme')}
             rules={rulesRequired}
             initialValue={defaultColorToken}
+            tooltip={extraColorChoices.length > 0 ? trendColorsTooltip : ''}
           >
             <ColorPickerControl
               ariaLabel={t('Color scheme')}

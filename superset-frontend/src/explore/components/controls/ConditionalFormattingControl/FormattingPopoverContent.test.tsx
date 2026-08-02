@@ -151,9 +151,12 @@ test('renders None for operator when Green for increase is selected', async () =
 
   expect(safeGreenPreset).toBeInTheDocument();
   await userEvent.click(safeGreenPreset);
-  const operatorSelect = container.querySelector('[data-test="Operator"]');
-  expect(operatorSelect).toBeInTheDocument();
 
+  const operatorInput = screen.getByLabelText('Operator');
+  expect(operatorInput).toBeInTheDocument();
+
+  const operatorSelect = operatorInput.closest('.ant-select-content');
+  expect(operatorSelect).toBeInTheDocument();
   expect(operatorSelect).toHaveTextContent(/none/i);
 });
 
@@ -327,4 +330,44 @@ test('should hide formatting fields when color scheme is Green', async () => {
     expect(screen.queryByText('Formatting column')).not.toBeInTheDocument();
     expect(screen.queryByText('Formatting object')).not.toBeInTheDocument();
   });
+});
+
+test('should not display tooltip when extraColorChoices is not provided', async () => {
+  const { container } = render(
+    <FormattingPopoverContent onChange={mockOnChange} columns={columns} />,
+  );
+
+  const tooltipIcon = container.querySelector('.ant-form-item-tooltip');
+  expect(tooltipIcon).not.toBeInTheDocument();
+});
+
+test('should display tooltip icon when extraColorChoices is provided', () => {
+  const { container } = render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columns}
+      extraColorChoices={extraColorChoices}
+    />,
+  );
+
+  const tooltipIcon = container.querySelector('.ant-form-item-tooltip');
+  expect(tooltipIcon).toBeInTheDocument();
+
+  const questionIcon = tooltipIcon?.querySelector(
+    '[aria-label="question-circle"]',
+  );
+  expect(questionIcon).toBeInTheDocument();
+});
+
+test('should not display tooltip icon when extraColorChoices is empty', () => {
+  const { container } = render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columns}
+      extraColorChoices={[]}
+    />,
+  );
+
+  const tooltipIcon = container.querySelector('.ant-form-item-tooltip');
+  expect(tooltipIcon).not.toBeInTheDocument();
 });

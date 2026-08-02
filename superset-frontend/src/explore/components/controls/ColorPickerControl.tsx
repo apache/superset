@@ -57,7 +57,7 @@ const getReverseThemeColorMap = (
 
   Object.entries(themeColors).forEach(([name, value]) => {
     if (typeof value === 'string') {
-      reverseMap[value.toLowerCase()] = name;
+      reverseMap[normalizeColorToHex(value)] = name;
     }
   });
 
@@ -99,6 +99,32 @@ const extractThemeColors = (
   }
 
   return theme as unknown as Record<string, string>;
+};
+
+const normalizeColorToHex = (color: string): string => {
+  if (!color) return '';
+
+  if (color.startsWith('#')) {
+    return color.toLowerCase();
+  }
+
+  const div = document.createElement('div');
+  div.style.color = color;
+  const normalized = div.style.color;
+
+  const match = normalized.match(
+    /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/,
+  );
+  if (match) {
+    return rgbaToHex({
+      r: parseInt(match[1], 10),
+      g: parseInt(match[2], 10),
+      b: parseInt(match[3], 10),
+      a: match[4] !== undefined ? parseFloat(match[4]) : 1,
+    }).toLowerCase();
+  }
+
+  return color.toLowerCase();
 };
 
 export default function ColorPickerControl({
