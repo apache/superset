@@ -25,7 +25,7 @@ import {
   type ColorValue,
 } from '@superset-ui/core/components';
 import ControlHeader from '../ControlHeader';
-import { useTheme } from '@apache-superset/core/theme';
+import { useTheme, type SupersetTheme } from '@apache-superset/core/theme';
 
 const SPECIAL_COLORS = {
   Red: { r: 150, g: 0, b: 0, a: 0.2 },
@@ -83,6 +83,24 @@ function toDisplayHex(
   return rgbaToHex(value).toLowerCase();
 }
 
+const extractThemeColors = (
+  theme: SupersetTheme | undefined | null,
+): Record<string, string> => {
+  if (!theme || typeof theme !== 'object') {
+    return {};
+  }
+
+  if (
+    'colors' in theme &&
+    typeof theme.colors === 'object' &&
+    theme.colors !== null
+  ) {
+    return theme.colors as Record<string, string>;
+  }
+
+  return theme as unknown as Record<string, string>;
+};
+
 export default function ColorPickerControl({
   onChange,
   value,
@@ -96,7 +114,7 @@ export default function ColorPickerControl({
   const theme = useTheme();
 
   const themeColors = useMemo<Record<string, string>>(
-    () => (theme as any)?.colors || theme || {},
+    () => extractThemeColors(theme),
     [theme],
   );
 

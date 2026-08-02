@@ -163,3 +163,80 @@ test('calls onChange with RGB object when resolveThemeTokens is false', async ()
 
   expect(onChange).toHaveBeenCalledWith({ r: 0, g: 150, b: 0, a: 0.2 });
 });
+
+test('resolves colorSuccess theme token correctly when matching color is selected', async () => {
+  const onChange = jest.fn();
+
+  jest
+    .spyOn(require('@apache-superset/core/theme'), 'useTheme')
+    .mockReturnValue({
+      colors: {
+        colorSuccess: 'rgba(82, 196, 26, 1)',
+      },
+    });
+
+  render(
+    <ColorPickerControl
+      {...defaultProps}
+      onChange={onChange}
+      resolveThemeTokens
+      presets={[{ label: 'Theme Tokens', colors: ['colorSuccess'] }]}
+    />,
+  );
+
+  const colorPickerTrigger = document.querySelector(
+    '.ant-color-picker-trigger',
+  );
+  expect(colorPickerTrigger).toBeInTheDocument();
+  await userEvent.click(colorPickerTrigger!);
+
+  await waitFor(() => {
+    expect(
+      document.querySelector('.ant-color-picker-presets-items'),
+    ).toBeInTheDocument();
+  });
+
+  const successPreset = document.querySelector(
+    '.ant-color-picker-presets-color [style*="82, 196, 26"]',
+  ) as HTMLElement | null;
+
+  expect(successPreset).toBeInTheDocument();
+
+  await userEvent.click(successPreset!);
+
+  expect(onChange).toHaveBeenCalledWith('colorSuccess');
+});
+
+test('handles theme with nested colors object', () => {
+  jest
+    .spyOn(require('@apache-superset/core/theme'), 'useTheme')
+    .mockReturnValue({
+      colors: { primary: '#007bff' },
+    });
+
+  const { container } = render(<ColorPickerControl {...defaultProps} />);
+  expect(
+    container.querySelector('.ant-color-picker-trigger'),
+  ).toBeInTheDocument();
+});
+
+test('handles theme without colors field', () => {
+  jest
+    .spyOn(require('@apache-superset/core/theme'), 'useTheme')
+    .mockReturnValue({
+      primary: '#007bff',
+    });
+
+  const { container } = render(<ColorPickerControl {...defaultProps} />);
+  expect(
+    container.querySelector('.ant-color-picker-trigger'),
+  ).toBeInTheDocument();
+});
+
+test('handles undefined theme gracefully', () => {
+  jest
+    .spyOn(require('@apache-superset/core/theme'), 'useTheme')
+    .mockReturnValue(undefined);
+
+  expect(() => render(<ColorPickerControl {...defaultProps} />)).not.toThrow();
+});
