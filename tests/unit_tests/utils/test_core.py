@@ -273,6 +273,22 @@ def test_normalize_dttm_col() -> None:
     assert df["__time"].astype(str).tolist() == ["2017-07-01"]
 
 
+def test_normalize_dttm_col_mismatched_format_keeps_values() -> None:
+    """A datetime format that coerces every value to NaT is a mismatch (e.g. an
+    epoch-millis column that inherited a ``%Y`` string format when used as a
+    chart's granularity); applying it would silently blank the whole column, so
+    the original values are kept instead of being nulled. Regression for the
+    Samples pane showing N/A for such columns."""
+    df = pd.DataFrame({"year": [1136073600000, 473385600000]})  # epoch ms
+    before = df["year"].tolist()
+
+    normalize_dttm_col(df, (DateColumn(col_label="year", timestamp_format="%Y"),))
+
+    # not blanked to NaT/None
+    assert df["year"].notna().all()
+    assert df["year"].tolist() == before
+
+
 def test_normalize_dttm_col_epoch_seconds() -> None:
     """Test conversion of epoch seconds."""
     df = pd.DataFrame(
@@ -341,6 +357,46 @@ def test_normalize_dttm_col_with_offset() -> None:
     assert df["date_col"][0].strftime("%Y-%m-%d %H:%M:%S") == "2020-01-01 03:00:00"
     assert df["date_col"][1].strftime("%Y-%m-%d %H:%M:%S") == "2021-01-01 03:00:00"
     assert df["date_col"][2].strftime("%Y-%m-%d %H:%M:%S") == "2022-01-01 03:00:00"
+
+
+def test_normalize_dttm_col_second_precision_no_offset_matches_source() -> None:
+    """Regression test for #37925: second-precision timestamps with no
+    dataset offset configured ("UTC", i.e. offset=0) and no time shift must
+    pass through ``normalize_dttm_col`` unchanged and identically to their
+    source values, with no per-row drift.
+
+    The issue reports charts showing datetimes shifted by inconsistent,
+    non-uniform amounts versus the same data in SQL Lab, with the reporter's
+    own examples showing each shift exactly equal to that row's own
+    time-of-day (e.g. 16:30:00 shifted by +16h30m, 10:00:00 by +10h,
+    14:20:00 by +14h20m). ``normalize_dttm_col`` applies a single
+    ``_col.offset``/``_col.time_shift`` uniformly via ``timedelta(...)`` to
+    the whole column (see ``test_normalize_dttm_col_with_offset`` above,
+    already green), which cannot structurally produce a shift that varies
+    per row based on that row's own value, so this function is not the
+    mechanism the issue describes. This test locks in the specific
+    reported config (offset=0, no time_shift, second-level grain, multiple
+    distinct timestamps) end to end to make that explicit.
+    """
+    source_values = [
+        "2026-02-15 16:30:00",
+        "2026-02-15 10:00:00",
+        "2026-02-11 14:20:00",
+    ]
+    df = pd.DataFrame({"dttm": source_values})
+    dttm_cols = (
+        DateColumn(
+            col_label="dttm",
+            timestamp_format="%Y-%m-%d %H:%M:%S",
+            offset=0,
+            time_shift=None,
+        ),
+    )
+
+    normalize_dttm_col(df, dttm_cols)
+
+    assert is_datetime64_dtype(df["dttm"])
+    assert df["dttm"].dt.strftime("%Y-%m-%d %H:%M:%S").tolist() == source_values
 
 
 def test_normalize_dttm_col_with_time_shift() -> None:
