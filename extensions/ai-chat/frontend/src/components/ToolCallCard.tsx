@@ -98,8 +98,11 @@ export default function ToolCallCard({
   useEffect(() => {
     if (fold.seq === seenFold.current) return;
     seenFold.current = fold.seq;
-    setActiveKeys(fold.collapsed ? [] : [item.id]);
-  }, [fold, item.id]);
+    // Collapse-all tidies a card away, but expand-all leaves it alone: the
+    // header reopens answers, and burying them under raw tool output is not
+    // what "expand" is asking for. A card is reopened by clicking it.
+    if (fold.collapsed) setActiveKeys([]);
+  }, [fold]);
   const label = item.title || item.tool.replace(/_/g, ' ');
   const details = (
     <div>

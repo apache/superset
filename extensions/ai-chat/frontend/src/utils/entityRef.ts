@@ -97,12 +97,11 @@ export function parseEntityUrl(raw: string): ResourceContext | null {
 }
 
 /**
- * Where a reference points, in the same form Superset's own models build, so
- * a tag in the transcript opens what the user dropped. Kept as a path so the
- * link can only lead back into this instance.
+ * Where a reference points, in the form Superset's own models build. Kept a
+ * path, so the link can only lead back into this instance.
  *
- * `parseEntityUrl` reads these back, which is what the round-trip test pins:
- * a reference that could be attached is a reference that can be opened.
+ * `parseEntityUrl` reads these back, which the round-trip test pins:
+ * whatever can be attached can be opened.
  */
 export function entityHref(reference: ResourceContext): string {
   const id = encodeURIComponent(reference.id_or_slug);

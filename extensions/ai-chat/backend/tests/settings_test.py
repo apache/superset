@@ -14,12 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Parsing and validation of TOOL_APPROVAL_MODE.
-
-These call ``get_tool_approval_mode`` with an explicit dict, which is the
-same path the runtime takes after ``get_ai_chat_config`` has merged operator
-overrides onto the shipped defaults.
-"""
+"""Parsing and validation of TOOL_APPROVAL_MODE."""
 
 from __future__ import annotations
 
@@ -28,25 +23,31 @@ from typing import Any
 import pytest
 from enx_dev.ai_chat.exceptions import AiChatConfigurationError
 from enx_dev.ai_chat.settings import (
+    DEFAULT_AI_CHAT_CONFIG,
     DEFAULT_TOOL_APPROVAL_MODE,
     DEPRECATED_APPROVAL_KEY,
-    get_ai_chat_config,
     get_tool_approval_mode,
 )
 from enx_dev.ai_chat.types import ToolApprovalMode
-from flask.ctx import AppContext
 
 
-def test_default_mode_is_disabled(app_context: AppContext) -> None:
-    """An operator who enables the assistant and says nothing about approval
-    gets direct execution.
+def merged(**operator: Any) -> dict[str, Any]:
+    """What ``get_ai_chat_config`` builds for a given operator override.
 
-    Read through ``get_ai_chat_config`` rather than off the defaults dict,
-    since that is the merge the runtime actually sees.
+    Built here rather than read from the application, so these do not depend
+    on whatever the developer's own ``superset_config.py`` happens to set.
     """
+    return {**DEFAULT_AI_CHAT_CONFIG, **operator}
+
+
+def test_default_mode_is_disabled() -> None:
+    """Enabling the assistant and saying nothing about approval gets direct
+    execution."""
     assert DEFAULT_TOOL_APPROVAL_MODE == ToolApprovalMode.DISABLED
-    minimal = {**get_ai_chat_config(), "ENABLED": True, "PROVIDER": "mock"}
-    assert get_tool_approval_mode(minimal) == ToolApprovalMode.DISABLED
+    assert (
+        get_tool_approval_mode(merged(ENABLED=True, PROVIDER="mock"))
+        == ToolApprovalMode.DISABLED
+    )
 
 
 @pytest.mark.parametrize(
@@ -74,8 +75,7 @@ def test_documented_values_are_accepted(value: str, expected: ToolApprovalMode) 
     ],
 )
 def test_invalid_values_are_rejected(value: Any) -> None:
-    """No silent fallback in either direction: a misspelled mode is a
-    configuration error, not a default."""
+    """A misspelled mode is a configuration error, not a default."""
     with pytest.raises(AiChatConfigurationError):
         get_tool_approval_mode({"TOOL_APPROVAL_MODE": value})
 
@@ -95,9 +95,8 @@ def test_deprecated_flag_true_maps_to_mutations_only() -> None:
 
 
 def test_deprecated_flag_false_does_not_ungate_destructive_tools() -> None:
-    """The old flag's False case gated destructive tools while letting plain
-    mutations through, which no mode expresses. It resolves to the stricter
-    of the two rather than quietly dropping that gate."""
+    """The old False gated destructive tools while letting plain mutations
+    through, which no mode expresses, so it resolves to the stricter one."""
     assert (
         get_tool_approval_mode({DEPRECATED_APPROVAL_KEY: False})
         == ToolApprovalMode.MUTATIONS_ONLY
@@ -130,21 +129,13 @@ def test_neither_key_present_is_disabled() -> None:
     assert get_tool_approval_mode({}) == ToolApprovalMode.DISABLED
 
 
-def test_deprecated_key_survives_the_default_merge(app_context: AppContext) -> None:
-    """The alias is reachable through the real configuration path.
+def test_deprecated_key_survives_the_default_merge() -> None:
+    """The alias is reachable once the shipped defaults are merged in.
 
-    The shipped defaults carry TOOL_APPROVAL_MODE, so had they defaulted it
-    to a mode rather than leaving it unset, the merge would mask the operator's
-    deprecated key and the alias would never run.
+    Had they named a mode rather than leaving it unset, the merge would mask
+    the operator's deprecated key and the alias would never run.
     """
-    from flask import current_app
-
-    original = current_app.config["AI_CHAT_CONFIG"]
-    current_app.config["AI_CHAT_CONFIG"] = {
-        **original,
-        DEPRECATED_APPROVAL_KEY: True,
-    }
-    try:
-        assert get_tool_approval_mode() == ToolApprovalMode.MUTATIONS_ONLY
-    finally:
-        current_app.config["AI_CHAT_CONFIG"] = original
+    assert (
+        get_tool_approval_mode(merged(**{DEPRECATED_APPROVAL_KEY: True}))
+        == ToolApprovalMode.MUTATIONS_ONLY
+    )

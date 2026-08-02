@@ -26,12 +26,11 @@ fixtures from Superset's own unit-test suite, located through the installed
 ``superset`` package -- which means running them requires a Superset source
 checkout (a development install), not just the wheel.
 
-When the host is configured to load this extension (``LOCAL_EXTENSIONS``), it
-imports the backend out of ``dist/`` through its own importer, which takes
-precedence over the ``src`` entry added below. The routes under test are then
-the built copy rather than the working tree, so :func:`dist_matches_source`
-refuses to run against a stale build instead of quietly reporting that code
-nobody changed still passes.
+A host configured to load this extension imports the backend out of
+``dist/`` through its own importer, which wins over the ``src`` entry added
+below -- so the routes under test are the built copy. Rather than quietly
+pass on code nobody changed, :func:`dist_matches_source` refuses to run
+against a stale build.
 """
 
 from __future__ import annotations
@@ -77,10 +76,9 @@ def dist_matches_source() -> None:
     if not built.is_dir():
         return
 
-    # Compared in both directions: a module the build failed to prune shadows
-    # nothing in the working tree, so walking the source alone would never
-    # notice it, and it would keep serving a route that no longer has a
-    # definition.
+    # Both directions: a module the build failed to prune is invisible when
+    # walking the source, and would keep serving a route that no longer has
+    # a definition.
     in_source = {path.relative_to(source) for path in source.rglob("*.py")}
     in_build = {path.relative_to(built) for path in built.rglob("*.py")}
     stale = {

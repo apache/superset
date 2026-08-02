@@ -73,8 +73,8 @@ def test_classify_conflicting_hints_prefers_read_only_declaration() -> None:
 def test_disabled_gates_nothing(classification: ToolClassification) -> None:
     """Every class, destructive included, runs directly in the default mode.
 
-    Authentication, the allowlist, argument validation and Superset's own
-    RBAC still apply to each of them; what is gone is the confirmation step.
+    Only the confirmation step is gone: authentication, the allowlist,
+    validation and RBAC still apply.
     """
     assert requires_approval(classification, ToolApprovalMode.DISABLED) is False
 
@@ -102,15 +102,14 @@ def test_mutations_only_lets_read_only_through() -> None:
 def test_mutations_only_gates_everything_else(
     classification: ToolClassification,
 ) -> None:
-    """UNKNOWN is gated alongside the rest: an allowlisted tool that declares
-    no annotations must not become the cheapest way past the gate."""
+    """UNKNOWN is gated with the rest, so an unannotated tool is not the
+    cheapest way past."""
     assert requires_approval(classification, ToolApprovalMode.MUTATIONS_ONLY) is True
 
 
 def test_policy_matrix_is_exhaustive() -> None:
-    """Every classification/mode pair has an answer, and only the documented
-    cells go ungated. Adding a mode or a class fails here until it is
-    deliberately placed."""
+    """Only the documented cells go ungated. A new mode or class fails here
+    until it is deliberately placed."""
     ungated = {
         pair
         for pair in itertools.product(ToolClassification, ToolApprovalMode)
@@ -123,11 +122,10 @@ def test_policy_matrix_is_exhaustive() -> None:
 
 
 def test_policy_reads_no_configuration() -> None:
-    """The decision is a pure function of its two arguments.
+    """A pure function of its two arguments.
 
-    Nothing is read from Flask config here -- these calls run with no
-    application context at all -- so the mode cannot change between the check
-    and the call it guards.
+    These run with no application context at all, so nothing can be read
+    from config behind the caller's back.
     """
     assert (
         requires_approval(ToolClassification.DESTRUCTIVE, ToolApprovalMode.DISABLED)

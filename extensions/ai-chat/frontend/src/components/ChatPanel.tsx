@@ -23,13 +23,17 @@ import { sendChat, sendToolApproval } from '../api/client';
 import { requestActivity } from '../state/activity';
 import {
   conversationReducer,
+  hasCollapsibleAnswers,
+  hasCollapsiblePanels,
   itemId,
   newConversation,
   trimHistory,
+  visibleItems,
 } from '../state/conversation';
 import { useChatConfig } from '../hooks/useChatConfig';
 import { useConversationPersistence } from '../hooks/useConversationPersistence';
 import { useEntityReferences } from '../hooks/useEntityReferences';
+import { useStagedFiles } from '../hooks/useStagedFiles';
 import { usePageNavigationNote } from '../hooks/usePageNavigationNote';
 import { useRequestRunner } from '../hooks/useRequestRunner';
 import { buildPageContext, usePage } from '../hooks/usePage';
@@ -66,6 +70,7 @@ export default function ChatPanel() {
   );
 
   const entities = useEntityReferences();
+  const staged = useStagedFiles();
   const persistence = useConversationPersistence(state, dispatch);
   const { pageRef, scope } = usePageNavigationNote(
     page,
@@ -171,9 +176,12 @@ export default function ChatPanel() {
       page,
     });
     persistence.clear();
-    // Dropped context belongs to the conversation being discarded.
+    // Attached context goes with the conversation being discarded, dropped
+    // in or picked from disk alike. The draft text stays: it is the user's
+    // own unsent writing, not conversation state.
     entities.clear();
-  }, [cancel, page, persistence, entities]);
+    staged.clear();
+  }, [cancel, page, persistence, entities, staged]);
 
   const enabled =
     configState.status === 'ready' &&
@@ -181,6 +189,13 @@ export default function ChatPanel() {
     configState.config.provider_configured;
   const busy = state.status === 'sending';
   const { pending } = state;
+  // An instance that gates nothing never asks the user to vet a tool call,
+  // so the tool cards have no one to inform and the transcript hides them.
+  const items = visibleItems(
+    state.items,
+    configState.status === 'ready' &&
+      configState.config.tool_approval_mode !== 'disabled',
+  );
 
   return (
     <Flex
@@ -202,6 +217,13 @@ export default function ChatPanel() {
         scope={scope}
         mode={mode}
         hasContent={state.items.length > 0}
+        // Each direction acts on a different set, so the button is offered
+        // only while its own still has something in it
+        hasCollapsible={
+          fold.collapsed
+            ? hasCollapsibleAnswers(items)
+            : hasCollapsiblePanels(items)
+        }
         collapsed={fold.collapsed}
         onToggleCollapseAll={() =>
           setFold(({ seq, collapsed }) => ({
@@ -221,7 +243,7 @@ export default function ChatPanel() {
       {state.items.length === 0 ? (
         <WelcomeState page={page} disabled={!enabled} onPick={handleSend} />
       ) : (
-        <MessageList items={state.items} busy={busy} fold={fold} />
+        <MessageList items={items} busy={busy} fold={fold} />
       )}
 
       {pending && (
@@ -259,6 +281,7 @@ export default function ChatPanel() {
           onSend={handleSend}
           onCancel={cancel}
           entities={entities}
+          staged={staged}
           autoFocus
         />
       </div>

@@ -17,20 +17,17 @@
 """Agent loop for the AI chat gateway.
 
 One request is one turn: the model is called with the client-replayed
-conversation and the tool calls it asks for are dispatched down one of two
-paths, chosen per call by :func:`tool_policy.requires_approval`.
+conversation, and each tool call it asks for goes down one of two paths, as
+:func:`tool_policy.requires_approval` decides. Direct execution runs the call
+immediately under the user's own permissions; the approval path pauses the
+turn with a single-use approval, and a follow-up request resumes the loop
+with the user's decision.
 
-Direct execution is the default and the only path when ``TOOL_APPROVAL_MODE``
-is ``disabled``: a validated, allowlisted call runs immediately under the
-user's own permissions. The approval path pauses the turn instead, persisting
-a single-use approval the user must confirm; a follow-up approval request
-resumes the loop with the approved or rejected outcome.
-
-The server holds no conversation state, and approvals are the only persisted
-artifact -- so in ``disabled`` mode the gateway persists nothing at all.
-Clients replay trimmed history each turn, capped by the schemas in message
-count and total size. Fabricated history degrades the client's own
-conversation only; authorization and approval integrity never depend on it.
+The server holds no conversation state and approvals are the only persisted
+artifact, so with approval disabled it persists nothing at all. Clients
+replay trimmed history each turn, capped by the schemas in message count and
+total size. Fabricated history degrades the client's own conversation only;
+authorization and approval integrity never depend on it.
 """
 
 from __future__ import annotations
@@ -95,8 +92,8 @@ REJECTION_TOOL_RESULT = (
     "unless the user explicitly asks again; offer an alternative instead."
 )
 
-#: What the model is told about the gate, per mode. Advisory only: the server
-#: decides, and a model that ignores this reaches exactly the same policy.
+#: What the model is told about the gate. Advisory: a model that ignores it
+#: still meets the same policy.
 TOOL_POLICY_INSTRUCTIONS = {
     ToolApprovalMode.DISABLED: (
         "Tool policy: the tools you have run as soon as you call them, under "
@@ -368,9 +365,8 @@ class ChatTurnRunner:
         self.messages = normalize_messages(raw_messages)
         self.events: list[dict[str, Any]] = []
         self.config = get_ai_chat_config()
-        # Resolved once, so every call in this turn is judged by the same
-        # policy even if an operator edits configuration while it runs, and
-        # so an invalid mode fails the request instead of the tool call.
+        # Resolved once so a turn cannot straddle a configuration change,
+        # and so an invalid mode fails the request rather than a tool call.
         self.approval_mode = get_tool_approval_mode(self.config)
         self.provider = get_provider(self.config)
         self.deadline = time.monotonic() + int(
@@ -447,10 +443,9 @@ class ChatTurnRunner:
         decision: str,
         tool_call: ToolCall,
     ) -> list[dict[str, Any]]:
-        # Nothing issues approvals in this mode, so nothing can be consumed in
-        # it either. Refusing here keeps the approval store untouched when
-        # approval is disabled, rather than reaching it to learn that a row
-        # the gateway never wrote is missing.
+        # Nothing issues approvals in this mode, so nothing can consume one.
+        # Refusing here leaves the approval store untouched rather than
+        # querying it for a row the gateway never wrote.
         if self.approval_mode == ToolApprovalMode.DISABLED:
             raise AiChatApprovalExpiredError()
         # A tool is about to execute, or be recorded as rejected, so identity
@@ -604,9 +599,8 @@ class ChatTurnRunner:
         """Send one requested tool call down the direct or approval path.
 
         A call the model invented, or one outside the allowlist, has no spec
-        and is refused without either. Everything else asks the policy once:
-        gated calls pause the turn (returning ``True``), and the rest execute
-        here under the user's own permissions.
+        and is refused by neither path. Returns ``True`` when the call was
+        gated and the turn must pause.
         """
         spec = specs_by_name.get(call.name)
         if spec is None:

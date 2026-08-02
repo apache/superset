@@ -172,7 +172,10 @@ export interface AiChatConfig {
   provider: string | null;
   provider_configured: boolean;
   mcp_available: boolean;
-  /** Informational only; never consulted before rendering approval controls */
+  /**
+   * Decides whether the transcript shows routine tool activity. Never
+   * consulted before rendering approval controls: those follow the events.
+   */
   tool_approval_mode: ToolApprovalMode;
   tools: AiChatToolInfo[];
   limits: {

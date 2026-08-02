@@ -24,6 +24,7 @@ import {
   newConversation,
   toPersisted,
   trimHistory,
+  visibleItems,
 } from './conversation';
 import type { ChatEvent } from '../types';
 
@@ -238,6 +239,63 @@ test('rejection records the structured rejection result', () => {
   expect(state.items[1]).toMatchObject({ kind: 'tool', status: 'rejected' });
   const toolMessage = state.history.find(message => message.role === 'tool');
   expect(toolMessage?.content).toContain('rejected');
+});
+
+test('hiding tool activity leaves the conversation itself untouched', () => {
+  const state = apply(withUserMessage('list dashboards'), [
+    {
+      type: 'tool.completed',
+      id: 'tc1',
+      tool: 'list_dashboards',
+      result: '{"count": 2}',
+      truncated: false,
+    },
+    { type: 'message.completed', id: 'm1', content: 'Two dashboards.' },
+    { type: 'request.completed' },
+  ]);
+  expect(visibleItems(state.items, true)).toEqual(state.items);
+  expect(visibleItems(state.items, false)).toEqual([
+    state.items[0],
+    state.items[2],
+  ]);
+  // The model still learns the tool ran, however the transcript reads.
+  expect(state.history.some(message => message.role === 'tool')).toBe(true);
+});
+
+test('a failed tool stays visible with tool activity hidden', () => {
+  const state = apply(withUserMessage('delete dashboard 42'), [
+    {
+      type: 'tool.failed',
+      id: 'tc1',
+      tool: 'delete_dashboard',
+      error: 'Not found',
+    },
+  ]);
+  expect(visibleItems(state.items, false)).toEqual(state.items);
+});
+
+test('a gated tool stays visible however the mode was reported', () => {
+  // The gateway decides what is gated, so a card the user must act on is
+  // never dropped on the strength of a configuration value.
+  const state = apply(withUserMessage('delete dashboard 42'), [
+    {
+      type: 'tool.approval_required',
+      id: 'tc1',
+      tool: 'delete_dashboard',
+      tool_title: null,
+      arguments: {},
+      classification: 'destructive',
+      approval_id: 'appr-1',
+      expires_at: '2100-01-01T00:00:00',
+      reversible: false,
+      warnings: [],
+    },
+  ]);
+  expect(visibleItems(state.items, false)).toEqual(state.items);
+  const rejected = apply(state, [
+    { type: 'tool.rejected', id: 'tc1', tool: 'delete_dashboard' },
+  ]);
+  expect(visibleItems(rejected.items, false)).toEqual(rejected.items);
 });
 
 test('request.failed surfaces the error without losing items', () => {

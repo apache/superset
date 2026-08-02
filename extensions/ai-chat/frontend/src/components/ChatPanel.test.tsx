@@ -23,6 +23,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { chat } from '@apache-superset/core';
@@ -51,6 +52,12 @@ const ENABLED_CONFIG: AiChatConfig = {
     },
   ],
   limits: { max_messages_per_request: 80, max_input_chars: 100_000 },
+};
+
+/** An instance that gates something, and so reports what its tools did. */
+const SUPERVISED_CONFIG: AiChatConfig = {
+  ...ENABLED_CONFIG,
+  tool_approval_mode: 'mutations_only',
 };
 
 interface FetchCall {
@@ -197,24 +204,26 @@ test('shows loading state while a request is in flight and cancels it', async ()
   expect(screen.queryByText('Thinking…')).not.toBeInTheDocument();
 });
 
-test('renders tool activity for read-only calls', async () => {
-  mockConfigAndChat(ENABLED_CONFIG, [
-    {
-      type: 'tool.running',
-      id: 'tc1',
-      tool: 'list_dashboards',
-      arguments: { request: { limit: 5 } },
-    },
-    {
-      type: 'tool.completed',
-      id: 'tc1',
-      tool: 'list_dashboards',
-      result: '{"count": 2}',
-      truncated: false,
-    },
-    { type: 'message.completed', id: 'm1', content: 'Two dashboards.' },
-    { type: 'request.completed' },
-  ]);
+const READ_ONLY_TURN: ChatEvent[] = [
+  {
+    type: 'tool.running',
+    id: 'tc1',
+    tool: 'list_dashboards',
+    arguments: { request: { limit: 5 } },
+  },
+  {
+    type: 'tool.completed',
+    id: 'tc1',
+    tool: 'list_dashboards',
+    result: '{"count": 2}',
+    truncated: false,
+  },
+  { type: 'message.completed', id: 'm1', content: 'Two dashboards.' },
+  { type: 'request.completed' },
+];
+
+test('renders tool activity where tool calls are supervised', async () => {
+  mockConfigAndChat(SUPERVISED_CONFIG, READ_ONLY_TURN);
   render(<ChatPanel />);
   const input = await screen.findByTestId('chat-input');
   await waitFor(() => expect(input).toBeEnabled());
@@ -223,6 +232,46 @@ test('renders tool activity for read-only calls', async () => {
   const card = await screen.findByTestId('tool-call-list_dashboards');
   expect(card).toHaveTextContent('list dashboards');
   expect(card).toHaveTextContent('Succeeded');
+});
+
+test('hides tool activity where nothing is gated', async () => {
+  mockConfigAndChat(ENABLED_CONFIG, READ_ONLY_TURN);
+  render(<ChatPanel />);
+  const input = await screen.findByTestId('chat-input');
+  await waitFor(() => expect(input).toBeEnabled());
+  await userEvent.type(input, 'list dashboards{Enter}');
+
+  expect(await screen.findByText('Two dashboards.')).toBeInTheDocument();
+  expect(screen.queryByTestId('tool-call-list_dashboards')).toBeNull();
+
+  // Hidden from the transcript, not from the model: the next turn replays
+  // what the tool returned.
+  await waitFor(() => expect(screen.getByTestId('chat-input')).toBeEnabled());
+  await userEvent.type(screen.getByTestId('chat-input'), 'and charts?{Enter}');
+  await waitFor(() => {
+    const messages = lastBody().messages as { role: string }[];
+    expect(messages.filter(message => message.role === 'tool')).toHaveLength(1);
+  });
+});
+
+test('a failed tool is reported even where activity is hidden', async () => {
+  mockConfigAndChat(ENABLED_CONFIG, [
+    {
+      type: 'tool.failed',
+      id: 'tc1',
+      tool: 'list_dashboards',
+      error: 'Upstream timed out',
+    },
+    { type: 'message.completed', id: 'm1', content: 'I could not check.' },
+    { type: 'request.completed' },
+  ]);
+  render(<ChatPanel />);
+  const input = await screen.findByTestId('chat-input');
+  await waitFor(() => expect(input).toBeEnabled());
+  await userEvent.type(input, 'list dashboards{Enter}');
+
+  const card = await screen.findByTestId('tool-call-list_dashboards');
+  expect(card).toHaveTextContent('Failed');
 });
 
 const APPROVAL_EVENT: ChatEvent = {
@@ -263,8 +312,6 @@ test('a directly executed tool renders without any approval controls', async () 
   await userEvent.type(input, 'delete dashboard 42{Enter}');
 
   expect(await screen.findByText('Deleted.')).toBeInTheDocument();
-  const card = screen.getByTestId('tool-call-delete_dashboard');
-  expect(card).toHaveTextContent('Succeeded');
   expect(screen.queryByTestId('approval-card')).toBeNull();
   expect(screen.queryByTestId('approval-approve')).toBeNull();
   // The composer is never blocked waiting on a decision nobody was asked for.
@@ -416,6 +463,42 @@ test('new conversation clears the transcript and storage', async () => {
   expect(await screen.findByTestId('chat-welcome')).toBeInTheDocument();
   await waitFor(() =>
     expect(__testing.storage.remove).toHaveBeenCalledWith('conversation'),
+  );
+});
+
+test('new conversation drops attached context but not the draft', async () => {
+  mockConfigAndChat(ENABLED_CONFIG, [
+    { type: 'message.completed', id: 'm1', content: 'Hello!' },
+    { type: 'request.completed' },
+  ]);
+  render(<ChatPanel />);
+  const input = await screen.findByTestId('chat-input');
+  await waitFor(() => expect(input).toBeEnabled());
+  await userEvent.type(input, 'hi{Enter}');
+  await screen.findByText('Hello!');
+
+  // Everything a composer can be holding when the button is pressed.
+  dropUrl(screen.getByTestId('chat-composer'), '/dashboard/5/');
+  await screen.findByTestId('chat-reference');
+  await userEvent.upload(
+    screen.getByTestId('chat-attach-input'),
+    new File(['a,b\n1,2\n'], 'numbers.csv', { type: 'text/csv' }),
+  );
+  await screen.findByTestId('chat-attachment');
+  await userEvent.type(input, 'a message I have not sent yet');
+
+  await userEvent.click(screen.getByTestId('chat-new-conversation'));
+
+  // The file and the dropped dashboard were staged for a conversation that
+  // no longer exists, so they go with it.
+  await waitFor(() =>
+    expect(screen.queryByTestId('chat-attachment')).toBeNull(),
+  );
+  expect(screen.queryByTestId('chat-reference')).toBeNull();
+  // The draft is the user's own writing, and clearing a conversation is not
+  // a reason to throw it away.
+  expect(screen.getByTestId('chat-input')).toHaveValue(
+    'a message I have not sent yet',
   );
 });
 
@@ -762,7 +845,7 @@ test('the fold-all button folds the transcript, then offers to reopen it', async
   expect(button()).toHaveAttribute('aria-label', 'Collapse all');
 });
 
-test('clear and collapse-all are disabled until there is something to act on', async () => {
+test('clear is disabled until the transcript has something to discard', async () => {
   mockConfigAndChat(ENABLED_CONFIG, [
     { type: 'message.completed', id: 'm1', content: 'Hello!' },
     { type: 'request.completed' },
@@ -771,9 +854,7 @@ test('clear and collapse-all are disabled until there is something to act on', a
   const input = await screen.findByTestId('chat-input');
   await waitFor(() => expect(input).toBeEnabled());
 
-  // Empty transcript: nothing to clear or collapse.
   expect(screen.getByTestId('chat-new-conversation')).toBeDisabled();
-  expect(screen.getByTestId('chat-collapse-all')).toBeDisabled();
 
   await userEvent.type(input, 'hi{Enter}');
   await screen.findByText('Hello!');
@@ -781,12 +862,148 @@ test('clear and collapse-all are disabled until there is something to act on', a
   await waitFor(() =>
     expect(screen.getByTestId('chat-new-conversation')).toBeEnabled(),
   );
-  expect(screen.getByTestId('chat-collapse-all')).toBeEnabled();
 
-  // Clearing empties the transcript, so both return to disabled.
   await userEvent.click(screen.getByTestId('chat-new-conversation'));
   await waitFor(() =>
     expect(screen.getByTestId('chat-new-conversation')).toBeDisabled(),
   );
+});
+
+test('collapse-all stays disabled when nothing on screen can fold', async () => {
+  // A one-line reply is fully shown by its own title, so AssistantMessage
+  // renders it flat and the header has no panel to act on.
+  mockConfigAndChat(ENABLED_CONFIG, [
+    { type: 'message.completed', id: 'm1', content: 'Hello!' },
+    { type: 'request.completed' },
+  ]);
+  render(<ChatPanel />);
+  const input = await screen.findByTestId('chat-input');
+  await waitFor(() => expect(input).toBeEnabled());
+
   expect(screen.getByTestId('chat-collapse-all')).toBeDisabled();
+
+  await userEvent.type(input, 'hi{Enter}');
+  await screen.findByText('Hello!');
+
+  expect(screen.getByTestId('chat-collapse-all')).toBeDisabled();
+});
+
+test('collapse-all enables once a reply is long enough to fold', async () => {
+  mockConfigAndChat(ENABLED_CONFIG, [
+    {
+      type: 'message.completed',
+      id: 'm1',
+      content: '## Revenue overview\n\nRevenue grew in every region.',
+    },
+    { type: 'request.completed' },
+  ]);
+  render(<ChatPanel />);
+  const input = await screen.findByTestId('chat-input');
+  await waitFor(() => expect(input).toBeEnabled());
+
+  expect(screen.getByTestId('chat-collapse-all')).toBeDisabled();
+
+  await userEvent.type(input, 'hi{Enter}');
+  await screen.findByText('Revenue overview');
+
+  await waitFor(() =>
+    expect(screen.getByTestId('chat-collapse-all')).toBeEnabled(),
+  );
+
+  // Clearing empties the transcript, so it returns to disabled.
+  await userEvent.click(screen.getByTestId('chat-new-conversation'));
+  await waitFor(() =>
+    expect(screen.getByTestId('chat-collapse-all')).toBeDisabled(),
+  );
+});
+
+test('collapse-all closes a tool card, then stops offering to reopen it', async () => {
+  mockConfigAndChat(SUPERVISED_CONFIG, [
+    {
+      type: 'tool.running',
+      id: 'tc1',
+      tool: 'list_dashboards',
+      arguments: {},
+    },
+    {
+      type: 'tool.completed',
+      id: 'tc1',
+      tool: 'list_dashboards',
+      result: '{"count": 2}',
+      truncated: false,
+    },
+    { type: 'message.completed', id: 'm1', content: 'Two.' },
+    { type: 'request.completed' },
+  ]);
+  render(<ChatPanel />);
+  const input = await screen.findByTestId('chat-input');
+  await waitFor(() => expect(input).toBeEnabled());
+  await userEvent.type(input, 'list dashboards{Enter}');
+  await screen.findByTestId('tool-call-list_dashboards');
+
+  // The card is a panel, so it alone is enough to collapse.
+  const button = () => screen.getByTestId('chat-collapse-all');
+  await waitFor(() => expect(button()).toBeEnabled());
+  await userEvent.click(button());
+
+  // Expand-all reopens replies only, and 'Two.' is short enough to render
+  // flat, so the other direction has nothing to act on.
+  await waitFor(() =>
+    expect(button()).toHaveAttribute('aria-label', 'Expand all'),
+  );
+  expect(button()).toBeDisabled();
+});
+
+test('expand-all reopens the reply and leaves tool cards closed', async () => {
+  mockConfigAndChat(SUPERVISED_CONFIG, [
+    {
+      type: 'tool.running',
+      id: 'tc1',
+      tool: 'list_dashboards',
+      arguments: {},
+    },
+    {
+      type: 'tool.completed',
+      id: 'tc1',
+      tool: 'list_dashboards',
+      result: '{"count": 2}',
+      truncated: false,
+    },
+    {
+      type: 'message.completed',
+      id: 'm1',
+      content: '## Revenue overview\n\nRevenue grew in every region.',
+    },
+    { type: 'request.completed' },
+  ]);
+  render(<ChatPanel />);
+  const input = await screen.findByTestId('chat-input');
+  await waitFor(() => expect(input).toBeEnabled());
+  await userEvent.type(input, 'list dashboards{Enter}');
+  await screen.findByText('Revenue overview');
+
+  // antd keeps folded content mounted, so the state is read semantically.
+  const reply = () =>
+    screen
+      .getByTestId('chat-message-assistant')
+      .querySelector('[aria-expanded]');
+  const cardBox = () => screen.getByTestId('tool-call-list_dashboards');
+  const card = () => cardBox().querySelector('[aria-expanded]');
+  const button = () => screen.getByTestId('chat-collapse-all');
+
+  // Open the card by hand: only then can expand-all be seen leaving it alone.
+  // Scoped to the card, since the typed question repeats the tool's name.
+  await userEvent.click(within(cardBox()).getByText('list dashboards'));
+  await waitFor(() => expect(card()).toHaveAttribute('aria-expanded', 'true'));
+
+  await userEvent.click(button());
+  await waitFor(() =>
+    expect(reply()).toHaveAttribute('aria-expanded', 'false'),
+  );
+  expect(card()).toHaveAttribute('aria-expanded', 'false');
+
+  await userEvent.click(button());
+  await waitFor(() => expect(reply()).toHaveAttribute('aria-expanded', 'true'));
+  // The point of the test: raw tool output does not come back with the answer.
+  expect(card()).toHaveAttribute('aria-expanded', 'false');
 });

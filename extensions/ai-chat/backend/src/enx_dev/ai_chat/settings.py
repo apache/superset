@@ -102,13 +102,9 @@ DEFAULT_AI_CHAT_CONFIG: dict[str, Any] = {
         # honors the per-database allow_dml flag)
         "execute_sql",
     ],
-    # How much of the tool surface is gated behind an explicit user approval:
-    # "disabled", "mutations_only" or "all_tools". Approval is a confirmation
-    # step layered on top of authentication, the allowlist, argument
-    # validation and Superset's own RBAC, all of which apply in every mode.
-    # Left unset here so an operator who never mentions approval can be told
-    # apart from one who asked for DEFAULT_TOOL_APPROVAL_MODE by name; both
-    # resolve to it. See ToolApprovalMode and get_tool_approval_mode.
+    # "disabled", "mutations_only" or "all_tools"; see ToolApprovalMode. Left
+    # unset rather than defaulted so the merge cannot mask an operator's
+    # deprecated REQUIRE_APPROVAL_FOR_MUTATIONS.
     "TOOL_APPROVAL_MODE": None,
 }
 
@@ -128,9 +124,8 @@ def get_ai_chat_config() -> dict[str, Any]:
 def get_tool_approval_mode(config: dict[str, Any] | None = None) -> ToolApprovalMode:
     """Resolve and validate the configured approval mode.
 
-    Raises :class:`AiChatConfigurationError` on an unrecognized value rather
-    than falling back to a default: an operator who misspells the mode they
-    wanted must not silently get a different security posture, in either
+    An unrecognized value raises rather than falling back: a misspelled mode
+    must not silently become a different security posture, in either
     direction.
     """
     config = get_ai_chat_config() if config is None else config
@@ -140,9 +135,8 @@ def get_tool_approval_mode(config: dict[str, Any] | None = None) -> ToolApproval
     try:
         return ToolApprovalMode(raw)
     except ValueError as ex:
-        # What was misconfigured goes to the log, where the operator who can
-        # fix it looks; the browser gets the same non-specific message every
-        # other configuration failure returns.
+        # The bad value goes to the log, where the operator who can fix it
+        # looks, rather than to the browser.
         logger.error(
             "AI_CHAT_CONFIG['TOOL_APPROVAL_MODE'] is %r, which is not a "
             "recognized approval mode. Valid values are: %s.",
@@ -158,12 +152,9 @@ def get_tool_approval_mode(config: dict[str, Any] | None = None) -> ToolApproval
 def _mode_from_deprecated_key(config: dict[str, Any]) -> ToolApprovalMode:
     """Translate the superseded REQUIRE_APPROVAL_FOR_MUTATIONS flag.
 
-    The old flag only ever answered "do plain mutating tools need approval",
-    with destructive and unknown tools gated either way. ``True`` maps exactly
-    onto ``mutations_only``; ``False`` has no equivalent, because no mode
-    gates destructive tools alone. Rather than quietly ungate them, that case
-    resolves to the stricter mode and says so -- the operator can then choose
-    deliberately.
+    ``True`` is exactly ``mutations_only``. ``False`` gated destructive tools
+    while letting plain mutations through, which no mode expresses, so it
+    resolves to the stricter neighbour rather than quietly ungating them.
     """
     if config.get(DEPRECATED_APPROVAL_KEY) is None:
         return DEFAULT_TOOL_APPROVAL_MODE

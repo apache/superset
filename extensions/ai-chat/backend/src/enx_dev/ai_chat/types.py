@@ -39,8 +39,8 @@ class ChatRole(StrEnum):
 class ToolClassification(StrEnum):
     """Impact class of an MCP tool, derived from its declared annotations.
 
-    ``UNKNOWN`` is treated with the same caution as ``DESTRUCTIVE``, so a tool
-    without recognizable annotations never executes automatically.
+    ``UNKNOWN`` is gated wherever ``MUTATING`` is, so a tool without
+    recognizable annotations is never the easier one to reach.
     """
 
     READ_ONLY = "read_only"
@@ -52,10 +52,9 @@ class ToolClassification(StrEnum):
 class ToolApprovalMode(StrEnum):
     """How much of the tool surface an operator gates behind an approval.
 
-    The mode is operator configuration, never something the model or the
-    browser can influence, and ``DISABLED`` is the default: authentication,
-    the allowlist, argument validation and Superset's own RBAC still apply to
-    every call, and approval adds a human confirmation step on top of them.
+    Set by the operator alone, never by the model or the browser. Approval is
+    a confirmation step on top of authentication, the allowlist, validation
+    and RBAC, which apply in every mode.
     """
 
     #: Every allowlisted tool runs as soon as validation passes.

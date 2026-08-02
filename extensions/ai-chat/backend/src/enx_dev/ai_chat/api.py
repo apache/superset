@@ -213,9 +213,8 @@ class AiChatRestApi(RestApi):
                 "provider": config.get("PROVIDER") if enabled else None,
                 "provider_configured": enabled and is_provider_configured(config),
                 "mcp_available": tools_available,
-                # Informational: it tells the UI what to expect, and the
-                # server still decides. A browser that lies about it to
-                # itself changes nothing about which calls are gated.
+                # Informational: the UI describes the instance with it, and
+                # the server still decides which calls are gated.
                 "tool_approval_mode": approval_mode.value,
                 "tools": tools,
                 "limits": {

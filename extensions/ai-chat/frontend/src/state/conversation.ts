@@ -24,6 +24,7 @@
  * internally: an assistant message carrying tool_calls, then role="tool"
  * results.
  */
+import { isCollapsible } from '../utils/messageTitle';
 import type {
   AttachmentRef,
   ChatEvent,
@@ -33,6 +34,7 @@ import type {
   ProtocolImage,
   ProtocolMessage,
   ResourceContext,
+  ToolStatus,
 } from '../types';
 
 export const MAX_HISTORY_MESSAGES = 60;
@@ -111,6 +113,58 @@ export function newConversation(page: string | null): ConversationState {
     error: null,
     startedPage: page,
   };
+}
+
+/**
+ * Whether the transcript renders a reply long enough to fold. Expand-all
+ * reopens replies and nothing else, so this is what that direction acts on.
+ */
+export function hasCollapsibleAnswers(items: DisplayItem[]): boolean {
+  return items.some(
+    item =>
+      item.kind === 'message' &&
+      item.role === 'assistant' &&
+      isCollapsible(item.content),
+  );
+}
+
+/**
+ * Whether the transcript renders any panel collapse-all can close. Tool cards
+ * are always panels; user messages and notes never are.
+ */
+export function hasCollapsiblePanels(items: DisplayItem[]): boolean {
+  return (
+    hasCollapsibleAnswers(items) || items.some(item => item.kind === 'tool')
+  );
+}
+
+/** Tool cards worth showing even when tool activity is hidden */
+const DEMANDS_ATTENTION: ToolStatus[] = [
+  'awaiting_approval',
+  'rejected',
+  'failed',
+];
+
+/**
+ * The transcript as rendered.
+ *
+ * A tool card reports what the assistant did so the user can supervise it.
+ * Where nothing is gated there is nothing to supervise, so routine calls are
+ * dropped and the transcript reads as a conversation. A call that failed, or
+ * that the gateway gated anyway, stays: it explains a thin answer or asks for
+ * a decision.
+ *
+ * Only the rendering is affected. The reducer keeps every card, because the
+ * history replayed to the model is built from the same events.
+ */
+export function visibleItems(
+  items: DisplayItem[],
+  showToolActivity: boolean,
+): DisplayItem[] {
+  if (showToolActivity) return items;
+  return items.filter(
+    item => item.kind !== 'tool' || DEMANDS_ATTENTION.includes(item.status),
+  );
 }
 
 /** Keeps history within limits and starting at a user message */

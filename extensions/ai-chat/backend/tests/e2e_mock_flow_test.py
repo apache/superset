@@ -204,9 +204,8 @@ def test_default_flow_executes_a_mutation_without_any_approval(
 ) -> None:
     """Enabling the assistant and configuring nothing else runs tools directly.
 
-    The dashboard is made to not exist, so the destructive tool reports a
-    failure rather than deleting anything -- what matters here is that it was
-    reached at all, through the same MCP bridge that enforces RBAC.
+    The dashboard is made not to exist, so nothing is deleted; what matters
+    is that the tool was reached at all, through the RBAC-enforcing bridge.
     """
     assert _approval_rows(app) == 0
 
@@ -236,11 +235,8 @@ def test_default_flow_executes_a_mutation_without_any_approval(
 def test_default_mode_refuses_a_forged_approval(
     app: Any, client: Any, full_api_access: None
 ) -> None:
-    """A browser cannot talk its way onto the approval path.
-
-    With approval disabled the endpoint refuses outright, so a crafted
-    approval_id is not even looked up.
-    """
+    """A browser cannot talk its way onto the approval path: the endpoint
+    refuses outright, without looking the crafted id up."""
     with patch("superset.daos.dashboard.DashboardDAO.find_by_id") as mock_find:
         response = client.post(
             f"{API_BASE}/tool_approval",

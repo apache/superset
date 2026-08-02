@@ -57,8 +57,8 @@ interface ReferenceTagProps {
 
 /**
  * One dropped dashboard, chart or dataset, shown the same way wherever it
- * appears: staged in the composer, where it can be detached, and above the
- * message it was sent with, where it links to the object instead.
+ * appears: detachable in the composer, and a link above the message it was
+ * sent with.
  */
 export default function ReferenceTag({
   reference,
@@ -75,8 +75,8 @@ export default function ReferenceTag({
       onClose={onClose}
       data-test={dataTest}
       title={label}
-      // Same tokens as the host's secondary button, matching the scope tag in
-      // the header. Set through `style` rather than Tag's `color` prop, which
+      // Same tokens as the host's secondary button, matching the header's
+      // scope tag. Set through `style` rather than Tag's `color` prop, which
       // pairs a custom background with white text.
       style={{
         color: theme.buttonSecondaryColor || theme.colorPrimary,

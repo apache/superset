@@ -31,10 +31,9 @@ Event types:
 - ``request.completed``: the turn finished normally
 - ``request.failed``: the turn aborted with an error
 
-The approval events appear only for calls the configured
-``TOOL_APPROVAL_MODE`` gates. With approval disabled a turn never emits them,
-and the frontend renders approval controls strictly in response to
-``tool.approval_required`` rather than from anything it knows about the mode.
+``tool.approval_required`` appears only for calls ``TOOL_APPROVAL_MODE``
+gates, and never with approval disabled. The frontend renders approval
+controls from that event alone, not from the mode it was told.
 """
 
 from __future__ import annotations

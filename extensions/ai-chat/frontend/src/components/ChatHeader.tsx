@@ -81,8 +81,10 @@ interface ChatHeaderProps {
   page: Page;
   scope: NavigationScope['scope'];
   mode: DisplayMode;
-  /** False on an empty transcript, where there is nothing to collapse */
+  /** False on an empty transcript, where there is nothing to clear */
   hasContent: boolean;
+  /** False when the button's current direction has nothing left to act on */
+  hasCollapsible: boolean;
   /** True once collapsed, so the button offers to reopen the transcript */
   collapsed: boolean;
   onToggleCollapseAll: () => void;
@@ -97,6 +99,7 @@ export default function ChatHeader({
   scope,
   mode,
   hasContent,
+  hasCollapsible,
   collapsed,
   onToggleCollapseAll,
   onNewConversation,
@@ -148,7 +151,7 @@ export default function ChatHeader({
         label={collapsed ? t('Expand all') : t('Collapse all')}
         onClick={onToggleCollapseAll}
         testId="chat-collapse-all"
-        disabled={!hasContent}
+        disabled={!hasCollapsible}
       />
       <HeaderButton
         // Conversations are not stored server-side, so this clears rather

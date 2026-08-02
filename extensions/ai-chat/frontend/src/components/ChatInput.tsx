@@ -41,10 +41,10 @@ import {
   ATTACHMENT_ACCEPT,
   Attachment,
   MAX_ATTACHMENTS,
-  readAttachment,
 } from '../utils/attachments';
 import { droppedText, referenceKey } from '../utils/entityRef';
 import type { EntityReferences } from '../hooks/useEntityReferences';
+import type { StagedFiles } from '../hooks/useStagedFiles';
 import ReferenceTag from './ReferenceTag';
 
 const { t } = translation;
@@ -57,15 +57,18 @@ interface ChatInputProps {
   onCancel: () => void;
   /** Superset objects dropped in as lasting context. */
   entities: EntityReferences;
+  /** Files picked for the next message. */
+  staged: StagedFiles;
   autoFocus?: boolean;
 }
 
 /**
  * Multiline input where Enter sends and Shift+Enter inserts a newline. The
- * send button becomes a cancel button while a request is in flight. Picked
- * files are read here and travel with the next message, so they clear once
- * it is sent, while dropped dashboards, charts and datasets stay attached
- * until removed.
+ * send button becomes a cancel button while a request is in flight.
+ *
+ * Only the draft text is the composer's own: staged files and dropped
+ * dashboards, charts and datasets belong to the conversation, so the panel
+ * holds them and decides when they go away.
  */
 export default function ChatInput({
   disabled,
@@ -73,56 +76,23 @@ export default function ChatInput({
   onSend,
   onCancel,
   entities,
+  staged,
   autoFocus,
 }: ChatInputProps) {
   const theme = useTheme();
   const [value, setValue] = useState('');
-  const [attachments, setAttachments] = useState<Attachment[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<InputRef>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const submit = () => {
     const trimmed = value.trim();
-    if ((trimmed || attachments.length) && !busy && !disabled) {
-      onSend(trimmed, attachments);
+    if ((trimmed || staged.files.length) && !busy && !disabled) {
+      onSend(trimmed, staged.files);
       setValue('');
-      setAttachments([]);
-      setError(null);
+      staged.clear();
       inputRef.current?.focus();
     }
-  };
-
-  const remove = (id: string) =>
-    setAttachments(current => current.filter(entry => entry.id !== id));
-
-  const addFiles = async (picked: FileList | null) => {
-    if (!picked?.length) return;
-    const overflow =
-      picked.length > MAX_ATTACHMENTS - attachments.length
-        ? t('You can attach up to %s files per message.', MAX_ATTACHMENTS)
-        : null;
-    const results = await Promise.allSettled(
-      Array.from(picked).slice(0, MAX_ATTACHMENTS).map(readAttachment),
-    );
-    const added = results
-      .filter(
-        (result): result is PromiseFulfilledResult<Attachment> =>
-          result.status === 'fulfilled',
-      )
-      .map(result => result.value);
-    const rejected = results.find(result => result.status === 'rejected') as
-      PromiseRejectedResult | undefined;
-    // Reading a file takes long enough for a second pick to start before this
-    // one lands, so the limit applies to the state being replaced rather than
-    // to the count captured when the picker opened. Files beyond it are
-    // dropped instead of replacing what is already staged.
-    setAttachments(current => {
-      const room = MAX_ATTACHMENTS - current.length;
-      return room > 0 ? [...current, ...added.slice(0, room)] : current;
-    });
-    setError(rejected ? String(rejected.reason.message) : overflow);
   };
 
   const handleDrop = (event: React.DragEvent) => {
@@ -130,7 +100,7 @@ export default function ChatInput({
     const files = event.dataTransfer?.files;
     if (files?.length) {
       event.preventDefault();
-      addFiles(files);
+      staged.add(files);
       return;
     }
     const text = droppedText(event.dataTransfer);
@@ -191,14 +161,14 @@ export default function ChatInput({
           {entities.error}
         </Typography.Text>
       )}
-      {attachments.length > 0 && (
+      {staged.files.length > 0 && (
         <Flex
           wrap
           gap={theme.marginXXS}
           align="center"
           data-test="chat-attachments"
         >
-          {attachments.map(file =>
+          {staged.files.map(file =>
             file.kind === 'image' ? (
               <Badge
                 key={file.id}
@@ -208,7 +178,7 @@ export default function ChatInput({
                       // The badge sits on the thumbnail, so without this the
                       // click also opens the preview being removed
                       event.stopPropagation();
-                      remove(file.id);
+                      staged.remove(file.id);
                     }}
                     role="button"
                     aria-label={t('Remove %s', file.name)}
@@ -242,7 +212,7 @@ export default function ChatInput({
                 key={file.id}
                 icon={<PaperClipOutlined />}
                 closable
-                onClose={() => remove(file.id)}
+                onClose={() => staged.remove(file.id)}
                 data-test="chat-attachment"
               >
                 {file.truncated ? t('%s (truncated)', file.name) : file.name}
@@ -251,9 +221,9 @@ export default function ChatInput({
           )}
         </Flex>
       )}
-      {error && (
+      {staged.error && (
         <Typography.Text type="danger" data-test="chat-attachment-error">
-          {error}
+          {staged.error}
         </Typography.Text>
       )}
       <Flex
@@ -266,7 +236,7 @@ export default function ChatInput({
           <Button
             icon={<PlusOutlined />}
             onClick={() => fileRef.current?.click()}
-            disabled={disabled || attachments.length >= MAX_ATTACHMENTS}
+            disabled={disabled || staged.files.length >= MAX_ATTACHMENTS}
             aria-label={t('Attach files')}
             data-test="chat-attach"
           />
@@ -278,7 +248,7 @@ export default function ChatInput({
           accept={ATTACHMENT_ACCEPT}
           hidden
           onChange={event => {
-            addFiles(event.target.files);
+            staged.add(event.target.files);
             // Let the same file be picked again after being removed
             event.target.value = '';
           }}
@@ -317,7 +287,7 @@ export default function ChatInput({
               type="primary"
               icon={<SendOutlined />}
               onClick={submit}
-              disabled={disabled || !(value.trim() || attachments.length)}
+              disabled={disabled || !(value.trim() || staged.files.length)}
               aria-label={t('Send message')}
               data-test="chat-send"
             />

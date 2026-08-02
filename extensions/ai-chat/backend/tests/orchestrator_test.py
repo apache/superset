@@ -110,9 +110,8 @@ def ai_chat_config(app_context: AppContext) -> Generator[dict[str, Any], None, N
 def mutations_gated(ai_chat_config: dict[str, Any]) -> None:
     """Turn on the approval gate for the tests that exercise that path.
 
-    Approval is off by default, so a test about approvals has to ask for it
-    -- which is the point: nothing here passes by accident under a mode the
-    test did not choose.
+    Approval is off by default, so a test about it has to say so, and none
+    of these pass under a mode the test did not choose.
     """
     ai_chat_config["TOOL_APPROVAL_MODE"] = ToolApprovalMode.MUTATIONS_ONLY.value
 
@@ -586,8 +585,8 @@ def test_destructive_tool_executes_directly_by_default(
 ) -> None:
     """The default mode runs even a destructive call without an approval.
 
-    The gate is what is gone; the tool still had to be allowlisted, and it
-    still runs under the user's own permissions inside MCP.
+    Only the gate is gone: the tool still had to be allowlisted, and still
+    runs under the user's own permissions inside MCP.
     """
     provider = _destructive_call_turn()
     events = _runner(user, mocker, provider).run_chat()
@@ -634,11 +633,8 @@ def test_all_tools_mode_gates_a_read_only_call(
 def test_approval_endpoint_is_refused_when_approval_is_disabled(
     user: MagicMock, mocker: MockerFixture, harness: dict[str, Any]
 ) -> None:
-    """A crafted approval request cannot execute a tool the gate never saw.
-
-    The store is not consulted at all: there is no row to consult, and
-    reaching for one would be the only storage access the default mode makes.
-    """
+    """A crafted approval request cannot execute a tool the gate never saw,
+    and the store is not consulted to find that out."""
     provider = ScriptedProvider([ProviderResult(content="Deleted.")])
     with pytest.raises(AiChatApprovalExpiredError):
         _runner(user, mocker, provider).run_approval(

@@ -16,20 +16,14 @@
 # under the License.
 """Server-side tool impact classification and approval policy.
 
-This module owns both halves of the question "may this call run now": what
-class of tool it is, and whether the operator's configured approval mode gates
-that class. Nothing else in the gateway decides either, so a change of policy
-happens here rather than in the orchestrator, the API or the browser.
+This module answers "may this call run now" on its own: what class of tool it
+is, and whether the configured :class:`ToolApprovalMode` gates that class.
+Changing the policy means changing this file, not the orchestrator, the API
+or the browser.
 
 Classification derives from the ``readOnlyHint`` and ``destructiveHint``
-annotations every MCP tool declares. Tools with missing or unrecognizable
-annotations fall into ``UNKNOWN``, which is treated as at least as sensitive
-as ``MUTATING`` for approval purposes -- an allowlisted tool that declares
-nothing must not be the cheapest way past a gate.
-
-Approval is a confirmation step, not the authorization itself. Authentication,
-the allowlist, argument and schema validation, and Superset's own RBAC apply
-to every call in every mode, including ``DISABLED``.
+annotations every MCP tool declares, so it is code deciding rather than the
+model.
 """
 
 from __future__ import annotations
@@ -93,14 +87,12 @@ def requires_approval(
 ) -> bool:
     """Whether this call must be confirmed by the user before it runs.
 
-    The single policy question the orchestrator asks. Pure by design: the mode
-    is resolved once per turn and passed in, so the answer cannot drift
-    mid-turn and the whole matrix is exhaustively testable.
+    The mode is passed in rather than read here, so the answer cannot drift
+    between the check and the call it guards.
 
-    ``DISABLED`` gates nothing. ``ALL_TOOLS`` gates everything. In between,
-    ``MUTATIONS_ONLY`` lets read-only tools through and gates the rest --
-    including ``UNKNOWN``, which is where an allowlisted tool with unreadable
-    annotations lands.
+    ``MUTATIONS_ONLY`` gates everything but read-only tools, ``UNKNOWN``
+    included: an allowlisted tool that declares no annotations must not be
+    the cheapest way past the gate.
     """
     if approval_mode == ToolApprovalMode.DISABLED:
         return False
