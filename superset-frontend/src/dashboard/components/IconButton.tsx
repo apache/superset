@@ -19,10 +19,11 @@
 import { forwardRef, HTMLAttributes, MouseEventHandler } from 'react';
 import { styled, SupersetTheme } from '@apache-superset/core/theme';
 
-interface IconButtonProps extends HTMLAttributes<HTMLDivElement> {
+interface IconButtonProps extends HTMLAttributes<HTMLButtonElement> {
   icon: JSX.Element;
   label?: string;
-  onClick: MouseEventHandler<HTMLDivElement>;
+  hideVisibleLabel?: boolean;
+  onClick: MouseEventHandler<HTMLButtonElement>;
   disabled?: boolean;
   'data-test'?: string;
 }
@@ -39,7 +40,11 @@ const activeCss = ({ theme }: { theme: SupersetTheme }) => `
   }
 `;
 
-const StyledDiv = styled.div<{ isDisabled?: boolean }>`
+const StyledButton = styled.button<{ isDisabled?: boolean }>`
+  appearance: none;
+  border: none;
+  background: none;
+  font: inherit;
   display: flex;
   align-items: center;
   cursor: pointer;
@@ -55,11 +60,12 @@ const StyledSpan = styled.span`
   margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
-const IconButton = forwardRef<HTMLDivElement, IconButtonProps>(
+const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
   (
     {
       icon,
       label,
+      hideVisibleLabel,
       onClick,
       onKeyDown,
       disabled,
@@ -68,11 +74,11 @@ const IconButton = forwardRef<HTMLDivElement, IconButtonProps>(
     },
     ref,
   ) => (
-    <StyledDiv
+    <StyledButton
       {...rest}
       ref={ref}
-      tabIndex={disabled ? -1 : 0}
-      role="button"
+      type="button"
+      aria-label={label}
       isDisabled={disabled}
       aria-disabled={disabled}
       data-test={dataTest}
@@ -89,8 +95,8 @@ const IconButton = forwardRef<HTMLDivElement, IconButtonProps>(
       }}
     >
       {icon}
-      {label && <StyledSpan>{label}</StyledSpan>}
-    </StyledDiv>
+      {label && !hideVisibleLabel && <StyledSpan>{label}</StyledSpan>}
+    </StyledButton>
   ),
 );
 

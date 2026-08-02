@@ -78,6 +78,18 @@ export type Datasource = Dataset & {
   schema?: string;
   is_sqllab_view?: boolean;
   extra?: string | object;
+  /**
+   * False when the datasource (e.g. a semantic view) doesn't model raw rows
+   * and therefore can't return a row sample. Defaults to true on the server
+   * side; missing here means the explore UI keeps current behavior.
+   */
+  supports_samples?: boolean;
+  /**
+   * False when the datasource doesn't model raw rows and therefore can't
+   * answer a drill-to-detail query. Tracked separately from
+   * ``supports_samples`` so the two capabilities can diverge.
+   */
+  supports_drill_to_detail?: boolean;
 };
 
 export interface ExplorePageInitialData {

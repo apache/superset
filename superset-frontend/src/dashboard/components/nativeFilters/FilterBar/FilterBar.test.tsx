@@ -547,7 +547,7 @@ test('Clear All stages filter_select clear without dispatching until Apply', asy
   });
   expect(updateDataMaskSpy).toHaveBeenCalledWith(filterId, {
     id: filterId,
-    filterState: { value: undefined, validateStatus: undefined },
+    filterState: { value: null, validateStatus: undefined },
     extraFormData: {},
   });
   updateDataMaskSpy.mockRestore();
@@ -685,9 +685,92 @@ test('Clear All + Apply only dispatches for filters present in dataMask', async 
   expect(updateDataMaskSpy).toHaveBeenCalledTimes(1);
   expect(updateDataMaskSpy).toHaveBeenCalledWith(idInMask, {
     id: idInMask,
-    filterState: { value: undefined, validateStatus: undefined },
+    filterState: { value: null, validateStatus: undefined },
     extraFormData: {},
   });
+  updateDataMaskSpy.mockRestore();
+});
+
+test('Clear All in horizontal bar does not re-apply default values', async () => {
+  fetchMock.post(
+    'glob:*/api/v1/chart/data',
+    {
+      result: [
+        {
+          data: [{ test_column: 'East' }, { test_column: 'West' }],
+          colnames: ['test_column'],
+          coltypes: [1],
+        },
+      ],
+    },
+    { name: 'horizontal-clear-chart-data' },
+  );
+  const filterId = 'NATIVE_FILTER-horizontal-default';
+  const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+  const filterWithDefault = createFilter({
+    id: filterId,
+    name: 'Region',
+    filterType: 'filter_select',
+    targets: [{ datasetId: 7, column: { name: 'test_column' } }],
+    defaultDataMask: {
+      filterState: { value: ['East'] },
+      extraFormData: {
+        filters: [{ col: 'test_column', op: 'IN', val: ['East'] }],
+      },
+    },
+    chartsInScope: [18],
+  });
+  const stateHorizontal = {
+    ...stateWithoutNativeFilters,
+    dashboardInfo: {
+      id: 1,
+      dash_edit_perm: true,
+      filterBarOrientation: FilterBarOrientation.Horizontal,
+      metadata: {
+        native_filter_configuration: [filterWithDefault],
+        chart_configuration: {},
+      },
+    },
+    dashboardState: {
+      ...stateWithoutNativeFilters.dashboardState,
+      activeTabs: ['ROOT_ID'],
+    },
+    dataMask: {
+      [filterId]: createDataMask(filterId, ['East'], {
+        filters: [{ col: 'test_column', op: 'IN', val: ['East'] }],
+      }),
+    },
+    nativeFilters: {
+      filters: { [filterId]: filterWithDefault },
+      filtersState: {},
+    },
+  };
+
+  render(<FilterBar orientation={FilterBarOrientation.Horizontal} />, {
+    initialState: stateHorizontal,
+    useDnd: true,
+    useRedux: true,
+    useRouter: true,
+  });
+  await act(async () => {
+    jest.advanceTimersByTime(1000);
+  });
+
+  const clearBtn = screen.getByTestId(getTestId('clear-button'));
+  expect(clearBtn).not.toBeDisabled();
+  await act(async () => {
+    userEvent.click(clearBtn);
+  });
+  // Let the clear-all trigger round-trip through the filter plugin
+  await act(async () => {
+    jest.advanceTimersByTime(1000);
+  });
+
+  // The staged clear must survive the trigger completing: the default value
+  // must not be re-applied and Apply must stay enabled
+  expect(updateDataMaskSpy).not.toHaveBeenCalled();
+  expect(screen.queryByTitle('East')).not.toBeInTheDocument();
+  expect(screen.getByTestId(getTestId('apply-button'))).not.toBeDisabled();
   updateDataMaskSpy.mockRestore();
 });
 
@@ -831,7 +914,7 @@ test('FilterBar Clear All only clears in-scope filters, not out-of-scope ones', 
 
   expect(updateDataMaskSpy).toHaveBeenCalledWith(inScopeFilterId, {
     id: inScopeFilterId,
-    filterState: { value: undefined, validateStatus: undefined },
+    filterState: { value: null, validateStatus: undefined },
     extraFormData: {},
   });
 

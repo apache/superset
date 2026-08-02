@@ -422,6 +422,14 @@ const DashboardBuilder = () => {
       : undefined;
   const standaloneMode = getUrlParam(URL_PARAMS.standalone);
   const isReport = standaloneMode === DashboardStandaloneMode.Report;
+  // Report mode (standalone=3) hides the filter bar by default, since it's used
+  // for one-shot screenshot renders (email reports, thumbnails). Embedded SDK
+  // consumers also use standalone=3 to hide the title/tabs/nav, but may still
+  // want filters visible via dashboardUiConfig.filters.visible, which maps to
+  // the show_filters URL param. An explicit show_filters=true overrides the
+  // report-mode default so the filter bar stays visible.
+  const showFiltersUrlParam = getUrlParam(URL_PARAMS.showFilters);
+  const hideFilterBar = isReport && showFiltersUrlParam !== true;
   const hideDashboardHeader =
     uiConfig.hideTitle ||
     standaloneMode === DashboardStandaloneMode.HideNavAndTitle ||
@@ -523,12 +531,12 @@ const DashboardBuilder = () => {
           filterBarOrientation === FilterBarOrientation.Horizontal && (
             <FilterBar
               orientation={FilterBarOrientation.Horizontal}
-              hidden={isReport}
+              hidden={hideFilterBar}
             />
           )}
       </>
     ),
-    [hideDashboardHeader, showFilterBar, filterBarOrientation, isReport],
+    [hideDashboardHeader, showFilterBar, filterBarOrientation, hideFilterBar],
   );
 
   const renderDraggableContent = useCallback(
@@ -590,7 +598,7 @@ const DashboardBuilder = () => {
       return (
         <FiltersPanel
           width={filterBarWidth}
-          hidden={isReport}
+          hidden={hideFilterBar}
           data-test="dashboard-filters-panel"
         >
           <StickyPanel ref={containerRef} width={filterBarWidth}>
@@ -615,7 +623,7 @@ const DashboardBuilder = () => {
       toggleDashboardFiltersOpen,
       filterBarHeight,
       filterBarOffset,
-      isReport,
+      hideFilterBar,
     ],
   );
 

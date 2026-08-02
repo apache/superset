@@ -17,7 +17,7 @@
 import logging
 from typing import Any, Optional
 
-from croniter import croniter
+from croniter import croniter, CroniterBadDateError
 from flask import current_app as app
 from flask_babel import gettext as _
 from marshmallow import ValidationError
@@ -29,6 +29,7 @@ from superset.commands.report.exceptions import (
     ChartNotSavedValidationError,
     DashboardNotFoundValidationError,
     DashboardNotSavedValidationError,
+    ReportScheduleCrontabNotValidError,
     ReportScheduleEitherChartOrDashboardError,
     ReportScheduleForbiddenError,
     ReportScheduleFrequencyNotAllowed,
@@ -288,13 +289,18 @@ class BaseReportScheduleCommand(BaseCommand):
             return
 
         iterations = 60 if minimum_interval <= 3660 else 24
-        schedule = croniter(cron_schedule)
-        current_exec = next(schedule)
+        try:
+            schedule = croniter(cron_schedule)
+            current_exec = next(schedule)
 
-        for _i in range(iterations):
-            next_exec = next(schedule)
-            diff, current_exec = next_exec - current_exec, next_exec
-            if int(diff) < minimum_interval:
-                raise ReportScheduleFrequencyNotAllowed(
-                    report_type=report_type, minimum_interval=minimum_interval
-                )
+            for _i in range(iterations):
+                next_exec = next(schedule)
+                diff, current_exec = next_exec - current_exec, next_exec
+                if int(diff) < minimum_interval:
+                    raise ReportScheduleFrequencyNotAllowed(
+                        report_type=report_type, minimum_interval=minimum_interval
+                    )
+        except CroniterBadDateError as ex:
+            raise ReportScheduleCrontabNotValidError(
+                cron_schedule=cron_schedule
+            ) from ex

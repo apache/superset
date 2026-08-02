@@ -898,6 +898,28 @@ test('Renders only an overflow tag if dropdown is open in oneLine mode', async (
   expect(withinSelector.getByText('+ 2 ...')).toBeVisible();
 });
 
+// Regression test for the bug described in: https://github.com/apache/superset/issues/39339
+// The AntD v6 upgrade renamed `.ant-select-selection-overflow` (the tag
+// container) to `.ant-select-content`, and a CSS rule meant only to cap the
+// height of individual tags/placeholder text was mistakenly widened to also
+// match the renamed container class. That capped the whole multi-row tag
+// container to a single line's height, so wrapped rows spilled outside the
+// select's border, the dropdown arrow mis-centered against the wrong height,
+// and the search input (rendered last in the wrapped row) became invisible
+// once the dropdown opened.
+test('does not cap the tag container to a single line when tags wrap to multiple rows', () => {
+  render(
+    <Select
+      {...defaultProps}
+      value={OPTIONS.slice(0, 8)}
+      mode="multiple"
+      maxTagCount={6}
+    />,
+  );
+  const content = getElementByClassName('.ant-select-content');
+  expect(content).not.toHaveStyle({ maxHeight: '32px' });
+});
+
 // Test for checking the issue described in: https://github.com/apache/superset/issues/35132
 test('Maintains stable maxTagCount to prevent click target disappearing in oneLine mode', async () => {
   render(
@@ -1032,6 +1054,35 @@ test('do not count unselected disabled options in "Select all"', async () => {
   ).toBeInTheDocument();
 });
 
+test('"Select all" does not count null-valued options', async () => {
+  // A falsy-valued option (e.g. <NULL>, value: null) is skipped by
+  // handleSelectAll, so it must not be counted in the "Select all" badge or
+  // the count overstates the selection. Regression test for #40228. Uses a
+  // local options array to stay isolated from tests that mutate OPTIONS.
+  const localOptions = [
+    { label: 'Alpha', value: 1 },
+    { label: 'Bravo', value: 2 },
+  ];
+  render(
+    <Select
+      {...defaultProps}
+      options={[...localOptions, NULL_OPTION]}
+      mode="multiple"
+      maxTagCount={0}
+    />,
+  );
+  await open();
+  // Three options are visible, but the <NULL> option is not bulk-selectable,
+  // so the badge must count only the two real options (would be 3 before fix).
+  await userEvent.click(
+    await screen.findByText(selectAllButtonText(localOptions.length)),
+  );
+  // And Select all selects exactly those two — the null option is skipped.
+  const values = await findAllSelectValues();
+  expect(values.length).toBe(1);
+  expect(values[0]).toHaveTextContent(`+ ${localOptions.length} ...`);
+});
+
 test('"Deselect all" counts all selected options', async () => {
   render(<Select {...defaultProps} allowNewOptions mode="multiple" />);
   await open();
@@ -1134,14 +1185,14 @@ test('dropdown takes full width of the select input for single select', async ()
 test('does not fire onChange when searching but no selection', async () => {
   const onChange = jest.fn();
   render(
-    <div role="main">
+    <main>
       <Select
         {...defaultProps}
         onChange={onChange}
         mode="multiple"
         allowNewOptions
       />
-    </div>,
+    </main>,
   );
   await open();
   await type('Joh');
