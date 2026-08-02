@@ -29,8 +29,8 @@ const { t } = translation;
 
 chat.registerChat(
   {
-    id: 'apache-superset.ai-chat',
-    name: t('Superset AI Assistant'),
+    id: 'enx-dev.ai-chat',
+    name: t('Superset AI Chat Assistant'),
     description: t(
       'AI assistant for finding, understanding and managing dashboards, ' +
         'charts, datasets and SQL.',

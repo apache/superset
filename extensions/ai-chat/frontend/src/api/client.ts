@@ -30,7 +30,8 @@ import type {
   ProtocolToolCall,
 } from '../types';
 
-const API_BASE = '/api/v1/ai_chat';
+// Extension APIs are mounted under /extensions/{publisher}/{name}, matching the publisher and name in extension.json.
+const API_BASE = '/extensions/enx-dev/ai-chat';
 
 export class ChatApiError extends Error {
   status: number;

@@ -22,21 +22,18 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from flask.ctx import AppContext
-from pytest_mock import MockerFixture
-
-from superset.ai_chat.approvals import Approval
-from superset.ai_chat.exceptions import (
+from enx_dev.ai_chat.approvals import Approval
+from enx_dev.ai_chat.exceptions import (
     AiChatApprovalExpiredError,
     AiChatIdentityMismatchError,
     AiChatProviderError,
     AiChatRequestTooLargeError,
     AiChatUnsupportedPrincipalError,
 )
-from superset.ai_chat.orchestrator import ChatTurnRunner, EVENT_RESULT_CAP
-from superset.ai_chat.providers.base import BaseChatProvider
-from superset.ai_chat.schemas import MAX_TOTAL_IMAGE_BASE64_CHARS
-from superset.ai_chat.types import (
+from enx_dev.ai_chat.orchestrator import ChatTurnRunner, EVENT_RESULT_CAP
+from enx_dev.ai_chat.providers.base import BaseChatProvider
+from enx_dev.ai_chat.schemas import MAX_TOTAL_IMAGE_BASE64_CHARS
+from enx_dev.ai_chat.types import (
     ChatMessage,
     ChatRole,
     FinishReason,
@@ -46,6 +43,8 @@ from superset.ai_chat.types import (
     ToolExecution,
     ToolSpec,
 )
+from flask.ctx import AppContext
+from pytest_mock import MockerFixture
 
 CONVERSATION_ID = "conv_orchestrator"
 
@@ -110,28 +109,28 @@ def harness(mocker: MockerFixture) -> dict[str, Any]:
     """Patch the orchestrator's collaborators; return the mocks."""
     mocks = {
         "is_mcp_available": mocker.patch(
-            "superset.ai_chat.orchestrator.is_mcp_available", return_value=True
+            "enx_dev.ai_chat.orchestrator.is_mcp_available", return_value=True
         ),
         "assert_identity_alignment": mocker.patch(
-            "superset.ai_chat.orchestrator.assert_identity_alignment"
+            "enx_dev.ai_chat.orchestrator.assert_identity_alignment"
         ),
         "list_allowed_tools": mocker.patch(
-            "superset.ai_chat.orchestrator.list_allowed_tools",
+            "enx_dev.ai_chat.orchestrator.list_allowed_tools",
             new=AsyncMock(return_value=TOOLS),
         ),
         "call_tool": mocker.patch(
-            "superset.ai_chat.orchestrator.call_tool",
+            "enx_dev.ai_chat.orchestrator.call_tool",
             new=AsyncMock(return_value=ToolExecution(ok=True, content='{"count": 1}')),
         ),
         "create_approval": mocker.patch(
-            "superset.ai_chat.orchestrator.create_approval",
+            "enx_dev.ai_chat.orchestrator.create_approval",
             return_value=Approval(
                 approval_id="3e7a2ab8-bcaf-49b0-a5df-dfb432f291cc",
                 expires_at="2100-01-01T00:00:00",
             ),
         ),
         "consume_approval": mocker.patch(
-            "superset.ai_chat.orchestrator.consume_approval"
+            "enx_dev.ai_chat.orchestrator.consume_approval"
         ),
     }
     return mocks
@@ -144,7 +143,7 @@ def _runner(
     messages: list[dict[str, Any]] | None = None,
     context: dict[str, Any] | None = None,
 ) -> ChatTurnRunner:
-    mocker.patch("superset.ai_chat.orchestrator.get_provider", return_value=provider)
+    mocker.patch("enx_dev.ai_chat.orchestrator.get_provider", return_value=provider)
     return ChatTurnRunner(
         user=user,
         conversation_id=CONVERSATION_ID,

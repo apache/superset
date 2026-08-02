@@ -37,7 +37,7 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from superset.ai_chat.types import ToolClassification
+from enx_dev.ai_chat.types import ToolClassification
 
 
 class EventTypes:

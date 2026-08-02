@@ -26,7 +26,7 @@ test('evaluating the entry module registers the chat contribution', () => {
   // eslint-disable-next-line global-require
   require('./index');
   expect(__testing.state.registered).not.toBeNull();
-  expect(__testing.state.registered?.chat.id).toBe('apache-superset.ai-chat');
+  expect(__testing.state.registered?.chat.id).toBe('enx-dev.ai-chat');
   expect(typeof __testing.state.registered?.trigger).toBe('function');
   expect(typeof __testing.state.registered?.panel).toBe('function');
 });

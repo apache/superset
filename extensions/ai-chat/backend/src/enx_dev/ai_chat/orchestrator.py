@@ -36,34 +36,34 @@ import re
 import time
 from typing import Any, TYPE_CHECKING
 
-from superset.ai_chat import events as ev
-from superset.ai_chat.approvals import consume_approval, create_approval
-from superset.ai_chat.classification import (
+from enx_dev.ai_chat import events as ev
+from enx_dev.ai_chat.approvals import consume_approval, create_approval
+from enx_dev.ai_chat.classification import (
     approval_warnings,
     is_reversible,
     requires_approval,
 )
-from superset.ai_chat.exceptions import (
+from enx_dev.ai_chat.exceptions import (
     AiChatApprovalError,
     AiChatIdentityMismatchError,
     AiChatProviderError,
     AiChatRequestTooLargeError,
     AiChatUnsupportedPrincipalError,
 )
-from superset.ai_chat.mcp_bridge import (
+from enx_dev.ai_chat.mcp_bridge import (
     assert_identity_alignment,
     call_tool,
     is_mcp_available,
     list_allowed_tools,
 )
-from superset.ai_chat.providers import get_provider
-from superset.ai_chat.schemas import (
+from enx_dev.ai_chat.providers import get_provider
+from enx_dev.ai_chat.schemas import (
     MAX_CONTEXT_REFERENCES,
     MAX_TOTAL_IMAGE_BASE64_CHARS,
     RESOURCE_NAME_MAX_CHARS,
 )
-from superset.ai_chat.settings import get_ai_chat_config
-from superset.ai_chat.types import (
+from enx_dev.ai_chat.settings import get_ai_chat_config
+from enx_dev.ai_chat.types import (
     ChatMessage,
     ChatRole,
     FinishReason,

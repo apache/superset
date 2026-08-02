@@ -22,20 +22,19 @@ from datetime import datetime, timedelta
 from uuid import UUID
 
 import pytest
-from flask.ctx import AppContext
-
-from superset import db
-from superset.ai_chat.approvals import (
+from enx_dev.ai_chat.approvals import (
     arguments_fingerprint,
     canonicalize_arguments,
     consume_approval,
     create_approval,
     RESOURCE,
 )
-from superset.ai_chat.exceptions import (
+from enx_dev.ai_chat.exceptions import (
     AiChatApprovalExpiredError,
     AiChatApprovalMismatchError,
 )
+from flask.ctx import AppContext
+from superset_core.common import models as core_models
 
 CONVERSATION_ID = "conv_approvals_test"
 TOOL_NAME = "delete_dashboard"
@@ -46,12 +45,11 @@ ARGUMENTS = {"request": {"identifier": 42}}
 @pytest.fixture(autouse=True)
 def cleanup_approvals(app_context: AppContext) -> Generator[None, None, None]:
     yield
-    from superset.key_value.models import KeyValueEntry
 
-    db.session.query(KeyValueEntry).filter(
-        KeyValueEntry.resource == RESOURCE.value
+    core_models.get_session().query(core_models.KeyValue).filter(
+        core_models.KeyValue.resource == RESOURCE
     ).delete()
-    db.session.commit()
+    core_models.get_session().commit()
 
 
 def test_canonicalization_is_order_independent() -> None:
@@ -101,15 +99,15 @@ def test_consume_unknown_id_rejected(app_context: AppContext) -> None:
 
 def test_consume_expired_rejected(app_context: AppContext) -> None:
     approval = create_approval(USER_ID, CONVERSATION_ID, TOOL_NAME, ARGUMENTS)
-    from superset.key_value.models import KeyValueEntry
 
     entry = (
-        db.session.query(KeyValueEntry)
-        .filter(KeyValueEntry.uuid == UUID(approval.approval_id))
+        core_models.get_session()
+        .query(core_models.KeyValue)
+        .filter(core_models.KeyValue.uuid == UUID(approval.approval_id))
         .one()
     )
     entry.expires_on = datetime.now() - timedelta(seconds=1)
-    db.session.flush()
+    core_models.get_session().flush()
     with pytest.raises(AiChatApprovalExpiredError):
         consume_approval(
             approval.approval_id, USER_ID, CONVERSATION_ID, TOOL_NAME, ARGUMENTS

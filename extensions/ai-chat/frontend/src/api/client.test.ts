@@ -55,7 +55,7 @@ test('sendChat attaches the CSRF token and JSON body', async () => {
     messages: [{ role: 'user', content: 'hi' }],
   });
   const [url, init] = mock.mock.calls[0];
-  expect(url).toBe('/api/v1/ai_chat/chat');
+  expect(url).toBe('/extensions/enx-dev/ai-chat/chat');
   expect(init?.method).toBe('POST');
   expect(init?.credentials).toBe('same-origin');
   const headers = init?.headers as Record<string, string>;

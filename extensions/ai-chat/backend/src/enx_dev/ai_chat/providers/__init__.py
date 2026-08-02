@@ -20,11 +20,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from superset.ai_chat.exceptions import AiChatConfigurationError
-from superset.ai_chat.providers.anthropic_provider import AnthropicProvider
-from superset.ai_chat.providers.base import BaseChatProvider, ProviderSettings
-from superset.ai_chat.providers.mock import MockChatProvider
-from superset.ai_chat.providers.openai_compat import OpenAiCompatibleProvider
+from enx_dev.ai_chat.exceptions import AiChatConfigurationError
+from enx_dev.ai_chat.providers.anthropic_provider import AnthropicProvider
+from enx_dev.ai_chat.providers.base import BaseChatProvider, ProviderSettings
+from enx_dev.ai_chat.providers.mock import MockChatProvider
+from enx_dev.ai_chat.providers.openai_compat import OpenAiCompatibleProvider
 
 PROVIDERS: dict[str, type[BaseChatProvider]] = {
     "mock": MockChatProvider,

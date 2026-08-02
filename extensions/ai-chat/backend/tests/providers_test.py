@@ -20,22 +20,21 @@ import asyncio
 from typing import Any
 
 import pytest
-
-from superset.ai_chat.exceptions import (
+from enx_dev.ai_chat.exceptions import (
     AiChatConfigurationError,
     AiChatProviderError,
 )
-from superset.ai_chat.providers import get_provider, is_provider_configured
-from superset.ai_chat.providers.anthropic_provider import (
+from enx_dev.ai_chat.providers import get_provider, is_provider_configured
+from enx_dev.ai_chat.providers.anthropic_provider import (
     _to_wire_messages as anthropic_wire,
     AnthropicProvider,
 )
-from superset.ai_chat.providers.mock import MockChatProvider
-from superset.ai_chat.providers.openai_compat import (
+from enx_dev.ai_chat.providers.mock import MockChatProvider
+from enx_dev.ai_chat.providers.openai_compat import (
     _to_wire_messages as openai_wire,
     OpenAiCompatibleProvider,
 )
-from superset.ai_chat.types import (
+from enx_dev.ai_chat.types import (
     ChatMessage,
     ChatRole,
     FinishReason,
@@ -321,7 +320,7 @@ def test_anthropic_response_parsing_malformed() -> None:
 
 
 def test_max_completion_tokens_retry_detection() -> None:
-    from superset.ai_chat.providers.openai_compat import (
+    from enx_dev.ai_chat.providers.openai_compat import (
         _needs_max_completion_tokens,
     )
 
@@ -357,7 +356,7 @@ def test_max_completion_tokens_retry_detection() -> None:
 
 
 def test_reasoning_effort_rejection_detection() -> None:
-    from superset.ai_chat.providers.openai_compat import (
+    from enx_dev.ai_chat.providers.openai_compat import (
         _needs_reasoning_effort_none,
     )
 
@@ -392,7 +391,7 @@ def test_reasoning_effort_rejection_detection() -> None:
 @pytest.mark.asyncio
 async def test_payload_adapts_until_the_model_accepts_it() -> None:
     """A model can reject several parameters, one rejection at a time."""
-    from superset.ai_chat.providers.base import post_json
+    from enx_dev.ai_chat.providers.base import post_json
 
     sent: list[dict[str, Any]] = []
 

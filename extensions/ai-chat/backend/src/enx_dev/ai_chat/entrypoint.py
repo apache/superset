@@ -14,3 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+"""Backend entry point, imported by the host while loading the extension.
+
+Importing the API module is what registers the routes: the ``@api``
+decorator on :class:`AiChatRestApi` adds the view to Flask-AppBuilder as a
+side effect of class creation.
+"""
+
+from .api import AiChatRestApi  # noqa: F401

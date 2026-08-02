@@ -54,7 +54,7 @@ module.exports = (env, argv) => {
     },
     plugins: [
       new ModuleFederationPlugin({
-        name: 'apacheSuperset_aiChat',
+        name: 'enxDev_aiChat',
         filename: 'remoteEntry.[contenthash].js',
         exposes: {
           './index': './src/index.tsx',

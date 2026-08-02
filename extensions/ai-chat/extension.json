@@ -1,5 +1,5 @@
 {
-  "publisher": "apache-superset",
+  "publisher": "enx-dev",
   "name": "ai-chat",
   "displayName": "Superset AI Assistant",
   "version": "0.1.0",

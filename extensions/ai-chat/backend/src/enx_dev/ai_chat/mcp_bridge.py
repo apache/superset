@@ -26,6 +26,14 @@ output truncation and identity alignment.
 ``fastmcp`` is an optional dependency shipped as a pip extra, so every import
 is guarded and the gateway degrades to a chat-only assistant when the extra is
 not installed.
+
+This is the one place the extension reaches past ``apache-superset-core``
+into the host: ``superset.mcp_service.app``. That package exposes decorators
+for *contributing* MCP tools, not a client for *calling* the server the host
+already runs, and standing up a second server would mean a second copy of the
+middleware chain the bridge exists to go through. The imports are lazy and
+already guarded by :func:`is_mcp_available`, so an incompatible host version
+costs tool use rather than the whole assistant.
 """
 
 from __future__ import annotations
@@ -34,12 +42,11 @@ import asyncio
 import logging
 from typing import Any, TYPE_CHECKING
 
+from enx_dev.ai_chat.classification import classify_tool
+from enx_dev.ai_chat.exceptions import AiChatIdentityMismatchError
+from enx_dev.ai_chat.settings import get_ai_chat_config
+from enx_dev.ai_chat.types import ToolExecution, ToolSpec
 from flask import current_app
-
-from superset.ai_chat.classification import classify_tool
-from superset.ai_chat.exceptions import AiChatIdentityMismatchError
-from superset.ai_chat.settings import get_ai_chat_config
-from superset.ai_chat.types import ToolExecution, ToolSpec
 
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla.models import User

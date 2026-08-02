@@ -27,14 +27,14 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from superset.ai_chat.exceptions import AiChatProviderError
-from superset.ai_chat.providers.base import (
+from enx_dev.ai_chat.exceptions import AiChatProviderError
+from enx_dev.ai_chat.providers.base import (
     BaseChatProvider,
     normalize_usage,
     post_json,
     require_httpx,
 )
-from superset.ai_chat.types import (
+from enx_dev.ai_chat.types import (
     ChatMessage,
     ChatRole,
     FinishReason,

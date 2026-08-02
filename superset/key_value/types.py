@@ -40,7 +40,6 @@ class KeyValueFilter(TypedDict, total=False):
 
 
 class KeyValueResource(StrEnum):
-    AI_CHAT_APPROVAL = "ai_chat_approval"
     APP = "app"
     DASHBOARD_PERMALINK = "dashboard_permalink"
     EXPLORE_PERMALINK = "explore_permalink"

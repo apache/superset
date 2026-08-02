@@ -16,11 +16,12 @@
 # under the License.
 """AI chat gateway.
 
-Server-side gateway backing the AI assistant chat extension in
-``extensions/ai-chat``. It authenticates the current Superset user, invokes a
-configured model provider, and orchestrates MCP tools under the user's own
-authorization context, with server-enforced approvals for mutating
-operations.
+Backend half of the AI assistant chat extension. It authenticates the current
+Superset user, invokes a configured model provider, and orchestrates MCP tools
+under the user's own authorization context, with server-enforced approvals for
+mutating operations.
 
-Configuration lives in ``AI_CHAT_CONFIG``; see ``superset/config.py``.
+Operators configure it through ``AI_CHAT_CONFIG`` in ``superset_config.py``;
+the shipped defaults and every supported key live in
+:mod:`enx_dev.ai_chat.settings`.
 """

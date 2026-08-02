@@ -52,7 +52,6 @@ from sqlalchemy.orm.query import Query
 from superset.advanced_data_type.plugins.internet_address import internet_address
 from superset.advanced_data_type.plugins.internet_port import internet_port
 from superset.advanced_data_type.types import AdvancedDataType
-from superset.ai_chat.settings import DEFAULT_AI_CHAT_CONFIG
 from superset.constants import (
     CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET,
     CHANGE_ME_GUEST_TOKEN_JWT_SECRET,
@@ -3129,22 +3128,6 @@ EXTENSION_DENYLIST: list[str] = []
 # be patched before it loads. Versions are compared with PEP 440 semantics, e.g.
 #   EXTENSION_VERSION_POLICY = {"acme.widget": "1.2.0"}
 EXTENSION_VERSION_POLICY: dict[str, str] = {}
-
-# AI chat gateway configuration. Backs the AI assistant chat extension
-# (extensions/ai-chat) with a server-side endpoint that talks to a model
-# provider and orchestrates MCP tools under the requesting user's
-# authorization. Disabled by default; the REST API is only registered when
-# the ENABLE_EXTENSIONS feature flag is on, and refuses requests until
-# ENABLED is set to True.
-#
-# Overrides merge over the shipped defaults, so a minimal enablement is:
-#   AI_CHAT_CONFIG = {"ENABLED": True, "PROVIDER": "mock"}
-# The full set of keys (provider selection, API_KEY_ENV_VAR naming the
-# server-side environment variable holding the provider key, size limits,
-# the ALLOWED_MCP_TOOLS allowlist, approval policy) is documented in
-# superset/ai_chat/settings.py. Provider API keys are never stored in this
-# dict and never sent to the browser.
-AI_CHAT_CONFIG: dict[str, Any] = dict(DEFAULT_AI_CHAT_CONFIG)
 
 # Default polling interval for tasks (seconds)
 TASK_ABORT_POLLING_DEFAULT_INTERVAL = 10

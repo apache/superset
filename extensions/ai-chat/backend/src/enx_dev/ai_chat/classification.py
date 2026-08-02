@@ -27,8 +27,8 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from superset.ai_chat.settings import get_ai_chat_config
-from superset.ai_chat.types import ToolClassification
+from enx_dev.ai_chat.settings import get_ai_chat_config
+from enx_dev.ai_chat.types import ToolClassification
 
 # Extra human-readable warnings surfaced in the approval card for specific
 # tools. Presentation only: enforcement does not depend on this map.

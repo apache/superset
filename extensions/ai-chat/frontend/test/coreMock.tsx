@@ -184,7 +184,7 @@ const storageAccessor = {
 export const extensions = {
   getContext: () => ({
     extension: {
-      id: 'apache-superset.ai-chat',
+      id: 'enx-dev.ai-chat',
       name: 'ai-chat',
       description: '',
       version: '0.1.0',

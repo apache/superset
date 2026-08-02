@@ -39,9 +39,9 @@ from __future__ import annotations
 
 import re
 
-from superset.ai_chat.exceptions import AiChatProviderError
-from superset.ai_chat.providers.base import BaseChatProvider
-from superset.ai_chat.types import (
+from enx_dev.ai_chat.exceptions import AiChatProviderError
+from enx_dev.ai_chat.providers.base import BaseChatProvider
+from enx_dev.ai_chat.types import (
     ChatMessage,
     ChatRole,
     FinishReason,

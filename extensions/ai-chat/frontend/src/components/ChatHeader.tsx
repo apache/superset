@@ -117,7 +117,7 @@ export default function ChatHeader({
     >
       <RobotOutlined aria-hidden />
       <Typography.Text strong style={{ flex: 1 }}>
-        {t('AI Assistant')}
+        {t('AI Chat Assistant')}
       </Typography.Text>
       <Tag
         data-test="chat-page-context"

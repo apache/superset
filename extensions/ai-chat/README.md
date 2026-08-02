@@ -21,7 +21,7 @@ under the License.
 
 An AI assistant inside the Superset chat host. The extension registers a
 trigger and panel through the public `chat` contribution API (SIP-214) and
-talks to a server-side gateway (`superset/ai_chat/`) that invokes a
+talks to a server-side gateway (`backend/`) that invokes a
 configured model provider and orchestrates the Superset MCP tools under the
 current user's own permissions. Mutating operations require an explicit,
 server-enforced user approval.
@@ -35,7 +35,7 @@ flowchart LR
         P -->|"fetch + CSRF"| G
     end
     subgraph "Superset backend"
-        G["AI gateway REST API<br/>/api/v1/ai_chat"] --> O[Orchestrator]
+        G["AI gateway REST API<br/>/extensions/enx-dev/ai-chat"] --> O[Orchestrator]
         O --> PR["Provider abstraction<br/>mock / openai_compatible / anthropic"]
         O --> A["Approval store<br/>(key-value, single-use)"]
         O --> B["MCP bridge<br/>(allowlist + classification)"]
@@ -48,10 +48,12 @@ flowchart LR
   cards, page-context awareness (`navigation` API), file attachments, local
   persistence, retry and cancellation. It holds no secrets and performs no
   Superset operations itself.
-- **Gateway** (`superset/ai_chat/`): authenticates the session user (CSRF
+
+- **Gateway** (`backend/`): authenticates the session user (CSRF
   enforced), validates payloads, calls the provider, executes allowlisted
   MCP tools in-process through the in-memory FastMCP client (full RBAC
   middleware chain), enforces approvals, caps sizes, sanitizes errors.
+
 - **Protocol**: one POST per turn returning an ordered list of typed events
   (`message.completed`, `tool.running`, `tool.completed`, `tool.failed`,
   `tool.approval_required`, `tool.rejected`, `request.completed`,
@@ -64,11 +66,26 @@ The entry point (`frontend/src/index.tsx`) registers as a module-level side
 effect:
 
 ```tsx
-import { chat } from '@apache-superset/core';
-chat.registerChat({ id: 'apache-superset.ai-chat', name: '…' }, ChatTrigger, ChatPanel);
+import { chat } from "@apache-superset/core";
+chat.registerChat({ id: "enx-dev.ai-chat", name: "…" }, ChatTrigger, ChatPanel);
 ```
 
 No manifest contribution entry is required for chat.
+
+The backend registers the same way, by import side effect. The host imports
+`backend/src/enx_dev/ai_chat/entrypoint.py` — the conventional path
+derived from the publisher and name in `extension.json` — and the `@api`
+decorator on `AiChatRestApi` mounts the routes under
+`/extensions/enx-dev/ai-chat/` as the class is created.
+
+```
+extension.json           publisher, name, version, license
+frontend/src/index.tsx   frontend entry point (registers the chat)
+backend/pyproject.toml   Python package metadata and build includes
+backend/src/enx_dev/ai_chat/entrypoint.py
+                         backend entry point (registers the API)
+backend/tests/           pytest suite, run against a Superset checkout
+```
 
 ## Enabling the feature
 
@@ -87,16 +104,19 @@ disabled state; no secrets are ever included in any response.
 
 ## Provider configuration
 
-Everything lives in `AI_CHAT_CONFIG` in `superset_config.py` (defaults in
-`superset/config.py`). The provider API key is read at request time from the
-environment variable named by `API_KEY_ENV_VAR` — it is never stored in
-config, never logged, and never sent to the browser.
+Everything lives in `AI_CHAT_CONFIG` in `superset_config.py`. Superset
+itself carries no default for it; whatever you set is merged over the
+defaults the extension ships in
+`backend/src/enx_dev/ai_chat/settings.py`, so naming only the keys
+you care about leaves the curated tool allowlist and the size limits intact.
+The provider API key is read at request time from the environment variable
+named by `API_KEY_ENV_VAR` — it is never stored in config, never logged, and
+never sent to the browser.
 
 ### Mock (development and tests — no credentials)
 
 ```python
 AI_CHAT_CONFIG = {
-    **AI_CHAT_CONFIG,
     "ENABLED": True,
     "PROVIDER": "mock",
 }
@@ -111,7 +131,6 @@ else returns a help message.
 
 ```python
 AI_CHAT_CONFIG = {
-    **AI_CHAT_CONFIG,
     "ENABLED": True,
     "PROVIDER": "openai_compatible",
     "MODEL": "gpt-4o-mini",
@@ -126,7 +145,6 @@ AI_CHAT_CONFIG = {
 
 ```python
 AI_CHAT_CONFIG = {
-    **AI_CHAT_CONFIG,
     "ENABLED": True,
     "PROVIDER": "anthropic",
     "MODEL": "claude-sonnet-4-5",
@@ -155,6 +173,7 @@ the requesting user. On top of that:
 
 - `ALLOWED_MCP_TOOLS` is an explicit allowlist — the model never sees tools
   outside it. An empty list disables tool use.
+
 - Every tool is classified from its declared `ToolAnnotations`:
   `readOnlyHint=True` → **read-only** (executes immediately);
   `destructiveHint=True` → **destructive** (always requires approval);
@@ -162,6 +181,7 @@ the requesting user. On top of that:
   operator disables `REQUIRE_APPROVAL_FOR_MUTATIONS`); missing/unknown
   annotations → **unknown**, treated like destructive and never
   auto-executed.
+
 - SQL execution goes through the MCP `execute_sql` tool, which fail-closes
   on unparseable SQL, blocks destructive DDL unconditionally and leaves DML
   to the per-database `allow_dml` flag — classification by code, not by the
@@ -170,7 +190,7 @@ the requesting user. On top of that:
 **Adding a tool**: append its name to `ALLOWED_MCP_TOOLS`. Its class is
 derived automatically from its annotations; if it has none it will require
 approval every time until annotated. Optional presentation-only warnings can
-be added in `superset/ai_chat/classification.py::TOOL_APPROVAL_WARNINGS`.
+be added in `backend/src/enx_dev/ai_chat/classification.py::TOOL_APPROVAL_WARNINGS`.
 
 ## Approval behavior
 
@@ -185,26 +205,32 @@ with Approve/Reject buttons.
   property and consumes the record atomically before executing. Changing
   the arguments, tool, user or conversation invalidates it; replay after
   use fails.
+
 - Rejecting burns the approval and returns a structured rejection to the
   model, which responds without executing.
+
 - Approval is enforced server-side; nothing the model, the page content or
   the client sends can bypass it.
 
 ## Security model
 
 - Session authentication + CSRF on every route; a dedicated `can read on
-  AiChat` permission lets operators grant the assistant per role.
+AiChat` permission lets operators grant the assistant per role.
+
 - All Superset operations run through MCP tools under the requesting user —
   the gateway adds no privileged path. If `MCP_DEV_USERNAME` is set to a
   different user than the session user, tool execution fails closed
   (identity alignment guard).
+
 - Prompt-injection defense in depth: trusted system prompt kept separate
   from all retrieved data; MCP wraps user-authored strings in
   `<UNTRUSTED-CONTENT>` tags; tool output is size-capped and carried only
   as tool-role data; the tool allowlist, classification and approvals are
   code-enforced; no shell/filesystem/URL-fetch/code-execution tools exist.
+
 - The frontend renders Markdown through a minimal React-element renderer:
   no raw HTML, no `dangerouslySetInnerHTML`, unsafe link schemes refused.
+
 - Attached files are read in the browser and travel inside the user turn as
   delimited `<ATTACHED-FILE>` blocks, which the system prompt declares to be
   reference data and never instructions — including any text written inside
@@ -214,6 +240,7 @@ with Approve/Reject buttons.
   accepted only as base64 with an allowlisted media type, are attached to
   user turns only (the gateway drops any others), and are bounded per image
   and per request. Nothing is uploaded or stored server-side.
+
 - Errors returned to the browser are sanitized (no tracebacks, no provider
   response bodies); secret-looking argument values are redacted in events
   and logs.
@@ -229,7 +256,7 @@ npm run type             # tsc --noEmit over src + tests
 npm run build            # webpack production build into dist/
 
 # Backend tests (from the repo root, in the Superset venv)
-pytest tests/unit_tests/ai_chat/
+pytest extensions/ai-chat/backend/tests/
 ```
 
 To load the extension locally, run `superset-extensions build` in this
@@ -240,7 +267,7 @@ it as a `.supx` for `EXTENSIONS_PATH`-based deployments.
 ### Manual testing steps
 
 1. `FEATURE_FLAGS["ENABLE_EXTENSIONS"] = True`, `AI_CHAT_CONFIG["ENABLED"] =
-   True` with the mock provider, and this extension in `LOCAL_EXTENSIONS`.
+True` with the mock provider, and this extension in `LOCAL_EXTENSIONS`.
 2. Log in; the robot trigger appears bottom-right. Click it — the panel
    opens in floating mode; the header toggle docks it as a sidebar.
 3. Send `list dashboards` — a read-only tool card runs and the mock
@@ -254,30 +281,49 @@ it as a `.supx` for `EXTENSIONS_PATH`-based deployments.
 
 ### Adding another provider
 
-Implement `BaseChatProvider` (`superset/ai_chat/providers/base.py`) — one
+Implement `BaseChatProvider` (`backend/src/enx_dev/ai_chat/providers/base.py`) — one
 async `complete(messages, tools) -> ProviderResult` translating the neutral
 message format to your wire format — and register the class in
-`PROVIDERS` (`superset/ai_chat/providers/__init__.py`). Raise
+`PROVIDERS` (`backend/src/enx_dev/ai_chat/providers/__init__.py`). Raise
 `AiChatProviderError` with browser-safe messages on failure. The UI is
 provider-agnostic and needs no changes.
 
 ## Limitations
 
+- **One host import**: the MCP bridge imports `superset.mcp_service.app` to
+  reach the server the host already runs. `apache-superset-core` exposes
+  decorators for contributing MCP tools but no client for calling them, and
+  a second server would mean a second copy of the middleware chain the
+  bridge exists to go through. The import is lazy and guarded, so a host
+  that moves it costs tool use rather than the whole assistant. Everything
+  else in `backend/` goes through `apache-superset-core`.
+
+- **Unreleased frontend APIs**: `chat` and `navigation` are not in
+  `@apache-superset/core` 0.1.0 on npm, so the frontend builds against a
+  Superset checkout and needs a host recent enough to provide the chat
+  contribution point.
+
 - **No token streaming**: the backend has no SSE convention; each turn
   returns its events at once. The typed event protocol is
   transport-agnostic so streaming can be added without changing the UI
   event model.
+
 - **Cancellation is client-side**: cancelling aborts the fetch and recovers
   the UI; the in-flight server work completes and is discarded.
+
 - **Page context is a hint**: the public navigation API exposes only the
   page type; the dashboard id is parsed from the URL and verified via tools.
+
 - **No multi-step atomicity**: dashboard/chart creation reports per-step
   results honestly; there is no transaction across MCP tools.
+
 - **History replay**: the server is stateless; the client replays trimmed
   history, so very long conversations lose their oldest turns and tool
   results are replayed as bounded excerpts.
+
 - **Conversation storage** is browser-local (namespaced localStorage via
   the extension storage API), capped in size, cleared by "New conversation".
+
 - **Attachments**: up to 3 per message. Text files (`.csv`, `.json`, `.log`,
   `.md`, `.py`, `.sql`, `.tsv`, `.txt`, `.yaml`, `.yml`) are capped at 1 MB
   and 20 000 characters each, longer ones truncated with a note the model is
@@ -285,10 +331,11 @@ provider-agnostic and needs no changes.
   `.jpg`, `.jpeg`, `.gif`, `.webp`) are capped at 8 MB and require a
   vision-capable configured model — a text-only model rejects the request
   and the error surfaces with a retry. An image whose encoded payload
-  exceeds ~300 KB is re-encoded in the browser with its longest edge bounded
+  exceeds \~300 KB is re-encoded in the browser with its longest edge bounded
   to 1400 px; smaller ones are sent as they are, whatever their pixel
   dimensions, and re-encoding is best-effort (the original is kept if it
   fails or does not come out smaller).
+
 - **Dropped objects**: dragging a chart title, dashboard card or dataset
   link into the composer attaches it as context (up to 5). Identity comes
   from the dropped URL, so no host-side drag source is needed, and only
@@ -296,6 +343,7 @@ provider-agnostic and needs no changes.
   X or until the conversation is cleared, and travel as page context on every
   turn — so they are hints the assistant verifies with a tool, exactly like
   the page's own resource.
+
 - **Attachments live in the turn**: file text counts toward
   `MAX_INPUT_CHARS`, and both files and images leave context once history
   trimming reaches that message. Images are stripped before the conversation

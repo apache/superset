@@ -16,11 +16,14 @@
 # under the License.
 """REST API for the AI chat gateway.
 
-All routes require an authenticated session (CSRF enforced by
-``BaseSupersetApi``) and the ``can read on AiChat`` permission, which lets
-operators grant or revoke the assistant per role. Object-level authorization
-for everything the assistant does is enforced by the MCP tools themselves
-under the requesting user.
+All routes require an authenticated session and the ``can read on AiChat``
+permission, which lets operators grant or revoke the assistant per role.
+Object-level authorization for everything the assistant does is enforced by
+the MCP tools themselves under the requesting user.
+
+Routes are served under ``/extensions/{publisher}/{name}/`` — the ``@api``
+decorator resolves the prefix from the ambient extension context, so the
+class never spells out its own mount point.
 """
 
 from __future__ import annotations
@@ -30,39 +33,46 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
-from flask import g, request, Response
-from flask_appbuilder.api import expose, protect, safe
-from marshmallow import Schema, ValidationError
-
-from superset.ai_chat.exceptions import (
+from enx_dev.ai_chat.exceptions import (
     AiChatDisabledError,
     AiChatError,
     AiChatIdentityMismatchError,
 )
-from superset.ai_chat.mcp_bridge import (
+from enx_dev.ai_chat.mcp_bridge import (
     assert_identity_alignment,
     is_mcp_available,
     list_allowed_tools,
 )
-from superset.ai_chat.orchestrator import ChatTurnRunner
-from superset.ai_chat.providers import is_provider_configured
-from superset.ai_chat.schemas import (
+from enx_dev.ai_chat.orchestrator import ChatTurnRunner
+from enx_dev.ai_chat.providers import is_provider_configured
+from enx_dev.ai_chat.schemas import (
     ChatRequestSchema,
     ToolApprovalRequestSchema,
 )
-from superset.ai_chat.settings import get_ai_chat_config
-from superset.ai_chat.types import ToolCall
-from superset.extensions import event_logger
-from superset.views.base_api import BaseSupersetApi, statsd_metrics
+from enx_dev.ai_chat.settings import get_ai_chat_config
+from enx_dev.ai_chat.types import ToolCall
+from flask import g, request, Response
+from flask_appbuilder.api import expose, protect, safe
+from marshmallow import Schema, ValidationError
+from superset_core.rest_api.api import RestApi
+from superset_core.rest_api.decorators import api
 
 logger = logging.getLogger(__name__)
 
 
-class AiChatRestApi(BaseSupersetApi):
+@api(
+    id="ai_chat",
+    name="AI Chat",
+    description="Gateway backing the AI assistant chat extension",
+)
+class AiChatRestApi(RestApi):
     """Gateway endpoints backing the AI assistant chat extension."""
 
-    resource_name = "ai_chat"
-    allow_browser_login = True
+    # Flask-AppBuilder exempts APIs from CSRF by default, on the assumption
+    # that they are token-authenticated. These routes are reached from the
+    # browser with the session cookie, so the exemption has to be lifted --
+    # otherwise any site could POST a conversation turn on the user's behalf.
+    csrf_exempt = False
     class_permission_name = "AiChat"
     method_permission_name = {
         "config": "read",
@@ -161,11 +171,6 @@ class AiChatRestApi(BaseSupersetApi):
     @expose("/config", methods=("GET",))
     @protect()
     @safe
-    @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.config",
-        log_to_statsd=False,
-    )
     def config(self) -> Response:
         """Get AI chat availability and capability information.
         ---
@@ -186,11 +191,11 @@ class AiChatRestApi(BaseSupersetApi):
                       result:
                         type: object
             401:
-              $ref: '#/components/responses/401'
+              description: Unauthorized
             403:
-              $ref: '#/components/responses/403'
+              description: Forbidden
             500:
-              $ref: '#/components/responses/500'
+              description: Fatal error
         """
         config = get_ai_chat_config()
         enabled = bool(config.get("ENABLED"))
@@ -218,11 +223,6 @@ class AiChatRestApi(BaseSupersetApi):
     @expose("/chat", methods=("POST",))
     @protect()
     @safe
-    @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.chat",
-        log_to_statsd=False,
-    )
     def chat(self) -> Response:
         """Run one conversation turn.
         ---
@@ -238,17 +238,17 @@ class AiChatRestApi(BaseSupersetApi):
             200:
               description: Ordered protocol events for this turn
             400:
-              $ref: '#/components/responses/400'
+              description: Bad request
             401:
-              $ref: '#/components/responses/401'
+              description: Unauthorized
             403:
-              $ref: '#/components/responses/403'
+              description: Forbidden
             404:
-              $ref: '#/components/responses/404'
+              description: Not found
             422:
-              $ref: '#/components/responses/422'
+              description: Could not process entity
             500:
-              $ref: '#/components/responses/500'
+              description: Fatal error
         """
         return self._run_turn(
             self.chat_request_schema,
@@ -258,13 +258,6 @@ class AiChatRestApi(BaseSupersetApi):
     @expose("/tool_approval", methods=("POST",))
     @protect()
     @safe
-    @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: (
-            f"{self.__class__.__name__}.tool_approval"
-        ),
-        log_to_statsd=False,
-    )
     def tool_approval(self) -> Response:
         """Approve or reject a proposed tool call and continue the turn.
         ---
@@ -286,17 +279,17 @@ class AiChatRestApi(BaseSupersetApi):
             200:
               description: Ordered protocol events for the continuation
             400:
-              $ref: '#/components/responses/400'
+              description: Bad request
             401:
-              $ref: '#/components/responses/401'
+              description: Unauthorized
             403:
-              $ref: '#/components/responses/403'
+              description: Forbidden
             404:
-              $ref: '#/components/responses/404'
+              description: Not found
             422:
-              $ref: '#/components/responses/422'
+              description: Could not process entity
             500:
-              $ref: '#/components/responses/500'
+              description: Fatal error
         """
 
         def run(

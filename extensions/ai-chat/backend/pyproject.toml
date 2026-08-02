@@ -1,0 +1,23 @@
+[project]
+name = "ai_chat"
+version = "0.1.0"
+license = "Apache-2.0"
+description = "Server-side gateway for the Superset AI Assistant chat extension"
+dependencies = [
+    "apache-superset-core",
+]
+
+[project.optional-dependencies]
+# The gateway talks to model providers over plain HTTP with `requests`, which
+# Superset already ships, so no provider SDK is required. MCP tool execution
+# needs `fastmcp`, the same optional dependency the host MCP service uses; the
+# gateway degrades to a chat-only assistant when it is absent.
+dev = []
+
+[tool.apache_superset_extensions.build]
+include = [
+    "src/enx_dev/ai_chat/**/*.py",
+]
+exclude = [
+    "src/**/tests/**",
+]

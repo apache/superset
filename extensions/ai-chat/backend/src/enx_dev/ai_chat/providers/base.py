@@ -17,7 +17,7 @@
 """Model provider interface for the AI chat gateway.
 
 Providers translate the neutral conversation format in
-:mod:`superset.ai_chat.types` to a vendor wire format and back. The
+:mod:`enx_dev.ai_chat.types` to a vendor wire format and back. The
 orchestrator and the frontend never see vendor-specific shapes, which keeps
 the UI decoupled from any one model vendor.
 """
@@ -31,12 +31,12 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Any, TYPE_CHECKING
 
-from superset.ai_chat.exceptions import (
+from enx_dev.ai_chat.exceptions import (
     AiChatConfigurationError,
     AiChatProviderError,
     AiChatProviderTimeoutError,
 )
-from superset.ai_chat.types import ChatMessage, ProviderResult, ToolSpec
+from enx_dev.ai_chat.types import ChatMessage, ProviderResult, ToolSpec
 
 if TYPE_CHECKING:
     import httpx

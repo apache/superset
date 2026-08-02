@@ -16,15 +16,11 @@
 # under the License.
 """AI chat gateway defaults and resolved configuration.
 
-The canonical defaults live outside ``superset/config.py`` because ``from
-superset_config import *`` replaces module attributes of ``superset.config``
-with operator overrides. Keeping the pristine defaults here lets
-:func:`get_ai_chat_config` merge partial overrides over them, so setting only
-``{"ENABLED": True, "PROVIDER": "mock"}`` keeps the curated tool allowlist and
-the size limits intact.
-
-This module must not import from ``superset`` at module level, since
-``superset/config.py`` imports it.
+The defaults ship with the extension, and :func:`get_ai_chat_config` merges
+whatever the operator put in ``AI_CHAT_CONFIG`` over them. That makes a
+minimal enablement possible -- ``{"ENABLED": True, "PROVIDER": "mock"}`` keeps
+the curated tool allowlist and the size limits intact -- and it means Superset
+itself carries no default for a key it knows nothing about.
 """
 
 from __future__ import annotations

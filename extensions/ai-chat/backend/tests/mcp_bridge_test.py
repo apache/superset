@@ -25,17 +25,16 @@ from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
-from flask.ctx import AppContext
-from pytest_mock import MockerFixture
-
-from superset.ai_chat.exceptions import AiChatIdentityMismatchError
-from superset.ai_chat.mcp_bridge import (
+from enx_dev.ai_chat.exceptions import AiChatIdentityMismatchError
+from enx_dev.ai_chat.mcp_bridge import (
     assert_identity_alignment,
     call_tool,
     list_allowed_tools,
     TRUNCATION_MARKER,
 )
-from superset.ai_chat.types import ToolClassification
+from enx_dev.ai_chat.types import ToolClassification
+from flask.ctx import AppContext
+from pytest_mock import MockerFixture
 
 
 @pytest.fixture(autouse=True)

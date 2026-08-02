@@ -16,15 +16,14 @@
 # under the License.
 from __future__ import annotations
 
-from flask.ctx import AppContext
-
-from superset.ai_chat.classification import (
+from enx_dev.ai_chat.classification import (
     approval_warnings,
     classify_tool,
     is_reversible,
     requires_approval,
 )
-from superset.ai_chat.types import redact_sensitive, ToolClassification
+from enx_dev.ai_chat.types import redact_sensitive, ToolClassification
+from flask.ctx import AppContext
 
 REDACTED = "***redacted***"
 

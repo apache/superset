@@ -30,10 +30,9 @@ from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
+from enx_dev.ai_chat.approvals import RESOURCE
 from pytest_mock import MockerFixture
-
-from superset import db
-from superset.ai_chat.approvals import RESOURCE
+from superset_core.common import models as core_models
 
 AI_CHAT_E2E_APP = pytest.mark.parametrize(
     "app",
@@ -71,7 +70,7 @@ def web_user(mocker: MockerFixture) -> Mock:
     user.id = 1
     user.username = "admin"
     user.roles = []
-    g_mock = mocker.patch("superset.ai_chat.api.g")
+    g_mock = mocker.patch("enx_dev.ai_chat.api.g")
     g_mock.user = user
     return user
 
@@ -89,13 +88,16 @@ def mock_mcp_auth() -> Iterator[Mock]:
 @pytest.fixture(autouse=True)
 def cleanup_approvals(app: Any) -> Generator[None, None, None]:
     yield
-    from superset.key_value.models import KeyValueEntry
 
     with app.app_context():
-        db.session.query(KeyValueEntry).filter(
-            KeyValueEntry.resource == RESOURCE.value
+        core_models.get_session().query(core_models.KeyValue).filter(
+            core_models.KeyValue.resource == RESOURCE
         ).delete()
-        db.session.commit()
+        core_models.get_session().commit()
+
+
+# Extension APIs are mounted under /extensions/{publisher}/{name}.
+API_BASE = "/extensions/enx-dev/ai-chat"
 
 
 def _dashboard_mock() -> Mock:
@@ -154,7 +156,7 @@ def test_read_only_flow_executes_real_mcp_tool(
         return_value=([_dashboard_mock()], 1),
     ):
         response = client.post(
-            "/api/v1/ai_chat/chat",
+            f"{API_BASE}/chat",
             json={
                 "conversation_id": "conv_e2e_read",
                 "messages": [{"role": "user", "content": "list my dashboards please"}],
@@ -182,7 +184,7 @@ def test_mutation_flow_requires_and_honors_rejection(
 ) -> None:
     # Step 1: the mutation is proposed, not executed.
     response = client.post(
-        "/api/v1/ai_chat/chat",
+        f"{API_BASE}/chat",
         json={
             "conversation_id": "conv_e2e_mut",
             "messages": [{"role": "user", "content": "delete dashboard 42"}],
@@ -200,7 +202,7 @@ def test_mutation_flow_requires_and_honors_rejection(
     # Step 2: rejection never executes and burns the approval.
     with patch("superset.daos.dashboard.DashboardDAO.find_by_id") as mock_find:
         response = client.post(
-            "/api/v1/ai_chat/tool_approval",
+            f"{API_BASE}/tool_approval",
             json={
                 "conversation_id": "conv_e2e_mut",
                 "messages": [{"role": "user", "content": "delete dashboard 42"}],
@@ -221,7 +223,7 @@ def test_mutation_flow_requires_and_honors_rejection(
 
     # Step 3: the burned approval cannot be replayed as an approval.
     response = client.post(
-        "/api/v1/ai_chat/tool_approval",
+        f"{API_BASE}/tool_approval",
         json={
             "conversation_id": "conv_e2e_mut",
             "messages": [{"role": "user", "content": "delete dashboard 42"}],
@@ -243,7 +245,7 @@ def test_mutation_approval_with_tampered_arguments_rejected(
     client: Any, full_api_access: None
 ) -> None:
     response = client.post(
-        "/api/v1/ai_chat/chat",
+        f"{API_BASE}/chat",
         json={
             "conversation_id": "conv_e2e_tamper",
             "messages": [{"role": "user", "content": "delete dashboard 42"}],
@@ -255,7 +257,7 @@ def test_mutation_approval_with_tampered_arguments_rejected(
     # Approving with different arguments must fail and must not execute.
     with patch("superset.daos.dashboard.DashboardDAO.find_by_id") as mock_find:
         response = client.post(
-            "/api/v1/ai_chat/tool_approval",
+            f"{API_BASE}/tool_approval",
             json={
                 "conversation_id": "conv_e2e_tamper",
                 "messages": [{"role": "user", "content": "delete dashboard 42"}],
