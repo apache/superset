@@ -148,7 +148,10 @@ export default function ColorPickerControl({
       return;
     }
 
-    if (resolveThemeTokens && reverseMap[hex]) {
+    if (
+      resolveThemeTokens &&
+      Object.prototype.hasOwnProperty.call(reverseMap, hex)
+    ) {
       onChange(reverseMap[hex]);
       return;
     }
