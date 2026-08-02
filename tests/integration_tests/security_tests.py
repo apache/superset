@@ -1740,6 +1740,8 @@ class TestRolePermission(SupersetTestCase):
             # Serves the PWA web app manifest unauthenticated (PWA install
             # fetches have no session); mirrors the RedirectView precedent.
             ["PwaManifestView", "manifest"],
+            # Language pack endpoint serves JS bundle translations, no auth needed
+            ["Superset", "language_pack"],
         ]
         unsecured_views = []
         for view_class in appbuilder.baseviews:
