@@ -173,7 +173,7 @@ hana = ["hdbcli==2.29.25", "sqlalchemy_hana==3.0.3"]
 hive = [
     "pyhive[hive_pure_sasl]>=0.7.0",
     "tableschema",
-    "thrift>=0.23.0, <1.0.0",
+    "thrift>=0.24.0, <1.0.0",
     "thrift_sasl>=0.4.3, < 1.0.0",
 ]
 impala = ["impyla>=0.24.0, <0.25"]
@@ -206,7 +206,7 @@ sqlite = ["syntaqlite>=0.7.0,<0.8.0"]
 spark = [
     "pyhive[hive_pure_sasl]>=0.7",
     "tableschema",
-    "thrift>=0.23.0, <1",
+    "thrift>=0.24.0, <1",
 ]
 tdengine = [
     "taospy>=2.8.9",
