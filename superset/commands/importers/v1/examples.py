@@ -46,6 +46,7 @@ from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.exceptions import QueryClauseValidationException
 from superset.models.core import Database
 from superset.sql.parse import transpile_to_dialect
+from superset.subjects.utils import get_default_viewers_for_current_user
 from superset.utils.core import get_example_default_schema
 from superset.utils.decorators import transaction
 
@@ -199,6 +200,10 @@ class ImportExamplesCommand(ImportModelsCommand):
                     "datasource_name": dataset.table_name,
                 }
 
+        # Resolve the creator's default viewers once for the whole bundle
+        # rather than once per chart/dashboard (a membership query each).
+        default_viewers = get_default_viewers_for_current_user()
+
         # import charts
         chart_ids: dict[str, int] = {}
         for file_name, config in configs.items():
@@ -212,6 +217,7 @@ class ImportExamplesCommand(ImportModelsCommand):
                     config,
                     overwrite=overwrite,
                     ignore_permissions=True,
+                    default_viewers=default_viewers,
                 )
                 chart_ids[str(chart.uuid)] = chart.id
 
@@ -228,6 +234,7 @@ class ImportExamplesCommand(ImportModelsCommand):
                     config,
                     overwrite=overwrite,
                     ignore_permissions=True,
+                    default_viewers=default_viewers,
                 )
                 dashboard.published = True
 

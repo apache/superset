@@ -120,7 +120,9 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
             except SupersetSecurityException as ex:
                 exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
 
-        populate_subjects(self._properties, exceptions)
+        # Datasets have editors only — there is no ``sqlatable_viewers`` table,
+        # so a ``viewers`` key would be dropped by the DAO's ``setattr`` loop.
+        populate_subjects(self._properties, exceptions, include_viewers=False)
 
         if exceptions:
             raise DatasetInvalidError(exceptions=exceptions)

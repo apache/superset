@@ -23,10 +23,11 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { bindActionCreators, Dispatch } from 'redux';
-import { connect } from 'react-redux';
+import { connect, shallowEqual, useSelector } from 'react-redux';
 import {
   useChangeEffect,
   useComponentDidMount,
@@ -48,6 +49,7 @@ import { logging } from '@apache-superset/core/utils';
 import { debounce, isEqual, isObjectLike, omit, pick } from 'lodash-es';
 import { Resizable } from 're-resizable';
 import { useHistory } from 'react-router-dom';
+import type { Action, Location } from 'history';
 import { ActionButton, Tooltip } from '@superset-ui/core/components';
 import { usePluginContext } from 'src/components';
 import { Global } from '@emotion/react';
@@ -74,6 +76,12 @@ import { mergeExtraFormData } from 'src/dashboard/components/nativeFilters/utils
 import { postFormData, putFormData } from 'src/explore/exploreUtils/formData';
 import { datasourcesActions } from 'src/explore/actions/datasourcesActions';
 import { mountExploreUrl } from 'src/explore/exploreUtils';
+import {
+  getChartStateFromHistoryState,
+  isSameChartState,
+  selectRestoreTarget,
+  toChartStateHistoryState,
+} from 'src/explore/exploreUtils/exploreHistory';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
 import * as exploreActions from 'src/explore/actions/exploreActions';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
@@ -173,6 +181,7 @@ const updateHistory = debounce(
     title,
     tabId,
     history,
+    sliceId,
   ) => {
     const payload = { ...formData };
     const chartId = formData.slice_id;
@@ -227,7 +236,20 @@ const updateHistory = debounce(
           force,
           false,
         );
-        history.replace(url, payload);
+        const previousChartState = getChartStateFromHistoryState(
+          history.location.state,
+        );
+        const state = toChartStateHistoryState(payload, sliceId);
+        if (
+          isReplace ||
+          !previousChartState ||
+          isEqual(previousChartState, getChartStateFromHistoryState(state))
+        ) {
+          history.replace(url, state);
+        } else {
+          // one entry per chart state is what makes the Back button undo it
+          history.push(url, state);
+        }
       }
     } catch (e) {
       logging.warn('Failed at altering browser history', e);
@@ -382,6 +404,9 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   const [lastQueriedControls, setLastQueriedControls] = useState(
     props.controls,
   );
+  /** set while the chart state of a popped history entry is being applied */
+  const restoringFromHistory = useRef(false);
+  const restoreTarget = useSelector(selectRestoreTarget, shallowEqual);
 
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [width, setWidth] = useState(
@@ -479,6 +504,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         title,
         tabId,
         history,
+        restoreTarget.slice_id,
       );
     },
     [
@@ -486,6 +512,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
       props.form_data,
       props.datasource.id,
       props.datasource.type,
+      restoreTarget.slice_id,
       props.standalone,
       props.force,
       tabId,
@@ -556,6 +583,9 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     );
   });
 
+  // a pending update would run against whatever chart the user moved on to
+  useEffect(() => () => updateHistory.cancel(), []);
+
   useChangeEffect(tabId, (previous, current) => {
     if (current) {
       addHistory({ isReplace: true });
@@ -600,7 +630,10 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         : getFormDataFromControls(props.controls);
       props.actions.updateQueryFormData(newQueryFormData, props.chart.id);
       props.actions.renderTriggered(new Date().getTime(), props.chart.id);
-      addHistory();
+      if (!restoringFromHistory.current) {
+        // an entry for a state we just stepped back to would break the next Back
+        addHistory();
+      }
     },
     [
       addHistory,
@@ -609,6 +642,27 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
       props.chart.latestQueryFormData,
       props.controls,
     ],
+  );
+
+  // Explore's own entries carry the chart state they were pushed with, so a POP
+  // into one is an undo/redo: apply it and re-query in place, which is also why
+  // ExplorePage skips its reload for them.
+  useEffect(
+    () =>
+      history.listen((loc: Location, action: Action) => {
+        const chartState = getChartStateFromHistoryState(loc.state);
+        if (
+          action !== 'POP' ||
+          !chartState ||
+          !isSameChartState(chartState, restoreTarget)
+        ) {
+          return;
+        }
+        restoringFromHistory.current = true;
+        props.actions.setExploreControls(chartState);
+        props.actions.triggerQuery(true, props.chart.id);
+      }),
+    [history, restoreTarget, props.actions, props.chart.id],
   );
 
   // effect to run when controls change
@@ -735,6 +789,16 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
       }
     }
   }, [props.controls, props.ownState]);
+
+  // A restore queries the controls it just applied, so they are the last
+  // queried ones - otherwise the chart would be reported as stale.
+  // Runs after the effect above so that one still sees the restore.
+  useEffect(() => {
+    if (restoringFromHistory.current) {
+      restoringFromHistory.current = false;
+      setLastQueriedControls(props.controls);
+    }
+  }, [props.controls]);
 
   const chartIsStale = useMemo(() => {
     if (lastQueriedControls) {

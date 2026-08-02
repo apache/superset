@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from io import BytesIO
+from io import BytesIO, StringIO
 
 import pandas as pd
 import pytest
@@ -3150,3 +3150,56 @@ def test_apply_client_processing_csv_format_partial_config_decimal_only():
     assert lines[0] == "name,value", f"Expected comma-separated header, got: {lines[0]}"
     assert "foo" in lines[1]
     assert "bar" in lines[2]
+
+
+def test_apply_client_processing_csv_format_pivot_table_multiple_rows():
+    """
+    When multiple "Rows" fields are selected in a pivot table, exporting to
+    pivoted CSV should keep each field in its own column instead of merging
+    them into a single column.
+
+    See: https://github.com/apache/superset/issues/32369
+    """
+    csv_data = (
+        "city,segment,value\n"
+        "Paris,Consumer,10\n"
+        "Paris,Corporate,20\n"
+        "London,Consumer,30\n"
+        "London,Corporate,40\n"
+    )
+
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": csv_data,
+            }
+        ]
+    }
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyColumns": [],
+        "groupbyRows": ["city", "segment"],
+        "metrics": ["value"],
+        "metricsLayout": "COLUMNS",
+    }
+
+    processed_result = apply_client_processing(result, form_data)
+    query = processed_result["queries"][0]
+
+    output_data = query["data"]
+    lines = output_data.strip().split("\n")
+
+    # the header should have a separate column for each "Rows" field, instead
+    # of a single merged column
+    assert lines[0] == "city,segment,value"
+
+    # each data row should have the city and segment in their own columns
+    output_df = pd.read_csv(StringIO(output_data))
+    assert list(output_df.columns) == ["city", "segment", "value"]
+    assert set(zip(output_df["city"], output_df["segment"], strict=False)) == {
+        ("Paris", "Consumer"),
+        ("Paris", "Corporate"),
+        ("London", "Consumer"),
+        ("London", "Corporate"),
+    }
