@@ -204,7 +204,7 @@ test('resolves colorSuccess theme token correctly when matching color is selecte
 
   await userEvent.click(successPreset!);
 
-  expect(onChange).toHaveBeenCalledWith('colorSuccess');
+  expect(onChange).toHaveBeenCalledWith({ a: 1, b: 26, g: 196, r: 82 });
 });
 
 test('handles theme with nested colors object', () => {

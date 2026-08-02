@@ -151,9 +151,10 @@ test('renders None for operator when Green for increase is selected', async () =
 
   expect(safeGreenPreset).toBeInTheDocument();
   await userEvent.click(safeGreenPreset);
+  const operatorSelect = container.querySelector('[data-test="Operator"]');
+  expect(operatorSelect).toBeInTheDocument();
 
-  // Assert that the operator is set to 'None'
-  expect(screen.getByText(/none/i)).toBeInTheDocument();
+  expect(operatorSelect).toHaveTextContent(/none/i);
 });
 
 test('displays the correct input fields based on the selected string type operator', async () => {
