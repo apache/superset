@@ -18,6 +18,7 @@
  */
 import { FC, memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
+import type { Location } from 'history';
 import { useDispatch } from 'react-redux';
 import {
   Tooltip,
@@ -45,6 +46,10 @@ import { applyColors, resetColors } from 'src/utils/colorScheme';
 import ReportModal from 'src/features/reports/ReportModal';
 import { deleteActiveReport } from 'src/features/reports/ReportModal/actions';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
+import {
+  getChartStateFromHistoryState,
+  isSameChartState,
+} from 'src/explore/exploreUtils/exploreHistory';
 import { getChartFormDiffs } from 'src/utils/getChartFormDiffs';
 import { StreamingExportModal } from 'src/components/StreamingExportModal';
 import { Tag } from 'src/components/Tag';
@@ -243,6 +248,17 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     [originalFormData, currentFormData],
   );
 
+  // Explore's own chart-state entries (see updateHistory) keep the user on the
+  // chart, so stepping through them isn't leaving unsaved changes behind.
+  const isChartStateTransition = useCallback(
+    (state: Location['state']) =>
+      isSameChartState(getChartStateFromHistoryState(state), {
+        ...formData,
+        slice_id: formData?.slice_id ?? slice?.slice_id,
+      }),
+    [formData, slice?.slice_id],
+  );
+
   const {
     showModal: showUnsavedChangesModal,
     setShowModal: setShowUnsavedChangesModal,
@@ -256,6 +272,7 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     },
     isSaveModalVisible,
     manualSaveOnUnsavedChanges: true,
+    isInPlaceTransition: isChartStateTransition,
   });
 
   const showModal = useCallback(() => {

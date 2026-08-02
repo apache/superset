@@ -49,7 +49,7 @@ if TYPE_CHECKING:
     from superset.models.slice import Slice
     from superset.models.sql_lab import Query
 
-Session = sessionmaker()
+Session = sessionmaker(future=True)
 
 user_favorite_tag_table = Table(
     "user_favorite_tag",
