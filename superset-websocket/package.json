@@ -12,9 +12,8 @@
     "lint": "npm run eslint -- . && npm run type",
     "dev-server": "npm run build && npm run start",
     "build": "tsc",
-    "prettier-check": "prettier --check .",
-    "prettier-write": "prettier --write .",
-    "format": "prettier --write ."
+    "format": "oxfmt --write .",
+    "format-check": "oxfmt --check ."
   },
   "license": "Apache-2.0",
   "dependencies": {
@@ -38,7 +37,7 @@
     "eslint": "^10.7.0",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.6.0",
-    "prettier": "^3.9.6",
+    "oxfmt": "^0.61.0",
     "tscw-config": "^1.1.2",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.65.0",

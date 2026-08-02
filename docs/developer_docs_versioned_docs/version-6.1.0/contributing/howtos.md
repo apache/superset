@@ -384,8 +384,8 @@ npm run check:custom-rules
 # Run tsc (typescript) checks
 npm run type
 
-# Format with Prettier
-npm run prettier
+# Format with Oxfmt
+npm run format
 ```
 
 #### Architecture

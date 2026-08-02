@@ -353,8 +353,8 @@ mypy superset
 
 We use:
 
-- **ESLint** for linting
-- **Prettier** for formatting
+- **Oxlint** for linting
+- **Oxfmt** for formatting
 - **TypeScript** strict mode
 
 TypeScript is fully supported and is the recommended language for writing all new frontend
