@@ -178,7 +178,7 @@ cron-descriptor==1.4.5
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-croniter==6.2.2
+croniter==6.2.4
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -687,7 +687,7 @@ pluggy==1.5.0
     # via pytest
 polib==1.2.0
     # via apache-superset
-polyline==2.0.2
+polyline==2.0.4
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset

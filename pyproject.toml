@@ -48,7 +48,7 @@ dependencies = [
     "click-option-group",
     "colorama",
     "flask-cors>=6.0.5, <7.0",
-    "croniter>=6.2.2",
+    "croniter>=6.2.4",
     "cron-descriptor",
     "cryptography>=49.0.0, <50.0.0",
     "deprecation>=2.1.0, <2.2.0",
@@ -90,7 +90,7 @@ dependencies = [
     "paramiko>=3.4.0, <4.0", # 4.0 removed DSSKey, still referenced by sshtunnel
     "pgsanity",
     "Pillow>=11.0.0, <13",
-    "polyline>=2.0.0, <3.0",
+    "polyline>=2.0.4, <3.0",
     "pydantic>=2.8.0",
     "pyparsing>=3.3.2, <4",
     "python-dateutil",
@@ -122,7 +122,7 @@ dependencies = [
 
 [project.optional-dependencies]
 
-athena = ["pyathena[pandas]>=2, <4"]
+athena = ["pyathena[pandas]>=3.35.2, <4"]
 aurora-data-api = ["preset-sqlalchemy-aurora-data-api>=0.2.8,<0.3"]
 bigquery = [
     "pandas-gbq>=0.35.0",
@@ -139,7 +139,7 @@ d1 = [
 ]
 databend = ["databend-sqlalchemy>=0.5.5, <1.0"]
 databricks = [
-    "databricks-sql-connector>=4.2.6, <4.4.0",
+    "databricks-sql-connector>=4.4.0, <4.5.0",
     "databricks-sqlalchemy==1.0.5",
 ]
 datafusion = ["flightsql-dbapi>=0.2.2, <0.3"]
@@ -173,7 +173,7 @@ hana = ["hdbcli==2.29.25", "sqlalchemy_hana==3.0.3"]
 hive = [
     "pyhive[hive_pure_sasl]>=0.7.0",
     "tableschema",
-    "thrift>=0.23.0, <1.0.0",
+    "thrift>=0.24.0, <1.0.0",
     "thrift_sasl>=0.4.3, < 1.0.0",
 ]
 impala = ["impyla>=0.24.0, <0.25"]
@@ -206,7 +206,7 @@ sqlite = ["syntaqlite>=0.7.0,<0.8.0"]
 spark = [
     "pyhive[hive_pure_sasl]>=0.7",
     "tableschema",
-    "thrift>=0.23.0, <1",
+    "thrift>=0.24.0, <1",
 ]
 tdengine = [
     "taospy>=2.8.9",
