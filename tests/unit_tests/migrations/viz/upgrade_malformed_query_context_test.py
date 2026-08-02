@@ -56,3 +56,29 @@ def test_upgrade_slice_survives_a_query_context_without_queries() -> None:
     assert slc.viz_type == "line"
     assert json.loads(slc.params) == source
     assert json.loads(slc.query_context) == original_query_context
+
+
+def test_downgrade_slice_restores_an_original_empty_queries_list() -> None:
+    """An original query_context with "queries": [] backs up as a falsy-but-
+    present list, not None -- downgrade_slice must not mistake that for "no
+    context was ever stored" and discard the slice's datasource/form_data by
+    setting query_context to None."""
+    source = {"viz_type": "line", "datasource": "1__table", "x_axis_label": "x"}
+    original_query_context = {"datasource": "1__table", "queries": []}
+
+    slc = Slice(
+        viz_type="line",
+        datasource_type="table",
+        params=json.dumps(source),
+        query_context=json.dumps(original_query_context),
+    )
+
+    MigrateLineChart.upgrade_slice(slc)
+    upgraded_params = json.loads(slc.params)
+    assert upgraded_params.get("queries_bak") == []
+
+    MigrateLineChart.downgrade_slice(slc)
+
+    assert slc.viz_type == "line"
+    assert json.loads(slc.params) == source
+    assert json.loads(slc.query_context) == original_query_context

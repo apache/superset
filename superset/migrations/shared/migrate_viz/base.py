@@ -212,7 +212,7 @@ class MigrateViz:
                 slc.params = json.dumps(form_data_bak)
                 slc.viz_type = form_data_bak.get("viz_type")
                 query_context = try_load_json(slc.query_context)
-                queries_bak = form_data.get(QUERIES_BAK_FIELD_NAME, {})
+                queries_bak = form_data.get(QUERIES_BAK_FIELD_NAME)
                 if (
                     isinstance(queries_bak, dict)
                     and FULL_CONTEXT_BAK_KEY in queries_bak
@@ -222,11 +222,16 @@ class MigrateViz:
                     # rather than patching "queries" onto the upgraded
                     # context.
                     slc.query_context = json.dumps(queries_bak[FULL_CONTEXT_BAK_KEY])
-                elif queries_bak:
+                elif queries_bak is not None:
+                    # A falsy-but-present backup (e.g. an original
+                    # "queries": []) is still a real context to restore, not
+                    # the "there was nothing to restore" case below --
+                    # treating it as None would discard the slice's original
+                    # datasource and form_data.
                     query_context["queries"] = queries_bak
                     if "form_data" in query_context:
                         query_context["form_data"] = form_data_bak
-                        slc.query_context = json.dumps(query_context)
+                    slc.query_context = json.dumps(query_context)
                 else:
                     slc.query_context = None
 
