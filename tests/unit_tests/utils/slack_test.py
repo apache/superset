@@ -164,7 +164,8 @@ class TestGetChannelsWithSearch:
 The server responded with: missing scope: channels:read"""
         )
 
-    def test_logs_slack_api_error_at_warning_not_error(self, mocker):
+    @pytest.mark.parametrize("error_code", ["not_authed", "invalid_auth"])
+    def test_logs_slack_api_error_at_warning_not_error(self, error_code: str, mocker):
         """An expired/revoked bot token (``not_authed``/``invalid_auth``) is an
         expected multi-tenant config state that is already handled end-to-end
         (re-raised as a ``SupersetException`` and turned into a 422), so it
@@ -172,7 +173,9 @@ The server responded with: missing scope: channels:read"""
         from superset.exceptions import SupersetException
 
         mock_client = mocker.Mock()
-        mock_client.conversations_list.side_effect = SlackApiError("foo", "not_authed")
+        mock_client.conversations_list.side_effect = SlackApiError(
+            message="foo", response={"ok": False, "error": error_code}
+        )
         mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
         logger_mock = mocker.patch("superset.utils.slack.logger")
 
@@ -182,6 +185,30 @@ The server responded with: missing scope: channels:read"""
         logger_mock.error.assert_not_called()
         logger_mock.warning.assert_called_once()
         assert "Failed to fetch Slack channels" in logger_mock.warning.call_args.args[0]
+
+    @pytest.mark.parametrize("error_code", ["ratelimited", "internal_error", ""])
+    def test_logs_non_auth_slack_api_error_at_error_with_traceback(
+        self, error_code: str, mocker
+    ):
+        """Rate limits and Slack server/API errors are actionable outages, not
+        the expected auth-noise condition — they must keep ERROR-level logging
+        with a traceback so they still generate a Sentry event."""
+        from superset.exceptions import SupersetException
+
+        mock_client = mocker.Mock()
+        mock_client.conversations_list.side_effect = SlackApiError(
+            message="foo", response={"ok": False, "error": error_code}
+        )
+        mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
+        logger_mock = mocker.patch("superset.utils.slack.logger")
+
+        with pytest.raises(SupersetException):
+            get_channels_with_search()
+
+        logger_mock.warning.assert_not_called()
+        logger_mock.error.assert_called_once()
+        assert "Failed to fetch Slack channels" in logger_mock.error.call_args.args[0]
+        assert logger_mock.error.call_args.kwargs.get("exc_info") is True
 
     @pytest.mark.parametrize(
         "types, expected_channel_ids",
