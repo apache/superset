@@ -140,15 +140,17 @@ test('renders None for operator when Green for increase is selected', async () =
     return inner && inner.getAttribute('style')?.includes('0, 150, 0');
   });
 
+  expect(greenPreset).toBeDefined();
   expect(greenPreset).toBeInTheDocument();
+  const safeGreenPreset = greenPreset as HTMLElement;
 
-  const innerColorBlock = greenPreset.querySelector(
+  const innerColorBlock = safeGreenPreset.querySelector(
     '.ant-color-picker-color-block-inner',
   );
   expect(innerColorBlock).toHaveStyle({ background: 'rgba(0, 150, 0, 0.2)' });
 
-  expect(greenPreset).toBeInTheDocument();
-  await userEvent.click(greenPreset);
+  expect(safeGreenPreset).toBeInTheDocument();
+  await userEvent.click(safeGreenPreset);
 
   // Assert that the operator is set to 'None'
   expect(screen.getByText(/none/i)).toBeInTheDocument();
