@@ -31,6 +31,7 @@ from superset.commands.exceptions import (
     DatasourceNotFoundValidationError,
     QueryNotFoundValidationError,
 )
+from superset.common.db_query_status import QueryStatus
 from superset.exceptions import SupersetSecurityException, SupersetTemplateException
 from superset.utils.core import DatasourceType, override_user
 
@@ -429,7 +430,13 @@ def test_unsaved_query_explore_allows_the_query_author(
     mocker.patch(
         query_find_by_id,
         return_value=Query(
-            database=database, sql="select * from foo", user_id=current_user.id
+            database=database,
+            sql="select * from foo",
+            user_id=current_user.id,
+            # The authorship bypass only covers a query that actually
+            # succeeded -- see raise_for_access in
+            # superset/security/manager.py.
+            status=QueryStatus.SUCCESS,
         ),
     )
     mocker.patch(query_datasources_by_name, return_value=[SqlaTable()])

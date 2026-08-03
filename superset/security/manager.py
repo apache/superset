@@ -4344,6 +4344,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from flask import current_app
 
         from superset import is_feature_enabled
+        from superset.common.db_query_status import QueryStatus
         from superset.connectors.sqla.models import SqlaTable
         from superset.models.dashboard import Dashboard
         from superset.models.slice import Slice
@@ -4437,6 +4438,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             # that one's ``user_id`` is always the current user by
             # construction, which would trivially bypass the very check
             # being performed on a brand new, never-before-run SQL string.
+            #
+            # Also requires ``status == SUCCESS``: SQL Lab persists a Query
+            # row (stamped with the current user's id) *before* running the
+            # strict ``force_dataset_match`` check at execute time, and
+            # marks it FAILED rather than deleting it when that check
+            # denies the statement. Without this guard, authorship alone
+            # would let that same user replay the denied SQL through this
+            # non-strict path merely by revisiting the failed query's id,
+            # defeating the very check that just rejected it.
             if (
                 query
                 and not is_ephemeral_query
@@ -4444,6 +4454,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 and hasattr(query, "user_id")
                 and (user_id := get_user_id()) is not None
                 and query.user_id == user_id
+                and getattr(query, "status", None) == QueryStatus.SUCCESS
             ):
                 return
 
