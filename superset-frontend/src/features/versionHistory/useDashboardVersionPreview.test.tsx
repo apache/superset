@@ -675,8 +675,11 @@ test('a save landing during the theme fetch does not strand the preview', async 
   // cache while the preview goes on to apply -- and exit-preview, which only
   // rehydrates `if (liveData)`, then silently leaves historical content on
   // screen with the banner gone.
-  let resolveTheme: (value: { id: number; theme_name: string; json_data: string }) => void =
-    () => {};
+  let resolveTheme: (value: {
+    id: number;
+    theme_name: string;
+    json_data: string;
+  }) => void = () => {};
   mockedFetchTheme.mockReturnValue(
     new Promise(resolve => {
       resolveTheme = resolve;
