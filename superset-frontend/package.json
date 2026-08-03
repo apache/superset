@@ -403,7 +403,7 @@
     "eslint-plugin-jest-dom": {
       "eslint": "$eslint"
     },
-    "fast-uri": "^3.1.4",
+    "fast-uri": "^3.1.5",
     "fast-xml-parser": "^5.8.0",
     "http-proxy-middleware": "^2.0.10",
     "jest-circus": "^30.4.0",
