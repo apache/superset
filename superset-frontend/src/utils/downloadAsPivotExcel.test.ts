@@ -86,14 +86,38 @@ test('restores unambiguous ISO date/datetime strings to native Excel date cells'
 
   // ISO 8601 date/datetime strings are unambiguous under any locale, so
   // they're restored to native Excel date cells rather than left as text.
+  // Assert via the UTC getters: the cell's Date is built from UTC
+  // components (see downloadAsPivotExcel.ts) so it serializes correctly
+  // through SheetJS regardless of the host's timezone - jest.config.js
+  // pins tests to America/New_York, where the local getters would report
+  // different values.
   expect(sheet.A1.t).toBe('d');
-  expect((sheet.A1.v as Date).getFullYear()).toBe(2024);
-  expect((sheet.A1.v as Date).getMonth()).toBe(0);
-  expect((sheet.A1.v as Date).getDate()).toBe(1);
+  expect((sheet.A1.v as Date).getUTCFullYear()).toBe(2024);
+  expect((sheet.A1.v as Date).getUTCMonth()).toBe(0);
+  expect((sheet.A1.v as Date).getUTCDate()).toBe(1);
   expect(sheet.B1.t).toBe('d');
-  expect((sheet.B1.v as Date).getHours()).toBe(13);
+  expect((sheet.B1.v as Date).getUTCHours()).toBe(13);
   // Non-date text is left untouched.
   expect(sheet.C1).toMatchObject({ t: 's', v: 'not-a-date' });
+});
+
+test('builds the exported Date from UTC components so it is not shifted by the host timezone', () => {
+  // jest.config.js pins the test process to America/New_York (UTC-5 in
+  // January). Building the cell's Date from *local* date/time components
+  // (the original bug) rolls a late-evening local timestamp into the next
+  // UTC calendar day - exactly what SheetJS reads when it serializes the
+  // cell to an Excel date, so an exported "2024-01-01 23:30:00" would
+  // silently become "2024-01-02" in the workbook.
+  const sheet = exportRowAndGetSheet(['2024-01-01 23:30:00']);
+
+  const date = sheet.A1.v as Date;
+  expect(sheet.A1.t).toBe('d');
+  // The cell's Date must represent the exact same instant `Date.UTC` would
+  // produce for these wall-clock components, i.e. it was built via
+  // `Date.UTC(...)` rather than interpreted in the host's local timezone,
+  // so SheetJS - which serializes dates via their UTC epoch value - writes
+  // back the same calendar date/time that was rendered.
+  expect(date.getTime()).toBe(Date.UTC(2024, 0, 1, 23, 30, 0));
 });
 
 test('leaves ISO-shaped strings with out-of-range time components as text', () => {

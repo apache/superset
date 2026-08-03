@@ -48,19 +48,26 @@ function restoreUnambiguousNumbers(sheet: WorkSheet): void {
       const [y, mo, d, h, mi, s] = isoMatch
         .slice(1)
         .map((part: string | undefined) => Number(part ?? 0));
-      const date = new Date(y, mo - 1, d, h, mi, s);
+      // SheetJS serializes a cell's Date via its absolute (UTC) epoch time,
+      // not its local calendar fields, so building this from local
+      // components would silently shift the exported value by the host's
+      // UTC offset (e.g. midnight in a positive-offset timezone would
+      // export as the previous day). Constructing - and validating - via
+      // UTC keeps the exported date/time identical to the source text
+      // regardless of the host's timezone.
+      const date = new Date(Date.UTC(y, mo - 1, d, h, mi, s));
       // The Date constructor rolls invalid components over into the next
       // unit (e.g. day 40 becomes the 10th of the following month, minute
       // 60 becomes the top of the next hour) instead of rejecting them, so
       // confirm every part - date and time - round-trips before trusting
       // the result.
       const isValid =
-        date.getFullYear() === y &&
-        date.getMonth() === mo - 1 &&
-        date.getDate() === d &&
-        date.getHours() === h &&
-        date.getMinutes() === mi &&
-        date.getSeconds() === s;
+        date.getUTCFullYear() === y &&
+        date.getUTCMonth() === mo - 1 &&
+        date.getUTCDate() === d &&
+        date.getUTCHours() === h &&
+        date.getUTCMinutes() === mi &&
+        date.getUTCSeconds() === s;
       if (isValid) {
         cell.t = 'd';
         cell.v = date;
