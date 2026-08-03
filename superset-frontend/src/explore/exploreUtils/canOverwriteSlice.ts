@@ -16,11 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
+import {
+  isUserAdmin,
+  isUserInSubjects,
+  type SubjectRef,
+} from 'src/dashboard/util/permissionUtils';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import getBootstrapData from 'src/utils/getBootstrapData';
-
-type SubjectRef = number | { id: number };
 
 interface SliceLike {
   editors?: SubjectRef[] | null;
@@ -64,13 +65,7 @@ export function canOverwriteSlice({
   // editorship granted indirectly by a deployment's EXTRA_EDITORS_RESOLVER;
   // the server counts it, so leaving it out here would hide the action from
   // someone the API would happily let through.
-  const userSubjects = getBootstrapData()?.common?.user_subjects ?? [];
-  const subjectId = (subject: SubjectRef) =>
-    typeof subject === 'number' ? subject : subject.id;
-
-  return [...(slice.editors ?? []), ...(slice.extra_editors ?? [])].some(
-    subject => userSubjects.includes(subjectId(subject)),
-  );
+  return isUserInSubjects(slice.editors, slice.extra_editors);
 }
 
 export default canOverwriteSlice;
