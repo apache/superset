@@ -197,6 +197,23 @@ describe('exploreUtils', () => {
         Object.prototype.hasOwnProperty.call(v1RequestPayload, 'queries'),
       ).toBeTruthy();
     });
+    test('includes client_id in the payload when clientId is provided', async () => {
+      const v1RequestPayload = await buildV1ChartDataPayload({
+        formData: { ...formData, viz_type: 'my_custom_viz' },
+        clientId: 'abc123xyz',
+      });
+      expect(v1RequestPayload).toEqual(
+        expect.objectContaining({ client_id: 'abc123xyz' }),
+      );
+    });
+    test('omits client_id from the payload when clientId is not provided', async () => {
+      const v1RequestPayload = await buildV1ChartDataPayload({
+        formData: { ...formData, viz_type: 'my_custom_viz' },
+      });
+      expect(
+        Object.prototype.hasOwnProperty.call(v1RequestPayload, 'client_id'),
+      ).toBeFalsy();
+    });
   });
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks

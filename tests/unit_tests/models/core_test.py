@@ -1861,6 +1861,62 @@ def test_execute_sql_preserves_line_comments_single_statement(
     assert "/*" not in executed_sql
 
 
+def test_execute_sql_prefers_execute_with_cursor_when_query_model_provided(
+    mocker: MockerFixture,
+) -> None:
+    """
+    When a persisted Query row is available, engines whose `execute_with_cursor`
+    needs the running cursor to expose a cancel id (e.g. Trino) must get the
+    chance to do so, so that path is preferred over a bare `execute()` call.
+    """
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    mocker.patch.object(database, "get_sqla_engine")
+
+    cursor = mocker.MagicMock()
+    conn = mocker.MagicMock()
+    conn.cursor.return_value = cursor
+    get_raw_connection = mocker.patch.object(database, "get_raw_connection")
+    get_raw_connection.return_value.__enter__.return_value = conn
+
+    execute_with_cursor = mocker.patch.object(
+        database.db_engine_spec, "execute_with_cursor"
+    )
+    execute = mocker.patch.object(database.db_engine_spec, "execute")
+
+    query_model = mocker.MagicMock()
+    database._execute_sql_with_mutation_and_logging("SELECT 1", query=query_model)
+
+    execute_with_cursor.assert_called_once_with(cursor, "SELECT 1", query_model)
+    execute.assert_not_called()
+
+
+def test_execute_sql_calls_execute_with_three_positional_args(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Regression test: every engine spec's `execute(cursor, query, database, ...)`
+    names its SQL-text parameter `query`, so a `query=<Query row>` kwarg always
+    collided with that positional argument and raised TypeError -- previously
+    swallowed and retried by a try/except that could just as easily hide a
+    genuine execution error. `execute` must be called with just the three
+    positional arguments.
+    """
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    mocker.patch.object(database, "get_sqla_engine")
+
+    cursor = mocker.MagicMock()
+    conn = mocker.MagicMock()
+    conn.cursor.return_value = cursor
+    get_raw_connection = mocker.patch.object(database, "get_raw_connection")
+    get_raw_connection.return_value.__enter__.return_value = conn
+
+    execute = mocker.patch.object(database.db_engine_spec, "execute")
+
+    database._execute_sql_with_mutation_and_logging("SELECT 1")
+
+    execute.assert_called_once_with(cursor, "SELECT 1", database)
+
+
 def test_get_df_captures_description_after_fetch(mocker: MockerFixture) -> None:
     """Fetch asynchronous results before capturing their final column metadata.
 

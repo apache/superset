@@ -170,6 +170,7 @@ export interface QueryContext {
   result_format: string;
   queries: QueryObject[];
   form_data?: QueryFormData;
+  client_id?: string;
 }
 
 // Keep in sync with superset/errors.py

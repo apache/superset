@@ -22,6 +22,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pandas as pd
 import pytest
+from sqlalchemy.exc import SQLAlchemyError
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.db_query_status import QueryStatus
@@ -1557,6 +1558,128 @@ def test_get_df_payload_validates_before_cache_key_generation():
         f"Expected validate to be called before cache_key, "
         f"but got call order: {call_order}"
     )
+
+
+def test_get_df_payload_cache_hit_does_not_raise_unbound_local_error():
+    """
+    Regression test: the best-effort Query-row creation (used to expose a
+    `client_id` for chart cancellation) only runs on a cache miss, but the
+    payload construction further down referenced `query_model` unconditionally.
+    A cache hit skipped the assignment entirely, so building the payload used
+    to raise UnboundLocalError.
+    """
+    from superset.common.query_object import QueryObject
+
+    mock_query_context = MagicMock()
+    mock_query_context.force = False
+    mock_query_context.result_type = "full"
+    mock_query_context.cache_values = {}
+
+    mock_datasource = MagicMock()
+    mock_datasource.id = 123
+    mock_datasource.uid = "test_datasource"
+    mock_datasource.cache_timeout = None
+    mock_datasource.database.db_engine_spec.engine = "postgresql"
+    mock_datasource.database.extra = "{}"
+    mock_datasource.get_extra_cache_keys.return_value = []
+    mock_datasource.changed_on = None
+
+    processor = QueryContextProcessor(mock_query_context)
+    processor._qc_datasource = mock_datasource
+
+    query_obj = QueryObject(
+        datasource=mock_datasource,
+        columns=["col1"],
+        metrics=[],
+    )
+
+    with patch(
+        "superset.common.query_context_processor.QueryCacheManager"
+    ) as mock_cache_manager:
+        mock_cache = MagicMock()
+        mock_cache.is_loaded = True  # cache hit: Query-row branch is skipped
+        mock_cache.df = pd.DataFrame({"col1": [1, 2, 3]})
+        mock_cache.query = "SELECT * FROM table"
+        mock_cache.error_message = None
+        mock_cache.status = "success"
+        mock_cache.bq_memory_limited = False
+        mock_cache.applied_filter_columns = []
+        mock_cache_manager.get.return_value = mock_cache
+
+        # Must not raise UnboundLocalError
+        payload = processor.get_df_payload(query_obj, force_cached=False)
+
+    assert "client_id" not in payload
+    assert "query_id" not in payload
+
+
+def test_get_df_payload_rolls_back_session_when_query_model_commit_fails():
+    """
+    Regression test: creating the best-effort Query row (for `client_id`)
+    catches any exception broadly, including a failed `db.session.commit()`,
+    but previously did not roll back the session afterwards. A failed commit
+    used to leave the session in a broken/pending state for the rest of the
+    request instead of being cleanly reset.
+    """
+    from superset.common.query_object import QueryObject
+
+    mock_query_context = MagicMock()
+    mock_query_context.force = False
+    mock_query_context.result_type = "full"
+    mock_query_context.cache_values = {}
+
+    mock_datasource = MagicMock()
+    mock_datasource.id = 123
+    mock_datasource.uid = "test_datasource"
+    mock_datasource.cache_timeout = None
+    mock_datasource.database.db_engine_spec.engine = "postgresql"
+    mock_datasource.database.extra = "{}"
+    mock_datasource.database.id = 1
+    mock_datasource.get_extra_cache_keys.return_value = []
+    mock_datasource.changed_on = None
+    mock_datasource.column_names = ["col1"]
+
+    processor = QueryContextProcessor(mock_query_context)
+    processor._qc_datasource = mock_datasource
+
+    query_obj = QueryObject(
+        datasource=mock_datasource,
+        columns=["col1"],
+        metrics=[],
+    )
+
+    mock_query_result = MagicMock()
+    mock_query_result.df = pd.DataFrame({"col1": [1, 2, 3]})
+    mock_query_result.query = "SELECT * FROM table"
+
+    with (
+        patch(
+            "superset.common.query_context_processor.QueryCacheManager"
+        ) as mock_cache_manager,
+        patch("superset.common.query_context_processor.db") as mock_db,
+        patch("superset.utils.core.get_user_id", return_value=1),
+        patch.object(processor, "get_query_result", return_value=mock_query_result),
+        patch.object(processor, "get_annotation_data", return_value={}),
+    ):
+        mock_cache = MagicMock()
+        mock_cache.is_loaded = False
+        mock_cache.applied_filter_columns = []
+        mock_cache.bq_memory_limited = False
+        mock_cache.df = mock_query_result.df
+        mock_cache.query = mock_query_result.query
+        mock_cache.error_message = None
+        mock_cache.status = "success"
+        mock_cache_manager.get.return_value = mock_cache
+
+        mock_query = mock_db.session.query.return_value
+        mock_query.filter_by.return_value.one_or_none.return_value = None
+        mock_db.session.commit.side_effect = SQLAlchemyError("commit failed")
+
+        payload = processor.get_df_payload(query_obj, force_cached=False)
+
+    mock_db.session.rollback.assert_called_once()
+    assert "client_id" not in payload
+    assert "query_id" not in payload
 
 
 def test_cache_values_sync_after_ensure_totals_available():

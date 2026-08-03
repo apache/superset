@@ -390,6 +390,9 @@ export function DatabaseSelector({
     value: { label: string; value: number },
     database: DatabaseValue,
   ) {
+    if (!database) {
+      return;
+    }
     // the database id is actually stored in the value property; the ID is used
     // for the DOM, so it can't be an integer
     const databaseWithId = { ...database, id: database.value };

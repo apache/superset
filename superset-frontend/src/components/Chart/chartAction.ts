@@ -17,6 +17,7 @@
  * under the License.
  */
 /* eslint no-param-reassign: ["error", { "props": false }] */
+import { nanoid } from 'nanoid';
 import {
   FeatureFlag,
   isDefined,
@@ -121,6 +122,7 @@ export interface ChartUpdateStartedAction {
   queryController: AbortController;
   latestQueryFormData: QueryFormData | LatestQueryFormData;
   key: string | number;
+  latestQueryId?: string;
 }
 
 export interface ChartUpdateSucceededAction {
@@ -279,6 +281,7 @@ export interface GetChartDataRequestParams {
   method?: 'GET' | 'POST';
   requestParams?: RequestParams;
   ownState?: JsonObject;
+  clientId?: string;
 }
 
 // runAnnotationQuery params interface
@@ -313,11 +316,13 @@ export function chartUpdateStarted(
   queryController: AbortController,
   latestQueryFormData: QueryFormData | LatestQueryFormData,
   key: string | number,
+  latestQueryId?: string,
 ): ChartUpdateStartedAction {
   return {
     type: CHART_UPDATE_STARTED,
     queryController,
     latestQueryFormData,
+    latestQueryId,
     key,
   };
 }
@@ -460,6 +465,7 @@ const v1ChartDataRequest = async (
   setDataMask: (dataMask: DataMask) => void,
   ownState: JsonObject,
   parseMethod?: string,
+  clientId?: string,
 ): Promise<ChartDataRequestResponse> => {
   const payload = await buildV1ChartDataPayload({
     formData: formData as QueryFormData,
@@ -468,6 +474,7 @@ const v1ChartDataRequest = async (
     force,
     setDataMask,
     ownState,
+    clientId,
   });
 
   // The dashboard id is added to query params for tracking purposes
@@ -511,6 +518,7 @@ export async function getChartDataRequest({
   method = 'POST' as const,
   requestParams = {},
   ownState = {},
+  clientId = undefined,
 }: GetChartDataRequestParams): Promise<ChartDataRequestResponse> {
   let querySettings: RequestParams = {
     ...requestParams,
@@ -544,6 +552,7 @@ export async function getChartDataRequest({
     setDataMask,
     ownState,
     parseMethod,
+    clientId,
   );
 }
 
@@ -702,6 +711,8 @@ export function handleChartDataResponse(
   useLegacyApi?: boolean,
   signal?: AbortSignal,
 ): Promise<QueryData[]> | QueryData[] {
+  // TODO: Add handling for chart view responses in future implementation
+
   if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
     // deal with getChartDataRequest transforming the response data
     const result = 'result' in json ? json.result : json;
@@ -762,7 +773,15 @@ export function exploreJSON(
     const setDataMask = (dataMask: DataMask): void => {
       dispatch(updateDataMask(formData.slice_id, dataMask));
     };
-    dispatch(chartUpdateStarted(controller, formData, key as string | number));
+    const clientId = nanoid(11);
+    dispatch(
+      chartUpdateStarted(
+        controller,
+        formData,
+        key as string | number,
+        clientId,
+      ),
+    );
     /**
      * Abort in-flight requests after the new controller has been stored in
      * state. Delaying ensures we do not mutate the Redux state between
@@ -781,6 +800,7 @@ export function exploreJSON(
       method: 'POST',
       requestParams,
       ownState,
+      clientId,
     });
 
     const [useLegacyApi] = getQuerySettings(formData);

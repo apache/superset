@@ -68,10 +68,17 @@ There is also a formatter based on [Intl.DurationFormat](https://developer.mozil
 used to format time durations:
 
 ```js
-import { createDurationFormatter, formatNumber, getNumberFormatterRegistry } from '@superset-ui-number-format';
+import {
+  createDurationFormatter,
+  formatNumber,
+  getNumberFormatterRegistry,
+} from '@superset-ui-number-format';
 
-getNumberFormatterRegistry().registerValue('my_duration_format', createDurationFormatter({ style: 'digital' }));
-console.log(formatNumber('my_duration_format', 95500))
+getNumberFormatterRegistry().registerValue(
+  'my_duration_format',
+  createDurationFormatter({ style: 'digital' }),
+);
+console.log(formatNumber('my_duration_format', 95500));
 // prints '0:01:35'
 ```
 

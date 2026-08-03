@@ -90,10 +90,7 @@ export default {
     '../plugins/*/src/**/*.stories.tsx',
   ],
 
-  addons: [
-    "@storybook/addon-links",
-    "@storybook/addon-docs"
-  ],
+  addons: ['@storybook/addon-links', '@storybook/addon-docs'],
 
   staticDirs: ['../src/assets/images'],
 
@@ -115,7 +112,7 @@ export default {
       fallback: {
         tty: false,
         vm: false,
-      }
+      },
     },
     plugins: [...config.plugins, ...filteredPlugins],
   }),
@@ -125,9 +122,9 @@ export default {
   },
 
   framework: {
-    name: getAbsolutePath("@storybook/react-webpack5"),
+    name: getAbsolutePath('@storybook/react-webpack5'),
     options: {},
-  }
+  },
 };
 
 function getAbsolutePath(value) {

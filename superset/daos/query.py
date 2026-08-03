@@ -54,7 +54,15 @@ class QueryDAO(BaseDAO[Query]):
 
         return (
             db.session.query(Query)
-            .filter(Query.user_id == get_user_id(), Query.changed_on >= last_updated_dt)
+            .filter(
+                Query.user_id == get_user_id(),
+                Query.changed_on >= last_updated_dt,
+                # Exclude best-effort Query rows created for chart
+                # client_id/cancellation tracking (see
+                # QueryContextProcessor.get_df_payload) — those never set
+                # `sql`, unlike every SQL Lab-originated query.
+                Query.sql.isnot(None),
+            )
             .all()
         )
 
@@ -78,7 +86,8 @@ class QueryDAO(BaseDAO[Query]):
             )
             return
 
-        if not sql_lab.cancel_query(query):
+        cancelled = sql_lab.cancel_query(query)
+        if not cancelled:
             raise SupersetCancelQueryException("Could not cancel query")
 
         query.status = QueryStatus.STOPPED
