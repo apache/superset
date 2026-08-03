@@ -300,3 +300,38 @@ test('does not refresh when state changes leave changed_on untouched', () => {
 
   expect(refresh).not.toHaveBeenCalled();
 });
+
+test('a save landing mid-rehydration wins over the older restore payload', async () => {
+  // The restore payload was fetched before the save committed, so hydrating
+  // it would roll the chart back over the newer state. The save's own
+  // in-place hydration is already correct; the stale payload is dropped.
+  let resolveRehydration: (value: object) => void = () => {};
+  mockedFetchRehydration.mockReturnValue(
+    new Promise(resolve => {
+      resolveRehydration = resolve;
+    }),
+  );
+  const store = makeStore();
+  renderAdapter(store);
+
+  act(() => {
+    store.setState({
+      versionHistory: versionHistoryState({
+        restoreCount: 1,
+        lastRestoredEntityUuid: 'chart-uuid',
+      }),
+    });
+  });
+  await waitFor(() => expect(mockedFetchRehydration).toHaveBeenCalled());
+
+  // An overwrite save commits while the rehydration is still in flight.
+  act(() => {
+    store.setState({ explore: { slice: slice('2025-12-09T09:00:00') } });
+  });
+
+  await act(async () => {
+    resolveRehydration({});
+  });
+
+  expect(mockedHydrateExplore).not.toHaveBeenCalled();
+});

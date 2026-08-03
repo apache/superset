@@ -176,7 +176,7 @@ test('createDashboardFromSnapshot swaps deleted-chart slots for placeholders', a
   expect(metadata.positions['CHART-abc']).toEqual(positions['CHART-abc']);
 });
 
-test('createDashboardFromSnapshot sends empty layout fields as-is', async () => {
+test('createDashboardFromSnapshot sends an explicit empty layout, not no layout', async () => {
   fetchMock.get(LIST_ENDPOINT, { result: [{ id: 42 }], count: 1 });
   fetchMock.post(
     COPY_ENDPOINT,
@@ -193,7 +193,11 @@ test('createDashboardFromSnapshot sends empty layout fields as-is', async () => 
   const calls = fetchMock.callHistory.calls('post-copy-empty');
   const payload = JSON.parse(calls[0].options.body as string);
   expect(payload.css).toBe('');
-  expect(JSON.parse(payload.json_metadata)).toEqual({});
+  // `positions` must be present even when the snapshot had no layout: the
+  // copy endpoint rebuilds layout and chart associations from this key, so
+  // omitting it leaves the fork carrying the *source's current* charts —
+  // today's dashboard under a historical name.
+  expect(JSON.parse(payload.json_metadata)).toEqual({ positions: {} });
 });
 
 test('createDashboardFromSnapshot rejects when the source dashboard is gone', async () => {

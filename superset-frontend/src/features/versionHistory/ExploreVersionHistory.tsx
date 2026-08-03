@@ -221,7 +221,14 @@ export default function ExploreVersionHistory() {
         if (sliceId) {
           restoreHydrationIdRef.current += 1;
           const hydrationId = restoreHydrationIdRef.current;
-          const isCurrent = () => restoreHydrationIdRef.current === hydrationId;
+          // A save landing while this fetch is in flight leaves the payload
+          // in hand older than the store: hydrating it would roll the chart
+          // back over the newer save. The save's own in-place hydration is
+          // already correct, so the stale restore payload is simply dropped.
+          const saveSignalAtStart = lastSaveSignalRef.current;
+          const isCurrent = () =>
+            restoreHydrationIdRef.current === hydrationId &&
+            lastSaveSignalRef.current === saveSignalAtStart;
           fetchExploreRehydrationData(sliceId)
             .then(result => {
               if (isCurrent()) {

@@ -287,6 +287,12 @@ export async function createDashboardFromSnapshot(
   const metadata: JsonObject = snapshot.json_metadata
     ? JSON.parse(snapshot.json_metadata)
     : {};
+  // Always send `positions`, even empty. The copy endpoint rebuilds the new
+  // dashboard's layout and chart associations from this key; omitting it
+  // leaves the copy with the *source's current* charts, so forking a version
+  // that had no layout would produce today's dashboard under a historical
+  // name.
+  metadata.positions = {};
   if (snapshot.position_json) {
     let positions: JsonObject = JSON.parse(snapshot.position_json);
     const chartIds = new Set<number>();
