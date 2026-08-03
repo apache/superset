@@ -1217,6 +1217,10 @@ test('#39899 - x-axis dates do not overlap and last label stays visible at 0° r
       groupby: [],
       groupbyB: [],
       xAxisLabelRotation: 0,
+      // showMaxLabel (and therefore hideOverlap: false) only activates when
+      // a time grain resolves, so this needs one set to actually exercise
+      // the #39899 fix rather than silently no-op.
+      timeGrainSqla: TimeGranularity.MONTH,
     },
     queriesData: [
       createTestQueryData(
