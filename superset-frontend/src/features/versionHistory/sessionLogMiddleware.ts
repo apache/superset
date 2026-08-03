@@ -28,7 +28,13 @@ import { appendVersionSessionLog, clearVersionSessionLog } from './reducer';
 // there would otherwise silently kill the session log.
 export const SET_FIELD_VALUE = 'SET_FIELD_VALUE';
 export const UPDATE_CHART_TITLE = 'UPDATE_CHART_TITLE';
+export const UPDATE_FORM_DATA_BY_DATASOURCE = 'UPDATE_FORM_DATA_BY_DATASOURCE';
 export const HYDRATE_EXPLORE = 'HYDRATE_EXPLORE';
+
+// The control whose label names a datasource change in the log. Both the
+// swap and the Edit Dataset routes report under it, so the two entries
+// collapse into one when a swap emits both.
+const DATASOURCE_CONTROL_NAME = 'datasource';
 
 interface SessionLogState {
   user?: { firstName?: string; lastName?: string };
@@ -74,6 +80,25 @@ export const versionSessionLogMiddleware: Middleware =
         appendVersionSessionLog({
           label: t('Renamed chart'),
           controlName: 'slice_name',
+          ts: Date.now(),
+          user: userName(state),
+        }),
+      );
+    } else if (action.type === UPDATE_FORM_DATA_BY_DATASOURCE) {
+      // Swapping the dataset and editing it in place both reconcile the
+      // chart's form data against the new columns, but only the swap emits
+      // a control change of its own (ChangeDatasourceModal's `onChange`).
+      // Editing a dataset dispatches nothing the branches below record, so
+      // without this the restore gate saw an empty log while the form had
+      // changed — a restore then discarded the reconciled values silently.
+      const state = store.getState() as SessionLogState;
+      store.dispatch(
+        appendVersionSessionLog({
+          label: t(
+            "Changed '%s'",
+            controlLabel(state, DATASOURCE_CONTROL_NAME),
+          ),
+          controlName: DATASOURCE_CONTROL_NAME,
           ts: Date.now(),
           user: userName(state),
         }),

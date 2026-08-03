@@ -126,6 +126,33 @@ test('a chart rename is logged as an unsaved change', () => {
   );
 });
 
+test('a dataset reconciliation is logged as an unsaved change', async () => {
+  // Editing a dataset in place reconciles the chart's form data against the
+  // new columns but dispatches nothing the control branches record — only a
+  // *swap* emits its own control change. Without this the restore gate saw
+  // an empty log while the form had changed, and a restore discarded the
+  // reconciled values with no warning. Built with the REAL action creator so
+  // the shape is pinned across modules.
+  const { updateFormDataByDatasource } =
+    await import('src/explore/actions/exploreActions');
+  const store = buildStore({
+    user: { firstName: 'Ada', lastName: 'Lovelace' },
+    explore: { controls: { datasource: { label: 'Dataset' } } },
+  });
+  const datasource = { id: 1, type: 'table' } as never;
+  run(store, updateFormDataByDatasource(datasource, datasource));
+  expect(store.dispatch).toHaveBeenCalledWith(
+    expect.objectContaining({
+      type: APPEND_VERSION_SESSION_LOG,
+      entry: expect.objectContaining({
+        label: "Changed 'Dataset'",
+        controlName: 'datasource',
+        user: 'Ada Lovelace',
+      }),
+    }),
+  );
+});
+
 test('does nothing when the feature flag is disabled', () => {
   mockedIsFeatureEnabled.mockReturnValue(false);
   const store = buildStore();
@@ -150,5 +177,8 @@ test('inlined action-type literals match the real explore constants', async () =
   const hydrateExplore = await import('src/explore/actions/hydrateExplore');
   expect(middleware.SET_FIELD_VALUE).toBe(exploreActions.SET_FIELD_VALUE);
   expect(middleware.UPDATE_CHART_TITLE).toBe(exploreActions.UPDATE_CHART_TITLE);
+  expect(middleware.UPDATE_FORM_DATA_BY_DATASOURCE).toBe(
+    exploreActions.UPDATE_FORM_DATA_BY_DATASOURCE,
+  );
   expect(middleware.HYDRATE_EXPLORE).toBe(hydrateExplore.HYDRATE_EXPLORE);
 });
