@@ -1945,9 +1945,8 @@ class TestValidateChartDataset:
     def test_validate_chart_dataset_no_datasource_id(
         self, mock_find: MagicMock, mock_access: MagicMock
     ) -> None:
-        """Chart with no datasource_id returns invalid result."""
-        chart = MagicMock(spec=[])  # no datasource_id attribute
-        result = validate_chart_dataset(chart)
+        """A chart with no datasource_id returns invalid result."""
+        result = validate_chart_dataset(None)
         assert not result.is_valid
         assert result.dataset_id is None
         assert "no dataset reference" in (result.error or "").lower()
@@ -1959,9 +1958,7 @@ class TestValidateChartDataset:
         self, mock_find: MagicMock, mock_access: MagicMock
     ) -> None:
         """Chart whose dataset was deleted returns invalid result."""
-        chart = MagicMock()
-        chart.datasource_id = 42
-        result = validate_chart_dataset(chart)
+        result = validate_chart_dataset(42)
         assert not result.is_valid
         assert result.dataset_id == 42
         assert "deleted" in (result.error or "").lower()
@@ -1976,9 +1973,7 @@ class TestValidateChartDataset:
         dataset.table_name = "my_table"
         dataset.sql = None
         mock_find.return_value = dataset
-        chart = MagicMock()
-        chart.datasource_id = 7
-        result = validate_chart_dataset(chart)
+        result = validate_chart_dataset(7)
         assert result.is_valid
         assert result.dataset_id == 7
         assert result.dataset_name == "my_table"
@@ -1994,9 +1989,7 @@ class TestValidateChartDataset:
         dataset.table_name = "virt_ds"
         dataset.sql = "SELECT 1"
         mock_find.return_value = dataset
-        chart = MagicMock()
-        chart.datasource_id = 10
-        result = validate_chart_dataset(chart)
+        result = validate_chart_dataset(10)
         assert result.is_valid
         assert len(result.warnings) == 1
         assert "virtual" in result.warnings[0].lower()
@@ -2010,9 +2003,7 @@ class TestValidateChartDataset:
         from sqlalchemy.exc import SQLAlchemyError
 
         mock_find.side_effect = SQLAlchemyError("connection lost")
-        chart = MagicMock()
-        chart.datasource_id = 99
-        result = validate_chart_dataset(chart)
+        result = validate_chart_dataset(99)
         assert not result.is_valid
         assert result.dataset_id == 99
         assert "error" in (result.error or "").lower()

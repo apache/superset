@@ -694,6 +694,36 @@ def _user(user: User) -> str:
     return escape(user)
 
 
+def format_time_humanized(timestamp: datetime) -> str:
+    """Humanize *timestamp* against the server's naive-local clock.
+
+    Module-level rather than a mixin method so values projected outside an
+    entity (the archive list reads ``deleted_at`` in a bare column query) can
+    be humanized identically. The subtraction uses ``datetime.now()`` because
+    the audit columns and ``deleted_at`` are stamped with it; humanizing here,
+    on the clock that did the stamping, is what spares every client from
+    guessing the server's timezone.
+    """
+    locale = str(get_locale())
+    time_diff = datetime.now() - timestamp
+    # Skip activation for 'en' locale as it's humanize's default locale
+    if locale == "en":
+        return humanize.naturaltime(time_diff)
+    try:
+        humanize.i18n.activate(locale)
+        try:
+            return humanize.naturaltime(time_diff)
+        finally:
+            # humanize's activation is thread-local, so there is no
+            # cross-request contamination between workers -- but without the
+            # finally, a naturaltime failure would leave the locale active
+            # for whatever request this thread serves next.
+            humanize.i18n.deactivate()
+    except Exception as e:
+        logger.warning("Locale '%s' is not supported in humanize: %s", locale, e)
+        return humanize.naturaltime(time_diff)
+
+
 class AuditMixinNullable(AuditMixin):
     """Altering the AuditMixin to use nullable fields
 
@@ -766,19 +796,7 @@ class AuditMixinNullable(AuditMixin):
         return self.changed_on.astimezone(pytz.utc).strftime("%Y-%m-%dT%H:%M:%S.%f%z")
 
     def _format_time_humanized(self, timestamp: datetime) -> str:
-        locale = str(get_locale())
-        time_diff = datetime.now() - timestamp
-        # Skip activation for 'en' locale as it's humanize's default locale
-        if locale == "en":
-            return humanize.naturaltime(time_diff)
-        try:
-            humanize.i18n.activate(locale)
-            result = humanize.naturaltime(time_diff)
-            humanize.i18n.deactivate()
-            return result
-        except Exception as e:
-            logger.warning("Locale '%s' is not supported in humanize: %s", locale, e)
-            return humanize.naturaltime(time_diff)
+        return format_time_humanized(timestamp)
 
     @property
     def changed_on_humanized(self) -> str:
@@ -954,11 +972,12 @@ def _add_soft_delete_filter(execute_state: ORMExecuteState) -> None:
     (``do_orm_execute`` + ``with_loader_criteria`` — see
     https://github.com/sqlalchemy/sqlalchemy/issues/7973#issuecomment-1112561295).
 
-    Skips relationship and column loader paths: those propagate the
-    criteria from the parent statement via
-    ``with_loader_criteria(..., propagate_to_loaders=True)`` (the default)
-    rather than re-attaching it here, which would stack redundant
-    ``deleted_at IS NULL`` clauses.
+    Which statements get the criteria is decided by
+    ``_should_attach_soft_delete_criteria`` -- and note that relationship
+    loads are deliberately INCLUDED (only column loads are skipped).
+    ``propagate_to_loaders`` alone does not reliably cover lazy loads and
+    can leak soft-deleted rows through them; that predicate's own docstring
+    explains why at length. Defer to it.
 
     Per-class scoping: the listener iterates concrete ``SoftDeleteMixin``
     subclasses and attaches a ``with_loader_criteria`` only for those
@@ -2068,8 +2087,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         offset, outer_to_dttm
                     )
 
-                    query_object_clone.inner_from_dttm = query_object_clone.from_dttm
-                    query_object_clone.inner_to_dttm = query_object_clone.to_dttm
+                    query_object_clone.inner_from_dttm = outer_from_dttm
+                    query_object_clone.inner_to_dttm = outer_to_dttm
 
                 x_axis_label = get_x_axis_label(query_object.columns)
                 query_object_clone.granularity = (

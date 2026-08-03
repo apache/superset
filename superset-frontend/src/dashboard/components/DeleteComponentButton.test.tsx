@@ -16,8 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-module.exports = {
-  singleQuote: true,
-  trailingComma: 'all',
-  arrowParens: 'avoid',
-};
+import { render, screen, fireEvent } from 'spec/helpers/testing-library';
+import DeleteComponentButton from './DeleteComponentButton';
+
+test('exposes an accessible name without rendering visible label text', () => {
+  render(<DeleteComponentButton onDelete={jest.fn()} />);
+
+  expect(
+    screen.getByRole('button', { name: 'Delete component' }),
+  ).toBeInTheDocument();
+  expect(screen.queryByText('Delete component')).not.toBeInTheDocument();
+});
+
+test('calls onDelete when clicked', () => {
+  const onDelete = jest.fn();
+  render(<DeleteComponentButton onDelete={onDelete} />);
+
+  fireEvent.click(screen.getByRole('button', { name: 'Delete component' }));
+
+  expect(onDelete).toHaveBeenCalledTimes(1);
+});

@@ -45,6 +45,9 @@ import sqlalchemy as sa
 from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.orm import Session
 
+from superset.versioning.db_errors import is_missing_table_error
+from superset.versioning.metrics import incr_capture_error
+
 # Populated at app startup (superset/initialization/__init__.py) before
 # register_baseline_listener() is called.
 VERSIONED_MODELS: list[type] = []
@@ -140,14 +143,21 @@ def shadow_row_count(session: Session, obj: Any, version_table: Any) -> int | No
                 )
                 .scalar()
             )
-    except (OperationalError, ProgrammingError):
-        # Missing table: OperationalError on SQLite/MySQL,
-        # ProgrammingError (UndefinedTable) on PostgreSQL.
-        return None
-    except Exception:  # pylint: disable=broad-except
+    except Exception as ex:  # pylint: disable=broad-except
+        if isinstance(
+            ex, (OperationalError, ProgrammingError)
+        ) and is_missing_table_error(ex):
+            # Missing version table (migration not yet applied) — the one
+            # benign case; stay quiet.
+            return None
+        # Any other failure also returns None, and the caller then skips
+        # baseline capture for this flush — that loss must be visible on
+        # the same alerting surface as the change-record path, not filed
+        # under the migration race.
         logger.exception(
             "baseline_listener: count query failed for %s id=%s",
             type(obj).__name__,
             getattr(obj, "id", None),
         )
+        incr_capture_error("shadow_count")
         return None

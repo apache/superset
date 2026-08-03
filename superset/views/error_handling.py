@@ -171,6 +171,30 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
         logger.warning("SupersetErrorsException", exc_info=True)
         return json_error_response(ex.errors, status=ex.status)
 
+    @app.errorhandler(SupersetException)
+    def show_superset_exception(ex: SupersetException) -> FlaskResponse:
+        logger_func, _ = get_logger_from_status(ex.status)
+        logger_func(ex.message, exc_info=True)
+
+        if "text/html" in request.accept_mimetypes and not app.config["DEBUG"]:
+            path = files("superset") / "static/assets/500.html"
+            # Try to serve HTML file; fall back to JSON if not built
+            try:
+                return send_file(path, max_age=0), ex.status
+            except FileNotFoundError:
+                pass
+
+        return json_error_response(
+            [
+                SupersetError(
+                    message=ex.message,
+                    error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+                    level=get_error_level_from_status(ex.status),
+                ),
+            ],
+            status=ex.status,
+        )
+
     @app.errorhandler(CSRFError)
     def refresh_csrf_token(ex: CSRFError) -> FlaskResponse:
         """Redirect to login if the CSRF token is expired"""
