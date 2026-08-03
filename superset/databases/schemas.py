@@ -159,11 +159,17 @@ extra_description = markdown(
     "5. The ``allows_virtual_table_explore`` field is a boolean specifying "
     "whether or not the Explore button in SQL Lab results is shown.<br/>"
     "6. The ``disable_data_preview`` field is a boolean specifying whether or not data "
-    "preview queries will be run when fetching table metadata in SQL Lab."
-    "7. The ``disable_drill_to_detail`` field is a boolean specifying whether or not"
-    "drill to detail is disabled for the database."
+    "preview queries will be run when fetching table metadata in SQL Lab.<br/>"
+    "7. The ``disable_drill_to_detail`` field is a boolean specifying whether or not "
+    "drill to detail is disabled for the database.<br/>"
     "8. The ``allow_multi_catalog`` indicates if the database allows changing "
-    "the default catalog when running queries and creating datasets.",
+    "the default catalog when running queries and creating datasets.<br/>"
+    "9. The ``disable_sampling_read_limit_override`` field is a boolean "
+    "specifying whether system-generated sampling queries (filter values, "
+    "samples/preview, datetime format detection) that an engine rejects with "
+    "a read-limit error should fail outright instead of being retried once "
+    "with the engine's bounded-read override. Only affects engines that "
+    "implement such an override.",
     True,
 )
 get_export_ids_schema = {
@@ -971,6 +977,7 @@ class ImportV1DatabaseExtraSchema(Schema):
     cancel_query_on_windows_unload = fields.Boolean(required=False)
     disable_data_preview = fields.Boolean(required=False)
     disable_drill_to_detail = fields.Boolean(required=False)
+    disable_sampling_read_limit_override = fields.Boolean(required=False)
     allow_multi_catalog = fields.Boolean(required=False)
     per_user_caching = fields.Boolean(required=False)
     version = fields.String(required=False, allow_none=True)

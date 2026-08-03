@@ -227,22 +227,47 @@ class BaseReportState:
     def create_log(self, error_message: Optional[str] = None) -> None:
         """
         Creates a Report execution log, uses the current computed last_value for Alerts
+
+        A single execution transitions through the WORKING state before reaching a
+        terminal state (SUCCESS/ERROR/NOOP/GRACE). To avoid duplicated rows in the
+        execution-log view (see issue #29857), the terminal result is written onto
+        the WORKING "trigger" row created earlier in the same execution rather than
+        inserting a second row. The WORKING row is only used as a placeholder while
+        the execution is in flight (``find_last_entered_working_log`` relies on it
+        for working-timeout detection), so promoting it in place keeps one row per
+        execution ``uuid`` without losing that behavior. The intentional
+        error-notification marker row is a terminal-to-terminal transition, so it is
+        still recorded as a distinct row.
         """
         from sqlalchemy.orm.exc import StaleDataError
 
         try:
-            log = ReportExecutionLog(
-                scheduled_dttm=self._scheduled_dttm,
-                start_dttm=self._start_dttm,
-                end_dttm=datetime.now(timezone.utc).replace(tzinfo=None),
-                value=self._report_schedule.last_value,
-                value_row_json=self._report_schedule.last_value_row_json,
-                state=self._report_schedule.last_state,
-                error_message=error_message,
-                report_schedule=self._report_schedule,
-                uuid=self._execution_id,
+            # Reuse the in-flight WORKING trigger row for this execution, if any,
+            # so a single execution surfaces as a single log entry.
+            log = (
+                db.session.query(ReportExecutionLog)
+                .filter(
+                    ReportExecutionLog.uuid == self._execution_id,
+                    ReportExecutionLog.state == ReportState.WORKING,
+                    ReportExecutionLog.error_message.is_(None),
+                )
+                .first()
+                if self._report_schedule.last_state != ReportState.WORKING
+                else None
             )
-            db.session.add(log)
+            if log is None:
+                log = ReportExecutionLog(
+                    scheduled_dttm=self._scheduled_dttm,
+                    start_dttm=self._start_dttm,
+                    report_schedule=self._report_schedule,
+                    uuid=self._execution_id,
+                )
+                db.session.add(log)
+            log.end_dttm = datetime.now(timezone.utc).replace(tzinfo=None)
+            log.value = self._report_schedule.last_value
+            log.value_row_json = self._report_schedule.last_value_row_json
+            log.state = self._report_schedule.last_state
+            log.error_message = error_message
             db.session.commit()  # pylint: disable=consider-using-transaction
         except StaleDataError as ex:
             # Report schedule was modified or deleted by another process

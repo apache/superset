@@ -566,6 +566,73 @@ describe('DashboardBuilder', () => {
 
     expect(queryByTestId('dashboard-filters-panel')).not.toBeInTheDocument();
   });
+
+  test('should hide the vertical filter bar in report mode (?standalone=3)', () => {
+    const originalHref = window.location.href;
+    window.history.replaceState({}, '', '/?standalone=3');
+    jest.spyOn(useNativeFiltersModule, 'useNativeFilters').mockReturnValue({
+      showDashboard: true,
+      missingInitialFilters: [],
+      dashboardFiltersOpen: true,
+      toggleDashboardFiltersOpen: jest.fn(),
+      nativeFiltersEnabled: true,
+    });
+    try {
+      const { getByTestId } = setup();
+      expect(getByTestId('dashboard-filters-panel')).toHaveStyleRule(
+        'display',
+        'none',
+      );
+    } finally {
+      window.history.replaceState({}, '', originalHref);
+    }
+  });
+
+  test('should reveal the vertical filter bar in report mode when embedded ?show_filters=true is set (issue #30630)', () => {
+    // Regression test for #30630: embedded dashboards use ?standalone=3 to hide
+    // the title/tabs/nav, but that also forced isReport=true, which unconditionally
+    // hid the filter bar even when the Embedded SDK's dashboardUiConfig.filters.visible
+    // (mapped to the show_filters URL param) explicitly asked for filters to show.
+    const originalHref = window.location.href;
+    window.history.replaceState({}, '', '/?standalone=3&show_filters=true');
+    jest.spyOn(useNativeFiltersModule, 'useNativeFilters').mockReturnValue({
+      showDashboard: true,
+      missingInitialFilters: [],
+      dashboardFiltersOpen: true,
+      toggleDashboardFiltersOpen: jest.fn(),
+      nativeFiltersEnabled: true,
+    });
+    try {
+      const { getByTestId } = setup();
+      expect(getByTestId('dashboard-filters-panel')).not.toHaveStyleRule(
+        'display',
+        'none',
+      );
+    } finally {
+      window.history.replaceState({}, '', originalHref);
+    }
+  });
+
+  test('should keep the filter bar hidden in report mode when ?show_filters=false is set', () => {
+    const originalHref = window.location.href;
+    window.history.replaceState({}, '', '/?standalone=3&show_filters=false');
+    jest.spyOn(useNativeFiltersModule, 'useNativeFilters').mockReturnValue({
+      showDashboard: true,
+      missingInitialFilters: [],
+      dashboardFiltersOpen: true,
+      toggleDashboardFiltersOpen: jest.fn(),
+      nativeFiltersEnabled: true,
+    });
+    try {
+      const { getByTestId } = setup();
+      expect(getByTestId('dashboard-filters-panel')).toHaveStyleRule(
+        'display',
+        'none',
+      );
+    } finally {
+      window.history.replaceState({}, '', originalHref);
+    }
+  });
 });
 
 test('should render ParentSize wrapper with height 100% for tabs', async () => {
