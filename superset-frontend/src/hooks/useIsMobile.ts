@@ -33,6 +33,19 @@ export function isMobileConsumptionEnabled(): boolean {
 }
 
 /**
+ * Reads the current match synchronously so the hook's initial render
+ * already reflects the real viewport instead of defaulting to desktop.
+ * Guarded for environments without `window`/`matchMedia` (SSR, older
+ * browsers), where it falls back to the desktop (non-mobile) value.
+ */
+function getInitialIsSmallScreen(enabled: boolean, maxWidth: number): boolean {
+  if (!enabled || typeof window === 'undefined' || !window.matchMedia) {
+    return false;
+  }
+  return window.matchMedia(`(max-width: ${maxWidth}px)`).matches;
+}
+
+/**
  * Returns true when MOBILE_CONSUMPTION_MODE is enabled AND the viewport is
  * at or below the theme's `screenSMMax` breakpoint. All mobile-specific
  * behavior (route guarding, consumption-only chrome, drawer navigation)
@@ -42,14 +55,18 @@ export function isMobileConsumptionEnabled(): boolean {
  * state only changes when the match flips, so with the flag off (or on
  * desktop) this hook never causes a re-render — consumers are inert.
  *
- * The initial value is always false (desktop), so the first paint never
- * takes the mobile branch by accident.
+ * The initial value is computed synchronously from `matchMedia` (falling
+ * back to desktop/false when the flag is off or `matchMedia` is
+ * unavailable), so guards like `MobileRouteGuard` never mount
+ * unsupported route content for a commit before the mobile check settles.
  */
 export function useIsMobile(): boolean {
   const enabled = isMobileConsumptionEnabled();
   const theme = useTheme();
   const maxWidth = theme?.screenSMMax ?? FALLBACK_MOBILE_MAX_WIDTH;
-  const [isSmallScreen, setIsSmallScreen] = useState(false);
+  const [isSmallScreen, setIsSmallScreen] = useState(() =>
+    getInitialIsSmallScreen(enabled, maxWidth),
+  );
 
   useEffect(() => {
     if (!enabled) {

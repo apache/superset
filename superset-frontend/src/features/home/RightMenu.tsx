@@ -665,9 +665,9 @@ const RightMenu = ({
       items.push({
         key: 'dashboards',
         label: isFrontendRoute(dashboardUrl) ? (
-          <Link to={dashboardUrl}>{t('Dashboards')}</Link>
+          <Link to={stripAppRoot(dashboardUrl)}>{t('Dashboards')}</Link>
         ) : (
-          <Typography.Link href={dashboardUrl}>
+          <Typography.Link href={ensureAppRoot(dashboardUrl)}>
             {t('Dashboards')}
           </Typography.Link>
         ),
@@ -680,7 +680,7 @@ const RightMenu = ({
       if (!item || !('key' in item)) return;
 
       // Only include theme-sub-menu and language picker
-      if (item.key === 'theme-sub-menu' || item.key === 'language-picker') {
+      if (item.key === 'theme-sub-menu' || item.key === 'language-submenu') {
         items.push({ type: 'divider', key: `divider-before-${item.key}` });
 
         if ('children' in item && item.children) {

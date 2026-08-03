@@ -73,12 +73,8 @@ async function getMobileFilterButton(page: Page) {
   await page.waitForTimeout(2000);
 
   const filterButton = page
-    .locator('[data-test="filter-icon"]')
-    .or(
-      page
-        .locator('[aria-label="Filters"]')
-        .or(page.locator('.mobile-filter-button')),
-    );
+    .locator('[data-test="mobile-filters-trigger"]')
+    .or(page.locator('[aria-label="Open filters"]'));
 
   const filterCount = await filterButton.count();
 

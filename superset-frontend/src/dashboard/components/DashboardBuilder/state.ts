@@ -121,6 +121,6 @@ export const useNativeFilters = () => {
     dashboardFiltersOpen,
     toggleDashboardFiltersOpen,
     nativeFiltersEnabled,
-    hasFilters: filterValues.length > 0,
+    hasFilters: filterValues.length > 0 || chartCustomizations.length > 0,
   };
 };

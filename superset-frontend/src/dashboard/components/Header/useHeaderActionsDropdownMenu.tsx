@@ -311,8 +311,8 @@ export const useHeaderActionsMenu = ({
     // Divider
     menuItems.push({ type: 'divider' });
 
-    // Save as
-    if (userCanSave) {
+    // Save as (authoring action, hidden on mobile consumption-only menu)
+    if (userCanSave && !isMobile) {
       menuItems.push(
         createModalMenuItem(
           MenuKeys.SaveModal,
@@ -349,8 +349,8 @@ export const useHeaderActionsMenu = ({
       menuItems.push(shareMenuItems);
     }
 
-    // Embed dashboard
-    if (!editMode && userCanCurate) {
+    // Embed dashboard (authoring action, hidden on mobile consumption-only menu)
+    if (!editMode && userCanCurate && !isMobile) {
       menuItems.push({
         key: MenuKeys.ManageEmbedded,
         label: t('Embed dashboard'),
