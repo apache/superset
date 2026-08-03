@@ -794,6 +794,83 @@ describe('SelectFilterPlugin', () => {
     expect(options[2]).toHaveTextContent('100');
   });
 
+  test('sorts BIGINT filter values numerically when values decode to native bigint', () => {
+    // BIGINT columns with 16+ digit values decode to native `bigint` (see
+    // json-bigint parsing of the chart data response), not `number`. Those
+    // values must still sort numerically rather than falling back to
+    // lexicographic string comparison ("10", "100", "2").
+    const testData = [
+      { age: 10000000000000000n },
+      { age: 2000000000000000n },
+      { age: 100000000000000000n },
+    ];
+
+    const testProps = {
+      ...selectMultipleProps,
+      formData: {
+        ...selectMultipleProps.formData,
+        groupby: ['age'],
+        sortMetric: undefined,
+        sortAscending: true,
+      },
+      queriesData: [
+        {
+          rowcount: 3,
+          colnames: ['age'],
+          coltypes: [0],
+          data: testData,
+          applied_filters: [{ column: 'age' }],
+          rejected_filters: [],
+        },
+      ],
+      filterState: {
+        value: [],
+        label: '',
+        excludeFilterValues: true,
+      },
+    };
+
+    render(
+      // @ts-expect-error
+      <SelectFilterPlugin
+        // @ts-expect-error
+        {...transformProps(testProps)}
+        setDataMask={jest.fn()}
+        showOverflow={false}
+      />,
+      {
+        useRedux: true,
+        initialState: {
+          nativeFilters: {
+            filters: {
+              'test-filter': {
+                name: 'Test Filter',
+              },
+            },
+          },
+          dataMask: {
+            'test-filter': {
+              extraFormData: {},
+              filterState: {
+                value: [],
+                label: '',
+                excludeFilterValues: true,
+              },
+            },
+          },
+        },
+      },
+    );
+
+    const filterSelect = screen.getAllByRole('combobox')[0];
+    userEvent.click(filterSelect);
+
+    const options = screen.getAllByRole('option');
+    expect(options[0]).toHaveTextContent('2000000000000000');
+    expect(options[1]).toHaveTextContent('10000000000000000');
+    expect(options[2]).toHaveTextContent('100000000000000000');
+  });
+
   test('shows create option for multi-select creatable filter when typing', async () => {
     getWrapper({ creatable: true, multiSelect: true });
     userEvent.type(screen.getByRole('combobox'), 'brand-new');
