@@ -242,7 +242,7 @@
     "use-query-params": "^2.2.2",
     "uuid": "^14.0.1",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
-    "yargs": "^18.0.0"
+    "yargs": "^18.1.0"
   },
   "devDependencies": {
     "@babel/cli": "^7.29.7",
