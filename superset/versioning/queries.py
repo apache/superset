@@ -122,7 +122,6 @@ def _user_select_cols(user_tbl: sa.Table) -> list[Any]:
     """
     return [
         user_tbl.c.id.label("user_id"),
-        user_tbl.c.username,
         user_tbl.c.first_name,
         user_tbl.c.last_name,
     ]
@@ -133,13 +132,15 @@ def _changed_by_from_row(row: Any) -> dict[str, Any] | None:
     ``changed_by`` shape, or ``None`` for saves with no Flask user context
     (CLI / Celery / import / unauthenticated). Expects the user columns to
     have been selected via :func:`_user_select_cols` so the row keys are
-    ``user_id`` / ``username`` / ``first_name`` / ``last_name``.
+    ``user_id`` / ``first_name`` / ``last_name``.
     """
     if row["user_id"] is None:
         return None
+    # Deliberately no ``username``: it is a login identifier, not display
+    # data, and the sibling activity payload already excludes it (pinned by
+    # a unit test there). Display names come from first/last name.
     return {
         "id": row["user_id"],
-        "username": row["username"],
         "first_name": row["first_name"],
         "last_name": row["last_name"],
     }
