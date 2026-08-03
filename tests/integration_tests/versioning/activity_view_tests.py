@@ -510,12 +510,6 @@ class TestDashboardActivityView(SupersetTestCase):
             f"got {result[('SqlaTable', dataset.id)]}"
         )
 
-    @pytest.mark.skip(
-        reason="Depends on the retention prune (_prune_old_versions_impl), which "
-        "was extracted to sc-111099-version-history-retention. This test "
-        "exercises activity-view + retention together and runs once both PRs "
-        "merge; un-skip then."
-    )
     def test_activity_excludes_records_after_retention_prune(self) -> None:
         """T051 / AV-010: retention bounds the activity feed. After
         ``_prune_old_versions_impl`` drops shadow / change-record rows
@@ -523,10 +517,15 @@ class TestDashboardActivityView(SupersetTestCase):
         retention cutoff, the activity stream stops surfacing them.
 
         Test pattern: capture the highest ``version_transaction.id``
-        before our edits, edit a chart (creating a new transaction),
-        backdate that transaction's ``issued_at`` past the retention
-        cutoff, run the prune, and assert the chart-edit no longer
-        appears in the activity stream."""
+        before our edits, then edit a chart TWICE. The second edit closes
+        the first edit's shadow row (``end_transaction_id`` set), leaving
+        the first transaction genuinely prunable; the second transaction
+        anchors the chart's live row and is preserved by the prune's
+        keep-live guard regardless of age — an entity's current state is
+        never dropped, however old. Backdate both transactions past the
+        retention cutoff, run the prune, and assert the closed one is
+        removed while the activity stream keeps working with a smaller
+        count."""
         # pylint: disable=import-outside-toplevel
         from datetime import datetime, timedelta
 
@@ -558,7 +557,14 @@ class TestDashboardActivityView(SupersetTestCase):
         )
 
         try:
+            # Two separate commits → two transactions. The prune preserves
+            # any transaction still anchoring an open shadow row, so a
+            # single edit would (correctly) prune nothing: its row IS the
+            # chart's live state. The second edit closes the first row.
             chart.slice_name = f"{original_name} (retention test)"
+            db.session.commit()
+            chart = db.session.query(Slice).filter(Slice.id == chart_id).one()
+            chart.slice_name = f"{original_name} (retention test 2)"
             db.session.commit()
 
             # Backdate the new transactions to before the 30-day cutoff.
@@ -656,10 +662,6 @@ class TestDashboardActivityView(SupersetTestCase):
         overlap = page0_keys & page1_keys
         assert not overlap, f"page=0 and page=1 returned overlapping records: {overlap}"
 
-    @pytest.mark.skip(
-        reason="Restore endpoint ships in a later PR; re-enable when restore "
-        "lands. The activity layer's restore-event rendering is unit-tested."
-    )
     def test_activity_surfaces_dashboard_restore_event(self) -> None:
         """T044 / AV-015: restoring a dashboard to a prior version surfaces
         a synthetic ``kind='__meta__'`` headline record (path
