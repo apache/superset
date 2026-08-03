@@ -239,7 +239,11 @@ export function useVersionActions(
           );
           const id = await createChartFromSnapshot(
             snapshot,
-            t('%s (copy from %s)', snapshot.slice_name, copyDate),
+            t(
+              '%s (copy from %s)',
+              snapshot.slice_name ?? t('Untitled chart'),
+              copyDate,
+            ),
           );
           navigateOpenedTab(tab, `/explore/?slice_id=${id}`);
         } else {
@@ -251,7 +255,11 @@ export function useVersionActions(
           const id = await createDashboardFromSnapshot(
             uuid,
             snapshot,
-            t('%s (copy from %s)', snapshot.dashboard_title, copyDate),
+            t(
+              '%s (copy from %s)',
+              snapshot.dashboard_title ?? t('Untitled dashboard'),
+              copyDate,
+            ),
           );
           navigateOpenedTab(tab, `/dashboard/${id}/`);
         }

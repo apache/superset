@@ -17,8 +17,16 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { createDashboardFromSnapshot, fetchActivity } from './api';
-import type { DashboardVersionSnapshot, VersionMeta } from './types';
+import {
+  createChartFromSnapshot,
+  createDashboardFromSnapshot,
+  fetchActivity,
+} from './api';
+import type {
+  ChartVersionSnapshot,
+  DashboardVersionSnapshot,
+  VersionMeta,
+} from './types';
 
 const versionMeta: VersionMeta = {
   version_uuid: 'version-uuid',
@@ -45,8 +53,12 @@ const snapshot: DashboardVersionSnapshot = {
   position_json: JSON.stringify(positions),
   json_metadata: JSON.stringify({ color_scheme: 'supersetColors' }),
   css: '.dashboard { color: red; }',
+  description: null,
   slug: null,
   certified_by: null,
+  certification_details: null,
+  published: true,
+  theme_id: null,
   uuid: 'dash-uuid',
   _version: versionMeta,
 };
@@ -190,4 +202,27 @@ test('createDashboardFromSnapshot rejects when the source dashboard is gone', as
   await expect(
     createDashboardFromSnapshot('dash-uuid', snapshot, 'Orphan copy'),
   ).rejects.toThrow('No dashboard found for uuid dash-uuid');
+});
+
+test('createChartFromSnapshot rejects a version with no viz type or dataset', async () => {
+  // Every version-table column is nullable — a row written for a delete
+  // carries nulls throughout. Posting it would fail validation server-side
+  // with a message the user cannot act on.
+  const chartSnapshot = {
+    slice_name: 'Sales',
+    params: null,
+    viz_type: null,
+    query_context: null,
+    description: null,
+    cache_timeout: null,
+    datasource_id: null,
+    datasource_type: null,
+    uuid: 'chart-uuid',
+    _version: versionMeta,
+  } as ChartVersionSnapshot;
+
+  await expect(
+    createChartFromSnapshot(chartSnapshot, 'Sales (copy)'),
+  ).rejects.toThrow(/does not record a visualization type and dataset/);
+  expect(fetchMock.callHistory.calls('glob:*/api/v1/chart/')).toHaveLength(0);
 });

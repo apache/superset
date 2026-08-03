@@ -26,6 +26,7 @@ import type {
   HydrateChartData,
   HydrateDashboardData,
 } from 'src/dashboard/actions/hydrate';
+import type { Dashboard } from 'src/types/Dashboard';
 import type {
   ActivityEntityKind,
   ActivityInclude,
@@ -115,6 +116,19 @@ export async function createChartFromSnapshot(
   snapshot: ChartVersionSnapshot,
   name: string,
 ): Promise<number> {
+  // The chart POST requires all three; the version table allows null for each
+  // (a delete version carries nulls throughout). Fail here with something the
+  // caller can turn into a toast rather than sending a payload the API will
+  // reject with a validation error the user cannot act on.
+  if (
+    snapshot.viz_type == null ||
+    snapshot.datasource_id == null ||
+    snapshot.datasource_type == null
+  ) {
+    throw new Error(
+      'This version does not record a visualization type and dataset, so a new chart cannot be built from it',
+    );
+  }
   const { json } = await SupersetClient.post({
     endpoint: '/api/v1/chart/',
     jsonPayload: {
@@ -135,6 +149,27 @@ export async function createChartFromSnapshot(
     },
   });
   return (json as { id: number }).id;
+}
+
+/** The theme shape `dashboardInfo` holds, keyed by id in the snapshot. */
+export type DashboardTheme = NonNullable<Dashboard['theme']>;
+
+/**
+ * Resolves a snapshot's `theme_id` to the theme object hydration expects.
+ * The version table stores the foreign key, not the theme, so a snapshot
+ * taken under a different theme than the live dashboard needs one lookup.
+ */
+export async function fetchDashboardTheme(
+  themeId: number,
+): Promise<DashboardTheme> {
+  const { json } = await SupersetClient.get({
+    endpoint: `/api/v1/theme/${themeId}`,
+  });
+  const { id, result } = json as {
+    id: number;
+    result: Omit<DashboardTheme, 'id'>;
+  };
+  return { ...result, id };
 }
 
 /**

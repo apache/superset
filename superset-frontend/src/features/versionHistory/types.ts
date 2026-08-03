@@ -102,28 +102,41 @@ export interface VersionMeta {
   }>;
 }
 
+/**
+ * A chart as one version captured it.
+ *
+ * Every field is nullable because the version table mirrors `slices`, whose
+ * columns are all nullable, and rows written for a delete carry nulls
+ * throughout. Consumers must decide what an absent field means rather than
+ * trusting a non-null annotation the wire does not guarantee.
+ */
 export interface ChartVersionSnapshot {
-  slice_name: string;
+  slice_name: string | null;
   params: string | null;
-  viz_type: string;
+  viz_type: string | null;
   query_context: string | null;
   description: string | null;
   cache_timeout: number | null;
-  datasource_id: number;
-  datasource_type: string;
-  uuid: string;
+  datasource_id: number | null;
+  datasource_type: string | null;
+  uuid: string | null;
   _version: VersionMeta;
   [key: string]: unknown;
 }
 
+/** A dashboard as one version captured it; nullable for the same reason. */
 export interface DashboardVersionSnapshot {
-  dashboard_title: string;
+  dashboard_title: string | null;
   position_json: string | null;
   json_metadata: string | null;
   css: string | null;
+  description: string | null;
   slug: string | null;
   certified_by: string | null;
-  uuid: string;
+  certification_details: string | null;
+  published: boolean | null;
+  theme_id: number | null;
+  uuid: string | null;
   _version: VersionMeta;
   [key: string]: unknown;
 }

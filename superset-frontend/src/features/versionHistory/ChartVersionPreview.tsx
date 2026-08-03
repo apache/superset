@@ -131,21 +131,32 @@ export default function ChartVersionPreview() {
         entityUuid,
         versionUuid,
       );
+      // Every version-table column is nullable, so a version that records no
+      // visualization type or dataset cannot be rendered at all — say so
+      // rather than requesting `undefined__undefined`.
+      const { viz_type: vizType, datasource_id: datasourceId } = snapshot;
+      const { datasource_type: datasourceType } = snapshot;
+      if (vizType == null || datasourceId == null || datasourceType == null) {
+        if (fetchId === fetchIdRef.current) {
+          setError(
+            t(
+              'This version does not record a visualization type and dataset, so it cannot be previewed',
+            ),
+          );
+        }
+        return;
+      }
       // The snapshot may reference a different datasource than the live
       // chart (e.g. the chart was switched to another dataset since);
       // fetch the metadata the preview should label itself with.
       const live = liveDatasourceRef.current as
         (Dataset & { id?: number; type?: string }) | undefined;
       let datasourceMeta: Dataset | undefined = live;
-      if (
-        !live ||
-        live.id !== snapshot.datasource_id ||
-        live.type !== snapshot.datasource_type
-      ) {
+      if (!live || live.id !== datasourceId || live.type !== datasourceType) {
         try {
           datasourceMeta = (await fetchDatasourceMetadata(
-            snapshot.datasource_id,
-            snapshot.datasource_type,
+            datasourceId,
+            datasourceType,
           )) as unknown as Dataset;
         } catch {
           if (fetchId === fetchIdRef.current) {
@@ -160,9 +171,9 @@ export default function ChartVersionPreview() {
       }
       const previewFormData = buildPreviewFormData(
         snapshot.params,
-        snapshot.viz_type,
-        snapshot.datasource_id,
-        snapshot.datasource_type,
+        vizType,
+        datasourceId,
+        datasourceType,
       );
       const [useLegacyApi] = getQuerySettings(previewFormData);
       const { response, json } = await getChartDataRequest({

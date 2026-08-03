@@ -66,12 +66,15 @@ A dashboard preview reconstructs the layout as it was, including charts that
 have since been removed from the dashboard. A chart that has been deleted
 outright cannot be reconstructed; its slot shows a placeholder instead.
 
-Preview is a close approximation of the version, not a pixel-faithful
-replay: charts render with their current definitions rather than the
-definitions they had at that version, and properties outside the layout —
-the theme and description among them — show their live values. Restore
-applies the full captured state, so a restored dashboard can differ from
-its preview in these respects.
+Preview is a close approximation of the version, not a pixel-faithful replay.
+The dashboard's own saved properties — title, CSS, metadata, description,
+slug, certification, draft or published state, and theme — are shown as they
+were. Charts, though, render with their current definitions rather than the
+definitions they had at that version, and a dashboard's chart membership is
+reconstructed from the saved layout, so charts that belonged to the dashboard
+without appearing in the layout are not represented. Restore applies the full
+captured state, so a restored dashboard can differ from its preview in these
+respects.
 
 ## Restoring a version
 
@@ -91,9 +94,17 @@ and would overwrite the restore on the next sync.
 
 ## Opening a version as something new
 
-**Open as new** copies the selected version into a brand-new chart or dashboard
-and leaves the original untouched. This is the safer option when you want an
-old state back but are not certain you want to give up the current one.
+**Open as new** creates a brand-new chart or dashboard from the selected
+version and leaves the original untouched. This is the safer option when you
+want an old state back but are not certain you want to give up the current one.
+
+How much of the version comes across differs by entity, because the two copy
+paths do. A new chart is built from the version itself: its name,
+visualization type, dataset, controls, query context, description, and cache
+timeout. A new dashboard is a copy of the *live* dashboard with the version's
+title, CSS, metadata, and layout applied over it — the copy endpoint accepts
+only those fields, so properties such as description, slug, certification, and
+theme come from the dashboard as it stands today, not from the version.
 
 ## What gets recorded
 

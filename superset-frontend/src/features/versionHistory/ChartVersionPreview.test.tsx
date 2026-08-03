@@ -191,6 +191,30 @@ test('explains a version whose datasource is gone rather than failing genericall
   expect(screen.queryByTestId('super-chart')).not.toBeInTheDocument();
 });
 
+test('explains a version that records no viz type or dataset', async () => {
+  // Every version-table column is nullable — a row written for a delete
+  // carries nulls throughout. Without the guard the preview requested
+  // `undefined__undefined` and surfaced whatever the API said about it.
+  (fetchVersionSnapshot as jest.Mock).mockResolvedValue({
+    params: '{}',
+    viz_type: null,
+    datasource_id: null,
+    datasource_type: null,
+  });
+  renderPreview();
+
+  await waitFor(() => {
+    expect(
+      screen.getByText(
+        /does not record a visualization type and dataset, so it cannot be previewed/,
+      ),
+    ).toBeInTheDocument();
+  });
+  expect(fetchDatasourceMetadata).not.toHaveBeenCalled();
+  expect(getChartDataRequest).not.toHaveBeenCalled();
+  expect(screen.queryByTestId('super-chart')).not.toBeInTheDocument();
+});
+
 test('surfaces a chart-data failure instead of rendering an empty chart', async () => {
   (getChartDataRequest as jest.Mock).mockRejectedValue(
     new Response(JSON.stringify({ message: 'Query timed out' }), {
