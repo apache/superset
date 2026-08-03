@@ -424,7 +424,7 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
         .catch(() => {
           if (fetchId === fetchIdRef.current) {
             addDangerToast(t('Failed to load version preview'));
-            dispatch(clearVersionPreview());
+            dispatch(clearVersionPreview(uuid));
           }
         });
     } else if (!versionUuid) {

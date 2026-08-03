@@ -212,7 +212,7 @@ export function useVersionActions(
         addWarningToast(message);
       }
       setRestoreTarget(null);
-      dispatch(clearVersionPreview());
+      dispatch(clearVersionPreview(uuid));
       dispatch(versionRestored(uuid));
     } catch (error) {
       const { error: errMsg } = await getClientErrorObject(error);

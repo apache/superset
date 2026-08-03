@@ -70,8 +70,30 @@ test('closing the panel also exits any active preview', () => {
 test('set and clear preview', () => {
   let state = versionHistoryReducer(initial, setVersionPreview(preview));
   expect(state.preview).toEqual(preview);
-  state = versionHistoryReducer(state, clearVersionPreview());
+  state = versionHistoryReducer(state, clearVersionPreview(preview.entityUuid));
   expect(state.preview).toBeNull();
+});
+
+test("another entity's clear leaves this preview alone", () => {
+  // The slice is global and outlives any one page. A restore (or a failed
+  // apply) settling after the user moved to another entity and previewed a
+  // version there must not clear the preview they just opened — the guard
+  // lives here so every dispatcher inherits it, rather than at each of the
+  // five call sites.
+  let state = versionHistoryReducer(initial, setVersionPreview(preview));
+  state = versionHistoryReducer(state, clearVersionPreview('other-entity'));
+  expect(state.preview).toEqual(preview);
+
+  // ...and the owning entity still clears it.
+  state = versionHistoryReducer(state, clearVersionPreview(preview.entityUuid));
+  expect(state.preview).toBeNull();
+});
+
+test('a clear with no entity cannot exit another entity’s preview', () => {
+  // An undefined uuid identifies nothing, so it must not act as a wildcard.
+  let state = versionHistoryReducer(initial, setVersionPreview(preview));
+  state = versionHistoryReducer(state, clearVersionPreview(undefined));
+  expect(state.preview).toEqual(preview);
 });
 
 test('include filter persists', () => {

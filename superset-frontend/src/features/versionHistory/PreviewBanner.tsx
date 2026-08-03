@@ -59,8 +59,8 @@ export default function PreviewBanner({
     useVersionActions(entityType, preview?.entityUuid);
 
   const handleClose = useCallback(() => {
-    dispatch(clearVersionPreview());
-  }, [dispatch]);
+    dispatch(clearVersionPreview(preview?.entityUuid));
+  }, [dispatch, preview?.entityUuid]);
 
   if (!preview || activeEntityType !== entityType) {
     return null;

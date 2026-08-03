@@ -217,8 +217,8 @@ export default function DashboardVersionHistory() {
   );
 
   const handleExitPreview = useCallback(() => {
-    dispatch(clearVersionPreview());
-  }, [dispatch]);
+    dispatch(clearVersionPreview(uuid));
+  }, [dispatch, uuid]);
 
   const handleOpenRelated = useCallback(
     (record: ActivityRecord) => {

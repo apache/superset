@@ -58,6 +58,7 @@ interface SetPreviewAction {
 
 interface ClearPreviewAction {
   type: typeof CLEAR_VERSION_PREVIEW;
+  entityUuid: string | undefined;
 }
 
 interface PreviewAppliedAction {
@@ -121,8 +122,18 @@ export const setVersionPreview = (
   preview,
 });
 
-export const clearVersionPreview = (): ClearPreviewAction => ({
+/**
+ * Exits the preview of *entityUuid*. The uuid is required rather than
+ * optional so an asynchronous dispatcher has to think about identity: the
+ * slice is global and outlives any one page, so a restore or a failed apply
+ * settling after the user moved to another entity would otherwise clear the
+ * preview they just opened there. The reducer no-ops on a mismatch.
+ */
+export const clearVersionPreview = (
+  entityUuid: string | undefined,
+): ClearPreviewAction => ({
   type: CLEAR_VERSION_PREVIEW,
+  entityUuid,
 });
 
 /**
@@ -195,6 +206,12 @@ export default function versionHistoryReducer(
     case VERSION_PREVIEW_APPLIED:
       return { ...state, isPreviewApplying: false };
     case CLEAR_VERSION_PREVIEW:
+      // Only the entity whose preview this is may exit it. A restore (or a
+      // failed apply) resolving after the user moved to another entity and
+      // opened a preview there must leave that preview alone.
+      if (state.preview && state.preview.entityUuid !== action.entityUuid) {
+        return state;
+      }
       return { ...state, preview: null, isPreviewApplying: false };
     case VERSION_RESTORED:
       return {
