@@ -450,3 +450,61 @@ class TestCreateFormDataCommand(SupersetTestCase):
             _revoke_schema_access(view_menu_name)
             db.session.delete(security_manager.find_role(FORM_DATA_SCHEMA_ACCESS_ROLE))
             db.session.commit()
+
+    def test_create_form_data_command_query_author_no_all_datasource_access(self):
+        """
+        Regression for #39296 (the fix, not just the confirming test): a
+        user with no all_datasource_access and no catalog/schema/
+        datasource_access grant covering the table their SQL Lab query
+        touches should still be able to jump straight from SQL Lab to
+        "Create Chart" for that exact query, as long as they authored it.
+
+        SupersetSecurityManager.raise_for_access grants a bypass to a SQL
+        Lab query's own author, mirroring the ownership bypass already
+        granted to dataset owners via is_editor -- unlike
+        test_create_form_data_command_schema_access_no_all_datasource_access
+        above, this user has no schema_access grant of any kind; authorship
+        alone is what lets this through.
+        """
+        schema = get_example_default_schema()
+        database = get_example_database()
+        gamma_user = security_manager.find_user(username="gamma")
+
+        query = Query(
+            sql="SELECT * FROM wb_health_population",
+            client_id="fd_auth_acc1",
+            database=database,
+            schema=schema,
+            user_id=gamma_user.id,
+        )
+        db.session.add(query)
+        db.session.commit()
+
+        try:
+            with override_user(gamma_user):
+                # Sanity check: gamma should have neither all_datasource_access
+                # nor a schema_access grant covering this query's schema, or
+                # this test wouldn't be exercising the authorship bypass.
+                assert not security_manager.can_access_all_datasources()
+                view_menu_name = security_manager.get_schema_perm(
+                    database.database_name, database.get_default_catalog(), schema
+                )
+                assert not security_manager.can_access("schema_access", view_menu_name)
+
+                args = CommandParameters(
+                    datasource_id=query.id,
+                    datasource_type=DatasourceType.QUERY,
+                    chart_id=None,
+                    tab_id=1,
+                    form_data=json.dumps(
+                        {"datasource": f"{query.id}__{DatasourceType.QUERY}"}
+                    ),
+                )
+                # Should NOT raise: gamma authored this exact query, which
+                # is sufficient on its own, without any schema- or
+                # dataset-level grant.
+                key = CreateFormDataCommand(args).run()
+                assert isinstance(key, str)
+        finally:
+            db.session.delete(query)
+            db.session.commit()

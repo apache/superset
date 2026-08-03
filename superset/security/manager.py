@@ -4408,6 +4408,22 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if self.can_access_database(database):
                 return
 
+            # A SQL Lab query's own author already has execution rights on
+            # the connection that produced it (SQL Lab wouldn't have run the
+            # query otherwise): exploring the exact query they just ran
+            # should not additionally require a dataset-level
+            # ``datasource_access`` grant on every table it happens to
+            # touch. This mirrors the ownership bypass already granted to
+            # dataset owners via ``is_editor`` further below in this same
+            # method; the query path had no equivalent authorship bypass.
+            if (
+                query
+                and hasattr(query, "user_id")
+                and (user_id := get_user_id()) is not None
+                and query.user_id == user_id
+            ):
+                return
+
             # Type narrow: this path only applies to SQL Lab Query objects
             if query and hasattr(query, "sql") and hasattr(query, "catalog"):
                 # Getting the default schema for a query is hard. Users can select the
