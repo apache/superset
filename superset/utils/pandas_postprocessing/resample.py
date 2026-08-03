@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from datetime import datetime
 from typing import Optional, Union
 
 import pandas as pd
@@ -28,6 +29,8 @@ def resample(
     rule: str,
     method: str,
     fill_value: Optional[Union[float, int]] = None,
+    time_range_start: Optional[Union[datetime, str]] = None,
+    time_range_end: Optional[Union[datetime, str]] = None,
 ) -> pd.DataFrame:
     """
     support upsampling in resample
@@ -36,6 +39,11 @@ def resample(
     :param rule: The offset string representing target conversion.
     :param method: How to fill the NaN value after resample.
     :param fill_value: What values do fill missing.
+    :param time_range_start: Start of the query's time range (inclusive). When
+        combined with ``time_range_end`` and zero-filling, buckets are
+        generated across the full queried time range instead of only between
+        the first and last existing data points.
+    :param time_range_end: End of the query's time range (exclusive).
     :return: DataFrame after resample
     :raises InvalidPostProcessingError: If the request in incorrect
     """
@@ -47,7 +55,18 @@ def resample(
         )
 
     if method == "asfreq" and fill_value is not None:
-        _df = df.resample(rule).asfreq(fill_value=fill_value)
+        origin = time_range_start if time_range_start is not None else "start_day"
+        _df = df.resample(rule, origin=origin).asfreq(fill_value=fill_value)
+        if time_range_start is not None and time_range_end is not None:
+            # Zero-filling should cover the entire queried time range, not
+            # just the span between the first and last existing data points.
+            full_index = pd.date_range(
+                start=time_range_start,
+                end=time_range_end,
+                freq=rule,
+                inclusive="left",
+            )
+            _df = _df.reindex(full_index, fill_value=fill_value)
         _df = _df.fillna(fill_value)
     elif method == "linear":
         _df = df.resample(rule).interpolate()

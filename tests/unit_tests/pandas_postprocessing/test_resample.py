@@ -221,6 +221,123 @@ def test_resample_should_raise_ex():
         )
 
 
+def test_resample_zero_fill_full_time_range_single_point():
+    # Only one data point in the queried range; zero-fill should still
+    # produce a bucket for every hour in [start, end).
+    df = pd.DataFrame(
+        index=to_datetime(["2026-07-01 05:00:00"]),
+        data={"y": [7.0]},
+    )
+    post_df = pp.resample(
+        df=df,
+        rule="1h",
+        method="asfreq",
+        fill_value=0,
+        time_range_start=to_datetime("2026-07-01 00:00:00"),
+        time_range_end=to_datetime("2026-07-02 00:00:00"),
+    )
+    expected_index = pd.date_range(
+        start="2026-07-01 00:00:00", end="2026-07-02 00:00:00", freq="1h"
+    )[:-1]
+    assert post_df.index.equals(expected_index)
+    assert len(post_df) == 24
+    expected_y = [0.0] * 24
+    expected_y[5] = 7.0
+    assert post_df["y"].tolist() == expected_y
+
+
+def test_resample_zero_fill_full_time_range_missing_at_start():
+    # First data point occurs partway through the range; earlier buckets
+    # should be filled with zero instead of being omitted.
+    df = pd.DataFrame(
+        index=to_datetime(["2026-07-01 10:00:00", "2026-07-01 15:00:00"]),
+        data={"y": [1.0, 2.0]},
+    )
+    post_df = pp.resample(
+        df=df,
+        rule="1h",
+        method="asfreq",
+        fill_value=0,
+        time_range_start=to_datetime("2026-07-01 00:00:00"),
+        time_range_end=to_datetime("2026-07-02 00:00:00"),
+    )
+    assert len(post_df) == 24
+    assert post_df["y"].iloc[:10].tolist() == [0.0] * 10
+    assert post_df["y"].iloc[10] == 1.0
+    assert post_df["y"].iloc[15] == 2.0
+
+
+def test_resample_zero_fill_full_time_range_missing_at_end():
+    # Last data point occurs before the end of the range; trailing buckets
+    # should be filled with zero instead of being omitted.
+    df = pd.DataFrame(
+        index=to_datetime(["2026-07-01 02:00:00", "2026-07-01 08:00:00"]),
+        data={"y": [1.0, 2.0]},
+    )
+    post_df = pp.resample(
+        df=df,
+        rule="1h",
+        method="asfreq",
+        fill_value=0,
+        time_range_start=to_datetime("2026-07-01 00:00:00"),
+        time_range_end=to_datetime("2026-07-02 00:00:00"),
+    )
+    assert len(post_df) == 24
+    assert post_df["y"].iloc[2] == 1.0
+    assert post_df["y"].iloc[8] == 2.0
+    assert post_df["y"].iloc[9:].tolist() == [0.0] * (24 - 9)
+
+
+def test_resample_zero_fill_full_time_range_missing_throughout():
+    # Sparse data points scattered across the range; every other bucket
+    # should be filled with zero across the full queried range.
+    df = pd.DataFrame(
+        index=to_datetime(
+            ["2026-07-01 01:00:00", "2026-07-01 11:00:00", "2026-07-01 22:00:00"]
+        ),
+        data={"y": [1.0, 2.0, 3.0]},
+    )
+    post_df = pp.resample(
+        df=df,
+        rule="1h",
+        method="asfreq",
+        fill_value=0,
+        time_range_start=to_datetime("2026-07-01 00:00:00"),
+        time_range_end=to_datetime("2026-07-02 00:00:00"),
+    )
+    expected_y = [0.0] * 24
+    expected_y[1] = 1.0
+    expected_y[11] = 2.0
+    expected_y[22] = 3.0
+    assert len(post_df) == 24
+    assert post_df["y"].tolist() == expected_y
+
+
+def test_resample_zero_fill_without_time_range_keeps_existing_behavior():
+    # When the query time range isn't supplied, behavior must match the
+    # pre-existing (data-bounded) resampling.
+    post_df = pp.resample(df=timeseries_df, rule="1D", method="asfreq", fill_value=0)
+    assert post_df.equals(
+        pd.DataFrame(
+            index=pd.to_datetime(
+                [
+                    "2019-01-01",
+                    "2019-01-02",
+                    "2019-01-03",
+                    "2019-01-04",
+                    "2019-01-05",
+                    "2019-01-06",
+                    "2019-01-07",
+                ]
+            ),
+            data={
+                "label": ["x", "y", 0, 0, "z", 0, "q"],
+                "y": [1.0, 2.0, 0, 0, 3.0, 0, 4.0],
+            },
+        )
+    )
+
+
 def test_resample_linear():
     df = pd.DataFrame(
         index=to_datetime(["2019-01-01", "2019-01-05", "2019-01-08"]),
