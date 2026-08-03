@@ -21,6 +21,7 @@ from flask_appbuilder.security.sqla.models import User
 from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
+from superset.superset_typing import Metric
 from superset.utils.core import override_user
 
 
@@ -112,6 +113,26 @@ def test_cache_key_stable_regardless_of_extra_cache_keys_order():
         extra_cache_keys=list(reversed(same_values_different_order))
     )
     assert cache_key1 == cache_key2
+
+
+def test_cache_key_sensitive_to_orderby_order():
+    """
+    Negative control for the ``extra_cache_keys`` fix above: unlike that
+    field, ``orderby`` is order-significant (it determines sort direction
+    of the executed SQL), so the cache key must still change when the
+    order of its entries changes. This guards against a fix that
+    canonicalizes list values generically instead of targeting
+    ``extra_cache_keys`` specifically.
+    """
+    metric_a: Metric = "count"
+    metric_b: Metric = "sum__value"
+    query_object1 = QueryObject(
+        row_limit=1, orderby=[(metric_a, True), (metric_b, False)]
+    )
+    query_object2 = QueryObject(
+        row_limit=1, orderby=[(metric_b, False), (metric_a, True)]
+    )
+    assert query_object1.cache_key() != query_object2.cache_key()
 
 
 def test_cache_key_changes_for_new_query_object_same_params():
