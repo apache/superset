@@ -27,6 +27,7 @@ from superset.commands.explore.form_data.delete import DeleteFormDataCommand
 from superset.commands.explore.form_data.get import GetFormDataCommand
 from superset.commands.explore.form_data.parameters import CommandParameters
 from superset.commands.explore.form_data.update import UpdateFormDataCommand
+from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
@@ -476,6 +477,10 @@ class TestCreateFormDataCommand(SupersetTestCase):
             database=database,
             schema=schema,
             user_id=gamma_user.id,
+            # The authorship bypass only covers a query that actually
+            # succeeded -- see raise_for_access in
+            # superset/security/manager.py.
+            status=QueryStatus.SUCCESS,
         )
         db.session.add(query)
         db.session.commit()
