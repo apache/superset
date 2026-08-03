@@ -527,7 +527,7 @@ class TestDashboardActivityView(SupersetTestCase):
         removed while the activity stream keeps working with a smaller
         count."""
         # pylint: disable=import-outside-toplevel
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
 
         import sqlalchemy as sa
         from sqlalchemy_continuum import versioning_manager
@@ -556,19 +556,33 @@ class TestDashboardActivityView(SupersetTestCase):
             or 0
         )
 
+        def max_tx_id() -> int:
+            return (
+                db.session.connection()
+                .execute(sa.select(sa.func.max(tx_table.c.id)))
+                .scalar()
+                or 0
+            )
+
         try:
-            # Two separate commits → two transactions. The prune preserves
-            # any transaction still anchoring an open shadow row, so a
-            # single edit would (correctly) prune nothing: its row IS the
-            # chart's live state. The second edit closes the first row.
+            # Two separate commits → two transactions; the second edit
+            # closes the first row (see docstring for the keep-live guard).
             chart.slice_name = f"{original_name} (retention test)"
             db.session.commit()
+            closed_tx_id = max_tx_id()
             chart = db.session.query(Slice).filter(Slice.id == chart_id).one()
             chart.slice_name = f"{original_name} (retention test 2)"
             db.session.commit()
+            live_tx_id = max_tx_id()
+            assert closed_tx_id > max_tx_before
+            assert live_tx_id > closed_tx_id
 
             # Backdate the new transactions to before the 30-day cutoff.
-            old_timestamp = datetime.utcnow() - timedelta(days=60)
+            # Naive-UTC to match issued_at (Continuum stores it tz-naive);
+            # utcnow() is deprecated on 3.12+.
+            old_timestamp = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
+                days=60
+            )
             db.session.connection().execute(
                 sa.update(tx_table)
                 .where(tx_table.c.id > max_tx_before)
@@ -590,6 +604,29 @@ class TestDashboardActivityView(SupersetTestCase):
             stats = _prune_old_versions_impl(retention_days=30)
             assert stats.get("pruned_transactions", 0) >= 1, (
                 f"Prune should have removed our backdated tx; stats={stats}"
+            )
+
+            # Membership, not just counts: on this persistent DB a leftover
+            # old transaction from a prior run could satisfy the count
+            # assertions while OUR backdated tx survived. Pin the exact
+            # claim — the closed transaction is gone, and the one anchoring
+            # the chart's live row is retained despite being equally old
+            # (the keep-live guard, asserted rather than narrated).
+            surviving = {
+                row[0]
+                for row in db.session.connection().execute(
+                    sa.select(tx_table.c.id).where(
+                        tx_table.c.id.in_([closed_tx_id, live_tx_id])
+                    )
+                )
+            }
+            assert closed_tx_id not in surviving, (
+                f"Closed tx {closed_tx_id} should have been pruned; "
+                f"surviving={surviving}"
+            )
+            assert live_tx_id in surviving, (
+                f"Live-anchoring tx {live_tx_id} must survive the prune "
+                f"regardless of age; surviving={surviving}"
             )
 
             # After the prune, the activity endpoint still works and the
@@ -665,7 +702,8 @@ class TestDashboardActivityView(SupersetTestCase):
     def test_activity_surfaces_dashboard_restore_event(self) -> None:
         """T044 / AV-015: restoring a dashboard to a prior version surfaces
         a synthetic ``kind='__meta__'`` headline record (path
-        ``['__meta__', 'restore']``, ``to_value`` carrying the restored-to
+        ``['__meta__']`` — the verb rides in ``action_kind``, never in the
+        path — with ``to_value`` carrying the restored-to
         version_uuid) in the dashboard's own activity stream
         (``source='self'``). The headline is emitted by the restore
         command via the listener's ACTION_META_KEY (PR #40988 feedback);
