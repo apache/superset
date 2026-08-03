@@ -44,6 +44,7 @@ from superset.mcp_service.middleware import (
     RBACToolVisibilityMiddleware,
     ResponseSizeGuardMiddleware,
 )
+from superset.utils.log import DBEventLogger
 
 
 class TestResponseSizeGuardMiddleware:
@@ -1523,6 +1524,43 @@ class TestGlobalErrorHandlerLogLevels:
             await middleware.on_message(context, call_next)
 
         assert "Internal error" not in str(exc.value)
+
+    @pytest.mark.asyncio
+    async def test_error_event_reaches_the_real_event_logger(self) -> None:
+        """
+        Regression for #42579: ``_handle_error`` calls
+        ``event_logger.log(user_id=..., action=..., duration_ms=...,
+        curated_payload=...)`` without the ``dashboard_id``/``slice_id``/
+        ``referrer`` arguments ``DBEventLogger.log`` requires (they have no
+        defaults), so the call raises ``TypeError`` on every single MCP
+        error, silently swallowed by the surrounding ``except Exception``.
+
+        Every other test in this class patches ``event_logger`` with a bare
+        ``MagicMock``, which accepts any kwargs and would never catch this --
+        this test uses the real ``DBEventLogger`` instead (with the DB
+        session calls stubbed out, so it doesn't need a live database) to
+        actually exercise the argument binding that's broken today.
+        """
+        middleware = GlobalErrorHandlerMiddleware()
+
+        context = MagicMock()
+        context.message.name = "execute_sql"
+        context.method = "tools/call"
+
+        call_next = AsyncMock(side_effect=ValueError("bad param"))
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger", DBEventLogger()),
+            patch("superset.db") as mock_db,
+            pytest.raises(ToolError),
+        ):
+            await middleware.on_message(context, call_next)
+
+        # If event_logger.log() actually bound its arguments successfully,
+        # it would go on to persist a Log row. Today the TypeError is raised
+        # (and swallowed) before it ever gets that far.
+        mock_db.session.bulk_save_objects.assert_called_once()
 
 
 class TestRBACToolVisibilityMiddleware:
