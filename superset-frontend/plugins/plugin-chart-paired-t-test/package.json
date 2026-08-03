@@ -9,26 +9,26 @@
   "bugs": {
     "url": "https://github.com/apache/superset/issues"
   },
+  "license": "Apache-2.0",
+  "author": "Superset",
   "repository": {
     "type": "git",
     "url": "https://github.com/apache/superset.git",
     "directory": "superset-frontend/plugins/plugin-chart-paired-t-test"
   },
-  "license": "Apache-2.0",
-  "author": "Superset",
-  "main": "lib/index.js",
-  "module": "esm/index.js",
   "files": [
     "esm",
     "lib"
   ],
-  "peerDependencies": {
-    "@superset-ui/chart-controls": "*",
-    "@superset-ui/core": "*",
-    "@apache-superset/core": "*",
-    "react": "^18.3.0"
-  },
+  "main": "lib/index.js",
+  "module": "esm/index.js",
   "publishConfig": {
     "access": "public"
+  },
+  "peerDependencies": {
+    "@apache-superset/core": "*",
+    "@superset-ui/chart-controls": "*",
+    "@superset-ui/core": "*",
+    "react": "^18.3.0"
   }
 }

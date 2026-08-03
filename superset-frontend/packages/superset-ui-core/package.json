@@ -9,20 +9,45 @@
   "bugs": {
     "url": "https://github.com/apache/superset/issues"
   },
+  "license": "Apache-2.0",
+  "author": "Superset",
   "repository": {
     "type": "git",
     "url": "https://github.com/apache/superset.git",
     "directory": "superset-frontend/packages/superset-ui-core"
   },
-  "license": "Apache-2.0",
-  "author": "Superset",
-  "sideEffects": false,
-  "main": "lib/index.js",
-  "module": "esm/index.js",
   "files": [
     "esm",
     "lib"
   ],
+  "sideEffects": false,
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "exports": {
+    ".": {
+      "import": "./esm/index.js",
+      "require": "./lib/index.js",
+      "types": "./lib/index.d.ts"
+    },
+    "./components/*": {
+      "import": "./esm/components/*/index.js",
+      "require": "./lib/components/*/index.js",
+      "types": "./lib/components/*/index.d.ts"
+    },
+    "./components": {
+      "import": "./esm/components/index.js",
+      "require": "./lib/components/index.js",
+      "types": "./lib/components/index.d.ts"
+    },
+    "./utils/*": {
+      "import": "./esm/utils/*.js",
+      "require": "./lib/utils/*.js",
+      "types": "./lib/utils/*.d.ts"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@ant-design/icons": "^6.3.2",
     "@apache-superset/core": "*",
@@ -48,6 +73,7 @@
     "handlebars": "^4.7.9",
     "jed": "^1.1.1",
     "lodash": "^4.18.1",
+    "lodash-es": "^4.18.1",
     "math-expression-evaluator": "^2.0.7",
     "parse-ms": "^4.0.0",
     "re-resizable": "^6.11.2",
@@ -66,8 +92,7 @@
     "reselect": "^5.2.0",
     "rison": "^0.1.1",
     "seedrandom": "^3.0.5",
-    "xss": "^1.0.15",
-    "lodash-es": "^4.18.1"
+    "xss": "^1.0.15"
   },
   "devDependencies": {
     "@emotion/styled": "^11.14.1",
@@ -106,30 +131,5 @@
     "react-dom": "^18.3.0",
     "react-loadable": "^5.5.0",
     "tinycolor2": "*"
-  },
-  "publishConfig": {
-    "access": "public"
-  },
-  "exports": {
-    ".": {
-      "import": "./esm/index.js",
-      "require": "./lib/index.js",
-      "types": "./lib/index.d.ts"
-    },
-    "./components/*": {
-      "import": "./esm/components/*/index.js",
-      "require": "./lib/components/*/index.js",
-      "types": "./lib/components/*/index.d.ts"
-    },
-    "./components": {
-      "import": "./esm/components/index.js",
-      "require": "./lib/components/index.js",
-      "types": "./lib/components/index.d.ts"
-    },
-    "./utils/*": {
-      "import": "./esm/utils/*.js",
-      "require": "./lib/utils/*.js",
-      "types": "./lib/utils/*.d.ts"
-    }
   }
 }
