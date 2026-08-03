@@ -138,7 +138,6 @@ describe('DatasetLayout', () => {
           <DatasetPanelComponent
             tableName="large_table"
             columnList={manyColumns}
-            hasError={false}
             loading={false}
           />
         }
