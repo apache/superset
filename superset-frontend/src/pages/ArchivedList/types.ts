@@ -47,10 +47,11 @@ export interface ArchivedTypeConfig {
   permissionResource: 'Chart' | 'Dashboard' | 'Dataset';
 }
 
-/** The supported types, in display order. */
-/** Readonly: both fail-open branches in `availableTypes` hand this exact
- * reference back to the caller, so a mutable array would let one consumer
- * corrupt the type list process-wide. */
+/**
+ * The supported types, in display order. Readonly: both fail-open branches in
+ * `availableTypes` hand this exact reference back to the caller, so a mutable
+ * array would let one consumer corrupt the type list process-wide.
+ */
 export const ARCHIVED_TYPES: readonly ArchivedType[] = [
   'chart',
   'dashboard',

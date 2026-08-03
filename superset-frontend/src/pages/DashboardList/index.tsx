@@ -61,7 +61,10 @@ import {
   type ListViewFilters,
 } from 'src/components';
 import handleResourceExport from 'src/utils/export';
-import { archiveConfirmDescription } from 'src/utils/softDeleteCopy';
+import {
+  archiveConfirmDescription,
+  deleteActionLabel,
+} from 'src/utils/softDeleteCopy';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -563,12 +566,10 @@ function DashboardList(props: DashboardListProps) {
                 >
                   {confirmDelete => (
                     <ActionButton
-                      label={softDelete ? t('Archive') : t('Delete')}
+                      label={deleteActionLabel()}
                       tooltip={
                         allowEdit
-                          ? softDelete
-                            ? t('Archive')
-                            : t('Delete')
+                          ? deleteActionLabel()
                           : t(
                               'You must be a dashboard editor in order to delete. Please reach out to a dashboard editor to request modifications or edit access.',
                             )
@@ -868,7 +869,7 @@ function DashboardList(props: DashboardListProps) {
           if (canDelete) {
             bulkActions.push({
               key: 'delete',
-              name: softDelete ? t('Archive') : t('Delete'),
+              name: deleteActionLabel(),
               type: 'danger',
               onSelect: confirmDelete,
             });

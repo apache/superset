@@ -45,7 +45,10 @@ import {
   useListViewResource,
 } from 'src/views/CRUD/hooks';
 import handleResourceExport from 'src/utils/export';
-import { archiveConfirmDescription } from 'src/utils/softDeleteCopy';
+import {
+  archiveConfirmDescription,
+  deleteActionLabel,
+} from 'src/utils/softDeleteCopy';
 import {
   ActionButton,
   ConfirmStatusChange,
@@ -591,12 +594,10 @@ function ChartList(props: ChartListProps) {
                 >
                   {confirmDelete => (
                     <ActionButton
-                      label={softDelete ? t('Archive') : t('Delete')}
+                      label={deleteActionLabel()}
                       tooltip={
                         allowEdit
-                          ? softDelete
-                            ? t('Archive')
-                            : t('Delete')
+                          ? deleteActionLabel()
                           : t(
                               'You must be a chart editor in order to delete. Please reach out to a chart editor to request modifications or edit access.',
                             )
@@ -948,7 +949,7 @@ function ChartList(props: ChartListProps) {
           if (canDelete) {
             bulkActions.push({
               key: 'delete',
-              name: softDelete ? t('Archive') : t('Delete'),
+              name: deleteActionLabel(),
               type: 'danger',
               onSelect: confirmDelete,
             });

@@ -972,11 +972,10 @@ def _add_soft_delete_filter(execute_state: ORMExecuteState) -> None:
 
     Which statements get the criteria is decided by
     ``_should_attach_soft_delete_criteria`` -- and note that relationship
-    loads are deliberately INCLUDED (only column loads are skipped). An
-    earlier revision of this docstring claimed relationship loads were
-    skipped because ``propagate_to_loaders`` covered them; that predicate's
-    own docstring explains at length why that assumption was unreliable and
-    leaked soft-deleted rows through lazy loads. Defer to it.
+    loads are deliberately INCLUDED (only column loads are skipped).
+    ``propagate_to_loaders`` alone does not reliably cover lazy loads and
+    can leak soft-deleted rows through them; that predicate's own docstring
+    explains why at length. Defer to it.
 
     Per-class scoping: the listener iterates concrete ``SoftDeleteMixin``
     subclasses and attaches a ``with_loader_criteria`` only for those

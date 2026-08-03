@@ -42,9 +42,9 @@ export function addToast({
       duration,
       noDuplicate,
       // Must ride the payload explicitly: the destructure-and-rebuild above
-      // silently dropped it once, which stripped the anchor from every toast
-      // that asked for HTML while all tests stayed green -- they injected the
-      // flag downstream of this hop.
+      // drops any field not named here, and the loss is silent -- the toast
+      // tests inject flags downstream of this hop, so they stay green while
+      // every HTML toast quietly loses its anchor.
       allowHtml,
     },
   };

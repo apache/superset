@@ -317,14 +317,12 @@ class BaseDeletedStateFilter(BaseFilter):  # pylint: disable=too-few-public-meth
 class BaseDeletedRecencyFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     """Keep rows archived within the last *value* days, by the server's clock.
 
-    The archive UI's time-range presets used to send an absolute cutoff
-    computed client-side in UTC. ``deleted_at`` is stamped with the server's
-    naive-local ``datetime.now()``, so on any non-UTC deployment those
-    cutoffs were shifted by the server offset -- and because the cutoff was
-    frozen when the page mounted, a long-lived tab drifted further. Taking a
-    day count and resolving it here, on the clock that stamped the column,
-    removes both failure modes and lets the client keep stable, shareable
-    filter values.
+    ``deleted_at`` is stamped with the server's naive-local
+    ``datetime.now()``, so only a cutoff resolved here -- on the clock that
+    stamped the column -- is correct on non-UTC deployments. An absolute
+    client-computed cutoff would be shifted by the server offset and frozen
+    at page mount (a long-lived tab drifts a day per day). The client sends
+    a stable day count, which also survives the URL and stays shareable.
 
     Subclasses set ``arg_name`` (e.g. ``"chart_deleted_recency"``).
     """

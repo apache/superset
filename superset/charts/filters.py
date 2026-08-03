@@ -289,11 +289,11 @@ class ChartDeletedStateFilter(  # pylint: disable=too-few-public-methods
     """Rison filter for the GET list that exposes soft-deleted charts.
 
     Restore-audience scoping (only editors and admins may enumerate
-    soft-deleted rows) is applied by ``BaseDeletedStateFilter``. This class
-    used to stack a second, semantically identical editors predicate on top --
-    two implementations of one security rule, which meant a future audience
-    change would land in one and charts would silently enforce the
-    intersection of old and new. The base's rule is the only one.
+    soft-deleted rows) is applied by ``BaseDeletedStateFilter``, and the
+    base's rule must stay the only implementation: stacking a second,
+    semantically identical editors predicate here would mean a future
+    audience change lands in one copy and charts silently enforce the
+    intersection of old and new.
     """
 
     arg_name = "chart_deleted_state"

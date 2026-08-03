@@ -18,6 +18,7 @@
  */
 import { escape } from 'lodash';
 import { t } from '@apache-superset/core/translation';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import getBootstrapData from 'src/utils/getBootstrapData';
 
 export interface ToastContent {
@@ -81,6 +82,44 @@ export function archiveConfirmDescription(
         'This %(type)s will be moved to Recently Archived. You can recover it there.',
         { type: typeLabel },
       );
+}
+
+/**
+ * Label for the delete affordance on list rows and bulk actions: "Archive"
+ * when soft-delete is on (the action is recoverable), "Delete" when it is
+ * off. One home for the vocabulary fork so a rename lands once.
+ */
+export function deleteActionLabel(): string {
+  return isFeatureEnabled(FeatureFlag.SoftDelete) ? t('Archive') : t('Delete');
+}
+
+/** Success toast for a completed delete (archive) of a named object. */
+export function deletedToast(name: string): string {
+  return isFeatureEnabled(FeatureFlag.SoftDelete)
+    ? t('Archived: %s', name)
+    : t('Deleted: %s', name);
+}
+
+/**
+ * Failure toast for a delete (archive) of a named object. Each branch is a
+ * complete translation unit; the helper only chooses between them. `errMsg`
+ * is whatever the error handler extracted -- `createErrorHandler` can hand
+ * over a string or a structured record, and `t()` interpolates either, so
+ * the type stays as wide as the call sites it replaced.
+ */
+export function deleteFailedToast(
+  name: string,
+  errMsg?: string | Record<string, string | string[]>,
+): string {
+  const softDelete = isFeatureEnabled(FeatureFlag.SoftDelete);
+  if (errMsg === undefined || errMsg === null || errMsg === '') {
+    return softDelete
+      ? t('There was an issue archiving: %s', name)
+      : t('There was an issue deleting: %s', name);
+  }
+  return softDelete
+    ? t('There was an issue archiving %s: %s', name, errMsg)
+    : t('There was an issue deleting %s: %s', name, errMsg);
 }
 
 /**

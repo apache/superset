@@ -48,6 +48,9 @@ import {
   type ArchivedType,
 } from './types';
 
+/** Cell props shape shared by the column renderers below. */
+type ArchivedCell = { row: { original: ArchivedItem } };
+
 const PAGE_SIZE = 25;
 
 const TypeSelectRow = styled.div`
@@ -197,33 +200,31 @@ function ArchivedListBody({
     setInFlight([...inFlightRef.current]);
   }, []);
 
-  const handleRestore = useCallback(
-    async (item: ArchivedItem) => {
+  // One skeleton for both row actions, so the in-flight invariant is encoded
+  // once: guard -> POST -> success toast -> awaited refresh -> error toast ->
+  // release. The refresh is awaited so the finally's endAction does not
+  // re-enable this row's buttons while the stale row is still rendered -- a
+  // keyboard user could re-activate it and get a 404 after success.
+  const performRowAction = useCallback(
+    async (
+      item: ArchivedItem,
+      verb: 'restore' | 'purge',
+      onSuccess: (name: string) => void,
+      failureMessage: (name: string, errMsg?: string) => string,
+    ) => {
       const name = String(item[config.nameField] ?? '');
       if (!beginAction(item.uuid)) {
         return;
       }
       try {
         await SupersetClient.post({
-          endpoint: `/api/v1/${config.resource}/${item.uuid}/restore`,
+          endpoint: `/api/v1/${config.resource}/${item.uuid}/${verb}`,
         });
-        const { text, options } = recoveredToast(
-          name,
-          TYPE_LABELS[type],
-          item.url ?? item.explore_url,
-        );
-        addSuccessToast(text, options);
-        // Awaited so the finally's endAction does not re-enable this row's
-        // buttons while the stale, already-restored row is still rendered --
-        // a keyboard user could re-activate it and get a 404 after success.
+        onSuccess(name);
         await refreshData();
       } catch (error) {
         const { error: errMsg } = await getClientErrorObject(error);
-        addDangerToast(
-          errMsg
-            ? t('Failed to restore %(name)s: %(errMsg)s', { name, errMsg })
-            : t('Failed to restore %(name)s', { name }),
-        );
+        addDangerToast(failureMessage(name, errMsg));
       } finally {
         endAction(item.uuid);
       }
@@ -231,13 +232,32 @@ function ArchivedListBody({
     [
       config.resource,
       config.nameField,
-      type,
-      addSuccessToast,
       addDangerToast,
       refreshData,
       beginAction,
       endAction,
     ],
+  );
+
+  const handleRestore = useCallback(
+    (item: ArchivedItem) =>
+      performRowAction(
+        item,
+        'restore',
+        name => {
+          const { text, options } = recoveredToast(
+            name,
+            TYPE_LABELS[type],
+            item.url ?? item.explore_url,
+          );
+          addSuccessToast(text, options);
+        },
+        (name, errMsg) =>
+          errMsg
+            ? t('Failed to restore %(name)s: %(errMsg)s', { name, errMsg })
+            : t('Failed to restore %(name)s', { name }),
+      ),
+    [performRowAction, type, addSuccessToast],
   );
 
   // Permanent delete (force-purge) of an archived item — irreversible. Owner/
@@ -246,49 +266,27 @@ function ArchivedListBody({
   // the page, so it must not carry *less* friction than an ordinary delete.
   // The recoverable archive path is the one that earned reduced friction.
   const handlePurge = useCallback(
-    async (item: ArchivedItem) => {
-      const name = String(item[config.nameField] ?? '');
-      if (!beginAction(item.uuid)) {
-        return;
-      }
-      try {
-        await SupersetClient.post({
-          endpoint: `/api/v1/${config.resource}/${item.uuid}/purge`,
-        });
-        addSuccessToast(t('%(name)s deleted successfully', { name }));
-        // Awaited for the same reason as the restore path: the in-flight
-        // guard must outlive the stale row.
-        await refreshData();
-      } catch (error) {
+    (item: ArchivedItem) =>
+      performRowAction(
+        item,
+        'purge',
+        name => addSuccessToast(t('%(name)s deleted successfully', { name })),
         // A blocked purge answers 422 carrying the reason -- an alert or
         // report still referencing the object. The docs promise that reason
         // is shown, and it is the only thing telling the user what to remove
         // before retrying.
-        const { error: errMsg } = await getClientErrorObject(error);
-        addDangerToast(
+        (name, errMsg) =>
           errMsg
             ? t('Failed to delete %(name)s: %(errMsg)s', { name, errMsg })
             : t('Failed to delete %(name)s', { name }),
-        );
-      } finally {
-        endAction(item.uuid);
-      }
-    },
-    [
-      config.resource,
-      config.nameField,
-      addSuccessToast,
-      addDangerToast,
-      refreshData,
-      beginAction,
-      endAction,
-    ],
+      ),
+    [performRowAction, addSuccessToast],
   );
 
   const columns = useMemo<ListViewProps['columns']>(
     () => [
       {
-        Cell: ({ row: { original } }: { row: { original: ArchivedItem } }) => {
+        Cell: ({ row: { original } }: ArchivedCell) => {
           const name = String(original[config.nameField] ?? '');
           // Archived objects are not viewable in place. Verified against a
           // running instance: an archived dashboard's page 404s, and an
@@ -316,12 +314,12 @@ function ArchivedListBody({
       {
         // Relative archive time, humanized by the SERVER (like
         // changed_on_delta_humanized on the sibling pages). deleted_at is
-        // stamped with the server's naive-local clock, so parsing it here
-        // means guessing the server's timezone -- this page used to guess
-        // UTC, shifting every age by the server offset on non-UTC
-        // deployments. Sortable: id stays deleted_at, which is in
-        // order_columns on all three list APIs.
-        Cell: ({ row: { original } }: { row: { original: ArchivedItem } }) =>
+        // stamped with the server's naive-local clock, so any client-side
+        // parse has to guess the server's timezone and shifts every age by
+        // the server offset on non-UTC deployments -- see
+        // BaseDeletedRecencyFilter for the full rationale. Sortable: id
+        // stays deleted_at, which is in order_columns on all three APIs.
+        Cell: ({ row: { original } }: ArchivedCell) =>
           String(original.deleted_at_delta_humanized ?? ''),
         Header: t('Archived'),
         id: 'deleted_at',
@@ -329,7 +327,7 @@ function ArchivedListBody({
       {
         // Archiving user, from changed_by. Non-sortable — there is no backend
         // deleted-by ordering.
-        Cell: ({ row: { original } }: { row: { original: ArchivedItem } }) => {
+        Cell: ({ row: { original } }: ArchivedCell) => {
           const by = [
             original.changed_by?.first_name,
             original.changed_by?.last_name,
@@ -343,7 +341,7 @@ function ArchivedListBody({
         disableSortBy: true,
       },
       {
-        Cell: ({ row: { original } }: { row: { original: ArchivedItem } }) => (
+        Cell: ({ row: { original } }: ArchivedCell) => (
           <ArchivedRowActions
             item={original}
             name={String(original[config.nameField] ?? '')}

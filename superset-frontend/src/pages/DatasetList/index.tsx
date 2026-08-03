@@ -75,7 +75,12 @@ import type { SelectOption } from 'src/components/ListView/types';
 import { Typography } from '@superset-ui/core/components/Typography';
 import handleResourceExport from 'src/utils/export';
 import { ensureAppRoot, stripAppRoot } from 'src/utils/navigationUtils';
-import { archiveConfirmDescription } from 'src/utils/softDeleteCopy';
+import {
+  archiveConfirmDescription,
+  deleteActionLabel,
+  deletedToast,
+  deleteFailedToast,
+} from 'src/utils/softDeleteCopy';
 import SubMenu, { SubMenuProps, ButtonProps } from 'src/features/home/SubMenu';
 import Subject from 'src/types/Subject';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -951,12 +956,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               )}
               {canDelete && (
                 <ActionButton
-                  label={softDelete ? t('Archive') : t('Delete')}
+                  label={deleteActionLabel()}
                   tooltip={
                     allowEdit
-                      ? softDelete
-                        ? t('Archive')
-                        : t('Delete')
+                      ? deleteActionLabel()
                       : t(
                           'You must be a dataset editor in order to delete. Please reach out to a dataset editor to request modifications or edit access.',
                         )
@@ -1267,18 +1270,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       () => {
         refreshData();
         setDatasetCurrentlyDeleting(null);
-        addSuccessToast(
-          softDelete
-            ? t('Archived: %s', tableName)
-            : t('Deleted: %s', tableName),
-        );
+        addSuccessToast(deletedToast(tableName));
       },
       createErrorHandler(errMsg =>
-        addDangerToast(
-          softDelete
-            ? t('There was an issue archiving %s: %s', tableName, errMsg)
-            : t('There was an issue deleting %s: %s', tableName, errMsg),
-        ),
+        addDangerToast(deleteFailedToast(tableName, errMsg)),
       ),
     );
   };
@@ -1593,7 +1588,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           if (canDelete) {
             bulkActions.push({
               key: 'delete',
-              name: softDelete ? t('Archive') : t('Delete'),
+              name: deleteActionLabel(),
               onSelect: (selected: Dataset[]) => {
                 setPendingBulkSemanticCount(
                   selected.filter(isSemanticView).length,
