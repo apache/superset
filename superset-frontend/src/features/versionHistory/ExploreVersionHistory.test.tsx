@@ -124,19 +124,21 @@ const makeStore = () =>
 const renderAdapter = (store: ReturnType<typeof makeTestStore>) =>
   render(<ExploreVersionHistory />, { store: store as unknown as Store });
 
+const activityResult = {
+  records: [],
+  timeline: [],
+  newestGroup: null,
+  count: 0,
+  isLoading: false,
+  error: null,
+  hasMore: false,
+  truncated: false,
+  loadMore: jest.fn(),
+  refresh,
+};
+
 beforeEach(() => {
-  mockedUseVersionActivity.mockReturnValue({
-    records: [],
-    timeline: [],
-    newestGroup: null,
-    count: 0,
-    isLoading: false,
-    error: null,
-    hasMore: false,
-    truncated: false,
-    loadMore: jest.fn(),
-    refresh,
-  });
+  mockedUseVersionActivity.mockReturnValue(activityResult);
   mockedFetchRehydration.mockResolvedValue({});
   mockedHydrateExplore.mockImplementation(payload => ({
     type: HYDRATE_EXPLORE_TEST,
@@ -219,6 +221,59 @@ test('a restore rehydration resolving after unmount is discarded', async () => {
   expect(
     store.actions.some(action => action.type === HYDRATE_EXPLORE_TEST),
   ).toBe(false);
+});
+
+test('a search keystroke mid-rehydration does not drop the restored version', async () => {
+  // `refreshActivity` is `useVersionActivity`'s `refresh`, whose identity
+  // moves whenever the debounced search term or the include filter does.
+  // A guard bound to the effect run would cancel the in-flight rehydration
+  // on that re-run and never re-issue it — the timeline would show the
+  // restore while the chart still rendered its pre-restore state, with the
+  // failure toast suppressed too.
+  let resolveRehydration: (value: object) => void = () => {};
+  mockedFetchRehydration.mockReturnValue(
+    new Promise(resolve => {
+      resolveRehydration = resolve;
+    }),
+  );
+  mockedUseVersionActivity.mockImplementation(() => ({
+    ...activityResult,
+    // A fresh identity per render, as the real hook produces when `q` moves.
+    refresh: () => refresh(),
+  }));
+  const store = makeStore();
+  renderAdapter(store);
+
+  act(() => {
+    store.setState({
+      versionHistory: versionHistoryState({
+        restoreCount: 1,
+        lastRestoredEntityUuid: 'chart-uuid',
+      }),
+    });
+  });
+  await waitFor(() => expect(mockedFetchRehydration).toHaveBeenCalled());
+
+  // The debounce fires mid-flight and re-renders the panel.
+  act(() => {
+    store.setState({
+      versionHistory: versionHistoryState({
+        restoreCount: 1,
+        lastRestoredEntityUuid: 'chart-uuid',
+        include: 'self',
+      }),
+    });
+  });
+
+  await act(async () => {
+    resolveRehydration({});
+  });
+
+  expect(mockedHydrateExplore).toHaveBeenCalledWith(
+    expect.objectContaining({ saveAction: 'overwrite' }),
+  );
+  // ...and it was not re-issued to compensate.
+  expect(mockedFetchRehydration).toHaveBeenCalledTimes(1);
 });
 
 test('the initial slice hydration does not trigger a refresh', () => {

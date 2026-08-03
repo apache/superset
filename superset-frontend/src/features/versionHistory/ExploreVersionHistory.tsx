@@ -180,13 +180,24 @@ export default function ExploreVersionHistory() {
   const lastRestoreCountRef = useRef(restoreCount);
   const lastSaveSignalRef = useRef(saveSignal);
   const refreshActivity = activity.refresh;
+  // Invalidation token for the in-flight post-restore rehydration.
+  // hydrateExplore rewrites the whole explore store, so a fetch resolving
+  // after the page unmounted — or after a save-as swapped the slice in
+  // place — would overwrite the newly loaded chart's state with the old
+  // chart's payload. The token belongs to the fetch, not to the effect:
+  // the effect's identity moves whenever the debounced search term or the
+  // include filter does (both feed `refreshActivity`), and cancelling on
+  // those re-runs would drop a live rehydration that nothing re-issues.
+  const restoreHydrationIdRef = useRef(0);
+  // Only unmount and a slice/uuid swap supersede a rehydration here; a
+  // newer restore bumps the token where it starts its own fetch.
+  useEffect(
+    () => () => {
+      restoreHydrationIdRef.current += 1;
+    },
+    [sliceId, uuid],
+  );
   useEffect(() => {
-    // Cancels the in-flight rehydration when the effect re-runs or the page
-    // unmounts. hydrateExplore rewrites the whole explore store, so a fetch
-    // resolving after the user navigated away — or after a save-as swapped
-    // the slice in place — would overwrite the newly loaded chart's state
-    // with the old chart's payload.
-    let cancelled = false;
     if (restoreCount !== lastRestoreCountRef.current) {
       lastRestoreCountRef.current = restoreCount;
       // Guard: a restore of some other entity, resolving after navigation.
@@ -198,16 +209,19 @@ export default function ExploreVersionHistory() {
         lastSaveSignalRef.current = saveSignal;
         refreshActivity();
         if (sliceId) {
+          restoreHydrationIdRef.current += 1;
+          const hydrationId = restoreHydrationIdRef.current;
+          const isCurrent = () => restoreHydrationIdRef.current === hydrationId;
           fetchExploreRehydrationData(sliceId)
             .then(result => {
-              if (!cancelled) {
+              if (isCurrent()) {
                 dispatch(
                   hydrateExplore({ ...result, saveAction: 'overwrite' }),
                 );
               }
             })
             .catch(() => {
-              if (!cancelled) {
+              if (isCurrent()) {
                 addDangerToast(t('Failed to reload the restored version'));
               }
             });
@@ -222,9 +236,6 @@ export default function ExploreVersionHistory() {
         refreshActivity();
       }
     }
-    return () => {
-      cancelled = true;
-    };
   }, [
     addDangerToast,
     dispatch,
