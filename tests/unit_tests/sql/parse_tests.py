@@ -29,6 +29,7 @@ from superset.jinja_context import JinjaTemplateProcessor
 from superset.sql.parse import (
     _check_script_length,
     BaseSQLStatement,
+    count_referenced_tables,
     CTASMethod,
     extract_tables_from_statement,
     has_aggregate,
@@ -232,6 +233,29 @@ def test_extract_tables_from_sql() -> None:
     assert extract_tables_from_sql(
         "select * from (select * from forbidden_table) forbidden_table"
     ) == {Table("forbidden_table")}
+
+
+def test_count_referenced_tables() -> None:
+    """
+    Test that ``count_referenced_tables`` counts distinct table references,
+    ignoring dotted quoted aliases, and falls back to 1 for unparseable SQL.
+    """
+    assert count_referenced_tables('SELECT * FROM "db.table1"', Dialects.SQLITE) == 1
+    assert (
+        count_referenced_tables(
+            'SELECT COUNT(id) AS "metric.value" FROM "db.table1"', Dialects.SQLITE
+        )
+        == 1
+    )
+    assert (
+        count_referenced_tables(
+            'SELECT t1.b, t2.b FROM "db.table1" AS t1 '
+            'JOIN "db.table2" AS t2 ON t1.a = t2.a',
+            Dialects.SQLITE,
+        )
+        == 2
+    )
+    assert count_referenced_tables("this is not valid sql (((", Dialects.SQLITE) == 1
 
 
 def test_extract_tables_subselect() -> None:
