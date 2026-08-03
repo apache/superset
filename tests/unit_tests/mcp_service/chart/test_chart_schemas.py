@@ -23,6 +23,7 @@ import pytest
 from pydantic import ValidationError
 
 from superset.mcp_service.chart.schemas import (
+    AxisConfig,
     BigNumberChartConfig,
     ColumnRef,
     FilterConfig,
@@ -719,6 +720,19 @@ class TestUnknownFieldDetection:
         assert config.stacked is True
         assert config.row_limit == 10000
         assert config.group_by is not None
+
+    def test_unknown_field_nested_one_level_down_is_rejected(self) -> None:
+        """
+        Regression for #42626: only the top-level chart config models
+        inherit UnknownFieldCheckMixin. Nested models like AxisConfig are
+        plain BaseModel, so a typo'd field one level down (e.g. inside
+        x_axis) is silently dropped by pydantic's default extra="ignore"
+        instead of raising the same "did you mean?" error a top-level typo
+        gets -- an MCP client (or the LLM driving it) gets no signal that
+        its setting was ignored.
+        """
+        with pytest.raises(ValidationError, match="Unknown field"):
+            AxisConfig.model_validate({"title": "State", "sort_by": "metric"})
 
 
 class TestColumnRefSavedMetric:
