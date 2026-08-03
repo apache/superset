@@ -115,8 +115,9 @@ export default function DrillDetailPane({
       state.common.conf.SAMPLES_ROW_LIMIT,
   );
 
-  const ROW_LIMIT = useSelector(
-    (state: { common: { conf: JsonObject } }) => state.common.conf.ROW_LIMIT,
+  const exportRowLimit = useSelector(
+    (state: { common: { conf: JsonObject } }) =>
+      state.common.conf.DRILL_DETAIL_EXPORT_ROW_LIMIT,
   );
 
   const { canDownload } = usePermissions();
@@ -239,7 +240,7 @@ export default function DrillDetailPane({
             columns: [],
             metrics: [],
             orderby: [],
-            row_limit: ROW_LIMIT,
+            row_limit: exportRowLimit,
             row_offset: 0,
           },
         ],
@@ -263,7 +264,7 @@ export default function DrillDetailPane({
       filters,
       datasourceId,
       datasourceType,
-      ROW_LIMIT,
+      exportRowLimit,
       dashboardId,
       addDangerToast,
     ],

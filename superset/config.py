@@ -178,6 +178,11 @@ DEFAULT_VIZ_TYPE = "table"
 ROW_LIMIT = 50000
 # default row limit when requesting samples from datasource in explore view
 SAMPLES_ROW_LIMIT = 1000
+# row limit requested when exporting drill-to-detail results to CSV/Excel. This is
+# independent of ROW_LIMIT so the export can be tuned without changing the default
+# limit for every chart data request. The effective limit is still capped by
+# SQL_MAX_ROW.
+DRILL_DETAIL_EXPORT_ROW_LIMIT = 50000
 # default row limit for native filters
 NATIVE_FILTER_DEFAULT_ROW_LIMIT = 1000
 # max rows retrieved by filter select auto complete

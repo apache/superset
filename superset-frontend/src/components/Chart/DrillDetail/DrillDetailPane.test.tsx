@@ -17,7 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { QueryFormData, SupersetClient } from '@superset-ui/core';
+import { JsonObject, QueryFormData, SupersetClient } from '@superset-ui/core';
 import {
   fireEvent,
   render,
@@ -226,7 +226,7 @@ test('should render the error', async () => {
 });
 
 describe('download actions', () => {
-  const renderWithDownloadPermission = () =>
+  const renderWithDownloadPermission = (conf: JsonObject = {}) =>
     render(
       <DrillDetailPane
         initialFilters={[]}
@@ -236,7 +236,14 @@ describe('download actions', () => {
         useRedux: true,
         initialState: {
           user: { roles: { Admin: [['can_csv', 'Superset']] } },
-          common: { conf: { SAMPLES_ROW_LIMIT: 10, ROW_LIMIT: 50000 } },
+          common: {
+            conf: {
+              SAMPLES_ROW_LIMIT: 10,
+              ROW_LIMIT: 50000,
+              DRILL_DETAIL_EXPORT_ROW_LIMIT: 50000,
+              ...conf,
+            },
+          },
           dashboardInfo: { id: 123 },
         },
       },
@@ -249,7 +256,7 @@ describe('download actions', () => {
     await userEvent.click(await screen.findByText(label));
   };
 
-  test('CSV export posts drill_detail payload with ROW_LIMIT', async () => {
+  test('CSV export posts drill_detail payload with the export row limit', async () => {
     fetchWithData();
     const postFormSpy = jest
       .spyOn(SupersetClient, 'postForm')
@@ -265,6 +272,21 @@ describe('download actions', () => {
     expect(payload.result_format).toBe('csv');
     expect(payload.queries[0].row_limit).toBe(50000);
     expect(payload.form_data.dashboardId).toBe(123);
+    postFormSpy.mockRestore();
+  });
+
+  test('export row limit comes from DRILL_DETAIL_EXPORT_ROW_LIMIT, not ROW_LIMIT', async () => {
+    fetchWithData();
+    const postFormSpy = jest
+      .spyOn(SupersetClient, 'postForm')
+      .mockImplementation(() => Promise.resolve());
+    renderWithDownloadPermission({ DRILL_DETAIL_EXPORT_ROW_LIMIT: 1234 });
+
+    await clickDownloadItem('Export to CSV');
+
+    const body = postFormSpy.mock.calls[0][1] as { form_data: string };
+    const payload = JSON.parse(body.form_data);
+    expect(payload.queries[0].row_limit).toBe(1234);
     postFormSpy.mockRestore();
   });
 
