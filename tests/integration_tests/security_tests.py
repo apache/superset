@@ -37,6 +37,12 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 from superset.models.slice import Slice
+from superset.security.guest_token import (
+    GuestTokenResource,
+    GuestTokenResourceType,
+    GuestTokenRlsRule,
+    GuestTokenUser,
+)
 from superset.sql.parse import Table
 from superset.utils.core import (
     DatasourceType,
@@ -2346,7 +2352,7 @@ class TestGuestTokens(SupersetTestCase):
         assert "test_guest" == guest_user.username
 
     def create_guest_token_with_attributes(self) -> bytes:
-        user = {
+        user: GuestTokenUser = {
             "username": "test_guest_with_attrs",
             "first_name": "Test",
             "last_name": "Guest",
@@ -2357,13 +2363,15 @@ class TestGuestTokens(SupersetTestCase):
                 "team": "data-platform",
             },
         }
-        resources = [{"some": "resource"}]
-        rls = [{"dataset": 1, "clause": "access = 1"}]
+        resources: list[GuestTokenResource] = [
+            {"type": GuestTokenResourceType.DASHBOARD, "id": "test-dashboard"}
+        ]
+        rls: list[GuestTokenRlsRule] = [{"dataset": "1", "clause": "access = 1"}]
         return security_manager.create_guest_access_token(user, resources, rls)
 
     def test_create_guest_access_token_with_attributes(self) -> None:
         """Test creating guest access token with user attributes."""
-        user_with_attributes = {
+        user_with_attributes: GuestTokenUser = {
             "username": "test_guest_attrs",
             "first_name": "Test",
             "last_name": "Guest",
@@ -2375,8 +2383,10 @@ class TestGuestTokens(SupersetTestCase):
                 "team_lead": True,
             },
         }
-        resources = [{"type": "dashboard", "id": "test-dashboard"}]
-        rls = [{"dataset": 1, "clause": "id = 1"}]
+        resources: list[GuestTokenResource] = [
+            {"type": GuestTokenResourceType.DASHBOARD, "id": "test-dashboard"}
+        ]
+        rls: list[GuestTokenRlsRule] = [{"dataset": "1", "clause": "id = 1"}]
 
         token = security_manager.create_guest_access_token(
             user_with_attributes, resources, rls
@@ -2415,23 +2425,27 @@ class TestGuestTokens(SupersetTestCase):
         assert hasattr(guest_user, "guest_token")
         token_user = guest_user.guest_token["user"]
         assert "attributes" in token_user
-        assert token_user["attributes"]["department"] == "Engineering"
-        assert token_user["attributes"]["region"] == "US"
-        assert token_user["attributes"]["role"] == "developer"
-        assert token_user["attributes"]["team"] == "data-platform"
+        token_attributes = token_user["attributes"]
+        assert token_attributes is not None
+        assert token_attributes["department"] == "Engineering"
+        assert token_attributes["region"] == "US"
+        assert token_attributes["role"] == "developer"
+        assert token_attributes["team"] == "data-platform"
 
     def test_create_guest_access_token_without_attributes(self) -> None:
         """Test creating guest access token without user attributes.
 
         This test ensures backward compatibility.
         """
-        user_without_attributes = {
+        user_without_attributes: GuestTokenUser = {
             "username": "test_guest_no_attrs",
             "first_name": "Test",
             "last_name": "Guest",
         }
-        resources = [{"type": "dashboard", "id": "test-dashboard"}]
-        rls = [{"dataset": 1, "clause": "id = 1"}]
+        resources: list[GuestTokenResource] = [
+            {"type": GuestTokenResourceType.DASHBOARD, "id": "test-dashboard"}
+        ]
+        rls: list[GuestTokenRlsRule] = [{"dataset": "1", "clause": "id = 1"}]
 
         token = security_manager.create_guest_access_token(
             user_without_attributes, resources, rls
@@ -2453,14 +2467,16 @@ class TestGuestTokens(SupersetTestCase):
 
     def test_create_guest_access_token_with_empty_attributes(self) -> None:
         """Test creating guest access token with empty attributes."""
-        user_with_empty_attributes = {
+        user_with_empty_attributes: GuestTokenUser = {
             "username": "test_guest_empty_attrs",
             "first_name": "Test",
             "last_name": "Guest",
             "attributes": {},
         }
-        resources = [{"type": "dashboard", "id": "test-dashboard"}]
-        rls = [{"dataset": 1, "clause": "id = 1"}]
+        resources: list[GuestTokenResource] = [
+            {"type": GuestTokenResourceType.DASHBOARD, "id": "test-dashboard"}
+        ]
+        rls: list[GuestTokenRlsRule] = [{"dataset": "1", "clause": "id = 1"}]
 
         token = security_manager.create_guest_access_token(
             user_with_empty_attributes, resources, rls
@@ -2482,14 +2498,16 @@ class TestGuestTokens(SupersetTestCase):
 
     def test_create_guest_access_token_with_null_attributes(self) -> None:
         """Test creating guest access token with null attributes."""
-        user_with_null_attributes = {
+        user_with_null_attributes: GuestTokenUser = {
             "username": "test_guest_null_attrs",
             "first_name": "Test",
             "last_name": "Guest",
             "attributes": None,
         }
-        resources = [{"type": "dashboard", "id": "test-dashboard"}]
-        rls = [{"dataset": 1, "clause": "id = 1"}]
+        resources: list[GuestTokenResource] = [
+            {"type": GuestTokenResourceType.DASHBOARD, "id": "test-dashboard"}
+        ]
+        rls: list[GuestTokenRlsRule] = [{"dataset": "1", "clause": "id = 1"}]
 
         token = security_manager.create_guest_access_token(
             user_with_null_attributes, resources, rls
