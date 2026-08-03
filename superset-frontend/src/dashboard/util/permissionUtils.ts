@@ -75,8 +75,9 @@ export const isUserEditorOrAdmin = (
 /**
  * Editorship of *dashboard*, matching the server's `is_editor`: the explicit
  * editor list unioned with any editorship granted indirectly by a
- * deployment's EXTRA_EDITORS_RESOLVER. Leaving `extra_editors` out hid the
- * Edit button from people the API would happily let through.
+ * deployment's EXTRA_EDITORS_RESOLVER. Must stay in step with the server's
+ * `is_editor` (security/manager.py): a predicate narrower than the server's
+ * hides actions the API permits.
  */
 export const isUserDashboardEditor = (dashboard: Dashboard): boolean =>
   isUserInSubjects(dashboard.editors, dashboard.extra_editors);

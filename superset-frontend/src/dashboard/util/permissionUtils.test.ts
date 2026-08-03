@@ -134,12 +134,30 @@ test('isUserDashboardEditor returns false when editors is empty', () => {
 
 test('isUserDashboardEditor counts editorship granted through extra_editors', () => {
   // The server's is_editor unions EXTRA_EDITORS_RESOLVER output into the
-  // editor set, and the API attaches it after the response schema is dumped.
-  // Ignoring it here hid the Edit button from people the API would let
-  // through. extra_editors arrives as bare ids.
+  // editor set, and the API attaches it after the response schema is dumped
+  // (so it survives the columns projection). extra_editors arrives as bare
+  // ids, not Subjects.
   const dashExtraEditor = { ...dashboard, editors: [], extra_editors: [10] };
   expect(isUserDashboardEditor(dashExtraEditor)).toEqual(true);
   expect(canUserEditDashboard(dashExtraEditor, editorUser)).toEqual(true);
+});
+
+test('isUserDashboardEditor unions the two lists rather than preferring one', () => {
+  // Pins the union semantics: a refactor that consulted extra_editors only
+  // when editors is empty would pass the empty-editors cases above but
+  // fail here — non-matching editors must not mask a matching extra grant.
+  const dashUnion = {
+    ...dashboard,
+    editors: [{ id: 999, label: 'Other', type: 1 }],
+    extra_editors: [10],
+  };
+  expect(isUserDashboardEditor(dashUnion)).toEqual(true);
+});
+
+test('an empty extra_editors grants nothing on its own', () => {
+  // The resolver-configured-but-returns-nothing shape.
+  const dashEmptyExtra = { ...dashboard, editors: [], extra_editors: [] };
+  expect(isUserDashboardEditor(dashEmptyExtra)).toEqual(false);
 });
 
 test('isUserDashboardEditor ignores extra_editors for other subjects', () => {
