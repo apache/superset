@@ -30,7 +30,11 @@ import {
 } from 'src/dashboard/actions/hydrate';
 import { CLEAR_DATA_MASK_STATE } from 'src/dataMask/actions';
 import { CHART_TYPE, MARKDOWN_TYPE } from 'src/dashboard/util/componentTypes';
-import { fetchDashboardHydrationData, fetchVersionSnapshot } from './api';
+import {
+  fetchDashboardHydrationData,
+  fetchDashboardTheme,
+  fetchVersionSnapshot,
+} from './api';
 import type { DashboardVersionSnapshot, VersionHistoryState } from './types';
 import {
   resolveSnapshotCharts,
@@ -50,6 +54,7 @@ jest.mock('src/components/MessageToasts/withToasts', () => ({
 jest.mock('./api', () => ({
   ...jest.requireActual('./api'),
   fetchDashboardHydrationData: jest.fn(),
+  fetchDashboardTheme: jest.fn(),
   fetchVersionSnapshot: jest.fn(),
 }));
 
@@ -192,10 +197,25 @@ const mockedFetchHydration = fetchDashboardHydrationData as jest.MockedFunction<
 const mockedFetchSnapshot = fetchVersionSnapshot as unknown as jest.Mock<
   Promise<DashboardVersionSnapshot>
 >;
+const mockedFetchTheme = fetchDashboardTheme as jest.MockedFunction<
+  typeof fetchDashboardTheme
+>;
+
+const liveTheme = {
+  id: 9,
+  theme_name: 'Live theme',
+  json_data: '{}',
+};
 
 const liveDashboard = {
   id: 6,
   dashboard_title: 'Live dashboard',
+  description: 'Live description',
+  slug: 'live-slug',
+  certified_by: 'Live certifier',
+  certification_details: 'Live details',
+  published: true,
+  theme: liveTheme,
   metadata: {},
   position_data: null,
 } as unknown as HydrateDashboardData;
@@ -205,8 +225,12 @@ const snapshot = {
   position_json: null,
   json_metadata: '{}',
   css: '',
+  description: null,
   slug: null,
   certified_by: null,
+  certification_details: null,
+  published: false,
+  theme_id: null,
   uuid: 'dash-uuid',
 } as unknown as DashboardVersionSnapshot;
 
@@ -323,6 +347,99 @@ test('previewing a version resets the dataMask and hydrates with snapshot defaul
   const clearIndex = types.indexOf(CLEAR_DATA_MASK_STATE);
   expect(clearIndex).toBeGreaterThanOrEqual(0);
   expect(clearIndex).toBeLessThan(types.indexOf(HYDRATE_TEST));
+});
+
+test('previewing applies every scalar the snapshot carries, not just the title', async () => {
+  // The snapshot endpoint has always projected these. Applying only title,
+  // css and metadata left the live certification badge, draft/published pill
+  // and description sitting over historical content.
+  const store = makePreviewStore();
+  renderPreviewHook(store);
+
+  act(() => {
+    store.setState({
+      versionHistory: versionHistoryState({ preview: previewOf('v1') }),
+    });
+  });
+
+  await waitFor(() => expect(mockedHydrateDashboard).toHaveBeenCalledTimes(1));
+  expect(mockedHydrateDashboard.mock.calls[0][0].dashboard).toMatchObject({
+    dashboard_title: 'Snapshot title',
+    description: null,
+    slug: null,
+    certified_by: null,
+    certification_details: null,
+    published: false,
+    theme: null,
+  });
+});
+
+test('previewing resolves a snapshot theme the live dashboard no longer uses', async () => {
+  // The version table stores theme_id, so a snapshot taken under a different
+  // theme needs one lookup to render as it did.
+  const snapshotTheme = { id: 4, theme_name: 'Old theme', json_data: '{}' };
+  mockedFetchTheme.mockResolvedValue(snapshotTheme);
+  mockedFetchSnapshot.mockResolvedValue({
+    ...snapshot,
+    theme_id: 4,
+  } as unknown as DashboardVersionSnapshot);
+  const store = makePreviewStore();
+  renderPreviewHook(store);
+
+  act(() => {
+    store.setState({
+      versionHistory: versionHistoryState({ preview: previewOf('v1') }),
+    });
+  });
+
+  await waitFor(() => expect(mockedHydrateDashboard).toHaveBeenCalledTimes(1));
+  expect(mockedFetchTheme).toHaveBeenCalledWith(4);
+  expect(mockedHydrateDashboard.mock.calls[0][0].dashboard.theme).toEqual(
+    snapshotTheme,
+  );
+});
+
+test('a snapshot theme matching the live one costs no extra request', async () => {
+  mockedFetchSnapshot.mockResolvedValue({
+    ...snapshot,
+    theme_id: liveTheme.id,
+  } as unknown as DashboardVersionSnapshot);
+  const store = makePreviewStore();
+  renderPreviewHook(store);
+
+  act(() => {
+    store.setState({
+      versionHistory: versionHistoryState({ preview: previewOf('v1') }),
+    });
+  });
+
+  await waitFor(() => expect(mockedHydrateDashboard).toHaveBeenCalledTimes(1));
+  expect(mockedFetchTheme).not.toHaveBeenCalled();
+  expect(mockedHydrateDashboard.mock.calls[0][0].dashboard.theme).toEqual(
+    liveTheme,
+  );
+});
+
+test('a failed theme lookup keeps the preview rather than dropping it', async () => {
+  mockedFetchTheme.mockRejectedValue(new Error('gone'));
+  mockedFetchSnapshot.mockResolvedValue({
+    ...snapshot,
+    theme_id: 4,
+  } as unknown as DashboardVersionSnapshot);
+  const store = makePreviewStore();
+  renderPreviewHook(store);
+
+  act(() => {
+    store.setState({
+      versionHistory: versionHistoryState({ preview: previewOf('v1') }),
+    });
+  });
+
+  await waitFor(() => expect(mockedHydrateDashboard).toHaveBeenCalledTimes(1));
+  expect(mockedHydrateDashboard.mock.calls[0][0].dashboard.theme).toEqual(
+    liveTheme,
+  );
+  expect(mockAddDangerToast).not.toHaveBeenCalled();
 });
 
 test('closing the preview restores the dataMask captured before previewing', async () => {

@@ -31,11 +31,13 @@ import { clearDataMaskState } from 'src/dataMask/actions';
 import type { RootState } from 'src/dashboard/types';
 import {
   fetchDashboardHydrationData,
+  fetchDashboardTheme,
   fetchExploreRehydrationData,
   fetchVersionSnapshot,
   layoutChartId,
   swapUnreachableChartSlots,
   DashboardHydrationData,
+  DashboardTheme,
 } from './api';
 import {
   clearVersionPreview,
@@ -150,8 +152,32 @@ export async function resolveSnapshotCharts(
 }
 
 /**
+ * The version table stores `theme_id`, while hydration wants the theme
+ * object. One lookup only when the snapshot's theme differs from the live
+ * one; a failed lookup keeps the live theme rather than dropping the
+ * preview, since the theme is the least load-bearing of the scalars.
+ */
+async function resolveSnapshotTheme(
+  snapshotThemeId: number | null,
+  liveTheme: DashboardTheme | null,
+): Promise<DashboardTheme | null> {
+  if (snapshotThemeId == null) {
+    return null;
+  }
+  if (liveTheme?.id === snapshotThemeId) {
+    return liveTheme;
+  }
+  try {
+    return await fetchDashboardTheme(snapshotThemeId);
+  } catch {
+    return liveTheme;
+  }
+}
+
+/**
  * Applies a previewed dashboard version by re-hydrating the page with the
- * snapshot's title/css/metadata/layout and the charts that layout references,
+ * snapshot's scalars (title, css, metadata, description, slug, certification,
+ * published state, theme) and layout, plus the charts that layout references,
  * and re-hydrates the live dashboard when the preview is closed.
  */
 export function useDashboardVersionPreview(uuid: string | undefined) {
@@ -337,6 +363,13 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
         }
         liveDataRef.current = liveData;
         const { dashboard } = liveData;
+        const theme = await resolveSnapshotTheme(
+          snapshot.theme_id,
+          dashboard.theme ?? null,
+        );
+        if (fetchId !== fetchIdRef.current) {
+          return;
+        }
         if (appliedVersionRef.current === null) {
           // Entering preview from the live dashboard: remember the user's
           // filter selections so closing the preview can bring them back.
@@ -354,6 +387,17 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
               ? JSON.parse(snapshot.json_metadata)
               : {},
             position_data: positionData,
+            // Every other scalar the version table carries. The snapshot
+            // endpoint has always projected these; applying only title, css
+            // and metadata left the preview showing the *live* certification
+            // badge, draft/published pill and description over historical
+            // content.
+            description: snapshot.description,
+            slug: snapshot.slug,
+            certified_by: snapshot.certified_by,
+            certification_details: snapshot.certification_details,
+            published: snapshot.published ?? false,
+            theme,
           } as HydrateDashboardData,
           charts,
           {},
@@ -391,10 +435,13 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
       appliedVersionRef.current = null;
       const liveData = liveDataRef.current;
       if (liveData) {
-        // Explicitly not edit mode: previews can only be entered from view
-        // mode (the unsaved-changes gate), so exit returns there. Without
-        // the override, a stale `?edit=true` in the URL would flip the page
-        // into edit mode as a side effect of closing the preview.
+        // Explicitly not edit mode. The entry gate tests for unsaved
+        // changes, not for edit mode, so a preview can be entered from an
+        // edit session with nothing dirty — exit still lands in view mode,
+        // which is the safe default for a page that just swapped its whole
+        // store. Without the override a stale `?edit=true` in the URL (it
+        // outlives the navigation that set it) would flip the page into
+        // edit mode as a side effect of closing the preview.
         hydrateWith(
           liveData.dashboard,
           liveData.charts,
