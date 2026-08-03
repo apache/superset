@@ -41,7 +41,6 @@ import contextvars
 import datetime
 import decimal
 import operator
-import re
 import urllib.parse
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -71,23 +70,31 @@ from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy.sql import Select, select
 
 from superset import db, feature_flag_manager, security_manager
-from superset.sql.parse import Table
+from superset.sql.parse import count_referenced_tables, Table
 
-# Counts references to `superset://` virtual tables in the statement being
-# executed against the engine. Those tables are always addressed as
-# double-quoted `database[[.catalog].schema].table` identifiers (see the
-# dialect docstring below), since the literal dot(s) would otherwise be
-# parsed as a schema/catalog separator, so this also catches multi-table
-# statements that don't use the `JOIN` keyword, e.g. an implicit comma join
-# like `FROM "database1.table1", "database2.table2" WHERE ...`. Shillelagh
-# calls `SupersetShillelaghAdapter.get_data` once per underlying table,
-# independently of any other table referenced by the same statement, so it
-# has no way on its own to tell whether it's being asked for a standalone
-# table or for one side of a multi-table query.
+
+def _count_referenced_tables(statement: str) -> int:
+    """
+    Count the distinct `superset://` virtual tables a statement references,
+    so ``get_data`` can tell whether it's being asked for a standalone table
+    or for one side of a multi-table statement (see ``get_data`` for why this
+    matters). Shillelagh calls `SupersetShillelaghAdapter.get_data` once per
+    underlying table, independently of any other table referenced by the
+    same statement, so it has no way on its own to tell the two cases apart.
+
+    Uses the real SQL parser rather than pattern-matching on quoted
+    identifiers, since a naive `"db.table"`-shaped regex also matches
+    dotted, double-quoted column aliases (e.g. `AS "metric.value"`) that
+    have nothing to do with table references, and would misclassify a
+    single-table statement as multi-table.
+    """
+    return count_referenced_tables(statement, "sqlite")
+
+
 # `SupersetAPSWDialect.do_execute*` populates `_executing_multi_table_query`
-# for the duration of a statement so that `get_data` can tell the two cases
-# apart (see `get_data` for why this matters).
-_TABLE_REF_RE = re.compile(r'"[^"]*\.[^"]*"')
+# for the duration of a statement so that `get_data` can tell whether it's
+# being asked for a standalone table or for one side of a multi-table query
+# (see `get_data` for why this matters).
 _executing_multi_table_query: contextvars.ContextVar[bool] = contextvars.ContextVar(
     "_executing_multi_table_query", default=False
 )
@@ -181,7 +188,7 @@ class SupersetAPSWDialect(APSWDialect):
         to apply `SUPERSET_META_DB_LIMIT` to the table it's fetching (see `get_data`).
         """
         token = _executing_multi_table_query.set(
-            len(_TABLE_REF_RE.findall(statement)) > 1
+            _count_referenced_tables(statement) > 1
         )
         try:
             yield

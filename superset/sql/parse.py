@@ -1996,6 +1996,22 @@ def extract_tables_from_statement(
     }
 
 
+def count_referenced_tables(statement: str, dialect: Dialects | str | None) -> int:
+    """
+    Count the distinct tables referenced by a raw SQL string.
+
+    Falls back to a conservative count of 1 (i.e. "not multi-table") if the
+    statement can't be parsed, since callers gating multi-table-only behavior
+    on this count should default to treating an unparseable statement as a
+    single table.
+    """
+    try:
+        parsed = sqlglot.parse_one(statement, dialect=dialect)
+        return len(extract_tables_from_statement(parsed, dialect))
+    except Exception:  # pylint: disable=broad-except
+        return 1
+
+
 def is_cte(source: exp.Table, scope: Scope) -> bool:
     """
     Is the source a CTE?

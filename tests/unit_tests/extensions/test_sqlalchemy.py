@@ -230,6 +230,45 @@ def test_superset_joins(
         assert list(results) == [(10, "ten"), (20, "twenty")]
 
 
+@pytest.mark.parametrize(
+    ("statement", "expected"),
+    [
+        # A single table reference is not a multi-table statement...
+        ('SELECT * FROM "database1.table1"', 1),
+        # ...even when it has a dotted, double-quoted column alias, which a
+        # naive `"[^"]*\.[^"]*"`-shaped regex would also match, misidentifying
+        # a single-table statement as multi-table and silently skipping
+        # SUPERSET_META_DB_LIMIT for it.
+        (
+            'SELECT COUNT(id) AS "metric.value" FROM "database1.table1"',
+            1,
+        ),
+        (
+            'SELECT t1.b, t2.b FROM "database1.table1" AS t1 '
+            'JOIN "database2.table2" AS t2 ON t1.a = t2.a',
+            2,
+        ),
+        (
+            'SELECT * FROM "database1.table1", "database2.table2" WHERE t1.a = t2.a',
+            2,
+        ),
+        # Statements the parser can't handle fall back to the safe default
+        # (treat as single-table, so the app-wide limit still applies).
+        ("this is not valid sql (((", 1),
+    ],
+)
+def test_count_referenced_tables(statement: str, expected: int) -> None:
+    """
+    Regression for a review comment on #42598/#36304: the multi-table
+    detection used to gate SUPERSET_META_DB_LIMIT must count actual table
+    references via the real SQL parser, not pattern-match dotted quoted
+    identifiers, which also matches dotted column aliases.
+    """
+    from superset.extensions.metadb import _count_referenced_tables
+
+    assert _count_referenced_tables(statement) == expected
+
+
 @pytest.fixture
 def table1_large(session: Session, database1: "Database") -> Iterator[None]:
     with database1.get_sqla_engine() as engine:
