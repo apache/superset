@@ -60,6 +60,7 @@ from superset.versioning.changes.state import (
     compute_records_from_state,
 )
 from superset.versioning.changes.table import ENTITY_KIND_BY_CLASS_NAME
+from superset.versioning.db_errors import is_missing_table_error
 from superset.versioning.diff import (
     ChangeRecord,
     fold_dashboard_layout_with_chart_changes,
@@ -379,11 +380,12 @@ def _persist_buffered_records(
 ) -> None:
     """Bulk-insert *buffer*'s records under *tx_id* and reset the buffer.
 
-    Catches ``OperationalError`` / ``ProgrammingError`` to handle the
-    pre-migration startup race (version_changes table missing — the
-    former on SQLite/MySQL, the latter on PostgreSQL), and ``Exception``
-    as the listener-boundary safety net so a malformed record can't
-    crash the user's save.
+    Swallows the pre-migration startup race silently (version_changes
+    table missing — verified via :func:`is_missing_table_error`, not
+    inferred from the exception class, because ``OperationalError`` also
+    covers deadlocks and dropped connections that must be logged and
+    counted). ``Exception`` is the listener-boundary safety net so a
+    malformed record can't crash the user's save.
 
     The insert runs under a SAVEPOINT (``begin_nested`` on the
     connection): on PostgreSQL a failed statement aborts the enclosing
@@ -395,9 +397,20 @@ def _persist_buffered_records(
     try:
         with session.connection().begin_nested():
             bulk_insert_records(session, tx_id, buffer)
-    except (OperationalError, ProgrammingError):
-        # version_changes table missing (migration not yet applied).
-        pass
+    except (OperationalError, ProgrammingError) as ex:
+        if is_missing_table_error(ex):
+            # version_changes table missing (migration not yet applied) —
+            # the one genuinely benign case; stay quiet.
+            return
+        # Anything else in these classes — deadlock, lock timeout, dropped
+        # connection — is a real capture loss. Swallowing it silently made
+        # "the save succeeded but its history doesn't exist" invisible.
+        logger.exception(
+            "version_changes: bulk insert failed for tx %s (%d entities)",
+            tx_id,
+            len(buffer),
+        )
+        _incr_capture_error("bulk_insert")
     except Exception:  # pylint: disable=broad-except
         logger.exception(
             "version_changes: bulk insert failed for tx %s (%d entities)",

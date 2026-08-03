@@ -30,6 +30,7 @@ both the read endpoints and the ETag emission path in
 
 from __future__ import annotations
 
+import logging
 import uuid
 from typing import Any
 from uuid import UUID
@@ -40,6 +41,9 @@ from sqlalchemy_continuum import version_class
 
 from superset.extensions import db
 from superset.versioning.baseline import CONTINUUM_BOOKKEEPING_COLUMNS
+from superset.versioning.db_errors import is_missing_table_error
+
+logger = logging.getLogger(__name__)
 
 # Fixed UUIDv5 namespace under which per-(entity, transaction) version UUIDs
 # are derived. Never change this constant — changing it invalidates every
@@ -275,9 +279,16 @@ def list_change_records_batch(
                 .mappings()
                 .all()
             )
-    except (sa.exc.OperationalError, sa.exc.ProgrammingError):
-        # Missing version_changes table: OperationalError on SQLite/MySQL,
-        # ProgrammingError (UndefinedTable) on PostgreSQL.
+    except (sa.exc.OperationalError, sa.exc.ProgrammingError) as ex:
+        if not is_missing_table_error(ex):
+            # A transient failure (deadlock, dropped connection) renders
+            # every affected save as an empty change list — recoverable on
+            # refresh, but it must not masquerade as the migration race.
+            logger.exception(
+                "version_changes: change-record query failed for %s id=%s",
+                entity_kind,
+                entity_id,
+            )
         return {}
 
     grouped: dict[int, list[dict[str, Any]]] = {tx: [] for tx in transaction_ids}
