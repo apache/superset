@@ -4416,21 +4416,31 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if self.can_access_database(database):
                 return
 
-            # A SQL Lab query's own author already has execution rights on
-            # the connection that produced it (SQL Lab wouldn't have run the
-            # query otherwise): exploring the exact query they just ran
-            # should not additionally require a dataset-level
-            # ``datasource_access`` grant on every table it happens to
-            # touch. This mirrors the ownership bypass already granted to
-            # dataset owners via ``is_editor`` further below in this same
-            # method; the query path had no equivalent authorship bypass.
-            # Does not apply to the ephemeral query built above: that one's
-            # ``user_id`` is always the current user by construction, which
-            # would trivially bypass the very check being performed on a
-            # brand new, never-before-run SQL string.
+            # A SQL Lab query's own author should be able to explore/chart
+            # the exact query they already ran without an additional
+            # dataset-level ``datasource_access`` grant on every table it
+            # happens to touch. This mirrors the ownership bypass already
+            # granted to dataset owners via ``is_editor`` further below in
+            # this same method; the query path had no equivalent authorship
+            # bypass.
+            #
+            # Scoped to ``not force_dataset_match``: that flag is set by the
+            # call sites that execute a query or return its row data (SQL
+            # Lab execute, results/export, MetaDB), where every SQL Lab
+            # query's author trivially equals the current user and an
+            # unscoped bypass would erase the per-table
+            # catalog/schema/datasource_access checks below entirely. It is
+            # left unset only by the explore/form-data path this bypass is
+            # meant to cover.
+            #
+            # Does not apply to the ephemeral query built above either:
+            # that one's ``user_id`` is always the current user by
+            # construction, which would trivially bypass the very check
+            # being performed on a brand new, never-before-run SQL string.
             if (
                 query
                 and not is_ephemeral_query
+                and not force_dataset_match
                 and hasattr(query, "user_id")
                 and (user_id := get_user_id()) is not None
                 and query.user_id == user_id
