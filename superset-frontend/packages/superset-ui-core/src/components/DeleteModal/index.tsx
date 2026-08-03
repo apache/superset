@@ -40,13 +40,10 @@ export function DeleteModal({
   title,
   name,
   recoverable = false,
-  requireConfirmationText = true,
 }: DeleteModalProps) {
-  // The "type DELETE to confirm" step is shown only for a permanent,
-  // friction-worthy delete. Recoverable (archive) deletes drop it; an explicit
-  // `requireConfirmationText={false}` drops it for a plain danger confirm
-  // (e.g. "delete forever" from the archive).
-  const showConfirmationInput = !recoverable && requireConfirmationText;
+  // Recoverable (archive) deletes drop the "type DELETE to confirm" step;
+  // a permanent delete keeps it.
+  const showConfirmationInput = !recoverable;
   const [disableChange, setDisableChange] = useState(true);
   const [confirmation, setConfirmation] = useState<string>('');
   const inputRef = useRef<InputRef>(null);

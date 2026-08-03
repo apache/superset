@@ -39,11 +39,11 @@ from superset.exceptions import SupersetSecurityException
 from superset.models.helpers import SoftDeleteMixin
 from superset.tasks.utils import get_current_user
 
+logger = logging.getLogger(__name__)
+
 #: Recorded when the audit trail cannot name the acting user. The purge routes
 #: are ``@protect()``-ed, so this should be unreachable; it exists so an
 #: anomaly is visible as one rather than disguised as a plausible username.
-logger = logging.getLogger(__name__)
-
 UNKNOWN_ACTOR = "unknown"
 
 

@@ -30,9 +30,4 @@ export interface ConfirmStatusChangeProps {
    * drops the "type DELETE to confirm" step and uses a primary confirm button.
    */
   recoverable?: boolean;
-  /**
-   * Forwarded to the underlying DeleteModal: set false for a plain danger
-   * confirm with no "type DELETE" step.
-   */
-  requireConfirmationText?: boolean;
 }

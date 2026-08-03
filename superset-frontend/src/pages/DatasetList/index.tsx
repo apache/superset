@@ -169,6 +169,17 @@ interface VirtualDataset extends Dataset {
   sql: string;
 }
 
+/**
+ * The one predicate for "this row is a semantic view". Load-bearing for the
+ * delete paths: the bulk handler routes rows to the hard-deleting
+ * semantic_view endpoint by it, and the confirm modal decides whether to
+ * promise recovery by the same call — sharing the function is what keeps
+ * those two from drifting. `kind`, not the optional `source_type`: `kind`
+ * is required here and a schema Constant on the wire.
+ */
+const isSemanticView = (d: Pick<Dataset, 'kind'>): boolean =>
+  d.kind === 'semantic_view';
+
 interface DatasetListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
@@ -532,6 +543,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   // confirmation drops the type-DELETE friction and explains the archive (the
   // linked charts/dashboards warning is preserved).
   const softDelete = isFeatureEnabled(FeatureFlag.SoftDelete);
+  // The bulk confirm may promise recovery only when soft-delete is on AND
+  // nothing in the selection routes to the hard-deleting semantic_view API.
+  const bulkIsRecoverable = softDelete && pendingBulkSemanticCount === 0;
   const canCreate = hasPerm('can_write');
   const canDuplicate = hasPerm('can_duplicate');
   const canExport = hasPerm('can_export');
@@ -611,9 +625,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       // returns whatever SqlaTable happens to share that id. Until a proper
       // semantic-view export path exists, partition the selection and only
       // ship dataset ids over to ``/api/v1/dataset/export/``.
-      const datasetRows = datasetsToExport.filter(
-        ({ kind }) => kind !== 'semantic_view',
-      );
+      const datasetRows = datasetsToExport.filter(d => !isSemanticView(d));
       const semanticViewCount = datasetsToExport.length - datasetRows.length;
 
       if (datasetRows.length === 0) {
@@ -761,7 +773,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             original: { kind },
           },
         }: CellProps<Dataset>) =>
-          kind === 'semantic_view' ? (
+          isSemanticView({ kind }) ? (
             <span>{t('Semantic View')}</span>
           ) : (
             <DatasetTypeLabel datasetType={kind} />
@@ -841,12 +853,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       },
       {
         Cell: ({ row: { original } }: CellProps<Dataset>) => {
-          const isSemanticView = original.kind === 'semantic_view';
-
           const allowEdit = isUserEditorOrAdmin(user, original.editors);
 
           // Semantic view: show edit and delete buttons
-          if (isSemanticView) {
+          if (isSemanticView(original)) {
             if (!canEdit && !canDelete) return null;
             return (
               <Actions className="actions">
@@ -1274,16 +1284,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   };
 
   const handleBulkDatasetDelete = (datasetsToDelete: Dataset[]) => {
-    // Discriminate on `kind`, not `source_type`: `kind` is required on the
-    // row type and a schema Constant for semantic views, while `source_type`
-    // is optional in TS — an absent value would classify a semantic view as
-    // a dataset and route its id to the dataset delete endpoint, which looks
-    // rows up by bare numeric id against `tables` only (see the export
-    // handler's comment). Same predicate as the row actions and export.
-    const datasets = datasetsToDelete.filter(d => d.kind !== 'semantic_view');
-    const semanticViews = datasetsToDelete.filter(
-      d => d.kind === 'semantic_view',
-    );
+    // Misrouting here sends a semantic-view id to the dataset delete
+    // endpoint, which looks rows up by bare numeric id against `tables`
+    // only (see the export handler's comment) — hence the shared predicate.
+    const datasets = datasetsToDelete.filter(d => !isSemanticView(d));
+    const semanticViews = datasetsToDelete.filter(isSemanticView);
 
     const promises: Promise<unknown>[] = [];
 
@@ -1550,15 +1555,15 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         // the selection is destroyed for good -- with the type-DELETE friction
         // removed -- is the one lie this modal must never tell, so mixed
         // selections keep the full danger treatment.
-        recoverable={softDelete && pendingBulkSemanticCount === 0}
+        recoverable={bulkIsRecoverable}
         title={
-          softDelete && pendingBulkSemanticCount === 0
+          bulkIsRecoverable
             ? t('Archive selected %s?', datasetsLabelLower())
             : t('Please confirm')
         }
         description={
           softDelete ? (
-            pendingBulkSemanticCount === 0 ? (
+            bulkIsRecoverable ? (
               archiveConfirmDescription(datasetsLabelLower(), true)
             ) : (
               <>
@@ -1590,10 +1595,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               key: 'delete',
               name: softDelete ? t('Archive') : t('Delete'),
               onSelect: (selected: Dataset[]) => {
-                // Must match handleBulkDatasetDelete's predicate exactly:
-                // this count decides whether the modal promises recovery.
                 setPendingBulkSemanticCount(
-                  selected.filter(d => d.kind === 'semantic_view').length,
+                  selected.filter(isSemanticView).length,
                 );
                 confirmDelete(selected);
               },
@@ -1634,7 +1637,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                         acc.physicalCount += 1;
                       else if (e.original.kind === 'virtual') {
                         acc.virtualCount += 1;
-                      } else if (e.original.kind === 'semantic_view') {
+                      } else if (isSemanticView(e.original)) {
                         acc.semanticViewCount += 1;
                       }
                       return acc;

@@ -260,25 +260,18 @@ test('bulk action orchestration: selection → action → cleanup cycle works co
   // selection state → action handler → list refresh → state cleanup
 }, 45000);
 
-test('a bulk archive containing a semantic view drops the recoverable promise', async () => {
-  // Semantic views have no soft-delete: their endpoint hard-deletes. A mixed
-  // selection must therefore not be confirmed with "you can recover them
-  // there" copy and the type-DELETE friction removed -- that is a recoverable
-  // promise attached to an irreversible action. The modal keeps the danger
-  // treatment and says plainly which part of the selection dies.
+/**
+ * Renders the list with one regular dataset plus the given semantic-view row,
+ * bulk-selects both, opens the bulk Archive confirm, and asserts the modal
+ * keeps the danger treatment: no recovery promise, type-DELETE gate present.
+ */
+async function expectMixedBulkArchiveKeepsDangerTreatment(semanticView: {
+  [key: string]: unknown;
+  table_name: string;
+}) {
   window.featureFlags = { SOFT_DELETE: true } as never;
   try {
     setupBulkDeleteMocks();
-    // Both discriminators, as the real combined endpoint emits them:
-    // SemanticViewListSchema serializes kind AND source_type as Constants,
-    // so a row with one but not the other is unrepresentable on the wire.
-    const semanticView = {
-      ...mockDatasets[1],
-      id: 99,
-      table_name: 'orders_semantic',
-      kind: 'semantic_view',
-      source_type: 'semantic_layer',
-    };
     mockDatasetListEndpoints({
       result: [mockDatasets[0], semanticView],
       count: 2,
@@ -296,7 +289,7 @@ test('a bulk archive containing a semantic view drops the recoverable promise', 
     const table = screen.getByTestId('listview-table');
     await within(table).findAllByRole('checkbox');
 
-    for (const name of [mockDatasets[0].table_name, 'orders_semantic']) {
+    for (const name of [mockDatasets[0].table_name, semanticView.table_name]) {
       // eslint-disable-next-line no-await-in-loop
       const cell = await within(table).findByText(name);
       // eslint-disable-next-line no-await-in-loop
@@ -322,4 +315,41 @@ test('a bulk archive containing a semantic view drops the recoverable promise', 
   } finally {
     window.featureFlags = {} as never;
   }
+}
+
+test('a bulk archive containing a semantic view drops the recoverable promise', async () => {
+  // Semantic views have no soft-delete: their endpoint hard-deletes. A mixed
+  // selection must therefore not be confirmed with "you can recover them
+  // there" copy and the type-DELETE friction removed -- that is a recoverable
+  // promise attached to an irreversible action. The modal keeps the danger
+  // treatment and says plainly which part of the selection dies.
+  //
+  // Both discriminators, as the real combined endpoint emits them:
+  // SemanticViewListSchema serializes kind AND source_type as Constants,
+  // so a row with one but not the other is unrepresentable on the wire.
+  await expectMixedBulkArchiveKeepsDangerTreatment({
+    ...mockDatasets[1],
+    id: 99,
+    table_name: 'orders_semantic',
+    kind: 'semantic_view',
+    source_type: 'semantic_layer',
+  });
+});
+
+test('semantic-view classification holds without the optional source_type', async () => {
+  // The discriminating case: `source_type` is optional on the row type, so a
+  // row carrying only `kind` is legal under the TS contract even though the
+  // live combined endpoint always emits both. Classification must key off the
+  // required `kind` -- this test FAILS against a `source_type`-based
+  // predicate (the row silently counts as a regular dataset and the modal
+  // promises recovery for something the handler would destroy), and passes
+  // against `isSemanticView`. It exists so that predicate cannot quietly
+  // revert.
+  // mockDatasets carries no source_type, so this row has `kind` only.
+  await expectMixedBulkArchiveKeepsDangerTreatment({
+    ...mockDatasets[1],
+    id: 99,
+    table_name: 'orders_semantic',
+    kind: 'semantic_view',
+  });
 });
