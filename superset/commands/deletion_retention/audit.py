@@ -233,6 +233,12 @@ def reconcile_pending(stale_before: datetime | None = None) -> dict[str, int]:
             else:
                 record.status = STATUS_FAILED
                 failed += 1
+            # The write-ahead row recorded the count the attempt INTENDED to
+            # remove — same rule as finalize() on failed/blocked: the audit
+            # asserts only what it witnessed. A failed attempt rolled back;
+            # an absent target proves some purge committed but not that it
+            # was this one, so the count is not attributable either way.
+            record.removed_dashboard_slices = 0
             reconciled += 1
         session.commit()
     except Exception:  # pylint: disable=broad-except

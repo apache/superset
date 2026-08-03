@@ -103,6 +103,7 @@ class TestPurgeAudit(DeletionRetentionTestBase):
             actor=audit.ACTOR_SYSTEM,
             entity_type="slices",
             entity_uuid=str(chart.uuid),
+            removed_dashboard_slices=7,
         )
 
         result = audit.reconcile_pending(
@@ -111,7 +112,37 @@ class TestPurgeAudit(DeletionRetentionTestBase):
         db.session.expire_all()
 
         assert result == {"reconciled": 1, "absent": 0, "failed": 1}
-        assert db.session.get(PurgeAuditLog, record_id).status == audit.STATUS_FAILED
+        row = db.session.get(PurgeAuditLog, record_id)
+        assert row.status == audit.STATUS_FAILED
+        # The intended-removal count is zeroed, same as finalize() on a
+        # failed attempt: the rollback means those removals never happened.
+        assert row.removed_dashboard_slices == 0
+
+    def test_reconcile_zeroes_count_when_target_absent(self) -> None:
+        """The intended-removal count is not attributable on target_absent.
+
+        The entity being gone proves *some* purge committed, but not that it
+        was this attempt -- so the write-ahead count must not survive into
+        the immutable record as if witnessed (mirrors finalize() zeroing on
+        failed/blocked).
+        """
+        record_id = audit.write_ahead(
+            trigger=audit.TRIGGER_RETENTION,
+            actor=audit.ACTOR_SYSTEM,
+            entity_type="slices",
+            entity_uuid="00000000-0000-0000-0000-00000000feed",
+            removed_dashboard_slices=7,
+        )
+
+        result = audit.reconcile_pending(
+            stale_before=datetime.utcnow() + timedelta(seconds=1)
+        )
+        db.session.expire_all()
+
+        assert result == {"reconciled": 1, "absent": 1, "failed": 0}
+        row = db.session.get(PurgeAuditLog, record_id)
+        assert row.status == audit.STATUS_TARGET_ABSENT
+        assert row.removed_dashboard_slices == 0
 
     def test_blocked_attempt_does_not_keep_the_intended_removal_count(self) -> None:
         """The write-ahead row records what the purge INTENDED to remove;

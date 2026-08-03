@@ -158,24 +158,35 @@ for (const cfg of TYPES) {
 test('permanently deletes an archived item from the view', async ({ page }) => {
   const name = `e2e_purge_${Date.now()}`;
   const id = await TYPES[0].create(page, name); // dashboard
-  expect((await TYPES[0].softDelete(page, id)).ok()).toBeTruthy();
 
-  await openArchive(page, TYPES[0].label, name);
-  const row = page.getByRole('row').filter({ hasText: name });
-  await expect(row).toBeVisible();
+  // Cleanup runs in finally, same pattern as the restore tests: a mid-test
+  // failure must not leave the dashboard live in the normal lists. On the
+  // success path the purge already removed it and the extra soft-delete
+  // 404s and is swallowed.
+  try {
+    expect((await TYPES[0].softDelete(page, id)).ok()).toBeTruthy();
 
-  // "Delete permanently" keeps the platform's type-to-confirm gate — the
-  // most destructive action on the page must not carry less friction than
-  // an ordinary delete.
-  await row.getByTestId('archived-row-purge').click();
-  await page.getByTestId('delete-modal-input').fill('DELETE');
-  await page.getByRole('button', { name: 'Delete', exact: true }).click();
+    await openArchive(page, TYPES[0].label, name);
+    const row = page.getByRole('row').filter({ hasText: name });
+    await expect(row).toBeVisible();
 
-  // Success toast, and the row is gone for good.
-  await expect(page.getByText(`${name} deleted successfully`)).toBeVisible({
-    timeout: 15000,
-  });
-  await expect(page.getByRole('row').filter({ hasText: name })).toHaveCount(0);
+    // "Delete permanently" keeps the platform's type-to-confirm gate — the
+    // most destructive action on the page must not carry less friction than
+    // an ordinary delete.
+    await row.getByTestId('archived-row-purge').click();
+    await page.getByTestId('delete-modal-input').fill('DELETE');
+    await page.getByRole('button', { name: 'Delete', exact: true }).click();
+
+    // Success toast, and the row is gone for good.
+    await expect(page.getByText(`${name} deleted successfully`)).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(page.getByRole('row').filter({ hasText: name })).toHaveCount(
+      0,
+    );
+  } finally {
+    await TYPES[0].softDelete(page, id).catch(() => {});
+  }
 });
 
 test('shows an empty message and no rows when the search matches nothing', async ({
