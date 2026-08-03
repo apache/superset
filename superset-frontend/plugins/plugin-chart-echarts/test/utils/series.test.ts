@@ -51,7 +51,7 @@ import {
   LegendType,
 } from '../../src/types';
 import { defaultLegendPadding } from '../../src/defaults';
-import { NULL_STRING } from '../../src/constants';
+import { NULL_STRING, StackControlsValue } from '../../src/constants';
 
 const {
   getHorizontalLegendAvailableWidth,
@@ -512,6 +512,40 @@ describe('extractSeries', () => {
       totalStackedValues,
       1,
     ]);
+  });
+
+  // Regression for #36401: query results containing integers beyond
+  // Number.MAX_SAFE_INTEGER are parsed as native BigInt (see
+  // packages/superset-ui-core/src/connection/callApi/parseResponse.ts).
+  // In "Expand" (100%/contribution) stacking mode, the raw datum value is
+  // divided by the row's total, which throws if the datum is still a
+  // BigInt at that point even though the total itself is a Number.
+  test('normalizes a BigInt datum value before dividing in Expand stack mode', () => {
+    const data = [
+      {
+        __timestamp: '2000-01-01',
+        metric_a: BigInt('9007199254740993'),
+        metric_b: 10,
+      },
+    ];
+    const totalStackedValues = [9007199254740993 + 10];
+
+    expect(() =>
+      extractSeries(data, {
+        totalStackedValues,
+        stack: StackControlsValue.Expand,
+      }),
+    ).not.toThrow();
+
+    const [series] = extractSeries(data, {
+      totalStackedValues,
+      stack: StackControlsValue.Expand,
+    });
+    const metricA = series.find(s => s.id === 'metric_a');
+    const expandedValue = (
+      metricA?.data as [string, number][] | undefined
+    )?.[0]?.[1];
+    expect(expandedValue).toBeCloseTo(9007199254740993 / totalStackedValues[0]);
   });
 
   test('should remove rows that have a null x-value', () => {

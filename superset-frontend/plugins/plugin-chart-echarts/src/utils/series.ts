@@ -677,7 +677,17 @@ export function extractSeries(
           stack === StackControlsValue.Expand &&
           totalStackedValue !== undefined
         ) {
-          value = ((value || 0) as number) / totalStackedValue;
+          // Query results with integers beyond Number.MAX_SAFE_INTEGER are
+          // parsed as native BigInt (see
+          // packages/superset-ui-core/src/connection/callApi/parseResponse.ts).
+          // totalStackedValue is always a Number (extractDataTotalValues
+          // normalizes it), so dividing a raw BigInt datum value by it
+          // throws; normalize to Number first (see #36401).
+          const numericValue =
+            typeof value === 'bigint'
+              ? Number(value)
+              : ((value || 0) as number);
+          value = numericValue / totalStackedValue;
         }
         return [row[xAxis], value];
       })
