@@ -90,11 +90,21 @@ export default function DashboardVersionHistory() {
     [dirtySince, hasUnsavedChanges],
   );
 
+  // The URL param is honoured once per mount. It persists for the whole
+  // visit, and this effect re-runs whenever `canRestore` moves — a late
+  // false→true flip (dashboardInfo refetch after a properties save) would
+  // otherwise re-open a panel the user explicitly closed.
+  const urlParamHandledRef = useRef(false);
   useEffect(() => {
     // Match the menu entry's gating: version history is only offered to
     // users who could restore (sc-107604) — the URL param must not open
     // it for read-only viewers.
-    if (getUrlParam(URL_PARAMS.versionHistory) && canRestore) {
+    if (
+      !urlParamHandledRef.current &&
+      getUrlParam(URL_PARAMS.versionHistory) &&
+      canRestore
+    ) {
+      urlParamHandledRef.current = true;
       dispatch(openVersionHistoryPanel('dashboard'));
     }
   }, [canRestore, dispatch]);

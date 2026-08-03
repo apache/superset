@@ -197,6 +197,26 @@ test('dashboard groups head with the save date and expand to descriptive rows', 
   expect(screen.getByText("Added filter on 'Revenue'")).toBeInTheDocument();
 });
 
+test('a group without a versionUuid offers no kebab at all', async () => {
+  // Restore and open-as-new both name a specific version; the container
+  // handlers silently no-op on a null versionUuid, so offering the menu
+  // reads as breakage. No kebab beats a dead menu — and the expanded
+  // action rows hide theirs for the same reason.
+  const versionless = group({ transactionId: 3, versionUuid: null });
+  const props = defaultProps([versionless], 'dashboard');
+  render(<VersionHistoryPanel {...props} />);
+
+  expect(
+    screen.queryByRole('button', { name: 'More actions' }),
+  ).not.toBeInTheDocument();
+
+  // Expanding the group must not surface per-row kebabs either.
+  await userEvent.click(screen.getByText('Ada Lovelace', { exact: false }));
+  expect(
+    screen.queryByRole('button', { name: 'More actions' }),
+  ).not.toBeInTheDocument();
+});
+
 test('the group kebab restores and forks the version', async () => {
   const { newest, older } = dashboardPair();
   const props = defaultProps([newest, older], 'dashboard');

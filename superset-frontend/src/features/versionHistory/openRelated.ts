@@ -17,7 +17,11 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { openInNewTab } from 'src/utils/navigationUtils';
+import {
+  closeOpenedTab,
+  navigateOpenedTab,
+  openBlankTab,
+} from 'src/utils/navigationUtils';
 import type { ActivityEntityKind, ActivityRecord } from './types';
 import { resolveEntityId } from './api';
 
@@ -40,14 +44,21 @@ export async function openRelatedEntity(
     onError(t('Could not find %s', record.entity_name));
     return;
   }
+  // Claim the tab now, while the click's transient activation is still live:
+  // window.open after the resolve await is silently refused on Safari (and on
+  // any browser once activation lapses) — the same pitfall openAsNew handles.
+  const tab = openBlankTab();
   try {
     const id = await resolveEntityId(record.entity_kind, record.entity_uuid);
     if (id === null) {
+      closeOpenedTab(tab);
       onError(t('Could not find %s', record.entity_name));
       return;
     }
-    openInNewTab(entityUrl(record.entity_kind, id));
+    navigateOpenedTab(tab, entityUrl(record.entity_kind, id));
   } catch {
+    // Leaving the claimed tab open would strand the user on about:blank.
+    closeOpenedTab(tab);
     onError(t('Could not find %s', record.entity_name));
   }
 }

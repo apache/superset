@@ -289,8 +289,8 @@ test('a second activation in the same tick does not fork twice', async () => {
     useVersionActions('chart', 'entity-uuid'),
   );
 
-  // Both calls read the same render's isCreating; only a ref-based lock
-  // stops the second.
+  // Both calls read the same render's isCreating; only a synchronous lock
+  // (not state) stops the second.
   await act(async () => {
     await Promise.all([
       result.current.openAsNew(target),
@@ -300,4 +300,39 @@ test('a second activation in the same tick does not fork twice', async () => {
 
   expect(createChartFromSnapshot).toHaveBeenCalledTimes(1);
   expect(mockOpenBlankTab).toHaveBeenCalledTimes(1);
+});
+
+test('activations from two hook instances do not fork twice', async () => {
+  // The preview banner and the history panel each mount their own
+  // useVersionActions for the same entity. A per-instance (ref) lock lets
+  // the banner's "Open as new" and the panel kebab's slip past each other
+  // and create two copies; the lock must be entity-wide.
+  let resolveSnapshot: (value: { slice_name: string }) => void = () => {};
+  (fetchVersionSnapshot as jest.Mock).mockReturnValue(
+    new Promise(resolve => {
+      resolveSnapshot = resolve;
+    }),
+  );
+  (createChartFromSnapshot as jest.Mock).mockResolvedValue(7);
+  const banner = renderHook(() => useVersionActions('chart', 'entity-uuid'));
+  const panel = renderHook(() => useVersionActions('chart', 'entity-uuid'));
+
+  await act(async () => {
+    const first = banner.result.current.openAsNew(target);
+    const second = panel.result.current.openAsNew(target);
+    resolveSnapshot({ slice_name: 'A chart' });
+    await Promise.all([first, second]);
+  });
+
+  expect(fetchVersionSnapshot).toHaveBeenCalledTimes(1);
+  expect(createChartFromSnapshot).toHaveBeenCalledTimes(1);
+
+  // The lock is self-cleaning: once settled, a fresh fork goes through.
+  (fetchVersionSnapshot as jest.Mock).mockResolvedValue({
+    slice_name: 'A chart',
+  });
+  await act(async () => {
+    await panel.result.current.openAsNew(target);
+  });
+  expect(createChartFromSnapshot).toHaveBeenCalledTimes(2);
 });

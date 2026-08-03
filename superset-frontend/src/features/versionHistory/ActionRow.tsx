@@ -126,6 +126,11 @@ export interface ActionRowProps {
   record: ActivityRecord;
   /** False for the current (live) version, where restoring is a no-op. */
   showRestore: boolean;
+  /**
+   * False when the enclosing group has no versionUuid to act on — both
+   * kebab actions name a specific version, so the menu would be dead.
+   */
+  showActions?: boolean;
   isPreviewed: boolean;
   isLast: boolean;
   onPreview: () => void;
@@ -137,6 +142,7 @@ export default function ActionRow({
   entityType,
   record,
   showRestore,
+  showActions = true,
   isPreviewed,
   isLast,
   onPreview,
@@ -222,16 +228,18 @@ export default function ActionRow({
         <Meta>{meta}</Meta>
       </Content>
       <KebabWrapper>
-        <Dropdown menu={{ items: menuItems }} trigger={['click']}>
-          <KebabButton
-            buttonSize="xsmall"
-            buttonStyle="link"
-            aria-label={t('More actions')}
-            onClick={event => event.stopPropagation()}
-          >
-            <Icons.MoreOutlined iconSize="m" />
-          </KebabButton>
-        </Dropdown>
+        {showActions && (
+          <Dropdown menu={{ items: menuItems }} trigger={['click']}>
+            <KebabButton
+              buttonSize="xsmall"
+              buttonStyle="link"
+              aria-label={t('More actions')}
+              onClick={event => event.stopPropagation()}
+            >
+              <Icons.MoreOutlined iconSize="m" />
+            </KebabButton>
+          </Dropdown>
+        )}
       </KebabWrapper>
     </Row>
   );

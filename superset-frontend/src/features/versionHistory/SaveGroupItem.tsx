@@ -179,6 +179,12 @@ function GroupKebab({
   | 'onOpenAsNew'
 >) {
   const theme = useTheme();
+  if (group.versionUuid == null) {
+    // Both actions name a specific version; a group the server returned
+    // without one has nothing for them to act on, and the container
+    // handlers would silently no-op. No kebab beats a dead menu.
+    return null;
+  }
   const itemStyle = {
     height: theme.controlHeightLG,
     paddingLeft: theme.sizeUnit * 6,
@@ -349,6 +355,7 @@ export default function SaveGroupItem({
               entityType={entityType}
               record={record}
               showRestore={canRestore && !isCurrent}
+              showActions={group.versionUuid != null}
               isPreviewed={isPreviewed}
               isLast={index === visibleRecords.length - 1 && hiddenCount === 0}
               onPreview={previewIntent}

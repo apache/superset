@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactElement, useCallback, useEffect, useRef, useState } from 'react';
+import { ReactElement, useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -50,6 +50,25 @@ export interface VersionActionTarget {
   issuedAt: string;
 }
 
+// The in-flight locks live at module scope because the invariant they
+// protect is entity-wide, not instance-wide: the preview banner and the
+// history panel each mount their own useVersionActions for the same
+// entity, so a ref-scoped lock would let the banner's activation slip
+// past the panel's and fork a duplicate (or start a second restore).
+// State guards alone are no lock at all — two activations in one tick
+// both read the pre-update state value. Keys are removed in `finally`,
+// so the set is self-cleaning; the per-instance isRestoring/isCreating
+// state remains only to drive that instance's spinner.
+const inFlightActions = new Set<string>();
+
+const restoreLockKey = (entityType: string, uuid: string): string =>
+  `restore:${entityType}:${uuid}`;
+const forkLockKey = (
+  entityType: string,
+  uuid: string,
+  versionUuid: string,
+): string => `fork:${entityType}:${uuid}:${versionUuid}`;
+
 export interface UseVersionActionsResult {
   /** Opens the restore confirmation modal for the given version. */
   requestRestore: (target: VersionActionTarget) => void;
@@ -77,11 +96,6 @@ export function useVersionActions(
     useState<VersionActionTarget | null>(null);
   const [isRestoring, setIsRestoring] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
-  // The state flags drive rendering; these refs are the actual locks. Two
-  // activations in one tick both read the pre-update state value, so a
-  // guard on state alone lets the second through and forks a duplicate.
-  const restoringRef = useRef(false);
-  const creatingRef = useRef(false);
 
   // A restore rehydrates the page from the server, which silently wipes
   // in-progress edits and their undo history — the same hazard the preview
@@ -127,9 +141,11 @@ export function useVersionActions(
     setRestoreTarget(null);
   }, []);
 
-  // The restore endpoint reports success but not whether a new version
-  // transaction was created (restoring an already-matching state is a
-  // server-side no-op); probe the newest self transaction to tell the
+  // TODO(version-history): backend workaround — remove when the restore
+  // endpoint reports whether it created a version (e.g. `created: boolean`
+  // in its response). The endpoint reports success but not whether a new
+  // version transaction was created (restoring an already-matching state
+  // is a server-side no-op); probe the newest self transaction to tell the
   // two apart in the toast. A save by another user landing between the
   // two probes can skew which toast variant shows — accepted, cosmetic.
   const latestTransactionId = useCallback(async (): Promise<number | null> => {
@@ -149,7 +165,13 @@ export function useVersionActions(
   }, [entityType, uuid]);
 
   const confirmRestore = useCallback(async () => {
-    if (!restoreTarget || !uuid || restoringRef.current) {
+    if (!restoreTarget || !uuid) {
+      return;
+    }
+    // Entity-wide, not per-version: two concurrent restores to different
+    // versions of the same entity would race each other's rehydration.
+    const lockKey = restoreLockKey(entityType, uuid);
+    if (inFlightActions.has(lockKey)) {
       return;
     }
     if (hasUnsavedChanges) {
@@ -163,7 +185,7 @@ export function useVersionActions(
       setRestoreTarget(null);
       return;
     }
-    restoringRef.current = true;
+    inFlightActions.add(lockKey);
     setIsRestoring(true);
     try {
       const beforeTransactionId = await latestTransactionId();
@@ -200,7 +222,7 @@ export function useVersionActions(
           : t('Failed to restore %s', restoreTarget.headline),
       );
     } finally {
-      restoringRef.current = false;
+      inFlightActions.delete(lockKey);
       setIsRestoring(false);
     }
   }, [
@@ -218,12 +240,18 @@ export function useVersionActions(
 
   const openAsNew = useCallback(
     async (target: VersionActionTarget) => {
-      // The in-flight guard mirrors isRestoring: forking awaits several
-      // requests, and a double activation would create two copies.
-      if (!uuid || creatingRef.current) {
+      if (!uuid) {
         return;
       }
-      creatingRef.current = true;
+      // Forking awaits several requests, and a double activation — same
+      // button twice, or the banner's button plus the panel kebab — would
+      // create two copies. Per-version key: forking two different versions
+      // concurrently is legitimate.
+      const lockKey = forkLockKey(entityType, uuid, target.versionUuid);
+      if (inFlightActions.has(lockKey)) {
+        return;
+      }
+      inFlightActions.add(lockKey);
       setIsCreating(true);
       const copyDate = formatVersionMonthDay(target.issuedAt);
       // Claim the tab now, while the click's transient activation is still
@@ -274,7 +302,7 @@ export function useVersionActions(
             : t('Failed to create a new dashboard from this version');
         addDangerToast(errMsg ? `${failed}: ${errMsg}` : failed);
       } finally {
-        creatingRef.current = false;
+        inFlightActions.delete(lockKey);
         setIsCreating(false);
       }
     },

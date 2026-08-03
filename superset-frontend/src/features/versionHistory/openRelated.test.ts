@@ -16,20 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { openInNewTab } from 'src/utils/navigationUtils';
+import {
+  closeOpenedTab,
+  navigateOpenedTab,
+  openBlankTab,
+} from 'src/utils/navigationUtils';
 import { resolveEntityId } from './api';
 import { openRelatedEntity } from './openRelated';
 import type { ActivityRecord } from './types';
 
 jest.mock('src/utils/navigationUtils', () => ({
-  openInNewTab: jest.fn(),
+  openBlankTab: jest.fn(),
+  navigateOpenedTab: jest.fn(),
+  closeOpenedTab: jest.fn(),
 }));
 jest.mock('./api', () => ({
   resolveEntityId: jest.fn(),
 }));
 
 const mockedResolveEntityId = resolveEntityId as jest.Mock;
-const mockedOpenInNewTab = openInNewTab as jest.Mock;
+const mockedOpenBlankTab = openBlankTab as jest.Mock;
+const mockedNavigateOpenedTab = navigateOpenedTab as jest.Mock;
+const mockedCloseOpenedTab = closeOpenedTab as jest.Mock;
+
+const claimedTab = { location: { replace: jest.fn() } } as unknown as Window;
 
 const record = (overrides: Partial<ActivityRecord> = {}): ActivityRecord =>
   ({
@@ -39,17 +49,37 @@ const record = (overrides: Partial<ActivityRecord> = {}): ActivityRecord =>
     ...overrides,
   }) as ActivityRecord;
 
+beforeEach(() => {
+  mockedOpenBlankTab.mockReturnValue(claimedTab);
+});
+
 afterEach(() => {
   jest.clearAllMocks();
 });
 
-test('opens the resolved chart in a new tab', async () => {
-  mockedResolveEntityId.mockResolvedValue(42);
+test('claims the tab before the id resolves, then navigates it', async () => {
+  // window.open after the resolve await is silently refused on Safari (and
+  // on any browser once transient activation lapses) — the tab must be
+  // claimed synchronously in the click's task.
+  let resolveId: (value: number) => void = () => {};
+  mockedResolveEntityId.mockReturnValue(
+    new Promise(resolve => {
+      resolveId = resolve;
+    }),
+  );
   const onError = jest.fn();
 
-  await openRelatedEntity(record(), onError);
+  const pending = openRelatedEntity(record(), onError);
+  expect(mockedOpenBlankTab).toHaveBeenCalledTimes(1);
+  expect(mockedNavigateOpenedTab).not.toHaveBeenCalled();
 
-  expect(mockedOpenInNewTab).toHaveBeenCalledWith('/explore/?slice_id=42');
+  resolveId(42);
+  await pending;
+
+  expect(mockedNavigateOpenedTab).toHaveBeenCalledWith(
+    claimedTab,
+    '/explore/?slice_id=42',
+  );
   expect(onError).not.toHaveBeenCalled();
 });
 
@@ -59,7 +89,10 @@ test('opens the resolved dashboard with a post-route_base path', async () => {
 
   await openRelatedEntity(record({ entity_kind: 'dashboard' }), onError);
 
-  expect(mockedOpenInNewTab).toHaveBeenCalledWith('/dashboard/7/');
+  expect(mockedNavigateOpenedTab).toHaveBeenCalledWith(
+    claimedTab,
+    '/dashboard/7/',
+  );
 });
 
 test('reports an error when the record has no uuid', async () => {
@@ -69,25 +102,29 @@ test('reports an error when the record has no uuid', async () => {
 
   expect(onError).toHaveBeenCalledWith('Could not find My chart');
   expect(mockedResolveEntityId).not.toHaveBeenCalled();
-  expect(mockedOpenInNewTab).not.toHaveBeenCalled();
+  // Nothing was claimed, so nothing to close.
+  expect(mockedOpenBlankTab).not.toHaveBeenCalled();
 });
 
-test('reports an error when the uuid does not resolve to an id', async () => {
+test('closes the claimed tab when the uuid does not resolve to an id', async () => {
+  // Leaving it open would strand the user on about:blank.
   mockedResolveEntityId.mockResolvedValue(null);
   const onError = jest.fn();
 
   await openRelatedEntity(record(), onError);
 
   expect(onError).toHaveBeenCalledWith('Could not find My chart');
-  expect(mockedOpenInNewTab).not.toHaveBeenCalled();
+  expect(mockedNavigateOpenedTab).not.toHaveBeenCalled();
+  expect(mockedCloseOpenedTab).toHaveBeenCalledWith(claimedTab);
 });
 
-test('reports an error when the id lookup fails', async () => {
+test('closes the claimed tab when the id lookup fails', async () => {
   mockedResolveEntityId.mockRejectedValue(new Error('boom'));
   const onError = jest.fn();
 
   await openRelatedEntity(record(), onError);
 
   expect(onError).toHaveBeenCalledWith('Could not find My chart');
-  expect(mockedOpenInNewTab).not.toHaveBeenCalled();
+  expect(mockedNavigateOpenedTab).not.toHaveBeenCalled();
+  expect(mockedCloseOpenedTab).toHaveBeenCalledWith(claimedTab);
 });
