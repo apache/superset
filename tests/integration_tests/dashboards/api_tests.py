@@ -2054,6 +2054,52 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         db.session.delete(model)
         db.session.commit()
 
+    def test_update_dashboard_persists_metadata_fields_without_dedicated_handling(
+        self,
+    ):
+        """
+        Dashboard API: ``set_dash_metadata`` only gives dedicated handling to a
+        fixed subset of ``json_metadata`` keys (positions, filter_scopes,
+        refresh_frequency, etc). A field edited via the Advanced JSON editor
+        that isn't in that subset -- e.g. ``show_chart_timestamps``,
+        ``stagger_refresh``, ``timed_refresh_immune_slices`` -- must still be
+        persisted rather than silently dropped on save (see #42142).
+        """
+        admin = self.get_user("admin")
+        dashboard_id = self.insert_dashboard(
+            "title1",
+            "slug1",
+            [admin.id],
+            json_metadata=json.dumps({"refresh_frequency": 60}),
+        ).id
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard_id}"
+        rv = self.put_assert_metric(
+            uri,
+            {
+                "json_metadata": json.dumps(
+                    {
+                        "refresh_frequency": 60,
+                        "show_chart_timestamps": True,
+                        "stagger_refresh": True,
+                        "stagger_time": 500,
+                        "timed_refresh_immune_slices": [1, 2],
+                    }
+                )
+            },
+            "put",
+        )
+        assert rv.status_code == 200
+        model = db.session.query(Dashboard).get(dashboard_id)
+        saved_metadata = json.loads(model.json_metadata)
+        assert saved_metadata["show_chart_timestamps"] is True
+        assert saved_metadata["stagger_refresh"] is True
+        assert saved_metadata["stagger_time"] == 500
+        assert saved_metadata["timed_refresh_immune_slices"] == [1, 2]
+
+        db.session.delete(model)
+        db.session.commit()
+
     def test_add_dashboard_filters(self):
         """
         Dashboard API: Test that a filter was added

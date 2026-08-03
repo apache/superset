@@ -56,6 +56,29 @@ DASHBOARD_CUSTOM_FIELDS = {
     "favorite": ["eq"],
 }
 
+# Keys ``DashboardDAO.set_dash_metadata`` recomputes or overrides itself,
+# rather than passing straight through from the incoming payload: either
+# because they're structurally transformed (positions, filter_scopes,
+# default_filters), reset to a default when absent (color_namespace, the
+# metadata_defaults fields), or always derived and never sent by the
+# frontend (shared_label_colors, map_label_colors, color_scheme_domain).
+# Excluded from the generic merge so that dedicated handling stays
+# authoritative for them.
+_SET_DASH_METADATA_SPECIAL_KEYS = {
+    "positions",
+    "filter_scopes",
+    "default_filters",
+    "color_namespace",
+    "expanded_slices",
+    "refresh_frequency",
+    "color_scheme",
+    "label_colors",
+    "cross_filters_enabled",
+    "shared_label_colors",
+    "map_label_colors",
+    "color_scheme_domain",
+}
+
 
 class DashboardDAO(BaseDAO[Dashboard]):
     base_filter = DashboardAccessFilter
@@ -304,6 +327,17 @@ class DashboardDAO(BaseDAO[Dashboard]):
     ) -> None:
         new_filter_scopes = {}
         md = dashboard.params_dict
+
+        # Merge every incoming metadata key that isn't given dedicated
+        # handling below straight through (e.g. show_chart_timestamps,
+        # stagger_refresh, timed_refresh_immune_slices). Without this, only
+        # the fixed subset of keys this function special-cases would ever
+        # reach ``dashboard.json_metadata`` -- any other field edited via
+        # the Advanced JSON editor would silently revert to its stored
+        # value on save (sadpandajoe, #42142).
+        md.update(
+            {k: v for k, v in data.items() if k not in _SET_DASH_METADATA_SPECIAL_KEYS}
+        )
 
         if (positions := data.get("positions")) is not None:
             # find slices in the position data
