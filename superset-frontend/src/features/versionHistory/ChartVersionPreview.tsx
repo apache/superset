@@ -150,7 +150,8 @@ export default function ChartVersionPreview() {
       // chart (e.g. the chart was switched to another dataset since);
       // fetch the metadata the preview should label itself with.
       const live = liveDatasourceRef.current as
-        (Dataset & { id?: number; type?: string }) | undefined;
+        | (Dataset & { id?: number; type?: string })
+        | undefined;
       let datasourceMeta: Dataset | undefined = live;
       if (!live || live.id !== datasourceId || live.type !== datasourceType) {
         try {

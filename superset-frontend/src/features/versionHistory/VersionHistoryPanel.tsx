@@ -315,13 +315,15 @@ export default function VersionHistoryPanel({
             </Button>
           </Footer>
         )}
-        {!hasMore && truncated && timeline.length > 0 && (
-          // The server clips very long histories at a fetch ceiling; without
-          // saying so, the last loaded page reads as the beginning of time.
-          <TruncationNotice role="note">
-            {t('Older history exists but is beyond what can be shown here.')}
-          </TruncationNotice>
-        )}
+        {!hasMore &&
+          truncated &&
+          timeline.length > 0 && (
+            // The server clips very long histories at a fetch ceiling; without
+            // saying so, the last loaded page reads as the beginning of time.
+            <TruncationNotice role="note">
+              {t('Older history exists but is beyond what can be shown here.')}
+            </TruncationNotice>
+          )}
       </Body>
     </Panel>
   );

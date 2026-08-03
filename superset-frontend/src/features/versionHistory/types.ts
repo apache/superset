@@ -82,17 +82,15 @@ export interface ActivityResponse {
   truncated?: boolean;
 }
 
-export interface VersionChangedBy extends ActivityChangedBy {
-  username: string | null;
-}
-
 export interface VersionMeta {
   version_uuid: string;
   version_number: number;
   transaction_id: number;
   operation_type: 'baseline' | 'update' | 'delete';
   issued_at: string;
-  changed_by: VersionChangedBy | null;
+  // Same shape as the activity payload's attribution, enforced server-side
+  // by a schema-parity test (#42711) so clients can share one type.
+  changed_by: ActivityChangedBy | null;
   changes: Array<{
     kind: string;
     operation: ActivityOperation;
