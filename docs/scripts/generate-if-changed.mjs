@@ -58,16 +58,28 @@ const GENERATORS = [
     inputs: [
       {
         type: 'glob',
-        base: path.join(ROOT_DIR, 'superset-frontend/packages/superset-ui-core/src/components'),
+        base: path.join(
+          ROOT_DIR,
+          'superset-frontend/packages/superset-ui-core/src/components',
+        ),
         pattern: '**/*.stories.tsx',
       },
       {
         type: 'glob',
-        base: path.join(ROOT_DIR, 'superset-frontend/packages/superset-core/src'),
+        base: path.join(
+          ROOT_DIR,
+          'superset-frontend/packages/superset-core/src',
+        ),
         pattern: '**/*.stories.tsx',
       },
-      { type: 'file', path: path.join(DOCS_DIR, 'scripts/generate-superset-components.mjs') },
-      { type: 'file', path: path.join(DOCS_DIR, 'src/components/StorybookWrapper.jsx') },
+      {
+        type: 'file',
+        path: path.join(DOCS_DIR, 'scripts/generate-superset-components.mjs'),
+      },
+      {
+        type: 'file',
+        path: path.join(DOCS_DIR, 'src/components/StorybookWrapper.jsx'),
+      },
     ],
     outputs: [
       path.join(DOCS_DIR, 'developer_docs/components/index.mdx'),
@@ -84,7 +96,10 @@ const GENERATORS = [
         base: path.join(ROOT_DIR, 'superset/db_engine_specs'),
         pattern: '**/*.py',
       },
-      { type: 'file', path: path.join(DOCS_DIR, 'scripts/generate-database-docs.mjs') },
+      {
+        type: 'file',
+        path: path.join(DOCS_DIR, 'scripts/generate-database-docs.mjs'),
+      },
     ],
     outputs: [
       path.join(DOCS_DIR, 'src/data/databases.json'),
@@ -96,15 +111,28 @@ const GENERATORS = [
     command:
       'python3 scripts/fix-openapi-spec.py && docusaurus gen-api-docs superset && node scripts/convert-api-sidebar.mjs && node scripts/generate-api-index.mjs && node scripts/generate-api-tag-pages.mjs',
     inputs: [
-      { type: 'file', path: path.join(DOCS_DIR, 'static/resources/openapi.json') },
-      { type: 'file', path: path.join(DOCS_DIR, 'scripts/fix-openapi-spec.py') },
-      { type: 'file', path: path.join(DOCS_DIR, 'scripts/convert-api-sidebar.mjs') },
-      { type: 'file', path: path.join(DOCS_DIR, 'scripts/generate-api-index.mjs') },
-      { type: 'file', path: path.join(DOCS_DIR, 'scripts/generate-api-tag-pages.mjs') },
+      {
+        type: 'file',
+        path: path.join(DOCS_DIR, 'static/resources/openapi.json'),
+      },
+      {
+        type: 'file',
+        path: path.join(DOCS_DIR, 'scripts/fix-openapi-spec.py'),
+      },
+      {
+        type: 'file',
+        path: path.join(DOCS_DIR, 'scripts/convert-api-sidebar.mjs'),
+      },
+      {
+        type: 'file',
+        path: path.join(DOCS_DIR, 'scripts/generate-api-index.mjs'),
+      },
+      {
+        type: 'file',
+        path: path.join(DOCS_DIR, 'scripts/generate-api-tag-pages.mjs'),
+      },
     ],
-    outputs: [
-      path.join(DOCS_DIR, 'docs/api.mdx'),
-    ],
+    outputs: [path.join(DOCS_DIR, 'docs/api.mdx')],
   },
 ];
 
@@ -121,11 +149,15 @@ function walkDir(dir, pattern) {
     for (const entry of fs.readdirSync(currentDir, { withFileTypes: true })) {
       const fullPath = path.join(currentDir, entry.name);
       if (entry.isDirectory()) {
-        if (entry.name === 'node_modules' || entry.name === '__pycache__') continue;
+        if (entry.name === 'node_modules' || entry.name === '__pycache__')
+          continue;
         walk(fullPath);
       } else {
         // Normalize to forward slashes so glob patterns work on all platforms
-        const relativePath = path.relative(dir, fullPath).split(path.sep).join('/');
+        const relativePath = path
+          .relative(dir, fullPath)
+          .split(path.sep)
+          .join('/');
         if (regex.test(relativePath)) {
           results.push(fullPath);
         }
@@ -160,7 +192,9 @@ function computeInputHash(inputs) {
       hash.update(`file:${input.path}:${hashFile(input.path)}\n`);
     } else if (input.type === 'glob') {
       const files = walkDir(input.base, input.pattern);
-      hash.update(`glob:${input.base}:${input.pattern}:count=${files.length}\n`);
+      hash.update(
+        `glob:${input.base}:${input.pattern}:count=${files.length}\n`,
+      );
       for (const file of files) {
         hash.update(`  ${path.relative(input.base, file)}:${hashFile(file)}\n`);
       }
@@ -170,7 +204,7 @@ function computeInputHash(inputs) {
 }
 
 function outputsExist(outputs) {
-  return outputs.every((p) => fs.existsSync(p));
+  return outputs.every(p => fs.existsSync(p));
 }
 
 // ---------------------------------------------------------------------------
@@ -211,11 +245,11 @@ async function main() {
   // parallel, then api-docs sequentially (it depends on docusaurus CLI
   // being available, not on other generators).
 
-  const independent = GENERATORS.filter((g) => g.name !== 'api-docs');
-  const sequential = GENERATORS.filter((g) => g.name === 'api-docs');
+  const independent = GENERATORS.filter(g => g.name !== 'api-docs');
+  const sequential = GENERATORS.filter(g => g.name === 'api-docs');
 
   // Check and run independent generators in parallel
-  const parallelPromises = independent.map((gen) => {
+  const parallelPromises = independent.map(gen => {
     const currentHash = computeInputHash(gen.inputs);
     const cachedHash = cache[gen.name];
     const hasOutputs = outputsExist(gen.outputs);
@@ -240,7 +274,7 @@ async function main() {
         stdio: 'inherit',
         env: process.env,
       });
-      child.on('close', (code) => {
+      child.on('close', code => {
         if (code === 0) {
           updatedCache[gen.name] = currentHash;
           resolve();
@@ -249,7 +283,7 @@ async function main() {
           reject(new Error(`${gen.name} failed with exit code ${code}`));
         }
       });
-      child.on('error', (err) => {
+      child.on('error', err => {
         console.error(`  ✗ ${gen.name} failed to start`);
         reject(err);
       });
@@ -301,7 +335,7 @@ async function main() {
 }
 
 console.log('Checking generators for changes...\n');
-main().catch((err) => {
+main().catch(err => {
   console.error(err);
   process.exit(1);
 });

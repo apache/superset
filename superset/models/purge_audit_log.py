@@ -34,6 +34,14 @@ STATUS_PENDING = "pending"
 STATUS_CONFIRMED = "confirmed"
 STATUS_FAILED = "failed"
 STATUS_BLOCKED = "blocked"
+#: (13 chars -- the status column is String(16); SQLite does not enforce
+#: that, so an over-length value passes locally and fails only on
+#: Postgres/MySQL.)
+#: Reconciliation found the target durably gone but cannot prove THIS attempt
+#: removed it -- a concurrent purge or an unrelated deletion is equally
+#: consistent with the evidence. Deliberately distinct from ``confirmed`` so
+#: the compliance record never attributes a success it did not witness.
+STATUS_TARGET_ABSENT = "target_absent"
 
 
 class PurgeAuditLog(Model):

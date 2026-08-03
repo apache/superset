@@ -53,6 +53,7 @@ from superset import (
     is_feature_enabled,
     security_manager,
 )
+from superset.commands.deletion_retention.window import resolve_retention_window
 from superset.config import _THEME_DARK_BASE, _THEME_DEFAULT_BASE
 from superset.connectors.sqla import models
 from superset.daos.theme import ThemeDAO
@@ -66,7 +67,7 @@ from superset.themes.types import Theme, ThemeMode
 from superset.themes.utils import (
     is_valid_theme,
 )
-from superset.translations.utils import get_language_pack
+from superset.translations.utils import get_language_pack_version
 from superset.utils import core as utils, json
 from superset.utils.filters import get_dataset_access_filters
 from superset.utils.version import get_version_metadata, visible_version_metadata
@@ -497,6 +498,39 @@ def _get_frontend_config_value(key: str) -> Any:
     return val
 
 
+def _soft_delete_conf() -> dict[str, Any]:
+    """Return the retention window to advertise to the client, if any.
+
+    Resolved rather than read from config: an operator can change the window at
+    runtime with ``superset deletion-retention set_window``, which persists to
+    a shared key taking precedence over the config seed. Passing the config
+    value through would tell users they have longer to recover an object than
+    the purge task will actually allow.
+
+    An empty mapping means "say nothing about a window" — either the feature is
+    off, so no deployment pays for a lookup it cannot use, or the lookup failed.
+    A display detail must never be the reason a page fails to bootstrap.
+    """
+    if not is_feature_enabled("SOFT_DELETE"):
+        return {}
+    try:
+        return {"SOFT_DELETE_RETENTION_DAYS": resolve_retention_window()}
+    except Exception:  # pylint: disable=broad-except
+        # resolve_retention_window() issues a real key_value SELECT, so a
+        # failure can leave the request's session in a failed-transaction
+        # state. Swallowing the error without rolling back would make the
+        # *next* unrelated query in this request fail with
+        # PendingRollbackError, attributing the fault to whatever ran after
+        # rather than to this lookup.
+        db.session.rollback()  # pylint: disable=consider-using-transaction
+        logger.warning(
+            "Could not resolve the soft-delete retention window for the client "
+            "bootstrap; the delete modal will omit the recovery window.",
+            exc_info=True,
+        )
+        return {}
+
+
 @cache_manager.cache.memoize(timeout=60)
 def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     user_id: int | None, locale: str | None
@@ -509,6 +543,8 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
 
     # should not expose API TOKEN to frontend
     frontend_config = {k: _get_frontend_config_value(k) for k in FRONTEND_CONF_KEYS}
+
+    frontend_config.update(_soft_delete_conf())
 
     if app.config.get("SLACK_API_TOKEN"):
         frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
@@ -610,23 +646,52 @@ def common_bootstrap_payload() -> dict[str, Any]:
     # Convert locale to string for proper cache key hashing
     locale_str = str(locale) if locale else None
     payload = dict(cached_common_bootstrap_data(utils.get_user_id(), locale_str))
-    # Inject the Jed language pack outside the per-user memoize so the cached
-    # payload stays small and the pack is shared across users for the same
-    # locale. The frontend uses it to configure the translator synchronously,
-    # before any code-split chunk evaluates a module-level `const X = t('...')`
-    # (upstream issue #35330).
-    language = payload.get("locale")
-    if language and language != "en":
-        # Respect a pack already provided via COMMON_BOOTSTRAP_OVERRIDES_FUNC
-        # (the workaround in #35330 does exactly that), otherwise load the
-        # shared one. `get_language_pack` returns the empty English pack on a
-        # miss, which is the right result (English) when no translation file
-        # exists.
-        pack = payload.get("language_pack") or get_language_pack(language)
-    else:
-        pack = None
-    payload["language_pack"] = pack
+    # The language pack itself is NOT embedded in the payload: spa.html loads
+    # it through the content-addressed /language_pack/<lang>/<version>/script.js
+    # tag before the entry bundle, keeping HTML small while still configuring
+    # the translator synchronously (upstream issue #35330). A pack provided via
+    # COMMON_BOOTSTRAP_OVERRIDES_FUNC (the historical workaround) is respected
+    # and takes precedence over the script tag.
+    payload.setdefault("language_pack", None)
     return payload
+
+
+def get_language_pack_template_context(common: dict[str, Any]) -> dict[str, Any]:
+    """Template vars controlling how spa.html delivers the language pack.
+
+    ``common`` is the already-built common bootstrap payload for the request
+    (passed in rather than re-derived, so callers that assembled or mocked
+    their own payload stay consistent with what the template sees).
+
+    Three mutually exclusive outcomes:
+    - English (or no locale): no script tag, nothing to stash.
+    - Operator supplied a pack via COMMON_BOOTSTRAP_OVERRIDES_FUNC: no script
+      tag; spa.html stashes the bootstrap pack on window instead.
+    - Otherwise: emit the content-addressed script URL so the browser can
+      cache the pack as immutable and cache-bust on translation changes.
+    """
+    language = common.get("locale")
+    if not language or language == "en":
+        return {"language_pack_src": None, "language_pack_inline": False}
+    # Truthiness (not `is not None`) is intentional: an empty `{}` override
+    # is not a usable pack (the JS-side stash treats `{}` as truthy and would
+    # crash the translator), so it falls through to the versioned script tag
+    # like "no override" would.
+    if common.get("language_pack"):
+        return {"language_pack_src": None, "language_pack_inline": True}
+    version = get_language_pack_version(language)
+    return {
+        "language_pack_src": (
+            url_for(
+                "Superset.language_pack_script",
+                lang=language,
+                version=version,
+            )
+            if version
+            else None
+        ),
+        "language_pack_inline": False,
+    }
 
 
 def get_spa_payload(extra_data: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -754,6 +819,7 @@ def get_spa_template_context(
         "dark_theme_bg": dark_theme_bg,
         "spinner_svg": spinner_svg,
         "default_title": default_title,
+        **get_language_pack_template_context(payload.get("common") or {}),
         **template_kwargs,
     }
 
