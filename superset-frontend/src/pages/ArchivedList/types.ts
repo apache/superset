@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ListViewFilterOperator } from 'src/components/ListView/types';
 
 /**
  * Per-type configuration for the Archive (Recently-Archived) view. Only the
@@ -35,9 +36,9 @@ export interface ArchivedTypeConfig {
   /** The row's name field per type. */
   nameField: 'slice_name' | 'dashboard_title' | 'table_name';
   /** The rison filter operator that returns only soft-deleted (archived) rows. */
-  deletedStateOperator: string;
+  deletedStateOperator: ListViewFilterOperator;
   /** Rison operator for the archived-within-N-days preset filter. */
-  deletedRecencyOperator: string;
+  deletedRecencyOperator: ListViewFilterOperator;
   /**
    * FAB resource this type's list API is gated on, for `can_read` checks.
    * Used to offer only the types the viewer can actually load; the APIs
@@ -60,22 +61,22 @@ export const ARCHIVED_TYPE_CONFIG: Record<ArchivedType, ArchivedTypeConfig> = {
   chart: {
     resource: 'chart',
     nameField: 'slice_name',
-    deletedStateOperator: 'chart_deleted_state',
-    deletedRecencyOperator: 'chart_deleted_recency',
+    deletedStateOperator: ListViewFilterOperator.ChartDeletedState,
+    deletedRecencyOperator: ListViewFilterOperator.ChartDeletedRecency,
     permissionResource: 'Chart',
   },
   dashboard: {
     resource: 'dashboard',
     nameField: 'dashboard_title',
-    deletedStateOperator: 'dashboard_deleted_state',
-    deletedRecencyOperator: 'dashboard_deleted_recency',
+    deletedStateOperator: ListViewFilterOperator.DashboardDeletedState,
+    deletedRecencyOperator: ListViewFilterOperator.DashboardDeletedRecency,
     permissionResource: 'Dashboard',
   },
   dataset: {
     resource: 'dataset',
     nameField: 'table_name',
-    deletedStateOperator: 'dataset_deleted_state',
-    deletedRecencyOperator: 'dataset_deleted_recency',
+    deletedStateOperator: ListViewFilterOperator.DatasetDeletedState,
+    deletedRecencyOperator: ListViewFilterOperator.DatasetDeletedRecency,
     permissionResource: 'Dataset',
   },
 };
@@ -86,6 +87,13 @@ export interface ArchivedItem {
   uuid: string;
   changed_by?: { first_name?: string; last_name?: string; id?: number } | null;
   deleted_at?: string | null;
+  /**
+   * Server-humanized archive age ("5 weeks ago"), attached post-dump by
+   * `_inject_deleted_at` in `superset/views/filters.py` — nullable there, so
+   * nullable here. This is the field the Archived column renders;
+   * `deleted_at` above is only its sort key.
+   */
+  deleted_at_delta_humanized?: string | null;
   /** Link to the asset, used by the recovery toast (charts/dashboards). */
   url?: string | null;
   /** Dataset link target, used by the recovery toast. */

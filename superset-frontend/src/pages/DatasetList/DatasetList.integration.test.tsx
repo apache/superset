@@ -269,10 +269,14 @@ test('a bulk archive containing a semantic view drops the recoverable promise', 
   window.featureFlags = { SOFT_DELETE: true } as never;
   try {
     setupBulkDeleteMocks();
+    // Both discriminators, as the real combined endpoint emits them:
+    // SemanticViewListSchema serializes kind AND source_type as Constants,
+    // so a row with one but not the other is unrepresentable on the wire.
     const semanticView = {
       ...mockDatasets[1],
       id: 99,
       table_name: 'orders_semantic',
+      kind: 'semantic_view',
       source_type: 'semantic_layer',
     };
     mockDatasetListEndpoints({

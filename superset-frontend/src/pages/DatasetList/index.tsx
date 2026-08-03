@@ -1274,11 +1274,15 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   };
 
   const handleBulkDatasetDelete = (datasetsToDelete: Dataset[]) => {
-    const datasets = datasetsToDelete.filter(
-      d => d.source_type !== 'semantic_layer',
-    );
+    // Discriminate on `kind`, not `source_type`: `kind` is required on the
+    // row type and a schema Constant for semantic views, while `source_type`
+    // is optional in TS — an absent value would classify a semantic view as
+    // a dataset and route its id to the dataset delete endpoint, which looks
+    // rows up by bare numeric id against `tables` only (see the export
+    // handler's comment). Same predicate as the row actions and export.
+    const datasets = datasetsToDelete.filter(d => d.kind !== 'semantic_view');
     const semanticViews = datasetsToDelete.filter(
-      d => d.source_type === 'semantic_layer',
+      d => d.kind === 'semantic_view',
     );
 
     const promises: Promise<unknown>[] = [];
@@ -1586,9 +1590,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               key: 'delete',
               name: softDelete ? t('Archive') : t('Delete'),
               onSelect: (selected: Dataset[]) => {
+                // Must match handleBulkDatasetDelete's predicate exactly:
+                // this count decides whether the modal promises recovery.
                 setPendingBulkSemanticCount(
-                  selected.filter(d => d.source_type === 'semantic_layer')
-                    .length,
+                  selected.filter(d => d.kind === 'semantic_view').length,
                 );
                 confirmDelete(selected);
               },

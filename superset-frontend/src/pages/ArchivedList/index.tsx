@@ -411,7 +411,7 @@ function ArchivedListBody({
         key: 'deleted_at',
         id: 'deleted_at',
         input: 'select',
-        operator: config.deletedRecencyOperator as FilterOperator,
+        operator: config.deletedRecencyOperator,
         unfilteredLabel: t('All time'),
         selects: timeRangeOptions,
       },
