@@ -36,9 +36,14 @@ jobs:
         continue-on-error: true
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
+          # merge-multiple is intentionally omitted: each matrix leg's
+          # artifact (junit-results-current, junit-results-next) uses the
+          # same XML filenames, so merging them into one directory would let
+          # one Python version's results overwrite the other's. Downloading
+          # into per-artifact subdirectories keeps both, and the glob below
+          # is recursive so it still picks up every XML file.
           pattern: "junit-results-*"
           path: artifacts
-          merge-multiple: true
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
