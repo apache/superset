@@ -2200,6 +2200,51 @@ def test_apply_client_processing_csv_format_escapes_formula_values():
     assert "\n=SUM(1+1)" not in processed["queries"][0]["data"]
 
 
+def test_apply_client_processing_csv_format_bytes_data():
+    """
+    Regression for #32370: "Export to pivoted .csv" fails with a 505 error.
+
+    For a real ``resultType=post_processed``/``resultFormat=csv`` request,
+    the query's ``data`` is CSV *bytes* by the time it reaches
+    ``apply_client_processing`` --
+    ``QueryContextProcessor.get_data`` encodes it to bytes for any CSV
+    result_format (``superset/common/query_context_processor.py``), and
+    that's the exact payload ``ChartDataRestApi._send_chart_response`` hands
+    to ``apply_client_processing`` for a POST_PROCESSED result. The CSV
+    branch here passes that straight into ``StringIO(data)``, which raises
+    ``TypeError: initial_value must be str or None, not bytes`` -- a crash
+    that reproduces for every pivoted CSV export, not only the reporter's
+    special-character metric labels (this test uses one anyway, to also
+    pin the originally reported symptom).
+    """
+
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": b"name,% of total\nA,1\nB,2\n",
+            }
+        ]
+    }
+    form_data = {
+        "datasource": "19__table",
+        "viz_type": "pivot_table_v2",
+        "slice_id": 69,
+        "groupbyColumns": [],
+        "groupbyRows": ["name"],
+        "metrics": ["% of total"],
+        "metricsLayout": "COLUMNS",
+        "aggregateFunction": "Sum",
+        "rowOrder": "key_a_to_z",
+        "colOrder": "key_a_to_z",
+        "result_format": "csv",
+        "result_type": "post_processed",
+    }
+
+    processed = apply_client_processing(result, form_data)
+    assert "% of total" in processed["queries"][0]["data"]
+
+
 def test_apply_client_processing_csv_format_empty_string():
     """
     It should be able to process csv results with no data
