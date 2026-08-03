@@ -422,11 +422,20 @@ describe('PropertiesModal', () => {
     } as any);
     mockedIsFeatureEnabled.mockReturnValue(false);
     const props = createProps();
+    // dashboardInfo, when passed, is used directly instead of triggering a
+    // fetch (see the `!currentDashboardInfo` check in the data-loading
+    // effect); handleDashboardData reads the parsed `metadata` object, not
+    // the `json_metadata` string, so `metadata` must be parsed here too --
+    // otherwise the seeded JSON has no `refresh_frequency` key at all and
+    // save falls back to the selected 60 through the `?? refreshFrequency`
+    // path regardless of whether the dropdown-to-JSON sync under test
+    // actually runs.
     const propsWithDashboardInfo = {
       ...props,
       dashboardInfo: {
         ...dashboardInfo,
         json_metadata: mockedJsonMetadata,
+        metadata: JSON.parse(mockedJsonMetadata),
       },
     };
     render(<PropertiesModal {...propsWithDashboardInfo} />, {
