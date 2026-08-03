@@ -4366,6 +4366,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 )
                 return
 
+        # An ephemeral Query built below from a raw `sql=` string always
+        # stamps the *current* user as its `user_id`, since there's no real
+        # query to attribute authorship to yet -- that must not be confused
+        # with a genuine, previously-persisted Query the caller fetched by
+        # id (e.g. from SQL Lab history), whose authorship bypass further
+        # down is meant to reward a query that was already run and stored.
+        is_ephemeral_query = bool(sql and database)
+
         if sql and database:
             query = Query(
                 database=database,
@@ -4416,8 +4424,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             # touch. This mirrors the ownership bypass already granted to
             # dataset owners via ``is_editor`` further below in this same
             # method; the query path had no equivalent authorship bypass.
+            # Does not apply to the ephemeral query built above: that one's
+            # ``user_id`` is always the current user by construction, which
+            # would trivially bypass the very check being performed on a
+            # brand new, never-before-run SQL string.
             if (
                 query
+                and not is_ephemeral_query
                 and hasattr(query, "user_id")
                 and (user_id := get_user_id()) is not None
                 and query.user_id == user_id
