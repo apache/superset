@@ -2006,6 +2006,7 @@ def count_referenced_tables(statement: str, dialect: Dialects | str | None) -> i
     single table.
     """
     try:
+        _check_script_length(statement, str(dialect) if dialect else None)
         parsed = sqlglot.parse_one(statement, dialect=dialect)
         return len(extract_tables_from_statement(parsed, dialect))
     except Exception:  # pylint: disable=broad-except

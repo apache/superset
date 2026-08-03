@@ -258,6 +258,22 @@ def test_count_referenced_tables() -> None:
     assert count_referenced_tables("this is not valid sql (((", Dialects.SQLITE) == 1
 
 
+def test_count_referenced_tables_respects_parse_length_cap(
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``count_referenced_tables`` must not bypass ``SQL_MAX_PARSE_LENGTH``: an
+    oversized statement should fail the length check before reaching
+    sqlglot, and fall back to the conservative single-table count.
+    """
+    mocker.patch("superset.config.SQL_MAX_PARSE_LENGTH", 100)
+    mocker.patch("superset.sql.parse.has_app_context", return_value=False)
+    padding = "1, " * 50
+    statement = 'SELECT * FROM "db.table1" WHERE a IN (' + padding + "1)"
+    assert len(statement.encode("utf-8")) > 100
+    assert count_referenced_tables(statement, Dialects.SQLITE) == 1
+
+
 def test_extract_tables_subselect() -> None:
     """
     Test that tables inside subselects are parsed correctly.
