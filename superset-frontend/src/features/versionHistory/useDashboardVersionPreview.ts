@@ -349,6 +349,18 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
           liveData.charts,
           snapshotLayout,
         );
+        // Resolved here, with the other pre-check awaits, and deliberately
+        // not later: everything from the cache commit to the hydrate below
+        // must stay synchronous. The save-signal effect nulls the cache
+        // whenever no preview is applied yet, so an await in that stretch
+        // lets a save land between the commit and `appliedVersionRef`,
+        // leaving a preview applied over a null cache — exit-preview only
+        // rehydrates `if (liveData)`, so the page would keep showing
+        // historical content after the banner disappeared.
+        const theme = await resolveSnapshotTheme(
+          snapshot.theme_id,
+          liveData.dashboard.theme ?? null,
+        );
         if (fetchId !== fetchIdRef.current) {
           return;
         }
@@ -363,13 +375,6 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
         }
         liveDataRef.current = liveData;
         const { dashboard } = liveData;
-        const theme = await resolveSnapshotTheme(
-          snapshot.theme_id,
-          dashboard.theme ?? null,
-        );
-        if (fetchId !== fetchIdRef.current) {
-          return;
-        }
         if (appliedVersionRef.current === null) {
           // Entering preview from the live dashboard: remember the user's
           // filter selections so closing the preview can bring them back.

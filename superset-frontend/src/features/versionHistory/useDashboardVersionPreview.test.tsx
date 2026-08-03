@@ -667,3 +667,47 @@ test('reloading after a restore hydrates with no carried-over dataMask', async (
   // A restored version behaves like a fresh page load.
   expect(hydrateMaskArg(0)).toEqual({});
 });
+
+test('a save landing during the theme fetch does not strand the preview', async () => {
+  // The save-signal effect clears liveDataRef whenever no preview is applied
+  // yet. The theme lookup awaits *after* the cache is committed but *before*
+  // appliedVersionRef is set, so a save landing in that window nulls the
+  // cache while the preview goes on to apply -- and exit-preview, which only
+  // rehydrates `if (liveData)`, then silently leaves historical content on
+  // screen with the banner gone.
+  let resolveTheme: (value: { id: number; theme_name: string; json_data: string }) => void =
+    () => {};
+  mockedFetchTheme.mockReturnValue(
+    new Promise(resolve => {
+      resolveTheme = resolve;
+    }) as ReturnType<typeof fetchDashboardTheme>,
+  );
+  mockedFetchSnapshot.mockResolvedValue({
+    ...snapshot,
+    theme_id: 4,
+  } as unknown as DashboardVersionSnapshot);
+  const store = makePreviewStore();
+  renderPreviewHook(store);
+
+  act(() => {
+    store.setState({
+      versionHistory: versionHistoryState({ preview: previewOf('v1') }),
+    });
+  });
+  await waitFor(() => expect(mockedFetchTheme).toHaveBeenCalledTimes(1));
+
+  // A save lands while the theme request is in flight.
+  act(() => {
+    store.setState({ dashboardInfo: { id: 6, last_modified_time: 999 } });
+  });
+  await act(async () => {
+    resolveTheme({ id: 4, theme_name: 'Old theme', json_data: '{}' });
+  });
+  await waitFor(() => expect(mockedHydrateDashboard).toHaveBeenCalledTimes(1));
+
+  // Close the preview: the live dashboard must come back.
+  act(() => {
+    store.setState({ versionHistory: versionHistoryState({ preview: null }) });
+  });
+  await waitFor(() => expect(mockedHydrateDashboard).toHaveBeenCalledTimes(2));
+});
