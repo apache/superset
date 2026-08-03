@@ -68,6 +68,13 @@ repos:
         language: system
         pass_filenames: true
         files: ^superset-frontend/.*\.(js|jsx|ts|tsx|css|scss|sass|json)$
+        # oxfmt treats lockfiles as generated files and internally filters them
+        # out of its target list. If a diff only touches a lockfile, pre-commit
+        # still hands it to oxfmt as the sole target, and oxfmt hard-errors with
+        # "Expected at least one target file" once its internal filtering leaves
+        # zero files to format. Excluding lockfiles here keeps pre-commit from
+        # ever invoking oxfmt on a target set that's guaranteed to end up empty.
+        exclude: ^superset-frontend/(package-lock\.json|yarn\.lock|pnpm-lock\.yaml)$
   - repo: local
     hooks:
       - id: oxlint-frontend
