@@ -375,23 +375,17 @@ def test_rebuilt_query_context_payload_carries_query_shape(
     assert query["row_limit"] == 25
 
 
-@pytest.mark.parametrize(
-    ("configured", "expected"),
-    [
-        (None, {"table", "big_number_total", "big_number", "pie"}),  # default
-        (set(), set()),  # explicit empty set disables rebuild entirely
-        ({"table"}, {"table"}),  # explicit override
-    ],
-)
-def test_rebuild_viz_types_respects_explicit_empty_set(
-    configured: set[str] | None, expected: set[str]
-) -> None:
+def test_rebuild_viz_types_is_the_conservative_default() -> None:
+    # The rebuild allow-list is a fixed fallback (no config override): only viz
+    # types whose data maps faithfully to a single plain query.
     from superset.tasks import export_dashboard_excel as module
 
-    fake_app = mock.MagicMock()
-    fake_app.config.get.return_value = configured
-    with mock.patch.object(module, "current_app", fake_app):
-        assert module._rebuild_viz_types() == expected
+    assert module.REBUILD_VIZ_TYPES == {
+        "table",
+        "big_number_total",
+        "big_number",
+        "pie",
+    }
 
 
 def test_chart_query_error_grouped_as_general_export_continues(

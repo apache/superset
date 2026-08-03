@@ -69,9 +69,9 @@ EXPORT_MODE_IMAGES = "images"
 TABLE_VIZ_TYPES = {"table", "pivot_table_v2", "pivot_table"}
 
 # Viz types whose missing query context may be rebuilt from saved form data.
-# Conservative by default: only charts whose data maps faithfully to a single
-# plain query (no post-processing, no multi-query fan-out). Operators can
-# override via ``EXCEL_EXPORT_REBUILD_VIZ_TYPES``.
+# Conservative: only charts whose data maps faithfully to a single plain query
+# (no post-processing, no multi-query fan-out). Every other viz type without a
+# saved query context is skipped and listed for the user to re-save in Explore.
 REBUILD_VIZ_TYPES = {"table", "big_number_total", "big_number", "pie"}
 
 EXPORT_SOFT_TIME_LIMIT = 600
@@ -124,16 +124,6 @@ def _saved_query_context(raw: Any) -> dict[str, Any] | None:
     return parsed
 
 
-def _rebuild_viz_types() -> set[str]:
-    """Viz types eligible for form-data query-context rebuild (config or default).
-
-    Only ``None`` falls back to the default; an explicitly configured empty set is
-    honored so operators can disable the rebuild entirely.
-    """
-    configured = current_app.config.get("EXCEL_EXPORT_REBUILD_VIZ_TYPES")
-    return REBUILD_VIZ_TYPES if configured is None else configured
-
-
 # Form-data keys whose behavior needs plugin post-processing or extra queries
 # (contribution/time comparison, rolling window, resampling, raw big-number
 # aggregation) that the single-query rebuild cannot reproduce. A chart using any
@@ -164,14 +154,14 @@ def _resolve_query_context(chart: Any) -> dict[str, Any] | None:
     Prefers the chart's saved ``query_context``. When that is missing or empty,
     synthesizes one from the chart's saved form data (``params``) — but only for
     viz types whose data maps faithfully to a single plain query
-    (``EXCEL_EXPORT_REBUILD_VIZ_TYPES``) and that don't rely on post-processing or
-    extra queries the rebuild can't reproduce; other charts return ``None`` so the
-    caller lists them for re-saving rather than exporting inaccurate data.
+    (``REBUILD_VIZ_TYPES``) and that don't rely on post-processing or extra queries
+    the rebuild can't reproduce; other charts return ``None`` so the caller lists
+    them for re-saving rather than exporting inaccurate data.
     """
     if saved := _saved_query_context(chart.query_context):
         return saved
 
-    if chart.viz_type not in _rebuild_viz_types() or chart.datasource_id is None:
+    if chart.viz_type not in REBUILD_VIZ_TYPES or chart.datasource_id is None:
         return None
     try:
         form_data = json.loads(chart.params) if chart.params else {}
