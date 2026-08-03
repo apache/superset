@@ -472,7 +472,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
 
         query = Query(
             sql="SELECT * FROM wb_health_population",
-            client_id="fd_auth_acc1",
+            client_id="fd_auth_ac1",
             database=database,
             schema=schema,
             user_id=gamma_user.id,
