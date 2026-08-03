@@ -111,12 +111,10 @@ const StyledMenuItem = styled.div<{ disabled?: boolean }>`
       color: ${!disabled && theme.colorPrimary};
       cursor: ${!disabled ? 'pointer' : 'not-allowed'};
     }
-    ${
-      disabled &&
-      css`
-        color: ${theme.colorTextDisabled};
-      `
-    }
+    ${disabled &&
+    css`
+      color: ${theme.colorTextDisabled};
+    `}
   `}
 `;
 

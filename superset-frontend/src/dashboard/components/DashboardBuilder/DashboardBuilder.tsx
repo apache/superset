@@ -132,14 +132,12 @@ const StyledHeader = styled.div<{ filterBarWidth: number }>`
        only the tab bar sticky. A pinned title would sit underneath the
        higher-z sticky tabs, leaving its bottom edge (kebab button) peeking
        out below the tab bar. */
-    ${
-      isMobileConsumptionEnabled() &&
-      css`
-        @media (max-width: ${theme.screenSMMax}px) {
-          position: relative;
-        }
-      `
-    }
+    ${isMobileConsumptionEnabled() &&
+    css`
+      @media (max-width: ${theme.screenSMMax}px) {
+        position: relative;
+      }
+    `}
 
     .empty-droptarget {
       min-height: ${theme.sizeUnit * 4}px;
@@ -193,9 +191,8 @@ const DashboardContentWrapper = styled.div`
       & .dashboard-component-tabs {
         box-shadow: 0 ${theme.sizeUnit}px ${theme.sizeUnit}px 0
           ${addAlpha(theme.colorBorderSecondary, 0.1)};
-        padding-left: ${
-          theme.sizeUnit * 2
-        }px; /* note this is added to tab-level padding, to match header */
+        padding-left: ${theme.sizeUnit *
+        2}px; /* note this is added to tab-level padding, to match header */
       }
 
       .dropdown-toggle.btn.btn-primary .caret {
@@ -365,14 +362,12 @@ const StyledDashboardContent = styled.div<{
       margin: ${theme.sizeUnit * 4}px;
       margin-left: ${marginLeft}px;
 
-      ${
-        editMode &&
-        `
+      ${editMode &&
+      `
       max-width: calc(100% - ${
         BUILDER_SIDEPANEL_WIDTH + theme.sizeUnit * 16
       }px);
-    `
-      }
+    `}
 
       /* this is the ParentSize wrapper */
       & > div:first-of-type {
@@ -409,10 +404,8 @@ const StyledDashboardContent = styled.div<{
       }
 
       &.fade-out {
-        box-shadow: ${
-          theme.dashboardTileBoxShadow ??
-          `0 0 0 1px ${addAlpha(theme.colorBorder, 0.5)}`
-        };
+        box-shadow: ${theme.dashboardTileBoxShadow ??
+        `0 0 0 1px ${addAlpha(theme.colorBorder, 0.5)}`};
       }
 
       & .missing-chart-container {
