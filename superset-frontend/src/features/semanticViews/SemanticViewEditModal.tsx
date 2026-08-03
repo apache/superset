@@ -90,6 +90,11 @@ const METRIC_COLUMNS: ColumnsType<SemanticMetric> = [
   { title: t('Definition'), dataIndex: 'definition', key: 'definition' },
 ];
 
+// Structure tables are read-only; small catalogs render in full, but a
+// large semantic layer can expose hundreds of rows, so switch to
+// pagination past this threshold instead of rendering unboundedly.
+const STRUCTURE_PAGINATION_THRESHOLD = 100;
+
 const STRUCTURE_INFO_MESSAGE = t(
   'Structure is managed by the upstream semantic layer and is read-only.',
 );
@@ -216,7 +221,8 @@ export default function SemanticViewEditModal({
               columns={DIMENSION_COLUMNS}
               size={TableSize.Small}
               rowKey="name"
-              usePagination={false}
+              usePagination={dimensions.length > STRUCTURE_PAGINATION_THRESHOLD}
+              defaultPageSize={STRUCTURE_PAGINATION_THRESHOLD}
             />
           </Tabs.TabPane>
           <Tabs.TabPane tab={t('Metrics (%s)', metrics.length)} key="metrics">
@@ -231,7 +237,8 @@ export default function SemanticViewEditModal({
               columns={METRIC_COLUMNS}
               size={TableSize.Small}
               rowKey="name"
-              usePagination={false}
+              usePagination={metrics.length > STRUCTURE_PAGINATION_THRESHOLD}
+              defaultPageSize={STRUCTURE_PAGINATION_THRESHOLD}
             />
           </Tabs.TabPane>
         </Tabs>

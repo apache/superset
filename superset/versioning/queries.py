@@ -30,6 +30,7 @@ both the read endpoints and the ETag emission path in
 
 from __future__ import annotations
 
+import logging
 import uuid
 from typing import Any
 from uuid import UUID
@@ -40,6 +41,9 @@ from sqlalchemy_continuum import version_class
 
 from superset.extensions import db
 from superset.versioning.baseline import CONTINUUM_BOOKKEEPING_COLUMNS
+from superset.versioning.db_errors import is_missing_table_error
+
+logger = logging.getLogger(__name__)
 
 # Fixed UUIDv5 namespace under which per-(entity, transaction) version UUIDs
 # are derived. Never change this constant — changing it invalidates every
@@ -122,7 +126,6 @@ def _user_select_cols(user_tbl: sa.Table) -> list[Any]:
     """
     return [
         user_tbl.c.id.label("user_id"),
-        user_tbl.c.username,
         user_tbl.c.first_name,
         user_tbl.c.last_name,
     ]
@@ -133,13 +136,17 @@ def _changed_by_from_row(row: Any) -> dict[str, Any] | None:
     ``changed_by`` shape, or ``None`` for saves with no Flask user context
     (CLI / Celery / import / unauthenticated). Expects the user columns to
     have been selected via :func:`_user_select_cols` so the row keys are
-    ``user_id`` / ``username`` / ``first_name`` / ``last_name``.
+    ``user_id`` / ``first_name`` / ``last_name``.
     """
     if row["user_id"] is None:
         return None
+    # Deliberately no ``username``: it is a login identifier, not display
+    # data. The version and activity attribution shapes are kept identical
+    # so clients share one type — enforced by
+    # test_version_and_activity_attribution_schemas_match in
+    # tests/unit_tests/versioning/test_queries.py.
     return {
         "id": row["user_id"],
-        "username": row["username"],
         "first_name": row["first_name"],
         "last_name": row["last_name"],
     }
@@ -233,10 +240,12 @@ def list_change_records_batch(
     transactions are represented by an empty list in the result so
     callers can use ``result.get(tx_id, [])`` without guarding.
 
-    If the ``version_changes`` table is missing (pre-migration or
-    freshly downgraded), returns an empty dict rather than propagating
+    Any operational failure returns an empty dict rather than propagating
     the error — consistent with this being a descriptive layer that
-    should not break the list endpoint.
+    should not break the list endpoint. The missing-table case
+    (pre-migration or freshly downgraded) stays silent; every other
+    failure (deadlock, dropped connection) is logged, since it renders
+    the affected saves as empty change lists.
     """
     # pylint: disable=import-outside-toplevel
     from superset.versioning.changes import version_changes_table
@@ -275,9 +284,19 @@ def list_change_records_batch(
                 .mappings()
                 .all()
             )
-    except (sa.exc.OperationalError, sa.exc.ProgrammingError):
-        # Missing version_changes table: OperationalError on SQLite/MySQL,
-        # ProgrammingError (UndefinedTable) on PostgreSQL.
+    except (sa.exc.OperationalError, sa.exc.ProgrammingError) as ex:
+        if is_missing_table_error(ex):
+            # Missing version_changes table (migration not yet applied) —
+            # the one benign case; stay quiet.
+            return {}
+        # A transient failure (deadlock, dropped connection) renders
+        # every affected save as an empty change list — recoverable on
+        # refresh, but it must not masquerade as the migration race.
+        logger.exception(
+            "version_changes: change-record query failed for %s id=%s",
+            entity_kind,
+            entity_id,
+        )
         return {}
 
     grouped: dict[int, list[dict[str, Any]]] = {tx: [] for tx in transaction_ids}

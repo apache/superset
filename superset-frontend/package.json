@@ -160,7 +160,7 @@
     "@visx/xychart": "^4.0.0",
     "ag-grid-community": "36.0.2",
     "ag-grid-react": "36.0.2",
-    "antd": "^6.5.1",
+    "antd": "^6.5.2",
     "chrono-node": "^2.10.1",
     "classnames": "^2.2.5",
     "content-disposition": "^2.0.1",
@@ -234,7 +234,7 @@
     "use-query-params": "^2.2.2",
     "uuid": "^14.0.1",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
-    "yargs": "^18.0.0"
+    "yargs": "^18.1.0"
   },
   "devDependencies": {
     "@babel/cli": "^7.29.7",
@@ -298,13 +298,13 @@
     "babel-loader": "^10.1.1",
     "babel-plugin-dynamic-import-node": "^2.3.3",
     "babel-plugin-jsx-remove-data-test-id": "^3.0.0",
-    "baseline-browser-mapping": "^2.11.1",
+    "baseline-browser-mapping": "^2.11.5",
     "cheerio": "1.2.0",
     "concurrently": "^10.0.4",
     "copy-webpack-plugin": "^14.0.0",
     "cross-env": "^10.1.0",
     "css-loader": "^7.1.4",
-    "eslint": "^10.7.0",
+    "eslint": "^10.8.0",
     "eslint-import-resolver-alias": "^1.1.2",
     "eslint-import-resolver-typescript": "^4.4.5",
     "eslint-plugin-i18n-strings": "file:eslint-rules/eslint-plugin-i18n-strings",
