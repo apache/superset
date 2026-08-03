@@ -308,7 +308,7 @@
     "babel-plugin-jsx-remove-data-test-id": "^3.0.0",
     "baseline-browser-mapping": "^2.11.1",
     "cheerio": "1.2.0",
-    "concurrently": "^10.0.3",
+    "concurrently": "^10.0.4",
     "copy-webpack-plugin": "^14.0.0",
     "cross-env": "^10.1.0",
     "css-loader": "^7.1.4",
