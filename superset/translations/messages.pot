@@ -2063,6 +2063,9 @@ msgstr ""
 msgid "Archived by"
 msgstr ""
 
+msgid "Archived within"
+msgstr ""
+
 #, python-format
 msgid "Archived: %s"
 msgstr ""
