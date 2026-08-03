@@ -559,6 +559,24 @@ class TestIsErrorResponse:
         middleware = LoggingMiddleware()
         assert middleware._is_error_response(ToolResult(content=[])) is False
 
+    def test_success_response_with_null_error_type_not_detected_as_error(
+        self,
+    ) -> None:
+        """Regression for #42580: response schemas like ExecuteSqlResponse
+        declare "error"/"error_type" as always-present nullable fields, so a
+        fully successful response still serializes the literal "error_type"
+        substring (as "error_type":null). The substring check must not treat
+        that the same as an actual error schema payload with a non-null
+        error_type value."""
+        middleware = LoggingMiddleware()
+        success_json = (
+            '{"success": true, "rows": [{"database": "bronze_layer", '
+            '"tables": 161}], "row_count": 1, "error": null, '
+            '"error_type": null}'
+        )
+        result = ToolResult(content=[mt.TextContent(type="text", text=success_json)])
+        assert middleware._is_error_response(result) is False
+
     @patch("superset.mcp_service.middleware.event_logger")
     @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
     @pytest.mark.asyncio
