@@ -33,37 +33,38 @@ The IconButton component is a versatile button that allows you to combine an ico
 <StoryWithControls
   component="IconButton"
   props={{
-  buttonText: "IconButton",
-  altText: "Icon button alt text",
-  padded: true,
-  icon: "https://superset.apache.org/img/superset-logo-horiz.svg"
-}}
+    buttonText: 'IconButton',
+    altText: 'Icon button alt text',
+    padded: true,
+    icon: 'https://superset.apache.org/img/superset-logo-horiz.svg',
+  }}
   controls={[
-  {
-    name: "buttonText",
-    label: "Button Text",
-    type: "text",
-    description: "The text inside the button."
-  },
-  {
-    name: "altText",
-    label: "Alt Text",
-    type: "text",
-    description: "The alt text for the button. If not provided, the button text is used as the alt text by default."
-  },
-  {
-    name: "padded",
-    label: "Padded",
-    type: "boolean",
-    description: "Add padding between icon and button text."
-  },
-  {
-    name: "icon",
-    label: "Icon",
-    type: "text",
-    description: "Icon inside the button (URL or path)."
-  }
-]}
+    {
+      name: 'buttonText',
+      label: 'Button Text',
+      type: 'text',
+      description: 'The text inside the button.',
+    },
+    {
+      name: 'altText',
+      label: 'Alt Text',
+      type: 'text',
+      description:
+        'The alt text for the button. If not provided, the button text is used as the alt text by default.',
+    },
+    {
+      name: 'padded',
+      label: 'Padded',
+      type: 'boolean',
+      description: 'Add padding between icon and button text.',
+    },
+    {
+      name: 'icon',
+      label: 'Icon',
+      type: 'text',
+      description: 'Icon inside the button (URL or path).',
+    },
+  ]}
 />
 
 ## Try It
@@ -85,12 +86,12 @@ function Demo() {
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `buttonText` | `string` | `"IconButton"` | The text inside the button. |
-| `altText` | `string` | `"Icon button alt text"` | The alt text for the button. If not provided, the button text is used as the alt text by default. |
-| `padded` | `boolean` | `true` | Add padding between icon and button text. |
-| `icon` | `string` | `"https://superset.apache.org/img/superset-logo-horiz.svg"` | Icon inside the button (URL or path). |
+| Prop         | Type      | Default                                                     | Description                                                                                       |
+| ------------ | --------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `buttonText` | `string`  | `"IconButton"`                                              | The text inside the button.                                                                       |
+| `altText`    | `string`  | `"Icon button alt text"`                                    | The alt text for the button. If not provided, the button text is used as the alt text by default. |
+| `padded`     | `boolean` | `true`                                                      | Add padding between icon and button text.                                                         |
+| `icon`       | `string`  | `"https://superset.apache.org/img/superset-logo-horiz.svg"` | Icon inside the button (URL or path).                                                             |
 
 ## Import
 
