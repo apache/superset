@@ -259,6 +259,30 @@ CUSTOM_TAG_LIST_COLUMNS = BASE_LIST_COLUMNS + [
     "custom_tags.type",
 ]
 
+# Fields dropped from a dashboard member dataset when the caller cannot access
+# that datasource on its own. Only the identifying fields needed to render the
+# dashboard are kept; everything describing the dataset's schema, connection,
+# and query construction is removed.
+DASHBOARD_DATASET_INACCESSIBLE_FIELDS = (
+    "sql",
+    "select_star",
+    "fetch_values_predicate",
+    "template_params",
+    "params",
+    "perm",
+    "edit_url",
+    "database",
+    "columns",
+    "column_names",
+    "column_types",
+    "metrics",
+    "verbose_map",
+    "order_by_choices",
+    "main_dttm_col",
+    "granularity_sqla",
+    "time_grain_sqla",
+)
+
 
 # pylint: disable=too-many-public-methods
 class DashboardRestApi(
@@ -616,12 +640,11 @@ class DashboardRestApi(
             # the names of charts the caller can access, consistent with the
             # datasource-access check applied when serializing the dashboard's
             # datasets and charts elsewhere in this API.
-            accessible_names = [
+            result["charts"] = [
                 slc.chart
                 for slc in dash.slices
                 if security_manager.can_access_chart(slc)
             ]
-            result["charts"] = accessible_names
         if current_app.config.get("EXTRA_EDITORS_RESOLVER"):
             result["extra_editors"] = get_extra_editor_subject_ids(dash)
         add_extra_log_payload(
@@ -695,25 +718,7 @@ class DashboardRestApi(
             # cannot access on its own, keep only the identifying fields needed
             # to render the dashboard and drop the fields that describe the
             # dataset's schema, connection, and query construction.
-            for key in (
-                "sql",
-                "select_star",
-                "fetch_values_predicate",
-                "template_params",
-                "params",
-                "perm",
-                "edit_url",
-                "database",
-                "columns",
-                "column_names",
-                "column_types",
-                "metrics",
-                "verbose_map",
-                "order_by_choices",
-                "main_dttm_col",
-                "granularity_sqla",
-                "time_grain_sqla",
-            ):
+            for key in DASHBOARD_DATASET_INACCESSIBLE_FIELDS:
                 serialized.pop(key, None)
         return serialized
 

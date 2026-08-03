@@ -31,6 +31,7 @@ import yaml
 from freezegun import freeze_time
 from sqlalchemy import and_
 from superset import db, security_manager  # noqa: F401
+from superset.dashboards.api import DASHBOARD_DATASET_INACCESSIBLE_FIELDS
 from superset.exceptions import LockAlreadyHeldException
 from superset.models.dashboard import Dashboard
 from superset.models.core import FavStar, FavStarClassName
@@ -338,25 +339,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert response.status_code == 200
         data = json.loads(response.data.decode("utf-8"))
         for dataset in data["result"]:
-            for excluded_key in [
-                "sql",
-                "select_star",
-                "fetch_values_predicate",
-                "template_params",
-                "params",
-                "perm",
-                "edit_url",
-                "database",
-                "columns",
-                "column_names",
-                "column_types",
-                "metrics",
-                "verbose_map",
-                "order_by_choices",
-                "main_dttm_col",
-                "granularity_sqla",
-                "time_grain_sqla",
-            ]:
+            for excluded_key in DASHBOARD_DATASET_INACCESSIBLE_FIELDS:
                 assert excluded_key not in dataset
             # The identifying fields needed to render the dashboard are kept.
             assert "id" in dataset
