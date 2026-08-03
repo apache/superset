@@ -219,7 +219,7 @@ def test_missing_table_stays_silent_during_persist(
         ),
     )
     log_spy = mocker.patch.object(listener.logger, "exception")
-    metric_spy = mocker.patch.object(listener, "_incr_capture_error")
+    metric_spy = mocker.patch.object(listener, "incr_capture_error")
 
     listener._persist_buffered_records(lifecycle_session, tx_id=1, buffer={})
 
@@ -243,7 +243,7 @@ def test_transient_persist_failure_is_logged_and_counted(
         ),
     )
     log_spy = mocker.patch.object(listener.logger, "exception")
-    metric_spy = mocker.patch.object(listener, "_incr_capture_error")
+    metric_spy = mocker.patch.object(listener, "incr_capture_error")
 
     listener._persist_buffered_records(lifecycle_session, tx_id=1, buffer={})
 

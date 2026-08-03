@@ -237,10 +237,12 @@ def list_change_records_batch(
     transactions are represented by an empty list in the result so
     callers can use ``result.get(tx_id, [])`` without guarding.
 
-    If the ``version_changes`` table is missing (pre-migration or
-    freshly downgraded), returns an empty dict rather than propagating
+    Any operational failure returns an empty dict rather than propagating
     the error — consistent with this being a descriptive layer that
-    should not break the list endpoint.
+    should not break the list endpoint. The missing-table case
+    (pre-migration or freshly downgraded) stays silent; every other
+    failure (deadlock, dropped connection) is logged, since it renders
+    the affected saves as empty change lists.
     """
     # pylint: disable=import-outside-toplevel
     from superset.versioning.changes import version_changes_table
@@ -280,15 +282,18 @@ def list_change_records_batch(
                 .all()
             )
     except (sa.exc.OperationalError, sa.exc.ProgrammingError) as ex:
-        if not is_missing_table_error(ex):
-            # A transient failure (deadlock, dropped connection) renders
-            # every affected save as an empty change list — recoverable on
-            # refresh, but it must not masquerade as the migration race.
-            logger.exception(
-                "version_changes: change-record query failed for %s id=%s",
-                entity_kind,
-                entity_id,
-            )
+        if is_missing_table_error(ex):
+            # Missing version_changes table (migration not yet applied) —
+            # the one benign case; stay quiet.
+            return {}
+        # A transient failure (deadlock, dropped connection) renders
+        # every affected save as an empty change list — recoverable on
+        # refresh, but it must not masquerade as the migration race.
+        logger.exception(
+            "version_changes: change-record query failed for %s id=%s",
+            entity_kind,
+            entity_id,
+        )
         return {}
 
     grouped: dict[int, list[dict[str, Any]]] = {tx: [] for tx in transaction_ids}
