@@ -71,6 +71,16 @@ tests:
     asserts:
       - matchRegex: {path: 'stringData["superset_init.sh"]', pattern: "grep -qF 'username:"}
       - notMatchRegex: {path: 'stringData["superset_init.sh"]', pattern: 'create-admin[\s\S]*\|\| true'}
+  - it: allows empty password when adminUser.existingSecret is set
+    set:
+      init:
+        createAdmin: true
+        adminUser:
+          password: ""
+          existingSecret: admin-secret
+    asserts:
+      - hasDocuments:
+          count: 1
   - it: sentinel disabled does not fail render
     set: {cache: {enabled: true, sentinel: {enabled: false}}}
     asserts:
