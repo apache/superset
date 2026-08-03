@@ -938,6 +938,27 @@ Events | take 100""",
     assert query.get_settings() == {"querytrace": True}
 
 
+def test_sqlscript_format_preserves_optimizer_hint_block() -> None:
+    """
+    Regression for #38189: an inline `--` comment trailing a query with a
+    `/*+ SET_VAR(...) */` optimizer hint must not get repositioned inside
+    the hint block during `format()` -- that would corrupt the hint syntax
+    (StarRocks and other engines using the `/*+ ... */` convention reject
+    a nested `/* */` inside it). `format()` is what Superset's execution
+    path actually sends to the engine (see `executor.py`/`celery_task.py`).
+    """
+    sql = """SELECT /*+ SET_VAR(query_timeout = 3000) */ col1, col2
+FROM my_table
+LIMIT 100
+
+-- increase timeout for large scans"""
+    statement = SQLScript(sql, "starrocks").statements[0]
+    formatted = statement.format()
+
+    assert "/*+ SET_VAR(query_timeout = 3000) */" in formatted
+    assert "SET_VAR(query_timeout /*" not in formatted
+
+
 @pytest.mark.parametrize(
     "sql, engine, expected",
     [
