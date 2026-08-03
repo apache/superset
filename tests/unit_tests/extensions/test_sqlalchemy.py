@@ -274,6 +274,81 @@ def table2_late_match(session: Session, database2: "Database") -> Iterator[None]
         db.session.commit()
 
 
+@pytest.fixture
+def table2_multi_late_match(session: Session, database2: "Database") -> Iterator[None]:
+    with database2.get_sqla_engine() as engine:
+        with engine.begin() as conn:
+            conn.execute(
+                text(
+                    "CREATE TABLE table2_multi_late_match "
+                    "(a INTEGER NOT NULL PRIMARY KEY, b TEXT)"
+                )
+            )
+            conn.execute(
+                text(
+                    "INSERT INTO table2_multi_late_match (a, b) "
+                    "VALUES (2, 'twenty'), (3, 'thirty')"
+                )
+            )
+        db.session.commit()
+
+        yield
+
+        with engine.begin() as conn:
+            conn.execute(text("DROP TABLE table2_multi_late_match"))
+        db.session.commit()
+
+
+@with_feature_flags(ENABLE_SUPERSET_META_DB=True)
+def test_superset_joins_with_limit_multiple_late_matches(
+    mocker: MockerFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    app_context: None,
+    table1_large: None,
+    table2_multi_late_match: None,
+) -> None:
+    """
+    Diagnostic probe raised in review of #42598: does the per-table
+    ``SUPERSET_META_DB_LIMIT`` skip (keyed on the
+    ``_executing_multi_table_query`` ContextVar) hold for every row of a
+    multi-row join result, or only the first? ``table1_large`` has two
+    genuine matches in ``table2_multi_late_match`` (a=2 and a=3), both of
+    which fall past SUPERSET_META_DB_LIMIT=2 in table1_large's own row
+    order for a naive per-table truncation.
+    """
+    monkeypatch.setitem(current_app.config, "DB_SQLA_URI_VALIDATOR", None)
+    monkeypatch.setitem(current_app.config, "SUPERSET_META_DB_LIMIT", 2)
+    monkeypatch.setitem(current_app.config, "DATABASE_OAUTH2_CLIENTS", {})
+    monkeypatch.setitem(current_app.config, "SQLALCHEMY_CUSTOM_PASSWORD_STORE", None)
+
+    mocker.patch(
+        "superset.extensions.metadb.security_manager.raise_for_access",
+        return_value=None,
+    )
+
+    from flask import g
+
+    g.user = mocker.MagicMock()
+    g.user.is_anonymous = False
+
+    try:
+        engine = create_engine("superset://", future=True)
+    except Exception as e:
+        pytest.skip(f"Superset dialect not available: {e}")
+
+    with engine.connect() as conn:
+        results = conn.execute(
+            text("""
+            SELECT t1.b, t2.b
+            FROM "database1.table1_large" AS t1
+            JOIN "database2.table2_multi_late_match" AS t2
+            ON t1.a = t2.a
+            ORDER BY t1.b
+            """)
+        )
+        assert list(results) == [(20, "twenty"), (30, "thirty")]
+
+
 @with_feature_flags(ENABLE_SUPERSET_META_DB=True)
 def test_superset_joins_with_limit_drops_matches(
     mocker: MockerFixture,
