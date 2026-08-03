@@ -27,6 +27,7 @@ export const RoutePaths = {
   FILE_HANDLER: '/file-handler',
   DASHBOARD: '/dashboard/:idOrSlug/',
   DASHBOARD_LIST: '/dashboard/list/',
+  DASHBOARD_V2_NEW: '/dashboard/v2/new/',
   CHART_ADD: '/chart/add',
   CHART_LIST: '/chart/list/',
   DATASET_LIST: '/tablemodelview/list/',

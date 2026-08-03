@@ -37,7 +37,7 @@ type ViewUnregisteredEvent = viewsApi.ViewUnregisteredEvent;
 
 const viewRegistry: Map<
   string,
-  { view: View; location: string; component: ComponentType }
+  { view: View; location: string; component: ComponentType<any> }
 > = new Map();
 
 const locationIndex: Map<string, Set<string>> = new Map();
@@ -66,7 +66,7 @@ const notifyUnregister = (event: ViewUnregisteredEvent) => {
 const registerView: typeof viewsApi.registerView = (
   view: View,
   location: string,
-  component: ComponentType,
+  component: ComponentType<any>,
 ): Disposable => {
   const { id } = view;
 
@@ -84,7 +84,10 @@ const registerView: typeof viewsApi.registerView = (
   });
 };
 
-export const resolveView = (id: string): React.ReactElement => {
+export const resolveView = (
+  id: string,
+  props?: Record<string, unknown>,
+): React.ReactElement => {
   const entry = viewRegistry.get(id);
   if (!entry) {
     return React.createElement(ExtensionPlaceholder, { id });
@@ -92,7 +95,7 @@ export const resolveView = (id: string): React.ReactElement => {
   return React.createElement(
     ErrorBoundary,
     null,
-    React.createElement(entry.component),
+    React.createElement(entry.component, props),
   );
 };
 

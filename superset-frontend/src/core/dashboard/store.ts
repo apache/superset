@@ -16,26 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { common as coreType } from '@apache-superset/core';
-import { Disposable } from './models';
 
-const { GenericDataType } = coreType;
+/**
+ * @fileoverview Leaf module wrapping the `DashboardProvider` singleton.
+ *
+ * Building block components (built-in or extension-contributed) read from
+ * `provider` and subscribe via `useDashboardRevision` directly — importing
+ * from here rather than from `./index` avoids a cycle, since `./index` is
+ * what registers the built-in blocks (which import the provider) in the
+ * first place.
+ */
 
-export const core: typeof coreType = {
-  GenericDataType,
-  Disposable,
-};
+import { useSyncExternalStore } from 'react';
+import DashboardProvider from './DashboardProvider';
 
-export * from './authentication';
-export * from './chat';
-export * from './commands';
-export * from './dashboard';
-export * from './editors';
-export * from './extensions';
-export * from './menus';
-export * from './models';
-export * from './navigation';
-export * from './sqlLab';
-export * from './storage';
-export * from './utils';
-export * from './views';
+export const provider = DashboardProvider.getInstance();
+
+/** Ticks on every dashboard.* mutation so a subscribed component re-reads the tree. */
+export const useDashboardRevision = () =>
+  useSyncExternalStore(provider.subscribe, provider.getRevision);

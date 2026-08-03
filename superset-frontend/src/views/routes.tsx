@@ -80,6 +80,13 @@ const Dashboard = lazy(
   () => import(/* webpackChunkName: "Dashboard" */ 'src/pages/Dashboard'),
 );
 
+const DashboardBuilderV2 = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "DashboardBuilderV2" */ 'src/pages/DashboardBuilderV2'
+    ),
+);
+
 const DatabaseList = lazy(
   () => import(/* webpackChunkName: "DatabaseList" */ 'src/pages/DatabaseList'),
 );
@@ -205,6 +212,9 @@ export const routes: Routes = [
   { path: RoutePaths.HOME, Component: Home },
   { path: RoutePaths.FILE_HANDLER, Component: FileHandler },
   { path: RoutePaths.DASHBOARD_LIST, Component: DashboardList },
+  // Must precede DASHBOARD ("/dashboard/:idOrSlug/") — that pattern is a
+  // non-exact prefix match, so it would otherwise shadow this literal path.
+  { path: RoutePaths.DASHBOARD_V2_NEW, Component: DashboardBuilderV2 },
   { path: RoutePaths.DASHBOARD, Component: Dashboard },
   { path: RoutePaths.CHART_ADD, Component: ChartCreation },
   { path: RoutePaths.CHART_LIST, Component: ChartList },

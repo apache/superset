@@ -251,6 +251,19 @@ const RightMenu = ({
       perm: 'can_write',
       view: 'Dashboard',
     },
+    {
+      label: t('Dashboard v2'),
+      // Keep the URL relative so isFrontendRoute() matches and Link navigates
+      // via React Router — see the SQL query entry's comment above.
+      url: '/dashboard/v2/new/',
+      icon: (
+        <Icons.ThunderboltOutlined
+          data-test={`menu-item-${t('Dashboard v2')}`}
+        />
+      ),
+      perm: 'can_write',
+      view: 'Dashboard',
+    },
   ];
 
   const checkAllowUploads = () => {

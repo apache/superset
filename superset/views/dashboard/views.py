@@ -131,3 +131,22 @@ class Dashboard(BaseSupersetView):
         return self.render_app_template(
             extra_bootstrap_data=bootstrap_data, entry="embedded"
         )
+
+
+class DashboardBuilderV2View(BaseSupersetView):
+    """Serves the Dashboard v2 prototype builder page (design-doc item 7.1).
+
+    A pure React-Router route with no server-side state of its own — this
+    view exists only so a full page load (refresh, direct URL, bookmark)
+    matches a Flask route and gets the SPA shell instead of a 404; the
+    actual page is rendered entirely client-side.
+    """
+
+    route_base = "/dashboard/v2"
+    class_permission_name = "Dashboard"
+    method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
+
+    @has_access
+    @expose("/new/")
+    def new(self) -> FlaskResponse:
+        return super().render_app_template()

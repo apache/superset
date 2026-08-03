@@ -58,7 +58,10 @@ export interface View {
  *
  * @param view The view descriptor (id and name).
  * @param location The location where this view should appear (e.g. "sqllab.panels").
- * @param component The React component to render at that location.
+ * @param component The React component to render at that location. Most
+ *   locations render it with no props; check the target location's own docs
+ *   for whether it passes any (e.g. "dashboard.buildingBlocks" passes
+ *   `{ nodeId }`).
  * @returns A Disposable that unregisters the view when disposed.
  *
  * @example
@@ -73,7 +76,7 @@ export interface View {
 export declare function registerView(
   view: View,
   location: string,
-  component: ComponentType,
+  component: ComponentType<any>,
 ): Disposable;
 
 /**
