@@ -294,7 +294,8 @@ const createFetchSubjectRelation =
         ...result,
         data: result.data.flatMap(item => {
           const secondaryLabel = item.extra?.secondary_label as
-            string | undefined;
+            | string
+            | undefined;
           const type = item.extra?.type as number | undefined;
           const value = normalizeSubjectToPickerValue({
             value: item.value,
