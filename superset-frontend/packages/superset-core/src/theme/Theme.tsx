@@ -185,6 +185,24 @@ export class Theme {
       newConfig.algorithm = newAlgorithm;
     }
 
+    // Skip the update (and the notifyProviders fan-out it triggers) if the
+    // theme is already in the requested mode. Docs pages mount one
+    // dark-mode-sync bridge per live component demo (see
+    // docs/src/components/StorybookWrapper.jsx's ThemeSync), so a single
+    // toggle event calls this once per demo on the page. Without this
+    // check, every one of those calls would recompute the theme and
+    // notify every mounted provider, turning a single real toggle into
+    // O(n^2) provider notifications across n demos.
+    const currentAlgorithm = this.antdConfig.algorithm;
+    const algorithmUnchanged = Array.isArray(newConfig.algorithm)
+      ? Array.isArray(currentAlgorithm) &&
+        newConfig.algorithm.length === currentAlgorithm.length &&
+        newConfig.algorithm.every((alg, i) => alg === currentAlgorithm[i])
+      : newConfig.algorithm === currentAlgorithm;
+    if (algorithmUnchanged) {
+      return;
+    }
+
     // Update the theme with the new configuration
     this.setConfig(newConfig);
   }
