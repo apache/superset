@@ -45,7 +45,7 @@ def _make_context(
     ctx.method = method
     message = MagicMock()
     message.name = name
-    message.params = params or {}
+    message.arguments = params or {}
     ctx.message = message
     if metadata is not None:
         ctx.metadata = metadata
@@ -331,6 +331,33 @@ class TestExtractContextInfo:
         _, _, _, slice_id, _, _ = middleware._extract_context_info(ctx)
 
         assert slice_id == 66
+
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=1)
+    def test_extract_reads_arguments_on_real_call_tool_request_params(
+        self, mock_get_user_id
+    ) -> None:
+        """Regression test: the real MCP ``CallToolRequestParams`` object
+        exposes tool arguments as ``.arguments``, not ``.params`` -- a
+        ``MagicMock``-based context would auto-vivify a ``.params``
+        attribute and hide a mismatch. Using the real SDK type here
+        ensures params/dashboard_id/etc. are actually populated instead
+        of silently logging as empty."""
+        middleware = LoggingMiddleware()
+        message = mt.CallToolRequestParams(
+            name="get_dashboard_info",
+            arguments={"dashboard_id": 7},
+        )
+        ctx = MagicMock()
+        ctx.message = message
+        ctx.metadata = None
+        ctx.session = None
+
+        agent_id, user_id, dashboard_id, slice_id, dataset_id, params = (
+            middleware._extract_context_info(ctx)
+        )
+
+        assert params == {"dashboard_id": 7}
+        assert dashboard_id == 7
 
 
 class TestIsErrorResponse:

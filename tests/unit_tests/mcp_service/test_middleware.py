@@ -68,7 +68,7 @@ class TestResponseSizeGuardMiddleware:
         # Create mock context
         context = MagicMock()
         context.message.name = "list_charts"
-        context.message.params = {}
+        context.message.arguments = {}
 
         # Create mock call_next that returns small response
         small_response = {"charts": [{"id": 1, "name": "test"}]}
@@ -91,7 +91,7 @@ class TestResponseSizeGuardMiddleware:
         # Create mock context
         context = MagicMock()
         context.message.name = "list_charts"
-        context.message.params = {"page_size": 100}
+        context.message.arguments = {"page_size": 100}
 
         # Create large response
         large_response = {
@@ -121,7 +121,7 @@ class TestResponseSizeGuardMiddleware:
         # Create mock context for excluded tool
         context = MagicMock()
         context.message.name = "health_check"
-        context.message.params = {}
+        context.message.arguments = {}
 
         # Create response that would exceed limit
         large_response = {"data": "x" * 10000}
@@ -140,7 +140,7 @@ class TestResponseSizeGuardMiddleware:
 
         context = MagicMock()
         context.message.name = "list_charts"
-        context.message.params = {}
+        context.message.arguments = {}
 
         # Response at ~85% of limit (should trigger warning but not block)
         response = {"data": "x" * 2900}  # ~828 tokens at 3.5 chars/token
@@ -165,7 +165,7 @@ class TestResponseSizeGuardMiddleware:
 
         context = MagicMock()
         context.message.name = "list_charts"
-        context.message.params = {"page_size": 100}
+        context.message.arguments = {"page_size": 100}
 
         large_response = {"charts": [{"id": i} for i in range(1000)]}
         call_next = AsyncMock(return_value=large_response)
@@ -190,7 +190,7 @@ class TestResponseSizeGuardMiddleware:
 
         context = MagicMock()
         context.message.name = "list_charts"
-        context.message.params = {}
+        context.message.arguments = {}
 
         large_response = {"data": "x" * 10000}
         call_next = AsyncMock(return_value=large_response)
@@ -214,7 +214,7 @@ class TestResponseSizeGuardMiddleware:
 
         context = MagicMock()
         context.message.name = "get_dataset_info"
-        context.message.params = {}
+        context.message.arguments = {}
 
         # Large info tool response with a big description
         large_response = {
@@ -243,7 +243,7 @@ class TestResponseSizeGuardMiddleware:
 
         context = MagicMock()
         context.message.name = "get_chart_info"
-        context.message.params = {}
+        context.message.arguments = {}
 
         large_response = {
             "id": 1,
@@ -269,7 +269,7 @@ class TestResponseSizeGuardMiddleware:
 
         context = MagicMock()
         context.message.name = "list_charts"  # Not an info tool
-        context.message.params = {}
+        context.message.arguments = {}
 
         large_response = {"data": "x" * 10000}
         call_next = AsyncMock(return_value=large_response)
@@ -288,7 +288,7 @@ class TestResponseSizeGuardMiddleware:
 
         context = MagicMock()
         context.message.name = "get_dashboard_info"
-        context.message.params = {}
+        context.message.arguments = {}
 
         large_response = {
             "id": 1,
@@ -394,7 +394,7 @@ class TestMiddlewareIntegration:
 
         context = MagicMock()
         context.message.name = "get_chart_info"
-        context.message.params = {}
+        context.message.arguments = {}
 
         response = ChartInfo(id=1, name="Test Chart")
         call_next = AsyncMock(return_value=response)
@@ -414,7 +414,7 @@ class TestMiddlewareIntegration:
 
         context = MagicMock()
         context.message.name = "list_charts"
-        context.message.params = {}
+        context.message.arguments = {}
 
         response = [{"id": 1}, {"id": 2}, {"id": 3}]
         call_next = AsyncMock(return_value=response)
@@ -434,7 +434,7 @@ class TestMiddlewareIntegration:
 
         context = MagicMock()
         context.message.name = "health_check"
-        context.message.params = {}
+        context.message.arguments = {}
 
         response = "OK"
         call_next = AsyncMock(return_value=response)
