@@ -137,8 +137,10 @@ def _changed_by_from_row(row: Any) -> dict[str, Any] | None:
     if row["user_id"] is None:
         return None
     # Deliberately no ``username``: it is a login identifier, not display
-    # data, and the sibling activity payload already excludes it (pinned by
-    # a unit test there). Display names come from first/last name.
+    # data. The version and activity attribution shapes are kept identical
+    # so clients share one type — enforced by
+    # test_version_and_activity_attribution_schemas_match in
+    # tests/unit_tests/versioning/test_queries.py.
     return {
         "id": row["user_id"],
         "first_name": row["first_name"],
