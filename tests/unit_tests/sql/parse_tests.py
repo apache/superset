@@ -503,6 +503,32 @@ def test_format_oracle_group_by_keeps_explicit_expressions_subquery() -> None:
     assert not any(item.isdigit() for item in group_by_items)
 
 
+def test_format_hana_preserves_quoted_identifier_casing() -> None:
+    """
+    Regression test for https://github.com/apache/superset/issues/39328.
+
+    HANA is mapped to the Postgres sqlglot dialect (``SQLALCHEMY_URI_ENGINES``
+    has no dedicated HANA dialect), and Postgres's generator uppercases
+    quoted identifiers that mix case, e.g. ``"zbw.10_001/INVENTORY"`` becomes
+    ``"ZBW.10_001/INVENTORY"``. HANA's calculation-view table names are
+    case-sensitive, so the re-cased identifier no longer resolves and SQL Lab
+    fails with ``invalid table name`` even though the user's original query
+    was valid.
+    """
+    sql = (
+        'SELECT * FROM _sys_bic."zbw.10_001/INVENTORY"\n'
+        "(\n"
+        "  'PLACEHOLDER' = ('$$IP_DATE_TO$$', ''),\n"
+        "  'PLACEHOLDER' = ('$$IP_DATE_FROM$$', '')\n"
+        ")"
+    )
+    formatted = SQLStatement(sql, engine="hana").format()
+
+    assert '"zbw.10_001/INVENTORY"' in formatted
+    assert "$$IP_DATE_TO$$" in formatted
+    assert "$$IP_DATE_FROM$$" in formatted
+
+
 def test_split_no_dialect() -> None:
     """
     Test the statement split when the engine has no corresponding dialect.
