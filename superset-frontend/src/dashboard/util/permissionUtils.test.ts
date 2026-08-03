@@ -132,6 +132,26 @@ test('isUserDashboardEditor returns false when editors is empty', () => {
   expect(isUserDashboardEditor(dashNoEditors)).toEqual(false);
 });
 
+test('isUserDashboardEditor counts editorship granted through extra_editors', () => {
+  // The server's is_editor unions EXTRA_EDITORS_RESOLVER output into the
+  // editor set, and the API attaches it after the response schema is dumped.
+  // Ignoring it here hid the Edit button from people the API would let
+  // through. extra_editors arrives as bare ids.
+  const dashExtraEditor = { ...dashboard, editors: [], extra_editors: [10] };
+  expect(isUserDashboardEditor(dashExtraEditor)).toEqual(true);
+  expect(canUserEditDashboard(dashExtraEditor, editorUser)).toEqual(true);
+});
+
+test('isUserDashboardEditor ignores extra_editors for other subjects', () => {
+  const dashOtherExtraEditor = {
+    ...dashboard,
+    editors: [],
+    extra_editors: [999],
+  };
+  expect(isUserDashboardEditor(dashOtherExtraEditor)).toEqual(false);
+  expect(canUserEditDashboard(dashOtherExtraEditor, editorUser)).toEqual(false);
+});
+
 test('canUserEditDashboard allows editors', () => {
   expect(canUserEditDashboard(dashboard, editorUser)).toEqual(true);
 });
