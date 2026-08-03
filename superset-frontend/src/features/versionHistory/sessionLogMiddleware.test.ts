@@ -153,6 +153,45 @@ test('a dataset reconciliation is logged as an unsaved change', async () => {
   );
 });
 
+test('a browser history step is logged as an unsaved change', async () => {
+  // Explore's own history entries carry chart state, so a back/forward
+  // between them is an undo/redo that rebuilds the whole control map without
+  // emitting a single control change. Unrecorded, a save (which clears the
+  // log) followed by a step back to the pre-save controls left the restore
+  // gate seeing a clean form that had in fact moved — and the restore
+  // discarded it silently. Built with the REAL action creator: the constant
+  // is named SET_EXPLORE_CONTROLS but its literal is
+  // 'UPDATE_EXPLORE_CONTROLS'.
+  const { setExploreControls } =
+    await import('src/explore/actions/exploreActions');
+  const store = buildStore({
+    user: { firstName: 'Ada', lastName: 'Lovelace' },
+  });
+  run(store, setExploreControls({ viz_type: 'table' } as never));
+  expect(store.dispatch).toHaveBeenCalledWith(
+    expect.objectContaining({
+      type: APPEND_VERSION_SESSION_LOG,
+      entry: expect.objectContaining({
+        label: 'Undid or redid a change',
+        controlName: '__history__',
+        user: 'Ada Lovelace',
+      }),
+    }),
+  );
+});
+
+test('a history step cannot collapse into an adjacent control entry', async () => {
+  // Collapsing is by controlName, so the sentinel must not collide with a
+  // real control — otherwise a history step would silently replace the
+  // preceding genuine edit rather than adding to it.
+  const { setExploreControls } =
+    await import('src/explore/actions/exploreActions');
+  const store = buildStore({ explore: { controls: {} } });
+  run(store, setExploreControls({} as never));
+  const { entry } = store.dispatch.mock.calls[0][0];
+  expect(entry.controlName).not.toMatch(/^[a-z]/);
+});
+
 test('does nothing when the feature flag is disabled', () => {
   mockedIsFeatureEnabled.mockReturnValue(false);
   const store = buildStore();
@@ -179,6 +218,9 @@ test('inlined action-type literals match the real explore constants', async () =
   expect(middleware.UPDATE_CHART_TITLE).toBe(exploreActions.UPDATE_CHART_TITLE);
   expect(middleware.UPDATE_FORM_DATA_BY_DATASOURCE).toBe(
     exploreActions.UPDATE_FORM_DATA_BY_DATASOURCE,
+  );
+  expect(middleware.SET_EXPLORE_CONTROLS).toBe(
+    exploreActions.SET_EXPLORE_CONTROLS,
   );
   expect(middleware.HYDRATE_EXPLORE).toBe(hydrateExplore.HYDRATE_EXPLORE);
 });

@@ -29,12 +29,19 @@ import { appendVersionSessionLog, clearVersionSessionLog } from './reducer';
 export const SET_FIELD_VALUE = 'SET_FIELD_VALUE';
 export const UPDATE_CHART_TITLE = 'UPDATE_CHART_TITLE';
 export const UPDATE_FORM_DATA_BY_DATASOURCE = 'UPDATE_FORM_DATA_BY_DATASOURCE';
+// Note the literal: explore names this constant SET_EXPLORE_CONTROLS but its
+// value is 'UPDATE_EXPLORE_CONTROLS'. The pinning test guards the mismatch.
+export const SET_EXPLORE_CONTROLS = 'UPDATE_EXPLORE_CONTROLS';
 export const HYDRATE_EXPLORE = 'HYDRATE_EXPLORE';
 
 // The control whose label names a datasource change in the log. Both the
 // swap and the Edit Dataset routes report under it, so the two entries
 // collapse into one when a swap emits both.
 const DATASOURCE_CONTROL_NAME = 'datasource';
+// Sentinel, not a real control: a history step rewrites the whole control
+// map, so it belongs to no single control. Namespaced so it can never
+// collapse into an adjacent genuine control entry.
+const HISTORY_CONTROL_NAME = '__history__';
 
 interface SessionLogState {
   user?: { firstName?: string; lastName?: string };
@@ -80,6 +87,28 @@ export const versionSessionLogMiddleware: Middleware =
         appendVersionSessionLog({
           label: t('Renamed chart'),
           controlName: 'slice_name',
+          ts: Date.now(),
+          user: userName(state),
+        }),
+      );
+    } else if (action.type === SET_EXPLORE_CONTROLS) {
+      // Explore pushes its chart state into history entries, so a browser
+      // back/forward between them is an undo/redo: it rebuilds the entire
+      // control map without emitting a single control change. Left
+      // unrecorded, a user who saved, stepped back to the pre-save controls
+      // and then restored a version had that step silently discarded — the
+      // restore gate saw an empty log while the form had moved.
+      //
+      // Recording it does mean stepping back to a state matching the saved
+      // chart still latches an entry, so restore is blocked where nothing
+      // actually differs. That is the append-only log's known failure
+      // direction, and it fails closed; the missing entry failed open.
+      // Baseline diffing replaces both.
+      const state = store.getState() as SessionLogState;
+      store.dispatch(
+        appendVersionSessionLog({
+          label: t('Undid or redid a change'),
+          controlName: HISTORY_CONTROL_NAME,
           ts: Date.now(),
           user: userName(state),
         }),
