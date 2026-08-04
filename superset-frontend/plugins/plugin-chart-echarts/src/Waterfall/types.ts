@@ -55,8 +55,6 @@ export type EchartsWaterfallFormData = QueryFormData &
     xAxisLabel: string;
     xAxisTimeFormat?: string;
     xTicksLayout?: WaterfallFormXTicksLayout;
-    xAxisSort?: string;
-    xAxisSortAsc?: boolean;
     yAxisLabel: string;
     yAxisFormat: string;
     increaseLabel?: string;

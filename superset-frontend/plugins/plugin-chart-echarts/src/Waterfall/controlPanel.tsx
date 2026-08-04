@@ -56,18 +56,27 @@ const config: ControlPanelConfig = {
                   'order — for example, to drive a waterfall movement ' +
                   'narrative. Leave empty to sort by the X-axis value.',
               ),
-              mapStateToProps: ({ datasource, controls }) => {
-                const choices = columnChoices(datasource);
+              // Re-run on every state change so the choices (and the reset
+              // check below) stay in sync when the metric changes.
+              shouldMapStateToProps: () => true,
+              mapStateToProps: ({ datasource, controls }, controlState) => {
+                const columns = columnChoices(datasource);
                 const metric = controls?.metric?.value as
                   QueryFormMetric | undefined;
                 const metricLabel = metric ? getMetricLabel(metric) : undefined;
-                return {
-                  choices:
-                    metricLabel &&
-                    !choices.some(([value]) => value === metricLabel)
-                      ? [...choices, [metricLabel, metricLabel]]
-                      : choices,
-                };
+                const choices =
+                  metricLabel &&
+                  !columns.some(([value]) => value === metricLabel)
+                    ? [...columns, [metricLabel, metricLabel]]
+                    : columns;
+                // Reset the stored value when it is no longer a valid column
+                // or metric (e.g. the referenced metric was changed) so a
+                // stale key cannot leak into the query as an unknown column.
+                const shouldReset = !(
+                  typeof controlState?.value === 'string' &&
+                  choices.some(([value]) => value === controlState.value)
+                );
+                return { choices, shouldReset };
               },
             },
           },
@@ -80,7 +89,8 @@ const config: ControlPanelConfig = {
               label: t('Sort ascending'),
               default: true,
               description: t(
-                'Whether to sort ascending or descending on the X-axis.',
+                'Whether the X-axis categories are ordered ascending or ' +
+                  'descending by the selected sort field.',
               ),
               visibility: ({ controls }) =>
                 Boolean(controls?.x_axis_sort?.value),
