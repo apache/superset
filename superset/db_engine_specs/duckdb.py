@@ -396,8 +396,11 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
         session_name = (
             username.replace("%", "%25").replace("&", "%26").replace("=", "%3D")
         )
-        separator = "&" if "?" in url.database else "?"
-        url = url.set(database=f"{url.database}{separator}session_name={session_name}")
+        # The impersonated user replaces any session_name configured in the path.
+        base, _, params = url.database.partition("?")
+        kept = [p for p in params.split("&") if p and not p.startswith("session_name=")]
+        query = "&".join([*kept, f"session_name={session_name}"])
+        url = url.set(database=f"{base}?{query}")
 
         return url, engine_kwargs
 

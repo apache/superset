@@ -188,7 +188,7 @@ def test_motherduck_impersonation(mocker: MockerFixture) -> None:
     )
     assert url.database == "md:my_db?session_name=alice"
     assert url.username is None
-    assert url.query["motherduck_token"] == "abc"
+    assert url.query["motherduck_token"] == "abc"  # noqa: S105
     assert engine_kwargs == {}
 
 
@@ -239,6 +239,31 @@ def test_motherduck_impersonation_escapes_structural_characters(
     assert url.database == "md:my_db?attach_mode=single&session_name=a%26host%3Devil"
 
 
+def test_motherduck_impersonation_replaces_configured_session_name(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test ``impersonate_user`` replaces a session_name configured in the path.
+    """
+    from sqlalchemy.engine.url import URL
+
+    from superset.db_engine_specs.duckdb import MotherDuckEngineSpec
+
+    database = mocker.MagicMock()
+
+    url = URL.create(
+        "duckdb", database="md:my_db?session_name=fixed&attach_mode=single"
+    )
+    url, _ = MotherDuckEngineSpec.impersonate_user(
+        database=database,
+        username="alice",
+        user_token=None,
+        url=url,
+        engine_kwargs={},
+    )
+    assert url.database == "md:my_db?attach_mode=single&session_name=alice"
+
+
 def test_motherduck_impersonation_without_username(mocker: MockerFixture) -> None:
     """
     Test ``impersonate_user`` leaves the URL alone when there is no username.
@@ -257,4 +282,4 @@ def test_motherduck_impersonation_without_username(mocker: MockerFixture) -> Non
         url=url,
         engine_kwargs={},
     )
-    assert "motherduck_session_name" not in url.query
+    assert url == URL.create("duckdb", database="md:my_db")
