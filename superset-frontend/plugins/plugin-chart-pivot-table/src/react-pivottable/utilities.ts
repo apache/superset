@@ -938,7 +938,8 @@ class PivotData {
   props: Record<string, unknown>;
   aggregator: (...args: unknown[]) => Aggregator;
   formattedAggregators:
-    Record<string, Record<string, (...args: unknown[]) => Aggregator>> | false;
+    | Record<string, Record<string, (...args: unknown[]) => Aggregator>>
+    | false;
   tree: Record<string, Record<string, Aggregator>>;
   rowKeys: string[][];
   colKeys: string[][];

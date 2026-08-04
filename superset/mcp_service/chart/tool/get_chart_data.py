@@ -416,7 +416,9 @@ async def get_chart_data(  # noqa: C901
 
         # Skip the dataset RBAC pre-check for guests (see guest_scope.is_guest_read).
         if not guest_scope.is_guest_read():
-            validation_result = validate_chart_dataset(chart, check_access=True)
+            validation_result = validate_chart_dataset(
+                chart.datasource_id, check_access=True
+            )
             if not validation_result.is_valid:
                 await ctx.warning(
                     "Chart found but dataset is not accessible: %s"

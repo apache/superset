@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-07-17 15:46-0700\n"
+"POT-Creation-Date: 2026-07-31 11:53+0100\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -142,9 +142,6 @@ msgstr " sīkāka informācija."
 msgid " near '%(highlight)s'"
 msgstr " pie '%(highlight)s'"
 
-msgid " source code of Superset's sandboxed parser"
-msgstr " Superset smilškastes parsera pirmkods"
-
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
 "                      coincides with the chronological ordering. If the\n"
@@ -238,6 +235,14 @@ msgid "%(label)s file"
 msgstr "%(label)s fails"
 
 #, python-format
+msgid "%(name)s deleted successfully"
+msgstr ""
+
+#, python-format
+msgid "%(name)s restored successfully"
+msgstr ""
+
+#, python-format
 msgid "%(name)s.%(extension)s"
 msgstr ""
 
@@ -248,6 +253,27 @@ msgstr "%(name)s.csv"
 #, python-format
 msgid "%(name)s.pdf"
 msgstr "%(name)s.pdf"
+
+#, python-format
+msgid "%(num)d hour"
+msgid_plural "%(num)d hours"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#, python-format
+msgid "%(num)d minute"
+msgid_plural "%(num)d minutes"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#, python-format
+msgid "%(num)d second"
+msgid_plural "%(num)d seconds"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #, python-format
 msgid "%(object)s does not exist in this database."
@@ -429,6 +455,17 @@ msgstr[2] ""
 msgid "%s min ago"
 msgid_plural "%s min ago"
 msgstr[0] "pirms 1 mēneša"
+msgstr[1] ""
+msgstr[2] ""
+
+#, python-format
+msgid ""
+"%s of the selected items is a semantic view, which cannot be archived: it"
+" will be deleted permanently and cannot be recovered."
+msgid_plural ""
+"%s of the selected items are semantic views, which cannot be archived: "
+"they will be deleted permanently and cannot be recovered."
+msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
@@ -849,12 +886,6 @@ msgstr ">= (Lielāk vai vienāds)"
 msgid "A Big Number"
 msgstr "Lielais skaitlis"
 
-msgid "A JavaScript function that generates a label configuration object"
-msgstr "JavaScript funkcija, kas ģenerē apzīmējumu konfigurācijas objektu"
-
-msgid "A JavaScript function that generates an icon configuration object"
-msgstr "JavaScript funkcija, kas ģenerē ikonas konfigurācijas objektu"
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy, python-brace-format
@@ -868,6 +899,9 @@ msgstr ""
 "pārraksta citas vadīklu opcijas ar augstāku prioritāti. (piemēram, { "
 "title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } }). Sīkāka "
 "informācija: https://echarts.apache.org/en/option.html. "
+
+msgid "A TTL is required for ephemeral state."
+msgstr ""
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Ar komatu atdalīts kolonnu saraksts, kas jāanalizē kā datumi"
@@ -1245,6 +1279,12 @@ msgstr "Pievienot krāsu pozitīvām/negatīvām izmaiņām"
 msgid "Add colors to cell bars for +/- for all columns"
 msgstr "Pievienot krāsas šūnu joslām +/-"
 
+msgid ""
+"Add columns to filter by. When typing or pasting filter values, commas "
+"will separate values into multiple entries. To include a comma within a "
+"value, wrap it in double quotes: \"San Francisco, CA\""
+msgstr ""
+
 msgid "Add cross-filter"
 msgstr "Pievienot savstarpējo filtru"
 
@@ -1478,13 +1518,6 @@ msgstr ""
 "izveidotu klastera apzīmējumu."
 
 msgid ""
-"Aggregate function to apply when pivoting and computing the total rows "
-"and columns"
-msgstr ""
-"Agregācijas funkcija, ko piemērot šķērsgriezuma veidošanā un kopējo rindu"
-" un kolonnu aprēķinā"
-
-msgid ""
 "Aggregates data within the boundary of grid cells and maps the aggregated"
 " values to a dynamic color scale"
 msgstr ""
@@ -1496,9 +1529,6 @@ msgstr "Apkopošana"
 
 msgid "Aggregation Method"
 msgstr "Apkopošanas metode"
-
-msgid "Aggregation function"
-msgstr "Apkopošanas funkcija"
 
 msgid "Alert"
 msgstr "Brīdinājums"
@@ -1608,6 +1638,9 @@ msgstr "Visi paneļi"
 msgid "All records"
 msgstr "Visi ieraksti"
 
+msgid "All time"
+msgstr ""
+
 msgid "Allow CREATE TABLE AS"
 msgstr "Atļaut CREATE TABLE AS"
 
@@ -1689,6 +1722,9 @@ msgstr ""
 "saistītas metrikas sadalījumus vairākās grupās. Kaste vidū uzsver vidējo "
 "vērtību, mediānu un iekšējās 2 kvartiles. Ūsas ap katru kasti vizualizē "
 "minimumu, maksimumu, diapazonu un ārējās 2 kvartiles."
+
+msgid "Also overwrite all assets (charts, datasets and databases)"
+msgstr ""
 
 msgid "Altered"
 msgstr "Izmainīts"
@@ -1924,6 +1960,11 @@ msgstr "Radās kļūda, iegūstot lietotāju vērtības: %s"
 msgid "An error occurred while formatting SQL"
 msgstr "SQL formatēšanas laikā radās kļūda"
 
+msgid ""
+"An error occurred while generating the file. Please try again, or contact"
+" your administrator if the problem persists."
+msgstr ""
+
 #, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr "Radās kļūda, importējot %s: %s"
@@ -2006,6 +2047,9 @@ msgstr "Notika kļūda, uzstādot paplašinājumu."
 
 msgid "An error occurred while upserting the value."
 msgstr "Radās kļūda, ieliekot vērtību."
+
+msgid "An export for this dashboard is already in progress."
+msgstr ""
 
 msgid "An unexpected error occurred"
 msgstr "Radās neparedzēta kļūda"
@@ -2240,6 +2284,41 @@ msgstr "Aprīlis"
 
 msgid "Arc"
 msgstr "Loks"
+
+msgid "Archive"
+msgstr ""
+
+#, python-format
+msgid "Archive %(name)s?"
+msgstr ""
+
+#, python-format
+msgid "Archive selected %s?"
+msgstr ""
+
+msgid "Archive selected charts?"
+msgstr ""
+
+msgid "Archive selected dashboards?"
+msgstr ""
+
+msgid "Archived"
+msgstr ""
+
+#, python-format
+msgid "Archived %s item(s)"
+msgstr ""
+
+#, python-format
+msgid "Archived %s item(s); permanently deleted %s semantic view(s)"
+msgstr ""
+
+msgid "Archived by"
+msgstr ""
+
+#, python-format
+msgid "Archived: %s"
+msgstr ""
 
 msgid "Are you sure you intend to overwrite the following values?"
 msgstr "Vai tiešām plānojat pārrakstīt šādas vērtības?"
@@ -3240,6 +3319,9 @@ msgstr "Diagramma nav atrasta"
 msgid "Chart options"
 msgstr "Diagrammas opcijas"
 
+msgid "Chart orientation"
+msgstr ""
+
 msgid "Chart parameters are invalid."
 msgstr "Diagrammas parametri ir nederīgi."
 
@@ -3592,6 +3674,9 @@ msgstr "Sakļaut rindu"
 msgid "Collapse All"
 msgstr "Aizvērt visu"
 
+msgid "Collapse Datasource panel"
+msgstr ""
+
 msgid "Collapse all"
 msgstr "Sakļaut visu"
 
@@ -3620,6 +3705,12 @@ msgstr "Krāsot pēc"
 
 msgid "Color Metric"
 msgstr "Krāsas metrika"
+
+msgid "Color Range End"
+msgstr ""
+
+msgid "Color Range Start"
+msgstr ""
 
 msgid "Color Scheme"
 msgstr "Krāsu shēma"
@@ -4147,6 +4238,11 @@ msgstr "Nevarēja ielādēt datubāzes draiveri"
 msgid "Could not load database driver for: %(engine)s"
 msgstr "Nevar ielādēt datu bāzes draiveri: %(engine)s"
 
+msgid ""
+"Could not load metadata for this configuration; showing the default form."
+" See the server logs for details."
+msgstr ""
+
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Nevarēja atrisināt resursdatora nosaukumu: \"%(host)s\"."
@@ -4156,18 +4252,6 @@ msgstr "Nevarēja validēt lietotāju pašreizējā sesijā."
 
 msgid "Count"
 msgstr "Skaits"
-
-msgid "Count Unique Values"
-msgstr "Skaitīt unikālās vērtības"
-
-msgid "Count as Fraction of Columns"
-msgstr "Skaits kā kolonnu daļa"
-
-msgid "Count as Fraction of Rows"
-msgstr "Skaits kā rindu daļa"
-
-msgid "Count as Fraction of Total"
-msgstr "Skaits kā kopējā daļa"
 
 msgid "Country"
 msgstr "Valsts"
@@ -5033,26 +5117,6 @@ msgstr ""
 "Noklusējuma vērtība, kas tiek iestatīta automātiski, kad ir atzīmēta "
 "opcija \"Atlasīt pirmo filtra vērtību pēc noklusējuma\""
 
-msgid ""
-"Define a function that receives the input and outputs the content for a "
-"tooltip"
-msgstr "Definējiet funkciju, kas saņem ievadi un izvada satura rīka padomu"
-
-msgid "Define a function that returns a URL to navigate to when user clicks"
-msgstr ""
-"Definējiet funkciju, kas atgriež URL navigācijai, kad lietotājs "
-"noklikšķina"
-
-msgid ""
-"Define a javascript function that receives the data array used in the "
-"visualization and is expected to return a modified version of that array."
-" This can be used to alter properties of the data, filter, or enrich the "
-"array."
-msgstr ""
-"Definējiet JavaScript funkciju, kas saņem vizualizācijā izmantoto datu "
-"masīvu un atgriež modificētu tā versiju. To var izmantot datu īpašību "
-"mainīšanai, filtrēšanai vai masīva papildināšanai."
-
 msgid "Define color breakpoints for the data"
 msgstr "Noteikt krāsu pārtraukuma punktus datiem"
 
@@ -5198,6 +5262,13 @@ msgstr "Dzēst grupu"
 
 msgid "Delete item"
 msgstr "Dzēst objektu"
+
+msgid "Delete permanently"
+msgstr ""
+
+#, python-format
+msgid "Delete permanently %(name)s?"
+msgstr ""
 
 msgid "Delete query"
 msgstr ""
@@ -5641,11 +5712,17 @@ msgstr "Nav"
 msgid "Donut"
 msgstr "Riņķis"
 
+msgid "Dot size metric"
+msgstr ""
+
 msgid "Dotted"
 msgstr "Punktots"
 
 msgid "Download"
 msgstr "Lejupielādēt"
+
+msgid "Download Excel file"
+msgstr ""
 
 msgid "Download as Image"
 msgstr "Lejupielādēt kā attēlu"
@@ -6148,14 +6225,8 @@ msgstr "Iespējot prognozēšanu"
 msgid "Enable graph roaming"
 msgstr "Iespējot grafa pārvietošanu"
 
-msgid "Enable icon JavaScript mode"
-msgstr "Iespējot ikonas JavaScript režīmu"
-
 msgid "Enable icons"
 msgstr "Iespējot ikonas"
-
-msgid "Enable label JavaScript mode"
-msgstr "Iespējot marķējumu JavaScript režīmu"
 
 msgid "Enable labels"
 msgstr "Iespējot apzīmējumus"
@@ -6175,12 +6246,6 @@ msgstr "Iespējot rindu izvēršanu shēmās"
 
 msgid "Enable server side pagination of results (experimental feature)"
 msgstr "Iespējot servera puses rezultātu lapošanu (eksperimentāla funkcija)"
-
-msgid "Enables custom icon configuration via JavaScript"
-msgstr "Ļauj pielāgot ikonas konfigurāciju, izmantojot JavaScript"
-
-msgid "Enables custom label configuration via JavaScript"
-msgstr "Ļauj konfigurēt pielāgotas marķējumus ar JavaScript"
 
 msgid "Enables rendering of icons for GeoJSON points"
 msgstr "Ļauj renderēt ikonas GeoJSON punktiem"
@@ -6488,6 +6553,9 @@ msgstr "Excel eksports"
 msgid "Excel XML Export"
 msgstr "Excel XML eksports"
 
+msgid "Excel export is not configured on this server."
+msgstr ""
+
 msgid "Excel file format cannot be determined"
 msgstr "Nevar noteikt Excel faila formātu"
 
@@ -6514,6 +6582,9 @@ msgstr "Izpildes žurnāls"
 
 msgid "Existing dataset"
 msgstr "Esoša datu kopa"
+
+msgid "Exit edit mode"
+msgstr ""
 
 msgid "Exit fullscreen"
 msgstr "Iziet no pilnekrāna režīma"
@@ -6573,6 +6644,12 @@ msgstr "Eksportēt visus datus"
 
 msgid "Export Current View"
 msgstr "Eksportēt pašreizējo skatu"
+
+msgid "Export Data to Excel"
+msgstr ""
+
+msgid "Export Images to Excel"
+msgstr ""
 
 msgid "Export YAML"
 msgstr "Eksportēt YAML"
@@ -6670,6 +6747,12 @@ msgstr "SQL izteiksme"
 msgid "Expression cannot be empty"
 msgstr "Izteiksme nevar būt tukša"
 
+#, python-format
+msgid ""
+"Extension '%(extension_id)s' has exceeded its persistent storage quota of"
+" %(quota)d bytes."
+msgstr ""
+
 msgid "Extensions"
 msgstr "Papildinājumi"
 
@@ -6690,9 +6773,6 @@ msgstr "Papildu vadīklas"
 
 msgid "Extra Parameters"
 msgstr "Papildu parametri"
-
-msgid "Extra data for JS"
-msgstr "Papildu dati JS"
 
 #, python-brace-format
 msgid ""
@@ -6762,6 +6842,18 @@ msgid "Failed to create report"
 msgstr "Neizdevās izveidot atskaiti"
 
 #, python-format
+msgid "Failed to delete %(name)s"
+msgstr ""
+
+#, python-format
+msgid "Failed to delete %(name)s: %(errMsg)s"
+msgstr ""
+
+#, python-format
+msgid "Failed to establish an SSH tunnel to the database: %(reason)s"
+msgstr ""
+
+#, python-format
 msgid "Failed to execute %(query)s"
 msgstr "Neizdevās izpildīt %(query)s"
 
@@ -6804,6 +6896,14 @@ msgstr "Neizdevās noņemt sistēmas tumšo motīvu: %s"
 #, python-format
 msgid "Failed to remove system default theme: %s"
 msgstr "Neizdevās noņemt sistēmas noklusējuma motīvu: %s"
+
+#, python-format
+msgid "Failed to restore %(name)s"
+msgstr ""
+
+#, python-format
+msgid "Failed to restore %(name)s: %(errMsg)s"
+msgstr ""
 
 msgid "Failed to retrieve advanced type"
 msgstr "Neizdevās iegūt papildu tipu"
@@ -7119,13 +7219,6 @@ msgstr ""
 
 msgid "For further instructions, consult the"
 msgstr "Papildu norādījumiem skatiet"
-
-msgid ""
-"For more information about objects are in context in the scope of this "
-"function, refer to the"
-msgstr ""
-"Lai iegūtu vairāk informācijas par objektiem, kas ir pieejami šīs "
-"funkcijas kontekstā, skatiet"
 
 #, fuzzy
 msgid ""
@@ -7576,9 +7669,6 @@ msgstr "ISO 3166-2 kodi"
 msgid "ISO 8601"
 msgstr "ISO 8601"
 
-msgid "Icon JavaScript config generator"
-msgstr "Ikonas JavaScript konfigurācijas ģenerators"
-
 msgid "Icon URL"
 msgstr "Ikonas URL"
 
@@ -7599,13 +7689,9 @@ msgid ""
 "as the currently logged on user who must have permission to run them. If "
 "Hive and hive.server2.enable.doAs is enabled, will run the queries as "
 "service account, but impersonate the currently logged on user via "
-"hive.server2.proxy.user property."
+"hive.server2.proxy.user property. If Databricks, uses OAuth2 to "
+"authenticate as the currently logged on user."
 msgstr ""
-"Presto vai Trino gadījumā visi SQL Lab vaicājumi tiks izpildīti kā "
-"pašreiz autorizētais lietotājs, kuram jābūt atļaujai tos izpildīt. Ja "
-"izmanto Hive un ir iespējots hive.server2.enable.doAs, vaicājumi tiks "
-"izpildīti kā servisa konts, bet tiks uzdots pašreiz autorizētais "
-"lietotājs, izmantojot hive.server2.proxy.user parametru."
 
 msgid "If a metric is specified, sorting will be done based on the metric value"
 msgstr "Ja norādīts rādītājs, kārtošana tiks veikta pēc rādītāja vērtības"
@@ -7627,6 +7713,12 @@ msgstr ""
 msgid "If table already exists"
 msgstr "Ja tabula jau eksistē"
 
+msgid "If you delete this item, you won't be able to recover it."
+msgstr ""
+
+msgid "If you did not request this, you can ignore this email."
+msgstr ""
+
 msgid "If you don't save, changes will be lost."
 msgstr "Ja jūs nesaglabāsiet, izmaiņas tiks zaudētas."
 
@@ -7645,10 +7737,10 @@ msgstr "Attēls (PNG) iegults e-pastā"
 msgid "Image download failed, please refresh and try again."
 msgstr "Attēla lejupielāde neizdevās, lūdzu, atsvaidziniet un mēģiniet vēlreiz."
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
+msgid ""
+"Impersonate logged in user (Presto, Trino, Drill, Hive, Databricks, and "
+"Google Sheets)"
 msgstr ""
-"Uzdoties par pieteicušos lietotāju (Presto, Trino, Drill, Hive un Google "
-"Sheets)"
 
 msgid "Import"
 msgstr "Importēt"
@@ -8078,15 +8170,6 @@ msgstr "JŪN"
 msgid "January"
 msgstr "Janvāris"
 
-msgid "JavaScript data interceptor"
-msgstr "JavaScript datu pārtvērējs"
-
-msgid "JavaScript onClick href"
-msgstr "JavaScript onClick href"
-
-msgid "JavaScript tooltip generator"
-msgstr "JavaScript padoma ģenerators"
-
 msgid "Jinja templating"
 msgstr "Jinja veidņošana"
 
@@ -8131,9 +8214,6 @@ msgstr "Apzīmējums"
 
 msgid "Label Contents"
 msgstr "Apzīmējuma saturs"
-
-msgid "Label JavaScript config generator"
-msgstr "Apzīmējumu JavaScript konfigurācijas ģenerators"
 
 msgid "Label Line"
 msgstr "Apzīmējuma līnija"
@@ -8203,6 +8283,15 @@ msgstr "Liels"
 
 msgid "Last"
 msgstr "Pēdējais"
+
+msgid "Last 30 days"
+msgstr ""
+
+msgid "Last 7 days"
+msgstr ""
+
+msgid "Last 90 days"
+msgstr ""
 
 msgid "Last Name"
 msgstr "Uzvārds"
@@ -8341,6 +8430,15 @@ msgstr "Apzīmējumu tips"
 msgid "Legend type"
 msgstr "Apzīmējumu tips"
 
+msgid "Length in cm (12345678cm => 123.46km)"
+msgstr ""
+
+msgid "Length in cm (12345cm => 123.45m)"
+msgstr ""
+
+msgid "Length in m (12345m => 12.35km)"
+msgstr ""
+
 msgid "Less Than"
 msgstr "Mazāk nekā"
 
@@ -8384,8 +8482,12 @@ msgstr "Limits"
 msgid "Limit type"
 msgstr "Limita tips"
 
-msgid "Limits the number of cells that get retrieved."
-msgstr "Ierobežo iegūstamo šūnu skaitu."
+msgid ""
+"Limits the number of cells that get retrieved. Not applied when non-"
+"additive metrics (e.g. ratios, COUNT_DISTINCT, AVG, percentiles) are "
+"present, since totals and subtotals are then computed via a database "
+"rollup query that must see every row to stay correct."
+msgstr ""
 
 msgid "Limits the number of rows that get displayed."
 msgstr "Ierobežo attēlojamo rindu skaitu."
@@ -8472,14 +8574,8 @@ msgstr "Grupu saraksts"
 msgid "List Roles"
 msgstr "Lomu saraksts"
 
-msgid "List Unique Values"
-msgstr "Unikālo vērtību saraksts"
-
 msgid "List Users"
 msgstr "Lietotāju saraksts"
-
-msgid "List of extra columns made available in JavaScript functions"
-msgstr "Papildu kolonnu saraksts, kas pieejams JavaScript funkcijās"
 
 msgid "List of n+1 values for bucketing metric into n buckets."
 msgstr "N+1 vērtību saraksts rādītāja sadalīšanai n intervālos."
@@ -8601,6 +8697,11 @@ msgstr "Noklusējuma skata garums"
 
 msgid "Lower Threshold"
 msgstr "Apakšējais slieksnis"
+
+msgid ""
+"Lower bound of the color scale. When both start and end are set, the "
+"legend uses this fixed range instead of the automatic data range."
+msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "Apakšējam slieksnim jābūt zemākam par augšējo slieksni"
@@ -8780,6 +8881,9 @@ msgstr "Maksimālais rādiuss"
 msgid "Maximum Width"
 msgstr "Min platums"
 
+msgid "Maximum dot size"
+msgstr ""
+
 msgid "Maximum folder nesting depth reached"
 msgstr "Sasniegts maksimālais mapju ievietošanas dziļums"
 
@@ -8811,9 +8915,6 @@ msgstr "Vērtību vidējais norādītajā periodā"
 
 msgid "Mean values"
 msgstr "Vidējās vērtības"
-
-msgid "Median"
-msgstr "Mediāna"
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -9037,6 +9138,9 @@ msgstr "Minimālais rādiuss"
 #, fuzzy
 msgid "Minimum Width"
 msgstr "Min platums"
+
+msgid "Minimum dot size"
+msgstr ""
 
 msgid "Minimum must be strictly less than maximum"
 msgstr "Minimumam jābūt stingri mazākam par maksimumu"
@@ -9362,6 +9466,9 @@ msgstr "Pagaidām nav anotāciju"
 
 msgid "No applied filters"
 msgstr "Nav piemērotu filtru"
+
+msgid "No archived items"
+msgstr ""
 
 msgid "No available filters."
 msgstr "Nav pieejamu filtru."
@@ -9926,6 +10033,11 @@ msgstr "Neobligāta d3 datuma formāta virkne"
 msgid "Optional d3 number format string"
 msgstr "Neobligāta d3 skaitļu formāta virkne"
 
+msgid ""
+"Optional metric used to scale the size of each dot. Dot areas are scaled "
+"linearly between the minimum and maximum dot size."
+msgstr ""
+
 msgid "Optional name of the data column."
 msgstr "Neobligāts datu kolonnas nosaukums."
 
@@ -9963,6 +10075,11 @@ msgstr "Joslu diagrammas orientācija"
 
 msgid "Orientation of filter bar"
 msgstr "Filtru joslas orientācija"
+
+msgid ""
+"Orientation of the chart. Horizontal places the dimension on the y-axis "
+"and the metric on the x-axis."
+msgstr ""
 
 msgid "Orientation of tree"
 msgstr "Koka orientācija"
@@ -10817,6 +10934,12 @@ msgstr "Attiecība"
 msgid "Raw records"
 msgstr "Neapstrādāti ieraksti"
 
+msgid "Recently Archived"
+msgstr ""
+
+msgid "Recently archived"
+msgstr ""
+
 msgid "Recently modified"
 msgstr "Nesen modificēts"
 
@@ -10829,6 +10952,15 @@ msgstr "Saņēmēji tiek atdalīti ar \",\" vai \";\""
 #, fuzzy
 msgid "Records"
 msgstr "Neapstrādāti ieraksti"
+
+msgid "Recover"
+msgstr ""
+
+msgid "Recover this item"
+msgstr ""
+
+msgid "Recover this item to open it"
+msgstr ""
 
 msgid "Rectangle"
 msgstr "Taisnstūris"
@@ -11137,6 +11269,13 @@ msgstr "Pieprasījumam trūkst datu lauka."
 msgid "Request timed out"
 msgstr "Pieprasījuma laiks beidzās"
 
+#, python-format
+msgid ""
+"Requested page would return %(requested_size)d bytes, exceeding the "
+"maximum allowed list payload size of %(max_size)d bytes. Reduce page_size"
+" and try again."
+msgstr ""
+
 msgid "Required"
 msgstr "Obligāts"
 
@@ -11355,6 +11494,13 @@ msgstr "Rindu augstums"
 msgid "Row limit"
 msgstr "Rindu ierobežojums"
 
+msgid "Row-Level Security"
+msgstr ""
+
+#, python-format
+msgid "Row-Level Security: %d filter(s) may restrict data based on your role."
+msgstr ""
+
 msgid "Rows"
 msgstr "Rindas"
 
@@ -11382,6 +11528,9 @@ msgstr "Noteikums pievienots"
 
 msgid "Run"
 msgstr "Izpildīt"
+
+msgid "Run a new query using the \"Update chart\" button or"
+msgstr ""
 
 msgid "Run a query to display query history"
 msgstr "Izpildiet vaicājumu, lai parādītu vaicājumu vēsturi"
@@ -11518,12 +11667,6 @@ msgstr "TEKSTS"
 
 msgid "SUN"
 msgstr "SV"
-
-msgid "Sample Standard Deviation"
-msgstr "Izlases standartnovirze"
-
-msgid "Sample Variance"
-msgstr "Izlases dispersija"
 
 msgid "Samples"
 msgstr "Paraugi"
@@ -12877,6 +13020,12 @@ msgstr "Malas simbolu izmērs"
 msgid "Size of marker. Also applies to forecast observations."
 msgstr "Marķiera izmērs. Attiecas arī uz prognozes novērojumiem."
 
+msgid "Size of the dot representing the largest value of the dot size metric."
+msgstr ""
+
+msgid "Size of the dot representing the smallest value of the dot size metric."
+msgstr ""
+
 msgid "Skip blank lines rather than interpreting them as Not A Number values"
 msgstr "Izlaist tukšās rindas, nevis interpretēt tās kā NaN vērtības"
 
@@ -12925,6 +13074,11 @@ msgid "Solid"
 msgstr "Ciets"
 
 msgid "Solid background"
+msgstr ""
+
+msgid ""
+"Some filters are inherited from physical tables referenced in this "
+"virtual dataset."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
@@ -13280,6 +13434,12 @@ msgstr "Apturēt izpildi (Ctrl + x)"
 msgid "Stopped an unsafe database connection"
 msgstr "Apturēts nedrošs datubāzes savienojums"
 
+#, python-format
+msgid ""
+"Storage key exceeds the maximum allowed length of %(max_length)d "
+"characters."
+msgstr ""
+
 msgid "Stream"
 msgstr "Straume"
 
@@ -13334,6 +13494,9 @@ msgstr "Apakšdomēns"
 msgid "Subject"
 msgstr "Subjekts"
 
+msgid "Subject list"
+msgstr ""
+
 msgid "Subject type"
 msgstr "Subjekta tips"
 
@@ -13374,15 +13537,6 @@ msgstr "Piedēklis, ko pievienot pēc procentu attēlojuma"
 
 msgid "Sum"
 msgstr "Summa"
-
-msgid "Sum as Fraction of Columns"
-msgstr "Summa kā kolonnu daļa"
-
-msgid "Sum as Fraction of Rows"
-msgstr "Summa kā rindu daļa"
-
-msgid "Sum as Fraction of Total"
-msgstr "Summa kā kopējā daļa"
 
 msgid "Sum of values over specified period"
 msgstr "Vērtību summa norādītajā periodā"
@@ -13498,6 +13652,13 @@ msgstr "LAIKA_DIAPAZONS"
 
 msgid "THU"
 msgstr "CE"
+
+msgid "TTL must be a positive integer."
+msgstr ""
+
+#, python-format
+msgid "TTL must not exceed %(max_ttl)d seconds."
+msgstr ""
 
 msgid "TUE"
 msgstr "OT"
@@ -13763,6 +13924,13 @@ msgstr ""
 "pārliecinieties, ka jūsu vaicājuma pēdējais operators ir SELECT. Pēc tam "
 "mēģiniet izpildīt vaicājumu vēlreiz."
 
+#, python-format
+msgid ""
+"The Custom SQL metric \"%(metric)s\" is not an aggregate and can't be "
+"combined with a GROUP BY. Wrap it in an aggregate function, e.g. "
+"%(example)s."
+msgstr ""
+
 msgid ""
 "The GeoJsonLayer takes in GeoJSON formatted data and renders it as "
 "interactive polygons, lines and points (circles, icons and/or texts)."
@@ -13793,6 +13961,9 @@ msgstr ""
 " savos funkciju karogos, lai izmantotu @task. Skatiet "
 "https://superset.apache.org/docs/configuration/async-queries-celery "
 "konfigurācijas informācijai."
+
+msgid "The SQL query mutator removed all executable statements from this query."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
@@ -14092,6 +14263,19 @@ msgstr ""
 
 msgid "The feature property to use for point labels"
 msgstr "Funkcija, kas jāizmanto punktu apzīmējumiem"
+
+msgid "The following charts could not be exported:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because an error occurred while "
+"exporting them:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because they have no saved query "
+"context. To include them, open each chart in Explore and re-save."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -14486,6 +14670,10 @@ msgid ""
 msgstr ""
 "Punkta elementu rādiuss zemāk norādītajās vienībās. Galīgais renderētais "
 "izmērs ir šī vērtība, reizināta ar punkta rādiusa mērogu."
+
+#, python-format
+msgid "The remaining %s will be moved to Recently Archived."
+msgstr ""
 
 msgid "The report has been created"
 msgstr "Atskaite ir izveidota"
@@ -14909,6 +15097,26 @@ msgstr "Notika kļūda, lejupielādējot lietotājus"
 msgid "There was an error with your request"
 msgstr "Jūsu pieprasījumā radās kļūda"
 
+#, python-format
+msgid "There was an issue archiving %s: %s"
+msgstr ""
+
+#, python-format
+msgid "There was an issue archiving the selected %s"
+msgstr ""
+
+#, python-format
+msgid "There was an issue archiving the selected charts: %s"
+msgstr ""
+
+#, python-format
+msgid "There was an issue archiving the selected dashboards: %s"
+msgstr ""
+
+#, python-format
+msgid "There was an issue archiving: %s"
+msgstr ""
+
 #, fuzzy, python-format
 msgid "There was an issue cancelling the task: %s"
 msgstr "Dzēšot %s, radās problēma: %s"
@@ -14945,8 +15153,9 @@ msgstr "Dzēšot atlasītās anotācijas, radās problēma: %s"
 msgid "There was an issue deleting the selected charts: %s"
 msgstr "Dzēšot atlasītās diagrammas, radās problēma: %s"
 
-msgid "There was an issue deleting the selected dashboards: "
-msgstr "Dzēšot atlasītos paneļus, radās problēma: "
+#, python-format
+msgid "There was an issue deleting the selected dashboards: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected layers: %s"
@@ -15029,8 +15238,32 @@ msgstr "Priekšskatot atlasīto vaicājumu %s, radās problēma"
 msgid "There was an issue previewing the selected query. %s"
 msgstr "Priekšskatot atlasīto vaicājumu, radās problēma. %s"
 
+#, python-format
+msgid ""
+"These %(type)s will be moved to Recently Archived. You can recover them "
+"there within %(days)s days."
+msgstr ""
+
+#, python-format
+msgid ""
+"These %(type)s will be moved to Recently Archived. You can recover them "
+"there."
+msgstr ""
+
 msgid "These are the datasets this filter will be applied to."
 msgstr "Šīs ir datu kopas, kurām šis filtrs tiks piemērots."
+
+#, python-format
+msgid ""
+"This %(type)s will be moved to Recently Archived. You can recover it "
+"there within %(days)s days."
+msgstr ""
+
+#, python-format
+msgid ""
+"This %(type)s will be moved to Recently Archived. You can recover it "
+"there."
+msgstr ""
 
 msgid ""
 "This JSON object is generated dynamically when clicking the save or "
@@ -15229,6 +15462,10 @@ msgid ""
 "one."
 msgstr "Šis e-pasts jau ir saistīts ar kontu. Lūdzu, izvēlieties citu."
 
+#, python-format
+msgid "This export was requested on %(when)s UTC."
+msgstr ""
+
 msgid "This feature is experimental and may change or have limitations"
 msgstr "Šī funkcija ir eksperimentāla un var mainīties vai būt ierobežota"
 
@@ -15264,9 +15501,6 @@ msgstr "Šajā mapē var izmantot tikai kolonnas"
 #, fuzzy
 msgid "This folder only supports metrics"
 msgstr "Šī mape pieņem tikai metrikas"
-
-msgid "This functionality is disabled in your environment for security reasons."
-msgstr "Šī funkcionalitāte ir atspējota jūsu vidē drošības apsvērumu dēļ."
 
 msgid ""
 "This is a default columns folder. Its name cannot be changed or removed. "
@@ -15329,6 +15563,10 @@ msgstr ""
 #, fuzzy
 msgid "This link cannot be followed because its address is unsafe."
 msgstr "Šo saiti nevar sekot, jo tās adrese ir nedrošā."
+
+#, python-format
+msgid "This link expires in %(duration)s (%(when)s UTC)."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -15784,15 +16022,10 @@ msgstr "Kopā"
 msgid "Total (%(aggfunc)s)"
 msgstr "Kopā (%(aggfunc)s)"
 
-#, python-format
-msgid "Total (%(aggregatorName)s)"
-msgstr "Kopā (%(aggregatorName)s)"
-
 msgid ""
 "Total angle covered by the chart, in degrees. 360° draws a full circle "
-"and 180° draws a half donut. When the sweep is 180° or less and the start"
-" angle is a multiple of 90°, the chart is automatically re-centered to "
-"make use of the empty space."
+"and 180° draws a half donut. Partial arcs are automatically re-centered "
+"and scaled to make use of the available space."
 msgstr ""
 
 msgid "Total color"
@@ -15853,6 +16086,9 @@ msgstr ""
 msgid "True"
 msgstr "Patiesi"
 
+msgid "Truncate Axis"
+msgstr ""
+
 msgid "Truncate Cells"
 msgstr "Saīsināt šūnas"
 
@@ -15879,6 +16115,11 @@ msgstr ""
 
 msgid "Truncate long cells to the \"min width\" set above"
 msgstr "Saīsināt garās šūnas līdz augstāk iestatītajam \"minimālajam platumam\""
+
+msgid ""
+"Truncate the metric axis. Can be overridden by specifying a min or max "
+"bound."
+msgstr ""
 
 msgid "Truncates the specified date to the accuracy specified by the date unit."
 msgstr "Saīsina norādīto datumu līdz datuma vienības noteiktajai precizitātei."
@@ -16308,6 +16549,11 @@ msgstr "Nepieciešams augšupielādēt failu"
 msgid "Upper Threshold"
 msgstr "Augšējais slieksnis"
 
+msgid ""
+"Upper bound of the color scale. When both start and end are set, the "
+"legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
 msgid "Upper threshold must be greater than lower threshold"
 msgstr "Augšējam slieksnim jābūt lielākam par apakšējo slieksni"
 
@@ -16522,6 +16768,10 @@ msgstr "Vērtība nevar pārsniegt %s"
 msgid "Value difference between the time periods"
 msgstr "Vērtību starpība starp laika periodiem"
 
+#, python-format
+msgid "Value exceeds the maximum allowed size of %(max_size)d bytes."
+msgstr ""
+
 msgid "Value format"
 msgstr "Vērtību formāts"
 
@@ -16575,6 +16825,10 @@ msgstr "Vertikāls (pa kreisi)"
 
 msgid "View"
 msgstr "Skatīt"
+
+#, python-format
+msgid "View %(type)s"
+msgstr ""
 
 msgid "View All »"
 msgstr "Skatīt visu »"
@@ -16980,6 +17234,12 @@ msgid ""
 msgstr ""
 "Kad sekundārās laika kolonnas tiek filtrētas, piemērot to pašu filtru "
 "galvenajai datuma/laika kolonnai."
+
+msgid ""
+"When typing or pasting filter values, commas will separate values into "
+"multiple entries. To include a comma within a value, wrap it in double "
+"quotes: \"San Francisco, CA\""
+msgstr ""
 
 msgid ""
 "When unchecked, colors from the selected color scheme will be used for "
@@ -17712,6 +17972,14 @@ msgstr "Jūsu diagramma nav aktuāla"
 msgid "Your chart is ready to go!"
 msgstr "Jūsu diagramma ir gatava!"
 
+#, python-format
+msgid "Your dashboard export could not be completed: %(title)s"
+msgstr ""
+
+#, python-format
+msgid "Your dashboard export is ready: %(title)s"
+msgstr ""
+
 msgid "Your dashboard is near the size limit."
 msgstr "Jūsu panelis tuvojas izmēra ierobežojumam."
 
@@ -17721,6 +17989,17 @@ msgid ""
 "but the limit is %s. Reduce the dashboard size (for example, split it "
 "into multiple dashboards) or raise the "
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
+msgstr ""
+
+msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgstr ""
+
+#, python-format
+msgid "Your export of \"%(title)s\" could not be completed."
+msgstr ""
+
+#, python-format
+msgid "Your export of \"%(title)s\" is ready."
 msgstr ""
 
 msgid "Your query could not be saved"
@@ -18764,6 +19043,9 @@ msgstr "vērtība augošā secībā"
 
 msgid "value descending"
 msgstr "vērtība dilstošā secībā"
+
+msgid "valuename"
+msgstr ""
 
 msgid "var"
 msgstr "dispersija"

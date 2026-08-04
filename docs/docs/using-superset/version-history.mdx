@@ -1,0 +1,120 @@
+---
+title: Version History
+hide_title: true
+sidebar_position: 8
+version: 1
+---
+
+# Version History
+
+Superset can record the history of a chart or dashboard as you edit it, and let
+you look at, restore, or branch from any earlier version.
+
+The panel lists each saved version with its author, timestamp, and a plain
+description of what changed — "Chart renamed to Q3 Revenue", "Added filter on
+'Region'" — rather than a raw diff. You can search the history and filter it
+down to changes on the entity itself or on the things it depends on.
+
+## Enabling it
+
+Two switches are involved, and both matter.
+
+| Setting | Type | Effect |
+| --- | --- | --- |
+| `VERSION_HISTORY` | Feature flag | Shows the version history UI |
+| `ENABLE_VERSIONING_CAPTURE` | Config value | Records versions as entities are saved |
+
+```python
+# superset_config.py
+FEATURE_FLAGS = {"VERSION_HISTORY": True}
+ENABLE_VERSIONING_CAPTURE = True
+```
+
+Both default to off. They are separate because capture is the expensive half:
+an operator may want to start recording history before exposing the UI, so that
+there is something to show when they do.
+
+Turning the UI on without capture gives a panel that reports "No history yet"
+and never fills, so enable capture first — or at the same time. History only
+accrues from the moment capture is switched on; earlier edits are not
+reconstructed.
+
+## Viewing history
+
+On a chart, open **… (actions) → View version history** in Explore. A dashboard
+uses the same entry in its own **… (actions)** menu.
+
+The entry appears for users who may edit the entity — the same rule the server
+applies to overwriting it: administrators, plus anyone whose subjects are among
+the entity's editors. Users who cannot edit do not see the panel.
+
+## Previewing a version
+
+Selecting a version loads it into the page so you can see it before deciding
+anything. While a preview is active:
+
+- A banner across the top marks the page as historical and names the version.
+- The dashboard or chart itself is inert — filters, controls, and chart
+  interactions are disabled, so nothing you click can be mistaken for editing
+  the live entity. You can still scroll, and still move between tabs.
+- Saving is unavailable. Preview never writes.
+
+Close the preview to return to the live version, along with whatever filter
+selections you had before you opened it.
+
+A dashboard preview reconstructs the layout as it was, including charts that
+have since been removed from the dashboard. A chart that has been deleted
+outright cannot be reconstructed; its slot shows a placeholder instead.
+
+Preview is a close approximation of the version, not a pixel-faithful replay.
+The dashboard's own saved properties — title, CSS, metadata, description,
+slug, certification, draft or published state, and theme — are shown as they
+were. Charts, though, render with their current definitions rather than the
+definitions they had at that version, and a dashboard's chart membership is
+reconstructed from the saved layout, so charts that belonged to the dashboard
+without appearing in the layout are not represented. Restore applies the full
+captured state, so a restored dashboard can differ from its preview in these
+respects.
+
+## Restoring a version
+
+**Restore** rewrites the entity back to the selected version. Two things are
+worth knowing:
+
+- **History stays append-only.** A restore is itself recorded as a new version,
+  so restoring never destroys the states you moved away from — you can always
+  restore forward again.
+- **A dashboard restore may be partial.** If the version referenced charts that
+  have since been deleted, the layout is restored without them and Superset
+  tells you how many were not reattached.
+
+Restoring is offered to the same users who may edit the entity, and is withheld
+from externally managed entities, whose source of truth lives outside Superset
+and would overwrite the restore on the next sync.
+
+## Opening a version as something new
+
+**Open as new** creates a brand-new chart or dashboard from the selected
+version and leaves the original untouched. This is the safer option when you
+want an old state back but are not certain you want to give up the current one.
+
+How much of the version comes across differs by entity, because the two copy
+paths do. A new chart is built from the version itself: its name,
+visualization type, dataset, controls, query context, description, and cache
+timeout. A new dashboard is a copy of the *live* dashboard with the version's
+title, CSS, metadata, and layout applied over it — the copy endpoint accepts
+only those fields, so properties such as description, slug, certification, and
+theme come from the dashboard as it stands today, not from the version.
+
+## What gets recorded
+
+Versions capture the entity's own saved state — a chart's name, visualization
+type, and controls; a dashboard's title, layout, filters, and properties.
+
+The timeline also shows **related** activity: changes to things the entity
+depends on, such as the dataset behind a chart. These are shown for context and
+cannot be restored from the entity's own history — restore acts on the entity
+you are looking at.
+
+Changes made outside a save, such as ownership or permission edits, are not part
+of version history.

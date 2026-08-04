@@ -51,10 +51,8 @@ const StyledTabs = ({
       .ant-tabs-body-holder {
         overflow: ${allowOverflow ? 'visible' : 'auto'};
         ${fullHeight && 'height: 100%;'}
-        ${
-          contentHeight &&
-          `height: ${typeof contentHeight === 'number' ? `${contentHeight}px` : contentHeight};`
-        }
+        ${contentHeight &&
+        `height: ${typeof contentHeight === 'number' ? `${contentHeight}px` : contentHeight};`}
         ${contentPadding}
       }
       .ant-tabs-body {
@@ -68,11 +66,9 @@ const StyledTabs = ({
         margin: 0;
       }
       .ant-tabs-nav-wrap {
-        ${
-          !(tabBarStyle && 'paddingLeft' in tabBarStyle)
-            ? `padding: 0 ${theme.sizeUnit * 4}px;`
-            : ''
-        }
+        ${!(tabBarStyle && 'paddingLeft' in tabBarStyle)
+          ? `padding: 0 ${theme.sizeUnit * 4}px;`
+          : ''}
       }
       .ant-tabs-tab {
         flex: 1 1 auto;
@@ -142,7 +138,9 @@ EditableTabs.defaultProps = {
 };
 
 EditableTabs.TabPane.defaultProps = {
-  closeIcon: <StyledCloseOutlined iconSize="s" role="button" tabIndex={0} />,
+  // rc-tabs already wraps closeIcon in its own <button role="tab"
+  // aria-label="remove">; this is just decorative content inside it.
+  closeIcon: <StyledCloseOutlined iconSize="s" />,
 };
 
 export const StyledLineEditableTabs = styled(EditableTabs)`

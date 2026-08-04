@@ -20,9 +20,12 @@ from flask import current_app
 from marshmallow import ValidationError
 
 from superset.charts.schemas import (
+    ChartDataExtrasSchema,
     ChartDataProphetOptionsSchema,
     ChartDataQueryObjectSchema,
+    ChartDataResponseResult,
     ChartDataRollingOptionsSchema,
+    ChartDataTimingSchema,
     ChartPostSchema,
     ChartPutSchema,
     DEFAULT_MAX_PROPHET_PERIODS,
@@ -58,6 +61,47 @@ def test_get_time_grain_choices(app_context: None) -> None:
     finally:
         # Restore original config
         current_app.config["TIME_GRAIN_ADDONS"] = original_addons
+
+
+def test_chart_data_timing_schema_validates_version(app_context: None) -> None:
+    schema = ChartDataTimingSchema()
+    payload = {
+        "version": 1,
+        "query": {
+            "query_planning_ms": 1.0,
+            "cache_resolution_ms": 2.0,
+            "data_acquisition_ms": None,
+            "payload_assembly_ms": 4.0,
+            "total_ms": 10.0,
+        },
+    }
+
+    assert schema.load(payload)["version"] == 1
+
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load({**payload, "version": 2})
+    assert "version" in exc_info.value.messages
+
+
+def test_chart_data_response_timing_is_optional_but_never_null(
+    app_context: None,
+) -> None:
+    timing_field = ChartDataResponseResult().fields["timing"]
+    timing_payload = {
+        "version": 1,
+        "query": {
+            "query_planning_ms": 1.0,
+            "cache_resolution_ms": 2.0,
+            "data_acquisition_ms": None,
+            "payload_assembly_ms": 4.0,
+            "total_ms": 10.0,
+        },
+    }
+
+    assert timing_field.required is False
+    assert timing_field.deserialize(timing_payload) == timing_payload
+    with pytest.raises(ValidationError):
+        timing_field.deserialize(None)
 
 
 def test_chart_data_prophet_options_schema_time_grain_validation(
@@ -420,3 +464,17 @@ def test_chart_external_url_rejects_non_absolute(app_context: None, url: str) ->
             }
         )
     assert "external_url" in exc_info.value.messages
+
+
+def test_chart_data_extras_rejects_system_sampling(app_context: None) -> None:
+    """
+    ``extras["system_sampling"]`` is a server-side marker (set by the samples
+    query action) that routes physical-dataset sampling queries through the
+    engine's bounded-read retry. It must never be settable through the
+    chart-data API: this pins the schema's unknown-field rejection so a future
+    ``unknown = INCLUDE`` (or an explicit field) cannot silently make an
+    operator-limit-affecting flag client-controllable.
+    """
+    with pytest.raises(ValidationError) as exc_info:
+        ChartDataExtrasSchema().load({"system_sampling": True})
+    assert "system_sampling" in exc_info.value.messages

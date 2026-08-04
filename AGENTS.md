@@ -19,7 +19,7 @@ git commit --amend  # or new commit
 ```
 
 Common pre-commit failures:
-- **Formatting** - black, prettier, eslint will auto-fix
+- **Formatting** - black, oxfmt, eslint will auto-fix
 - **Type errors** - mypy failures need manual fixes
 - **Linting** - ruff, pylint issues need manual fixes
 
@@ -263,7 +263,7 @@ git add .                        # Pre-commit only checks staged files
 # Quick validation (faster than --all-files)
 pre-commit run                   # Staged files only
 pre-commit run mypy              # Python type checking
-pre-commit run prettier          # Code formatting
+pre-commit run format            # Code formatting
 pre-commit run eslint            # Frontend linting
 ```
 
