@@ -45,23 +45,53 @@ BODY_KEYWORDS: tuple[str, str] = ("RETURN", "BEGIN")
 # ``WHILE`` are not reserved, so the tokenizer emits ``VAR`` for them both
 # when they're used as a keyword and when they're an unquoted identifier;
 # requiring ``VAR`` still rules out string literals and quoted identifiers,
-# which is the ambiguity ``_is_routine_keyword`` guards against.
+# which is the ambiguity ``_is_keyword_token`` guards against.
 _RESERVED_BLOCK_TOKEN_TYPES: dict[str, TokenType] = {
     "BEGIN": TokenType.BEGIN,
     "CASE": TokenType.CASE,
     "END": TokenType.END,
 }
 
+# Token text that can immediately precede a new routine statement inside a
+# ``BEGIN ... END`` body: the start of the body itself, a statement
+# separator, or a branch/loop keyword that introduces a nested statement
+# list. Used by ``_is_routine_keyword`` to tell a non-reserved block-opening
+# keyword (``IF``, ``LOOP``, ``REPEAT``, ``WHILE``) apart from an unquoted
+# routine parameter or column reference spelled the same way, since Trino
+# does not reserve these words and its tokenizer emits ``VAR`` for both.
+_STATEMENT_START_PREV_TEXTS: frozenset[str] = frozenset(
+    {"BEGIN", ";", "THEN", "ELSE", "DO", "LOOP", "REPEAT"}
+)
 
-def _is_routine_keyword(token: Token, text: str) -> bool:
+
+def _is_keyword_token(token: Token, text: str) -> bool:
     """
     Determine whether ``token`` (whose upper-cased text is ``text``) is an
-    actual occurrence of a routine block keyword, as opposed to a string
-    literal or quoted identifier that happens to spell the same word.
+    actual occurrence of a routine keyword, as opposed to a string literal
+    or quoted identifier that happens to spell the same word.
     """
     if (expected := _RESERVED_BLOCK_TOKEN_TYPES.get(text)) is not None:
         return token.token_type == expected
     return token.token_type == TokenType.VAR
+
+
+def _is_routine_keyword(token: Token, text: str, prev_text: str) -> bool:
+    """
+    Determine whether ``token`` is an actual occurrence of a routine block
+    keyword, as opposed to a string literal or quoted identifier that
+    happens to spell the same word (see ``_is_keyword_token``), or, for the
+    non-reserved keywords (``IF``, ``LOOP``, ``REPEAT``, ``WHILE``), an
+    unquoted parameter or column reference spelled the same way, e.g. a UDF
+    parameter named ``loop`` in ``RETURN loop``. A block-opening keyword only
+    ever appears where a new statement can start, so ``prev_text`` (the
+    upper-cased text of the immediately preceding token) is checked against
+    ``_STATEMENT_START_PREV_TEXTS`` for these ambiguous, non-reserved words.
+    """
+    if not _is_keyword_token(token, text):
+        return False
+    if text in _RESERVED_BLOCK_TOKEN_TYPES:
+        return True
+    return prev_text in _STATEMENT_START_PREV_TEXTS
 
 
 def _is_paren_condition_block(tokens: t.Sequence[Token], paren_index: int) -> bool:
@@ -155,8 +185,8 @@ class Trino(SqlglotTrino):
             token = tokens[index]
             text = token.text.upper()
             if text in BLOCK_OPENERS:
-                if not _is_routine_keyword(token, text):
-                    return 0  # string literal or quoted identifier, not a keyword
+                if not _is_routine_keyword(token, text, prev_text):
+                    return 0  # literal, identifier, or parameter reference
                 if prev_text == "END":
                     return 0  # block terminator, e.g. `END IF`, `END CASE`
                 next_token = tokens[index + 1] if index + 1 < len(tokens) else None
@@ -169,7 +199,7 @@ class Trino(SqlglotTrino):
                         return 1  # procedural `IF (...) THEN`, not a call
                     return 0  # scalar function call, e.g. `IF(a, b, c)`
                 return 1
-            if text == "END" and _is_routine_keyword(token, text):
+            if text == "END" and _is_routine_keyword(token, text, prev_text):
                 return -1
             return 0
 
@@ -291,7 +321,10 @@ class Trino(SqlglotTrino):
             self._advance()
 
             # scan for the start of the function body, skipping over the
-            # signature, return type, and routine characteristics
+            # signature, return type, and routine characteristics. The
+            # ``_is_keyword_token`` check rules out a routine characteristic
+            # whose string value happens to spell a body keyword, e.g.
+            # ``COMMENT 'RETURN'`` or ``COMMENT 'BEGIN'``.
             paren_depth: int = 0
             body: str | None = None
             while self._curr:
@@ -301,7 +334,11 @@ class Trino(SqlglotTrino):
                     paren_depth += 1
                 elif token_type == TokenType.R_PAREN:
                     paren_depth -= 1
-                elif paren_depth == 0 and text in BODY_KEYWORDS:
+                elif (
+                    paren_depth == 0
+                    and text in BODY_KEYWORDS
+                    and _is_keyword_token(self._curr, text)
+                ):
                     body = text
                     break
                 self._advance()
@@ -326,10 +363,13 @@ class Trino(SqlglotTrino):
             Consume a ``BEGIN ... END`` block, tracking nested blocks.
             """
             depth: int = 0
+            prev_text: str = ""
             while self._curr:
                 token = self._curr
                 text = token.text.upper()
-                if text in BLOCK_OPENERS and _is_routine_keyword(token, text):
+                if text in BLOCK_OPENERS and _is_routine_keyword(
+                    token, text, prev_text
+                ):
                     is_scalar_call = (
                         text in AMBIGUOUS_OPENERS
                         and self._next
@@ -343,21 +383,25 @@ class Trino(SqlglotTrino):
                         pass  # scalar function call, e.g. `IF(a, b, c)`
                     else:
                         depth += 1
+                    prev_text = text
                     self._advance()
-                elif text == "END" and _is_routine_keyword(token, text):
+                elif text == "END" and _is_routine_keyword(token, text, prev_text):
                     depth -= 1
+                    prev_text = text
                     self._advance()
                     if (
                         depth > 0
                         and self._curr
                         and self._curr.text.upper() in BLOCK_OPENERS
-                        and _is_routine_keyword(self._curr, self._curr.text.upper())
+                        and _is_keyword_token(self._curr, self._curr.text.upper())
                     ):
                         # block terminator, e.g. `END IF`, `END CASE`
+                        prev_text = self._curr.text.upper()
                         self._advance()
                     if depth == 0:
                         return
                 else:
+                    prev_text = text
                     self._advance()
 
             self.raise_error("Unbalanced BEGIN/END in inline function specification")
