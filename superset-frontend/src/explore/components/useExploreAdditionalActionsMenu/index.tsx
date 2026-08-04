@@ -339,9 +339,10 @@ export const useExploreAdditionalActionsMenu = (
     ExploreState,
     UserWithPermissionsAndRoles | undefined
   >(state => state.user);
-  // `can_overwrite` alone hides version history on any chart without explicit
-  // editors — every seeded chart — even from admins. Same predicate SaveModal
-  // uses, so a user who can save a chart can also see its history.
+  // `can_overwrite` alone hides version history (and edit-properties) on any
+  // chart without explicit editors — every seeded chart — even from admins.
+  // Same predicate SaveModal uses, so a user who can save a chart can also
+  // see its history and edit its properties.
   const canModifySlice = useMemo(
     () => canOverwriteSlice({ slice, user, canOverwrite }),
     [slice, user, canOverwrite],
@@ -601,7 +602,7 @@ export const useExploreAdditionalActionsMenu = (
     const menuItems = [];
 
     // Edit chart properties
-    if (slice) {
+    if (slice && canModifySlice) {
       menuItems.push({
         key: MENU_KEYS.EDIT_PROPERTIES,
         label: t('Edit chart properties'),
