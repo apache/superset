@@ -145,7 +145,15 @@ class SafeSemanticCacheBackend:
 
 
 class SemanticCacheService:
-    """Orchestrate optional cache lookup, provider execution, and storage."""
+    """Orchestrate optional cache lookup, provider execution, and storage.
+
+    This service is intentionally limited to application flow. Cache identity,
+    containment proofs, result transformation, persistence, distributed mutation,
+    and Superset host adaptation live in ``cache_identity``, ``cache_policy``,
+    ``cache_transform``, ``cache_repository``, ``cache_coordination``, and
+    ``cache_host`` respectively. Keeping those decisions behind narrow boundaries
+    prevents the orchestration service from becoming a multipurpose cache class.
+    """
 
     def __init__(
         self,
