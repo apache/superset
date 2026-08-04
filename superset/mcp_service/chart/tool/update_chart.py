@@ -117,6 +117,16 @@ def _append_table_columns(
     merged = dict(existing_form_data)
     query_mode = existing_form_data.get("query_mode")
     if query_mode == "raw":
+        metric_columns = [column for column in columns if column.is_metric]
+        if metric_columns:
+            return _validation_error_response(
+                message="Cannot add metrics to a table in raw query mode.",
+                details=(
+                    "Raw tables accept only unaggregated columns in 'add_columns'. "
+                    "Use 'config' with query_mode='aggregate' and the complete table "
+                    "configuration to convert the chart before adding metrics."
+                ),
+            )
         merged["all_columns"] = list(existing_form_data.get("all_columns") or [])
         merged["all_columns"].extend(
             column.name for column in columns if column.name is not None
@@ -192,12 +202,16 @@ def _build_update_payload(
         if isinstance(patched, GenerateChartResponse):
             return patched
         chart_name = request.chart_name or chart.slice_name
-        return {
+        additive_payload: dict[str, Any] = {
             "slice_name": chart_name,
             "viz_type": patched["viz_type"],
             "params": json.dumps(patched),
             "query_context": None,
         }
+        if request.dataset_id is not None:
+            additive_payload["datasource_id"] = request.dataset_id
+            additive_payload["datasource_type"] = "table"
+        return additive_payload
 
     # Dataset-only update: rebind chart to a different dataset without changing viz
     if request.dataset_id is not None:

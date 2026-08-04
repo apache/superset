@@ -673,6 +673,65 @@ class TestBuildUpdatePayload:
         assert params["metrics"][1]["label"] == "Earliest Go Live Date"
         assert params["metrics"][1]["aggregate"] == "MIN"
 
+    def test_add_columns_rebinds_requested_dataset(self):
+        """Additive saves validate and persist against the same dataset."""
+        request = UpdateChartRequest(
+            identifier=1,
+            dataset_id=22,
+            add_columns=[ColumnRef(name="region")],
+        )
+        chart = Mock(
+            slice_name="Existing",
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "query_mode": "aggregate",
+                    "groupby": ["employer"],
+                    "metrics": [],
+                }
+            ),
+        )
+
+        result = _build_update_payload(request, chart)
+
+        assert isinstance(result, dict)
+        assert result["datasource_id"] == 22
+        assert result["datasource_type"] == "table"
+
+    @pytest.mark.parametrize(
+        "metric",
+        [
+            ColumnRef(name="go_live_date", aggregate="MIN"),
+            ColumnRef(name="saved_count", saved_metric=True),
+            ColumnRef(sql_expression="COUNT(*)", label="Count"),
+        ],
+    )
+    def test_add_metric_to_raw_table_returns_actionable_error(
+        self, metric: ColumnRef
+    ) -> None:
+        """Raw tables must not silently discard aggregate semantics."""
+        request = UpdateChartRequest(identifier=1, add_columns=[metric])
+        chart = Mock(
+            slice_name="Raw table",
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "query_mode": "raw",
+                    "all_columns": ["employer"],
+                }
+            ),
+        )
+
+        result = _build_update_payload(request, chart)
+
+        assert isinstance(result, GenerateChartResponse)
+        assert result.success is False
+        assert result.error is not None
+        assert (
+            result.error.message == "Cannot add metrics to a table in raw query mode."
+        )
+        assert "query_mode='aggregate'" in result.error.details
+
 
 class TestUpdateChartNameOnly:
     """Integration-style tests for name-only update via MCP tool."""
