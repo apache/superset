@@ -559,21 +559,23 @@ class TestTakeTiledScreenshot:
         mock_logger.error.assert_not_called()
         mock_logger.warning.assert_called_once()
         warning_args = mock_logger.warning.call_args[0]
-        assert "unready" in warning_args[0].lower()
-        assert warning_args[3] == 1  # mounted holders
-        assert warning_args[4] == 0  # ready holders
-        assert warning_args[5] == 1  # tile index
-        assert warning_args[6] == 3  # total tiles
-        assert warning_args[7] == 0  # tiles captured so far
-        assert warning_args[8] == 3  # total tiles
-        assert isinstance(warning_args[9], float)  # tile elapsed
-        assert isinstance(warning_args[10], float)  # total elapsed
-        assert warning_args[12] == 30  # effective wait
-        assert "capture_kind=report" in warning_args[13]
+        warning_message = warning_args[0] % warning_args[1:]
+        assert "mounted_holders=1" in warning_message
+        assert "ready_holders=0" in warning_message
+        assert "rendered_holders=0" in warning_message
+        assert "empty_holders=0" in warning_message
+        assert "error_holders=0" in warning_message
+        assert "unready_holders=1" in warning_message
+        assert "tile=1/3" in warning_message
+        assert "tiles_captured=0/3" in warning_message
+        assert "effective_wait_seconds=30.00" in warning_message
+        assert "capture_kind=report" in warning_message
         # Diagnostic payload identifies chart id AND the state it's stuck in
         # (spinner mounted vs nothing mounted vs waiting-on-database) so a
         # slow query can be told apart from the virtualization race.
-        assert warning_args[14] == [{"chartId": "42", "state": "waiting_on_database"}]
+        assert (
+            "unready_holder_states=[{'chartId': '42', 'state': 'waiting_on_database'}]"
+        ) in warning_message
 
     def test_timeout_warning_includes_log_context(self, mock_page):
         """The log context (e.g. report execution id) is threaded through for
@@ -600,7 +602,8 @@ class TestTakeTiledScreenshot:
                     )
 
         warning_args = mock_logger.warning.call_args[0]
-        assert warning_args[13] == " [execution_id=abc-123]"
+        warning_message = warning_args[0] % warning_args[1:]
+        assert " [execution_id=abc-123]" in warning_message
 
     def test_chart_holder_with_nothing_mounted_blocks_wait(self, mock_page):
         """Regression test for the vacuous-pass race (PR #39895).

@@ -19,6 +19,7 @@ from uuid import UUID
 import pytest
 
 from superset.utils.report_execution import (
+    ChartHolderDiagnostics,
     get_report_task_timeout_options,
     MIN_REPORT_EXECUTION_WORK_SECONDS,
     ReportExecutionBudgetExceededError,
@@ -42,6 +43,48 @@ def _report_config(**overrides: int) -> dict[str, int | bool]:
     }
     config.update(overrides)
     return config
+
+
+def test_chart_holder_diagnostics_separate_terminal_errors_from_success() -> None:
+    diagnostics = ChartHolderDiagnostics.from_holder_states(
+        [
+            {"chartId": "1", "state": "rendered"},
+            {"chartId": "2", "state": "rendered"},
+            {"chartId": "3", "state": "empty"},
+            {"chartId": "4", "state": "error"},
+            {"chartId": "5", "state": "virtualized"},
+        ]
+    )
+
+    assert diagnostics.mounted_holders == 5
+    assert diagnostics.ready_holders == 5
+    assert diagnostics.rendered_holders == 2
+    assert diagnostics.empty_holders == 1
+    assert diagnostics.error_holders == 1
+    assert diagnostics.virtualized_holders == 1
+    assert diagnostics.unready_holders == 0
+    assert diagnostics.semantic_success is False
+
+
+def test_chart_holder_diagnostics_count_unready_holders() -> None:
+    diagnostics = ChartHolderDiagnostics.from_holder_states(
+        [
+            {"chartId": "1", "state": "rendered"},
+            {"chartId": "2", "state": "waiting_on_database"},
+            {"chartId": "3", "state": "nothing_mounted"},
+        ]
+    )
+
+    assert diagnostics.ready_holders == 1
+    assert diagnostics.unready_holders == 2
+    assert diagnostics.semantic_success is False
+
+
+def test_chart_holder_diagnostics_do_not_treat_zero_holders_as_success() -> None:
+    diagnostics = ChartHolderDiagnostics.from_holder_states([])
+
+    assert diagnostics.mounted_holders == 0
+    assert diagnostics.semantic_success is False
 
 
 def test_report_deadline_derives_phase_timeout_from_one_clock() -> None:
