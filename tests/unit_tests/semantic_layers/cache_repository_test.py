@@ -171,9 +171,13 @@ def test_store_retains_only_newest_bounded_descriptors() -> None:
     )
     assert len(descriptor_list) == MAX_SEMANTIC_CACHE_DESCRIPTORS_PER_BUCKET
     assert min(entry.timestamp for entry in descriptor_list) == 1.0
+    result_values: list[SemanticResult] = [
+        value for value in backend.values.values() if isinstance(value, SemanticResult)
+    ]
+    assert len(result_values) == MAX_SEMANTIC_CACHE_DESCRIPTORS_PER_BUCKET
 
 
-def test_failed_coordination_leaves_value_ttl_bounded_but_undiscoverable() -> None:
+def test_failed_coordination_removes_undiscoverable_value() -> None:
     backend: _Backend = _Backend()
     repository: SemanticCacheRepository = SemanticCacheRepository(
         backend,
@@ -182,8 +186,7 @@ def test_failed_coordination_leaves_value_ttl_bounded_but_undiscoverable() -> No
     query: SemanticQuery = build_semantic_query()
 
     assert repository.store(build_view_meta(), query, build_semantic_result()) is False
-    assert backend.values
-    assert set(backend.timeouts.values()) == {300}
+    assert not backend.values
     assert not repository.lookup(
         build_view_meta(), query, ContainmentCapabilities()
     ).candidates
