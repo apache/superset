@@ -227,13 +227,19 @@ class LoggingMiddleware(Middleware):
         """Check if a tool result contains an error schema response.
 
         MCP tools return error schemas (ChartError, DashboardError, etc.)
-        instead of raising exceptions. These serialize to JSON containing
-        an "error_type" field.
+        instead of raising exceptions. These serialize to JSON with a
+        populated "error_type" field. Success schemas also declare an
+        optional "error_type" field (defaulting to null) for a uniform
+        response shape, so its mere presence in the serialized JSON isn't
+        a reliable signal -- only a truthy value is.
         """
+        from superset.utils.json import loads as json_loads
+
         try:
-            return '"error_type"' in result.content[0].text
-        except (AttributeError, IndexError):
+            payload = json_loads(result.content[0].text)
+        except (AttributeError, IndexError, TypeError, ValueError):
             return False
+        return bool(isinstance(payload, dict) and payload.get("error_type"))
 
     def _extract_context_info(
         self, context: MiddlewareContext

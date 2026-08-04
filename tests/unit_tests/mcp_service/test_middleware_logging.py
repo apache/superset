@@ -278,7 +278,7 @@ class TestLoggingMiddlewareOnCallTool:
         ctx = _make_context(name="generate_chart", params={"dataset_id": 5})
         response_text = (
             '{"success": false, "chart": null, '
-            '"error": {"error_type": "validation_error"}}'
+            '"error": "invalid dataset", "error_type": "validation_error"}'
         )
         original_result = ToolResult(
             content=[mt.TextContent(type="text", text=response_text)]
