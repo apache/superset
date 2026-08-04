@@ -64,12 +64,6 @@ updates:
       babel:
         patterns:
           - "@babel/*"
-      deckgl:
-        patterns:
-          - "@deck.gl/*"
-      lumagl:
-        patterns:
-          - "@luma.gl/*"
       storybook:
         patterns:
           - "@storybook/*"
