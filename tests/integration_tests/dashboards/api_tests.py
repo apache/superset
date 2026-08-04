@@ -1998,7 +1998,13 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert model.slug == self.dashboard_data["slug"]
         assert model.position_json == self.dashboard_data["position_json"]
         assert model.css == self.dashboard_data["css"]
-        assert model.json_metadata == self.dashboard_data["json_metadata"]
+        # Compare parsed JSON rather than raw strings: ``set_dash_metadata``
+        # merges against the dashboard's previously stored metadata, so key
+        # insertion order (and therefore serialized key order) is an
+        # implementation detail, not part of the contract being tested.
+        assert json.loads(model.json_metadata) == json.loads(
+            self.dashboard_data["json_metadata"]
+        )
         assert model.published == self.dashboard_data["published"]
         admin_subject = (
             db.session.query(Subject)
@@ -2006,6 +2012,90 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             .first()
         )
         assert model.editors == [admin_subject]
+
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_update_dashboard_preserves_unsent_json_metadata_fields(self):
+        """
+        Dashboard API: a PUT whose ``json_metadata`` omits a field must not
+        reset that field to its default. ``UpdateDashboardCommand`` routes
+        the incoming ``json_metadata`` through ``DashboardDAO.update``'s
+        generic attribute assignment before calling
+        ``DashboardDAO.set_dash_metadata`` -- if that assignment overwrites
+        ``dashboard.json_metadata`` first, the merge in
+        ``set_dash_metadata`` (which reads ``dashboard.params_dict``) has
+        nothing but the new, partial payload to merge against, silently
+        collapsing the merge into a no-op (see #42142).
+        """
+        admin = self.get_user("admin")
+        dashboard_id = self.insert_dashboard(
+            "title1",
+            "slug1",
+            [admin.id],
+            json_metadata=json.dumps(
+                {"refresh_frequency": 60, "cross_filters_enabled": False}
+            ),
+        ).id
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard_id}"
+        rv = self.put_assert_metric(
+            uri,
+            {"json_metadata": json.dumps({"color_scheme": "d3Category10"})},
+            "put",
+        )
+        assert rv.status_code == 200
+        model = db.session.query(Dashboard).get(dashboard_id)
+        saved_metadata = json.loads(model.json_metadata)
+        assert saved_metadata["refresh_frequency"] == 60
+        assert saved_metadata["cross_filters_enabled"] is False
+        assert saved_metadata["color_scheme"] == "d3Category10"
+
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_update_dashboard_persists_metadata_fields_without_dedicated_handling(
+        self,
+    ):
+        """
+        Dashboard API: ``set_dash_metadata`` only gives dedicated handling to a
+        fixed subset of ``json_metadata`` keys (positions, filter_scopes,
+        refresh_frequency, etc). A field edited via the Advanced JSON editor
+        that isn't in that subset -- e.g. ``show_chart_timestamps``,
+        ``stagger_refresh``, ``timed_refresh_immune_slices`` -- must still be
+        persisted rather than silently dropped on save (see #42142).
+        """
+        admin = self.get_user("admin")
+        dashboard_id = self.insert_dashboard(
+            "title1",
+            "slug1",
+            [admin.id],
+            json_metadata=json.dumps({"refresh_frequency": 60}),
+        ).id
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard_id}"
+        rv = self.put_assert_metric(
+            uri,
+            {
+                "json_metadata": json.dumps(
+                    {
+                        "refresh_frequency": 60,
+                        "show_chart_timestamps": True,
+                        "stagger_refresh": True,
+                        "stagger_time": 500,
+                        "timed_refresh_immune_slices": [1, 2],
+                    }
+                )
+            },
+            "put",
+        )
+        assert rv.status_code == 200
+        model = db.session.query(Dashboard).get(dashboard_id)
+        saved_metadata = json.loads(model.json_metadata)
+        assert saved_metadata["show_chart_timestamps"] is True
+        assert saved_metadata["stagger_refresh"] is True
+        assert saved_metadata["stagger_time"] == 500
+        assert saved_metadata["timed_refresh_immune_slices"] == [1, 2]
 
         db.session.delete(model)
         db.session.commit()
@@ -2603,7 +2693,11 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert rv.status_code == 200
 
         model = db.session.query(Dashboard).get(dashboard_id)
-        assert model.json_metadata == self.dashboard_data["json_metadata"]
+        # Compare parsed JSON rather than raw strings; see the equivalent
+        # comment in ``test_update_dashboard``.
+        assert json.loads(model.json_metadata) == json.loads(
+            self.dashboard_data["json_metadata"]
+        )
         assert model.dashboard_title == self.dashboard_data["dashboard_title"]
         assert model.slug == self.dashboard_data["slug"]
 

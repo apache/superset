@@ -35,10 +35,13 @@ import {
   subscribeReport,
 } from 'src/features/reports/ReportModal/actions';
 import {
+  Checkbox,
   Input,
   LabeledErrorBoundInput,
+  type CheckboxChangeEvent,
   type CronError,
 } from '@superset-ui/core/components';
+import { InputNumber } from '@superset-ui/core/components/Input';
 import TimezoneSelector from '@superset-ui/core/components/TimezoneSelector';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Typography } from '@superset-ui/core/components/Typography';
@@ -57,7 +60,9 @@ import { CreationMethod } from './HeaderReportDropdown';
 import {
   antDErrorAlertStyles,
   CustomWidthHeaderStyle,
+  StyledErrorHandlingSection,
   StyledModal,
+  StyledRetryFieldGroup,
   StyledTopSection,
   StyledBottomSection,
   StyledIconWrapper,
@@ -191,6 +196,11 @@ function ReportModal({
       crontab: currentReport.crontab,
       report_format: currentReport.report_format || defaultNotificationFormat,
       timezone: currentReport.timezone,
+      retry_on_failure: currentReport.retry_on_failure ?? false,
+      retry_max_attempts: currentReport.retry_max_attempts ?? 3,
+      send_failed_reports: currentReport.send_failed_reports ?? false,
+      retry_notify_owners: currentReport.retry_notify_owners ?? true,
+      retry_notify_recipients: currentReport.retry_notify_recipients ?? false,
     };
 
     setCurrentReport({ isSubmitting: true, error: undefined });
@@ -315,6 +325,84 @@ function ReportModal({
     </StyledInputContainer>
   );
 
+  const retryEnabled = !!currentReport.retry_on_failure;
+
+  const renderErrorHandlingSection = (
+    <StyledErrorHandlingSection>
+      <Typography.Title
+        level={4}
+        css={(theme: SupersetTheme) => SectionHeaderStyle(theme)}
+      >
+        {t('Error Handling')}
+      </Typography.Title>
+      <Checkbox
+        checked={retryEnabled}
+        onChange={(e: CheckboxChangeEvent) => {
+          const { checked } = e.target;
+          setCurrentReport({
+            retry_on_failure: checked,
+            ...(!checked && {
+              send_failed_reports: false,
+              retry_notify_owners: true,
+              retry_notify_recipients: false,
+              retry_max_attempts: 3,
+            }),
+          });
+        }}
+      >
+        {t('Enable Retries')}
+      </Checkbox>
+      {retryEnabled && (
+        <StyledRetryFieldGroup>
+          <div>
+            <div className="control-label">{t('Maximum Retry Attempts')}</div>
+            <InputNumber
+              min={1}
+              max={10}
+              value={currentReport.retry_max_attempts ?? 3}
+              onChange={(value: number | null) =>
+                setCurrentReport({ retry_max_attempts: value ?? 3 })
+              }
+            />
+          </div>
+          <Checkbox
+            checked={!!currentReport.send_failed_reports}
+            onChange={(e: CheckboxChangeEvent) =>
+              setCurrentReport({ send_failed_reports: e.target.checked })
+            }
+          >
+            {t('Send Failed Reports')}
+          </Checkbox>
+          <div>
+            <div className="control-label">{t('Failure Notifications')}</div>
+            <div>
+              <Checkbox
+                checked={currentReport.retry_notify_owners ?? true}
+                onChange={(e: CheckboxChangeEvent) =>
+                  setCurrentReport({ retry_notify_owners: e.target.checked })
+                }
+              >
+                {t('Owners')}
+              </Checkbox>
+            </div>
+            <div>
+              <Checkbox
+                checked={!!currentReport.retry_notify_recipients}
+                onChange={(e: CheckboxChangeEvent) =>
+                  setCurrentReport({
+                    retry_notify_recipients: e.target.checked,
+                  })
+                }
+              >
+                {t('Report Recipients')}
+              </Checkbox>
+            </div>
+          </div>
+        </StyledRetryFieldGroup>
+      )}
+    </StyledErrorHandlingSection>
+  );
+
   return (
     <StyledModal
       show={show}
@@ -390,6 +478,7 @@ function ReportModal({
         />
         {isChart && renderMessageContentSection}
         {(!isChart || !isTextBasedChart) && renderCustomWidthSection}
+        {renderErrorHandlingSection}
       </StyledBottomSection>
       {currentReport.error && (
         <Alert

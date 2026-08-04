@@ -97,6 +97,50 @@ for more information on how to configure it.
 
 At the very least, you'll want to change `SECRET_KEY` and `SQLALCHEMY_DATABASE_URI`. Continue reading for more about each of these.
 
+## Chart-data query timing
+
+Set `CHART_DATA_INCLUDE_TIMING = True` to add an optional versioned timing object
+to every successful JSON query result returned by the chart-data API. The setting
+is `False` by default, so enabling it is an explicit API-contract choice for an
+operator. File exports, streaming responses, and HTTP error responses do not
+include this object.
+
+```json
+{
+  "timing": {
+    "version": 1,
+    "query": {
+      "query_planning_ms": 1.23,
+      "cache_resolution_ms": 0.45,
+      "data_acquisition_ms": null,
+      "payload_assembly_ms": 0.67,
+      "total_ms": 2.98
+    }
+  }
+}
+```
+
+Durations are milliseconds rounded to two decimal places. A numeric `0.0`
+means that the corresponding stage ran but rounded below that precision;
+`null` means it did not apply. For example, `data_acquisition_ms` is null for
+a normal dataframe cache hit, while metadata-only results have null phase values
+and a numeric total.
+
+The phases have fixed ownership: `query_planning_ms` includes Jinja rendering,
+row-level-security transformation, and cache identity; `cache_resolution_ms`
+includes cache lookup, compatibility policy, deserialization, and rehydration;
+`data_acquisition_ms` includes database work and annotation dependencies; and
+`payload_assembly_ms` includes response shaping and AUTO-currency fallback.
+
+`total_ms` is measured over one continuous per-query execution interval. It
+contains the exposed stages and unattributed work such as query-result cache
+persistence, so it is not the sum of the phase values. Query-context cache
+persistence is excluded. The total also excludes request parsing,
+authorization, contribution-total work before the per-query loop, client
+post-processing, JSON serialization, network transfer, and background async
+producer execution. Additive optional fields can preserve version 1; a field
+rename, removal, or semantic change requires a new version.
+
 ## Specifying a SECRET_KEY
 
 ### Adding an initial SECRET_KEY

@@ -53,6 +53,7 @@ from superset import (
     is_feature_enabled,
     security_manager,
 )
+from superset.commands.deletion_retention.window import resolve_retention_window
 from superset.config import _THEME_DARK_BASE, _THEME_DEFAULT_BASE
 from superset.connectors.sqla import models
 from superset.daos.theme import ThemeDAO
@@ -498,6 +499,39 @@ def _get_frontend_config_value(key: str) -> Any:
     return val
 
 
+def _soft_delete_conf() -> dict[str, Any]:
+    """Return the retention window to advertise to the client, if any.
+
+    Resolved rather than read from config: an operator can change the window at
+    runtime with ``superset deletion-retention set_window``, which persists to
+    a shared key taking precedence over the config seed. Passing the config
+    value through would tell users they have longer to recover an object than
+    the purge task will actually allow.
+
+    An empty mapping means "say nothing about a window" — either the feature is
+    off, so no deployment pays for a lookup it cannot use, or the lookup failed.
+    A display detail must never be the reason a page fails to bootstrap.
+    """
+    if not is_feature_enabled("SOFT_DELETE"):
+        return {}
+    try:
+        return {"SOFT_DELETE_RETENTION_DAYS": resolve_retention_window()}
+    except Exception:  # pylint: disable=broad-except
+        # resolve_retention_window() issues a real key_value SELECT, so a
+        # failure can leave the request's session in a failed-transaction
+        # state. Swallowing the error without rolling back would make the
+        # *next* unrelated query in this request fail with
+        # PendingRollbackError, attributing the fault to whatever ran after
+        # rather than to this lookup.
+        db.session.rollback()  # pylint: disable=consider-using-transaction
+        logger.warning(
+            "Could not resolve the soft-delete retention window for the client "
+            "bootstrap; the delete modal will omit the recovery window.",
+            exc_info=True,
+        )
+        return {}
+
+
 @cache_manager.cache.memoize(timeout=60)
 def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     user_id: int | None, locale: str | None
@@ -510,6 +544,8 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
 
     # should not expose API TOKEN to frontend
     frontend_config = {k: _get_frontend_config_value(k) for k in FRONTEND_CONF_KEYS}
+
+    frontend_config.update(_soft_delete_conf())
 
     if app.config.get("SLACK_API_TOKEN"):
         frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [

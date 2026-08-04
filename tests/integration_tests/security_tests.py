@@ -1713,6 +1713,13 @@ class TestRolePermission(SupersetTestCase):
             ["CurrentUserRestApi", "update_me"],
             ["CurrentUserRestApi", "get_my_roles"],
             ["UserRestApi", "avatar"],
+            # Secured in the body: admission is "can_read on ANY of
+            # Chart/Dashboard/Dataset", which @has_access cannot express
+            # (it binds one class_permission_name). The view redirects
+            # unauthenticated requests to login and answers 403 for readers
+            # of none of the three; the contract is pinned by
+            # tests/integration_tests/views/archived_assets_tests.py.
+            ["ArchivedAssetsView", "list"],
             # TODO (embedded) remove Dashboard:embedded after uuids have been shipped
             ["Dashboard", "embedded"],
             ["EmbeddedView", "embedded"],

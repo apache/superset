@@ -35,6 +35,7 @@ from superset.charts.filters import (
     ChartAllTextFilter,
     ChartCertifiedFilter,
     ChartCreatedByMeFilter,
+    ChartDeletedRecencyFilter,
     ChartDeletedStateFilter,
     ChartEditableFilter,
     ChartFavoriteFilter,
@@ -83,6 +84,7 @@ from superset.commands.importers.exceptions import (
     NoValidFilesFoundError,
 )
 from superset.commands.importers.v1.utils import get_contents_from_bundle
+from superset.commands.purge import PurgeArchivedCommand, SoftDeleteBinding
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.chart import ChartDAO
 from superset.exceptions import (
@@ -130,6 +132,13 @@ from superset.views.filters import (
 
 logger = logging.getLogger(__name__)
 
+_CHART_PURGE_BINDING = SoftDeleteBinding(
+    dao=ChartDAO,
+    not_found=ChartNotFoundError,
+    forbidden=ChartForbiddenError,
+    delete_failed=ChartDeleteFailedError,
+)
+
 
 class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Slice)
@@ -149,6 +158,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         RouteMethod.RELATED,
         "bulk_delete",  # not using RouteMethod since locally defined
         "restore",
+        "purge",
         "viz_types",
         "favorite_status",
         "add_favorite",
@@ -174,6 +184,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         **MODEL_API_RW_METHOD_PERMISSION_MAP,
         "restore": "write",
         "restore_version": "write",
+        "purge": "write",
     }
 
     list_columns = [
@@ -233,6 +244,9 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "changed_on_delta_humanized",
         "datasource_id",
         "datasource_name",
+        # Exposed so the Recently-Deleted view can sort archived charts by
+        # deletion time (sc-111760).
+        "deleted_at",
         "last_saved_at",
         "last_saved_by.id",
         "last_saved_by.first_name",
@@ -248,6 +262,9 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "datasource_id",
         "datasource_name",
         "datasource_type",
+        # Exposed so the Recently-Deleted view can filter archived charts by a
+        # deletion-time cutoff (e.g. ``deleted_at`` ``gt`` cutoff) — sc-111760.
+        "deleted_at",
         "description",
         "id",
         "uuid",
@@ -261,6 +278,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     base_order = ("changed_on", "desc")
     base_filters = [["id", ChartFilter, lambda: []]]
     search_filters = {
+        "deleted_at": [ChartDeletedRecencyFilter],
         "id": [
             ChartFavoriteFilter,
             ChartCertifiedFilter,
@@ -772,6 +790,65 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         except ChartRestoreFailedError as ex:
             logger.error(
                 "Error restoring model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            return self.response_422(message=str(ex))
+
+    @expose("/<uuid>/purge", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.purge",
+        log_to_statsd=False,
+    )
+    def purge(self, uuid: str) -> Response:
+        """Permanently delete a soft-deleted (archived) chart.
+        ---
+        post:
+          summary: Permanently delete a soft-deleted chart
+          description: >-
+            Irreversibly remove an archived chart and its dependents. Limited to
+            owners and admins (same audience as restore).
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid
+          responses:
+            200:
+              description: Chart permanently deleted
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            PurgeArchivedCommand(uuid, _CHART_PURGE_BINDING).run()
+            return self.response(200, message="OK")
+        except ChartNotFoundError:
+            return self.response_404()
+        except ChartForbiddenError:
+            return self.response_403()
+        except ChartDeleteFailedError as ex:
+            logger.error(
+                "Error purging model %s: %s",
                 self.__class__.__name__,
                 str(ex),
                 exc_info=True,
