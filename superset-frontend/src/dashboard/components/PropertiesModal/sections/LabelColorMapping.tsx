@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useState, useEffect, useRef } from "react";
-import { t } from "@apache-superset/core/translation";
-import { styled } from "@apache-superset/core/theme";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useMemo, useState, useEffect, useRef } from 'react';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 
 const Container = styled.div`
   margin-bottom: ${({ theme }: any) => (theme?.gridUnit || 4) * 4}px;
