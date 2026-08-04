@@ -1225,6 +1225,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if guest_user := self.get_guest_user_from_request(request):
                 return guest_user
             if raw_guest_token is not None:
+                # Keep invalid guest tokens from falling through to Bearer auth here.
                 return None
 
         if request.headers.get("Authorization", "").lower().startswith("bearer "):

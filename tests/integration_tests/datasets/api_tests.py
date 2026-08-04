@@ -298,9 +298,9 @@ class TestDatasetApi(SupersetTestCase):
         """
         database = self.insert_database(f"jwt_dataset_db_{shortid()}")
         dataset = self.insert_dataset(
-            table_name=f"jwt_dataset_{shortid()}",
-            owners=[self.get_user("admin").id],
-            database=database,
+            f"jwt_dataset_{shortid()}",
+            [self.get_user("admin").id],
+            database,
             fetch_metadata=False,
         )
         headers = self.get_bearer_auth_header()
@@ -328,7 +328,7 @@ class TestDatasetApi(SupersetTestCase):
             "api/v1/dataset/",
             headers={"Authorization": "Bearer not-a-token"},
         )
-        assert rv.status_code == 401
+        assert rv.status_code == 422
 
     def test_get_dataset_list_gamma(self):
         """

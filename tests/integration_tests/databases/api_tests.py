@@ -250,7 +250,7 @@ class TestDatabaseApi(SupersetTestCase):
             "api/v1/database/",
             headers={"Authorization": "Bearer not-a-token"},
         )
-        assert rv.status_code == 401
+        assert rv.status_code == 422
 
     def test_get_items_filter(self):
         """
