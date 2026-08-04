@@ -2237,6 +2237,13 @@ def _make_state_instance(
     schedule.recipients = []
     schedule.force_screenshot = False
     schedule.extra = {}
+    schedule.retry_on_failure = False
+    schedule.retry_max_attempts = 3
+    schedule.retry_attempt = 0
+    schedule.retry_scheduled_dttm = None
+    schedule.send_failed_reports = False
+    schedule.retry_notify_owners = True
+    schedule.retry_notify_recipients = False
 
     instance = cls(schedule, datetime.utcnow(), uuid4())
     instance._report_schedule = schedule
@@ -2468,6 +2475,9 @@ def test_create_log_success_commits(mocker: MockerFixture) -> None:
     state._report_schedule = schedule
 
     mock_db = mocker.patch("superset.commands.report.execute.db")
+    # No in-flight WORKING "trigger" row exists for this execution, so create_log
+    # inserts a fresh row rather than promoting an existing one.
+    mock_db.session.query.return_value.filter.return_value.first.return_value = None
     mock_log_cls = mocker.patch(
         "superset.commands.report.execute.ReportExecutionLog",
         return_value=mocker.Mock(),

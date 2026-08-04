@@ -108,7 +108,7 @@ test('switches between card and table view', async () => {
 
   // Switch to table view via the list icon
   const listViewIcon = screen.getByRole('img', { name: 'unordered-list' });
-  const listViewButton = listViewIcon.closest('[role="button"]')!;
+  const listViewButton = listViewIcon.closest('button')!;
   fireEvent.click(listViewButton);
 
   await waitFor(() => {
@@ -117,7 +117,7 @@ test('switches between card and table view', async () => {
 
   // Switch back to card view
   const cardViewIcon = screen.getByRole('img', { name: 'appstore' });
-  const cardViewButton = cardViewIcon.closest('[role="button"]')!;
+  const cardViewButton = cardViewIcon.closest('button')!;
   fireEvent.click(cardViewButton);
 
   await waitFor(() => {

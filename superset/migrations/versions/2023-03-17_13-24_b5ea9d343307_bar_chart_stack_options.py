@@ -49,7 +49,7 @@ class Slice(Base):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     slices = session.query(Slice).filter(Slice.viz_type.like(CHART_TYPE)).all()
     for slc in slices:
@@ -72,7 +72,7 @@ def upgrade():
 
 def downgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     slices = session.query(Slice).filter(Slice.viz_type.like(CHART_TYPE)).all()
     for slc in slices:

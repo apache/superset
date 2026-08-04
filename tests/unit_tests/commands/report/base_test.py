@@ -26,7 +26,10 @@ from unittest.mock import patch
 import pytest
 
 from superset.commands.report.base import BaseReportScheduleCommand
-from superset.commands.report.exceptions import ReportScheduleFrequencyNotAllowed
+from superset.commands.report.exceptions import (
+    ReportScheduleCrontabNotValidError,
+    ReportScheduleFrequencyNotAllowed,
+)
 from superset.reports.models import ReportScheduleType
 
 REPORT_TYPES = {
@@ -172,6 +175,28 @@ def test_validate_report_frequency_report_only(schedule: str) -> None:
         schedule,
         ReportScheduleType.ALERT,
     )
+
+
+@pytest.mark.parametrize("report_type", REPORT_TYPES)
+@app_custom_config(
+    alert_minimum_interval=int(timedelta(minutes=5).total_seconds()),
+    report_minimum_interval=int(timedelta(minutes=5).total_seconds()),
+)
+def test_validate_report_frequency_never_matching_crontab(report_type: str) -> None:
+    """
+    Test the ``validate_report_frequency`` method with a crontab that is
+    syntactically valid but never matches a real calendar date (Feb 30th).
+
+    Such schedules pass ``croniter.is_valid()`` (purely syntactic) and thus
+    marshmallow schema validation, but raise ``CroniterBadDateError`` when
+    iterated. This should surface as a ``ValidationError`` rather than
+    propagating the raw croniter exception.
+    """
+    with pytest.raises(ReportScheduleCrontabNotValidError):
+        BaseReportScheduleCommand().validate_report_frequency(
+            "0 0 30 2 *",
+            report_type,
+        )
 
 
 @pytest.mark.parametrize("report_type", REPORT_TYPES)

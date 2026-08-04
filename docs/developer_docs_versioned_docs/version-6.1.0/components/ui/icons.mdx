@@ -34,33 +34,28 @@ Icon library for Apache Superset. Contains over 200 icons based on Ant Design ic
   component="Icons"
   renderComponent="Icons.InfoCircleOutlined"
   props={{
-  iconSize: "xl"
-}}
+    iconSize: 'xl',
+  }}
   controls={[
-  {
-    name: "iconSize",
-    label: "Icon Size",
-    type: "inline-radio",
-    options: [
-      "s",
-      "m",
-      "l",
-      "xl",
-      "xxl"
-    ],
-    description: "Size of the icons: s (12px), m (16px), l (20px), xl (24px), xxl (32px)."
-  },
-  {
-    name: "showNames",
-    label: "Show Names",
-    type: "boolean"
-  },
-  {
-    name: "iconColor",
-    label: "Icon Color",
-    type: "select"
-  }
-]}
+    {
+      name: 'iconSize',
+      label: 'Icon Size',
+      type: 'inline-radio',
+      options: ['s', 'm', 'l', 'xl', 'xxl'],
+      description:
+        'Size of the icons: s (12px), m (16px), l (20px), xl (24px), xxl (32px).',
+    },
+    {
+      name: 'showNames',
+      label: 'Show Names',
+      type: 'boolean',
+    },
+    {
+      name: 'iconColor',
+      label: 'Icon Color',
+      type: 'select',
+    },
+  ]}
 />
 
 ## Try It
@@ -90,7 +85,9 @@ function IconSizes() {
       {sizes.map(size => (
         <div key={size} style={{ textAlign: 'center' }}>
           <Icons.DatabaseOutlined iconSize={size} />
-          <div style={{ fontSize: 12, marginTop: 8, color: '#666' }}>{size}</div>
+          <div style={{ fontSize: 12, marginTop: 8, color: '#666' }}>
+            {size}
+          </div>
         </div>
       ))}
     </div>
@@ -104,8 +101,12 @@ function IconSizes() {
 function IconGallery() {
   const Section = ({ title, children }) => (
     <div style={{ marginBottom: 24 }}>
-      <div style={{ fontWeight: 600, marginBottom: 8, color: '#666' }}>{title}</div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>{children}</div>
+      <div style={{ fontWeight: 600, marginBottom: 8, color: '#666' }}>
+        {title}
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+        {children}
+      </div>
     </div>
   );
   return (
@@ -234,9 +235,9 @@ function IconWithText() {
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `iconSize` | `string` | `"xl"` | Size of the icons: s (12px), m (16px), l (20px), xl (24px), xxl (32px). |
+| Prop       | Type     | Default | Description                                                             |
+| ---------- | -------- | ------- | ----------------------------------------------------------------------- |
+| `iconSize` | `string` | `"xl"`  | Size of the icons: s (12px), m (16px), l (20px), xl (24px), xxl (32px). |
 
 ## Import
 
