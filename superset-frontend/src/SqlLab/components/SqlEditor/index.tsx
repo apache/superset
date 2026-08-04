@@ -317,9 +317,15 @@ const SqlEditor: FC<Props> = ({
 
   // ID of the northPane view active for this tab, or null for the default
   // SQL editor layout.  Set by an extension via PENDING_NORTH_PANE_VIEW_KEY
-  // before calling createTab(); persisted per-tab in localStorage.
+  // before calling createTab(); persisted per-tab in localStorage. Only the
+  // active tab may consume the pending key: newly created tabs are made
+  // active via tabHistory, so gating on isActive keeps a stale key (e.g. left
+  // behind by a failed createTab()) from being picked up by an unrelated tab
+  // mounting later, such as during a page reload that restores several tabs.
   const [northPaneViewId, setNorthPaneViewId] = useState<string | null>(() => {
-    const pendingViewId = readNorthPaneStorage(PENDING_NORTH_PANE_VIEW_KEY);
+    const pendingViewId = isActive
+      ? readNorthPaneStorage(PENDING_NORTH_PANE_VIEW_KEY)
+      : null;
     if (pendingViewId) {
       writeNorthPaneStorage(PENDING_NORTH_PANE_VIEW_KEY, null);
       writeNorthPaneStorage(
