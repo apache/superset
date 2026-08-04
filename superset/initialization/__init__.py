@@ -1447,10 +1447,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                     "Semantic cache startup metric emission failed",
                     exc_info=True,
                 )
-        if (
-            state.disabled_reason
-            is SemanticCacheDisabledReason.UNSUPPORTED_COORDINATION
-        ):
             logger.warning(
                 "Semantic containment caching was requested but the configured "
                 "distributed coordination backend does not support owner-token leases; "
@@ -1460,6 +1456,15 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             state.disabled_reason
             is SemanticCacheDisabledReason.INVALID_COORDINATION_CONFIGURATION
         ):
+            try:
+                stats_logger_manager.instance.incr(
+                    "semantic_cache.containment.invalid_configuration"
+                )
+            except Exception:  # pylint: disable=broad-exception-caught
+                logger.debug(
+                    "Semantic cache startup metric emission failed",
+                    exc_info=True,
+                )
             logger.warning(
                 "Semantic containment caching was requested but its coordination "
                 "timing configuration is invalid; containment caching is disabled "

@@ -20,7 +20,11 @@ from dataclasses import replace
 from unittest.mock import MagicMock
 
 import pytest
-from superset_core.semantic_layers.types import SemanticQuery, SemanticResult
+from superset_core.semantic_layers.types import (
+    AggregationType,
+    SemanticQuery,
+    SemanticResult,
+)
 
 from superset.semantic_layers.cache_policy import ContainmentCapabilities, ReuseMode
 from superset.semantic_layers.cache_repository import (
@@ -104,6 +108,43 @@ def test_store_and_lookup_share_expiry_and_return_ranked_result() -> None:
     assert lookup_result.candidates[0].result == result
     assert set(backend.timeouts.values()) == {300}
     assert len(coordinator.keys) == 1
+
+
+def test_lookup_rejects_same_metric_id_with_different_semantics() -> None:
+    backend: _Backend = _Backend()
+    repository: SemanticCacheRepository = SemanticCacheRepository(
+        backend,
+        _Coordinator(),
+    )
+    sum_query: SemanticQuery = replace(
+        build_semantic_query(),
+        metrics=[
+            replace(
+                build_semantic_query().metrics[0],
+                aggregation=AggregationType.SUM,
+                definition="SUM(revenue)",
+            )
+        ],
+    )
+    avg_query: SemanticQuery = replace(
+        sum_query,
+        metrics=[
+            replace(
+                sum_query.metrics[0],
+                aggregation=AggregationType.AVG,
+                definition="AVG(revenue)",
+            )
+        ],
+    )
+    repository.store(build_view_meta(), avg_query, build_semantic_result())
+
+    lookup_result: SemanticCacheLookupResult = repository.lookup(
+        build_view_meta(),
+        sum_query,
+        ContainmentCapabilities(),
+    )
+
+    assert not lookup_result.candidates
 
 
 def test_coordination_failure_raises_typed_store_error() -> None:
@@ -190,6 +231,31 @@ def test_failed_coordination_removes_undiscoverable_value() -> None:
     assert not repository.lookup(
         build_view_meta(), query, ContainmentCapabilities()
     ).candidates
+
+
+def test_store_does_not_touch_deterministic_value_when_lease_is_unavailable() -> None:
+    backend: _Backend = _Backend()
+    query: SemanticQuery = build_semantic_query()
+    repository: SemanticCacheRepository = SemanticCacheRepository(
+        backend,
+        _Coordinator(),
+    )
+    repository.store(build_view_meta(), query, build_semantic_result())
+    original_values: dict[str, object] = dict(backend.values)
+    losing_repository: SemanticCacheRepository = SemanticCacheRepository(
+        backend,
+        _Coordinator(succeeds=False),
+    )
+
+    assert (
+        losing_repository.store(
+            build_view_meta(),
+            query,
+            build_semantic_result(),
+        )
+        is False
+    )
+    assert backend.values == original_values
 
 
 def test_backend_false_write_is_a_typed_store_failure() -> None:

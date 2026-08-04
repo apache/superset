@@ -35,6 +35,7 @@ from superset.semantic_layers.cache_types import (
     PatternSemantics,
     ReuseDecision,
     ReuseMode,
+    ROLLUP_COMPATIBLE_AGGREGATIONS,
 )
 
 
@@ -48,11 +49,18 @@ _ROLLUP_AGGREGATIONS: dict[AggregationType, str | Callable[[pd.Series], object]]
     AggregationType.MIN: "min",
     AggregationType.MAX: "max",
 }
+assert frozenset(_ROLLUP_AGGREGATIONS) == ROLLUP_COMPATIBLE_AGGREGATIONS
+
+
+class SemanticCacheTransformationError(RuntimeError):
+    """Cached data cannot safely satisfy an otherwise eligible query."""
 
 
 def _comparison_mask(
     series: pd.Series, operator: Operator, value: object
 ) -> pd.Series | None:
+    if value is None:
+        return pd.Series(False, index=series.index, dtype=bool)
     not_null: pd.Series = series.notna()
     comparisons: dict[Operator, Callable[[object], pd.Series]] = {
         Operator.EQUALS: series.eq,
@@ -119,7 +127,7 @@ def mask_for(
         and pattern_semantics is not None
     ):
         return _pattern_mask(series, operator, value, pattern_semantics)
-    return pd.Series(False, index=series.index, dtype=bool)
+    raise ValueError(f"Unsupported cached filter operation: {operator.value}")
 
 
 def _apply_leftovers(
@@ -184,13 +192,28 @@ def transform_result(
     capabilities: ContainmentCapabilities,
 ) -> SemanticResult:
     """Transform a proven-compatible cached result to the requested result."""
-    frame: pd.DataFrame = result.results.to_pandas()
-    frame = _apply_leftovers(frame, decision.leftover_filters, capabilities)
-    if decision.mode is ReuseMode.ROLLUP:
-        frame = _rollup(frame, query)
-    frame = _project(frame, query)
-    frame = _slice(frame, query)
-    return SemanticResult(
-        requests=result.requests,
-        results=pa.Table.from_pandas(frame, preserve_index=False),
-    )
+    try:
+        columns: list[str] = [
+            *(dimension.name for dimension in query.dimensions),
+            *(metric.name for metric in query.metrics),
+        ]
+        if decision.mode is not ReuseMode.ROLLUP and not decision.leftover_filters:
+            offset: int = query.offset or 0
+            length: int | None = query.limit
+            table: pa.Table = result.results.select(columns).slice(offset, length)
+            return SemanticResult(requests=result.requests, results=table)
+
+        frame: pd.DataFrame = result.results.to_pandas()
+        frame = _apply_leftovers(frame, decision.leftover_filters, capabilities)
+        if decision.mode is ReuseMode.ROLLUP:
+            frame = _rollup(frame, query)
+        frame = _project(frame, query)
+        frame = _slice(frame, query)
+        return SemanticResult(
+            requests=result.requests,
+            results=pa.Table.from_pandas(frame, preserve_index=False),
+        )
+    except (KeyError, TypeError, ValueError, pa.ArrowException) as ex:
+        raise SemanticCacheTransformationError(
+            "Cached semantic result is incompatible with the requested transformation"
+        ) from ex

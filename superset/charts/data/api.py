@@ -603,6 +603,15 @@ class ChartDataRestApi(ChartRestApi):
                 )
             resp = make_response(response_data, 200)
             resp.headers["Content-Type"] = "application/json; charset=utf-8"
+            semantic_cache_hits: list[bool] = [
+                query.get("semantic_cache_hit") is True for query in queries
+            ]
+            semantic_cache_status: str = "MISS"
+            if semantic_cache_hits and all(semantic_cache_hits):
+                semantic_cache_status = "HIT"
+            elif any(semantic_cache_hits):
+                semantic_cache_status = "MIXED"
+            resp.headers["X-Superset-Semantic-Cache"] = semantic_cache_status
             return resp
 
         return self.response_400(message=f"Unsupported result_format: {result_format}")

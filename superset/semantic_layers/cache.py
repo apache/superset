@@ -46,7 +46,10 @@ from superset.semantic_layers.cache_repository import (
     SemanticCacheStoreError,
     ViewMeta,
 )
-from superset.semantic_layers.cache_transform import transform_result
+from superset.semantic_layers.cache_transform import (
+    SemanticCacheTransformationError,
+    transform_result,
+)
 
 
 class SemanticCacheDisabledReason(str, enum.Enum):
@@ -203,24 +206,26 @@ class SemanticCacheService:
             except SemanticCacheLookupError:
                 self._increment("lookup_failure")
                 return SemanticCacheOutcome(provider(query), cache_hit=False)
+            for candidate in lookup_result.candidates:
+                try:
+                    transformed: SemanticResult = transform_result(
+                        candidate.result,
+                        query,
+                        candidate.decision,
+                        capabilities,
+                    )
+                except SemanticCacheTransformationError:
+                    self._increment("transform_failure")
+                    continue
+                self._increment("hit")
+                return SemanticCacheOutcome(transformed, cache_hit=True)
             try:
                 repository.prune_missing(
                     meta,
                     lookup_result.missing_value_keys,
                 )
             except SemanticCacheLookupError:
-                pass
-            for candidate in lookup_result.candidates:
-                self._increment("hit")
-                return SemanticCacheOutcome(
-                    transform_result(
-                        candidate.result,
-                        query,
-                        candidate.decision,
-                        capabilities,
-                    ),
-                    cache_hit=True,
-                )
+                self._increment("prune_failure")
             self._increment("miss")
         else:
             self._increment("bypass")

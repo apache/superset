@@ -23,13 +23,13 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import { Label } from '../Label';
 import { Tooltip } from '../Tooltip';
 import { TooltipContent } from './TooltipContent';
-import type { CacheLabelProps } from './types';
+import type { CacheLabelProps, CacheSource } from './types';
 
 export const CachedLabel: FC<CacheLabelProps> = ({
   className,
   onClick,
   cachedTimestamp,
-  semanticCacheHit,
+  cacheSource = 'result',
 }) => {
   const [hovered, setHovered] = useState(false);
 
@@ -39,7 +39,7 @@ export const CachedLabel: FC<CacheLabelProps> = ({
       title={
         <TooltipContent
           cachedTimestamp={cachedTimestamp}
-          semanticCacheHit={semanticCacheHit}
+          cacheSource={cacheSource}
         />
       }
       id="cache-desc-tooltip"
@@ -52,10 +52,10 @@ export const CachedLabel: FC<CacheLabelProps> = ({
         onMouseOut={() => setHovered(false)}
         icon={<Icons.SyncOutlined iconSize="m" />}
       >
-        {semanticCacheHit ? t('Semantic cache') : t('Cached')}
+        {cacheSource === 'semantic' ? t('Semantic cache') : t('Cached')}
       </Label>
     </Tooltip>
   );
 };
 
-export type { CacheLabelProps };
+export type { CacheLabelProps, CacheSource };

@@ -27,7 +27,6 @@ from typing import cast, Protocol
 from superset_core.semantic_layers.types import SemanticQuery, SemanticResult
 
 from superset.semantic_layers.cache_identity import (
-    semantic_dimension_key,
     SemanticCacheIdentityFactory,
     SemanticCacheProviderIdentity,
     SemanticCacheScopeIdentity,
@@ -182,13 +181,10 @@ class SemanticCacheRepository:
         """Store a TTL-bounded value and register its bounded descriptor."""
         bucket_key: str = self._bucket_key(meta)
         value_key: str = SemanticCacheIdentityFactory.value(bucket_key, query)
-        self._set(value_key, result, meta.timeout, SemanticCacheStoreError)
         descriptor: CachedEntry = CachedEntry(
             filters=frozenset(query.filters or set()),
-            dimension_keys=frozenset(
-                semantic_dimension_key(dimension) for dimension in query.dimensions
-            ),
-            metric_ids=frozenset(metric.id for metric in query.metrics),
+            dimensions=frozenset(query.dimensions),
+            metrics=frozenset(query.metrics),
             limit=query.limit,
             offset=query.offset or 0,
             order_key=SemanticCacheIdentityFactory.order(query.order),
@@ -196,10 +192,8 @@ class SemanticCacheRepository:
             value_key=value_key,
             timestamp=self._clock(),
         )
-        descriptor_registered: bool = False
 
         def register() -> None:
-            nonlocal descriptor_registered
             entries: list[CachedEntry] = self._entries(
                 self._get(bucket_key, SemanticCacheStoreError)
             )
@@ -224,15 +218,11 @@ class SemanticCacheRepository:
                 meta.timeout,
                 SemanticCacheStoreError,
             )
-            descriptor_registered = True
+            self._set(value_key, result, meta.timeout, SemanticCacheStoreError)
             for evicted_value_key in evicted_value_keys:
                 self._delete(evicted_value_key, SemanticCacheStoreError)
 
-        try:
-            return self._mutate(bucket_key, register, SemanticCacheStoreError)
-        finally:
-            if not descriptor_registered:
-                self._delete(value_key, SemanticCacheStoreError)
+        return self._mutate(bucket_key, register, SemanticCacheStoreError)
 
     def lookup(
         self,
@@ -256,6 +246,7 @@ class SemanticCacheRepository:
                 missing_value_keys.add(entry.value_key)
                 continue
             candidates.append(CachedResultCandidate(entry, value, decision))
+            break
         return SemanticCacheLookupResult(
             candidates=tuple(candidates),
             missing_value_keys=frozenset(missing_value_keys),

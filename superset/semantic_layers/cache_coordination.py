@@ -17,9 +17,11 @@
 
 """Ownership-safe coordination for semantic-cache descriptor mutations."""
 
+import logging
 import math
 from collections.abc import Callable
 from dataclasses import dataclass
+from threading import Event, Thread
 from time import monotonic, sleep
 from typing import Protocol, runtime_checkable
 from uuid import uuid4
@@ -31,6 +33,7 @@ from superset.semantic_layers.cache_repository import SemanticCacheCoordinationE
 SEMANTIC_CACHE_COORDINATION_FAILURE_METRIC: str = (
     "semantic_cache.containment.coordination_failure"
 )
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 @runtime_checkable
@@ -48,6 +51,13 @@ class OwnerTokenCoordinationBackend(Protocol):
         self,
         key: str,
         owner_token: str,
+    ) -> bool: ...  # pragma: no cover
+
+    def refresh_owner_token(
+        self,
+        key: str,
+        owner_token: str,
+        lease_seconds: int,
     ) -> bool: ...  # pragma: no cover
 
 
@@ -107,7 +117,45 @@ class SemanticCacheCoordinator:
         try:
             self._failure_metric(SEMANTIC_CACHE_COORDINATION_FAILURE_METRIC)
         except Exception:  # pylint: disable=broad-exception-caught
-            self._failure_metric = lambda _: None
+            logger.debug("Semantic cache coordination metric failed", exc_info=True)
+
+    def _run_with_renewal(
+        self,
+        lease_key: str,
+        owner_token: str,
+        operation: Callable[[], None],
+    ) -> bool:
+        renewal_stopped: Event = Event()
+        renewal_failed: Event = Event()
+
+        def renew_lease() -> None:
+            interval: float = self._settings.lease_seconds / 3
+            while not renewal_stopped.wait(interval):
+                try:
+                    refreshed: bool = self._backend.refresh_owner_token(
+                        lease_key,
+                        owner_token,
+                        self._settings.lease_seconds,
+                    )
+                except RedisError:
+                    renewal_failed.set()
+                    return
+                if not refreshed:
+                    renewal_failed.set()
+                    return
+
+        renewal_thread: Thread = Thread(
+            target=renew_lease,
+            name="semantic-cache-lease-renewal",
+            daemon=True,
+        )
+        renewal_thread.start()
+        try:
+            operation()
+        finally:
+            renewal_stopped.set()
+            renewal_thread.join()
+        return renewal_failed.is_set()
 
     def mutate(self, key: str, operation: Callable[[], None]) -> bool:
         """Acquire a bounded lease, mutate, and release only our ownership."""
@@ -132,8 +180,13 @@ class SemanticCacheCoordinator:
                 return False
             self._sleeper(min(0.05, remaining))
 
+        renewal_failed: bool
         try:
-            operation()
+            renewal_failed = self._run_with_renewal(
+                lease_key,
+                owner_token,
+                operation,
+            )
         finally:
             try:
                 released: bool = self._backend.release_owner_token(
@@ -144,4 +197,6 @@ class SemanticCacheCoordinator:
                 self._failure("Semantic cache lease release failed", ex)
             if not released:
                 self._failure("Semantic cache lease ownership was lost")
+        if renewal_failed:
+            self._failure("Semantic cache lease renewal failed")
         return True
