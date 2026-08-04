@@ -115,6 +115,24 @@ def test_cache_key_stable_regardless_of_extra_cache_keys_order():
     assert cache_key1 == cache_key2
 
 
+def test_cache_key_stable_for_mixed_type_extra_cache_keys():
+    """
+    ``extra_cache_keys`` values are typed as ``Hashable``, so a mix of
+    strings and non-strings that stringify identically (e.g. ``1`` and
+    ``"1"``) can appear together. Sorting on a bare ``str()`` value treats
+    those as equal keys, so Python's stable sort would fall back to
+    whatever order they arrived in from ``list(set(...))`` -- which is not
+    deterministic across processes. The sort key must also account for
+    type so ordering doesn't silently regress to that non-determinism.
+    """
+    query_object1 = QueryObject(row_limit=1)
+    query_object2 = QueryObject(row_limit=1)
+    mixed_values = ["CAR_IDS=1,2,3", 1, "1", None]
+    cache_key1 = query_object1.cache_key(extra_cache_keys=mixed_values)
+    cache_key2 = query_object2.cache_key(extra_cache_keys=list(reversed(mixed_values)))
+    assert cache_key1 == cache_key2
+
+
 def test_cache_key_sensitive_to_orderby_order():
     """
     Negative control for the ``extra_cache_keys`` fix above: unlike that
