@@ -753,9 +753,18 @@ const baseAggregatorTemplates = {
           },
           format: fmtNonString(formatter),
           value() {
-            const acc = data
-              .getAggregator(...Array.from(this.selector || []))
-              .inner.value();
+            // `buildGroupbyCombinations` requests the denominator's rollup
+            // level whenever a percent `showValuesAs` is selected, but fall
+            // back to `null` (rendered blank) instead of throwing if it is
+            // ever missing -- e.g. a denominator aggregator with no matching
+            // rows in the response.
+            const denominatorAggregator = data.getAggregator(
+              ...Array.from(this.selector || []),
+            );
+            if (!denominatorAggregator.inner) {
+              return null;
+            }
+            const acc = denominatorAggregator.inner.value();
 
             if (typeof acc === 'string') {
               return acc;

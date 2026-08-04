@@ -52,10 +52,12 @@ export enum MetricsLayoutEnum {
 
 /**
  * Display mode for pivot cell values: raw values, or each value expressed as
- * a fraction of its row/column/grand total. Purely a presentational transform
- * applied at render time against the already DB-correct rollup totals (see
- * `PivotData` in `react-pivottable/utilities.ts`); it does not change what
- * gets queried.
+ * a fraction of its row/column/grand total. The division itself is a
+ * presentational transform applied at render time against the already
+ * DB-correct rollup totals (see `PivotData` in
+ * `react-pivottable/utilities.ts`), but a percent mode does need its
+ * denominator level queried even if the corresponding Total/subtotal display
+ * toggle is off; see `buildGroupbyCombinations` in `plugin/utilities.ts`.
  */
 export enum ShowValuesAsEnum {
   ACTUAL = 'actual',
