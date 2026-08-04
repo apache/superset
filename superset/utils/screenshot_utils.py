@@ -22,12 +22,93 @@ import logging
 import time
 from typing import TYPE_CHECKING
 
+from celery import current_task
 from PIL import Image
 
 logger = logging.getLogger(__name__)
 
 # Time to wait after scrolling for content to settle and load (in milliseconds)
 SCROLL_SETTLE_TIMEOUT_MS = 1000
+
+# Runtime task-budget policy shared with the approach introduced in #42118.
+# Celery exposes the effective per-task hard/soft limits only on the running
+# task, so a static Superset timeout cannot reliably stay below task-level
+# overrides. Reserve at most 20% (capped at five minutes) for browser cleanup,
+# cache error transition, and the remaining report pipeline.
+SCREENSHOT_TASK_BUDGET_MARGIN_FRACTION = 0.2
+SCREENSHOT_TASK_BUDGET_MAX_MARGIN_SECONDS = 300
+
+
+def resolve_screenshot_task_budget_seconds(
+    log_context: str | None = None,
+) -> float | None:
+    """
+    Return the safe screenshot budget derived from the active Celery task.
+
+    Celery exposes ``request.timelimit`` as ``(hard, soft)``. Prefer the soft
+    limit because cleanup must finish before Celery raises it, falling back to
+    the hard limit when no soft limit is configured. Outside Celery, or when
+    the metadata is absent or malformed, return ``None`` so callers preserve
+    their configured standalone timeout.
+    """
+    context_suffix = f" [{log_context}]" if log_context else ""
+    try:
+        if not current_task:
+            return None
+        timelimit = current_task.request.timelimit
+        if not isinstance(timelimit, (tuple, list)) or len(timelimit) != 2:
+            return None
+        hard_limit, soft_limit = timelimit
+        limit = soft_limit or hard_limit
+        if isinstance(limit, bool) or not isinstance(limit, (int, float)) or limit <= 0:
+            return None
+        margin = min(
+            SCREENSHOT_TASK_BUDGET_MAX_MARGIN_SECONDS,
+            limit * SCREENSHOT_TASK_BUDGET_MARGIN_FRACTION,
+        )
+        budget = max(0.0, float(limit) - margin)
+        logger.debug(
+            "Screenshot budget derived from Celery task %s=%.1fs: %.1fs "
+            "(cleanup margin=%.1fs)%s",
+            "soft_time_limit" if soft_limit else "time_limit",
+            limit,
+            budget,
+            margin,
+            context_suffix,
+        )
+        return budget
+    except Exception:
+        logger.debug(
+            "Failed to derive screenshot budget from Celery task context; "
+            "using the configured screenshot timeout%s",
+            context_suffix,
+            exc_info=True,
+        )
+        return None
+
+
+# Fallback wall-clock budget, in seconds, for the entire tiled-screenshot
+# operation (element lookup plus all per-tile readiness/animation waits
+# combined), used when resolve_screenshot_task_budget_seconds() returns None
+# (no Celery task context -- e.g. synchronous thumbnail generation -- or no
+# usable task limit). The non-tiled readiness path treats None as "keep the
+# configured SCREENSHOT_LOAD_WAIT" because it makes exactly one bounded wait;
+# the tiled path cannot, because its per-tile waits accumulate: with N tiles,
+# an uncapped load_wait allows N * load_wait of total wall-clock time, so the
+# operation still needs one fixed total ceiling. Sized against the longest
+# Celery hard task_time_limit observed in production for report execution
+# (1740s), minus the same 300s cleanup margin the runtime derivation reserves
+# for combining tiles, building the PDF, and delivering the notification.
+TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS = 1440  # 1740s limit - 300s margin
+
+
+class ScreenshotTaskBudgetExceededError(RuntimeError):
+    """Raised when no safe task budget remains before screenshot capture."""
+
+
+class TiledScreenshotBudgetExceededError(ScreenshotTaskBudgetExceededError):
+    """Raised when the tiled-screenshot time budget runs out mid-capture."""
+
 
 try:
     from playwright.sync_api import TimeoutError as PlaywrightTimeout
@@ -40,79 +121,113 @@ if TYPE_CHECKING:
     except ImportError:
         Page = None
 
-# Selectors used to build a positive per-tile readiness check. A chart holder
-# is only "ready" once it shows a terminal state (a rendered chart or an
-# error/empty state) -- the mere absence of a `.loading` element is not
-# sufficient, since a chart holder that intersects the viewport but hasn't
-# mounted anything yet (e.g. its IntersectionObserver callback hasn't fired)
-# would otherwise pass vacuously.
-# See superset-frontend/src/dashboard/components/gridComponents/ChartHolder/
-# ChartHolder.tsx for `data-test="dashboard-component-chart-holder"`,
-# superset-frontend/src/components/Chart/Chart.tsx for `.slice_container`
-# (rendered chart container, `data-test="slice-container"`) and `.loading`
-# (spinner, via the shared Loading component), and
-# superset-frontend/packages/superset-ui-core/src/components/EmptyState for
-# `.ant-empty` (e.g. "no results"/"add required control values" states).
-#
-# For diagnostics, each unready holder is additionally classified by *why*
-# it isn't ready, distinguishing a slow query from the virtualization race:
-#   - "waiting_on_database": `.loading` present with no `.slice_container`
-#     -- Chart.tsx's `renderSpinner()` replaces the whole container while
-#     the initial query is in flight (`chartStatus === 'loading'`).
-#   - "spinner_mounted": `.loading` present *inside* `.slice_container`
-#     -- the chart's query finished, but it isn't in the virtualization
-#     viewport yet, so `renderChartContainer()` shows a bare spinner instead
-#     of the chart.
-#   - "nothing_mounted": neither `.loading` nor any ready marker present --
-#     the vacuous-pass race this check exists to close.
-_UNREADY_CHART_HOLDERS_JS_BODY = """
-    const holders = document.querySelectorAll(
-        '[data-test="dashboard-component-chart-holder"]'
-    );
+# Production dashboard builds run ``babel-plugin-jsx-remove-data-test-id``
+# under the production BABEL_ENV (including Docker builds), so readiness must
+# never depend on ``data-test`` attributes. These runtime classes are the
+# production contract shared by readiness polling and diagnostics.
+CHART_HOLDER_SELECTOR = (
+    r'.dashboard-component-chart-holder[class*="dashboard-chart-id-"]'
+)
+SLICE_CONTAINER_SELECTOR = r".slice_container"
+LOADING_SELECTOR = r".loading"
+ALERT_SELECTOR = r'[role="alert"]'
+EMPTY_SELECTOR = r".ant-empty"
+MISSING_CHART_SELECTOR = r".missing-chart-container"
+TERMINAL_MARKER_SELECTOR = (
+    f"{SLICE_CONTAINER_SELECTOR}, {ALERT_SELECTOR}, {EMPTY_SELECTOR}, "
+    f"{MISSING_CHART_SELECTOR}"
+)
+CHART_ID_CLASS_PATTERN = r"\bdashboard-chart-id-(\d+)\b"
+
+# Shared body for holder readiness and timeout diagnostics. A holder is ready
+# only after a terminal marker appears and its loading marker disappears.
+UNREADY_CHART_HOLDERS_JS_BODY = f"""
+    const holders = document.querySelectorAll('{CHART_HOLDER_SELECTOR}');
     const unready = [];
-    for (const holder of holders) {
+    for (const holder of holders) {{
         const r = holder.getBoundingClientRect();
-        if (!(r.top < window.innerHeight && r.bottom > 0)) {
+        if (!(r.top < window.innerHeight && r.bottom > 0)) {{
             continue;
-        }
+        }}
         const hasSliceContainer = holder.querySelector(
-            '[data-test="slice-container"]'
+            '{SLICE_CONTAINER_SELECTOR}'
         ) !== null;
-        const stillLoading = holder.querySelector('.loading') !== null;
-        const isReady = hasSliceContainer || holder.querySelector(
-            '[role="alert"], .ant-empty, .missing-chart-container'
-        ) !== null;
-        if (stillLoading || !isReady) {
-            const chartIdEl = holder.querySelector('[data-test-chart-id]');
+        const stillLoading = holder.querySelector('{LOADING_SELECTOR}') !== null;
+        const isReady = holder.querySelector('{TERMINAL_MARKER_SELECTOR}') !== null;
+        if (stillLoading || !isReady) {{
+            const chartIdMatch = holder.className.match(/{CHART_ID_CLASS_PATTERN}/);
+            const chartId = chartIdMatch ? chartIdMatch[1] : null;
             let state;
-            if (stillLoading && hasSliceContainer) {
+            if (stillLoading && hasSliceContainer) {{
                 state = 'spinner_mounted';
-            } else if (stillLoading) {
+            }} else if (stillLoading) {{
                 state = 'waiting_on_database';
-            } else {
+            }} else {{
                 state = 'nothing_mounted';
-            }
-            unready.push({
-                chartId: chartIdEl
-                    ? chartIdEl.getAttribute('data-test-chart-id')
-                    : 'unknown',
+            }}
+            unready.push({{
+                chartId: chartId,
                 state: state,
-            });
-        }
-    }
+            }});
+        }}
+    }}
 """
 
-# Predicate for page.wait_for_function: true once every viewport-visible chart
-# holder has reached a terminal state.
-_TILE_READY_CHECK_JS = (
-    f"() => {{ {_UNREADY_CHART_HOLDERS_JS_BODY} return unready.length === 0; }}"
+# Diagnostic query for every chart holder, including terminal and virtualized
+# states. It interpolates the same selector constants as the predicates.
+FIND_CHART_HOLDER_STATES_JS = f"""
+() => {{
+    const holders = document.querySelectorAll('{CHART_HOLDER_SELECTOR}');
+    return Array.from(holders).map(holder => {{
+        const chartIdMatch = holder.className.match(/{CHART_ID_CLASS_PATTERN}/);
+        const chartId = chartIdMatch ? chartIdMatch[1] : null;
+        const r = holder.getBoundingClientRect();
+        if (!(r.top < window.innerHeight && r.bottom > 0)) {{
+            return {{ chartId, state: 'virtualized' }};
+        }}
+        const hasSliceContainer = holder.querySelector(
+            '{SLICE_CONTAINER_SELECTOR}'
+        ) !== null;
+        const stillLoading = holder.querySelector('{LOADING_SELECTOR}') !== null;
+        if (stillLoading && hasSliceContainer) {{
+            return {{ chartId, state: 'spinner_mounted' }};
+        }}
+        if (stillLoading) {{
+            return {{ chartId, state: 'waiting_on_database' }};
+        }}
+        if (holder.querySelector('{ALERT_SELECTOR}') !== null) {{
+            return {{ chartId, state: 'error' }};
+        }}
+        if (holder.querySelector(
+            '{EMPTY_SELECTOR}, {MISSING_CHART_SELECTOR}'
+        ) !== null) {{
+            return {{ chartId, state: 'empty' }};
+        }}
+        if (hasSliceContainer) {{
+            return {{ chartId, state: 'rendered' }};
+        }}
+        return {{ chartId, state: 'nothing_mounted' }};
+    }});
+}}
+"""
+
+CHART_HOLDERS_READY_JS = (
+    f"() => {{ {UNREADY_CHART_HOLDERS_JS_BODY} return unready.length === 0; }}"
+)
+FIND_UNREADY_CHART_HOLDERS_JS = (
+    f"() => {{ {UNREADY_CHART_HOLDERS_JS_BODY} return unready; }}"
 )
 
-# Diagnostic query for page.evaluate: chart id + state of holders still not
-# ready, used to build the timeout log message.
-_FIND_UNREADY_CHART_HOLDERS_JS = (
-    f"() => {{ {_UNREADY_CHART_HOLDERS_JS_BODY} return unready; }}"
-)
+# A chart capture has one target rather than dashboard holders, but needs the
+# same positive terminal-state guarantee and loading exclusion.
+CHART_CONTAINER_READY_JS = f"""
+() => {{
+    const chart = document.querySelector('.chart-container');
+    return chart !== null
+        && chart.querySelector('{LOADING_SELECTOR}') === null
+        && chart.querySelector('{TERMINAL_MARKER_SELECTOR}') !== null;
+}}
+"""
 
 
 def combine_screenshot_tiles(screenshot_tiles: list[bytes]) -> bytes:
@@ -159,7 +274,7 @@ def combine_screenshot_tiles(screenshot_tiles: list[bytes]) -> bytes:
         return screenshot_tiles[0]
 
 
-def take_tiled_screenshot(
+def take_tiled_screenshot(  # noqa: C901
     page: "Page",
     element_name: str,
     tile_height: int,
@@ -182,6 +297,12 @@ def take_tiled_screenshot(
 
     Returns:
         Combined screenshot bytes or None if failed
+
+    Raises:
+        TiledScreenshotBudgetExceededError: If the total time budget for the
+            tiled-screenshot operation runs out before every tile has been
+            verifiably captured. Callers must treat this as a hard failure
+            rather than fall back to an unchecked/partial screenshot.
     """
     context_suffix = f" [{log_context}]" if log_context else ""
     # Set right before re-raising the per-tile readiness timeout below, and
@@ -194,6 +315,15 @@ def take_tiled_screenshot(
     # match `except PlaywrightTimeout` and incorrectly propagate instead of
     # degrading to `None` like every other unexpected error in this function.
     readiness_timeout = False
+    # Cap the whole tiled operation against the running Celery task's own
+    # time limit, using the same runtime derivation as the non-tiled
+    # readiness wait (#42253/#42427). Unlike that path, a None budget does
+    # not mean "keep the configured timeout": per-tile waits accumulate, so
+    # the operation falls back to a fixed total ceiling instead.
+    wait_budget_seconds = resolve_screenshot_task_budget_seconds(log_context)
+    if wait_budget_seconds is None:
+        wait_budget_seconds = float(TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS)
+    start_time = time.monotonic()
     try:
         # Get the target element
         element = page.locator(f".{element_name}")
@@ -228,9 +358,44 @@ def take_tiled_screenshot(
         num_tiles = max(1, (dashboard_height + tile_height - 1) // tile_height)
         logger.info("Taking %s screenshot tiles", num_tiles)
 
-        screenshot_tiles = []
+        screenshot_tiles: list[bytes] = []
+
+        def _raise_if_budget_exhausted(elapsed: float, remaining_budget: float) -> None:
+            if remaining_budget > 0:
+                return
+            # A customer-side chart-loading issue (a slow/hung dashboard),
+            # not a Superset system fault, so this is a WARNING rather
+            # than an ERROR -- consistent with #38130/#38441, which
+            # deliberately downgraded screenshot timeout logs the same way.
+            logger.warning(
+                "Tiled screenshot time budget exhausted on tile %s/%s: "
+                "%s/%s tiles captured so far, %.1fs elapsed of a %.1fs "
+                "budget. Aborting instead of capturing remaining tiles "
+                "unchecked.%s",
+                i + 1,
+                num_tiles,
+                len(screenshot_tiles),
+                num_tiles,
+                elapsed,
+                wait_budget_seconds,
+                context_suffix,
+            )
+            raise TiledScreenshotBudgetExceededError(
+                f"Tiled screenshot budget of "
+                f"{wait_budget_seconds:.1f}s exhausted "
+                f"after {len(screenshot_tiles)}/{num_tiles} tiles"
+            )
 
         for i in range(num_tiles):
+            # Check the time budget before starting this tile's readiness wait.
+            # If it's already exhausted, we can no longer verify this (or any
+            # later) tile is actually ready to capture -- fail loudly instead
+            # of silently snapshotting a spinner or blank chart, or running
+            # past the Celery task time limit and getting SIGKILLed.
+            elapsed = time.monotonic() - start_time
+            remaining_budget = wait_budget_seconds - elapsed
+            _raise_if_budget_exhausted(elapsed, remaining_budget)
+
             # Calculate scroll position to show this tile's content
             scroll_y = dashboard_top + (i * tile_height)
 
@@ -240,21 +405,35 @@ def take_tiled_screenshot(
             )
             # Wait for scroll to settle and content to load
             page.wait_for_timeout(SCROLL_SETTLE_TIMEOUT_MS)
+
+            # Recompute the remaining budget after the scroll-settle sleep --
+            # which itself consumes real wall-clock time -- rather than
+            # reusing the value from before it, so the readiness-check
+            # timeout below is capped against a fresh number instead of a
+            # stale one that would let each tile overrun the budget by up
+            # to one settle interval.
+            tile_wait_start = time.monotonic()
+            elapsed = tile_wait_start - start_time
+            remaining_budget = wait_budget_seconds - elapsed
+            _raise_if_budget_exhausted(elapsed, remaining_budget)
+
             # Wait for every chart holder visible in the current viewport to reach
-            # a terminal state (rendered chart or error/empty state). Only check
+            # a terminal state (rendered chart or error/empty state), capped at
+            # whatever remains of the total time budget so a slow dashboard
+            # degrades gracefully instead of exceeding it. Only check
             # viewport-visible chart holders to avoid blocking on virtualization
             # placeholders rendered for off-screen charts. A holder that hasn't
             # mounted anything yet does not satisfy this check -- unlike checking
             # for the absence of `.loading`, which passes vacuously in that case.
-            tile_wait_start = time.monotonic()
+            tile_load_wait = min(load_wait, remaining_budget)
             try:
                 page.wait_for_function(
-                    _TILE_READY_CHECK_JS,
-                    timeout=load_wait * 1000,
+                    CHART_HOLDERS_READY_JS,
+                    timeout=tile_load_wait * 1000,
                 )
             except PlaywrightTimeout:
                 elapsed = time.monotonic() - tile_wait_start
-                unready_chart_holders = page.evaluate(_FIND_UNREADY_CHART_HOLDERS_JS)
+                unready_chart_holders = page.evaluate(FIND_UNREADY_CHART_HOLDERS_JS)
                 # A chart failing to load in time is a customer chart-loading
                 # issue (slow query, error state, etc.), not a Superset system
                 # fault, so this stays at WARNING -- the report still fails
@@ -262,14 +441,21 @@ def take_tiled_screenshot(
                 # made the same call for the other screenshot timeout paths.
                 logger.warning(
                     "Timed out after %.2fs waiting for %s chart container(s) to "
-                    "become ready on tile %s/%s (load_wait=%ss)%s; unready chart "
-                    "holders (chart id, state): %s. Aborting tiled screenshot "
-                    "rather than capturing a blank or partially-loaded tile.",
+                    "become ready on tile %s/%s (waited %.1fs of a %ss requested "
+                    "load_wait; %.1fs elapsed of a %.1fs total budget; %s/%s "
+                    "tiles captured so far)%s; unready chart holders (chart id, "
+                    "state): %s. Aborting tiled screenshot rather than capturing "
+                    "a blank or partially-loaded tile.",
                     elapsed,
                     len(unready_chart_holders),
                     i + 1,
                     num_tiles,
+                    tile_load_wait,
                     load_wait,
+                    time.monotonic() - start_time,
+                    wait_budget_seconds,
+                    len(screenshot_tiles),
+                    num_tiles,
                     context_suffix,
                     unready_chart_holders,
                 )
@@ -285,12 +471,36 @@ def take_tiled_screenshot(
                     load_wait,
                     context_suffix,
                 )
+            readiness_wait_elapsed = time.monotonic() - tile_wait_start
 
             # Wait for chart animations (e.g. ECharts) to finish after spinner clears.
             # The global animation wait before tiling only covers the first tile;
-            # subsequent tiles need their own wait after data loads.
+            # subsequent tiles need their own wait after data loads. Capped at
+            # whatever remains of the budget; unlike the readiness wait above this
+            # is cosmetic settling, not a readiness check, so we simply skip it
+            # (rather than raise) once the budget runs out.
+            animation_wait_elapsed = 0.0
             if animation_wait > 0:
-                page.wait_for_timeout(animation_wait * 1000)
+                elapsed = time.monotonic() - start_time
+                remaining_budget = wait_budget_seconds - elapsed
+                tile_animation_wait = max(0, min(animation_wait, remaining_budget))
+                if tile_animation_wait > 0:
+                    animation_wait_start = time.monotonic()
+                    page.wait_for_timeout(tile_animation_wait * 1000)
+                    animation_wait_elapsed = time.monotonic() - animation_wait_start
+
+            # Per-tile timing breakdown so slow dashboards can be profiled from
+            # logs alone. DEBUG rather than INFO: this fires once per tile, and
+            # large dashboards can have dozens of tiles per report run.
+            logger.debug(
+                "Tile %s/%s timing: %.2fs waiting for chart readiness, "
+                "%.2fs waiting for animations.%s",
+                i + 1,
+                num_tiles,
+                readiness_wait_elapsed,
+                animation_wait_elapsed,
+                context_suffix,
+            )
 
             # Calculate what portion of the element we want to capture for this tile
             tile_start_in_element = i * tile_height
@@ -339,6 +549,12 @@ def take_tiled_screenshot(
 
         return combined_screenshot
 
+    except TiledScreenshotBudgetExceededError:
+        # Budget exhaustion must fail cleanly, not be swallowed into the
+        # generic `return None` degradation below -- the raise carries the
+        # budget diagnostics to the caller, which fails the capture loudly
+        # (#42273) instead of receiving an anonymous empty result.
+        raise
     except Exception as e:
         if readiness_timeout:
             # Let the per-tile readiness timeout propagate so the caller

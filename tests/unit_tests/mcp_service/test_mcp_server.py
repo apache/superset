@@ -151,6 +151,24 @@ def test_suppress_third_party_warnings():
     ]
     assert len(google_filters) >= 1, "Expected google FutureWarning filter"
 
+    # Verify pkg_resources UserWarning filter is installed, scoped to
+    # sqlalchemy_redshift (sqlalchemy-redshift triggers this via a late
+    # import on Redshift-backed connections; see
+    # superset/db_engine_specs/redshift.py for the full rationale). Scoping
+    # by category+module keeps this from also swallowing the same
+    # deprecation message from unrelated dependencies.
+    pkg_resources_filters = [
+        f
+        for f in warnings.filters
+        if f[0] == "ignore"
+        and f[2] is UserWarning
+        and isinstance(f[1], re.Pattern)
+        and f[1].pattern == r"pkg_resources is deprecated as an API"
+        and isinstance(f[3], re.Pattern)
+        and f[3].pattern == r"sqlalchemy_redshift(?:\..*)?"
+    ]
+    assert len(pkg_resources_filters) >= 1, "Expected pkg_resources warning filter"
+
 
 def test_create_event_store_returns_none_when_redis_store_fails():
     """EventStore returns None when Redis store creation fails."""

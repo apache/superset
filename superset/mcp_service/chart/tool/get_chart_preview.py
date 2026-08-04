@@ -1262,7 +1262,9 @@ async def _get_chart_preview_internal(  # noqa: C901
         from superset.mcp_service import guest_scope
 
         if getattr(chart, "id", None) is not None and not guest_scope.is_guest_read():
-            validation_result = validate_chart_dataset(chart, check_access=True)
+            validation_result = validate_chart_dataset(
+                chart.datasource_id, check_access=True
+            )
             if not validation_result.is_valid:
                 await ctx.warning(
                     "Chart found but dataset is not accessible: %s"

@@ -18,6 +18,7 @@ from typing import Any
 from unittest import mock
 
 import pytest
+from celery.exceptions import SoftTimeLimitExceeded
 from flask_babel import lazy_gettext as _
 
 from superset.commands.chart.exceptions import ChartDataQueryFailedError
@@ -60,6 +61,62 @@ def test_load_chart_data_into_cache_with_error(
 
     mock_async_query_manager.update_job.assert_called_once_with(
         job_metadata, "error", errors=expected_errors
+    )
+
+
+@mock.patch("superset.tasks.async_queries.security_manager")
+@mock.patch("superset.tasks.async_queries.async_query_manager")
+@mock.patch("superset.tasks.async_queries.ChartDataQueryContextSchema")
+def test_load_chart_data_into_cache_cancelled_emits_no_event(
+    mock_query_context_schema_cls, mock_async_query_manager, mock_security_manager
+):
+    """A revoke leaves the terminal event to the cancel request that sent it."""
+    from superset.tasks.async_queries import load_chart_data_into_cache
+
+    job_metadata = {"user_id": 1, "job_id": "job-1"}
+    form_data: dict[str, Any] = {}
+
+    mock_security_manager.get_user_by_id.return_value = mock.MagicMock()
+    # Sync Mock: is_job_cancelled is a plain method, but patching the manager
+    # yields an AsyncMock whose calls would otherwise return truthy coroutines.
+    mock_async_query_manager.is_job_cancelled = mock.Mock(return_value=True)
+    mock_query_context_schema_cls.return_value.load.side_effect = (
+        SoftTimeLimitExceeded()
+    )
+
+    with pytest.raises(SoftTimeLimitExceeded):
+        load_chart_data_into_cache(job_metadata, form_data)
+
+    mock_async_query_manager.is_job_cancelled.assert_called_once_with("job-1")
+    mock_async_query_manager.update_job.assert_not_called()
+
+
+@mock.patch("superset.tasks.async_queries.security_manager")
+@mock.patch("superset.tasks.async_queries.async_query_manager")
+@mock.patch("superset.tasks.async_queries.ChartDataQueryContextSchema")
+def test_load_chart_data_into_cache_timeout_emits_error(
+    mock_query_context_schema_cls, mock_async_query_manager, mock_security_manager
+):
+    """A genuine timeout reports an error, or the client waits forever."""
+    from superset.tasks.async_queries import load_chart_data_into_cache
+
+    job_metadata = {"user_id": 1, "job_id": "job-1"}
+    form_data: dict[str, Any] = {}
+
+    mock_security_manager.get_user_by_id.return_value = mock.MagicMock()
+    mock_async_query_manager.STATUS_ERROR = "error"
+    mock_async_query_manager.is_job_cancelled = mock.Mock(return_value=False)
+    mock_query_context_schema_cls.return_value.load.side_effect = (
+        SoftTimeLimitExceeded()
+    )
+
+    with pytest.raises(SoftTimeLimitExceeded):
+        load_chart_data_into_cache(job_metadata, form_data)
+
+    mock_async_query_manager.update_job.assert_called_once_with(
+        job_metadata,
+        "error",
+        errors=[{"message": "A timeout occurred while loading chart data"}],
     )
 
 
@@ -373,3 +430,71 @@ def test_load_explore_json_into_cache_falls_back_to_string_for_generic_exception
 
     errors = mock_async_query_manager.update_job.call_args[1]["errors"]
     assert errors == ["boom"]
+
+
+@mock.patch("superset.tasks.async_queries.security_manager")
+@mock.patch("superset.tasks.async_queries.async_query_manager")
+@mock.patch("superset.tasks.async_queries.get_viz")
+@mock.patch("superset.tasks.async_queries.get_datasource_info")
+def test_load_explore_json_into_cache_cancelled_emits_no_event(
+    mock_get_datasource_info,
+    mock_get_viz,
+    mock_async_query_manager,
+    mock_security_manager,
+):
+    """A revoke leaves the terminal event to the cancel request that sent it."""
+    from superset.tasks.async_queries import load_explore_json_into_cache
+
+    job_metadata = {"user_id": 1, "job_id": "job-1"}
+    form_data: dict = {}
+
+    mock_get_datasource_info.return_value = (1, "table")
+    mock_security_manager.get_user_by_id.return_value = mock.MagicMock()
+    # Sync Mock: is_job_cancelled is a plain method, but patching the manager
+    # yields an AsyncMock whose calls would otherwise return truthy coroutines.
+    mock_async_query_manager.is_job_cancelled = mock.Mock(return_value=True)
+
+    viz_obj = mock.MagicMock()
+    viz_obj.get_payload.side_effect = SoftTimeLimitExceeded()
+    mock_get_viz.return_value = viz_obj
+
+    with pytest.raises(SoftTimeLimitExceeded):
+        load_explore_json_into_cache(job_metadata, form_data)
+
+    mock_async_query_manager.is_job_cancelled.assert_called_once_with("job-1")
+    mock_async_query_manager.update_job.assert_not_called()
+
+
+@mock.patch("superset.tasks.async_queries.security_manager")
+@mock.patch("superset.tasks.async_queries.async_query_manager")
+@mock.patch("superset.tasks.async_queries.get_viz")
+@mock.patch("superset.tasks.async_queries.get_datasource_info")
+def test_load_explore_json_into_cache_timeout_emits_error(
+    mock_get_datasource_info,
+    mock_get_viz,
+    mock_async_query_manager,
+    mock_security_manager,
+):
+    """A genuine timeout reports an error, or the client waits forever."""
+    from superset.tasks.async_queries import load_explore_json_into_cache
+
+    job_metadata = {"user_id": 1, "job_id": "job-1"}
+    form_data: dict = {}
+
+    mock_get_datasource_info.return_value = (1, "table")
+    mock_security_manager.get_user_by_id.return_value = mock.MagicMock()
+    mock_async_query_manager.STATUS_ERROR = "error"
+    mock_async_query_manager.is_job_cancelled = mock.Mock(return_value=False)
+
+    viz_obj = mock.MagicMock()
+    viz_obj.get_payload.side_effect = SoftTimeLimitExceeded()
+    mock_get_viz.return_value = viz_obj
+
+    with pytest.raises(SoftTimeLimitExceeded):
+        load_explore_json_into_cache(job_metadata, form_data)
+
+    mock_async_query_manager.update_job.assert_called_once_with(
+        job_metadata,
+        "error",
+        errors=[{"message": "A timeout occurred while loading explore json"}],
+    )

@@ -21,8 +21,8 @@
  * MINIMAL ESLint flat config - ONLY for rules OXC doesn't support.
  *
  * This config is run alongside the OXC (oxlint) linter, which handles the
- * bulk of linting. ESLint here only covers the custom Superset plugins and
- * Prettier formatting that oxlint cannot express. It is consumed by
+ * bulk of linting. ESLint here only covers the custom Superset plugins that
+ * oxlint cannot express. It is consumed by
  * `scripts/oxlint-metrics-uploader.js` (`npm run lint-stats`).
  *
  * Migrated from the legacy `.eslintrc.minimal.js` (eslintrc) format to flat
@@ -30,7 +30,6 @@
  *
  * Only covers:
  * - Custom Superset plugins (theme-colors, icons, i18n-strings)
- * - Prettier formatting
  */
 
 // Register the TypeScript require hook so ESLint can load the .ts plugin files
@@ -38,7 +37,6 @@
 require('tsx/cjs');
 
 const tsParser = require('@typescript-eslint/parser');
-const prettierPlugin = require('eslint-plugin-prettier');
 const themeColorsPlugin = require('eslint-plugin-theme-colors');
 const iconsPlugin = require('eslint-plugin-icons');
 const i18nStringsPlugin = require('eslint-plugin-i18n-strings');
@@ -87,15 +85,11 @@ module.exports = [
       reportUnusedDisableDirectives: false,
     },
     plugins: {
-      prettier: prettierPlugin,
       'theme-colors': themeColorsPlugin,
       icons: iconsPlugin,
       'i18n-strings': i18nStringsPlugin,
     },
     rules: {
-      // Prettier integration (formatting)
-      'prettier/prettier': 'error',
-
       // Custom Superset plugins
       'theme-colors/no-literal-colors': 'error',
       'icons/no-fa-icons-usage': 'error',

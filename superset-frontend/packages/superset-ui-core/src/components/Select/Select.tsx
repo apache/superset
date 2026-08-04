@@ -332,7 +332,12 @@ const Select = forwardRef(
           const isDisabled = option.disabled;
           const isNew = option.isNewOption;
 
+          // Mirror handleSelectAll, which skips falsy-valued options (e.g. the
+          // <NULL> option whose value is null): they are not bulk-selectable,
+          // so counting them here makes the "Select all" badge overstate what
+          // gets selected.
           if (
+            option.value &&
             (!isDisabled || isSelected) &&
             ((isNew && isSelected) || !isNew)
           ) {
@@ -912,7 +917,7 @@ const Select = forwardRef(
           getPopupContainer={
             getPopupContainer ||
             ((triggerNode: HTMLElement) =>
-              (triggerNode?.closest('.ant-modal-content') as HTMLElement) ||
+              (triggerNode?.closest('.ant-modal-container') as HTMLElement) ||
               (triggerNode.parentNode as HTMLElement))
           }
           headerPosition={headerPosition}

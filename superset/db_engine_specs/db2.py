@@ -125,23 +125,17 @@ class Db2EngineSpec(BaseEngineSpec):
         """
         Get comment of table from a given schema
 
-        Ibm Db2 return comments as tuples, so we need to get the first element
-
         :param inspector: SqlAlchemy Inspector instance
         :param table: Table instance
         :return: comment of table
         """
-        comment = None
         try:
             table_comment = inspector.get_table_comment(table.table, table.schema)
-            comment = table_comment.get("text")
-            return comment[0]
-        except IndexError:
-            return comment
+            return table_comment.get("text")
         except Exception as ex:  # pylint: disable=broad-except
             logger.error("Unexpected error while fetching table comment", exc_info=True)
             logger.exception(ex)
-            return comment
+            return None
 
     @classmethod
     def get_prequeries(
