@@ -17,41 +17,51 @@
  * under the License.
  */
 import React, { useMemo, useState, useEffect, useRef } from "react";
-import { t } from "@apache-superset/core/translation";
-import { styled } from "@apache-superset/core/theme";
-import { SupersetTheme } from "@superset-ui/core";
-import Select from "src/components/Select";
+import { t, styled } from "@superset-ui/core";
 
 const Container = styled.div`
-  margin-bottom: ${({ theme }: { theme: SupersetTheme }) => (theme.gridUnit || 4) * 4}px;
-  padding: ${({ theme }: { theme: SupersetTheme }) => (theme.gridUnit || 4) * 4}px;
-  background-color: ${({ theme }: { theme: SupersetTheme }) =>
-    theme.colors?.grayscale?.light4 || "#f6f6f6"};
-  border-radius: ${({ theme }: { theme: SupersetTheme }) => theme.borderRadius || 4}px;
+  margin-bottom: ${({ theme }) => ((theme as any).gridUnit || 4) * 4}px;
+  padding: ${({ theme }) => ((theme as any).gridUnit || 4) * 4}px;
+  background-color: ${({ theme }) => (theme as any).colors?.grayscale?.light4 || "#f6f6f6"};
+  border-radius: ${({ theme }) => (theme as any).borderRadius || 4}px;
 `;
 
 const HeaderRow = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: ${({ theme }: { theme: SupersetTheme }) => (theme.gridUnit || 4) * 4}px;
+  margin-bottom: ${({ theme }) => ((theme as any).gridUnit || 4) * 4}px;
 `;
 
 const Row = styled.div`
   display: flex;
   align-items: center;
-  margin-bottom: ${({ theme }: { theme: SupersetTheme }) => (theme.gridUnit || 4) * 2}px;
-  gap: ${({ theme }: { theme: SupersetTheme }) => (theme.gridUnit || 4) * 4}px;
+  margin-bottom: ${({ theme }) => ((theme as any).gridUnit || 4) * 2}px;
+  gap: ${({ theme }) => ((theme as any).gridUnit || 4) * 4}px;
 `;
 
 const SelectContainer = styled.div`
   flex: 1;
 `;
 
+const StyledInput = styled.input`
+  width: 100%;
+  height: 32px;
+  padding: 4px 11px;
+  border: 1px solid
+    ${({ theme }) => (theme as any).colors?.grayscale?.light2 || "#e0e0e0"};
+  border-radius: ${({ theme }) => (theme as any).borderRadius || 4}px;
+  color: ${({ theme }) => (theme as any).colors?.grayscale?.dark1 || "#333333"};
+  outline: none;
+  &:focus {
+    border-color: ${({ theme }) => (theme as any).colors?.primary?.base || "#20a7c9"};
+  }
+`;
+
 const ColorContainer = styled.div`
   display: flex;
   align-items: center;
-  gap: ${({ theme }: { theme: SupersetTheme }) => theme.gridUnit || 4}px;
+  gap: ${({ theme }) => (theme as any).gridUnit || 4}px;
 `;
 
 const StyledColorInput = styled.input`
@@ -60,8 +70,8 @@ const StyledColorInput = styled.input`
   width: 40px;
   padding: 0;
   border: 1px solid
-    ${({ theme }: { theme: SupersetTheme }) => theme.colors?.grayscale?.light2 || "#e0e0e0"};
-  border-radius: ${({ theme }: { theme: SupersetTheme }) => theme.borderRadius || 4}px;
+    ${({ theme }) => (theme as any).colors?.grayscale?.light2 || "#e0e0e0"};
+  border-radius: ${({ theme }) => (theme as any).borderRadius || 4}px;
   outline: none;
   background: none;
 
@@ -77,23 +87,23 @@ const StyledColorInput = styled.input`
 const ActionButton = styled.button`
   background: transparent;
   border: none;
-  color: ${({ theme }: { theme: SupersetTheme }) => theme.colors?.grayscale?.base || "#666666"};
+  color: ${({ theme }) => (theme as any).colors?.grayscale?.base || "#666666"};
   cursor: pointer;
   padding: 0;
   font-size: 16px;
   transition: color 0.2s;
 
   &:hover {
-    color: ${({ theme }: { theme: SupersetTheme }) => theme.colors?.error?.base || "#e04355"};
+    color: ${({ theme }) => (theme as any).colors?.error?.base || "#e04355"};
   }
 `;
 
 const AddMoreLink = styled.div`
-  color: ${({ theme }: { theme: SupersetTheme }) => theme.colors?.primary?.dark1 || "#1a85a0"};
+  color: ${({ theme }) => (theme as any).colors?.primary?.dark1 || "#1a85a0"};
   font-size: 14px;
   font-weight: bold;
   cursor: pointer;
-  margin-top: ${({ theme }: { theme: SupersetTheme }) => (theme.gridUnit || 4) * 2}px;
+  margin-top: ${({ theme }) => ((theme as any).gridUnit || 4) * 2}px;
   display: inline-block;
 
   &:hover {
@@ -135,15 +145,13 @@ const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
     }
   }, [jsonMetadata]);
 
-  const labelColors = useMemo(
-    () =>
-      metadataObj.label_colors &&
+  const labelColors = useMemo(() => 
+    metadataObj.label_colors &&
       typeof metadataObj.label_colors === "object" &&
       !Array.isArray(metadataObj.label_colors)
-        ? (metadataObj.label_colors as Record<string, string>)
-        : {},
-    [metadataObj],
-  );
+      ? (metadataObj.label_colors as Record<string, string>)
+      : {}
+  , [metadataObj]);
 
   const [rows, setRows] = useState<ColorMapping[]>([]);
   const lastSyncMetadata = useRef<string>(jsonMetadata);
@@ -209,18 +217,18 @@ const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
       <HeaderRow>
         <div>
           <h4
-            css={(theme: SupersetTheme) => ({
-              marginBottom: theme.gridUnit || 4,
+            css={(theme) => ({
+              marginBottom: (theme as any).gridUnit || 4,
               marginTop: 0,
             })}
           >
             {t("Label Colors")}
           </h4>
           <p
-            css={(theme: SupersetTheme) => ({
+            css={(theme) => ({
               margin: 0,
               fontSize: 12,
-              color: theme.colors?.grayscale?.base || "#666666",
+              color: (theme as any).colors?.grayscale?.base || "#666666",
             })}
           >
             {t(
@@ -232,9 +240,9 @@ const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
 
       {rows.length === 0 && (
         <p
-          css={(theme: SupersetTheme) => ({
+          css={(theme) => ({
             fontStyle: "italic",
-            color: theme.colors?.grayscale?.light1 || "#B2B2B2",
+            color: (theme as any).colors?.grayscale?.light1 || "#B2B2B2",
           })}
         >
           {t('No color mappings defined. Click "+ Add more" to get started.')}
@@ -253,22 +261,19 @@ const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
         return (
           <Row key={row.id}>
             <SelectContainer>
-              <Select
-                ariaLabel={t("Series label")}
-                allowNewOptions
-                options={availableOptions}
-                value={
-                  row.label ? { label: row.label, value: row.label } : undefined
+              <StyledInput
+                list={`label-options-${row.id}`}
+                value={row.label}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  handleUpdateRow(row.id, e.target.value, row.color)
                 }
-                onChange={(selected: any) => {
-                  const val =
-                    typeof selected === "string"
-                      ? selected
-                      : selected?.value || "";
-                  handleUpdateRow(row.id, val, row.color);
-                }}
                 placeholder={t("Select or type a label")}
               />
+              <datalist id={`label-options-${row.id}`}>
+                {availableOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value} />
+                ))}
+              </datalist>
             </SelectContainer>
 
             <ColorContainer>
