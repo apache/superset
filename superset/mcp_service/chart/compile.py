@@ -290,8 +290,14 @@ def _validate_adhoc_filter_columns(
 
 def _is_inert_adhoc_filter(filter_: dict[str, Any]) -> bool:
     """Whether a saved filter is Superset's non-filtering placeholder."""
+    operator = filter_.get("operator", filter_.get("op"))
     comparator = filter_.get("comparator", filter_.get("val"))
-    return isinstance(comparator, str) and comparator.casefold() == "no filter"
+    return (
+        isinstance(operator, str)
+        and operator.casefold() == "temporal_range"
+        and isinstance(comparator, str)
+        and comparator.casefold() == "no filter"
+    )
 
 
 def _active_adhoc_filters(filters: list[Any]) -> list[dict[str, Any]]:
