@@ -16,31 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { t } from '@apache-superset/core/translation';
-import { styled } from '@apache-superset/core/theme';
-import Select from 'src/components/Select/Select';
+import React, { useMemo, useState, useEffect, useRef } from "react";
+import { t } from "@apache-superset/core/translation";
+import { styled } from "@apache-superset/core/theme";
+import { SupersetTheme } from "@superset-ui/core";
+import Select from "src/components/Select";
 
 const Container = styled.div`
-  margin-bottom: ${({ theme }) => (theme?.gridUnit || 4) * 4}px;
-  padding: ${({ theme }) => (theme?.gridUnit || 4) * 4}px;
-  background-color: ${({ theme }) =>
-    theme?.colors?.grayscale?.light4 || '#f6f6f6'};
-  border-radius: ${({ theme }) => theme?.borderRadius || 4}px;
+  margin-bottom: ${({ theme }: { theme: SupersetTheme }) => (theme.gridUnit || 4) * 4}px;
+  padding: ${({ theme }: { theme: SupersetTheme }) => (theme.gridUnit || 4) * 4}px;
+  background-color: ${({ theme }: { theme: SupersetTheme }) =>
+    theme.colors?.grayscale?.light4 || "#f6f6f6"};
+  border-radius: ${({ theme }: { theme: SupersetTheme }) => theme.borderRadius || 4}px;
 `;
 
 const HeaderRow = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: ${({ theme }) => (theme?.gridUnit || 4) * 4}px;
+  margin-bottom: ${({ theme }: { theme: SupersetTheme }) => (theme.gridUnit || 4) * 4}px;
 `;
 
 const Row = styled.div`
   display: flex;
   align-items: center;
-  margin-bottom: ${({ theme }) => (theme?.gridUnit || 4) * 2}px;
-  gap: ${({ theme }) => (theme?.gridUnit || 4) * 4}px;
+  margin-bottom: ${({ theme }: { theme: SupersetTheme }) => (theme.gridUnit || 4) * 2}px;
+  gap: ${({ theme }: { theme: SupersetTheme }) => (theme.gridUnit || 4) * 4}px;
 `;
 
 const SelectContainer = styled.div`
@@ -50,7 +51,7 @@ const SelectContainer = styled.div`
 const ColorContainer = styled.div`
   display: flex;
   align-items: center;
-  gap: ${({ theme }) => theme?.gridUnit || 4}px;
+  gap: ${({ theme }: { theme: SupersetTheme }) => theme.gridUnit || 4}px;
 `;
 
 const StyledColorInput = styled.input`
@@ -59,8 +60,8 @@ const StyledColorInput = styled.input`
   width: 40px;
   padding: 0;
   border: 1px solid
-    ${({ theme }) => theme?.colors?.grayscale?.light2 || '#e0e0e0'};
-  border-radius: ${({ theme }) => theme?.borderRadius || 4}px;
+    ${({ theme }: { theme: SupersetTheme }) => theme.colors?.grayscale?.light2 || "#e0e0e0"};
+  border-radius: ${({ theme }: { theme: SupersetTheme }) => theme.borderRadius || 4}px;
   outline: none;
   background: none;
 
@@ -76,23 +77,23 @@ const StyledColorInput = styled.input`
 const ActionButton = styled.button`
   background: transparent;
   border: none;
-  color: ${({ theme }) => theme?.colors?.grayscale?.base || '#666666'};
+  color: ${({ theme }: { theme: SupersetTheme }) => theme.colors?.grayscale?.base || "#666666"};
   cursor: pointer;
   padding: 0;
   font-size: 16px;
   transition: color 0.2s;
 
   &:hover {
-    color: ${({ theme }) => theme?.colors?.error?.base || '#e04355'};
+    color: ${({ theme }: { theme: SupersetTheme }) => theme.colors?.error?.base || "#e04355"};
   }
 `;
 
 const AddMoreLink = styled.div`
-  color: ${({ theme }) => theme?.colors?.primary?.dark1 || '#1a85a0'};
+  color: ${({ theme }: { theme: SupersetTheme }) => theme.colors?.primary?.dark1 || "#1a85a0"};
   font-size: 14px;
   font-weight: bold;
   cursor: pointer;
-  margin-top: ${({ theme }) => (theme?.gridUnit || 4) * 2}px;
+  margin-top: ${({ theme }: { theme: SupersetTheme }) => (theme.gridUnit || 4) * 2}px;
   display: inline-block;
 
   &:hover {
@@ -111,7 +112,7 @@ interface ColorMapping {
   color: string;
 }
 
-const DEFAULT_NEW_COLOR = '#000000';
+const DEFAULT_NEW_COLOR = "#000000";
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
 const isValidHex = (color: string) => /^#[0-9A-Fa-f]{6}$/i.test(color);
@@ -123,7 +124,7 @@ const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
   const metadataObj = useMemo<Record<string, unknown>>(() => {
     try {
       const parsed = jsonMetadata ? JSON.parse(jsonMetadata) : {};
-      return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed)
         ? (parsed as Record<string, unknown>)
         : {};
     } catch (error: unknown) {
@@ -134,11 +135,15 @@ const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
     }
   }, [jsonMetadata]);
 
-  const labelColors = useMemo(() => metadataObj.label_colors &&
-      typeof metadataObj.label_colors === 'object' &&
+  const labelColors = useMemo(
+    () =>
+      metadataObj.label_colors &&
+      typeof metadataObj.label_colors === "object" &&
       !Array.isArray(metadataObj.label_colors)
-      ? (metadataObj.label_colors as Record<string, string>)
-      : {}, [metadataObj]);
+        ? (metadataObj.label_colors as Record<string, string>)
+        : {},
+    [metadataObj],
+  );
 
   const [rows, setRows] = useState<ColorMapping[]>([]);
   const lastSyncMetadata = useRef<string>(jsonMetadata);
@@ -157,8 +162,8 @@ const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
 
   const syncToJson = (currentRows: ColorMapping[]) => {
     const newLabelColors: Record<string, string> = {};
-    currentRows.forEach(row => {
-      if (row.label.trim() !== '') {
+    currentRows.forEach((row) => {
+      if (row.label.trim() !== "") {
         newLabelColors[row.label.trim()] = row.color;
       }
     });
@@ -176,13 +181,13 @@ const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
   const handleAddRow = () => {
     const newRows = [
       ...rows,
-      { id: generateId(), label: '', color: DEFAULT_NEW_COLOR },
+      { id: generateId(), label: "", color: DEFAULT_NEW_COLOR },
     ];
     setRows(newRows);
   };
 
   const handleUpdateRow = (id: string, newLabel: string, newColor: string) => {
-    const newRows = rows.map(r =>
+    const newRows = rows.map((r) =>
       r.id === id ? { ...r, label: newLabel, color: newColor } : r,
     );
     setRows(newRows);
@@ -190,13 +195,13 @@ const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
   };
 
   const handleDeleteRow = (id: string) => {
-    const newRows = rows.filter(r => r.id !== id);
+    const newRows = rows.filter((r) => r.id !== id);
     setRows(newRows);
     syncToJson(newRows);
   };
 
   const allKnownLabels = Array.from(
-    new Set(rows.map(r => r.label).filter(Boolean)),
+    new Set(rows.map((r) => r.label).filter(Boolean)),
   );
 
   return (
@@ -204,22 +209,22 @@ const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
       <HeaderRow>
         <div>
           <h4
-            css={theme => ({
-              marginBottom: theme?.gridUnit || 4,
+            css={(theme: SupersetTheme) => ({
+              marginBottom: theme.gridUnit || 4,
               marginTop: 0,
             })}
           >
-            {t('Label Colors')}
+            {t("Label Colors")}
           </h4>
           <p
-            css={theme => ({
+            css={(theme: SupersetTheme) => ({
               margin: 0,
               fontSize: 12,
-              color: theme?.colors?.grayscale?.base || '#666666',
+              color: theme.colors?.grayscale?.base || "#666666",
             })}
           >
             {t(
-              'Map specific labels to colors. This automatically updates the JSON below.',
+              "Map specific labels to colors. This automatically updates the JSON below.",
             )}
           </p>
         </div>
@@ -227,29 +232,29 @@ const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
 
       {rows.length === 0 && (
         <p
-          css={theme => ({
-            fontStyle: 'italic',
-            color: theme?.colors?.grayscale?.light1 || '#B2B2B2',
+          css={(theme: SupersetTheme) => ({
+            fontStyle: "italic",
+            color: theme.colors?.grayscale?.light1 || "#B2B2B2",
           })}
         >
           {t('No color mappings defined. Click "+ Add more" to get started.')}
         </p>
       )}
 
-      {rows.map(row => {
+      {rows.map((row) => {
         const availableOptions = allKnownLabels
           .filter(
-            label =>
+            (label) =>
               label === row.label ||
-              !rows.some(r => r.label === label && r.id !== row.id),
+              !rows.some((r) => r.label === label && r.id !== row.id),
           )
-          .map(label => ({ label, value: label }));
+          .map((label) => ({ label, value: label }));
 
         return (
           <Row key={row.id}>
             <SelectContainer>
               <Select
-                ariaLabel={t('Series label')}
+                ariaLabel={t("Series label")}
                 allowNewOptions
                 options={availableOptions}
                 value={
@@ -257,12 +262,12 @@ const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
                 }
                 onChange={(selected: any) => {
                   const val =
-                    typeof selected === 'string'
+                    typeof selected === "string"
                       ? selected
-                      : selected?.value || '';
+                      : selected?.value || "";
                   handleUpdateRow(row.id, val, row.color);
                 }}
-                placeholder={t('Select or type a label')}
+                placeholder={t("Select or type a label")}
               />
             </SelectContainer>
 
@@ -279,7 +284,7 @@ const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
             <ActionButton
               onClick={() => handleDeleteRow(row.id)}
               type="button"
-              title={t('Remove color mapping')}
+              title={t("Remove color mapping")}
             >
               <i className="fa fa-trash" />
             </ActionButton>
@@ -287,7 +292,7 @@ const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
         );
       })}
 
-      <AddMoreLink onClick={handleAddRow}>+ {t('Add more')}</AddMoreLink>
+      <AddMoreLink onClick={handleAddRow}>+ {t("Add more")}</AddMoreLink>
     </Container>
   );
 };
