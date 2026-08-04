@@ -918,9 +918,9 @@ class TestWebDriverPlaywrightErrorHandling:
         assert "terminal_reason=readiness_timeout" in warning_call.args[0]
         assert warning_call.args[1] == "http://example.com"
         assert warning_call.args[3] == 1  # mounted holders
-        assert warning_call.args[4] == 0  # ready holders
-        assert warning_call.args[7] == 60
-        assert warning_call.args[9] == [{"chartId": "42", "state": "nothing_mounted"}]
+        assert warning_call.args[9] == 1  # unready holders
+        assert warning_call.args[16] == [{"chartId": "42", "state": "nothing_mounted"}]
+        assert warning_call.args[17] == [{"chartId": "42", "state": "nothing_mounted"}]
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver._browser_manager")
@@ -1587,7 +1587,7 @@ class TestWebDriverPlaywrightChartReadiness:
                     log_context="execution_id=abc-123",
                 )
 
-        assert mock_logger.warning.call_args.args[8] == " [execution_id=abc-123]"
+        assert mock_logger.warning.call_args.args[15] == " [execution_id=abc-123]"
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver._browser_manager")
@@ -1856,8 +1856,8 @@ class TestWebDriverPlaywrightChartReadiness:
             diagnostics,
         )
         failure_args = mock_logger.warning.call_args.args
-        assert failure_args[9] == diagnostics
-        assert failure_args[10] == diagnostics
+        assert failure_args[16] == diagnostics
+        assert failure_args[17] == diagnostics
         mock_page.locator.return_value.screenshot.assert_not_called()
 
 
