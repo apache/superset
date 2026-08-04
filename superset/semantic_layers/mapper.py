@@ -201,10 +201,6 @@ def get_results(query_object: QueryObject) -> QueryResult:
             force=query_object.force_query,
         )
         result: SemanticResult = outcome.result
-        main_outcome = SemanticCacheOutcome(
-            main_outcome.result,
-            cache_hit=main_outcome.cache_hit or outcome.cache_hit,
-        )
         result = _coerce_empty_result(result, offset_query)
 
         # Add this query's requests to the collection

@@ -27,6 +27,7 @@ from superset_core.semantic_layers.types import (
     Dimension,
     Filter,
     FilterValues,
+    GroupLimit,
     Metric,
     Operator,
     OrderDirection,
@@ -77,8 +78,8 @@ def _candidate(
     )
     entry: CachedEntry = CachedEntry(
         filters=cached_filters,
-        dimension_keys=frozenset({COUNTRY.id}),
-        metric_ids=frozenset({REVENUE_METRIC.id}),
+        dimensions=frozenset({COUNTRY}),
+        metrics=frozenset({REVENUE_METRIC}),
         limit=None,
         offset=0,
         order_key="",
@@ -185,6 +186,16 @@ def test_filter_implication_matrix(
     assert cache_policy.implies(new_filter, cached_filter) is expected
 
 
+def test_membership_implication_does_not_merge_bool_and_integer_values() -> None:
+    assert (
+        cache_policy.implies(
+            where(REVENUE, Operator.EQUALS, True),
+            where(REVENUE, Operator.IN, (1, 2)),
+        )
+        is False
+    )
+
+
 def test_escaped_pattern_requires_proven_provider_semantics() -> None:
     cached_filter: Filter = where(COUNTRY, Operator.LIKE, r"GB\_%")
     new_filter: Filter = where(COUNTRY, Operator.EQUALS, "GB_value")
@@ -211,6 +222,12 @@ def test_pattern_fallback_rejects_incompatible_escape_contract() -> None:
             pattern_semantics=cache_policy.PatternSemantics.sql_like(escape="!"),
         )
         is False
+    )
+
+
+def test_like_compilation_collapses_redundant_wildcards() -> None:
+    assert (
+        cache_policy.compile_like_pattern("%%%%%%%%value", "\\").pattern == "^.*value$"
     )
 
 
@@ -322,25 +339,27 @@ def test_mask_defensive_and_null_branches() -> None:
         False,
         False,
     ]
-    assert cache_transform.mask_for(series, Operator.ADHOC, "x").tolist() == [
+    assert cache_transform.mask_for(series, Operator.NOT_EQUALS, None).tolist() == [
         False,
         False,
     ]
+    with pytest.raises(ValueError, match="Unsupported cached filter"):
+        cache_transform.mask_for(series, Operator.ADHOC, "x")
 
 
 def test_candidate_requires_capability_for_stronger_filter_proof() -> None:
     query: SemanticQuery
     entry: CachedEntry
     query, entry = _candidate(
-        cached_filters=frozenset({where(REVENUE, Operator.GREATER_THAN, 10)}),
-        query_filters={where(REVENUE, Operator.GREATER_THAN, 20)},
+        cached_filters=frozenset({where(COUNTRY, Operator.IN, ("GB", "US"))}),
+        query_filters={where(COUNTRY, Operator.EQUALS, "GB")},
     )
 
     assert cache_policy.select_reuse(query, entry, ContainmentCapabilities()) is None
     decision: cache_policy.ReuseDecision | None = cache_policy.select_reuse(
         query,
         entry,
-        ContainmentCapabilities(comparisons=True),
+        ContainmentCapabilities(comparisons=True, membership=True),
     )
 
     assert decision is not None
@@ -368,7 +387,7 @@ def test_exact_filter_set_needs_no_postprocessing_capability() -> None:
 
 
 def test_leftover_filter_requires_cached_projection_and_capability() -> None:
-    leftover: Filter = where(REVENUE, Operator.GREATER_THAN, 20)
+    leftover: Filter = where(COUNTRY, Operator.EQUALS, "GB")
     query: SemanticQuery
     entry: CachedEntry
     query, entry = _candidate(query_filters={leftover})
@@ -434,6 +453,53 @@ def test_having_filters_must_match_exactly(predicate_type: PredicateType) -> Non
     )
 
 
+def test_rollup_rejects_matching_having_evaluated_at_cached_grain() -> None:
+    city: Dimension = Dimension("city", "City", pa.string())
+    having: Filter = Filter(
+        PredicateType.HAVING,
+        REVENUE_METRIC,
+        Operator.GREATER_THAN,
+        100,
+    )
+    query: SemanticQuery
+    entry: CachedEntry
+    query, entry = _candidate(
+        cached_filters=frozenset({having}),
+        query_filters={having},
+    )
+    entry = replace(
+        entry,
+        dimensions=frozenset({COUNTRY, city}),
+    )
+
+    assert (
+        cache_policy.select_reuse(
+            query,
+            entry,
+            ContainmentCapabilities(comparisons=True),
+        )
+        is None
+    )
+
+
+def test_leftover_dimension_cannot_be_proved_by_colliding_metric_id() -> None:
+    raw_revenue: Dimension = Dimension("revenue", "Raw revenue", pa.float64())
+    query: SemanticQuery
+    entry: CachedEntry
+    query, entry = _candidate(
+        query_filters={where(raw_revenue, Operator.GREATER_THAN, 10)},
+    )
+
+    assert (
+        cache_policy.select_reuse(
+            query,
+            entry,
+            ContainmentCapabilities(comparisons=True),
+        )
+        is None
+    )
+
+
 def test_adhoc_filters_must_match_exactly() -> None:
     cached: Filter = Filter(PredicateType.WHERE, None, Operator.ADHOC, "x > 10")
     requested: Filter = Filter(PredicateType.WHERE, None, Operator.ADHOC, "x > 20")
@@ -480,7 +546,7 @@ def test_candidate_pattern_proof_requires_matching_escape_semantics() -> None:
 
 
 def test_limited_candidate_cannot_supply_leftover_filtering() -> None:
-    leftover: Filter = where(REVENUE, Operator.GREATER_THAN, 20)
+    leftover: Filter = where(COUNTRY, Operator.EQUALS, "GB")
     query: SemanticQuery
     entry: CachedEntry
     query, entry = _candidate(query_filters={leftover})
@@ -505,7 +571,7 @@ def test_limited_candidate_cannot_supply_rollup() -> None:
     limited_query: SemanticQuery = replace(query, limit=5)
     limited_entry: CachedEntry = replace(
         entry,
-        dimension_keys=frozenset({COUNTRY.id, city.id}),
+        dimensions=frozenset({COUNTRY, city}),
         limit=10,
     )
 
@@ -514,6 +580,33 @@ def test_limited_candidate_cannot_supply_rollup() -> None:
             limited_query,
             limited_entry,
             ContainmentCapabilities(),
+        )
+        is None
+    )
+
+
+def test_group_limit_candidate_rejects_leftover_main_query_filter() -> None:
+    group_limit: GroupLimit = GroupLimit(
+        dimensions=[COUNTRY],
+        top=10,
+        metric=REVENUE_METRIC,
+    )
+    query: SemanticQuery
+    entry: CachedEntry
+    query, entry = _candidate(
+        query_filters={where(COUNTRY, Operator.EQUALS, "GB")},
+    )
+    query = replace(query, group_limit=group_limit)
+    entry = replace(
+        entry,
+        group_limit_key=SemanticCacheIdentityFactory.group_limit(group_limit),
+    )
+
+    assert (
+        cache_policy.select_reuse(
+            query,
+            entry,
+            ContainmentCapabilities(comparisons=True),
         )
         is None
     )
@@ -530,7 +623,7 @@ def test_ordered_candidate_cannot_supply_rollup() -> None:
     )
     ordered_entry: CachedEntry = replace(
         entry,
-        dimension_keys=frozenset({COUNTRY.id, city.id}),
+        dimensions=frozenset({COUNTRY, city}),
         order_key=SemanticCacheIdentityFactory.order(ordered_query.order),
     )
 
@@ -596,6 +689,31 @@ def test_exact_transformation_preserves_provider_collation_order() -> None:
     )
 
     assert transformed.results.to_pydict()["Country"] == ["a", "B"]
+
+
+def test_exact_transformation_preserves_arrow_types() -> None:
+    query: SemanticQuery = SemanticQuery(
+        metrics=[replace(REVENUE_METRIC, type=pa.int64())],
+        dimensions=[COUNTRY],
+    )
+    result: SemanticResult = SemanticResult(
+        requests=[],
+        results=pa.table(
+            {
+                "Country": pa.array(["GB", "US"]),
+                "Revenue": pa.array([12345, None], type=pa.int64()),
+            }
+        ),
+    )
+
+    transformed: SemanticResult = cache_transform.transform_result(
+        result,
+        query,
+        ReuseDecision(ReuseMode.EXACT, frozenset()),
+        ContainmentCapabilities(),
+    )
+
+    assert transformed.results.schema == result.results.schema
 
 
 def test_project_transformation_drops_unrequested_metrics() -> None:
@@ -751,7 +869,10 @@ def test_transform_rejects_unproven_leftover_and_rollup() -> None:
         dimensions=[],
     )
 
-    with pytest.raises(ValueError, match="requires a filter column"):
+    with pytest.raises(
+        cache_transform.SemanticCacheTransformationError,
+        match="incompatible",
+    ):
         cache_transform.transform_result(
             result,
             query,
@@ -763,7 +884,10 @@ def test_transform_rejects_unproven_leftover_and_rollup() -> None:
         REVENUE_METRIC,
         aggregation=AggregationType.AVG,
     )
-    with pytest.raises(ValueError, match="not safely roll-up compatible"):
+    with pytest.raises(
+        cache_transform.SemanticCacheTransformationError,
+        match="incompatible",
+    ):
         cache_transform.transform_result(
             result,
             replace(query, metrics=[unsafe_metric]),
