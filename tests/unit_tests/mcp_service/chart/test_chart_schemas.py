@@ -706,11 +706,20 @@ class TestUnknownFieldDetection:
             )
 
     def test_known_aliases_not_flagged_as_unknown(self) -> None:
-        """Test that known aliases pass validation without errors."""
+        """Test that known aliases pass validation without errors.
+
+        Uses ``x_column`` rather than ``x_axis`` to set the X column:
+        ``x_axis`` is ambiguous between that alias on ``x`` and the
+        unrelated ``x_axis: AxisConfig`` field of the same name, and
+        pydantic resolves the collision in favor of the real field name.
+        Now that nested models reject unknown fields (#42626), routing a
+        column dict through ``x_axis`` here would raise, not silently
+        no-op into ``AxisConfig`` the way it used to.
+        """
         config = XYChartConfig.model_validate(
             {
                 "chart_type": "xy",
-                "x_axis": {"name": "category"},
+                "x_column": {"name": "category"},
                 "metrics": [{"name": "sales", "aggregate": "SUM"}],
                 "groupby": [{"name": "region"}],
                 "stack": True,
