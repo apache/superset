@@ -1365,6 +1365,10 @@ DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
 # 10 * 1024 * 1024 for a 10 MB limit.
 DATA_CACHE_MAX_VALUE_SIZE: int | None = None
 
+# Include per-query lifecycle timing in /api/v1/chart/data JSON responses.
+# The default keeps the public response contract unchanged.
+CHART_DATA_INCLUDE_TIMING: bool = False
+
 # Cache for dashboard filter state. `CACHE_TYPE` defaults to `SupersetMetastoreCache`
 # that stores the values in the key-value table in the Superset metastore, as it's
 # required for Superset to operate correctly, but can be replaced by any
@@ -2445,6 +2449,10 @@ ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG = int(timedelta(seconds=1).total_seconds
 ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT = 3600
 ALERT_REPORTS_DEFAULT_RETENTION = 90
 ALERT_REPORTS_DEFAULT_CRON_VALUE = "0 0 * * *"  # every day
+# Retry backoff: first retry waits base seconds, each subsequent retry doubles.
+ALERT_REPORTS_RETRY_BASE_DELAY_SECONDS = 60
+# Maximum delay between retries (cap for exponential backoff).
+ALERT_REPORTS_RETRY_MAX_DELAY_SECONDS = 3600
 # If set to true no notification is sent, the worker will just log a message.
 # Useful for debugging
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = False

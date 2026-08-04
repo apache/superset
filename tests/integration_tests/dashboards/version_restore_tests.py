@@ -90,6 +90,7 @@ class TestDashboardRestoreApi(SupersetTestCase):
         original_title = dashboard.dashboard_title
         dashboard_id = dashboard.id
         entity_uuid = dashboard.uuid
+        assert entity_uuid is not None
 
         # Make two more edits so we have a known non-trivial history to
         # navigate: [initial, v1, v2].
@@ -151,6 +152,7 @@ class TestDashboardRestoreApi(SupersetTestCase):
         dashboard_uuid = str(dashboard.uuid)
         dashboard_id = dashboard.id
         entity_uuid = dashboard.uuid
+        assert entity_uuid is not None
 
         original_slice_ids = sorted(s.id for s in dashboard.slices)
         assert len(original_slice_ids) >= 2, (
@@ -225,6 +227,8 @@ class TestDashboardRestoreApi(SupersetTestCase):
         db.session.commit()
 
         ver_cls = version_class(Dashboard)
+        entity_uuid = dashboard.uuid
+        assert entity_uuid is not None
         target_tx = (
             db.session.query(ver_cls.transaction_id)
             .filter(ver_cls.id == dashboard_id)
@@ -232,7 +236,7 @@ class TestDashboardRestoreApi(SupersetTestCase):
             .limit(1)
             .scalar()
         )
-        target_uuid = str(derive_version_uuid(dashboard.uuid, target_tx))
+        target_uuid = str(derive_version_uuid(entity_uuid, target_tx))
 
         # Edit the member chart AFTER the snapshot.
         member = db.session.query(Slice).filter(Slice.id == member_id).one()
@@ -282,6 +286,8 @@ class TestDashboardRestoreApi(SupersetTestCase):
         db.session.commit()
 
         ver_cls = version_class(Dashboard)
+        entity_uuid = dashboard.uuid
+        assert entity_uuid is not None
         target_tx = (
             db.session.query(ver_cls.transaction_id)
             .filter(ver_cls.id == dashboard_id)
@@ -289,7 +295,7 @@ class TestDashboardRestoreApi(SupersetTestCase):
             .limit(1)
             .scalar()
         )
-        target_uuid = str(derive_version_uuid(dashboard.uuid, target_tx))
+        target_uuid = str(derive_version_uuid(entity_uuid, target_tx))
 
         # Detach, then hard-delete the victim via raw SQL so no live row
         # remains (bypasses the soft-delete listener deliberately — the
@@ -340,6 +346,8 @@ class TestDashboardRestoreApi(SupersetTestCase):
         assert alpha not in dashboard.editors
 
         ver_cls = version_class(Dashboard)
+        entity_uuid = dashboard.uuid
+        assert entity_uuid is not None
         first_tx = (
             db.session.query(ver_cls.transaction_id)
             .filter(ver_cls.id == dashboard.id)
@@ -348,7 +356,7 @@ class TestDashboardRestoreApi(SupersetTestCase):
             .scalar()
         )
         assert first_tx is not None
-        target_uuid = str(derive_version_uuid(dashboard.uuid, first_tx))
+        target_uuid = str(derive_version_uuid(entity_uuid, first_tx))
 
         self.login(ALPHA_USERNAME)
         rv = self._restore(str(dashboard.uuid), target_uuid)

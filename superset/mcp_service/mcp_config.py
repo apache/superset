@@ -56,10 +56,6 @@ SUPERSET_WEBSERVER_ADDRESS = "http://localhost:9001"
 WEBDRIVER_BASEURL = "http://localhost:9001/"
 WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 
-# MCP Service Host/Port
-MCP_SERVICE_HOST = "localhost"
-MCP_SERVICE_PORT = 5008
-
 # Bug-report support contact surfaced by the generate_bug_report tool. Each
 # deployment should override this in superset_config.py to point users at the
 # right channel (e.g. an internal support address, a vendor support team).
@@ -691,8 +687,6 @@ def get_mcp_config(app_config: dict[str, Any] | None = None) -> dict[str, Any]:
         "SUPERSET_WEBSERVER_ADDRESS": SUPERSET_WEBSERVER_ADDRESS,
         "WEBDRIVER_BASEURL": WEBDRIVER_BASEURL,
         "WEBDRIVER_BASEURL_USER_FRIENDLY": WEBDRIVER_BASEURL_USER_FRIENDLY,
-        "MCP_SERVICE_HOST": MCP_SERVICE_HOST,
-        "MCP_SERVICE_PORT": MCP_SERVICE_PORT,
         "MCP_DEBUG": MCP_DEBUG,
         "MCP_RBAC_ENABLED": MCP_RBAC_ENABLED,
         "MCP_DISABLED_TOOLS": set(MCP_DISABLED_TOOLS),

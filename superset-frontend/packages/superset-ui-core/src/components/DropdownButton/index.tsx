@@ -34,9 +34,8 @@ export const DropdownButton = ({
   const { type: buttonType } = rest;
   // divider implementation for default (non-primary) buttons
   const defaultBtnCss = css`
-    ${
-      (!buttonType || buttonType === 'default') &&
-      `.ant-dropdown-trigger {
+    ${(!buttonType || buttonType === 'default') &&
+    `.ant-dropdown-trigger {
       position: relative;
       &:before {
         content: '';
@@ -49,8 +48,7 @@ export const DropdownButton = ({
       .anticon {
         vertical-align: middle;
       }
-    }`
-    }
+    }`}
   `;
   const button = (
     <Dropdown.Button
@@ -60,13 +58,13 @@ export const DropdownButton = ({
         defaultBtnCss,
         css`
           .ant-btn {
-            height: ${
-              styleConfig?.controlHeight ?? theme.buttonControlHeightSM ?? 30
-            }px;
+            height: ${styleConfig?.controlHeight ??
+            theme.buttonControlHeightSM ??
+            30}px;
             box-shadow: ${styleConfig?.boxShadow ?? 'none'};
-            font-size: ${
-              styleConfig?.fontSize ?? theme.buttonFontSize ?? theme.fontSizeSM
-            }px;
+            font-size: ${styleConfig?.fontSize ??
+            theme.buttonFontSize ??
+            theme.fontSizeSM}px;
             font-weight: ${styleConfig?.fontWeight ?? theme.fontWeightStrong};
           }
         `,

@@ -155,25 +155,39 @@ def get_executor(  # noqa: C901
         if executor == ExecutorType.CURRENT_USER and current_user:
             return executor, current_user
         if executor == ExecutorType.CREATOR_EDITOR:
-            if (user := model.created_by) and _is_editor(user.id):
+            if (user := model.created_by) and user.is_active and _is_editor(user.id):
                 return executor, user.username
         if executor == ExecutorType.CREATOR:
-            if user := model.created_by:
+            if (user := model.created_by) and user.is_active:
                 return executor, user.username
         if executor == ExecutorType.MODIFIER_EDITOR:
-            if (user := model.changed_by) and _is_editor(user.id):
+            if (user := model.changed_by) and user.is_active and _is_editor(user.id):
                 return executor, user.username
         if executor == ExecutorType.MODIFIER:
-            if user := model.changed_by:
+            if (user := model.changed_by) and user.is_active:
                 return executor, user.username
         if executor == ExecutorType.EDITOR:
             # Priority: modifier → creator → direct user editor → indirect editor.
-            if (modifier := model.changed_by) and _is_editor(modifier.id):
+            # Inactive users are skipped at every step so that scheduling can
+            # fall through to another active owner/editor instead of failing
+            # outright (see: ExecutorNotFoundError only once no active
+            # candidate remains).
+            if (
+                (modifier := model.changed_by)
+                and modifier.is_active
+                and _is_editor(modifier.id)
+            ):
                 return executor, modifier.username
-            if (creator := model.created_by) and _is_editor(creator.id):
+            if (
+                (creator := model.created_by)
+                and creator.is_active
+                and _is_editor(creator.id)
+            ):
                 return executor, creator.username
-            if editor_users:
-                return executor, editor_users[0].username
+            if active_editor_user := next(
+                (user for user in editor_users if user.is_active), None
+            ):
+                return executor, active_editor_user.username
             if indirect_editor := _get_indirect_editor_user(
                 getattr(model, "editors", [])
             ):
