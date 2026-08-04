@@ -20,7 +20,7 @@ import glob
 import os
 import tempfile
 from collections.abc import Iterator
-from contextlib import ExitStack
+from contextlib import contextmanager, ExitStack
 from typing import Any
 from unittest import mock
 
@@ -260,6 +260,138 @@ def test_empty_query_context_ineligible_viz_is_skipped(
         mocks["email"].ERROR_NO_QUERY_CONTEXT: ["20 - Ineligible"]
     }
     mocks["ChartDataCommand"].return_value.run.assert_called_once()
+
+
+def _rebuildable_chart(
+    viz_type: str = "table",
+    form_data: dict[str, Any] | None = None,
+) -> mock.MagicMock:
+    """A chart with no saved query context whose form data can be rebuilt."""
+    fd = form_data or {"groupby": ["country"], "metrics": ["count"]}
+    chart = _chart(20, "Rebuilt", has_context=False, viz_type=viz_type)
+    chart.params = json.dumps(fd)
+    chart.datasource_id = 5
+    chart.datasource_type = "table"
+    # Mirror Slice.form_data, which injects viz_type + the "id__type" datasource.
+    chart.form_data = {
+        **fd,
+        "slice_id": 20,
+        "viz_type": viz_type,
+        "datasource": "5__table",
+    }
+    return chart
+
+
+@contextmanager
+def _builder_hook(builder: Any) -> Iterator[None]:
+    """Patch current_app so EXCEL_EXPORT_QUERY_CONTEXT_BUILDER resolves to builder."""
+    from superset.tasks import export_dashboard_excel as module
+
+    fake_app = mock.MagicMock()
+    fake_app.config.get.side_effect = lambda key, default=None: (
+        builder if key == "EXCEL_EXPORT_QUERY_CONTEXT_BUILDER" else default
+    )
+    with mock.patch.object(module, "current_app", fake_app):
+        yield
+
+
+def test_builder_hook_context_is_used_for_any_viz_type() -> None:
+    # A configured builder can supply a context for a viz type outside the
+    # built-in allowlist (pivot_table_v2), and is called with the chart's form data.
+    from superset.tasks import export_dashboard_excel as module
+
+    ctx = {
+        "datasource": {"id": 5, "type": "table"},
+        "queries": [{"metrics": ["count"]}],
+    }
+    builder = mock.MagicMock(return_value=ctx)
+    chart = _rebuildable_chart(viz_type="pivot_table_v2")
+
+    with _builder_hook(builder):
+        result = module._resolve_query_context(chart)
+
+    assert result == ctx
+    builder.assert_called_once_with(chart.form_data)
+
+
+def test_builder_hook_none_falls_through_to_builtin_rebuild() -> None:
+    # When the builder returns None (can't build faithfully) the export falls
+    # through to the built-in rebuild, so an allowlisted table is unaffected.
+    from superset.tasks import export_dashboard_excel as module
+
+    builder = mock.MagicMock(return_value=None)
+    chart = _rebuildable_chart(viz_type="table")
+
+    with _builder_hook(builder):
+        result = module._resolve_query_context(chart)
+
+    builder.assert_called_once_with(chart.form_data)
+    assert result is not None
+    assert result["queries"][0]["metrics"] == ["count"]
+
+
+@pytest.mark.parametrize("built", [{}, {"queries": []}, "not-a-dict", 42])
+def test_builder_hook_malformed_result_falls_through(built: Any) -> None:
+    # A stub / empty / malformed builder result is treated as "not built" and
+    # falls through to the built-in rebuild rather than shipping an empty context.
+    from superset.tasks import export_dashboard_excel as module
+
+    builder = mock.MagicMock(return_value=built)
+    chart = _rebuildable_chart(viz_type="table")
+
+    with _builder_hook(builder):
+        result = module._resolve_query_context(chart)
+
+    builder.assert_called_once_with(chart.form_data)
+    assert result is not None
+    assert result["queries"][0]["metrics"] == ["count"]
+
+
+def test_builder_hook_exception_falls_through() -> None:
+    # A raising builder (e.g. sidecar down) must not fail the chart; the export
+    # falls through to the built-in rebuild and no exception escapes.
+    from superset.tasks import export_dashboard_excel as module
+
+    builder = mock.MagicMock(side_effect=RuntimeError("sidecar down"))
+    chart = _rebuildable_chart(viz_type="table")
+
+    with _builder_hook(builder):
+        result = module._resolve_query_context(chart)
+
+    builder.assert_called_once_with(chart.form_data)
+    assert result is not None
+    assert result["queries"][0]["metrics"] == ["count"]
+
+
+def test_no_builder_hook_leaves_builtin_behavior_unchanged() -> None:
+    # With no builder configured, an allowlisted chart is rebuilt and an
+    # ineligible one is skipped — identical to the pre-hook behavior.
+    from superset.tasks import export_dashboard_excel as module
+
+    with _builder_hook(None):
+        table = module._resolve_query_context(_rebuildable_chart(viz_type="table"))
+        ineligible = module._resolve_query_context(
+            _rebuildable_chart(viz_type="mixed_timeseries")
+        )
+
+    assert table is not None
+    assert table["queries"][0]["metrics"] == ["count"]
+    assert ineligible is None
+
+
+def test_saved_context_short_circuits_builder_hook() -> None:
+    # A saved query context wins over the builder hook, which is never called.
+    from superset.tasks import export_dashboard_excel as module
+
+    builder = mock.MagicMock(return_value={"queries": [{"from": "hook"}]})
+    chart = _rebuildable_chart(viz_type="table")
+    chart.query_context = json.dumps({"queries": [{"from": "saved"}]})
+
+    with _builder_hook(builder):
+        result = module._resolve_query_context(chart)
+
+    assert result == {"queries": [{"from": "saved"}]}
+    builder.assert_not_called()
 
 
 @pytest.mark.parametrize(

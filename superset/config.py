@@ -1544,6 +1544,21 @@ EXCEL_EXPORT_S3_CLIENT_KWARGS: dict[str, Any] = {}
 # a rendered image. Set to None to fall back to the built-in default.
 EXCEL_EXPORT_TABLE_VIZ_TYPES: set[str] | None = None
 
+# Optional hook to build a query context for a chart that has no saved
+# ``query_context``, called before the built-in form-data rebuild. Receives the
+# chart's form data (its ``params`` with ``viz_type`` and the
+# ``datasource="{id}__{type}"`` string injected — i.e. ``Slice.form_data``) and
+# returns a query-context payload dict (the shape ``ChartDataQueryContextSchema``
+# loads) or ``None``. A deployment can point this at a service that runs the
+# chart's real frontend ``buildQuery`` (faithful post-processing / multi-query)
+# for viz types the built-in rebuild can't handle. Must return ``None`` — not a
+# partial/stub context — whenever it cannot build the chart faithfully, so the
+# export falls through to the built-in rebuild. Defaults to ``None`` (built-in
+# behavior only).
+EXCEL_EXPORT_QUERY_CONTEXT_BUILDER: (
+    Callable[[dict[str, Any]], dict[str, Any] | None] | None
+) = None
+
 # ---------------------------------------------------
 # Time grain configurations
 # ---------------------------------------------------

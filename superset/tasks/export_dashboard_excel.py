@@ -103,15 +103,27 @@ def _chart_label(chart: Any) -> str:
     return f"{chart.id} - {chart.slice_name or ''}".strip()
 
 
+def _usable_query_context(value: Any) -> dict[str, Any] | None:
+    """
+    ``value`` when it is a usable query-context payload, else ``None``.
+
+    A payload is usable only if it is a dict with a non-empty ``queries`` list; a
+    blank, query-less, or non-object value (e.g. ``{}``, ``{"queries": []}``,
+    ``None``) is treated the same as a missing context. Shared by the saved-context
+    path and the builder hook so both apply the same validity rule.
+    """
+    if not isinstance(value, dict) or not value.get("queries"):
+        return None
+    return value
+
+
 def _saved_query_context(raw: Any) -> dict[str, Any] | None:
     """
     The chart's saved query context parsed to a dict, or ``None`` when it is
     missing or unusable.
 
-    Returns ``None`` for a blank value, a string that does not parse as JSON, a
-    value that parses to something other than an object (e.g. ``"null"``), and an
-    object with no queries (e.g. ``"{}"`` or ``{"queries": []}``) — all treated
-    the same as a missing context.
+    Returns ``None`` for a blank value, a string that does not parse as JSON, and
+    any value that is not a dict with a non-empty ``queries`` list.
     """
     if not raw:
         return None
@@ -119,9 +131,7 @@ def _saved_query_context(raw: Any) -> dict[str, Any] | None:
         parsed = json.loads(raw)
     except (TypeError, ValueError):
         return None
-    if not isinstance(parsed, dict) or not parsed.get("queries"):
-        return None
-    return parsed
+    return _usable_query_context(parsed)
 
 
 # Form-data keys whose behavior needs plugin post-processing or extra queries
@@ -151,16 +161,44 @@ def _resolve_query_context(chart: Any) -> dict[str, Any] | None:
     The query-context payload to run for a chart's data export, or ``None`` when
     none can be obtained.
 
-    Prefers the chart's saved ``query_context``. When that is missing or empty,
-    synthesizes one from the chart's saved form data (``params``) — but only for
-    viz types whose data maps faithfully to a single plain query
-    (``REBUILD_VIZ_TYPES``) and that don't rely on post-processing or extra queries
-    the rebuild can't reproduce; other charts return ``None`` so the caller lists
-    them for re-saving rather than exporting inaccurate data.
+    Resolution order:
+
+    1. the chart's saved ``query_context``;
+    2. an optional ``EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`` hook, letting a deployment
+       supply a faithful context (e.g. from a service running the chart's real
+       frontend ``buildQuery``) for viz types the built-in rebuild can't handle;
+    3. the built-in form-data rebuild, restricted to viz types whose data maps
+       faithfully to a single plain query (``REBUILD_VIZ_TYPES``) without
+       post-processing or extra queries.
+
+    Returns ``None`` when none apply, so the caller lists the chart for re-saving
+    rather than exporting inaccurate data.
     """
     if saved := _saved_query_context(chart.query_context):
         return saved
 
+    # The hook receives the chart's form data and must return ``None`` — not a
+    # partial/stub context — whenever it can't build the chart faithfully, so we
+    # fall through to the built-in rebuild (which handles the allowlisted viz types
+    # well). Any hook failure falls through too, preserving "builder problem →
+    # rebuild, don't fail the export".
+    if builder := current_app.config.get("EXCEL_EXPORT_QUERY_CONTEXT_BUILDER"):
+        try:
+            built = builder(chart.form_data)
+        except Exception:  # pylint: disable=broad-except
+            logger.warning(
+                "EXCEL_EXPORT_QUERY_CONTEXT_BUILDER failed for chart %s; "
+                "falling back to the built-in rebuild",
+                chart.id,
+                exc_info=True,
+            )
+            built = None
+        if (from_builder := _usable_query_context(built)) is not None:
+            return from_builder
+
+    # The allowlist and ``_needs_unsupported_processing`` bound only the built-in
+    # rebuild below; the builder hook above is intentionally not gated by them (a
+    # faithful builder includes the post-processing the built-in rebuild lacks).
     if chart.viz_type not in REBUILD_VIZ_TYPES or chart.datasource_id is None:
         return None
     try:
