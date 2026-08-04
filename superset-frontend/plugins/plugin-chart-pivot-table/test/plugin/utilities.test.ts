@@ -407,10 +407,13 @@ test('pruning: percent_total forces the grand-total level even with both totals 
     rowSubTotals: false,
     showValuesAs: ShowValuesAsEnum.PERCENT_OF_TOTAL,
   });
+  // Rows is the outer loop and columns the inner loop (see
+  // buildGroupbyCombinations's flatMap), so the rows-collapsed level pairs
+  // with every column prefix before the leaf row prefix does.
   expect(combinations).toEqual([
     { rows: [], columns: [] },
-    { rows: ['row1', 'row2'], columns: [] },
     { rows: [], columns: ['col1', 'col2'] },
+    { rows: ['row1', 'row2'], columns: [] },
     { rows: ['row1', 'row2'], columns: ['col1', 'col2'] },
   ]);
 });
