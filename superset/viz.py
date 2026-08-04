@@ -323,6 +323,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                             timestamp_format=timestamp_format,
                             offset=self.datasource.offset,
                             time_shift=self.form_data.get("time_shift"),
+                            timezone=self.datasource.get_dataset_timezone(),
                         )
                     ]
                 ),
