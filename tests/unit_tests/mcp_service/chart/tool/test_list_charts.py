@@ -387,11 +387,16 @@ async def test_list_charts_certified_filter(
         if custom_filter is None:
             selected = charts
         else:
-            selected = [
-                chart
-                for chart in charts
-                if bool(chart.certified_by) is custom_filter._value
-            ]
+            query = Mock()
+            custom_filter.apply(query, None)
+            predicate = str(query.filter.call_args.args[0])
+            expected_predicate = (
+                "slices.certified_by IS NOT NULL"
+                if certified
+                else "slices.certified_by IS NULL"
+            )
+            assert expected_predicate in predicate
+            selected = [charts[0] if certified else charts[1]]
         return selected, len(selected)
 
     mock_list.side_effect = list_side_effect

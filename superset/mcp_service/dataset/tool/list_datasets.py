@@ -26,13 +26,12 @@ import logging
 from typing import TYPE_CHECKING
 
 from fastmcp import Context
-from flask_appbuilder.models.sqla.interface import SQLAInterface
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
 
-from superset.extensions import db, event_logger
+from superset.extensions import event_logger
 from superset.mcp_service.dataset.schemas import (
     DatasetError,
     DatasetFilter,
@@ -41,7 +40,7 @@ from superset.mcp_service.dataset.schemas import (
     ListDatasetsRequest,
     serialize_dataset_object,
 )
-from superset.mcp_service.mcp_core import BoundFilter, ModelListCore
+from superset.mcp_service.mcp_core import ModelListCore
 from superset.mcp_service.privacy import (
     DATA_MODEL_METADATA_ERROR_TYPE,
     requires_data_model_metadata_access,
@@ -197,11 +196,10 @@ async def list_datasets(
         with event_logger.log_context(action="mcp.list_datasets.query"):
             custom_filters = None
             if request.certified is not None:
-                certified_filter = DatasetCertifiedFilter(
-                    "id", SQLAInterface(DatasetDAO.model_cls, db.session)
-                )
                 custom_filters = {
-                    "certified": BoundFilter(certified_filter, request.certified)
+                    "certified": tool.build_bound_filter(
+                        DatasetCertifiedFilter, request.certified
+                    )
                 }
             result = tool.run_tool(
                 filters=request.filters,

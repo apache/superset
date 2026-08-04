@@ -23,13 +23,12 @@ import logging
 from typing import cast, TYPE_CHECKING
 
 from fastmcp import Context
-from flask_appbuilder.models.sqla.interface import SQLAInterface
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 if TYPE_CHECKING:
     from superset.models.slice import Slice
 
-from superset.extensions import db, event_logger
+from superset.extensions import event_logger
 from superset.mcp_service.chart.schemas import (
     ChartError,
     ChartFilter,
@@ -39,7 +38,7 @@ from superset.mcp_service.chart.schemas import (
     ListChartsRequest,
     serialize_chart_object,
 )
-from superset.mcp_service.mcp_core import BoundFilter, ModelListCore
+from superset.mcp_service.mcp_core import ModelListCore
 from superset.mcp_service.privacy import (
     DATA_MODEL_METADATA_ERROR_TYPE,
     remove_chart_data_model_columns,
@@ -184,11 +183,10 @@ async def list_charts(
         with event_logger.log_context(action="mcp.list_charts.query"):
             custom_filters = None
             if request.certified is not None:
-                certified_filter = ChartCertifiedFilter(
-                    "id", SQLAInterface(ChartDAO.model_cls, db.session)
-                )
                 custom_filters = {
-                    "certified": BoundFilter(certified_filter, request.certified)
+                    "certified": tool.build_bound_filter(
+                        ChartCertifiedFilter, request.certified
+                    )
                 }
             result = tool.run_tool(
                 filters=request.filters,

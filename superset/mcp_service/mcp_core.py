@@ -115,34 +115,12 @@ class BaseCore(ABC):
         self.logger.warning(message)
 
 
-class DeletedStateBoundFilter:
-    """Adapt a FAB deleted-state filter for ``BaseDAO.list`` custom_filters.
-
-    ``BaseDAO.list`` invokes custom filters as ``apply(query, None)``, but the
-    ``BaseDeletedStateFilter`` subclasses interpret ``None`` as "live rows
-    only". Binding the value at construction lets the DAO-side invocation
-    reach the FAB filter with the caller's actual ``include``/``only`` choice.
-
-    ``model`` re-exposes the FAB filter's SoftDeleteMixin model class so the
-    caller can scope the session visibility bypass without re-consulting the
-    (Optional) filter-class attribute.
-    """
-
-    def __init__(self, inner: Any, value: str, model: type) -> None:
-        self._inner = inner
-        self._value = value
-        self.model = model
-
-    def apply(self, query: Any, value: Any) -> Any:
-        return self._inner.apply(query, self._value)
-
-
 class BoundFilter:
     """Bind a caller value to a FAB filter used by ``BaseDAO.list``.
 
-    ``BaseDAO.list`` invokes custom filters with ``None`` because REST filters
-    normally receive their values outside the DAO. MCP request fields already
-    contain the value, so this adapter preserves it for the shared FAB filter.
+    ``BaseDAO.list`` invokes custom filters as ``apply(query, None)``, but the
+    request value is already available to MCP callers. Binding it at
+    construction preserves that value for the DAO-side invocation.
     """
 
     def __init__(self, inner: Any, value: Any) -> None:
@@ -151,6 +129,14 @@ class BoundFilter:
 
     def apply(self, query: Any, value: Any) -> Any:
         return self._inner.apply(query, self._value)
+
+
+class DeletedStateBoundFilter(BoundFilter):
+    """Bound deleted-state filter carrying its visibility-bypass model."""
+
+    def __init__(self, inner: Any, value: str, model: type) -> None:
+        super().__init__(inner, value)
+        self.model = model
 
 
 class ModelListCore(BaseCore, Generic[L]):
@@ -355,6 +341,11 @@ class ModelListCore(BaseCore, Generic[L]):
         datamodel = SQLAInterface(model, db.session)
         inner = self._deleted_state_filter("id", datamodel)
         return DeletedStateBoundFilter(inner, normalized, model)
+
+    def build_bound_filter(self, filter_class: type, value: Any) -> BoundFilter:
+        """Bind an MCP value to a FAB filter for this core's DAO model."""
+        datamodel = SQLAInterface(self.dao_class.model_cls, db.session)
+        return BoundFilter(filter_class("id", datamodel), value)
 
     def run_tool(
         self,

@@ -329,7 +329,7 @@ async def test_list_datasets_certified_filter(
 ):
     """Certification is opt-in and supports certified, uncertified, and all."""
     certified_dataset = create_mock_dataset(1, "Certified")
-    certified_dataset.certified_by = "Data Governance"
+    certified_dataset.extra = '{"certification": {"certified_by": "Governance"}}'
     uncertified_dataset = create_mock_dataset(2, "Uncertified")
     datasets = [certified_dataset, uncertified_dataset]
 
@@ -338,11 +338,15 @@ async def test_list_datasets_certified_filter(
         if custom_filter is None:
             selected = datasets
         else:
-            selected = [
-                dataset
-                for dataset in datasets
-                if bool(dataset.certified_by) is custom_filter._value
-            ]
+            query = MagicMock()
+            custom_filter.apply(query, None)
+            predicate = str(query.filter.call_args.args[0])
+            if certified:
+                assert "lower(tables.extra) LIKE lower" in predicate
+            else:
+                assert "tables.extra NOT LIKE" in predicate
+                assert "tables.extra IS NULL" in predicate
+            selected = [datasets[0] if certified else datasets[1]]
         return selected, len(selected)
 
     mock_list.side_effect = list_side_effect
