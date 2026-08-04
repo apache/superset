@@ -36,3 +36,17 @@ test('Rendering TooltipContent correctly - with timestep', () => {
       .fromNow()}. Click to force-refresh`,
   );
 });
+
+test('Rendering TooltipContent for semantic cache', () => {
+  render(<TooltipContent semanticCacheHit />);
+  expect(screen.getByTestId('tooltip-content')).toHaveTextContent(
+    'Loaded from semantic cache. Click to force-refresh',
+  );
+});
+
+test('Rendering TooltipContent for ordinary cache', () => {
+  render(<TooltipContent semanticCacheHit={false} />);
+  expect(screen.getByTestId('tooltip-content')).toHaveTextContent(
+    'Loaded from cache. Click to force-refresh',
+  );
+});

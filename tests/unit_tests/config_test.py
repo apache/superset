@@ -47,6 +47,14 @@ FULL_DTTM_DEFAULTS_EXAMPLE = {
 }
 
 
+def test_semantic_containment_cache_defaults_are_safe() -> None:
+    from superset import config
+
+    assert config.DEFAULT_FEATURE_FLAGS["SEMANTIC_LAYER_CONTAINMENT_CACHE"] is False
+    assert config.SEMANTIC_CACHE_COORDINATION_WAIT_SECONDS == 1.0
+    assert config.SEMANTIC_CACHE_COORDINATION_LEASE_SECONDS == 30
+
+
 def test_invalid_version_history_retention_env_uses_default(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,

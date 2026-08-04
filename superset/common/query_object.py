@@ -90,6 +90,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     datasource: BaseDatasource | None
     extras: dict[str, Any]
     filter: list[QueryObjectFilterClause]
+    force_query: bool
     from_dttm: datetime | None
     granularity: str | None
     grouping_sets: list[list[str]]
@@ -123,6 +124,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         datasource: BaseDatasource | None = None,
         extras: dict[str, Any] | None = None,
         filters: list[QueryObjectFilterClause] | None = None,
+        force_query: bool = False,
         granularity: str | None = None,
         is_rowcount: bool = False,
         is_timeseries: bool | None = None,
@@ -148,6 +150,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         self.datasource = datasource
         self.extras = extras or {}
         self.filter = filters or []
+        self.force_query = force_query
         self.granularity = granularity
         self.is_rowcount = is_rowcount
         self._set_is_timeseries(is_timeseries)
@@ -497,6 +500,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             "columns": self.columns,
             "extras": self.extras,
             "filter": self.filter,
+            "force_query": self.force_query,
             "from_dttm": self.from_dttm,
             "granularity": self.granularity,
             "inner_from_dttm": self.inner_from_dttm,
@@ -555,6 +559,9 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 cache_dict["extra_cache_keys"],
                 key=lambda value: (type(value).__name__, str(value)),
             )
+
+        # Force refresh controls cache reads, not the logical result identity.
+        cache_dict.pop("force_query", None)
 
         # TODO: the below KVs can all be cleaned up and moved to `to_dict()` at some
         #  predetermined point in time when orgs are aware that the previously

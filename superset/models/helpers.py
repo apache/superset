@@ -1559,6 +1559,7 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         from_dttm: Optional[datetime] = None,
         to_dttm: Optional[datetime] = None,
         sql_shifted_temporal_labels: set[str] | None = None,
+        semantic_cache_hit: Optional[bool] = None,
     ) -> None:
         self.df = df
         self.query = query
@@ -1572,6 +1573,7 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         self.from_dttm = from_dttm
         self.to_dttm = to_dttm
         self.sql_shifted_temporal_labels = sql_shifted_temporal_labels or set()
+        self.semantic_cache_hit: Optional[bool] = semantic_cache_hit
         self.sql_rowcount = len(self.df.index) if not self.df.empty else 0
 
 

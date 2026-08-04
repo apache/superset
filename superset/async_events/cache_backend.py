@@ -22,8 +22,48 @@ import redis
 from flask_caching.backends.rediscache import RedisCache, RedisSentinelCache
 from redis.sentinel import Sentinel
 
+_COMPARE_AND_DELETE_SCRIPT: str = """
+if redis.call('get', KEYS[1]) == ARGV[1] then
+  return redis.call('del', KEYS[1])
+end
+return 0
+"""
 
-class RedisCacheBackend(RedisCache):
+
+class _OwnerTokenCacheMixin:
+    """Atomic owner-token operations shared by Redis coordination backends."""
+
+    _cache: redis.Redis
+
+    def acquire_owner_token(
+        self,
+        key: str,
+        owner_token: str,
+        lease_seconds: int,
+    ) -> bool:
+        """Acquire an expiring lease only when the key is unowned."""
+        return bool(
+            self._cache.set(
+                key,
+                owner_token,
+                nx=True,
+                ex=lease_seconds,
+            )
+        )
+
+    def release_owner_token(self, key: str, owner_token: str) -> bool:
+        """Release only when the caller still owns the lease."""
+        return bool(
+            self._cache.eval(
+                _COMPARE_AND_DELETE_SCRIPT,
+                1,
+                key,
+                owner_token,
+            )
+        )
+
+
+class RedisCacheBackend(_OwnerTokenCacheMixin, RedisCache):
     MAX_EVENT_COUNT = 100
 
     def __init__(  # pylint: disable=too-many-arguments
@@ -181,7 +221,7 @@ class RedisCacheBackend(RedisCache):
         return cls(**kwargs)
 
 
-class RedisSentinelCacheBackend(RedisSentinelCache):
+class RedisSentinelCacheBackend(_OwnerTokenCacheMixin, RedisSentinelCache):
     MAX_EVENT_COUNT = 100
 
     def __init__(  # pylint: disable=too-many-arguments
@@ -200,12 +240,14 @@ class RedisSentinelCacheBackend(RedisSentinelCache):
         ssl_ca_certs: str | None = None,
         socket_timeout: float | None = None,
         socket_connect_timeout: float | None = None,
+        force_master_ip: str | None = None,
         **kwargs: Any,
     ) -> None:
         # Sentinel dont directly support SSL
         # Initialize Sentinel without SSL parameters
         self._sentinel = Sentinel(
             sentinels,
+            force_master_ip=force_master_ip,
             # See the matching comment in RedisCacheBackend.__init__: pin the
             # pre-redis-py-8 defaults (no socket timeout, RESP2) explicitly
             # for the sentinel-node connections too, so this bump doesn't
