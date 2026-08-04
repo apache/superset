@@ -822,6 +822,32 @@ WHERE datistemplate = false;
             }
 
     @classmethod
+    def get_schema_names(cls, inspector: Inspector) -> set[str]:
+        """
+        Return all schema names, excluding the ``pg_``-prefixed Postgres
+        system schemas (e.g. ``pg_catalog``, ``pg_toast``).
+
+        SQLAlchemy's Postgres dialect filters out system schemas with the
+        query ``nspname NOT LIKE 'pg_%'``. Since ``_`` is a single-character
+        wildcard in SQL ``LIKE`` patterns, this unintentionally excludes any
+        user-defined schema that merely starts with ``pg`` followed by any
+        other character (e.g. ``pgsql``, ``pgstats``), not only the
+        ``pg_``-prefixed system schemas. Matching on the literal ``pg_``
+        prefix instead keeps those user-defined schemas.
+
+        TODO: drop this override once sqlalchemy/sqlalchemy#13471 is merged
+        and released, and SQLAlchemy is bumped past that version.
+        """
+        with inspector.engine.connect() as conn:
+            return {
+                name
+                for (name,) in conn.execute(
+                    text("SELECT nspname FROM pg_namespace ORDER BY nspname")
+                )
+                if not name.startswith("pg_")
+            }
+
+    @classmethod
     def get_table_names(
         cls, database: Database, inspector: PGInspector, schema: str | None
     ) -> set[str]:

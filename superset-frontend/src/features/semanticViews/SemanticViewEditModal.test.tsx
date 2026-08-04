@@ -265,3 +265,59 @@ test('details tab save still works after viewing structure tabs', async () => {
   });
   expect(props.addSuccessToast).toHaveBeenCalledWith('Semantic view updated');
 });
+
+// ---------------------------------------------------------------------------
+// Large-catalog structure rendering (sc-107832 / spec US2)
+// ---------------------------------------------------------------------------
+
+const LARGE_STRUCTURE = {
+  result: {
+    dimensions: Array.from({ length: 500 }, (_, i) => ({
+      name: `dim_${String(i).padStart(3, '0')}`,
+      type: 'string',
+      definition: null,
+      description: null,
+      grain: null,
+    })),
+    metrics: Array.from({ length: 500 }, (_, i) => ({
+      name: `metric_${String(i).padStart(3, '0')}`,
+      type: 'double',
+      definition: 'SIMPLE',
+      description: null,
+    })),
+  },
+};
+
+test('renders a 500-metric structure paginated instead of unbounded', async () => {
+  mockedGet.mockResolvedValue({ json: LARGE_STRUCTURE });
+  const consoleError = jest.spyOn(console, 'error').mockImplementation();
+  try {
+    render(<SemanticViewEditModal {...createProps()} />);
+
+    // Tab labels report the full counts.
+    await userEvent.click(await screen.findByText('Metrics (500)'));
+    // Pagination caps the rendered rows: first page only, not all 500.
+    await waitFor(() => {
+      expect(screen.getByText('metric_000')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('metric_499')).not.toBeInTheDocument();
+    const rows = document.querySelectorAll('.ant-table-tbody tr');
+    expect(rows.length).toBeLessThanOrEqual(101);
+    expect(
+      consoleError.mock.calls.find(args =>
+        String(args[0]).includes('Maximum update depth'),
+      ),
+    ).toBeUndefined();
+  } finally {
+    consoleError.mockRestore();
+  }
+});
+
+test('keeps small structures unpaginated', async () => {
+  render(<SemanticViewEditModal {...createProps()} />);
+  await userEvent.click(await screen.findByText('Metrics (1)'));
+  await waitFor(() => {
+    expect(screen.getByText('orders')).toBeInTheDocument();
+  });
+  expect(document.querySelector('.ant-pagination')).toBeNull();
+});

@@ -27,6 +27,7 @@ import {
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import Chart from 'src/types/Chart';
+import { deletedToast, deleteFailedToast } from 'src/utils/softDeleteCopy';
 import { intersection } from 'lodash-es';
 import rison from 'rison';
 import type {
@@ -294,7 +295,8 @@ const createFetchSubjectRelation =
         ...result,
         data: result.data.flatMap(item => {
           const secondaryLabel = item.extra?.secondary_label as
-            string | undefined;
+            | string
+            | undefined;
           const type = item.extra?.type as number | undefined;
           const value = normalizeSubjectToPickerValue({
             value: item.value,
@@ -374,10 +376,10 @@ export function handleChartDelete(
       if (chartFilter === 'Mine') refreshData(filters);
       else if (chartFilter && getData) getData(chartFilter as TableTab);
       else refreshData();
-      addSuccessToast(t('Deleted: %s', sliceName));
+      addSuccessToast(deletedToast(sliceName));
     },
     () => {
-      addDangerToast(t('There was an issue deleting: %s', sliceName));
+      addDangerToast(deleteFailedToast(sliceName));
     },
   );
 }
@@ -416,12 +418,10 @@ export function handleDashboardDelete(
       else if (dashboardFilter === 'Other' && getData)
         getData(dashboardFilter as TableTab);
       else refreshData();
-      addSuccessToast(t('Deleted: %s', dashboardTitle));
+      addSuccessToast(deletedToast(dashboardTitle));
     },
     createErrorHandler(errMsg =>
-      addDangerToast(
-        t('There was an issue deleting %s: %s', dashboardTitle, errMsg),
-      ),
+      addDangerToast(deleteFailedToast(dashboardTitle, errMsg)),
     ),
   );
 }
