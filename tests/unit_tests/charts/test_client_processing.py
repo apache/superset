@@ -2245,6 +2245,43 @@ def test_apply_client_processing_csv_format_bytes_data():
     assert "% of total" in processed["queries"][0]["data"]
 
 
+@with_config({"CSV_EXPORT": {"encoding": "latin-1"}})
+def test_apply_client_processing_csv_format_bytes_data_non_default_encoding():
+    """
+    Regression for #32370: the CSV bytes payload must be decoded with the
+    configured ``CSV_EXPORT.encoding``, not a hardcoded ``utf-8``, since
+    ``QueryContextProcessor.get_data`` encodes with that same config value.
+    A UTF-8 decode of latin-1 bytes containing e.g. "é" (0xE9) would raise
+    ``UnicodeDecodeError`` instead of the intended CSV text.
+    """
+
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": "name,city\nA,Montr\xe9al\n".encode("latin-1"),
+            }
+        ]
+    }
+    form_data = {
+        "datasource": "19__table",
+        "viz_type": "pivot_table_v2",
+        "slice_id": 69,
+        "groupbyColumns": [],
+        "groupbyRows": ["name"],
+        "metrics": ["city"],
+        "metricsLayout": "COLUMNS",
+        "aggregateFunction": "Sum",
+        "rowOrder": "key_a_to_z",
+        "colOrder": "key_a_to_z",
+        "result_format": "csv",
+        "result_type": "post_processed",
+    }
+
+    processed = apply_client_processing(result, form_data)
+    assert "Montréal" in processed["queries"][0]["data"]
+
+
 def test_apply_client_processing_csv_format_empty_string():
     """
     It should be able to process csv results with no data

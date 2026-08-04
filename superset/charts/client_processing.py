@@ -379,8 +379,17 @@ def apply_client_processing(  # noqa: C901
             # reports to avoid unwanted conversions
             # This allows users to control which values should be treated as null/NA
             na_values = current_app.config["REPORTS_CSV_NA_NAMES"]
+            # QueryContextProcessor.get_data encodes CSV `data` to bytes using
+            # the configured CSV_EXPORT encoding (default utf-8), matching
+            # the encoding SQL Lab's own CSV export uses -- decode with that
+            # same encoding rather than assuming `data` is already a `str`.
+            csv_data = (
+                data.decode(csv_export_config.get("encoding", "utf-8"))
+                if isinstance(data, bytes)
+                else data
+            )
             df = pd.read_csv(
-                StringIO(data),
+                StringIO(csv_data),
                 keep_default_na=na_values is None,
                 na_values=na_values,
                 sep=sep,
