@@ -104,6 +104,7 @@ export const ChartPills = forwardRef(
             <CachedLabel
               onClick={refreshCachedQuery}
               cachedTimestamp={firstQueryResponse.cached_dttm}
+              semanticCacheHit={firstQueryResponse.semantic_cache_hit === true}
             />
           )}
           <Timer

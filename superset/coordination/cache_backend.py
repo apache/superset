@@ -105,6 +105,19 @@ class RedisCommandsMixin:
         """
         return int(self._cache.eval(_COMPARE_AND_DELETE_LUA, 1, name, expected))
 
+    def acquire_owner_token(
+        self,
+        key: str,
+        owner_token: str,
+        lease_seconds: int,
+    ) -> bool:
+        """Acquire an expiring lease only when the key is unowned."""
+        return bool(self._cache.set(key, owner_token, nx=True, ex=lease_seconds))
+
+    def release_owner_token(self, key: str, owner_token: str) -> bool:
+        """Release the lease only when the caller still owns it."""
+        return bool(self.compare_and_delete(key, owner_token))
+
     def publish(self, channel: str, message: str) -> int:
         """
         Publish a message to a Redis pub/sub channel.
@@ -280,12 +293,14 @@ class RedisSentinelCacheBackend(RedisCommandsMixin, RedisSentinelCache):
         ssl_ca_certs: str | None = None,
         socket_timeout: float | None = None,
         socket_connect_timeout: float | None = None,
+        force_master_ip: str | None = None,
         **kwargs: Any,
     ) -> None:
         # Sentinel dont directly support SSL
         # Initialize Sentinel without SSL parameters
         self._sentinel = Sentinel(
             sentinels,
+            force_master_ip=force_master_ip,
             # See the matching comment in RedisCacheBackend.__init__: pin the
             # pre-redis-py-8 defaults (no socket timeout, RESP2) explicitly
             # for the sentinel-node connections too, so this bump doesn't

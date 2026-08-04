@@ -73,6 +73,7 @@ export interface ChartDataResponseResult {
   coltypes: GenericDataType[];
   error: string | null;
   is_cached: boolean;
+  semantic_cache_hit?: boolean | null;
   query: string;
   rowcount: number;
   sql_rowcount: number;

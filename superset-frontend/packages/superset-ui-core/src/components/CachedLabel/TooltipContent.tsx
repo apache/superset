@@ -23,15 +23,28 @@ import { extendedDayjs } from '../../utils/dates';
 
 interface Props {
   cachedTimestamp?: string;
+  semanticCacheHit?: boolean;
 }
-export const TooltipContent: FC<Props> = ({ cachedTimestamp }) => {
+export const TooltipContent: FC<Props> = ({
+  cachedTimestamp,
+  semanticCacheHit,
+}) => {
+  const loadedText = semanticCacheHit
+    ? {
+        timestamped: t('Loaded semantic data cached'),
+        untimed: t('Loaded from semantic cache'),
+      }
+    : {
+        timestamped: t('Loaded data cached'),
+        untimed: t('Loaded from cache'),
+      };
   const cachedText = cachedTimestamp ? (
     <span>
-      {t('Loaded data cached')}
+      {loadedText.timestamped}
       <b> {extendedDayjs.utc(cachedTimestamp).fromNow()}</b>
     </span>
   ) : (
-    t('Loaded from cache')
+    loadedText.untimed
   );
 
   return (
