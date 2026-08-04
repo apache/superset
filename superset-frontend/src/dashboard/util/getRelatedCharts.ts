@@ -55,31 +55,10 @@ function getRelatedChartsForCrossFilter(
   slices: Record<string, Slice>,
   scope: number[],
 ): number[] {
-  const sourceSlice = slices[filterKey];
-
-  if (!sourceSlice) return [];
-
-  const fullScope = [
-    ...scope.filter(s => String(s) !== filterKey),
-    Number(filterKey),
-  ];
-  const scopeSet = new Set(scope);
-
-  return Object.values(slices).reduce((result: number[], slice) => {
-    if (slice.slice_id === Number(filterKey)) {
-      return result;
-    }
-    // Check if it's in the global scope
-    if (isGlobalScope(fullScope, slices)) {
-      result.push(slice.slice_id);
-      return result;
-    }
-    // Check if it's hand-picked in scope
-    if (scopeSet.has(slice.slice_id)) {
-      result.push(slice.slice_id);
-    }
-    return result;
-  }, []);
+  const chartsInScopeSet = new Set(scope);
+  return Object.values(slices)
+    .map(slice => slice.slice_id)
+    .filter(id => chartsInScopeSet.has(id) && id !== Number(filterKey));
 }
 
 export function getRelatedCharts(
