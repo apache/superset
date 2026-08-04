@@ -36,7 +36,7 @@ classifiers = [
 dependencies = [
     # no bounds for apache-superset-core until we have a stable version
     "apache-superset-core",
-    "backon>=4.4.5",
+    "backon>=4.4.5,<5",
     # cachetools is used directly by ``superset.db_engine_specs.aws_iam`` (TTLCache).
     # It used to be installed transitively via ``google-auth`` (<2.53), but
     # ``google-auth`` 2.53+ dropped it, so Superset must declare it
