@@ -51,6 +51,20 @@ export enum MetricsLayoutEnum {
 }
 
 /**
+ * Display mode for pivot cell values: raw values, or each value expressed as
+ * a fraction of its row/column/grand total. Purely a presentational transform
+ * applied at render time against the already DB-correct rollup totals (see
+ * `PivotData` in `react-pivottable/utilities.ts`); it does not change what
+ * gets queried.
+ */
+export enum ShowValuesAsEnum {
+  ACTUAL = 'actual',
+  PERCENT_OF_ROW = 'percent_row',
+  PERCENT_OF_COLUMN = 'percent_col',
+  PERCENT_OF_TOTAL = 'percent_total',
+}
+
+/**
  * One rollup level for non-additive totals: a prefix of the row dimensions and
  * a prefix of the column dimensions. See `plugin/utilities.ts`.
  */
@@ -95,6 +109,7 @@ interface PivotTableCustomizeProps {
   columnFormats: JsonObject;
   currencyFormats: Record<string, Currency>;
   metricsLayout?: MetricsLayoutEnum;
+  showValuesAs?: ShowValuesAsEnum;
   metricColorFormatters: ColorFormatters;
   dateFormatters: Record<string, DateFormatter | undefined>;
   legacy_order_by: QueryFormMetric[] | QueryFormMetric | null;

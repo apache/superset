@@ -33,7 +33,7 @@ import {
   validateNonEmpty,
   QueryFormColumn,
 } from '@superset-ui/core';
-import { MetricsLayoutEnum } from '../types';
+import { MetricsLayoutEnum, ShowValuesAsEnum } from '../types';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -240,6 +240,29 @@ const config: ControlPanelConfig = {
                   'opposed to each column being displayed side by side for each metric.',
               ),
               renderTrigger: true,
+            },
+          },
+        ],
+        [
+          {
+            name: 'showValuesAs',
+            config: {
+              type: 'SelectControl',
+              label: t('Show values as'),
+              default: ShowValuesAsEnum.ACTUAL,
+              renderTrigger: true,
+              choices: [
+                [ShowValuesAsEnum.ACTUAL, t('Actual values')],
+                [ShowValuesAsEnum.PERCENT_OF_ROW, t('% of row total')],
+                [ShowValuesAsEnum.PERCENT_OF_COLUMN, t('% of column total')],
+                [ShowValuesAsEnum.PERCENT_OF_TOTAL, t('% of grand total')],
+              ],
+              description: t(
+                'Display each cell as a percentage of its row, column, or ' +
+                  'grand total, instead of its actual value. Totals and ' +
+                  'subtotals are still computed correctly first; this only ' +
+                  'changes how they are displayed.',
+              ),
             },
           },
         ],

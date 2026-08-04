@@ -814,6 +814,16 @@ const aggregatorTemplates = {
   ...extendedAggregatorTemplates,
 };
 
+// Maps the pivot's "Show values as" control (see ../types.ts's
+// ShowValuesAsEnum) to fractionOf's `type` parameter. `undefined`/'actual'
+// means "no wrapping" and isn't listed here.
+const FRACTION_TYPE_BY_SHOW_VALUES_AS: Record<string, 'total' | 'row' | 'col'> =
+  {
+    percent_total: 'total',
+    percent_row: 'row',
+    percent_col: 'col',
+  };
+
 // default aggregators & renderers use US naming and number formatting
 const aggregators = (tpl => ({
   Count: tpl.count(usFmtInt),
@@ -970,32 +980,53 @@ class PivotData {
     );
 
     const vals = this.props.vals as string[];
+    const fractionType =
+      FRACTION_TYPE_BY_SHOW_VALUES_AS[this.props.showValuesAs as string];
     // Values come pre-aggregated from the database (one query per rollup level),
     // so the pivot stores them verbatim via `cellValue` instead of aggregating.
-    this.aggregator = cellValue(this.props.defaultFormatter as Formatter)(vals);
-    this.formattedAggregators = this.props.customFormatters
-      ? Object.entries(
-          this.props.customFormatters as Record<
-            string,
-            Record<string, unknown>
-          >,
-        ).reduce(
-          (
-            acc: Record<
+    // When "Show values as" a fraction is active, wrap that passthrough with
+    // the same fractionOf template the pre-SIP-216 "Sum as Fraction of ..."
+    // aggregators used: it divides a cell's own value by the value at the
+    // requested scope (row/column/grand total), each of which is itself one
+    // of these uniformly-wrapped aggregators, so `fractionOf`'s cross-lookup
+    // (`data.getAggregator(...).inner.value()`) resolves correctly no matter
+    // which scope it's called for -- including the totals dividing by
+    // themselves to read 100%. This needs no new query and no per-metric
+    // aggregator-override control (that control is gone, see SIP.md); it's a
+    // pure display transform over values that are already DB-correct.
+    this.aggregator = fractionType
+      ? aggregatorTemplates.fractionOf(
+          cellValue(),
+          fractionType,
+          usFmtPct,
+        )(vals)
+      : cellValue(this.props.defaultFormatter as Formatter)(vals);
+    // Percentage display always uses a fixed percent format -- a per-metric
+    // custom formatter (currency, decimals, etc.) doesn't apply to a ratio.
+    this.formattedAggregators =
+      !fractionType && this.props.customFormatters
+        ? Object.entries(
+            this.props.customFormatters as Record<
               string,
-              Record<string, (...args: unknown[]) => Aggregator>
+              Record<string, unknown>
             >,
-            [key, columnFormatter],
-          ) => {
-            acc[key] = {};
-            Object.entries(columnFormatter).forEach(([column, formatter]) => {
-              acc[key][column] = cellValue(formatter as Formatter)(vals);
-            });
-            return acc;
-          },
-          {},
-        )
-      : false;
+          ).reduce(
+            (
+              acc: Record<
+                string,
+                Record<string, (...args: unknown[]) => Aggregator>
+              >,
+              [key, columnFormatter],
+            ) => {
+              acc[key] = {};
+              Object.entries(columnFormatter).forEach(([column, formatter]) => {
+                acc[key][column] = cellValue(formatter as Formatter)(vals);
+              });
+              return acc;
+            },
+            {},
+          )
+        : false;
     this.tree = {};
     this.rowKeys = [];
     this.colKeys = [];

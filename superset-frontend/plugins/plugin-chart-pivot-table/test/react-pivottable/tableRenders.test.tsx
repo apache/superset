@@ -760,3 +760,97 @@ test('TableRenderer renders correct number of thead and tbody sections', () => {
   expect(theadEl).toBeInTheDocument();
   expect(tbodyEl).toBeInTheDocument();
 });
+
+/**
+ * "Show values as" a fraction (percent_row/percent_col/percent_total): a pure
+ * display transform over the already DB-correct rollup values in
+ * TAGGED_COUNT_DATA (leaf cells = 1, row/col totals = 2, grand total = 4).
+ * Reintroduces the pre-SIP-216 "Sum as Fraction of ..." display, but as a
+ * standalone control rather than resurrecting the removed per-metric
+ * "Aggregation function" selector -- see PivotData's constructor in
+ * ../../src/react-pivottable/utilities.ts.
+ */
+function getCellTexts(className: string) {
+  return screen
+    .getAllByRole('gridcell')
+    .filter(cell => cell.classList.contains(className))
+    .map(cell => cell.textContent);
+}
+
+test('TableRenderer shows values as a percentage of the grand total', () => {
+  const props = buildDefaultProps({
+    data: TAGGED_COUNT_DATA,
+    vals: ['value'],
+    tableOptions: { rowTotals: true, colTotals: true },
+    showValuesAs: 'percent_total',
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  // Each leaf cell is 1 out of a grand total of 4.
+  expect(getCellTexts('pvtVal')).toEqual(
+    expect.arrayContaining(['25.0%', '25.0%', '25.0%', '25.0%']),
+  );
+  // Row and column totals are 2 out of 4.
+  const rowTotalCells = getCellTexts('pvtTotal').filter(
+    text => text === '50.0%',
+  );
+  expect(rowTotalCells.length).toBeGreaterThan(0);
+  // The grand total is always 100% of itself.
+  const grandTotalCells = screen
+    .getAllByRole('gridcell')
+    .filter(cell => cell.classList.contains('pvtGrandTotal'));
+  expect(grandTotalCells).toHaveLength(1);
+  expect(grandTotalCells[0]).toHaveTextContent('100.0%');
+});
+
+test('TableRenderer shows values as a percentage of the row total', () => {
+  const props = buildDefaultProps({
+    data: TAGGED_COUNT_DATA,
+    vals: ['value'],
+    tableOptions: { rowTotals: true, colTotals: true },
+    showValuesAs: 'percent_row',
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  // Each leaf cell (1) is half of its row's total (2).
+  expect(getCellTexts('pvtVal')).toEqual(
+    expect.arrayContaining(['50.0%', '50.0%', '50.0%', '50.0%']),
+  );
+  // A row total is 100% of itself.
+  expect(getCellTexts('pvtTotal')).toEqual(expect.arrayContaining(['100.0%']));
+});
+
+test('TableRenderer shows values as a percentage of the column total', () => {
+  const props = buildDefaultProps({
+    data: TAGGED_COUNT_DATA,
+    vals: ['value'],
+    tableOptions: { rowTotals: true, colTotals: true },
+    showValuesAs: 'percent_col',
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  // Each leaf cell (1) is half of its column's total (2).
+  expect(getCellTexts('pvtVal')).toEqual(
+    expect.arrayContaining(['50.0%', '50.0%', '50.0%', '50.0%']),
+  );
+  // A column total is 100% of itself.
+  expect(getCellTexts('pvtTotal')).toEqual(expect.arrayContaining(['100.0%']));
+});
+
+test('TableRenderer shows actual values when showValuesAs is unset (default)', () => {
+  const props = buildDefaultProps({
+    data: TAGGED_COUNT_DATA,
+    vals: ['value'],
+    tableOptions: { rowTotals: true, colTotals: true },
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  // No percent signs anywhere -- the DB-computed values render as-is.
+  const allCellTexts = screen
+    .getAllByRole('gridcell')
+    .map(cell => cell.textContent);
+  expect(allCellTexts.some(text => text?.includes('%'))).toBe(false);
+  expect(getCellTexts('pvtVal')).toEqual(
+    expect.arrayContaining(['1.00', '1.00', '1.00', '1.00']),
+  );
+});
