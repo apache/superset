@@ -156,10 +156,9 @@ export const labelPositionControl: ControlSetItem = {
     ],
     default: 'auto',
     renderTrigger: true,
-    description: t('Position of the data label relative to the bar segment'),
+    description: t('Position of the data label relative to the data point'),
     visibility: ({ controls }: ControlPanelsContainerProps) =>
-      Boolean(controls?.show_value?.value) ||
-      Boolean(controls?.show_valueB?.value),
+      Boolean(controls?.show_value?.value),
   },
 };
 

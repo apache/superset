@@ -31,6 +31,7 @@ import {
   ContextMenuTransformedProps,
   CrossFilterTransformedProps,
   EchartsTimeseriesSeriesType,
+  LabelPositionEnum,
   LegendFormData,
   StackType,
   TitleFormData,
@@ -84,28 +85,8 @@ export type EchartsMixedTimeseriesFormData = QueryFormData & {
   seriesTypeB: EchartsTimeseriesSeriesType;
   showValue: boolean;
   showValueB: boolean;
-  labelPosition?:
-    | 'auto'
-    | 'top'
-    | 'bottom'
-    | 'left'
-    | 'right'
-    | 'inside'
-    | 'insideTop'
-    | 'insideBottom'
-    | 'insideLeft'
-    | 'insideRight';
-  labelPositionB?:
-    | 'auto'
-    | 'top'
-    | 'bottom'
-    | 'left'
-    | 'right'
-    | 'inside'
-    | 'insideTop'
-    | 'insideBottom'
-    | 'insideLeft'
-    | 'insideRight';
+  labelPosition?: LabelPositionEnum | 'auto';
+  labelPositionB?: LabelPositionEnum | 'auto';
   stack: StackType;
   stackB: StackType;
   yAxisIndex?: number;

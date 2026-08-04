@@ -219,7 +219,7 @@ function createCustomizeSection(
           default: 'auto',
           renderTrigger: true,
           description: t(
-            'Position of the data label relative to the bar segment',
+            'Position of the data label relative to the data point',
           ),
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             Boolean(controls?.[`show_value${controlSuffix}`]?.value),

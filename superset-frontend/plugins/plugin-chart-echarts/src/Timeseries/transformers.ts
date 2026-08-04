@@ -51,6 +51,7 @@ import { extractForecastSeriesContext } from '../utils/forecast';
 import {
   EchartsTimeseriesSeriesType,
   ForecastSeriesEnum,
+  LabelPositionEnum,
   LegendOrientation,
   OrientationType,
   StackType,
@@ -457,9 +458,9 @@ export function transformSeries(
       show: !!showValue,
       position: (labelPosition === 'auto' || !labelPosition
         ? isHorizontal
-          ? 'right'
-          : 'top'
-        : labelPosition) as any,
+          ? LabelPositionEnum.Right
+          : LabelPositionEnum.Top
+        : labelPosition) as LabelPositionEnum,
       ...(plotType === 'bar' ? { overflow: 'truncate' } : {}),
       color: theme?.colorText,
       textBorderWidth: 0,
