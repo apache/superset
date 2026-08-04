@@ -992,6 +992,20 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         if isinstance(self._parsed, exp.Command) and self._parsed.name == "ALTER":
             return True  # pragma: no cover
 
+        # Trino `CREATE [OR REPLACE] FUNCTION ... BEGIN ... END` (a persistent
+        # catalog function, as opposed to an inline `WITH FUNCTION` UDF scoped
+        # to one query) has no structured sqlglot grammar and falls back to an
+        # opaque `exp.Command`, so the generic `exp.Create` check above never
+        # matches it. Without this, a read-only SQL Lab query with
+        # `allow_dml=False` could still create a named function in the Trino
+        # catalog.
+        if (
+            self._dialect == Dialects.TRINO
+            and isinstance(self._parsed, exp.Command)
+            and self._parsed.name.upper() == "CREATE"
+        ):
+            return True
+
         # PostgreSQL constructs that sqlglot represents as an opaque
         # `exp.Command` rather than a structured AST. Each of these can mutate
         # state or wrap a DML body that would otherwise be detected. The

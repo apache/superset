@@ -366,6 +366,58 @@ SELECT 42
     assert len(statements) == 2
 
 
+def test_block_keyword_as_parameter_reference_not_counted() -> None:
+    """
+    ``LOOP``, ``REPEAT``, and ``WHILE`` are not reserved words in Trino, so
+    an unquoted routine parameter or column reference spelled the same way
+    (e.g. a parameter named ``loop``) must not be mistaken for a
+    block-opening keyword, which would otherwise leave the block depth
+    unbalanced at ``END``.
+    """
+    sql = """
+WITH FUNCTION echo(loop bigint)
+  RETURNS bigint
+  BEGIN
+    RETURN loop;
+  END
+SELECT echo(x) FROM some_table
+    """.strip()
+    statements = sqlglot.parse(sql, dialect=Trino)
+    assert len(statements) == 1
+    assert len(list(statements[0].find_all(InlineUDF))) == 1
+
+
+def test_body_keyword_in_routine_characteristic_ignored() -> None:
+    """
+    A routine characteristic string value that happens to spell a body
+    keyword (e.g. ``COMMENT 'RETURN'`` or ``COMMENT 'BEGIN'``) must not be
+    mistaken for the actual start of the function body.
+    """
+    sql = """
+WITH FUNCTION f()
+  RETURNS int
+  COMMENT 'RETURN'
+  BEGIN
+    RETURN 1;
+  END
+SELECT f()
+    """.strip()
+    statements = sqlglot.parse(sql, dialect=Trino)
+    assert len(statements) == 1
+    assert len(list(statements[0].find_all(InlineUDF))) == 1
+
+    sql_begin_comment = """
+WITH FUNCTION f()
+  RETURNS int
+  COMMENT 'BEGIN'
+  RETURN 1
+SELECT f()
+    """.strip()
+    statements = sqlglot.parse(sql_begin_comment, dialect=Trino)
+    assert len(statements) == 1
+    assert len(list(statements[0].find_all(InlineUDF))) == 1
+
+
 def test_block_keywords_in_string_literals_and_identifiers_ignored() -> None:
     """
     Block keywords (``BEGIN``, ``CASE``, ``END``, ``IF``, ...) that appear as
