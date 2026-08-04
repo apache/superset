@@ -997,6 +997,12 @@ USER_AGENT_FUNC: Callable[[Database, utils.QuerySource | None], str] | None = No
 # This is merely a default.
 FEATURE_FLAGS: dict[str, bool] = {}
 
+# Retention policy for soft-deleted dashboards, charts, and datasets. A value of
+# zero disables scheduled purging. Dry-run mode is enabled by default so operators
+# must explicitly opt in to irreversible deletion.
+SOFT_DELETE_RETENTION_DAYS: int = 30
+SOFT_DELETE_PURGE_DRY_RUN: bool = True
+
 # A function that receives a dict of all feature flags
 # (DEFAULT_FEATURE_FLAGS merged with FEATURE_FLAGS)
 # can alter it, and returns a similar dict. Note the dict of feature
@@ -1349,6 +1355,19 @@ CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
 
 # Cache for datasource metadata and query results
 DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
+
+# Upper bound, in bytes, on the serialized size of a single value written to the
+# data cache (chart and SQL query results). When a result's pickled size exceeds
+# this threshold the value is NOT written to the cache: the chart still renders,
+# but the next load re-queries the datasource instead of getting a cache hit. This
+# protects the cache backend (e.g. Redis/Memcached) from being flooded by very
+# large result sets. Set to ``None`` to disable the check (the default). Example:
+# 10 * 1024 * 1024 for a 10 MB limit.
+DATA_CACHE_MAX_VALUE_SIZE: int | None = None
+
+# Include per-query lifecycle timing in /api/v1/chart/data JSON responses.
+# The default keeps the public response contract unchanged.
+CHART_DATA_INCLUDE_TIMING: bool = False
 
 # Cache for dashboard filter state. `CACHE_TYPE` defaults to `SupersetMetastoreCache`
 # that stores the values in the key-value table in the Superset metastore, as it's
@@ -1749,6 +1768,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
     broker_url = "sqla+sqlite:///celerydb.sqlite"
     imports = (
         "superset.sql_lab",
+        "superset.tasks.deletion_retention",
         "superset.tasks.scheduler",
         "superset.tasks.thumbnails",
         "superset.tasks.cache",
@@ -1780,6 +1800,10 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         "version_history.prune_old_versions": {
             "task": "version_history.prune_old_versions",
             "schedule": crontab(minute=0, hour=3),
+        },
+        "deletion_retention.purge_soft_deleted": {
+            "task": "deletion_retention.purge_soft_deleted",
+            "schedule": crontab(minute=0, hour=0),
         },
         # Uncomment to enable pruning of the query table
         # "prune_query": {
@@ -2425,6 +2449,10 @@ ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG = int(timedelta(seconds=1).total_seconds
 ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT = 3600
 ALERT_REPORTS_DEFAULT_RETENTION = 90
 ALERT_REPORTS_DEFAULT_CRON_VALUE = "0 0 * * *"  # every day
+# Retry backoff: first retry waits base seconds, each subsequent retry doubles.
+ALERT_REPORTS_RETRY_BASE_DELAY_SECONDS = 60
+# Maximum delay between retries (cap for exponential backoff).
+ALERT_REPORTS_RETRY_MAX_DELAY_SECONDS = 3600
 # If set to true no notification is sent, the worker will just log a message.
 # Useful for debugging
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = False

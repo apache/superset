@@ -319,8 +319,11 @@ describe('EchartsTimeseries transformProps', () => {
     expect(formulaSeries).toBeDefined();
     expect(formulaSeries?.data).toBeDefined();
     expect(Array.isArray(formulaSeries?.data)).toBe(true);
-    expect((formulaSeries!.data as unknown[]).length).toBeGreaterThan(0);
-    const firstDataPoint = (formulaSeries!.data as [number, number][])[0];
+    const series = formulaSeries as SeriesOption;
+    const data = series.data as [number, number][];
+    expect(Array.isArray(data)).toBe(true);
+    expect(data.length).toBeGreaterThan(0);
+    const firstDataPoint = data[0];
     expect(firstDataPoint).toBeDefined();
     expect(firstDataPoint[1]).toBe(firstDataPoint[0] * 2);
   });
@@ -399,7 +402,9 @@ describe('EchartsTimeseries transformProps', () => {
       result.echartOptions.series as SeriesOption[] | undefined
     )?.find((s: SeriesOption) => s.name === 'My Formula');
     expect(formulaSeries).toBeDefined();
-    const firstDataPoint = (formulaSeries!.data as [number, number][])[0];
+    const series = formulaSeries as SeriesOption;
+    const data = series.data as [number, number][];
+    const firstDataPoint = data[0];
     expect(firstDataPoint).toBeDefined();
     expect(firstDataPoint[0]).toBe(firstDataPoint[1] * 2);
   });
@@ -1017,9 +1022,11 @@ test('should apply dashed line style to time comparison series with single metri
   const series = (transformed.echartOptions.series as SeriesOption[]) || [];
 
   const mainSeries = series.find(s => s.name === 'sum__num') as
-    (SeriesOption & { lineStyle?: { type?: number[] | string } }) | undefined;
+    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
+    | undefined;
   const comparisonSeries = series.find(s => s.name === '1 week ago') as
-    (SeriesOption & { lineStyle?: { type?: number[] | string } }) | undefined;
+    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
+    | undefined;
 
   expect(mainSeries).toBeDefined();
   expect(comparisonSeries).toBeDefined();
@@ -1060,11 +1067,13 @@ test('should apply dashed line style to time comparison series with metric__offs
   const series = (transformed.echartOptions.series as SeriesOption[]) || [];
 
   const mainSeries = series.find(s => s.name === 'sum__num') as
-    (SeriesOption & { lineStyle?: { type?: number[] | string } }) | undefined;
+    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
+    | undefined;
   const comparisonSeries = series.find(
     s => s.name === 'sum__num__1 week ago',
   ) as
-    (SeriesOption & { lineStyle?: { type?: number[] | string } }) | undefined;
+    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
+    | undefined;
 
   expect(mainSeries).toBeDefined();
   expect(comparisonSeries).toBeDefined();
@@ -1096,7 +1105,8 @@ test('should apply connectNulls to time comparison series', () => {
   const series = (transformed.echartOptions.series as SeriesOption[]) || [];
 
   const comparisonSeries = series.find(s => s.name === '1 week ago') as
-    (SeriesOption & { connectNulls?: boolean }) | undefined;
+    | (SeriesOption & { connectNulls?: boolean })
+    | undefined;
 
   expect(comparisonSeries).toBeDefined();
   expect(comparisonSeries?.connectNulls).toBe(true);
