@@ -16,16 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { memo } from 'react';
-import { act, cleanup, render, screen } from 'spec/helpers/testing-library';
+import { Component, memo, StrictMode, type ReactNode } from 'react';
 import {
-  CALENDAR_TOOLTIP_CLASS,
-  getCalendarTooltipClassName,
-} from '../src/tooltip';
+  act,
+  cleanup,
+  render,
+  screen,
+  waitFor,
+} from 'spec/helpers/testing-library';
+import { CALENDAR_TOOLTIP_CLASS } from '../src/tooltip';
 
 interface MockCalHeatMapConfig {
   itemSelector: Element;
-  tooltipClassName: string;
 }
 
 type MetricNameInput = string | string[];
@@ -34,6 +36,8 @@ let mockNextInstanceId = 0;
 let mockNextOwnerId = 0;
 let mockInitCallCount = 0;
 let mockThrowOnInitCall: number | null = null;
+let mockDestroyCallCount = 0;
+let mockDestroyedInstanceIds: string[] = [];
 
 const mockTheme = {
   colorBgElevated: '#ffffff',
@@ -42,6 +46,8 @@ const mockTheme = {
 jest.mock('../src/vendor/cal-heatmap', () => ({
   __esModule: true,
   default: class MockCalHeatMap {
+    private instanceId?: string;
+
     private tooltips: HTMLElement[] = [];
 
     init(config: MockCalHeatMapConfig) {
@@ -55,6 +61,7 @@ jest.mock('../src/vendor/cal-heatmap', () => ({
       }
 
       mockNextInstanceId += 1;
+      this.instanceId = String(mockNextInstanceId);
 
       const owner = config.itemSelector.closest(
         '.superset-legacy-chart-calendar',
@@ -75,21 +82,21 @@ jest.mock('../src/vendor/cal-heatmap', () => ({
 
       this.tooltips = [0, 1].map(index => {
         const tooltip = global.document.createElement('div');
-        tooltip.className = [
-          'd3-tip',
-          mockCalendarTooltipClass,
-          config.tooltipClassName,
-        ].join(' ');
+        tooltip.className = ['d3-tip', mockCalendarTooltipClass].join(' ');
         tooltip.dataset.tooltipOwner = tooltipOwner;
-        tooltip.dataset.tooltipInstance = String(mockNextInstanceId);
+        tooltip.dataset.tooltipInstance = this.instanceId;
         tooltip.dataset.tooltipIndex = String(index);
-        tooltip.textContent = `${tooltipOwner}-tooltip-${mockNextInstanceId}-${index}`;
+        tooltip.textContent = `${tooltipOwner}-tooltip-${this.instanceId}-${index}`;
         global.document.body.appendChild(tooltip);
         return tooltip;
       });
     }
 
     destroy() {
+      mockDestroyCallCount += 1;
+      if (this.instanceId) {
+        mockDestroyedInstanceIds.push(this.instanceId);
+      }
       this.tooltips.forEach(tooltip => tooltip.remove());
       this.tooltips = [];
       return null;
@@ -104,6 +111,14 @@ interface CalendarHarnessProps {
   firstMetricNames: MetricNameInput;
   secondMetricNames?: MetricNameInput;
   showFirstCalendar?: boolean;
+}
+
+interface CalendarErrorBoundaryProps {
+  children: ReactNode;
+}
+
+interface CalendarErrorBoundaryState {
+  hasError: boolean;
 }
 
 const CALENDAR_START = 1704067200000;
@@ -143,6 +158,27 @@ function createCalendarProps(metricNames: MetricNameInput) {
       normalizedMetricNames.map(metricName => [metricName, metricName]),
     ),
   };
+}
+
+class CalendarErrorBoundary extends Component<
+  CalendarErrorBoundaryProps,
+  CalendarErrorBoundaryState
+> {
+  state: CalendarErrorBoundaryState = {
+    hasError: false,
+  };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <div>Calendar fallback</div>;
+    }
+
+    return this.props.children;
+  }
 }
 
 const StableSecondCalendar = memo(function StableSecondCalendar({
@@ -204,9 +240,10 @@ function getOwnerTooltips(tooltipOwnerId: string) {
   );
 }
 
-function getTooltipsForElement(element: HTMLElement) {
-  const className = getCalendarTooltipClassName(element);
-  return Array.from(document.querySelectorAll<HTMLElement>(`.${className}`));
+function getCalendarTooltips() {
+  return Array.from(
+    document.querySelectorAll<HTMLElement>(`.${CALENDAR_TOOLTIP_CLASS}`),
+  );
 }
 
 function getTooltipInstanceIds(tooltips: HTMLElement[]) {
@@ -245,6 +282,8 @@ afterEach(() => {
   mockNextOwnerId = 0;
   mockInitCallCount = 0;
   mockThrowOnInitCall = null;
+  mockDestroyCallCount = 0;
+  mockDestroyedInstanceIds = [];
   document.body.innerHTML = '';
 });
 
@@ -306,14 +345,6 @@ test('rerender and unmount clean up only the affected calendar tooltips', () => 
       showFirstCalendar={false}
     />,
   );
-
-  expect(getOwnerTooltips(firstTooltipOwnerId)).toHaveLength(2);
-  expect(getOwnerTooltips(secondTooltipOwnerId)).toHaveLength(2);
-  expect(document.querySelectorAll(`.${CALENDAR_TOOLTIP_CLASS}`)).toHaveLength(
-    4,
-  );
-
-  flushPendingTimersIfNeeded();
 
   expect(getOwnerTooltips(firstTooltipOwnerId)).toHaveLength(0);
   expect(getOwnerTooltips(secondTooltipOwnerId)).toHaveLength(2);
@@ -396,14 +427,6 @@ test('multi-metric calendar rerender and unmount clean up every owned tooltip wh
     />,
   );
 
-  expect(getOwnerTooltips(firstTooltipOwnerId)).toHaveLength(4);
-  expect(getOwnerTooltips(secondTooltipOwnerId)).toHaveLength(2);
-  expect(document.querySelectorAll(`.${CALENDAR_TOOLTIP_CLASS}`)).toHaveLength(
-    6,
-  );
-
-  flushPendingTimersIfNeeded();
-
   expect(getOwnerTooltips(firstTooltipOwnerId)).toHaveLength(0);
   expect(getOwnerTooltips(secondTooltipOwnerId)).toHaveLength(2);
   expect(document.querySelectorAll(`.${CALENDAR_TOOLTIP_CLASS}`)).toHaveLength(
@@ -420,7 +443,6 @@ test('Calendar destroys previously initialized metric instances after a later me
   const calendarOwner = document.createElement('div');
   document.body.appendChild(calendarOwner);
 
-  const ownerClassName = getCalendarTooltipClassName(calendarOwner);
   mockThrowOnInitCall = 2;
 
   expect(() => {
@@ -430,10 +452,11 @@ test('Calendar destroys previously initialized metric instances after a later me
     });
   }).toThrow('Mock CalHeatMap init failure');
 
-  const failedRenderTooltips = getTooltipsForElement(calendarOwner);
+  const failedRenderTooltips = getOwnerTooltips(
+    getTooltipOwnerId(calendarOwner),
+  );
   const failedRenderInstanceIds = getTooltipInstanceIds(failedRenderTooltips);
 
-  expect(ownerClassName).toContain(CALENDAR_TOOLTIP_CLASS);
   expect(failedRenderTooltips).toHaveLength(2);
   expect(failedRenderInstanceIds).toHaveLength(1);
 
@@ -443,7 +466,7 @@ test('Calendar destroys previously initialized metric instances after a later me
     theme: mockTheme,
   });
 
-  const recoveredTooltips = getTooltipsForElement(calendarOwner);
+  const recoveredTooltips = getOwnerTooltips(getTooltipOwnerId(calendarOwner));
 
   expect(failedRenderTooltips.every(tooltip => !tooltip.isConnected)).toBe(
     true,
@@ -454,7 +477,7 @@ test('Calendar destroys previously initialized metric instances after a later me
   );
 });
 
-test('surviving calendar render synchronously sweeps disconnected sibling tooltips', () => {
+test('surviving calendar rerender preserves sibling cleanup after another calendar unmounts', () => {
   jest.useFakeTimers();
 
   const { rerender, unmount } = render(
@@ -482,10 +505,10 @@ test('surviving calendar render synchronously sweeps disconnected sibling toolti
     />,
   );
 
-  expect(getOwnerTooltips(firstTooltipOwnerId)).toHaveLength(2);
+  expect(getOwnerTooltips(firstTooltipOwnerId)).toHaveLength(0);
   expect(getOwnerTooltips(secondTooltipOwnerId)).toHaveLength(2);
   expect(document.querySelectorAll(`.${CALENDAR_TOOLTIP_CLASS}`)).toHaveLength(
-    4,
+    2,
   );
 
   rerender(
@@ -508,4 +531,55 @@ test('surviving calendar render synchronously sweeps disconnected sibling toolti
   );
 
   unmount();
+});
+
+test('StrictMode unmount cleans up calendar tooltips for multi-metric calendars', () => {
+  const { unmount } = render(
+    <StrictMode>
+      <ReactCalendar
+        {...createCalendarProps(['strict-metric-a', 'strict-metric-b'])}
+      />
+    </StrictMode>,
+  );
+
+  expect(getCalendarTooltips()).toHaveLength(4);
+
+  unmount();
+
+  expect(getCalendarTooltips()).toHaveLength(0);
+});
+
+test('ErrorBoundary fallback destroys partially initialized tooltips after a later init failure', async () => {
+  const consoleErrorSpy = jest
+    .spyOn(console, 'error')
+    .mockImplementation(() => undefined);
+
+  mockThrowOnInitCall = 2;
+
+  try {
+    const { unmount } = render(
+      <CalendarErrorBoundary>
+        <ReactCalendar
+          {...createCalendarProps(['failing-metric-a', 'failing-metric-b'])}
+        />
+      </CalendarErrorBoundary>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Calendar fallback')).toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(getCalendarTooltips()).toHaveLength(0);
+    });
+
+    expect(mockDestroyCallCount).toBe(2);
+    expect(mockDestroyedInstanceIds).toEqual(['1']);
+
+    unmount();
+
+    expect(getCalendarTooltips()).toHaveLength(0);
+  } finally {
+    consoleErrorSpy.mockRestore();
+  }
 });

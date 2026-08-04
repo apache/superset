@@ -23,10 +23,6 @@ import { SupersetTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import CalHeatMapImport from './vendor/cal-heatmap';
 import { convertUTCTimestampToLocal } from './utils';
-import {
-  getCalendarTooltipClassName,
-  removeDisconnectedCalendarTooltips,
-} from './tooltip';
 
 // The vendor file is @ts-nocheck, so its export lacks type info.
 // Define a minimal constructor interface for use in this file.
@@ -37,7 +33,7 @@ interface CalHeatMapInstance {
 
 const calendarInstances = new WeakMap<HTMLElement, CalHeatMapInstance[]>();
 
-function destroyCalendarInstances(element: HTMLElement) {
+export function destroyCalendarInstances(element: HTMLElement) {
   calendarInstances.get(element)?.forEach(calendar => calendar.destroy());
   calendarInstances.delete(element);
 }
@@ -95,9 +91,6 @@ function Calendar(element: HTMLElement, props: CalendarProps) {
   } = props;
 
   destroyCalendarInstances(element);
-  removeDisconnectedCalendarTooltips();
-
-  const tooltipClassName = getCalendarTooltipClassName(element);
   const instances: CalHeatMapInstance[] = [];
   calendarInstances.set(element, instances);
 
@@ -158,7 +151,6 @@ function Calendar(element: HTMLElement, props: CalendarProps) {
       legendCellPadding: 2,
       legendCellRadius: cellRadius,
       tooltip: true,
-      tooltipClassName,
       domain: domainGranularity,
       subDomain: subdomainGranularity,
       range: data.range,
