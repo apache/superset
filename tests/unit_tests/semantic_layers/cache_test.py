@@ -38,9 +38,14 @@ from superset.semantic_layers.cache import (
     SemanticCacheState,
 )
 from superset.semantic_layers.cache_coordination import OwnerTokenCoordinationBackend
-from superset.semantic_layers.cache_policy import ContainmentCapabilities, ReuseMode
+from superset.semantic_layers.cache_policy import (
+    ContainmentCapabilities,
+    ReuseDecision,
+    ReuseMode,
+)
 from superset.semantic_layers.cache_repository import (
     CachedEntry,
+    CachedResultCandidate,
     SemanticCacheBackendError,
     SemanticCacheLookupError,
     SemanticCacheLookupResult,
@@ -69,6 +74,14 @@ class _OwnerTokenBackend:
         return True
 
     def release_owner_token(self, key: str, owner_token: str) -> bool:
+        return True
+
+    def refresh_owner_token(
+        self,
+        key: str,
+        owner_token: str,
+        lease_seconds: int,
+    ) -> bool:
         return True
 
 
@@ -107,7 +120,7 @@ def _query(
 def _entry(
     *,
     dimensions: tuple[str, ...] = ("country",),
-    metrics: tuple[str, ...] = ("revenue",),
+    metrics: tuple[Metric, ...] = (_metric("revenue"),),
     limit: int | None = None,
     offset: int = 0,
     order_key: str = "",
@@ -117,8 +130,8 @@ def _entry(
 ) -> CachedEntry:
     return CachedEntry(
         filters=frozenset(),
-        dimension_keys=frozenset(dimensions),
-        metric_ids=frozenset(metrics),
+        dimensions=frozenset(_dimension(key) for key in dimensions),
+        metrics=frozenset(metrics),
         limit=limit,
         offset=offset,
         order_key=order_key,
@@ -396,6 +409,44 @@ def test_lookup_backend_failure_executes_provider() -> None:
     provider.assert_called_once()
 
 
+def test_transform_failure_falls_back_to_provider() -> None:
+    query: SemanticQuery = build_semantic_query()
+    incompatible_query: SemanticQuery = SemanticQuery(
+        metrics=query.metrics,
+        dimensions=[Dimension("missing", "Missing", pa.string())],
+    )
+    entry: CachedEntry = _entry()
+    repository: MagicMock = MagicMock(spec=SemanticCacheRepository)
+    repository.lookup.return_value = SemanticCacheLookupResult(
+        candidates=(
+            CachedResultCandidate(
+                entry,
+                build_semantic_result(),
+                ReuseDecision(ReuseMode.EXACT, frozenset()),
+            ),
+        ),
+        missing_value_keys=frozenset(),
+    )
+    metrics: MagicMock = MagicMock()
+    service: SemanticCacheService = SemanticCacheService(
+        SemanticCacheState.enabled(),
+        repository,
+        metrics,
+    )
+    provider: MagicMock = MagicMock(return_value=build_semantic_result())
+
+    outcome: SemanticCacheOutcome = service.execute(
+        build_view_meta(),
+        incompatible_query,
+        provider,
+        capabilities=ContainmentCapabilities(),
+    )
+
+    assert outcome.cache_hit is False
+    provider.assert_called_once()
+    metrics.incr.assert_any_call("semantic_cache.containment.transform_failure")
+
+
 def test_store_backend_failure_returns_provider_result() -> None:
     backend: MagicMock = MagicMock()
     backend.get.return_value = None
@@ -428,7 +479,7 @@ def test_store_backend_failure_returns_provider_result() -> None:
         (_query(), _entry(), ReuseMode.EXACT),
         (
             _query(),
-            _entry(metrics=("revenue", "cost")),
+            _entry(metrics=(_metric("revenue"), _metric("cost"))),
             ReuseMode.PROJECT,
         ),
         (
@@ -438,12 +489,18 @@ def test_store_backend_failure_returns_provider_result() -> None:
         ),
         (
             _query(metrics=(_metric("average", AggregationType.AVG),)),
-            _entry(dimensions=("country", "city"), metrics=("average",)),
+            _entry(
+                dimensions=("country", "city"),
+                metrics=(_metric("average", AggregationType.AVG),),
+            ),
             None,
         ),
         (
             _query(metrics=(_metric("unknown", None),)),
-            _entry(dimensions=("country", "city"), metrics=("unknown",)),
+            _entry(
+                dimensions=("country", "city"),
+                metrics=(_metric("unknown", None),),
+            ),
             None,
         ),
     ],
@@ -478,7 +535,7 @@ def test_candidate_ranking_prefers_mode_then_freshest_equal_rank() -> None:
     entries: list[CachedEntry] = [
         _entry(value_key="older-exact", timestamp=1.0),
         _entry(
-            metrics=("revenue", "cost"),
+            metrics=(_metric("revenue"), _metric("cost")),
             value_key="project",
             timestamp=5.0,
         ),

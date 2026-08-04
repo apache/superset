@@ -23,7 +23,6 @@ change production connection behavior (redis-py 8 defaults to RESP3 on
 the wire and a 5s socket timeout).
 """
 
-from collections.abc import Callable
 from unittest import mock
 
 import pytest
@@ -204,6 +203,34 @@ def test_owner_token_release_is_atomic_compare_and_delete(
     assert cache.eval.call_args.args[1:] == (1, "bucket", "stale-owner")
 
 
+@pytest.mark.parametrize("backend_name", ["redis", "sentinel"])
+def test_owner_token_refresh_is_atomic_compare_and_expire(
+    backend_name: str,
+) -> None:
+    from superset.async_events.cache_backend import (
+        RedisCacheBackend,
+        RedisSentinelCacheBackend,
+    )
+
+    backend_type: type[RedisCacheBackend] | type[RedisSentinelCacheBackend] = (
+        RedisCacheBackend if backend_name == "redis" else RedisSentinelCacheBackend
+    )
+    backend: RedisCacheBackend | RedisSentinelCacheBackend = object.__new__(
+        backend_type
+    )
+    cache: mock.Mock = mock.Mock()
+    cache.eval.return_value = 1
+    backend._cache = cache
+
+    refreshed: bool = backend.refresh_owner_token("bucket", "owner-a", 15)
+
+    assert refreshed is True
+    script: str = cache.eval.call_args.args[0]
+    assert "redis.call('get', KEYS[1]) == ARGV[1]" in script
+    assert "redis.call('expire', KEYS[1], ARGV[2])" in script
+    assert cache.eval.call_args.args[1:] == (1, "bucket", "owner-a", 15)
+
+
 class _OwnerStore:
     def __init__(self) -> None:
         self.values: dict[str, str] = {}
@@ -252,7 +279,7 @@ def test_expired_owner_cannot_release_successor_token() -> None:
     assert backend.release_owner_token("bucket", "owner-b") is True
 
 
-@pytest.mark.parametrize("operation", ["acquire", "release"])
+@pytest.mark.parametrize("operation", ["acquire", "release", "refresh"])
 def test_owner_token_backend_errors_propagate(operation: str) -> None:
     from superset.async_events.cache_backend import RedisCacheBackend
 
@@ -262,11 +289,13 @@ def test_owner_token_backend_errors_propagate(operation: str) -> None:
         cache, "set" if operation == "acquire" else "eval"
     ).side_effect = RedisConnectionError("unavailable")
     backend._cache = cache
-    operation_call: Callable[[], bool] = (
-        (lambda: backend.acquire_owner_token("bucket", "owner", 1))
-        if operation == "acquire"
-        else (lambda: backend.release_owner_token("bucket", "owner"))
-    )
+
+    def operation_call() -> bool:
+        if operation == "acquire":
+            return backend.acquire_owner_token("bucket", "owner", 1)
+        if operation == "refresh":
+            return backend.refresh_owner_token("bucket", "owner", 1)
+        return backend.release_owner_token("bucket", "owner")
 
     with pytest.raises(RedisConnectionError, match="unavailable"):
         operation_call()

@@ -29,6 +29,13 @@ end
 return 0
 """
 
+_COMPARE_AND_EXPIRE_SCRIPT: str = """
+if redis.call('get', KEYS[1]) == ARGV[1] then
+  return redis.call('expire', KEYS[1], ARGV[2])
+end
+return 0
+"""
+
 
 class _OwnerTokenCacheMixin:
     """Atomic owner-token operations shared by Redis coordination backends."""
@@ -59,6 +66,23 @@ class _OwnerTokenCacheMixin:
                 1,
                 key,
                 owner_token,
+            )
+        )
+
+    def refresh_owner_token(
+        self,
+        key: str,
+        owner_token: str,
+        lease_seconds: int,
+    ) -> bool:
+        """Extend an expiring lease only while the caller still owns it."""
+        return bool(
+            self._cache.eval(
+                _COMPARE_AND_EXPIRE_SCRIPT,
+                1,
+                key,
+                owner_token,
+                lease_seconds,
             )
         )
 

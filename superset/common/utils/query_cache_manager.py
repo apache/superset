@@ -212,7 +212,9 @@ class QueryCacheManager:
                 query_cache.is_loaded = True
                 query_cache.is_cached = True
                 query_cache.sql_rowcount = cache_value.get("sql_rowcount", None)
-                query_cache.semantic_cache_hit = cache_value.get("semantic_cache_hit")
+                # This request was served by the ordinary result cache. Do not
+                # replay how the cached value was produced by an earlier request.
+                query_cache.semantic_cache_hit = False
                 query_cache.cache_dttm = cache_value["dttm"]
                 query_cache.queried_dttm = cache_value.get(
                     "queried_dttm", cache_value.get("dttm")
