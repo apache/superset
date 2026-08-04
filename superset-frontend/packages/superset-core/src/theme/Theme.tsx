@@ -193,11 +193,14 @@ export class Theme {
     // check, every one of those calls would recompute the theme and
     // notify every mounted provider, turning a single real toggle into
     // O(n^2) provider notifications across n demos.
+    // Compare the algorithm sets rather than positions: reordering
+    // non-mode algorithms to the front doesn't change the effective
+    // theme, so it shouldn't count as a change either.
     const currentAlgorithm = this.antdConfig.algorithm;
     const algorithmUnchanged = Array.isArray(newConfig.algorithm)
       ? Array.isArray(currentAlgorithm) &&
         newConfig.algorithm.length === currentAlgorithm.length &&
-        newConfig.algorithm.every((alg, i) => alg === currentAlgorithm[i])
+        newConfig.algorithm.every(alg => currentAlgorithm.includes(alg))
       : newConfig.algorithm === currentAlgorithm;
     if (algorithmUnchanged) {
       return;
