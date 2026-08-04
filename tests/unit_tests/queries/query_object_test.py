@@ -64,6 +64,7 @@ def test_default_query_object_to_dict():
         "columns": [],
         "extras": {},
         "filter": [],
+        "force_query": False,
         "from_dttm": None,
         "granularity": None,
         "group_others_when_limit_reached": False,
@@ -183,6 +184,33 @@ def test_cache_key_changes_for_new_query_object_same_params():
     cache_key1 = query_object1.cache_key()
     query_object2 = QueryObject(row_limit=1)
     assert query_object2.cache_key() == cache_key1
+
+
+def test_force_query_does_not_change_result_cache_identity() -> None:
+    regular: QueryObject = QueryObject(row_limit=1, force_query=False)
+    forced: QueryObject = QueryObject(row_limit=1, force_query=True)
+
+    assert regular.force_query is False
+    assert forced.force_query is True
+    assert forced.cache_key() == regular.cache_key()
+
+
+def test_force_identity_regression_kills_faulty_identity_policy() -> None:
+    class FaultyForceIdentityQueryObject(QueryObject):
+        def cache_key(self, **extra: object) -> str:
+            return f"{super().cache_key(**extra)}:{self.force_query}"
+
+    regular: FaultyForceIdentityQueryObject = FaultyForceIdentityQueryObject(
+        row_limit=1,
+        force_query=False,
+    )
+    forced: FaultyForceIdentityQueryObject = FaultyForceIdentityQueryObject(
+        row_limit=1,
+        force_query=True,
+    )
+
+    with pytest.raises(AssertionError):
+        assert forced.cache_key() == regular.cache_key()
 
 
 @patch("superset.utils.cache_keys.feature_flag_manager")
