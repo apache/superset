@@ -77,10 +77,10 @@ tests:
     asserts:
       - matchRegex:
           path: 'stringData["superset_init.sh"]'
-          pattern: 'ADMIN_USERNAME="admin"'
+          pattern: "ADMIN_USERNAME='admin'"
       - matchRegex:
           path: 'stringData["superset_init.sh"]'
-          pattern: 'ADMIN_PASSWORD="adminpass"'
+          pattern: "ADMIN_PASSWORD='adminpass'"
   - it: uses environment variables when existingSecret is set
     set:
       init:
