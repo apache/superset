@@ -719,7 +719,10 @@ class GlobalErrorHandlerMiddleware(Middleware):
             event_logger.log(
                 user_id=user_id,
                 action="mcp_tool_error",
+                dashboard_id=None,
                 duration_ms=duration_ms,
+                slice_id=None,
+                referrer=None,
                 curated_payload={
                     "tool": tool_name,
                     "error_type": type(error).__name__,
