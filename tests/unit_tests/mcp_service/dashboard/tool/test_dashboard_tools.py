@@ -26,15 +26,11 @@ from unittest.mock import Mock, patch
 import pytest
 from fastmcp import Client
 from fastmcp.exceptions import ToolError
-from flask import g
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.dashboard.schemas import (
     DashboardInfo,
     ListDashboardsRequest,
-)
-from superset.mcp_service.dashboard.tool.get_dashboard_info import (
-    _refresh_request_user_for_permalink_access,
 )
 from superset.mcp_service.utils.sanitization import (
     LLM_CONTEXT_CLOSE_DELIMITER,
@@ -477,10 +473,9 @@ async def test_get_dashboard_info_permalink_does_not_double_sanitize(
             "user_can_view_data_model_metadata",
             return_value=True,
         ),
-        patch.object(
-            get_dashboard_info_module,
-            "_get_permalink_state",
-            return_value=permalink_value,
+        patch(
+            "superset.mcp_service.dashboard.permalink.get_dashboard_permalink",
+            return_value=("permalink-1", permalink_value),
         ),
     ):
         async with Client(mcp_server) as client:
@@ -561,10 +556,9 @@ async def test_get_dashboard_info_permalink_key_includes_filter_state(
             "user_can_view_data_model_metadata",
             return_value=True,
         ),
-        patch.object(
-            get_dashboard_info_module,
-            "_get_permalink_state",
-            return_value=permalink_value,
+        patch(
+            "superset.mcp_service.dashboard.permalink.get_dashboard_permalink",
+            return_value=("some-key", permalink_value),
         ),
     ):
         async with Client(mcp_server) as client:
@@ -581,15 +575,15 @@ async def test_get_dashboard_info_permalink_key_includes_filter_state(
 
 
 @patch("superset.mcp_service.mcp_core.ModelGetInfoCore.run_tool")
-@patch.object(get_dashboard_info_module, "_get_permalink_state")
+@patch("superset.mcp_service.dashboard.permalink.get_dashboard_permalink")
 @pytest.mark.asyncio
 async def test_get_dashboard_info_resolves_permalink_without_identifier(
     mock_permalink, mock_run_tool, mcp_server
 ):
-    mock_permalink.return_value = {
-        "dashboardId": "42",
-        "state": {"activeTabs": ["TAB-A"], "dataMask": {}},
-    }
+    mock_permalink.return_value = (
+        "shared-key",
+        {"dashboardId": "42", "state": {"activeTabs": ["TAB-A"], "dataMask": {}}},
+    )
     mock_run_tool.return_value = DashboardInfo(id=42, dashboard_title="Sales Dashboard")
 
     async with Client(mcp_server) as client:
@@ -603,7 +597,10 @@ async def test_get_dashboard_info_resolves_permalink_without_identifier(
     mock_run_tool.assert_called_once_with("42")
 
 
-@patch.object(get_dashboard_info_module, "_get_permalink_state", return_value=None)
+@patch(
+    "superset.mcp_service.dashboard.permalink.get_dashboard_permalink",
+    return_value=None,
+)
 @pytest.mark.asyncio
 async def test_get_dashboard_info_invalid_permalink_is_actionable(
     mock_permalink, mcp_server
@@ -617,121 +614,29 @@ async def test_get_dashboard_info_invalid_permalink_is_actionable(
     assert "fresh shared dashboard link" in result.data["error"]
 
 
-def test_refresh_request_user_for_permalink_access(
-    app,
+@patch("superset.mcp_service.mcp_core.ModelGetInfoCore.run_tool")
+@patch("superset.mcp_service.dashboard.permalink.get_dashboard_permalink")
+@pytest.mark.asyncio
+async def test_get_dashboard_info_identifier_takes_precedence_over_permalink(
+    mock_permalink, mock_run_tool, mcp_server
 ):
-    refreshed_user = Mock()
-    refreshed_user.username = "admin"
-    refreshed_user.roles = []
-    refreshed_user.groups = []
+    mock_permalink.return_value = (
+        "dashboard-20-key",
+        {"dashboardId": "20", "state": {"activeTabs": ["TAB-20"]}},
+    )
+    mock_run_tool.return_value = DashboardInfo(
+        id=10, dashboard_title="Requested Dashboard"
+    )
 
-    current_user = Mock()
-    current_user.username = "admin"
-    current_user.email = None
-    current_user.is_anonymous = False
-
-    with (
-        patch.object(
-            get_dashboard_info_module,
-            "load_user_with_relationships",
-            return_value=refreshed_user,
-        ) as mock_load_user_with_relationships,
-        app.test_request_context("/mcp"),
-    ):
-        g.user = current_user
-        _refresh_request_user_for_permalink_access()
-
-        mock_load_user_with_relationships.assert_called_once_with(username="admin")
-        assert g.user is refreshed_user
-
-
-def test_refresh_request_user_for_permalink_access_uses_email_when_username_missing(
-    app,
-):
-    refreshed_user = Mock()
-    refreshed_user.email = "admin@example.com"
-
-    current_user = Mock()
-    current_user.username = None
-    current_user.email = "admin@example.com"
-    current_user.is_anonymous = False
-
-    with (
-        patch.object(
-            get_dashboard_info_module,
-            "load_user_with_relationships",
-            return_value=refreshed_user,
-        ) as mock_load_user_with_relationships,
-        app.test_request_context("/mcp"),
-    ):
-        g.user = current_user
-        _refresh_request_user_for_permalink_access()
-
-        mock_load_user_with_relationships.assert_called_once_with(
-            email="admin@example.com"
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_dashboard_info",
+            {"request": {"identifier": 10, "permalink_key": "dashboard-20-key"}},
         )
-        assert g.user is refreshed_user
 
-
-def test_refresh_request_user_for_permalink_access_skips_anonymous_user(app):
-    current_user = Mock()
-    current_user.username = "anonymous"
-    current_user.email = "anonymous@example.com"
-    current_user.is_anonymous = True
-
-    with (
-        patch.object(
-            get_dashboard_info_module,
-            "load_user_with_relationships",
-        ) as mock_load_user_with_relationships,
-        app.test_request_context("/mcp"),
-    ):
-        g.user = current_user
-        _refresh_request_user_for_permalink_access()
-
-        mock_load_user_with_relationships.assert_not_called()
-        assert g.user is current_user
-
-
-def test_refresh_request_user_for_permalink_access_skips_missing_identifier(app):
-    current_user = Mock()
-    current_user.username = None
-    current_user.email = None
-    current_user.is_anonymous = False
-
-    with (
-        patch.object(
-            get_dashboard_info_module,
-            "load_user_with_relationships",
-        ) as mock_load_user_with_relationships,
-        app.test_request_context("/mcp"),
-    ):
-        g.user = current_user
-        _refresh_request_user_for_permalink_access()
-
-        mock_load_user_with_relationships.assert_not_called()
-        assert g.user is current_user
-
-
-def test_refresh_request_user_for_permalink_access_keeps_user_when_reload_fails(app):
-    current_user = Mock()
-    current_user.username = "admin"
-    current_user.email = None
-    current_user.is_anonymous = False
-
-    with (
-        patch.object(
-            get_dashboard_info_module,
-            "load_user_with_relationships",
-            return_value=None,
-        ) as mock_load_user_with_relationships,
-        app.test_request_context("/mcp"),
-    ):
-        g.user = current_user
-        _refresh_request_user_for_permalink_access()
-
-        mock_load_user_with_relationships.assert_called_once_with(username="admin")
-        assert g.user is current_user
+    assert result.data["id"] == 10
+    assert result.data["is_permalink_state"] is False
+    mock_run_tool.assert_called_once_with(10)
 
 
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
@@ -973,10 +878,9 @@ async def test_get_dashboard_info_restricted_user_redacts_permalink_filter_state
             "user_can_view_data_model_metadata",
             return_value=False,
         ),
-        patch.object(
-            get_dashboard_info_module,
-            "_get_permalink_state",
-            return_value=permalink_value,
+        patch(
+            "superset.mcp_service.dashboard.permalink.get_dashboard_permalink",
+            return_value=("abc123", permalink_value),
         ),
     ):
         async with Client(mcp_server) as client:

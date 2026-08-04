@@ -27,16 +27,13 @@ from datetime import datetime, timezone
 from typing import Any
 
 from fastmcp import Context
-from flask import g, has_request_context
 from sqlalchemy.orm import subqueryload
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.dashboards.permalink.types import DashboardPermalinkValue
 from superset.extensions import event_logger
-from superset.mcp_service.auth import load_user_with_relationships
 from superset.mcp_service.dashboard.permalink import (
-    extract_dashboard_permalink_key,
-    get_dashboard_permalink,
+    lookup_dashboard_reference,
 )
 from superset.mcp_service.dashboard.schemas import (
     dashboard_serializer,
@@ -51,26 +48,6 @@ from superset.mcp_service.privacy import user_can_view_data_model_metadata
 from superset.mcp_service.utils import sanitize_for_llm_context
 
 logger = logging.getLogger(__name__)
-
-
-def _refresh_request_user_for_permalink_access() -> None:
-    """Reload the request user before permalink access checks."""
-    if not has_request_context() or not getattr(g, "user", None):
-        return
-    current_user = g.user
-    if getattr(current_user, "is_anonymous", False):
-        return
-    username = getattr(current_user, "username", None)
-    email = getattr(current_user, "email", None)
-    if not username and not email:
-        return
-    refreshed_user = (
-        load_user_with_relationships(username=username)
-        if username
-        else load_user_with_relationships(email=email)
-    )
-    if refreshed_user is not None:
-        g.user = refreshed_user
 
 
 def _apply_permalink_state(
@@ -90,63 +67,28 @@ def _apply_permalink_state(
     return DashboardInfo.model_validate(payload)
 
 
-def _get_permalink_state(permalink_key: str) -> DashboardPermalinkValue | None:
-    """Retrieve dashboard filter state from permalink.
-
-    Returns the permalink value containing dashboardId and state if found,
-    None otherwise.
-    """
-    resolved = get_dashboard_permalink(permalink_key)
-    return resolved[1] if resolved else None
-
-
 def _lookup_dashboard(
     tool: ModelGetInfoCore,
     request: GetDashboardInfoRequest,
 ) -> tuple[DashboardInfo | DashboardError, str | None, DashboardPermalinkValue | None]:
     """Resolve an ordinary identifier or dashboard permalink, then run lookup."""
-    permalink_key = request.permalink_key
-    if isinstance(request.identifier, str):
-        extracted_key = extract_dashboard_permalink_key(request.identifier)
-        if extracted_key != request.identifier:
-            permalink_key = extracted_key
-    permalink_value = _get_permalink_state(permalink_key) if permalink_key else None
-    if permalink_key and permalink_value is None:
-        return (
-            DashboardError.create(
-                "Dashboard permalink could not be resolved. It may be invalid or "
-                "expired; ask for a fresh shared dashboard link.",
-                "permalink_not_found",
-            ),
-            permalink_key,
-            None,
-        )
-    if permalink_key:
-        permalink_key = extract_dashboard_permalink_key(permalink_key)
-
-    lookup_identifier = (
-        permalink_value.get("dashboardId")
-        if permalink_value is not None
-        else request.identifier
+    lookup_result = lookup_dashboard_reference(
+        identifier=request.identifier,
+        permalink_key=request.permalink_key,
+        lookup=tool.run_tool,
+        is_found=lambda result: isinstance(result, DashboardInfo),
     )
-    result = tool.run_tool(lookup_identifier)  # type: ignore[arg-type]
-    if (
-        not isinstance(result, DashboardInfo)
-        and isinstance(request.identifier, str)
-        and not permalink_key
-    ):
-        resolved = get_dashboard_permalink(request.identifier)
-        if resolved:
-            permalink_key, permalink_value = resolved
-            result = tool.run_tool(permalink_value["dashboardId"])
-        else:
-            result = DashboardError.create(
-                "No dashboard matched this identifier or permalink key. If it "
-                "came from a shared /dashboard/p/<key>/ link, the link may be "
-                "invalid or expired; ask for a fresh shared dashboard link.",
-                "not_found",
-            )
-    return result, permalink_key, permalink_value
+    result = lookup_result.result
+    if result is None or lookup_result.permalink_error:
+        error_type = (
+            "permalink_not_found" if request.identifier is None else "not_found"
+        )
+        result = DashboardError.create(
+            "Dashboard permalink could not be resolved. It may be invalid or "
+            "expired; ask for a fresh shared dashboard link.",
+            error_type,
+        )
+    return result, lookup_result.permalink_key, lookup_result.permalink_value
 
 
 @tool(

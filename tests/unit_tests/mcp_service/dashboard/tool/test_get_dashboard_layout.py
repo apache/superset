@@ -264,9 +264,7 @@ async def test_get_dashboard_layout_not_found(mock_find, mcp_server):
 
 
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
-@patch(
-    "superset.mcp_service.dashboard.tool.get_dashboard_layout.get_dashboard_permalink"
-)
+@patch("superset.mcp_service.dashboard.permalink.get_dashboard_permalink")
 @pytest.mark.asyncio
 async def test_get_dashboard_layout_resolves_shared_permalink(
     mock_permalink, mock_find, mcp_server
@@ -303,9 +301,7 @@ async def test_get_dashboard_layout_resolves_shared_permalink(
     assert mock_find.call_args_list[-1].args == (42,)
 
 
-@patch(
-    "superset.mcp_service.dashboard.tool.get_dashboard_layout.get_dashboard_permalink"
-)
+@patch("superset.mcp_service.dashboard.permalink.get_dashboard_permalink")
 @pytest.mark.asyncio
 async def test_get_dashboard_layout_invalid_permalink_is_actionable(
     mock_permalink, mcp_server
@@ -320,6 +316,32 @@ async def test_get_dashboard_layout_invalid_permalink_is_actionable(
 
     assert data["error_type"] == "permalink_not_found"
     assert "fresh shared dashboard link" in data["error"]
+
+
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@patch("superset.mcp_service.dashboard.permalink.get_dashboard_permalink")
+@pytest.mark.asyncio
+async def test_get_dashboard_layout_identifier_takes_precedence_over_permalink(
+    mock_permalink, mock_find, mcp_server
+):
+    mock_permalink.return_value = (
+        "dashboard-20-key",
+        {"dashboardId": "20", "state": {"activeTabs": ["TAB-20"]}},
+    )
+    mock_find.return_value = _build_dashboard_mock(
+        dashboard_id=10, position_json=_tabbed_layout()
+    )
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_dashboard_layout",
+            {"request": {"identifier": 10, "permalink_key": "dashboard-20-key"}},
+        )
+        data = json.loads(result.content[0].text)
+
+    assert data["id"] == 10
+    assert data["is_permalink_state"] is False
+    mock_find.assert_called_once_with(10, query_options=None)
 
 
 def test_extract_layout_handles_invalid_json():
