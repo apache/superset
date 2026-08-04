@@ -94,15 +94,12 @@ jobs:
     # then skip itself at the re-check below — losing the deploy entirely.
     # Queuing means the stale run just waits its turn and then no-ops at the
     # re-check, so the fresher content that already deployed is never
-    # clobbered or lost. `queue: max` is required for that: the default
-    # single-pending-slot queue would let a delayed stale run replace an
-    # already-queued current run instead of waiting behind it. The
-    # check-freshness gate above means it should be rare for more than one
-    # run to reach this point, so the queue stays short in practice.
+    # clobbered or lost. The check-freshness gate above means it should be
+    # rare for more than one run to reach this point, so the queue stays
+    # short in practice.
     concurrency:
       group: docs-deploy-asf-site
       cancel-in-progress: false
-      queue: max
     steps:
       - name: "Checkout ${{ github.event.workflow_run.head_sha || github.sha }}"
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
