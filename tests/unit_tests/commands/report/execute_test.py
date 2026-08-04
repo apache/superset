@@ -3370,6 +3370,13 @@ def _make_state_instance(
     schedule.recipients = []
     schedule.force_screenshot = False
     schedule.extra = {}
+    schedule.retry_on_failure = False
+    schedule.retry_max_attempts = 3
+    schedule.retry_attempt = 0
+    schedule.retry_scheduled_dttm = None
+    schedule.send_failed_reports = False
+    schedule.retry_notify_owners = True
+    schedule.retry_notify_recipients = False
 
     instance = cls(schedule, datetime.utcnow(), uuid4())
     instance._report_schedule = schedule
@@ -3462,6 +3469,30 @@ def test_not_triggered_error_state_send_failure_logs_error_and_reraises(
         calls[1].args[1] if len(calls[1].args) > 1 else ""
     )
     assert "send failed" in error_msg
+
+
+def test_not_triggered_error_state_success_clears_retry_state(
+    mocker: MockerFixture,
+) -> None:
+    """A successful retry clears its persisted retry-window state."""
+    state = _make_state_instance(
+        mocker,
+        ReportNotTriggeredErrorState,
+        schedule_type=ReportScheduleType.REPORT,
+    )
+    state._report_schedule.retry_attempt = 2
+    state._report_schedule.retry_scheduled_dttm = datetime.utcnow()
+    mocker.patch.object(state, "send")
+    mock_update = mocker.patch.object(state, "update_report_schedule_and_log")
+
+    state.next()
+
+    assert state._report_schedule.retry_attempt == 0
+    assert state._report_schedule.retry_scheduled_dttm is None
+    assert mock_update.call_args_list == [
+        mocker.call(ReportState.WORKING),
+        mocker.call(ReportState.SUCCESS, error_message=None),
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -3706,12 +3737,16 @@ def test_success_state_report_sends_and_logs_success(
         ReportSuccessState,
         schedule_type=ReportScheduleType.REPORT,
     )
+    state._report_schedule.retry_attempt = 2
+    state._report_schedule.retry_scheduled_dttm = datetime.utcnow()
     mock_send = mocker.patch.object(state, "send")
     mock_update = mocker.patch.object(state, "update_report_schedule_and_log")
 
     state.next()
 
     mock_send.assert_called_once()
+    assert state._report_schedule.retry_attempt == 0
+    assert state._report_schedule.retry_scheduled_dttm is None
     # WORKING is set before send() (concurrency guard against duplicate sends),
     # then SUCCESS after.
     assert mock_update.call_args_list == [

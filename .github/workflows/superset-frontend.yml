@@ -177,6 +177,11 @@ jobs:
         run: |
           zstd -d < docker-image.tar.zst | docker load
 
+      - name: Validate dependency tree
+        run: |
+          docker run --rm $TAG bash -c \
+          "npm ls --all --package-lock-only --depth=0 --json > /dev/null"
+
       - name: Build Plugins Packages
         run: |
           docker run --rm $TAG bash -c \
