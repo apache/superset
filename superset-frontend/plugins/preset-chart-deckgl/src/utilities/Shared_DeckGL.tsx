@@ -442,7 +442,8 @@ export const mapProvider = {
         options: getLabeledMapRendererOptions({
           hasMapboxKey: hasKey,
           currentValue: state.form_data?.map_renderer as
-            MapProvider | undefined,
+            | MapProvider
+            | undefined,
         }),
         default: getDefaultMapRenderer(),
       };

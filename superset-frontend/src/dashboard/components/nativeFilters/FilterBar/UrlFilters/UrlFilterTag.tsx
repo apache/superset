@@ -64,11 +64,9 @@ const UrlFilterTag = (props: {
   return (
     <StyledTag
       css={css`
-        ${
-          orientation === FilterBarOrientation.Vertical
-            ? `margin-top: ${theme.sizeUnit * 2}px;`
-            : `margin-left: ${theme.sizeUnit * 2}px;`
-        }
+        ${orientation === FilterBarOrientation.Vertical
+          ? `margin-top: ${theme.sizeUnit * 2}px;`
+          : `margin-left: ${theme.sizeUnit * 2}px;`}
       `}
       closable
       onClose={() => onRemove(filter)}
