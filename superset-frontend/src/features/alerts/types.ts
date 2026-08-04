@@ -136,7 +136,13 @@ export type AlertObject = {
   grace_period?: number;
   id: number;
   last_eval_dttm?: number;
-  last_state?: 'Success' | 'Working' | 'Error' | 'Not triggered' | 'On Grace';
+  last_state?:
+    | 'Success'
+    | 'Working'
+    | 'Error'
+    | 'Not triggered'
+    | 'On Grace'
+    | 'Retrying';
   log_retention?: number;
   name?: string;
   editors?: Subject[];
@@ -151,6 +157,11 @@ export type AlertObject = {
   };
   validator_type?: string;
   working_timeout?: number;
+  retry_on_failure?: boolean;
+  retry_max_attempts?: number;
+  send_failed_reports?: boolean;
+  retry_notify_owners?: boolean;
+  retry_notify_recipients?: boolean;
 };
 
 export type LogObject = {
@@ -170,6 +181,7 @@ export enum AlertState {
   Error = 'Error',
   Noop = 'Not triggered',
   Grace = 'On Grace',
+  Retrying = 'Retrying',
 }
 
 export enum RecipientIconName {
