@@ -31,10 +31,7 @@ from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
-from superset.mcp_service.dashboard.permalink import (
-    extract_dashboard_permalink_key,
-    get_dashboard_permalink,
-)
+from superset.mcp_service.dashboard.permalink import lookup_dashboard_reference
 from superset.mcp_service.dashboard.schemas import (
     dashboard_layout_serializer,
     DashboardError,
@@ -97,60 +94,56 @@ async def get_dashboard_layout(
                 supports_slug=True,
                 logger=logger,
             )
-            permalink_key = request.permalink_key
-            if isinstance(request.identifier, str):
-                extracted_key = extract_dashboard_permalink_key(request.identifier)
-                if extracted_key != request.identifier:
-                    permalink_key = extracted_key
-            resolved = get_dashboard_permalink(permalink_key) if permalink_key else None
-            if permalink_key and resolved is None:
+            lookup_result = lookup_dashboard_reference(
+                identifier=request.identifier,
+                permalink_key=request.permalink_key,
+                lookup=core.run_tool,
+                is_found=lambda value: isinstance(value, DashboardLayout),
+            )
+            result = lookup_result.result
+            if result is None or lookup_result.permalink_error:
+                error_type = (
+                    "permalink_not_found" if request.identifier is None else "not_found"
+                )
                 return DashboardError.create(
                     "Dashboard permalink could not be resolved. It may be invalid "
                     "or expired; ask for a fresh shared dashboard link.",
-                    "permalink_not_found",
+                    error_type,
                 )
-
-            lookup_identifier = (
-                resolved[1]["dashboardId"] if resolved else request.identifier
-            )
-            result = core.run_tool(lookup_identifier)  # type: ignore[arg-type]
-
-            if (
-                not isinstance(result, DashboardLayout)
-                and isinstance(request.identifier, str)
-                and not permalink_key
-            ):
-                resolved = get_dashboard_permalink(request.identifier)
-                if resolved:
-                    permalink_key, permalink_value = resolved
-                    result = core.run_tool(permalink_value["dashboardId"])
-                else:
-                    result = DashboardError.create(
-                        "No dashboard matched this identifier or permalink key. If "
-                        "it came from a shared /dashboard/p/<key>/ link, the link "
-                        "may be invalid or expired; ask for a fresh shared dashboard "
-                        "link.",
-                        "not_found",
-                    )
 
         if isinstance(result, DashboardLayout):
-            if resolved:
-                permalink_key, permalink_value = resolved
-                raw_state = permalink_value.get("state")
-                filter_state = dict(raw_state) if isinstance(raw_state, dict) else {}
-                if not user_can_view_data_model_metadata():
-                    filter_state = redact_filter_state_data_model_metadata(filter_state)
-                payload = result.model_dump(mode="python")
-                payload.update(
-                    permalink_key=permalink_key,
-                    filter_state=sanitize_for_llm_context(
-                        filter_state,
-                        field_path=("filter_state",),
-                        excluded_field_names=frozenset(),
-                    ),
-                    is_permalink_state=True,
-                )
-                result = DashboardLayout.model_validate(payload)
+            if lookup_result.permalink_value:
+                permalink_key = lookup_result.permalink_key
+                permalink_value = lookup_result.permalink_value
+                try:
+                    permalink_dashboard_id = int(permalink_value["dashboardId"])
+                except (TypeError, ValueError):
+                    permalink_dashboard_id = None
+                if permalink_dashboard_id == result.id:
+                    raw_state = permalink_value.get("state")
+                    filter_state = (
+                        dict(raw_state) if isinstance(raw_state, dict) else {}
+                    )
+                    if not user_can_view_data_model_metadata():
+                        filter_state = redact_filter_state_data_model_metadata(
+                            filter_state
+                        )
+                    payload = result.model_dump(mode="python")
+                    payload.update(
+                        permalink_key=permalink_key,
+                        filter_state=sanitize_for_llm_context(
+                            filter_state,
+                            field_path=("filter_state",),
+                            excluded_field_names=frozenset(),
+                        ),
+                        is_permalink_state=True,
+                    )
+                    result = DashboardLayout.model_validate(payload)
+                else:
+                    await ctx.warning(
+                        "permalink_key belongs to a different dashboard; ignoring "
+                        "its active-tab and filter state."
+                    )
             await ctx.info(
                 "Dashboard layout retrieved: id=%s, tab_count=%s, chart_count=%s, "
                 "has_layout=%s"
