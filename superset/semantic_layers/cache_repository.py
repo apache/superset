@@ -146,6 +146,16 @@ class SemanticCacheRepository:
         except SemanticCacheCoordinationError as ex:
             raise error_type("Semantic cache descriptor mutation failed") from ex
 
+    def _delete(
+        self,
+        key: str,
+        error_type: type[SemanticCacheRepositoryError],
+    ) -> None:
+        try:
+            self._backend.delete(key)
+        except SemanticCacheBackendError as ex:
+            raise error_type("Semantic cache backend delete failed") from ex
+
     @staticmethod
     def _bucket_key(meta: ViewMeta) -> str:
         return SemanticCacheIdentityFactory.bucket(
@@ -186,8 +196,10 @@ class SemanticCacheRepository:
             value_key=value_key,
             timestamp=self._clock(),
         )
+        descriptor_registered: bool = False
 
         def register() -> None:
+            nonlocal descriptor_registered
             entries: list[CachedEntry] = self._entries(
                 self._get(bucket_key, SemanticCacheStoreError)
             )
@@ -200,14 +212,27 @@ class SemanticCacheRepository:
                 key=lambda entry: entry.timestamp,
                 reverse=True,
             )[:MAX_SEMANTIC_CACHE_DESCRIPTORS_PER_BUCKET]
+            bounded_value_keys: set[str] = {entry.value_key for entry in bounded}
+            evicted_value_keys: set[str] = {
+                entry.value_key
+                for entry in retained
+                if entry.value_key not in bounded_value_keys
+            }
             self._set(
                 bucket_key,
                 bounded,
                 meta.timeout,
                 SemanticCacheStoreError,
             )
+            descriptor_registered = True
+            for evicted_value_key in evicted_value_keys:
+                self._delete(evicted_value_key, SemanticCacheStoreError)
 
-        return self._mutate(bucket_key, register, SemanticCacheStoreError)
+        try:
+            return self._mutate(bucket_key, register, SemanticCacheStoreError)
+        finally:
+            if not descriptor_registered:
+                self._delete(value_key, SemanticCacheStoreError)
 
     def lookup(
         self,
