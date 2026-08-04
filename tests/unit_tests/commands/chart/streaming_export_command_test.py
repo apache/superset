@@ -39,6 +39,9 @@ def _setup_chart_mocks(
     datasource = mocker.MagicMock()
     datasource.get_query_str.return_value = sql
     datasource.database = mocker.MagicMock()
+    datasource.database.mutate_sql_based_on_config.side_effect = (
+        lambda sql_, **kwargs: sql_
+    )
     datasource.catalog = catalog
     datasource.schema = schema
     query_context.datasource = datasource

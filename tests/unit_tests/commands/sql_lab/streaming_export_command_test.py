@@ -63,6 +63,7 @@ def mock_query():
     query.database = MagicMock()
     query.database.db_engine_spec = MagicMock()
     query.database.db_engine_spec.engine = "postgresql"
+    query.database.mutate_sql_based_on_config.side_effect = lambda sql_, **kwargs: sql_
     query.raise_for_access = MagicMock()
     return query
 
