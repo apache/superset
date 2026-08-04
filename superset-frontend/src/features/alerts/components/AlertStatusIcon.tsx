@@ -105,7 +105,8 @@ export default function AlertStatusIcon({
       lastStateConfig.status = AlertState.Noop;
   }
   const Icon = lastStateConfig.icon;
-  const isRunningIcon = state === AlertState.Working;
+  const isRunningIcon =
+    state === AlertState.Working || state === AlertState.Retrying;
   return (
     <Tooltip title={lastStateConfig.label} placement="bottomLeft">
       <span

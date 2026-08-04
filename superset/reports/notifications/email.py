@@ -200,10 +200,62 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             """
         )
 
+    def _final_failure_template(self, text: str) -> str:
+        """HTML body for the final-failure email after all retries are exhausted."""
+        # pylint: disable=no-member
+        safe_text = nh3.clean(text, tags=set(), attributes={})
+        call_to_action = self._get_call_to_action()
+        max_attempts = self._content.retry_max_attempts
+
+        return textwrap.dedent(
+            f"""
+            <html>
+              <head>
+                <style type="text/css">
+                  table, th, td {{
+                    border-collapse: collapse;
+                    border-color: rgb(200, 212, 227);
+                    color: rgb(42, 63, 95);
+                    padding: 4px 8px;
+                  }}
+                </style>
+              </head>
+              <body>
+                <h3>Report Generation Failed</h3>
+                <p>
+                  Your scheduled report
+                  <b>{nh3.clean(self._content.name, tags=set(), attributes={})}</b>
+                  failed to generate after <b>{max_attempts}</b> retry attempts.
+                </p>
+                <p><b>Error details:</b> {safe_text}</p>
+                <h4>What happened</h4>
+                <p>
+                  The system automatically retried {max_attempts} times, but was
+                  unable to successfully generate all charts in this report.
+                </p>
+                <h4>Next steps</h4>
+                <ul>
+                  <li>Review the error details above to identify the issue</li>
+                  <li>Check your data source connections and filters</li>
+                  <li>Verify that all charts are properly configured</li>
+                  <li>Try generating the report manually to troubleshoot</li>
+                  <li>Contact support if the issue persists</li>
+                </ul>
+                <p><b><a href="{self._content.url}">{call_to_action}</a></b></p>
+              </body>
+            </html>
+            """
+        )
+
     def _get_content(self) -> EmailContent:
         if self._content.text and self._content.retry_attempt is not None:
             return EmailContent(
                 body=self._retry_error_template(self._content.text),
+                header_data=self._content.header_data,
+            )
+        if self._content.text and self._content.retry_max_attempts is not None:
+            return EmailContent(
+                body=self._final_failure_template(self._content.text),
                 header_data=self._content.header_data,
             )
         if self._content.text:
