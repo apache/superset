@@ -51,28 +51,24 @@ jobs:
     outputs:
       is-current: ${{ steps.check.outputs.is-current }}
     steps:
+      # Sparse checkout: this job's only job is to be fast, so it fetches
+      # nothing but the freshness-check script itself.
+      - name: Checkout freshness-check script
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .github/workflows/scripts
+          sparse-checkout-cone-mode: false
       - name: "Check whether this is still master's current commit"
         id: check
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BUILD_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
           EVENT_NAME: ${{ github.event_name }}
-        run: |
-          # workflow_dispatch is a deliberate, one-off action (e.g. to deploy
-          # a specific ref) rather than something racing other triggers, so
-          # it always bypasses the freshness gate below.
-          if [ "${EVENT_NAME}" = "workflow_dispatch" ]; then
-            echo "is-current=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          latest_sha="$(gh api "repos/${{ github.repository }}/commits/master" --jq .sha)"
-          if [ "${latest_sha}" = "${BUILD_SHA}" ]; then
-            echo "is-current=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "is-current=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::master has moved on to ${latest_sha} since ${BUILD_SHA} was triggered — a newer run will deploy it, so skipping this one."
-          fi
+          REPO: ${{ github.repository }}
+          OUTPUT_NAME: is-current
+        run: .github/workflows/scripts/check-docs-deploy-freshness.sh
 
   build-deploy:
     needs: [config, check-freshness]
@@ -90,15 +86,20 @@ jobs:
     runs-on: ubuntu-26.04
     # Serialize deploys: the action pushes to apache/superset-site without
     # rebasing, so concurrent runs race on the final push and the loser fails
-    # with `! [rejected] asf-site -> asf-site (fetch first)`. Cancel any
-    # in-progress run as soon as a newer one starts — the destination repo
-    # isn't touched until the final push step, so canceling mid-build is safe,
-    # and the freshest content always wins. The check-freshness gate above
-    # means it should be rare for more than one run to reach this point, but
-    # this stays as a backstop against the actual push race.
+    # with `! [rejected] asf-site -> asf-site (fetch first)`. Queue instead of
+    # canceling: a run that already passed check-freshness can still be
+    # sitting in the queue for a runner when a newer run starts and finishes
+    # first. cancel-in-progress would let that stale, queued run kill the
+    # newer run's in-progress deploy the moment it's finally scheduled, and
+    # then skip itself at the re-check below — losing the deploy entirely.
+    # Queuing means the stale run just waits its turn and then no-ops at the
+    # re-check, so the fresher content that already deployed is never
+    # clobbered or lost. The check-freshness gate above means it should be
+    # rare for more than one run to reach this point, so the queue stays
+    # short in practice.
     concurrency:
       group: docs-deploy-asf-site
-      cancel-in-progress: true
+      cancel-in-progress: false
     steps:
       - name: "Checkout ${{ github.event.workflow_run.head_sha || github.sha }}"
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -175,14 +176,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BUILD_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
-        run: |
-          latest_sha="$(gh api "repos/${{ github.repository }}/commits/master" --jq .sha)"
-          if [ "${latest_sha}" = "${BUILD_SHA}" ]; then
-            echo "still-current=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "still-current=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::master has moved on to ${latest_sha} since ${BUILD_SHA} was triggered — skipping deploy of stale content."
-          fi
+          REPO: ${{ github.repository }}
+          OUTPUT_NAME: still-current
+        run: .github/workflows/scripts/check-docs-deploy-freshness.sh
       - name: deploy docs
         if: github.event_name == 'workflow_dispatch' || steps.recheck-freshness.outputs.still-current == 'true'
         uses: ./.github/actions/github-action-push-to-another-repository
