@@ -23,7 +23,13 @@ import enum
 from dataclasses import dataclass, field
 from time import time
 
-from superset_core.semantic_layers.types import Filter, SemanticResult
+from superset_core.semantic_layers.types import (
+    AggregationType,
+    Dimension,
+    Filter,
+    Metric,
+    SemanticResult,
+)
 
 
 class ReuseMode(str, enum.Enum):
@@ -56,6 +62,14 @@ class ContainmentCapabilities:
 
 
 SAFE_CONTAINMENT_CAPABILITIES: ContainmentCapabilities = ContainmentCapabilities()
+ROLLUP_COMPATIBLE_AGGREGATIONS: frozenset[AggregationType] = frozenset(
+    {
+        AggregationType.SUM,
+        AggregationType.COUNT,
+        AggregationType.MIN,
+        AggregationType.MAX,
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -71,8 +85,8 @@ class CachedEntry:
     """Bounded descriptor pointing to an expiring semantic result."""
 
     filters: frozenset[Filter]
-    dimension_keys: frozenset[str]
-    metric_ids: frozenset[str]
+    dimensions: frozenset[Dimension]
+    metrics: frozenset[Metric]
     limit: int | None
     offset: int
     order_key: str

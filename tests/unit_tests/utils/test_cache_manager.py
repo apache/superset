@@ -39,6 +39,14 @@ class _OwnerTokenBackend:
     def release_owner_token(self, key: str, owner_token: str) -> bool:
         return True
 
+    def refresh_owner_token(
+        self,
+        key: str,
+        owner_token: str,
+        lease_seconds: int,
+    ) -> bool:
+        return True
+
 
 def test_semantic_coordination_exposes_only_typed_capability() -> None:
     manager: CacheManager = CacheManager()

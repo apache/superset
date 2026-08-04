@@ -22,17 +22,17 @@ import type { QueryData } from '@superset-ui/core';
 import { ChartPills } from './ChartPills';
 
 jest.mock('@superset-ui/core/components', () => ({
-  CachedLabel: ({ semanticCacheHit }: { semanticCacheHit?: boolean }) => (
+  CachedLabel: ({ cacheSource }: { cacheSource?: string }) => (
     <span data-test="cached-label">
-      {semanticCacheHit ? 'Semantic cache' : 'Ordinary cache'}
+      {cacheSource === 'semantic' ? 'Semantic cache' : 'Ordinary cache'}
     </span>
   ),
   Timer: () => <span data-test="timer" />,
 }));
 
-const response = (semanticCacheHit: boolean): QueryData =>
+const response = (semanticCacheHit: boolean, isCached = true): QueryData =>
   ({
-    is_cached: true,
+    is_cached: isCached,
     semantic_cache_hit: semanticCacheHit,
   }) as QueryData;
 
@@ -63,5 +63,20 @@ test('keeps ordinary cache source distinct', () => {
 
   expect(screen.getByTestId('cached-label')).toHaveTextContent(
     'Ordinary cache',
+  );
+});
+
+test('shows the cache label for a direct semantic cache hit', () => {
+  render(
+    <ChartPills
+      queriesResponse={[response(true, false)]}
+      chartUpdateStartTime={0}
+      refreshCachedQuery={jest.fn()}
+      hideRowCount
+    />,
+  );
+
+  expect(screen.getByTestId('cached-label')).toHaveTextContent(
+    'Semantic cache',
   );
 });
