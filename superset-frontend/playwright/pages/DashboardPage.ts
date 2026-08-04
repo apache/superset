@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { Page, Download, Locator } from '@playwright/test';
+import { Page, Download, Locator, expect } from '@playwright/test';
 import { Button, Input, Menu, Tabs } from '../components/core';
 import { DashboardFilterBar } from '../components/dashboard';
 import { gotoWithRetry } from '../helpers/navigation';
@@ -440,6 +440,12 @@ export class DashboardPage {
     // Multiple steps so react-resizable sees a drag rather than a teleport.
     await this.page.mouse.move(startX, startY + deltaY, { steps: 10 });
     await this.page.mouse.up();
+
+    await expect
+      .poll(async () => (await component.boundingBox())?.height, {
+        message: 'Component height did not change after resize',
+      })
+      .not.toBe(boxBefore.height);
 
     const boxAfter = await component.boundingBox();
     if (!boxAfter) {
