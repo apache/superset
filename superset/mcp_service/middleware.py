@@ -22,7 +22,7 @@ from contextvars import ContextVar
 from typing import Any, Awaitable, Callable, Sequence
 
 import mcp.types as mt
-from fastmcp.exceptions import ToolError
+from fastmcp.exceptions import ToolError, ValidationError as FastMCPValidationError
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 from fastmcp.server.middleware.middleware import CallNext
 from fastmcp.tools.tool import Tool, ToolResult
@@ -128,7 +128,7 @@ def _sanitize_error_for_logging(error: Exception) -> str:
         return "Database operation failed"
     elif isinstance(error, PermissionError):
         return "Access denied"
-    elif isinstance(error, ValidationError):
+    elif isinstance(error, (ValidationError, FastMCPValidationError)):
         return "Request validation failed"
 
     return error_str
@@ -140,6 +140,7 @@ def _sanitize_error_for_logging(error: Exception) -> str:
 _USER_ERROR_TYPES = (
     ToolError,
     ValidationError,
+    FastMCPValidationError,
     PermissionError,
     MCPPermissionDeniedError,
     ValueError,
@@ -738,6 +739,11 @@ class GlobalErrorHandlerMiddleware(Middleware):
             raise ToolError(
                 f"Validation error in {tool_name}: {'; '.join(validation_details)}"
             ) from error
+        elif isinstance(error, FastMCPValidationError):
+            # FastMCP's own ValidationError (e.g. malformed/missing tool
+            # arguments) is not a pydantic ValidationError and has no
+            # .errors() API -- its message is already a plain description.
+            raise ToolError(f"Validation error in {tool_name}: {error}") from error
         elif isinstance(error, (OperationalError, TimeoutError)):
             # Database errors
             raise ToolError(
