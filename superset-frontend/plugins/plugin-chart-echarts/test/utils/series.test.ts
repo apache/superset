@@ -28,6 +28,7 @@ import { GenericDataType } from '@apache-superset/core/common';
 import {
   calculateLowerLogTick,
   dedupSeries,
+  extractDataTotalValues,
   extractGroupbyLabel,
   extractSeries,
   extractShowValueIndexes,
@@ -700,6 +701,60 @@ describe('extractGroupbyLabel', () => {
       }),
     ).toEqual('');
     expect(extractGroupbyLabel({})).toEqual('');
+  });
+});
+
+describe('extractDataTotalValues', () => {
+  const data = [
+    { __timestamp: '2000-01-01', A: 32, B: 0, Sort: 2 },
+    { __timestamp: '2000-02-01', A: 10, B: 5, Sort: 3 },
+  ];
+
+  test('should sum every non x-axis column when no extra metrics are given', () => {
+    expect(
+      extractDataTotalValues(data, {
+        stack: true,
+        percentageThreshold: 0,
+        xAxisCol: '__timestamp',
+      }).totalStackedValues,
+    ).toEqual([34, 18]);
+  });
+
+  test('should exclude extra (series limit) metrics from the stacked total', () => {
+    expect(
+      extractDataTotalValues(data, {
+        stack: true,
+        percentageThreshold: 0,
+        xAxisCol: '__timestamp',
+        extraMetricLabels: ['Sort'],
+      }).totalStackedValues,
+    ).toEqual([32, 15]);
+  });
+
+  test('should exclude extra metrics and legend-disabled series', () => {
+    const { totalStackedValues, thresholdValues } = extractDataTotalValues(
+      data,
+      {
+        stack: true,
+        percentageThreshold: 50,
+        xAxisCol: '__timestamp',
+        legendState: { A: true, B: false },
+        extraMetricLabels: ['Sort'],
+      },
+    );
+    expect(totalStackedValues).toEqual([32, 10]);
+    expect(thresholdValues).toEqual([16, 5]);
+  });
+
+  test('should return empty arrays when not stacked', () => {
+    expect(
+      extractDataTotalValues(data, {
+        stack: false,
+        percentageThreshold: 0,
+        xAxisCol: '__timestamp',
+        extraMetricLabels: ['Sort'],
+      }),
+    ).toEqual({ totalStackedValues: [], thresholdValues: [] });
   });
 });
 
