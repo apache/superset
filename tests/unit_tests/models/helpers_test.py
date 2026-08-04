@@ -2800,7 +2800,7 @@ def test_get_sqla_query_in_filter_preserves_float_precision(
         f"Expected float value 29.02 to be preserved in the IN clause, "
         f"but it was likely truncated. Generated SQL: {sql}"
     )
-    
+
 
 def test_multiple_calculated_columns_each_parenthesized(
     database: Database,
