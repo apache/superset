@@ -1396,11 +1396,17 @@ test('should not apply axis bounds calculation when seriesType is not Bar for ho
 
 test('should not clip small segments when row-contribution percentages float above 1 in horizontal stacked bar charts', () => {
   // These three shares are individually normalized (each column sums to 1),
-  // but due to floating point rounding their sum is 1.0000000000000002,
-  // fractionally over 1. See https://github.com/apache/superset/issues/30914
-  const shareA = 0.41960735305372;
-  const shareB = 0.37722784875089643;
-  const shareC = 0.20316479819538372;
+  // but due to floating point rounding their sum can land fractionally
+  // over 1. See https://github.com/apache/superset/issues/30914
+  //
+  // The margin above 1 is chosen large enough (~1e-7) that the sum stays
+  // above 1 no matter which order the underlying series get summed in
+  // (series are sorted by name for stacking, not in the order declared
+  // here), unlike a single-ULP overflow which can round differently
+  // depending on summation order and make this assertion order-dependent.
+  const shareA = 0.42;
+  const shareB = 0.38;
+  const shareC = 0.2000001;
   expect(shareA + shareB + shareC).toBeGreaterThan(1);
 
   const queriesData: ChartDataResponseResult[] = [
