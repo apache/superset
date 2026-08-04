@@ -794,6 +794,7 @@ const RightMenu = ({
             <Menu
               mode="inline"
               selectable={false}
+              onOpenChange={onMenuOpen}
               onClick={info => {
                 handleMenuSelection(info);
                 // The reused desktop items navigate via anchors that only

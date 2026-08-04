@@ -29,7 +29,16 @@ import {
 import { useChartCustomizationFromRedux } from '../nativeFilters/state';
 import { toggleNativeFiltersBar } from '../../actions/dashboardState';
 
-export const useNativeFilters = () => {
+export interface UseNativeFiltersResult {
+  showDashboard: boolean;
+  missingInitialFilters: string[];
+  dashboardFiltersOpen: boolean;
+  toggleDashboardFiltersOpen: (visible?: boolean) => void;
+  nativeFiltersEnabled: boolean;
+  hasFilters: boolean;
+}
+
+export const useNativeFilters = (): UseNativeFiltersResult => {
   const dispatch = useDispatch();
 
   const [isInitialized, setIsInitialized] = useState(false);

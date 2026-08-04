@@ -116,6 +116,27 @@ const ChartHolder = ({
   const isFullSize = fullSizeChartId === chartId;
   const chartHolderRef = useRef<HTMLDivElement | null>(null);
 
+  // Tracks viewport height while mobile so the height cap below stays
+  // correct across device rotation and mobile browser chrome (address
+  // bar) show/hide, instead of freezing at whatever height was current
+  // when isMobile last flipped.
+  const [viewportHeight, setViewportHeight] = useState(
+    () => window.innerHeight,
+  );
+  useEffect(() => {
+    if (!isMobile) {
+      return undefined;
+    }
+    const updateViewportHeight = () => setViewportHeight(window.innerHeight);
+    updateViewportHeight();
+    window.addEventListener('resize', updateViewportHeight);
+    window.addEventListener('orientationchange', updateViewportHeight);
+    return () => {
+      window.removeEventListener('resize', updateViewportHeight);
+      window.removeEventListener('orientationchange', updateViewportHeight);
+    };
+  }, [isMobile]);
+
   const focusHighlightStyles = useFilterFocusHighlightStyles(chartId ?? 0);
   const directPathToChild = useSelector(
     (state: RootState) => state.dashboardState.directPathToChild,
@@ -213,12 +234,12 @@ const ChartHolder = ({
     const authoredHeight = component.meta.height ?? GRID_MIN_ROW_UNITS;
     if (isMobile && !editMode) {
       const maxUnits = Math.floor(
-        (window.innerHeight - MOBILE_CHROME_HEIGHT) / GRID_BASE_UNIT,
+        (viewportHeight - MOBILE_CHROME_HEIGHT) / GRID_BASE_UNIT,
       );
       return Math.max(GRID_MIN_ROW_UNITS, Math.min(authoredHeight, maxUnits));
     }
     return authoredHeight;
-  }, [component.meta.height, isMobile, editMode]);
+  }, [component.meta.height, isMobile, editMode, viewportHeight]);
 
   const { chartWidth, chartHeight } = useMemo(() => {
     let width = 0;
