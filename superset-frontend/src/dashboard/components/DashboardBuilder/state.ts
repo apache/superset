@@ -80,7 +80,8 @@ export const useNativeFilters = (): UseNativeFiltersResult => {
     () =>
       requiredFirstFilter
         .filter(({ id }) => dataMask[id]?.filterState?.value === undefined)
-        .map(({ name }) => name),
+        .map(({ name }) => name)
+        .filter((name): name is string => name !== undefined),
     [requiredFirstFilter, dataMask],
   );
 
