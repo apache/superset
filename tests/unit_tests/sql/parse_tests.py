@@ -269,7 +269,7 @@ def test_count_referenced_tables_respects_parse_length_cap(
     mocker.patch("superset.config.SQL_MAX_PARSE_LENGTH", 100)
     mocker.patch("superset.sql.parse.has_app_context", return_value=False)
     padding = "1, " * 50
-    statement = 'SELECT * FROM "db.table1" WHERE a IN (' + padding + "1)"
+    statement = 'SELECT * FROM "db.table1" WHERE a IN (' + padding + "1)"  # noqa: S608
     assert len(statement.encode("utf-8")) > 100
     assert count_referenced_tables(statement, Dialects.SQLITE) == 1
 
