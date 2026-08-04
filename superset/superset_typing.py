@@ -210,6 +210,7 @@ class QueryObjectDict(TypedDict, total=False):
     columns: list[Column]
     extras: dict[str, Any]
     filter: list["QueryObjectFilterClause"]
+    force_query: bool
     from_dttm: datetime | None
     granularity: str | None
     inner_from_dttm: datetime | None

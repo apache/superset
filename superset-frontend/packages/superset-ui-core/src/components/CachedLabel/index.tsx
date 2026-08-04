@@ -29,13 +29,19 @@ export const CachedLabel: FC<CacheLabelProps> = ({
   className,
   onClick,
   cachedTimestamp,
+  semanticCacheHit,
 }) => {
   const [hovered, setHovered] = useState(false);
 
   const labelType = hovered ? 'info' : 'default';
   return (
     <Tooltip
-      title={<TooltipContent cachedTimestamp={cachedTimestamp} />}
+      title={
+        <TooltipContent
+          cachedTimestamp={cachedTimestamp}
+          semanticCacheHit={semanticCacheHit}
+        />
+      }
       id="cache-desc-tooltip"
     >
       <Label
@@ -46,7 +52,7 @@ export const CachedLabel: FC<CacheLabelProps> = ({
         onMouseOut={() => setHovered(false)}
         icon={<Icons.SyncOutlined iconSize="m" />}
       >
-        {t('Cached')}
+        {semanticCacheHit ? t('Semantic cache') : t('Cached')}
       </Label>
     </Tooltip>
   );

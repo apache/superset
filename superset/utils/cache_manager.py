@@ -31,6 +31,9 @@ if TYPE_CHECKING:
         RedisCacheBackend,
         RedisSentinelCacheBackend,
     )
+    from superset.semantic_layers.cache_coordination import (
+        OwnerTokenCoordinationBackend,
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -327,3 +330,17 @@ class CacheManager:
         Returns None if DISTRIBUTED_COORDINATION_CONFIG is not configured.
         """
         return self._distributed_coordination
+
+    @property
+    def semantic_cache_coordination(self) -> OwnerTokenCoordinationBackend | None:
+        """Return coordination only when it supports owner-token leases."""
+        from superset.semantic_layers.cache_coordination import (
+            OwnerTokenCoordinationBackend,
+        )
+
+        backend: RedisCacheBackend | RedisSentinelCacheBackend | None = (
+            self._distributed_coordination
+        )
+        if isinstance(backend, OwnerTokenCoordinationBackend):
+            return backend
+        return None

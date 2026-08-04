@@ -81,6 +81,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                 self._query_object_factory.create(
                     result_type,
                     datasource=datasource,
+                    force_query=force,
                     server_pagination=server_pagination,
                     **query_obj,
                 ),
