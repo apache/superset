@@ -22,11 +22,11 @@ import { theme as antdThemeImport } from 'antd';
 import { Theme } from './Theme';
 
 // SupersetThemeProvider stores theme state via React.useState, then
-// registers a listener (in a useEffect, on mount) that calls setThemeState
-// whenever a *later* call to setConfig/toggleDarkMode runs on the same
-// Theme instance. Every provider currently mounted from that instance
-// listens independently, so toggling the instance updates all of them, not
-// just the most recently rendered one. Consumers
+// registers a listener (in a useLayoutEffect, on mount) that calls
+// setThemeState whenever a *later* call to setConfig/toggleDarkMode runs
+// on the same Theme instance. Every provider currently mounted from that
+// instance listens independently, so toggling the instance updates all of
+// them, not just the most recently rendered one. Consumers
 // (docs/src/components/StorybookWrapper.jsx in particular) rely on this:
 // they call toggleDarkMode() from outside, on one or more already-mounted
 // providers sharing a single Theme instance, expecting it to propagate to
