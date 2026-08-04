@@ -180,6 +180,7 @@ export default function VersionHistoryPanel({
   const {
     timeline,
     newestGroup,
+    currentVersionStatus,
     isLoading,
     error,
     hasMore,
@@ -211,6 +212,7 @@ export default function VersionHistoryPanel({
   // newestGroup comes from the hook's last unfiltered fetch — the visible
   // timeline is search-filtered, so its first group may be an older save.
   const currentTransactionId = newestGroup?.transactionId ?? null;
+  const canRestoreKnownVersion = canRestore && currentVersionStatus === 'known';
   const restoreNotice =
     newestGroup?.actionKind === 'restore'
       ? t('Restored version · %s', formatVersionDateTime(newestGroup.issuedAt))
@@ -257,6 +259,17 @@ export default function VersionHistoryPanel({
             <Alert type="error" message={error} closable={false} />
           </PaddedContent>
         )}
+        {currentVersionStatus === 'unavailable' && timeline.length > 0 && (
+          <PaddedContent>
+            <Alert
+              type="warning"
+              message={t(
+                'The current version could not be identified. Restore is temporarily unavailable.',
+              )}
+              closable={false}
+            />
+          </PaddedContent>
+        )}
         {isInitialLoading && (
           <PaddedContent>
             <Skeleton active />
@@ -281,7 +294,7 @@ export default function VersionHistoryPanel({
               entityType={entityType}
               group={entry}
               isCurrent={entry.transactionId === currentTransactionId}
-              canRestore={canRestore}
+              canRestore={canRestoreKnownVersion}
               isPreviewed={
                 entry.transactionId === previewedTransactionId &&
                 entry.transactionId !== currentTransactionId

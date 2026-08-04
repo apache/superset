@@ -47,6 +47,12 @@ export interface UseVersionActivityResult {
    * "Current" version or drop it.
    */
   newestGroup: SaveGroup | null;
+  /**
+   * Whether the dedicated newest-self probe identified the live version.
+   * Restore must fail closed while this is loading or unavailable; the
+   * visible timeline may be filtered and cannot safely stand in for it.
+   */
+  currentVersionStatus: 'loading' | 'known' | 'unavailable' | 'empty';
   count: number;
   isLoading: boolean;
   error: string | null;
@@ -73,6 +79,8 @@ export function useVersionActivity(
 ): UseVersionActivityResult {
   const [records, setRecords] = useState<ActivityRecord[]>([]);
   const [newestGroup, setNewestGroup] = useState<SaveGroup | null>(null);
+  const [currentVersionStatus, setCurrentVersionStatus] =
+    useState<UseVersionActivityResult['currentVersionStatus']>('loading');
   const [count, setCount] = useState(0);
   const [truncated, setTruncated] = useState(false);
   const [page, setPage] = useState(0);
@@ -99,6 +107,7 @@ export function useVersionActivity(
   // entity must not inherit it.
   useEffect(() => {
     setNewestGroup(null);
+    setCurrentVersionStatus(uuid ? 'loading' : 'empty');
   }, [entityType, uuid]);
 
   const fetchPage = useCallback(
@@ -119,6 +128,37 @@ export function useVersionActivity(
         setIsLoading(false);
         return;
       }
+      if (reset) {
+        const probeId = probeIdRef.current;
+        // A reset can follow a save or restore, so the previous newest group
+        // is no longer authoritative. The probe is independent of the visible
+        // timeline request: either request can fail without suppressing the
+        // other's result.
+        setNewestGroup(null);
+        setCurrentVersionStatus('loading');
+        fetchActivity(entityType, uuid, {
+          include: 'self',
+          page: 0,
+          pageSize: 1,
+        })
+          .then(probe => {
+            if (probeId !== probeIdRef.current) {
+              return;
+            }
+            const group = buildTimeline(probe.result).find(
+              entry => entry.type === 'group',
+            ) as SaveGroup | undefined;
+            setNewestGroup(group ?? null);
+            setCurrentVersionStatus(group ? 'known' : 'empty');
+          })
+          .catch(() => {
+            if (probeId !== probeIdRef.current) {
+              return;
+            }
+            setNewestGroup(null);
+            setCurrentVersionStatus('unavailable');
+          });
+      }
       setIsLoading(true);
       setError(null);
       try {
@@ -138,35 +178,6 @@ export function useVersionActivity(
           ? response.result
           : mergeActivityPages(recordsRef.current, response.result);
         applyRecords(next);
-        // Deliberately not derived from the page above: that one is filtered
-        // by q/include and mixes self with related records, so the newest
-        // self save can be absent from it (an active search that excludes it,
-        // an include='related' filter, or newer related records filling the
-        // page). A dedicated one-record self probe is authoritative in every
-        // one of those states, and refreshes after restores made while a
-        // search is active.
-        if (reset) {
-          const probeId = probeIdRef.current;
-          fetchActivity(entityType, uuid, {
-            include: 'self',
-            page: 0,
-            pageSize: 1,
-          })
-            .then(probe => {
-              if (probeId !== probeIdRef.current) {
-                return;
-              }
-              setNewestGroup(
-                (buildTimeline(probe.result).find(
-                  entry => entry.type === 'group',
-                ) as SaveGroup | undefined) ?? null,
-              );
-            })
-            .catch(() => {
-              // Keep the previous value: a failed probe should not strip the
-              // Current tag from a timeline that is otherwise rendering.
-            });
-        }
       } catch (response) {
         if (fetchId !== fetchIdRef.current) {
           return;
@@ -255,6 +266,7 @@ export function useVersionActivity(
     records,
     timeline,
     newestGroup,
+    currentVersionStatus,
     count,
     isLoading,
     error,

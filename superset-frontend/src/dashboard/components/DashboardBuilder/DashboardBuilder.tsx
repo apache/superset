@@ -179,9 +179,8 @@ const DashboardContentWrapper = styled.div`
       & .dashboard-component-tabs {
         box-shadow: 0 ${theme.sizeUnit}px ${theme.sizeUnit}px 0
           ${addAlpha(theme.colorBorderSecondary, 0.1)};
-        padding-left: ${
-          theme.sizeUnit * 2
-        }px; /* note this is added to tab-level padding, to match header */
+        padding-left: ${theme.sizeUnit *
+        2}px; /* note this is added to tab-level padding, to match header */
       }
 
       .dropdown-toggle.btn.btn-primary .caret {
@@ -322,9 +321,8 @@ const StyledDashboardContent = styled.div<{
     height: auto;
     flex: 1;
 
-    ${
-      previewGated &&
-      `
+    ${previewGated &&
+    `
       /* Block chart interactions (context menus, cross-filters, drills)
          while previewing a historical version. Tab bars deliberately stay
          clickable: previewing a tabbed dashboard requires navigating its
@@ -335,8 +333,7 @@ const StyledDashboardContent = styled.div<{
       .ant-tabs-nav {
         pointer-events: auto;
       }
-    `
-    }
+    `}
 
     .grid-container .dashboard-component-tabs {
       box-shadow: none;
@@ -351,14 +348,12 @@ const StyledDashboardContent = styled.div<{
       margin: ${theme.sizeUnit * 4}px;
       margin-left: ${marginLeft}px;
 
-      ${
-        editMode &&
-        `
+      ${editMode &&
+      `
       max-width: calc(100% - ${
         BUILDER_SIDEPANEL_WIDTH + theme.sizeUnit * 16
       }px);
-    `
-      }
+    `}
 
       /* this is the ParentSize wrapper */
       & > div:first-of-type {
@@ -395,10 +390,8 @@ const StyledDashboardContent = styled.div<{
       }
 
       &.fade-out {
-        box-shadow: ${
-          theme.dashboardTileBoxShadow ??
-          `0 0 0 1px ${addAlpha(theme.colorBorder, 0.5)}`
-        };
+        box-shadow: ${theme.dashboardTileBoxShadow ??
+        `0 0 0 1px ${addAlpha(theme.colorBorder, 0.5)}`};
       }
 
       & .missing-chart-container {
@@ -619,14 +612,12 @@ const DashboardBuilder = () => {
               data-test="dashboard-filter-bar-gate"
               aria-disabled={isVersionPreviewActive}
               css={css`
-                ${
-                  isVersionPreviewActive
-                    ? `
+                ${isVersionPreviewActive
+                  ? `
                     pointer-events: none;
                     opacity: 0.5;
                   `
-                    : ''
-                }
+                  : ''}
               `}
               // inert blocks keyboard focus too; React 18 needs the spread form
               {...(isVersionPreviewActive ? { inert: '' } : {})}
@@ -717,14 +708,12 @@ const DashboardBuilder = () => {
                 aria-disabled={isVersionPreviewActive}
                 css={css`
                   height: 100%;
-                  ${
-                    isVersionPreviewActive
-                      ? `
+                  ${isVersionPreviewActive
+                    ? `
                       pointer-events: none;
                       opacity: 0.5;
                     `
-                      : ''
-                  }
+                    : ''}
                 `}
                 // inert blocks keyboard focus too; React 18 needs the spread form
                 {...(isVersionPreviewActive ? { inert: '' } : {})}

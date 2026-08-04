@@ -222,6 +222,116 @@ test('newestGroup comes from a self probe, not the visible page', async () => {
     page: 0,
     pageSize: 1,
   });
+  expect(result.current.currentVersionStatus).toBe('known');
+});
+
+test('a failed initial newest-self probe makes current identity unavailable', async () => {
+  mockedFetchActivity.mockImplementation(async (_type, _uuid, options) => {
+    if (options?.pageSize === 1) {
+      throw new Error('probe failed');
+    }
+    return { count: 1, result: [record(10, 0)] };
+  });
+
+  const { result } = renderHook(() =>
+    useVersionActivity('chart', 'uuid-1', 'all'),
+  );
+
+  await waitFor(() =>
+    expect(result.current.currentVersionStatus).toBe('unavailable'),
+  );
+  expect(result.current.timeline).toHaveLength(1);
+  expect(result.current.newestGroup).toBeNull();
+});
+
+test('a failed refresh invalidates a previously known current version', async () => {
+  let failProbe = false;
+  mockedFetchActivity.mockImplementation(async (_type, _uuid, options) => {
+    if (options?.pageSize === 1) {
+      if (failProbe) {
+        throw new Error('probe failed');
+      }
+      return { count: 1, result: [record(10, 0)] };
+    }
+    return { count: 1, result: [record(10, 0)] };
+  });
+
+  const { result } = renderHook(() =>
+    useVersionActivity('chart', 'uuid-1', 'all'),
+  );
+  await waitFor(() =>
+    expect(result.current.currentVersionStatus).toBe('known'),
+  );
+
+  failProbe = true;
+  act(() => result.current.refresh());
+
+  await waitFor(() => expect(mockedFetchActivity).toHaveBeenCalledTimes(4));
+  await waitFor(() =>
+    expect(result.current.currentVersionStatus).toBe('unavailable'),
+  );
+  expect(result.current.newestGroup).toBeNull();
+});
+
+test('a reset fails closed before its requests resolve', async () => {
+  let deferRefresh = false;
+  const releases: Array<
+    (value: { count: number; result: ActivityRecord[] }) => void
+  > = [];
+  mockedFetchActivity.mockImplementation(async () => {
+    if (!deferRefresh) {
+      return { count: 1, result: [record(10, 0)] };
+    }
+    return new Promise(resolve => {
+      releases.push(resolve);
+    });
+  });
+
+  const { result } = renderHook(() =>
+    useVersionActivity('chart', 'uuid-1', 'all'),
+  );
+  await waitFor(() =>
+    expect(result.current.currentVersionStatus).toBe('known'),
+  );
+
+  deferRefresh = true;
+  act(() => result.current.refresh());
+
+  expect(result.current.currentVersionStatus).toBe('loading');
+  expect(result.current.newestGroup).toBeNull();
+
+  await act(async () => {
+    releases.forEach(release => release({ count: 1, result: [record(11, 0)] }));
+  });
+});
+
+test('a failed timeline refresh does not suppress the independent probe', async () => {
+  let refresh = false;
+  mockedFetchActivity.mockImplementation(async (_type, _uuid, options) => {
+    if (!refresh) {
+      return { count: 1, result: [record(10, 0)] };
+    }
+    if (options?.pageSize === 1) {
+      return { count: 1, result: [record(11, 0)] };
+    }
+    throw new Error('timeline failed');
+  });
+
+  const { result } = renderHook(() =>
+    useVersionActivity('chart', 'uuid-1', 'all'),
+  );
+  await waitFor(() =>
+    expect(result.current.newestGroup?.transactionId).toBe(10),
+  );
+
+  refresh = true;
+  act(() => result.current.refresh());
+
+  await waitFor(() =>
+    expect(result.current.newestGroup?.transactionId).toBe(11),
+  );
+  expect(result.current.currentVersionStatus).toBe('known');
+  expect(result.current.error).not.toBeNull();
 });
 
 test("switching entities discards the previous entity's in-flight probe", async () => {
@@ -302,7 +412,7 @@ test('clearing the uuid ignores an in-flight response', async () => {
       useVersionActivity('chart', uuid, 'all'),
     { initialProps: { uuid: 'uuid-1' as string | undefined } },
   );
-  await waitFor(() => expect(mockedFetchActivity).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(mockedFetchActivity).toHaveBeenCalledTimes(2));
 
   rerender({ uuid: undefined });
   await act(async () => {

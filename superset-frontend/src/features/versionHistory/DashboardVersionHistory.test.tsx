@@ -121,6 +121,7 @@ beforeEach(() => {
     records: [],
     timeline: [],
     newestGroup: null,
+    currentVersionStatus: 'empty',
     count: 0,
     isLoading: false,
     error: null,

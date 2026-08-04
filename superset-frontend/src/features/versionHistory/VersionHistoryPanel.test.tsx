@@ -77,6 +77,9 @@ const activity = (
   newestGroup:
     (timeline.find(entry => entry.type === 'group') as SaveGroup | undefined) ??
     null,
+  currentVersionStatus: timeline.some(entry => entry.type === 'group')
+    ? 'known'
+    : 'empty',
   count: timeline.length,
   isLoading: false,
   error: null,
@@ -297,6 +300,46 @@ test('the current version kebab omits restore but keeps open as new', async () =
     screen.getAllByRole('button', { name: 'More actions' })[0],
   );
   expect(await screen.findByText('Open as new dashboard')).toBeInTheDocument();
+  expect(screen.queryByText('Restore this version')).not.toBeInTheDocument();
+});
+
+test('an unavailable current-version probe explains and withholds restore', async () => {
+  const { newest, older } = dashboardPair();
+  const props = defaultProps([newest, older], 'dashboard');
+  props.activity = activity([newest, older], {
+    newestGroup: null,
+    currentVersionStatus: 'unavailable',
+  });
+  render(<VersionHistoryPanel {...props} />);
+
+  expect(
+    screen.getByText(
+      'The current version could not be identified. Restore is temporarily unavailable.',
+    ),
+  ).toBeInTheDocument();
+
+  await userEvent.click(
+    screen.getAllByRole('button', { name: 'More actions' })[1],
+  );
+  expect(await screen.findByText('Open as new dashboard')).toBeInTheDocument();
+  expect(screen.queryByText('Restore this version')).not.toBeInTheDocument();
+});
+
+test('a loading current-version probe withholds restore without an error', async () => {
+  const { newest, older } = dashboardPair();
+  const props = defaultProps([newest, older], 'dashboard');
+  props.activity = activity([newest, older], {
+    newestGroup: null,
+    currentVersionStatus: 'loading',
+  });
+  render(<VersionHistoryPanel {...props} />);
+
+  expect(
+    screen.queryByText(/current version could not be identified/i),
+  ).not.toBeInTheDocument();
+  await userEvent.click(
+    screen.getAllByRole('button', { name: 'More actions' })[1],
+  );
   expect(screen.queryByText('Restore this version')).not.toBeInTheDocument();
 });
 
