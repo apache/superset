@@ -210,7 +210,7 @@ Helper to safely read .Values.supersetNode.connections.<key> without erroring wh
 {{- /* SECURITY: Validate admin password is set if admin creation is enabled */}}
 {{- $adminPasswordSet := and .Values.init.adminUser.password (not (eq .Values.init.adminUser.password "")) }}
 {{- $adminSecretSet := and .Values.init.adminUser.existingSecret (not (eq .Values.init.adminUser.existingSecret "")) }}
-{{- if and .Values.init.createAdmin (not (or $adminPasswordSet $adminSecretSet)) }}
+{{- if and .Values.init.enabled .Values.init.createAdmin (not (or $adminPasswordSet $adminSecretSet)) }}
 {{- fail "SECURITY ERROR: init.createAdmin is true but neither init.adminUser.password nor init.adminUser.existingSecret is set. You must set a secure password using --set init.adminUser.password='your-password' or provide an existing Kubernetes secret via init.adminUser.existingSecret." }}
 {{- end }}
 
@@ -710,11 +710,11 @@ ADMIN_LASTNAME="$SUPERSET_ADMIN_LASTNAME"
 ADMIN_EMAIL="$SUPERSET_ADMIN_EMAIL"
 ADMIN_PASSWORD="$SUPERSET_ADMIN_PASSWORD"
 {{- else }}
-ADMIN_USERNAME={{ .Values.init.adminUser.username | quote }}
-ADMIN_FIRSTNAME={{ .Values.init.adminUser.firstname | quote }}
-ADMIN_LASTNAME={{ .Values.init.adminUser.lastname | quote }}
-ADMIN_EMAIL={{ .Values.init.adminUser.email | quote }}
-ADMIN_PASSWORD={{ .Values.init.adminUser.password | quote }}
+ADMIN_USERNAME={{ .Values.init.adminUser.username | squote }}
+ADMIN_FIRSTNAME={{ .Values.init.adminUser.firstname | squote }}
+ADMIN_LASTNAME={{ .Values.init.adminUser.lastname | squote }}
+ADMIN_EMAIL={{ .Values.init.adminUser.email | squote }}
+ADMIN_PASSWORD={{ .Values.init.adminUser.password | squote }}
 {{- end }}
 if superset fab list-users 2>/dev/null | grep -qF 'username:'"${ADMIN_USERNAME}"; then
   echo "Admin user already exists, skipping."
