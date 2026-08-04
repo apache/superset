@@ -180,6 +180,50 @@ function getSymbolMarker(symbol: string, color: string) {
   }
 }
 
+/**
+ * Given the fully-built ECharts series (each already carrying its resolved
+ * `stack` id, see `getTimeCompareStackId`), find the largest per-index total
+ * across all series sharing a stack, then return the largest such total
+ * across all stacks. Series without a `stack` id (e.g. annotation layers)
+ * are ignored since they aren't part of any stacked total.
+ */
+function getMaxStackedValueByStack(
+  series: SeriesOption[],
+  isHorizontal: boolean,
+): number {
+  const totalsByStack = new Map<string, number[]>();
+  series.forEach(entry => {
+    const rawStackId = (entry as { stack?: unknown }).stack;
+    const stackId = typeof rawStackId === 'string' ? rawStackId : undefined;
+    if (!stackId || !Array.isArray(entry.data)) return;
+    const totals = totalsByStack.get(stackId) ?? [];
+    (entry.data as unknown[]).forEach((datum, idx) => {
+      let value: unknown = datum;
+      if (Array.isArray(datum)) {
+        value = isHorizontal ? datum[0] : datum[1];
+      } else if (datum && typeof datum === 'object' && 'value' in datum) {
+        const rawValue = (datum as { value: unknown }).value;
+        if (Array.isArray(rawValue)) {
+          value = isHorizontal ? rawValue[0] : rawValue[1];
+        } else {
+          value = rawValue;
+        }
+      }
+      if (typeof value === 'number' && !Number.isNaN(value)) {
+        totals[idx] = (totals[idx] ?? 0) + value;
+      }
+    });
+    totalsByStack.set(stackId, totals);
+  });
+  let max = Number.NEGATIVE_INFINITY;
+  totalsByStack.forEach(totals => {
+    totals.forEach(value => {
+      if (value > max) max = value;
+    });
+  });
+  return max;
+}
+
 export default function transformProps(
   chartProps: EchartsTimeseriesChartProps,
 ): TimeseriesChartTransformedProps {
@@ -869,11 +913,14 @@ export default function transformProps(
         // pre-normalization row totals (e.g. 100), not values near 1, so
         // padding against them here would stretch the axis out to the raw
         // total instead of the intended 0-1 range.
-        const stackedTotalMax = sortedTotalValues.reduce<number>(
-          (max, v) =>
-            typeof v === 'number' && !Number.isNaN(v) ? Math.max(max, v) : max,
-          Number.NEGATIVE_INFINITY,
-        );
+        //
+        // `sortedTotalValues` sums every series value per row regardless of
+        // which ECharts stack it belongs to, but with time_compare each
+        // comparison period is its own independently-normalized stack (see
+        // getTimeCompareStackId), so a chart with N comparison periods would
+        // sum to ~N instead of ~1. Compute the max per stack instead, using
+        // the already-built series (which carry the resolved stack ids).
+        const stackedTotalMax = getMaxStackedValueByStack(series, isHorizontal);
         yAxisMax =
           Number.isFinite(stackedTotalMax) && stackedTotalMax > 1
             ? stackedTotalMax

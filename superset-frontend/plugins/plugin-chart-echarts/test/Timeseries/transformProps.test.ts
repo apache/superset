@@ -1459,6 +1459,47 @@ test('keeps the 0-1 axis range for Expand (100% stacked) charts instead of paddi
   expect(xAxisRaw.max).toBe(1);
 });
 
+test('computes row-contribution axis padding per stack when time_compare splits a row into multiple normalized stacks', () => {
+  // With time_compare, each comparison period is normalized and stacked
+  // independently (see getTimeCompareStackId), so the current-period
+  // columns sum to ~1 in their own stack and the comparison-period columns
+  // (suffixed with the offset) sum to ~1 in a separate stack. The combined
+  // row total across both stacks is therefore ~2, but the axis max must be
+  // computed per stack, not from that combined total, or a 100% bar would
+  // only occupy about half the plot.
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData(
+        [
+          {
+            'Series A': 0.6,
+            'Series B': 0.4,
+            'Series A__1 year ago': 0.55,
+            'Series B__1 year ago': 0.45,
+          },
+        ],
+        { intervalMs: 300000000 },
+      ),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      contributionMode: ContributionType.Row,
+      stack: StackControlsValue.Stack,
+      time_compare: ['1 year ago'],
+    },
+    queriesData,
+  });
+
+  const transformedProps = transformProps(chartProps);
+
+  const xAxisRaw = transformedProps.echartOptions.xAxis as any;
+  expect(xAxisRaw.max).toBeGreaterThanOrEqual(1);
+  expect(xAxisRaw.max).toBeLessThan(1.5);
+});
+
 test('legend is visible on tall charts when enabled by the user', () => {
   const chartProps = createTestChartProps({
     height: 400,
