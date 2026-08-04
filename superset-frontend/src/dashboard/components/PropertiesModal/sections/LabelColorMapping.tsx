@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import Select from 'src/components/Select/Select';
@@ -114,6 +114,7 @@ interface ColorMapping {
 const DEFAULT_NEW_COLOR = '#000000';
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
+const isValidHex = (color: string) => /^#[0-9A-Fa-f]{6}$/i.test(color);
 
 const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
   jsonMetadata,
@@ -140,16 +141,19 @@ const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
       : {}, [metadataObj]);
 
   const [rows, setRows] = useState<ColorMapping[]>([]);
+  const lastSyncMetadata = useRef<string>(jsonMetadata);
 
   useEffect(() => {
-    const initialRows = Object.entries(labelColors).map(([label, color]) => ({
-      id: generateId(),
-      label,
-      color,
-    }));
-    setRows(initialRows);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (lastSyncMetadata.current !== jsonMetadata) {
+      const initialRows = Object.entries(labelColors).map(([label, color]) => ({
+        id: generateId(),
+        label,
+        color: isValidHex(color) ? color : DEFAULT_NEW_COLOR,
+      }));
+      setRows(initialRows);
+      lastSyncMetadata.current = jsonMetadata;
+    }
+  }, [jsonMetadata, labelColors]);
 
   const syncToJson = (currentRows: ColorMapping[]) => {
     const newLabelColors: Record<string, string> = {};
@@ -163,7 +167,10 @@ const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
       ...metadataObj,
       label_colors: newLabelColors,
     };
-    onJsonMetadataChange(JSON.stringify(updatedMetadata, null, 2));
+
+    const newMetadataString = JSON.stringify(updatedMetadata, null, 2);
+    lastSyncMetadata.current = newMetadataString;
+    onJsonMetadataChange(newMetadataString);
   };
 
   const handleAddRow = () => {
