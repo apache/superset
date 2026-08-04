@@ -24,6 +24,29 @@ from superset.exceptions import InvalidPostProcessingError
 from superset.utils.pandas_postprocessing.utils import RESAMPLE_METHOD
 
 
+def _align_time_range_tz(
+    value: Optional[Union[datetime, str]], index: pd.DatetimeIndex
+) -> Optional[pd.Timestamp]:
+    """
+    Make a query time boundary's timezone-awareness match a DatetimeIndex's,
+    so the two can be combined as a resample ``origin`` or in
+    ``pd.date_range``/``reindex`` without pandas raising a "must have the
+    same timezone" error. Boundaries are naive by convention (see
+    ``QueryObject.from_dttm``/``to_dttm``), while the DataFrame index can be
+    timezone-aware for datasources with timezone-aware temporal columns.
+    """
+    if value is None:
+        return None
+    timestamp = pd.Timestamp(value)
+    if index.tz is not None:
+        return (
+            timestamp.tz_localize(index.tz)
+            if timestamp.tzinfo is None
+            else timestamp.tz_convert(index.tz)
+        )
+    return timestamp.tz_localize(None) if timestamp.tzinfo is not None else timestamp
+
+
 def resample(
     df: pd.DataFrame,
     rule: str,
@@ -55,16 +78,28 @@ def resample(
         )
 
     if method == "asfreq" and fill_value is not None:
-        origin = time_range_start if time_range_start is not None else "start_day"
+        aligned_start = _align_time_range_tz(time_range_start, df.index)
+        aligned_end = _align_time_range_tz(time_range_end, df.index)
+        origin = aligned_start if aligned_start is not None else "start_day"
         _df = df.resample(rule, origin=origin).asfreq(fill_value=fill_value)
-        if time_range_start is not None and time_range_end is not None:
+        if aligned_start is not None and aligned_end is not None:
             # Zero-filling should cover the entire queried time range, not
             # just the span between the first and last existing data points.
-            full_index = pd.date_range(
-                start=time_range_start,
-                end=time_range_end,
-                freq=rule,
-                inclusive="left",
+            # Union (rather than replace) the resampled labels with the
+            # full-range grid: for calendar-anchored rules (e.g. month/
+            # quarter/year start) `Resampler` ignores `origin` and always
+            # bins to calendar boundaries, while `pd.date_range` rolls
+            # forward from `start`, so the two can disagree near the range
+            # boundary. Replacing the index instead of unioning it would
+            # silently drop real data whose bucket falls outside the
+            # generated grid.
+            full_index = _df.index.union(
+                pd.date_range(
+                    start=aligned_start,
+                    end=aligned_end,
+                    freq=rule,
+                    inclusive="left",
+                )
             )
             _df = _df.reindex(full_index, fill_value=fill_value)
         _df = _df.fillna(fill_value)
