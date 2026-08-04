@@ -48,7 +48,11 @@ interface RecentDashboard extends RecentActivity {
  * Recent activity objects fetched by `getRecentActivityObjs`.
  */
 type ActivityObject =
-  RecentSlice | RecentDashboard | Chart | Dashboard | SavedQueryObject;
+  | RecentSlice
+  | RecentDashboard
+  | Chart
+  | Dashboard
+  | SavedQueryObject;
 
 interface ActivityProps {
   user: {

@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { fireEvent, render } from 'spec/helpers/testing-library';
+import { fireEvent, render, screen } from 'spec/helpers/testing-library';
 
 import BackgroundStyleDropdown from 'src/dashboard/components/menu/BackgroundStyleDropdown';
 import IconButton from 'src/dashboard/components/IconButton';
@@ -198,6 +198,15 @@ test('should call deleteComponent when deleted', () => {
   const { getByTestId } = setup({ editMode: true, deleteComponent });
   fireEvent.click(getByTestId('mock-delete-component-button'));
   expect(deleteComponent).toHaveBeenCalledTimes(1);
+});
+
+test('settings IconButton exposes an accessible name without visible label text', () => {
+  setup({ component: columnWithoutChildren, editMode: true });
+
+  expect(
+    screen.getByRole('button', { name: 'Column settings' }),
+  ).toBeInTheDocument();
+  expect(screen.queryByText('Column settings')).not.toBeInTheDocument();
 });
 
 test('should pass its own width as availableColumnCount to children', () => {

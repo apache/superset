@@ -77,7 +77,7 @@ export interface CompatibleDatabase {
   description?: string;
   logo?: string;
   homepage_url?: string;
-  categories?: string[];  // Category classifications (e.g., ["TRADITIONAL_RDBMS", "OPEN_SOURCE"])
+  categories?: string[]; // Category classifications (e.g., ["TRADITIONAL_RDBMS", "OPEN_SOURCE"])
   pypi_packages?: string[];
   connection_string?: string;
   parameters?: Record<string, string>;
@@ -87,27 +87,27 @@ export interface CompatibleDatabase {
 }
 
 export interface CustomError {
-  error_type: string;           // e.g., "CONNECTION_INVALID_USERNAME_ERROR"
-  message_template: string;     // e.g., 'The username "%(username)s" does not exist.'
-  regex_pattern?: string;       // The regex pattern that matches this error (optional, for reference)
-  regex_name?: string;          // The name of the regex constant (e.g., "CONNECTION_INVALID_USERNAME_REGEX")
-  invalid_fields?: string[];    // Fields that are invalid, e.g., ["username", "password"]
-  issue_codes?: number[];       // Related issue codes from ISSUE_CODES mapping
-  category?: string;            // Error category: "Authentication", "Connection", "Query", etc.
-  description?: string;         // Human-readable short description of the error type
+  error_type: string; // e.g., "CONNECTION_INVALID_USERNAME_ERROR"
+  message_template: string; // e.g., 'The username "%(username)s" does not exist.'
+  regex_pattern?: string; // The regex pattern that matches this error (optional, for reference)
+  regex_name?: string; // The name of the regex constant (e.g., "CONNECTION_INVALID_USERNAME_REGEX")
+  invalid_fields?: string[]; // Fields that are invalid, e.g., ["username", "password"]
+  issue_codes?: number[]; // Related issue codes from ISSUE_CODES mapping
+  category?: string; // Error category: "Authentication", "Connection", "Query", etc.
+  description?: string; // Human-readable short description of the error type
 }
 
 export interface DatabaseDocumentation {
   description?: string;
   logo?: string;
   homepage_url?: string;
-  categories?: string[];  // Category classifications (e.g., ["TRADITIONAL_RDBMS", "OPEN_SOURCE"])
+  categories?: string[]; // Category classifications (e.g., ["TRADITIONAL_RDBMS", "OPEN_SOURCE"])
   pypi_packages?: string[];
   connection_string?: string;
   default_port?: number;
   parameters?: Record<string, string>;
   notes?: string;
-  limitations?: string[];  // Known limitations or caveats
+  limitations?: string[]; // Known limitations or caveats
   connection_examples?: ConnectionExample[];
   host_examples?: HostExample[];
   drivers?: Driver[];
@@ -122,7 +122,7 @@ export interface DatabaseDocumentation {
   sqlalchemy_docs_url?: string;
   advanced_features?: Record<string, string>;
   compatible_databases?: CompatibleDatabase[];
-  custom_errors?: CustomError[];  // Database-specific error messages and troubleshooting info
+  custom_errors?: CustomError[]; // Database-specific error messages and troubleshooting info
 }
 
 export interface TimeGrains {
