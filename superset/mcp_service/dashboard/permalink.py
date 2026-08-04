@@ -18,15 +18,30 @@
 """Helpers for resolving dashboard permalink keys and shared URLs."""
 
 import logging
+from dataclasses import dataclass
+from typing import Callable, Generic, TypeVar
 from urllib.parse import urlparse
 
 from flask import g, has_request_context
 
+from superset.commands.dashboard.exceptions import DashboardAccessDeniedError
 from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
 from superset.dashboards.permalink.types import DashboardPermalinkValue
 from superset.mcp_service.auth import load_user_with_relationships
 
 logger = logging.getLogger(__name__)
+
+LookupResultT = TypeVar("LookupResultT")
+
+
+@dataclass(frozen=True)
+class DashboardLookupResult(Generic[LookupResultT]):
+    """Result of resolving either a dashboard identifier or permalink."""
+
+    result: LookupResultT | None
+    permalink_key: str | None = None
+    permalink_value: DashboardPermalinkValue | None = None
+    permalink_error: bool = False
 
 
 def extract_dashboard_permalink_key(value: str) -> str:
@@ -67,7 +82,59 @@ def get_dashboard_permalink(
     refresh_request_user_for_permalink_access()
     try:
         value = GetDashboardPermalinkCommand(key).run()
-    except DashboardPermalinkGetFailedError as ex:
+    except (DashboardAccessDeniedError, DashboardPermalinkGetFailedError) as ex:
         logger.info("Dashboard permalink could not be resolved: %s", ex)
         return None
     return (key, value) if value else None
+
+
+def lookup_dashboard_reference(
+    *,
+    identifier: int | str | None,
+    permalink_key: str | None,
+    lookup: Callable[[int | str], LookupResultT],
+    is_found: Callable[[LookupResultT], bool],
+) -> DashboardLookupResult[LookupResultT]:
+    """Look up a dashboard while preserving identifier precedence.
+
+    A supplied identifier selects the dashboard and an explicit permalink only
+    contributes state. Shared permalink URLs and permalink-only requests select
+    the dashboard embedded in the permalink. Ambiguous bare strings use normal
+    identifier lookup first, then fall back to permalink resolution.
+    """
+    key = permalink_key
+    identifier_is_permalink_url = False
+    if isinstance(identifier, str):
+        extracted_key = extract_dashboard_permalink_key(identifier)
+        identifier_is_permalink_url = extracted_key != identifier
+        if identifier_is_permalink_url:
+            key = extracted_key
+
+    if identifier is not None and not identifier_is_permalink_url:
+        result = lookup(identifier)
+        if is_found(result):
+            resolved = get_dashboard_permalink(key) if key else None
+            return DashboardLookupResult(
+                result=result,
+                permalink_key=resolved[0] if resolved else key,
+                permalink_value=resolved[1] if resolved else None,
+            )
+        if permalink_key is not None or not isinstance(identifier, str):
+            return DashboardLookupResult(result=result, permalink_key=key)
+    else:
+        result = None
+
+    reference = key or (identifier if isinstance(identifier, str) else None)
+    resolved = get_dashboard_permalink(reference) if reference else None
+    if resolved is None:
+        return DashboardLookupResult(
+            result=result,
+            permalink_key=reference,
+            permalink_error=True,
+        )
+    key, value = resolved
+    return DashboardLookupResult(
+        result=lookup(value["dashboardId"]),
+        permalink_key=key,
+        permalink_value=value,
+    )
