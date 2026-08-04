@@ -60,7 +60,7 @@ tests:
           pattern: 'superset fab list-users'
       - notMatchRegex:
           path: 'stringData["superset_init.sh"]'
-          pattern: "grep -qF 'username:\$\{ADMIN_USERNAME\}'"
+          pattern: 'grep -qF ''username:\$\{ADMIN_USERNAME\}'''
       - notMatchRegex:
           path: 'stringData["superset_init.sh"]'
           pattern: 'create-admin.*[|][|] true'
