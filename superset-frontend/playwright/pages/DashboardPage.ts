@@ -33,7 +33,12 @@ type BuilderTab = 'Charts' | 'Layout elements';
  * carry dynamic names and are not covered here.
  */
 type LayoutElementLabel =
-  'Tabs' | 'Row' | 'Column' | 'Header' | 'Text / Markdown' | 'Divider';
+  | 'Tabs'
+  | 'Row'
+  | 'Column'
+  | 'Header'
+  | 'Text / Markdown'
+  | 'Divider';
 
 /**
  * Dashboard Page object for interacting with dashboards.
