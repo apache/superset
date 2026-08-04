@@ -1309,12 +1309,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         Returns an IANA timezone name (e.g., "Europe/Berlin", "America/New_York")
         or None if not configured.
 
+        ``extra`` is arbitrary user-supplied JSON, so the ``timezone`` key could
+        hold a non-string value (a number, object, list, ...). Only a string is
+        ever a valid IANA name, so anything else is treated as "not configured"
+        rather than propagating a bad value on to ``ZoneInfo``.
+
         ``extra_dict`` is provided by concrete datasources (e.g. ``SqlaTable``)
         rather than this mixin, so read it defensively: subclasses without it
         simply have no configured timezone.
         """
         extra = getattr(self, "extra_dict", None) or {}
-        return extra.get("timezone")
+        dataset_timezone = extra.get("timezone")
+        return dataset_timezone if isinstance(dataset_timezone, str) else None
 
     def get_fetch_values_predicate(
         self,
@@ -3287,7 +3293,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         return f"""'{dttm.strftime("%Y-%m-%d %H:%M:%S.%f")}'"""
 
-    def get_time_filter(  # pylint: disable=too-many-arguments
+    def get_time_filter(  # pylint: disable=too-many-arguments  # noqa: C901
         self,
         time_col: "TableColumn",
         start_dttm: Optional[sa.DateTime],
@@ -3346,9 +3352,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
                 dataset_timezone = None
 
-        if not dataset_timezone and (
-            offset_hours := getattr(self, "offset", 0) or 0
-        ):
+        if not dataset_timezone and (offset_hours := getattr(self, "offset", 0) or 0):
             if start_dttm is not None:
                 start_dttm = start_dttm - timedelta(hours=offset_hours)
             if end_dttm is not None:
