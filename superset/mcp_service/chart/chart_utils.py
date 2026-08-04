@@ -24,6 +24,7 @@ generation that can be used by both generate_chart and generate_explore_link too
 
 import hashlib
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Dict, TYPE_CHECKING
 
@@ -573,6 +574,39 @@ def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
         }
 
     return form_data
+
+
+def merge_table_column_config(
+    existing_form_data: Mapping[str, Any], new_form_data: Dict[str, Any]
+) -> None:
+    """Merge MCP table formatting without discarding UI-only settings.
+
+    An omitted ``column_config`` preserves the saved value, an explicit empty
+    mapping clears it, and a non-empty mapping updates only the supplied labels
+    and properties. The nested merge is important because the Superset UI stores
+    additional column settings that the MCP schema does not expose.
+    """
+    if "column_config" not in new_form_data:
+        if "column_config" in existing_form_data:
+            new_form_data["column_config"] = existing_form_data["column_config"]
+        return
+
+    new_column_config = new_form_data["column_config"]
+    if not isinstance(new_column_config, dict) or not new_column_config:
+        return
+
+    existing_column_config = existing_form_data.get("column_config")
+    if not isinstance(existing_column_config, dict):
+        return
+
+    merged_column_config = dict(existing_column_config)
+    for label, settings in new_column_config.items():
+        existing_settings = existing_column_config.get(label)
+        if isinstance(existing_settings, dict) and isinstance(settings, dict):
+            merged_column_config[label] = {**existing_settings, **settings}
+        else:
+            merged_column_config[label] = settings
+    new_form_data["column_config"] = merged_column_config
 
 
 def create_metric_object(col: ColumnRef) -> Dict[str, Any] | str:

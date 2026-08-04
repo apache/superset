@@ -1548,7 +1548,11 @@ class BigNumberChartConfig(UnknownFieldCheckMixin):
 class TableColumnConfig(UnknownFieldCheckMixin):
     """Display formatting supported by the MCP table-chart schema."""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore",
+        populate_by_name=True,
+        json_schema_extra={"additionalProperties": False},
+    )
 
     column_width: int | None = Field(
         None,
