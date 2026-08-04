@@ -86,9 +86,14 @@ class TestPurgeAudit(DeletionRetentionTestBase):
         )
         db.session.expire_all()
 
-        assert result == {"reconciled": 1, "confirmed": 1, "failed": 0}
-        assert row.status == audit.STATUS_CONFIRMED
-        assert row.confirmed_on is not None
+        assert result == {"reconciled": 1, "absent": 1, "failed": 0}
+        # target_absent, NOT confirmed: the entity being gone proves some
+        # purge committed, but a concurrent attempt or unrelated deletion fits
+        # the evidence equally well -- the compliance record must not
+        # attribute a success it did not witness.
+        assert row.status == audit.STATUS_TARGET_ABSENT
+        # No confirmed_on: nothing was confirmed -- only inferred absent.
+        assert row.confirmed_on is None
 
     def test_reconcile_fails_pending_when_entity_survives(self) -> None:
         """A stale attempt with a surviving entity is closed as failed."""
@@ -98,6 +103,7 @@ class TestPurgeAudit(DeletionRetentionTestBase):
             actor=audit.ACTOR_SYSTEM,
             entity_type="slices",
             entity_uuid=str(chart.uuid),
+            removed_dashboard_slices=7,
         )
 
         result = audit.reconcile_pending(
@@ -105,5 +111,52 @@ class TestPurgeAudit(DeletionRetentionTestBase):
         )
         db.session.expire_all()
 
-        assert result == {"reconciled": 1, "confirmed": 0, "failed": 1}
-        assert db.session.get(PurgeAuditLog, record_id).status == audit.STATUS_FAILED
+        assert result == {"reconciled": 1, "absent": 0, "failed": 1}
+        row = db.session.get(PurgeAuditLog, record_id)
+        assert row.status == audit.STATUS_FAILED
+        # The intended-removal count is zeroed, same as finalize() on a
+        # failed attempt: the rollback means those removals never happened.
+        assert row.removed_dashboard_slices == 0
+
+    def test_reconcile_zeroes_count_when_target_absent(self) -> None:
+        """The intended-removal count is not attributable on target_absent.
+
+        The entity being gone proves *some* purge committed, but not that it
+        was this attempt -- so the write-ahead count must not survive into
+        the immutable record as if witnessed (mirrors finalize() zeroing on
+        failed/blocked).
+        """
+        record_id = audit.write_ahead(
+            trigger=audit.TRIGGER_RETENTION,
+            actor=audit.ACTOR_SYSTEM,
+            entity_type="slices",
+            entity_uuid="00000000-0000-0000-0000-00000000feed",
+            removed_dashboard_slices=7,
+        )
+
+        result = audit.reconcile_pending(
+            stale_before=datetime.utcnow() + timedelta(seconds=1)
+        )
+        db.session.expire_all()
+
+        assert result == {"reconciled": 1, "absent": 1, "failed": 0}
+        row = db.session.get(PurgeAuditLog, record_id)
+        assert row.status == audit.STATUS_TARGET_ABSENT
+        assert row.removed_dashboard_slices == 0
+
+    def test_blocked_attempt_does_not_keep_the_intended_removal_count(self) -> None:
+        """The write-ahead row records what the purge INTENDED to remove;
+        a blocked attempt rolled that work back, so keeping the count would
+        assert removals that never happened."""
+        record_id = audit.write_ahead(
+            trigger=audit.TRIGGER_RETENTION,
+            actor=audit.ACTOR_SYSTEM,
+            entity_type="dashboards",
+            entity_uuid="00000000-0000-0000-0000-00000000cafe",
+            removed_dashboard_slices=7,
+        )
+        audit.block(record_id)
+
+        row = db.session.query(PurgeAuditLog).filter_by(id=record_id).one()
+        assert row.status == audit.STATUS_BLOCKED
+        assert row.removed_dashboard_slices == 0

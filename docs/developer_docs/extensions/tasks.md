@@ -37,6 +37,7 @@ FEATURE_FLAGS = {
 ```
 
 When GTF is disabled:
+
 - The Task List UI menu item is hidden
 - The `/api/v1/task/*` endpoints return 404
 - Calling or scheduling a `@task`-decorated function raises `GlobalTaskFrameworkDisabledError`
@@ -79,10 +80,10 @@ print(task.status)  # "success"
 
 ### Async vs Sync Execution
 
-| Method | When to Use |
-|--------|-------------|
-| `.schedule()` | Long-running operations, background processing, when you need to return immediately |
-| Direct call | Short operations, when deduplication matters, when you need the result before responding |
+| Method        | When to Use                                                                              |
+| ------------- | ---------------------------------------------------------------------------------------- |
+| `.schedule()` | Long-running operations, background processing, when you need to return immediately      |
+| Direct call   | Short operations, when deduplication matters, when you need the result before responding |
 
 Both execution modes provide the same task features: deduplication, progress tracking, cancellation, and visibility in the Task List UI. The difference is whether execution happens in a Celery worker (async) or inline (sync).
 
@@ -100,15 +101,15 @@ PENDING ──→ IN_PROGRESS ────→ SUCCESS
    └─────────────┴──────────→ ABORTED (user cancel)
 ```
 
-| Status | Description |
-|--------|-------------|
-| `PENDING` | Queued, awaiting execution |
-| `IN_PROGRESS` | Executing |
-| `ABORTING` | Abort/timeout triggered, abort handlers running |
-| `SUCCESS` | Completed successfully |
-| `FAILURE` | Failed with error or abort/cleanup handler exception |
-| `ABORTED` | Cancelled by user/admin |
-| `TIMED_OUT` | Exceeded configured timeout |
+| Status        | Description                                          |
+| ------------- | ---------------------------------------------------- |
+| `PENDING`     | Queued, awaiting execution                           |
+| `IN_PROGRESS` | Executing                                            |
+| `ABORTING`    | Abort/timeout triggered, abort handlers running      |
+| `SUCCESS`     | Completed successfully                               |
+| `FAILURE`     | Failed with error or abort/cleanup handler exception |
+| `ABORTED`     | Cancelled by user/admin                              |
+| `TIMED_OUT`   | Exceeded configured timeout                          |
 
 ## Context API
 
@@ -139,11 +140,11 @@ Call `update_task()` once per iteration for best performance. Frequent DB writes
 
 The `progress` parameter accepts three formats:
 
-| Format | Example | Display |
-|--------|---------|---------|
+| Format            | Example             | Display                |
+| ----------------- | ------------------- | ---------------------- |
 | `tuple[int, int]` | `progress=(3, 100)` | 3 of 100 (3%) with ETA |
-| `float` (0.0-1.0) | `progress=0.5` | 50% with ETA |
-| `int` | `progress=42` | 42 processed |
+| `float` (0.0-1.0) | `progress=0.5`      | 50% with ETA           |
+| `int`             | `progress=42`       | 42 processed           |
 
 :::tip
 Use the tuple format `(current, total)` whenever possible. It provides the richest information to users: showing both the count and percentage, while still computing ETA automatically.
@@ -159,10 +160,10 @@ In the Task List UI, when a payload is defined, an info icon appears in the **De
 
 Register handlers to run cleanup logic or respond to abort requests:
 
-| Handler | When it runs | Use case |
-|---------|--------------|----------|
-| `on_cleanup` | Always (success, failure, abort) | Release resources, close connections |
-| `on_abort` | When task is aborted | Set stop flag, cancel external operations |
+| Handler      | When it runs                     | Use case                                  |
+| ------------ | -------------------------------- | ----------------------------------------- |
+| `on_cleanup` | Always (success, failure, abort) | Release resources, close connections      |
+| `on_abort`   | When task is aborted             | Set stop flag, cancel external operations |
 
 ```python
 @task
@@ -187,6 +188,7 @@ Multiple handlers of the same type execute in LIFO order (last registered runs f
 **All registered handlers will always be attempted, even if one fails.** This ensures that a failure in one handler doesn't prevent other handlers from running their cleanup logic.
 
 For example, if you have three cleanup handlers and the second one throws an exception:
+
 1. Handler 3 runs ✓
 2. Handler 2 throws an exception ✗ (logged, but execution continues)
 3. Handler 1 runs ✓
@@ -200,6 +202,7 @@ Write handlers to be independent and self-contained. Don't assume previous handl
 ## Making Tasks Abortable
 
 When users click **Cancel** in the Task List, the system decides whether to **abort** (stop) the task or **unsubscribe** (remove the user from a shared task). Abort occurs when:
+
 - It's a private or system task
 - It's a shared task and the user is the last subscriber
 - An admin checks **Force abort** to stop the task for all subscribers
@@ -229,6 +232,7 @@ def abortable_task(items: list[str]) -> None:
 ```
 
 **Key points:**
+
 - Registering `on_abort` marks the task as abortable and starts the abort listener
 - The abort handler fires automatically when abort is triggered
 - Use a flag pattern to gracefully stop processing at safe points
@@ -283,11 +287,11 @@ The timeout timer starts when the task begins executing (status changes to `IN_P
 
 ### Timeout Precedence
 
-| Source | Priority | Example |
-|--------|----------|---------|
-| `TaskOptions.timeout` | Highest | `options=TaskOptions(timeout=600)` |
-| `@task(timeout=...)` | Default | `@task(timeout=300)` |
-| Not set | No timeout | Task runs indefinitely |
+| Source                | Priority   | Example                            |
+| --------------------- | ---------- | ---------------------------------- |
+| `TaskOptions.timeout` | Highest    | `options=TaskOptions(timeout=600)` |
+| `@task(timeout=...)`  | Default    | `@task(timeout=300)`               |
+| Not set               | No timeout | Task runs indefinitely             |
 
 Call-time options always override decorator defaults, allowing tasks to have sensible defaults while permitting callers to extend or shorten the timeout for specific use cases.
 
@@ -345,11 +349,11 @@ def shared_task(): ...
 def system_task(): ...
 ```
 
-| Scope | Visibility | Cancel Behavior |
-|-------|------------|-----------------|
-| `PRIVATE` | Creator only | Cancels immediately |
-| `SHARED` | All subscribers | Last subscriber cancels; others unsubscribe |
-| `SYSTEM` | Admins only | Admin cancels |
+| Scope     | Visibility      | Cancel Behavior                             |
+| --------- | --------------- | ------------------------------------------- |
+| `PRIVATE` | Creator only    | Cancels immediately                         |
+| `SHARED`  | All subscribers | Last subscriber cancels; others unsubscribe |
+| `SYSTEM`  | Admins only     | Admin cancels                               |
 
 ## Task Cleanup
 
@@ -393,11 +397,11 @@ By default, abort detection and sync join-and-wait use database polling. Configu
 
 ### TaskContext Methods
 
-| Method | Description |
-|--------|-------------|
-| `update_task(progress, payload)` | Update progress and/or custom payload |
-| `on_cleanup(handler)` | Register cleanup handler |
-| `on_abort(handler)` | Register abort handler (makes task abortable) |
+| Method                           | Description                                   |
+| -------------------------------- | --------------------------------------------- |
+| `update_task(progress, payload)` | Update progress and/or custom payload         |
+| `on_cleanup(handler)`            | Register cleanup handler                      |
+| `on_abort(handler)`              | Register abort handler (makes task abortable) |
 
 ### TaskOptions
 
@@ -429,6 +433,7 @@ def risky_task() -> None:
 ```
 
 On failure, the framework records:
+
 - `error_message`: Exception message
 - `exception_type`: Exception class name
 - `stack_trace`: Full traceback (visible when `SHOW_STACKTRACE=True`)

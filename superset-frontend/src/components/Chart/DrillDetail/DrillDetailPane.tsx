@@ -42,6 +42,7 @@ import BooleanCell from '@superset-ui/core/components/Table/cell-renderers/Boole
 import NullCell from '@superset-ui/core/components/Table/cell-renderers/NullCell';
 import TimeCell from '@superset-ui/core/components/Table/cell-renderers/TimeCell';
 import { EmptyState, Loading } from '@superset-ui/core/components';
+import { Alert } from '@apache-superset/core/components';
 import { getDatasourceSamples } from 'src/components/Chart/chartAction';
 import Table, {
   ColumnsType,
@@ -362,13 +363,18 @@ export default function DrillDetailPane({
   if (responseError) {
     // Render error if page download failed
     tableContent = (
-      <pre
+      <div
         css={css`
           margin-top: ${theme.sizeUnit * 4}px;
         `}
       >
-        {responseError}
-      </pre>
+        <Alert
+          type="error"
+          showIcon
+          message={t('Failed to load drill-to-detail rows')}
+          description={responseError}
+        />
+      </div>
     );
   } else if (bootstrapping) {
     // Render loading if first page hasn't loaded
