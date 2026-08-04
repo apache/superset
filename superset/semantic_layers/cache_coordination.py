@@ -1,0 +1,147 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+"""Ownership-safe coordination for semantic-cache descriptor mutations."""
+
+import math
+from collections.abc import Callable
+from dataclasses import dataclass
+from time import monotonic, sleep
+from typing import Protocol, runtime_checkable
+from uuid import uuid4
+
+from redis.exceptions import RedisError
+
+from superset.semantic_layers.cache_repository import SemanticCacheCoordinationError
+
+SEMANTIC_CACHE_COORDINATION_FAILURE_METRIC: str = (
+    "semantic_cache.containment.coordination_failure"
+)
+
+
+@runtime_checkable
+class OwnerTokenCoordinationBackend(Protocol):
+    """Atomic lease operations required from a coordination backend."""
+
+    def acquire_owner_token(
+        self,
+        key: str,
+        owner_token: str,
+        lease_seconds: int,
+    ) -> bool: ...  # pragma: no cover
+
+    def release_owner_token(
+        self,
+        key: str,
+        owner_token: str,
+    ) -> bool: ...  # pragma: no cover
+
+
+@dataclass(frozen=True)
+class SemanticCacheCoordinationSettings:
+    """Validated bounded timing settings for descriptor leases."""
+
+    wait_seconds: float
+    lease_seconds: int
+
+    def __post_init__(self) -> None:
+        if (
+            isinstance(self.wait_seconds, bool)
+            or not isinstance(self.wait_seconds, (int, float))
+            or not math.isfinite(self.wait_seconds)
+            or self.wait_seconds < 0
+        ):
+            raise ValueError(
+                "Coordination wait seconds must be finite and non-negative"
+            )
+        if (
+            isinstance(self.lease_seconds, bool)
+            or not isinstance(self.lease_seconds, int)
+            or self.lease_seconds <= 0
+        ):
+            raise ValueError("Coordination lease seconds must be positive")
+
+
+class SemanticCacheCoordinator:
+    """Run descriptor mutations while holding an owner-token lease."""
+
+    def __init__(
+        self,
+        backend: OwnerTokenCoordinationBackend,
+        settings: SemanticCacheCoordinationSettings,
+        *,
+        clock: Callable[[], float] = monotonic,
+        sleeper: Callable[[float], None] = sleep,
+        token_factory: Callable[[], str] = lambda: uuid4().hex,
+        failure_metric: Callable[[str], None] | None = None,
+    ) -> None:
+        self._backend: OwnerTokenCoordinationBackend = backend
+        self._settings: SemanticCacheCoordinationSettings = settings
+        self._clock: Callable[[], float] = clock
+        self._sleeper: Callable[[float], None] = sleeper
+        self._token_factory: Callable[[], str] = token_factory
+        self._failure_metric: Callable[[str], None] = failure_metric or (lambda _: None)
+
+    def _failure(self, message: str, cause: RedisError | None = None) -> None:
+        self._record_failure()
+        error: SemanticCacheCoordinationError = SemanticCacheCoordinationError(message)
+        if cause is None:
+            raise error
+        raise error from cause
+
+    def _record_failure(self) -> None:
+        try:
+            self._failure_metric(SEMANTIC_CACHE_COORDINATION_FAILURE_METRIC)
+        except Exception:  # pylint: disable=broad-exception-caught
+            self._failure_metric = lambda _: None
+
+    def mutate(self, key: str, operation: Callable[[], None]) -> bool:
+        """Acquire a bounded lease, mutate, and release only our ownership."""
+        lease_key: str = f"semantic-cache-lock:{key}"
+        owner_token: str = self._token_factory()
+        deadline: float = self._clock() + self._settings.wait_seconds
+        acquired: bool = False
+        while True:
+            try:
+                acquired = self._backend.acquire_owner_token(
+                    lease_key,
+                    owner_token,
+                    self._settings.lease_seconds,
+                )
+            except RedisError as ex:
+                self._failure("Semantic cache lease acquisition failed", ex)
+            if acquired:
+                break
+            remaining: float = deadline - self._clock()
+            if remaining <= 0:
+                self._record_failure()
+                return False
+            self._sleeper(min(0.05, remaining))
+
+        try:
+            operation()
+        finally:
+            try:
+                released: bool = self._backend.release_owner_token(
+                    lease_key,
+                    owner_token,
+                )
+            except RedisError as ex:
+                self._failure("Semantic cache lease release failed", ex)
+            if not released:
+                self._failure("Semantic cache lease ownership was lost")
+        return True
