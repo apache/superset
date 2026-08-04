@@ -7,7 +7,7 @@ version: 1
 
 import featureFlags from '../_versioned_data/static/feature-flags.json';
 
-export const FlagTable = ({flags}) => (
+export const FlagTable = ({ flags }) => (
   <table>
     <thead>
       <tr>
@@ -17,14 +17,21 @@ export const FlagTable = ({flags}) => (
       </tr>
     </thead>
     <tbody>
-      {flags.map((flag) => (
+      {flags.map(flag => (
         <tr key={flag.name}>
-          <td><code>{flag.name}</code></td>
-          <td><code>{flag.default ? 'True' : 'False'}</code></td>
+          <td>
+            <code>{flag.name}</code>
+          </td>
+          <td>
+            <code>{flag.default ? 'True' : 'False'}</code>
+          </td>
           <td>
             {flag.description}
             {flag.docs && (
-              <> (<a href={flag.docs}>docs</a>)</>
+              <>
+                {' '}
+                (<a href={flag.docs}>docs</a>)
+              </>
             )}
           </td>
         </tr>
@@ -50,12 +57,12 @@ FEATURE_FLAGS = {
 
 Feature flags progress through lifecycle stages:
 
-| Stage | Description |
-|-------|-------------|
+| Stage           | Description                                                                    |
+| --------------- | ------------------------------------------------------------------------------ |
 | **Development** | Experimental features under active development. May be incomplete or unstable. |
-| **Testing** | Feature complete but undergoing testing. Usable but may contain bugs. |
-| **Stable** | Production-ready features. Safe for all deployments. |
-| **Deprecated** | Features scheduled for removal. Migrate away from these. |
+| **Testing**     | Feature complete but undergoing testing. Usable but may contain bugs.          |
+| **Stable**      | Production-ready features. Safe for all deployments.                           |
+| **Deprecated**  | Features scheduled for removal. Migrate away from these.                       |
 
 ---
 

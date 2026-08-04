@@ -109,6 +109,7 @@ class TestDatasetRestoreApi(SupersetTestCase):
         assert table is not None
         table_uuid = str(table.uuid)
         entity_uuid = table.uuid
+        assert entity_uuid is not None
         table_id = table.id
         original_description = table.description
 
@@ -164,6 +165,7 @@ class TestDatasetRestoreApi(SupersetTestCase):
         assert table is not None
         table_uuid = str(table.uuid)
         entity_uuid = table.uuid
+        assert entity_uuid is not None
         table_id = table.id
 
         col = table.columns[0]
@@ -219,6 +221,7 @@ class TestDatasetRestoreApi(SupersetTestCase):
         table_id = table.id
         table_uuid = str(table.uuid)
         entity_uuid = table.uuid
+        assert entity_uuid is not None
 
         original_col_names = sorted(c.column_name for c in table.columns)
         removed_name = table.columns[0].column_name
@@ -285,6 +288,7 @@ class TestDatasetRestoreApi(SupersetTestCase):
         table_id = table.id
         table_uuid = str(table.uuid)
         entity_uuid = table.uuid
+        assert entity_uuid is not None
         removed_name = table.columns[0].column_name
         added_name = "__restore_full_diff_test__"
 
@@ -399,6 +403,7 @@ class TestDatasetRestoreApi(SupersetTestCase):
         table_id = table.id
         table_uuid = str(table.uuid)
         entity_uuid = table.uuid
+        assert entity_uuid is not None
         original_description = table.description
         original_col_names = sorted(c.column_name for c in table.columns)
 

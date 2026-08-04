@@ -149,12 +149,35 @@ class PurgeRaceLostError(Exception):
     """Raised to roll back dependent cleanup when the entity delete loses."""
 
 
+def _eligibility_predicates(
+    table: sa.Table,
+    *,
+    enforce_window: bool,
+    cutoff: datetime | None,
+    require_archived: bool,
+) -> list[Any]:
+    """Row-state predicates that decide whether *entity* may still be purged.
+
+    Returned as a list so the identical set can be carried by both the locked
+    claim and the conditional delete. Eligibility has to be expressed as SQL
+    predicates on those two statements rather than as a check beforehand: a
+    restore committing between the check and the lock would otherwise go
+    unnoticed. An empty list means every row is eligible.
+    """
+    if enforce_window:
+        return [table.c.deleted_at.is_not(None), table.c.deleted_at < cutoff]
+    if require_archived:
+        return [table.c.deleted_at.is_not(None)]
+    return []
+
+
 def cascade_hard_delete(
     session: Session,
     entity: Any,
     *,
     enforce_window: bool,
     cutoff: datetime | None = None,
+    require_archived: bool = False,
 ) -> CascadeResult:
     """Remove *entity* and everything that depends on it in one transaction.
 
@@ -162,6 +185,16 @@ def cascade_hard_delete(
     dependent state is touched. Ordinary deletion blockers remain
     authoritative. All cleanup and the conditional parent delete run inside a
     savepoint so a lost race or restrictive foreign key leaves no side effects.
+
+    Eligibility means different things to the two callers, and both express it
+    here rather than upstream, because only the predicates carried by the
+    locked claim and the conditional delete are race-free. Anything checked
+    before the lock can be invalidated by a commit landing in between.
+
+    ``enforce_window`` (retention) requires the row to be soft-deleted and
+    older than *cutoff*. ``require_archived`` (force purge, which ignores the
+    window) requires only that it is still soft-deleted, so a restore
+    committed after the caller resolved the entity cannot be destroyed.
     """
     # pylint: disable=import-outside-toplevel
     from superset.connectors.sqla.models import SqlaTable
@@ -183,12 +216,17 @@ def cascade_hard_delete(
 
     try:
         with session.begin_nested():
+            # Two independent questions, both answered under the lock:
+            # identity pins which row this is (id can be reused; uuid cannot),
+            # eligibility pins whether that row may still be purged.
             identity = _identity_predicates(table, entity_id, entity)
-            claim = sa.select(table.c.id).where(*identity)
-            if enforce_window:
-                claim = claim.where(table.c.deleted_at.is_not(None)).where(
-                    table.c.deleted_at < cutoff
-                )
+            eligibility = _eligibility_predicates(
+                table,
+                enforce_window=enforce_window,
+                cutoff=cutoff,
+                require_archived=require_archived,
+            )
+            claim = sa.select(table.c.id).where(*identity).where(*eligibility)
             if session.execute(claim.with_for_update()).scalar_one_or_none() is None:
                 raise PurgeRaceLostError
 
@@ -210,11 +248,7 @@ def cascade_hard_delete(
             _delete_owned_children(session, model, entity_id)
             version_rows = _delete_version_history(session, entity, entity_id)
 
-            delete_entity = sa.delete(table).where(*identity)
-            if enforce_window:
-                delete_entity = delete_entity.where(
-                    table.c.deleted_at.is_not(None)
-                ).where(table.c.deleted_at < cutoff)
+            delete_entity = sa.delete(table).where(*identity).where(*eligibility)
             if session.execute(delete_entity).rowcount == 0:
                 raise PurgeRaceLostError
 
@@ -227,7 +261,7 @@ def cascade_hard_delete(
             entity_id,
         )
         return CascadeResult(purged=False, entity_type=entity_type, entity_uuid=uuid)
-    except (PurgeBlockedError, IntegrityError) as ex:
+    except PurgeBlockedError as ex:
         logger.info(
             "deletion_retention: %s id=%s blocked by existing deletion rules",
             entity_type,
@@ -238,6 +272,28 @@ def cascade_hard_delete(
             entity_type=entity_type,
             entity_uuid=uuid,
             blocked_reason=str(ex),
+        )
+    except IntegrityError as ex:
+        # Not a policy decision: a restrictive FK the cascade did not handle.
+        # Two audiences, two messages. The curated reason goes to the caller
+        # (and from there into a user toast), because raw driver text carries
+        # the failing SQL and bind parameters. The constraint detail goes to
+        # the log at WARNING, because an entity permanently unpurgeable via an
+        # unknown FK is a cascade-coverage bug someone has to be able to
+        # diagnose -- reported at INFO as a policy block, it read as intended
+        # behaviour.
+        logger.warning(
+            "deletion_retention: %s id=%s purge failed on a restrictive "
+            "foreign key the cascade does not handle: %s",
+            entity_type,
+            entity_id,
+            ex,
+        )
+        return CascadeResult(
+            purged=False,
+            entity_type=entity_type,
+            entity_uuid=uuid,
+            blocked_reason="blocked by database references",
         )
 
     return CascadeResult(
@@ -264,6 +320,7 @@ def _validate_deletion_allowed(
     # pylint: disable=import-outside-toplevel
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
+    from superset.models.user_attributes import UserAttribute
     from superset.reports.models import ReportSchedule
 
     column: Any | None = None
@@ -278,6 +335,23 @@ def _validate_deletion_allowed(
         ).first()
     ):
         raise PurgeBlockedError("associated alerts or reports exist")
+
+    # The welcome-dashboard reference must be an explicit guard, not a hope
+    # that the database enforces it: user_attributes.welcome_dashboard_id has
+    # no ondelete, so on FK-enforcing backends the delete fails with an
+    # IntegrityError misreported as a policy block -- while on SQLite with
+    # FKs off the dashboard purges "successfully", strands a dangling pointer
+    # (a broken user homepage), and the audit row says confirmed. One check,
+    # both dialect families, and a reason the blocked entity can be named by.
+    if (
+        model is Dashboard
+        and session.execute(
+            sa.select(UserAttribute.id)
+            .where(UserAttribute.welcome_dashboard_id == entity_id)
+            .limit(1)
+        ).first()
+    ):
+        raise PurgeBlockedError("a user has this dashboard set as their welcome page")
 
 
 def _count_dashboard_slices(session: Session, model: type[Any], entity_id: int) -> int:

@@ -19,6 +19,7 @@
 import type { JsonSchema, UISchemaElement } from '@jsonforms/core';
 
 import {
+  stableSerialize,
   areDependenciesSatisfied,
   sanitizeSchema,
   buildUiSchema,
@@ -190,4 +191,26 @@ test('enumNamesEntry.tester does not match array schemas (multiEnum owns those)'
     'x-enumNames': ['Alpha'],
   } as JsonSchema;
   expect(enumNamesEntry.tester(control, schema, ctx)).toBe(-1);
+});
+
+test('stableSerialize ignores object key order', () => {
+  const a = { properties: { m: { enum: ['x', 'y'] }, d: { type: 'array' } } };
+  const b = { properties: { d: { type: 'array' }, m: { enum: ['x', 'y'] } } };
+  expect(stableSerialize(a)).toEqual(stableSerialize(b));
+});
+
+test('stableSerialize keeps array order significant', () => {
+  // x-propertyOrder / enum ordering can be meaningful, so reordered arrays
+  // must NOT compare equal.
+  expect(stableSerialize({ enum: ['a', 'b'] })).not.toEqual(
+    stableSerialize({ enum: ['b', 'a'] }),
+  );
+});
+
+test('stableSerialize preserves __proto__ keys from parsed payloads', () => {
+  // A plain-object accumulator would treat __proto__ as a prototype
+  // assignment and drop it, making two different schemas compare equal.
+  const withProto = JSON.parse('{"properties":{"b":1},"__proto__":{"a":1}}');
+  const without = JSON.parse('{"properties":{"b":1}}');
+  expect(stableSerialize(withProto)).not.toEqual(stableSerialize(without));
 });
