@@ -46,6 +46,7 @@ from superset.utils.core import (
     AdhocMetricExpressionType,
     FilterOperator,
     GenericDataType,
+    MultiValueColumnOperation,
 )
 from superset.utils.database import get_example_database
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -1296,3 +1297,122 @@ def test_column_ordering_without_chart_flag(login_as_admin):
     finally:
         db.session.delete(table)
         db.session.commit()
+
+
+def _multivalue_table() -> SqlaTable:
+    """A dataset with an ``Array(String)`` column, for multi-value query tests.
+
+    Built over the example database but never executed — the tests only compile
+    the generated SQL, so the backing table need not physically exist.
+    """
+    columns = [
+        TableColumn(column_name="skills", type="Array(String)"),
+        TableColumn(column_name="city", type="VARCHAR(255)"),
+    ]
+    return SqlaTable(
+        table_name="test_multivalue_jobs",
+        database=get_example_database(),
+        columns=columns,
+        metrics=[SqlMetric(metric_name="count", expression="COUNT(*)")],
+    )
+
+
+def _multivalue_query(
+    *,
+    filters: list[dict[str, Any]] | None = None,
+    groupby: list[Any] | None = None,
+) -> QueryObjectDict:
+    return cast(
+        QueryObjectDict,
+        {
+            "granularity": None,
+            "from_dttm": None,
+            "to_dttm": None,
+            "is_timeseries": False,
+            "groupby": groupby if groupby is not None else ["city"],
+            "metrics": ["count"],
+            "filter": filters or [],
+            "extras": {},
+        },
+    )
+
+
+_LENGTH_DIM = {
+    "label": "skills_length",
+    "column": "skills",
+    "columnOperation": MultiValueColumnOperation.LENGTH.value,
+}
+_EXPLODE_DIM = {
+    "label": "skill",
+    "column": "skills",
+    "columnOperation": MultiValueColumnOperation.EXPLODE.value,
+}
+
+
+@pytest.mark.usefixtures("app_context")
+def test_multivalue_contains_filter_generates_native_sql():
+    """CONTAINS on a multi-value-capable engine compiles to ``has(col, val)``."""
+    # Imported lazily: clickhouse.py touches app.config at import time.
+    from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec
+
+    table = _multivalue_table()
+    query_obj = _multivalue_query(
+        filters=[{"col": "skills", "op": FilterOperator.CONTAINS, "val": "Driver"}]
+    )
+    with patch.object(
+        SqlaTable, "db_engine_spec", property(lambda self: ClickHouseEngineSpec)
+    ):
+        sqla_query = table.get_sqla_query(**query_obj)
+        sql = table.database.compile_sqla_query(sqla_query.sqla_query)
+    assert "has(" in sql.lower()
+    assert "driver" in sql.lower()
+
+
+@pytest.mark.usefixtures("app_context")
+def test_multivalue_length_dimension_generates_native_sql():
+    """A LENGTH modifier dimension compiles to ``length(col)``."""
+    from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec
+
+    table = _multivalue_table()
+    query_obj = _multivalue_query(groupby=[_LENGTH_DIM])
+    with patch.object(
+        SqlaTable, "db_engine_spec", property(lambda self: ClickHouseEngineSpec)
+    ):
+        sqla_query = table.get_sqla_query(**query_obj)
+        sql = table.database.compile_sqla_query(sqla_query.sqla_query)
+    assert "length(skills)" in sql.lower()
+
+
+@pytest.mark.usefixtures("app_context")
+def test_multivalue_explode_dimension_generates_native_sql():
+    """An EXPLODE modifier dimension compiles to ``arrayJoin(col)``."""
+    from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec
+
+    table = _multivalue_table()
+    query_obj = _multivalue_query(groupby=[_EXPLODE_DIM])
+    with patch.object(
+        SqlaTable, "db_engine_spec", property(lambda self: ClickHouseEngineSpec)
+    ):
+        sqla_query = table.get_sqla_query(**query_obj)
+        sql = table.database.compile_sqla_query(sqla_query.sqla_query)
+    assert "arrayjoin(skills)" in sql.lower()
+
+
+@pytest.mark.usefixtures("app_context")
+def test_multivalue_contains_unsupported_engine_raises():
+    """CONTAINS on an engine without array support is rejected."""
+    table = _multivalue_table()
+    query_obj = _multivalue_query(
+        filters=[{"col": "skills", "op": FilterOperator.CONTAINS, "val": "Driver"}]
+    )
+    with pytest.raises(QueryObjectValidationError):
+        table.get_sqla_query(**query_obj)
+
+
+@pytest.mark.usefixtures("app_context")
+def test_multivalue_length_unsupported_engine_raises():
+    """A LENGTH modifier on an engine without array support is rejected."""
+    table = _multivalue_table()
+    query_obj = _multivalue_query(groupby=[_LENGTH_DIM])
+    with pytest.raises(QueryObjectValidationError):
+        table.get_sqla_query(**query_obj)
