@@ -58,7 +58,7 @@ babel==2.17.0
     # via
     #   -c requirements/base-constraint.txt
     #   flask-babel
-backon==4.4.2
+backon==4.4.5
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
