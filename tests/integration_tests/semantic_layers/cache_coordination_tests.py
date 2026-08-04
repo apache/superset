@@ -52,6 +52,11 @@ from tests.unit_tests.semantic_layers.conftest import (
 CoordinationBackend: TypeAlias = RedisCacheBackend | RedisSentinelCacheBackend
 
 
+@pytest.fixture(scope="session", autouse=True)
+def setup_sample_data() -> None:
+    """Override the global integration fixture; these tests require only Redis."""
+
+
 def _backends() -> list[CoordinationBackend]:
     redis_port: int = int(os.environ.get("SEMANTIC_CACHE_REDIS_PORT", "0"))
     sentinel_port: int = int(os.environ.get("SEMANTIC_CACHE_SENTINEL_PORT", "0"))
