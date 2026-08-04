@@ -20,24 +20,26 @@
 import { FC } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { extendedDayjs } from '../../utils/dates';
+import type { CacheSource } from './types';
 
 interface Props {
   cachedTimestamp?: string;
-  semanticCacheHit?: boolean;
+  cacheSource?: CacheSource;
 }
 export const TooltipContent: FC<Props> = ({
   cachedTimestamp,
-  semanticCacheHit,
+  cacheSource = 'result',
 }) => {
-  const loadedText = semanticCacheHit
-    ? {
-        timestamped: t('Loaded semantic data cached'),
-        untimed: t('Loaded from semantic cache'),
-      }
-    : {
-        timestamped: t('Loaded data cached'),
-        untimed: t('Loaded from cache'),
-      };
+  const loadedText =
+    cacheSource === 'semantic'
+      ? {
+          timestamped: t('Loaded from semantic cache'),
+          untimed: t('Loaded from semantic cache'),
+        }
+      : {
+          timestamped: t('Loaded data cached'),
+          untimed: t('Loaded from cache'),
+        };
   const cachedText = cachedTimestamp ? (
     <span>
       {loadedText.timestamped}

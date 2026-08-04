@@ -22,23 +22,22 @@ from __future__ import annotations
 import re
 
 from superset_core.semantic_layers.types import (
-    AggregationType,
+    Dimension,
     Filter,
+    Metric,
     Operator,
     PredicateType,
     SemanticQuery,
 )
 
-from superset.semantic_layers.cache_identity import (
-    semantic_dimension_key,
-    SemanticCacheIdentityFactory,
-)
+from superset.semantic_layers.cache_identity import SemanticCacheIdentityFactory
 from superset.semantic_layers.cache_types import (
     CachedEntry as CachedEntry,
     ContainmentCapabilities as ContainmentCapabilities,
     PatternSemantics as PatternSemantics,
     ReuseDecision as ReuseDecision,
     ReuseMode as ReuseMode,
+    ROLLUP_COMPATIBLE_AGGREGATIONS,
     SAFE_CONTAINMENT_CAPABILITIES as SAFE_CONTAINMENT_CAPABILITIES,
 )
 
@@ -77,6 +76,8 @@ def compile_like_pattern(pattern: str, escape: str) -> re.Pattern[str]:
             parts.append(re.escape(pattern[index]))
         elif char == "%":
             parts.append(".*")
+            while index + 1 < len(pattern) and pattern[index + 1] == "%":
+                index += 1
         elif char == "_":
             parts.append(".")
         else:
@@ -102,11 +103,21 @@ def _implies_membership(new_filter: Filter, cached_values: object) -> bool:
     if not isinstance(cached_values, (set, frozenset, tuple)):
         return False
     if new_filter.operator is Operator.EQUALS:
-        return new_filter.value in cached_values
+        return any(
+            _comparable(new_filter.value, cached_value)
+            and new_filter.value == cached_value
+            for cached_value in cached_values
+        )
     if new_filter.operator is Operator.IN and isinstance(
         new_filter.value, (set, frozenset, tuple)
     ):
-        return set(new_filter.value).issubset(cached_values)
+        return all(
+            any(
+                _comparable(new_value, cached_value) and new_value == cached_value
+                for cached_value in cached_values
+            )
+            for new_value in new_filter.value
+        )
     return False
 
 
@@ -239,10 +250,9 @@ def _filter_decision(
             return None
 
     leftovers: frozenset[Filter] = requested_where - cached_where
-    available_columns: frozenset[str] = entry.dimension_keys | entry.metric_ids
     if any(
-        leftover.column is None
-        or leftover.column.id not in available_columns
+        not isinstance(leftover.column, Dimension)
+        or leftover.column not in entry.dimensions
         or not _supports_filter(leftover, capabilities)
         for leftover in leftovers
     ):
@@ -251,31 +261,22 @@ def _filter_decision(
 
 
 def _reuse_mode(query: SemanticQuery, entry: CachedEntry) -> ReuseMode | None:
-    requested_dimensions: frozenset[str] = frozenset(
-        semantic_dimension_key(dimension) for dimension in query.dimensions
-    )
-    requested_metrics: frozenset[str] = frozenset(metric.id for metric in query.metrics)
-    if not requested_metrics.issubset(entry.metric_ids):
+    requested_dimensions: frozenset[Dimension] = frozenset(query.dimensions)
+    requested_metrics: frozenset[Metric] = frozenset(query.metrics)
+    if not requested_metrics.issubset(entry.metrics):
         return None
-    if requested_dimensions == entry.dimension_keys:
+    if requested_dimensions == entry.dimensions:
         return (
-            ReuseMode.EXACT
-            if requested_metrics == entry.metric_ids
-            else ReuseMode.PROJECT
+            ReuseMode.EXACT if requested_metrics == entry.metrics else ReuseMode.PROJECT
         )
-    if not requested_dimensions < entry.dimension_keys:
+    if not requested_dimensions < entry.dimensions:
         return None
-    rollup_aggregations: frozenset[AggregationType] = frozenset(
-        {
-            AggregationType.SUM,
-            AggregationType.COUNT,
-            AggregationType.MIN,
-            AggregationType.MAX,
-        }
-    )
     return (
         ReuseMode.ROLLUP
-        if all(metric.aggregation in rollup_aggregations for metric in query.metrics)
+        if all(
+            metric.aggregation in ROLLUP_COMPATIBLE_AGGREGATIONS
+            for metric in query.metrics
+        )
         else None
     )
 
@@ -308,6 +309,10 @@ def select_reuse(
     if leftovers is None or mode is None:
         return None
     if mode is ReuseMode.ROLLUP and query.order:
+        return None
+    if mode is ReuseMode.ROLLUP and _strict_filters(frozenset(query.filters or set())):
+        return None
+    if query.group_limit is not None and leftovers:
         return None
     if entry.limit is not None and (leftovers or mode is ReuseMode.ROLLUP):
         return None

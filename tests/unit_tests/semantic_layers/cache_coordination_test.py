@@ -18,7 +18,7 @@
 from collections.abc import Callable, Iterator
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import replace
-from threading import Barrier, Lock
+from threading import Barrier, Event, Lock
 from unittest.mock import MagicMock
 
 import pytest
@@ -80,6 +80,34 @@ def test_coordinator_acquires_mutates_and_releases_its_token() -> None:
     operation.assert_called_once()
     backend.release_owner_token.assert_called_once_with(
         "semantic-cache-lock:bucket", "owner-a"
+    )
+
+
+def test_coordinator_renews_lease_during_long_mutation() -> None:
+    backend: MagicMock = MagicMock()
+    backend.acquire_owner_token.return_value = True
+    backend.release_owner_token.return_value = True
+    renewed: Event = Event()
+
+    def refresh(*_: object) -> bool:
+        renewed.set()
+        return True
+
+    backend.refresh_owner_token.side_effect = refresh
+    coordinator: SemanticCacheCoordinator = SemanticCacheCoordinator(
+        backend,
+        SemanticCacheCoordinationSettings(0.0, 1),
+        token_factory=lambda: "owner-a",
+    )
+
+    def wait_for_renewal() -> None:
+        assert renewed.wait(timeout=1.0)
+
+    assert coordinator.mutate("bucket", wait_for_renewal) is True
+    backend.refresh_owner_token.assert_called_with(
+        "semantic-cache-lock:bucket",
+        "owner-a",
+        1,
     )
 
 
@@ -202,6 +230,17 @@ class _ThreadOwnerBackend:
             self.owner = None
             return True
 
+    def refresh_owner_token(
+        self,
+        key: str,
+        owner_token: str,
+        lease_seconds: int,
+    ) -> bool:
+        assert key
+        assert lease_seconds > 0
+        with self.lock:
+            return self.owner == owner_token
+
 
 class _ThreadCache:
     def __init__(self) -> None:
@@ -233,7 +272,6 @@ def _coordinated_repository() -> tuple[
     coordinator: SemanticCacheCoordinator = SemanticCacheCoordinator(
         owner_backend,
         SemanticCacheCoordinationSettings(1.0, 10),
-        sleeper=lambda _: None,
     )
     return SemanticCacheRepository(cache, coordinator), cache, owner_backend
 

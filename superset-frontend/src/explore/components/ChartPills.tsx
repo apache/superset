@@ -100,13 +100,19 @@ export const ChartPills = forwardRef(
               limit={Number(rowLimit ?? 0)}
             />
           )}
-          {!isLoading && firstQueryResponse?.is_cached && (
-            <CachedLabel
-              onClick={refreshCachedQuery}
-              cachedTimestamp={firstQueryResponse.cached_dttm}
-              semanticCacheHit={firstQueryResponse.semantic_cache_hit === true}
-            />
-          )}
+          {!isLoading &&
+            (firstQueryResponse?.is_cached ||
+              firstQueryResponse?.semantic_cache_hit === true) && (
+              <CachedLabel
+                onClick={refreshCachedQuery}
+                cachedTimestamp={firstQueryResponse.cached_dttm}
+                cacheSource={
+                  firstQueryResponse.semantic_cache_hit === true
+                    ? 'semantic'
+                    : 'result'
+                }
+              />
+            )}
           <Timer
             startTime={chartUpdateStartTime}
             endTime={chartUpdateEndTime}

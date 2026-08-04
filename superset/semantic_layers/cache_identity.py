@@ -37,7 +37,7 @@ from superset_core.semantic_layers.types import (
 
 from superset.utils import json
 
-IDENTITY_FORMAT_VERSION: str = "v1"
+IDENTITY_FORMAT_VERSION: str = "v2"
 _SENSITIVE_KEY_PARTS: tuple[str, ...] = (
     "credential",
     "password",
