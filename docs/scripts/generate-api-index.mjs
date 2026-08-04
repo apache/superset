@@ -34,28 +34,68 @@ import { fileURLToPath } from 'url';
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const SPEC_PATH = path.join(__dirname, '..', 'static', 'resources', 'openapi.json');
-const SIDEBAR_PATH = path.join(__dirname, '..', 'developer_docs', 'api', 'sidebar.js');
+const SPEC_PATH = path.join(
+  __dirname,
+  '..',
+  'static',
+  'resources',
+  'openapi.json',
+);
+const SIDEBAR_PATH = path.join(
+  __dirname,
+  '..',
+  'developer_docs',
+  'api',
+  'sidebar.js',
+);
 const OUTPUT_PATH = path.join(__dirname, '..', 'developer_docs', 'api.mdx');
 
 // Category groupings for better organization
 const CATEGORY_GROUPS = {
-  'Authentication': ['Security'],
+  Authentication: ['Security'],
   'Core Resources': ['Dashboards', 'Charts', 'Datasets', 'Database'],
-  'Data Exploration': ['Explore', 'SQL Lab', 'Queries', 'Datasources', 'Advanced Data Type'],
-  'Organization & Customization': ['Tags', 'Annotation Layers', 'CSS Templates'],
+  'Data Exploration': [
+    'Explore',
+    'SQL Lab',
+    'Queries',
+    'Datasources',
+    'Advanced Data Type',
+  ],
+  'Organization & Customization': [
+    'Tags',
+    'Annotation Layers',
+    'CSS Templates',
+  ],
   'Sharing & Embedding': [
-    'Dashboard Permanent Link', 'Explore Permanent Link', 'SQL Lab Permanent Link',
-    'Embedded Dashboard', 'Dashboard Filter State', 'Explore Form Data'
+    'Dashboard Permanent Link',
+    'Explore Permanent Link',
+    'SQL Lab Permanent Link',
+    'Embedded Dashboard',
+    'Dashboard Filter State',
+    'Explore Form Data',
   ],
   'Scheduling & Alerts': ['Report Schedules'],
   'Security & Access Control': [
-    'Security Roles', 'Security Users', 'Security Permissions',
-    'Security Resources (View Menus)', 'Security Permissions on Resources (View Menus)',
-    'Row Level Security'
+    'Security Roles',
+    'Security Users',
+    'Security Permissions',
+    'Security Resources (View Menus)',
+    'Security Permissions on Resources (View Menus)',
+    'Row Level Security',
   ],
-  'Import/Export & Administration': ['Import/export', 'CacheRestApi', 'LogRestApi'],
-  'User & System': ['Current User', 'User', 'Menu', 'Available Domains', 'AsyncEventsRestApi', 'OpenApi'],
+  'Import/Export & Administration': [
+    'Import/export',
+    'CacheRestApi',
+    'LogRestApi',
+  ],
+  'User & System': [
+    'Current User',
+    'User',
+    'Menu',
+    'Available Domains',
+    'AsyncEventsRestApi',
+    'OpenApi',
+  ],
 };
 
 /**
@@ -68,7 +108,7 @@ function buildSlugMap() {
   try {
     const sidebar = require(SIDEBAR_PATH);
 
-    const extractDocs = (items) => {
+    const extractDocs = items => {
       for (const item of items) {
         if (item.type === 'doc' && item.label && item.id) {
           // id is like "api/create-security-login" → slug "create-security-login"
@@ -80,7 +120,9 @@ function buildSlugMap() {
     };
 
     extractDocs(sidebar);
-    console.log(`Loaded ${Object.keys(labelToSlug).length} slug mappings from sidebar`);
+    console.log(
+      `Loaded ${Object.keys(labelToSlug).length} slug mappings from sidebar`,
+    );
   } catch {
     console.warn('Could not read sidebar, will use computed slugs');
   }
@@ -214,7 +256,9 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \\
   for (const [groupName, groupTags] of Object.entries(CATEGORY_GROUPS)) {
     if (groupName === 'Authentication') continue; // Already rendered
 
-    const tagsInGroup = groupTags.filter(tag => tagEndpoints[tag] && !renderedTags.has(tag));
+    const tagsInGroup = groupTags.filter(
+      tag => tagEndpoints[tag] && !renderedTags.has(tag),
+    );
     if (tagsInGroup.length === 0) continue;
 
     mdx += `#### ${groupName}\n\n`;
@@ -238,7 +282,9 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \\
   }
 
   // Render any remaining tags not in a group
-  const remainingTags = Object.keys(tagEndpoints).filter(tag => !renderedTags.has(tag));
+  const remainingTags = Object.keys(tagEndpoints).filter(
+    tag => !renderedTags.has(tag),
+  );
   if (remainingTags.length > 0) {
     mdx += `#### Other\n\n`;
 

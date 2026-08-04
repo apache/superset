@@ -1797,7 +1797,7 @@ def get_metric_type_from_column(column: Any, datasource: Explorable) -> str:
         operation = match.group(1)
         return METRIC_MAP_TYPE.get(operation, "")
 
-    logger.warning("Unexpected metric expression type: %s", expression)
+    logger.debug("Unexpected metric expression type: %s", expression)
     return ""
 
 
