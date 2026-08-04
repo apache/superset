@@ -4096,6 +4096,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         else:
                             cond = is_null_cond
                     else:
+                        # Normalize mixed int/float values before binding, since
+                        # SQLAlchemy may infer the bind parameter type from the
+                        # first element and silently truncate other values
+                        # (see #33206)
+                        if target_generic_type == utils.GenericDataType.NUMERIC and any(
+                            isinstance(v, float) for v in eq
+                        ):
+                            eq = [
+                                float(v) if isinstance(v, (int, float)) else v
+                                for v in eq
+                            ]
                         cond = sqla_col.in_(eq)
                     if op == utils.FilterOperator.NOT_IN:
                         cond = ~cond
