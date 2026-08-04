@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
+import Select from 'src/components/Select/Select';
 
 const Container = styled.div`
   margin-bottom: ${({ theme }) => (theme?.gridUnit || 4) * 4}px;
@@ -28,13 +29,6 @@ const Container = styled.div`
   border-radius: ${({ theme }) => theme?.borderRadius || 4}px;
 `;
 
-const Row = styled.div`
-  display: flex;
-  align-items: center;
-  margin-bottom: ${({ theme }) => (theme?.gridUnit || 4) * 2}px;
-  gap: ${({ theme }) => (theme?.gridUnit || 4) * 2}px;
-`;
-
 const HeaderRow = styled.div`
   display: flex;
   justify-content: space-between;
@@ -42,21 +36,21 @@ const HeaderRow = styled.div`
   margin-bottom: ${({ theme }) => (theme?.gridUnit || 4) * 4}px;
 `;
 
-const StyledInput = styled.input`
-  flex: 1;
-  width: 100%;
-  padding: ${({ theme }) => (theme?.gridUnit || 4) * 1.5}px
-    ${({ theme }) => (theme?.gridUnit || 4) * 2}px;
-  font-size: 14px;
-  border-radius: ${({ theme }) => theme?.borderRadius || 4}px;
-  border: 1px solid
-    ${({ theme }) => theme?.colors?.grayscale?.light2 || '#e0e0e0'};
-  color: ${({ theme }) => theme?.colors?.grayscale?.dark1 || '#333333'};
-  outline: none;
+const Row = styled.div`
+  display: flex;
+  align-items: center;
+  margin-bottom: ${({ theme }) => (theme?.gridUnit || 4) * 2}px;
+  gap: ${({ theme }) => (theme?.gridUnit || 4) * 4}px;
+`;
 
-  &:focus {
-    border-color: ${({ theme }) => theme?.colors?.primary?.base || '#20a7c9'};
-  }
+const SelectContainer = styled.div`
+  flex: 1;
+`;
+
+const ColorContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme?.gridUnit || 4}px;
 `;
 
 const StyledColorInput = styled.input`
@@ -79,27 +73,30 @@ const StyledColorInput = styled.input`
   }
 `;
 
-const StyledButton = styled.button<{ variant?: 'danger' | 'primary' }>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: ${({ theme }) => theme?.gridUnit || 4}px
-    ${({ theme }) => (theme?.gridUnit || 4) * 3}px;
-  font-size: 12px;
-  font-weight: bold;
-  text-transform: uppercase;
-  cursor: pointer;
+const ActionButton = styled.button`
+  background: transparent;
   border: none;
-  border-radius: ${({ theme }) => theme?.borderRadius || 4}px;
-  background-color: ${({ theme, variant }) =>
-    variant === 'danger'
-      ? theme?.colors?.error?.base || '#e04355'
-      : theme?.colors?.primary?.base || '#20a7c9'};
-  color: #ffffff;
-  transition: opacity 0.2s;
+  color: ${({ theme }) => theme?.colors?.grayscale?.base || '#666666'};
+  cursor: pointer;
+  padding: 0;
+  font-size: 16px;
+  transition: color 0.2s;
 
   &:hover {
-    opacity: 0.8;
+    color: ${({ theme }) => theme?.colors?.error?.base || '#e04355'};
+  }
+`;
+
+const AddMoreLink = styled.div`
+  color: ${({ theme }) => theme?.colors?.primary?.dark1 || '#1a85a0'};
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: ${({ theme }) => (theme?.gridUnit || 4) * 2}px;
+  display: inline-block;
+
+  &:hover {
+    text-decoration: underline;
   }
 `;
 
@@ -108,7 +105,15 @@ interface LabelColorMappingProps {
   onJsonMetadataChange: (value: string) => void;
 }
 
+interface ColorMapping {
+  id: string;
+  label: string;
+  color: string;
+}
+
 const DEFAULT_NEW_COLOR = '#000000';
+
+const generateId = () => Math.random().toString(36).substring(2, 9);
 
 const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
   jsonMetadata,
@@ -128,16 +133,32 @@ const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
     }
   }, [jsonMetadata]);
 
-  const labelColors =
-    metadataObj.label_colors &&
-    typeof metadataObj.label_colors === 'object' &&
-    !Array.isArray(metadataObj.label_colors)
+  const labelColors = useMemo(() => metadataObj.label_colors &&
+      typeof metadataObj.label_colors === 'object' &&
+      !Array.isArray(metadataObj.label_colors)
       ? (metadataObj.label_colors as Record<string, string>)
-      : {};
+      : {}, [metadataObj]);
 
-  const colorEntries = Object.entries(labelColors);
+  const [rows, setRows] = useState<ColorMapping[]>([]);
 
-  const updateLabelColors = (newLabelColors: Record<string, string>) => {
+  useEffect(() => {
+    const initialRows = Object.entries(labelColors).map(([label, color]) => ({
+      id: generateId(),
+      label,
+      color,
+    }));
+    setRows(initialRows);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const syncToJson = (currentRows: ColorMapping[]) => {
+    const newLabelColors: Record<string, string> = {};
+    currentRows.forEach(row => {
+      if (row.label.trim() !== '') {
+        newLabelColors[row.label.trim()] = row.color;
+      }
+    });
+
     const updatedMetadata = {
       ...metadataObj,
       label_colors: newLabelColors,
@@ -145,42 +166,38 @@ const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
     onJsonMetadataChange(JSON.stringify(updatedMetadata, null, 2));
   };
 
-  const handleUpdate = (
-    oldLabel: string,
-    newLabel: string,
-    newColor: string,
-  ) => {
-    const newColors = { ...labelColors };
-    if (oldLabel !== newLabel) {
-      delete newColors[oldLabel];
-    }
-    newColors[newLabel] = newColor;
-    updateLabelColors(newColors);
+  const handleAddRow = () => {
+    const newRows = [
+      ...rows,
+      { id: generateId(), label: '', color: DEFAULT_NEW_COLOR },
+    ];
+    setRows(newRows);
   };
 
-  const handleDelete = (label: string) => {
-    const newColors = { ...labelColors };
-    delete newColors[label];
-    updateLabelColors(newColors);
+  const handleUpdateRow = (id: string, newLabel: string, newColor: string) => {
+    const newRows = rows.map(r =>
+      r.id === id ? { ...r, label: newLabel, color: newColor } : r,
+    );
+    setRows(newRows);
+    syncToJson(newRows);
   };
 
-  const handleAdd = () => {
-    let labelIndex = 1;
-    let newLabel = 'New Label';
-    while (Object.prototype.hasOwnProperty.call(labelColors, newLabel)) {
-      labelIndex += 1;
-      newLabel = `New Label ${labelIndex}`;
-    }
-    const newColors = { ...labelColors, [newLabel]: DEFAULT_NEW_COLOR };
-    updateLabelColors(newColors);
+  const handleDeleteRow = (id: string) => {
+    const newRows = rows.filter(r => r.id !== id);
+    setRows(newRows);
+    syncToJson(newRows);
   };
+
+  const allKnownLabels = Array.from(
+    new Set(rows.map(r => r.label).filter(Boolean)),
+  );
 
   return (
     <Container>
       <HeaderRow>
         <div>
           <h4
-            css={(theme: any) => ({
+            css={theme => ({
               marginBottom: theme?.gridUnit || 4,
               marginTop: 0,
             })}
@@ -188,7 +205,7 @@ const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
             {t('Label Colors')}
           </h4>
           <p
-            css={(theme: any) => ({
+            css={theme => ({
               margin: 0,
               fontSize: 12,
               color: theme?.colors?.grayscale?.base || '#666666',
@@ -199,50 +216,71 @@ const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
             )}
           </p>
         </div>
-        <StyledButton variant="primary" onClick={handleAdd} type="button">
-          <i className="fa fa-plus" css={{ marginRight: 8 }} />
-          {t('Add Mapping')}
-        </StyledButton>
       </HeaderRow>
 
-      {colorEntries.length === 0 && (
+      {rows.length === 0 && (
         <p
-          css={(theme: any) => ({
+          css={theme => ({
             fontStyle: 'italic',
             color: theme?.colors?.grayscale?.light1 || '#B2B2B2',
           })}
         >
-          {t('No color mappings defined. Click "Add Mapping" to get started.')}
+          {t('No color mappings defined. Click "+ Add more" to get started.')}
         </p>
       )}
 
-      {colorEntries.map(([label, color], index) => (
-        <Row key={`mapping-${index}`}>
-          <StyledInput
-            type="text"
-            value={label}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              handleUpdate(label, e.target.value, color)
-            }
-            placeholder={t('Label (e.g., Revenue)')}
-          />
-          <StyledColorInput
-            type="color"
-            value={color}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              handleUpdate(label, label, e.target.value)
-            }
-          />
-          <StyledButton
-            variant="danger"
-            onClick={() => handleDelete(label)}
-            type="button"
-            title={t('Remove color mapping')}
-          >
-            <i className="fa fa-trash" />
-          </StyledButton>
-        </Row>
-      ))}
+      {rows.map(row => {
+        const availableOptions = allKnownLabels
+          .filter(
+            label =>
+              label === row.label ||
+              !rows.some(r => r.label === label && r.id !== row.id),
+          )
+          .map(label => ({ label, value: label }));
+
+        return (
+          <Row key={row.id}>
+            <SelectContainer>
+              <Select
+                ariaLabel={t('Series label')}
+                allowNewOptions
+                options={availableOptions}
+                value={
+                  row.label ? { label: row.label, value: row.label } : undefined
+                }
+                onChange={(selected: any) => {
+                  const val =
+                    typeof selected === 'string'
+                      ? selected
+                      : selected?.value || '';
+                  handleUpdateRow(row.id, val, row.color);
+                }}
+                placeholder={t('Select or type a label')}
+              />
+            </SelectContainer>
+
+            <ColorContainer>
+              <StyledColorInput
+                type="color"
+                value={row.color}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  handleUpdateRow(row.id, row.label, e.target.value)
+                }
+              />
+            </ColorContainer>
+
+            <ActionButton
+              onClick={() => handleDeleteRow(row.id)}
+              type="button"
+              title={t('Remove color mapping')}
+            >
+              <i className="fa fa-trash" />
+            </ActionButton>
+          </Row>
+        );
+      })}
+
+      <AddMoreLink onClick={handleAddRow}>+ {t('Add more')}</AddMoreLink>
     </Container>
   );
 };
