@@ -170,7 +170,10 @@ describe('ExploreChartHeader', () => {
 
   test('Cancelling changes to the properties should reset previous properties', async () => {
     const props = createProps();
-    render(<ExploreHeader {...props} />, { useRedux: true });
+    render(<ExploreHeader {...props} />, {
+      useRedux: true,
+      initialState: { explore: { can_overwrite: true } },
+    });
     const newChartName = 'New chart name';
     const prevChartName = props.sliceName;
 
@@ -626,6 +629,7 @@ describe('Additional actions tests', () => {
     const props = createProps();
     render(<ExploreHeader {...props} />, {
       useRedux: true,
+      initialState: { explore: { can_overwrite: true } },
     });
 
     userEvent.click(screen.getByLabelText('Menu actions trigger'));
@@ -720,6 +724,7 @@ describe('Additional actions tests', () => {
     const props = createProps();
     render(<ExploreHeader {...props} />, {
       useRedux: true,
+      initialState: { explore: { can_overwrite: true } },
     });
     expect(props.actions.redirectSQLLab).toHaveBeenCalledTimes(0);
     userEvent.click(screen.getByLabelText('Menu actions trigger'));

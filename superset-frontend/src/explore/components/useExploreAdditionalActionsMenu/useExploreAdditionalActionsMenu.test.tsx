@@ -27,6 +27,7 @@ import {
   getExportScreenshotMenuItems,
 } from './index';
 import * as exploreUtils from 'src/explore/exploreUtils';
+import { Slice } from 'src/types/Chart';
 
 jest.mock('src/explore/exploreUtils', () => ({
   __esModule: true,
@@ -89,7 +90,7 @@ const defaultProps = {
     viz_type: 'pivot_table_v2',
   },
   canDownloadCSV: true,
-  slice: { slice_id: 1, slice_name: 'Test Chart' },
+  slice: { slice_id: 1, slice_name: 'Test Chart' } as unknown as Slice,
   ownState: {},
   dashboards: [],
   onOpenInEditor: jest.fn(),
@@ -126,7 +127,13 @@ test('hides Edit chart properties from a user who is not an owner/editor of the 
   render(
     <TestComponent
       {...defaultProps}
-      slice={{ slice_id: 1, slice_name: 'Test Chart', editors: [2] }}
+      slice={
+        {
+          slice_id: 1,
+          slice_name: 'Test Chart',
+          editors: [2],
+        } as unknown as Slice
+      }
     />,
     { useRedux: true },
   );
@@ -139,7 +146,13 @@ test('shows Edit chart properties for a chart editor', async () => {
   render(
     <TestComponent
       {...defaultProps}
-      slice={{ slice_id: 1, slice_name: 'Test Chart', editors: [1] }}
+      slice={
+        {
+          slice_id: 1,
+          slice_name: 'Test Chart',
+          editors: [1],
+        } as unknown as Slice
+      }
     />,
     { useRedux: true },
   );
