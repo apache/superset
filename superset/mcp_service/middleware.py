@@ -130,6 +130,9 @@ class LoggingMiddleware(Middleware):
     in on_message().
     """
 
+    _CALL_TOOL_PROXY = "call_tool"
+    _DATASET_CREATE_TOOLS = frozenset({"create_virtual_dataset"})
+
     def _is_error_response(self, result: ToolResult) -> bool:
         """Check if a tool result contains an error schema response.
 
@@ -141,6 +144,35 @@ class LoggingMiddleware(Middleware):
             return '"error_type"' in result.content[0].text
         except (AttributeError, IndexError):
             return False
+
+    @staticmethod
+    def _unwrap_params_for_id_extraction(params: Any) -> dict[str, Any]:
+        """Unwrap tool arguments down to the level where entity IDs live.
+
+        Real tool arguments arrive wrapped in up to two extra layers that
+        the naive top-level ``params.get("dashboard_id")`` lookup can't see
+        through:
+
+        1. When the MCP client calls tools via the ``call_tool`` search
+           proxy, arguments are ``{"name": ..., "arguments": {...}}``
+           instead of the real tool's arguments directly.
+        2. Every MCP tool in this service takes a single ``request``
+           pydantic argument (e.g. ``def get_chart_info(request, ctx)``),
+           so the real fields are nested one level under ``{"request": {...}}``.
+
+        Without unwrapping both layers, dashboard_id/chart_id/dataset_id
+        extraction silently returns None for virtually all real traffic.
+        """
+        if not isinstance(params, dict):
+            return {}
+        effective = params
+        if isinstance(effective.get("name"), str) and isinstance(
+            effective.get("arguments"), dict
+        ):
+            effective = effective["arguments"]
+        if isinstance(effective.get("request"), dict):
+            effective = effective["request"]
+        return effective
 
     def _extract_context_info(
         self, context: MiddlewareContext
@@ -162,31 +194,39 @@ class LoggingMiddleware(Middleware):
             user_id = get_user_id()
         except (RuntimeError, AttributeError):
             user_id = None
-        if isinstance(params, dict):
-            dashboard_id = params.get("dashboard_id")
-            slice_id = params.get("chart_id") or params.get("slice_id")
-            dataset_id = params.get("dataset_id")
+        effective_params = self._unwrap_params_for_id_extraction(params)
+        dashboard_id = effective_params.get("dashboard_id")
+        slice_id = effective_params.get("chart_id") or effective_params.get("slice_id")
+        dataset_id = effective_params.get("dataset_id")
         return agent_id, user_id, dashboard_id, slice_id, dataset_id, params
 
-    def _extract_output_ids(self, result: ToolResult) -> tuple[int | None, int | None]:
-        """Extract dashboard/chart IDs created by the tool from its response.
+    def _extract_output_ids(
+        self, tool_name: str | None, result: ToolResult
+    ) -> tuple[int | None, int | None, int | None]:
+        """Extract dashboard/chart/dataset IDs created by the tool from its response.
 
-        Create-style tools (generate_chart, generate_dashboard) don't take
-        chart_id/dashboard_id as input, so _extract_context_info never sees
-        them and every retry logs slice_id/dashboard_id=None even on the
-        attempt that actually persisted the object. Look at the response
-        body instead, since that's the only place the new ID appears.
-        Supports both flat ("chart_id"/"dashboard_id") and nested
-        ("chart"/"dashboard" objects with an "id" field) response shapes.
+        Create-style tools (generate_chart, generate_dashboard,
+        create_virtual_dataset) don't take the new object's ID as input, so
+        _extract_context_info never sees it and every retry logs
+        slice_id/dashboard_id/dataset_id=None even on the attempt that
+        actually persisted the object. Look at the response body instead,
+        since that's the only place the new ID appears. Supports both flat
+        ("chart_id"/"dashboard_id") and nested ("chart"/"dashboard" objects
+        with an "id" field) response shapes.
+
+        dataset_id extraction is gated on tool_name (_DATASET_CREATE_TOOLS)
+        because create_virtual_dataset's response has a flat "id" field
+        with no distinguishing wrapper key, unlike chart/dashboard -- a
+        blind "id" lookup would misattribute IDs from unrelated tools.
         """
         from superset.utils.json import loads as json_loads
 
         try:
             data = json_loads(result.content[0].text)
         except (AttributeError, IndexError, ValueError, TypeError):
-            return None, None
+            return None, None, None
         if not isinstance(data, dict):
-            return None, None
+            return None, None, None
 
         slice_id = None
         chart = data.get("chart")
@@ -202,7 +242,11 @@ class LoggingMiddleware(Middleware):
         if dashboard_id is None:
             dashboard_id = data.get("dashboard_id")
 
-        return dashboard_id, slice_id
+        dataset_id = None
+        if tool_name in self._DATASET_CREATE_TOOLS:
+            dataset_id = data.get("id")
+
+        return dashboard_id, slice_id, dataset_id
 
     @staticmethod
     def _resolve_tool_name(tool_name: str | None, params: Any) -> str | None:
@@ -228,26 +272,32 @@ class LoggingMiddleware(Middleware):
 
     def _backfill_output_ids(
         self,
+        tool_name: str | None,
         success: bool,
         result: Any,
         dashboard_id: int | None,
         slice_id: int | None,
-    ) -> tuple[int | None, int | None]:
+        dataset_id: int | None,
+    ) -> tuple[int | None, int | None, int | None]:
         """Fill in missing ids from a create tool's response on success.
 
-        Create-style tools (generate_chart, generate_dashboard) don't take
-        the new object's ID as input, so it's missing from params. On a
-        successful call, pull it from the response instead so retried
-        creates are distinguishable.
+        Create-style tools (generate_chart, generate_dashboard,
+        create_virtual_dataset) don't take the new object's ID as input, so
+        it's missing from params. On a successful call, pull it from the
+        response instead so retried creates are distinguishable.
         """
         if not success or not isinstance(result, ToolResult):
-            return dashboard_id, slice_id
-        output_dashboard_id, output_slice_id = self._extract_output_ids(result)
+            return dashboard_id, slice_id, dataset_id
+        output_dashboard_id, output_slice_id, output_dataset_id = (
+            self._extract_output_ids(tool_name, result)
+        )
         if dashboard_id is None:
             dashboard_id = output_dashboard_id
         if slice_id is None:
             slice_id = output_slice_id
-        return dashboard_id, slice_id
+        if dataset_id is None:
+            dataset_id = output_dataset_id
+        return dashboard_id, slice_id, dataset_id
 
     @staticmethod
     def _build_call_tool_payload(
@@ -289,8 +339,8 @@ class LoggingMiddleware(Middleware):
         start_time: float,
     ) -> None:
         duration_ms = int((time.time() - start_time) * 1000)
-        dashboard_id, slice_id = self._backfill_output_ids(
-            success, result, dashboard_id, slice_id
+        dashboard_id, slice_id, dataset_id = self._backfill_output_ids(
+            tool_name, success, result, dashboard_id, slice_id, dataset_id
         )
         payload = self._build_call_tool_payload(
             tool_name=tool_name,
@@ -337,6 +387,9 @@ class LoggingMiddleware(Middleware):
             self._extract_context_info(context)
         )
         tool_name = getattr(context.message, "name", None)
+        resolved_tool_name = self._resolve_tool_name(tool_name, params)
+        if resolved_tool_name:
+            tool_name = resolved_tool_name
 
         start_time = time.time()
         success = False

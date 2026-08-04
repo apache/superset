@@ -253,6 +253,45 @@ class TestLoggingMiddlewareOnCallTool:
         call_kwargs = mock_event_logger.log.call_args[1]
         assert call_kwargs["slice_id"] == 111
 
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_on_call_tool_resolves_name_and_dataset_id_through_proxy(
+        self, mock_get_user_id, mock_event_logger
+    ) -> None:
+        """End-to-end regression test for the reported bug: a
+        create_virtual_dataset call made through the ``call_tool`` search
+        proxy must log the real tool name (not "call_tool") and the
+        created dataset_id (backfilled from the response), instead of
+        tool="call_tool" and dataset_id=None."""
+        middleware = LoggingMiddleware()
+        ctx = _make_context(
+            name="call_tool",
+            params={
+                "name": "create_virtual_dataset",
+                "arguments": {
+                    "request": {
+                        "database_id": 108,
+                        "schema": "jitney",
+                        "table_name": "Airchat Monthly Usage Summary",
+                        "sql": "SELECT 1",
+                    }
+                },
+            },
+        )
+        response_text = '{"id": 42, "dataset_name": "Airchat Monthly Usage Summary"}'
+        original_result = ToolResult(
+            content=[mt.TextContent(type="text", text=response_text)]
+        )
+        call_next = AsyncMock(return_value=original_result)
+
+        await middleware.on_call_tool(ctx, call_next)
+
+        call_kwargs = mock_event_logger.log.call_args[1]
+        assert call_kwargs["curated_payload"]["tool"] == "create_virtual_dataset"
+        assert call_kwargs["curated_payload"]["dataset_id"] == 42
+        assert call_kwargs["curated_payload"]["success"] is True
+
 
 class TestLoggingMiddlewareOnMessage:
     """Tests for LoggingMiddleware.on_message()."""
@@ -359,6 +398,72 @@ class TestExtractContextInfo:
         assert params == {"dashboard_id": 7}
         assert dashboard_id == 7
 
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=1)
+    def test_extract_unwraps_request_wrapper(self, mock_get_user_id) -> None:
+        """Every MCP tool in this service takes a single ``request``
+        pydantic argument, so real arguments arrive as
+        ``{"request": {"dashboard_id": ..., "chart_id": ...}}`` (e.g.
+        add_chart_to_existing_dashboard). Without unwrapping this layer,
+        dashboard_id/chart_id extraction silently returns None."""
+        middleware = LoggingMiddleware()
+        ctx = _make_context(
+            name="add_chart_to_existing_dashboard",
+            params={"request": {"dashboard_id": 10, "chart_id": 20}},
+        )
+
+        _, _, dashboard_id, slice_id, _, params = middleware._extract_context_info(ctx)
+
+        assert dashboard_id == 10
+        assert slice_id == 20
+        # The raw params (used for the logged payload) stay unwrapped.
+        assert params == {"request": {"dashboard_id": 10, "chart_id": 20}}
+
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=1)
+    def test_extract_unwraps_call_tool_proxy_and_request(
+        self, mock_get_user_id
+    ) -> None:
+        """Reproduces the reported bug: when the client calls tools through
+        the ``call_tool`` search proxy, arguments arrive as
+        ``{"name": ..., "arguments": {"request": {...}}}`` -- two layers of
+        wrapping. Both must be unwrapped to see dataset_id."""
+        middleware = LoggingMiddleware()
+        ctx = _make_context(
+            name="call_tool",
+            params={
+                "name": "create_virtual_dataset",
+                "arguments": {
+                    "request": {
+                        "database_id": 108,
+                        "dataset_id": 42,
+                    }
+                },
+            },
+        )
+
+        _, _, _, _, dataset_id, _ = middleware._extract_context_info(ctx)
+
+        assert dataset_id == 42
+
+
+class TestResolveToolName:
+    """Tests for LoggingMiddleware._resolve_tool_name()."""
+
+    def test_resolves_real_tool_name_from_call_tool_proxy(self) -> None:
+        resolved = LoggingMiddleware._resolve_tool_name(
+            "call_tool", {"name": "create_virtual_dataset", "arguments": {}}
+        )
+        assert resolved == "create_virtual_dataset"
+
+    def test_returns_none_when_not_call_tool_proxy(self) -> None:
+        resolved = LoggingMiddleware._resolve_tool_name(
+            "get_chart_info", {"identifier": 123}
+        )
+        assert resolved is None
+
+    def test_returns_none_when_name_missing(self) -> None:
+        resolved = LoggingMiddleware._resolve_tool_name("call_tool", {})
+        assert resolved is None
+
 
 class TestIsErrorResponse:
     """Tests for LoggingMiddleware._is_error_response()."""
@@ -434,17 +539,24 @@ class TestExtractOutputIds:
 
     def test_returns_none_for_non_json_body(self) -> None:
         """A malformed/non-JSON response body must not raise -- the
-        defensive try/except should fall back to (None, None)."""
+        defensive try/except should fall back to (None, None, None)."""
         middleware = LoggingMiddleware()
         result = ToolResult(
             content=[mt.TextContent(type="text", text="not valid json {{{")]
         )
-        assert middleware._extract_output_ids(result) == (None, None)
+        assert middleware._extract_output_ids("generate_chart", result) == (
+            None,
+            None,
+            None,
+        )
 
     def test_returns_none_for_empty_content(self) -> None:
         """A ToolResult with no content items must not raise."""
         middleware = LoggingMiddleware()
-        assert middleware._extract_output_ids(ToolResult(content=[])) == (
+        assert middleware._extract_output_ids(
+            "generate_chart", ToolResult(content=[])
+        ) == (
+            None,
             None,
             None,
         )
@@ -454,13 +566,46 @@ class TestExtractOutputIds:
         list) must not raise and must yield no IDs."""
         middleware = LoggingMiddleware()
         result = ToolResult(content=[mt.TextContent(type="text", text="[1, 2, 3]")])
-        assert middleware._extract_output_ids(result) == (None, None)
+        assert middleware._extract_output_ids("generate_chart", result) == (
+            None,
+            None,
+            None,
+        )
 
     def test_extracts_both_ids_from_flat_response(self) -> None:
         middleware = LoggingMiddleware()
         response_text = '{"chart_id": 123, "dashboard_id": 456}'
         result = ToolResult(content=[mt.TextContent(type="text", text=response_text)])
-        assert middleware._extract_output_ids(result) == (456, 123)
+        assert middleware._extract_output_ids("generate_chart", result) == (
+            456,
+            123,
+            None,
+        )
+
+    def test_extracts_dataset_id_for_create_virtual_dataset(self) -> None:
+        """create_virtual_dataset's response is a flat {"id": ...} with no
+        wrapper key, unlike chart/dashboard -- extraction must be gated on
+        tool_name so unrelated tools' "id" fields aren't misattributed."""
+        middleware = LoggingMiddleware()
+        response_text = '{"id": 789, "dataset_name": "my_dataset"}'
+        result = ToolResult(content=[mt.TextContent(type="text", text=response_text)])
+        assert middleware._extract_output_ids("create_virtual_dataset", result) == (
+            None,
+            None,
+            789,
+        )
+
+    def test_does_not_extract_dataset_id_for_unrelated_tool(self) -> None:
+        """A generic "id" field on an unrelated tool's response must not be
+        misread as a dataset_id."""
+        middleware = LoggingMiddleware()
+        response_text = '{"id": 789}'
+        result = ToolResult(content=[mt.TextContent(type="text", text=response_text)])
+        assert middleware._extract_output_ids("get_chart_info", result) == (
+            None,
+            None,
+            None,
+        )
 
 
 class TestMiddlewareChainOrder:
