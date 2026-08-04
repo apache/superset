@@ -2753,6 +2753,7 @@ def test_calculated_column_non_boolean_filter_is_parenthesized(
         f"Generated SQL: {sql}"
     )
 
+
 def test_get_sqla_query_in_filter_preserves_float_precision(
     database: Database,
 ) -> None:
@@ -3119,6 +3120,7 @@ def _mutate_with_attribution_comments(sql_: str, is_split: bool = False) -> str:
         f"{sql_}\n"
         "-- query hash: abc123"
     )
+
 
 def _run_probe_with_real_cursor(
     database: Database,
