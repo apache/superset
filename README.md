@@ -228,6 +228,7 @@ Understanding the Superset Points of View
 
 - Deploying Superset
 
+  - [Managed Superset on Zenith](https://zenith.hosting/host/apache-superset) - one-click hosting with storage, backups and a free subdomain included
   - [Official Docker image](https://hub.docker.com/r/apache/superset)
   - [Helm Chart](https://github.com/apache/superset/tree/master/helm/superset)
 
