@@ -1697,6 +1697,78 @@ class TestWebDriverPlaywrightChartReadiness:
         page.wait_for_function.assert_not_called()
         page.screenshot.assert_not_called()
 
+    @patch("superset.utils.webdriver.logger")
+    def test_chart_capture_ready_logs_container_state_not_holder_counts(
+        self, mock_logger
+    ):
+        """Chart pages have no dashboard grid holders, so the ready line must
+        report the `.chart-container` state instead of vacuous zero counters
+        (which read as "no charts" in customer logs)."""
+        from superset.utils.screenshot_utils import CHART_CONTAINER_STATE_JS
+
+        page = MagicMock()
+        page.wait_for_function.return_value = None
+        page.evaluate.side_effect = lambda script: (
+            "terminal" if script == CHART_CONTAINER_STATE_JS else []
+        )
+
+        with patch(
+            "superset.utils.webdriver.resolve_screenshot_task_budget_seconds",
+            return_value=None,
+        ):
+            WebDriverPlaywright._wait_for_charts_ready(
+                page,
+                "http://example.com",
+                10,
+                "chart-container",
+                log_context="capture_kind=alert execution_id=abc-123",
+            )
+
+        ready_call = next(
+            call
+            for call in mock_logger.info.call_args_list
+            if call.args and call.args[0].startswith("report_readiness_ready")
+        )
+        assert "target=chart-container" in ready_call.args[0]
+        assert "mounted_holders" not in ready_call.args[0]
+        assert "terminal" in ready_call.args
+        assert " [capture_kind=alert execution_id=abc-123]" in ready_call.args
+
+    @patch("superset.utils.webdriver.logger")
+    def test_chart_capture_timeout_logs_container_state(self, mock_logger):
+        from superset.utils.screenshot_utils import CHART_CONTAINER_STATE_JS
+        from superset.utils.webdriver import PlaywrightTimeout
+
+        page = MagicMock()
+        page.wait_for_function.side_effect = PlaywrightTimeout()
+        page.evaluate.side_effect = lambda script: (
+            "loading" if script == CHART_CONTAINER_STATE_JS else []
+        )
+
+        with (
+            patch(
+                "superset.utils.webdriver.resolve_screenshot_task_budget_seconds",
+                return_value=None,
+            ),
+            pytest.raises(PlaywrightTimeout),
+        ):
+            WebDriverPlaywright._wait_for_charts_ready(
+                page,
+                "http://example.com",
+                10,
+                "chart-container",
+            )
+
+        terminal_call = next(
+            call
+            for call in mock_logger.warning.call_args_list
+            if call.args and call.args[0].startswith("report_readiness_terminal")
+        )
+        assert "target=chart-container" in terminal_call.args[0]
+        assert "terminal_reason=readiness_timeout" in terminal_call.args[0]
+        assert "mounted_holders" not in terminal_call.args[0]
+        assert "loading" in terminal_call.args
+
     def test_zero_load_wait_without_task_budget_preserves_playwright_no_timeout(self):
         page = MagicMock()
         page.evaluate.return_value = []

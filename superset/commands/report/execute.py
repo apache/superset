@@ -285,7 +285,16 @@ class BaseReportState:
     def _log_context(self) -> str:
         if self._report_execution_context:
             return self._report_execution_context.log_context
-        return f"execution_id={self._execution_id}"
+        # Alerts (and any capture without an execution context) get a
+        # self-identifying fallback so their log lines are distinguishable
+        # from report captures and traceable to the schedule.
+        return (
+            f"capture_kind={str(self._report_schedule.type).lower()} "
+            f"execution_id={self._execution_id} "
+            f"report_schedule_id={self._report_schedule.id} "
+            f"dashboard_id={self._report_schedule.dashboard_id} "
+            f"chart_id={self._report_schedule.chart_id}"
+        )
 
     def _budget_values(self) -> tuple[float | None, float | None]:
         if not self._report_execution_context:

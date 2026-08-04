@@ -2734,6 +2734,28 @@ def test_terminal_persistence_retry_promotes_owned_working_execution(
     mock_db.session.commit.assert_called_once()
 
 
+def test_alert_log_context_fallback_is_self_identifying(
+    mocker: MockerFixture,
+) -> None:
+    """Alerts run without a ReportExecutionContext by design; their fallback
+    log context must still identify the capture kind and schedule so alert
+    log lines are distinguishable from report captures."""
+    execution_id = UUID("a92a71bd-91ed-41f4-a297-cb9c8da52450")
+    schedule = mocker.Mock(spec=ReportSchedule)
+    schedule.type = ReportScheduleType.ALERT
+    schedule.id = 11
+    schedule.dashboard_id = None
+    schedule.chart_id = 19495
+
+    state = BaseReportState(schedule, datetime.utcnow(), execution_id)
+
+    context = state._log_context
+    assert "capture_kind=alert" in context
+    assert f"execution_id={execution_id}" in context
+    assert "report_schedule_id=11" in context
+    assert "chart_id=19495" in context
+
+
 def test_terminal_persistence_retry_survives_database_failure(
     mocker: MockerFixture,
 ) -> None:

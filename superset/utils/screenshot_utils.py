@@ -241,6 +241,21 @@ CHART_CONTAINER_READY_JS = f"""
 }}
 """
 
+# Diagnostic companion to CHART_CONTAINER_READY_JS: reports why a chart
+# capture is (or is not) ready. Chart pages have no dashboard grid holders,
+# so the holder-count diagnostics read as vacuous zeros there.
+CHART_CONTAINER_STATE_JS = f"""
+() => {{
+    const chart = document.querySelector('.chart-container');
+    if (chart === null) {{ return 'missing'; }}
+    if (chart.querySelector('{LOADING_SELECTOR}') !== null) {{ return 'loading'; }}
+    if (chart.querySelector('{TERMINAL_MARKER_SELECTOR}') !== null) {{
+        return 'terminal';
+    }}
+    return 'mounted_pre_terminal';
+}}
+"""
+
 
 def combine_screenshot_tiles(
     screenshot_tiles: list[bytes],

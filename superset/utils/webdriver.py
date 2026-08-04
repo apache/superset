@@ -47,6 +47,7 @@ from superset.utils.report_execution import (
 from superset.utils.retries import retry_call
 from superset.utils.screenshot_utils import (
     CHART_CONTAINER_READY_JS,
+    CHART_CONTAINER_STATE_JS,
     CHART_HOLDERS_READY_JS,
     FIND_CHART_HOLDER_STATES_JS,
     REPORT_CHART_HOLDERS_READY_JS,
@@ -298,7 +299,7 @@ class WebDriverPlaywright(WebDriverProxy):
             return element.screenshot(**timeout_kwargs)
 
     @staticmethod
-    def _wait_for_charts_ready(
+    def _wait_for_charts_ready(  # noqa: C901
         page: Page,
         url: str,
         load_wait: int,
@@ -455,6 +456,32 @@ class WebDriverPlaywright(WebDriverProxy):
                 timeout=effective_load_wait * 1000,
             )
         except PlaywrightTimeout:
+            if element_name == "chart-container":
+                # Chart captures have no dashboard grid holders; the holder
+                # counters below would read as vacuous zeros. Log the actual
+                # `.chart-container` state instead.
+                logger.warning(
+                    "report_readiness_terminal url=%s target=chart-container "
+                    "container_state=%s elapsed_seconds=%.2f "
+                    "remaining_seconds=%s effective_wait_seconds=%.2f%s "
+                    "terminal_reason=readiness_timeout; "
+                    "aborting before capture or delivery",
+                    url,
+                    page.evaluate(CHART_CONTAINER_STATE_JS),
+                    deadline.elapsed_seconds if deadline else elapsed,
+                    (
+                        f"{deadline.remaining_seconds:.2f}"
+                        if deadline
+                        else (
+                            f"{remaining_budget:.2f}"
+                            if remaining_budget is not None
+                            else None
+                        )
+                    ),
+                    effective_load_wait,
+                    context_suffix,
+                )
+                raise
             chart_holder_states = page.evaluate(FIND_CHART_HOLDER_STATES_JS)
             unready_chart_holders = [
                 holder
@@ -491,6 +518,28 @@ class WebDriverPlaywright(WebDriverProxy):
                 chart_holder_states,
             )
             raise
+        if element_name == "chart-container":
+            # Chart captures have no dashboard grid holders; the holder
+            # counters below would read as vacuous zeros. Log the actual
+            # `.chart-container` state instead.
+            logger.info(
+                "report_readiness_ready url=%s target=chart-container "
+                "container_state=%s elapsed_seconds=%.2f remaining_seconds=%s%s",
+                url,
+                page.evaluate(CHART_CONTAINER_STATE_JS),
+                deadline.elapsed_seconds if deadline else elapsed,
+                (
+                    f"{deadline.remaining_seconds:.2f}"
+                    if deadline
+                    else (
+                        f"{remaining_budget:.2f}"
+                        if remaining_budget is not None
+                        else None
+                    )
+                ),
+                context_suffix,
+            )
+            return
         chart_holder_states = page.evaluate(FIND_CHART_HOLDER_STATES_JS)
         mounted_holders = len(chart_holder_states)
         ready_holders = sum(
