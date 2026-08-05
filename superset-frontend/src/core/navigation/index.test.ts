@@ -99,6 +99,12 @@ test('chart and dashboard list pages get their own page types', async () => {
   expect(navigation.getPage()).toBe('dashboard_list');
 });
 
+test('Dashboard v2 is distinct from the classic dashboard route', async () => {
+  const { notifyLocationChanged, navigation } = await importNavigation();
+  notifyLocationChanged('/dashboard/v2/new/');
+  expect(navigation.getPage()).toBe('dashboard_v2');
+});
+
 test('dataset list and single-dataset pages get distinct page types', async () => {
   const { notifyLocationChanged, navigation } = await importNavigation();
   notifyLocationChanged('/tablemodelview/list/');

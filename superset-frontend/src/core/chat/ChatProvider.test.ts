@@ -230,6 +230,101 @@ test('setDisplayMode updates mode and fires event only on change', () => {
   expect(modeChanged).toHaveBeenCalledWith('panel');
 });
 
+test('client tools are exposed without their browser handlers', () => {
+  const provider = ChatProvider.getInstance();
+  const execute = jest.fn(() => ({ content: 'outline' }));
+
+  provider.registerClientTools([
+    {
+      name: 'dashboard_get_state',
+      description: 'Reads the active dashboard.',
+      inputSchema: { type: 'object', properties: {} },
+      execute,
+    },
+  ]);
+
+  expect(provider.getClientTools()).toEqual([
+    {
+      name: 'dashboard_get_state',
+      description: 'Reads the active dashboard.',
+      inputSchema: { type: 'object', properties: {} },
+    },
+  ]);
+});
+
+test('the latest client-tool registration wins until it is disposed', async () => {
+  const provider = ChatProvider.getInstance();
+  provider.registerClientTools([
+    {
+      name: 'dashboard_get_state',
+      description: 'Earlier tool.',
+      inputSchema: { type: 'object' },
+      execute: () => ({ content: 'earlier' }),
+    },
+  ]);
+  const latest = provider.registerClientTools([
+    {
+      name: 'dashboard_get_state',
+      description: 'Latest tool.',
+      inputSchema: { type: 'object' },
+      execute: () => ({ content: 'latest' }),
+    },
+  ]);
+
+  await expect(
+    provider.executeClientTool('dashboard_get_state', {}),
+  ).resolves.toEqual({ content: 'latest' });
+
+  latest.dispose();
+  await expect(
+    provider.executeClientTool('dashboard_get_state', {}),
+  ).resolves.toEqual({ content: 'earlier' });
+});
+
+test('client-tool changes fire after registration and disposal', () => {
+  const provider = ChatProvider.getInstance();
+  const listener = jest.fn();
+  provider.onDidChangeClientTools(listener);
+  const registration = provider.registerClientTools([
+    {
+      name: 'dashboard_get_state',
+      description: 'Reads the active dashboard.',
+      inputSchema: { type: 'object' },
+      execute: () => ({ content: 'outline' }),
+    },
+  ]);
+
+  expect(listener).toHaveBeenLastCalledWith([
+    expect.objectContaining({ name: 'dashboard_get_state' }),
+  ]);
+
+  registration.dispose();
+  expect(listener).toHaveBeenLastCalledWith([]);
+});
+
+test('client-tool execution always resolves with a model-readable result', async () => {
+  const provider = ChatProvider.getInstance();
+  provider.registerClientTools([
+    {
+      name: 'throws',
+      description: 'Throws.',
+      inputSchema: { type: 'object' },
+      execute: () => {
+        throw new Error('bad arguments');
+      },
+    },
+  ]);
+
+  await expect(provider.executeClientTool('missing', {})).resolves.toEqual({
+    content: 'Unknown client tool "missing".',
+    isError: true,
+  });
+  await expect(provider.executeClientTool('throws', {})).resolves.toEqual({
+    content: 'Client tool "throws" failed: bad arguments',
+    isError: true,
+  });
+});
+
 test('state reflects changes after registration and open', () => {
   const provider = ChatProvider.getInstance();
 
@@ -248,10 +343,19 @@ test('reset clears all state', () => {
   provider.registerChat({ id: 'acme.chat', name: 'Acme' }, trigger, panel);
   provider.open();
   provider.setDisplayMode('panel');
+  provider.registerClientTools([
+    {
+      name: 'dashboard_get_state',
+      description: 'Reads the active dashboard.',
+      inputSchema: { type: 'object' },
+      execute: () => ({ content: 'outline' }),
+    },
+  ]);
 
   provider.reset();
 
   expect(provider.getChat()).toBeUndefined();
   expect(provider.isOpen()).toBe(false);
   expect(provider.getDisplayMode()).toBe('floating');
+  expect(provider.getClientTools()).toEqual([]);
 });

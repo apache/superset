@@ -16,12 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useEffect } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
 import { Flex, Typography } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { dashboard, useDashboardRevision } from 'src/core/dashboard';
+import { chat } from 'src/core/chat';
 import BuildingBlockView from 'src/core/dashboard/BuildingBlockView';
+import { dashboardClientTools } from './clientTools';
 
 const PageContainer = styled(Flex)`
   ${({ theme }) => css`
@@ -84,6 +87,10 @@ export default function DashboardBuilderV2() {
   // Ticks on every dashboard.* mutation so this tree re-renders to reflect
   // whatever the chat agent (or any other caller of the dashboard API) did.
   useDashboardRevision();
+  useEffect(() => {
+    const registration = chat.registerClientTools(dashboardClientTools);
+    return () => registration.dispose();
+  }, []);
   const root = dashboard.getRoot();
   const isEmpty = !root.children || root.children.length === 0;
 

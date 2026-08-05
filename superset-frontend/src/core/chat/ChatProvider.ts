@@ -29,6 +29,9 @@ import { createValueEventEmitter, createEventEmitter } from '../utils';
 
 type Chat = chatApi.Chat;
 type DisplayMode = chatApi.DisplayMode;
+type ClientTool = chatApi.ClientTool;
+type ClientToolResult = chatApi.ClientToolResult;
+type ClientToolSpec = chatApi.ClientToolSpec;
 
 /**
  * Singleton manager for the chat provider.
@@ -56,6 +59,10 @@ class ChatProvider {
   private closeEmitter = createEventEmitter<void>();
 
   private resizePanelEmitter = createEventEmitter<{ width: number }>();
+
+  private clientToolGroups: ClientTool[][] = [];
+
+  private clientToolsEmitter = createEventEmitter<ClientToolSpec[]>();
 
   private modeEmitter: ReturnType<typeof createValueEventEmitter<DisplayMode>>;
 
@@ -190,6 +197,68 @@ class ChatProvider {
     return this.resizePanelEmitter.subscribe;
   }
 
+  private resolveClientTools(): Map<string, ClientTool> {
+    const resolved = new Map<string, ClientTool>();
+    this.clientToolGroups.forEach(group => {
+      group.forEach(tool => resolved.set(tool.name, tool));
+    });
+    return resolved;
+  }
+
+  public registerClientTools(tools: readonly ClientTool[]): Disposable {
+    const group = [...tools];
+    this.clientToolGroups.push(group);
+    this.clientToolsEmitter.fire(this.getClientTools());
+
+    return new Disposable(() => {
+      const index = this.clientToolGroups.indexOf(group);
+      if (index === -1) return;
+      this.clientToolGroups.splice(index, 1);
+      this.clientToolsEmitter.fire(this.getClientTools());
+    });
+  }
+
+  public getClientTools(): ClientToolSpec[] {
+    return [...this.resolveClientTools().values()].map(
+      ({ name, description, inputSchema }) => ({
+        name,
+        description,
+        inputSchema,
+      }),
+    );
+  }
+
+  public async executeClientTool(
+    name: string,
+    args: Record<string, unknown>,
+  ): Promise<ClientToolResult> {
+    const tool = this.resolveClientTools().get(name);
+    if (!tool) {
+      return { content: `Unknown client tool "${name}".`, isError: true };
+    }
+
+    try {
+      const result = await tool.execute(args);
+      if (result && typeof result.content === 'string') return result;
+      return {
+        content: `Client tool "${name}" returned no content.`,
+        isError: true,
+      };
+    } catch (error) {
+      return {
+        content:
+          error instanceof Error
+            ? `Client tool "${name}" failed: ${error.message}`
+            : `Client tool "${name}" failed.`,
+        isError: true,
+      };
+    }
+  }
+
+  public get onDidChangeClientTools() {
+    return this.clientToolsEmitter.subscribe;
+  }
+
   public reset(): void {
     this.chat = undefined;
     this.trigger = undefined;
@@ -200,6 +269,8 @@ class ChatProvider {
     this.openEmitter = createEventEmitter<void>();
     this.closeEmitter = createEventEmitter<void>();
     this.resizePanelEmitter = createEventEmitter<{ width: number }>();
+    this.clientToolGroups = [];
+    this.clientToolsEmitter = createEventEmitter<ClientToolSpec[]>();
     this.modeEmitter = createValueEventEmitter<DisplayMode>('floating');
     this.stateSubscribers.clear();
     setItem(LocalStorageKeys.ChatState, { open: false, mode: 'floating' });

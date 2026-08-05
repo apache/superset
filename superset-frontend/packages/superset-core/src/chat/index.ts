@@ -151,6 +151,57 @@ export declare const onDidChangeDisplayMode: Event<DisplayMode>;
  */
 export declare const onDidResizePanel: Event<{ width: number }>;
 
-// TODO: client actions API — tool availability functions will be added here
-// once the client_actions SIP is finalized. The chat namespace is the
-// intended integration point between the two SIPs.
+/** The normalized answer returned to the assistant by a browser-owned tool. */
+export interface ClientToolResult {
+  content: string;
+  isError?: boolean;
+}
+
+/** The part of a browser-owned tool definition that is safe to send to a model. */
+export interface ClientToolSpec {
+  /** Unique tool name. Later registrations take precedence on collisions. */
+  name: string;
+  /** Explain when the model should use the tool and what it returns. */
+  description: string;
+  /** JSON Schema describing the tool's argument object. */
+  inputSchema: Record<string, unknown>;
+}
+
+/**
+ * A tool implemented by the page in the user's browser.
+ *
+ * The handler is never sent to the chat extension's backend. It executes in
+ * the active Superset page and should return concise, model-readable content.
+ */
+export interface ClientTool extends ClientToolSpec {
+  execute: (
+    args: Record<string, unknown>,
+  ) => Promise<ClientToolResult> | ClientToolResult;
+}
+
+/**
+ * Registers browser-owned tools for the lifetime of a page or component.
+ * Dispose the returned registration when that owner unmounts. If names
+ * collide, the most recently registered group wins until it is disposed.
+ */
+export declare function registerClientTools(
+  tools: readonly ClientTool[],
+): Disposable;
+
+/** Returns the available client-tool descriptions without their handlers. */
+export declare function getClientTools(): ClientToolSpec[];
+
+/**
+ * Executes a registered browser-owned tool.
+ *
+ * This promise always resolves. Unknown tools, thrown handlers, rejected
+ * handlers, and invalid results are normalized to `isError: true` so an
+ * assistant can always continue its tool-call loop.
+ */
+export declare function executeClientTool(
+  name: string,
+  args: Record<string, unknown>,
+): Promise<ClientToolResult>;
+
+/** Fires whenever the resolved set of browser-owned tools changes. */
+export declare const onDidChangeClientTools: Event<ClientToolSpec[]>;
