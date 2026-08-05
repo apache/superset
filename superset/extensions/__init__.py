@@ -154,7 +154,9 @@ async_query_manager: AsyncQueryManager = LocalProxy(
 cache_manager = CacheManager()
 celery_app = celery.Celery()
 csrf = CSRFProtect()
-db = get_sqla_class()()
+from flask_appbuilder.models.sqla import Model as _FABModel  # noqa: E402
+
+db = get_sqla_class()(model_class=_FABModel)
 
 # make_versioned() MUST be called immediately after db is constructed and before
 # any versioned model class is defined.  Continuum patches the SQLAlchemy
