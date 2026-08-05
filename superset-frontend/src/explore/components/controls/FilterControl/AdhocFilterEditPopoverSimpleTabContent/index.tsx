@@ -135,11 +135,10 @@ export const useSimpleTabFilterProps = (props: Props) => {
       return isColumnMultiValue;
     }
     if (isColumnMultiValue) {
-      // multi-value columns support membership and null checks only
+      // multi-value columns support membership and null checks only;
+      // CONTAINS is already handled by the early return above.
       return (
-        operator === Operators.Contains ||
-        operator === Operators.IsNull ||
-        operator === Operators.IsNotNull
+        operator === Operators.IsNull || operator === Operators.IsNotNull
       );
     }
     if (operator === Operators.IsTrue || operator === Operators.IsFalse) {

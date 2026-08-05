@@ -251,4 +251,11 @@ export const DEFAULT_CONFIG_FORM_LAYOUT: ColumnConfigFormLayout = {
       { name: 'horizontalAlign', override: { defaultValue: 'left' } },
     ],
   ],
+  [GenericDataType.MultiValue]: [
+    [
+      'columnWidth',
+      { name: 'horizontalAlign', override: { defaultValue: 'left' } },
+    ],
+    ['truncateLongCells'],
+  ],
 };
