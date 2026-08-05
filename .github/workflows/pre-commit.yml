@@ -61,7 +61,6 @@ jobs:
       - name: Install prek
         run: |
           curl --proto '=https' --tlsv1.2 -LsSf https://github.com/j178/prek/releases/download/v0.4.11/prek-installer.sh | sh
-          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
 
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
