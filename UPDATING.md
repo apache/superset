@@ -434,7 +434,7 @@ Entity version history (the `version_transaction` / `*_version` shadow tables th
 |---|---|---|
 | `SUPERSET_VERSION_HISTORY_RETENTION_DAYS` | `30` | Version rows whose owning `version_transaction.issued_at` is older than this many days are pruned. Each entity's live row (`end_transaction_id IS NULL`) is always preserved, as are the live rows of its children and associations; closed historical rows (including the baseline) age out. Set to `0` or a negative value to disable pruning. |
 
-The task ships in the default `CeleryConfig.beat_schedule`; a deployment that overrides `CELERY_CONFIG` without inheriting the default will log a startup warning that the prune task is absent (so it never silently stops running). Retention only prunes whatever history exists — capture itself is gated separately by `ENABLE_VERSIONING_CAPTURE` (ships off).
+The task ships in the default `CeleryConfig` (both the `superset.tasks.version_history_retention` import and the beat entry). A deployment that overrides `CELERY_CONFIG` without the beat entry logs a startup warning. When the override explicitly defines `imports`, a missing retention module is also reported; an absent `imports` setting is not diagnosed because Celery may register tasks through `include`, autodiscovery, or worker startup imports. Retention only prunes whatever history exists — capture itself is gated separately by `ENABLE_VERSIONING_CAPTURE` (ships off).
 
 ### Deletion retention (soft-deleted entities are eventually purged)
 
@@ -442,9 +442,22 @@ Soft-deleted dashboards, charts, and datasets are now permanently removed after 
 
 The introducing release **defaults to dry-run** (`SOFT_DELETE_PURGE_DRY_RUN=True`): the task logs `would_purge` counts but deletes nothing, so operators can validate against production before activating real purging by setting it to `False`. Note `would_purge` is an **upper bound** — it counts every entity past the retention window without evaluating deletion blockers, so a real run may purge fewer (entities referenced by report schedules or set as a user's welcome dashboard are blocked and reported separately). The task only acts while the temporary `SOFT_DELETE` rollout flag is on.
 
-Deployments that replace the default `CELERY_CONFIG` must add `superset.tasks.deletion_retention` to the Celery `imports` and schedule the `deletion_retention.purge_soft_deleted` task themselves. The shipped Docker development config includes both entries.
+Deployments that replace the default `CELERY_CONFIG` must ensure workers register `superset.tasks.deletion_retention` and schedule the `deletion_retention.purge_soft_deleted` task themselves. The shipped Docker development config uses `imports` and includes both entries. While `SOFT_DELETE` is statically enabled, a missing beat entry logs a startup warning; when the override explicitly defines `imports`, a missing purge module is also reported.
 
 Operators can immediately erase a specific entity for compliance (GDPR) via `superset deletion-retention force-purge --uuid <uuid>`; this applies legacy hard-delete semantics — a live chart referencing a force-purged dataset is left without a datasource until re-pointed (the chart is not modified), and it purges the named entity even when it was never soft-deleted. Every purge writes an immutable, content-free audit record to the new `purge_audit_log` table that survives the entity it names: the **scheduled** purge fails closed (an entity whose audit row cannot be written is skipped and retried next run), while **force-purge** proceeds even if the audit write fails — the operator is present and deletion outranks audit for a compliance erasure.
+
+### Recently Archived view and permanent delete (purge) endpoints
+
+Behind the same `SOFT_DELETE` flag, a **Recently Archived** page (Settings menu, `/archived/`) lists soft-deleted charts, dashboards, and datasets with their archive time and archiving user, and offers **Recover** and **Delete permanently** row actions. The page admits any viewer holding `can_read` on **any** of the three types and offers each viewer only the types they can read; a viewer with none of the three sees an explanatory empty state, and unauthenticated requests are redirected to login.
+
+**New endpoints** — `POST /api/v1/{chart,dashboard,dataset}/<uuid>/purge` permanently delete a single **soft-deleted** row, running the same cascade as the retention task. Irreversible. Requires `can_write` on the entity plus editorship of the row (or admin), mirroring `/restore`. The endpoints answer 404 while `SOFT_DELETE` is off (restore deliberately stays live so rows archived before a flag-off remain recoverable), 404 for rows that are not soft-deleted, and 422 with a reason when the purge is blocked (an alert/report references the entity, a user has the dashboard as their welcome page, or a restrictive foreign key intervenes). A purge that cannot write its audit record is refused with 422 rather than executed unrecorded — unlike the operator CLI, an end user's purge never outranks the audit.
+
+With the flag on, delete confirmations across the chart/dashboard/dataset list pages change shape: a recoverable archive is confirmed with a primary **Archive** button and no type-DELETE friction, and the copy states the retention window when one is configured. A bulk dataset selection that includes semantic views keeps the full danger treatment, because semantic views have no soft-delete — they are deleted permanently and the confirmation says so.
+
+This also resolves the limitation noted under *Soft delete and restore for datasets*: a database blocked by soft-deleted datasets can now be freed by purging those datasets (per-entity endpoint, retention task, or `force-purge` CLI) instead of hard-deleting `tables` rows out-of-band.
+
+The `purge_audit_log` table is **never pruned by design** — the audit must survive the entities it names; operators who need to age it out should prune manually.
+
 
 ### Webhook alerts/reports block private/internal hosts by default
 

@@ -2273,6 +2273,13 @@ def _make_state_instance(
     schedule.recipients = []
     schedule.force_screenshot = False
     schedule.extra = {}
+    schedule.retry_on_failure = False
+    schedule.retry_max_attempts = 3
+    schedule.retry_attempt = 0
+    schedule.retry_scheduled_dttm = None
+    schedule.send_failed_reports = False
+    schedule.retry_notify_owners = True
+    schedule.retry_notify_recipients = False
 
     instance = cls(schedule, datetime.utcnow(), uuid4())
     instance._report_schedule = schedule

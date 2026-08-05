@@ -579,8 +579,9 @@ async def update_chart(  # noqa: C901
                 )
 
         chart_for_analysis = updated_chart if saved else chart
-        capabilities = analyze_chart_capabilities(chart_for_analysis, parsed_config)
-        semantics = analyze_chart_semantics(chart_for_analysis, parsed_config)
+        viz_type_for_analysis = getattr(chart_for_analysis, "viz_type", None)
+        capabilities = analyze_chart_capabilities(viz_type_for_analysis, parsed_config)
+        semantics = analyze_chart_semantics(viz_type_for_analysis, parsed_config)
 
         execution_time = int((time.time() - start_time) * 1000)
         performance = PerformanceMetadata(

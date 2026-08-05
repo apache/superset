@@ -42,7 +42,9 @@ export type FilterType = Record<string, DataRecordValue>;
 export type SelectedFiltersType = Record<string, DataRecordValue[]>;
 
 export type DateFormatter =
-  TimeFormatter | NumberFormatter | ((value: DataRecordValue) => string);
+  | TimeFormatter
+  | NumberFormatter
+  | ((value: DataRecordValue) => string);
 export enum MetricsLayoutEnum {
   ROWS = 'ROWS',
   COLUMNS = 'COLUMNS',

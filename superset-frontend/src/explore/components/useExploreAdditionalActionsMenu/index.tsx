@@ -54,6 +54,9 @@ import copyTextToClipboard from 'src/utils/copy';
 import { useHeaderReportMenuItems } from 'src/features/reports/ReportModal/HeaderReportDropdown';
 import { MenuItemTooltip } from 'src/components/Chart/DisabledMenuItemTooltip';
 import { logEvent } from 'src/logger/actions';
+import { openVersionHistoryPanel } from 'src/features/versionHistory/reducer';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { canOverwriteSlice } from 'src/explore/exploreUtils/canOverwriteSlice';
 import {
   LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE,
   LOG_ACTIONS_CHART_DOWNLOAD_AS_PNG,
@@ -109,6 +112,7 @@ const MENU_KEYS = {
   DELETE_REPORT: 'delete_report',
   VIEW_QUERY: 'view_query',
   RUN_IN_SQL_LAB: 'run_in_sql_lab',
+  VERSION_HISTORY: 'version_history',
 };
 
 const VIZ_TYPES_PIVOTABLE = [VizType.PivotTable];
@@ -274,12 +278,14 @@ interface ExploreState {
   explore?: ExploreSlice & {
     chartStates?: Record<number, JsonObject>;
     can_export_image?: boolean;
+    can_overwrite?: boolean;
   };
   common?: {
     conf?: {
       CSV_STREAMING_ROW_THRESHOLD?: number;
     };
   };
+  user?: UserWithPermissionsAndRoles;
 }
 
 export type UseExploreAdditionalActionsMenuReturn = [
@@ -300,7 +306,8 @@ export const useExploreAdditionalActionsMenu = (
   onOpenPropertiesModal: () => void,
   ownState: OwnStateWithClientView | undefined,
   dashboards:
-    NonNullable<ExplorePageInitialData['metadata']>['dashboards'] | undefined,
+    | NonNullable<ExplorePageInitialData['metadata']>['dashboards']
+    | undefined,
   showReportModal: () => void,
   setCurrentReportDeleting: Dispatch<SetStateAction<ReportObject | null>>,
   ...rest: MenuProps[]
@@ -324,6 +331,20 @@ export const useExploreAdditionalActionsMenu = (
   );
   const canExportImage = useSelector<ExploreState, boolean>(
     state => state.explore?.can_export_image ?? false,
+  );
+  const canOverwrite = useSelector<ExploreState, boolean>(
+    state => state.explore?.can_overwrite ?? false,
+  );
+  const user = useSelector<
+    ExploreState,
+    UserWithPermissionsAndRoles | undefined
+  >(state => state.user);
+  // `can_overwrite` alone hides version history on any chart without explicit
+  // editors — every seeded chart — even from admins. Same predicate SaveModal
+  // uses, so a user who can save a chart can also see its history.
+  const canModifySlice = useMemo(
+    () => canOverwriteSlice({ slice, user, canOverwrite }),
+    [slice, user, canOverwrite],
   );
 
   const dataExportDisabled = !canDownloadCSV;
@@ -1006,6 +1027,21 @@ export const useExploreAdditionalActionsMenu = (
       menuItems.push(reportMenuItem);
     }
 
+    if (
+      isFeatureEnabled(FeatureFlag.VersionHistory) &&
+      canModifySlice &&
+      slice?.slice_id
+    ) {
+      menuItems.push({
+        key: MENU_KEYS.VERSION_HISTORY,
+        label: t('View version history'),
+        onClick: () => {
+          dispatch(openVersionHistoryPanel('chart'));
+          setIsDropdownVisible(false);
+        },
+      });
+    }
+
     // View query
     menuItems.push({
       key: MENU_KEYS.VIEW_QUERY,
@@ -1048,6 +1084,7 @@ export const useExploreAdditionalActionsMenu = (
   }, [
     addDangerToast,
     canDownloadCSV,
+    canModifySlice,
     copyLink,
     dashboards,
     dashboardMenuItems,
