@@ -134,7 +134,7 @@ class TaskResponseSchema(Schema):
         # they are gated behind the same flag that controls stack traces
         # elsewhere in Superset. ``error_message`` is left in place as the
         # consumer-facing failure reason.
-        if not current_app.config.get("SHOW_STACKTRACE", False):
+        if not current_app.config["SHOW_STACKTRACE"]:
             properties.pop("stack_trace", None)
             properties.pop("exception_type", None)
 
