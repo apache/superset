@@ -195,7 +195,15 @@ const LabelColorMapping = ({
     [metadataObj],
   );
 
-  const [rows, setRows] = useState<ColorMapping[]>([]);
+  // FIXED: Initialize rows immediately from labelColors so it renders correctly on first pass.
+  const [rows, setRows] = useState<ColorMapping[]>(() => {
+    return Object.entries(labelColors).map(([label, color]) => ({
+      id: generateId(),
+      label,
+      color: isValidHex(color) ? color : DEFAULT_NEW_COLOR,
+    }));
+  });
+
   const lastSyncMetadata = useRef<string>(jsonMetadata);
 
   useEffect(() => {

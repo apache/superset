@@ -34,7 +34,7 @@ describe("LabelColorMapping", () => {
     jest.clearAllMocks();
   });
 
-  it("renders the empty state correctly", () => {
+  test("renders the empty state correctly", () => {
     render(<LabelColorMapping {...defaultProps} />);
     expect(screen.getByText("Label Colors")).toBeInTheDocument();
     expect(
@@ -44,7 +44,7 @@ describe("LabelColorMapping", () => {
     ).toBeInTheDocument();
   });
 
-  it('adds a new color mapping row when "Add more" is clicked', () => {
+  test('adds a new color mapping row when "Add more" is clicked', () => {
     render(<LabelColorMapping {...defaultProps} />);
 
     const addButton = screen.getByText("+ Add more");
@@ -55,7 +55,7 @@ describe("LabelColorMapping", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders existing mappings from jsonMetadata", async () => {
+  test("renders existing mappings from jsonMetadata", async () => {
     const propsWithData = {
       ...defaultProps,
       jsonMetadata: JSON.stringify({ label_colors: { Revenue: "#20a7c9" } }),
