@@ -54,17 +54,15 @@ const getTimestampFromTimeAxisLabel = (value: string | number) => {
 };
 
 const formatDateTime = (date: Date) =>
-  [
+  `${[
     date.getUTCFullYear(),
     String(date.getUTCMonth() + 1).padStart(2, '0'),
     String(date.getUTCDate()).padStart(2, '0'),
-  ].join('-') +
-  'T' +
-  [
+  ].join('-')}T${[
     String(date.getUTCHours()).padStart(2, '0'),
     String(date.getUTCMinutes()).padStart(2, '0'),
     String(date.getUTCSeconds()).padStart(2, '0'),
-  ].join(':');
+  ].join(':')}`;
 
 export default function EchartsTimeseries({
   formData,
@@ -82,6 +80,7 @@ export default function EchartsTimeseries({
   onFocusedSeries,
   xValueFormatter,
   xAxis,
+  resolvedTimeGrain,
   refs,
   emitCrossFilters,
   coltypeMapping,
@@ -226,7 +225,7 @@ export default function EchartsTimeseries({
     (clickedTimestamp: number) => {
       const filterColumn =
         xAxis.label === DTTM_ALIAS ? formData.granularitySqla : xAxis.label;
-      const grain = formData.timeGrainSqla as TimeGranularity | undefined;
+      const grain = resolvedTimeGrain as TimeGranularity | undefined;
 
       if (!filterColumn || !grain) {
         return {
@@ -278,12 +277,7 @@ export default function EchartsTimeseries({
         isCurrentValueSelected,
       };
     },
-    [
-      formData.granularitySqla,
-      formData.timeGrainSqla,
-      selectedValues,
-      xAxis.label,
-    ],
+    [formData.granularitySqla, resolvedTimeGrain, selectedValues, xAxis.label],
   );
 
   const handleChange = useCallback(
@@ -363,10 +357,7 @@ export default function EchartsTimeseries({
           props.componentType === 'series'
         ) {
           // Cross-filter by X-axis value when no dimensions (issue #25334)
-          const categoryAxisValue = getXAxisValue(
-            props.data,
-            props.name,
-          );
+          const categoryAxisValue = getXAxisValue(props.data, props.name);
           if (categoryAxisValue !== undefined) {
             handleXAxisChange(categoryAxisValue);
           }
@@ -414,17 +405,19 @@ export default function EchartsTimeseries({
         const groupBy = ensureIsArray(formData.groupby);
         if (data && xAxis.type === AxisType.Time) {
           const timeAxisValue = getXAxisValue(data, eventParams.name);
-          drillToDetailFilters.push({
-            col:
-              // if the xAxis is '__timestamp', granularity_sqla will be the column of filter
-              xAxis.label === DTTM_ALIAS
-                ? formData.granularitySqla
-                : xAxis.label,
-            grain: formData.timeGrainSqla,
-            op: '==',
-            val: timeAxisValue,
-            formattedVal: xValueFormatter(timeAxisValue),
-          });
+          if (timeAxisValue !== undefined) {
+            drillToDetailFilters.push({
+              col:
+                // if the xAxis is '__timestamp', granularity_sqla will be the column of filter
+                xAxis.label === DTTM_ALIAS
+                  ? formData.granularitySqla
+                  : xAxis.label,
+              grain: resolvedTimeGrain,
+              op: '==',
+              val: timeAxisValue,
+              formattedVal: xValueFormatter(timeAxisValue),
+            });
+          }
         }
         [
           ...(xAxis.type === AxisType.Category && data ? [xAxis.label] : []),
@@ -466,12 +459,18 @@ export default function EchartsTimeseries({
           xAxis.type === AxisType.Category &&
           eventParams.componentType === 'series'
         ) {
-          const categoryAxisValue = getXAxisValue(
-            data,
-            eventParams.name,
-          );
+          const categoryAxisValue = getXAxisValue(data, eventParams.name);
           if (categoryAxisValue !== undefined) {
             crossFilter = getXAxisCrossFilterDataMask(categoryAxisValue);
+          }
+        } else if (
+          canCrossFilterByXAxis &&
+          xAxis.type === AxisType.Time &&
+          eventParams.componentType === 'series'
+        ) {
+          const timeAxisValue = getXAxisValue(data, eventParams.name);
+          if (typeof timeAxisValue === 'number') {
+            crossFilter = getTimeAxisCrossFilterDataMask(timeAxisValue);
           }
         }
 
@@ -502,7 +501,12 @@ export default function EchartsTimeseries({
         }
       }
     },
-    [canCrossFilterByXAxis, handleTimeAxisChange, handleXAxisChange, xAxis.type],
+    [
+      canCrossFilterByXAxis,
+      handleTimeAxisChange,
+      handleXAxisChange,
+      xAxis.type,
+    ],
   );
 
   const renderedXAxis =
