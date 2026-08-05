@@ -837,6 +837,88 @@ test('TableRenderer shows values as a percentage of the column total', () => {
   expect(getCellTexts('pvtTotal')).toEqual(expect.arrayContaining(['100.0%']));
 });
 
+/**
+ * Regression guard: when the metric pseudo-dimension collapses to the only
+ * thing on an axis (the grand-total level), each metric's own grand total
+ * must be used as the `showValuesAs` denominator -- not whichever metric's
+ * record was pushed last into the shared "Metric-collapse totals" slot (see
+ * `processRecord` in ../../src/react-pivottable/utilities.ts).
+ */
+const TAGGED_MULTI_METRIC_ON_COLUMNS = [
+  // leaf cells for metric m1 (grand total 30)
+  {
+    color: 'blue',
+    Metric: 'm1',
+    value: 10,
+    __rows: ['color'],
+    __columns: ['Metric'],
+    __metricKey: 'Metric',
+  },
+  {
+    color: 'red',
+    Metric: 'm1',
+    value: 20,
+    __rows: ['color'],
+    __columns: ['Metric'],
+    __metricKey: 'Metric',
+  },
+  // leaf cells for metric m2 (grand total 300) -- a different ratio so a
+  // cross-metric mixup produces a distinctly wrong percentage.
+  {
+    color: 'blue',
+    Metric: 'm2',
+    value: 250,
+    __rows: ['color'],
+    __columns: ['Metric'],
+    __metricKey: 'Metric',
+  },
+  {
+    color: 'red',
+    Metric: 'm2',
+    value: 50,
+    __rows: ['color'],
+    __columns: ['Metric'],
+    __metricKey: 'Metric',
+  },
+  // grand total level: rows = [], columns = [Metric]. m2 is pushed last.
+  {
+    Metric: 'm1',
+    value: 30,
+    __rows: [],
+    __columns: ['Metric'],
+    __metricKey: 'Metric',
+  },
+  {
+    Metric: 'm2',
+    value: 300,
+    __rows: [],
+    __columns: ['Metric'],
+    __metricKey: 'Metric',
+  },
+];
+
+test("TableRenderer divides percent_total by each metric's own grand total", () => {
+  const props = buildDefaultProps({
+    data: TAGGED_MULTI_METRIC_ON_COLUMNS,
+    rows: ['color'],
+    cols: ['Metric'],
+    vals: ['value'],
+    tableOptions: { rowTotals: true, colTotals: true },
+    showValuesAs: 'percent_total',
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  const cellTexts = getCellTexts('pvtVal');
+  // m1: 10/30 and 20/30 -- correct only if m1's own grand total (30) is used.
+  expect(cellTexts).toEqual(expect.arrayContaining(['33.3%', '66.7%']));
+  // m2: 250/300 and 50/300.
+  expect(cellTexts).toEqual(expect.arrayContaining(['83.3%', '16.7%']));
+  // A "last metric wins" bug would divide m1's cells by m2's grand total
+  // (300) instead, producing 3.3%/6.7%.
+  expect(cellTexts).not.toEqual(expect.arrayContaining(['3.3%']));
+  expect(cellTexts).not.toEqual(expect.arrayContaining(['6.7%']));
+});
+
 test('TableRenderer shows actual values when showValuesAs is unset (default)', () => {
   const props = buildDefaultProps({
     data: TAGGED_COUNT_DATA,

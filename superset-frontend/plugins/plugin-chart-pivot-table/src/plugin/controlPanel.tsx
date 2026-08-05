@@ -250,7 +250,10 @@ const config: ControlPanelConfig = {
               type: 'SelectControl',
               label: t('Show values as'),
               default: ShowValuesAsEnum.ACTUAL,
-              renderTrigger: true,
+              // Not a renderTrigger: for non-additive metrics, a percent choice
+              // here can require a rollup level (see `buildGroupbyCombinations`)
+              // that a prior query never fetched, so switching it needs a real
+              // requery rather than a client-side-only re-render.
               choices: [
                 [ShowValuesAsEnum.ACTUAL, t('Actual values')],
                 [ShowValuesAsEnum.PERCENT_OF_ROW, t('% of row total')],

@@ -748,7 +748,39 @@ const baseAggregatorTemplates = {
             type
           ],
           inner: wrapped(...Array.from(x || []))(data, rowKey, colKey),
+          // The metric this cell belongs to, and which axis carries it (see the
+          // "Metric" pseudo-dimension in PivotTableChart). Captured from the
+          // first pushed record. With multiple metrics, the axis holding the
+          // metric is never actually empty, so collapsing it to `[]` (as the
+          // `selector` above does) would route every metric's lookup to the
+          // same shared total slot -- see `processRecord`'s "Metric-collapse
+          // totals". Keeping the metric's own key segment instead routes the
+          // lookup to the per-metric total that's already correctly split out.
+          metricAxis: undefined as
+            | { axis: 'row' | 'col'; value: string }
+            | null
+            | undefined,
           push(record: PivotRecord) {
+            if (this.metricAxis === undefined) {
+              const metricDim = record.__metricKey as unknown as
+                | string
+                | undefined;
+              const cols = data.props.cols as string[] | undefined;
+              const rows = data.props.rows as string[] | undefined;
+              if (metricDim && cols?.includes(metricDim)) {
+                this.metricAxis = {
+                  axis: 'col',
+                  value: String(record[metricDim]),
+                };
+              } else if (metricDim && rows?.includes(metricDim)) {
+                this.metricAxis = {
+                  axis: 'row',
+                  value: String(record[metricDim]),
+                };
+              } else {
+                this.metricAxis = null;
+              }
+            }
             this.inner.push(record);
           },
           format: fmtNonString(formatter),
@@ -758,9 +790,21 @@ const baseAggregatorTemplates = {
             // back to `null` (rendered blank) instead of throwing if it is
             // ever missing -- e.g. a denominator aggregator with no matching
             // rows in the response.
-            const denominatorAggregator = data.getAggregator(
-              ...Array.from(this.selector || []),
-            );
+            let [selRow, selCol] = (this.selector || [[], []]) as [
+              string[],
+              string[],
+            ];
+            if (this.metricAxis) {
+              if (this.metricAxis.axis === 'col' && selCol.length === 0) {
+                selCol = [this.metricAxis.value];
+              } else if (
+                this.metricAxis.axis === 'row' &&
+                selRow.length === 0
+              ) {
+                selRow = [this.metricAxis.value];
+              }
+            }
+            const denominatorAggregator = data.getAggregator(selRow, selCol);
             if (!denominatorAggregator.inner) {
               return null;
             }

@@ -250,13 +250,25 @@ export default function buildGroupbyCombinations(
     );
 
   if (formData.combineMetric) {
+    // A forced-in percent-mode denominator level (above) is collapsed on the
+    // opposite axis from a "normal" subtotal, so it can be mistaken for one
+    // and stripped back out here. Exempt it explicitly so combining metrics
+    // doesn't blank out the percent denominator.
+    const isForcedDenominatorLevel = (combination: Groupby): boolean =>
+      (needsRowsCollapsed && combination.rows.length === 0) ||
+      (needsColumnsCollapsed && combination.columns.length === 0);
+
     if (formData.metricsLayout === MetricsLayoutEnum.ROWS) {
       groupbyCombinations = groupbyCombinations.filter(
-        combination => combination.rows.length === rows.length,
+        combination =>
+          combination.rows.length === rows.length ||
+          isForcedDenominatorLevel(combination),
       );
     } else {
       groupbyCombinations = groupbyCombinations.filter(
-        combination => combination.columns.length === columns.length,
+        combination =>
+          combination.columns.length === columns.length ||
+          isForcedDenominatorLevel(combination),
       );
     }
   }
