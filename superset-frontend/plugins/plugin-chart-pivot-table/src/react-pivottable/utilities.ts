@@ -815,6 +815,13 @@ const baseAggregatorTemplates = {
             if (typeof acc === 'string') {
               return acc;
             }
+            // A `null` denominator (e.g. a DB-computed total that is itself
+            // null) coerces to `0` under `/`, producing `Infinity`/`NaN`
+            // instead of the blank the null/missing-denominator contract
+            // above already establishes.
+            if (acc === null) {
+              return null;
+            }
 
             // A DB-computed rollup value can legitimately be a real SQL NULL
             // (e.g. AVG over an empty group). `null / acc` coerces to `0` in

@@ -25,6 +25,7 @@ import { TableRenderer } from '../../src/react-pivottable/TableRenderers';
 import {
   aggregatorTemplates,
   groupingValueSort,
+  PivotData,
 } from '../../src/react-pivottable/utilities';
 
 jest.mock(
@@ -1024,4 +1025,74 @@ test('TableRenderer keeps a null metric value blank in fraction mode instead of 
   // The non-null sibling cell in the same row still divides correctly
   // (20 / 20 row total).
   expect(cellTexts).toContain('100.0%');
+});
+
+/**
+ * Regression guard: the denominator (not just the numerator) can itself be a
+ * genuine SQL NULL -- e.g. a row total that's an AVG over an empty group.
+ * `numerator / null` coerces to `numerator / 0` in JS, producing `Infinity`
+ * (for a nonzero numerator) instead of the blank cell that a missing/null
+ * total should render as everywhere else.
+ */
+const TAGGED_DATA_WITH_NULL_ROW_TOTAL = [
+  {
+    color: 'blue',
+    shape: 'circle',
+    value: 10,
+    __rows: ['color'],
+    __columns: ['shape'],
+  },
+  {
+    color: 'blue',
+    shape: 'square',
+    value: 20,
+    __rows: ['color'],
+    __columns: ['shape'],
+  },
+  // blue's row total is itself null (e.g. AVG over an empty group).
+  { color: 'blue', value: null, __rows: ['color'], __columns: [] },
+];
+
+test('TableRenderer keeps cells blank in fraction mode when the denominator total is null', () => {
+  const props = buildDefaultProps({
+    data: TAGGED_DATA_WITH_NULL_ROW_TOTAL,
+    rows: ['color'],
+    cols: ['shape'],
+    vals: ['value'],
+    tableOptions: { rowTotals: true, colTotals: true },
+    showValuesAs: 'percent_row',
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  const cellTexts = getCellTexts('pvtVal');
+  expect(cellTexts).not.toEqual(
+    expect.arrayContaining([expect.stringContaining('Infinity')]),
+  );
+  expect(cellTexts).not.toEqual(
+    expect.arrayContaining([expect.stringContaining('NaN')]),
+  );
+  expect(cellTexts).toEqual(['', '']);
+});
+
+/**
+ * The rendered text alone can't distinguish `null` from `Infinity`/`NaN` --
+ * the shared number formatter already blanks any non-finite value, so the
+ * DOM-level test above would pass even without the `acc === null` guard.
+ * Assert the aggregator's own value() contract directly: it must return
+ * `null` (not a non-finite number) when the denominator total is null, since
+ * other code paths that read `.value()` outside of `.format()` -- e.g.
+ * value-based row/column sorting -- rely on that contract to treat it as "no
+ * value" the same way an actually-missing total does.
+ */
+test("fractionOf's value() returns null, not Infinity, when the denominator total is null", () => {
+  const pivotData = new PivotData({
+    data: TAGGED_DATA_WITH_NULL_ROW_TOTAL,
+    rows: ['color'],
+    cols: ['shape'],
+    vals: ['value'],
+    showValuesAs: 'percent_row',
+  });
+
+  expect(pivotData.getAggregator(['blue'], ['circle']).value()).toBeNull();
+  expect(pivotData.getAggregator(['blue'], ['square']).value()).toBeNull();
 });
