@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core/translation';
-import { FormItem, Input } from '@superset-ui/core/components';
-import { ModalFormField } from 'src/components/Modal';
+import { t } from "@apache-superset/core/translation";
+import { FormItem, Input } from "@superset-ui/core/components";
+import { ModalFormField } from "src/components/Modal";
 
 interface CertificationSectionProps {
   isLoading: boolean;
@@ -27,17 +27,17 @@ interface CertificationSectionProps {
 const CertificationSection = ({ isLoading }: CertificationSectionProps) => (
   <>
     <ModalFormField
-      label={t('Certified by')}
-      helperText={t('Person or group that has certified this dashboard.')}
+      label={t("Certified by")}
+      helperText={t("Person or group that has certified this dashboard.")}
     >
       <FormItem name="certifiedBy" noStyle>
         <Input type="text" disabled={isLoading} />
       </FormItem>
     </ModalFormField>
     <ModalFormField
-      label={t('Certification details')}
+      label={t("Certification details")}
       helperText={t(
-        'Any additional detail to show in the certification tooltip.',
+        "Any additional detail to show in the certification tooltip.",
       )}
       bottomSpacing={false}
     >

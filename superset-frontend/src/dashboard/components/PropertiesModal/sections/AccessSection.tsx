@@ -16,18 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo } from 'react';
-import { t } from '@apache-superset/core/translation';
-import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
-import { AsyncSelect } from '@superset-ui/core/components';
-import { type TagType } from 'src/components';
-import { loadTags } from 'src/components/Tag/utils';
-import Subject from 'src/types/Subject';
-import { ModalFormField } from 'src/components/Modal';
+import { useMemo } from "react";
+import { t } from "@apache-superset/core/translation";
+import { isFeatureEnabled, FeatureFlag } from "@superset-ui/core";
+import { AsyncSelect } from "@superset-ui/core/components";
+import { type TagType } from "src/components";
+import { loadTags } from "src/components/Tag/utils";
+import Subject from "src/types/Subject";
+import { ModalFormField } from "src/components/Modal";
 import SubjectPicker, {
   mapSubjectsToPickerValues,
   type SubjectPickerValue,
-} from 'src/features/subjects/SubjectPicker';
+} from "src/features/subjects/SubjectPicker";
 
 interface AccessSectionProps {
   isLoading: boolean;
@@ -74,49 +74,49 @@ const AccessSection = ({
   return (
     <>
       <ModalFormField
-        label={t('Editors')}
+        label={t("Editors")}
         testId="dashboard-editors-field"
         helperText={t(
-          'Editors is a list of subjects who can alter the dashboard. Searchable by name.',
+          "Editors is a list of subjects who can alter the dashboard. Searchable by name.",
         )}
       >
         <SubjectPicker
           relatedUrl="/api/v1/dashboard/related/editors"
           dataTest="dashboard-editors-select"
           allowClear
-          ariaLabel={t('Editors')}
+          ariaLabel={t("Editors")}
           disabled={isLoading}
           onChange={onChangeEditors}
           value={editorsSelectValue}
-          placeholder={t('Search editors')}
+          placeholder={t("Search editors")}
         />
       </ModalFormField>
       {enableViewers && (
         <ModalFormField
-          label={t('Viewers')}
+          label={t("Viewers")}
           testId="dashboard-viewers-field"
           helperText={t(
-            'Viewers is a list of subjects who can view the dashboard. If no viewers are defined, the dashboard is accessible to all users with appropriate datasource permissions.',
+            "Viewers is a list of subjects who can view the dashboard. If no viewers are defined, the dashboard is accessible to all users with appropriate datasource permissions.",
           )}
         >
           <SubjectPicker
             relatedUrl="/api/v1/dashboard/related/viewers"
             dataTest="dashboard-viewers-select"
             allowClear
-            ariaLabel={t('Viewers')}
+            ariaLabel={t("Viewers")}
             disabled={isLoading}
             onChange={onChangeViewers}
             value={viewersSelectValue}
-            placeholder={t('Search viewers')}
+            placeholder={t("Search viewers")}
           />
         </ModalFormField>
       )}
       {isFeatureEnabled(FeatureFlag.TaggingSystem) && (
         <ModalFormField
-          label={t('Tags')}
+          label={t("Tags")}
           testId="dashboard-tags-field"
           helperText={t(
-            'A list of tags that have been applied to this dashboard.',
+            "A list of tags that have been applied to this dashboard.",
           )}
           bottomSpacing={false}
         >
@@ -130,7 +130,7 @@ const AccessSection = ({
             onClear={onClearTags}
             allowClear
             showSearch
-            placeholder={t('Search tags')}
+            placeholder={t("Search tags")}
           />
         </ModalFormField>
       )}

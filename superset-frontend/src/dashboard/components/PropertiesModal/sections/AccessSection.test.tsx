@@ -16,18 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
-import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
-import AccessSection from './AccessSection';
+import { render, screen } from "spec/helpers/testing-library";
+import { isFeatureEnabled, FeatureFlag } from "@superset-ui/core";
+import AccessSection from "./AccessSection";
 
 // Mock feature flags
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
+jest.mock("@superset-ui/core", () => ({
+  ...jest.requireActual("@superset-ui/core"),
   isFeatureEnabled: jest.fn(),
 }));
 
 // Mock tags utils
-jest.mock('src/components/Tag/utils', () => ({
+jest.mock("src/components/Tag/utils", () => ({
   loadTags: jest.fn(),
 }));
 
@@ -35,9 +35,9 @@ const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 const defaultProps = {
   isLoading: false,
-  tags: [{ id: 1, name: 'Important' }],
-  editors: [{ id: 10, label: 'Editor Subject', type: 1 }],
-  viewers: [{ id: 11, label: 'Viewer Subject', type: 2 }],
+  tags: [{ id: 1, name: "Important" }],
+  editors: [{ id: 10, label: "Editor Subject", type: 1 }],
+  viewers: [{ id: 11, label: "Viewer Subject", type: 2 }],
   onChangeEditors: jest.fn(),
   onChangeViewers: jest.fn(),
   onChangeTags: jest.fn(),
@@ -48,62 +48,62 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-test('always renders editors field', () => {
+test("always renders editors field", () => {
   mockedIsFeatureEnabled.mockReturnValue(false);
 
   render(<AccessSection {...defaultProps} />);
 
-  expect(screen.getByTestId('dashboard-editors-field')).toBeInTheDocument();
+  expect(screen.getByTestId("dashboard-editors-field")).toBeInTheDocument();
 });
 
-test('does not render viewers field when EnableViewers is off', () => {
+test("does not render viewers field when EnableViewers is off", () => {
   mockedIsFeatureEnabled.mockReturnValue(false);
 
   render(<AccessSection {...defaultProps} />);
 
   expect(
-    screen.queryByTestId('dashboard-viewers-field'),
+    screen.queryByTestId("dashboard-viewers-field"),
   ).not.toBeInTheDocument();
 });
 
-test('renders viewers field when EnableViewers is on', () => {
+test("renders viewers field when EnableViewers is on", () => {
   mockedIsFeatureEnabled.mockImplementation(
     (flag: any) => flag === FeatureFlag.EnableViewers,
   );
 
   render(<AccessSection {...defaultProps} />);
 
-  expect(screen.getByTestId('dashboard-editors-field')).toBeInTheDocument();
-  expect(screen.getByTestId('dashboard-viewers-field')).toBeInTheDocument();
+  expect(screen.getByTestId("dashboard-editors-field")).toBeInTheDocument();
+  expect(screen.getByTestId("dashboard-viewers-field")).toBeInTheDocument();
 });
 
-test('renders tags field when TaggingSystem feature is enabled', () => {
+test("renders tags field when TaggingSystem feature is enabled", () => {
   mockedIsFeatureEnabled.mockImplementation(
     (flag: any) => flag === FeatureFlag.TaggingSystem,
   );
 
   render(<AccessSection {...defaultProps} />);
 
-  expect(screen.getByTestId('dashboard-tags-field')).toBeInTheDocument();
+  expect(screen.getByTestId("dashboard-tags-field")).toBeInTheDocument();
 });
 
-test('does not render tags field when TaggingSystem feature is disabled', () => {
+test("does not render tags field when TaggingSystem feature is disabled", () => {
   mockedIsFeatureEnabled.mockReturnValue(false);
 
   render(<AccessSection {...defaultProps} />);
 
-  expect(screen.queryByTestId('dashboard-tags-field')).not.toBeInTheDocument();
+  expect(screen.queryByTestId("dashboard-tags-field")).not.toBeInTheDocument();
 });
 
-test('disables inputs when loading', () => {
+test("disables inputs when loading", () => {
   mockedIsFeatureEnabled.mockReturnValue(false);
 
   render(<AccessSection {...defaultProps} isLoading />);
 
-  expect(screen.getByTestId('dashboard-editors-field')).toBeInTheDocument();
+  expect(screen.getByTestId("dashboard-editors-field")).toBeInTheDocument();
 });
 
-test('shows editors helper text', () => {
+test("shows editors helper text", () => {
   mockedIsFeatureEnabled.mockReturnValue(false);
 
   render(<AccessSection {...defaultProps} />);
@@ -111,7 +111,7 @@ test('shows editors helper text', () => {
   expect(screen.getByText(/Editors is a list of subjects/)).toBeInTheDocument();
 });
 
-test('shows editors and viewers helper text when EnableViewers is on', () => {
+test("shows editors and viewers helper text when EnableViewers is on", () => {
   mockedIsFeatureEnabled.mockImplementation(
     (flag: any) => flag === FeatureFlag.EnableViewers,
   );

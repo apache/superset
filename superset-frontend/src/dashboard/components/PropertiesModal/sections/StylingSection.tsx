@@ -16,21 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useState } from 'react';
-import { t } from '@apache-superset/core/translation';
+import { useCallback, useEffect, useState } from "react";
+import { t } from "@apache-superset/core/translation";
 import {
   SupersetClient,
   isFeatureEnabled,
   FeatureFlag,
-} from '@superset-ui/core';
-import { Alert } from '@apache-superset/core/components';
-import { styled } from '@apache-superset/core/theme';
-import { Select, Switch } from '@superset-ui/core/components';
-import { EditorHost } from 'src/core/editors';
-import rison from 'rison';
-import ColorSchemeSelect from 'src/dashboard/components/ColorSchemeSelect';
-import { ModalFormField } from 'src/components/Modal';
-import LabelColorMapping from './LabelColorMapping';
+} from "@superset-ui/core";
+import { Alert } from "@apache-superset/core/components";
+import { styled } from "@apache-superset/core/theme";
+import { Select, Switch } from "@superset-ui/core/components";
+import { EditorHost } from "src/core/editors";
+import rison from "rison";
+import ColorSchemeSelect from "src/dashboard/components/ColorSchemeSelect";
+import { ModalFormField } from "src/components/Modal";
+import LabelColorMapping from "./LabelColorMapping";
 
 const StyledEditorHost = styled(EditorHost)`
   border-radius: ${({ theme }) => theme.borderRadius}px;
@@ -116,7 +116,7 @@ const StylingSection = ({
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [originalTemplateContent, setOriginalTemplateContent] =
-    useState<string>('');
+    useState<string>("");
 
   // Fetch CSS templates
   const fetchCssTemplates = useCallback(async () => {
@@ -124,7 +124,7 @@ const StylingSection = ({
 
     setIsLoadingTemplates(true);
     try {
-      const query = rison.encode({ columns: ['template_name', 'css'] });
+      const query = rison.encode({ columns: ["template_name", "css"] });
       const response = await SupersetClient.get({
         endpoint: `/api/v1/css_template/?q=${query}`,
       });
@@ -132,7 +132,7 @@ const StylingSection = ({
     } catch (error) {
       if (addDangerToast) {
         addDangerToast(
-          t('An error occurred while fetching available CSS templates'),
+          t("An error occurred while fetching available CSS templates"),
         );
       }
     } finally {
@@ -149,11 +149,13 @@ const StylingSection = ({
     (templateName: string) => {
       if (!templateName) {
         setSelectedTemplate(null);
-        setOriginalTemplateContent('');
+        setOriginalTemplateContent("");
         return;
       }
 
-      const template = cssTemplates.find(t => t.template_name === templateName);
+      const template = cssTemplates.find(
+        (t) => t.template_name === templateName,
+      );
       if (template) {
         setSelectedTemplate(templateName);
         setOriginalTemplateContent(template.css);
@@ -171,27 +173,27 @@ const StylingSection = ({
     <>
       {themes.length > 0 && (
         <ModalFormField
-          label={t('Theme')}
+          label={t("Theme")}
           testId="dashboard-theme-field"
           helperText={t(
-            'Clear the selection to revert to the system default theme',
+            "Clear the selection to revert to the system default theme",
           )}
         >
           <Select
             data-test="dashboard-theme-select"
             value={selectedThemeId}
             onChange={onThemeChange}
-            options={themes.map(theme => ({
+            options={themes.map((theme) => ({
               value: theme.id,
               label: theme.theme_name,
             }))}
             allowClear
-            placeholder={t('Select a theme')}
+            placeholder={t("Select a theme")}
           />
         </ModalFormField>
       )}
       <ModalFormField
-        label={t('Color scheme')}
+        label={t("Color scheme")}
         testId="dashboard-colorscheme-field"
         helperText={t(
           "Any color palette selected here will override the colors applied to this dashboard's individual charts",
@@ -219,32 +221,32 @@ const StylingSection = ({
             onChange={onShowChartTimestampsChange}
           />
           <span className="switch-label">
-            {t('Show chart query timestamps')}
+            {t("Show chart query timestamps")}
           </span>
         </div>
         <span className="switch-helper">
           {t(
-            'Display the last queried timestamp on charts in the dashboard view',
+            "Display the last queried timestamp on charts in the dashboard view",
           )}
         </span>
       </StyledSwitchContainer>
       {isFeatureEnabled(FeatureFlag.CssTemplates) &&
         cssTemplates.length > 0 && (
           <ModalFormField
-            label={t('Load CSS template (optional)')}
+            label={t("Load CSS template (optional)")}
             testId="dashboard-css-template-field"
             helperText={t(
-              'Select a predefined CSS template to apply to your dashboard',
+              "Select a predefined CSS template to apply to your dashboard",
             )}
           >
             <Select
               data-test="dashboard-css-template-select"
               onChange={handleTemplateSelect}
-              options={cssTemplates.map(template => ({
+              options={cssTemplates.map((template) => ({
                 value: template.template_name,
                 label: template.template_name,
               }))}
-              placeholder={t('Select a CSS template')}
+              placeholder={t("Select a CSS template")}
               loading={isLoadingTemplates}
               allowClear
               value={selectedTemplate}
@@ -261,10 +263,10 @@ const StylingSection = ({
         />
       )}
       <ModalFormField
-        label={t('CSS')}
+        label={t("CSS")}
         testId="dashboard-css-field"
         helperText={t(
-          'Apply custom CSS to the dashboard. Use class names or element selectors to target specific components.',
+          "Apply custom CSS to the dashboard. Use class names or element selectors to target specific components.",
         )}
         bottomSpacing={false}
       >

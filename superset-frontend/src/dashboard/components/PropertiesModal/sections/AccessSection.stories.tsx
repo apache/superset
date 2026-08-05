@@ -16,35 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FeatureFlag } from '@superset-ui/core';
-import AccessSection from './AccessSection';
+import { FeatureFlag } from "@superset-ui/core";
+import AccessSection from "./AccessSection";
 
 export default {
-  title: 'Features/Dashboard/AccessSection',
+  title: "Features/Dashboard/AccessSection",
   component: AccessSection,
   parameters: {
     docs: {
       description: {
         component:
-          'The AccessSection component renders access control fields in the dashboard properties modal. It shows Editors and Tags pickers. When the ENABLE_VIEWERS feature flag is on, it also shows a Viewers picker.',
+          "The AccessSection component renders access control fields in the dashboard properties modal. It shows Editors and Tags pickers. When the ENABLE_VIEWERS feature flag is on, it also shows a Viewers picker.",
       },
     },
   },
 };
 
 const sampleEditors = [
-  { id: 10, name: 'Alice Smith', label: 'Alice Smith', type: 1 },
-  { id: 11, name: 'Dashboard Editors', label: 'Dashboard Editors', type: 2 },
+  { id: 10, name: "Alice Smith", label: "Alice Smith", type: 1 },
+  { id: 11, name: "Dashboard Editors", label: "Dashboard Editors", type: 2 },
 ];
 
 const sampleViewers = [
-  { id: 20, name: 'Data Engineering', label: 'Data Engineering', type: 3 },
-  { id: 21, name: 'Bob Johnson', label: 'Bob Johnson', type: 1 },
+  { id: 20, name: "Data Engineering", label: "Data Engineering", type: 3 },
+  { id: 21, name: "Bob Johnson", label: "Bob Johnson", type: 1 },
 ];
 
 const sampleTags = [
-  { id: 1, name: 'Production' },
-  { id: 2, name: 'Finance' },
+  { id: 1, name: "Production" },
+  { id: 2, name: "Finance" },
 ];
 
 const noopFn = () => {};
@@ -82,7 +82,7 @@ EditorsOnly.parameters = {
   docs: {
     description: {
       story:
-        'Default mode with no optional flags. Shows only the Editors field.',
+        "Default mode with no optional flags. Shows only the Editors field.",
     },
   },
 };
@@ -98,7 +98,7 @@ EditorsWithTags.parameters = {
   docs: {
     description: {
       story:
-        'Editors with TaggingSystem enabled. Shows Editors and Tags fields.',
+        "Editors with TaggingSystem enabled. Shows Editors and Tags fields.",
     },
   },
 };
@@ -114,7 +114,7 @@ EditorsAndViewers.parameters = {
   docs: {
     description: {
       story:
-        'Full mode with ENABLE_VIEWERS on. Shows Editors, Viewers, and Tags fields.',
+        "Full mode with ENABLE_VIEWERS on. Shows Editors, Viewers, and Tags fields.",
     },
   },
 };
@@ -130,7 +130,7 @@ EditorsAndViewersNoTags.parameters = {
   docs: {
     description: {
       story:
-        'ENABLE_VIEWERS on without TaggingSystem. Shows only Editors and Viewers fields.',
+        "ENABLE_VIEWERS on without TaggingSystem. Shows only Editors and Viewers fields.",
     },
   },
 };
@@ -146,7 +146,7 @@ LoadingState.decorators = [
 LoadingState.parameters = {
   docs: {
     description: {
-      story: 'Loading state with disabled inputs.',
+      story: "Loading state with disabled inputs.",
     },
   },
 };
