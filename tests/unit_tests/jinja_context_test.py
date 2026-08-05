@@ -2151,6 +2151,8 @@ def test_get_rendered_sql_filter_values_index_error_on_empty_list() -> None:
         # A comment leaves no trace in a parsed template, but still has to be
         # expanded away before the SQL is SQL.
         pytest.param("SELECT 1 {# a comment #}", True, id="comment"),
+        # A whole query that is one macro lexes without a `data` token at all.
+        pytest.param("{{ dataset(1) }}", True, id="template_only"),
         # Merely containing braces is not templating: Jinja cannot lex either of
         # these, so there is nothing here it would expand.
         pytest.param("SELECT '{{1,2},{3,4}}'::int[]", False, id="postgres_array"),
