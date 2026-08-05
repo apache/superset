@@ -4994,7 +4994,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         f"resource '{resource_slug}'"
                     )
                 method = "read" if action == "read" else "write"
-                if self.can_access(f"can_{method}", class_permission_name):
+                if self._has_view_access(user, f"can_{method}", class_permission_name):
                     continue
                 raise ValueError(
                     f"Requested scope '{scope}' exceeds the issuing user's "
