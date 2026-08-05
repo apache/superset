@@ -386,7 +386,13 @@ const DeckMulti = (props: DeckMultiProps) => {
             jsonPayload: {
               ...queryContext,
               result_format: 'json',
-              result_type: 'full',
+              // 'full' takes the async-query handoff under
+              // GLOBAL_ASYNC_QUERIES, and this call never registers a
+              // listener to follow that job, so a cold cache means the
+              // layer just never renders. 'results' returns the same
+              // data/colnames/coltypes this reads, skips the async path
+              // entirely.
+              result_type: 'results',
             },
           }).then(({ json }) => {
             // A newer loadLayers call (deck_slices or the visibility filter
