@@ -122,24 +122,26 @@ const GridRow = styled.div<{ editMode: boolean }>`
       min-height: ${theme.sizeUnit * 25}px;
     }
 
-    ${isMobileConsumptionEnabled() &&
-    css`
-      @media (max-width: ${theme.screenSMMax}px) {
-        flex-direction: column;
+    ${
+      isMobileConsumptionEnabled() &&
+      css`
+        @media (max-width: ${theme.screenSMMax}px) {
+          flex-direction: column;
 
-        & > :not(.hover-menu) {
-          width: 100% !important;
-          margin-right: 0 !important;
-        }
+          & > :not(.hover-menu) {
+            width: 100% !important;
+            margin-right: 0 !important;
+          }
 
-        /* Stacked children get the same vertical gutter GridContent puts
+          /* Stacked children get the same vertical gutter GridContent puts
            between rows and Column puts between its children, so spacing
            stays uniform across the whole stacked layout */
-        & > :not(.hover-menu):not(:last-child) {
-          margin-bottom: ${theme.sizeUnit * 4}px;
+          & > :not(.hover-menu):not(:last-child) {
+            margin-bottom: ${theme.sizeUnit * 4}px;
+          }
         }
-      }
-    `}
+      `
+    }
   `}
 `;
 

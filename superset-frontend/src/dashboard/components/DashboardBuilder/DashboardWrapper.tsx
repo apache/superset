@@ -114,8 +114,9 @@ const StyledDiv = styled.div`
 
     /* Mobile consumption mode: show the full chart title without
        truncation (controls and links are render-gated in SliceHeader) */
-    ${isMobileConsumptionEnabled()
-      ? `@media (max-width: ${theme.screenSMMax}px) {
+    ${
+      isMobileConsumptionEnabled()
+        ? `@media (max-width: ${theme.screenSMMax}px) {
       [data-test='slice-header'] .header-title {
         -webkit-line-clamp: unset;
         display: block;
@@ -124,7 +125,8 @@ const StyledDiv = styled.div`
         text-overflow: unset;
       }
     }`
-      : ''}
+        : ''
+    }
   `}
 `;
 

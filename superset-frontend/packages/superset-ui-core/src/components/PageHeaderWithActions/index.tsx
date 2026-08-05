@@ -85,16 +85,18 @@ const headerStyles = (theme: SupersetTheme) => css`
   }
 
   /* Mobile consumption mode: center the title between left/right panels */
-  ${isFeatureEnabled(FeatureFlag.MobileConsumptionMode) &&
-  css`
-    @media (max-width: ${theme.screenSMMax}px) {
-      .title-panel {
-        flex: 1;
-        justify-content: center;
-        margin-right: 0;
+  ${
+    isFeatureEnabled(FeatureFlag.MobileConsumptionMode) &&
+    css`
+      @media (max-width: ${theme.screenSMMax}px) {
+        .title-panel {
+          flex: 1;
+          justify-content: center;
+          margin-right: 0;
+        }
       }
-    }
-  `}
+    `
+  }
 `;
 
 const buttonsStyles = (theme: SupersetTheme) => css`
