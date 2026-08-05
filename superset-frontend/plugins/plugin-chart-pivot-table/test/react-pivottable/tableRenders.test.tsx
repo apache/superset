@@ -25,6 +25,7 @@ import { TableRenderer } from '../../src/react-pivottable/TableRenderers';
 import {
   aggregatorTemplates,
   groupingValueSort,
+  PivotData,
 } from '../../src/react-pivottable/utilities';
 
 jest.mock(
@@ -935,6 +936,165 @@ test('TableRenderer shows actual values when showValuesAs is unset (default)', (
   expect(getCellTexts('pvtVal')).toEqual(
     expect.arrayContaining(['1.00', '1.00', '1.00', '1.00']),
   );
+});
+
+/**
+ * Regression guard: the grand-total corner cell is a single shared aggregator
+ * slot that "Metric-collapse totals" mirrors every metric's grand-total
+ * record into (see `processRecord`), so both its own value and `metricAxis`
+ * reflect the last metric pushed (m2). The denominator lookup must resolve
+ * against that same metric's own total (m2's 300, not m1's 30) so the corner
+ * cell reads a self-consistent 100% instead of an obviously wrong
+ * cross-metric ratio (300 / 30 = "1000.0%").
+ */
+test('TableRenderer keeps the grand-total corner cell self-consistent when it mixes multiple metrics in fraction mode', () => {
+  const props = buildDefaultProps({
+    data: TAGGED_MULTI_METRIC_ON_COLUMNS,
+    rows: ['color'],
+    cols: ['Metric'],
+    vals: ['value'],
+    tableOptions: { rowTotals: true, colTotals: true },
+    showValuesAs: 'percent_total',
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  const grandTotalCells = screen
+    .getAllByRole('gridcell')
+    .filter(cell => cell.classList.contains('pvtGrandTotal'));
+  expect(grandTotalCells).toHaveLength(1);
+  expect(grandTotalCells[0]).toHaveTextContent('100.0%');
+});
+
+/**
+ * Regression guard: a DB-computed value can be a genuine SQL NULL (e.g. AVG
+ * over an empty group). `null / acc` coerces to `0` in JS, which would
+ * previously render a measured "0.0%" for a cell that renders blank in
+ * "Actual values" mode. Fraction mode must preserve that blank instead of
+ * turning an undefined value into a measured zero.
+ */
+const TAGGED_DATA_WITH_NULL_LEAF = [
+  {
+    color: 'blue',
+    shape: 'circle',
+    value: null,
+    __rows: ['color'],
+    __columns: ['shape'],
+  },
+  {
+    color: 'blue',
+    shape: 'square',
+    value: 20,
+    __rows: ['color'],
+    __columns: ['shape'],
+  },
+  {
+    color: 'red',
+    shape: 'circle',
+    value: 30,
+    __rows: ['color'],
+    __columns: ['shape'],
+  },
+  {
+    color: 'red',
+    shape: 'square',
+    value: 40,
+    __rows: ['color'],
+    __columns: ['shape'],
+  },
+  { color: 'blue', value: 20, __rows: ['color'], __columns: [] },
+  { color: 'red', value: 70, __rows: ['color'], __columns: [] },
+  { shape: 'circle', value: 30, __rows: [], __columns: ['shape'] },
+  { shape: 'square', value: 60, __rows: [], __columns: ['shape'] },
+  { value: 90, __rows: [], __columns: [] },
+];
+
+test('TableRenderer keeps a null metric value blank in fraction mode instead of showing 0.0%', () => {
+  const props = buildDefaultProps({
+    data: TAGGED_DATA_WITH_NULL_LEAF,
+    rows: ['color'],
+    cols: ['shape'],
+    vals: ['value'],
+    tableOptions: { rowTotals: true, colTotals: true },
+    showValuesAs: 'percent_row',
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  const cellTexts = getCellTexts('pvtVal');
+  expect(cellTexts).not.toContain('0.0%');
+  expect(cellTexts).toContain('');
+  // The non-null sibling cell in the same row still divides correctly
+  // (20 / 20 row total).
+  expect(cellTexts).toContain('100.0%');
+});
+
+/**
+ * Regression guard: the denominator (not just the numerator) can itself be a
+ * genuine SQL NULL -- e.g. a row total that's an AVG over an empty group.
+ * `numerator / null` coerces to `numerator / 0` in JS, producing `Infinity`
+ * (for a nonzero numerator) instead of the blank cell that a missing/null
+ * total should render as everywhere else.
+ */
+const TAGGED_DATA_WITH_NULL_ROW_TOTAL = [
+  {
+    color: 'blue',
+    shape: 'circle',
+    value: 10,
+    __rows: ['color'],
+    __columns: ['shape'],
+  },
+  {
+    color: 'blue',
+    shape: 'square',
+    value: 20,
+    __rows: ['color'],
+    __columns: ['shape'],
+  },
+  // blue's row total is itself null (e.g. AVG over an empty group).
+  { color: 'blue', value: null, __rows: ['color'], __columns: [] },
+];
+
+test('TableRenderer keeps cells blank in fraction mode when the denominator total is null', () => {
+  const props = buildDefaultProps({
+    data: TAGGED_DATA_WITH_NULL_ROW_TOTAL,
+    rows: ['color'],
+    cols: ['shape'],
+    vals: ['value'],
+    tableOptions: { rowTotals: true, colTotals: true },
+    showValuesAs: 'percent_row',
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  const cellTexts = getCellTexts('pvtVal');
+  expect(cellTexts).not.toEqual(
+    expect.arrayContaining([expect.stringContaining('Infinity')]),
+  );
+  expect(cellTexts).not.toEqual(
+    expect.arrayContaining([expect.stringContaining('NaN')]),
+  );
+  expect(cellTexts).toEqual(['', '']);
+});
+
+/**
+ * The rendered text alone can't distinguish `null` from `Infinity`/`NaN` --
+ * the shared number formatter already blanks any non-finite value, so the
+ * DOM-level test above would pass even without the `acc === null` guard.
+ * Assert the aggregator's own value() contract directly: it must return
+ * `null` (not a non-finite number) when the denominator total is null, since
+ * other code paths that read `.value()` outside of `.format()` -- e.g.
+ * value-based row/column sorting -- rely on that contract to treat it as "no
+ * value" the same way an actually-missing total does.
+ */
+test("fractionOf's value() returns null, not Infinity, when the denominator total is null", () => {
+  const pivotData = new PivotData({
+    data: TAGGED_DATA_WITH_NULL_ROW_TOTAL,
+    rows: ['color'],
+    cols: ['shape'],
+    vals: ['value'],
+    showValuesAs: 'percent_row',
+  });
+
+  expect(pivotData.getAggregator(['blue'], ['circle']).value()).toBeNull();
+  expect(pivotData.getAggregator(['blue'], ['square']).value()).toBeNull();
 });
 
 /**
