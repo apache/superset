@@ -145,81 +145,79 @@ test('should render a ChartContainer', () => {
   expect(getByTestId('chart-container')).toBeInTheDocument();
 });
 
-describe('no description set', () => {
-  for (const sliceExpanded of [undefined, false, true]) {
-    for (const allExpanded of [undefined, false, true]) {
-      test(`should not render a description, expandedSlices=${sliceExpanded} and expandAllSlices=${allExpanded}`, () => {
-        const { container } = setup(
-          {},
-          {
-            dashboardState: {
-              ...defaultState.dashboardState,
-              expandedSlices: { [props.id]: sliceExpanded },
-              expandAllSlices: allExpanded,
-            },
-            sliceEntities: {
-              ...sliceEntities,
-              slices: {
-                [queryId]: {
-                  ...sliceEntities.slices[queryId],
-                  description_markeddown: undefined,
-                  owners: [],
-                  viz_type: VizType.Table,
-                },
-              },
-            },
-          },
-        );
-        expect(
-          container.querySelector('.slice_description'),
-        ).not.toBeInTheDocument();
-      });
-    }
-  }
-});
+const noDescriptionRenderInputs = ([undefined, false, true] as const).flatMap(
+  sliceExpanded =>
+    ([undefined, false, true] as const).map(allExpanded => ({
+      sliceExpanded,
+      allExpanded,
+    })),
+);
 
-describe('description set', () => {
-  const chartDescriptionRenderInputs = [
-    { expandSlice: undefined, expandAllSlices: undefined, result: false },
-    { expandSlice: undefined, expandAllSlices: false, result: false },
-    { expandSlice: undefined, expandAllSlices: true, result: true },
-    { expandSlice: false, expandAllSlices: undefined, result: false },
-    { expandSlice: false, expandAllSlices: false, result: false },
-    { expandSlice: false, expandAllSlices: true, result: false },
-    { expandSlice: true, expandAllSlices: undefined, result: true },
-    { expandSlice: true, expandAllSlices: false, result: true },
-    { expandSlice: true, expandAllSlices: true, result: true },
-  ];
-
-  for (const {
-    expandSlice,
-    expandAllSlices,
-    result,
-  } of chartDescriptionRenderInputs) {
-    test(`should ${result ? '' : 'not '}render a description if it has one, expandedSlices=${expandSlice} and expandAllSlices=${expandAllSlices}`, () => {
-      const { container } = setup(
-        {},
-        {
-          dashboardState: {
-            ...defaultState.dashboardState,
-            expandedSlices: { [props.id]: expandSlice },
-            expandAllSlices,
+test.each(noDescriptionRenderInputs)(
+  'should not render a description when it has none, expandedSlices=$sliceExpanded and expandAllSlices=$allExpanded',
+  ({ sliceExpanded, allExpanded }) => {
+    const { container } = setup(
+      {},
+      {
+        dashboardState: {
+          ...defaultState.dashboardState,
+          expandedSlices: { [props.id]: sliceExpanded },
+          expandAllSlices: allExpanded,
+        },
+        sliceEntities: {
+          ...sliceEntities,
+          slices: {
+            [queryId]: {
+              ...sliceEntities.slices[queryId],
+              description_markdown: undefined,
+              owners: [],
+              viz_type: VizType.Table,
+            },
           },
         },
-      );
+      },
+    );
+    expect(
+      container.querySelector('.slice_description'),
+    ).not.toBeInTheDocument();
+  },
+);
 
-      if (result) {
-        expect(
-          container.querySelector('.slice_description'),
-        ).toBeInTheDocument();
-      } else {
-        expect(
-          container.querySelector('.slice_description'),
-        ).not.toBeInTheDocument();
-      }
-    });
-  }
-});
+const chartDescriptionRenderInputs = [
+  { expandSlice: undefined, expandAllSlices: undefined, result: false },
+  { expandSlice: undefined, expandAllSlices: false, result: false },
+  { expandSlice: undefined, expandAllSlices: true, result: true },
+  { expandSlice: false, expandAllSlices: undefined, result: false },
+  { expandSlice: false, expandAllSlices: false, result: false },
+  { expandSlice: false, expandAllSlices: true, result: false },
+  { expandSlice: true, expandAllSlices: undefined, result: true },
+  { expandSlice: true, expandAllSlices: false, result: true },
+  { expandSlice: true, expandAllSlices: true, result: true },
+];
+
+test.each(chartDescriptionRenderInputs)(
+  'should $result render a description if it has one, expandedSlices=$expandSlice and expandAllSlices=$expandAllSlices',
+  ({ expandSlice, expandAllSlices, result }) => {
+    const { container } = setup(
+      {},
+      {
+        dashboardState: {
+          ...defaultState.dashboardState,
+          expandedSlices: { [props.id]: expandSlice },
+          expandAllSlices,
+        },
+      },
+    );
+
+    if (result) {
+      expect(container.querySelector('.slice_description')).toBeInTheDocument();
+    } else {
+      expect(
+        container.querySelector('.slice_description'),
+      ).not.toBeInTheDocument();
+    }
+  },
+);
 
 test('should call refreshChart when SliceHeader calls forceRefresh', () => {
   const { getByText, getByRole } = setup({});

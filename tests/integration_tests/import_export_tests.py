@@ -491,7 +491,7 @@ class TestImportExport(SupersetTestCase):
             "native_filter_configuration": [],
         } == json.loads(imported_dash.json_metadata)
 
-    def test_import_dashboard_expand_all_slices_false(self):
+    def test_import_dashboard_expand_all_slices_false(self) -> None:
         dash = self.create_dashboard("dash", slcs=[], id=10005)
         dash.json_metadata = json.dumps(
             {
@@ -516,7 +516,7 @@ class TestImportExport(SupersetTestCase):
         }
         assert expected_json_metadata == json.loads(imported_dash.json_metadata)
 
-    def test_import_dashboard_expand_all_slices_true(self):
+    def test_import_dashboard_expand_all_slices_true(self) -> None:
         dash = self.create_dashboard("dash", slcs=[], id=10006)
         dash.json_metadata = json.dumps(
             {
