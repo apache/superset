@@ -831,6 +831,7 @@ function HostDiagnosticsPanel(): JSX.Element {
         {' · '}tools {flag(d.derived.canCallTools)}
         {' · '}context {flag(d.derived.canUpdateModelContext)}
         {' · '}message {flag(d.derived.canSendMessage)}
+        {' · '}modes [{d.availableDisplayModes.join(',') || 'unstated'}]
         {' · '}caps [{d.capabilityKeys.join(',') || 'none'}]
         {d.sandboxPermissions.length
           ? ` · grants [${d.sandboxPermissions.join(',')}]`
@@ -849,6 +850,7 @@ function HostDiagnosticsPanel(): JSX.Element {
             },
             capabilityKeys: d.capabilityKeys,
             sandboxPermissions: d.sandboxPermissions,
+            availableDisplayModes: d.availableDisplayModes,
           },
           null,
           2,

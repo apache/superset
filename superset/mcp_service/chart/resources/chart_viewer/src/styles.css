@@ -739,9 +739,12 @@ body {
   cursor: pointer;
   list-style: none;
   opacity: 0.72;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* Must WRAP, not ellipsize. This line carries the capability key names and
+     sandbox grants, and it is the only diagnostic that reliably makes it out
+     of a host — clipping it truncated the exact data it exists to convey. */
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
 }
 
 .sv-diag > summary:hover {

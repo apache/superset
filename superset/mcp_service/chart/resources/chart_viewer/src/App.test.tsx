@@ -92,6 +92,7 @@ vi.mock('./bridge', () => ({
       embedded: true,
       capabilityKeys: [],
       sandboxPermissions: [],
+      availableDisplayModes: [],
       derived: {
         appTools: new Set<string>(),
         canCallTools: false,

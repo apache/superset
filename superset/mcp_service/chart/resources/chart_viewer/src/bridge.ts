@@ -82,6 +82,15 @@ export interface HostDiagnostics {
   capabilityKeys: string[];
   /** Sandbox permissions the host granted (clipboard-write, etc.), if stated. */
   sandboxPermissions: string[];
+  /**
+   * Display modes the host offers (`inline` | `fullscreen` | `pip`).
+   *
+   * Surfaced because `pip` — a persistent side panel that survives while the
+   * conversation continues — is a spec mode the widget does not yet request,
+   * and whether it is worth building is decided entirely by whether hosts
+   * advertise it here.
+   */
+  availableDisplayModes: string[];
 }
 
 export interface BridgeInit {
@@ -482,6 +491,9 @@ function buildDiagnostics(
     derived,
     capabilityKeys: Object.keys(caps),
     sandboxPermissions: Object.keys(sandbox?.permissions ?? {}),
+    availableDisplayModes: Array.from(
+      readDisplayModes(result?.hostContext) ?? [],
+    ),
   };
 }
 

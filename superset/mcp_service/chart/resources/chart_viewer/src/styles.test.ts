@@ -59,3 +59,17 @@ describe('big-number sparkline slot', () => {
     expect(block('.sv-bignum-spark')).toContain('overflow: hidden');
   });
 });
+
+describe('host diagnostics summary', () => {
+  // The summary carries the capability key names, sandbox grants and display
+  // modes, and is the only diagnostic that reliably survives the trip out of a
+  // host. It was shipped with `text-overflow: ellipsis`, which clipped the
+  // capability list mid-word — the styling truncated exactly the payload the
+  // line exists to deliver. It must wrap instead.
+  it('wraps rather than ellipsizing the capability line', () => {
+    const rule = block('.sv-diag > summary');
+    expect(rule).not.toContain('text-overflow: ellipsis');
+    expect(rule).not.toContain('white-space: nowrap');
+    expect(rule).toContain('white-space: normal');
+  });
+});
