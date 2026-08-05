@@ -193,9 +193,9 @@ class AlertCommand(BaseCommand):
         sql_template = jinja_context.get_template_processor(
             database=self._report_schedule.database
         )
-        rendered_sql = sql_template.process_template(self._report_schedule.sql)
 
         try:
+            rendered_sql = sql_template.process_template(self._report_schedule.sql)
             limited_rendered_sql = self._report_schedule.database.apply_limit_to_sql(
                 rendered_sql, ALERT_SQL_LIMIT
             )

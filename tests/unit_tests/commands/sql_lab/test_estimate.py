@@ -377,3 +377,41 @@ def test_apply_sql_security_propagates_engine_schema_gate(
 
     # RLS injection must not happen once the schema gate has rejected the query.
     mock_apply_rls.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# process_template() error handling: raw jinja2 errors must not leak from run()
+# ---------------------------------------------------------------------------
+
+
+@patch("superset.commands.sql_lab.estimate.get_template_processor")
+@patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
+@patch("superset.commands.sql_lab.estimate.db")
+def test_run_wraps_raw_jinja_undefined_error(
+    mock_db: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_template_processor: MagicMock,
+) -> None:
+    """A raw jinja2 ``UndefinedError`` from ``process_template()`` (the
+    bare-raise fallback in ``BaseTemplateProcessor.process_template`` for
+    undefined attribute/subscript access, e.g. ``{{ foo.bar }}``) must not
+    leak past ``run()`` -- it should surface as a typed
+    ``SupersetErrorException``, matching the ``ExecuteSqlCommand`` sibling's
+    broad-catch pattern in ``commands/sql_lab/execute.py``."""
+    from jinja2.exceptions import UndefinedError
+
+    mock_database = MagicMock()
+    mock_db.session.query.return_value.get.return_value = mock_database
+    mock_security_manager.raise_for_access.return_value = None
+    mock_get_template_processor.return_value.process_template.side_effect = (
+        UndefinedError("'foo' is undefined")
+    )
+
+    command = QueryEstimationCommand(
+        _make_params(sql="SELECT {{ foo.bar }}", template_params={"x": 1})
+    )
+    with pytest.raises(SupersetErrorException) as exc_info:
+        command.run()
+
+    assert exc_info.value.status == 400
+    assert exc_info.value.error.error_type == SupersetErrorType.GENERIC_COMMAND_ERROR
