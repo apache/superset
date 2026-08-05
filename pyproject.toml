@@ -259,7 +259,7 @@ spark = [
     "thrift>=0.24.0, <1",
 ]
 tdengine = [
-    "taospy>=2.8.9",
+    "taospy>=2.8.10",
     "taos-ws-py>=0.7.0"
 ]
 teradata = ["teradatasql>=20.0.0.62"]
