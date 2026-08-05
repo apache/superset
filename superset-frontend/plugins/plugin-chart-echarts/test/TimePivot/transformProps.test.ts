@@ -78,6 +78,79 @@ test('honors log scale and y-axis bounds', () => {
   expect(yAxis.max).toBe(100);
 });
 
+test('reserves extra grid.top space when a large legend wraps onto more rows', () => {
+  // Unbounded period_limit: 25 weekly records -> 25 periods (current + 24
+  // priors), whose short "-N" labels still wrap a legend onto 2+ rows at
+  // this chart width -- the exact scenario left unaddressed by Bullet's
+  // dynamic legend-row estimation fix (this chart used a fixed grid.top
+  // regardless of legend size).
+  const manyWeeks = Array.from({ length: 25 }, (_, i) => ({
+    __timestamp: MONDAY_1 + i * WEEK,
+    sum__num: i,
+  }));
+  const singleWeek = [
+    { __timestamp: MONDAY_1, sum__num: 10 },
+    { __timestamp: MONDAY_2, sum__num: 20 },
+  ];
+
+  const baseline = transformProps(
+    new ChartProps({
+      width: 800,
+      height: 400,
+      formData,
+      theme: supersetTheme,
+      queriesData: [{ data: singleWeek }],
+      hooks: {},
+    }) as unknown as EchartsTimePivotChartProps,
+  );
+  const manySeries = transformProps(
+    new ChartProps({
+      width: 800,
+      height: 400,
+      formData,
+      theme: supersetTheme,
+      queriesData: [{ data: manyWeeks }],
+      hooks: {},
+    }) as unknown as EchartsTimePivotChartProps,
+  );
+
+  const baselineTop = (baseline.echartOptions as any).grid.top;
+  const manySeriesTop = (manySeries.echartOptions as any).grid.top;
+  expect(manySeriesTop).toBeGreaterThan(baselineTop);
+});
+
+test('does not reserve extra grid.top space for a large legend when it is hidden', () => {
+  const manyWeeks = Array.from({ length: 25 }, (_, i) => ({
+    __timestamp: MONDAY_1 + i * WEEK,
+    sum__num: i,
+  }));
+
+  const shown = transformProps(
+    new ChartProps({
+      width: 800,
+      height: 400,
+      formData: { ...formData, showLegend: true },
+      theme: supersetTheme,
+      queriesData: [{ data: manyWeeks }],
+      hooks: {},
+    }) as unknown as EchartsTimePivotChartProps,
+  );
+  const hidden = transformProps(
+    new ChartProps({
+      width: 800,
+      height: 400,
+      formData: { ...formData, showLegend: false },
+      theme: supersetTheme,
+      queriesData: [{ data: manyWeeks }],
+      hooks: {},
+    }) as unknown as EchartsTimePivotChartProps,
+  );
+
+  expect((hidden.echartOptions as any).grid.top).toBeLessThan(
+    (shown.echartOptions as any).grid.top,
+  );
+});
+
 test('handles an empty result without crashing', () => {
   const props = new ChartProps({
     width: 800,

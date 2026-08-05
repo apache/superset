@@ -1,27 +1,27 @@
 {
   "name": "@superset-ui/plugin-chart-country-map",
   "version": "0.20.3",
-  "description": "Superset Legacy Chart - Country Map",
-  "main": "lib/index.js",
-  "module": "esm/index.js",
-  "files": [
-    "esm",
-    "lib"
+  "description": "Superset Chart - Country Map",
+  "keywords": [
+    "superset"
   ],
+  "homepage": "https://github.com/apache/superset/tree/master/superset-frontend/plugins/plugin-chart-country-map#readme",
+  "bugs": {
+    "url": "https://github.com/apache/superset/issues"
+  },
+  "license": "Apache-2.0",
+  "author": "Superset",
   "repository": {
     "type": "git",
     "url": "https://github.com/apache/superset.git",
     "directory": "superset-frontend/plugins/plugin-chart-country-map"
   },
-  "keywords": [
-    "superset"
+  "files": [
+    "esm",
+    "lib"
   ],
-  "author": "Superset",
-  "license": "Apache-2.0",
-  "bugs": {
-    "url": "https://github.com/apache/superset/issues"
-  },
-  "homepage": "https://github.com/apache/superset/tree/master/superset-frontend/plugins/plugin-chart-country-map#readme",
+  "main": "lib/index.js",
+  "module": "esm/index.js",
   "publishConfig": {
     "access": "public"
   },

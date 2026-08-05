@@ -28,8 +28,9 @@ import {
   QueryFormData,
   JsonObject,
   getExtensionsRegistry,
-  handleKeyboardActivation,
 } from '@superset-ui/core';
+import { URL_PARAMS } from 'src/constants';
+import { getUrlParam } from 'src/utils/urlUtils';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import ChartContainer from 'src/components/Chart/ChartContainer';
 import { updateExploreChartState } from 'src/explore/actions/exploreActions';
@@ -52,6 +53,7 @@ import { DataTablesPane } from '../DataTablesPane';
 import { ChartPills } from '../ChartPills';
 import { ExploreAlert } from '../ExploreAlert';
 import useResizeDetectorByObserver from './useResizeDetectorByObserver';
+import StandaloneDownloadControl from './StandaloneDownloadControl';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DefaultHeader: React.FC<{ children?: React.ReactNode }> = ({
@@ -173,6 +175,7 @@ const ExploreChartPanel = ({
 }: ExploreChartPanelProps) => {
   const theme = useTheme();
   const dispatch = useDispatch();
+  const showDownload = getUrlParam(URL_PARAMS.showDownload);
   const gutterMargin = theme.sizeUnit * GUTTER_SIZE_FACTOR;
   const gutterHeight = theme.sizeUnit * GUTTER_SIZE_FACTOR;
 
@@ -384,14 +387,21 @@ const ExploreChartPanel = ({
                   {t(
                     'You updated the values in the control panel, but the chart was not updated automatically. Run the query by clicking on the "Update chart" button or',
                   )}{' '}
-                  <span
-                    role="button"
-                    tabIndex={0}
+                  <button
+                    type="button"
                     onClick={onQuery}
-                    onKeyDown={handleKeyboardActivation(() => onQuery?.())}
+                    css={css`
+                      appearance: none;
+                      border: none;
+                      background: none;
+                      padding: 0;
+                      font: inherit;
+                      color: inherit;
+                      cursor: pointer;
+                    `}
                   >
                     {t('click here')}
-                  </span>
+                  </button>
                   .
                 </span>
               )
@@ -501,7 +511,23 @@ const ExploreChartPanel = ({
       document.body.className += ` ${standaloneClass}`;
     }
     return (
-      <div id="app" data-test="standalone-app">
+      <div
+        id="app"
+        data-test="standalone-app"
+        css={css`
+          position: relative;
+          height: 100%;
+        `}
+      >
+        {showDownload && canDownload && (
+          <StandaloneDownloadControl
+            latestQueryFormData={chart.latestQueryFormData}
+            canDownload={canDownload}
+            slice={slice}
+            ownState={mergedOwnState}
+          />
+        )}
+
         {standaloneChartBody}
       </div>
     );

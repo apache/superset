@@ -35,6 +35,7 @@ from superset.daos.tag import TagDAO
 from superset.subjects.exceptions import SubjectsNotFoundValidationError
 from superset.subjects.models import Subject
 from superset.subjects.utils import (
+    get_default_viewers_for_new_asset,
     get_or_create_user_subject as get_user_subject,
     get_subject,
     get_user_subject_ids,
@@ -146,7 +147,10 @@ def populate_subjects(
     except ValidationError as ex:
         exceptions.append(ex)
 
-    if include_viewers and properties.get("viewers") is not None:
+    if not include_viewers:
+        return
+
+    if properties.get("viewers") is not None:
         try:
             properties["viewers"] = populate_subject_list(
                 properties["viewers"],
@@ -155,6 +159,8 @@ def populate_subjects(
             )
         except ValidationError as ex:
             exceptions.append(ex)
+    elif default_viewers := get_default_viewers_for_new_asset(get_user_id()):
+        properties["viewers"] = default_viewers
 
 
 def compute_subjects(

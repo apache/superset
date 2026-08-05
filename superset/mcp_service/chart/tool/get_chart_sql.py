@@ -421,7 +421,7 @@ async def _handle_chart_sql_request(
     )
 
     # Validate the chart's dataset is accessible
-    validation_result = validate_chart_dataset(chart, check_access=True)
+    validation_result = validate_chart_dataset(chart.datasource_id, check_access=True)
     if not validation_result.is_valid:
         await ctx.warning(
             "Chart found but dataset is not accessible: %s" % (validation_result.error,)

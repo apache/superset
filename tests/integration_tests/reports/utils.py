@@ -85,6 +85,11 @@ def insert_report_schedule(
     logs: Optional[list[ReportExecutionLog]] = None,
     extra: Optional[dict[Any, Any]] = None,
     force_screenshot: bool = False,
+    retry_on_failure: bool = False,
+    retry_max_attempts: int = 3,
+    send_failed_reports: bool = False,
+    retry_notify_owners: bool = True,
+    retry_notify_recipients: bool = False,
 ) -> ReportSchedule:
     editors = editors or []
     editor_users = [s.user for s in editors if s.type == SubjectType.USER and s.user]
@@ -114,6 +119,11 @@ def insert_report_schedule(
             report_format=report_format,
             extra=extra,
             force_screenshot=force_screenshot,
+            retry_on_failure=retry_on_failure,
+            retry_max_attempts=retry_max_attempts,
+            send_failed_reports=send_failed_reports,
+            retry_notify_owners=retry_notify_owners,
+            retry_notify_recipients=retry_notify_recipients,
         )
     db.session.add(report_schedule)
     db.session.commit()
@@ -139,6 +149,11 @@ def create_report_notification(
     ccTarget: Optional[str] = None,  # noqa: N803
     bccTarget: Optional[str] = None,  # noqa: N803
     use_slack_v2: bool = False,
+    retry_on_failure: bool = False,
+    retry_max_attempts: int = 3,
+    send_failed_reports: bool = False,
+    retry_notify_owners: bool = True,
+    retry_notify_recipients: bool = False,
 ) -> ReportSchedule:
     if not editors:
         default_owner = (
@@ -188,6 +203,11 @@ def create_report_notification(
         report_format=report_format or ReportDataFormat.PNG,
         extra=extra,
         force_screenshot=force_screenshot,
+        retry_on_failure=retry_on_failure,
+        retry_max_attempts=retry_max_attempts,
+        send_failed_reports=send_failed_reports,
+        retry_notify_owners=retry_notify_owners,
+        retry_notify_recipients=retry_notify_recipients,
     )
     return report_schedule
 

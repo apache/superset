@@ -101,7 +101,7 @@ PVM_MAP = {
 
 def upgrade():
     bind = op.get_bind()
-    session = Session(bind=bind)
+    session = Session(bind=bind, future=True)
 
     # Add the new permissions on the migration itself
     add_pvms(session, NEW_PVMS)
@@ -115,7 +115,7 @@ def upgrade():
 
 def downgrade():
     bind = op.get_bind()
-    session = Session(bind=bind)
+    session = Session(bind=bind, future=True)
 
     # Add the old permissions on the migration itself
     add_pvms(session, get_reversed_new_pvms(PVM_MAP))

@@ -1,6 +1,6 @@
 # Notify all committers of DB migration changes, per SIP-59
 
-/superset/migrations/ @mistercrunch @michael-s-molina @betodealmeida @eschutho @sadpandajoe
+/superset/migrations/ @mistercrunch @michael-s-molina @betodealmeida @eschutho @sadpandajoe @rusackas
 
 # Notify some committers of changes in the components
 

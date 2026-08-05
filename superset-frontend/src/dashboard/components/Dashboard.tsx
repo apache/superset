@@ -53,7 +53,9 @@ import { getAffectedOwnDataCharts } from '../util/charts/getOwnDataCharts';
 import { getRelatedCharts } from '../util/getRelatedCharts';
 
 type RelatedChartsFilter =
-  AppliedNativeFilterType | AppliedCrossFilterType | Filter;
+  | AppliedNativeFilterType
+  | AppliedCrossFilterType
+  | Filter;
 
 interface DashboardActions {
   addSliceToDashboard: (id: number, component: LayoutItem | undefined) => void;

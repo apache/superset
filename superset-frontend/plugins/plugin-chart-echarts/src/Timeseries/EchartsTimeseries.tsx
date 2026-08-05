@@ -47,6 +47,12 @@ import { ExtraControls } from '../components/ExtraControls';
 
 const TIMER_DURATION = 300;
 
+// Percent-change draggable baseline handle geometry, in pixels.
+const BASELINE_HANDLE_WIDTH = 8;
+const BASELINE_HANDLE_HALF_WIDTH = BASELINE_HANDLE_WIDTH / 2;
+const BASELINE_HANDLE_STRIPE_X = 3;
+const BASELINE_HANDLE_STRIPE_WIDTH = 2;
+
 export default function EchartsTimeseries({
   formData,
   height,
@@ -85,20 +91,18 @@ export default function EchartsTimeseries({
   // other option changes) so those don't silently snap it back to the
   // first point.
   const baselineXRef = useRef<number | string | null>(null);
-  // Bumped when the chart finishes rendering before its option was
-  // readable, so the baseline installation below gets another pass.
-  const [optionReadyTick, setOptionReadyTick] = useState(0);
   useEffect(() => {
     if (!rebaseEnabled) return undefined;
     const chart = echartRef.current?.getEchartInstance?.();
     if (!chart) return undefined;
 
-    // getOption() can be undefined/empty right after mount, before the
-    // chart has applied its options (seen on warm explore navigations).
-    const option = (chart.getOption() ?? {}) as {
-      series?: { data?: SeriesDataPoint[] }[];
-    };
-    const baseSeries = (option.series ?? []).map(s =>
+    // Read series data from the echartOptions prop (the source of truth
+    // this effect already depends on) rather than chart.getOption(), which
+    // reflects the live instance's internal state and can still be empty
+    // for a tick after mount or a warm navigation -- reading the prop
+    // removes that race entirely instead of retrying past it.
+    const { series } = echartOptions as { series?: { data?: unknown[] }[] };
+    const baseSeries = (series ?? []).map(s =>
       Array.isArray(s.data)
         ? (s.data.filter(Array.isArray) as SeriesDataPoint[])
         : [],
@@ -107,17 +111,7 @@ export default function EchartsTimeseries({
     // string for category axes (coercing categories with Number() would
     // turn them into NaN and break snapping/positioning below).
     const xs = Array.from(new Set(baseSeries.flat().map(([x]) => x)));
-    if (xs.length === 0) {
-      // No option applied yet — retry once the chart finishes rendering.
-      const onFinished = () => {
-        chart.off('finished', onFinished);
-        setOptionReadyTick(tick => tick + 1);
-      };
-      chart.on('finished', onFinished);
-      return () => {
-        chart.off('finished', onFinished);
-      };
-    }
+    if (xs.length === 0) return undefined;
     if (typeof xs[0] === 'number') {
       (xs as number[]).sort((a, b) => a - b);
     }
@@ -179,7 +173,7 @@ export default function EchartsTimeseries({
             id: 'percent-change-baseline',
             // only group elements support children in the graphic API
             type: 'group',
-            x: px - 4,
+            x: px - BASELINE_HANDLE_HALF_WIDTH,
             y: gridRect.top,
             cursor: 'ew-resize',
             draggable: true,
@@ -188,7 +182,7 @@ export default function EchartsTimeseries({
               this.y = gridRect.top;
               const dataX = chart.convertFromPixel(
                 { xAxisIndex: 0 },
-                this.x + 4,
+                this.x + BASELINE_HANDLE_HALF_WIDTH,
               ) as number | string;
               if (dragFrame !== null) return;
               dragFrame = requestAnimationFrame(() => {
@@ -203,12 +197,22 @@ export default function EchartsTimeseries({
             children: [
               {
                 type: 'rect',
-                shape: { x: 0, y: 0, width: 8, height: gridRect.height },
+                shape: {
+                  x: 0,
+                  y: 0,
+                  width: BASELINE_HANDLE_WIDTH,
+                  height: gridRect.height,
+                },
                 style: { fill: theme.colorFillSecondary },
               },
               {
                 type: 'rect',
-                shape: { x: 3, y: 0, width: 2, height: gridRect.height },
+                shape: {
+                  x: BASELINE_HANDLE_STRIPE_X,
+                  y: 0,
+                  width: BASELINE_HANDLE_STRIPE_WIDTH,
+                  height: gridRect.height,
+                },
                 style: { fill: theme.colorTextSecondary },
               },
             ],
@@ -226,7 +230,7 @@ export default function EchartsTimeseries({
         graphic: [{ id: 'percent-change-baseline', $action: 'remove' }],
       });
     };
-  }, [rebaseEnabled, echartOptions, width, height, theme, optionReadyTick]);
+  }, [rebaseEnabled, echartOptions, width, height, theme]);
   const extraControlRef = useRef<HTMLDivElement>(null);
   const [extraControlHeight, setExtraControlHeight] = useState(0);
   useEffect(() => {

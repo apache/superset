@@ -104,6 +104,17 @@ const fetchCachedData = async (
   return { status, data };
 };
 
+const cancelAsyncJob = (jobId: string) => {
+  // Best-effort server-side cancel; the request stops the running Celery task
+  // so it no longer consumes warehouse resources. Failures are non-fatal: the
+  // client has already stopped waiting on the job.
+  SupersetClient.post({
+    endpoint: `/api/v1/async_event/${jobId}/cancel`,
+  }).catch(error => {
+    logging.warn('Failed to cancel async job', jobId, error);
+  });
+};
+
 export const waitForAsyncData = async (
   asyncResponse: AsyncEvent,
   signal?: AbortSignal,
@@ -122,6 +133,7 @@ export const waitForAsyncData = async (
     // Bail immediately if the caller has already aborted (e.g. the chart was
     // unmounted before the job started), avoiding a leaked listener.
     if (signal?.aborted) {
+      cancelAsyncJob(jobId);
       reject(new DOMException('Aborted', 'AbortError'));
       return;
     }
@@ -161,11 +173,13 @@ export const waitForAsyncData = async (
       }
     };
 
-    // When the caller aborts (chart superseded/unmounted), stop listening so the
-    // listener and its retained closure don't leak and keep the poller busy.
+    // When the caller aborts (Stop pressed, chart superseded/unmounted), stop
+    // listening so the listener and its retained closure don't leak, and ask the
+    // server to cancel the job so it stops consuming warehouse resources.
     if (signal) {
       onAbort = () => {
         cleanup();
+        cancelAsyncJob(jobId);
         reject(new DOMException('Aborted', 'AbortError'));
       };
       signal.addEventListener('abort', onAbort, { once: true });

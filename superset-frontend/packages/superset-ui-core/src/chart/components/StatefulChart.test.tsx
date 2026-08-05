@@ -21,7 +21,6 @@ import { render, waitFor, configure, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import StatefulChart from './StatefulChart';
 import getChartControlPanelRegistry from '../registries/ChartControlPanelRegistrySingleton';
-import getChartMetadataRegistry from '../registries/ChartMetadataRegistrySingleton';
 import getChartBuildQueryRegistry from '../registries/ChartBuildQueryRegistrySingleton';
 
 // Configure testing library to use data-test attribute
@@ -29,7 +28,6 @@ configure({ testIdAttribute: 'data-test' });
 
 // Mock the registries
 jest.mock('../registries/ChartControlPanelRegistrySingleton');
-jest.mock('../registries/ChartMetadataRegistrySingleton');
 jest.mock('../registries/ChartBuildQueryRegistrySingleton');
 jest.mock('../clients/ChartClient');
 
@@ -67,10 +65,6 @@ beforeEach(() => {
   jest.clearAllMocks();
 
   // Setup default registry mocks
-  jest.mocked(getChartMetadataRegistry).mockReturnValue({
-    get: jest.fn().mockReturnValue({}),
-  } as unknown as ReturnType<typeof getChartMetadataRegistry>);
-
   jest.mocked(getChartBuildQueryRegistry).mockReturnValue({
     get: jest.fn().mockResolvedValue(null),
   } as unknown as ReturnType<typeof getChartBuildQueryRegistry>);
@@ -744,7 +738,7 @@ test('resolves async (202) responses via the injected handleAsyncChartData hook'
   await waitFor(() => {
     expect(handleAsyncChartData).toHaveBeenCalledTimes(1);
   });
-  // Delegates the raw response + job metadata (and the abort signal)
+  // Delegates the raw response + job metadata (and abort signal)
   expect(handleAsyncChartData).toHaveBeenCalledWith(
     { status: 202 },
     asyncJob,
@@ -984,7 +978,7 @@ test('passes an abort signal to the async handler and aborts it on unmount', asy
     response: { status: 202 } as Response,
     json: { job_id: 'j', channel_id: 'c' },
   });
-  // Typed with a rest param so mock.calls is indexable (the 4th arg is the signal)
+  // Typed with a rest param so mock.calls is indexable (the 3rd arg is the signal)
   const handleAsyncChartData = jest.fn(
     (..._args: unknown[]) => new Promise<never>(() => {}), // never resolves
   );

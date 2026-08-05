@@ -24,6 +24,46 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Principal listing APIs now honour related-field filters
+
+Two authorization-related listing behaviors changed for API clients. Neither
+affects the Superset UI — `include_ids` and `security/subject` have no frontend
+callers — but external clients will notice:
+
+- `GET /api/v1/<resource>/related/<column>?include_ids=...` now applies the
+  endpoint's `base_related_field_filters`. Previously the forced IDs were fetched
+  with no filtering, so a caller could resolve principals the related-field
+  filters deliberately hide; those IDs are now omitted from the response.
+- `GET /api/v1/security/subject/` now honours `EXCLUDE_USERS_FROM_LISTS` and
+  `EXTRA_RELATED_QUERY_FILTERS`, matching every other principal-listing endpoint.
+  List counts may drop, and fetching an excluded principal via
+  `GET /api/v1/security/subject/<id>` now returns `404`.
+
+### v1 chart import no longer re-adds the importer as editor on overwrite
+
+Re-importing over an existing chart (an overwrite or a soft-delete restore) no
+longer appends the importing user to the chart's `editors`, matching the
+dashboard importer's behavior. This changes anything only for a user who was not
+already an editor of that chart — typically an admin overwriting a chart they do
+not own, who was previously added as an editor as a side effect of the import.
+Newly-created charts are unaffected.
+### ClickHouse: system sampling queries retry with a bounded read
+
+System-generated sampling queries — filter-value dropdowns, the Samples
+tab/dataset preview, and datetime format detection — that ClickHouse rejects
+with a `max_rows_to_read` error (`TOO_MANY_ROWS`, code 158) are now retried
+once with `SETTINGS read_overflow_mode='break'` appended, so they return a
+partial result bounded by the operator's row cap instead of failing. The retry
+applies only to statements Superset generates for physical-table datasets;
+virtual datasets and user-authored SQL remain fully governed by configured
+read limits, and queries that already succeed are never altered. Operators who
+rely on `max_rows_to_read` as a hard failure gate for these system queries can
+restore the previous behavior per database with
+`"disable_sampling_read_limit_override": true` in the database's Extra JSON.
+Note that a retried query returns partial data with no truncation indicator
+(e.g. a filter dropdown may list only a subset of values on tables above the
+row cap).
+
 ### Dashboard "Export Data to Excel" requires a Celery worker and S3 bucket
 
 A new dashboard action exports every chart's data to a single multi-sheet
@@ -193,7 +233,7 @@ are the intended model going forward; deprecating and removing implicit viewersh
 in a later major version.
 
 - [41044](https://github.com/apache/superset/issues/41044): Removes the deprecated `AVOID_COLORS_COLLISION` feature flag (it defaulted to `True`). Color-collision avoidance is now permanently enabled; any config override setting it to `False` is ignored.
-- [41714](https://github.com/apache/superset/pull/41714): **Breaking — the legacy `explore_json` chart-data pipeline is removed** at its long-declared `5.0.0` EOL. The `/superset/explore_json/` and `/superset/explore_json/data/<cache_key>` endpoints, `superset/viz.py`, the `Slice.viz` property, the `get_viz` factory, the `load_explore_json_into_cache` celery task and the `viz=` overload of `security_manager.raise_for_access` are gone. Anything importing `superset.viz` must migrate to the QueryContext / `pandas_postprocessing` pipeline behind `/api/v1/chart/data`. All 15 remaining legacy charts were migrated first: most keep their `viz_type` and renderer (no action needed for saved charts), while saved nvd3 Bubble charts are auto-migrated to the ECharts Bubble Chart (`bubble_v2`) and saved "Time-series Percent Change" (`compare`) charts to the ECharts Line Chart — the nvd3 renderer's interactive percent re-basing is not preserved. The deck.gl Multiple Layers chart now fetches its layers entirely client-side; its initial autozoom falls back to the saved viewport, and dashboard filter badges no longer aggregate child-layer filter metadata.
+- [41714](https://github.com/apache/superset/pull/41714): **Breaking — the legacy `explore_json` chart-data pipeline is removed** at its long-declared `5.0.0` EOL. The `/superset/explore_json/` and `/superset/explore_json/data/<cache_key>` endpoints, `superset/viz.py`, the `Slice.viz` property, the `get_viz` factory, the `load_explore_json_into_cache` celery task and the `viz=` overload of `security_manager.raise_for_access` are gone. Anything importing `superset.viz` must migrate to the QueryContext / `pandas_postprocessing` pipeline behind `/api/v1/chart/data`. All 15 remaining legacy charts were migrated first: most keep their `viz_type` and renderer (no action needed for saved charts), while saved nvd3 Bubble charts are auto-migrated to the ECharts Bubble Chart (`bubble_v2`) and saved "Time-series Percent Change" (`compare`) charts to the ECharts Line Chart, which restores the nvd3 renderer's interactive percent re-basing via a draggable baseline. The deck.gl Multiple Layers chart now fetches its layers entirely client-side, refitting the viewport as each layer's data arrives, and caps the number of sub-slices fanned out per chart at `DECK_MULTI_MAX_SLICES` (default 50, configurable); dashboard filter badges no longer aggregate child-layer filter metadata.
 
 - [41714](https://github.com/apache/superset/pull/41714): Charts migrated in place keep a `NULL` saved query context until they are next opened in Explore (which regenerates it automatically) or re-saved. Until then, cache warm-up and annotation layers referencing such a chart report an actionable error rather than warming/rendering; opening the chart once resolves it.
 - [41714](https://github.com/apache/superset/pull/41714): **Breaking for third-party viz plugins** — the `useLegacyApi` field of `ChartMetadata` in `@superset-ui/core` is removed. Plugins that set it must provide a `buildQuery` and consume `/api/v1/chart/data`. The migrated first-party packages also drop their `legacy-` prefix: `@superset-ui/legacy-plugin-chart-{calendar,chord,country-map,horizon,paired-t-test,parallel-coordinates,partition,rose,world-map}` → `@superset-ui/plugin-chart-*`, and `@superset-ui/legacy-preset-chart-nvd3` → `@superset-ui/preset-chart-nvd3`. The `can_explore_json` permission is no longer created or granted; custom roles referencing it should switch to the `can_read` permissions on `Chart`.
@@ -362,6 +402,39 @@ A read-only companion to the version-history endpoints: each entity type gains a
 | `page` / `page_size` | integer                      | `0` / `25` | Pagination (`page_size` clamped to 200)                                                                |
 
 Authorization reuses the resource's `can_read` permission and per-object `raise_for_access`; related-entity rows are visibility-filtered to what the caller may see. The stream is empty unless version capture is on (`ENABLE_VERSIONING_CAPTURE`).
+
+### Version-history retention (pruning)
+
+Entity version history (the `version_transaction` / `*_version` shadow tables that back version capture) is aged out by a nightly Celery beat task, `version_history.prune_old_versions` (`superset.tasks.version_history_retention`).
+
+| Key | Default | Purpose |
+|---|---|---|
+| `SUPERSET_VERSION_HISTORY_RETENTION_DAYS` | `30` | Version rows whose owning `version_transaction.issued_at` is older than this many days are pruned. Each entity's live row (`end_transaction_id IS NULL`) is always preserved, as are the live rows of its children and associations; closed historical rows (including the baseline) age out. Set to `0` or a negative value to disable pruning. |
+
+The task ships in the default `CeleryConfig.beat_schedule`; a deployment that overrides `CELERY_CONFIG` without inheriting the default will log a startup warning that the prune task is absent (so it never silently stops running). Retention only prunes whatever history exists — capture itself is gated separately by `ENABLE_VERSIONING_CAPTURE` (ships off).
+
+### Deletion retention (soft-deleted entities are eventually purged)
+
+Soft-deleted dashboards, charts, and datasets are now permanently removed after a retention window (default 30 days; `SOFT_DELETE_RETENTION_DAYS`, `0` disables; settable per workspace at runtime via the `deletion-retention set-window` CLI, which takes precedence). The `deletion_retention.purge_soft_deleted` Celery beat task runs daily and removes each aged-out entity together with its M:N join rows, owned children, datasource permission, and version-history shadow rows. After purge an entity is **unrecoverable** — its detail and `/restore` endpoints return 404 and its version history is gone.
+
+The introducing release **defaults to dry-run** (`SOFT_DELETE_PURGE_DRY_RUN=True`): the task logs `would_purge` counts but deletes nothing, so operators can validate against production before activating real purging by setting it to `False`. Note `would_purge` is an **upper bound** — it counts every entity past the retention window without evaluating deletion blockers, so a real run may purge fewer (entities referenced by report schedules or set as a user's welcome dashboard are blocked and reported separately). The task only acts while the temporary `SOFT_DELETE` rollout flag is on.
+
+Deployments that replace the default `CELERY_CONFIG` must add `superset.tasks.deletion_retention` to the Celery `imports` and schedule the `deletion_retention.purge_soft_deleted` task themselves. The shipped Docker development config includes both entries.
+
+Operators can immediately erase a specific entity for compliance (GDPR) via `superset deletion-retention force-purge --uuid <uuid>`; this applies legacy hard-delete semantics — a live chart referencing a force-purged dataset is left without a datasource until re-pointed (the chart is not modified), and it purges the named entity even when it was never soft-deleted. Every purge writes an immutable, content-free audit record to the new `purge_audit_log` table that survives the entity it names: the **scheduled** purge fails closed (an entity whose audit row cannot be written is skipped and retried next run), while **force-purge** proceeds even if the audit write fails — the operator is present and deletion outranks audit for a compliance erasure.
+
+### Recently Archived view and permanent delete (purge) endpoints
+
+Behind the same `SOFT_DELETE` flag, a **Recently Archived** page (Settings menu, `/archived/`) lists soft-deleted charts, dashboards, and datasets with their archive time and archiving user, and offers **Recover** and **Delete permanently** row actions. The page admits any viewer holding `can_read` on **any** of the three types and offers each viewer only the types they can read; a viewer with none of the three sees an explanatory empty state, and unauthenticated requests are redirected to login.
+
+**New endpoints** — `POST /api/v1/{chart,dashboard,dataset}/<uuid>/purge` permanently delete a single **soft-deleted** row, running the same cascade as the retention task. Irreversible. Requires `can_write` on the entity plus editorship of the row (or admin), mirroring `/restore`. The endpoints answer 404 while `SOFT_DELETE` is off (restore deliberately stays live so rows archived before a flag-off remain recoverable), 404 for rows that are not soft-deleted, and 422 with a reason when the purge is blocked (an alert/report references the entity, a user has the dashboard as their welcome page, or a restrictive foreign key intervenes). A purge that cannot write its audit record is refused with 422 rather than executed unrecorded — unlike the operator CLI, an end user's purge never outranks the audit.
+
+With the flag on, delete confirmations across the chart/dashboard/dataset list pages change shape: a recoverable archive is confirmed with a primary **Archive** button and no type-DELETE friction, and the copy states the retention window when one is configured. A bulk dataset selection that includes semantic views keeps the full danger treatment, because semantic views have no soft-delete — they are deleted permanently and the confirmation says so.
+
+This also resolves the limitation noted under *Soft delete and restore for datasets*: a database blocked by soft-deleted datasets can now be freed by purging those datasets (per-entity endpoint, retention task, or `force-purge` CLI) instead of hard-deleting `tables` rows out-of-band.
+
+The `purge_audit_log` table is **never pruned by design** — the audit must survive the entities it names; operators who need to age it out should prune manually.
+
 
 ### Webhook alerts/reports block private/internal hosts by default
 
@@ -651,6 +724,12 @@ Added a new combined datasource list endpoint at `GET /api/v1/datasource/` to se
 - The endpoint is available to users with at least one of `can_read` on `Dataset` or `SemanticView`.
 - Semantic views are included only when the `SEMANTIC_LAYERS` feature flag is enabled.
 - The endpoint enforces strict `order_column` validation and returns `400` for invalid sort columns.
+
+### Custom time range "Now"/"Today" anchors resolve in local time
+
+Custom time ranges that use the "Now" or "Today" anchor (for the Start, End, or the relative anchor itself) previously resolved that anchor in UTC before formatting it into a naive datetime string, which was then re-parsed elsewhere as local time. For users outside UTC, this made the resolved anchor drift by their browser's UTC offset. "Now"/"Today" now resolve directly in local time, matching the later local re-parse.
+
+Charts and dashboards using these anchors will compute a different (correct) timestamp after upgrading; if a chart's filters or drill-downs were tuned to compensate for the old offset, review them after upgrading.
 
 ## 6.1.0
 
