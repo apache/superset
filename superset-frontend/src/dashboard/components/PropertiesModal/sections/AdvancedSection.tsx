@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from "@apache-superset/core/translation";
-import { styled } from "@apache-superset/core/theme";
-import type { editors } from "@apache-superset/core";
-import { EditorHost } from "src/core/editors";
-import { ModalFormField } from "src/components/Modal";
-import { ValidationObject } from "src/components/Modal/useModalValidation";
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
+import type { editors } from '@apache-superset/core';
+import { EditorHost } from 'src/core/editors';
+import { ModalFormField } from 'src/components/Modal';
+import { ValidationObject } from 'src/components/Modal/useModalValidation';
 
 type EditorAnnotation = editors.EditorAnnotation;
 
@@ -36,8 +36,8 @@ const toEditorAnnotations = (
     text: string;
   }>,
 ): EditorAnnotation[] =>
-  aceAnnotations.map((ann) => ({
-    severity: ann.type as EditorAnnotation["severity"],
+  aceAnnotations.map(ann => ({
+    severity: ann.type as EditorAnnotation['severity'],
     line: ann.row,
     column: ann.column,
     message: ann.text,
@@ -62,16 +62,16 @@ const AdvancedSection = ({
 }: AdvancedSectionProps) => (
   <>
     <ModalFormField
-      label={t("JSON Metadata")}
+      label={t('JSON Metadata')}
       testId="dashboard-metadata-field"
       helperText={t(
-        "This JSON object is generated dynamically when clicking the save " +
-          "or overwrite button in the dashboard view. It is exposed here for " +
-          "reference and for power users who may want to alter specific parameters.",
+        'This JSON object is generated dynamically when clicking the save ' +
+          'or overwrite button in the dashboard view. It is exposed here for ' +
+          'reference and for power users who may want to alter specific parameters.',
       )}
       error={
         validationStatus.advanced?.hasErrors && jsonAnnotations.length > 0
-          ? t("Invalid JSON metadata")
+          ? t('Invalid JSON metadata')
           : undefined
       }
       bottomSpacing={false}

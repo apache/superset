@@ -21,22 +21,22 @@ import {
   screen,
   fireEvent,
   waitFor,
-} from "spec/helpers/testing-library";
-import LabelColorMapping from "./LabelColorMapping";
+} from 'spec/helpers/testing-library';
+import LabelColorMapping from './LabelColorMapping';
 
 const defaultProps = {
-  jsonMetadata: "{}",
+  jsonMetadata: '{}',
   onJsonMetadataChange: jest.fn(),
 };
 
-describe("LabelColorMapping", () => {
+describe('LabelColorMapping', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  test("renders the empty state correctly", () => {
+  test('renders the empty state correctly', () => {
     render(<LabelColorMapping {...defaultProps} />);
-    expect(screen.getByText("Label Colors")).toBeInTheDocument();
+    expect(screen.getByText('Label Colors')).toBeInTheDocument();
     expect(
       screen.getByText(
         'No color mappings defined. Click "+ Add more" to get started.',
@@ -47,24 +47,24 @@ describe("LabelColorMapping", () => {
   test('adds a new color mapping row when "Add more" is clicked', () => {
     render(<LabelColorMapping {...defaultProps} />);
 
-    const addButton = screen.getByText("+ Add more");
+    const addButton = screen.getByText('+ Add more');
     fireEvent.click(addButton);
 
     expect(
-      screen.getByPlaceholderText("Select or type a label"),
+      screen.getByPlaceholderText('Select or type a label'),
     ).toBeInTheDocument();
   });
 
-  test("renders existing mappings from jsonMetadata", async () => {
+  test('renders existing mappings from jsonMetadata', async () => {
     const propsWithData = {
       ...defaultProps,
-      jsonMetadata: JSON.stringify({ label_colors: { Revenue: "#20a7c9" } }),
+      jsonMetadata: JSON.stringify({ label_colors: { Revenue: '#20a7c9' } }),
     };
     render(<LabelColorMapping {...propsWithData} />);
 
     await waitFor(() => {
-      expect(screen.getByDisplayValue("Revenue")).toBeInTheDocument();
-      expect(screen.getByDisplayValue("#20a7c9")).toBeInTheDocument();
+      expect(screen.getByDisplayValue('Revenue')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('#20a7c9')).toBeInTheDocument();
     });
   });
 });

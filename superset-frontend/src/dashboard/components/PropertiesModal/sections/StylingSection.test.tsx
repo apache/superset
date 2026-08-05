@@ -21,12 +21,12 @@ import {
   screen,
   userEvent,
   waitFor,
-} from "spec/helpers/testing-library";
-import { SupersetClient, isFeatureEnabled } from "@superset-ui/core";
-import StylingSection from "./StylingSection";
+} from 'spec/helpers/testing-library';
+import { SupersetClient, isFeatureEnabled } from '@superset-ui/core';
+import StylingSection from './StylingSection';
 
-jest.mock("@superset-ui/core", () => ({
-  ...jest.requireActual("@superset-ui/core"),
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
   SupersetClient: {
     get: jest.fn(),
   },
@@ -38,13 +38,13 @@ const mockIsFeatureEnabled = isFeatureEnabled as jest.MockedFunction<
   typeof isFeatureEnabled
 >;
 
-jest.mock("src/dashboard/components/ColorSchemeSelect", () => ({
+jest.mock('src/dashboard/components/ColorSchemeSelect', () => ({
   __esModule: true,
   default: ({ value, onChange, ...props }: any) => (
-    <div data-test={props["data-test"] || "color-scheme-select"}>
+    <div data-test={props['data-test'] || 'color-scheme-select'}>
       <input
-        value={value || ""}
-        onChange={(e) => onChange?.(e.target.value)}
+        value={value || ''}
+        onChange={e => onChange?.(e.target.value)}
         aria-label="Select color scheme"
       />
     </div>
@@ -52,24 +52,24 @@ jest.mock("src/dashboard/components/ColorSchemeSelect", () => ({
 }));
 
 const mockCssTemplates = [
-  { template_name: "Corporate Blue", css: ".dashboard { background: blue; }" },
+  { template_name: 'Corporate Blue', css: '.dashboard { background: blue; }' },
   {
-    template_name: "Modern Dark",
-    css: ".dashboard { background: black; color: white; }",
+    template_name: 'Modern Dark',
+    css: '.dashboard { background: black; color: white; }',
   },
 ];
 
 const defaultProps = {
   themes: [
-    { id: 1, theme_name: "Dark Theme" },
-    { id: 2, theme_name: "Light Theme" },
+    { id: 1, theme_name: 'Dark Theme' },
+    { id: 2, theme_name: 'Light Theme' },
   ],
   selectedThemeId: null,
-  colorScheme: "supersetColors",
-  customCss: "",
+  colorScheme: 'supersetColors',
+  customCss: '',
   hasCustomLabelsColor: false,
   showChartTimestamps: false,
-  jsonMetadata: "{}",
+  jsonMetadata: '{}',
   onJsonMetadataChange: jest.fn(),
   onThemeChange: jest.fn(),
   onColorSchemeChange: jest.fn(),
@@ -88,42 +88,42 @@ beforeEach(() => {
   });
 });
 
-test("renders theme selection when themes are available", () => {
+test('renders theme selection when themes are available', () => {
   render(<StylingSection {...defaultProps} />);
 
-  expect(screen.getByTestId("dashboard-theme-field")).toBeInTheDocument();
-  expect(screen.getByTestId("dashboard-theme-select")).toBeInTheDocument();
+  expect(screen.getByTestId('dashboard-theme-field')).toBeInTheDocument();
+  expect(screen.getByTestId('dashboard-theme-select')).toBeInTheDocument();
 });
 
-test("does not render theme selection when no themes available", () => {
+test('does not render theme selection when no themes available', () => {
   render(<StylingSection {...defaultProps} themes={[]} />);
 
-  expect(screen.queryByTestId("dashboard-theme-field")).not.toBeInTheDocument();
+  expect(screen.queryByTestId('dashboard-theme-field')).not.toBeInTheDocument();
 });
 
-test("renders color scheme selection", () => {
+test('renders color scheme selection', () => {
   render(<StylingSection {...defaultProps} />);
 
-  expect(screen.getByTestId("dashboard-colorscheme-field")).toBeInTheDocument();
+  expect(screen.getByTestId('dashboard-colorscheme-field')).toBeInTheDocument();
   expect(
-    screen.getByTestId("dashboard-colorscheme-select"),
+    screen.getByTestId('dashboard-colorscheme-select'),
   ).toBeInTheDocument();
 });
 
-test("renders custom CSS editor", () => {
+test('renders custom CSS editor', () => {
   render(<StylingSection {...defaultProps} />);
 
-  expect(screen.getByTestId("dashboard-css-field")).toBeInTheDocument();
+  expect(screen.getByTestId('dashboard-css-field')).toBeInTheDocument();
 });
 
-test("calls onThemeChange when theme is selected", async () => {
+test('calls onThemeChange when theme is selected', async () => {
   const onThemeChange = jest.fn();
   render(<StylingSection {...defaultProps} onThemeChange={onThemeChange} />);
 
-  expect(screen.getByText("Theme")).toBeInTheDocument();
+  expect(screen.getByText('Theme')).toBeInTheDocument();
 });
 
-test("calls onColorSchemeChange when color scheme changes", async () => {
+test('calls onColorSchemeChange when color scheme changes', async () => {
   const onColorSchemeChange = jest.fn();
   render(
     <StylingSection
@@ -132,57 +132,57 @@ test("calls onColorSchemeChange when color scheme changes", async () => {
     />,
   );
 
-  const colorSchemeInput = screen.getByLabelText("Select color scheme");
-  await userEvent.type(colorSchemeInput, "newScheme");
+  const colorSchemeInput = screen.getByLabelText('Select color scheme');
+  await userEvent.type(colorSchemeInput, 'newScheme');
 
   expect(onColorSchemeChange).toHaveBeenCalled();
 });
 
-test("passes hasCustomLabelsColor to ColorSchemeSelect", () => {
+test('passes hasCustomLabelsColor to ColorSchemeSelect', () => {
   render(<StylingSection {...defaultProps} hasCustomLabelsColor />);
 
-  expect(screen.getByText("Color scheme")).toBeInTheDocument();
+  expect(screen.getByText('Color scheme')).toBeInTheDocument();
 });
 
-test("shows selected theme when selectedThemeId is provided", () => {
+test('shows selected theme when selectedThemeId is provided', () => {
   render(<StylingSection {...defaultProps} selectedThemeId={1} />);
 
-  expect(screen.getByText("Theme")).toBeInTheDocument();
+  expect(screen.getByText('Theme')).toBeInTheDocument();
 });
 
-test("displays current color scheme value", () => {
+test('displays current color scheme value', () => {
   render(<StylingSection {...defaultProps} colorScheme="testColors" />);
 
-  const colorSchemeInput = screen.getByLabelText("Select color scheme");
-  expect(colorSchemeInput).toHaveValue("testColors");
+  const colorSchemeInput = screen.getByLabelText('Select color scheme');
+  expect(colorSchemeInput).toHaveValue('testColors');
 });
 
-test("renders chart timestamps field", () => {
+test('renders chart timestamps field', () => {
   render(<StylingSection {...defaultProps} />);
 
   expect(
-    screen.getByTestId("dashboard-show-timestamps-field"),
+    screen.getByTestId('dashboard-show-timestamps-field'),
   ).toBeInTheDocument();
   expect(
-    screen.getByTestId("dashboard-show-timestamps-switch"),
+    screen.getByTestId('dashboard-show-timestamps-switch'),
   ).toBeInTheDocument();
 });
 
-test("chart timestamps switch reflects showChartTimestamps prop", () => {
+test('chart timestamps switch reflects showChartTimestamps prop', () => {
   const { rerender } = render(
     <StylingSection {...defaultProps} showChartTimestamps={false} />,
   );
 
-  let timestampSwitch = screen.getByTestId("dashboard-show-timestamps-switch");
+  let timestampSwitch = screen.getByTestId('dashboard-show-timestamps-switch');
   expect(timestampSwitch).not.toBeChecked();
 
   rerender(<StylingSection {...defaultProps} showChartTimestamps />);
 
-  timestampSwitch = screen.getByTestId("dashboard-show-timestamps-switch");
+  timestampSwitch = screen.getByTestId('dashboard-show-timestamps-switch');
   expect(timestampSwitch).toBeChecked();
 });
 
-test("calls onShowChartTimestampsChange when switch is toggled", async () => {
+test('calls onShowChartTimestampsChange when switch is toggled', async () => {
   const onShowChartTimestampsChange = jest.fn();
   render(
     <StylingSection
@@ -192,7 +192,7 @@ test("calls onShowChartTimestampsChange when switch is toggled", async () => {
   );
 
   const timestampSwitch = screen.getByTestId(
-    "dashboard-show-timestamps-switch",
+    'dashboard-show-timestamps-switch',
   );
   await userEvent.click(timestampSwitch);
 
@@ -200,46 +200,46 @@ test("calls onShowChartTimestampsChange when switch is toggled", async () => {
   expect(onShowChartTimestampsChange.mock.calls[0][0]).toBe(true);
 });
 
-describe("CSS Template functionality", () => {
-  test("does not show CSS template select when feature flag is disabled", () => {
+describe('CSS Template functionality', () => {
+  test('does not show CSS template select when feature flag is disabled', () => {
     mockIsFeatureEnabled.mockReturnValue(false);
     render(<StylingSection {...defaultProps} />);
 
     expect(
-      screen.queryByTestId("dashboard-css-template-field"),
+      screen.queryByTestId('dashboard-css-template-field'),
     ).not.toBeInTheDocument();
   });
 
-  test("fetches CSS templates on mount when feature enabled", async () => {
-    mockIsFeatureEnabled.mockImplementation((flag) => flag === "CSS_TEMPLATES");
+  test('fetches CSS templates on mount when feature enabled', async () => {
+    mockIsFeatureEnabled.mockImplementation(flag => flag === 'CSS_TEMPLATES');
     render(<StylingSection {...defaultProps} />);
 
     await waitFor(() => {
       expect(mockSupersetClient.get).toHaveBeenCalledWith({
-        endpoint: expect.stringContaining("/api/v1/css_template/"),
+        endpoint: expect.stringContaining('/api/v1/css_template/'),
       });
     });
   });
 
-  test("shows CSS template select when feature flag is enabled and templates exist", async () => {
-    mockIsFeatureEnabled.mockImplementation((flag) => flag === "CSS_TEMPLATES");
+  test('shows CSS template select when feature flag is enabled and templates exist', async () => {
+    mockIsFeatureEnabled.mockImplementation(flag => flag === 'CSS_TEMPLATES');
     render(<StylingSection {...defaultProps} />);
 
     await waitFor(() => {
       expect(
-        screen.getByText("Load CSS template (optional)"),
+        screen.getByText('Load CSS template (optional)'),
       ).toBeInTheDocument();
     });
 
     expect(
-      screen.getByTestId("dashboard-css-template-select"),
+      screen.getByTestId('dashboard-css-template-select'),
     ).toBeInTheDocument();
   });
 
-  test("shows error toast when template fetch fails", async () => {
-    mockIsFeatureEnabled.mockImplementation((flag) => flag === "CSS_TEMPLATES");
+  test('shows error toast when template fetch fails', async () => {
+    mockIsFeatureEnabled.mockImplementation(flag => flag === 'CSS_TEMPLATES');
     const addDangerToast = jest.fn();
-    mockSupersetClient.get.mockRejectedValueOnce(new Error("API Error"));
+    mockSupersetClient.get.mockRejectedValueOnce(new Error('API Error'));
 
     render(
       <StylingSection {...defaultProps} addDangerToast={addDangerToast} />,
@@ -247,13 +247,13 @@ describe("CSS Template functionality", () => {
 
     await waitFor(() => {
       expect(addDangerToast).toHaveBeenCalledWith(
-        "An error occurred while fetching available CSS templates",
+        'An error occurred while fetching available CSS templates',
       );
     });
   });
 
-  test("does not show CSS template select when no templates available", async () => {
-    mockIsFeatureEnabled.mockImplementation((flag) => flag === "CSS_TEMPLATES");
+  test('does not show CSS template select when no templates available', async () => {
+    mockIsFeatureEnabled.mockImplementation(flag => flag === 'CSS_TEMPLATES');
     mockSupersetClient.get.mockResolvedValueOnce({
       json: { result: [] },
       response: {} as Response,
@@ -266,7 +266,7 @@ describe("CSS Template functionality", () => {
     });
 
     expect(
-      screen.queryByTestId("dashboard-css-template-field"),
+      screen.queryByTestId('dashboard-css-template-field'),
     ).not.toBeInTheDocument();
   });
 });
