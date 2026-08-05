@@ -212,7 +212,14 @@ def test_error_template_cta_link_respects_include_cta() -> None:
     assert "http://example.com/superset/dashboard/1/" not in email_body
 
 
-def test_retry_error_template_cta_link_respects_include_cta() -> None:
+@pytest.mark.parametrize(
+    "include_cta",
+    [True, False],
+    ids=["with-cta", "without-cta"],
+)
+def test_retry_error_template_cta_link_respects_include_cta(
+    include_cta: bool,
+) -> None:
     # `superset.models.helpers`, a dependency of following imports,
     # requires app context
     from superset.reports.models import ReportRecipients, ReportRecipientType
@@ -223,7 +230,7 @@ def test_retry_error_template_cta_link_respects_include_cta() -> None:
         name="test alert",
         text="Report generation failed",
         url="http://example.com/superset/dashboard/1/",
-        include_cta=False,
+        include_cta=include_cta,
         retry_attempt=1,
         retry_max_attempts=3,
         header_data={
@@ -245,11 +252,22 @@ def test_retry_error_template_cta_link_respects_include_cta() -> None:
         .body
     )
     assert "Retry in Progress" in email_body
-    assert "Explore in Superset" not in email_body
-    assert "http://example.com/superset/dashboard/1/" not in email_body
+    if include_cta:
+        assert "Explore in Superset" in email_body
+        assert "http://example.com/superset/dashboard/1/" in email_body
+    else:
+        assert "Explore in Superset" not in email_body
+        assert "http://example.com/superset/dashboard/1/" not in email_body
 
 
-def test_final_failure_template_cta_link_respects_include_cta() -> None:
+@pytest.mark.parametrize(
+    "include_cta",
+    [True, False],
+    ids=["with-cta", "without-cta"],
+)
+def test_final_failure_template_cta_link_respects_include_cta(
+    include_cta: bool,
+) -> None:
     # `superset.models.helpers`, a dependency of following imports,
     # requires app context
     from superset.reports.models import ReportRecipients, ReportRecipientType
@@ -260,7 +278,7 @@ def test_final_failure_template_cta_link_respects_include_cta() -> None:
         name="test alert",
         text="Report generation failed",
         url="http://example.com/superset/dashboard/1/",
-        include_cta=False,
+        include_cta=include_cta,
         retry_max_attempts=3,
         header_data={
             "notification_format": "PNG",
@@ -281,8 +299,12 @@ def test_final_failure_template_cta_link_respects_include_cta() -> None:
         .body
     )
     assert "failed to generate after" in email_body
-    assert "Explore in Superset" not in email_body
-    assert "http://example.com/superset/dashboard/1/" not in email_body
+    if include_cta:
+        assert "Explore in Superset" in email_body
+        assert "http://example.com/superset/dashboard/1/" in email_body
+    else:
+        assert "Explore in Superset" not in email_body
+        assert "http://example.com/superset/dashboard/1/" not in email_body
 
 
 @with_feature_flags(DATE_FORMAT_IN_EMAIL_SUBJECT=True)
