@@ -89,6 +89,86 @@ function canRenderScatter(roles: ColumnRoles): boolean {
   return roles.numeric.length >= 2;
 }
 
+/**
+ * Superset viz types this widget has no renderer for, mapped to what Superset
+ * would draw.
+ *
+ * The widget always finds *some* view for a chart — falling back on data shape
+ * when it does not recognise the viz type. For a genuinely unknown type that
+ * is a reasonable guess. For a type we know full well and simply cannot draw,
+ * it is a silent substitution: the cell keeps the real title and the real
+ * numbers, and shows a plausible chart in a different encoding, so nothing on
+ * screen reveals that a treemap became a bar chart. A visible gap would be
+ * safer than a convincing wrong answer.
+ *
+ * Matched as substrings against the lowercased viz_type, so versioned names
+ * (`treemap_v2`, `sunburst_v2`) and legacy ones both hit.
+ */
+const UNRENDERABLE_VIZ: ReadonlyArray<readonly [string, string]> = [
+  ['treemap', 'treemap'],
+  ['heatmap', 'heatmap'],
+  ['sunburst', 'sunburst diagram'],
+  ['word_cloud', 'word cloud'],
+  ['wordcloud', 'word cloud'],
+  ['sankey', 'Sankey diagram'],
+  ['chord', 'chord diagram'],
+  ['graph_chart', 'network graph'],
+  ['world_map', 'world map'],
+  ['country_map', 'country map'],
+  ['deck_', 'deck.gl map'],
+  ['mapbox', 'map'],
+  ['box_plot', 'box plot'],
+  ['gantt', 'Gantt chart'],
+  ['funnel', 'funnel chart'],
+  ['gauge', 'gauge'],
+  ['radar', 'radar chart'],
+  ['waterfall', 'waterfall chart'],
+  ['bullet', 'bullet chart'],
+  ['calendar', 'calendar heatmap'],
+  ['parallel', 'parallel coordinates'],
+  ['partition', 'partition diagram'],
+  ['tree_chart', 'tree diagram'],
+  ['horizon', 'horizon chart'],
+  ['event_flow', 'event flow'],
+  ['paired_ttest', 'paired t-test table'],
+  ['rose', 'rose chart'],
+];
+
+/**
+ * The chart Superset would draw for this viz_type, when this widget cannot.
+ *
+ * Returns null when the type is renderable here, or genuinely unknown — an
+ * unknown type gets a shape-based guess, which is honest because there is
+ * nothing better to say about it.
+ */
+export function unrenderableVizLabel(chartType: string): string | null {
+  const t = (chartType || '').toLowerCase();
+  // `rose` is a pie variant this widget DOES draw; only flag it when the pie
+  // renderer is not what we ended up using.
+  for (const [needle, label] of UNRENDERABLE_VIZ) {
+    if (t.includes(needle)) return label;
+  }
+  return null;
+}
+
+/**
+ * True when the view being rendered is a substitute for what Superset draws.
+ *
+ * Takes the resolved view so a rose chart rendered as a pie — which is a fair
+ * likeness — is not flagged, while one that fell through to a bar chart is.
+ */
+export function isSubstitutedView(
+  chartType: string,
+  view: ViewType,
+): string | null {
+  const label = unrenderableVizLabel(chartType);
+  if (!label) return null;
+  if (view === 'pie' && (label === 'rose chart' || label === 'funnel chart')) {
+    return null;
+  }
+  return label;
+}
+
 /** Map an incoming Superset viz_type to the best-fit default view. */
 export function defaultViewForChartType(
   chartType: string,

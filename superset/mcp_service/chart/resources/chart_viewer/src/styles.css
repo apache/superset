@@ -856,3 +856,16 @@ body {
 .sv-chip--empty {
   opacity: 0.45;
 }
+
+/* Says a chart is NOT the encoding Superset uses. Must be legible, not a
+   whisper: a substituted chart is a wrong answer that looks right. */
+.sv-substitution {
+  flex: 0 0 auto;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--sv-text-secondary);
+  background: var(--sv-warning-bg, rgba(255, 176, 0, 0.12));
+  border: 1px solid var(--sv-warning-border, rgba(255, 176, 0, 0.35));
+  border-radius: var(--sv-radius-sm);
+  padding: 5px 8px;
+}

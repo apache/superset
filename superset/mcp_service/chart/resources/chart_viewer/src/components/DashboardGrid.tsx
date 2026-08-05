@@ -38,6 +38,7 @@ import {
   chartDataToEChartsOption,
   defaultViewForChartType,
   isEChartsView,
+  isSubstitutedView,
 } from '../adapter';
 import { EChart } from './EChart';
 import { BigNumber } from './BigNumber';
@@ -82,6 +83,27 @@ function CellBody({
       option={chartDataToEChartsOption(data, view, { theme })}
       scheme={theme.scheme}
     />
+  );
+}
+
+/**
+ * Says so when a cell is NOT the chart Superset draws.
+ *
+ * Without this the cell carries the real title and the real numbers in a
+ * different encoding, which reads as a faithful reproduction. A treemap shown
+ * as a bar chart is a wrong answer that looks right, and nothing else on
+ * screen contradicts it.
+ */
+function SubstitutionNote({ cell }: { cell: DashboardCell }): JSX.Element | null {
+  const data = cell.data;
+  if (!data) return null;
+  const view = defaultViewForChartType(data.chart_type, data);
+  const native = isSubstitutedView(data.chart_type, view);
+  if (!native) return null;
+  return (
+    <div className="sv-substitution">
+      Shown as a {view} chart — Superset renders this as a {native}.
+    </div>
   );
 }
 
@@ -159,6 +181,7 @@ export function DashboardGrid({
             <div className="sv-dash-cell-body">
               <CellBody cell={cell} theme={theme} />
             </div>
+            <SubstitutionNote cell={cell} />
           </div>
         ))}
         {cells.length === 0 && (

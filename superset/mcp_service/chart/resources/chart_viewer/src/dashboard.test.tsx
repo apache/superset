@@ -155,3 +155,33 @@ it('falls back to the first tab that actually has cells', () => {
   // The empty tab stays reachable, but is marked rather than looking broken.
   expect(tabs[0].className).toContain('sv-chip--empty');
 });
+
+it('says when a cell is not the chart Superset draws', () => {
+  // Dashboard 5's Overview tab holds a treemap_v2 and a heatmap_v2. Neither
+  // has a renderer here, so both fell through to bar charts — keeping the real
+  // title and the real numbers, which made the grid read as a faithful
+  // reproduction of the dashboard. It was not.
+  const treemap = {
+    ...chart(9, 'Sales by publisher'),
+    chart_type: 'treemap_v2',
+  };
+  render({
+    ...RENDER,
+    tabs: [],
+    cells: [
+      { chart_id: 9, title: 'Sales by publisher', status: 'ok', data: treemap as never },
+    ],
+  });
+  const note = container!.querySelector('.sv-substitution');
+  expect(note).not.toBeNull();
+  expect(note!.textContent).toContain('treemap');
+});
+
+it('stays quiet for a chart it renders faithfully', () => {
+  render({
+    ...RENDER,
+    tabs: [],
+    cells: [{ chart_id: 1, title: 'Revenue', status: 'ok', data: chart(1, 'Revenue') as never }],
+  });
+  expect(container!.querySelector('.sv-substitution')).toBeNull();
+});

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { describe, expect, test } from 'vitest';
+import { describe, expect, it, test } from 'vitest';
 import {
   PIE_MAX_SLICES,
   availableViews,
@@ -31,6 +31,8 @@ import {
   resolveBigNumber,
   scatterTooltipFormatter,
   tooltipFormatter,
+  isSubstitutedView,
+  unrenderableVizLabel
 } from './adapter';
 import { getThemeTokens } from './theme';
 import type { ChartData, DataColumn } from './types';
@@ -602,5 +604,50 @@ describe('big-number fallback label', () => {
       }),
     );
     expect(result.label).toBe('Monthly Revenue');
+  });
+});
+
+// A viz type the widget cannot draw still resolves to SOME view, so the chart
+// keeps the real title and the real numbers and quietly changes encoding. A
+// treemap shown as a bar chart is a wrong answer that looks right, and nothing
+// else on screen contradicts it — the same defect class as claiming a display
+// mode switched when the host refused. These pin that we say so.
+describe('substituted viz types', () => {
+  const cases: Array<[string, string]> = [
+    ['treemap_v2', 'treemap'],
+    ['heatmap_v2', 'heatmap'],
+    ['sunburst_v2', 'sunburst diagram'],
+    ['word_cloud', 'word cloud'],
+    ['deck_scatter', 'deck.gl map'],
+    ['world_map', 'world map'],
+    ['box_plot', 'box plot'],
+    ['gantt_chart', 'Gantt chart'],
+  ];
+
+  it.each(cases)('flags %s as rendered in a different encoding', (viz, label) => {
+    expect(unrenderableVizLabel(viz)).toBe(label);
+    // Whatever view it falls through to, it must be reported as a substitute.
+    expect(isSubstitutedView(viz, 'bar')).toBe(label);
+  });
+
+  it('does not flag types the widget renders faithfully', () => {
+    for (const viz of [
+      'echarts_timeseries_line',
+      'echarts_timeseries_bar',
+      'table',
+      'pivot_table_v2',
+      'big_number_total',
+      'pie',
+    ]) {
+      expect(unrenderableVizLabel(viz)).toBeNull();
+      expect(isSubstitutedView(viz, defaultViewForChartType(viz))).toBeNull();
+    }
+  });
+
+  it('treats a rose chart drawn as a pie as a fair likeness', () => {
+    // It is a pie variant, so the pie renderer is not a misencoding — but the
+    // same type falling through to a bar chart still is.
+    expect(isSubstitutedView('rose', 'pie')).toBeNull();
+    expect(isSubstitutedView('rose', 'bar')).toBe('rose chart');
   });
 });

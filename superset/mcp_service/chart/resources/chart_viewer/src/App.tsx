@@ -52,6 +52,7 @@ import {
   describeChart,
   isCartesianView,
   isEChartsView,
+  isSubstitutedView,
 } from './adapter';
 import { formatByColumn, stripUntrustedMarkers } from './format';
 import {
@@ -753,6 +754,12 @@ export function App(): JSX.Element {
   const enableBrush =
     isCartesianView(view) && canRequery && !!roles?.dimensionIsTemporal;
 
+  // A viz type this widget has no renderer for still resolves to SOME view,
+  // so the chart looks right, carries the real title and the real numbers, and
+  // silently uses a different encoding. Say so rather than let a treemap pass
+  // for a bar chart.
+  const substitutedFrom = data ? isSubstitutedView(data.chart_type, view) : null;
+
   const body = isEmpty ? (
     <EmptyState />
   ) : view === 'big_number' ? (
@@ -841,6 +848,8 @@ export function App(): JSX.Element {
     startResize,
     toggleMaximize,
     displayMode,
+    substitutedFrom,
+    view,
   );
 }
 
@@ -910,6 +919,8 @@ function shell(
   onResizeStart?: (event: ReactPointerEvent<HTMLDivElement>) => void,
   onToggleMaximize?: () => void,
   displayMode: DisplayMode = 'inline',
+  substitutedFrom: string | null = null,
+  substitutedView: ViewType | null = null,
 ): JSX.Element {
   const expanded = displayMode === 'fullscreen';
   return (
@@ -954,6 +965,12 @@ function shell(
         {actionToast}
         {toast && <div className="sv-toast">{toast}</div>}
       </div>
+      {substitutedFrom && (
+        <div className="sv-substitution">
+          Shown as a {substitutedView} chart — Superset renders this as a{' '}
+          {substitutedFrom}. Open in Superset for the real thing.
+        </div>
+      )}
       {data?.insights && data.insights.length > 0 && (
         <div className="sv-insights">
           <strong>Insight:</strong> {stripUntrustedMarkers(data.insights[0])}
