@@ -88,7 +88,7 @@ class OAuth2StoreTokenCommand(BaseCommand):
                 engine_spec.engine,
                 type(ex).__name__,
             )
-            raise
+            raise OAuth2Error("Token exchange failed") from None
 
         # delete old tokens
         if existing := DatabaseUserOAuth2TokensDAO.find_one_or_none(

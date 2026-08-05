@@ -183,7 +183,11 @@ class AbstractEventLogger(ABC):
         from superset import db
         from superset.views.core import get_form_data
 
-        referrer = request.referrer[:1000] if request and request.referrer else None
+        referrer = (
+            request.referrer[:1000]
+            if include_request_data and request and request.referrer
+            else None
+        )
 
         duration_ms = int(duration.total_seconds() * 1000) if duration else None
 
@@ -267,7 +271,8 @@ class AbstractEventLogger(ABC):
         :param action: a name to identify the event
         :param object_ref: reference to the Python object that triggered this action
         :param log_to_statsd: whether to update statsd counter for the action
-        :param include_request_data: whether to include form, query, and JSON fields
+        :param include_request_data: whether to include form, query, JSON, and referrer
+            data
         """
         payload_override = kwargs.copy()
         start = datetime.now()
