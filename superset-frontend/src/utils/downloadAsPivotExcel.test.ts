@@ -136,3 +136,22 @@ test('leaves ISO-shaped strings with out-of-range time components as text', () =
   expect(sheet.B1).toMatchObject({ t: 's', v: '2024-01-01 24:00:00' });
   expect(sheet.C1).toMatchObject({ t: 's', v: '2024-01-01 12:30:61' });
 });
+
+test('leaves ISO-shaped strings with out-of-range date components as text', () => {
+  const sheet = exportRowAndGetSheet([
+    '2023-02-29', // 2023 is not a leap year, so February has 28 days.
+    '2024-02-30', // No February has 30 days, leap year or not.
+    '2024-13-01', // No 13th month.
+    '2024-01-32', // No 32nd day.
+  ]);
+
+  // Date.UTC rolls an out-of-range day/month over into the next unit (e.g.
+  // Feb 30 becomes Mar 1) instead of rejecting it. If the year/month/day
+  // fields weren't round-tripped, these would be silently exported as
+  // native cells holding the wrong date, so they must stay as text -
+  // exactly as rendered - instead.
+  expect(sheet.A1).toMatchObject({ t: 's', v: '2023-02-29' });
+  expect(sheet.B1).toMatchObject({ t: 's', v: '2024-02-30' });
+  expect(sheet.C1).toMatchObject({ t: 's', v: '2024-13-01' });
+  expect(sheet.D1).toMatchObject({ t: 's', v: '2024-01-32' });
+});
