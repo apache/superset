@@ -616,3 +616,73 @@ def test_use_equality_for_boolean_filters_property() -> None:
     from superset.db_engine_specs.clickhouse import ClickHouseBaseEngineSpec
 
     assert ClickHouseBaseEngineSpec.use_equality_for_boolean_filters is True
+
+
+def test_clickhouse_mutate_label_suffixes_hash() -> None:
+    """Regression test for #40289.
+
+    ``_mutate_label`` must append a 6-char hash suffix so that column
+    aliases in ``SELECT expr AS alias`` never collide lexically with
+    subquery column names of the same name. Without this suffix,
+    ClickHouse 25.3+ raises ``Code: 215`` on charts against virtual
+    datasets, even though the SELECT and GROUP BY expressions are
+    lexically identical.
+
+    The expected values are **fixed literals** rather than the same
+    ``f"{label}_{hash_from_str(label)[:6]}"`` formula used by production,
+    so that a drift in the hash algorithm, input, or suffix length is
+    caught here — a formula-based expected would silently recompute the
+    same drift and pass.
+    """
+    from unittest.mock import patch
+
+    from superset.db_engine_specs.clickhouse import ClickHouseBaseEngineSpec
+
+    # ``hash_from_str`` reads ``HASH_ALGORITHM`` from the Flask app
+    # config (defaults to ``sha256`` at ``superset/config.py:259`` but
+    # an operator can override to ``md5``). Patching pins the assertion
+    # to the default so it doesn't drift with an operator's test-env
+    # config choice.
+    with patch("superset.utils.hashing.get_hash_algorithm", return_value="sha256"):
+        assert (
+            ClickHouseBaseEngineSpec._mutate_label("create_time")
+            == "create_time_b09621"
+        )
+        assert ClickHouseBaseEngineSpec._mutate_label("revenue") == "revenue_371f7e"
+        assert (
+            ClickHouseBaseEngineSpec._mutate_label("sum(A)/sum(B)")
+            == "sum(A)/sum(B)_f0ea8d"
+        )
+
+
+def test_clickhouse_mutate_label_is_deterministic() -> None:
+    """``_mutate_label`` must be deterministic *and* must actually apply
+    a label-prefixed suffix. The equality check alone passes against an
+    identity ``_mutate_label``; the ``startswith`` check kills that
+    regression.
+    """
+    from superset.db_engine_specs.clickhouse import ClickHouseBaseEngineSpec
+
+    first = ClickHouseBaseEngineSpec._mutate_label("x")
+    second = ClickHouseBaseEngineSpec._mutate_label("x")
+    assert first == second
+    # Blocks identity + constant regressions the equality check misses.
+    assert first.startswith("x_")
+    assert first != "x"
+
+
+def test_clickhouse_mutate_label_is_unique_across_inputs() -> None:
+    """``_mutate_label`` must produce distinct outputs for distinct
+    inputs *and* must actually apply the suffix to both. The
+    inequality check alone passes against an identity ``_mutate_label``.
+    """
+    from superset.db_engine_specs.clickhouse import ClickHouseBaseEngineSpec
+
+    a = ClickHouseBaseEngineSpec._mutate_label("a")
+    b = ClickHouseBaseEngineSpec._mutate_label("b")
+    assert a != b
+    # Blocks identity regression the inequality check misses.
+    assert a.startswith("a_")
+    assert b.startswith("b_")
+    assert a != "a"
+    assert b != "b"

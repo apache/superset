@@ -80,6 +80,31 @@ Behavior changes to be aware of:
   if charts never mount. Thumbnails and non-report screenshots keep their
   previous behavior.
 
+### ClickHouse: column aliases regain a short hash suffix
+
+Column aliases in generated ClickHouse queries are again suffixed with a
+6-character hash of the label (e.g. `create_time` → `create_time_b09621`
+under the default `HASH_ALGORITHM = "sha256"`; the exact digest depends
+on the configured algorithm). This restores the pre-6.0 behavior removed
+in [#38280](https://github.com/apache/superset/pull/38280) and **widens
+it from the leaf `ClickHouseConnectEngineSpec` to the shared
+`ClickHouseBaseEngineSpec`, so the native `ClickHouseEngineSpec`
+(clickhouse-sqlalchemy driver) is now covered as well**. Fixes
+[#40289](https://github.com/apache/superset/issues/40289): ClickHouse
+25.3+ raises `Code: 215` on charts against virtual datasets when the
+outer alias collides lexically with a subquery column name, even though
+the SELECT and GROUP BY expressions are lexically identical.
+
+**Impact on upgrade:**
+- Cached chart results keyed on the old (no-suffix) aliases miss the
+  cache once and re-render.
+- Exported CSV/XLSX column headers for ClickHouse charts include the
+  suffix.
+- Any downstream consumer that parses column headers (external clients,
+  notebooks, alerts) sees the new names.
+
+Other engines are unaffected.
+
 ### Principal listing APIs now honour related-field filters
 
 Two authorization-related listing behaviors changed for API clients. Neither

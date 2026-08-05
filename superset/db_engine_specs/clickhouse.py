@@ -42,6 +42,7 @@ from superset.db_engine_specs.exceptions import SupersetDBAPIDatabaseError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.extensions import cache_manager
 from superset.utils.core import GenericDataType
+from superset.utils.hashing import hash_from_str
 from superset.utils.network import is_hostname_valid, is_port_open
 
 if TYPE_CHECKING:
@@ -58,6 +59,24 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
 
     # ClickHouse doesn't support IS true/false syntax, use = true/false instead
     use_equality_for_boolean_filters = True
+
+    @staticmethod
+    def _mutate_label(label: str) -> str:
+        """Suffix labels with a short hash of the label.
+
+        Prevents ClickHouse's aggregate checker from conflating an outer
+        alias with an inner subquery column of the same name — the shape
+        Superset generates for a chart on a virtual dataset:
+
+            SELECT toStartOfMonth(t.create_time) AS create_time
+            FROM (SELECT create_time FROM raw) AS t
+            GROUP BY toStartOfMonth(t.create_time)
+
+        which ClickHouse 25.3+ rejects with ``Code: 215`` even though the
+        two expressions are lexically identical. Restores the pre-#38280
+        behavior. See #40289.
+        """
+        return f"{label}_{hash_from_str(label)[:6]}"
 
     # ClickHouse enforces max_rows_to_read against a pre-execution estimate
     # that ignores LIMIT, so bounded sampling queries on large tables are
