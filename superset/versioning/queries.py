@@ -40,7 +40,10 @@ from flask_appbuilder import Model
 from sqlalchemy_continuum import version_class
 
 from superset.extensions import db
-from superset.versioning.baseline import CONTINUUM_BOOKKEEPING_COLUMNS
+from superset.versioning.baseline import (
+    CONTINUUM_BOOKKEEPING_COLUMNS,
+    OPERATION_DELETE,
+)
 from superset.versioning.db_errors import is_missing_table_error
 
 logger = logging.getLogger(__name__)
@@ -173,18 +176,31 @@ def identity_filter(columns: Any, entity_id: int, entity_uuid: UUID) -> Any:
     return sa.and_(columns.id == entity_id, columns.uuid == entity_uuid)
 
 
-def _get_version_count(
+def current_version_info(
     model_cls: type[Model], entity_id: int, entity_uuid: UUID
-) -> int:
-    """Return the number of historical version rows for the entity."""
+) -> tuple[int | None, int | None]:
+    """Return the version number and live transaction from one query."""
     ver_cls = version_class(model_cls)
-    return (
-        db.session.query(sa.func.count())
-        .select_from(ver_cls)
+    count, transaction_id = (
+        db.session.query(
+            sa.func.count(),
+            sa.func.max(
+                sa.case(
+                    (
+                        sa.and_(
+                            ver_cls.end_transaction_id.is_(None),
+                            ver_cls.operation_type != OPERATION_DELETE,
+                        ),
+                        ver_cls.transaction_id,
+                    )
+                )
+            ),
+        )
         .filter(identity_filter(ver_cls, entity_id, entity_uuid))
-        .scalar()
-        or 0
+        .one()
     )
+    version_number = count - 1 if count > 0 else None
+    return version_number, transaction_id
 
 
 def current_version_number(
@@ -202,8 +218,10 @@ def current_version_number(
     can refer to different rows before and after a prune cycle. Use
     :func:`current_live_transaction_id` for a stable identifier.
     """
-    count = _get_version_count(model_cls, entity_id, entity_uuid)
-    return count - 1 if count > 0 else None
+    version_number, _transaction_id = current_version_info(
+        model_cls, entity_id, entity_uuid
+    )
+    return version_number
 
 
 def current_live_transaction_id(
@@ -213,16 +231,10 @@ def current_live_transaction_id(
     *entity_id* — stable across retention pruning, unlike the index
     returned by :func:`current_version_number`.
     """
-    ver_cls = version_class(model_cls)
-    row = (
-        db.session.query(ver_cls.transaction_id)
-        .filter(identity_filter(ver_cls, entity_id, entity_uuid))
-        .filter(ver_cls.end_transaction_id.is_(None))
-        .order_by(ver_cls.transaction_id.desc())
-        .limit(1)
-        .first()
+    _version_number, transaction_id = current_version_info(
+        model_cls, entity_id, entity_uuid
     )
-    return row[0] if row else None
+    return transaction_id
 
 
 def current_live_version_uuid(
