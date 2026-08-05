@@ -68,6 +68,11 @@ from superset.mcp_service.session_scope import _mcp_session_token
 from superset.mcp_service.utils.error_sanitization import (
     sanitize_for_log as _sanitize_for_log,
 )
+from superset.security.api_key_scopes import (
+    get_resource_scope,
+    METHOD_PERMISSION_SCOPE_ACTION,
+    RESOURCE_SCOPE_NAME as RESOURCE_SCOPE_NAME,
+)
 from superset.security.guest_token import GuestUser
 
 if TYPE_CHECKING:
@@ -126,46 +131,8 @@ class MCPNoAuthSourceError(ValueError):
 # is a privileged, write-class operation and therefore requires the write
 # scope. When introducing a new method permission, add it here.
 _METHOD_TO_REQUIRED_SCOPE = {
-    "read": "superset:read",
-    # "get" is the read-class permission FAB registers on its security API
-    # views (User/Role) — those views have no can_read, so tools targeting
-    # them declare method_permission_name="get".
-    "get": "superset:read",
-    "write": "superset:write",
-    "delete": "superset:write",
-    # SQL execution (execute_sql, get_chart_sql) runs arbitrary queries and is
-    # treated as a write-class privileged operation for scope purposes.
-    "execute_sql_query": "superset:write",
-}
-
-# Maps a tool's ``class_permission_name`` to the resource segment of its
-# per-resource scope string (``superset:<resource>:<action>``).
-#
-# This is an explicit map rather than a ``class_permission_name.lower()``
-# transform because a naive lowercase breaks for "Row Level Security" (which
-# contains spaces) and produces awkward names for "ReportSchedule" and
-# "SQLLab". Keep this in sync with the ``class_permission_name`` values
-# declared by MCP tools (grep for ``class_permission_name=`` under
-# ``superset/mcp_service``). A resource missing from this map simply has no
-# per-resource scope — tokens must then rely on the flat
-# ``_METHOD_TO_REQUIRED_SCOPE`` scopes (see ``_token_scope_allows``).
-RESOURCE_SCOPE_NAME: dict[str, str] = {
-    "Annotation": "annotation",
-    "Chart": "chart",
-    "Dashboard": "dashboard",
-    "Database": "database",
-    "Dataset": "dataset",
-    "Explore": "explore",
-    "Query": "query",
-    "ReportSchedule": "report",
-    "Role": "role",
-    "Row Level Security": "rls",
-    "SavedQuery": "savedquery",
-    "SQLLab": "sqllab",
-    "Tag": "tag",
-    "Task": "task",
-    "Theme": "theme",
-    "User": "user",
+    method: f"superset:{action}"
+    for method, action in METHOD_PERMISSION_SCOPE_ACTION.items()
 }
 
 
@@ -179,12 +146,7 @@ def _required_resource_scope(
     the flat ``_METHOD_TO_REQUIRED_SCOPE`` fallback still applies in that case
     (see ``_token_scope_allows``).
     """
-    resource = RESOURCE_SCOPE_NAME.get(class_permission_name)
-    action = _METHOD_TO_REQUIRED_SCOPE.get(method_permission_name)
-    if resource is None or action is None:
-        return None
-    action_slug = action.rsplit(":", 1)[-1]
-    return f"superset:{resource}:{action_slug}"
+    return get_resource_scope(class_permission_name, method_permission_name)
 
 
 def _get_token_scopes() -> set[str] | None:

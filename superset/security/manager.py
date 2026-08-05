@@ -4976,9 +4976,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if not scopes:
             return
         # pylint: disable-next=import-outside-toplevel
-        from superset.mcp_service.auth import RESOURCE_SCOPE_NAME
+        from superset.security.api_key_scopes import (
+            RESOURCE_SCOPE_ACTIONS,
+            RESOURCE_SCOPE_CLASS,
+        )
 
-        resource_for_slug = {slug: name for name, slug in RESOURCE_SCOPE_NAME.items()}
         is_admin = any(role.name == "Admin" for role in getattr(user, "roles", []))
         for raw_scope in scopes.split(","):
             scope = raw_scope.strip()
@@ -4987,14 +4989,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             parts = scope.split(":")
             if len(parts) == 3 and parts[0] == "superset":
                 _, resource_slug, action = parts
-                class_permission_name = resource_for_slug.get(resource_slug)
+                class_permission_name = RESOURCE_SCOPE_CLASS.get(resource_slug)
                 if class_permission_name is None:
                     raise ValueError(
                         f"Requested scope '{scope}' names an unrecognized "
                         f"resource '{resource_slug}'"
                     )
-                method = "read" if action == "read" else "write"
-                if self._has_view_access(user, f"can_{method}", class_permission_name):
+                if action not in RESOURCE_SCOPE_ACTIONS:
+                    raise ValueError(
+                        f"Requested scope '{scope}' names an unrecognized "
+                        f"action '{action}'"
+                    )
+                if self._has_view_access(user, f"can_{action}", class_permission_name):
                     continue
                 raise ValueError(
                     f"Requested scope '{scope}' exceeds the issuing user's "
