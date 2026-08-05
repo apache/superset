@@ -203,7 +203,7 @@ fastmcp = [
 # Superset's own SQLAlchemy 2.0 core bump (discussion #40273), not before.
 firebird = ["sqlalchemy-firebird>=0.8.0, <2.0.0"]
 firebolt = ["firebolt-sqlalchemy>=1.1.2, <2"]
-gevent = ["gevent>=26.4.0"]
+gevent = ["gevent>=26.7.0"]
 gsheets = ["shillelagh[gsheetsapi]>=1.4.4, <2"]
 hana = ["hdbcli==2.29.25", "sqlalchemy_hana==3.0.3"]
 hive = [
