@@ -110,13 +110,18 @@ export default function DashboardBuilderV2() {
     <PageContainer vertical>
       {/* The one piece of authoring chrome this page owns. It arranges the
           root canvas rather than any block, so it belongs to the page and
-          not to the tree BuildingBlockView renders — and it is hidden while
-          the dashboard is empty, when there is nothing to arrange. */}
-      {!isEmpty && (
-        <Toolbar>
-          <LayoutModeSwitcher nodeId={root.id} />
-        </Toolbar>
-      )}
+          not to the tree BuildingBlockView renders.
+
+          Shown on an empty dashboard too. Hiding it until something was on
+          the canvas read as "nothing to arrange yet", but the practical
+          effect was that the control was invisible at the one moment
+          someone opening a blank dashboard would look for it — and setting
+          the arrangement before adding anything is the ordinary way round:
+          whatever the assistant places next lands in the mode already
+          chosen, rather than being placed and then rearranged. */}
+      <Toolbar>
+        <LayoutModeSwitcher nodeId={root.id} />
+      </Toolbar>
       <Canvas>
         {isEmpty ? (
           <EmptyCanvasWrapper>
