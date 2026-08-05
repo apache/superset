@@ -40,6 +40,7 @@ from superset.extensions import (
 )
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import override_user
+from superset.utils.error_sanitization import sanitize_error_dicts
 from superset.views.utils import get_datasource_info, get_viz
 
 if TYPE_CHECKING:
@@ -141,7 +142,9 @@ def load_chart_data_into_cache(
                 error = str(ex.message if hasattr(ex, "message") else ex)
                 errors = [{"message": error}]
             async_query_manager.update_job(
-                job_metadata, async_query_manager.STATUS_ERROR, errors=errors
+                job_metadata,
+                async_query_manager.STATUS_ERROR,
+                errors=sanitize_error_dicts(errors),
             )
             raise
 
@@ -213,6 +216,8 @@ def load_explore_json_into_cache(  # pylint: disable=too-many-locals
                 errors = [error]  # type: ignore
 
             async_query_manager.update_job(
-                job_metadata, async_query_manager.STATUS_ERROR, errors=errors
+                job_metadata,
+                async_query_manager.STATUS_ERROR,
+                errors=sanitize_error_dicts(errors),
             )
             raise
