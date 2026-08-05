@@ -23,7 +23,7 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from fastmcp.exceptions import ToolError
+from fastmcp.exceptions import ToolError, ValidationError as FastMCPValidationError
 from pydantic import ValidationError
 from sqlalchemy.exc import OperationalError
 
@@ -1490,6 +1490,39 @@ class TestGlobalErrorHandlerLogLevels:
 
         mock_logger.warning.assert_called()
         mock_logger.error.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_fastmcp_validation_error_routes_to_validation_branch(self) -> None:
+        """
+        Regression for #42578: FastMCP raises its own
+        ``fastmcp.exceptions.ValidationError`` for malformed tool arguments,
+        which is not a subclass of pydantic's ``ValidationError`` (the only
+        one ``_handle_error`` checks for). It must not fall through to the
+        generic "Internal error... contact support" branch, since that
+        misreports a client-recoverable 400-class error as an opaque 500.
+        """
+        middleware = GlobalErrorHandlerMiddleware()
+
+        context = MagicMock()
+        context.message.name = "execute_sql"
+        context.method = "tools/call"
+
+        call_next = AsyncMock(
+            side_effect=FastMCPValidationError(
+                "1 validation error for call[execute_sql]\n"
+                "request\n  Missing required argument"
+            )
+        )
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch("superset.mcp_service.middleware.logger"),
+            pytest.raises(ToolError, match="Validation error in execute_sql") as exc,
+        ):
+            await middleware.on_message(context, call_next)
+
+        assert "Internal error" not in str(exc.value)
 
 
 class TestRBACToolVisibilityMiddleware:
