@@ -126,6 +126,7 @@ export function OAuth2RedirectMessage({
             { type: 'Schemas', id: 'LIST' },
             { type: 'Catalogs', id: 'LIST' },
             'Tables',
+            'TableMetadatas',
           ]),
         );
       } else {
