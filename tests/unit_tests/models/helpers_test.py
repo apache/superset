@@ -30,7 +30,7 @@ from sqlalchemy.orm.session import Session
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.sql.elements import ColumnElement
 
-from superset.superset_typing import AdhocColumn
+from superset.superset_typing import AdhocColumn, AdhocMetric
 from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:
