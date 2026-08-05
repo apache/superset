@@ -48,10 +48,10 @@ def sm(app_context: None) -> SupersetSecurityManager:
 
 def test_no_scopes_is_a_noop(sm: SupersetSecurityManager) -> None:
     """No scopes requested: nothing to validate, no RBAC lookups."""
-    sm.can_access = MagicMock()  # type: ignore[method-assign]
+    sm._has_view_access = MagicMock()
     sm._validate_requested_api_key_scopes(_make_user("Gamma"), None)
     sm._validate_requested_api_key_scopes(_make_user("Gamma"), "")
-    sm.can_access.assert_not_called()
+    sm._has_view_access.assert_not_called()
 
 
 def test_per_resource_scope_allowed_when_user_has_permission(
@@ -59,18 +59,17 @@ def test_per_resource_scope_allowed_when_user_has_permission(
 ) -> None:
     """A per-resource scope the user's RBAC covers is allowed, and is checked
     against the matching can_<method> grant."""
-    sm.can_access = MagicMock(return_value=True)  # type: ignore[method-assign]
-    sm._validate_requested_api_key_scopes(
-        _make_user("Gamma"), "superset:dashboard:read"
-    )
-    sm.can_access.assert_called_once_with("can_read", "Dashboard")
+    sm._has_view_access = MagicMock(return_value=True)
+    user = _make_user("Gamma")
+    sm._validate_requested_api_key_scopes(user, "superset:dashboard:read")
+    sm._has_view_access.assert_called_once_with(user, "can_read", "Dashboard")
 
 
 def test_per_resource_scope_rejected_when_user_lacks_permission(
     sm: SupersetSecurityManager,
 ) -> None:
     """A per-resource scope beyond the user's RBAC is rejected."""
-    sm.can_access = MagicMock(return_value=False)  # type: ignore[method-assign]
+    sm._has_view_access = MagicMock(return_value=False)
     with pytest.raises(ValueError, match="exceeds the issuing user's own"):
         sm._validate_requested_api_key_scopes(
             _make_user("Gamma"), "superset:dashboard:write"
@@ -83,11 +82,10 @@ def test_non_read_actions_map_to_can_write(
 ) -> None:
     """Non-read actions check can_write — matching the current RBAC
     granularity, which has no separate can_delete/can_update on resources."""
-    sm.can_access = MagicMock(return_value=True)  # type: ignore[method-assign]
-    sm._validate_requested_api_key_scopes(
-        _make_user("Gamma"), f"superset:chart:{action}"
-    )
-    sm.can_access.assert_called_once_with("can_write", "Chart")
+    sm._has_view_access = MagicMock(return_value=True)
+    user = _make_user("Gamma")
+    sm._validate_requested_api_key_scopes(user, f"superset:chart:{action}")
+    sm._has_view_access.assert_called_once_with(user, "can_write", "Chart")
 
 
 def test_unrecognized_resource_slug_rejected_without_rbac_lookup(
@@ -95,26 +93,26 @@ def test_unrecognized_resource_slug_rejected_without_rbac_lookup(
 ) -> None:
     """An unknown resource slug is rejected outright (fail closed) and never
     consults RBAC."""
-    sm.can_access = MagicMock()  # type: ignore[method-assign]
+    sm._has_view_access = MagicMock()
     with pytest.raises(ValueError, match="unrecognized resource"):
         sm._validate_requested_api_key_scopes(
             _make_user("Admin"), "superset:notathing:read"
         )
-    sm.can_access.assert_not_called()
+    sm._has_view_access.assert_not_called()
 
 
 def test_flat_scope_allowed_for_admin(sm: SupersetSecurityManager) -> None:
     """A flat scope (superset:write) may be self-issued by an Admin, with no
     per-resource RBAC lookups."""
-    sm.can_access = MagicMock()  # type: ignore[method-assign]
+    sm._has_view_access = MagicMock()
     sm._validate_requested_api_key_scopes(_make_user("Admin"), "superset:write")
-    sm.can_access.assert_not_called()
+    sm._has_view_access.assert_not_called()
 
 
 def test_flat_scope_rejected_for_non_admin(sm: SupersetSecurityManager) -> None:
     """A flat scope grants a method across every resource; non-Admins cannot
     self-issue it."""
-    sm.can_access = MagicMock()  # type: ignore[method-assign]
+    sm._has_view_access = MagicMock()
     with pytest.raises(ValueError, match="requires Admin"):
         sm._validate_requested_api_key_scopes(_make_user("Gamma"), "superset:write")
 
@@ -124,8 +122,8 @@ def test_any_failing_scope_rejects_the_whole_request(
 ) -> None:
     """With multiple comma-separated scopes, one failure rejects the request
     even when other scopes are individually allowed."""
-    sm.can_access = MagicMock(  # type: ignore[method-assign]
-        side_effect=lambda perm, view: view == "Chart"
+    sm._has_view_access = MagicMock(
+        side_effect=lambda user, perm, view: view == "Chart"
     )
     with pytest.raises(ValueError, match="exceeds the issuing user's own"):
         sm._validate_requested_api_key_scopes(
@@ -139,7 +137,7 @@ def test_create_api_key_rejects_before_delegating_to_fab(
 ) -> None:
     """create_api_key validates scopes BEFORE calling FAB's implementation:
     a rejected request never reaches FAB."""
-    sm.can_access = MagicMock(return_value=False)  # type: ignore[method-assign]
+    sm._has_view_access = MagicMock(return_value=False)
     with patch(
         "flask_appbuilder.security.sqla.manager.SecurityManager.create_api_key"
     ) as fab_create:
@@ -156,7 +154,7 @@ def test_create_api_key_delegates_to_fab_on_success(
     sm: SupersetSecurityManager,
 ) -> None:
     """A validated request is delegated to FAB's create_api_key unchanged."""
-    sm.can_access = MagicMock(return_value=True)  # type: ignore[method-assign]
+    sm._has_view_access = MagicMock(return_value=True)
     user = _make_user("Gamma")
     with patch(
         "flask_appbuilder.security.sqla.manager.SecurityManager.create_api_key",
