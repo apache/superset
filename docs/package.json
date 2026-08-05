@@ -97,7 +97,7 @@
     "oxfmt": "^0.61.0",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.65.0",
-    "webpack": "^5.109.1"
+    "webpack": "^5.109.2"
   },
   "browserslist": {
     "production": [
