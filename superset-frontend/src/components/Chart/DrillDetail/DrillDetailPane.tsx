@@ -115,9 +115,12 @@ export default function DrillDetailPane({
       state.common.conf.SAMPLES_ROW_LIMIT,
   );
 
+  // Falls back to ROW_LIMIT when the backend predates DRILL_DETAIL_EXPORT_ROW_LIMIT
+  // and therefore doesn't bootstrap it.
   const exportRowLimit = useSelector(
     (state: { common: { conf: JsonObject } }) =>
-      state.common.conf.DRILL_DETAIL_EXPORT_ROW_LIMIT,
+      state.common.conf.DRILL_DETAIL_EXPORT_ROW_LIMIT ??
+      state.common.conf.ROW_LIMIT,
   );
 
   const { canDownload } = usePermissions();

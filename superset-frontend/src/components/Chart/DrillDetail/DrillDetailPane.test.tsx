@@ -290,6 +290,24 @@ describe('download actions', () => {
     postFormSpy.mockRestore();
   });
 
+  test('export row limit falls back to ROW_LIMIT when the export limit is missing', async () => {
+    fetchWithData();
+    const postFormSpy = jest
+      .spyOn(SupersetClient, 'postForm')
+      .mockImplementation(() => Promise.resolve());
+    renderWithDownloadPermission({
+      ROW_LIMIT: 4321,
+      DRILL_DETAIL_EXPORT_ROW_LIMIT: undefined,
+    });
+
+    await clickDownloadItem('Export to CSV');
+
+    const body = postFormSpy.mock.calls[0][1] as { form_data: string };
+    const payload = JSON.parse(body.form_data);
+    expect(payload.queries[0].row_limit).toBe(4321);
+    postFormSpy.mockRestore();
+  });
+
   test('XLSX export uses xlsx result_format', async () => {
     fetchWithData();
     const postFormSpy = jest
