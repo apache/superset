@@ -49,6 +49,7 @@ vi.mock('./components/EChart', () => ({
 
 const reportSize = vi.fn();
 const initialize = vi.fn();
+const supportsDisplayMode = vi.fn((_mode: string): boolean => true);
 const requestDisplayMode = vi.fn().mockResolvedValue(null);
 let contextListener: ((ctx: Record<string, unknown>) => void) | null = null;
 
@@ -84,6 +85,7 @@ vi.mock('./bridge', () => ({
       };
     });
     hasTool = vi.fn(() => false);
+    supportsDisplayMode = supportsDisplayMode;
     getDiagnostics = vi.fn(() => ({
       protocolVersion: '2026-01-26',
       hostCapabilities: {},
@@ -144,6 +146,7 @@ afterEach(() => {
   contextListener = null;
   vi.clearAllMocks();
   initialize.mockResolvedValue(CONNECTED_HANDSHAKE);
+  supportsDisplayMode.mockReturnValue(true);
 });
 
 function maximizeButton(): HTMLButtonElement {
@@ -403,4 +406,61 @@ it('renders the explore URL as selectable text when it cannot be opened', async 
   const panel = container!.querySelector('.sv-panel-text');
   expect(panel).not.toBeNull();
   expect(panel!.textContent).toContain('slice_id=113');
+});
+
+// ---- pip / pin -----------------------------------------------------------
+// `pip` is the third spec display mode: a floating overlay. The two-state
+// `expanding = displayMode !== 'fullscreen'` could not express it — from pip,
+// "not fullscreen" would have meant "expand" and collapsing was unreachable.
+// That same assumption is where the collapse bug came from.
+
+it('offers no pin control when the host does not advertise pip', async () => {
+  supportsDisplayMode.mockImplementation((m: string) => m !== 'pip');
+  await renderApp();
+  // A button that provably does nothing is worse than no button.
+  expect(container!.querySelector('.sv-pin')).toBeNull();
+});
+
+it('offers the pin control when the host advertises pip', async () => {
+  supportsDisplayMode.mockReturnValue(true);
+  await renderApp();
+  expect(container!.querySelector('.sv-pin')).not.toBeNull();
+});
+
+it('asks for pip, and returns to inline from pip', async () => {
+  supportsDisplayMode.mockReturnValue(true);
+  requestDisplayMode.mockImplementation((mode: string) => Promise.resolve(mode));
+  await renderApp();
+  const pin = () => container!.querySelector('.sv-pin') as HTMLButtonElement;
+
+  await act(async () => {
+    pin().click();
+  });
+  expect(requestDisplayMode).toHaveBeenLastCalledWith('pip');
+  expect(pin().getAttribute('aria-pressed')).toBe('true');
+
+  // From pip, the pin control must return to inline — with the old binary
+  // logic this state was a dead end.
+  await act(async () => {
+    pin().click();
+  });
+  expect(requestDisplayMode).toHaveBeenLastCalledWith('inline');
+  expect(pin().getAttribute('aria-pressed')).toBe('false');
+});
+
+it('reports the mode the host applied when it substitutes one', async () => {
+  supportsDisplayMode.mockReturnValue(true);
+  // Host is asked for pip and answers fullscreen — spec-legal.
+  requestDisplayMode.mockResolvedValue('fullscreen');
+  await renderApp();
+  await act(async () => {
+    (container!.querySelector('.sv-pin') as HTMLButtonElement).click();
+  });
+  // Claiming pip here is the defect that made the collapse control lie.
+  expect(container!.querySelector('.sv-pin')!.getAttribute('aria-pressed')).toBe(
+    'false',
+  );
+  expect(
+    container!.querySelector('.sv-maximize')!.getAttribute('aria-pressed'),
+  ).toBe('true');
 });

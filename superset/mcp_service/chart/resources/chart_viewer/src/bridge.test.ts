@@ -445,3 +445,84 @@ describe('capability derivation', () => {
     expect(init.diagnostics.sandboxPermissions).toEqual(['clipboardWrite']);
   });
 });
+
+describe('pip display mode', () => {
+  it('declares all three modes so a host may offer pip', async () => {
+    const host = withFakeHost((msg) =>
+      msg.method === 'ui/initialize'
+        ? { hostCapabilities: {}, hostContext: {} }
+        : undefined,
+    );
+    try {
+      const bridge = new ChartBridge();
+      await bridge.initialize(500);
+      const init = host.sent.find((m) => m.method === 'ui/initialize');
+      expect(
+        (init?.params.appCapabilities as { availableDisplayModes: string[] })
+          .availableDisplayModes,
+      ).toEqual(['inline', 'fullscreen', 'pip']);
+    } finally {
+      host.restore();
+    }
+  });
+
+  it('reports pip unsupported when the host lists modes without it', async () => {
+    const host = withFakeHost((msg) =>
+      msg.method === 'ui/initialize'
+        ? {
+            hostCapabilities: {},
+            hostContext: { availableDisplayModes: ['inline', 'fullscreen'] },
+          }
+        : undefined,
+    );
+    try {
+      const bridge = new ChartBridge();
+      await bridge.initialize(500);
+      expect(bridge.supportsDisplayMode('pip')).toBe(false);
+      expect(bridge.supportsDisplayMode('fullscreen')).toBe(true);
+      // ...and never asks for it, so no control can hang on a timeout.
+      await expect(bridge.requestDisplayMode('pip', 5000)).resolves.toBeNull();
+      expect(host.sent.some((m) => m.method === 'ui/request-display-mode')).toBe(
+        false,
+      );
+    } finally {
+      host.restore();
+    }
+  });
+
+  it('treats an unstated mode list as "might work", not "no"', async () => {
+    // A host that advertises nothing tells us nothing; requesting is harmless
+    // and a wrong "no" would hide a working feature.
+    const host = withFakeHost((msg) =>
+      msg.method === 'ui/initialize'
+        ? { hostCapabilities: {}, hostContext: {} }
+        : undefined,
+    );
+    try {
+      const bridge = new ChartBridge();
+      await bridge.initialize(500);
+      expect(bridge.supportsDisplayMode('pip')).toBe(true);
+    } finally {
+      host.restore();
+    }
+  });
+
+  it('accepts pip as a granted mode', async () => {
+    const host = withFakeHost((msg) => {
+      if (msg.method === 'ui/initialize')
+        return {
+          hostCapabilities: {},
+          hostContext: { availableDisplayModes: ['inline', 'pip'] },
+        };
+      if (msg.method === 'ui/request-display-mode') return { mode: 'pip' };
+      return undefined;
+    });
+    try {
+      const bridge = new ChartBridge();
+      await bridge.initialize(500);
+      await expect(bridge.requestDisplayMode('pip', 500)).resolves.toBe('pip');
+    } finally {
+      host.restore();
+    }
+  });
+});

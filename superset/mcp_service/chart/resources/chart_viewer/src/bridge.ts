@@ -35,8 +35,15 @@ import type {
   DashboardRender,
 } from './types';
 
-/** Display modes the widget can ask the host to switch between. */
-export type DisplayMode = 'inline' | 'fullscreen';
+/**
+ * Display modes the widget can ask the host to switch between.
+ *
+ * `pip` is a floating overlay. The spec defines it as exactly that and says
+ * nothing about whether it survives the next conversation turn, so the widget
+ * offers it only where a host advertises it and makes no promise about how
+ * long it stays.
+ */
+export type DisplayMode = 'inline' | 'fullscreen' | 'pip';
 
 export interface HostContext {
   scheme: ColorScheme;
@@ -181,7 +188,9 @@ export class ChartBridge {
         {
           protocolVersion: PROTOCOL_VERSION,
           appInfo: APP_INFO,
-          appCapabilities: { availableDisplayModes: ['inline', 'fullscreen'] },
+          appCapabilities: {
+            availableDisplayModes: ['inline', 'fullscreen', 'pip'],
+          },
         },
         timeoutMs,
       )) as HostInitResult;
@@ -353,6 +362,18 @@ export class ChartBridge {
   /** Display modes the host advertised, or null if it advertised none. */
   getHostDisplayModes(): Set<string> | null {
     return this.hostDisplayModes;
+  }
+
+  /**
+   * Whether the host offers a mode, for gating the control that requests it.
+   *
+   * A host that advertises nothing is treated as "might support it" — we
+   * cannot tell, and requesting is harmless. A host that advertises a list
+   * without this mode is treated as a definite no, so the widget never shows
+   * a button it knows will do nothing.
+   */
+  supportsDisplayMode(mode: DisplayMode): boolean {
+    return this.hostDisplayModes ? this.hostDisplayModes.has(mode) : true;
   }
 
   /**
@@ -561,7 +582,9 @@ function emptyCapabilities(): HostCapabilities {
 
 /** Narrow a host-reported mode to one this widget knows how to render. */
 function asDisplayMode(value: unknown): DisplayMode | null {
-  return value === 'inline' || value === 'fullscreen' ? value : null;
+  return value === 'inline' || value === 'fullscreen' || value === 'pip'
+    ? value
+    : null;
 }
 
 /**

@@ -623,66 +623,98 @@ export function App(): JSX.Element {
     [requestHeight, requestedHeight],
   );
 
-  const toggleMaximize = useCallback(async () => {
-    const expanding = displayMode !== 'fullscreen';
-    const target: DisplayMode = expanding ? 'fullscreen' : 'inline';
-    // Arm the stale-context guard for a fixed window rather than only for the
-    // duration of the await. Hosts announce a mode change with a
-    // host-context-changed notification that arrives *after* the response, so
-    // a guard released on the way out of this function is already gone by the
-    // time the notification it exists to filter shows up.
-    armDisplayModeGuard(target);
+  /**
+   * Switch to an explicit display mode, treating the host's answer as truth.
+   *
+   * Takes a target rather than deriving one. The previous version computed
+   * intent as `displayMode !== 'fullscreen'`, which cannot express three
+   * modes: from `pip`, "not fullscreen" would have meant "expand", and
+   * collapsing would have been unreachable. That two-state assumption is also
+   * where the collapse bug came from, so it is removed rather than widened.
+   *
+   * The host's granted mode is applied for every outcome — including one we
+   * did not ask for. The spec requires the host to answer with the resulting
+   * mode "whether updated or not", so a decline arrives as a different mode,
+   * and adopting our request instead is what previously made a control report
+   * a switch that never happened.
+   */
+  const applyDisplayMode = useCallback(
+    async (target: DisplayMode) => {
+      if (target === displayMode) return;
+      // Armed for a fixed window, not for the await: hosts announce the change
+      // in a notification that lands AFTER the response, so a guard released
+      // on the way out is gone before the push it exists to filter arrives.
+      armDisplayModeGuard(target);
 
-    const granted = await bridge.requestDisplayMode(target);
+      const granted = await bridge.requestDisplayMode(target);
 
-    if (granted === target) {
-      setDisplayMode(target);
-      // Re-assert the inline height on the way down. A host that grew the
-      // frame for fullscreen may size it from the last size notification it
-      // received, and without this nothing ever tells it to shrink back.
-      if (!expanding) {
+      if (granted) {
+        // Re-arm on what the host actually applied, so its own notification
+        // for that mode is accepted while a stale one naming the mode we left
+        // is still dropped.
+        armDisplayModeGuard(granted);
+        setDisplayMode(granted);
+        if (granted === 'inline') {
+          // A host that grew the frame may size it from the last size
+          // notification it received; without this nothing tells it to shrink.
+          requestHeight(restoreHeight ?? DEFAULT_WIDGET_HEIGHT);
+          setRestoreHeight(null);
+        } else if (displayMode === 'inline') {
+          setRestoreHeight(requestedHeight);
+        }
+        if (granted !== target) {
+          showToast(
+            granted === 'fullscreen'
+              ? 'This host manages fullscreen — use its own close control to exit.'
+              : `This host kept the chart ${granted}.`,
+          );
+        }
+        return;
+      }
+
+      // No usable answer: the host has no display-mode support at all, so the
+      // widget owns its own size. Only inline and a taller inline are
+      // achievable without the host, so a pip request degrades to that.
+      releaseDisplayModeGuard();
+      if (target === 'inline') {
         requestHeight(restoreHeight ?? DEFAULT_WIDGET_HEIGHT);
         setRestoreHeight(null);
+        setDisplayMode('inline');
+      } else {
+        setRestoreHeight(requestedHeight);
+        requestHeight(Math.max(requestedHeight, 720));
+        // Claim only what actually happened: the frame grew, it is not pip.
+        setDisplayMode('fullscreen');
+        if (target === 'pip') {
+          showToast('This host cannot pin the chart — expanded it instead.');
+        }
       }
-      return;
-    }
+    },
+    [
+      armDisplayModeGuard,
+      releaseDisplayModeGuard,
+      displayMode,
+      requestHeight,
+      requestedHeight,
+      restoreHeight,
+      showToast,
+    ],
+  );
 
-    if (granted) {
-      // The host answered with a different mode: it declined, and it is
-      // authoritative about its own chrome. Reflect what it reported instead
-      // of the mode we asked for — claiming the switch succeeded is what made
-      // the control appear to do nothing.
-      releaseDisplayModeGuard();
-      setDisplayMode(granted);
-      showToast(
-        granted === 'fullscreen'
-          ? 'This host manages fullscreen — use its own close control to exit.'
-          : 'This host kept the chart inline.',
-      );
-      return;
-    }
+  const toggleMaximize = useCallback(
+    () =>
+      applyDisplayMode(displayMode === 'fullscreen' ? 'inline' : 'fullscreen'),
+    [applyDisplayMode, displayMode],
+  );
 
-    // No usable answer: the host has no display-mode support, so the widget
-    // owns its own size. Grow the iframe instead — and remember the previous
-    // height so the same control can put it back.
-    releaseDisplayModeGuard();
-    if (expanding) {
-      setRestoreHeight(requestedHeight);
-      requestHeight(Math.max(requestedHeight, 720));
-    } else {
-      requestHeight(restoreHeight ?? DEFAULT_WIDGET_HEIGHT);
-      setRestoreHeight(null);
-    }
-    setDisplayMode(target);
-  }, [
-    armDisplayModeGuard,
-    releaseDisplayModeGuard,
-    displayMode,
-    requestHeight,
-    requestedHeight,
-    restoreHeight,
-    showToast,
-  ]);
+  // Only offered where the host says it can do it. A host that advertises a
+  // mode list without pip gets no button, rather than one that does nothing.
+  const canPin = useMemo(() => bridge.supportsDisplayMode('pip'), [caps]);
+
+  const togglePin = useCallback(
+    () => applyDisplayMode(displayMode === 'pip' ? 'inline' : 'pip'),
+    [applyDisplayMode, displayMode],
+  );
 
   // Escape restores an expanded widget, matching the usual fullscreen idiom.
   useEffect(() => {
@@ -707,6 +739,9 @@ export function App(): JSX.Element {
       startResize,
       toggleMaximize,
       displayMode,
+      null,
+      null,
+      canPin ? togglePin : undefined,
     );
   if (error)
     return shell(
@@ -850,6 +885,7 @@ export function App(): JSX.Element {
     displayMode,
     substitutedFrom,
     view,
+    canPin ? togglePin : undefined,
   );
 }
 
@@ -921,8 +957,10 @@ function shell(
   displayMode: DisplayMode = 'inline',
   substitutedFrom: string | null = null,
   substitutedView: ViewType | null = null,
+  onTogglePin?: () => void,
 ): JSX.Element {
   const expanded = displayMode === 'fullscreen';
+  const pinned = displayMode === 'pip';
   return (
     <div className="sv-app" style={{ minHeight: requestedHeight }}>
       <div className="sv-header">
@@ -946,6 +984,18 @@ function shell(
             )}
           </div>
         </div>
+        {onTogglePin && (
+          <button
+            type="button"
+            className="sv-btn sv-btn--subtle sv-pin"
+            onClick={onTogglePin}
+            aria-label={pinned ? 'Unpin chart' : 'Pin chart to the side'}
+            aria-pressed={pinned}
+            title={pinned ? 'Unpin' : 'Pin to the side'}
+          >
+            {pinned ? '📌' : '📍'}
+          </button>
+        )}
         {onToggleMaximize && (
           <button
             type="button"
