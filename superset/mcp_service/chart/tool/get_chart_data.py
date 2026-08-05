@@ -302,6 +302,46 @@ def _sanitize_chart_data_for_llm_context(chart_data: ChartData) -> ChartData:
     return ChartData.model_validate(payload)
 
 
+
+def _is_json_null(value: Any) -> bool:
+    """True for values JSON has no representation for: None, NaN, NaT.
+
+    Uses the self-inequality property (``x != x``) rather than importing
+    pandas, so it catches ``float('nan')``, ``numpy.nan`` and ``pandas.NaT``
+    without a hard dependency or a type-by-type list.
+    """
+    if value is None:
+        return True
+    try:
+        return bool(value != value)
+    except (TypeError, ValueError):  # pragma: no cover - exotic scalars
+        return False
+
+
+def _json_safe_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Replace null-ish scalars in query rows so the result can be serialized.
+
+    ``pandas.NaT`` subclasses ``datetime.datetime``, so pydantic_core takes the
+    datetime path and reads ``.year`` — which on NaT is ``nan``, a float. That
+    raises ``TypeError: 'float' object cannot be interpreted as an integer``
+    during serialization, AFTER the query has run and the response has been
+    built. The ``fallback=str`` FastMCP passes never fires, because NaT is not
+    an unknown type.
+
+    A single NULL in a temporal column was therefore enough to make any tool
+    embedding that chart fail — get_chart_data, render_chart and
+    render_dashboard alike. Bare ``nan`` is normalized too: it serializes to
+    the literal ``NaN``, which is not valid JSON and which strict clients
+    reject.
+    """
+    if not rows:
+        return rows
+    return [
+        {k: (None if _is_json_null(v) else v) for k, v in row.items()}
+        for row in rows
+    ]
+
+
 @tool(
     tags=["data"],
     class_permission_name="Chart",
@@ -687,7 +727,7 @@ async def get_chart_data_core(  # noqa: C901
 
             # Extract data from result (we've already validated it exists above)
             query_result = result["queries"][0]
-            data = query_result.get("data", [])
+            data = _json_safe_rows(query_result.get("data", []))
             raw_columns = query_result.get("colnames", [])
 
             await ctx.debug(
@@ -990,7 +1030,7 @@ async def _query_from_form_data(
             )
 
         query_result = result["queries"][0]
-        data = query_result.get("data", [])
+        data = _json_safe_rows(query_result.get("data", []))
         raw_columns = query_result.get("colnames", [])
 
         if not data:

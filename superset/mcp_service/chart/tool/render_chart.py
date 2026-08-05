@@ -356,6 +356,20 @@ async def _render_dashboard_impl(
             ctx,
         )
         if isinstance(result, ChartData):
+            # The layout's slice_name and chart_id come from the same
+            # position_json node, so a title that disagrees with the live
+            # chart_name is a legitimate sliceNameOverride (or a name changed
+            # since the layout was saved) — not mispaired data. Verify rather
+            # than assume: a cell showing another chart's numbers under this
+            # chart's title would be far worse than a stale label.
+            if result.chart_id and result.chart_id != position.chart_id:
+                cell.status = "error"
+                cell.message = (
+                    f"Data mismatch: asked for chart {position.chart_id}, "
+                    f"got {result.chart_id}."
+                )
+                cells.append(cell)
+                continue
             result.explore_url = _build_explore_url(result.chart_id)
             cell.data = result
             cell.status = "ok"
