@@ -205,35 +205,43 @@ beforeEach(async () => {
 
 afterEach(() => fetchMock.clearHistory().removeRoutes());
 
+// Backs useSelector with a stable implementation (rather than a queue of
+// mockReturnValueOnce values) so it returns correct data no matter how many
+// times RightMenu (re-)renders — e.g. from async DB-permission effects or
+// the mobile drawer's click-triggered re-render — instead of relying on
+// tests to predict and pre-queue an exact render count.
 const resetUseSelectorMock = () => {
-  useSelectorMock.mockReturnValueOnce({
-    createdOn: '2021-04-27T18:12:38.952304',
-    email: 'admin',
-    firstName: 'admin',
-    isActive: true,
-    lastName: 'admin',
-    permissions: {},
-    roles: {
-      Admin: [
-        ['can_upload', 'Database'], // So we can upload data (CSV, Excel, Columnar)
-        ['can_write', 'Database'], // So we can write DBs
-        ['can_write', 'Dataset'], // So we can write Datasets
-        ['can_write', 'Chart'], // So we can write Datasets
-      ],
+  const mockState = {
+    user: {
+      createdOn: '2021-04-27T18:12:38.952304',
+      email: 'admin',
+      firstName: 'admin',
+      isActive: true,
+      lastName: 'admin',
+      permissions: {},
+      roles: {
+        Admin: [
+          ['can_upload', 'Database'], // So we can upload data (CSV, Excel, Columnar)
+          ['can_write', 'Database'], // So we can write DBs
+          ['can_write', 'Dataset'], // So we can write Datasets
+          ['can_write', 'Chart'], // So we can write Datasets
+        ],
+      },
+      userId: 1,
+      username: 'admin',
     },
-    userId: 1,
-    username: 'admin',
-  });
-
-  // By default we get file extensions to be uploaded
-  useSelectorMock.mockReturnValueOnce('1');
-  // By default we get file extensions to be uploaded
-  useSelectorMock.mockReturnValueOnce({
-    CSV_EXTENSIONS: ['csv'],
-    EXCEL_EXTENSIONS: ['xls', 'xlsx'],
-    COLUMNAR_EXTENSIONS: ['parquet', 'zip'],
-    ALLOWED_EXTENSIONS: ['parquet', 'zip', 'xls', 'xlsx', 'csv'],
-  });
+    dashboardInfo: { id: '1' },
+    // By default we get file extensions to be uploaded
+    common: {
+      conf: {
+        CSV_EXTENSIONS: ['csv'],
+        EXCEL_EXTENSIONS: ['xls', 'xlsx'],
+        COLUMNAR_EXTENSIONS: ['parquet', 'zip'],
+        ALLOWED_EXTENSIONS: ['parquet', 'zip', 'xls', 'xlsx', 'csv'],
+      },
+    },
+  };
+  useSelectorMock.mockImplementation(selector => selector(mockState));
 };
 
 test('renders', async () => {
@@ -279,11 +287,6 @@ test('If only examples DB exist we must show the Connect Database option', async
   fetchMock.modifyRoute(getDatabaseWithNameFilterMockUrl, {
     response: { result: [], count: 0 },
   });
-  // Initial Load
-  resetUseSelectorMock();
-  // setAllowUploads called
-  resetUseSelectorMock();
-  // setNonExamplesDBConnected called
   resetUseSelectorMock();
   render(<RightMenu {...mockedProps} />, {
     useRedux: true,
@@ -307,11 +310,6 @@ test('If more than just examples DB exist we must show the Create dataset option
   fetchMock.modifyRoute(getDatabaseWithNameFilterMockUrl, {
     response: { result: [...mockNonExamplesDB], count: 2 },
   });
-  // Initial Load
-  resetUseSelectorMock();
-  // setAllowUploads called
-  resetUseSelectorMock();
-  // setNonExamplesDBConnected called
   resetUseSelectorMock();
   render(<RightMenu {...mockedProps} />, {
     useRedux: true,
@@ -337,11 +335,6 @@ test('If there is a DB with allow_file_upload set as True the option should be e
     'glob:*api/v1/database/?q=(filters:!((col:database_name,opr:neq,value:examples)))',
     { result: [...mockNonExamplesDB], count: 2 },
   );
-  // Initial load
-  resetUseSelectorMock();
-  // setAllowUploads called
-  resetUseSelectorMock();
-  // setNonExamplesDBConnected called
   resetUseSelectorMock();
   render(<RightMenu {...mockedProps} />, {
     useRedux: true,
@@ -372,11 +365,6 @@ test('If there is NOT a DB with allow_file_upload set as True the option should 
     'glob:*api/v1/database/?q=(filters:!((col:database_name,opr:neq,value:examples)))',
     { result: [...mockNonExamplesDB], count: 2 },
   );
-  // Initial load
-  resetUseSelectorMock();
-  // setAllowUploads called
-  resetUseSelectorMock();
-  // setNonExamplesDBConnected called
   resetUseSelectorMock();
   render(<RightMenu {...mockedProps} />, {
     useRedux: true,
@@ -587,9 +575,6 @@ describe('mobile consumption mode', () => {
 
   test('renders a hamburger menu instead of the desktop nav, and opens a drawer on click', async () => {
     const mockedProps = createProps();
-    // Initial Load
-    resetUseSelectorMock();
-    // setMobileMenuOpen called on hamburger click, triggering a re-render
     resetUseSelectorMock();
     render(<RightMenu {...mockedProps} />, {
       useRedux: true,
