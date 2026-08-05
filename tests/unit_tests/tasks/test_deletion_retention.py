@@ -122,7 +122,7 @@ def test_default_config_purges_for_real_after_the_retention_window() -> None:
 
     Superseding ``test_default_config_is_safe``: dry-run was the
     introducing release's posture, deliberately opt-in so operators could
-    validate ``would_purge`` counts against production first. Purging is now
+    validate ``would_purge`` counts against production first. Purging is
     live by default, and ``SOFT_DELETE_PURGE_DRY_RUN`` is retained as the
     operational lever to put it back. Pinned so a default change is a
     deliberate edit here rather than a silent one.
