@@ -172,7 +172,7 @@ describe('ExploreChartHeader', () => {
     const props = createProps();
     render(<ExploreHeader {...props} />, {
       useRedux: true,
-      initialState: { explore: { can_overwrite: true } },
+      initialState: { explore: { can_overwrite: true, can_add: true } },
     });
     const newChartName = 'New chart name';
     const prevChartName = props.sliceName;
@@ -629,7 +629,7 @@ describe('Additional actions tests', () => {
     const props = createProps();
     render(<ExploreHeader {...props} />, {
       useRedux: true,
-      initialState: { explore: { can_overwrite: true } },
+      initialState: { explore: { can_overwrite: true, can_add: true } },
     });
 
     userEvent.click(screen.getByLabelText('Menu actions trigger'));
@@ -724,7 +724,7 @@ describe('Additional actions tests', () => {
     const props = createProps();
     render(<ExploreHeader {...props} />, {
       useRedux: true,
-      initialState: { explore: { can_overwrite: true } },
+      initialState: { explore: { can_overwrite: true, can_add: true } },
     });
     expect(props.actions.redirectSQLLab).toHaveBeenCalledTimes(0);
     userEvent.click(screen.getByLabelText('Menu actions trigger'));

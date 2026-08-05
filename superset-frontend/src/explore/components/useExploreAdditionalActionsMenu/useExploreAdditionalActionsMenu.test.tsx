@@ -142,7 +142,7 @@ test('hides Edit chart properties from a user who is not an owner/editor of the 
   expect(screen.queryByText('Edit chart properties')).not.toBeInTheDocument();
 });
 
-test('shows Edit chart properties for a chart editor', async () => {
+test('shows Edit chart properties for a chart editor with chart write permission', async () => {
   render(
     <TestComponent
       {...defaultProps}
@@ -154,11 +154,30 @@ test('shows Edit chart properties for a chart editor', async () => {
         } as unknown as Slice
       }
     />,
-    { useRedux: true },
+    { useRedux: true, initialState: { explore: { can_add: true } } },
   );
 
   expect(await screen.findByText('Data Export Options')).toBeInTheDocument();
   expect(screen.getByText('Edit chart properties')).toBeInTheDocument();
+});
+
+test('hides Edit chart properties from a chart editor lacking chart write permission', async () => {
+  render(
+    <TestComponent
+      {...defaultProps}
+      slice={
+        {
+          slice_id: 1,
+          slice_name: 'Test Chart',
+          editors: [1],
+        } as unknown as Slice
+      }
+    />,
+    { useRedux: true, initialState: { explore: { can_add: false } } },
+  );
+
+  expect(await screen.findByText('Data Export Options')).toBeInTheDocument();
+  expect(screen.queryByText('Edit chart properties')).not.toBeInTheDocument();
 });
 
 test('shows 413 error toast when exportCSV fails with 413', async () => {
