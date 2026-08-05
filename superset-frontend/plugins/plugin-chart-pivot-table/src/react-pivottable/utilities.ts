@@ -816,11 +816,11 @@ const baseAggregatorTemplates = {
               return acc;
             }
 
+            // A DB-computed rollup value can legitimately be a real SQL NULL
+            // (e.g. AVG over an empty group). `null / acc` coerces to `0` in
+            // JS, which would render a measured "0.0%" for a value that
+            // should stay blank, same as it does in "Actual values" mode.
             const numerator = this.inner.value();
-            // A `null` numerator (e.g. a DB-computed rollup that is null, as
-            // `cellValue`'s own comment documents) is intentionally blank in
-            // actual mode. `null` coerces to `0` under `/`, which would turn
-            // that blank into a measured `0.0%` instead of staying blank.
             if (numerator === null) {
               return null;
             }

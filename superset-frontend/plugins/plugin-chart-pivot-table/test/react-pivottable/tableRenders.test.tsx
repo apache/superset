@@ -936,3 +936,92 @@ test('TableRenderer shows actual values when showValuesAs is unset (default)', (
     expect.arrayContaining(['1.00', '1.00', '1.00', '1.00']),
   );
 });
+
+/**
+ * Regression guard: the grand-total corner cell is a single shared aggregator
+ * slot that "Metric-collapse totals" mirrors every metric's grand-total
+ * record into (see `processRecord`). `metricAxis` locks onto the first metric
+ * pushed, but the underlying value is always the last metric pushed -- there
+ * is no single metric left to divide by, so the corner cell must render
+ * blank in fraction mode rather than a cross-metric ratio (m2's grand total
+ * of 300 divided by m1's of 30 would read as an obviously wrong "1000.0%").
+ */
+test('TableRenderer blanks the grand-total corner cell when it mixes multiple metrics in fraction mode', () => {
+  const props = buildDefaultProps({
+    data: TAGGED_MULTI_METRIC_ON_COLUMNS,
+    rows: ['color'],
+    cols: ['Metric'],
+    vals: ['value'],
+    tableOptions: { rowTotals: true, colTotals: true },
+    showValuesAs: 'percent_total',
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  const grandTotalCells = screen
+    .getAllByRole('gridcell')
+    .filter(cell => cell.classList.contains('pvtGrandTotal'));
+  expect(grandTotalCells).toHaveLength(1);
+  expect(grandTotalCells[0]).toBeEmptyDOMElement();
+});
+
+/**
+ * Regression guard: a DB-computed value can be a genuine SQL NULL (e.g. AVG
+ * over an empty group). `null / acc` coerces to `0` in JS, which would
+ * previously render a measured "0.0%" for a cell that renders blank in
+ * "Actual values" mode. Fraction mode must preserve that blank instead of
+ * turning an undefined value into a measured zero.
+ */
+const TAGGED_DATA_WITH_NULL_LEAF = [
+  {
+    color: 'blue',
+    shape: 'circle',
+    value: null,
+    __rows: ['color'],
+    __columns: ['shape'],
+  },
+  {
+    color: 'blue',
+    shape: 'square',
+    value: 20,
+    __rows: ['color'],
+    __columns: ['shape'],
+  },
+  {
+    color: 'red',
+    shape: 'circle',
+    value: 30,
+    __rows: ['color'],
+    __columns: ['shape'],
+  },
+  {
+    color: 'red',
+    shape: 'square',
+    value: 40,
+    __rows: ['color'],
+    __columns: ['shape'],
+  },
+  { color: 'blue', value: 20, __rows: ['color'], __columns: [] },
+  { color: 'red', value: 70, __rows: ['color'], __columns: [] },
+  { shape: 'circle', value: 30, __rows: [], __columns: ['shape'] },
+  { shape: 'square', value: 60, __rows: [], __columns: ['shape'] },
+  { value: 90, __rows: [], __columns: [] },
+];
+
+test('TableRenderer keeps a null metric value blank in fraction mode instead of showing 0.0%', () => {
+  const props = buildDefaultProps({
+    data: TAGGED_DATA_WITH_NULL_LEAF,
+    rows: ['color'],
+    cols: ['shape'],
+    vals: ['value'],
+    tableOptions: { rowTotals: true, colTotals: true },
+    showValuesAs: 'percent_row',
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  const cellTexts = getCellTexts('pvtVal');
+  expect(cellTexts).not.toContain('0.0%');
+  expect(cellTexts).toContain('');
+  // The non-null sibling cell in the same row still divides correctly
+  // (20 / 20 row total).
+  expect(cellTexts).toContain('100.0%');
+});
