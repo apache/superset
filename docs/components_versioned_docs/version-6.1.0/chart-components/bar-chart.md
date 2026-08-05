@@ -16,7 +16,9 @@
     specific language governing permissions and limitations
     under the License.
 -->
+
 ---
+
 title: Bar Chart
 sidebar_position: 1
 ---
@@ -27,18 +29,18 @@ The Bar Chart component is used to visualize categorical data with rectangular b
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `data` | `array` | `[]` | Array of data objects to visualize |
-| `width` | `number` | `800` | Width of the chart in pixels |
-| `height` | `number` | `600` | Height of the chart in pixels |
-| `xField` | `string` | - | Field name for x-axis values |
-| `yField` | `string` | - | Field name for y-axis values |
-| `colorField` | `string` | - | Field name for color encoding |
-| `colorScheme` | `string` | `'supersetColors'` | Color scheme to use |
-| `showLegend` | `boolean` | `true` | Whether to show the legend |
-| `showGrid` | `boolean` | `true` | Whether to show grid lines |
-| `labelPosition` | `string` | `'top'` | Position of bar labels: 'top', 'middle', 'bottom' |
+| Prop            | Type      | Default            | Description                                       |
+| --------------- | --------- | ------------------ | ------------------------------------------------- |
+| `data`          | `array`   | `[]`               | Array of data objects to visualize                |
+| `width`         | `number`  | `800`              | Width of the chart in pixels                      |
+| `height`        | `number`  | `600`              | Height of the chart in pixels                     |
+| `xField`        | `string`  | -                  | Field name for x-axis values                      |
+| `yField`        | `string`  | -                  | Field name for y-axis values                      |
+| `colorField`    | `string`  | -                  | Field name for color encoding                     |
+| `colorScheme`   | `string`  | `'supersetColors'` | Color scheme to use                               |
+| `showLegend`    | `boolean` | `true`             | Whether to show the legend                        |
+| `showGrid`      | `boolean` | `true`             | Whether to show grid lines                        |
+| `labelPosition` | `string`  | `'top'`            | Position of bar labels: 'top', 'middle', 'bottom' |
 
 ## Examples
 

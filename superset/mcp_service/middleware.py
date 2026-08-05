@@ -246,7 +246,7 @@ class LoggingMiddleware(Middleware):
         dashboard_id = None
         slice_id = None
         dataset_id = None
-        params = getattr(context.message, "params", {}) or {}
+        params = getattr(context.message, "arguments", {}) or {}
         if hasattr(context, "metadata") and context.metadata:
             agent_id = context.metadata.get("agent_id")
         if not agent_id and hasattr(context, "session") and context.session:
@@ -1152,7 +1152,7 @@ class ResponseSizeGuardMiddleware(Middleware):
             )
 
         if estimated_tokens > self.token_limit:
-            params = getattr(context.message, "params", {}) or {}
+            params = getattr(context.message, "arguments", {}) or {}
             return self._handle_oversized_response(
                 tool_name, response, estimated_tokens, params
             )

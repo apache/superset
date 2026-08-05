@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 
+import itertools
 from unittest.mock import patch
 
 import pytest
@@ -232,3 +233,59 @@ class TestForcePurge(DeletionRetentionTestBase):
         assert result.exit_code == 0, result.output
         assert not self.exists(Slice, chart_id)
         assert self.exists(Dashboard, dashboard_id)
+
+    def test_force_purge_refuses_a_row_restored_after_resolution(self) -> None:
+        """A restore committing after the entity is resolved is not overrun.
+
+        Checking archived state only while resolving narrows the race without
+        closing it: the cascade runs with ``enforce_window=False``, so unless
+        the constraint reaches the locked claim and the conditional delete, a
+        restore landing in between destroys a live row.
+        """
+        chart = self.make_chart("restored_midflight")
+        chart_id = chart.id
+        chart_uuid = str(chart.uuid)
+        self.soft_delete(chart, days_ago=90)
+
+        original_resolve = ForcePurgeCommand._resolve  # noqa: SLF001
+        calls = itertools.count(1)
+
+        def resolve_then_restore(self_: ForcePurgeCommand) -> object:
+            entity = original_resolve(self_)
+            # run() resolves twice: once before the write-ahead audit and once
+            # after. Only the second result reaches the cascade, so the restore
+            # has to commit after *that* one -- restoring during the first call
+            # makes the second resolve return None under require_archived, and
+            # the command exits at its not-found guard without ever running the
+            # cascade the constraint is meant to protect.
+            if next(calls) == 2 and entity is not None:
+                db.session.query(Slice).filter(Slice.id == chart_id).update(
+                    {"deleted_at": None}
+                )
+                db.session.commit()
+            return entity
+
+        with patch.object(ForcePurgeCommand, "_resolve", resolve_then_restore):
+            result = ForcePurgeCommand(
+                chart_uuid, model_cls=Slice, require_archived=True
+            ).run()
+
+        assert result["purged"] is False
+        assert self.exists(Slice, chart_id)
+
+    def test_force_purge_without_require_archived_still_takes_live_rows(
+        self,
+    ) -> None:
+        """The operator path is unchanged: no flag, no archived-only guard.
+
+        The CLI force-purges by UUID regardless of state, which is the
+        documented operator capability; only callers acting for an end user
+        opt into the stricter behaviour.
+        """
+        chart = self.make_chart("live_operator_purge")
+        chart_id = chart.id
+
+        result = ForcePurgeCommand(str(chart.uuid), model_cls=Slice).run()
+
+        assert result["purged"] is True
+        assert not self.exists(Slice, chart_id)
