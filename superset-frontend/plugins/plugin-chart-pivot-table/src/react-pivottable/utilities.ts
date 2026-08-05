@@ -749,37 +749,39 @@ const baseAggregatorTemplates = {
           ],
           inner: wrapped(...Array.from(x || []))(data, rowKey, colKey),
           // The metric this cell belongs to, and which axis carries it (see the
-          // "Metric" pseudo-dimension in PivotTableChart). Captured from the
-          // first pushed record. With multiple metrics, the axis holding the
-          // metric is never actually empty, so collapsing it to `[]` (as the
-          // `selector` above does) would route every metric's lookup to the
-          // same shared total slot -- see `processRecord`'s "Metric-collapse
-          // totals". Keeping the metric's own key segment instead routes the
-          // lookup to the per-metric total that's already correctly split out.
+          // "Metric" pseudo-dimension in PivotTableChart). With multiple
+          // metrics, the axis holding the metric is never actually empty, so
+          // collapsing it to `[]` (as the `selector` above does) would route
+          // every metric's lookup to the same shared total slot -- see
+          // `processRecord`'s "Metric-collapse totals". Keeping the metric's
+          // own key segment instead routes the lookup to the per-metric total
+          // that's already correctly split out. Updated on every push (not
+          // just the first) to stay in sync with `inner`, which likewise
+          // reflects the last-pushed record for a shared Total/corner slot --
+          // otherwise the numerator (last metric) and the denominator lookup
+          // (first metric's axis) could point at two different metrics.
           metricAxis: undefined as
             | { axis: 'row' | 'col'; value: string }
             | null
             | undefined,
           push(record: PivotRecord) {
-            if (this.metricAxis === undefined) {
-              const metricDim = record.__metricKey as unknown as
-                | string
-                | undefined;
-              const cols = data.props.cols as string[] | undefined;
-              const rows = data.props.rows as string[] | undefined;
-              if (metricDim && cols?.includes(metricDim)) {
-                this.metricAxis = {
-                  axis: 'col',
-                  value: String(record[metricDim]),
-                };
-              } else if (metricDim && rows?.includes(metricDim)) {
-                this.metricAxis = {
-                  axis: 'row',
-                  value: String(record[metricDim]),
-                };
-              } else {
-                this.metricAxis = null;
-              }
+            const metricDim = record.__metricKey as unknown as
+              | string
+              | undefined;
+            const cols = data.props.cols as string[] | undefined;
+            const rows = data.props.rows as string[] | undefined;
+            if (metricDim && cols?.includes(metricDim)) {
+              this.metricAxis = {
+                axis: 'col',
+                value: String(record[metricDim]),
+              };
+            } else if (metricDim && rows?.includes(metricDim)) {
+              this.metricAxis = {
+                axis: 'row',
+                value: String(record[metricDim]),
+              };
+            } else {
+              this.metricAxis = null;
             }
             this.inner.push(record);
           },
@@ -814,7 +816,16 @@ const baseAggregatorTemplates = {
               return acc;
             }
 
-            return this.inner.value() / acc;
+            const numerator = this.inner.value();
+            // A `null` numerator (e.g. a DB-computed rollup that is null, as
+            // `cellValue`'s own comment documents) is intentionally blank in
+            // actual mode. `null` coerces to `0` under `/`, which would turn
+            // that blank into a measured `0.0%` instead of staying blank.
+            if (numerator === null) {
+              return null;
+            }
+
+            return numerator / acc;
           },
           getCurrencies() {
             return this.inner.getCurrencies ? this.inner.getCurrencies() : [];
