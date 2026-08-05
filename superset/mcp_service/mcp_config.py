@@ -66,6 +66,24 @@ MCP_BUG_REPORT_CONTACT: str | None = None
 # MCP Debug mode - shows suppressed initialization output in stdio mode
 MCP_DEBUG = False
 
+# Streamable-HTTP session mode used by run_server() (superset/mcp_service/server.py)
+# and the CLI entrypoint (superset/mcp_service/__main__.py).
+#
+# True (default): each HTTP request gets a fresh, ephemeral transport that is
+# torn down as soon as that single request/response completes, while the
+# tool call it started keeps running as a background task. If a client gives
+# up on a still-running call (its own timeout, a reconnect, etc.), the next
+# progress notification that tool sends hits the now-closed transport and
+# raises anyio.ClosedResourceError/BrokenResourceError -- crashing that
+# session and disconnecting other concurrent clients on the same worker.
+#
+# False: sessions are tracked by Mcp-Session-Id and the transport stays alive
+# for the session's lifetime, so a client disconnecting mid-call no longer
+# crashes the tool. This requires session-affinity routing on Mcp-Session-Id
+# at the mesh/ingress layer for multi-pod deployments -- a client's follow-up
+# requests must land on the pod that created its session.
+MCP_STATELESS_HTTP = True
+
 # MCP RBAC - when True, tools with class_permission_name are checked
 # against the FAB security_manager before execution.
 MCP_RBAC_ENABLED = True
