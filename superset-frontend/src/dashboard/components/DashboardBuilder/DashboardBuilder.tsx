@@ -966,7 +966,7 @@ const DashboardBuilder = () => {
         />
       )}
       {/* Mobile filters drawer */}
-      {!isNotMobile && nativeFiltersEnabled && (
+      {!isNotMobile && nativeFiltersEnabled && hasFilters && (
         <Drawer
           title={t('Filters')}
           placement="left"

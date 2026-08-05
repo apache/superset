@@ -19,7 +19,10 @@
 // Imported first: loading this before 'spec/helpers/testing-library' or
 // '@superset-ui/core' ensures mockAntdWithDesktopBreakpoint is defined
 // before anything transitively requires (and thus mocks) 'antd'.
-import { mockAntdWithDesktopBreakpoint } from 'spec/helpers/mobileTestUtils';
+import {
+  mockAntdWithDesktopBreakpoint,
+  mockMobileMatchMedia,
+} from 'spec/helpers/mobileTestUtils';
 import * as reactRedux from 'react-redux';
 import fetchMock from 'fetch-mock';
 import {
@@ -565,4 +568,39 @@ test('Logout link href is single-prefixed under subdirectory deployment', async 
   } finally {
     applicationRootSpy.mockRestore();
   }
+});
+
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+describe('mobile consumption mode', () => {
+  let restoreMatchMedia: () => void;
+
+  beforeEach(() => {
+    restoreMatchMedia = mockMobileMatchMedia();
+    mockIsFeatureEnabled.mockImplementation(
+      (flag: FeatureFlag) => flag === FeatureFlag.MobileConsumptionMode,
+    );
+  });
+
+  afterEach(() => {
+    restoreMatchMedia();
+  });
+
+  test('renders a hamburger menu instead of the desktop nav, and opens a drawer on click', async () => {
+    const mockedProps = createProps();
+    resetUseSelectorMock();
+    render(<RightMenu {...mockedProps} />, {
+      useRedux: true,
+      useRouter: true,
+      useQueryParams: true,
+      useTheme: true,
+    });
+
+    // The desktop horizontal menu never mounts on mobile.
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+
+    const hamburger = await screen.findByRole('button', { name: 'Menu' });
+    await userEvent.click(hamburger);
+
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  });
 });
