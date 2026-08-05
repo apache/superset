@@ -40,6 +40,7 @@ import sqlalchemy as sa
 from superset import db
 from superset.daos.version import VersionDAO
 from superset.models.slice import Slice
+from superset.versioning.queries import get_version, list_versions
 from superset.versioning.restore import restore_version
 from tests.integration_tests.test_app import app
 
@@ -216,3 +217,49 @@ def test_shadow_rows_for_both_entities_share_the_id(recycled_id_charts) -> None:
         f"successor's shadow rows missing under the recycled id; found {uuids}"
     )
     assert sa.inspect(db.session.bind).has_table("slices_version")
+
+
+def test_list_versions_excludes_the_predecessors_rows(recycled_id_charts) -> None:
+    """The history listing must contain the successor's versions only.
+
+    ``list_versions`` selects the shadow rows with its own Core query rather
+    than going through the counting helper, so pinning the count alone left
+    this path — the one behind the version-history panel — still listing a
+    stranger's versions.
+    """
+    _entity_id, _predecessor_uuid, successor = recycled_id_charts
+
+    versions = list_versions(Slice, successor.uuid, entity=successor)
+
+    assert versions is not None, "successor is active, so its history resolves"
+    assert len(versions) == 1, (
+        "successor should list only its own INSERT; got "
+        f"{len(versions)} entries: {[v['transaction_id'] for v in versions]}"
+    )
+
+
+def test_get_version_returns_the_successors_own_snapshot(recycled_id_charts) -> None:
+    """A version snapshot must carry the content of the entity asked about.
+
+    ``version_number`` is resolved from a pinned count but applied to the
+    snapshot query as an OFFSET. While that query matched on the id alone the
+    offset was counted over one row set and applied to a wider one, so the row
+    it addressed could be a predecessor's — returning that entity's content
+    labelled with the successor's version uuid.
+    """
+    _entity_id, _predecessor_uuid, successor = recycled_id_charts
+
+    versions = list_versions(Slice, successor.uuid, entity=successor)
+    assert versions, "fixture should leave the successor one version"
+
+    snapshot = get_version(
+        Slice, successor.uuid, versions[0]["version_uuid"], entity=successor
+    )
+
+    assert snapshot is not None, "the successor's own version must resolve"
+    assert snapshot["slice_name"] == "id_reuse_successor", (
+        f"snapshot returned another entity's content: got {snapshot['slice_name']!r}"
+    )
+    assert snapshot["uuid"] == str(successor.uuid), (
+        f"snapshot belongs to a different entity: {snapshot['uuid']}"
+    )

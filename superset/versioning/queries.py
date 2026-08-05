@@ -168,8 +168,13 @@ def find_active_by_uuid(model_cls: type[Model], entity_uuid: UUID) -> Any | None
     )
 
 
-def _identity_filter(ver_cls: Any, entity_id: int, entity_uuid: UUID | None) -> Any:
+def identity_filter(columns: Any, entity_id: int, entity_uuid: UUID | None) -> Any:
     """Predicate pinning a shadow-row query to the entity it came from.
+
+    *columns* supplies the ``id`` and ``uuid`` columns, so it accepts either
+    the Continuum version class (ORM queries) or a version table's ``.c``
+    collection (Core ``select()`` queries) — both read paths need the same
+    pinning, and a single predicate keeps them from drifting apart.
 
     The integer id alone is not an identity: a hard delete frees the id and
     the database may hand it to a different entity — guaranteed on SQLite
@@ -184,8 +189,8 @@ def _identity_filter(ver_cls: Any, entity_id: int, entity_uuid: UUID | None) -> 
     previous behaviour for callers that cannot supply one.
     """
     if entity_uuid is None:
-        return ver_cls.id == entity_id
-    return sa.and_(ver_cls.id == entity_id, ver_cls.uuid == entity_uuid)
+        return columns.id == entity_id
+    return sa.and_(columns.id == entity_id, columns.uuid == entity_uuid)
 
 
 def _get_version_count(
@@ -196,7 +201,7 @@ def _get_version_count(
     return (
         db.session.query(sa.func.count())
         .select_from(ver_cls)
-        .filter(_identity_filter(ver_cls, entity_id, entity_uuid))
+        .filter(identity_filter(ver_cls, entity_id, entity_uuid))
         .scalar()
         or 0
     )
@@ -231,7 +236,7 @@ def current_live_transaction_id(
     ver_cls = version_class(model_cls)
     row = (
         db.session.query(ver_cls.transaction_id)
-        .filter(_identity_filter(ver_cls, entity_id, entity_uuid))
+        .filter(identity_filter(ver_cls, entity_id, entity_uuid))
         .filter(ver_cls.end_transaction_id.is_(None))
         .order_by(ver_cls.transaction_id.desc())
         .limit(1)
@@ -378,7 +383,7 @@ def list_versions(
             *_user_select_cols(user_tbl),
         )
         .select_from(_version_with_tx_user_join(ver_tbl, tx_tbl, user_tbl))
-        .where(ver_tbl.c.id == entity.id)
+        .where(identity_filter(ver_tbl.c, entity.id, getattr(entity, "uuid", None)))
         .order_by(*_baseline_first_ordering(ver_tbl))
     )
     rows = db.session.execute(stmt).mappings().all()
@@ -449,7 +454,7 @@ def resolve_version(
     ver_cls = version_class(model_cls)
     tx_ids = (
         db.session.query(ver_cls.transaction_id)
-        .filter(_identity_filter(ver_cls, entity.id, getattr(entity, "uuid", None)))
+        .filter(identity_filter(ver_cls, entity.id, getattr(entity, "uuid", None)))
         .order_by(
             (ver_cls.operation_type != 0).asc(),
             ver_cls.transaction_id.asc(),
@@ -524,7 +529,12 @@ def get_version(
             *_user_select_cols(user_tbl),
         )
         .select_from(_version_with_tx_user_join(ver_tbl, tx_tbl, user_tbl))
-        .where(ver_tbl.c.id == entity.id)
+        # Must pin identically to the count ``resolve_version_uuid`` derived
+        # ``version_num`` from: an offset counted over one row set and applied
+        # to a wider one addresses the wrong row. Pinned there but not here,
+        # a recycled id would surface a predecessor's snapshot under the
+        # successor's version uuid.
+        .where(identity_filter(ver_tbl.c, entity.id, getattr(entity, "uuid", None)))
         .order_by(*_baseline_first_ordering(ver_tbl))
         .offset(version_num)
         .limit(1)

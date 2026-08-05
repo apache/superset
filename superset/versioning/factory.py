@@ -31,6 +31,7 @@ from sqlalchemy_continuum.utils import versioned_column_properties
 
 from superset.utils import json
 from superset.versioning.diff import DASHBOARD_JSON_METADATA_AUDIT_KEYS
+from superset.versioning.queries import identity_filter
 
 logger = logging.getLogger(__name__)
 
@@ -293,7 +294,14 @@ class SkipUnmodifiedPlugin(Plugin):
 
         select_stmt = (
             sa.select(*[ver_table.c[c] for c in col_keys])
-            .where(ver_table.c.id == target.id)
+            # Pinned to (id, uuid) for the same reason the read paths are: a
+            # freed id can resolve a predecessor's still-open shadow row. That
+            # would compare this save against a stranger's values — and where
+            # an entity was deleted and recreated identically, they match, so
+            # a genuine edit would be misread as a no-op and never captured.
+            .where(
+                identity_filter(ver_table.c, target.id, getattr(target, "uuid", None))
+            )
             .where(ver_table.c.end_transaction_id.is_(None))
             .order_by(ver_table.c.transaction_id.desc())
             .limit(1)
