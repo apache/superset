@@ -898,6 +898,43 @@ describe('plugin-chart-ag-grid-table', () => {
         expect(totalsQuery.row_limit).toBe(0);
       });
 
+      test('all_records percent-metric denominator reflects AG Grid filters but totals do not', () => {
+        // Regression test: the all_records denominator query is built from
+        // the post-filter queryObject (so it matches the main query's result
+        // set), while the totals query intentionally strips AG Grid
+        // WHERE/HAVING so it summarizes the unfiltered chart-level data.
+        const { queries } = buildQuery(
+          {
+            ...basicFormData,
+            metrics: ['count'],
+            percent_metrics: ['count'],
+            percent_metric_calculation: 'all_records',
+            show_totals: true,
+            server_pagination: true,
+            query_mode: QueryMode.Aggregate,
+          },
+          {
+            ownState: {
+              agGridComplexWhere: 'age > 18',
+            },
+          },
+        );
+
+        // [main, rowcount, all_records denominator, totals]
+        const allRecordsQuery = queries[2];
+        const totalsQuery = queries[3];
+
+        expect(allRecordsQuery.extras?.where).toBe('age > 18');
+        expect(allRecordsQuery.columns).toEqual([]);
+        expect(allRecordsQuery.metrics).toEqual(['count']);
+        expect(allRecordsQuery.row_limit).toBe(0);
+        expect(allRecordsQuery.row_offset).toBe(0);
+        expect(allRecordsQuery.orderby).toEqual([]);
+        expect(allRecordsQuery.is_timeseries).toBe(false);
+
+        expect(totalsQuery.extras?.where).toBeUndefined();
+      });
+
       test('should reapply percent-metric contribution op to totals query', () => {
         // Regression test for #37627: when a percent metric is configured and
         // Show Summary (show_totals) is enabled, the totals query must rename

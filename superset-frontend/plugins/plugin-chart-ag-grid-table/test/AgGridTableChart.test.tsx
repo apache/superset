@@ -17,7 +17,14 @@
  * under the License.
  */
 import '@testing-library/jest-dom';
-import { render, screen, waitFor, fireEvent } from '@superset-ui/core/spec';
+import {
+  render,
+  screen,
+  waitFor,
+  fireEvent,
+  within,
+  userEvent,
+} from '@superset-ui/core/spec';
 import { QueryMode, TimeGranularity, SMART_DATE_ID } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
@@ -257,6 +264,59 @@ test('AgGridTableChart renders Search by dropdown if includeSearch is true and t
   });
 
   expect(screen.getByText(/Search by/i)).toBeInTheDocument();
+});
+
+test('AgGridTableChart resets currentPage when the search column changes', async () => {
+  const props = transformProps({
+    ...testData.basic,
+    rawFormData: {
+      ...testData.basic.rawFormData,
+      server_pagination: true,
+      include_search: true,
+    },
+  });
+  props.serverPagination = true;
+  props.includeSearch = true;
+  props.rowCount = 50;
+  props.serverPaginationData = {
+    currentPage: 1,
+    pageSize: 20,
+  };
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  const searchByContainer = await waitFor(() => {
+    const container = document.querySelector('.search-select');
+    expect(container).toBeInTheDocument();
+    return container as HTMLElement;
+  });
+  const searchByDropdown = within(searchByContainer).getByRole('combobox');
+  await userEvent.click(searchByDropdown);
+  const otherOption = await waitFor(() =>
+    within(document.querySelector('.rc-virtual-list')!).getByText('abc.com'),
+  );
+  await userEvent.click(otherOption);
+
+  await waitFor(() => {
+    expect(mockSetDataMask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ownState: expect.objectContaining({
+          searchColumn: 'abc.com',
+          currentPage: 0,
+        }),
+      }),
+    );
+  });
 });
 
 test('AgGridTableChart does not render Search by dropdown if includeSearch is true but searchOptions is empty', async () => {

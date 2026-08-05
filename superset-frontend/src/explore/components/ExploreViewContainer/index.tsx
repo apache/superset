@@ -777,8 +777,12 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
 
   const previousOwnState = usePrevious(props.ownState);
   useEffect(() => {
+    // clientView (export snapshot) and chartState (AG Grid column/sort/filter
+    // state read on mount) are folded into ownState but aren't query-affecting;
+    // excluding them here is what the dashboard-side getRelevantDataMask does
+    // for the same reason - see src/dashboard/util/activeAllDashboardFilters.ts.
     const strip = (s: JsonObject | undefined) =>
-      omit(s && typeof s === 'object' ? s : {}, ['clientView']);
+      omit(s && typeof s === 'object' ? s : {}, ['clientView', 'chartState']);
     if (!isEqual(strip(previousOwnState), strip(props.ownState))) {
       onQuery();
       reRenderChart();

@@ -547,6 +547,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       writeOwnState({
         searchColumn: searchCol,
         searchText: '',
+        currentPage: 0, // Reset to first page when the search column changes
         lastFilteredColumn: undefined,
         lastFilteredInputPosition: undefined,
       });

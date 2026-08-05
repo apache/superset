@@ -61,7 +61,10 @@ import getInitialFilterModel from '../utils/getInitialFilterModel';
 import reconcileColumnState from '../utils/reconcileColumnState';
 import getColumnStateSignature from '../utils/getColumnStateSignature';
 import { PAGE_SIZE_OPTIONS, ROW_NUMBER_COL_ID } from '../consts';
-import { getCompleteFilterState } from '../utils/filterStateManager';
+import {
+  getCompleteFilterState,
+  type FilterState,
+} from '../utils/filterStateManager';
 import { copyCellValueOnKeyDown } from '../utils/copyCellValue';
 import type { ClientViewSnapshot } from '../utils/externalAPIs';
 
@@ -110,7 +113,7 @@ export interface AgGridTableProps {
   showTotals: boolean;
   width: number;
   onColumnStateChange?: (state: AgGridChartStateWithMetadata) => void;
-  onFilterChanged?: (filterModel: Record<string, any>) => void;
+  onFilterChanged?: (completeFilterState: FilterState) => void;
   metricColumns?: string[];
   gridRef?: RefObject<AgGridReact>;
   chartState?: AgGridChartState;
