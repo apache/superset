@@ -34,6 +34,8 @@ from superset.extensions import appbuilder
 from superset.models.slice import Slice
 from superset.security.manager import (
     _collect_sortable_identifiers,
+    _get_form_data_item_label,
+    _requested_sort_target_identifiers,
     freeze_value,
     query_context_modified,
     SupersetSecurityManager,
@@ -3463,4 +3465,168 @@ def test_query_context_modified_base_axis_forged_reference_regression(
     query_context.queries = [
         _guest_query([_base_axis_physical_column("secret_col")], stored_metrics)
     ]
+    assert query_context_modified(query_context)
+
+
+@pytest.mark.parametrize(
+    "item",
+    [
+        {"expressionType": "BOGUS"},
+        {},
+        [],
+        1,
+        None,
+    ],
+)
+@pytest.mark.parametrize("is_metric", [True, False])
+def test_get_form_data_item_label_unlabelable_item(
+    item: Any,
+    is_metric: bool,
+) -> None:
+    """
+    Test that an item Superset cannot derive a label for yields no label.
+
+    Label extraction runs over attacker-supplied form data, so a definition it
+    cannot name must degrade to ``None`` rather than propagating an exception out
+    of the anti-tamper check.
+    """
+    assert _get_form_data_item_label(item, is_metric=is_metric) is None
+
+
+@pytest.mark.parametrize(
+    "item",
+    [
+        ["name", True],
+        ("name", True),
+        1,
+        None,
+        True,
+    ],
+)
+def test_requested_sort_target_identifiers_non_term_shapes(item: Any) -> None:
+    """
+    Test that only strings and dicts can identify a requested sort target.
+
+    Any other shape is not a term the chart could have produced, so it must
+    authorize nothing rather than being coerced into an identifier.
+    """
+    assert _requested_sort_target_identifiers(item) == set()
+
+
+@pytest.mark.parametrize("requested_metric", [1, True, {}, [{}], ["revenue"]])
+def test_query_context_modified_series_limit_metric_bad_shape_blocked(
+    mocker: MockerFixture,
+    requested_metric: Any,
+) -> None:
+    """
+    Test that a series-limit selector of an unexpected shape is treated as
+    tampering.
+
+    A selector that is neither a metric name nor an adhoc metric object cannot
+    have come from the stored chart, so it must be rejected rather than compared
+    by value.
+    """
+    query_context = _series_limit_metric_query_context(
+        mocker,
+        requested_metric=requested_metric,
+        stored_metrics=["count"],
+    )
+
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_series_limit_metric_on_query_object_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that an off-chart series-limit metric is caught on the query object.
+
+    ``form_data`` and each ``QueryObject`` can each carry the selector, so a
+    guest must not be able to smuggle one past the guard by setting it only on
+    the query object.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 101
+    query_context.slice_.params_dict = {"metrics": ["count"]}
+    query_context.slice_.query_context = json.dumps(
+        {"queries": [{"metrics": ["count"]}]}
+    )
+    query_context.form_data = {"slice_id": 101, "metrics": ["count"]}
+    query_context.queries = [
+        QueryObject(metrics=["count"], series_limit_metric="revenue"),
+    ]
+
+    assert query_context_modified(query_context)
+
+
+@pytest.mark.parametrize(
+    "orderby",
+    [
+        "name",
+        {"col": "name"},
+        42,
+    ],
+)
+def test_query_context_modified_form_data_orderby_not_a_list_blocked(
+    mocker: MockerFixture,
+    orderby: Any,
+) -> None:
+    """
+    Test that a non-list ``form_data`` order-by is treated as tampering.
+
+    Order-by is a list of ``[term, ascending]`` pairs; any other shape is not a
+    sort the chart could have produced, so it is rejected rather than iterated.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "columns": ["name"],
+        "groupby": [],
+        "metrics": ["count"],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": ["name"],
+        "metrics": ["count"],
+        "orderby": orderby,
+    }
+    query_context.queries = []
+
+    assert query_context_modified(query_context)
+
+
+@pytest.mark.parametrize(
+    "orderby",
+    [
+        "name",
+        {"col": "name"},
+        42,
+    ],
+)
+def test_query_context_modified_query_object_orderby_not_a_list_blocked(
+    mocker: MockerFixture,
+    orderby: Any,
+) -> None:
+    """
+    Test that a non-list order-by on a query object is treated as tampering.
+
+    The guard validates both order-by sources, so a malformed shape must be
+    caught on the query object as well as on ``form_data``.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "columns": ["name"],
+        "groupby": [],
+        "metrics": ["count"],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": ["name"],
+        "metrics": ["count"],
+    }
+    query_context.queries = [SimpleNamespace(orderby=orderby)]
+
     assert query_context_modified(query_context)

@@ -1388,7 +1388,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
             # Validate the child is in the parent's configuration
             return child_slice_id in deck_slices
-        except (json.JSONDecodeError, TypeError):
+        # ``JSONDecodeError`` subclasses ``ValueError``; catching the base class
+        # keeps this robust when the decoder raises an exception class that is
+        # not identical to the imported one (e.g. after a module reload, where
+        # simplejson's C scanner holds a reference to the pre-reload class).
+        except (ValueError, TypeError):
             return False
 
     def has_drill_access(
