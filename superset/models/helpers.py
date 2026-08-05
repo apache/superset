@@ -1887,7 +1887,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         """
         labels = self._collect_dttm_labels(query_object)
 
-        dataset_timezone = self.get_dataset_timezone()
+        # ``get_dataset_timezone`` lives on ``ExploreMixin``; datasource doubles
+        # that bind only a subset of mixin methods onto a plain object (as some
+        # unit tests do) won't have it, so fall back to "not configured" rather
+        # than raising.
+        get_dataset_timezone = getattr(self, "get_dataset_timezone", None)
+        dataset_timezone = get_dataset_timezone() if get_dataset_timezone else None
         dttm_cols = [
             DateColumn(
                 timestamp_format=fmt,
