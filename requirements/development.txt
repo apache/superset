@@ -309,7 +309,7 @@ flask-session==0.8.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-flask-sqlalchemy==2.5.1
+flask-sqlalchemy==3.1.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -384,7 +384,6 @@ greenlet==3.5.4
     #   apache-superset
     #   gevent
     #   shillelagh
-    #   sqlalchemy
 griffelib==2.0.2
     # via fastmcp-slim
 grpcio==1.83.0
@@ -976,7 +975,7 @@ sortedcontainers==2.4.0
     # via
     #   -c requirements/base-constraint.txt
     #   trio
-sqlalchemy==1.4.54
+sqlalchemy==2.0.51
     # via
     #   -c requirements/base-constraint.txt
     #   alembic
@@ -1069,6 +1068,7 @@ typing-extensions==4.16.0
     #   referencing
     #   selenium
     #   shillelagh
+    #   sqlalchemy
     #   starlette
     #   typing-inspection
 typing-inspection==0.4.2
