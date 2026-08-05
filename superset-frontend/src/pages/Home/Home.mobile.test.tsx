@@ -39,7 +39,7 @@ jest.mock('@superset-ui/core', () => ({
 }));
 
 // Simulate a mobile viewport for the useIsMobile hook
-mockMobileMatchMedia();
+const restoreMatchMedia = mockMobileMatchMedia();
 
 // API mocks
 const chartsEndpoint = 'glob:*/api/v1/chart/?*';
@@ -126,6 +126,10 @@ const renderWelcome = (props = mockedProps) =>
 
 afterEach(() => {
   fetchMock.clearHistory();
+});
+
+afterAll(() => {
+  restoreMatchMedia();
 });
 
 test('Mobile view - renders Dashboards panel', async () => {

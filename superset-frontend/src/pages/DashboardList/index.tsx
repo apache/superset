@@ -179,7 +179,7 @@ const DASHBOARD_COLUMNS_TO_FETCH = [
 
 function DashboardList(props: DashboardListProps) {
   const { addDangerToast, addSuccessToast, user } = props;
-  const isNotMobile = !useIsMobile();
+  const isMobile = useIsMobile();
   const theme = useTheme();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
@@ -859,7 +859,7 @@ function DashboardList(props: DashboardListProps) {
         name={t('Dashboards')}
         buttons={subMenuButtons}
         leftIcon={
-          !isNotMobile ? (
+          isMobile ? (
             <Button
               buttonStyle="link"
               onClick={() => setMobileFiltersOpen(true)}
@@ -967,12 +967,12 @@ function DashboardList(props: DashboardListProps) {
                     ? 'card'
                     : 'table'
                 }
-                forceViewMode={!isNotMobile ? 'card' : undefined}
+                forceViewMode={isMobile ? 'card' : undefined}
                 enableBulkTag={enableBulkTag}
                 bulkTagResourceName="dashboard"
                 mobileFiltersOpen={mobileFiltersOpen}
                 setMobileFiltersOpen={
-                  !isNotMobile ? setMobileFiltersOpen : undefined
+                  isMobile ? setMobileFiltersOpen : undefined
                 }
                 mobileFiltersDrawerTitle={t('Search Dashboards')}
               />
