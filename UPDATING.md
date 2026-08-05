@@ -340,9 +340,18 @@ As a result the per-table **"Aggregation function"** control (which let you pick
 how totals were aggregated client-side, e.g. Sum/Average/Count) has been
 removed: totals now always reflect the metric's own definition evaluated at the
 total's granularity. For additive metrics (`SUM`/`COUNT`/`MIN`/`MAX`) the result
-is unchanged. Saved charts that set `aggregateFunction` will ignore it; no
-migration is required. If you previously relied on a plain sum-of-cells total
-for a non-additive metric, that specific behavior is no longer available.
+is unchanged. If you previously relied on a plain sum-of-cells total for a
+non-additive metric, that specific behavior is no longer available.
+
+The control's "Sum/Count as Fraction of Total/Rows/Columns" display options
+are back as a new, standalone **"Show values as"** control (below "Combine
+metrics" in the Options panel), since those were mathematically correct even
+before this change and are unrelated to the totals-correctness fix. A DB
+migration derives the new field from any still-present `aggregateFunction`
+fraction value, so a chart that had one of those options configured picks the
+equivalent "Show values as" setting back up automatically; charts that used a
+non-fraction `aggregateFunction` value (Sum, Average, Count, ...) are
+unaffected, since that specific behavior remains unavailable per the above.
 
 ### `thumbnail_url` removed from dashboard list API response
 
