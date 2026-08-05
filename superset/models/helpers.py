@@ -4122,17 +4122,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     assert isinstance(eq, (tuple, list))
                     if (
                         target_generic_type == utils.GenericDataType.NUMERIC
-                        and len(eq) > 1
-                        and isinstance(eq[0], int)
-                        and not isinstance(eq[0], bool)
-                        and any(isinstance(item, float) for item in eq[1:])
+                        and any(
+                            isinstance(item, int) and not isinstance(item, bool)
+                            for item in eq
+                        )
+                        and any(isinstance(item, float) for item in eq)
+                        and not isinstance(eq[0], float)
                     ):
                         # SQLAlchemy infers the type for expanding IN parameters
-                        # from the first value. If an integer appears first in a
-                        # mixed integer/decimal list, later decimal values can be
-                        # coerced to integers. IN-list order does not affect SQL
-                        # semantics, so place a decimal first while preserving
-                        # the original values.
+                        # from the first value. For mixed integer/decimal lists,
+                        # place a decimal first while preserving all values.
                         first_decimal_index = next(
                             index
                             for index, item in enumerate(eq)
