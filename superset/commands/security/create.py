@@ -19,6 +19,7 @@
 import logging
 from typing import Any
 
+from flask_babel import gettext as _
 from marshmallow import ValidationError
 
 from superset.commands.base import BaseCommand
@@ -46,6 +47,12 @@ class CreateRLSRuleCommand(BaseCommand):
         return RLSDAO.create(attributes=self._properties)
 
     def validate(self) -> None:
+        name = self._properties.get("name")
+        if name and not RLSDAO.validate_uniqueness(name):
+            raise ValidationError(
+                {"name": [_("A rule with this name already exists.")]}
+            )
+
         if (
             self._properties.get("filter_type")
             == RowLevelSecurityFilterType.REGULAR.value

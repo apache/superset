@@ -19,6 +19,7 @@
 import logging
 from typing import Any, Optional
 
+from flask_babel import gettext as _
 from marshmallow import ValidationError
 
 from superset.commands.base import BaseCommand
@@ -53,6 +54,12 @@ class UpdateRLSRuleCommand(BaseCommand):
         self._model = RLSDAO.find_by_id(int(self._model_id))
         if not self._model:
             raise RLSRuleNotFoundError()
+
+        name = self._properties.get("name")
+        if name and not RLSDAO.validate_uniqueness(name, self._model.id):
+            raise ValidationError(
+                {"name": [_("A rule with this name already exists.")]}
+            )
 
         # Only resolve and overwrite the relationships that are actually present
         # in the request body. A partial update (e.g. changing only the name)
