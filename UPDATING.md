@@ -343,15 +343,20 @@ total's granularity. For additive metrics (`SUM`/`COUNT`/`MIN`/`MAX`) the result
 is unchanged. If you previously relied on a plain sum-of-cells total for a
 non-additive metric, that specific behavior is no longer available.
 
-The control's "Sum/Count as Fraction of Total/Rows/Columns" display options
-are back as a new, standalone **"Show values as"** control (below "Combine
-metrics" in the Options panel), since those were mathematically correct even
-before this change and are unrelated to the totals-correctness fix. A DB
-migration derives the new field from any still-present `aggregateFunction`
-fraction value, so a chart that had one of those options configured picks the
-equivalent "Show values as" setting back up automatically; charts that used a
-non-fraction `aggregateFunction` value (Sum, Average, Count, ...) are
-unaffected, since that specific behavior remains unavailable per the above.
+The "Sum as Fraction of Total/Rows/Columns" display options are back as a
+new, standalone **"Show values as"** control (below "Combine metrics" in the
+Options panel), since those were mathematically correct even before this
+change and are unrelated to the totals-correctness fix. A DB migration
+derives the new field from any still-present `aggregateFunction` Sum-fraction
+value, so a chart that had one of those options configured picks the
+equivalent "Show values as" setting back up automatically. The "Count as
+Fraction of ..." variants are **not** migrated: they divided a record count,
+while the new control divides the metric's own value, so translating them
+automatically would silently change what the chart displays rather than
+restore it; those charts need to be manually reconfigured if the value-based
+percentage is what's wanted. Charts that used any other non-fraction
+`aggregateFunction` value (Sum, Average, Count, ...) are unaffected, since
+that specific behavior remains unavailable per the above.
 
 ### `thumbnail_url` removed from dashboard list API response
 

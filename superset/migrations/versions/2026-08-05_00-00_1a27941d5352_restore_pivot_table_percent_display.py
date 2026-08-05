@@ -34,6 +34,17 @@ affected chart and reselect it by hand. Charts whose ``aggregateFunction``
 was a non-fraction value (Sum, Average, Count, ...) are left untouched --
 those were never broken by the removal and are out of scope here.
 
+Only the three "Sum as Fraction of ..." values are migrated. The three
+"Count as Fraction of ..." values are deliberately excluded: they divided a
+*record count* by a record count, whereas the new ``showValuesAs`` modes
+divide the metric's own *value* by that value at the requested scope (see
+``cellValue``/``fractionOf`` in
+``superset-frontend/.../plugin-chart-pivot-table/src/react-pivottable/utilities.ts``).
+Mapping "Count as Fraction" onto a value-based percent would silently change
+what a saved chart displays -- e.g. a 50/50 split by record count could
+become a 10/90 split by value -- rather than restore it, so those are left
+as un-migrated dead data, same as Sum/Average/Count.
+
 Only the ``params``/``query_context`` snapshot stored on the slice is
 patched. The stored ``query_context`` is a cache mainly used for reports/
 alerts; interactive Explore/dashboard rendering always rebuilds the query
@@ -70,13 +81,13 @@ _NEW_FIELD = "showValuesAs"
 
 # Old `aggregateFunction` fraction values -> new `showValuesAs` enum values
 # (see ShowValuesAsEnum in superset-frontend/.../plugin-chart-pivot-table/src/types.ts).
+# "Count as Fraction of ..." values are intentionally NOT mapped here -- see the
+# module docstring for why translating them would change what the chart shows
+# rather than restore it.
 _FRACTION_MAPPING = {
     "Sum as Fraction of Total": "percent_total",
-    "Count as Fraction of Total": "percent_total",
     "Sum as Fraction of Rows": "percent_row",
-    "Count as Fraction of Rows": "percent_row",
     "Sum as Fraction of Columns": "percent_col",
-    "Count as Fraction of Columns": "percent_col",
 }
 
 
@@ -97,6 +108,11 @@ def _migrate_params(slc: Slice) -> bool:
     try:
         params = json.loads(slc.params)
     except Exception:
+        return False
+    if not isinstance(params, dict):
+        # A slice's params can be malformed (e.g. `[]`/`null`) from unrelated
+        # historical bugs; skip rather than let `.get()` raise and abort the
+        # whole migration partway through `paginated_update`'s batches.
         return False
 
     old_value = params.get(_OLD_FIELD)
@@ -119,6 +135,8 @@ def _migrate_query_context_form_data(slc: Slice) -> bool:
     try:
         qc = json.loads(slc.query_context)
     except Exception:
+        return False
+    if not isinstance(qc, dict):
         return False
 
     form_data = qc.get("form_data")

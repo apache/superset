@@ -83,6 +83,38 @@ def test_migrate_params_noop_for_non_fraction_value():
     assert _NEW_FIELD not in result
 
 
+@pytest.mark.parametrize(
+    "old_value",
+    [
+        "Count as Fraction of Total",
+        "Count as Fraction of Rows",
+        "Count as Fraction of Columns",
+    ],
+)
+def test_migrate_params_noop_for_count_fraction_value(old_value):
+    """Count-based fractions divided record counts, not metric values -- see
+    the module docstring for why translating them to the new value-based
+    showValuesAs modes would change what the chart displays."""
+    params = json.dumps({"viz_type": _VIZ_TYPE, _OLD_FIELD: old_value})
+    slc = Slice(params=params)
+    changed = _migrate_params(slc)
+    assert not changed
+    result = json.loads(slc.params)
+    assert result[_OLD_FIELD] == old_value
+    assert _NEW_FIELD not in result
+
+
+@pytest.mark.parametrize("malformed_params", ["[]", "null", "1", '"a string"'])
+def test_migrate_params_noop_when_params_not_dict(malformed_params):
+    """A historically malformed non-dict params value must be skipped, not
+    raise, so one bad row can't abort `superset db upgrade` partway through
+    paginated_update's batches."""
+    slc = Slice(params=malformed_params)
+    changed = _migrate_params(slc)
+    assert not changed
+    assert slc.params == malformed_params
+
+
 def test_migrate_params_noop_when_field_absent():
     params = json.dumps({"viz_type": _VIZ_TYPE, "colTotals": True})
     slc = Slice(params=params)
@@ -144,6 +176,14 @@ def test_migrate_query_context_noop_when_form_data_missing():
 
 def test_migrate_query_context_noop_when_query_context_empty():
     assert not _migrate_query_context_form_data(Slice(query_context=None))
+
+
+@pytest.mark.parametrize("malformed_qc", ["[]", "null", "1", '"a string"'])
+def test_migrate_query_context_noop_when_query_context_not_dict(malformed_qc):
+    slc = Slice(query_context=malformed_qc)
+    changed = _migrate_query_context_form_data(slc)
+    assert not changed
+    assert slc.query_context == malformed_qc
 
 
 def test_migrate_query_context_noop_on_invalid_json():
