@@ -31,6 +31,7 @@ import {
 } from '@superset-ui/core';
 import { useTheme } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
+import { logging } from '@apache-superset/core/utils';
 import type {
   ECElementEvent,
   ViewRootGroup,
@@ -50,17 +51,19 @@ import { getTemporalXAxisDrillByFilter } from '../utils/xAxisDrillByFilter';
 import { ExtraControls } from '../components/ExtraControls';
 
 const TIMER_DURATION = 300;
-const getTimestampFromTimeAxisLabel = (value: string | number) => {
+const getTimestampFromTimeAxisValue = (value: string | number) => {
   if (typeof value === 'number') {
     return Number.isFinite(value) ? value : undefined;
   }
   const timestamp = Date.parse(value);
   if (Number.isNaN(timestamp)) {
-    console.warn('Unable to parse time axis label for cross-filtering', value);
+    logging.warn('Unable to parse time axis value for cross-filtering', value);
   }
   return Number.isNaN(timestamp) ? undefined : timestamp;
 };
 
+// Day, month, and year ranges end at 23:59:59.999, so adding 1ms lands on a
+// whole-second next bucket boundary. The formatter intentionally emits seconds.
 const formatDateTime = (date: Date) =>
   `${[
     date.getUTCFullYear(),
@@ -533,8 +536,11 @@ export default function EchartsTimeseries({
           props.componentType === 'series'
         ) {
           const timeAxisValue = getXAxisValue(props.data, props.name);
-          if (typeof timeAxisValue === 'number') {
-            handleTimeAxisChange(timeAxisValue);
+          if (timeAxisValue !== undefined) {
+            const timestamp = getTimestampFromTimeAxisValue(timeAxisValue);
+            if (timestamp !== undefined) {
+              handleTimeAxisChange(timestamp);
+            }
           }
         }
       }, TIMER_DURATION);
@@ -624,9 +630,7 @@ export default function EchartsTimeseries({
           xAxis.label === DTTM_ALIAS ? formData.granularitySqla : xAxis.label;
         if (data && xAxis.type === AxisType.Time && xAxisCol) {
           // For horizontal orientation the [x, value] pair is swapped
-          const xValue = Array.isArray(data)
-            ? data[categoryAxisValueIndex]
-            : data;
+          const xValue = Array.isArray(data) ? data[xAxisValueIndex] : data;
           const xAxisFilter = getTemporalXAxisDrillByFilter(
             xAxisCol,
             xValue,
@@ -637,10 +641,7 @@ export default function EchartsTimeseries({
             xAxisFilters.push(xAxisFilter);
           }
         } else if (xAxis.type === AxisType.Category && xAxisCol) {
-          const categoryAxisValue = getCategoryAxisValue(
-            data,
-            eventParams.name,
-          );
+          const categoryAxisValue = getXAxisValue(data, eventParams.name);
           if (categoryAxisValue !== undefined) {
             // A category axis can still sit on a temporal column when the
             // axis is forced categorical; filter by time bucket in that case
@@ -684,8 +685,11 @@ export default function EchartsTimeseries({
           eventParams.componentType === 'series'
         ) {
           const timeAxisValue = getXAxisValue(data, eventParams.name);
-          if (typeof timeAxisValue === 'number') {
-            crossFilter = getTimeAxisCrossFilterDataMask(timeAxisValue);
+          if (timeAxisValue !== undefined) {
+            const timestamp = getTimestampFromTimeAxisValue(timeAxisValue);
+            if (timestamp !== undefined) {
+              crossFilter = getTimeAxisCrossFilterDataMask(timestamp);
+            }
           }
         }
 
@@ -711,7 +715,7 @@ export default function EchartsTimeseries({
         (typeof value === 'string' || typeof value === 'number')
       ) {
         if (xAxis.type === AxisType.Time) {
-          const timestamp = getTimestampFromTimeAxisLabel(value);
+          const timestamp = getTimestampFromTimeAxisValue(value);
           if (timestamp !== undefined) {
             handleTimeAxisChange(timestamp);
           }

@@ -21,8 +21,14 @@ import {
   waitFor,
   cleanup,
 } from '../../../../spec/helpers/testing-library';
-import { AxisType, DTTM_ALIAS, TimeGranularity } from '@superset-ui/core';
+import {
+  AxisType,
+  createTimeRangeFromGranularity,
+  DTTM_ALIAS,
+  TimeGranularity,
+} from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
+import { logging } from '@apache-superset/core/utils';
 import type { EChartsCoreOption } from 'echarts/core';
 import type { ECElementEvent } from 'echarts/types/src/util/types';
 import type { ReactNode } from 'react';
@@ -93,11 +99,16 @@ afterAll(() => {
 });
 
 afterEach(() => {
+  jest.useRealTimers();
   cleanup();
   mockEchart.mockReset();
   (globalThis as { ResizeObserver?: typeof ResizeObserver }).ResizeObserver =
     originalResizeObserver;
 });
+
+const advanceClickTimer = () => {
+  jest.advanceTimersByTime(300);
+};
 
 const defaultFormData: EchartsTimeseriesFormData & {
   vizType: string;
@@ -314,7 +325,8 @@ test('falls back to window resize listener when ResizeObserver is unavailable', 
 });
 
 // Test for issue #25334: Bar chart cross-filter without dimensions
-test('emits cross-filter on X-axis value when no dimensions and categorical X-axis', async () => {
+test('emits cross-filter on X-axis value when no dimensions and categorical X-axis', () => {
+  jest.useFakeTimers();
   const setDataMaskMock = jest.fn();
 
   const propsWithCategoricalXAxis: TimeseriesChartTransformedProps = {
@@ -348,13 +360,7 @@ test('emits cross-filter on X-axis value when no dimensions and categorical X-ax
       dataIndex: 0,
     });
 
-    // Wait for the timer (TIMER_DURATION = 300ms)
-    await waitFor(
-      () => {
-        expect(setDataMaskMock).toHaveBeenCalled();
-      },
-      { timeout: 500 },
-    );
+    advanceClickTimer();
 
     // Verify the cross-filter uses the X-axis column and value, not the metric
     const dataMaskCall = setDataMaskMock.mock.calls[0][0];
@@ -368,7 +374,8 @@ test('emits cross-filter on X-axis value when no dimensions and categorical X-ax
   }
 });
 
-test('emits cross-filter on category value for horizontal bar clicks', async () => {
+test('emits cross-filter on category value for horizontal bar clicks', () => {
+  jest.useFakeTimers();
   const setDataMaskMock = jest.fn();
 
   render(
@@ -397,12 +404,7 @@ test('emits cross-filter on category value for horizontal bar clicks', async () 
     dataIndex: 0,
   });
 
-  await waitFor(
-    () => {
-      expect(setDataMaskMock).toHaveBeenCalled();
-    },
-    { timeout: 500 },
-  );
+  advanceClickTimer();
 
   expect(setDataMaskMock.mock.calls[0][0].extraFormData.filters).toEqual([
     {
@@ -482,7 +484,8 @@ test('emits cross-filter from horizontal categorical axis label clicks', () => {
   ]);
 });
 
-test('does not emit duplicate cross-filter for generic axis label clicks', async () => {
+test('does not emit duplicate cross-filter for generic axis label clicks', () => {
+  jest.useFakeTimers();
   const setDataMaskMock = jest.fn();
 
   render(
@@ -504,8 +507,25 @@ test('does not emit duplicate cross-filter for generic axis label clicks', async
     name: 'Product A',
   });
 
-  await new Promise(resolve => setTimeout(resolve, 400));
+  jest.advanceTimersByTime(400);
   expect(setDataMaskMock).not.toHaveBeenCalled();
+});
+
+test('keeps temporal range exclusive ends on whole-second boundaries', () => {
+  const clickedTimestamp = new Date(Date.UTC(2021, 0, 15, 12, 34, 56, 789));
+
+  [TimeGranularity.DAY, TimeGranularity.MONTH, TimeGranularity.YEAR].forEach(
+    grain => {
+      const [, inclusiveEnd] = createTimeRangeFromGranularity(
+        clickedTimestamp,
+        grain,
+        false,
+      );
+      const exclusiveEnd = new Date(inclusiveEnd.getTime() + 1);
+
+      expect(exclusiveEnd.getUTCMilliseconds()).toBe(0);
+    },
+  );
 });
 
 test('emits TEMPORAL_RANGE cross-filter from time axis label click on day bucket', () => {
@@ -628,7 +648,8 @@ test('emits TEMPORAL_RANGE cross-filter from time axis label click on year bucke
   ]);
 });
 
-test('emits upper-exclusive TEMPORAL_RANGE from time point click on month bucket', async () => {
+test('emits upper-exclusive TEMPORAL_RANGE from time point click on month bucket', () => {
+  jest.useFakeTimers();
   const setDataMaskMock = jest.fn();
 
   render(
@@ -660,12 +681,7 @@ test('emits upper-exclusive TEMPORAL_RANGE from time point click on month bucket
     dataIndex: 0,
   });
 
-  await waitFor(
-    () => {
-      expect(setDataMaskMock).toHaveBeenCalled();
-    },
-    { timeout: 500 },
-  );
+  advanceClickTimer();
 
   expect(setDataMaskMock.mock.calls[0][0].extraFormData.filters).toEqual([
     {
@@ -676,7 +692,52 @@ test('emits upper-exclusive TEMPORAL_RANGE from time point click on month bucket
   ]);
 });
 
-test('uses resolved time grain for temporal point-click cross-filter', async () => {
+test('emits TEMPORAL_RANGE from string-typed time point click value', () => {
+  jest.useFakeTimers();
+  const setDataMaskMock = jest.fn();
+
+  render(
+    <EchartsTimeseries
+      {...defaultProps}
+      emitCrossFilters
+      setDataMask={setDataMaskMock}
+      groupby={[]}
+      resolvedTimeGrain={TimeGranularity.MONTH}
+      formData={{
+        ...defaultFormData,
+        granularitySqla: 'ds',
+        timeGrainSqla: TimeGranularity.MONTH,
+      }}
+      xAxis={{
+        label: DTTM_ALIAS,
+        type: AxisType.Time,
+      }}
+    />,
+  );
+
+  const clickHandler = getLatestEchartProps().eventHandlers?.click;
+  expect(clickHandler).toBeDefined();
+  clickHandler?.({
+    componentType: 'series',
+    seriesName: 'Sales',
+    data: ['2021-01-01T00:00:00Z', 100],
+    name: '2021-01-01',
+    dataIndex: 0,
+  });
+
+  advanceClickTimer();
+
+  expect(setDataMaskMock.mock.calls[0][0].extraFormData.filters).toEqual([
+    {
+      col: 'ds',
+      op: 'TEMPORAL_RANGE',
+      val: '2021-01-01T00:00:00 : 2021-02-01T00:00:00',
+    },
+  ]);
+});
+
+test('uses resolved time grain for temporal point-click cross-filter', () => {
+  jest.useFakeTimers();
   const setDataMaskMock = jest.fn();
 
   render(
@@ -711,12 +772,7 @@ test('uses resolved time grain for temporal point-click cross-filter', async () 
     dataIndex: 0,
   });
 
-  await waitFor(
-    () => {
-      expect(setDataMaskMock).toHaveBeenCalled();
-    },
-    { timeout: 500 },
-  );
+  advanceClickTimer();
 
   expect(setDataMaskMock.mock.calls[0][0].extraFormData.filters).toEqual([
     {
@@ -727,7 +783,8 @@ test('uses resolved time grain for temporal point-click cross-filter', async () 
   ]);
 });
 
-test('emits TEMPORAL_RANGE from horizontal time point click using timestamp, not metric', async () => {
+test('emits TEMPORAL_RANGE from horizontal time point click using timestamp, not metric', () => {
+  jest.useFakeTimers();
   const setDataMaskMock = jest.fn();
 
   render(
@@ -760,12 +817,7 @@ test('emits TEMPORAL_RANGE from horizontal time point click using timestamp, not
     dataIndex: 0,
   });
 
-  await waitFor(
-    () => {
-      expect(setDataMaskMock).toHaveBeenCalled();
-    },
-    { timeout: 500 },
-  );
+  advanceClickTimer();
 
   expect(setDataMaskMock.mock.calls[0][0].extraFormData.filters).toEqual([
     {
@@ -819,7 +871,7 @@ test('emits TEMPORAL_RANGE cross-filter from horizontal time axis label click', 
 
 test('warns and skips temporal axis label cross-filter when label value cannot be parsed', () => {
   const setDataMaskMock = jest.fn();
-  const warn = jest.spyOn(console, 'warn').mockImplementation();
+  const warn = jest.spyOn(logging, 'warn').mockImplementation();
 
   render(
     <EchartsTimeseries
@@ -850,14 +902,106 @@ test('warns and skips temporal axis label cross-filter when label value cannot b
 
   expect(setDataMaskMock).not.toHaveBeenCalled();
   expect(warn).toHaveBeenCalledWith(
-    'Unable to parse time axis label for cross-filtering',
+    'Unable to parse time axis value for cross-filtering',
     'not-a-date',
   );
 
   warn.mockRestore();
 });
 
-test('clears temporal X-axis cross-filter when clicking selected bucket again', async () => {
+test('logs and skips temporal point-click cross-filter when string value cannot be parsed', () => {
+  jest.useFakeTimers();
+  const setDataMaskMock = jest.fn();
+  const warn = jest.spyOn(logging, 'warn').mockImplementation();
+
+  render(
+    <EchartsTimeseries
+      {...defaultProps}
+      emitCrossFilters
+      setDataMask={setDataMaskMock}
+      groupby={[]}
+      resolvedTimeGrain={TimeGranularity.MONTH}
+      formData={{
+        ...defaultFormData,
+        granularitySqla: 'ds',
+        timeGrainSqla: TimeGranularity.MONTH,
+      }}
+      xAxis={{
+        label: DTTM_ALIAS,
+        type: AxisType.Time,
+      }}
+    />,
+  );
+
+  const clickHandler = getLatestEchartProps().eventHandlers?.click;
+  expect(clickHandler).toBeDefined();
+  clickHandler?.({
+    componentType: 'series',
+    seriesName: 'Sales',
+    data: ['not-a-date', 100],
+    name: 'not-a-date',
+    dataIndex: 0,
+  });
+
+  advanceClickTimer();
+
+  expect(setDataMaskMock).not.toHaveBeenCalled();
+  expect(warn).toHaveBeenCalledWith(
+    'Unable to parse time axis value for cross-filtering',
+    'not-a-date',
+  );
+
+  warn.mockRestore();
+});
+
+test('emits empty temporal X-axis data mask when filter grain is missing', () => {
+  jest.useFakeTimers();
+  const setDataMaskMock = jest.fn();
+
+  render(
+    <EchartsTimeseries
+      {...defaultProps}
+      emitCrossFilters
+      setDataMask={setDataMaskMock}
+      groupby={[]}
+      formData={{
+        ...defaultFormData,
+        granularitySqla: 'ds',
+        timeGrainSqla: undefined,
+      }}
+      xAxis={{
+        label: DTTM_ALIAS,
+        type: AxisType.Time,
+      }}
+    />,
+  );
+
+  const clickHandler = getLatestEchartProps().eventHandlers?.click;
+  expect(clickHandler).toBeDefined();
+  clickHandler?.({
+    componentType: 'series',
+    seriesName: 'Sales',
+    data: [Date.UTC(2021, 0, 1), 100],
+    name: '2021-01-01',
+    dataIndex: 0,
+  });
+
+  advanceClickTimer();
+
+  expect(setDataMaskMock.mock.calls[0][0]).toEqual({
+    extraFormData: {
+      filters: [],
+    },
+    filterState: {
+      label: undefined,
+      value: null,
+      selectedValues: null,
+    },
+  });
+});
+
+test('clears temporal X-axis cross-filter when clicking selected bucket again', () => {
+  jest.useFakeTimers();
   const setDataMaskMock = jest.fn();
   const selectedRange = '2021-01-01T00:00:00 : 2021-02-01T00:00:00';
 
@@ -891,12 +1035,7 @@ test('clears temporal X-axis cross-filter when clicking selected bucket again', 
     dataIndex: 0,
   });
 
-  await waitFor(
-    () => {
-      expect(setDataMaskMock).toHaveBeenCalled();
-    },
-    { timeout: 500 },
-  );
+  advanceClickTimer();
 
   expect(setDataMaskMock.mock.calls[0][0]).toEqual({
     extraFormData: {
@@ -944,7 +1083,8 @@ test('does not emit temporal X-axis label cross-filter when dimensions are set',
   expect(setDataMaskMock).not.toHaveBeenCalled();
 });
 
-test('does not emit temporal X-axis cross-filter when dimensions are set', async () => {
+test('does not emit temporal X-axis cross-filter when dimensions are set', () => {
+  jest.useFakeTimers();
   const setDataMaskMock = jest.fn();
 
   render(
@@ -979,12 +1119,7 @@ test('does not emit temporal X-axis cross-filter when dimensions are set', async
     dataIndex: 0,
   });
 
-  await waitFor(
-    () => {
-      expect(setDataMaskMock).toHaveBeenCalled();
-    },
-    { timeout: 500 },
-  );
+  advanceClickTimer();
 
   expect(setDataMaskMock.mock.calls[0][0].extraFormData.filters).toEqual([
     {
@@ -1003,7 +1138,8 @@ test('does not emit temporal X-axis cross-filter when dimensions are set', async
 // Test for issue #41102: horizontal bar cross-filter must use the category
 // value, not the metric. For horizontal bars the data tuple is value-first
 // (e.g. [100, 'Product A']), so relying on data[0] emitted the metric value.
-test('emits cross-filter on the category value for a horizontal categorical bar', async () => {
+test('emits cross-filter on the category value for a horizontal categorical bar', () => {
+  jest.useFakeTimers();
   const setDataMaskMock = jest.fn();
 
   const propsWithHorizontalXAxis: TimeseriesChartTransformedProps = {
@@ -1037,12 +1173,7 @@ test('emits cross-filter on the category value for a horizontal categorical bar'
       dataIndex: 0,
     });
 
-    await waitFor(
-      () => {
-        expect(setDataMaskMock).toHaveBeenCalled();
-      },
-      { timeout: 500 },
-    );
+    advanceClickTimer();
 
     // Must filter on the category ('Product A'), not the metric value (100)
     const dataMaskCall = setDataMaskMock.mock.calls[0][0];
