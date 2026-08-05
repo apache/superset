@@ -1,0 +1,712 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+/**
+ * Thin, well-isolated bridge to the MCP Apps host. The rest of the widget
+ * depends on this interface — never on the vendor package directly — so we can
+ * swap the transport (direct postMessage vs. @modelcontextprotocol/ext-apps)
+ * without touching the UI.
+ *
+ * It speaks the documented JSON-RPC-2.0-over-postMessage dialect from the
+ * MCP Apps spec (2026-01-26): ui/initialize handshake, tool-result / host
+ * context notifications, tools/call, ui/update-model-context, ui/open-link.
+ * Outside a host (standalone dev), every call no-ops gracefully.
+ */
+import type { ChartData, ChartMeta, ColorScheme } from './types';
+
+/** Display modes the widget can ask the host to switch between. */
+export type DisplayMode = 'inline' | 'fullscreen';
+
+export interface HostContext {
+  scheme: ColorScheme;
+  displayMode?: string;
+  container?: { width?: number; height?: number };
+}
+
+export interface HostCapabilities {
+  /** Names of tools the host exposes to the app (visibility: ["app"]). */
+  appTools: Set<string>;
+  /** Whether the host accepts ui/update-model-context. */
+  canUpdateModelContext: boolean;
+  /** Whether the host accepts ui/message follow-ups. */
+  canSendMessage: boolean;
+  /** Whether tools/call is available at all. */
+  canCallTools: boolean;
+}
+
+/**
+ * Everything the host told us at handshake, verbatim.
+ *
+ * `deriveCapabilities` guesses at several key spellings (`tools`, `toolCalls`,
+ * `appTools`, `experimental.appTools`, ...) because the spec does not pin them.
+ * A host that advertises under a name we do not read leaves every gated
+ * affordance silently switched off, which is indistinguishable from a broken
+ * feature. The raw maps are kept so that question can be answered by looking
+ * rather than by guessing.
+ */
+export interface HostDiagnostics {
+  protocolVersion?: string;
+  /** Exactly what the host sent — no normalisation. */
+  hostCapabilities: Record<string, unknown>;
+  hostContext: Record<string, unknown>;
+  /** 'null' in a sandboxed iframe without allow-same-origin. */
+  origin: string;
+  embedded: boolean;
+  /** What we concluded from the above. */
+  derived: HostCapabilities;
+  /**
+   * Top-level keys the host actually sent, verbatim.
+   *
+   * Surfaced in the collapsed summary because that one line has twice now been
+   * the only diagnostic that made it out of a host — reading the expanded JSON
+   * depends on a human transcribing it, which kept failing. The key names are
+   * what identify a spelling mismatch, so they belong where they can be read
+   * at a glance.
+   */
+  capabilityKeys: string[];
+  /** Sandbox permissions the host granted (clipboard-write, etc.), if stated. */
+  sandboxPermissions: string[];
+}
+
+export interface BridgeInit {
+  chartData: ChartData | null;
+  meta: ChartMeta;
+  context: HostContext;
+  capabilities: HostCapabilities;
+  diagnostics: HostDiagnostics;
+  /** True when a real MCP host answered the handshake. */
+  connected: boolean;
+  /**
+   * True when running inside a host iframe. Distinguishes "embedded but the
+   * handshake failed" (connected=false, embedded=true → show a connection
+   * error, NEVER fake data) from "standalone dev" (embedded=false → sample
+   * data is fine).
+   */
+  embedded: boolean;
+  /** Error message when the initial tool result was a ChartError / isError. */
+  error?: string;
+}
+
+/** App identity sent in the ui/initialize handshake (required by the spec). */
+const APP_INFO = { name: 'superset-chart-viewer', version: '1.0.0' };
+
+export type ContextListener = (ctx: Partial<HostContext>) => void;
+export type ToolResultListener = (
+  data: ChartData | null,
+  meta: ChartMeta,
+  error?: string,
+) => void;
+
+interface PendingCall {
+  resolve: (value: unknown) => void;
+  reject: (reason: unknown) => void;
+}
+
+const PROTOCOL_VERSION = '2026-01-26';
+
+export class ChartBridge {
+  private id = 0;
+  private pending = new Map<number, PendingCall>();
+  private contextListeners = new Set<ContextListener>();
+  private resultListeners = new Set<ToolResultListener>();
+  private capabilities: HostCapabilities = emptyCapabilities();
+  /** Modes from HostContext.availableDisplayModes; null when unadvertised. */
+  private hostDisplayModes: Set<string> | null = null;
+  private diagnostics: HostDiagnostics = buildDiagnostics(
+    undefined,
+    emptyCapabilities(),
+    false,
+  );
+
+  /**
+   * Raw handshake data, for the in-widget diagnostics panel.
+   *
+   * Read directly by the panel rather than threaded through props: it must
+   * stay available on every render path (loading, error, chart) without
+   * depending on component state that a failed handshake never populates.
+   */
+  getDiagnostics(): HostDiagnostics {
+    return this.diagnostics;
+  }
+
+  private get isEmbedded(): boolean {
+    return (
+      typeof window !== 'undefined' && window.parent && window.parent !== window
+    );
+  }
+
+  /** Perform the ui/initialize handshake. Resolves with host-provided data. */
+  async initialize(timeoutMs = 1500): Promise<BridgeInit> {
+    if (!this.isEmbedded) {
+      return this.standaloneInit();
+    }
+    window.addEventListener('message', this.onMessage);
+
+    try {
+      const result = (await this.request(
+        'ui/initialize',
+        {
+          protocolVersion: PROTOCOL_VERSION,
+          appInfo: APP_INFO,
+          appCapabilities: { availableDisplayModes: ['inline', 'fullscreen'] },
+        },
+        timeoutMs,
+      )) as HostInitResult;
+
+      this.capabilities = deriveCapabilities(result);
+      this.hostDisplayModes = readDisplayModes(result?.hostContext);
+      this.diagnostics = buildDiagnostics(result, this.capabilities, true);
+      this.notify('ui/notifications/initialized', {});
+
+      const { chartData, meta, error } = extractToolResult(result?.toolResult);
+      return {
+        chartData,
+        meta,
+        context: parseHostContext(result?.hostContext),
+        capabilities: this.capabilities,
+        diagnostics: this.diagnostics,
+        connected: true,
+        embedded: true,
+        error,
+      };
+    } catch {
+      // Host present but no timely/valid handshake. Do NOT fall back to sample
+      // data — that would render fake numbers as if they were the user's chart.
+      // Signal embedded+disconnected so the app shows a connection error.
+      this.capabilities = emptyCapabilities();
+      this.diagnostics = buildDiagnostics(undefined, this.capabilities, true);
+      return {
+        chartData: null,
+        meta: {},
+        context: { scheme: detectScheme() },
+        capabilities: this.capabilities,
+        diagnostics: this.diagnostics,
+        connected: false,
+        embedded: true,
+      };
+    }
+  }
+
+  private standaloneInit(): BridgeInit {
+    this.capabilities = emptyCapabilities();
+    this.diagnostics = buildDiagnostics(undefined, this.capabilities, false);
+    return {
+      chartData: null,
+      meta: {},
+      context: { scheme: detectScheme() },
+      capabilities: this.capabilities,
+      diagnostics: this.diagnostics,
+      connected: false,
+      embedded: false,
+    };
+  }
+
+  getCapabilities(): HostCapabilities {
+    return this.capabilities;
+  }
+
+  /** Subscribe to host context changes (theme / display mode / size). */
+  onContextChange(fn: ContextListener): () => void {
+    this.contextListeners.add(fn);
+    return () => this.contextListeners.delete(fn);
+  }
+
+  /** Subscribe to late tool-result pushes (host may send data after init). */
+  onToolResult(fn: ToolResultListener): () => void {
+    this.resultListeners.add(fn);
+    return () => this.resultListeners.delete(fn);
+  }
+
+  /** Call an app-visible server tool (e.g. render_chart_requery). */
+  async callTool<T = unknown>(
+    name: string,
+    args: Record<string, unknown>,
+  ): Promise<T> {
+    if (!this.isEmbedded || !this.capabilities.canCallTools) {
+      throw new Error('tools/call unavailable outside a host');
+    }
+    const res = (await this.request('tools/call', {
+      name,
+      arguments: args,
+    })) as {
+      structuredContent?: unknown;
+      content?: Array<{ type: string; text?: string }>;
+    };
+    return coerceToolResultData(res) as T;
+  }
+
+  /** True if the host exposes a given app-visible tool. */
+  hasTool(name: string): boolean {
+    // If the host enumerates app tools, require membership. Otherwise fall back
+    // to whether tools/call is supported at all (an unknown capability is
+    // treated as unsupported, so this stays false unless the host advertised
+    // tool-calling). Drill affordances gate on this and disable cleanly.
+    return this.capabilities.appTools.size
+      ? this.capabilities.appTools.has(name)
+      : this.capabilities.canCallTools;
+  }
+
+  /** Push a concise context string for the model's next turn ("Ask about this"). */
+  async updateModelContext(
+    text: string,
+    structured?: Record<string, unknown>,
+  ): Promise<void> {
+    if (!this.isEmbedded || !this.capabilities.canUpdateModelContext) return;
+    try {
+      await this.request('ui/update-model-context', {
+        content: [{ type: 'text', text }],
+        ...(structured ? { structuredContent: structured } : {}),
+      });
+    } catch {
+      /* best-effort */
+    }
+  }
+
+  /** Send a follow-up user message to the host chat (feature-detected). */
+  async sendMessage(text: string): Promise<void> {
+    if (!this.isEmbedded || !this.capabilities.canSendMessage) return;
+    try {
+      await this.request('ui/message', {
+        role: 'user',
+        content: [{ type: 'text', text }],
+      });
+    } catch {
+      /* best-effort */
+    }
+  }
+
+  /**
+   * Request the host open an external link (deep link to Superset).
+   *
+   * Hosts that do not implement ``ui/open-link`` typically leave the request
+   * unanswered, so this uses a short timeout rather than the default: a click
+   * must not sit for eight seconds doing nothing. On any failure it falls back
+   * to opening directly, which works unless the iframe sandbox forbids popups.
+   * Returns false when the link could not be opened by either route, so the
+   * caller can offer the URL another way instead of failing silently.
+   */
+  async openLink(url: string, timeoutMs = 1500): Promise<boolean> {
+    // Direct open first, while still synchronously inside the click's user
+    // gesture — awaiting the host first would spend transient activation and
+    // get this popup-blocked. In a sandboxed iframe (what hosts actually give
+    // us) this fails immediately and we reach the host path with no delay, so
+    // the sandbox itself routes each environment to the right branch.
+    try {
+      if (window.open(url, '_blank', 'noopener,noreferrer')) return true;
+    } catch {
+      // Sandboxed without allow-popups.
+    }
+    if (this.isEmbedded) {
+      try {
+        await this.request('ui/open-link', { url }, timeoutMs);
+        return true;
+      } catch {
+        // The spec says hosts SHOULD implement ui/open-link, not MUST, so an
+        // unanswered request is conformant and the caller must handle false.
+      }
+    }
+    return false;
+  }
+
+  /** Report intrinsic content size so the host can size the iframe. */
+  reportSize(width: number, height: number): void {
+    if (!this.isEmbedded) return;
+    this.notify('ui/notifications/size-changed', { width, height });
+  }
+
+  /** Display modes the host advertised, or null if it advertised none. */
+  getHostDisplayModes(): Set<string> | null {
+    return this.hostDisplayModes;
+  }
+
+  /**
+   * Ask the host to switch display mode, resolving with the mode the host
+   * actually applied.
+   *
+   * Deliberately NOT a boolean. The spec requires the host to return the
+   * resulting mode "whether updated or not", and a host that declines a switch
+   * answers with the mode it is staying in — so `null` (no usable answer) and
+   * "declined, still fullscreen" are different situations that need different
+   * handling. Collapsing both to `false` made the widget treat a refusal as
+   * "host has no display-mode support" and set its own state to the mode it
+   * had merely *asked* for, which is how the collapse control came to report
+   * success while the host stayed expanded.
+   *
+   * Returns null when the host cannot service the request at all: not embedded,
+   * the mode is absent from the host's advertised `availableDisplayModes`, or
+   * the request went unanswered.
+   */
+  async requestDisplayMode(
+    mode: DisplayMode,
+    timeoutMs = 1200,
+  ): Promise<DisplayMode | null> {
+    if (!this.isEmbedded) return null;
+    // The spec makes checking this the View's obligation, and it also spares
+    // the user a timeout's worth of dead button on hosts without mode support.
+    if (this.hostDisplayModes && !this.hostDisplayModes.has(mode)) return null;
+    try {
+      const result = (await this.request(
+        'ui/request-display-mode',
+        { mode },
+        timeoutMs,
+      )) as { mode?: unknown };
+      return asDisplayMode(result?.mode);
+    } catch {
+      return null;
+    }
+  }
+
+  // ---- transport internals -------------------------------------------------
+
+  private request(
+    method: string,
+    params: unknown,
+    timeoutMs = 8000,
+  ): Promise<unknown> {
+    return new Promise((resolve, reject) => {
+      const id = ++this.id;
+      this.pending.set(id, { resolve, reject });
+      this.post({ jsonrpc: '2.0', id, method, params });
+      if (timeoutMs > 0) {
+        setTimeout(() => {
+          if (this.pending.has(id)) {
+            this.pending.delete(id);
+            reject(new Error(`Timed out waiting for ${method}`));
+          }
+        }, timeoutMs);
+      }
+    });
+  }
+
+  private notify(method: string, params: unknown): void {
+    this.post({ jsonrpc: '2.0', method, params });
+  }
+
+  private post(msg: unknown): void {
+    try {
+      window.parent.postMessage(msg, '*');
+    } catch {
+      /* no-op */
+    }
+  }
+
+  private onMessage = (event: MessageEvent): void => {
+    const msg = event.data as JsonRpcMessage | undefined;
+    if (!msg || msg.jsonrpc !== '2.0') return;
+
+    // Response to one of our requests.
+    if (msg.id !== undefined && ('result' in msg || 'error' in msg)) {
+      const pending = this.pending.get(msg.id as number);
+      if (!pending) return;
+      this.pending.delete(msg.id as number);
+      if ('error' in msg && msg.error) pending.reject(msg.error);
+      else pending.resolve((msg as { result?: unknown }).result);
+      return;
+    }
+
+    // Host-initiated notifications.
+    if (typeof msg.method === 'string') {
+      this.handleNotification(msg.method, msg.params);
+    }
+  };
+
+  private handleNotification(method: string, params: unknown): void {
+    switch (method) {
+      case 'ui/notifications/tool-result': {
+        const { chartData, meta, error } = extractToolResult(params);
+        this.resultListeners.forEach((fn) => fn(chartData, meta, error));
+        break;
+      }
+      case 'ui/notifications/host-context-changed': {
+        const ctx = parsePartialHostContext(params);
+        if (ctx) this.contextListeners.forEach((fn) => fn(ctx));
+        break;
+      }
+      default:
+        break;
+    }
+  }
+}
+
+interface JsonRpcMessage {
+  jsonrpc: '2.0';
+  id?: number | string;
+  method?: string;
+  params?: unknown;
+  result?: unknown;
+  error?: unknown;
+}
+
+interface HostInitResult {
+  protocolVersion?: string;
+  hostCapabilities?: Record<string, unknown>;
+  hostContext?: Record<string, unknown>;
+  toolResult?: unknown;
+}
+
+function buildDiagnostics(
+  result: HostInitResult | undefined,
+  derived: HostCapabilities,
+  embedded: boolean,
+): HostDiagnostics {
+  let origin = 'unknown';
+  try {
+    origin = window.origin || 'null';
+  } catch {
+    origin = 'null';
+  }
+  const caps = (result?.hostCapabilities ?? {}) as Record<string, unknown>;
+  const sandbox = caps.sandbox as { permissions?: object } | undefined;
+  return {
+    protocolVersion: result?.protocolVersion,
+    hostCapabilities: caps,
+    hostContext: (result?.hostContext ?? {}) as Record<string, unknown>,
+    origin,
+    embedded,
+    derived,
+    capabilityKeys: Object.keys(caps),
+    sandboxPermissions: Object.keys(sandbox?.permissions ?? {}),
+  };
+}
+
+function deriveCapabilities(
+  result: HostInitResult | undefined,
+): HostCapabilities {
+  const caps = (result?.hostCapabilities ?? {}) as Record<string, unknown>;
+  const appTools = new Set<string>();
+  // Hosts may advertise app-visible tools under a few shapes; be liberal.
+  const toolList =
+    (caps.appTools as unknown) ??
+    (caps.tools as unknown) ??
+    ((caps.experimental as Record<string, unknown> | undefined)
+      ?.appTools as unknown);
+  if (Array.isArray(toolList)) {
+    for (const t of toolList) {
+      if (typeof t === 'string') appTools.add(t);
+      else if (t && typeof t === 'object' && 'name' in t)
+        appTools.add(String((t as { name: unknown }).name));
+    }
+  }
+  const has = (k: string): boolean => k in caps && caps[k] !== false;
+  // An unknown capability is treated as UNSUPPORTED (no optimistic `|| true`),
+  // so host-dependent affordances (drill re-query, "ask about this") only light
+  // up when the host actually advertises them.
+  //
+  // `serverTools` is the SPEC name for "host can proxy tool calls to the MCP
+  // server" (HostCapabilities, 2026-01-26). Reading only the pre-spec guesses
+  // below made every conformant host look like it forbade tool calls, which
+  // silently disabled click-to-drill everywhere — the host was offering the
+  // capability under the name the spec defines and we were not looking at it.
+  return {
+    appTools,
+    canCallTools:
+      has('serverTools') ||
+      has('tools') ||
+      has('toolCalls') ||
+      appTools.size > 0,
+    canUpdateModelContext: has('updateModelContext') || has('modelContext'),
+    canSendMessage: has('message') || has('messages'),
+  };
+}
+
+function emptyCapabilities(): HostCapabilities {
+  return {
+    appTools: new Set(),
+    canUpdateModelContext: false,
+    canSendMessage: false,
+    canCallTools: false,
+  };
+}
+
+/** Narrow a host-reported mode to one this widget knows how to render. */
+function asDisplayMode(value: unknown): DisplayMode | null {
+  return value === 'inline' || value === 'fullscreen' ? value : null;
+}
+
+/**
+ * Host's advertised display modes. Null (rather than an empty set) when the
+ * host says nothing, so "advertised none" and "did not advertise" stay
+ * distinguishable — only the former justifies skipping the request.
+ */
+function readDisplayModes(
+  ctx: Record<string, unknown> | undefined,
+): Set<string> | null {
+  const raw = ctx?.availableDisplayModes;
+  if (!Array.isArray(raw)) return null;
+  return new Set(raw.filter((m): m is string => typeof m === 'string'));
+}
+
+function parseHostContext(
+  ctx: Record<string, unknown> | undefined,
+): HostContext {
+  return {
+    scheme: readScheme(ctx) ?? detectScheme(),
+    displayMode:
+      typeof ctx?.displayMode === 'string'
+        ? (ctx.displayMode as string)
+        : undefined,
+    container: readContainer(ctx),
+  };
+}
+
+function parsePartialHostContext(params: unknown): Partial<HostContext> | null {
+  if (!params || typeof params !== 'object') return null;
+  const ctx = params as Record<string, unknown>;
+  const out: Partial<HostContext> = {};
+  const scheme = readScheme(ctx);
+  if (scheme) out.scheme = scheme;
+  if (typeof ctx.displayMode === 'string') out.displayMode = ctx.displayMode;
+  const container = readContainer(ctx);
+  if (container) out.container = container;
+  return Object.keys(out).length ? out : null;
+}
+
+function readScheme(
+  ctx: Record<string, unknown> | undefined,
+): ColorScheme | null {
+  if (!ctx) return null;
+  const raw =
+    (ctx.theme as unknown) ??
+    (ctx.colorScheme as unknown) ??
+    ((ctx.styles as Record<string, unknown> | undefined)
+      ?.colorScheme as unknown);
+  if (typeof raw === 'string') {
+    const v = raw.toLowerCase();
+    if (v.includes('dark')) return 'dark';
+    if (v.includes('light')) return 'light';
+  }
+  if (raw && typeof raw === 'object' && 'mode' in raw) {
+    const v = String((raw as { mode: unknown }).mode).toLowerCase();
+    if (v.includes('dark')) return 'dark';
+    if (v.includes('light')) return 'light';
+  }
+  return null;
+}
+
+function readContainer(
+  ctx: Record<string, unknown> | undefined,
+): { width?: number; height?: number } | undefined {
+  const c = ctx?.container as Record<string, unknown> | undefined;
+  if (!c) return undefined;
+  const width = typeof c.width === 'number' ? c.width : undefined;
+  const height = typeof c.height === 'number' ? c.height : undefined;
+  return width || height ? { width, height } : undefined;
+}
+
+/** Pull ChartData + _meta (and any error) out of a CallToolResult-shaped object. */
+export function extractToolResult(toolResult: unknown): {
+  chartData: ChartData | null;
+  meta: ChartMeta;
+  error?: string;
+} {
+  if (!toolResult || typeof toolResult !== 'object')
+    return { chartData: null, meta: {} };
+  const tr = toolResult as {
+    structuredContent?: unknown;
+    content?: Array<{ type: string; text?: string }>;
+    _meta?: Record<string, unknown>;
+    isError?: boolean;
+  };
+  const meta = (tr._meta ?? {}) as ChartMeta;
+  const coerced = coerceToolResultData(tr);
+
+  // MCP tool-level error: surface the text content as the message.
+  if (tr.isError) {
+    const block = tr.content?.find((c) => c.type === 'text' && c.text);
+    return {
+      chartData: null,
+      meta,
+      error: block?.text || 'The chart tool returned an error.',
+    };
+  }
+  // Superset ChartError payload: { error, error_type } with no columns/data.
+  if (
+    coerced &&
+    typeof coerced === 'object' &&
+    !isChartData(coerced) &&
+    typeof (coerced as { error?: unknown }).error === 'string'
+  ) {
+    const e = coerced as { error: string; error_type?: string };
+    return {
+      chartData: null,
+      meta,
+      error: e.error_type ? `${e.error} (${e.error_type})` : e.error,
+    };
+  }
+  return {
+    chartData: isChartData(coerced) ? (coerced as ChartData) : null,
+    meta,
+  };
+}
+
+/**
+ * FastMCP wraps non-plain-object return types in a synthetic `result` envelope
+ * (such tool schemas are marked `x-fastmcp-wrap-result`). Our tools are typed
+ * `-> ChartData | ChartError`, so the payload on the wire is
+ * `{"result": {...}}` rather than the bare object.
+ *
+ * Unwrap only when `result` is the SOLE key, so a future unwrapped payload —
+ * or one that legitimately carries other fields — still passes through intact.
+ */
+function unwrapResultEnvelope(value: unknown): unknown {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+  const keys = Object.keys(value as Record<string, unknown>);
+  if (keys.length === 1 && keys[0] === 'result') {
+    const inner = (value as { result: unknown }).result;
+    if (inner && typeof inner === 'object') return inner;
+  }
+  return value;
+}
+
+/** Prefer structuredContent; else parse the first JSON text content block. */
+export function coerceToolResultData(res: {
+  structuredContent?: unknown;
+  content?: Array<{ type: string; text?: string }>;
+}): unknown {
+  if (res?.structuredContent && typeof res.structuredContent === 'object') {
+    return unwrapResultEnvelope(res.structuredContent);
+  }
+  const block = res?.content?.find((c) => c.type === 'text' && c.text);
+  if (block?.text) {
+    try {
+      return unwrapResultEnvelope(JSON.parse(block.text));
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+function isChartData(v: unknown): v is ChartData {
+  return (
+    !!v &&
+    typeof v === 'object' &&
+    Array.isArray((v as ChartData).columns) &&
+    Array.isArray((v as ChartData).data)
+  );
+}
+
+function detectScheme(): ColorScheme {
+  if (typeof window !== 'undefined' && window.matchMedia) {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light';
+  }
+  return 'light';
+}

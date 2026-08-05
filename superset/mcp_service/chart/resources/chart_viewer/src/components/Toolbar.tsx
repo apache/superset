@@ -1,0 +1,143 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import type { JSX } from 'react';
+import type { DataColumn, ViewType } from '../types';
+import { CATEGORICAL_PALETTE } from '../theme';
+import { ChipGroup } from './ChipGroup';
+import { ExportMenu, type ExportAction } from './ExportMenu';
+
+const VIEW_LABELS: Record<ViewType, string> = {
+  line: 'Line',
+  bar: 'Bar',
+  area: 'Area',
+  pie: 'Pie',
+  scatter: 'Scatter',
+  table: 'Table',
+  big_number: 'Big Number',
+};
+
+interface Props {
+  views: ViewType[];
+  activeView: ViewType;
+  onViewChange: (v: ViewType) => void;
+  metricColumns: DataColumn[];
+  activeMetrics: string[];
+  onToggleMetric: (name: string) => void;
+  exploreUrl?: string;
+  onOpenInSuperset?: () => void;
+  exportActions?: ExportAction[];
+  exportNote?: string;
+}
+
+/** Compact toolbar: view switcher chips, metric toggles, "Open in Superset". */
+export function Toolbar({
+  views,
+  activeView,
+  onViewChange,
+  metricColumns,
+  activeMetrics,
+  onToggleMetric,
+  exploreUrl,
+  onOpenInSuperset,
+  exportActions,
+  exportNote,
+}: Props): JSX.Element {
+  // Scatter consumes two measures positionally (x and y), so toggling one off
+  // would not narrow the plot, it would break it.
+  const showMetricChips =
+    metricColumns.length > 1 &&
+    activeView !== 'big_number' &&
+    activeView !== 'table' &&
+    activeView !== 'scatter';
+
+  return (
+    <div className="sv-toolbar" role="toolbar" aria-label="Chart controls">
+      {views.length > 1 && (
+        <ChipGroup
+          label="View type"
+          chips={views.map((v) => ({
+            key: v,
+            label: VIEW_LABELS[v],
+            ariaLabel: `${VIEW_LABELS[v]} view`,
+            pressed: activeView === v,
+            onSelect: () => onViewChange(v),
+          }))}
+        />
+      )}
+
+      {showMetricChips && (
+        <ChipGroup
+          label="Metrics"
+          chips={metricColumns.map((col, i) => {
+            const name = col.display_name || col.name;
+            return {
+              key: col.name,
+              className: 'sv-metric-chip',
+              ariaLabel: `Show ${name}`,
+              pressed: activeMetrics.includes(col.name),
+              onSelect: () => onToggleMetric(col.name),
+              style: {
+                opacity: activeMetrics.includes(col.name) ? 1 : 0.5,
+              },
+              label: (
+                <>
+                  <span
+                    className="sv-metric-swatch"
+                    style={{
+                      background:
+                        CATEGORICAL_PALETTE[i % CATEGORICAL_PALETTE.length],
+                    }}
+                  />
+                  {name}
+                </>
+              ),
+            };
+          })}
+        />
+      )}
+
+      <div className="sv-spacer" />
+
+      {exportActions && exportActions.length > 0 && (
+        <ExportMenu actions={exportActions} note={exportNote} />
+      )}
+
+      {exploreUrl && (
+        <button type="button" className="sv-btn" onClick={onOpenInSuperset}>
+          <OpenIcon />
+          Open in Superset
+        </button>
+      )}
+    </div>
+  );
+}
+
+function OpenIcon(): JSX.Element {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M14 3h7v7M21 3l-9 9M18 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h5"
+        stroke="currentColor"
+        strokeWidth="1.9"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}

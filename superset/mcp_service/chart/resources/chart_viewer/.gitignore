@@ -1,0 +1,7 @@
+node_modules/
+*.log
+.DS_Store
+
+# Build output is NOT committed, matching how superset/static/assets is handled:
+# gitignored in the repo, built during packaging, and shipped via MANIFEST.in.
+dist/

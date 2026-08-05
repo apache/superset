@@ -1,0 +1,55 @@
+name: MCP Chart Viewer widget
+on:
+  push:
+    branches:
+      - "master"
+      - "[0-9].[0-9]*"
+    paths:
+      - "superset/mcp_service/chart/resources/chart_viewer/**"
+      - ".github/workflows/mcp-chart-viewer.yml"
+  pull_request:
+    paths:
+      - "superset/mcp_service/chart/resources/chart_viewer/**"
+      - ".github/workflows/mcp-chart-viewer.yml"
+    types: [synchronize, opened, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+# cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  chart-viewer-checks:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: superset/mcp_service/chart/resources/chart_viewer
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: "./superset/mcp_service/chart/resources/chart_viewer/.nvmrc"
+      - name: Install dependencies
+        run: npm ci
+      - name: unit tests
+        run: npm test
+      # `npm run build` runs `tsc --noEmit` first, so this also type-checks.
+      - name: build
+        run: npm run build
+      - name: Verify the single-file bundle was emitted
+        run: |
+          if [ ! -f dist/index.html ]; then
+            echo "::error::dist/index.html was not produced by 'npm run build'."
+            echo "The ui://superset/chart-viewer resource is served from this file;"
+            echo "without it the MCP server falls back to a placeholder."
+            exit 1
+          fi
+          echo "dist/index.html: $(wc -c < dist/index.html) bytes"
