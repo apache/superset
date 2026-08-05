@@ -45,7 +45,7 @@ def _get_version_rows(dashboard: Dashboard) -> list[Any]:
     ver_cls = version_class(Dashboard)
     return (
         db.session.query(ver_cls)
-        .filter(ver_cls.id == dashboard.id)
+        .filter(ver_cls.id == dashboard.id, ver_cls.uuid == dashboard.uuid)
         .order_by(ver_cls.transaction_id.asc())
         .all()
     )
@@ -398,8 +398,14 @@ class TestDashboardRestoreApi(SupersetTestCase):
         original_title = dashboard.dashboard_title
 
         ver_cls = version_class(Dashboard)
+        # Pin to (id, uuid), as the API's version lookup does. A shared test
+        # database recycles integer ids across the suite, so an id-only count
+        # picks up shadow rows belonging to hard-deleted predecessors and
+        # over-states this dashboard's history.
         count_before = (
-            db.session.query(ver_cls).filter(ver_cls.id == dashboard_id).count()
+            db.session.query(ver_cls)
+            .filter(ver_cls.id == dashboard_id, ver_cls.uuid == dashboard.uuid)
+            .count()
         )
         expected_old = count_before - 1 if count_before > 0 else None
 
