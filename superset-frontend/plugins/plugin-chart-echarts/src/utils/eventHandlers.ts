@@ -46,10 +46,10 @@ const getCrossFilterDataMask =
     labelMap: Record<string, string[]>,
   ) =>
   (value: string) => {
-    if (!labelMap[value]) {
+    const selected = Object.values(selectedValues);
+    if (!labelMap[value] && !selected.includes(value)) {
       return undefined;
     }
-    const selected = Object.values(selectedValues);
     let values: string[];
     if (selected.includes(value)) {
       values = selected.filter(v => v !== value);

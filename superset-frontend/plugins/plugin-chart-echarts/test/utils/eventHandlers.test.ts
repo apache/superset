@@ -198,3 +198,28 @@ test('cross-filter does nothing when name is missing from labelMap', () => {
 
   expect(setDataMask).not.toHaveBeenCalled();
 });
+
+test('cross-filter still deselects a previously selected value that is missing from labelMap', () => {
+  const setDataMask = jest.fn();
+  const props = buildProps({
+    groupby: ['topics'],
+    labelMap: {
+      cancellations: ['cancellations'],
+    },
+    // "Other" was selected before it dropped out of labelMap (e.g. a stale
+    // cross-filter from an earlier render or dashboard state).
+    selectedValues: { 0: 'Other' },
+    setDataMask,
+  });
+
+  const handlers = allEventHandlers(props);
+  handlers.click({ name: 'Other' });
+
+  expect(setDataMask).toHaveBeenCalledWith(
+    expect.objectContaining({
+      extraFormData: {
+        filters: [],
+      },
+    }),
+  );
+});
