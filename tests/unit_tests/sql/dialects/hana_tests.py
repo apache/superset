@@ -15,21 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from .db2 import DB2
-from .dremio import Dremio
-from .firebolt import Firebolt, FireboltOld
-from .hana import Hana
-from .opensearch import OpenSearch
-from .pinot import Pinot
-from .vertica import Vertica
+from superset.sql.dialects.hana import Hana
 
-__all__ = [
-    "DB2",
-    "Dremio",
-    "Firebolt",
-    "FireboltOld",
-    "Hana",
-    "OpenSearch",
-    "Pinot",
-    "Vertica",
-]
+
+def test_hana_dialect_registered() -> None:
+    """
+    Test that the Hana dialect is properly registered.
+    """
+    from superset.sql.parse import SQLGLOT_DIALECTS
+
+    assert "hana" in SQLGLOT_DIALECTS
+    assert SQLGLOT_DIALECTS["hana"] == Hana
