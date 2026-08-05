@@ -136,6 +136,7 @@ test('calls onChange with RGB object when resolveThemeTokens is false', async ()
       {...defaultProps}
       onChange={onChange}
       resolveThemeTokens={false}
+      outputFormat="hex"
       presets={[{ label: 'Special Colors', colors: ['Green', 'Red'] }]}
     />,
   );

@@ -278,12 +278,25 @@ export const getColorFunction = (
       if (isSpecialColor(colorScheme)) {
         return colorScheme;
       }
-      if (useGradient === false) {
+
+      if (
+        useGradient === false ||
+        (useGradient === undefined && colorScheme.length === 9)
+      ) {
+        if (alpha === false) {
+          return colorScheme.length === 9
+            ? colorScheme.slice(0, 7)
+            : colorScheme;
+        }
         return colorScheme;
       }
+
+      const cleanHex =
+        colorScheme.length === 9 ? colorScheme.slice(0, 7) : colorScheme;
+
       if (alpha === undefined || alpha) {
         return addAlpha(
-          colorScheme,
+          cleanHex,
           getOpacity(value, cutoffValue, extremeValue, minOpacity, maxOpacity),
         );
       }

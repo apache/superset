@@ -34,6 +34,7 @@ const SPECIAL_COLORS = {
 
 type SpecialColorKey = keyof typeof SPECIAL_COLORS;
 export type ColorPickerValue = RGBColor | SpecialColorKey | string;
+export type ColorOutputFormat = 'hex' | 'rgb';
 
 export interface ColorPickerControlProps {
   onChange?: (color: ColorPickerValue) => void;
@@ -47,6 +48,7 @@ export interface ColorPickerControlProps {
   presets?: { label: string; colors: string[] }[];
   ariaLabel?: string;
   resolveThemeTokens?: boolean;
+  outputFormat?: ColorOutputFormat;
 }
 
 const normalizeColorToHex = (color: string): string => {
@@ -139,6 +141,7 @@ export default function ColorPickerControl({
   presets: customPresets,
   ariaLabel,
   resolveThemeTokens = false,
+  outputFormat = 'rgb',
   ...headerProps
 }: ColorPickerControlProps) {
   const categoricalScheme = getCategoricalSchemeRegistry().get();
@@ -208,8 +211,8 @@ export default function ColorPickerControl({
         return;
       }
     }
-
-    onChange(hex);
+    if (outputFormat === 'rgb') onChange(rgb);
+    else onChange(hex);
   };
 
   const hexValue = toDisplayHex(value, themeColors);

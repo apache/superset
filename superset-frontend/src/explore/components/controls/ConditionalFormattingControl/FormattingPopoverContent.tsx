@@ -413,6 +413,7 @@ export const FormattingPopoverContent = ({
               onChange={event => handleChange(event)}
               presets={[...colors, ...extraColorChoices]}
               resolveThemeTokens
+              outputFormat="hex"
             />
           </FormItem>
         </Col>
