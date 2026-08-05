@@ -17,6 +17,8 @@
  * under the License.
  */
 const zlib = require('zlib');
+const { Writable } = require('stream');
+const { pipeline } = require('stream/promises');
 const { ZSTDDecompress } = require('simple-zstd');
 
 const yargs = require('yargs');
@@ -117,11 +119,9 @@ function copyHeaders(originalResponse, response) {
  * Manipulate HTML server response to replace asset files with
  * local webpack-dev-server build.
  */
-function processHTML(proxyResponse, response) {
-  let body = Buffer.from([]);
-  let originalResponse = proxyResponse;
+async function processHTML(proxyResponse, response) {
+  const responseEncoding = proxyResponse.headers['content-encoding'];
   let uncompress;
-  const responseEncoding = originalResponse.headers['content-encoding'];
 
   // decode GZIP response
   if (responseEncoding === 'gzip') {
@@ -133,23 +133,30 @@ function processHTML(proxyResponse, response) {
   } else if (responseEncoding === 'zstd') {
     uncompress = ZSTDDecompress();
   }
-  if (uncompress) {
-    originalResponse.pipe(uncompress);
-    originalResponse = uncompress;
-  }
 
-  originalResponse
-    .on('data', data => {
-      body = Buffer.concat([body, data]);
-    })
-    .on('error', error => {
-      // eslint-disable-next-line no-console
-      console.error(error);
-      response.end(`Error fetching proxied request: ${error.message}`);
-    })
-    .on('end', () => {
-      response.end(toDevHTML(body.toString()));
-    });
+  const chunks = [];
+  const collector = new Writable({
+    write(chunk, encoding, callback) {
+      chunks.push(chunk);
+      callback();
+    },
+  });
+
+  // `pipeline` (unlike `.pipe()`) destroys every stream in the chain -- and
+  // rejects -- as soon as any one of them errors or closes prematurely. A
+  // proxied backend connection dying mid-response (e.g. the Flask dev
+  // server's reloader restarting on a file save) is exactly that case:
+  // plain `.pipe()` never forwards the upstream error/close to `uncompress`,
+  // so `uncompress` (and, for `zstd`, the child process backing it) sits
+  // waiting for input that will never arrive, `end`/`error` never fire, and
+  // the client-facing response hangs forever instead of failing fast.
+  await pipeline(
+    ...(uncompress
+      ? [proxyResponse, uncompress, collector]
+      : [proxyResponse, collector]),
+  );
+
+  response.end(toDevHTML(Buffer.concat(chunks).toString()));
 }
 
 module.exports = newManifest => {
@@ -178,7 +185,15 @@ module.exports = newManifest => {
           // For HTML responses, flush headers before processing starts
           // processHTML sets up async handlers that will call response.end()
           response.flushHeaders();
-          processHTML(proxyResponse, response);
+          processHTML(proxyResponse, response).catch(e => {
+            // eslint-disable-next-line no-console
+            console.error(`Error requesting ${request.path} from proxy:`, e);
+            if (!response.writableEnded) {
+              response.end(
+                `Error requesting ${request.path} from proxy: ${e.message}`,
+              );
+            }
+          });
         } else {
           const isCSV = (proxyResponse.headers['content-type'] || '').includes(
             'text/csv',
