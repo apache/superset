@@ -1096,3 +1096,67 @@ test("fractionOf's value() returns null, not Infinity, when the denominator tota
   expect(pivotData.getAggregator(['blue'], ['circle']).value()).toBeNull();
   expect(pivotData.getAggregator(['blue'], ['square']).value()).toBeNull();
 });
+
+/**
+ * Regression guard: `buildGroupbyCombinations` requests the denominator's
+ * rollup level whenever a percent `showValuesAs` is active, but if a cached
+ * response predates that (e.g. a stale query result), the level a percent
+ * mode needs can be absent from the data entirely. The denominator aggregator
+ * then never receives a push and its underlying value stays `null`, which
+ * would produce `Infinity` (JS coerces `null` to `0` under `/`) rather than
+ * throwing -- the shared number formatter must render that as blank instead
+ * of leaking `Infinity%`/`NaN%` into the cell.
+ */
+test('TableRenderer renders blank instead of NaN%/Infinity% when the denominator level is missing', () => {
+  // Leaf cells and the grand total are present, but the row-total level
+  // (`__rows: ['color'], __columns: []`) that `percent_row` needs is not --
+  // simulating a response fetched before the denominator level was requested.
+  const dataMissingRowTotals = TAGGED_COUNT_DATA.filter(
+    record => !(record.__rows.length === 1 && record.__columns.length === 0),
+  );
+  const props = buildDefaultProps({
+    data: dataMissingRowTotals,
+    vals: ['value'],
+    tableOptions: { rowTotals: false, colTotals: true },
+    showValuesAs: 'percent_row',
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  const cellTexts = getCellTexts('pvtVal');
+  expect(cellTexts.length).toBeGreaterThan(0);
+  cellTexts.forEach(text => {
+    expect(text).not.toMatch(/NaN|Infinity/);
+  });
+  expect(cellTexts).toEqual(expect.arrayContaining(['']));
+});
+
+/**
+ * Regression guard: a per-metric custom formatter (currency, decimal
+ * precision, etc.) doesn't apply to a ratio, so `PivotData` disables
+ * `formattedAggregators` entirely whenever a fraction `showValuesAs` is
+ * active (see the constructor in ../../src/react-pivottable/utilities.ts).
+ * A cell whose group would otherwise pick up a custom formatter must still
+ * render as a plain percentage.
+ */
+test('TableRenderer ignores customFormatters while showValuesAs is a percentage', () => {
+  const customFormatters = {
+    color: {
+      blue: () => 'CUSTOM',
+    },
+  };
+  const props = buildDefaultProps({
+    data: TAGGED_COUNT_DATA,
+    vals: ['value'],
+    tableOptions: { rowTotals: true, colTotals: true },
+    showValuesAs: 'percent_row',
+    customFormatters,
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  const cellTexts = getCellTexts('pvtVal');
+  expect(cellTexts).not.toEqual(expect.arrayContaining(['CUSTOM']));
+  // Each leaf cell (1) is still half of its row's total (2).
+  expect(cellTexts).toEqual(
+    expect.arrayContaining(['50.0%', '50.0%', '50.0%', '50.0%']),
+  );
+});
