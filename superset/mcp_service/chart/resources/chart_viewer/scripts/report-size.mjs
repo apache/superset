@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { statSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -25,6 +25,61 @@ const out = join(here, '..', 'dist', 'index.html');
 const bytes = statSync(out).size;
 const kib = (bytes / 1024).toFixed(1);
 const mib = (bytes / (1024 * 1024)).toFixed(2);
-const budget = 1.5 * 1024 * 1024;
-const status = bytes <= budget ? 'OK (under 1.5MB budget)' : 'OVER 1.5MB budget';
-console.log(`\n  dist/index.html = ${bytes} bytes (${kib} KiB / ${mib} MiB) — ${status}\n`);
+// ---- Budget policy -------------------------------------------------------
+//
+// The widget ships as ONE self-contained HTML file with everything inlined,
+// so its size is the whole cost of a render. These numbers are measured:
+//
+//   ~870 KiB   today (React + ECharts + our code)
+//   +359 KiB   five of Superset's real transformProps, measured in a throwaway
+//              bundle with react/react-dom/echarts already present
+//   ~16 KiB    marginal cost of each ADDITIONAL chart type after the first —
+//              the ~290 KiB of shared @superset-ui/core is paid once
+//
+// That projects to ~1.23 MiB. HARD_LIMIT sits above it with room for roughly
+// ten more chart types, and below the 1.5 MiB the hosts make practical — so a
+// cliff is a failed build here rather than a discovery in a chat window.
+const HARD_LIMIT = 1.4 * 1024 * 1024;
+
+// One chart type's worth of growth. A commit adding more than this is either
+// pulling in a new shared dependency or doing something unintended; either way
+// it deserves a decision rather than a silent slide.
+const STEP_WARN = 24 * 1024;
+
+const BASELINE_FILE = join(here, '..', '.size-baseline.json');
+let baseline = null;
+try {
+  baseline = JSON.parse(readFileSync(BASELINE_FILE, 'utf-8')).bytes;
+} catch {
+  /* no baseline recorded yet */
+}
+
+const over = bytes > HARD_LIMIT;
+console.log(
+  `\n  dist/index.html = ${bytes} bytes (${kib} KiB / ${mib} MiB) — ` +
+    (over
+      ? `OVER the ${(HARD_LIMIT / 1024 / 1024).toFixed(2)}MiB hard limit`
+      : `OK (limit ${(HARD_LIMIT / 1024 / 1024).toFixed(2)}MiB)`),
+);
+
+if (baseline !== null) {
+  const delta = bytes - baseline;
+  console.log(
+    `  vs baseline: ${delta >= 0 ? '+' : ''}${(delta / 1024).toFixed(1)} KiB`,
+  );
+  if (delta > STEP_WARN) {
+    console.log(
+      `\n  NOTE: grew by more than one chart type's worth (${(STEP_WARN / 1024).toFixed(0)} KiB).\n` +
+        `  If intended, update .size-baseline.json in the same commit and say why.\n`,
+    );
+  }
+}
+
+if (over) {
+  console.error(
+    `\n  BUILD FAILED: bundle exceeds ${(HARD_LIMIT / 1024).toFixed(0)} KiB.\n` +
+      `  Every byte is downloaded before a chart appears. Remove weight, or\n` +
+      `  raise HARD_LIMIT deliberately with a measurement behind it.\n`,
+  );
+  process.exit(1);
+}
