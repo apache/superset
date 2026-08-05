@@ -131,9 +131,10 @@ describe('webpack.proxy-config zstd/gzip HTML decompression', () => {
       });
       const proxy = await startProxy(backend.address().port);
 
+      let hangGuardTimer;
       try {
         const hangGuard = new Promise((_resolve, reject) => {
-          setTimeout(
+          hangGuardTimer = setTimeout(
             () =>
               reject(
                 new Error(
@@ -156,6 +157,7 @@ describe('webpack.proxy-config zstd/gzip HTML decompression', () => {
         ]);
         expect(body).toContain('Error requesting');
       } finally {
+        clearTimeout(hangGuardTimer);
         await closeAll(proxy, backend);
       }
     },
@@ -179,9 +181,10 @@ describe('webpack.proxy-config zstd/gzip HTML decompression', () => {
       });
       const proxy = await startProxy(backend.address().port);
 
+      let hangGuardTimer;
       try {
         const hangGuard = new Promise((_resolve, reject) => {
-          setTimeout(
+          hangGuardTimer = setTimeout(
             () =>
               reject(
                 new Error(
@@ -199,6 +202,7 @@ describe('webpack.proxy-config zstd/gzip HTML decompression', () => {
         ]);
         expect(body).toContain('Error requesting');
       } finally {
+        clearTimeout(hangGuardTimer);
         await closeAll(proxy, backend);
       }
     },
