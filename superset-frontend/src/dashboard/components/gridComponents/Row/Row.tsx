@@ -216,7 +216,18 @@ const Row = memo((props: RowProps) => {
       // dispatches these events so off-screen rows render before the capture
       // and lazy loading is restored afterwards. Without this, virtualized
       // charts are exported as loading spinners.
-      const handleForceInView = () => {
+      //
+      // The force event optionally carries a `rowIds` batch in its detail so
+      // large dashboards can be force-rendered a few rows at a time instead
+      // of every row at once (see FORCE_RENDER_BATCH_SIZE in
+      // downloadUtils.ts). No detail means "force every row", preserving the
+      // original single-shot behavior for any other future caller.
+      const handleForceInView = (event: Event) => {
+        const rowIds = (event as CustomEvent<{ rowIds?: string[] }>).detail
+          ?.rowIds;
+        if (rowIds && !rowIds.includes(rowComponent.id as string)) {
+          return;
+        }
         observerEnabler?.disconnect();
         observerDisabler?.disconnect();
         setIsInView(true);
@@ -341,6 +352,7 @@ const Row = memo((props: RowProps) => {
             backgroundStyle.className,
           )}
           data-test={`grid-row-${backgroundStyle.className}`}
+          data-row-id={rowComponent.id}
           ref={containerRef}
           editMode={editMode}
         >
