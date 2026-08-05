@@ -33,7 +33,11 @@ from werkzeug.routing import BuildError
 
 from superset import db
 from superset.distributed_lock import DistributedLock
-from superset.exceptions import AcquireDistributedLockFailedException, OAuth2Error
+from superset.exceptions import (
+    AcquireDistributedLockFailedException,
+    OAuth2Error,
+    OAuth2TokenRefreshError,
+)
 from superset.superset_typing import OAuth2ClientConfig, OAuth2State
 
 if TYPE_CHECKING:
@@ -172,7 +176,7 @@ def refresh_oauth2_token(
             )
             db.session.delete(token)
             db.session.flush()
-            raise
+            raise OAuth2TokenRefreshError() from None
         except Exception as ex:
             # Non-OAuth failure: preserve the token and log structured context
             logger.error(
@@ -181,7 +185,7 @@ def refresh_oauth2_token(
                 db_engine_spec.engine,
                 type(ex).__name__,
             )
-            raise
+            raise OAuth2Error("Token refresh failed") from None
 
         # store new access token; note that the refresh token might be revoked, in which
         # case there would be no access token in the response

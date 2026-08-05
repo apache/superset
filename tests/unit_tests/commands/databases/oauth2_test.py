@@ -16,6 +16,7 @@
 # under the License.
 
 import logging
+import traceback
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -160,7 +161,7 @@ def test_run_logs_token_exchange_failure(
 
     with (
         caplog.at_level(logging.ERROR, logger="superset.commands.database.oauth2"),
-        pytest.raises(HTTPError),
+        pytest.raises(OAuth2Error) as exc_info,
     ):
         OAuth2StoreTokenCommand(mock_parameters).run()
 
@@ -171,6 +172,9 @@ def test_run_logs_token_exchange_failure(
     assert "oauth-code-sentinel" not in caplog.text
     assert "client-secret-sentinel" not in caplog.text
     assert "provider-payload-sentinel" not in caplog.text
+    assert "provider-payload-sentinel" not in "".join(
+        traceback.format_exception(exc_info.value)
+    )
 
 
 def test_run_existing_token(

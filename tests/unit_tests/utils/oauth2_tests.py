@@ -20,6 +20,7 @@
 import base64
 import hashlib
 import logging
+import traceback
 from datetime import datetime
 from typing import cast
 
@@ -27,6 +28,7 @@ import pytest
 from freezegun import freeze_time
 from pytest_mock import MockerFixture
 
+from superset.exceptions import OAuth2Error, OAuth2TokenRefreshError
 from superset.superset_typing import OAuth2ClientConfig
 from superset.utils.oauth2 import (
     decode_oauth2_state,
@@ -140,7 +142,7 @@ def test_refresh_oauth2_token_deletes_token_on_oauth2_exception(
 
     with (
         caplog.at_level(logging.WARNING, logger="superset.utils.oauth2"),
-        pytest.raises(OAuth2ExceptionError),
+        pytest.raises(OAuth2TokenRefreshError) as exc_info,
     ):
         refresh_oauth2_token(DUMMY_OAUTH2_CONFIG, 1, 1, db_engine_spec)
 
@@ -152,6 +154,9 @@ def test_refresh_oauth2_token_deletes_token_on_oauth2_exception(
     ) in caplog.messages
     assert "refresh-token-sentinel" not in caplog.text
     assert "provider-error-sentinel" not in caplog.text
+    assert "provider-error-sentinel" not in "".join(
+        traceback.format_exception(exc_info.value)
+    )
 
 
 def test_refresh_oauth2_token_keeps_token_on_other_exception(
@@ -184,7 +189,7 @@ def test_refresh_oauth2_token_keeps_token_on_other_exception(
 
     with (
         caplog.at_level(logging.ERROR, logger="superset.utils.oauth2"),
-        pytest.raises(Exception, match="Network error"),
+        pytest.raises(OAuth2Error) as exc_info,
     ):
         refresh_oauth2_token(DUMMY_OAUTH2_CONFIG, 1, 1, db_engine_spec)
 
@@ -195,6 +200,9 @@ def test_refresh_oauth2_token_keeps_token_on_other_exception(
     ) in caplog.messages
     assert "refresh-token-sentinel" not in caplog.text
     assert "provider-payload-sentinel" not in caplog.text
+    assert "provider-payload-sentinel" not in "".join(
+        traceback.format_exception(exc_info.value)
+    )
 
 
 def test_refresh_oauth2_token_no_access_token_in_response(
