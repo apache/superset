@@ -56,7 +56,7 @@ transform for the additive metrics used by the vast majority of pivot
 tables.
 
 Revision ID: 1a27941d5352
-Revises: f3a8c1d2e9b7
+Revises: 16755d4ca4ae
 Create Date: 2026-08-05 00:00:00.000000
 
 """
@@ -71,7 +71,7 @@ from superset.utils import json
 
 # revision identifiers, used by Alembic.
 revision = "1a27941d5352"
-down_revision = "f3a8c1d2e9b7"
+down_revision = "16755d4ca4ae"
 
 Base = declarative_base()
 
