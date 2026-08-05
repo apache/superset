@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from "@apache-superset/core/translation";
-import { ModalFormField } from "src/components/Modal";
-import { RefreshFrequencySelect } from "../../RefreshFrequency/RefreshFrequencySelect";
+import { t } from '@apache-superset/core';
+import { ModalFormField } from 'src/components/Modal';
+import { RefreshFrequencySelect } from '../../RefreshFrequency/RefreshFrequencySelect';
 
 interface RefreshSectionProps {
   refreshFrequency: number;
@@ -30,9 +30,9 @@ const RefreshSection = ({
   onRefreshFrequencyChange,
 }: RefreshSectionProps) => (
   <ModalFormField
-    label={t("Refresh frequency")}
+    label={t('Refresh frequency')}
     helperText={t(
-      "Set the automatic refresh frequency for this dashboard. The dashboard will reload its data at the specified interval.",
+      'Set the automatic refresh frequency for this dashboard. The dashboard will reload its data at the specified interval.',
     )}
     bottomSpacing={false}
   >

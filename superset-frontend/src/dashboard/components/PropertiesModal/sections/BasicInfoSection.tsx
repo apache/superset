@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from "@apache-superset/core/translation";
-import { FormItem, Input, FormInstance } from "@superset-ui/core/components";
-import { ModalFormField } from "src/components/Modal";
-import { ValidationObject } from "src/components/Modal/useModalValidation";
+import { t } from '@apache-superset/core';
+import { FormItem, Input, FormInstance } from '@superset-ui/core/components';
+import { ModalFormField } from 'src/components/Modal';
+import { ValidationObject } from 'src/components/Modal/useModalValidation';
 
 interface BasicInfoSectionProps {
   form: FormInstance;
@@ -30,7 +30,7 @@ const BasicInfoSection = ({
   form,
   validationStatus,
 }: BasicInfoSectionProps) => {
-  const titleValue = form.getFieldValue("title");
+  const titleValue = form.getFieldValue('title');
   const hasError =
     validationStatus.basic?.hasErrors &&
     (!titleValue || titleValue.trim().length === 0);
@@ -38,10 +38,10 @@ const BasicInfoSection = ({
   return (
     <>
       <ModalFormField
-        label={t("Name")}
+        label={t('Name')}
         required
         testId="dashboard-name-field"
-        error={hasError ? t("Dashboard name is required") : undefined}
+        error={hasError ? t('Dashboard name is required') : undefined}
       >
         <FormItem
           name="title"
@@ -49,40 +49,28 @@ const BasicInfoSection = ({
           rules={[
             {
               required: true,
-              message: t("Dashboard name is required"),
+              message: t('Dashboard name is required'),
               whitespace: true,
             },
           ]}
         >
           <Input
-            placeholder={t("The display name of your dashboard")}
+            placeholder={t('The display name of your dashboard')}
             data-test="dashboard-title-input"
             type="text"
           />
         </FormItem>
       </ModalFormField>
       <ModalFormField
-        label={t("URL Slug")}
+        label={t('URL Slug')}
         testId="dashboard-slug-field"
         bottomSpacing={false}
       >
         <FormItem name="slug" noStyle>
           <Input
-            placeholder={t("A readable URL for your dashboard")}
+            placeholder={t('A readable URL for your dashboard')}
             data-test="dashboard-slug-input"
             type="text"
-          />
-        </FormItem>
-      </ModalFormField>
-      <ModalFormField
-        label={t("Description")}
-        testId="dashboard-description-field"
-        bottomSpacing={false}
-      >
-        <FormItem name="description" noStyle>
-          <Input.TextArea
-            placeholder={t("A description for your dashboard")}
-            data-test="dashboard-description-input"
           />
         </FormItem>
       </ModalFormField>

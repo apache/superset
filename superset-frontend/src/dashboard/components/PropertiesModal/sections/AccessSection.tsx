@@ -16,50 +16,79 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo } from "react";
-import { t } from "@apache-superset/core/translation";
-import { isFeatureEnabled, FeatureFlag } from "@superset-ui/core";
-import { AsyncSelect } from "@superset-ui/core/components";
-import { type TagType } from "src/components";
-import { loadTags } from "src/components/Tag/utils";
-import Subject from "src/types/Subject";
-import { ModalFormField } from "src/components/Modal";
-import SubjectPicker, {
-  mapSubjectsToPickerValues,
-  type SubjectPickerValue,
-} from "src/features/subjects/SubjectPicker";
+import { useMemo } from 'react';
+import { t } from '@apache-superset/core';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import { AsyncSelect } from '@superset-ui/core/components';
+import { type TagType } from 'src/components';
+import { loadTags } from 'src/components/Tag/utils';
+import getOwnerName from 'src/utils/getOwnerName';
+import Owner from 'src/types/Owner';
+import { ModalFormField } from 'src/components/Modal';
+import {
+  OwnerSelectLabel,
+  OWNER_TEXT_LABEL_PROP,
+  OWNER_EMAIL_PROP,
+  OWNER_OPTION_FILTER_PROPS,
+} from 'src/features/owners/OwnerSelectLabel';
+import { useAccessOptions } from '../hooks/useAccessOptions';
+
+type Roles = { id: number; name: string }[];
+type Owners = {
+  id: number;
+  full_name?: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+}[];
 
 interface AccessSectionProps {
   isLoading: boolean;
+  owners: Owners;
+  roles: Roles;
   tags: TagType[];
-  editors?: Subject[];
-  viewers?: Subject[];
-  onChangeEditors: (editors: SubjectPickerValue[]) => void;
-  onChangeViewers: (viewers: SubjectPickerValue[]) => void;
+  onChangeOwners: (
+    owners: { value: number; label: string }[],
+    options: Record<string, unknown>[],
+  ) => void;
+  onChangeRoles: (roles: { value: number; label: string }[]) => void;
   onChangeTags: (tags: { label: string; value: number }[]) => void;
   onClearTags: () => void;
 }
 
 const AccessSection = ({
   isLoading,
+  owners,
+  roles,
   tags,
-  editors,
-  viewers,
-  onChangeEditors,
-  onChangeViewers,
+  onChangeOwners,
+  onChangeRoles,
   onChangeTags,
   onClearTags,
 }: AccessSectionProps) => {
-  const enableViewers = isFeatureEnabled(FeatureFlag.EnableViewers);
+  const { loadAccessOptions } = useAccessOptions();
 
-  const editorsSelectValue = useMemo(
-    () => mapSubjectsToPickerValues(editors || []),
-    [editors],
+  const ownersSelectValue = useMemo(
+    () =>
+      (owners || []).map((owner: Owner & { email?: string }) => ({
+        value: owner.id,
+        label: OwnerSelectLabel({
+          name: getOwnerName(owner),
+          email: owner.email,
+        }),
+        [OWNER_TEXT_LABEL_PROP]: getOwnerName(owner),
+        [OWNER_EMAIL_PROP]: owner.email ?? '',
+      })),
+    [owners],
   );
 
-  const viewersSelectValue = useMemo(
-    () => mapSubjectsToPickerValues(viewers || []),
-    [viewers],
+  const rolesSelectValue = useMemo(
+    () =>
+      (roles || []).map((role: { id: number; name: string }) => ({
+        value: role.id,
+        label: `${role.name}`,
+      })),
+    [roles],
   );
 
   const tagsAsSelectValues = useMemo(
@@ -74,49 +103,59 @@ const AccessSection = ({
   return (
     <>
       <ModalFormField
-        label={t("Editors")}
-        testId="dashboard-editors-field"
+        label={t('Owners')}
+        testId="dashboard-owners-field"
         helperText={t(
-          "Editors is a list of subjects who can alter the dashboard. Searchable by name.",
+          'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
         )}
       >
-        <SubjectPicker
-          relatedUrl="/api/v1/dashboard/related/editors"
-          dataTest="dashboard-editors-select"
+        <AsyncSelect
+          data-test="dashboard-owners-select"
           allowClear
-          ariaLabel={t("Editors")}
+          ariaLabel={t('Owners')}
           disabled={isLoading}
-          onChange={onChangeEditors}
-          value={editorsSelectValue}
-          placeholder={t("Search editors")}
+          mode="multiple"
+          onChange={onChangeOwners}
+          options={(input, page, pageSize) =>
+            loadAccessOptions('owners', input, page, pageSize)
+          }
+          value={ownersSelectValue}
+          showSearch
+          placeholder={t('Search owners')}
+          optionFilterProps={OWNER_OPTION_FILTER_PROPS}
         />
       </ModalFormField>
-      {enableViewers && (
+      {isFeatureEnabled(FeatureFlag.DashboardRbac) && (
         <ModalFormField
-          label={t("Viewers")}
-          testId="dashboard-viewers-field"
+          label={t('Roles')}
+          testId="dashboard-roles-field"
           helperText={t(
-            "Viewers is a list of subjects who can view the dashboard. If no viewers are defined, the dashboard is accessible to all users with appropriate datasource permissions.",
+            'Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles are defined, regular access permissions apply.',
           )}
+          bottomSpacing={!isFeatureEnabled(FeatureFlag.TaggingSystem)}
         >
-          <SubjectPicker
-            relatedUrl="/api/v1/dashboard/related/viewers"
-            dataTest="dashboard-viewers-select"
+          <AsyncSelect
+            data-test="dashboard-roles-select"
             allowClear
-            ariaLabel={t("Viewers")}
+            ariaLabel={t('Roles')}
             disabled={isLoading}
-            onChange={onChangeViewers}
-            value={viewersSelectValue}
-            placeholder={t("Search viewers")}
+            mode="multiple"
+            onChange={onChangeRoles}
+            options={(input, page, pageSize) =>
+              loadAccessOptions('roles', input, page, pageSize)
+            }
+            value={rolesSelectValue}
+            showSearch
+            placeholder={t('Search roles')}
           />
         </ModalFormField>
       )}
       {isFeatureEnabled(FeatureFlag.TaggingSystem) && (
         <ModalFormField
-          label={t("Tags")}
+          label={t('Tags')}
           testId="dashboard-tags-field"
           helperText={t(
-            "A list of tags that have been applied to this dashboard.",
+            'A list of tags that have been applied to this dashboard.',
           )}
           bottomSpacing={false}
         >
@@ -130,7 +169,7 @@ const AccessSection = ({
             onClear={onClearTags}
             allowClear
             showSearch
-            placeholder={t("Search tags")}
+            placeholder={t('Search tags')}
           />
         </ModalFormField>
       )}
