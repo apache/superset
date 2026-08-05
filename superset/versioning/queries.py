@@ -168,33 +168,13 @@ def find_active_by_uuid(model_cls: type[Model], entity_uuid: UUID) -> Any | None
     )
 
 
-def identity_filter(columns: Any, entity_id: int, entity_uuid: UUID | None) -> Any:
-    """Predicate pinning a shadow-row query to the entity it came from.
-
-    *columns* supplies the ``id`` and ``uuid`` columns, so it accepts either
-    the Continuum version class (ORM queries) or a version table's ``.c``
-    collection (Core ``select()`` queries) — both read paths need the same
-    pinning, and a single predicate keeps them from drifting apart.
-
-    The integer id alone is not an identity: a hard delete frees the id and
-    the database may hand it to a different entity — guaranteed on SQLite
-    ROWID tables, and reachable wherever a sequence is reset. Matching on the
-    id alone lets a successor inherit its predecessor's version history, and
-    lets a restore write the predecessor's content over it. The shadow tables
-    carry ``uuid``, so pinning both makes a reused id match nothing rather
-    than match a stranger. Mirrors ``_identity_predicates`` in the purge
-    cascade, where the same defect was fixed on the soft-delete side.
-
-    Falls back to the id alone when no uuid is available, preserving the
-    previous behaviour for callers that cannot supply one.
-    """
-    if entity_uuid is None:
-        return columns.id == entity_id
+def identity_filter(columns: Any, entity_id: int, entity_uuid: UUID) -> Any:
+    """Build an ``(id, uuid)`` predicate for ORM or Core version columns."""
     return sa.and_(columns.id == entity_id, columns.uuid == entity_uuid)
 
 
 def _get_version_count(
-    model_cls: type[Model], entity_id: int, entity_uuid: UUID | None = None
+    model_cls: type[Model], entity_id: int, entity_uuid: UUID
 ) -> int:
     """Return the number of historical version rows for the entity."""
     ver_cls = version_class(model_cls)
@@ -208,7 +188,7 @@ def _get_version_count(
 
 
 def current_version_number(
-    model_cls: type[Model], entity_id: int, entity_uuid: UUID | None = None
+    model_cls: type[Model], entity_id: int, entity_uuid: UUID
 ) -> int | None:
     """Return the 0-based ``version_number`` of the live row for *entity_id*
     — equivalent to the index of the most recent entry that
@@ -227,7 +207,7 @@ def current_version_number(
 
 
 def current_live_transaction_id(
-    model_cls: type[Model], entity_id: int, entity_uuid: UUID | None = None
+    model_cls: type[Model], entity_id: int, entity_uuid: UUID
 ) -> int | None:
     """Return the Continuum ``transaction_id`` of the live row for
     *entity_id* — stable across retention pruning, unlike the index
@@ -383,7 +363,7 @@ def list_versions(
             *_user_select_cols(user_tbl),
         )
         .select_from(_version_with_tx_user_join(ver_tbl, tx_tbl, user_tbl))
-        .where(identity_filter(ver_tbl.c, entity.id, getattr(entity, "uuid", None)))
+        .where(identity_filter(ver_tbl.c, entity.id, entity_uuid))
         .order_by(*_baseline_first_ordering(ver_tbl))
     )
     rows = db.session.execute(stmt).mappings().all()
@@ -454,7 +434,7 @@ def resolve_version(
     ver_cls = version_class(model_cls)
     tx_ids = (
         db.session.query(ver_cls.transaction_id)
-        .filter(identity_filter(ver_cls, entity.id, getattr(entity, "uuid", None)))
+        .filter(identity_filter(ver_cls, entity.id, entity_uuid))
         .order_by(
             (ver_cls.operation_type != 0).asc(),
             ver_cls.transaction_id.asc(),
@@ -534,7 +514,7 @@ def get_version(
         # to a wider one addresses the wrong row. Pinned there but not here,
         # a recycled id would surface a predecessor's snapshot under the
         # successor's version uuid.
-        .where(identity_filter(ver_tbl.c, entity.id, getattr(entity, "uuid", None)))
+        .where(identity_filter(ver_tbl.c, entity.id, entity_uuid))
         .order_by(*_baseline_first_ordering(ver_tbl))
         .offset(version_num)
         .limit(1)

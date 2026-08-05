@@ -77,8 +77,7 @@ def _capture_disabled() -> Iterator[None]:
 
 @pytest.fixture
 def recycled_id_charts() -> Iterator[RecycledIdCharts]:
-    """Create a chart, capture history, hard-delete it, then create a second
-    chart that lands on the freed id.
+    """Create two charts whose durable identities share a recycled integer id.
 
     Yields ``(entity_id, predecessor_uuid, successor)`` or skips when the
     backend did not actually recycle the id — the assertions are only
@@ -110,10 +109,12 @@ def recycled_id_charts() -> Iterator[RecycledIdCharts]:
                 "tables only"
             )
 
-        yield entity_id, predecessor_uuid, successor
-
-        db.session.delete(successor)
-        db.session.commit()
+        try:
+            yield entity_id, predecessor_uuid, successor
+        finally:
+            db.session.rollback()
+            db.session.delete(successor)
+            db.session.commit()
 
 
 def test_successor_under_recycled_id_has_no_inherited_history(
@@ -126,9 +127,12 @@ def test_successor_under_recycled_id_has_no_inherited_history(
     freshly created chart reported the deleted chart's history as its own.
     """
     entity_id, _predecessor_uuid, successor = recycled_id_charts
+    assert successor.uuid is not None
+    ver_cls = version_class(Slice)
 
     version = VersionDAO.current_version_number(Slice, entity_id, successor.uuid)
-    id_only_version = VersionDAO.current_version_number(Slice, entity_id)
+    id_only_count = db.session.query(ver_cls).filter(ver_cls.id == entity_id).count()
+    id_only_version = id_only_count - 1 if id_only_count else None
 
     # The successor has exactly one version of its own (its INSERT).
     assert version == 0, (
@@ -155,6 +159,8 @@ def test_live_transaction_id_is_not_the_predecessors(
     version the caller can never legitimately hold.
     """
     entity_id, predecessor_uuid, successor = recycled_id_charts
+    assert successor.uuid is not None
+    ver_cls = version_class(Slice)
 
     successor_tx = VersionDAO.current_live_transaction_id(
         Slice, entity_id, successor.uuid
@@ -172,15 +178,21 @@ def test_live_transaction_id_is_not_the_predecessors(
         "a hard-deleted predecessor has no live version row; got "
         f"{predecessor_tx} (successor's is {successor_tx})"
     )
-    # Control: the id-only lookup cannot make that distinction.
-    assert VersionDAO.current_live_transaction_id(Slice, entity_id) == successor_tx
+    # Control: an explicit id-only query cannot make that distinction.
+    id_only_tx = (
+        db.session.query(ver_cls.transaction_id)
+        .filter(ver_cls.id == entity_id, ver_cls.end_transaction_id.is_(None))
+        .order_by(ver_cls.transaction_id.desc())
+        .limit(1)
+        .scalar()
+    )
+    assert id_only_tx == successor_tx
 
 
 def test_restore_refuses_a_predecessors_transaction(
     recycled_id_charts: RecycledIdCharts,
 ) -> None:
-    """Restoring the successor to a transaction that belongs to the
-    predecessor must fail rather than overwrite it with a stranger's content.
+    """Refuse to restore a successor from its predecessor's transaction.
 
     This is the destructive half of the defect: the read side merely misreports
     history, but restore *writes*.
@@ -217,9 +229,10 @@ def test_restore_refuses_a_predecessors_transaction(
 def test_shadow_rows_for_both_entities_share_the_id(
     recycled_id_charts: RecycledIdCharts,
 ) -> None:
-    """Guard the guard: prove the fixture really did recycle the id and that
-    both entities' shadow rows coexist under it, so the tests above are not
-    passing vacuously.
+    """Prove both entities' shadow rows coexist under the recycled id.
+
+    This guards against the behavioral tests passing without exercising the
+    collision they are intended to cover.
     """
     entity_id, predecessor_uuid, successor = recycled_id_charts
 
@@ -312,24 +325,26 @@ def _assert_reused_id_gets_its_own_baseline_when_capture_resumes() -> None:
         db.session.commit()
         pytest.skip(f"backend did not recycle the id ({entity_id} -> {successor.id})")
 
-    successor.slice_name = "baseline_successor_v2"
-    db.session.commit()
+    try:
+        successor.slice_name = "baseline_successor_v2"
+        db.session.commit()
 
-    ver_cls = version_class(Slice)
-    rows = (
-        db.session.query(ver_cls)
-        .filter(ver_cls.id == entity_id, ver_cls.uuid == successor_uuid)
-        .order_by(ver_cls.transaction_id.asc())
-        .all()
-    )
-    assert [row.operation_type for row in rows] == [0, 1]
-    assert [row.slice_name for row in rows] == [
-        "baseline_successor",
-        "baseline_successor_v2",
-    ]
-
-    db.session.delete(successor)
-    db.session.commit()
+        ver_cls = version_class(Slice)
+        rows = (
+            db.session.query(ver_cls)
+            .filter(ver_cls.id == entity_id, ver_cls.uuid == successor_uuid)
+            .order_by(ver_cls.transaction_id.asc())
+            .all()
+        )
+        assert [row.operation_type for row in rows] == [0, 1]
+        assert [row.slice_name for row in rows] == [
+            "baseline_successor",
+            "baseline_successor_v2",
+        ]
+    finally:
+        db.session.rollback()
+        db.session.delete(successor)
+        db.session.commit()
 
 
 def test_reused_id_gets_its_own_baseline_when_capture_resumes() -> None:
