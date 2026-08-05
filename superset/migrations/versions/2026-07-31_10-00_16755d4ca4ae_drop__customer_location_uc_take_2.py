@@ -18,7 +18,7 @@
 Drop _customer_location_uc (take 2)
 
 Revision ID: 16755d4ca4ae
-Revises: e7d93a524ff6
+Revises: f3a8c1d2e9b7
 Create Date: 2026-07-31 10:00:00.000000
 """
 
