@@ -115,6 +115,17 @@ describe('getOverrideHtmlSchema', () => {
     expect(result.attributes?.li).toEqual(['className']);
   });
 
+  test('a per-tag override leaves a sibling tag definition untouched', () => {
+    const result = getOverrideHtmlSchema(taskListSchemaFixture, {
+      attributes: { li: ['className'] },
+    });
+
+    // Only the overridden tag (`li`) is replaced; `ul`/`ol` keep their
+    // default restrictive definitions since the merge recurses per-tag.
+    expect(result.attributes?.ul).toEqual(taskListSchemaFixture.attributes?.ul);
+    expect(result.attributes?.ol).toEqual(taskListSchemaFixture.attributes?.ol);
+  });
+
   test('a "*" wildcard override alone does not widen li, which has its own default definition', () => {
     const result = getOverrideHtmlSchema(taskListSchemaFixture, {
       attributes: { '*': ['className'] },
