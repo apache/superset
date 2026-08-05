@@ -3396,3 +3396,71 @@ def test_query_context_modified_orderby_non_bool_direction_blocked(
     query_context.queries = []
 
     assert query_context_modified(query_context)
+
+
+def test_query_context_modified_base_axis_physical_x_axis_regression(
+    mocker: MockerFixture,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    A guest loading an unmodified timeseries chart is not tampering.
+
+    Regression test for the 403 seen on embedded dashboards: the chart's x-axis
+    is a physical column, saved as a bare string under its own ``x_axis``
+    control, and its ``query_context`` is NULL (never re-saved in Explore).
+    Before querying, ``normalizeTimeColumn`` (superset-ui-core,
+    ``normalizeTimeColumn.ts``) replaces the x-axis in the query with a
+    synthesized adhoc column tagged ``columnType: "BASE_AXIS"`` and
+    ``isColumnReference: true``. That dict never appears verbatim in the stored
+    params, so an exact-match comparison read a plain chart load as tampering.
+    """
+    x_axis = "order_date"
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "x_axis": x_axis,
+        "metrics": stored_metrics,
+        "columns": [],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "x_axis": x_axis,
+        "metrics": stored_metrics,
+        "columns": [],
+    }
+    query_context.queries = [
+        _guest_query([_base_axis_physical_column(x_axis)], stored_metrics)
+    ]
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_base_axis_forged_reference_regression(
+    mocker: MockerFixture,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    The BASE_AXIS carve-out must not become a way in.
+
+    A guest tagging an unrelated column as ``BASE_AXIS`` is still tampering: the
+    reference it collapses to has to match a column the chart actually exposes.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "x_axis": "order_date",
+        "metrics": stored_metrics,
+        "columns": [],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "x_axis": "order_date",
+        "metrics": stored_metrics,
+        "columns": [],
+    }
+    query_context.queries = [
+        _guest_query([_base_axis_physical_column("secret_col")], stored_metrics)
+    ]
+    assert query_context_modified(query_context)
