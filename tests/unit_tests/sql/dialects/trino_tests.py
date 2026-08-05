@@ -439,3 +439,63 @@ SELECT describe_status('END')
     statements = sqlglot.parse(sql, dialect=Trino)
     assert len(statements) == 1
     assert len(list(statements[0].find_all(InlineUDF))) == 1
+
+
+def test_cte_named_function_does_not_trigger_routine_mode() -> None:
+    """
+    An ordinary CTE named "function" must not put the parser into routine
+    mode: block keywords used as ordinary identifiers/expressions elsewhere
+    in the script (here, `loop` as a column alias, and the `CASE ... END`
+    expression) must not affect statement splitting, and a later statement
+    must still be split off correctly.
+    """
+    sql = (
+        "WITH function AS (SELECT 1 AS a, 2 AS loop) "
+        "SELECT CASE WHEN a THEN loop ELSE 0 END FROM function; "
+        "SELECT 2"
+    )
+    statements = sqlglot.parse(sql, dialect=Trino)
+    assert len(statements) == 2
+    assert not list(statements[0].find_all(InlineUDF))
+
+
+def test_labeled_loop_block_depth_tracked() -> None:
+    """
+    A labeled loop (``label: WHILE ... END WHILE``, per
+    https://trino.io/docs/current/udf/sql.html) must still be tracked for
+    block depth: the label's trailing ``:`` sits between the loop opener and
+    its preceding statement separator/branch keyword.
+    """
+    sql = """
+WITH FUNCTION count_to(n bigint)
+  RETURNS bigint
+  BEGIN
+    DECLARE r bigint DEFAULT 0;
+    top: WHILE r < n DO
+      SET r = r + 1;
+    END WHILE;
+    RETURN r;
+  END
+SELECT count_to(5)
+    """.strip()
+    statements = sqlglot.parse(sql, dialect=Trino)
+    assert len(statements) == 1
+    assert len(list(statements[0].find_all(InlineUDF))) == 1
+
+
+def test_udf_body_function_calls_visible_to_check_functions_present() -> None:
+    """
+    A scalar function call inside an inline UDF body must still be visible
+    to ``SQLScript.check_functions_present`` (used to enforce
+    ``DISALLOWED_SQL_FUNCTIONS``), even though the body itself is stored as
+    opaque, verbatim text.
+    """
+    sql = """
+WITH FUNCTION mask(x varchar)
+  RETURNS varchar
+  RETURN regexp_replace(x, '.', '*')
+SELECT mask(some_column) FROM some_table
+    """.strip()
+    script = SQLScript(sql, "trino")
+    assert script.statements[0].check_functions_present({"regexp_replace"})
+    assert not script.statements[0].check_functions_present({"not_present"})

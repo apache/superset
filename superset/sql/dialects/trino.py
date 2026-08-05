@@ -54,13 +54,14 @@ _RESERVED_BLOCK_TOKEN_TYPES: dict[str, TokenType] = {
 
 # Token text that can immediately precede a new routine statement inside a
 # ``BEGIN ... END`` body: the start of the body itself, a statement
-# separator, or a branch/loop keyword that introduces a nested statement
-# list. Used by ``_is_routine_keyword`` to tell a non-reserved block-opening
+# separator, a branch/loop keyword that introduces a nested statement list,
+# or ``:`` following a statement label (e.g. ``top: WHILE ... END WHILE``).
+# Used by ``_is_routine_keyword`` to tell a non-reserved block-opening
 # keyword (``IF``, ``LOOP``, ``REPEAT``, ``WHILE``) apart from an unquoted
 # routine parameter or column reference spelled the same way, since Trino
 # does not reserve these words and its tokenizer emits ``VAR`` for both.
 _STATEMENT_START_PREV_TEXTS: frozenset[str] = frozenset(
-    {"BEGIN", ";", "THEN", "ELSE", "DO", "LOOP", "REPEAT"}
+    {"BEGIN", ";", "THEN", "ELSE", "DO", "LOOP", "REPEAT", ":"}
 )
 
 
@@ -118,6 +119,29 @@ def _is_paren_condition_block(tokens: t.Sequence[Token], paren_index: int) -> bo
     return False
 
 
+def _extract_function_calls(tokens: t.Sequence[Token]) -> list[exp.Anonymous]:
+    """
+    Scan the raw tokens of an inline UDF specification for scalar function
+    calls, e.g. ``regexp_replace(...)`` in ``RETURN regexp_replace(...)``, so
+    that ``SQLScript.check_functions_present`` still sees them even though
+    the UDF body itself is kept as opaque, verbatim text.
+
+    A call is any unreserved-keyword-or-identifier token (tokenized as
+    ``VAR``, since Trino's tokenizer does not distinguish an unquoted
+    identifier from an unreserved keyword) immediately followed by ``(``.
+    This can also match a routine/parameter type name (e.g. ``varchar(10)``)
+    or the UDF's own name at its declaration site; those false positives are
+    harmless here, since this list is only used to check for the presence of
+    specific denylisted function names, not to validate the call itself.
+    """
+    return [
+        exp.Anonymous(this=tokens[i - 1].text)
+        for i in range(1, len(tokens))
+        if tokens[i].token_type == TokenType.L_PAREN
+        and tokens[i - 1].token_type == TokenType.VAR
+    ]
+
+
 class InlineUDF(exp.CTE):
     """
     An inline SQL user-defined function declared in a ``WITH`` clause.
@@ -137,13 +161,17 @@ class InlineUDF(exp.CTE):
     in an ``exp.Var`` so that AST traversal helpers see an expression), since
     sqlglot has no representation for SQL routine bodies. Trino does not
     allow queries inside SQL UDF bodies, so no table references are hidden
-    by the opaque representation.
+    by the opaque representation. Scalar function calls, however, would be
+    hidden from ``SQLScript.check_functions_present`` (used to enforce
+    ``DISALLOWED_SQL_FUNCTIONS``) since it walks the AST for ``exp.Func``
+    nodes, so those are additionally extracted into ``expressions`` as
+    ``exp.Anonymous`` nodes; they play no part in regenerating the SQL.
 
     This subclasses ``exp.CTE`` because ``sqlglot.parser.Parser._parse_with``
     only collects ``exp.CTE`` instances into the ``WITH`` clause.
     """
 
-    arg_types = {"this": True}
+    arg_types = {"this": True, "expressions": False}
 
 
 class Trino(SqlglotTrino):
@@ -206,6 +234,7 @@ class Trino(SqlglotTrino):
         @staticmethod
         def _starts_routine(
             heads: list[TokenType],
+            next_token_type: TokenType | None,
             paren_depth: int,
         ) -> bool:
             """
@@ -215,6 +244,14 @@ class Trino(SqlglotTrino):
             in a ``WITH`` list, either right after ``WITH`` itself or after a
             top-level comma separating it from a preceding CTE, e.g.
             ``WITH cte AS (...), FUNCTION f() ...``.
+
+            In the ``WITH`` case, ``FUNCTION`` may also just be an ordinary
+            CTE named "function", e.g. ``WITH function AS (...) SELECT ...``.
+            ``next_token_type`` (the token immediately after ``FUNCTION``) is
+            checked the same way ``_parse_cte`` disambiguates the two: a CTE
+            named "function" is followed by ``AS``, ``(``, or a comma (for a
+            column alias list), while a routine specification is followed by
+            the function name.
             """
             if heads[:1] == [TokenType.CREATE]:
                 return heads in (
@@ -222,9 +259,11 @@ class Trino(SqlglotTrino):
                     [TokenType.CREATE, TokenType.OR, TokenType.REPLACE],
                 )
             if heads[:1] == [TokenType.WITH]:
-                return paren_depth == 0 and heads[-1] in (
-                    TokenType.WITH,
-                    TokenType.COMMA,
+                return (
+                    paren_depth == 0
+                    and heads[-1] in (TokenType.WITH, TokenType.COMMA)
+                    and next_token_type
+                    not in (TokenType.ALIAS, TokenType.L_PAREN, TokenType.COMMA)
                 )
             return False
 
@@ -273,7 +312,12 @@ class Trino(SqlglotTrino):
 
                 if token.token_type == TokenType.FUNCTION and not routine_mode:
                     heads = [tok.token_type for tok in chunk[:-1]]
-                    routine_mode = self._starts_routine(heads, paren_depth)
+                    next_token = raw_tokens[i + 1] if i + 1 < total else None
+                    routine_mode = self._starts_routine(
+                        heads,
+                        next_token.token_type if next_token else None,
+                        paren_depth,
+                    )
                 elif routine_mode:
                     depth += self._block_depth_delta(raw_tokens, i, prev_text)
 
@@ -318,6 +362,7 @@ class Trino(SqlglotTrino):
             either ``RETURN expression`` or a ``BEGIN ... END`` block.
             """
             start = self._curr
+            start_index = self._index
             self._advance()
 
             # scan for the start of the function body, skipping over the
@@ -356,7 +401,10 @@ class Trino(SqlglotTrino):
                 self._consume_block()
 
             raw = self.sql[start.start : self._prev.end + 1]
-            return self.expression(InlineUDF(this=exp.Var(this=raw)), token=start)
+            calls = _extract_function_calls(self._tokens[start_index : self._index])
+            return self.expression(
+                InlineUDF(this=exp.Var(this=raw), expressions=calls), token=start
+            )
 
         def _consume_block(self) -> None:
             """
