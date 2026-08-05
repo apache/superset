@@ -76,16 +76,17 @@ def test_per_resource_scope_rejected_when_user_lacks_permission(
         )
 
 
-@pytest.mark.parametrize("action", ["delete", "update"])
-def test_non_read_actions_map_to_can_write(
+@pytest.mark.parametrize("action", ["delete", "update", "garbage"])
+def test_unrecognized_actions_are_rejected(
     sm: SupersetSecurityManager, action: str
 ) -> None:
-    """Non-read actions check can_write — matching the current RBAC
-    granularity, which has no separate can_delete/can_update on resources."""
-    sm._has_view_access = MagicMock(return_value=True)
-    user = _make_user("Gamma")
-    sm._validate_requested_api_key_scopes(user, f"superset:chart:{action}")
-    sm._has_view_access.assert_called_once_with(user, "can_write", "Chart")
+    """Actions that runtime enforcement cannot consume are rejected."""
+    sm._has_view_access = MagicMock()
+    with pytest.raises(ValueError, match="unrecognized action"):
+        sm._validate_requested_api_key_scopes(
+            _make_user("Gamma"), f"superset:chart:{action}"
+        )
+    sm._has_view_access.assert_not_called()
 
 
 def test_unrecognized_resource_slug_rejected_without_rbac_lookup(
