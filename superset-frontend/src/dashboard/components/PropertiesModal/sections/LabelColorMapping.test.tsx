@@ -16,8 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import { render, screen, fireEvent } from "spec/helpers/testing-library";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from "spec/helpers/testing-library";
 import LabelColorMapping from "./LabelColorMapping";
 
 const defaultProps = {
@@ -30,7 +34,7 @@ describe("LabelColorMapping", () => {
     jest.clearAllMocks();
   });
 
-  test("renders the empty state correctly", () => {
+  it("renders the empty state correctly", () => {
     render(<LabelColorMapping {...defaultProps} />);
     expect(screen.getByText("Label Colors")).toBeInTheDocument();
     expect(
@@ -40,7 +44,7 @@ describe("LabelColorMapping", () => {
     ).toBeInTheDocument();
   });
 
-  test('adds a new color mapping row when "Add more" is clicked', () => {
+  it('adds a new color mapping row when "Add more" is clicked', () => {
     render(<LabelColorMapping {...defaultProps} />);
 
     const addButton = screen.getByText("+ Add more");
@@ -51,14 +55,16 @@ describe("LabelColorMapping", () => {
     ).toBeInTheDocument();
   });
 
-  test("renders existing mappings from jsonMetadata", () => {
+  it("renders existing mappings from jsonMetadata", async () => {
     const propsWithData = {
       ...defaultProps,
       jsonMetadata: JSON.stringify({ label_colors: { Revenue: "#20a7c9" } }),
     };
     render(<LabelColorMapping {...propsWithData} />);
 
-    expect(screen.getByDisplayValue("Revenue")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("#20a7c9")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("Revenue")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("#20a7c9")).toBeInTheDocument();
+    });
   });
 });

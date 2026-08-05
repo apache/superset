@@ -27,7 +27,7 @@ const Container = styled.div`
     return `
       margin-bottom: ${(safeTheme.gridUnit || 4) * 4}px;
       padding: ${(safeTheme.gridUnit || 4) * 4}px;
-      background-color: ${safeTheme.colors?.grayscale?.light4 || "#f6f6f6"};
+      background-color: ${safeTheme.colors?.grayscale?.light4};
       border-radius: ${safeTheme.borderRadius || 4}px;
     `;
   }}
@@ -68,12 +68,12 @@ const StyledInput = styled.input`
       width: 100%;
       height: 32px;
       padding: 4px 11px;
-      border: 1px solid ${safeTheme.colors?.grayscale?.light2 || "#e0e0e0"};
+      border: 1px solid ${safeTheme.colors?.grayscale?.light2};
       border-radius: ${safeTheme.borderRadius || 4}px;
-      color: ${safeTheme.colors?.grayscale?.dark1 || "#333333"};
+      color: ${safeTheme.colors?.grayscale?.dark1};
       outline: none;
       &:focus {
-        border-color: ${safeTheme.colors?.primary?.base || "#20a7c9"};
+        border-color: ${safeTheme.colors?.primary?.base};
       }
     `;
   }}
@@ -98,7 +98,7 @@ const StyledColorInput = styled.input`
       height: 34px;
       width: 40px;
       padding: 0;
-      border: 1px solid ${safeTheme.colors?.grayscale?.light2 || "#e0e0e0"};
+      border: 1px solid ${safeTheme.colors?.grayscale?.light2};
       border-radius: ${safeTheme.borderRadius || 4}px;
       outline: none;
       background: none;
@@ -120,14 +120,14 @@ const ActionButton = styled.button`
     return `
       background: transparent;
       border: none;
-      color: ${safeTheme.colors?.grayscale?.base || "#666666"};
+      color: ${safeTheme.colors?.grayscale?.base};
       cursor: pointer;
       padding: 0;
       font-size: 16px;
       transition: color 0.2s;
 
       &:hover {
-        color: ${safeTheme.colors?.error?.base || "#e04355"};
+        color: ${safeTheme.colors?.error?.base};
       }
     `;
   }}
@@ -137,7 +137,7 @@ const AddMoreLink = styled.div`
   ${({ theme }: any) => {
     const safeTheme = theme || {};
     return `
-      color: ${safeTheme.colors?.primary?.dark1 || "#1a85a0"};
+      color: ${safeTheme.colors?.primary?.dark1};
       font-size: 14px;
       font-weight: bold;
       cursor: pointer;
@@ -185,13 +185,15 @@ const LabelColorMapping = ({
     }
   }, [jsonMetadata]);
 
-  const labelColors = useMemo(() => {
-    return metadataObj.label_colors &&
+  const labelColors = useMemo(
+    () =>
+      metadataObj.label_colors &&
       typeof metadataObj.label_colors === "object" &&
       !Array.isArray(metadataObj.label_colors)
-      ? (metadataObj.label_colors as Record<string, string>)
-      : {};
-  }, [metadataObj]);
+        ? (metadataObj.label_colors as Record<string, string>)
+        : {},
+    [metadataObj],
+  );
 
   const [rows, setRows] = useState<ColorMapping[]>([]);
   const lastSyncMetadata = useRef<string>(jsonMetadata);
@@ -268,7 +270,7 @@ const LabelColorMapping = ({
             css={(theme: any) => ({
               margin: 0,
               fontSize: 12,
-              color: theme?.colors?.grayscale?.base || "#666666",
+              color: theme?.colors?.grayscale?.base,
             })}
           >
             {t(
@@ -282,7 +284,7 @@ const LabelColorMapping = ({
         <p
           css={(theme: any) => ({
             fontStyle: "italic",
-            color: theme?.colors?.grayscale?.light1 || "#B2B2B2",
+            color: theme?.colors?.grayscale?.light1,
           })}
         >
           {t('No color mappings defined. Click "+ Add more" to get started.')}
