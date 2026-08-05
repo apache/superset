@@ -168,19 +168,43 @@ def find_active_by_uuid(model_cls: type[Model], entity_uuid: UUID) -> Any | None
     )
 
 
-def _get_version_count(model_cls: type[Model], entity_id: int) -> int:
-    """Return the number of historical version rows for *entity_id*."""
+def _identity_filter(ver_cls: Any, entity_id: int, entity_uuid: UUID | None) -> Any:
+    """Predicate pinning a shadow-row query to the entity it came from.
+
+    The integer id alone is not an identity: a hard delete frees the id and
+    the database may hand it to a different entity — guaranteed on SQLite
+    ROWID tables, and reachable wherever a sequence is reset. Matching on the
+    id alone lets a successor inherit its predecessor's version history, and
+    lets a restore write the predecessor's content over it. The shadow tables
+    carry ``uuid``, so pinning both makes a reused id match nothing rather
+    than match a stranger. Mirrors ``_identity_predicates`` in the purge
+    cascade, where the same defect was fixed on the soft-delete side.
+
+    Falls back to the id alone when no uuid is available, preserving the
+    previous behaviour for callers that cannot supply one.
+    """
+    if entity_uuid is None:
+        return ver_cls.id == entity_id
+    return sa.and_(ver_cls.id == entity_id, ver_cls.uuid == entity_uuid)
+
+
+def _get_version_count(
+    model_cls: type[Model], entity_id: int, entity_uuid: UUID | None = None
+) -> int:
+    """Return the number of historical version rows for the entity."""
     ver_cls = version_class(model_cls)
     return (
         db.session.query(sa.func.count())
         .select_from(ver_cls)
-        .filter(ver_cls.id == entity_id)
+        .filter(_identity_filter(ver_cls, entity_id, entity_uuid))
         .scalar()
         or 0
     )
 
 
-def current_version_number(model_cls: type[Model], entity_id: int) -> int | None:
+def current_version_number(
+    model_cls: type[Model], entity_id: int, entity_uuid: UUID | None = None
+) -> int | None:
     """Return the 0-based ``version_number`` of the live row for *entity_id*
     — equivalent to the index of the most recent entry that
     :func:`list_versions` would return, or ``None`` when the entity has no
@@ -193,11 +217,13 @@ def current_version_number(model_cls: type[Model], entity_id: int) -> int | None
     can refer to different rows before and after a prune cycle. Use
     :func:`current_live_transaction_id` for a stable identifier.
     """
-    count = _get_version_count(model_cls, entity_id)
+    count = _get_version_count(model_cls, entity_id, entity_uuid)
     return count - 1 if count > 0 else None
 
 
-def current_live_transaction_id(model_cls: type[Model], entity_id: int) -> int | None:
+def current_live_transaction_id(
+    model_cls: type[Model], entity_id: int, entity_uuid: UUID | None = None
+) -> int | None:
     """Return the Continuum ``transaction_id`` of the live row for
     *entity_id* — stable across retention pruning, unlike the index
     returned by :func:`current_version_number`.
@@ -205,7 +231,7 @@ def current_live_transaction_id(model_cls: type[Model], entity_id: int) -> int |
     ver_cls = version_class(model_cls)
     row = (
         db.session.query(ver_cls.transaction_id)
-        .filter(ver_cls.id == entity_id)
+        .filter(_identity_filter(ver_cls, entity_id, entity_uuid))
         .filter(ver_cls.end_transaction_id.is_(None))
         .order_by(ver_cls.transaction_id.desc())
         .limit(1)
@@ -219,7 +245,7 @@ def current_live_version_uuid(
 ) -> UUID | None:
     """Return the deterministic ``version_uuid`` of the live row, or
     ``None`` when the entity has no version rows yet."""
-    tx_id = current_live_transaction_id(model_cls, entity_id)
+    tx_id = current_live_transaction_id(model_cls, entity_id, entity_uuid)
     if tx_id is None:
         return None
     return derive_version_uuid(entity_uuid, tx_id)
@@ -423,7 +449,7 @@ def resolve_version(
     ver_cls = version_class(model_cls)
     tx_ids = (
         db.session.query(ver_cls.transaction_id)
-        .filter(ver_cls.id == entity.id)
+        .filter(_identity_filter(ver_cls, entity.id, getattr(entity, "uuid", None)))
         .order_by(
             (ver_cls.operation_type != 0).asc(),
             ver_cls.transaction_id.asc(),

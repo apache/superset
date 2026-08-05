@@ -115,8 +115,10 @@ def current_entity_version_info(
         else None
     )
     return EntityVersionInfo(
-        version=VersionDAO.current_version_number(model_cls, entity_id),
-        transaction_id=VersionDAO.current_live_transaction_id(model_cls, entity_id),
+        version=VersionDAO.current_version_number(model_cls, entity_id, entity_uuid),
+        transaction_id=VersionDAO.current_live_transaction_id(
+            model_cls, entity_id, entity_uuid
+        ),
         version_uuid=str(version_uuid) if version_uuid else None,
     )
 
