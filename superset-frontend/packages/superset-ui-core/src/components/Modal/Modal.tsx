@@ -73,18 +73,16 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     const closeButtonWidth = theme.sizeUnit * 14;
 
     return css`
-      ${
-        responsive &&
-        css`
-          max-width: ${maxWidth ?? '900px'};
-          padding-left: ${theme.sizeUnit * 3}px;
-          padding-right: ${theme.sizeUnit * 3}px;
-          padding-bottom: 0;
-          top: 0;
-        `
-      }
+      ${responsive &&
+      css`
+        max-width: ${maxWidth ?? '900px'};
+        padding-left: ${theme.sizeUnit * 3}px;
+        padding-right: ${theme.sizeUnit * 3}px;
+        padding-bottom: 0;
+        top: 0;
+      `}
 
-      .ant-modal-content {
+      .ant-modal-container {
         background-color: ${theme.colorBgContainer};
         display: flex;
         flex-direction: column;
@@ -170,46 +168,40 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
         padding: 0;
       }
 
-      ${
-        draggable &&
-        css`
-          .ant-modal-header {
-            padding: 0;
+      ${draggable &&
+      css`
+        .ant-modal-header {
+          padding: 0;
 
-            .draggable-trigger {
-              cursor: move;
-              padding: ${theme.sizeUnit * 4}px ${closeButtonWidth}px
-                ${theme.sizeUnit * 4}px ${theme.sizeUnit * 4}px;
-              width: 100%;
+          .draggable-trigger {
+            cursor: move;
+            padding: ${theme.sizeUnit * 4}px ${closeButtonWidth}px
+              ${theme.sizeUnit * 4}px ${theme.sizeUnit * 4}px;
+            width: 100%;
+          }
+        }
+      `}
+
+      ${resizable &&
+      css`
+        .resizable {
+          pointer-events: all;
+
+          .resizable-wrapper {
+            height: 100%;
+          }
+
+          .ant-modal-container {
+            height: 100%;
+
+            .ant-modal-body {
+              height: ${hideFooter
+                ? `calc(100% - ${MODAL_HEADER_HEIGHT}px)`
+                : `calc(100% - ${MODAL_HEADER_HEIGHT}px - ${MODAL_FOOTER_HEIGHT}px)`};
             }
           }
-        `
-      }
-
-      ${
-        resizable &&
-        css`
-          .resizable {
-            pointer-events: all;
-
-            .resizable-wrapper {
-              height: 100%;
-            }
-
-            .ant-modal-content {
-              height: 100%;
-
-              .ant-modal-body {
-                height: ${
-                  hideFooter
-                    ? `calc(100% - ${MODAL_HEADER_HEIGHT}px)`
-                    : `calc(100% - ${MODAL_HEADER_HEIGHT}px - ${MODAL_FOOTER_HEIGHT}px)`
-                };
-              }
-            }
-          }
-        `
-      }
+        }
+      `}
     `;
   }}
 `;

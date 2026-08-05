@@ -73,7 +73,11 @@ const ESTIMATED_LEGEND_SELECTOR_WIDTH = 112;
 const LEGEND_TEXT_WIDTH_CACHE = new Map<string, number>();
 
 type LegendDataItem =
-  string | number | null | undefined | { name?: string | number | null };
+  | string
+  | number
+  | null
+  | undefined
+  | { name?: string | number | null };
 
 export type LegendLayoutResult = {
   effectiveMargin?: number;
@@ -924,6 +928,36 @@ export function dedupSeries(series: SeriesOption[]): SeriesOption[] {
 
 export function sanitizeHtml(text: string): string {
   return format.encodeHTML(text);
+}
+
+/**
+ * Map a metric value to a marker diameter such that the marker's *area*
+ * (not its diameter) scales linearly with the value between the smallest
+ * and largest observed values. Area-based scaling avoids the perceptual
+ * exaggeration that diameter-linear scaling causes, where a 2x value
+ * renders as a 4x area.
+ *
+ * @param value - the metric value for this data point
+ * @param valueExtent - [min, max] of the metric across all data points
+ * @param sizeRange - [min, max] marker diameter in pixels
+ */
+export function getAreaScaledSymbolSize(
+  value: number,
+  valueExtent: [number, number],
+  sizeRange: [number, number],
+): number {
+  const [minValue, maxValue] = valueExtent;
+  const [minSize, maxSize] = sizeRange;
+  if (!Number.isFinite(value) || maxValue === minValue) {
+    // single-valued or invalid data: use the diameter whose area is the
+    // midpoint of the configured area range
+    return Math.sqrt((minSize ** 2 + maxSize ** 2) / 2);
+  }
+  const ratio = Math.min(
+    Math.max((value - minValue) / (maxValue - minValue), 0),
+    1,
+  );
+  return Math.sqrt(minSize ** 2 + ratio * (maxSize ** 2 - minSize ** 2));
 }
 
 export function getAxisType(

@@ -63,7 +63,7 @@ import {
   MarkAreaComponent,
   MarkLineComponent,
 } from 'echarts/components';
-import { LabelLayout } from 'echarts/features';
+import { LabelLayout, LegacyGridContainLabel } from 'echarts/features';
 import {
   EchartsHandler,
   EchartsProps,
@@ -72,6 +72,7 @@ import {
 } from '../types';
 import { DEFAULT_LOCALE } from '../constants';
 import { mergeEchartsThemeOverrides } from '../utils/themeOverrides';
+import { loadLocale } from './echartsLocale';
 
 // Define this interface here to avoid creating a dependency back to superset-frontend,
 // TODO: to move the type to @superset-ui/core
@@ -119,65 +120,10 @@ use([
   TitleComponent,
   VisualMapComponent,
   LabelLayout,
+  // Superset chart options rely on `grid.containLabel`, which echarts 6
+  // ignores (clipping axis labels) unless this legacy feature is registered.
+  LegacyGridContainLabel,
 ]);
-
-// Explicit per-locale imports rather than a template-literal dynamic
-// import: a computed import makes bundlers build a "context module" over
-// echarts/i18n, and resolving that directory through the echarts package's
-// `exports` map fails intermittently in webpack incremental builds
-// ("Package path ./i18n is exported ... but no valid target file was
-// found"). A static map is also the only thing that lets bundlers
-// code-split exactly the locales listed here. Keys are Superset locales
-// uppercased (see LANGUAGES in superset/config.py); values point at the
-// echarts bundle, whose naming differs for some locales (Slovenian is
-// langSI, Brazilian Portuguese is langPT-br). Superset locales absent
-// from this map fall back to English.
-type EChartsLocaleOption = Parameters<typeof registerLocale>[1];
-
-const LOCALE_LOADERS: Record<
-  string,
-  () => Promise<{ default: EChartsLocaleOption }>
-> = {
-  AR: () => import('echarts/i18n/langAR.js'),
-  CS: () => import('echarts/i18n/langCS.js'),
-  DE: () => import('echarts/i18n/langDE.js'),
-  EL: () => import('echarts/i18n/langEL.js'),
-  EN: () => import('echarts/i18n/langEN.js'),
-  ES: () => import('echarts/i18n/langES.js'),
-  FA: () => import('echarts/i18n/langFA.js'),
-  FI: () => import('echarts/i18n/langFI.js'),
-  FR: () => import('echarts/i18n/langFR.js'),
-  HU: () => import('echarts/i18n/langHU.js'),
-  IT: () => import('echarts/i18n/langIT.js'),
-  JA: () => import('echarts/i18n/langJA.js'),
-  KO: () => import('echarts/i18n/langKO.js'),
-  LV: () => import('echarts/i18n/langLV.js'),
-  NL: () => import('echarts/i18n/langNL.js'),
-  PL: () => import('echarts/i18n/langPL.js'),
-  RO: () => import('echarts/i18n/langRO.js'),
-  PT_BR: () => import('echarts/i18n/langPT-br.js'),
-  RU: () => import('echarts/i18n/langRU.js'),
-  SL: () => import('echarts/i18n/langSI.js'),
-  SV: () => import('echarts/i18n/langSV.js'),
-  TH: () => import('echarts/i18n/langTH.js'),
-  TR: () => import('echarts/i18n/langTR.js'),
-  UK: () => import('echarts/i18n/langUK.js'),
-  VI: () => import('echarts/i18n/langVI.js'),
-  ZH: () => import('echarts/i18n/langZH.js'),
-};
-
-const loadLocale = async (locale: string) => {
-  const loader = LOCALE_LOADERS[locale];
-  if (!loader) {
-    // Locale not supported in ECharts
-    return undefined;
-  }
-  try {
-    return (await loader()).default;
-  } catch {
-    return undefined;
-  }
-};
 
 // Report/thumbnail screenshots use standalone="true" (charts) or 3 (reports);
 // live embeds use 1/2 and keep animation. See superset/utils/screenshots.py.

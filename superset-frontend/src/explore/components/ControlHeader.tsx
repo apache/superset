@@ -136,7 +136,12 @@ const ControlHeader: FC<ControlHeaderProps> = ({
           htmlFor={name}
         >
           {leftNode && <span>{leftNode} </span>}
+          {/* This label text sits inside FormLabel's <label>, and HTML5
+              prohibits interactive content (including <button>) as a
+              descendant of <label>, so a real button tag isn't an option
+              here. */}
           <span
+            // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
             role="button"
             tabIndex={0}
             onClick={onClick}

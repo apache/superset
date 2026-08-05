@@ -25,7 +25,6 @@ import {
   JsonResponse,
   SupersetClient,
   isMatrixifyEnabled,
-  handleKeyboardActivation,
 } from '@superset-ui/core';
 import { useState, useMemo, useCallback } from 'react';
 import rison from 'rison';
@@ -47,6 +46,11 @@ import {
 } from 'src/views/CRUD/hooks';
 import handleResourceExport from 'src/utils/export';
 import {
+  archiveConfirmDescription,
+  deleteActionLabel,
+} from 'src/utils/softDeleteCopy';
+import {
+  ActionButton,
   ConfirmStatusChange,
   CertifiedBadge,
   Tooltip,
@@ -86,7 +90,6 @@ import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 import { Tag } from 'src/components/Tag';
 import { datasetLabel } from 'src/features/semanticLayers/label';
 import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
-import IconButton from 'src/dashboard/components/IconButton';
 import type { CellProps } from 'react-table';
 
 const FlexRowContainer = styled.div`
@@ -249,6 +252,9 @@ function ChartList(props: ChartListProps) {
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
+  // When soft-delete is on, deleting archives the chart (recoverable), so the
+  // confirmation drops the type-DELETE friction and explains the archive.
+  const softDelete = isFeatureEnabled(FeatureFlag.SoftDelete);
   const canExport = hasPerm('can_export');
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
@@ -276,11 +282,17 @@ function ChartList(props: ChartListProps) {
     }).then(
       ({ json = {} }) => {
         refreshData();
-        addSuccessToast(json.message);
+        addSuccessToast(
+          softDelete
+            ? t('Archived %s item(s)', chartsToDelete.length)
+            : json.message,
+        );
       },
       createErrorHandler(errMsg =>
         addDangerToast(
-          t('There was an issue deleting the selected charts: %s', errMsg),
+          softDelete
+            ? t('There was an issue archiving the selected charts: %s', errMsg)
+            : t('There was an issue deleting the selected charts: %s', errMsg),
         ),
       ),
     );
@@ -532,9 +544,9 @@ function ChartList(props: ChartListProps) {
           return (
             <Actions className="actions">
               {canEdit && (
-                <Tooltip
-                  id="edit-action-tooltip"
-                  title={
+                <ActionButton
+                  label={t('Edit')}
+                  tooltip={
                     allowEdit
                       ? t('Edit')
                       : t(
@@ -542,63 +554,60 @@ function ChartList(props: ChartListProps) {
                         )
                   }
                   placement="bottom"
-                >
-                  <IconButton
-                    data-test="chart-row-edit"
-                    disabled={!allowEdit}
-                    onClick={openEditModal}
-                    onKeyDown={handleKeyboardActivation(openEditModal)}
-                    icon={
-                      <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
-                    }
-                  />
-                </Tooltip>
+                  icon={
+                    <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
+                  }
+                  dataTest="chart-row-edit"
+                  disabled={!allowEdit}
+                  onClick={openEditModal}
+                />
               )}
               {canExport && (
-                <Tooltip
-                  id="export-action-tooltip"
-                  title={t('Export')}
+                <ActionButton
+                  label={t('Export')}
+                  tooltip={t('Export')}
                   placement="bottom"
-                >
-                  <IconButton
-                    data-test="chart-row-export"
-                    onClick={handleExport}
-                    onKeyDown={handleKeyboardActivation(handleExport)}
-                    icon={<Icons.UploadOutlined iconSize="l" />}
-                  />
-                </Tooltip>
+                  icon={<Icons.UploadOutlined iconSize="l" />}
+                  dataTest="chart-row-export"
+                  onClick={handleExport}
+                />
               )}
               {canDelete && (
                 <ConfirmStatusChange
-                  title={t('Please confirm')}
+                  recoverable={softDelete}
+                  title={
+                    softDelete
+                      ? t('Archive %(name)s?', { name: original.slice_name })
+                      : t('Please confirm')
+                  }
                   description={
-                    <>
-                      {t('Are you sure you want to delete')}{' '}
-                      <b>{original.slice_name}</b>?
-                    </>
+                    softDelete ? (
+                      archiveConfirmDescription(t('chart'))
+                    ) : (
+                      <>
+                        {t('Are you sure you want to delete')}{' '}
+                        <b>{original.slice_name}</b>?
+                      </>
+                    )
                   }
                   onConfirm={handleDelete}
                 >
                   {confirmDelete => (
-                    <Tooltip
-                      id="delete-action-tooltip"
-                      title={
+                    <ActionButton
+                      label={deleteActionLabel()}
+                      tooltip={
                         allowEdit
-                          ? t('Delete')
+                          ? deleteActionLabel()
                           : t(
                               'You must be a chart editor in order to delete. Please reach out to a chart editor to request modifications or edit access.',
                             )
                       }
                       placement="bottom"
-                    >
-                      <IconButton
-                        data-test="chart-row-delete"
-                        disabled={!allowEdit}
-                        onClick={confirmDelete}
-                        onKeyDown={handleKeyboardActivation(confirmDelete)}
-                        icon={<Icons.DeleteOutlined iconSize="l" />}
-                      />
-                    </Tooltip>
+                      icon={<Icons.DeleteOutlined iconSize="l" />}
+                      dataTest="chart-row-delete"
+                      disabled={!allowEdit}
+                      onClick={confirmDelete}
+                    />
                   )}
                 </ConfirmStatusChange>
               )}
@@ -925,8 +934,13 @@ function ChartList(props: ChartListProps) {
         />
       )}
       <ConfirmStatusChange
-        title={t('Please confirm')}
-        description={t('Are you sure you want to delete the selected charts?')}
+        recoverable={softDelete}
+        title={softDelete ? t('Archive selected charts?') : t('Please confirm')}
+        description={
+          softDelete
+            ? archiveConfirmDescription(t('charts'), true)
+            : t('Are you sure you want to delete the selected charts?')
+        }
         onConfirm={handleBulkChartDelete}
       >
         {confirmDelete => {
@@ -935,7 +949,7 @@ function ChartList(props: ChartListProps) {
           if (canDelete) {
             bulkActions.push({
               key: 'delete',
-              name: t('Delete'),
+              name: deleteActionLabel(),
               type: 'danger',
               onSelect: confirmDelete,
             });

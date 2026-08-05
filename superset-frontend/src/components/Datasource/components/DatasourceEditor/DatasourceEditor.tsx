@@ -36,7 +36,6 @@ import {
   SupersetClient,
   getClientErrorObject,
   getExtensionsRegistry,
-  handleKeyboardActivation,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { t } from '@apache-superset/core/translation';
@@ -1754,14 +1753,17 @@ function DatasourceEditor({
     () => (
       <div>
         <EditLockContainer>
-          <span
+          <button
+            type="button"
             css={themeParam => css`
+              appearance: none;
+              border: none;
+              background: none;
+              padding: 0;
+              font: inherit;
               color: ${themeParam.colorTextTertiary};
             `}
-            role="button"
-            tabIndex={0}
             onClick={onChangeEditMode}
-            onKeyDown={handleKeyboardActivation(onChangeEditMode)}
           >
             {isEditMode ? (
               <Icons.UnlockOutlined
@@ -1778,7 +1780,7 @@ function DatasourceEditor({
                 })}
               />
             )}
-          </span>
+          </button>
           {!isEditMode && <div>{t('Click the lock to make changes.')}</div>}
           {isEditMode && (
             <div>{t('Click the lock to prevent further changes.')}</div>

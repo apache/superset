@@ -51,10 +51,12 @@ from superset.mcp_service.constants import (
     DEFAULT_WARN_THRESHOLD_PCT,
 )
 from superset.mcp_service.utils.token_utils import (
+    DATA_QUERY_TOOLS,
     estimate_response_tokens,
     format_size_limit_error,
     INFO_TOOLS,
     truncate_oversized_response,
+    truncate_query_result,
 )
 from superset.utils.core import get_user_id
 
@@ -244,7 +246,7 @@ class LoggingMiddleware(Middleware):
         dashboard_id = None
         slice_id = None
         dataset_id = None
-        params = getattr(context.message, "params", {}) or {}
+        params = getattr(context.message, "arguments", {}) or {}
         if hasattr(context, "metadata") and context.metadata:
             agent_id = context.metadata.get("agent_id")
         if not agent_id and hasattr(context, "session") and context.session:
@@ -258,6 +260,42 @@ class LoggingMiddleware(Middleware):
             slice_id = params.get("chart_id") or params.get("slice_id")
             dataset_id = params.get("dataset_id")
         return agent_id, user_id, dashboard_id, slice_id, dataset_id, params
+
+    def _extract_output_ids(self, result: ToolResult) -> tuple[int | None, int | None]:
+        """Extract dashboard/chart IDs created by the tool from its response.
+
+        Create-style tools (generate_chart, generate_dashboard) don't take
+        chart_id/dashboard_id as input, so _extract_context_info never sees
+        them and every retry logs slice_id/dashboard_id=None even on the
+        attempt that actually persisted the object. Look at the response
+        body instead, since that's the only place the new ID appears.
+        Supports both flat ("chart_id"/"dashboard_id") and nested
+        ("chart"/"dashboard" objects with an "id" field) response shapes.
+        """
+        from superset.utils.json import loads as json_loads
+
+        try:
+            data = json_loads(result.content[0].text)
+        except (AttributeError, IndexError, ValueError, TypeError):
+            return None, None
+        if not isinstance(data, dict):
+            return None, None
+
+        slice_id = None
+        chart = data.get("chart")
+        if isinstance(chart, dict):
+            slice_id = chart.get("id")
+        if slice_id is None:
+            slice_id = data.get("chart_id")
+
+        dashboard_id = None
+        dashboard = data.get("dashboard")
+        if isinstance(dashboard, dict):
+            dashboard_id = dashboard.get("id")
+        if dashboard_id is None:
+            dashboard_id = data.get("dashboard_id")
+
+        return dashboard_id, slice_id
 
     @staticmethod
     def _resolve_tool_name(tool_name: str | None, params: Any) -> str | None:
@@ -281,6 +319,129 @@ class LoggingMiddleware(Middleware):
             return params["name"]
         return None
 
+    def _backfill_output_ids(
+        self,
+        success: bool,
+        result: Any,
+        dashboard_id: int | None,
+        slice_id: int | None,
+    ) -> tuple[int | None, int | None]:
+        """Fill in missing ids from a create tool's response on success.
+
+        Create-style tools (generate_chart, generate_dashboard) don't take
+        the new object's ID as input, so it's missing from params. On a
+        successful call, pull it from the response instead so retried
+        creates are distinguishable.
+        """
+        if not success or not isinstance(result, ToolResult):
+            return dashboard_id, slice_id
+        output_dashboard_id, output_slice_id = self._extract_output_ids(result)
+        if dashboard_id is None:
+            dashboard_id = output_dashboard_id
+        if slice_id is None:
+            slice_id = output_slice_id
+        return dashboard_id, slice_id
+
+    @staticmethod
+    def _build_call_tool_payload(
+        *,
+        mcp_call_id: str,
+        tool_name: str | None,
+        agent_id: str | None,
+        params: Any,
+        method: str,
+        dashboard_id: int | None,
+        slice_id: int | None,
+        dataset_id: int | None,
+        success: bool,
+        mcp_tool: str | None,
+        error_type: str | None,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "mcp_call_id": mcp_call_id,
+            "tool": tool_name,
+            "agent_id": agent_id,
+            "params": _sanitize_params(params),
+            "method": method,
+            "dashboard_id": dashboard_id,
+            "slice_id": slice_id,
+            "dataset_id": dataset_id,
+            "success": success,
+        }
+        if mcp_tool is not None:
+            payload["mcp_tool"] = mcp_tool
+        if error_type is not None:
+            payload["error_type"] = error_type
+        return payload
+
+    def _log_call_tool_result(
+        self,
+        *,
+        context: MiddlewareContext,
+        tool_name: str | None,
+        mcp_tool: str | None,
+        mcp_call_id: str,
+        agent_id: str | None,
+        user_id: int | None,
+        dashboard_id: int | None,
+        slice_id: int | None,
+        dataset_id: int | None,
+        params: Any,
+        success: bool,
+        error_type: str | None,
+        result: Any,
+        start_time: float,
+    ) -> None:
+        duration_ms = int((time.time() - start_time) * 1000)
+        dashboard_id, slice_id = self._backfill_output_ids(
+            success, result, dashboard_id, slice_id
+        )
+        payload = self._build_call_tool_payload(
+            mcp_call_id=mcp_call_id,
+            tool_name=tool_name,
+            agent_id=agent_id,
+            params=params,
+            method=context.method,
+            dashboard_id=dashboard_id,
+            slice_id=slice_id,
+            dataset_id=dataset_id,
+            success=success,
+            mcp_tool=mcp_tool,
+            error_type=error_type,
+        )
+        if has_app_context():
+            event_logger.log(
+                user_id=user_id,
+                action="mcp_tool_call",
+                dashboard_id=dashboard_id,
+                duration_ms=duration_ms,
+                slice_id=slice_id,
+                referrer=None,
+                curated_payload=payload,
+            )
+        extra_parts = []
+        if mcp_tool is not None:
+            extra_parts.append(f"mcp_tool={mcp_tool}")
+        if error_type is not None:
+            extra_parts.append(f"error_type={error_type}")
+        extra = (", " + ", ".join(extra_parts)) if extra_parts else ""
+        logger.info(
+            "MCP tool call: tool=%s, agent_id=%s, user_id=%s, method=%s, "
+            "dashboard_id=%s, slice_id=%s, dataset_id=%s, duration_ms=%s, "
+            "success=%s, mcp_call_id=%s%s",
+            tool_name,
+            agent_id,
+            user_id,
+            context.method,
+            dashboard_id,
+            slice_id,
+            dataset_id,
+            duration_ms,
+            success,
+            mcp_call_id,
+            extra,
+        )
+
     async def on_call_tool(
         self,
         context: MiddlewareContext,
@@ -298,6 +459,7 @@ class LoggingMiddleware(Middleware):
         start_time = time.time()
         success = False
         error_type: str | None = None
+        result: Any = None
         try:
             result = await call_next(context)
             success = not self._is_error_response(result)
@@ -314,53 +476,21 @@ class LoggingMiddleware(Middleware):
             success = False
             raise
         finally:
-            duration_ms = int((time.time() - start_time) * 1000)
-            payload: dict[str, Any] = {
-                "mcp_call_id": mcp_call_id,
-                "tool": tool_name,
-                "agent_id": agent_id,
-                "params": _sanitize_params(params),
-                "method": context.method,
-                "dashboard_id": dashboard_id,
-                "slice_id": slice_id,
-                "dataset_id": dataset_id,
-                "success": success,
-            }
-            if mcp_tool is not None:
-                payload["mcp_tool"] = mcp_tool
-            if error_type is not None:
-                payload["error_type"] = error_type
-            if has_app_context():
-                event_logger.log(
-                    user_id=user_id,
-                    action="mcp_tool_call",
-                    dashboard_id=dashboard_id,
-                    duration_ms=duration_ms,
-                    slice_id=slice_id,
-                    referrer=None,
-                    curated_payload=payload,
-                )
-            extra_parts = []
-            if mcp_tool is not None:
-                extra_parts.append(f"mcp_tool={mcp_tool}")
-            if error_type is not None:
-                extra_parts.append(f"error_type={error_type}")
-            extra = (", " + ", ".join(extra_parts)) if extra_parts else ""
-            logger.info(
-                "MCP tool call: tool=%s, agent_id=%s, user_id=%s, method=%s, "
-                "dashboard_id=%s, slice_id=%s, dataset_id=%s, duration_ms=%s, "
-                "success=%s, mcp_call_id=%s%s",
-                tool_name,
-                agent_id,
-                user_id,
-                context.method,
-                dashboard_id,
-                slice_id,
-                dataset_id,
-                duration_ms,
-                success,
-                mcp_call_id,
-                extra,
+            self._log_call_tool_result(
+                context=context,
+                tool_name=tool_name,
+                mcp_tool=mcp_tool,
+                mcp_call_id=mcp_call_id,
+                agent_id=agent_id,
+                user_id=user_id,
+                dashboard_id=dashboard_id,
+                slice_id=slice_id,
+                dataset_id=dataset_id,
+                params=params,
+                success=success,
+                error_type=error_type,
+                result=result,
+                start_time=start_time,
             )
 
     async def on_message(
@@ -840,6 +970,141 @@ class ResponseSizeGuardMiddleware(Middleware):
 
         return truncated
 
+    def _try_truncate_data_query_response(
+        self,
+        tool_name: str,
+        response: Any,
+        estimated_tokens: int,
+    ) -> Any | None:
+        """Attempt to truncate a data-query tool response by dropping tail rows.
+
+        Returns the truncated response if successful, None otherwise.
+        """
+        extracted = self._extract_payload_from_tool_result(response)
+        truncation_target = extracted if extracted is not None else response
+
+        try:
+            truncated, was_truncated, notes = truncate_query_result(
+                truncation_target, self.token_limit, tool_name=tool_name
+            )
+        except Exception as trunc_error:  # noqa: BLE001
+            logger.warning(
+                "Query result truncation failed for %s due to %s: %s",
+                tool_name,
+                type(trunc_error).__name__,
+                trunc_error,
+            )
+            return None
+
+        if not was_truncated:
+            return None
+
+        # Mirror the info-tool path: if truncation couldn't bring the
+        # response back under the limit (e.g. a single row/scalar field
+        # alone exceeds it), fall back to the hard size-limit error instead
+        # of shipping an over-budget response.
+        truncated_tokens = estimate_response_tokens(truncated)
+        if truncated_tokens > self.token_limit:
+            return None
+
+        logger.warning(
+            "Query result for %s truncated from ~%d to ~%d tokens (limit: %d). %s",
+            tool_name,
+            estimated_tokens,
+            truncated_tokens,
+            self.token_limit,
+            "; ".join(notes),
+        )
+
+        try:
+            user_id = get_user_id()
+            event_logger.log(
+                user_id=user_id,
+                action="mcp_response_truncated",
+                curated_payload={
+                    "tool": tool_name,
+                    "original_tokens": estimated_tokens,
+                    "truncated_tokens": truncated_tokens,
+                    "token_limit": self.token_limit,
+                    "truncation_notes": notes,
+                },
+            )
+        except Exception as log_error:  # noqa: BLE001
+            logger.warning("Failed to log truncation event: %s", log_error)
+
+        if extracted is not None and isinstance(truncated, dict):
+            return self._rewrap_as_tool_result(truncated, response)
+
+        return truncated
+
+    def _handle_oversized_response(
+        self,
+        tool_name: str,
+        response: Any,
+        estimated_tokens: int,
+        params: dict[str, Any],
+    ) -> Any:
+        """Attempt truncation for known tool categories; block everything else.
+
+        For info tools (``INFO_TOOLS``) and data-query tools
+        (``DATA_QUERY_TOOLS``), tries dynamic truncation first and returns
+        the truncated result if successful.  Falls through to a hard
+        ``ToolError`` for all other tools, or when truncation cannot reduce
+        the response to fit the limit.
+
+        Raises:
+            ToolError: When the response exceeds the limit and cannot be
+                truncated.
+        """
+        # Info tools: field-level truncation (strings, lists, dicts).
+        if tool_name in INFO_TOOLS:
+            truncated = self._try_truncate_info_response(
+                tool_name, response, estimated_tokens
+            )
+            if truncated is not None:
+                return truncated
+
+        # Data-query tools: row-level truncation.
+        if tool_name in DATA_QUERY_TOOLS:
+            truncated = self._try_truncate_data_query_response(
+                tool_name, response, estimated_tokens
+            )
+            if truncated is not None:
+                return truncated
+
+        # Log the blocked response (user-caused: requested too much data)
+        logger.warning(
+            "Response blocked for %s: ~%d tokens exceeds limit of %d",
+            tool_name,
+            estimated_tokens,
+            self.token_limit,
+        )
+
+        try:
+            user_id = get_user_id()
+            event_logger.log(
+                user_id=user_id,
+                action="mcp_response_size_exceeded",
+                curated_payload={
+                    "tool": tool_name,
+                    "estimated_tokens": estimated_tokens,
+                    "token_limit": self.token_limit,
+                    "params": _sanitize_params(params),
+                },
+            )
+        except Exception as log_error:  # noqa: BLE001
+            logger.warning("Failed to log size exceeded event: %s", log_error)
+
+        raise ToolError(
+            format_size_limit_error(
+                tool_name=tool_name,
+                params=params,
+                estimated_tokens=estimated_tokens,
+                token_limit=self.token_limit,
+                response=None,
+            )
+        )
+
     async def on_call_tool(
         self,
         context: MiddlewareContext,
@@ -886,51 +1151,11 @@ class ResponseSizeGuardMiddleware(Middleware):
                 self.token_limit,
             )
 
-        # Block if over limit
         if estimated_tokens > self.token_limit:
-            params = getattr(context.message, "params", {}) or {}
-
-            # For info tools, try dynamic truncation before blocking
-            if tool_name in INFO_TOOLS:
-                truncated = self._try_truncate_info_response(
-                    tool_name, response, estimated_tokens
-                )
-                if truncated is not None:
-                    return truncated
-
-            # Log the blocked response (user-caused: requested too much data)
-            logger.warning(
-                "Response blocked for %s: ~%d tokens exceeds limit of %d",
-                tool_name,
-                estimated_tokens,
-                self.token_limit,
+            params = getattr(context.message, "arguments", {}) or {}
+            return self._handle_oversized_response(
+                tool_name, response, estimated_tokens, params
             )
-
-            # Log to event logger for monitoring
-            try:
-                user_id = get_user_id()
-                event_logger.log(
-                    user_id=user_id,
-                    action="mcp_response_size_exceeded",
-                    curated_payload={
-                        "tool": tool_name,
-                        "estimated_tokens": estimated_tokens,
-                        "token_limit": self.token_limit,
-                        "params": _sanitize_params(params),
-                    },
-                )
-            except Exception as log_error:  # noqa: BLE001
-                logger.warning("Failed to log size exceeded event: %s", log_error)
-
-            error_message = format_size_limit_error(
-                tool_name=tool_name,
-                params=params,
-                estimated_tokens=estimated_tokens,
-                token_limit=self.token_limit,
-                response=None,
-            )
-
-            raise ToolError(error_message)
 
         return response
 

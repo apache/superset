@@ -19,6 +19,7 @@ from functools import partial
 from typing import Any, Optional
 
 from flask_appbuilder.models.sqla import Model
+from flask_babel import gettext as _
 from marshmallow import ValidationError
 
 from superset import security_manager
@@ -178,6 +179,24 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
             exceptions,
             include_viewers=False,
         )
+
+        # Validate retry config: send_failed_reports requires retry_on_failure.
+        # Fall back to the existing DB value for fields not in the payload.
+        send_failed = self._properties.get(
+            "send_failed_reports", self._model.send_failed_reports
+        )
+        retry_enabled = self._properties.get(
+            "retry_on_failure", self._model.retry_on_failure
+        )
+        if send_failed and not retry_enabled:
+            msg = _("send_failed_reports requires retry_on_failure to be enabled")
+            exceptions.append(ValidationError({"send_failed_reports": [msg]}))
+
+        # Retries are only supported for reports, not alerts.
+        report_type = self._properties.get("type", self._model.type)
+        if report_type == ReportScheduleType.ALERT and retry_enabled:
+            msg = _("Retries are not supported for alerts")
+            exceptions.append(ValidationError({"retry_on_failure": [msg]}))
 
         if exceptions:
             raise ReportScheduleInvalidError(exceptions=exceptions)

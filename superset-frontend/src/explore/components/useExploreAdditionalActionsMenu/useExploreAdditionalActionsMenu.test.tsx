@@ -17,6 +17,7 @@
  * under the License.
  */
 import { ComponentType } from 'react';
+import { FeatureFlag } from '@superset-ui/core';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import downloadAsImage from 'src/utils/downloadAsImage';
@@ -248,4 +249,71 @@ test('getExportScreenshotMenuItems PDF option calls downloadAsPdf and dispatches
   );
   expect(setIsDropdownVisible).toHaveBeenCalledWith(false);
   expect(dispatch).toHaveBeenCalledTimes(1);
+});
+
+/**
+ * The version-history gate, exercised against the state shape hydrateExplore
+ * actually produces rather than a mocked can_overwrite. Every seeded chart
+ * ships with an empty editors list, so a membership-only gate hid the action
+ * from everyone on a fresh install.
+ */
+const renderMenuFor = (
+  slice: Record<string, unknown>,
+  user: Record<string, unknown>,
+) =>
+  render(<TestComponent {...defaultProps} slice={slice as never} />, {
+    useRedux: true,
+    initialState: {
+      user,
+      explore: { can_overwrite: false, slice },
+    },
+  });
+
+const adminUser = {
+  userId: 1,
+  username: 'admin',
+  permissions: {},
+  roles: { Admin: [] },
+};
+
+const gammaUser = {
+  userId: 2,
+  username: 'gamma',
+  permissions: {},
+  roles: { Gamma: [] },
+};
+
+test('an admin sees version history on a chart that has no editors', async () => {
+  window.featureFlags = { [FeatureFlag.VersionHistory]: true };
+
+  renderMenuFor(
+    { slice_id: 1, slice_name: 'Test Chart', editors: [] },
+    adminUser,
+  );
+
+  expect(await screen.findByText('View version history')).toBeInTheDocument();
+});
+
+test('a non-editor without the admin role does not', async () => {
+  window.featureFlags = { [FeatureFlag.VersionHistory]: true };
+
+  renderMenuFor(
+    { slice_id: 1, slice_name: 'Test Chart', editors: [] },
+    gammaUser,
+  );
+
+  await screen.findByText('View query');
+  expect(screen.queryByText('View version history')).not.toBeInTheDocument();
+});
+
+test('the item stays hidden while the feature flag is off', async () => {
+  window.featureFlags = { [FeatureFlag.VersionHistory]: false };
+
+  renderMenuFor(
+    { slice_id: 1, slice_name: 'Test Chart', editors: [] },
+    adminUser,
+  );
+
+  await screen.findByText('View query');
+  expect(screen.queryByText('View version history')).not.toBeInTheDocument();
 });

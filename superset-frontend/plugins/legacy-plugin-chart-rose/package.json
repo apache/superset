@@ -9,32 +9,32 @@
   "bugs": {
     "url": "https://github.com/apache/superset/issues"
   },
+  "license": "Apache-2.0",
+  "author": "Superset",
   "repository": {
     "type": "git",
     "url": "https://github.com/apache/superset.git",
     "directory": "superset-frontend/plugins/legacy-plugin-chart-rose"
   },
-  "license": "Apache-2.0",
-  "author": "Superset",
-  "main": "lib/index.js",
-  "module": "esm/index.js",
   "files": [
     "esm",
     "lib"
   ],
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "d3": "^3.5.17",
     "nvd3-fork": "^2.0.5",
     "prop-types": "^15.8.1"
   },
   "peerDependencies": {
+    "@apache-superset/core": "*",
     "@emotion/react": "^11.4.1",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "@apache-superset/core": "*",
     "react": "^18.3.0"
-  },
-  "publishConfig": {
-    "access": "public"
   }
 }
