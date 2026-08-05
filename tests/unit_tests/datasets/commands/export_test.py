@@ -330,6 +330,55 @@ version: 1.0.0
     ]
 
 
+def test_export_database_bundle_includes_child_uuids(session: Session) -> None:
+    """
+    Datasets embedded in a *database* export must carry metric/column UUIDs.
+
+    ``ExportDatabasesCommand`` reaches datasets through its own
+    ``export_to_dict(recursive=True, export_uuids=True)`` call rather than
+    through ``ExportDatasetsCommand``, so it needs its own coverage: without
+    ``export_uuids`` being forwarded to the recursive child export, the
+    ``datasets/`` files in a database bundle would drop the UUIDs that custom
+    folder assignments reference.
+    """
+    from superset.commands.database.export import ExportDatabasesCommand
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.models.core import Database
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    metric_uuid = UUID("00000000-0000-0000-0000-0000000000f1")
+    column_uuid = UUID("00000000-0000-0000-0000-0000000000f2")
+    sqla_table = SqlaTable(
+        table_name="my_table",
+        database=database,
+        metrics=[
+            SqlMetric(metric_name="cnt", expression="COUNT(*)", uuid=metric_uuid),
+        ],
+        columns=[
+            TableColumn(column_name="profit", type="INTEGER", uuid=column_uuid),
+        ],
+    )
+    db.session.add(sqla_table)
+    db.session.flush()
+
+    contents = {
+        path: content_fn()
+        for path, content_fn in ExportDatabasesCommand._export(database)  # pylint: disable=protected-access
+    }
+    dataset_paths = [path for path in contents if path.startswith("datasets/")]
+    assert len(dataset_paths) == 1
+
+    payload = yaml.safe_load(contents[dataset_paths[0]])
+    assert [metric["uuid"] for metric in payload["metrics"]] == [str(metric_uuid)]
+    assert [column["uuid"] for column in payload["columns"]] == [str(column_uuid)]
+
+
 def test_export_two_datasets_same_table_name_different_schema(
     session: Session,
 ) -> None:

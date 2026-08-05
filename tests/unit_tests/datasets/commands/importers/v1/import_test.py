@@ -29,6 +29,7 @@ import pytest
 import yaml
 from flask import current_app
 from flask_appbuilder.security.sqla.models import Role, User
+from marshmallow import ValidationError
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
@@ -534,6 +535,169 @@ def test_import_dataset_null_child_uuid_keeps_existing(
     assert reimported.id == dataset.id
     assert reimported.metrics[0].uuid is not None
     assert str(reimported.metrics[0].uuid) == metric_uuid
+
+
+def test_import_dataset_ambiguous_child_aborts_instead_of_half_applying(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    An ambiguous metric/column match must abort the import, not half-apply it.
+
+    Children are matched within their parent by name *or* UUID, so a payload
+    metric can match one existing metric by name and a *different* one by UUID.
+    That raises ``MultipleResultsFound`` from inside the child import — after
+    the dataset's own fields were already updated and after earlier siblings
+    were already imported. Swallowing it (the legacy dataset-level contract)
+    would report success over a partially-applied import, so the importer must
+    raise ``ImportFailedError`` and let the transaction roll everything back.
+    """
+    from superset.connectors.sqla.models import SqlMetric
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    a_uuid = "00000000-0000-0000-0000-0000000000a1"
+    cnt_uuid = "00000000-0000-0000-0000-0000000000a2"
+    dataset_uuid = str(uuid.uuid4())
+    config: dict[str, Any] = {
+        "table_name": "my_table",
+        "description": "as exported",
+        "uuid": dataset_uuid,
+        "metrics": [
+            {"metric_name": "a", "expression": "COUNT(*)", "uuid": a_uuid},
+            {"metric_name": "cnt", "expression": "COUNT(*)", "uuid": cnt_uuid},
+        ],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+    dataset = import_dataset(copy.deepcopy(config))
+
+    # Simulate the target instance drifting: ``cnt`` is renamed to ``cnt_old``
+    # (keeping its UUID) and a brand-new metric takes the name ``cnt``. The
+    # dataset itself is edited too.
+    renamed = next(m for m in dataset.metrics if m.metric_name == "cnt")
+    renamed.metric_name = "cnt_old"
+    new_cnt_uuid = str(uuid.uuid4())
+    dataset.metrics.append(
+        SqlMetric(metric_name="cnt", expression="COUNT(1)", uuid=new_cnt_uuid)
+    )
+    dataset.description = "edited in the UI"
+    db.session.flush()
+    db.session.commit()
+
+    # Re-import the *original* bundle: its ``cnt``/``cnt_uuid`` metric matches
+    # the new ``cnt`` by name and ``cnt_old`` by UUID.
+    with pytest.raises(ImportFailedError) as excinfo:
+        import_dataset(copy.deepcopy(config), overwrite=True)
+
+    assert "matches two different existing" in str(excinfo.value)
+    assert "my_table" in str(excinfo.value)
+
+    # Because it raised, the caller's transaction can undo everything; nothing
+    # from the aborted import is visible afterwards.
+    db.session.rollback()
+
+    reloaded = db.session.query(SqlaTable).filter_by(uuid=dataset_uuid).one()
+    # The parent's scalar fields were NOT overwritten by the aborted payload.
+    assert reloaded.description == "edited in the UI"
+    # No metric was added, renamed, or deleted by the aborted import.
+    assert sorted(m.metric_name for m in reloaded.metrics) == ["a", "cnt", "cnt_old"]
+    assert {m.metric_name: str(m.uuid) for m in reloaded.metrics} == {
+        "a": a_uuid,
+        "cnt_old": cnt_uuid,
+        "cnt": new_cnt_uuid,
+    }
+
+
+def _dataset_config_with_children(
+    metrics: list[dict[str, Any]],
+    columns: list[dict[str, Any]],
+) -> dict[str, Any]:
+    return {
+        "version": "1.0.0",
+        "table_name": "my_table",
+        "uuid": str(uuid.uuid4()),
+        "database_uuid": str(uuid.uuid4()),
+        "metrics": metrics,
+        "columns": columns,
+    }
+
+
+def test_import_dataset_schema_rejects_duplicate_metric_uuids() -> None:
+    """
+    Two metrics sharing a UUID must be rejected by the import schema.
+
+    UUIDs are globally unique, so such a payload cannot be imported faithfully:
+    the second metric would match the first one by UUID and overwrite it in
+    place, silently collapsing two metrics into one.
+    """
+    duplicate = str(uuid.uuid4())
+    config = _dataset_config_with_children(
+        metrics=[
+            {"metric_name": "cnt", "expression": "COUNT(*)", "uuid": duplicate},
+            {"metric_name": "cnt2", "expression": "COUNT(1)", "uuid": duplicate},
+        ],
+        columns=[],
+    )
+
+    with pytest.raises(ValidationError) as excinfo:
+        ImportV1DatasetSchema().load(config)
+
+    assert "metrics" in excinfo.value.messages
+    assert duplicate in str(excinfo.value.messages["metrics"])
+
+
+def test_import_dataset_schema_rejects_duplicate_column_uuids() -> None:
+    """
+    Two columns sharing a UUID must be rejected by the import schema.
+    """
+    duplicate = str(uuid.uuid4())
+    config = _dataset_config_with_children(
+        metrics=[],
+        columns=[
+            {"column_name": "profit", "type": "INTEGER", "uuid": duplicate},
+            {"column_name": "revenue", "type": "INTEGER", "uuid": duplicate},
+        ],
+    )
+
+    with pytest.raises(ValidationError) as excinfo:
+        ImportV1DatasetSchema().load(config)
+
+    assert "columns" in excinfo.value.messages
+    assert duplicate in str(excinfo.value.messages["columns"])
+
+
+def test_import_dataset_schema_allows_distinct_and_missing_child_uuids() -> None:
+    """
+    Distinct UUIDs — and children with no UUID at all — remain valid.
+
+    Only the ``null``/absent case may repeat: a pre-uuid-export bundle has no
+    child UUIDs whatsoever and must keep importing.
+    """
+    config = _dataset_config_with_children(
+        metrics=[
+            {"metric_name": "cnt", "expression": "COUNT(*)", "uuid": str(uuid.uuid4())},
+            {"metric_name": "cnt2", "expression": "COUNT(1)"},
+            {"metric_name": "cnt3", "expression": "COUNT(2)", "uuid": None},
+        ],
+        columns=[
+            {"column_name": "profit", "type": "INTEGER", "uuid": str(uuid.uuid4())},
+            {"column_name": "revenue", "type": "INTEGER"},
+            {"column_name": "expenses", "type": "INTEGER", "uuid": None},
+        ],
+    )
+
+    loaded = ImportV1DatasetSchema().load(config)
+
+    assert len(loaded["metrics"]) == 3
+    assert len(loaded["columns"]) == 3
 
 
 def test_import_dataset_no_folder(mocker: MockerFixture, session: Session) -> None:

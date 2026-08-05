@@ -178,6 +178,20 @@ class TestExportDatabasesCommand(SupersetTestCase):
         metadata = yaml.safe_load(contents["datasets/examples/birth_names.yaml"]())
         metadata.pop("uuid")
 
+        # Datasets in a database bundle are exported with ``export_uuids=True``,
+        # so every column/metric carries a ``uuid`` so that custom folder
+        # references survive the round trip. They are assigned dynamically, so
+        # build lookups by name.
+        birth_names = next(
+            table for table in example_db.tables if table.table_name == "birth_names"
+        )
+        column_uuid_map = {
+            column.column_name: str(column.uuid) for column in birth_names.columns
+        }
+        metric_uuid_map = {
+            metric.metric_name: str(metric.uuid) for metric in birth_names.metrics
+        }
+
         metadata["columns"].sort(key=lambda x: x["column_name"])
         expected_metadata = {
             "cache_timeout": None,
@@ -194,6 +208,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "type": ds_type,
                     "advanced_data_type": None,
                     "verbose_name": None,
+                    "uuid": column_uuid_map["ds"],
                 },
                 {
                     "column_name": "gender",
@@ -207,6 +222,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "type": "STRING" if example_db.backend == "hive" else "VARCHAR(16)",
                     "advanced_data_type": None,
                     "verbose_name": None,
+                    "uuid": column_uuid_map["gender"],
                 },
                 {
                     "column_name": "name",
@@ -222,6 +238,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     ),
                     "advanced_data_type": None,
                     "verbose_name": None,
+                    "uuid": column_uuid_map["name"],
                 },
                 {
                     "column_name": "num",
@@ -235,6 +252,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "type": big_int_type,
                     "advanced_data_type": None,
                     "verbose_name": None,
+                    "uuid": column_uuid_map["num"],
                 },
                 {
                     "column_name": "num_california",
@@ -248,6 +266,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "type": None,
                     "advanced_data_type": None,
                     "verbose_name": None,
+                    "uuid": column_uuid_map["num_california"],
                 },
                 {
                     "column_name": "state",
@@ -261,6 +280,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "type": "STRING" if example_db.backend == "hive" else "VARCHAR(10)",
                     "advanced_data_type": None,
                     "verbose_name": None,
+                    "uuid": column_uuid_map["state"],
                 },
                 {
                     "column_name": "num_boys",
@@ -274,6 +294,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "type": big_int_type,
                     "advanced_data_type": None,
                     "verbose_name": None,
+                    "uuid": column_uuid_map["num_boys"],
                 },
                 {
                     "column_name": "num_girls",
@@ -287,6 +308,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "type": big_int_type,
                     "advanced_data_type": None,
                     "verbose_name": None,
+                    "uuid": column_uuid_map["num_girls"],
                 },
             ],
             "database_uuid": str(db_uuid),
@@ -306,6 +328,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "metric_type": "count",
                     "verbose_name": "COUNT(*)",
                     "warning_text": None,
+                    "uuid": metric_uuid_map["count"],
                 },
                 {
                     "d3format": None,
@@ -316,6 +339,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "metric_type": None,
                     "verbose_name": None,
                     "warning_text": None,
+                    "uuid": metric_uuid_map["sum__num"],
                 },
             ],
             "offset": 0,
