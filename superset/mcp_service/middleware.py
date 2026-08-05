@@ -964,6 +964,10 @@ class ResponseSizeGuardMiddleware(Middleware):
             event_logger.log(
                 user_id=user_id,
                 action="mcp_response_truncated",
+                dashboard_id=None,
+                duration_ms=None,
+                slice_id=None,
+                referrer=None,
                 curated_payload={
                     "tool": tool_name,
                     "original_tokens": estimated_tokens,
@@ -1036,6 +1040,10 @@ class ResponseSizeGuardMiddleware(Middleware):
             event_logger.log(
                 user_id=user_id,
                 action="mcp_response_truncated",
+                dashboard_id=None,
+                duration_ms=None,
+                slice_id=None,
+                referrer=None,
                 curated_payload={
                     "tool": tool_name,
                     "original_tokens": estimated_tokens,
@@ -1100,6 +1108,10 @@ class ResponseSizeGuardMiddleware(Middleware):
             event_logger.log(
                 user_id=user_id,
                 action="mcp_response_size_exceeded",
+                dashboard_id=None,
+                duration_ms=None,
+                slice_id=None,
+                referrer=None,
                 curated_payload={
                     "tool": tool_name,
                     "estimated_tokens": estimated_tokens,
