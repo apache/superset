@@ -212,6 +212,79 @@ def test_error_template_cta_link_respects_include_cta() -> None:
     assert "http://example.com/superset/dashboard/1/" not in email_body
 
 
+def test_retry_error_template_cta_link_respects_include_cta() -> None:
+    # `superset.models.helpers`, a dependency of following imports,
+    # requires app context
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+    from superset.reports.notifications.email import EmailNotification
+
+    content = NotificationContent(
+        name="test alert",
+        text="Report generation failed",
+        url="http://example.com/superset/dashboard/1/",
+        include_cta=False,
+        retry_attempt=1,
+        retry_max_attempts=3,
+        header_data={
+            "notification_format": "PNG",
+            "notification_type": "Alert",
+            "editors": [1],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "slack_channels": None,
+            "execution_id": "test-execution-id",
+        },
+    )
+    email_body = (
+        EmailNotification(
+            recipient=ReportRecipients(type=ReportRecipientType.EMAIL), content=content
+        )
+        ._get_content()
+        .body
+    )
+    assert "Retry in Progress" in email_body
+    assert "Explore in Superset" not in email_body
+    assert "http://example.com/superset/dashboard/1/" not in email_body
+
+
+def test_final_failure_template_cta_link_respects_include_cta() -> None:
+    # `superset.models.helpers`, a dependency of following imports,
+    # requires app context
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+    from superset.reports.notifications.email import EmailNotification
+
+    content = NotificationContent(
+        name="test alert",
+        text="Report generation failed",
+        url="http://example.com/superset/dashboard/1/",
+        include_cta=False,
+        retry_max_attempts=3,
+        header_data={
+            "notification_format": "PNG",
+            "notification_type": "Alert",
+            "editors": [1],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "slack_channels": None,
+            "execution_id": "test-execution-id",
+        },
+    )
+    email_body = (
+        EmailNotification(
+            recipient=ReportRecipients(type=ReportRecipientType.EMAIL), content=content
+        )
+        ._get_content()
+        .body
+    )
+    assert "failed to generate after" in email_body
+    assert "Explore in Superset" not in email_body
+    assert "http://example.com/superset/dashboard/1/" not in email_body
+
+
 @with_feature_flags(DATE_FORMAT_IN_EMAIL_SUBJECT=True)
 def test_email_subject_with_datetime() -> None:
     # `superset.models.helpers`, a dependency of following imports,
