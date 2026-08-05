@@ -11,6 +11,7 @@ on:
 permissions:
   contents: read
   pull-requests: read
+  actions: read
 
 # cancel previous workflow jobs for PRs
 concurrency:
@@ -21,6 +22,10 @@ jobs:
   check-python-deps:
     runs-on: ubuntu-26.04
     steps:
+      - uses: Kesin11/actions-timeline@7bf79990b7c09f5dfb570ac30b814ca597bd538e # v3.1.1
+        with:
+          expand-composite-actions: true
+
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -46,7 +51,7 @@ jobs:
       - name: Login to Docker Hub
         if: steps.check.outputs.python
         continue-on-error: true
-        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4.4.0
+        uses: docker/login-action@371161bbe7024a29a25c5e19bfcbc0804fe9ad2c # v4.5.2
         with:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}

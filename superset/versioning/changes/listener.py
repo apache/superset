@@ -60,10 +60,12 @@ from superset.versioning.changes.state import (
     compute_records_from_state,
 )
 from superset.versioning.changes.table import ENTITY_KIND_BY_CLASS_NAME
+from superset.versioning.db_errors import is_missing_table_error
 from superset.versioning.diff import (
     ChangeRecord,
     fold_dashboard_layout_with_chart_changes,
 )
+from superset.versioning.metrics import incr_capture_error
 
 logger = logging.getLogger(__name__)
 
@@ -169,29 +171,6 @@ def build_action_headline(
 # is correctly deduped.
 _REGISTERED_SENTINEL = "_versioning_change_listener_registered"
 
-#: Metric namespace for swallowed capture-path failures. The capture
-#: listeners fail open (a versioning bug must never break a user's save),
-#: so the read path (``activity/orchestrator``) is richly instrumented but
-#: the write path historically logged-and-swallowed with no counter. Each
-#: ``_incr_capture_error(stage)`` emits ``<prefix>.<stage>.error`` so a
-#: systematic capture regression is alertable rather than log-grep-only.
-_CAPTURE_METRIC_PREFIX: str = "superset.versioning.capture"
-
-
-def _incr_capture_error(stage: str) -> None:
-    """Emit a counter for a swallowed capture-path failure at *stage*.
-
-    Best-effort: metrics emission must never itself break a user's save,
-    so it is wrapped in the same fail-open posture as the call site.
-    """
-    # pylint: disable=import-outside-toplevel
-    try:
-        from superset.extensions import stats_logger_manager
-
-        stats_logger_manager.instance.incr(f"{_CAPTURE_METRIC_PREFIX}.{stage}.error")
-    except Exception:  # pylint: disable=broad-except
-        logger.exception("version_changes: failed to emit capture-error metric")
-
 
 def _capture_dirty_entity_initial_state(
     session: Session,
@@ -281,7 +260,7 @@ def _append_child_records_to_buffer(
                     del buffer[key]
     except Exception:  # pylint: disable=broad-except
         logger.exception("version_changes: child-diff failed for tx %s", tx_id)
-        _incr_capture_error("child_diff")
+        incr_capture_error("child_diff")
 
 
 def _current_transaction_id(session: Session) -> int | None:
@@ -369,7 +348,7 @@ def _stamp_action_kind_on_transaction(session: Session, tx_id: int) -> None:
             action_kind,
             tx_id,
         )
-        _incr_capture_error("action_kind_stamp")
+        incr_capture_error("action_kind_stamp")
 
 
 def _persist_buffered_records(
@@ -379,11 +358,12 @@ def _persist_buffered_records(
 ) -> None:
     """Bulk-insert *buffer*'s records under *tx_id* and reset the buffer.
 
-    Catches ``OperationalError`` / ``ProgrammingError`` to handle the
-    pre-migration startup race (version_changes table missing — the
-    former on SQLite/MySQL, the latter on PostgreSQL), and ``Exception``
-    as the listener-boundary safety net so a malformed record can't
-    crash the user's save.
+    Swallows the pre-migration startup race silently (version_changes
+    table missing — verified via :func:`is_missing_table_error`, not
+    inferred from the exception class, because ``OperationalError`` also
+    covers deadlocks and dropped connections that must be logged and
+    counted). ``Exception`` is the listener-boundary safety net so a
+    malformed record can't crash the user's save.
 
     The insert runs under a SAVEPOINT (``begin_nested`` on the
     connection): on PostgreSQL a failed statement aborts the enclosing
@@ -395,16 +375,22 @@ def _persist_buffered_records(
     try:
         with session.connection().begin_nested():
             bulk_insert_records(session, tx_id, buffer)
-    except (OperationalError, ProgrammingError):
-        # version_changes table missing (migration not yet applied).
-        pass
-    except Exception:  # pylint: disable=broad-except
+    except Exception as ex:  # pylint: disable=broad-except
+        if isinstance(
+            ex, (OperationalError, ProgrammingError)
+        ) and is_missing_table_error(ex):
+            # version_changes table missing (migration not yet applied) —
+            # the one genuinely benign case; stay quiet.
+            return
+        # Everything else — a deadlock or dropped connection as much as a
+        # malformed record — is a real capture loss. Swallowing it silently
+        # made "the save succeeded but its history doesn't exist" invisible.
         logger.exception(
             "version_changes: bulk insert failed for tx %s (%d entities)",
             tx_id,
             len(buffer),
         )
-        _incr_capture_error("bulk_insert")
+        incr_capture_error("bulk_insert")
 
 
 def register_change_record_listener() -> None:  # noqa: C901

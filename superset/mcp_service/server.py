@@ -63,6 +63,8 @@ def _suppress_third_party_warnings() -> None:
     - marshmallow ``RemovedInMarshmallow4Warning`` (triggered during
       database engine schema instantiation)
     - google.api_core ``FutureWarning`` (Python version support notices)
+    - sqlalchemy-redshift ``pkg_resources`` UserWarning (see
+      superset/db_engine_specs/redshift.py for details)
     """
     import warnings
 
@@ -82,6 +84,19 @@ def _suppress_third_party_warnings() -> None:
     warnings.filterwarnings(
         "ignore",
         message=r"authlib\.jose module is deprecated",
+    )
+    # Same treatment for the pkg_resources warning suppressed at package
+    # init time. Confirmed non-redundant: warnings.filters can be reset
+    # between the package import and this call (e.g. pytest's warnings
+    # plugin resets it around every test -- test_suppress_third_party_warnings
+    # below fails without this line, proving the reset scenario is real,
+    # not hypothetical), so re-registering here is load-bearing, not
+    # belt-and-suspenders.
+    warnings.filterwarnings(
+        "ignore",
+        message=r"pkg_resources is deprecated as an API",
+        category=UserWarning,
+        module=r"sqlalchemy_redshift(?:\..*)?",
     )
 
 
