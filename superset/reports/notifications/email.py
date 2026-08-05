@@ -319,12 +319,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 """
             )
         img_tag = "".join(img_tags)
-        call_to_action_tag = ""
-        if self._content.include_cta:
-            call_to_action = self._get_call_to_action()
-            call_to_action_tag = (
-                f'<b><a href="{self._content.url}">{call_to_action}</a></b><p></p>'
-            )
+        call_to_action_tag = self._render_call_to_action_tag()
         body = textwrap.dedent(
             f"""
             <html>
@@ -415,6 +410,13 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
 
     def _get_call_to_action(self) -> str:
         return __(current_app.config["EMAIL_REPORTS_CTA"])
+
+    def _render_call_to_action_tag(self) -> str:
+        """Anchor markup for the call-to-action link, or "" when disabled."""
+        if not self._content.include_cta:
+            return ""
+        call_to_action = self._get_call_to_action()
+        return f'<b><a href="{self._content.url}">{call_to_action}</a></b><p></p>'
 
     def _get_to(self) -> str:
         return json.loads(self._recipient.recipient_config_json)["target"]
