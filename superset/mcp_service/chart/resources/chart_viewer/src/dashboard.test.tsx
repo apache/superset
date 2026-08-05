@@ -185,3 +185,23 @@ it('stays quiet for a chart it renders faithfully', () => {
   });
   expect(container!.querySelector('.sv-substitution')).toBeNull();
 });
+
+it('opens on a tab that has drawable charts, not merely cells', () => {
+  // max_charts fills cells in layout order, so a low cap starves the LATER
+  // tab entirely: its cells exist but every one is `skipped`. "First tab with
+  // cells" opened on a screen of "not queried" messages — the same symptom as
+  // opening on an empty tab, a different cause.
+  render({
+    ...RENDER,
+    cells: [
+      { chart_id: 1, title: 'Skipped A', tab_id: 'TAB-a', status: 'skipped', message: 'Not queried' },
+      { chart_id: 2, title: 'Skipped B', tab_id: 'TAB-a', status: 'skipped', message: 'Not queried' },
+      { chart_id: 4, title: 'Detail chart', tab_id: 'TAB-b', status: 'ok', data: chart(4, 'Detail chart') as never },
+    ],
+  });
+  const tabs = container!.querySelectorAll('[role="tab"]');
+  expect(tabs[1].getAttribute('aria-selected')).toBe('true');
+  expect(container!.textContent).toContain('Detail chart');
+  // The starved tab stays reachable and says why it is empty.
+  expect(tabs[0].getAttribute('title')).toContain('max_charts');
+});

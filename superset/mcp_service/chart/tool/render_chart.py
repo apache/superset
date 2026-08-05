@@ -329,9 +329,13 @@ async def _render_dashboard_impl(
             # Kept as a visible placeholder rather than dropped: a composite
             # that silently renders a subset reads as "covered everything".
             cell.status = "skipped"
+            # Worded for a caller who never chose a number: the default is the
+            # common case, so "the N-chart limit" reads as a rule they broke
+            # rather than a default they can change.
             cell.message = (
-                f"Not queried — beyond the {request.max_charts}-chart limit. "
-                "Raise max_charts or pick a tab to see this one."
+                f"Not queried — this render covered the first "
+                f"{request.max_charts} charts. Ask for more with "
+                f"max_charts, or for this tab on its own."
             )
             cells.append(cell)
             continue

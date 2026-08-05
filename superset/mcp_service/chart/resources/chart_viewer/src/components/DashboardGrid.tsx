@@ -118,7 +118,15 @@ export function DashboardGrid({
   // filters what is shown without re-querying anything.
   const tabs = render.tabs ?? [];
 
+  // Counts only cells that actually have data. A tab full of `skipped`
+  // placeholders is empty as far as the user is concerned — opening on one
+  // shows a screen of "not queried" messages, which is the same symptom as
+  // opening on a tab with no cells at all.
   const countFor = (id: string): number =>
+    render.cells.filter((c) => c.tab_id === id && c.status === 'ok').length;
+
+  /** Cells present at all, drawable or not — for "did we filter this out?" */
+  const cellsIn = (id: string): number =>
     render.cells.filter((c) => c.tab_id === id).length;
 
   // Opening tab: the one that was explicitly requested, else the first tab
@@ -155,9 +163,11 @@ export function DashboardGrid({
               }`}
               onClick={() => setActiveTab(t.id)}
               title={
-                countFor(t.id) === 0
-                  ? 'Not included in this render'
-                  : undefined
+                countFor(t.id) > 0
+                  ? undefined
+                  : cellsIn(t.id) > 0
+                    ? 'Charts here were not queried — raise max_charts'
+                    : 'Not included in this render'
               }
             >
               {stripUntrustedMarkers(t.name ?? 'Tab')}

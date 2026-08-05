@@ -742,6 +742,7 @@ export function App(): JSX.Element {
       null,
       null,
       canPin ? togglePin : undefined,
+      dashboard.dashboard_title ?? 'Dashboard',
     );
   if (error)
     return shell(
@@ -958,6 +959,7 @@ function shell(
   substitutedFrom: string | null = null,
   substitutedView: ViewType | null = null,
   onTogglePin?: () => void,
+  titleOverride?: string | null,
 ): JSX.Element {
   const expanded = displayMode === 'fullscreen';
   const pinned = displayMode === 'pip';
@@ -966,7 +968,7 @@ function shell(
       <div className="sv-header">
         <div className="sv-title-wrap">
           <h1 className="sv-title">
-            {stripUntrustedMarkers(data?.chart_name ?? 'Chart')}
+            {stripUntrustedMarkers(titleOverride ?? data?.chart_name ?? 'Chart')}
           </h1>
           <div className="sv-subtitle">
             <span className="sv-accent-dot" />
