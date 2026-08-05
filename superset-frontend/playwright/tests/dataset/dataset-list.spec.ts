@@ -79,7 +79,7 @@ test('should navigate to Explore when dataset name is clicked', async ({
   await datasetListPage.clickDatasetName(datasetName);
 
   // Wait for Explore page to load (validates URL + datasource control)
-  await explorePage.waitForPageLoad();
+  await explorePage.waitForPageLoad({ timeout: TIMEOUT.EXPLORE_PAGE_LOAD });
 
   // Verify correct dataset is loaded in datasource control
   const loadedDatasetName = await explorePage.getDatasetName();

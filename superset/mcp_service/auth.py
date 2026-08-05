@@ -901,7 +901,7 @@ def check_chart_data_access(chart: Any) -> "DatasetValidationResult":
     """
     from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 
-    return validate_chart_dataset(chart, check_access=True)
+    return validate_chart_dataset(chart.datasource_id, check_access=True)
 
 
 def _log_user_resolution_failure(exc: ValueError | PermissionError) -> None:

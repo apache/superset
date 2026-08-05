@@ -77,6 +77,7 @@ class ReportState(StrEnum):
     ERROR = "Error"
     NOOP = "Not triggered"
     GRACE = "On Grace"
+    RETRYING = "Retrying"
 
 
 class ReportDataFormat(StrEnum):
@@ -163,6 +164,25 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
 
     custom_width = Column(Integer, nullable=True)
     custom_height = Column(Integer, nullable=True)
+
+    # Retry configuration — user-configurable
+    retry_on_failure = Column(
+        Boolean, default=False, nullable=False, server_default="0"
+    )
+    retry_max_attempts = Column(Integer, default=3, nullable=False, server_default="3")
+    send_failed_reports = Column(
+        Boolean, default=False, nullable=False, server_default="0"
+    )
+    retry_notify_owners = Column(
+        Boolean, default=True, nullable=False, server_default="1"
+    )
+    retry_notify_recipients = Column(
+        Boolean, default=False, nullable=False, server_default="0"
+    )
+
+    # Retry state — written by the execution engine, not user-configurable
+    retry_attempt = Column(Integer, default=0, nullable=False, server_default="0")
+    retry_scheduled_dttm = Column(DateTime, nullable=True)
 
     extra: ReportScheduleExtra  # type: ignore
 
