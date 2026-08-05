@@ -22,10 +22,13 @@ import { css, styled } from '@apache-superset/core/theme';
 import { Flex, Typography } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { dashboard, useDashboardRevision } from 'src/core/dashboard';
+import { provider } from 'src/core/dashboard/store';
+import { isContainerType } from 'src/core/dashboard/DashboardProvider';
 import { chat } from 'src/core/chat';
 import BuildingBlockView from 'src/core/dashboard/BuildingBlockView';
 import { dashboardClientTools } from './clientTools';
-import LayoutModeSwitcher from './LayoutModeSwitcher';
+import DashboardHeader from './DashboardHeader';
+import EditorPanel from './EditorPanel';
 
 const PageContainer = styled(Flex)`
   ${({ theme }) => css`
@@ -45,15 +48,10 @@ const Canvas = styled.div`
   `}
 `;
 
-const Toolbar = styled.div`
-  ${({ theme }) => css`
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    flex: 0 0 auto;
-    padding: ${theme.paddingSM}px ${theme.paddingLG}px;
-    border-bottom: 1px solid ${theme.colorBorderSecondary};
-  `}
+const Workspace = styled.div`
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
 `;
 
 const EmptyCanvasWrapper = styled.div`
@@ -106,41 +104,71 @@ export default function DashboardBuilderV2() {
   const root = dashboard.getRoot();
   const isEmpty = !root.children || root.children.length === 0;
 
+  /**
+   * Places a block from the palette.
+   *
+   * Into whatever is selected when that can hold children, and into the root
+   * otherwise. An author who has just selected a section and reaches for a
+   * chart means to put it in that section; one who has selected a chart
+   * means to put the next thing beside it, not inside it.
+   *
+   * The new block is then selected, because placing something is the moment
+   * you want to configure it — which is also what brings Properties forward.
+   */
+  const addBlock = (type: string): void => {
+    const selected = provider.getSelection();
+    const selectedNode =
+      selected === undefined ? undefined : provider.getNode(selected);
+    const parentId =
+      selectedNode?.children !== undefined ? selectedNode.id : root.id;
+    const index = provider.getNode(parentId)?.children?.length ?? 0;
+    const id = dashboard.addBuildingBlock(parentId, index, {
+      type,
+      // A container arrives with the grid every other container defaults to,
+      // so a nested canvas is usable the moment it is placed rather than
+      // needing its columns set before anything can go in it.
+      ...(isContainerType(type)
+        ? { layout: { columns: 24, gap: 16, colSpan: 24, rowSpan: 4 } }
+        : {}),
+    });
+    provider.setSelection(id);
+  };
+
   return (
     <PageContainer vertical>
-      {/* The one piece of authoring chrome this page owns. It arranges the
-          root canvas rather than any block, so it belongs to the page and
-          not to the tree BuildingBlockView renders.
-
-          Shown on an empty dashboard too. Hiding it until something was on
-          the canvas read as "nothing to arrange yet", but the practical
-          effect was that the control was invisible at the one moment
-          someone opening a blank dashboard would look for it — and setting
-          the arrangement before adding anything is the ordinary way round:
-          whatever the assistant places next lands in the mode already
-          chosen, rather than being placed and then rearranged. */}
-      <Toolbar>
-        <LayoutModeSwitcher nodeId={root.id} />
-      </Toolbar>
-      <Canvas>
-        {isEmpty ? (
-          <EmptyCanvasWrapper>
-            <CanvasPlaceholder
-              vertical
-              align="center"
-              justify="center"
-              gap="small"
-            >
-              <Icons.AppstoreOutlined iconSize="xl" />
-              <Typography.Text type="secondary">
-                {t('Blank dashboard — ask the assistant to start building')}
-              </Typography.Text>
-            </CanvasPlaceholder>
-          </EmptyCanvasWrapper>
-        ) : (
-          <BuildingBlockView nodeId={root.id} />
-        )}
-      </Canvas>
+      <DashboardHeader />
+      <Workspace>
+        <EditorPanel onAdd={addBlock} />
+        <Canvas
+          data-test="canvas"
+          onClick={event => {
+            // A click that reached the canvas itself passed every block on
+            // the way, so it is the one gesture that unambiguously means
+            // "nothing". A click on a block stops before here.
+            if (event.target === event.currentTarget) {
+              provider.setSelection(undefined);
+            }
+          }}
+        >
+          {isEmpty ? (
+            <EmptyCanvasWrapper>
+              <CanvasPlaceholder
+                vertical
+                align="center"
+                justify="center"
+                gap="small"
+              >
+                <Icons.AppstoreOutlined iconSize="xl" />
+                <Typography.Text type="secondary">
+                  {t('Add a building block, or ask the assistant to start')}
+                </Typography.Text>
+              </CanvasPlaceholder>
+            </EmptyCanvasWrapper>
+          ) : (
+            <BuildingBlockView nodeId={root.id} />
+          )}
+        </Canvas>
+      </Workspace>
     </PageContainer>
   );
 }

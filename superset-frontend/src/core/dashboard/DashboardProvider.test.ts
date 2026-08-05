@@ -331,3 +331,60 @@ test('getRevision increments on every mutation and is stable otherwise', () => {
 
   expect(provider.getRevision()).toBe(before + 1);
 });
+
+/**
+ * Selection is host-internal state, like the revision counter: a property of
+ * one person looking at one screen, not of the dashboard.
+ */
+test('selecting a node reports it back', () => {
+  const provider = DashboardProvider.getInstance();
+  const id = provider.addBuildingBlock(provider.getRoot().id, 0, {
+    type: 'markdown',
+  });
+
+  provider.setSelection(id);
+
+  expect(provider.getSelection()).toBe(id);
+});
+
+test('removing the selected node clears the selection', () => {
+  const provider = DashboardProvider.getInstance();
+  const id = provider.addBuildingBlock(provider.getRoot().id, 0, {
+    type: 'markdown',
+  });
+  provider.setSelection(id);
+
+  provider.removeBuildingBlock(id);
+
+  // A selection is a reference to a node, and a node that is gone cannot be
+  // the thing being edited — an inspector reading a dangling id would show a
+  // block that no longer exists.
+  expect(provider.getSelection()).toBeUndefined();
+});
+
+test('removing a container clears a selection inside its subtree', () => {
+  const provider = DashboardProvider.getInstance();
+  const sectionId = provider.addBuildingBlock(provider.getRoot().id, 0, {
+    type: 'canvas',
+  });
+  const childId = provider.addBuildingBlock(sectionId, 0, { type: 'markdown' });
+  provider.setSelection(childId);
+
+  provider.removeBuildingBlock(sectionId);
+
+  // The node that vanished was a descendant of the one actually removed,
+  // which is why the check belongs in the commit rather than at the removal.
+  expect(provider.getSelection()).toBeUndefined();
+});
+
+test('reset clears the selection along with the tree', () => {
+  const provider = DashboardProvider.getInstance();
+  const id = provider.addBuildingBlock(provider.getRoot().id, 0, {
+    type: 'markdown',
+  });
+  provider.setSelection(id);
+
+  provider.reset();
+
+  expect(provider.getSelection()).toBeUndefined();
+});

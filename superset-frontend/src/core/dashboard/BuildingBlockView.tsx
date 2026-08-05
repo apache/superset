@@ -86,13 +86,54 @@ interface BuildingBlockViewProps extends HTMLAttributes<HTMLDivElement> {
 const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
   function BuildingBlockView({ nodeId, children, ...rest }, ref) {
     useDashboardRevision();
+    const theme = useTheme();
     const node = provider.getNode(nodeId);
     if (!node) return null;
 
     const resolved = resolveBuildingBlockView(node.type, nodeId);
+    const selected = provider.getSelection() === nodeId;
 
     return (
-      <div ref={ref} {...rest}>
+      <div
+        ref={ref}
+        {...rest}
+        // Every block is a thing an author selects, so every block is a
+        // control — announced as one, reachable by Tab, and answering the
+        // keys a control answers. The outline offers the same selection in a
+        // tree, but a block you can point at and not reach from the keyboard
+        // is still a block half the people using this cannot select.
+        // A real `button` is not available: react-grid-layout clones this
+        // element to inject its own ref, style and drag handlers, and a
+        // block's content is interactive in its own right — a chart, a
+        // table — which a `button` may not contain.
+        // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
+        role="button"
+        tabIndex={0}
+        aria-pressed={selected}
+        aria-label={node.type}
+        // The propagation stop is what makes a click on a block inside a
+        // container select the block rather than the container holding it —
+        // both are nodes and both render through here, so the innermost one
+        // has to claim the gesture.
+        onClick={event => {
+          event.stopPropagation();
+          provider.setSelection(nodeId);
+        }}
+        onKeyDown={event => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            event.stopPropagation();
+            provider.setSelection(nodeId);
+          }
+        }}
+        style={{
+          ...rest.style,
+          // Drawn over the block rather than around it: an outline takes no
+          // space, so nothing on screen shifts when a selection moves.
+          outline: selected ? `2px solid ${theme.colorPrimary}` : undefined,
+          outlineOffset: selected ? -2 : undefined,
+        }}
+      >
         <div style={{ width: '100%', height: '100%' }}>
           <ErrorBoundary>
             {resolved ?? <UnsupportedBlockPlaceholder nodeId={nodeId} />}
