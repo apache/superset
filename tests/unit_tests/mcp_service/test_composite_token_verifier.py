@@ -291,9 +291,8 @@ async def test_transport_validation_uses_keys_own_scopes() -> None:
 
 
 @pytest.mark.asyncio
-async def test_transport_validation_no_key_scopes_falls_back_to_required() -> None:
-    """A key without its own scopes falls back to the verifier-global
-    required_scopes (back-compat: "no scopes advertised")."""
+async def test_transport_validation_no_key_scopes_remains_unscoped() -> None:
+    """A key without scopes remains unscoped despite global JWT requirements."""
     mock_app = _make_app_with_api_key("alice", scopes=None)
     jwt_verifier = MagicMock()
     jwt_verifier.required_scopes = ["superset:read"]
@@ -306,8 +305,7 @@ async def test_transport_validation_no_key_scopes_falls_back_to_required() -> No
     result = await verifier.verify_token("sst_valid_key")
 
     assert result is not None
-    assert result.scopes == list(verifier.required_scopes)
-    assert result.scopes == ["superset:read"]
+    assert result.scopes == []
 
 
 @pytest.mark.asyncio

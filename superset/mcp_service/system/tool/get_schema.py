@@ -30,7 +30,7 @@ from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
-from superset.mcp_service.auth import MCPPermissionDeniedError
+from superset.mcp_service.auth import _token_scope_allows, MCPPermissionDeniedError
 from superset.mcp_service.common.schema_discovery import (
     CHART_DEFAULT_COLUMNS,
     CHART_SEARCH_COLUMNS,
@@ -237,6 +237,7 @@ async def get_schema(
 
         if current_app.config.get("MCP_RBAC_ENABLED", True) and not (
             security_manager.can_access("can_read", class_permission)
+            and _token_scope_allows("read", class_permission)
         ):
             user_str = getattr(getattr(g, "user", None), "username", None)
             logger.warning(

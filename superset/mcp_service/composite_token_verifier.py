@@ -196,11 +196,10 @@ class CompositeTokenVerifier(TokenVerifier):
                 return AccessToken(
                     token=token,
                     client_id="api_key",
-                    # Prefer the key's own scopes over verifier-global
-                    # required_scopes. Empty list = no scopes set = "no scopes
-                    # advertised" back-compat per auth.py's
-                    # _get_token_scopes()/_token_scope_allows().
-                    scopes=key_scopes or list(self.required_scopes or []),
+                    # Preserve the key's own scopes exactly. An empty list
+                    # means "no scopes advertised" and therefore retains the
+                    # RBAC-only behavior for existing unscoped API keys.
+                    scopes=key_scopes,
                     claims={
                         API_KEY_PASSTHROUGH_CLAIM: True,
                         API_KEY_VALIDATED_USERNAME_CLAIM: username,
