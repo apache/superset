@@ -526,3 +526,37 @@ describe('pip display mode', () => {
     }
   });
 });
+
+it('picks up display modes announced after the handshake', async () => {
+  // host-context-changed carries a full HostContext per the spec, so a host
+  // may advertise its modes late. Reading them only at initialize made a host
+  // that enables pip mid-session look identical to one that never supports
+  // it — the same "capability read as absent" failure as serverTools.
+  const host = withFakeHost((msg) =>
+    msg.method === 'ui/initialize'
+      ? {
+          hostCapabilities: {},
+          hostContext: { availableDisplayModes: ['inline', 'fullscreen'] },
+        }
+      : undefined,
+  );
+  try {
+    const bridge = new ChartBridge();
+    await bridge.initialize(500);
+    expect(bridge.supportsDisplayMode('pip')).toBe(false);
+
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        data: {
+          jsonrpc: '2.0',
+          method: 'ui/notifications/host-context-changed',
+          params: { availableDisplayModes: ['inline', 'fullscreen', 'pip'] },
+        },
+      }),
+    );
+    expect(bridge.supportsDisplayMode('pip')).toBe(true);
+    expect(bridge.getDiagnostics().availableDisplayModes).toContain('pip');
+  } finally {
+    host.restore();
+  }
+});

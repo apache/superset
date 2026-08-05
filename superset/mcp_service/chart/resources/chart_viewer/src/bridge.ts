@@ -477,6 +477,22 @@ export class ChartBridge {
         break;
       }
       case 'ui/notifications/host-context-changed': {
+        // The spec types this notification's params as a full HostContext, so
+        // a host may announce its display modes here rather than (or later
+        // than) at initialize. Capturing them only at handshake left us
+        // permanently blind to a host that advertises pip after startup —
+        // indistinguishable from a host that does not support it, which is
+        // exactly how `serverTools` read as "unsupported" for days.
+        const modes = readDisplayModes(
+          params as Record<string, unknown> | undefined,
+        );
+        if (modes) {
+          this.hostDisplayModes = modes;
+          this.diagnostics = {
+            ...this.diagnostics,
+            availableDisplayModes: Array.from(modes),
+          };
+        }
         const ctx = parsePartialHostContext(params);
         if (ctx) this.contextListeners.forEach((fn) => fn(ctx));
         break;
