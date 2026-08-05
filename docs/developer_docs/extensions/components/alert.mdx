@@ -34,45 +34,40 @@ Alert component for displaying important messages to users. Wraps Ant Design Ale
 <StoryWithControls
   component={Alert}
   props={{
-  closable: true,
-  type: 'info',
-  message: 'This is a sample alert message.',
-  description: 'Sample description for additional context.',
-  showIcon: true
-}}
+    closable: true,
+    type: 'info',
+    message: 'This is a sample alert message.',
+    description: 'Sample description for additional context.',
+    showIcon: true,
+  }}
   controls={[
-  {
-    name: 'type',
-    label: 'Type',
-    type: 'select',
-    options: [
-      'info',
-      'error',
-      'warning',
-      'success'
-    ]
-  },
-  {
-    name: 'closable',
-    label: 'Closable',
-    type: 'boolean'
-  },
-  {
-    name: 'showIcon',
-    label: 'Show Icon',
-    type: 'boolean'
-  },
-  {
-    name: 'message',
-    label: 'Message',
-    type: 'text'
-  },
-  {
-    name: 'description',
-    label: 'Description',
-    type: 'text'
-  }
-]}
+    {
+      name: 'type',
+      label: 'Type',
+      type: 'select',
+      options: ['info', 'error', 'warning', 'success'],
+    },
+    {
+      name: 'closable',
+      label: 'Closable',
+      type: 'boolean',
+    },
+    {
+      name: 'showIcon',
+      label: 'Show Icon',
+      type: 'boolean',
+    },
+    {
+      name: 'message',
+      label: 'Message',
+      type: 'text',
+    },
+    {
+      name: 'description',
+      label: 'Description',
+      type: 'text',
+    },
+  ]}
 />
 
 ## Try It
@@ -95,13 +90,13 @@ function Demo() {
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `closable` | `boolean` | `true` | Whether the Alert can be closed with a close button. |
-| `type` | `string` | `"info"` | Type of the alert (e.g., info, error, warning, success). |
-| `message` | `string` | `"This is a sample alert message."` | Message |
-| `description` | `string` | `"Sample description for additional context."` | Description |
-| `showIcon` | `boolean` | `true` | Whether to display an icon in the Alert. |
+| Prop          | Type      | Default                                        | Description                                              |
+| ------------- | --------- | ---------------------------------------------- | -------------------------------------------------------- |
+| `closable`    | `boolean` | `true`                                         | Whether the Alert can be closed with a close button.     |
+| `type`        | `string`  | `"info"`                                       | Type of the alert (e.g., info, error, warning, success). |
+| `message`     | `string`  | `"This is a sample alert message."`            | Message                                                  |
+| `description` | `string`  | `"Sample description for additional context."` | Description                                              |
+| `showIcon`    | `boolean` | `true`                                         | Whether to display an icon in the Alert.                 |
 
 ## Usage in Extensions
 
@@ -112,11 +107,7 @@ import { Alert } from '@apache-superset/core/components';
 
 function MyExtension() {
   return (
-    <Alert
-      closable
-      type="info"
-      message="This is a sample alert message."
-    />
+    <Alert closable type="info" message="This is a sample alert message." />
   );
 }
 ```
@@ -128,4 +119,4 @@ function MyExtension() {
 
 ---
 
-*This page was auto-generated from the component's Storybook story.*
+_This page was auto-generated from the component's Storybook story._

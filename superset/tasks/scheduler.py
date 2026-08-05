@@ -115,14 +115,31 @@ def scheduler(self: Task) -> None:  # pylint: disable=unused-argument
 
 
 @celery_app.task(name="reports.execute", bind=True)
-def execute(self: Task, report_schedule_id: int) -> None:
+def execute(
+    self: Task,
+    report_schedule_id: int,
+    scheduled_dttm_iso: str | None = None,
+) -> None:
     stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
     stats_logger.incr("reports.execute")
 
     task_id = None
     try:
         task_id = execute.request.id
-        scheduled_dttm = execute.request.eta
+        # Retry tasks pass the original crontab trigger time so the retry
+        # window check can detect whether a new crontab window has fired.
+        # Fresh crontab triggers leave scheduled_dttm_iso as None and fall
+        # back to request.eta.
+        if scheduled_dttm_iso is not None:
+            scheduled_dttm = datetime.fromisoformat(scheduled_dttm_iso)
+        else:
+            eta = execute.request.eta
+            if isinstance(eta, str):
+                scheduled_dttm = datetime.fromisoformat(eta)
+            elif eta is not None:
+                scheduled_dttm = eta
+            else:
+                scheduled_dttm = datetime.now(tz=timezone.utc)
         logger.info(
             "Executing alert/report, task id: %s, scheduled_dttm: %s",
             task_id,

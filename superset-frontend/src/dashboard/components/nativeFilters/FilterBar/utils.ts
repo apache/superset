@@ -48,7 +48,9 @@ export const checkIsMissingRequiredValue = (
   filter: FilterElement,
   filterState?: FilterState,
 ) => {
-  const isRequired = !!filter.controlValues?.enableEmptyFilter;
+  const isRequired =
+    !!filter.controlValues?.enableEmptyFilter ||
+    !!filter.controlValues?.defaultToFirstItem;
 
   if (!isRequired) return false;
 

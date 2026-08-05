@@ -101,21 +101,29 @@ import json
 import ast
 import os
 
-def eval_node(node):
-    """Safely evaluate an AST node as a Python literal."""
+def eval_node(node, constants=None):
+    """Safely evaluate an AST node as a Python literal.
+
+    \`constants\` is an optional dict of module-level constant names -> already
+    -resolved Python values. It lets us resolve references like
+    \`AURORA_DATA_API_KNOWN_INCOMPATIBILITIES\` that point at a list/dict
+    defined (and potentially imported across files) elsewhere in
+    db_engine_specs, instead of falling through to the bare identifier
+    string.
+    """
     if node is None:
         return None
     if isinstance(node, ast.Constant):
         return node.value
     elif isinstance(node, ast.List):
-        return [eval_node(e) for e in node.elts]
+        return [eval_node(e, constants) for e in node.elts]
     elif isinstance(node, ast.Dict):
         result = {}
         for k, v in zip(node.keys, node.values):
             if k is not None:
-                key = eval_node(k)
+                key = eval_node(k, constants)
                 if key is not None:
-                    result[key] = eval_node(v)
+                    result[key] = eval_node(v, constants)
         return result
     elif isinstance(node, ast.Name):
         # Handle True, False, None constants
@@ -125,12 +133,14 @@ def eval_node(node):
             return False
         elif node.id == 'None':
             return None
+        if constants and node.id in constants:
+            return constants[node.id]
         return node.id
     elif isinstance(node, ast.Attribute):
         # Handle DatabaseCategory.SOMETHING - return just the attribute name
         return node.attr
     elif isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
-        left, right = eval_node(node.left), eval_node(node.right)
+        left, right = eval_node(node.left, constants), eval_node(node.right, constants)
         if isinstance(left, str) and isinstance(right, str):
             return left + right
         return None
@@ -274,6 +284,37 @@ CAP_METHODS = {
 # Intermediate base classes (e.g. PrestoBaseEngineSpec) do count as overrides.
 TRUE_BASE_CLASS = 'BaseEngineSpec'
 
+# Pass 0: collect module-level literal constants across every engine spec
+# file (e.g. AURORA_DATA_API_KNOWN_INCOMPATIBILITIES in base.py, imported
+# into mysql.py's \`compatible_databases\` metadata) so \`metadata\` dicts
+# that reference a shared constant by name resolve to its actual value
+# instead of the bare identifier string. Only module-scope assignments
+# (tree.body, not nested in classes/functions) are considered.
+MODULE_CONSTANTS = {}
+for filename in sorted(os.listdir(specs_dir)):
+    if not filename.endswith('.py') or filename in ('__init__.py', 'lib.py', 'lint_metadata.py'):
+        continue
+    filepath = os.path.join(specs_dir, filename)
+    try:
+        with open(filepath) as f:
+            source = f.read()
+        tree = ast.parse(source)
+        for item in tree.body:
+            targets = []
+            if isinstance(item, ast.Assign):
+                targets = item.targets
+            elif isinstance(item, ast.AnnAssign) and item.value is not None:
+                # Handle annotated module-level constants, e.g.
+                # \`AURORA_DATA_API_KNOWN_INCOMPATIBILITIES: list[KnownIncompatibility] = [...]\`
+                targets = [item.target]
+            for target in targets:
+                if isinstance(target, ast.Name) and target.id.isupper():
+                    val = eval_node(item.value, MODULE_CONSTANTS)
+                    if val is not None:
+                        MODULE_CONSTANTS[target.id] = val
+    except Exception:
+        continue
+
 # First pass: collect all class info (name, bases, metadata, cap_attrs, direct_methods)
 class_info = {}  # class_name -> {bases: [], metadata: {}, engine_name: str, filename: str, ...}
 
@@ -330,7 +371,7 @@ for filename in sorted(os.listdir(specs_dir)):
                             if isinstance(val, str):
                                 engine_attr = val
                         elif target.id == 'metadata':
-                            metadata = eval_node(item.value)
+                            metadata = eval_node(item.value, MODULE_CONSTANTS)
                         elif target.id in CAP_ATTR_DEFAULTS:
                             val = eval_node(item.value)
                             if isinstance(val, bool):
@@ -564,7 +605,9 @@ print(json.dumps(databases, default=str))
       throw new Error('No metadata found in engine specs');
     }
 
-    console.log(`Extracted metadata from ${Object.keys(databases).length} engine specs`);
+    console.log(
+      `Extracted metadata from ${Object.keys(databases).length} engine specs`,
+    );
     return databases;
   } catch (err) {
     console.log('Engine spec metadata extraction failed:', err.message);
@@ -615,20 +658,20 @@ function buildStatistics(databases) {
     for (const cat of categories) {
       // Map category constant names to display names
       const categoryDisplayNames = {
-        'CLOUD_AWS': 'Cloud - AWS',
-        'CLOUD_GCP': 'Cloud - Google',
-        'CLOUD_AZURE': 'Cloud - Azure',
-        'CLOUD_DATA_WAREHOUSES': 'Cloud Data Warehouses',
-        'APACHE_PROJECTS': 'Apache Projects',
-        'TRADITIONAL_RDBMS': 'Traditional RDBMS',
-        'ANALYTICAL_DATABASES': 'Analytical Databases',
-        'SEARCH_NOSQL': 'Search & NoSQL',
-        'QUERY_ENGINES': 'Query Engines',
-        'TIME_SERIES': 'Time Series Databases',
-        'OTHER': 'Other Databases',
-        'OPEN_SOURCE': 'Open Source',
-        'HOSTED_OPEN_SOURCE': 'Hosted Open Source',
-        'PROPRIETARY': 'Proprietary',
+        CLOUD_AWS: 'Cloud - AWS',
+        CLOUD_GCP: 'Cloud - Google',
+        CLOUD_AZURE: 'Cloud - Azure',
+        CLOUD_DATA_WAREHOUSES: 'Cloud Data Warehouses',
+        APACHE_PROJECTS: 'Apache Projects',
+        TRADITIONAL_RDBMS: 'Traditional RDBMS',
+        ANALYTICAL_DATABASES: 'Analytical Databases',
+        SEARCH_NOSQL: 'Search & NoSQL',
+        QUERY_ENGINES: 'Query Engines',
+        TIME_SERIES: 'Time Series Databases',
+        OTHER: 'Other Databases',
+        OPEN_SOURCE: 'Open Source',
+        HOSTED_OPEN_SOURCE: 'Hosted Open Source',
+        PROPRIETARY: 'Proprietary',
       };
       const displayName = categoryDisplayNames[cat] || cat;
       if (!stats.byCategory[displayName]) {
@@ -657,7 +700,9 @@ function toSlug(name) {
  * Generate MDX content for a single database page
  */
 function generateDatabaseMDX(name, db) {
-  const description = db.documentation?.description || `Documentation for ${name} database connection.`;
+  const description =
+    db.documentation?.description ||
+    `Documentation for ${name} database connection.`;
   const shortDesc = description
     .slice(0, 160)
     .replace(/\\/g, '\\\\')
@@ -704,7 +749,9 @@ export const databaseInfo = ${inlineData};
  * Generate the index MDX for the databases overview
  */
 function generateIndexMDX(statistics, usedFlaskContext = true) {
-  const fallbackNotice = usedFlaskContext ? '' : `
+  const fallbackNotice = usedFlaskContext
+    ? ''
+    : `
 :::info Developer Note
 This documentation was built without Flask context, so feature diagnostics (scores, time grain support, etc.)
 may not reflect actual database capabilities. For full diagnostics, build docs locally with:
@@ -832,7 +879,10 @@ function getImageDimensions(imgPath) {
       const content = fs.readFileSync(imgPath, 'utf-8');
       const vbMatch = content.match(/viewBox=["']([^"']+)["']/);
       if (vbMatch) {
-        const parts = vbMatch[1].trim().split(/[\s,]+/).map(Number);
+        const parts = vbMatch[1]
+          .trim()
+          .split(/[\s,]+/)
+          .map(Number);
         if (parts.length >= 4 && parts[2] > 0 && parts[3] > 0) {
           return { width: parts[2], height: parts[3] };
         }
@@ -841,7 +891,9 @@ function getImageDimensions(imgPath) {
     if (dims.width > 0 && dims.height > 0) {
       return { width: dims.width, height: dims.height };
     }
-  } catch { /* fall through */ }
+  } catch {
+    /* fall through */
+  }
   return null;
 }
 
@@ -879,7 +931,9 @@ function generateReadmeLogos(databases) {
   // deduplicated by logo filename (matches docs homepage logic in index.tsx)
   const seenLogos = new Set();
   const dbsWithLogos = Object.entries(databases)
-    .filter(([, db]) => db.documentation?.logo && db.documentation?.homepage_url)
+    .filter(
+      ([, db]) => db.documentation?.logo && db.documentation?.homepage_url,
+    )
     .sort(([a], [b]) => a.localeCompare(b))
     .filter(([, db]) => {
       const logo = db.documentation.logo;
@@ -901,16 +955,27 @@ function generateReadmeLogos(databases) {
   // Generate linked logo tags with aspect-ratio-preserving dimensions
   const logoTags = dbsWithLogos.map(([name, db]) => {
     const logo = db.documentation.logo;
-    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const slug = name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
     const imgPath = path.join(IMAGES_DIR, logo);
 
     const dims = getImageDimensions(imgPath);
     let sizeAttrs;
     if (dims) {
-      const { width, height } = fitToBoundingBox(dims.width, dims.height, MAX_WIDTH, MAX_HEIGHT, MIN_HEIGHT);
+      const { width, height } = fitToBoundingBox(
+        dims.width,
+        dims.height,
+        MAX_WIDTH,
+        MAX_HEIGHT,
+        MIN_HEIGHT,
+      );
       sizeAttrs = `width="${width}" height="${height}"`;
     } else {
-      console.warn(`  Could not read dimensions for ${logo}, using height-only fallback`);
+      console.warn(
+        `  Could not read dimensions for ${logo}, using height-only fallback`,
+      );
       sizeAttrs = `height="${MAX_HEIGHT}"`;
     }
 
@@ -936,9 +1001,14 @@ function updateReadme(databases) {
   const content = fs.readFileSync(README_PATH, 'utf-8');
 
   // Check if markers exist
-  if (!content.includes(README_START_MARKER) || !content.includes(README_END_MARKER)) {
+  if (
+    !content.includes(README_START_MARKER) ||
+    !content.includes(README_END_MARKER)
+  ) {
     console.log('README.md missing database markers, skipping update');
-    console.log(`  Add ${README_START_MARKER} and ${README_END_MARKER} to enable auto-generation`);
+    console.log(
+      `  Add ${README_START_MARKER} and ${README_END_MARKER} to enable auto-generation`,
+    );
     return false;
   }
 
@@ -948,11 +1018,11 @@ function updateReadme(databases) {
   // Replace content between markers
   const pattern = new RegExp(
     `${README_START_MARKER}[\\s\\S]*?${README_END_MARKER}`,
-    'g'
+    'g',
   );
   const newContent = content.replace(
     pattern,
-    `${README_START_MARKER}\n${logosHtml}\n${README_END_MARKER}`
+    `${README_START_MARKER}\n${logosHtml}\n${README_END_MARKER}`,
   );
 
   if (newContent !== content) {
@@ -990,9 +1060,14 @@ function extractCustomErrors() {
 
     const customErrors = JSON.parse(result.stdout);
     const moduleCount = Object.keys(customErrors).length;
-    const errorCount = Object.values(customErrors).reduce((sum, classes) =>
-      sum + Object.values(classes).reduce((s, errs) => s + errs.length, 0), 0);
-    console.log(`  Found ${errorCount} custom errors across ${moduleCount} modules`);
+    const errorCount = Object.values(customErrors).reduce(
+      (sum, classes) =>
+        sum + Object.values(classes).reduce((s, errs) => s + errs.length, 0),
+      0,
+    );
+    console.log(
+      `  Found ${errorCount} custom errors across ${moduleCount} modules`,
+    );
     return customErrors;
   } catch (err) {
     console.log('  Could not extract custom_errors:', err.message);
@@ -1110,7 +1185,9 @@ function mergeWithExistingDiagnostics(newDatabases, existingData) {
 
   const preserved = Object.values(newDatabases).filter(d => d.score > 0).length;
   if (preserved > 0) {
-    console.log(`Preserved score/time_grains for ${preserved} databases from existing data`);
+    console.log(
+      `Preserved score/time_grains for ${preserved} databases from existing data`,
+    );
   }
 
   return newDatabases;
@@ -1153,7 +1230,7 @@ async function main() {
   console.log(`Processed ${Object.keys(databases).length} databases\n`);
 
   // Check if new data has scores; if not, preserve existing diagnostics
-  const hasNewScores = Object.values(databases).some((db) => db.score > 0);
+  const hasNewScores = Object.values(databases).some(db => db.score > 0);
   if (!hasNewScores && existingData) {
     databases = mergeWithExistingDiagnostics(databases, existingData);
   }
@@ -1182,16 +1259,21 @@ async function main() {
   fs.writeFileSync(DATA_OUTPUT_FILE, JSON.stringify(output, null, 2) + '\n');
   console.log(`Generated: ${path.relative(DOCS_DIR, DATA_OUTPUT_FILE)}`);
 
-
   // Ensure supported directory exists
   if (!fs.existsSync(MDX_SUPPORTED_DIR)) {
     fs.mkdirSync(MDX_SUPPORTED_DIR, { recursive: true });
   }
 
   // Clean up old MDX files that are no longer in the database list
-  console.log(`\nCleaning up old MDX files in ${path.relative(DOCS_DIR, MDX_SUPPORTED_DIR)}/`);
-  const existingMdxFiles = fs.readdirSync(MDX_SUPPORTED_DIR).filter(f => f.endsWith('.mdx'));
-  const validSlugs = new Set(Object.keys(databases).map(name => `${toSlug(name)}.mdx`));
+  console.log(
+    `\nCleaning up old MDX files in ${path.relative(DOCS_DIR, MDX_SUPPORTED_DIR)}/`,
+  );
+  const existingMdxFiles = fs
+    .readdirSync(MDX_SUPPORTED_DIR)
+    .filter(f => f.endsWith('.mdx'));
+  const validSlugs = new Set(
+    Object.keys(databases).map(name => `${toSlug(name)}.mdx`),
+  );
   let removedCount = 0;
   for (const file of existingMdxFiles) {
     if (!validSlugs.has(file)) {
@@ -1204,7 +1286,9 @@ async function main() {
   }
 
   // Generate individual MDX files for each database in supported/ subdirectory
-  console.log(`\nGenerating MDX files in ${path.relative(DOCS_DIR, MDX_SUPPORTED_DIR)}/`);
+  console.log(
+    `\nGenerating MDX files in ${path.relative(DOCS_DIR, MDX_SUPPORTED_DIR)}/`,
+  );
 
   let mdxCount = 0;
   for (const [name, db] of Object.entries(databases)) {
@@ -1233,7 +1317,7 @@ async function main() {
   };
   fs.writeFileSync(
     path.join(MDX_OUTPUT_DIR, '_category_.json'),
-    JSON.stringify(categoryJson, null, 2) + '\n'
+    JSON.stringify(categoryJson, null, 2) + '\n',
   );
 
   // Generate _category_.json for supported/ subdirectory (collapsible)
@@ -1245,12 +1329,15 @@ async function main() {
   };
   fs.writeFileSync(
     path.join(MDX_SUPPORTED_DIR, '_category_.json'),
-    JSON.stringify(supportedCategoryJson, null, 2) + '\n'
+    JSON.stringify(supportedCategoryJson, null, 2) + '\n',
   );
   console.log(`  Generated _category_.json files`);
 
   // Update README.md database logos (only when explicitly requested)
-  if (process.env.UPDATE_README === 'true' || process.argv.includes('--update-readme')) {
+  if (
+    process.env.UPDATE_README === 'true' ||
+    process.argv.includes('--update-readme')
+  ) {
     console.log('');
     updateReadme(databases);
   }

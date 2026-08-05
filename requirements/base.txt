@@ -46,7 +46,7 @@ cachelib==0.13.0
     # via
     #   flask-caching
     #   flask-session
-cachetools==7.1.4
+cachetools==7.1.6
     # via apache-superset (pyproject.toml)
 cattrs==25.1.1
     # via requests-cache
@@ -86,7 +86,7 @@ colorama==0.4.6
     #   flask-appbuilder
 cron-descriptor==1.4.5
     # via apache-superset (pyproject.toml)
-croniter==6.2.2
+croniter==6.2.4
     # via apache-superset (pyproject.toml)
 cryptography==49.0.0
     # via
@@ -150,6 +150,7 @@ flask-session==0.8.0
     # via apache-superset (pyproject.toml)
 flask-sqlalchemy==2.5.1
     # via
+    #   apache-superset (pyproject.toml)
     #   flask-appbuilder
     #   flask-migrate
 flask-talisman==1.1.0
@@ -166,7 +167,7 @@ google-auth==2.53.0
     # via
     #   -r requirements/base.in
     #   shillelagh
-greenlet==3.5.3
+greenlet==3.5.4
     # via
     #   apache-superset (pyproject.toml)
     #   shillelagh
@@ -291,7 +292,7 @@ pillow==12.3.0
     # via apache-superset (pyproject.toml)
 platformdirs==4.3.8
     # via requests-cache
-polyline==2.0.2
+polyline==2.0.4
     # via apache-superset (pyproject.toml)
 prison==0.2.1
     # via flask-appbuilder
