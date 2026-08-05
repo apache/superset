@@ -906,20 +906,17 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         * ``version_history.prune_old_versions`` — checked always, since
           shadow rows written by prior deploys keep ageing even when
           capture is off;
-        Each task needs two things from ``CELERY_CONFIG``: its module in
-        ``imports`` (or the worker answers ``NotRegistered`` when the task
-        fires) and an entry in ``beat_schedule`` (or it is never
-        dispatched). Both are checked, because an operator who satisfies
-        only one still never runs the task.
+        Each task needs an entry in ``beat_schedule``. When ``imports`` is
+        explicitly configured, its module is checked there as well. An absent
+        ``imports`` setting is not diagnosed because Celery may register tasks
+        through ``include``, autodiscovery, or worker startup imports.
 
         * ``deletion_retention.purge_soft_deleted`` — checked only when
           ``SOFT_DELETE`` is enabled, because the purge task itself
           no-ops while the flag is off, so a missing entry is only
-          actionable once soft delete is live. The gate is resolved
-          through ``feature_flag_manager`` — the same call the task
-          makes — so a deployment that enables the flag through
-          ``IS_FEATURE_ENABLED_FUNC`` or ``GET_FEATURE_FLAGS_FUNC`` is
-          warned like any other.
+          actionable once soft delete is statically configured. Dynamic
+          request-time feature resolvers are intentionally excluded from this
+          startup diagnostic.
 
         Operators who redefine ``CeleryConfig`` in ``superset_config.py``
         — instead of subclassing or merging the default — silently lose
@@ -965,6 +962,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             if isinstance(celery_imports, (list, tuple, set, frozenset))
             else ()
         )
+        imports_configured = celery_imports is not None
         # Match on the ``task`` each entry runs, not the schedule entry key:
         # an operator may register the retention task under any key (e.g.
         # ``{"prune_versions": {"task": "version_history.prune_old_versions"}}``),
@@ -984,7 +982,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 "default CeleryConfig or add the entry to your override.",
                 self._RETENTION_TASK_NAME,
             )
-        if self._RETENTION_TASK_MODULE not in imported_modules:
+        if imports_configured and self._RETENTION_TASK_MODULE not in imported_modules:
             logger.warning(
                 "versioning: CELERY_CONFIG.imports is missing %r — workers "
                 "will not register the retention task, so a scheduled run "
@@ -992,11 +990,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 "CeleryConfig or add the module to your override.",
                 self._RETENTION_TASK_MODULE,
             )
-        # Resolve the gate exactly as the purge task does, so the warning
-        # cannot disagree with the no-op it is predicting.
-        # configure_feature_flags() runs before this check, so the manager
-        # is fully initialised here.
-        if feature_flag_manager.is_feature_enabled("SOFT_DELETE") and (
+        default_flags = self.config.get("DEFAULT_FEATURE_FLAGS", {})
+        configured_flags = self.config.get("FEATURE_FLAGS", {})
+        soft_delete_enabled = bool(
+            configured_flags.get("SOFT_DELETE", default_flags.get("SOFT_DELETE", False))
+        )
+        if soft_delete_enabled and (
             not beat_schedule or self._PURGE_TASK_NAME not in registered_tasks
         ):
             logger.warning(
@@ -1007,7 +1006,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 self._PURGE_TASK_NAME,
             )
         if (
-            feature_flag_manager.is_feature_enabled("SOFT_DELETE")
+            soft_delete_enabled
+            and imports_configured
             and self._PURGE_TASK_MODULE not in imported_modules
         ):
             logger.warning(

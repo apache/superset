@@ -28,7 +28,6 @@ from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.config import CeleryConfig
 from superset.initialization import SupersetAppInitializer
 from superset.middleware.legacy_prefix_redirect import LegacyPrefixRedirectMiddleware
-from superset.utils.feature_flag_manager import FeatureFlagManager
 
 
 def _unwrap_to_app_root(app):
@@ -582,9 +581,10 @@ class TestRetentionBeatWarning:
     def _initializer(self, config: dict[str, Any]) -> SupersetAppInitializer:
         """Build a ``SupersetAppInitializer`` against a minimal mock app
         whose only meaningful attribute is the config dict.
-        ``_warn_if_retention_beat_missing`` reads ``CELERY_CONFIG`` from
-        here; the ``SOFT_DELETE`` gate is resolved through
-        ``feature_flag_manager``, so tests patch that separately."""
+        ``_warn_if_retention_beat_missing`` reads ``CELERY_CONFIG`` and the
+        static feature-flag dictionaries from this config."""
+        config.setdefault("DEFAULT_FEATURE_FLAGS", {"SOFT_DELETE": False})
+        config.setdefault("FEATURE_FLAGS", {})
         app = MagicMock()
         app.config = config
         return SupersetAppInitializer(app)
@@ -749,17 +749,15 @@ class TestRetentionBeatWarning:
 
         mock_logger.warning.assert_not_called()
 
-    @patch("superset.initialization.feature_flag_manager")
     @patch("superset.initialization.logger")
     def test_warn_when_soft_delete_on_and_purge_entry_missing(
-        self, mock_logger: MagicMock, mock_flags: MagicMock
+        self, mock_logger: MagicMock
     ) -> None:
         """With ``SOFT_DELETE`` on and the beat schedule carrying the
         version-history entry but not the purge entry, a WARNING naming
         ``deletion_retention.purge_soft_deleted`` fires — otherwise a
         hand-rolled ``CeleryConfig`` silently accumulates archived
         objects forever."""
-        mock_flags.is_feature_enabled.return_value = True
 
         class _NoPurgeCeleryConfig:
             imports: tuple[str, ...] = (
@@ -775,6 +773,7 @@ class TestRetentionBeatWarning:
         initializer = self._initializer(
             {
                 "CELERY_CONFIG": _NoPurgeCeleryConfig,
+                "FEATURE_FLAGS": {"SOFT_DELETE": True},
             }
         )
         initializer._warn_if_retention_beat_missing()
@@ -787,15 +786,11 @@ class TestRetentionBeatWarning:
             f"got {mock_logger.warning.call_args_list}"
         )
 
-    @patch("superset.initialization.feature_flag_manager")
     @patch("superset.initialization.logger")
-    def test_no_purge_warn_when_soft_delete_off(
-        self, mock_logger: MagicMock, mock_flags: MagicMock
-    ) -> None:
+    def test_no_purge_warn_when_soft_delete_off(self, mock_logger: MagicMock) -> None:
         """With ``SOFT_DELETE`` off, a missing purge entry MUST NOT warn:
         the purge task itself no-ops while the flag is off, so the
         warning would be noise the operator cannot act on."""
-        mock_flags.is_feature_enabled.return_value = False
 
         class _NoPurgeCeleryConfig:
             imports: tuple[str, ...] = (
@@ -818,14 +813,10 @@ class TestRetentionBeatWarning:
         mock_logger.warning.assert_not_called()
 
     @patch("superset.initialization.logger")
-    def test_purge_gate_resolves_through_the_feature_flag_manager(
+    def test_purge_gate_ignores_dynamic_feature_flag_resolvers(
         self, mock_logger: MagicMock
     ) -> None:
-        """The gate is resolved by ``feature_flag_manager``, not by reading
-        the config dicts, so a deployment that enables ``SOFT_DELETE``
-        through ``IS_FEATURE_ENABLED_FUNC`` is warned like any other. The
-        purge task gates on the same call, so the warning cannot disagree
-        with the no-op it predicts."""
+        """Dynamic feature resolvers do not affect startup diagnostics."""
 
         class _NoPurgeCeleryConfig:
             imports: tuple[str, ...] = (
@@ -838,8 +829,8 @@ class TestRetentionBeatWarning:
                 },
             }
 
-        # Config says off; the dynamic hook says on. Only a
-        # manager-resolved gate sees the latter.
+        # Static config says off while the dynamic hook says on. Startup
+        # diagnostics intentionally use only the static deployment config.
         config: dict[str, Any] = {
             "CELERY_CONFIG": _NoPurgeCeleryConfig,
             "DEFAULT_FEATURE_FLAGS": {"SOFT_DELETE": False},
@@ -848,25 +839,13 @@ class TestRetentionBeatWarning:
             "GET_FEATURE_FLAGS_FUNC": None,
         }
         initializer = self._initializer(config)
-        manager_app = MagicMock()
-        manager_app.config = config
-        manager = FeatureFlagManager()
-        manager.init_app(manager_app)
-        with patch("superset.initialization.feature_flag_manager", manager):
-            initializer._warn_if_retention_beat_missing()
+        initializer._warn_if_retention_beat_missing()
 
-        assert any(
-            "deletion_retention.purge_soft_deleted" in str(call)
-            for call in mock_logger.warning.call_args_list
-        ), (
-            "Expected the dynamic IS_FEATURE_ENABLED_FUNC to enable the "
-            f"purge check; got {mock_logger.warning.call_args_list}"
-        )
+        mock_logger.warning.assert_not_called()
 
-    @patch("superset.initialization.feature_flag_manager")
     @patch("superset.initialization.logger")
     def test_no_warn_when_soft_delete_on_and_both_entries_present(
-        self, mock_logger: MagicMock, mock_flags: MagicMock
+        self, mock_logger: MagicMock
     ) -> None:
         """The **shipped** ``CeleryConfig`` with soft delete enabled must
         be silent. Asserting against the real class — rather than a
@@ -878,9 +857,12 @@ class TestRetentionBeatWarning:
         (The check matches a schedule key *or* an entry's ``task``, so a
         rename of only one of the two is tolerated by design and stays
         green — it is the genuine rename, where both move, that fires.)"""
-        mock_flags.is_feature_enabled.return_value = True
-
-        initializer = self._initializer({"CELERY_CONFIG": CeleryConfig})
+        initializer = self._initializer(
+            {
+                "CELERY_CONFIG": CeleryConfig,
+                "FEATURE_FLAGS": {"SOFT_DELETE": True},
+            }
+        )
         initializer._warn_if_retention_beat_missing()
 
         mock_logger.warning.assert_not_called()
@@ -913,15 +895,31 @@ class TestRetentionBeatWarning:
             f"got {mock_logger.warning.call_args_list}"
         )
 
-    @patch("superset.initialization.feature_flag_manager")
+    @patch("superset.initialization.logger")
+    def test_no_import_warning_when_imports_is_not_configured(
+        self, mock_logger: MagicMock
+    ) -> None:
+        """Do not assume how a worker registers tasks when imports is absent."""
+
+        class _AutodiscoveredCeleryConfig:
+            beat_schedule: dict[str, dict[str, str]] = {
+                "version_history.prune_old_versions": {
+                    "task": "version_history.prune_old_versions",
+                },
+            }
+
+        initializer = self._initializer({"CELERY_CONFIG": _AutodiscoveredCeleryConfig})
+        initializer._warn_if_retention_beat_missing()
+
+        mock_logger.warning.assert_not_called()
+
     @patch("superset.initialization.logger")
     def test_warn_when_purge_module_missing_from_imports(
-        self, mock_logger: MagicMock, mock_flags: MagicMock
+        self, mock_logger: MagicMock
     ) -> None:
         """Same for the purge task, and gated on ``SOFT_DELETE`` like its
         beat counterpart: the schedule can name the task while the worker
         never imported it."""
-        mock_flags.is_feature_enabled.return_value = True
 
         class _NoPurgeImportCeleryConfig:
             imports: tuple[str, ...] = ("superset.tasks.version_history_retention",)
@@ -934,7 +932,12 @@ class TestRetentionBeatWarning:
                 },
             }
 
-        initializer = self._initializer({"CELERY_CONFIG": _NoPurgeImportCeleryConfig})
+        initializer = self._initializer(
+            {
+                "CELERY_CONFIG": _NoPurgeImportCeleryConfig,
+                "FEATURE_FLAGS": {"SOFT_DELETE": True},
+            }
+        )
         initializer._warn_if_retention_beat_missing()
 
         assert any(
@@ -945,15 +948,13 @@ class TestRetentionBeatWarning:
             f"got {mock_logger.warning.call_args_list}"
         )
 
-    @patch("superset.initialization.feature_flag_manager")
     @patch("superset.initialization.logger")
     def test_no_purge_import_warn_when_soft_delete_off(
-        self, mock_logger: MagicMock, mock_flags: MagicMock
+        self, mock_logger: MagicMock
     ) -> None:
         """The purge import check is gated like the purge beat check: with
         the flag off the task no-ops, so a missing module is not yet
         actionable and must not warn."""
-        mock_flags.is_feature_enabled.return_value = False
 
         class _NoPurgeImportCeleryConfig:
             imports: tuple[str, ...] = ("superset.tasks.version_history_retention",)
@@ -968,15 +969,13 @@ class TestRetentionBeatWarning:
 
         mock_logger.warning.assert_not_called()
 
-    @patch("superset.initialization.feature_flag_manager")
     @patch("superset.initialization.logger")
     def test_no_purge_warn_when_task_registered_under_other_key(
-        self, mock_logger: MagicMock, mock_flags: MagicMock
+        self, mock_logger: MagicMock
     ) -> None:
         """Parity with the version-history check: the purge task
         registered under a non-matching schedule key is still correctly
         scheduled and MUST NOT warn."""
-        mock_flags.is_feature_enabled.return_value = True
 
         class _RenamedKeysCeleryConfig:
             imports: tuple[str, ...] = (
@@ -995,6 +994,7 @@ class TestRetentionBeatWarning:
         initializer = self._initializer(
             {
                 "CELERY_CONFIG": _RenamedKeysCeleryConfig,
+                "FEATURE_FLAGS": {"SOFT_DELETE": True},
             }
         )
         initializer._warn_if_retention_beat_missing()
