@@ -25,6 +25,7 @@ import { dashboard, useDashboardRevision } from 'src/core/dashboard';
 import { chat } from 'src/core/chat';
 import BuildingBlockView from 'src/core/dashboard/BuildingBlockView';
 import { dashboardClientTools } from './clientTools';
+import LayoutModeSwitcher from './LayoutModeSwitcher';
 
 const PageContainer = styled(Flex)`
   ${({ theme }) => css`
@@ -41,6 +42,17 @@ const Canvas = styled.div`
     min-height: 0;
     overflow: auto;
     padding: ${theme.paddingLG}px;
+  `}
+`;
+
+const Toolbar = styled.div`
+  ${({ theme }) => css`
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex: 0 0 auto;
+    padding: ${theme.paddingSM}px ${theme.paddingLG}px;
+    border-bottom: 1px solid ${theme.colorBorderSecondary};
   `}
 `;
 
@@ -96,6 +108,15 @@ export default function DashboardBuilderV2() {
 
   return (
     <PageContainer vertical>
+      {/* The one piece of authoring chrome this page owns. It arranges the
+          root canvas rather than any block, so it belongs to the page and
+          not to the tree BuildingBlockView renders — and it is hidden while
+          the dashboard is empty, when there is nothing to arrange. */}
+      {!isEmpty && (
+        <Toolbar>
+          <LayoutModeSwitcher nodeId={root.id} />
+        </Toolbar>
+      )}
       <Canvas>
         {isEmpty ? (
           <EmptyCanvasWrapper>

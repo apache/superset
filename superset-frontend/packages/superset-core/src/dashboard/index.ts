@@ -54,20 +54,51 @@
 import type { Event } from '../common';
 
 /**
+ * How a container arranges its own children.
+ *
+ * - `grid` (the default, and what every node written before this field
+ *   existed still means) — children occupy cells of the container's column
+ *   grid and are compacted upward, so the space a removed or moved block
+ *   leaves behind closes itself.
+ * - `free` — the same cells, uncompacted. A child stays exactly where it was
+ *   put and may overlap a sibling. It reads the same four child fields
+ *   `grid` does, so switching a container between the two never discards a
+ *   position an author or an agent set.
+ * - `flex` — children flow along a line and wrap, sharing that line in
+ *   proportion to their `colSpan` instead of occupying named cells. Their
+ *   position is their order in `children`, not a coordinate.
+ *
+ * A flow is still not a mode, and the two that are here are the two that
+ * genuinely could not be expressed as a grid: `free` because compaction is a
+ * property of the container rather than of any child's coordinates, and
+ * `flex` because a proportional line has no cells to name.
+ */
+export type LayoutMode = 'grid' | 'free' | 'flex';
+
+/** Where `flex` children sit along the line they flow down. */
+export type FlexJustify =
+  'start' | 'center' | 'end' | 'space-between' | 'space-around';
+
+/** Where `flex` children sit across the line they flow down. */
+export type FlexAlign = 'start' | 'center' | 'end' | 'stretch';
+
+/**
  * Layout of a single node: a grid it lays out its own children in (only
  * meaningful when the node is a container — ignored on leaf nodes), plus
  * where the node itself sits within its *parent's* grid. A node can be both
  * at once — a `canvas` nested inside another `canvas` both holds a grid for
  * its own children and occupies cells in its parent's.
  *
- * There is no separate "flow" or "absolute" mode: a single-column grid with
- * every child left at its default full-width span behaves like a plain
- * top-to-bottom stack — it falls out of the same schema rather than
- * requiring a different one.
+ * There is no separate "flow" mode: a single-column grid with every child
+ * left at its default full-width span behaves like a plain top-to-bottom
+ * stack — it falls out of the same schema rather than requiring a different
+ * one. {@link LayoutMode} exists only for the arrangements that do not.
  */
 export interface LayoutProps {
   // --- Container side: how this node arranges its own children. Ignored
   // on a node with no `children`. ---
+  /** How this node arranges its children. Default: `grid`. */
+  mode?: LayoutMode;
   /** Number of equal fractional column tracks. Default: 24. */
   columns?: number;
   gap?: number;
@@ -79,8 +110,22 @@ export interface LayoutProps {
    */
   rowUnit?: number;
 
+  // --- Container side, `flex` only. Ignored in every other mode, rather
+  // than quietly changing what a grid does. ---
+  /** Which way `flex` children flow. Default: `row`. */
+  direction?: 'row' | 'column';
+  /** Whether a `flex` line wraps once it is full. Default: true. */
+  wrap?: boolean;
+  justify?: FlexJustify;
+  align?: FlexAlign;
+
   // --- Child side: where this node sits within its parent's grid. ---
-  /** How many of the parent's columns this node spans. Default: every column (full width). */
+  /**
+   * How many of the parent's columns this node spans. Default: every column
+   * (full width). In a `flex` parent there are no columns to occupy, so this
+   * is read as the node's share of the line instead — two siblings at 6 and
+   * 12 take a third and two thirds of it.
+   */
   colSpan?: number;
   /** How many row tracks this node spans. Default: 1. */
   rowSpan?: number;

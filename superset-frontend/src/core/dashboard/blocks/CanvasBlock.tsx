@@ -27,9 +27,10 @@ import 'react-grid-layout/css/styles.css';
 import type { dashboard as dashboardApi } from '@apache-superset/core';
 import { useTheme } from '@apache-superset/core/theme';
 import { provider, useDashboardRevision } from '../store';
-import { resolveGridMetrics } from '../layoutStyle';
+import { resolveGridMetrics, resolveLayoutMode } from '../layoutStyle';
 import { packChildLayout } from '../gridPacking';
 import BuildingBlockView from '../BuildingBlockView';
+import FlexCanvas from './FlexCanvas';
 
 type LayoutProps = dashboardApi.LayoutProps;
 
@@ -203,8 +204,30 @@ export default function CanvasBlock({ nodeId }: { nodeId: string }) {
 
   if (!node) return null;
 
+  const mode = resolveLayoutMode(node.layout);
   const { columns, gap, rowUnitPx } = resolveGridMetrics(node.layout, theme);
   const children = node.children ?? [];
+
+  // A flex line has no cells, so it is not a grid with different settings —
+  // it is a different renderer. Everything below this point is grid geometry.
+  if (mode === 'flex') {
+    return (
+      <FlexCanvas nodeId={nodeId} layout={node.layout} childIds={children} />
+    );
+  }
+
+  /**
+   * `free` is `grid` with the compaction turned off.
+   *
+   * `allowOverlap` is what makes that work, and it is not the same thing as
+   * the `compactType={null}` recorded below as unusable: that path keeps
+   * react-grid-layout's collision resolution running with nothing to settle
+   * it, which is exactly the runaway displacement it was found to cause.
+   * `allowOverlap` removes the collision resolution instead, which is what a
+   * free canvas means — a block stays where it was put, over a sibling if
+   * that is where the author put it.
+   */
+  const free = mode === 'free';
   const packed = packChildLayout(children, columns, provider.getNode);
   const layout: Layout = children.map(id => ({
     i: id,
@@ -237,7 +260,14 @@ export default function CanvasBlock({ nodeId }: { nodeId: string }) {
         // a few mouse-move events. `"vertical"` resolves the same collision
         // by moving the sibling down exactly once, by exactly its own
         // height, every time.
-        compactType="vertical"
+        //
+        // `free` mode does pass `null` here, and is not a counterexample:
+        // it pairs it with `allowOverlap`, which switches the collision
+        // resolution off entirely rather than leaving it running with
+        // nothing to settle it. The failure above is what that unsettled
+        // path does; a free canvas never enters it.
+        compactType={free ? null : 'vertical'}
+        allowOverlap={free}
         preventCollision={false}
         resizeHandles={['se', 'sw', 'ne', 'nw']}
         // A nested canvas that declares its own `rowUnit` independently of
