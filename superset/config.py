@@ -1644,6 +1644,12 @@ SQL_MAX_ROW = 100000
 # operation. Bounds resource usage when predicting into the future.
 MAX_PROPHET_PERIODS = 10000
 
+# Maximum number of time buckets a padded/bounded resample may materialize.
+# Applies only when ``time_range_start`` / ``time_range_end`` expand the series
+# (e.g. "Fill the entire time range"); unbounded resamples of existing data are
+# unaffected. Override for deployments that need wider padded ranges.
+MAX_RESAMPLE_BUCKETS = 50000
+
 # Maximum number of rows for any query with Server Pagination in Table Viz type
 TABLE_VIZ_MAX_ROW_SERVER = 500000
 

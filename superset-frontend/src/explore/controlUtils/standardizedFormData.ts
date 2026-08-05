@@ -80,6 +80,7 @@ export const publicControls = [
   // advanced analytics - resample
   'resample_rule', // via sections.advancedAnalytics
   'resample_method', // via sections.advancedAnalytics
+  'resample_fill_time_range', // via sections.advancedAnalytics
   // dashboard context
   'dashboardId', // preserve dashboard context when changing viz type
 ];

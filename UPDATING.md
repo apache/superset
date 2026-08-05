@@ -24,6 +24,15 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Resample "Fill the entire time range" bucket cap
+
+When the new Resample option **Fill the entire time range** is enabled (or when
+`time_range_start` / `time_range_end` are passed to the resample post-processor),
+Superset caps how many time buckets may be materialized via
+`MAX_RESAMPLE_BUCKETS` (default `50000`). Requests that would exceed the cap raise
+a validation error. Unbounded resamples of existing data are unchanged. Operators
+who need wider padded ranges can raise the limit in `superset_config.py`.
+
 ### Principal listing APIs now honour related-field filters
 
 Two authorization-related listing behaviors changed for API clients. Neither
