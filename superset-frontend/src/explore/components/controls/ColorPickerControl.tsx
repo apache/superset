@@ -77,13 +77,16 @@ const normalizeColorToHex = (color: string): string => {
 
 const getReverseThemeColorMap = (
   themeColors: Record<string, string>,
-): Record<string, string> => {
-  const reverseMap: Record<string, string> = {};
+): Map<string, string> => {
+  const reverseMap = new Map<string, string>();
   if (!themeColors) return reverseMap;
 
   Object.entries(themeColors).forEach(([name, value]) => {
     if (typeof value === 'string') {
-      reverseMap[normalizeColorToHex(value)] = name;
+      const hex = normalizeColorToHex(value);
+      if (!reverseMap.has(hex)) {
+        reverseMap.set(hex, name);
+      }
     }
   });
 
@@ -198,15 +201,15 @@ export default function ColorPickerControl({
       return;
     }
 
-    if (
-      resolveThemeTokens &&
-      Object.prototype.hasOwnProperty.call(reverseMap, hex)
-    ) {
-      onChange(reverseMap[hex]);
-      return;
+    if (resolveThemeTokens && reverseMap.has(hex)) {
+      const tokenName = reverseMap.get(hex);
+      if (tokenName) {
+        onChange(tokenName);
+        return;
+      }
     }
 
-    onChange(rgb);
+    onChange(hex);
   };
 
   const hexValue = toDisplayHex(value, themeColors);

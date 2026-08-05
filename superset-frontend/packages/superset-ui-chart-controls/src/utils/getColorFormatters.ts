@@ -289,12 +289,15 @@ export const getColorFunction = (
       }
       return colorScheme;
     }
-    const baseHexColor = rgbaToHex({ ...colorScheme, a: 1 });
     // If useGradient is explicitly false, return solid color
     if (useGradient === false) {
-      return baseHexColor;
+      if (alpha === false) {
+        return rgbaToHex({ ...colorScheme, a: 1 });
+      }
+      return rgbaToHex(colorScheme);
     }
 
+    const baseHexColor = rgbaToHex({ ...colorScheme, a: 1 });
     // Otherwise apply gradient (default behavior for backward compatibility)
     if (alpha === undefined || alpha) {
       return addAlpha(

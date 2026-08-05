@@ -1025,3 +1025,30 @@ test('should return hex color without alpha for GreaterThan operator with RGB co
 
   expect(colorFunction(100)).toEqual('#ff0000');
 });
+
+test('should preserve alpha from colorScheme when useGradient is false', () => {
+  const config = {
+    operator: Comparator.None,
+    colorScheme: { r: 255, g: 0, b: 0, a: 0.5 },
+    useGradient: false,
+  };
+
+  const colorFunction = getColorFunction(config, [10, 20, 30]);
+  const result = colorFunction(20);
+
+  expect(result).not.toBe('#ff0000');
+  expect(result).not.toBe('rgb(255, 0, 0)');
+});
+
+test('should force opaque color when useGradient is false but alpha is explicitly false', () => {
+  const config = {
+    operator: Comparator.None,
+    colorScheme: { r: 255, g: 0, b: 0, a: 0.5 },
+    useGradient: false,
+  };
+
+  const colorFunction = getColorFunction(config, [10, 20, 30], false);
+  const result = colorFunction(20);
+
+  expect(result).toBe('#ff0000');
+});

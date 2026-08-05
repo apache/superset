@@ -158,7 +158,7 @@ test('calls onChange with RGB object when resolveThemeTokens is false', async ()
   expect(greenPreset).toBeInTheDocument();
   await userEvent.click(greenPreset);
 
-  expect(onChange).toHaveBeenCalledWith({ r: 0, g: 150, b: 0, a: 0.2 });
+  expect(onChange).toHaveBeenCalledWith('#00960033');
 });
 
 test('resolves colorSuccess theme token correctly when matching color is selected', async () => {
