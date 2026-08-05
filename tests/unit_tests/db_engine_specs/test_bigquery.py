@@ -715,8 +715,21 @@ def _patch_bq_fetch_deps(
     mocker: MockerFixture, max_mb: int = 200
 ) -> tuple[mock.MagicMock, mock.MagicMock]:
     """Helper to patch Flask g and current_app for BigQuery fetch_data tests."""
-    flask_g = mocker.patch("superset.db_engine_specs.bigquery.g")
-    app = mocker.patch("superset.db_engine_specs.bigquery.current_app")
+    # `new_callable=mock.MagicMock` is pinned explicitly rather than relying on
+    # ``mocker.patch``'s auto-detection of the mock class. That detection
+    # inspects whatever object currently sits at the patched attribute, so if
+    # an earlier test in the same session ever leaves an ``AsyncMock`` there
+    # (e.g. an improperly torn-down patch), every subsequent patch of the same
+    # attribute -- even ones created fresh here -- would also become an
+    # ``AsyncMock``, since ``AsyncMock`` classifies its own non-dunder child
+    # attributes as ``AsyncMock`` too. Pinning the callable sidesteps that
+    # self-perpetuating class inference entirely.
+    flask_g = mocker.patch(
+        "superset.db_engine_specs.bigquery.g", new_callable=mock.MagicMock
+    )
+    app = mocker.patch(
+        "superset.db_engine_specs.bigquery.current_app", new_callable=mock.MagicMock
+    )
     # Make current_app truthy and .config.get() return a plain int
     app.__bool__ = mock.Mock(return_value=True)
     app.config = mock.MagicMock()
