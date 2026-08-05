@@ -33,9 +33,13 @@ paths.
 from __future__ import annotations
 
 import uuid as uuid_module
+from collections.abc import Iterator
+from contextlib import contextmanager
+from typing import TypeAlias
 
 import pytest
 import sqlalchemy as sa
+from sqlalchemy_continuum import version_class, versioning_manager
 
 from superset import db
 from superset.daos.version import VersionDAO
@@ -43,6 +47,8 @@ from superset.models.slice import Slice
 from superset.versioning.queries import get_version, list_versions
 from superset.versioning.restore import restore_version
 from tests.integration_tests.test_app import app
+
+RecycledIdCharts: TypeAlias = tuple[int, uuid_module.UUID, Slice]
 
 
 def _make_chart(name: str, chart_uuid: uuid_module.UUID) -> Slice:
@@ -58,8 +64,19 @@ def _make_chart(name: str, chart_uuid: uuid_module.UUID) -> Slice:
     return chart
 
 
+@contextmanager
+def _capture_disabled() -> Iterator[None]:
+    """Temporarily disable Continuum writes without reordering listeners."""
+    previous = versioning_manager.options["versioning"]
+    versioning_manager.options["versioning"] = False
+    try:
+        yield
+    finally:
+        versioning_manager.options["versioning"] = previous
+
+
 @pytest.fixture
-def recycled_id_charts():
+def recycled_id_charts() -> Iterator[RecycledIdCharts]:
     """Create a chart, capture history, hard-delete it, then create a second
     chart that lands on the freed id.
 
@@ -100,7 +117,7 @@ def recycled_id_charts():
 
 
 def test_successor_under_recycled_id_has_no_inherited_history(
-    recycled_id_charts,
+    recycled_id_charts: RecycledIdCharts,
 ) -> None:
     """The successor's version count must reflect its own writes only.
 
@@ -128,7 +145,9 @@ def test_successor_under_recycled_id_has_no_inherited_history(
     )
 
 
-def test_live_transaction_id_is_not_the_predecessors(recycled_id_charts) -> None:
+def test_live_transaction_id_is_not_the_predecessors(
+    recycled_id_charts: RecycledIdCharts,
+) -> None:
     """The live transaction resolved for the successor must be its own.
 
     ``current_live_version_uuid`` derives the client-visible version uuid from
@@ -157,7 +176,9 @@ def test_live_transaction_id_is_not_the_predecessors(recycled_id_charts) -> None
     assert VersionDAO.current_live_transaction_id(Slice, entity_id) == successor_tx
 
 
-def test_restore_refuses_a_predecessors_transaction(recycled_id_charts) -> None:
+def test_restore_refuses_a_predecessors_transaction(
+    recycled_id_charts: RecycledIdCharts,
+) -> None:
     """Restoring the successor to a transaction that belongs to the
     predecessor must fail rather than overwrite it with a stranger's content.
 
@@ -165,7 +186,7 @@ def test_restore_refuses_a_predecessors_transaction(recycled_id_charts) -> None:
     history, but restore *writes*.
     """
     entity_id, predecessor_uuid, successor = recycled_id_charts
-    from superset.versioning.queries import version_class
+    assert successor.uuid is not None
 
     # The predecessor has no *live* row (it was hard-deleted), so take any of
     # its surviving shadow transactions directly — that is exactly what an
@@ -193,13 +214,14 @@ def test_restore_refuses_a_predecessors_transaction(recycled_id_charts) -> None:
     )
 
 
-def test_shadow_rows_for_both_entities_share_the_id(recycled_id_charts) -> None:
+def test_shadow_rows_for_both_entities_share_the_id(
+    recycled_id_charts: RecycledIdCharts,
+) -> None:
     """Guard the guard: prove the fixture really did recycle the id and that
     both entities' shadow rows coexist under it, so the tests above are not
     passing vacuously.
     """
     entity_id, predecessor_uuid, successor = recycled_id_charts
-    from superset.versioning.queries import version_class
 
     ver_cls = version_class(Slice)
     uuids = {
@@ -219,7 +241,9 @@ def test_shadow_rows_for_both_entities_share_the_id(recycled_id_charts) -> None:
     assert sa.inspect(db.session.bind).has_table("slices_version")
 
 
-def test_list_versions_excludes_the_predecessors_rows(recycled_id_charts) -> None:
+def test_list_versions_excludes_the_predecessors_rows(
+    recycled_id_charts: RecycledIdCharts,
+) -> None:
     """The history listing must contain the successor's versions only.
 
     ``list_versions`` selects the shadow rows with its own Core query rather
@@ -228,6 +252,7 @@ def test_list_versions_excludes_the_predecessors_rows(recycled_id_charts) -> Non
     stranger's versions.
     """
     _entity_id, _predecessor_uuid, successor = recycled_id_charts
+    assert successor.uuid is not None
 
     versions = list_versions(Slice, successor.uuid, entity=successor)
 
@@ -238,7 +263,9 @@ def test_list_versions_excludes_the_predecessors_rows(recycled_id_charts) -> Non
     )
 
 
-def test_get_version_returns_the_successors_own_snapshot(recycled_id_charts) -> None:
+def test_get_version_returns_the_successors_own_snapshot(
+    recycled_id_charts: RecycledIdCharts,
+) -> None:
     """A version snapshot must carry the content of the entity asked about.
 
     ``version_number`` is resolved from a pinned count but applied to the
@@ -248,6 +275,7 @@ def test_get_version_returns_the_successors_own_snapshot(recycled_id_charts) -> 
     labelled with the successor's version uuid.
     """
     _entity_id, _predecessor_uuid, successor = recycled_id_charts
+    assert successor.uuid is not None
 
     versions = list_versions(Slice, successor.uuid, entity=successor)
     assert versions, "fixture should leave the successor one version"
@@ -263,3 +291,48 @@ def test_get_version_returns_the_successors_own_snapshot(recycled_id_charts) -> 
     assert snapshot["uuid"] == str(successor.uuid), (
         f"snapshot belongs to a different entity: {snapshot['uuid']}"
     )
+
+
+def _assert_reused_id_gets_its_own_baseline_when_capture_resumes() -> None:
+    """A predecessor's shadow rows must not suppress a successor baseline."""
+    predecessor_uuid = uuid_module.uuid4()
+    predecessor = _make_chart("baseline_predecessor", predecessor_uuid)
+    entity_id = predecessor.id
+    predecessor.slice_name = "baseline_predecessor_v2"
+    db.session.commit()
+    db.session.delete(predecessor)
+    db.session.commit()
+
+    successor_uuid = uuid_module.uuid4()
+    with _capture_disabled():
+        successor = _make_chart("baseline_successor", successor_uuid)
+
+    if successor.id != entity_id:
+        db.session.delete(successor)
+        db.session.commit()
+        pytest.skip(f"backend did not recycle the id ({entity_id} -> {successor.id})")
+
+    successor.slice_name = "baseline_successor_v2"
+    db.session.commit()
+
+    ver_cls = version_class(Slice)
+    rows = (
+        db.session.query(ver_cls)
+        .filter(ver_cls.id == entity_id, ver_cls.uuid == successor_uuid)
+        .order_by(ver_cls.transaction_id.asc())
+        .all()
+    )
+    assert [row.operation_type for row in rows] == [0, 1]
+    assert [row.slice_name for row in rows] == [
+        "baseline_successor",
+        "baseline_successor_v2",
+    ]
+
+    db.session.delete(successor)
+    db.session.commit()
+
+
+def test_reused_id_gets_its_own_baseline_when_capture_resumes() -> None:
+    """Exercise the capture transition inside the integration app context."""
+    with app.app_context():
+        _assert_reused_id_gets_its_own_baseline_when_capture_resumes()
