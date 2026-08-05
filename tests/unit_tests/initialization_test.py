@@ -599,6 +599,10 @@ class TestRetentionBeatWarning:
         rows but the prune never fires."""
 
         class _PartialCeleryConfig:
+            imports: tuple[str, ...] = (
+                "superset.tasks.version_history_retention",
+                "superset.tasks.deletion_retention",
+            )
             beat_schedule: dict[str, dict[str, str]] = {
                 "reports.scheduler": {"task": "reports.scheduler"}
             }
@@ -622,6 +626,10 @@ class TestRetentionBeatWarning:
         entry) is in play, no warning fires. The happy path."""
 
         class _CompleteCeleryConfig:
+            imports: tuple[str, ...] = (
+                "superset.tasks.version_history_retention",
+                "superset.tasks.deletion_retention",
+            )
             beat_schedule: dict[str, dict[str, str]] = {
                 "version_history.prune_old_versions": {
                     "task": "version_history.prune_old_versions",
@@ -642,6 +650,10 @@ class TestRetentionBeatWarning:
         entry's ``task``, not the schedule key."""
 
         class _RenamedKeyCeleryConfig:
+            imports: tuple[str, ...] = (
+                "superset.tasks.version_history_retention",
+                "superset.tasks.deletion_retention",
+            )
             beat_schedule: dict[str, dict[str, str]] = {
                 "prune_versions": {
                     "task": "version_history.prune_old_versions",
@@ -676,6 +688,10 @@ class TestRetentionBeatWarning:
             {
                 "CELERY_CONFIG": {
                     "broker_url": "redis://localhost",
+                    "imports": (
+                        "superset.tasks.version_history_retention",
+                        "superset.tasks.deletion_retention",
+                    ),
                     "beat_schedule": {
                         "version_history.prune_old_versions": {
                             "task": "version_history.prune_old_versions",
@@ -697,6 +713,10 @@ class TestRetentionBeatWarning:
             {
                 "CELERY_CONFIG": {
                     "broker_url": "redis://localhost",
+                    "imports": (
+                        "superset.tasks.version_history_retention",
+                        "superset.tasks.deletion_retention",
+                    ),
                     "beat_schedule": {
                         "reports.scheduler": {"task": "reports.scheduler"},
                     },
@@ -742,6 +762,10 @@ class TestRetentionBeatWarning:
         mock_flags.is_feature_enabled.return_value = True
 
         class _NoPurgeCeleryConfig:
+            imports: tuple[str, ...] = (
+                "superset.tasks.version_history_retention",
+                "superset.tasks.deletion_retention",
+            )
             beat_schedule: dict[str, dict[str, str]] = {
                 "version_history.prune_old_versions": {
                     "task": "version_history.prune_old_versions",
@@ -774,6 +798,10 @@ class TestRetentionBeatWarning:
         mock_flags.is_feature_enabled.return_value = False
 
         class _NoPurgeCeleryConfig:
+            imports: tuple[str, ...] = (
+                "superset.tasks.version_history_retention",
+                "superset.tasks.deletion_retention",
+            )
             beat_schedule: dict[str, dict[str, str]] = {
                 "version_history.prune_old_versions": {
                     "task": "version_history.prune_old_versions",
@@ -800,6 +828,10 @@ class TestRetentionBeatWarning:
         with the no-op it predicts."""
 
         class _NoPurgeCeleryConfig:
+            imports: tuple[str, ...] = (
+                "superset.tasks.version_history_retention",
+                "superset.tasks.deletion_retention",
+            )
             beat_schedule: dict[str, dict[str, str]] = {
                 "version_history.prune_old_versions": {
                     "task": "version_history.prune_old_versions",
@@ -853,6 +885,89 @@ class TestRetentionBeatWarning:
 
         mock_logger.warning.assert_not_called()
 
+    @patch("superset.initialization.logger")
+    def test_warn_when_retention_module_missing_from_imports(
+        self, mock_logger: MagicMock
+    ) -> None:
+        """A scheduled task whose module is absent from ``imports`` fails
+        with Celery ``NotRegistered`` when it fires — the same silent
+        non-execution the beat check guards, one layer down. UPDATING.md
+        asks operators for both; the check must too."""
+
+        class _NoImportCeleryConfig:
+            imports: tuple[str, ...] = ("superset.tasks.deletion_retention",)
+            beat_schedule: dict[str, dict[str, str]] = {
+                "version_history.prune_old_versions": {
+                    "task": "version_history.prune_old_versions",
+                },
+            }
+
+        initializer = self._initializer({"CELERY_CONFIG": _NoImportCeleryConfig})
+        initializer._warn_if_retention_beat_missing()
+
+        assert any(
+            "superset.tasks.version_history_retention" in str(call)
+            for call in mock_logger.warning.call_args_list
+        ), (
+            "Expected a WARNING naming the missing retention module; "
+            f"got {mock_logger.warning.call_args_list}"
+        )
+
+    @patch("superset.initialization.feature_flag_manager")
+    @patch("superset.initialization.logger")
+    def test_warn_when_purge_module_missing_from_imports(
+        self, mock_logger: MagicMock, mock_flags: MagicMock
+    ) -> None:
+        """Same for the purge task, and gated on ``SOFT_DELETE`` like its
+        beat counterpart: the schedule can name the task while the worker
+        never imported it."""
+        mock_flags.is_feature_enabled.return_value = True
+
+        class _NoPurgeImportCeleryConfig:
+            imports: tuple[str, ...] = ("superset.tasks.version_history_retention",)
+            beat_schedule: dict[str, dict[str, str]] = {
+                "version_history.prune_old_versions": {
+                    "task": "version_history.prune_old_versions",
+                },
+                "deletion_retention.purge_soft_deleted": {
+                    "task": "deletion_retention.purge_soft_deleted",
+                },
+            }
+
+        initializer = self._initializer({"CELERY_CONFIG": _NoPurgeImportCeleryConfig})
+        initializer._warn_if_retention_beat_missing()
+
+        assert any(
+            "superset.tasks.deletion_retention" in str(call)
+            for call in mock_logger.warning.call_args_list
+        ), (
+            "Expected a WARNING naming the missing purge module; "
+            f"got {mock_logger.warning.call_args_list}"
+        )
+
+    @patch("superset.initialization.feature_flag_manager")
+    @patch("superset.initialization.logger")
+    def test_no_purge_import_warn_when_soft_delete_off(
+        self, mock_logger: MagicMock, mock_flags: MagicMock
+    ) -> None:
+        """The purge import check is gated like the purge beat check: with
+        the flag off the task no-ops, so a missing module is not yet
+        actionable and must not warn."""
+        mock_flags.is_feature_enabled.return_value = False
+
+        class _NoPurgeImportCeleryConfig:
+            imports: tuple[str, ...] = ("superset.tasks.version_history_retention",)
+            beat_schedule: dict[str, dict[str, str]] = {
+                "version_history.prune_old_versions": {
+                    "task": "version_history.prune_old_versions",
+                },
+            }
+
+        initializer = self._initializer({"CELERY_CONFIG": _NoPurgeImportCeleryConfig})
+        initializer._warn_if_retention_beat_missing()
+
+        mock_logger.warning.assert_not_called()
+
     @patch("superset.initialization.feature_flag_manager")
     @patch("superset.initialization.logger")
     def test_no_purge_warn_when_task_registered_under_other_key(
@@ -864,6 +979,10 @@ class TestRetentionBeatWarning:
         mock_flags.is_feature_enabled.return_value = True
 
         class _RenamedKeysCeleryConfig:
+            imports: tuple[str, ...] = (
+                "superset.tasks.version_history_retention",
+                "superset.tasks.deletion_retention",
+            )
             beat_schedule: dict[str, dict[str, str]] = {
                 "prune_versions": {
                     "task": "version_history.prune_old_versions",

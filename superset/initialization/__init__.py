@@ -893,6 +893,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     _RETENTION_TASK_NAME: str = "version_history.prune_old_versions"
     _PURGE_TASK_NAME: str = "deletion_retention.purge_soft_deleted"
+    #: Module each task lives in. A beat entry alone is not enough — a worker
+    #: that never imported the module answers ``NotRegistered`` when the task
+    #: fires, which is the same silent non-execution one layer down.
+    _RETENTION_TASK_MODULE: str = "superset.tasks.version_history_retention"
+    _PURGE_TASK_MODULE: str = "superset.tasks.deletion_retention"
 
     def _warn_if_retention_beat_missing(self) -> None:
         """WARN at startup when the resolved Celery beat schedule is
@@ -901,6 +906,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         * ``version_history.prune_old_versions`` — checked always, since
           shadow rows written by prior deploys keep ageing even when
           capture is off;
+        Each task needs two things from ``CELERY_CONFIG``: its module in
+        ``imports`` (or the worker answers ``NotRegistered`` when the task
+        fires) and an entry in ``beat_schedule`` (or it is never
+        dispatched). Both are checked, because an operator who satisfies
+        only one still never runs the task.
+
         * ``deletion_retention.purge_soft_deleted`` — checked only when
           ``SOFT_DELETE`` is enabled, because the purge task itself
           no-ops while the flag is off, so a missing entry is only
@@ -941,6 +952,19 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             if isinstance(celery_config, dict)
             else getattr(celery_config, "beat_schedule", None)
         )
+        celery_imports: Any = (
+            celery_config.get("imports")
+            if isinstance(celery_config, dict)
+            else getattr(celery_config, "imports", None)
+        )
+        # A str is iterable, so guard it explicitly: ``imports = "superset.foo"``
+        # would otherwise be treated as a sequence of characters and every
+        # module would read as absent.
+        imported_modules: frozenset[str] = frozenset(
+            celery_imports
+            if isinstance(celery_imports, (list, tuple, set, frozenset))
+            else ()
+        )
         # Match on the ``task`` each entry runs, not the schedule entry key:
         # an operator may register the retention task under any key (e.g.
         # ``{"prune_versions": {"task": "version_history.prune_old_versions"}}``),
@@ -960,6 +984,14 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 "default CeleryConfig or add the entry to your override.",
                 self._RETENTION_TASK_NAME,
             )
+        if self._RETENTION_TASK_MODULE not in imported_modules:
+            logger.warning(
+                "versioning: CELERY_CONFIG.imports is missing %r — workers "
+                "will not register the retention task, so a scheduled run "
+                "fails with NotRegistered. Either inherit from the default "
+                "CeleryConfig or add the module to your override.",
+                self._RETENTION_TASK_MODULE,
+            )
         # Resolve the gate exactly as the purge task does, so the warning
         # cannot disagree with the no-op it is predicting.
         # configure_feature_flags() runs before this check, so the manager
@@ -973,6 +1005,18 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 "will accumulate indefinitely. Either inherit from the "
                 "default CeleryConfig or add the entry to your override.",
                 self._PURGE_TASK_NAME,
+            )
+        if (
+            feature_flag_manager.is_feature_enabled("SOFT_DELETE")
+            and self._PURGE_TASK_MODULE not in imported_modules
+        ):
+            logger.warning(
+                "soft-delete: CELERY_CONFIG.imports is missing %r — workers "
+                "will not register the purge task, so a scheduled run fails "
+                "with NotRegistered and archived objects are never purged. "
+                "Either inherit from the default CeleryConfig or add the "
+                "module to your override.",
+                self._PURGE_TASK_MODULE,
             )
 
     def init_app_in_ctx(self) -> None:
