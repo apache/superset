@@ -797,6 +797,28 @@ class BaseTemplateProcessor:
         """
         return self._context.copy()
 
+    def has_template(self, sql: str) -> bool:
+        """Whether the SQL contains anything for ``process_template`` to expand
+
+        Lexed rather than parsed, so that a comment -- which leaves no trace in
+        a parsed template -- still counts, and using this processor's own
+        environment, so that any customized delimiters are honored. Lexing
+        evaluates nothing.
+
+        >>> has_template("SELECT '{{ current_username() }}'")
+        True
+        >>> has_template("SELECT '{{1,2},{3,4}}'::int[]")
+        False
+        """
+        try:
+            kinds = {kind for _, kind, _ in self.env.lex(sql)}
+        except TemplateSyntaxError:
+            # Jinja does not recognize this as one of its own constructs, so
+            # there is nothing here it would expand.
+            return False
+
+        return kinds > {"data"}
+
     def process_template(self, sql: str, **kwargs: Any) -> str:
         """Processes a sql template
 
@@ -931,6 +953,12 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
 
 
 class NoOpTemplateProcessor(BaseTemplateProcessor):
+    def has_template(self, sql: str) -> bool:
+        """
+        Nothing is ever expanded, so there is never a template
+        """
+        return False
+
     def process_template(self, sql: str, **kwargs: Any) -> str:
         """
         Makes processing a template a noop
