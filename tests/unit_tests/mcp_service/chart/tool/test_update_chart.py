@@ -25,6 +25,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from fastmcp import Client
+from pydantic import ValidationError
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.chart_helpers import find_chart_by_identifier
@@ -731,6 +732,169 @@ class TestBuildUpdatePayload:
             result.error.message == "Cannot add metrics to a table in raw query mode."
         )
         assert "query_mode='aggregate'" in result.error.details
+
+    def test_add_dimension_only_column_to_aggregate_table(self):
+        """A dimension-only append compiles to a raw patch on its own, so it
+        must be routed by is_metric rather than the patch's inferred mode."""
+        request = UpdateChartRequest(
+            identifier=1, add_columns=[ColumnRef(name="region")]
+        )
+        chart = Mock(
+            slice_name="Existing",
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "query_mode": "aggregate",
+                    "groupby": ["employer"],
+                    "metrics": ["count"],
+                }
+            ),
+        )
+
+        result = _build_update_payload(request, chart)
+
+        assert isinstance(result, dict)
+        params = json.loads(result["params"])
+        assert params["groupby"] == ["employer", "region"]
+        assert params["metrics"] == ["count"]
+        # The chart must not be flipped to raw by the append.
+        assert params["query_mode"] == "aggregate"
+
+    def test_add_mixed_dimension_and_metric_to_aggregate_table(self):
+        """Dimensions land in groupby and metrics in metrics, in one call."""
+        request = UpdateChartRequest(
+            identifier=1,
+            add_columns=[
+                ColumnRef(name="region"),
+                ColumnRef(name="go_live_date", aggregate="MIN", label="Earliest"),
+            ],
+        )
+        chart = Mock(
+            slice_name="Existing",
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "query_mode": "aggregate",
+                    "groupby": ["employer"],
+                    "metrics": ["count"],
+                }
+            ),
+        )
+
+        result = _build_update_payload(request, chart)
+
+        assert isinstance(result, dict)
+        params = json.loads(result["params"])
+        assert params["groupby"] == ["employer", "region"]
+        assert params["metrics"][0] == "count"
+        assert params["metrics"][1]["label"] == "Earliest"
+
+    def test_add_columns_skips_entries_already_on_the_chart(self):
+        """Re-adding a saved column must not duplicate it in the table."""
+        request = UpdateChartRequest(
+            identifier=1,
+            add_columns=[ColumnRef(name="employer"), ColumnRef(name="region")],
+        )
+        chart = Mock(
+            slice_name="Existing",
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "query_mode": "aggregate",
+                    "groupby": ["employer"],
+                    "metrics": ["count"],
+                }
+            ),
+        )
+
+        result = _build_update_payload(request, chart)
+
+        assert isinstance(result, dict)
+        params = json.loads(result["params"])
+        # "employer" is already present, so only "region" is appended.
+        assert params["groupby"] == ["employer", "region"]
+        assert params["metrics"] == ["count"]
+
+    def test_add_columns_dedupes_adhoc_metric_dicts(self):
+        """Adhoc metrics are dicts -- unhashable, so identity is structural."""
+        request = UpdateChartRequest(
+            identifier=1,
+            add_columns=[
+                ColumnRef(
+                    name="go_live_date", aggregate="MIN", label="Earliest Go Live Date"
+                )
+            ],
+        )
+        chart = Mock(slice_name="Existing")
+        chart.params = json.dumps(
+            {
+                "viz_type": "table",
+                "query_mode": "aggregate",
+                "groupby": [],
+                "metrics": [],
+            }
+        )
+
+        first = _build_update_payload(request, chart)
+        assert isinstance(first, dict)
+        # Feed the result back in to emulate the same additive call twice.
+        chart.params = first["params"]
+        second = _build_update_payload(request, chart)
+
+        assert isinstance(second, dict)
+        metrics = json.loads(second["params"])["metrics"]
+        assert len(metrics) == 1
+        assert metrics[0]["label"] == "Earliest Go Live Date"
+
+    def test_add_columns_dedupes_raw_mode_all_columns(self):
+        """Raw tables append into all_columns and must not duplicate either."""
+        request = UpdateChartRequest(
+            identifier=1,
+            add_columns=[ColumnRef(name="employer"), ColumnRef(name="region")],
+        )
+        chart = Mock(
+            slice_name="Raw table",
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "query_mode": "raw",
+                    "all_columns": ["employer"],
+                }
+            ),
+        )
+
+        result = _build_update_payload(request, chart)
+
+        assert isinstance(result, dict)
+        assert json.loads(result["params"])["all_columns"] == ["employer", "region"]
+
+
+class TestUpdateChartRequestColumnPatchValidation:
+    """The config/add_columns validator on UpdateChartRequest."""
+
+    def test_config_and_add_columns_together_rejected(self):
+        """Full replacement and additive append are mutually exclusive."""
+        with pytest.raises(ValidationError, match="not both"):
+            UpdateChartRequest(
+                identifier=1,
+                config=TableChartConfig(columns=[ColumnRef(name="region")]),
+                add_columns=[ColumnRef(name="employer")],
+            )
+
+    def test_empty_add_columns_rejected(self):
+        """An empty append is a no-op the caller almost certainly didn't mean."""
+        with pytest.raises(ValidationError, match="at least one column"):
+            UpdateChartRequest(identifier=1, add_columns=[])
+
+    def test_add_columns_alone_accepted(self):
+        """The valid additive shape still passes validation."""
+        request = UpdateChartRequest(
+            identifier=1, add_columns=[ColumnRef(name="region")]
+        )
+
+        assert request.config is None
+        assert request.add_columns is not None
+        assert request.add_columns[0].name == "region"
 
 
 class TestUpdateChartNameOnly:
