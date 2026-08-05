@@ -268,13 +268,19 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
     // OAuth2RedirectMessage.tsx (which invalidates the TableMetadatas tag).
     // Errors without a structured errors[] array (raw 500s, timeouts, network
     // failures) fall back to the plain message so it isn't swallowed.
-    const clientError = (metadataError ||
-      metadataExtrError) as ClientErrorObject;
-    const errorPayload = clientError?.errors?.[0];
+    // Both requests can fail at once, so pick whichever carries a structured
+    // payload rather than always preferring the main request — otherwise a
+    // generic failure there would mask an actionable OAUTH2_REDIRECT from the
+    // extended-metadata request.
+    const clientErrors = [metadataError, metadataExtrError].filter(
+      Boolean,
+    ) as ClientErrorObject[];
+    const errorPayload = clientErrors.find(({ errors }) => errors?.length)
+      ?.errors?.[0];
     return errorPayload ? (
       <ErrorMessageWithStackTrace error={errorPayload} source="crud" />
     ) : (
-      <Alert type="warning" message={clientError?.error} />
+      <Alert type="warning" message={clientErrors[0]?.error} />
     );
   }
   if (!data) {
