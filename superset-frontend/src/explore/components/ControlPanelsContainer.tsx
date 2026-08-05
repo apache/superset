@@ -403,7 +403,14 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
               props.controls[controlName].value,
             );
         if (shouldUpdateControls) {
-          props.actions.setControlValue(controlName, alteredControls);
+          props.actions.setControlValue(
+            controlName,
+            alteredControls,
+            undefined,
+            {
+              programmatic: true,
+            },
+          );
         }
       });
     }
