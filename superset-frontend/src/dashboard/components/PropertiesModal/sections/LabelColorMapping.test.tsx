@@ -16,23 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { render, screen, fireEvent } from 'spec/helpers/testing-library';
-import LabelColorMapping from './LabelColorMapping';
+
+import { render, screen, fireEvent } from "spec/helpers/testing-library";
+import LabelColorMapping from "./LabelColorMapping";
 
 const defaultProps = {
-  jsonMetadata: '{}',
+  jsonMetadata: "{}",
   onJsonMetadataChange: jest.fn(),
 };
 
-describe('LabelColorMapping', () => {
+describe("LabelColorMapping", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  test('renders the empty state correctly', () => {
+  test("renders the empty state correctly", () => {
     render(<LabelColorMapping {...defaultProps} />);
-    expect(screen.getByText('Label Colors')).toBeInTheDocument();
+    expect(screen.getByText("Label Colors")).toBeInTheDocument();
     expect(
       screen.getByText(
         'No color mappings defined. Click "+ Add more" to get started.',
@@ -43,22 +43,22 @@ describe('LabelColorMapping', () => {
   test('adds a new color mapping row when "Add more" is clicked', () => {
     render(<LabelColorMapping {...defaultProps} />);
 
-    const addButton = screen.getByText('+ Add more');
+    const addButton = screen.getByText("+ Add more");
     fireEvent.click(addButton);
 
     expect(
-      screen.getByPlaceholderText('Select or type a label'),
+      screen.getByPlaceholderText("Select or type a label"),
     ).toBeInTheDocument();
   });
 
-  test('renders existing mappings from jsonMetadata', () => {
+  test("renders existing mappings from jsonMetadata", () => {
     const propsWithData = {
       ...defaultProps,
-      jsonMetadata: JSON.stringify({ label_colors: { Revenue: '#20a7c9' } }),
+      jsonMetadata: JSON.stringify({ label_colors: { Revenue: "#20a7c9" } }),
     };
     render(<LabelColorMapping {...propsWithData} />);
 
-    expect(screen.getByDisplayValue('Revenue')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('#20a7c9')).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Revenue")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("#20a7c9")).toBeInTheDocument();
   });
 });
