@@ -336,7 +336,11 @@ class ExtraCache:
                 rendering so they are safe to interpolate into SQL, mirroring
                 ``url_param``. Enabled by default; non-string JSON types are
                 returned unchanged. Set to False for the raw value, in which case
-                the template author is responsible for validating the value.
+                the template author is responsible for validating the value. Pass
+                ``escape_result=False`` when piping a list-valued attribute
+                through the ``where_in`` filter: ``where_in`` applies its own
+                dialect-safe quoting, so leaving the default escaping on would
+                escape each value twice.
 
         Returns:
             The attribute value from the guest user token, or the default value.
@@ -349,6 +353,8 @@ class ExtraCache:
             {{ get_guest_user_attribute('permissions') }} # Returns: ["read", "write"]
             {{ get_guest_user_attribute('config') }}      # Returns: {"theme": "dark"}
             {{ get_guest_user_attribute('missing', 'default') }} # Returns: "default"
+            full_name IN {{ get_guest_user_attribute('names', escape_result=False)
+                |where_in }}
         """
 
         result: JsonValue = default
@@ -435,6 +441,17 @@ class ExtraCache:
         side of over-escaping, which can distort a backslash-containing
         value but can never widen the query.
 
+        PostgreSQL is special-cased: a dialect instance built without a live
+        connection (as ``Database.get_dialect()`` does) defaults
+        ``_backslash_escapes`` to ``True``, which would double every
+        backslash even though every supported PostgreSQL version treats the
+        backslash as a plain character by default (``standard_conforming_strings``
+        has been on since PostgreSQL 9.1). Left uncorrected, a value like
+        ``C:\\Users`` would be rewritten to ``C:\\\\Users`` and silently fail to
+        match the original value. Forcing it off here restores parity with
+        PostgreSQL's default configuration while MySQL/MariaDB keep the
+        stricter, backslash-doubling behavior above.
+
         Lists are processed element-wise and dict values recursively, so
         strings nested inside JSON structures are also escaped; dict keys
         are left untouched since they are used for member lookups, not
@@ -444,6 +461,8 @@ class ExtraCache:
             return val
         if isinstance(val, str):
             compiler = self.dialect.statement_compiler(self.dialect, None)
+            if self.dialect.name == "postgresql":
+                compiler.dialect._backslash_escapes = False
             return compiler.render_literal_value(val, String())[1:-1]
         if isinstance(val, list):
             return [self._escape_value(v) for v in val]

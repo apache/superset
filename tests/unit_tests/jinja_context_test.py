@@ -577,6 +577,19 @@ def test_url_param_unescaped_request_args() -> None:
         assert cache.url_param("foo", escape_result=False) == "O'Brien"
 
 
+def test_url_param_postgres_backslash_preserved() -> None:
+    """
+    Test that backslashes are left untouched on PostgreSQL. Every supported
+    PostgreSQL version has ``standard_conforming_strings`` on by default, so
+    the backslash is not an escape character there; doubling it would rewrite
+    a value like ``C:\\Users`` to ``C:\\\\Users`` and silently fail to match
+    the original value.
+    """
+    with current_app.test_request_context(query_string={"foo": r"C:\Users"}):
+        cache = ExtraCache(dialect=dialect())
+        assert cache.url_param("foo") == r"C:\Users"
+
+
 def test_safe_proxy_primitive() -> None:
     """
     Test the ``safe_proxy`` helper with a function returning a ``str``.
@@ -2228,6 +2241,31 @@ def test_get_guest_user_attribute_mysql_backslash_escaped(
     # Both the backslash and the quote are doubled, so the rendered literal
     # stays a single string on MySQL
     assert cache.get_guest_user_attribute("attr") == "x\\\\'' OR 1=1 -- "
+
+
+def test_get_guest_user_attribute_postgres_backslash_preserved(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that backslashes are left untouched on PostgreSQL, where the
+    backslash is not an escape character by default (every supported version
+    has ``standard_conforming_strings`` on). A dialect instance built without
+    a live connection defaults to the opposite assumption, which would double
+    the backslash and silently corrupt the value.
+    """
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+    guest_user = mocker.Mock()
+    guest_user.is_guest_user = True
+    guest_user.guest_token = {
+        "user": {"username": "test_guest", "attributes": {"attr": r"C:\Users"}},
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": [],
+    }
+    mock_g.user = guest_user
+
+    cache = ExtraCache(dialect=dialect())
+    assert cache.get_guest_user_attribute("attr") == r"C:\Users"
 
 
 def test_get_guest_user_attribute_default_escaped(mocker: MockerFixture) -> None:

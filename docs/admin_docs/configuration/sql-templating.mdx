@@ -421,6 +421,12 @@ to interpolate directly. If you pass `escape_result=False`, or interpolate non-s
 values (numbers, booleans), you are responsible for validating or allowlisting the
 values, since they originate outside Superset.
 
+If a guest attribute is an array and you plan to pipe it through the `|where_in` filter
+(for example `full_name IN {{ get_guest_user_attribute('names')|where_in }}`), call
+`get_guest_user_attribute('names', escape_result=False)`. `where_in` already applies its
+own dialect-safe quoting, so escaping the values twice can corrupt them (a value such as
+`O'Brien` would come back doubly escaped and match nothing).
+
 :::
 
 ### Explicitly Including Values in Cache Key
