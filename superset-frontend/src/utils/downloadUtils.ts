@@ -19,11 +19,32 @@
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
-import { addWarningToast } from 'src/components/MessageToasts/actions';
+import {
+  addInfoToast,
+  addWarningToast,
+} from 'src/components/MessageToasts/actions';
 import {
   FORCE_IN_VIEW_EVENT,
   RESTORE_VIRTUALIZATION_EVENT,
 } from 'src/dashboard/constants';
+
+// Rows carry a `data-row-id` attribute (see Row.tsx) so the export path can
+// target a subset of them per batch. How many rows get forced into view at
+// once: large enough that a small dashboard finishes in one batch, small
+// enough that a dashboard with hundreds of rows doesn't fire hundreds of
+// chart queries in the same tick, which is the exact thundering-herd load
+// DASHBOARD_VIRTUALIZATION exists to prevent in the first place.
+const FORCE_RENDER_BATCH_SIZE = 5;
+// Upper bound on how long a single batch is given to finish loading before
+// moving on to the next one. Intentionally shorter than the final,
+// whole-container timeout below: a slow chart in one batch shouldn't stall
+// every later batch, since the final check catches stragglers anyway.
+const BATCH_LOAD_TIMEOUT_MS = 10_000;
+
+export type ForceLoadProgress = {
+  loadedBatches: number;
+  totalBatches: number;
+};
 
 /**
  * Poll until all `.loading` spinners inside a container disappear,
@@ -56,16 +77,91 @@ function waitForChartsToLoad(
 }
 
 /**
- * When DASHBOARD_VIRTUALIZATION is enabled, forces all lazy-loaded
- * charts to render and waits for them to finish loading.
- * Returns true if virtualization was active (caller must restore it).
+ * Poll until none of the given row elements contain a `.loading` spinner.
+ * Scoped to just those rows (rather than the whole container, like
+ * waitForChartsToLoad above) so a chart stuck in an earlier batch doesn't
+ * force every later batch to also burn its full timeout re-checking that
+ * same stale spinner. Resolves (doesn't reject) either way; a straggler
+ * here is still caught by the final whole-container check afterwards.
  */
-export async function forceLoadAllCharts(container: Element): Promise<boolean> {
+function waitForRowsToLoad(rows: Element[], timeoutMs: number): Promise<void> {
+  return new Promise(resolve => {
+    const startTime = Date.now();
+    const check = () => {
+      const stillLoading = rows.some(row => row.querySelector('.loading'));
+      if (!stillLoading || Date.now() - startTime > timeoutMs) {
+        resolve();
+        return;
+      }
+      setTimeout(check, 500);
+    };
+    setTimeout(check, 1000);
+  });
+}
+
+function getRowElements(container: Element): Element[] {
+  return Array.from(container.querySelectorAll('[data-row-id]'));
+}
+
+function getRowId(row: Element): string | null {
+  return row.getAttribute('data-row-id');
+}
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const batches: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    batches.push(items.slice(i, i + size));
+  }
+  return batches;
+}
+
+/**
+ * When DASHBOARD_VIRTUALIZATION is enabled, forces lazy-loaded charts to
+ * render in small batches (rather than all at once) and waits for them to
+ * finish loading. Returns true if virtualization was active (caller must
+ * restore it).
+ */
+export async function forceLoadAllCharts(
+  container: Element,
+  onProgress?: (progress: ForceLoadProgress) => void,
+): Promise<boolean> {
   const useVirtualization = isFeatureEnabled(
     FeatureFlag.DashboardVirtualization,
   );
   if (useVirtualization) {
-    window.dispatchEvent(new Event(FORCE_IN_VIEW_EVENT));
+    const rowElements = getRowElements(container);
+    const rowBatches = rowElements.length
+      ? chunk(rowElements, FORCE_RENDER_BATCH_SIZE)
+      : [];
+
+    if (rowBatches.length <= 1) {
+      // Nothing to batch (no rows found, or everything fits in one batch):
+      // force everything into view in a single pass, same as before batching.
+      window.dispatchEvent(new Event(FORCE_IN_VIEW_EVENT));
+    } else {
+      addInfoToast(
+        t('Preparing %(count)s charts for export. This may take a moment.', {
+          count: rowElements.length,
+        }),
+      );
+      // eslint-disable-next-line no-restricted-syntax -- batches must be
+      // dispatched sequentially so the query burst is actually staggered.
+      for (const [index, batch] of rowBatches.entries()) {
+        const rowIds = batch
+          .map(getRowId)
+          .filter((id): id is string => id !== null);
+        window.dispatchEvent(
+          new CustomEvent(FORCE_IN_VIEW_EVENT, { detail: { rowIds } }),
+        );
+        // eslint-disable-next-line no-await-in-loop -- see above
+        await waitForRowsToLoad(batch, BATCH_LOAD_TIMEOUT_MS);
+        onProgress?.({
+          loadedBatches: index + 1,
+          totalBatches: rowBatches.length,
+        });
+      }
+    }
+
     const allLoaded = await waitForChartsToLoad(container);
     if (!allLoaded) {
       addWarningToast(

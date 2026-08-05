@@ -17,7 +17,10 @@
  * under the License.
  */
 import { isFeatureEnabled } from '@superset-ui/core';
-import { addWarningToast } from 'src/components/MessageToasts/actions';
+import {
+  addInfoToast,
+  addWarningToast,
+} from 'src/components/MessageToasts/actions';
 import {
   FORCE_IN_VIEW_EVENT,
   RESTORE_VIRTUALIZATION_EVENT,
@@ -37,7 +40,8 @@ jest.mock('src/dashboard/constants', () => ({
 }));
 
 jest.mock('@apache-superset/core/translation', () => ({
-  t: (str: string) => str,
+  t: (str: string, values?: Record<string, unknown>) =>
+    values ? `${str} ${JSON.stringify(values)}` : str,
 }));
 
 jest.mock('@apache-superset/core/utils', () => ({
@@ -45,10 +49,22 @@ jest.mock('@apache-superset/core/utils', () => ({
 }));
 
 jest.mock('src/components/MessageToasts/actions', () => ({
+  addInfoToast: jest.fn(),
   addWarningToast: jest.fn(),
 }));
 
 const mockIsFeatureEnabled = isFeatureEnabled as jest.Mock;
+
+function makeRow(id: string, loading = false): HTMLDivElement {
+  const row = document.createElement('div');
+  row.setAttribute('data-row-id', id);
+  if (loading) {
+    const spinner = document.createElement('div');
+    spinner.className = 'loading';
+    row.appendChild(spinner);
+  }
+  return row;
+}
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -106,6 +122,102 @@ test('forceLoadAllCharts warns when charts never finish loading before the timeo
   // Virtualization was active, so the caller must still restore it.
   expect(result).toBe(true);
   expect(addWarningToast).toHaveBeenCalledTimes(1);
+});
+
+test('forceLoadAllCharts dispatches a single force-in-view event when rows fit in one batch', async () => {
+  jest.useFakeTimers();
+  mockIsFeatureEnabled.mockReturnValue(true);
+  const dispatchSpy = jest.spyOn(window, 'dispatchEvent');
+  const container = document.createElement('div');
+  container.append(makeRow('a'), makeRow('b'), makeRow('c'));
+
+  const promise = forceLoadAllCharts(container);
+  await jest.advanceTimersByTimeAsync(2000);
+  const result = await promise;
+
+  expect(result).toBe(true);
+  expect(addInfoToast).not.toHaveBeenCalled();
+  const forceEvents = dispatchSpy.mock.calls
+    .map(([event]) => event as Event)
+    .filter(event => event.type === FORCE_IN_VIEW_EVENT);
+  expect(forceEvents).toHaveLength(1);
+  expect((forceEvents[0] as CustomEvent).detail).toBeUndefined();
+});
+
+test('forceLoadAllCharts batches rows in groups rather than forcing everything at once', async () => {
+  jest.useFakeTimers();
+  mockIsFeatureEnabled.mockReturnValue(true);
+  const dispatchSpy = jest.spyOn(window, 'dispatchEvent');
+  const container = document.createElement('div');
+  const rowIds = Array.from({ length: 12 }, (_, i) => `row-${i}`);
+  rowIds.forEach(id => container.appendChild(makeRow(id)));
+
+  const onProgress = jest.fn();
+  const promise = forceLoadAllCharts(container, onProgress);
+
+  // 3 sequential batch waits + the final whole-container check, ~1s each
+  // since nothing is ever `.loading`.
+  await jest.advanceTimersByTimeAsync(5000);
+  const result = await promise;
+
+  expect(result).toBe(true);
+  expect(addInfoToast).toHaveBeenCalledTimes(1);
+
+  const forceEvents = dispatchSpy.mock.calls
+    .map(([event]) => event as CustomEvent<{ rowIds: string[] }>)
+    .filter(event => event.type === FORCE_IN_VIEW_EVENT);
+
+  expect(forceEvents).toHaveLength(3);
+  expect(forceEvents[0].detail.rowIds).toEqual(rowIds.slice(0, 5));
+  expect(forceEvents[1].detail.rowIds).toEqual(rowIds.slice(5, 10));
+  expect(forceEvents[2].detail.rowIds).toEqual(rowIds.slice(10, 12));
+
+  expect(onProgress).toHaveBeenNthCalledWith(1, {
+    loadedBatches: 1,
+    totalBatches: 3,
+  });
+  expect(onProgress).toHaveBeenNthCalledWith(2, {
+    loadedBatches: 2,
+    totalBatches: 3,
+  });
+  expect(onProgress).toHaveBeenNthCalledWith(3, {
+    loadedBatches: 3,
+    totalBatches: 3,
+  });
+});
+
+test('forceLoadAllCharts moves on to the next batch even if the current one times out', async () => {
+  jest.useFakeTimers();
+  mockIsFeatureEnabled.mockReturnValue(true);
+  const container = document.createElement('div');
+  // Batch 1 (5 rows): one spinner is slow to clear.
+  const stuck = makeRow('stuck', true);
+  container.appendChild(stuck);
+  for (let i = 1; i < 5; i += 1) {
+    container.appendChild(makeRow(`row-${i}`));
+  }
+  // Batch 2 (1 row): loads fine.
+  container.appendChild(makeRow('row-5'));
+
+  const onProgress = jest.fn();
+  const promise = forceLoadAllCharts(container, onProgress);
+
+  // Batch 1 gives up waiting at the 10s per-batch cap since `stuck` hasn't
+  // cleared yet, but moves on to batch 2 (which has nothing loading and
+  // resolves on its own first poll) instead of blocking the whole export
+  // on one slow chart.
+  await jest.advanceTimersByTimeAsync(12_000);
+  expect(onProgress).toHaveBeenCalledTimes(2);
+
+  // The chart finishes just after its batch gave up on it. The final
+  // whole-container check (a safety net for exactly this) should pick that
+  // up on its next poll rather than needing its own full 60s timeout.
+  stuck.querySelector('.loading')?.remove();
+  await jest.advanceTimersByTimeAsync(1000);
+  const result = await promise;
+
+  expect(result).toBe(true);
+  expect(addWarningToast).not.toHaveBeenCalled();
 });
 
 test('restoreVirtualization dispatches the restore event', () => {
