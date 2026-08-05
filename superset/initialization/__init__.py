@@ -902,12 +902,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
           shadow rows written by prior deploys keep ageing even when
           capture is off;
         * ``deletion_retention.purge_soft_deleted`` — checked only when
-          the ``SOFT_DELETE`` feature flag resolves on at the config
-          level, because the purge task itself no-ops while the flag is
-          off, so a missing entry is only actionable once soft delete is
-          live. (Flags supplied dynamically via ``GET_FEATURE_FLAGS_FUNC``
-          are not consulted here; this startup check reads configuration
-          only.)
+          ``SOFT_DELETE`` is enabled, because the purge task itself
+          no-ops while the flag is off, so a missing entry is only
+          actionable once soft delete is live. The gate is resolved
+          through ``feature_flag_manager`` — the same call the task
+          makes — so a deployment that enables the flag through
+          ``IS_FEATURE_ENABLED_FUNC`` or ``GET_FEATURE_FLAGS_FUNC`` is
+          warned like any other.
 
         Operators who redefine ``CeleryConfig`` in ``superset_config.py``
         — instead of subclassing or merging the default — silently lose
@@ -959,15 +960,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 "default CeleryConfig or add the entry to your override.",
                 self._RETENTION_TASK_NAME,
             )
-        # Config-level flag resolution: the deployment's explicit
-        # FEATURE_FLAGS overrides the shipped defaults, mirroring how
-        # FeatureFlagManager.init_app seeds its dict before dynamic
-        # overrides.
-        feature_flags = {
-            **self.config.get("DEFAULT_FEATURE_FLAGS", {}),
-            **self.config.get("FEATURE_FLAGS", {}),
-        }
-        if feature_flags.get("SOFT_DELETE") and (
+        # Resolve the gate exactly as the purge task does, so the warning
+        # cannot disagree with the no-op it is predicting.
+        # configure_feature_flags() runs before this check, so the manager
+        # is fully initialised here.
+        if feature_flag_manager.is_feature_enabled("SOFT_DELETE") and (
             not beat_schedule or self._PURGE_TASK_NAME not in registered_tasks
         ):
             logger.warning(

@@ -25,8 +25,10 @@ from werkzeug.wrappers import Response
 
 from superset.app import AppRootMiddleware, create_app, SupersetApp
 from superset.commands.database.exceptions import DatabaseInvalidError
+from superset.config import CeleryConfig
 from superset.initialization import SupersetAppInitializer
 from superset.middleware.legacy_prefix_redirect import LegacyPrefixRedirectMiddleware
+from superset.utils.feature_flag_manager import FeatureFlagManager
 
 
 def _unwrap_to_app_root(app):
@@ -579,8 +581,10 @@ class TestRetentionBeatWarning:
 
     def _initializer(self, config: dict[str, Any]) -> SupersetAppInitializer:
         """Build a ``SupersetAppInitializer`` against a minimal mock app
-        whose only meaningful attribute is the config dict;
-        ``_warn_if_retention_beat_missing`` only reads from ``self.config``."""
+        whose only meaningful attribute is the config dict.
+        ``_warn_if_retention_beat_missing`` reads ``CELERY_CONFIG`` from
+        here; the ``SOFT_DELETE`` gate is resolved through
+        ``feature_flag_manager``, so tests patch that separately."""
         app = MagicMock()
         app.config = config
         return SupersetAppInitializer(app)
@@ -725,16 +729,17 @@ class TestRetentionBeatWarning:
 
         mock_logger.warning.assert_not_called()
 
+    @patch("superset.initialization.feature_flag_manager")
     @patch("superset.initialization.logger")
     def test_warn_when_soft_delete_on_and_purge_entry_missing(
-        self, mock_logger: MagicMock
+        self, mock_logger: MagicMock, mock_flags: MagicMock
     ) -> None:
-        """With ``SOFT_DELETE`` resolving on at the config level and the
-        beat schedule carrying the version-history entry but not the
-        purge entry, a WARNING naming
+        """With ``SOFT_DELETE`` on and the beat schedule carrying the
+        version-history entry but not the purge entry, a WARNING naming
         ``deletion_retention.purge_soft_deleted`` fires — otherwise a
         hand-rolled ``CeleryConfig`` silently accumulates archived
         objects forever."""
+        mock_flags.is_feature_enabled.return_value = True
 
         class _NoPurgeCeleryConfig:
             beat_schedule: dict[str, dict[str, str]] = {
@@ -746,8 +751,6 @@ class TestRetentionBeatWarning:
         initializer = self._initializer(
             {
                 "CELERY_CONFIG": _NoPurgeCeleryConfig,
-                "DEFAULT_FEATURE_FLAGS": {"SOFT_DELETE": True},
-                "FEATURE_FLAGS": {},
             }
         )
         initializer._warn_if_retention_beat_missing()
@@ -760,11 +763,15 @@ class TestRetentionBeatWarning:
             f"got {mock_logger.warning.call_args_list}"
         )
 
+    @patch("superset.initialization.feature_flag_manager")
     @patch("superset.initialization.logger")
-    def test_no_purge_warn_when_soft_delete_off(self, mock_logger: MagicMock) -> None:
+    def test_no_purge_warn_when_soft_delete_off(
+        self, mock_logger: MagicMock, mock_flags: MagicMock
+    ) -> None:
         """With ``SOFT_DELETE`` off, a missing purge entry MUST NOT warn:
         the purge task itself no-ops while the flag is off, so the
         warning would be noise the operator cannot act on."""
+        mock_flags.is_feature_enabled.return_value = False
 
         class _NoPurgeCeleryConfig:
             beat_schedule: dict[str, dict[str, str]] = {
@@ -776,8 +783,6 @@ class TestRetentionBeatWarning:
         initializer = self._initializer(
             {
                 "CELERY_CONFIG": _NoPurgeCeleryConfig,
-                "DEFAULT_FEATURE_FLAGS": {"SOFT_DELETE": False},
-                "FEATURE_FLAGS": {},
             }
         )
         initializer._warn_if_retention_beat_missing()
@@ -785,13 +790,14 @@ class TestRetentionBeatWarning:
         mock_logger.warning.assert_not_called()
 
     @patch("superset.initialization.logger")
-    def test_feature_flags_override_beats_default_for_purge_warn(
+    def test_purge_gate_resolves_through_the_feature_flag_manager(
         self, mock_logger: MagicMock
     ) -> None:
-        """A deployment's explicit ``FEATURE_FLAGS`` entry overrides the
-        shipped default, matching ``FeatureFlagManager.init_app`` merge
-        order: default off + override on must warn on a missing purge
-        entry."""
+        """The gate is resolved by ``feature_flag_manager``, not by reading
+        the config dicts, so a deployment that enables ``SOFT_DELETE``
+        through ``IS_FEATURE_ENABLED_FUNC`` is warned like any other. The
+        purge task gates on the same call, so the warning cannot disagree
+        with the no-op it predicts."""
 
         class _NoPurgeCeleryConfig:
             beat_schedule: dict[str, dict[str, str]] = {
@@ -800,58 +806,62 @@ class TestRetentionBeatWarning:
                 },
             }
 
-        initializer = self._initializer(
-            {
-                "CELERY_CONFIG": _NoPurgeCeleryConfig,
-                "DEFAULT_FEATURE_FLAGS": {"SOFT_DELETE": False},
-                "FEATURE_FLAGS": {"SOFT_DELETE": True},
-            }
-        )
-        initializer._warn_if_retention_beat_missing()
+        # Config says off; the dynamic hook says on. Only a
+        # manager-resolved gate sees the latter.
+        config: dict[str, Any] = {
+            "CELERY_CONFIG": _NoPurgeCeleryConfig,
+            "DEFAULT_FEATURE_FLAGS": {"SOFT_DELETE": False},
+            "FEATURE_FLAGS": {"SOFT_DELETE": False},
+            "IS_FEATURE_ENABLED_FUNC": lambda feature, default: True,
+            "GET_FEATURE_FLAGS_FUNC": None,
+        }
+        initializer = self._initializer(config)
+        manager_app = MagicMock()
+        manager_app.config = config
+        manager = FeatureFlagManager()
+        manager.init_app(manager_app)
+        with patch("superset.initialization.feature_flag_manager", manager):
+            initializer._warn_if_retention_beat_missing()
 
         assert any(
             "deletion_retention.purge_soft_deleted" in str(call)
             for call in mock_logger.warning.call_args_list
         ), (
-            "Expected the FEATURE_FLAGS override to enable the purge "
-            f"check; got {mock_logger.warning.call_args_list}"
+            "Expected the dynamic IS_FEATURE_ENABLED_FUNC to enable the "
+            f"purge check; got {mock_logger.warning.call_args_list}"
         )
 
+    @patch("superset.initialization.feature_flag_manager")
     @patch("superset.initialization.logger")
     def test_no_warn_when_soft_delete_on_and_both_entries_present(
-        self, mock_logger: MagicMock
+        self, mock_logger: MagicMock, mock_flags: MagicMock
     ) -> None:
-        """The default ``CeleryConfig`` shape with soft delete enabled:
-        both retention entries present, no warning at all."""
+        """The **shipped** ``CeleryConfig`` with soft delete enabled must
+        be silent. Asserting against the real class — rather than a
+        hand-built stand-in repeating the same literals — is what pins
+        ``_RETENTION_TASK_NAME`` and ``_PURGE_TASK_NAME`` to the entries
+        that actually ship. Rename the shipped entry in ``superset.config``
+        without updating the constants and this test goes red, instead of
+        every default deployment warning at boot with no test failing.
+        (The check matches a schedule key *or* an entry's ``task``, so a
+        rename of only one of the two is tolerated by design and stays
+        green — it is the genuine rename, where both move, that fires.)"""
+        mock_flags.is_feature_enabled.return_value = True
 
-        class _CompleteCeleryConfig:
-            beat_schedule: dict[str, dict[str, str]] = {
-                "version_history.prune_old_versions": {
-                    "task": "version_history.prune_old_versions",
-                },
-                "deletion_retention.purge_soft_deleted": {
-                    "task": "deletion_retention.purge_soft_deleted",
-                },
-            }
-
-        initializer = self._initializer(
-            {
-                "CELERY_CONFIG": _CompleteCeleryConfig,
-                "DEFAULT_FEATURE_FLAGS": {"SOFT_DELETE": True},
-                "FEATURE_FLAGS": {},
-            }
-        )
+        initializer = self._initializer({"CELERY_CONFIG": CeleryConfig})
         initializer._warn_if_retention_beat_missing()
 
         mock_logger.warning.assert_not_called()
 
+    @patch("superset.initialization.feature_flag_manager")
     @patch("superset.initialization.logger")
     def test_no_purge_warn_when_task_registered_under_other_key(
-        self, mock_logger: MagicMock
+        self, mock_logger: MagicMock, mock_flags: MagicMock
     ) -> None:
         """Parity with the version-history check: the purge task
         registered under a non-matching schedule key is still correctly
         scheduled and MUST NOT warn."""
+        mock_flags.is_feature_enabled.return_value = True
 
         class _RenamedKeysCeleryConfig:
             beat_schedule: dict[str, dict[str, str]] = {
@@ -866,8 +876,6 @@ class TestRetentionBeatWarning:
         initializer = self._initializer(
             {
                 "CELERY_CONFIG": _RenamedKeysCeleryConfig,
-                "DEFAULT_FEATURE_FLAGS": {"SOFT_DELETE": True},
-                "FEATURE_FLAGS": {},
             }
         )
         initializer._warn_if_retention_beat_missing()
