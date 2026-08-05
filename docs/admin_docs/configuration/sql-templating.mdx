@@ -427,6 +427,12 @@ If a guest attribute is an array and you plan to pipe it through the `|where_in`
 own dialect-safe quoting, so escaping the values twice can corrupt them (a value such as
 `O'Brien` would come back doubly escaped and match nothing).
 
+Only individual string values are escaped as SQL literals. Interpolating an entire array
+or object directly (rather than through `|where_in`, or by accessing a specific element)
+renders Python's string form of that structure, which is not valid SQL, and object keys
+are not escaped at all. Use `|where_in` for arrays, `|tojson` where you need a
+JSON-stringified value, or read individual keys/elements out of the structure yourself.
+
 :::
 
 ### Explicitly Including Values in Cache Key
