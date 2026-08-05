@@ -940,13 +940,13 @@ test('TableRenderer shows actual values when showValuesAs is unset (default)', (
 /**
  * Regression guard: the grand-total corner cell is a single shared aggregator
  * slot that "Metric-collapse totals" mirrors every metric's grand-total
- * record into (see `processRecord`). `metricAxis` locks onto the first metric
- * pushed, but the underlying value is always the last metric pushed -- there
- * is no single metric left to divide by, so the corner cell must render
- * blank in fraction mode rather than a cross-metric ratio (m2's grand total
- * of 300 divided by m1's of 30 would read as an obviously wrong "1000.0%").
+ * record into (see `processRecord`), so both its own value and `metricAxis`
+ * reflect the last metric pushed (m2). The denominator lookup must resolve
+ * against that same metric's own total (m2's 300, not m1's 30) so the corner
+ * cell reads a self-consistent 100% instead of an obviously wrong
+ * cross-metric ratio (300 / 30 = "1000.0%").
  */
-test('TableRenderer blanks the grand-total corner cell when it mixes multiple metrics in fraction mode', () => {
+test('TableRenderer keeps the grand-total corner cell self-consistent when it mixes multiple metrics in fraction mode', () => {
   const props = buildDefaultProps({
     data: TAGGED_MULTI_METRIC_ON_COLUMNS,
     rows: ['color'],
@@ -961,7 +961,7 @@ test('TableRenderer blanks the grand-total corner cell when it mixes multiple me
     .getAllByRole('gridcell')
     .filter(cell => cell.classList.contains('pvtGrandTotal'));
   expect(grandTotalCells).toHaveLength(1);
-  expect(grandTotalCells[0]).toBeEmptyDOMElement();
+  expect(grandTotalCells[0]).toHaveTextContent('100.0%');
 });
 
 /**
