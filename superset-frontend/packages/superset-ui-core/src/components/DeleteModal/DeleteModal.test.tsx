@@ -75,6 +75,51 @@ test('Calling "onHide"', async () => {
   expect(screen.getByTestId('delete-modal-input')).toHaveValue('');
 });
 
+test('cancelling re-arms the type-to-confirm gate, not just the text', async () => {
+  const props = {
+    title: <div data-test="test-title">Title</div>,
+    description: <div data-test="test-description">Description</div>,
+    onConfirm: jest.fn(),
+    onHide: jest.fn(),
+    open: true,
+  };
+  render(<DeleteModal {...props} />);
+
+  // Arm the gate.
+  userEvent.type(screen.getByTestId('delete-modal-input'), 'DELETE');
+  expect(screen.getByRole('button', { name: 'Delete' })).toBeEnabled();
+
+  // Cancel. Clearing only the text would leave the button enabled over an
+  // empty input the next time the modal is used.
+  userEvent.click(screen.getByTestId('close-modal-btn'));
+  expect(props.onHide).toHaveBeenCalledTimes(1);
+  expect(screen.getByTestId('delete-modal-input')).toHaveValue('');
+  expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
+
+  // And confirming without re-typing must not fire.
+  userEvent.click(screen.getByRole('button', { name: 'Delete' }));
+  expect(props.onConfirm).toHaveBeenCalledTimes(0);
+});
+
+test('Recoverable (soft-delete) mode drops the type-to-confirm input and confirms immediately', async () => {
+  const props = {
+    title: <div data-test="test-title">Title</div>,
+    description: <div data-test="test-description">Description</div>,
+    onConfirm: jest.fn(),
+    onHide: jest.fn(),
+    open: true,
+    recoverable: true,
+  };
+  render(<DeleteModal {...props} />);
+
+  // No "type DELETE to confirm" input in recoverable mode.
+  expect(screen.queryByTestId('delete-modal-input')).not.toBeInTheDocument();
+
+  // The primary action is labelled "Archive" and fires straight away.
+  await userEvent.click(screen.getByText('Archive'));
+  expect(props.onConfirm).toHaveBeenCalledTimes(1);
+});
+
 test('Calling "onConfirm" only after typing "delete" in the input', async () => {
   const props = {
     title: <div data-test="test-title">Title</div>,

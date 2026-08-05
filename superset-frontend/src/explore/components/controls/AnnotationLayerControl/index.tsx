@@ -111,7 +111,12 @@ function AnnotationLayerControl({
       (Object.keys(annotationError).length && !validationErrors.length) ||
       (!Object.keys(annotationError).length && validationErrors.length)
     ) {
-      actions.setControlValue(name, value, Object.keys(annotationError));
+      actions.setControlValue(name, value, Object.keys(annotationError), {
+        // Re-publishes the same `value` with fresh validation errors after an
+        // annotation query resolves; no user gesture produced it, so it must
+        // not report an unsaved edit on an untouched chart.
+        programmatic: true,
+      });
     }
   }, [annotationError, validationErrors, value, actions, name]);
 

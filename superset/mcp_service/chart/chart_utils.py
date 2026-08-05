@@ -27,6 +27,8 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Dict, TYPE_CHECKING
 
+from sqlalchemy.exc import SQLAlchemyError
+
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
 
@@ -68,7 +70,7 @@ class DatasetValidationResult:
 
 
 def validate_chart_dataset(
-    chart: Any,
+    datasource_id: int | None,
     check_access: bool = True,
 ) -> DatasetValidationResult:
     """
@@ -77,8 +79,12 @@ def validate_chart_dataset(
     This shared utility should be called by MCP tools after creating or retrieving
     charts to detect issues like missing or deleted datasets early.
 
+    Takes the datasource id rather than the chart so that callers holding an ORM
+    instance read it while that instance is attached; reading it here can raise
+    ``DetachedInstanceError`` when a concurrent request has torn down the session.
+
     Args:
-        chart: A chart-like object with datasource_id, datasource_type attributes
+        datasource_id: The chart's ``datasource_id``, or None if it has none
         check_access: Whether to also check user permissions (default True)
 
     Returns:
@@ -90,7 +96,6 @@ def validate_chart_dataset(
     from superset.mcp_service.auth import has_dataset_access
 
     warnings: list[str] = []
-    datasource_id = getattr(chart, "datasource_id", None)
 
     # Check if chart has a datasource reference
     if datasource_id is None:
@@ -1067,23 +1072,39 @@ def _resolve_big_number_temporal_column(
 ) -> str | None:
     """Resolve the column to bind a Big Number's TEMPORAL_RANGE filter to.
 
-    Falls back to the dataset's main_dttm_col when the caller didn't specify
-    temporal_column, and guards the result with is_column_truly_temporal (same
-    check map_xy_config applies to its x-axis) so a non-temporal column never
-    gets a TEMPORAL_RANGE filter. The dataset is fetched at most once here and
-    reused by is_column_truly_temporal instead of letting it re-query by
-    dataset_id.
+    Matches the Explore UI default: use the dataset's main_dttm_col, or its
+    first temporal column when no main column is configured. Guards candidates
+    with is_column_truly_temporal (the same check map_xy_config applies to its
+    x-axis) so a non-temporal column never gets a TEMPORAL_RANGE filter. The
+    dataset is fetched at most once here and reused by the temporal checks
+    instead of letting them re-query by dataset_id.
     """
-    dataset = None
-    if not config.temporal_column:
+    if config.temporal_column:
+        if is_column_truly_temporal(config.temporal_column, dataset_id):
+            return config.temporal_column
+        return None
+
+    try:
         dataset = _find_dataset_by_id_or_uuid(dataset_id)
-    temporal_column = config.temporal_column or (
-        dataset.main_dttm_col if dataset else None
+    except SQLAlchemyError:
+        logger.warning(
+            "Unable to resolve a temporal column for dataset %s",
+            dataset_id,
+            exc_info=True,
+        )
+        return None
+    if not dataset:
+        return None
+
+    candidates: list[str] = []
+    if dataset.main_dttm_col:
+        candidates.append(dataset.main_dttm_col)
+    candidates.extend(
+        column.column_name for column in dataset.columns if column.column_name
     )
-    if temporal_column and is_column_truly_temporal(
-        temporal_column, dataset_id, dataset=dataset
-    ):
-        return temporal_column
+    for temporal_column in dict.fromkeys(candidates):
+        if is_column_truly_temporal(temporal_column, dataset_id, dataset=dataset):
+            return temporal_column
     return None
 
 
@@ -1091,7 +1112,10 @@ def map_handlebars_config(config: HandlebarsChartConfig) -> Dict[str, Any]:
     """Map handlebars chart config to Superset form_data."""
     form_data: Dict[str, Any] = {
         "viz_type": "handlebars",
-        "handlebars_template": config.handlebars_template,
+        # Persist under the camelCase key the Handlebars renderer reads
+        # (`formData.handlebarsTemplate`); the snake_case `handlebars_template`
+        # is the tool's request-contract field, not the persisted form_data key.
+        "handlebarsTemplate": config.handlebars_template,
         "row_limit": config.row_limit,
         "order_desc": config.order_desc,
     }
@@ -1506,11 +1530,9 @@ def get_table_chart_type_label(viz_type: str | None) -> str | None:
     return TABLE_VIZ_TYPE_LABELS.get(viz_type) if viz_type is not None else None
 
 
-def analyze_chart_capabilities(chart: Any | None, config: Any) -> ChartCapabilities:
+def analyze_chart_capabilities(viz_type: str | None, config: Any) -> ChartCapabilities:
     """Analyze chart capabilities based on type and configuration."""
-    if chart:
-        viz_type = getattr(chart, "viz_type", "unknown")
-    else:
+    if not viz_type:
         viz_type = _resolve_viz_type(config)
 
     # Determine interaction capabilities based on chart type
@@ -1556,11 +1578,9 @@ def analyze_chart_capabilities(chart: Any | None, config: Any) -> ChartCapabilit
     )
 
 
-def analyze_chart_semantics(chart: Any | None, config: Any) -> ChartSemantics:
+def analyze_chart_semantics(viz_type: str | None, config: Any) -> ChartSemantics:
     """Generate semantic understanding of the chart."""
-    if chart:
-        viz_type = getattr(chart, "viz_type", "unknown")
-    else:
+    if not viz_type:
         viz_type = _resolve_viz_type(config)
 
     # Generate primary insight based on chart type

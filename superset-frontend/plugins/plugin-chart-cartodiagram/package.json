@@ -2,29 +2,29 @@
   "name": "@superset-ui/plugin-chart-cartodiagram",
   "version": "0.0.1",
   "description": "An OpenLayers map that displays charts for single features.",
-  "sideEffects": false,
-  "main": "lib/index.js",
-  "module": "esm/index.js",
-  "files": [
-    "esm",
-    "lib"
+  "keywords": [
+    "superset"
+  ],
+  "homepage": "https://github.com/apache-superset/superset-ui#readme",
+  "bugs": {
+    "url": "https://github.com/apache-superset/superset-ui/issues"
+  },
+  "license": "Apache-2.0",
+  "contributors": [
+    "terrestris GmbH & Co. KG <info@terrestris.de> (https://www.terrestris.de)",
+    "meggsimum - Büro für Geoinformatik <info@meggsimum.de> (https://meggsimum.de)"
   ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/apache-superset/superset-ui.git"
   },
-  "keywords": [
-    "superset"
+  "files": [
+    "esm",
+    "lib"
   ],
-  "license": "Apache-2.0",
-  "bugs": {
-    "url": "https://github.com/apache-superset/superset-ui/issues"
-  },
-  "homepage": "https://github.com/apache-superset/superset-ui#readme",
-  "contributors": [
-    "terrestris GmbH & Co. KG <info@terrestris.de> (https://www.terrestris.de)",
-    "meggsimum - Büro für Geoinformatik <info@meggsimum.de> (https://meggsimum.de)"
-  ],
+  "sideEffects": false,
+  "main": "lib/index.js",
+  "module": "esm/index.js",
   "publishConfig": {
     "access": "public"
   },

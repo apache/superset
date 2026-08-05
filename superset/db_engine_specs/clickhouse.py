@@ -56,6 +56,9 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
     time_groupby_inline = True
     supports_multivalues_insert = True
 
+    # ClickHouse doesn't support IS true/false syntax, use = true/false instead
+    use_equality_for_boolean_filters = True
+
     # ClickHouse enforces max_rows_to_read against a pre-execution estimate
     # that ignores LIMIT, so bounded sampling queries on large tables are
     # rejected with TOO_MANY_ROWS before reading begins. Break mode keeps the

@@ -36,6 +36,7 @@ from superset.utils.core import (
     FilterOperator,
     generic_find_constraint_name,
     generic_find_fk_constraint_name,
+    generic_find_uq_constraint_name,
     get_datasource_full_name,
     get_query_source_from_request,
     get_stacktrace,
@@ -359,6 +360,46 @@ def test_normalize_dttm_col_with_offset() -> None:
     assert df["date_col"][2].strftime("%Y-%m-%d %H:%M:%S") == "2022-01-01 03:00:00"
 
 
+def test_normalize_dttm_col_second_precision_no_offset_matches_source() -> None:
+    """Regression test for #37925: second-precision timestamps with no
+    dataset offset configured ("UTC", i.e. offset=0) and no time shift must
+    pass through ``normalize_dttm_col`` unchanged and identically to their
+    source values, with no per-row drift.
+
+    The issue reports charts showing datetimes shifted by inconsistent,
+    non-uniform amounts versus the same data in SQL Lab, with the reporter's
+    own examples showing each shift exactly equal to that row's own
+    time-of-day (e.g. 16:30:00 shifted by +16h30m, 10:00:00 by +10h,
+    14:20:00 by +14h20m). ``normalize_dttm_col`` applies a single
+    ``_col.offset``/``_col.time_shift`` uniformly via ``timedelta(...)`` to
+    the whole column (see ``test_normalize_dttm_col_with_offset`` above,
+    already green), which cannot structurally produce a shift that varies
+    per row based on that row's own value, so this function is not the
+    mechanism the issue describes. This test locks in the specific
+    reported config (offset=0, no time_shift, second-level grain, multiple
+    distinct timestamps) end to end to make that explicit.
+    """
+    source_values = [
+        "2026-02-15 16:30:00",
+        "2026-02-15 10:00:00",
+        "2026-02-11 14:20:00",
+    ]
+    df = pd.DataFrame({"dttm": source_values})
+    dttm_cols = (
+        DateColumn(
+            col_label="dttm",
+            timestamp_format="%Y-%m-%d %H:%M:%S",
+            offset=0,
+            time_shift=None,
+        ),
+    )
+
+    normalize_dttm_col(df, dttm_cols)
+
+    assert is_datetime64_dtype(df["dttm"])
+    assert df["dttm"].dt.strftime("%Y-%m-%d %H:%M:%S").tolist() == source_values
+
+
 def test_normalize_dttm_col_with_time_shift() -> None:
     """Test with time shift."""
     df = pd.DataFrame({"date_col": ["2020-01-01", "2021-01-01", "2022-01-01"]})
@@ -655,6 +696,71 @@ def test_generic_find_fk_constraint_none_exist():
 
     result = generic_find_fk_constraint_name(
         table_name, columns, referenced_table_name, insp_mock
+    )
+
+    assert result is None
+
+
+def test_generic_find_uq_constraint_accepts_list():
+    """Regression pin for the ``list == set`` foot-gun (sc-112173).
+
+    Migration ``df3d7e2eb9a4`` passed a list and silently never matched,
+    because the helper compared it with ``==`` against a set. The helper
+    coerces its ``columns`` argument, so a list argument MUST find the
+    constraint."""
+    insp_mock = MagicMock()
+    insp_mock.get_unique_constraints.return_value = [
+        {
+            "name": "_customer_location_uc",
+            "column_names": ["database_id", "schema", "table_name"],
+        },
+    ]
+
+    result = generic_find_uq_constraint_name(
+        "tables",
+        ["database_id", "schema", "table_name"],  # deliberately a list
+        insp_mock,
+    )
+
+    assert result == "_customer_location_uc"
+
+
+def test_generic_find_uq_constraint_with_set():
+    """The documented set-shaped argument keeps working unchanged."""
+    insp_mock = MagicMock()
+    insp_mock.get_unique_constraints.return_value = [
+        {
+            "name": "_customer_location_uc",
+            "column_names": ["database_id", "schema", "table_name"],
+        },
+    ]
+
+    result = generic_find_uq_constraint_name(
+        "tables",
+        {"database_id", "schema", "table_name"},
+        insp_mock,
+    )
+
+    assert result == "_customer_location_uc"
+
+
+def test_generic_find_uq_constraint_no_partial_match():
+    """A 3-column lookup MUST NOT match a 4-column constraint: the
+    take-2 drop migration relies on exact set equality so the model's
+    intended ``(database_id, catalog, schema, table_name)`` constraint is
+    never at risk."""
+    insp_mock = MagicMock()
+    insp_mock.get_unique_constraints.return_value = [
+        {
+            "name": "uq_tables_database_id",
+            "column_names": ["database_id", "catalog", "schema", "table_name"],
+        },
+    ]
+
+    result = generic_find_uq_constraint_name(
+        "tables",
+        {"database_id", "schema", "table_name"},
+        insp_mock,
     )
 
     assert result is None
