@@ -25,8 +25,15 @@ import {
   getTimeFormatterForGranularity,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
-import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
-import { isEqual } from 'lodash-es';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useMemo,
+} from 'react';
+import { debounce, isEqual } from 'lodash-es';
 
 import {
   CellClickedEvent,
@@ -52,6 +59,7 @@ import type { FilterState } from './utils/filterStateManager';
 import DateWithFormatter from './utils/DateWithFormatter';
 import { formatColumnValue } from './utils/formatValue';
 import getTimeRangeFromGranularity from './utils/getTimeRangeFromGranularity';
+import getScrollBarSize from './utils/getScrollBarSize';
 
 export default function TableChart<D extends DataRecord = DataRecord>(
   props: AgGridTableChartTransformedProps<D> & {},
@@ -91,6 +99,56 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     showNumberedColumn,
     onContextMenu,
   } = props;
+
+  // The dashboard's layout engine reports a burst of close-but-not-identical
+  // width/height values while it settles on initial load. Committing each
+  // intermediate value resizes the chart container and re-fits AG Grid's
+  // columns once per value; for any column with wrapText/autoHeight (the
+  // default - see useColDefs), each re-fit can flip a borderline cell across
+  // its wrap boundary and change that row's height, which is what actually
+  // reads as "flicker" rather than the container resize itself.
+  //
+  // A scrollbar-sized threshold (matching plugin-chart-table/v1's guard)
+  // filters out sub-pixel noise, but genuine multi-step settling still gets
+  // through as several real width values in quick succession. Debouncing
+  // every commit after the first collapses that burst into the single final
+  // value once it stops changing, while still painting the first available
+  // size immediately so the chart isn't blank while it waits.
+  const [tableSize, setTableSize] = useState({ width: 0, height: 0 });
+  const hasCommittedInitialSize = useRef(false);
+
+  const debouncedSetTableSize = useMemo(
+    () =>
+      debounce((size: { width: number; height: number }) => {
+        setTableSize(size);
+      }, 250),
+    [],
+  );
+
+  useEffect(
+    () =>
+      // Cleanup debounced size commit
+      () => {
+        debouncedSetTableSize.cancel();
+      },
+    [debouncedSetTableSize],
+  );
+
+  useLayoutEffect(() => {
+    const scrollBarSize = getScrollBarSize();
+    const sizeChanged =
+      Math.abs(width - tableSize.width) > scrollBarSize ||
+      Math.abs(height - tableSize.height) > scrollBarSize;
+    if (!sizeChanged) {
+      return;
+    }
+    if (!hasCommittedInitialSize.current) {
+      hasCommittedInitialSize.current = true;
+      setTableSize({ width, height });
+    } else {
+      debouncedSetTableSize({ width, height });
+    }
+  }, [width, height, tableSize, debouncedSetTableSize]);
 
   const [searchOptions, setSearchOptions] = useState<SearchOption[]>([]);
 
@@ -611,7 +669,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   return (
     <StyledChartContainer
-      height={height}
+      height={tableSize.height}
       onContextMenu={event => {
         // Safety net: AG Grid only calls handleContextMenu (which calls
         // preventDefault) when it resolves the native contextmenu event to
@@ -660,7 +718,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         showTotals={
           showTotals && totals !== undefined && Object.keys(totals).length > 0
         }
-        width={width}
+        width={tableSize.width}
         onColumnStateChange={handleColumnStateChange}
         chartState={chartState}
         onClientViewChange={handleClientViewChange}

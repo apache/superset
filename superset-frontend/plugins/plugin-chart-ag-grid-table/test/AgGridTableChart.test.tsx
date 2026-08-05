@@ -964,3 +964,60 @@ test('AgGridTableChart emits column state with aggFunc through the debounced sav
   // (SharedAggregation) module; the community modules always report null.
   expect(savedColumn).toMatchObject({ aggFunc: null });
 });
+
+test('AgGridTableChart renders a temporal column with a blank row without crashing', async () => {
+  // Regression test: a raw-mode temporal column backed by numeric epoch
+  // values, where one row's raw value is '' rather than null/undefined/a
+  // number, used to flip isNumeric() false for the whole column (see
+  // transformProps.ts), degrading its formatter to plain `String`. That made
+  // DateWithFormatter.toString() return String('') for the blank row, which
+  // is falsy - and valueFormatter's old `|| value` fallback then rendered the
+  // raw Date object directly, crashing React with "Objects are not valid as
+  // a React child (found: [object Date])".
+  const props = transformProps({
+    ...testData.basic,
+    rawFormData: {
+      ...testData.basic.rawFormData,
+      query_mode: QueryMode.Raw,
+      table_timestamp_format: SMART_DATE_ID,
+      server_pagination: false,
+    },
+    queriesData: [
+      {
+        ...testData.basic.queriesData[0],
+        colnames: ['__timestamp', 'name'],
+        coltypes: [GenericDataType.Temporal, GenericDataType.String],
+        data: [
+          { __timestamp: 1069113600000, name: 'foo' },
+          { __timestamp: 1057016400000, name: 'bar' },
+          { __timestamp: '', name: 'baz' },
+        ],
+      },
+    ],
+  });
+
+  const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart {...props} setDataMask={mockSetDataMask} slice_id={1} />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    expect(document.querySelector('.ag-container')).toBeInTheDocument();
+  });
+
+  const reactChildError = errorSpy.mock.calls
+    .map(call => call.join(' '))
+    .find(message => message.includes('Objects are not valid as a React child'));
+  errorSpy.mockRestore();
+  expect(reactChildError).toBeUndefined();
+
+  const cells = document.querySelectorAll('[col-id="__timestamp"]');
+  const cellText = Array.from(cells).map(cell => cell.textContent);
+  expect(cellText).toContain('N/A');
+  expect(cellText).not.toContain('');
+});

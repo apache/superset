@@ -30,7 +30,7 @@ import {
   ValueGetterParams,
 } from '@superset-ui/core/components/ThemedAgGridReact';
 import { DataColumnMeta, InputColumn } from '../types';
-import DateWithFormatter from './DateWithFormatter';
+import DateWithFormatter, { isEmptyDateInput } from './DateWithFormatter';
 
 /**
  * Format text for cell value.
@@ -48,9 +48,9 @@ function formatValue(
   // render null as `N/A`
   if (
     value === null ||
-    // null values in temporal columns are wrapped in a Date object, so make sure we
-    // handle them here too
-    (value instanceof DateWithFormatter && value.input === null)
+    // null/empty values in temporal columns are wrapped in a Date object, so make
+    // sure we handle them here too
+    (value instanceof DateWithFormatter && isEmptyDateInput(value.input))
   ) {
     return [false, 'N/A'];
   }
@@ -97,12 +97,20 @@ export const valueFormatter = (
   if (
     isDefined(value) &&
     value !== '' &&
-    !(value instanceof DateWithFormatter && value.input === null)
+    !(value instanceof DateWithFormatter && isEmptyDateInput(value.input))
   ) {
+    // Fall back to String(value) rather than the raw value: value can be a
+    // DateWithFormatter/Date (or other object) when col.formatter is unset or
+    // returns a falsy result, and returning that raw object here - though it
+    // satisfies this function's `: string` signature at compile time since
+    // `value`'s param type is loosely typed - crashes React with "Objects are
+    // not valid as a React child" once a cell renderer renders it directly.
     if (col.formatter instanceof CurrencyFormatter) {
-      return col.formatter(value, data, col.currencyCodeColumn) || value;
+      return (
+        col.formatter(value, data, col.currencyCodeColumn) || String(value)
+      );
     }
-    return col.formatter?.(value) || value;
+    return col.formatter?.(value) || String(value);
   }
   if (node?.level === -1) {
     return '';

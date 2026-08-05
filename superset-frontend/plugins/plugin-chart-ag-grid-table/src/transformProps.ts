@@ -61,7 +61,11 @@ const { DATABASE_DATETIME } = TimeFormats;
 
 function isNumeric(key: string, data: DataRecord[] = []) {
   return data.every(
-    x => x[key] === null || x[key] === undefined || typeof x[key] === 'number',
+    x =>
+      x[key] === null ||
+      x[key] === undefined ||
+      x[key] === '' ||
+      typeof x[key] === 'number',
   );
 }
 
