@@ -587,6 +587,9 @@ describe('mobile consumption mode', () => {
 
   test('renders a hamburger menu instead of the desktop nav, and opens a drawer on click', async () => {
     const mockedProps = createProps();
+    // Initial Load
+    resetUseSelectorMock();
+    // setMobileMenuOpen called on hamburger click, triggering a re-render
     resetUseSelectorMock();
     render(<RightMenu {...mockedProps} />, {
       useRedux: true,
