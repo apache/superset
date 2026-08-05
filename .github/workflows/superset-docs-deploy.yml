@@ -85,6 +85,7 @@ jobs:
         with:
           packages: graphviz
           version: 1.0
+          execute_install_scripts: true
       - name: Compute Entity Relationship diagram (ERD)
         env:
           SUPERSET_SECRET_KEY: not-a-secret
