@@ -114,6 +114,8 @@ export interface DashboardCell {
 /** A dashboard as a composite visualization: a layout plus its leaves. */
 export interface DashboardRender {
   dashboard_id?: number | null;
+  /** Tab the render was filtered to, when one was requested. */
+  active_tab_id?: string | null;
   dashboard_title?: string | null;
   dashboard_url?: string | null;
   tabs: Array<{ id: string; name?: string | null; parent_tab_id?: string | null }>;

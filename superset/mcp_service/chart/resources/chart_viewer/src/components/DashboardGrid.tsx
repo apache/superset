@@ -95,9 +95,25 @@ export function DashboardGrid({
   // Tabs are presentational here: cells carry their tab id, so switching tabs
   // filters what is shown without re-querying anything.
   const tabs = render.tabs ?? [];
-  const [activeTab, setActiveTab] = useState<string | null>(
-    tabs.length ? tabs[0].id : null,
-  );
+
+  const countFor = (id: string): number =>
+    render.cells.filter((c) => c.tab_id === id).length;
+
+  // Opening tab: the one that was explicitly requested, else the first tab
+  // that actually HAS cells.
+  //
+  // Selecting tabs[0] blindly opened a guaranteed-empty tab whenever the
+  // render was filtered to a different one — the full tab list is still
+  // returned (correctly, so the user can switch), so tabs[0] can hold nothing.
+  // "First non-empty" also covers an unfiltered dashboard whose first tab is
+  // genuinely empty.
+  const [activeTab, setActiveTab] = useState<string | null>(() => {
+    if (!tabs.length) return null;
+    const requested = render.active_tab_id;
+    if (requested && tabs.some((t) => t.id === requested)) return requested;
+    return (tabs.find((t) => countFor(t.id) > 0) ?? tabs[0]).id;
+  });
+
   const cells = activeTab
     ? render.cells.filter((c) => c.tab_id === activeTab)
     : render.cells;
@@ -112,8 +128,15 @@ export function DashboardGrid({
               type="button"
               role="tab"
               aria-selected={t.id === activeTab}
-              className={`sv-chip${t.id === activeTab ? ' sv-chip--on' : ''}`}
+              className={`sv-chip${t.id === activeTab ? ' sv-chip--on' : ''}${
+                countFor(t.id) === 0 ? ' sv-chip--empty' : ''
+              }`}
               onClick={() => setActiveTab(t.id)}
+              title={
+                countFor(t.id) === 0
+                  ? 'Not included in this render'
+                  : undefined
+              }
             >
               {stripUntrustedMarkers(t.name ?? 'Tab')}
             </button>
@@ -139,7 +162,9 @@ export function DashboardGrid({
           </div>
         ))}
         {cells.length === 0 && (
-          <div className="sv-cell-placeholder">No charts in this tab.</div>
+          <div className="sv-cell-placeholder">
+            This tab was not included in this render.
+          </div>
         )}
       </div>
     </div>

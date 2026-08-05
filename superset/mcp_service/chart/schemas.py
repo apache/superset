@@ -3231,6 +3231,14 @@ class DashboardRender(BaseModel):
     dashboard_url: str | None = Field(
         None, description="Deep link to the dashboard in Superset"
     )
+    active_tab_id: str | None = Field(
+        None,
+        description=(
+            "The tab this render was filtered to, when `tab_id` was passed. "
+            "The full tab list is still returned so a client can offer the "
+            "others, so a client must not assume the first tab has cells."
+        ),
+    )
     tabs: list[dict[str, Any]] = Field(
         default_factory=list,
         description="Tabs from the layout: {id, name, parent_tab_id}.",

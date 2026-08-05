@@ -850,3 +850,9 @@ body {
   border: 1px solid var(--sv-border);
   font-weight: 700;
 }
+
+/* A tab with no cells in this render — still reachable, but marked so it does
+   not look like an empty dashboard. */
+.sv-chip--empty {
+  opacity: 0.45;
+}

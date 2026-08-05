@@ -128,3 +128,30 @@ it('distinguishes a dashboard payload from a chart payload on the wire', () => {
   expect(dashboard?.dashboard_id).toBe(7);
   expect(chartData).toBeNull();
 });
+
+it('opens the tab that was requested, not blindly the first one', () => {
+  // A tab-filtered render still returns EVERY tab so the user can switch, so
+  // tabs[0] can legitimately hold nothing. Opening it showed "no charts" on a
+  // render that had five.
+  render({
+    ...RENDER,
+    active_tab_id: 'TAB-b',
+    cells: RENDER.cells.filter((c) => c.tab_id === 'TAB-b'),
+  });
+  expect(container!.querySelectorAll('.sv-dash-cell')).toHaveLength(1);
+  expect(container!.textContent).toContain('Detail chart');
+});
+
+it('falls back to the first tab that actually has cells', () => {
+  // No active_tab_id (an older server, or an unfiltered render whose first
+  // tab is simply empty).
+  render({
+    ...RENDER,
+    cells: RENDER.cells.filter((c) => c.tab_id === 'TAB-b'),
+  });
+  expect(container!.querySelectorAll('.sv-dash-cell')).toHaveLength(1);
+  const tabs = container!.querySelectorAll('[role="tab"]');
+  expect(tabs[1].getAttribute('aria-selected')).toBe('true');
+  // The empty tab stays reachable, but is marked rather than looking broken.
+  expect(tabs[0].className).toContain('sv-chip--empty');
+});

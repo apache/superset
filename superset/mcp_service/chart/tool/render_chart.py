@@ -392,6 +392,7 @@ async def _render_dashboard_impl(
     return DashboardRender(
         dashboard_id=layout.id,
         dashboard_title=layout.dashboard_title,
+        active_tab_id=request.tab_id,
         dashboard_url=(
             f"{base_url}/superset/dashboard/{layout.id}/" if base_url and layout.id else None
         ),
