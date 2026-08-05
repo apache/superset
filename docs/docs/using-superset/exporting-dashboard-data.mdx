@@ -32,8 +32,13 @@ Notes on the generated workbook:
   Excel's 31-character limit; the chart id keeps names unique).
 - Charts nested in tabs are included.
 - Data reflects the dashboard's active filter state at the time of export.
-- A chart with no saved query context is skipped and listed in the email; open
-  the chart in Explore and re-save it to include it next time.
+- A chart with no saved query context (charts only store one once they've been
+  re-saved in Explore) still exports when it is a `table`, `big_number`,
+  `big_number_total` or `pie`, by rebuilding the query from the chart's saved
+  form data. Charts of other types — and charts relying on post-processing the
+  rebuild can't reproduce — are skipped and listed in the email; open the chart
+  in Explore and re-save it to include it next time, or configure
+  `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`.
 - Row counts per sheet are capped the same way as the chart-level CSV/Excel
   export (`ROW_LIMIT`, bounded by `SQL_MAX_ROW`), and never exceed Excel's
   per-sheet maximum.

@@ -291,6 +291,13 @@ def _builder_hook(builder: Any) -> Iterator[None]:
     fake_app.config.get.side_effect = lambda key, default=None: (
         builder if key == "EXCEL_EXPORT_QUERY_CONTEXT_BUILDER" else default
     )
+    # Real values for the keys the task subscripts directly, so a full export can
+    # run under the hook (a MagicMock ttl would blow up building the link expiry).
+    fake_app.config.__getitem__.side_effect = {
+        "EXCEL_EXPORT_S3_BUCKET": "bucket",
+        "EXCEL_EXPORT_S3_KEY_PREFIX": "dashboard-exports/",
+        "EXCEL_EXPORT_LINK_TTL_SECONDS": 3600,
+    }.__getitem__
     with mock.patch.object(module, "current_app", fake_app):
         yield
 
@@ -330,7 +337,18 @@ def test_builder_hook_none_falls_through_to_builtin_rebuild() -> None:
     assert result["queries"][0]["metrics"] == ["count"]
 
 
-@pytest.mark.parametrize("built", [{}, {"queries": []}, "not-a-dict", 42])
+@pytest.mark.parametrize(
+    "built",
+    [
+        {},
+        {"queries": []},
+        "not-a-dict",
+        42,
+        # ``queries`` present but not a list: truthy, yet unusable downstream.
+        {"queries": "oops"},
+        {"queries": {"a": 1}},
+    ],
+)
 def test_builder_hook_malformed_result_falls_through(built: Any) -> None:
     # A stub / empty / malformed builder result is treated as "not built" and
     # falls through to the built-in rebuild rather than shipping an empty context.
@@ -394,6 +412,52 @@ def test_saved_context_short_circuits_builder_hook() -> None:
     builder.assert_not_called()
 
 
+def test_builder_hook_result_is_not_mutated_across_charts(
+    mocks: dict[str, Any],
+) -> None:
+    # Dashboard filters are applied by mutating queries[*] in place. A builder
+    # that memoizes or caches its return value would otherwise accumulate isExtra
+    # filters chart after chart (and export after export), progressively
+    # over-filtering, so the hook's payload must be copied before use.
+    shared_context: dict[str, Any] = {
+        "datasource": {"id": 5, "type": "table"},
+        "queries": [{"metrics": ["count"], "filters": []}],
+    }
+    builder = mock.MagicMock(return_value=shared_context)
+
+    first = _rebuildable_chart(viz_type="pivot_table_v2")
+    first.id = 10
+    second = _rebuildable_chart(viz_type="pivot_table_v2")
+    second.id = 20
+    mocks["get_charts_in_layout_order"].return_value = [first, second]
+
+    def _fresh_filter_context(**kwargs: Any) -> mock.MagicMock:
+        # Resolved per chart in production, and consumed destructively by
+        # apply_dashboard_filter_context, so it must not be shared here.
+        context = mock.MagicMock()
+        context.extra_form_data = {
+            "filters": [{"col": "country", "op": "IN", "val": ["US"]}]
+        }
+        return context
+
+    mocks["get_dashboard_filter_context"].side_effect = _fresh_filter_context
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    with _builder_hook(builder):
+        _run()
+
+    loads = mocks["ChartDataQueryContextSchema"].return_value.load.call_args_list
+    assert len(loads) == 2
+    for call in loads:
+        assert call.args[0]["queries"][0]["filters"] == [
+            {"col": "country", "op": "IN", "val": ["US"], "isExtra": True}
+        ]
+    # The builder's own object is untouched, so a cached return stays reusable.
+    assert shared_context["queries"][0]["filters"] == []
+
+
 @pytest.mark.parametrize(
     ("params", "datasource_id"),
     [
@@ -434,6 +498,7 @@ def test_eligible_viz_skipped_when_form_data_unusable(
         {"groupby": ["c"], "metrics": ["m"], "rolling_type": "mean"},
         {"groupby": ["c"], "metrics": ["m"], "resample_rule": "1D"},
         {"groupby": ["c"], "metrics": ["m"], "percent_metrics": ["pct"]},
+        {"groupby": ["c"], "metrics": ["m"], "show_totals": True},
         {"columns": ["a", "b"], "aggregation": "raw"},
     ],
 )
@@ -442,7 +507,8 @@ def test_eligible_viz_skipped_when_form_data_needs_post_processing(
 ) -> None:
     # An allowlisted viz type whose form data relies on post-processing or extra
     # queries the single-query rebuild can't reproduce (time comparison, rolling,
-    # resample, raw aggregation) is skipped rather than exported with wrong data.
+    # resample, raw aggregation, a totals row) is skipped rather than exported
+    # with data that differs from the chart.
     good = _chart(10, "Good")
     fancy = _chart(20, "Fancy", viz_type="table")
     fancy.query_context = None
@@ -505,6 +571,25 @@ def test_rebuilt_query_context_payload_carries_query_shape(
     assert query["granularity"] == "ds"
     assert query["time_range"] == "Last quarter"
     assert query["row_limit"] == 25
+
+
+def test_raw_mode_table_ignores_stale_show_totals() -> None:
+    # show_totals only produces a second query in aggregate mode (the frontend
+    # gates the totals query on queryMode === Aggregate), and the control isn't
+    # reset when hidden. A raw-mode table carrying a stale value must still
+    # rebuild rather than be needlessly skipped.
+    from superset.tasks import export_dashboard_excel as module
+
+    chart = _rebuildable_chart(
+        viz_type="table",
+        form_data={"query_mode": "raw", "all_columns": ["a"], "show_totals": True},
+    )
+
+    with _builder_hook(None):
+        result = module._resolve_query_context(chart)
+
+    assert result is not None
+    assert result["queries"][0]["columns"] == ["a"]
 
 
 def test_rebuild_viz_types_is_the_conservative_default() -> None:

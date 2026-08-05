@@ -25,10 +25,13 @@ carry no ``query_context``, so server-side consumers that need to run the query
 
 This module rebuilds a best-effort query context from the form data — columns,
 metrics, filters (including free-form SQL and the time range), ordering and time
-grain — mirroring the shared parts of the viz plugins' ``buildQuery``. It does
-**not** reproduce plugin post-processing (pivot, contribution/percent
-transforms, rolling/forecast) or multi-query fan-out, so callers must restrict it
-to viz types whose data maps faithfully to a single plain query.
+grain — mirroring the shared parts of the viz plugins' ``buildQuery``. Beyond
+that shared core it reproduces exactly one piece of plugin post-processing, Pie's
+unconditional ``contribution`` operator (see
+:func:`_pie_contribution_post_processing`). It does **not** reproduce any other
+post-processing (pivot, percent-metric transforms, rolling/forecast) or
+multi-query fan-out, so callers must restrict it to viz types whose data maps
+faithfully to a single query.
 
 The mirrored logic lives on the frontend in
 ``superset-frontend/plugins/plugin-chart-table/src/buildQuery.ts`` (query mode,
@@ -43,6 +46,12 @@ from __future__ import annotations
 from typing import Any
 
 from superset.utils import json
+from superset.utils.core import as_list, get_metric_name
+
+# Suffix Pie's contribution operator appends when renaming the metric column,
+# mirroring ``CONTRIBUTION_SUFFIX`` in
+# ``superset-frontend/plugins/plugin-chart-echarts/src/Pie/constants.ts``.
+PIE_CONTRIBUTION_SUFFIX = "__contribution"
 
 
 def adhoc_filters_to_query_filters(
@@ -80,6 +89,20 @@ def adhoc_filters_to_query_filters(
     return result
 
 
+def _sanitize_clause(clause: str) -> str:
+    """
+    Parenthesize a free-form SQL clause, terminating a trailing line comment.
+
+    Mirrors ``sanitizeClause`` (``superset-ui-core/src/query/processFilters.ts``):
+    a clause containing ``--`` gets a newline appended *inside* the parentheses,
+    so a predicate ending in a comment (``sales > 0 -- note``) does not comment
+    out the closing paren and everything joined after it.
+    """
+    if "--" in clause:
+        clause = f"{clause}\n"
+    return f"({clause})"
+
+
 def freeform_where_having(form_data: dict[str, Any]) -> dict[str, str]:
     """
     Collect free-form SQL predicates into a query ``extras`` mapping.
@@ -101,9 +124,9 @@ def freeform_where_having(form_data: dict[str, Any]) -> dict[str, str]:
 
     extras: dict[str, str] = {}
     if where:
-        extras["where"] = " AND ".join(f"({clause})" for clause in where)
+        extras["where"] = " AND ".join(_sanitize_clause(clause) for clause in where)
     if having:
-        extras["having"] = " AND ".join(f"({clause})" for clause in having)
+        extras["having"] = " AND ".join(_sanitize_clause(clause) for clause in having)
     return extras
 
 
@@ -177,15 +200,23 @@ def orderby_from_form_data(
                     col = json.loads(col)
                 except (TypeError, ValueError):
                     continue
-            parsed.append(col)
+            # Anything that isn't a ``[column, ascending]`` pair (a stray null, a
+            # bare column, an over-long tuple) would append junk to ``orderby``
+            # and fail the query; drop it like an unparseable entry.
+            if isinstance(col, (list, tuple)) and len(col) == 2:
+                parsed.append(list(col))
         return parsed
 
     if not metrics:
         return []
 
-    sort_metric = form_data.get("timeseries_limit_metric") or (
-        metrics[0] if form_data.get("sort_by_metric") else None
-    )
+    # The drag-and-drop "sort by" control persists a list; the frontend unwraps it
+    # with ``ensureIsArray(...)[0]`` (``plugin-chart-table/src/buildQuery.ts:67``).
+    # Read raw, a list would nest inside ``orderby`` and fail the query.
+    raw_sort_metric = form_data.get("timeseries_limit_metric")
+    sort_metric = (
+        next(iter(as_list(raw_sort_metric)), None) if raw_sort_metric else None
+    ) or (metrics[0] if form_data.get("sort_by_metric") else None)
     if sort_metric is not None:
         # The Table plugin defaults ``order_desc`` to False (ascending); Pie and
         # others sort by metric descending. Match that so a row limit keeps the
@@ -223,6 +254,36 @@ def _columns_and_metrics(
     if not columns and viz_type == "big_number" and form_data.get("granularity_sqla"):
         return [form_data["granularity_sqla"]], metrics, True
     return columns, metrics, False
+
+
+def _pie_contribution_post_processing(metrics: list[Any]) -> list[dict[str, Any]]:
+    """
+    Pie's ``contribution`` post-processing operator, or ``[]`` when it can't apply.
+
+    ``plugins/plugin-chart-echarts/src/Pie/buildQuery.ts`` attaches this operator
+    unconditionally — it is not gated on ``percent_metrics`` or a contribution
+    mode — and ``Pie/transformProps.ts`` reads the renamed column. Rebuilding a
+    pie without it drops the percentage column that a saved-context pie carries,
+    so two pies on one dashboard would export different columns based only on
+    whether they had been re-saved in Explore.
+    """
+    if not metrics:
+        return []
+    try:
+        label = get_metric_name(metrics[0])
+    except ValueError:
+        # A metric this malformed will fail the query anyway; leave the operator
+        # off rather than turning a rebuild into an error before it runs.
+        return []
+    return [
+        {
+            "operation": "contribution",
+            "options": {
+                "columns": [label],
+                "rename_columns": [f"{label}{PIE_CONTRIBUTION_SUFFIX}"],
+            },
+        }
+    ]
 
 
 def build_query_context_from_form_data(
@@ -271,6 +332,10 @@ def build_query_context_from_form_data(
     }
     if extras:
         query["extras"] = extras
+    if viz_type == "pie" and (
+        post_processing := _pie_contribution_post_processing(metrics)
+    ):
+        query["post_processing"] = post_processing
     # ``granularity`` names the temporal column that applies the time range and
     # that ``time_grain_sqla`` buckets. Set it when there is a real range to apply,
     # or when we've promoted a Big Number trendline's time column (so its time

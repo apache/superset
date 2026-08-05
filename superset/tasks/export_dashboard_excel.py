@@ -29,6 +29,7 @@ filters) and embedded, while table-like charts stay tabular.
 
 from __future__ import annotations
 
+import copy
 import logging
 import os
 import tempfile
@@ -47,7 +48,10 @@ from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.commands.distributed_lock.release import ReleaseDistributedLock
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
-from superset.common.form_data_query_context import build_query_context_from_form_data
+from superset.common.form_data_query_context import (
+    build_query_context_from_form_data,
+    is_raw_query_mode,
+)
 from superset.dashboards.excel_export import email
 from superset.dashboards.excel_export.layout import get_charts_in_layout_order
 from superset.dashboards.excel_export.screenshot import render_chart_image
@@ -108,13 +112,16 @@ def _usable_query_context(value: Any) -> dict[str, Any] | None:
     ``value`` when it is a usable query-context payload, else ``None``.
 
     A payload is usable only if it is a dict with a non-empty ``queries`` list; a
-    blank, query-less, or non-object value (e.g. ``{}``, ``{"queries": []}``,
-    ``None``) is treated the same as a missing context. Shared by the saved-context
-    path and the builder hook so both apply the same validity rule.
+    blank, query-less, mistyped, or non-object value (e.g. ``{}``,
+    ``{"queries": []}``, ``{"queries": "oops"}``, ``None``) is treated the same as
+    a missing context. Shared by the saved-context path and the builder hook so
+    both apply the same validity rule — and so a malformed builder return falls
+    through to the built-in rebuild instead of failing later in the general
+    error bucket.
     """
-    if not isinstance(value, dict) or not value.get("queries"):
+    if not isinstance(value, dict) or not isinstance(value.get("queries"), list):
         return None
-    return value
+    return value if value["queries"] else None
 
 
 def _saved_query_context(raw: Any) -> dict[str, Any] | None:
@@ -147,6 +154,12 @@ def _needs_unsupported_processing(form_data: dict[str, Any]) -> bool:
     # post-processing the rebuild can't apply; skip so the export doesn't silently
     # omit columns the user sees.
     if form_data.get("percent_metrics"):
+        return True
+    # ``show_totals`` adds a totals row via a *second* query
+    # (``plugin-chart-table/src/buildQuery.ts``, gated on aggregate mode); the
+    # single-query rebuild would silently drop that row. The mode check mirrors
+    # the frontend so a raw-mode table carrying a stale value still exports.
+    if form_data.get("show_totals") and not is_raw_query_mode(form_data):
         return True
     for key in _UNSUPPORTED_PROCESSING_KEYS:
         value = form_data.get(key)
@@ -194,7 +207,11 @@ def _resolve_query_context(chart: Any) -> dict[str, Any] | None:
             )
             built = None
         if (from_builder := _usable_query_context(built)) is not None:
-            return from_builder
+            # Copy: the payload's ``queries`` are mutated in place downstream (by
+            # ``apply_dashboard_filter_context``), and a builder is free to
+            # memoize or otherwise share its return value — which would then
+            # accumulate filters across charts and across exports.
+            return copy.deepcopy(from_builder)
 
     # The allowlist and ``_needs_unsupported_processing`` bound only the built-in
     # rebuild below; the builder hook above is intentionally not gated by them (a
@@ -267,8 +284,9 @@ def _write_chart_sheets(
     """
     # Shallow-copy before setting our own top-level keys so the caller's payload
     # keeps its original result_format/result_type. (The nested ``queries`` are
-    # mutated in place by apply_dashboard_filter_context below, which is safe here
-    # because each body is freshly built or parsed per chart.)
+    # mutated in place by apply_dashboard_filter_context below, which is safe
+    # because every payload ``_resolve_query_context`` returns is this chart's
+    # alone: freshly parsed, freshly built, or deep-copied from the builder hook.)
     json_body = dict(json_body)
     # Override any stale saved values: we always want full JSON results.
     json_body["result_format"] = ChartDataResultFormat.JSON

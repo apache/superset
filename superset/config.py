@@ -1553,8 +1553,9 @@ EXCEL_EXPORT_TABLE_VIZ_TYPES: set[str] | None = None
 # chart's real frontend ``buildQuery`` (faithful post-processing / multi-query)
 # for viz types the built-in rebuild can't handle. Must return ``None`` — not a
 # partial/stub context — whenever it cannot build the chart faithfully, so the
-# export falls through to the built-in rebuild. Defaults to ``None`` (built-in
-# behavior only).
+# export falls through to the built-in rebuild. The export deep-copies whatever
+# it returns before applying dashboard filters, so a builder is free to memoize
+# or share its payloads. Defaults to ``None`` (built-in behavior only).
 EXCEL_EXPORT_QUERY_CONTEXT_BUILDER: (
     Callable[[dict[str, Any]], dict[str, Any] | None] | None
 ) = None

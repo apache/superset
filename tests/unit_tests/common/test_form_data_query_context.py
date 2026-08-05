@@ -397,3 +397,143 @@ def test_orderby_table_sort_metric_defaults_ascending() -> None:
         "queries"
     ][0]
     assert query["orderby"] == [["revenue", True]]
+
+
+def test_orderby_unwraps_list_valued_sort_metric() -> None:
+    # The drag-and-drop "sort by" control persists timeseries_limit_metric as a
+    # list; the frontend unwraps it with ensureIsArray(...)[0]. Read raw, the
+    # nested list produces an orderby the query runner rejects, so the chart
+    # lands in the general error bucket instead of exporting.
+    form_data = {
+        "metrics": ["count"],
+        "groupby": ["c"],
+        "timeseries_limit_metric": ["revenue"],
+    }
+    query = build_query_context_from_form_data(form_data, DATASOURCE, viz_type="table")[
+        "queries"
+    ][0]
+    assert query["orderby"] == [["revenue", True]]
+
+
+def test_orderby_empty_list_sort_metric_falls_back_to_first_metric() -> None:
+    # An emptied sort-by control leaves `[]` behind; treat it as unset.
+    form_data = {"metrics": ["count"], "groupby": ["c"], "timeseries_limit_metric": []}
+    query = build_query_context_from_form_data(form_data, DATASOURCE, viz_type="table")[
+        "queries"
+    ][0]
+    assert query["orderby"] == [["count", False]]
+
+
+def test_orderby_adhoc_sort_metric_is_not_unwrapped() -> None:
+    # An adhoc metric is a dict, not a list: it must pass through whole rather
+    # than being reduced to one of its keys.
+    adhoc_metric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "sales"},
+        "aggregate": "SUM",
+        "label": "SUM(sales)",
+    }
+    form_data = {
+        "metrics": ["count"],
+        "groupby": ["c"],
+        "timeseries_limit_metric": adhoc_metric,
+    }
+    query = build_query_context_from_form_data(form_data, DATASOURCE, viz_type="table")[
+        "queries"
+    ][0]
+    assert query["orderby"] == [[adhoc_metric, True]]
+
+
+def test_raw_mode_order_by_cols_drops_non_pair_entries() -> None:
+    # order_by_cols entries that parse but aren't [col, asc] pairs (a stray null,
+    # a bare column, an over-long tuple) would append junk to orderby and fail the
+    # query; only well-formed pairs survive.
+    form_data = {
+        "query_mode": "raw",
+        "all_columns": ["a"],
+        "order_by_cols": ["null", '["a"]', '["b", true, 1]', '["c", false]', 5],
+    }
+    query = build_query_context_from_form_data(form_data, DATASOURCE)["queries"][0]
+    assert query["orderby"] == [["c", False]]
+
+
+def test_freeform_where_clause_with_sql_comment_is_newline_terminated() -> None:
+    # A free-form SQL filter ending in a `--` comment would otherwise comment out
+    # the closing paren and every predicate joined after it, so the export fails
+    # on a chart that renders fine. Mirrors sanitizeClause in processFilters.ts.
+    form_data = {
+        "groupby": ["c"],
+        "adhoc_filters": [
+            {
+                "expressionType": "SQL",
+                "clause": "WHERE",
+                "sqlExpression": "sales > 0 -- note",
+            },
+            {"expressionType": "SQL", "clause": "WHERE", "sqlExpression": "qty > 1"},
+        ],
+    }
+    query = build_query_context_from_form_data(form_data, DATASOURCE)["queries"][0]
+    assert query["extras"]["where"] == "(sales > 0 -- note\n) AND (qty > 1)"
+
+
+def test_freeform_having_clause_with_sql_comment_is_newline_terminated() -> None:
+    form_data = {
+        "groupby": ["c"],
+        "adhoc_filters": [
+            {
+                "expressionType": "SQL",
+                "clause": "HAVING",
+                "sqlExpression": "SUM(x) > 5 -- note",
+            },
+        ],
+    }
+    query = build_query_context_from_form_data(form_data, DATASOURCE)["queries"][0]
+    assert query["extras"]["having"] == "(SUM(x) > 5 -- note\n)"
+
+
+def test_pie_carries_contribution_post_processing() -> None:
+    # Pie's buildQuery attaches the contribution operator unconditionally and its
+    # transformProps reads the renamed column, so a rebuilt pie sheet must carry
+    # the same percentage column a saved-context pie sheet has.
+    form_data = {"metric": "count", "groupby": ["c"]}
+    query = build_query_context_from_form_data(form_data, DATASOURCE, viz_type="pie")[
+        "queries"
+    ][0]
+    assert query["post_processing"] == [
+        {
+            "operation": "contribution",
+            "options": {
+                "columns": ["count"],
+                "rename_columns": ["count__contribution"],
+            },
+        }
+    ]
+
+
+def test_pie_contribution_uses_adhoc_metric_label() -> None:
+    # getMetricLabel resolves an adhoc metric to its label; the renamed column
+    # must match what the chart produces for the same metric.
+    form_data = {
+        "metric": {
+            "expressionType": "SIMPLE",
+            "column": {"column_name": "sales"},
+            "aggregate": "SUM",
+            "label": "Total sales",
+        },
+        "groupby": ["c"],
+    }
+    query = build_query_context_from_form_data(form_data, DATASOURCE, viz_type="pie")[
+        "queries"
+    ][0]
+    assert query["post_processing"][0]["options"] == {
+        "columns": ["Total sales"],
+        "rename_columns": ["Total sales__contribution"],
+    }
+
+
+def test_non_pie_carries_no_post_processing() -> None:
+    form_data = {"metrics": ["count"], "groupby": ["c"]}
+    query = build_query_context_from_form_data(form_data, DATASOURCE, viz_type="table")[
+        "queries"
+    ][0]
+    assert "post_processing" not in query
