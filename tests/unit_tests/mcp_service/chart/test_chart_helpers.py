@@ -30,6 +30,8 @@ from superset.mcp_service.chart.chart_helpers import (
     merge_form_data_filters_into_query,
     prepare_form_data_for_query,
     resolve_deck_gl_columns,
+    resolve_metrics,
+    resolve_metrics_and_groupby,
 )
 
 
@@ -926,3 +928,61 @@ def test_build_query_dicts_deck_geojson_ignores_time_grain(monkeypatch):
 
     assert "is_timeseries" not in queries[0]
     assert queries[0].get("extras", {}).get("time_grain_sqla") is None
+
+
+def test_resolve_metrics_plural():
+    assert resolve_metrics({"metrics": ["count"]}, "echarts_timeseries_line") == [
+        "count"
+    ]
+
+
+def test_resolve_metrics_singular_fallback():
+    assert resolve_metrics({"metric": "count"}, "pie") == ["count"]
+
+
+def test_resolve_metrics_explicit_none_does_not_crash():
+    # form_data["metrics"] can be explicitly null (e.g. a cleared control),
+    # not just absent — must not leak None past this function.
+    assert resolve_metrics({"metrics": None}, "echarts_timeseries_line") == []
+
+
+def test_resolve_metrics_explicit_none_falls_back_to_singular():
+    assert resolve_metrics({"metrics": None, "metric": "count"}, "pie") == ["count"]
+
+
+def test_resolve_metrics_and_groupby_big_number_singular_metric():
+    metrics, groupby = resolve_metrics_and_groupby(
+        {"viz_type": "big_number", "metric": "count", "groupby": ["region"]}
+    )
+    assert metrics == ["count"]
+    # big_number never groups by, even if groupby is present in form_data
+    assert groupby == []
+
+
+def test_resolve_metrics_and_groupby_big_number_falls_back_to_plural_metrics():
+    # Some saved/migrated form_data stores the metric under "metrics" (plural)
+    # even for single-metric chart types; previously this metric was dropped
+    # entirely, producing a chart with no metrics and no columns.
+    metrics, groupby = resolve_metrics_and_groupby(
+        {"viz_type": "big_number_total", "metrics": ["count"]}
+    )
+    assert metrics == ["count"]
+    assert groupby == []
+
+
+def test_resolve_metrics_and_groupby_big_number_no_metric_returns_empty():
+    metrics, groupby = resolve_metrics_and_groupby({"viz_type": "big_number"})
+    assert metrics == []
+    assert groupby == []
+
+
+def test_resolve_metrics_and_groupby_non_singular_viz_type_uses_standard_resolution():
+    metrics, groupby = resolve_metrics_and_groupby(
+        {
+            "viz_type": "echarts_timeseries_line",
+            "metrics": ["count"],
+            "groupby": ["region"],
+        }
+    )
+    assert metrics == ["count"]
+    assert groupby == ["region"]

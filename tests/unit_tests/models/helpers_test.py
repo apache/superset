@@ -2405,6 +2405,76 @@ def test_get_sqla_query_allows_jinja_templated_custom_sql_metric_with_columns(
     assert "{{" not in sql
 
 
+def test_get_sqla_query_virtual_dataset_filter_values_drill_to_detail(
+    database: Database,
+) -> None:
+    """
+    Regression for #35263: a Jinja-templated virtual dataset that calls
+    ``filter_values()`` in its own SQL must see filters sent in the native
+    ``{col, op, val}`` format that Drill to Detail/Drill by use, not just
+    the ``adhoc_filters`` format used by ordinary chart/explore requests.
+    Without this, Jinja-based datasets return zero rows when drilled into,
+    even though the parent chart shows data for the selected value.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        sql=(
+            "SELECT a, b FROM t WHERE 1=1 "
+            "{% if filter_values('b') %} "
+            "AND b IN {{ filter_values('b') | where_in }} "
+            "{% endif %}"
+        ),
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(column_name="b", type="TEXT"),
+        ],
+    )
+
+    result = table.get_sqla_query(
+        columns=["a", "b"],
+        metrics=[],
+        extras={},
+        filter=[{"col": "b", "op": "IN", "val": ["Alice"]}],
+        granularity=None,
+        is_timeseries=False,
+    )
+    assert result is not None
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            result.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    assert "'Alice'" in sql, (
+        "filter_values() should resolve native drill-to-detail-style "
+        f"filters inside a virtual dataset's own SQL. Generated SQL: {sql}"
+    )
+
+    # The assertion above can pass even when filter_values() itself is
+    # broken, because get_sqla_query() independently applies the native
+    # filter as an outer WHERE predicate on top of whatever the virtual
+    # dataset's own SQL renders to. Pull the virtual dataset's own rendered
+    # SQL directly out of the compiled query (rather than re-rendering it
+    # via a separately constructed template processor, which would not
+    # catch get_sqla_query() failing to forward the filter to the template
+    # processor it builds internally) to confirm filter_values() actually
+    # resolved the native filter *inside* the templated subquery.
+    virtual_table_from = result.sqla_query.get_final_froms()[0]
+    rendered_inner_sql = virtual_table_from.element.element.text
+    assert "'Alice'" in rendered_inner_sql, (
+        "filter_values() should render the native drill-to-detail-style "
+        "filter directly into the virtual dataset's own templated SQL, "
+        f"not just the outer query. Rendered SQL: {rendered_inner_sql}"
+    )
+
+
 def test_extras_where_is_parenthesized(
     database: Database,
 ) -> None:

@@ -35,7 +35,9 @@ from superset.sql.parse import SQLStatement, Table
 from superset.sql_lab import (
     execute_query,
     execute_sql_statements,
+    get_query,
     get_sql_results,
+    SqlLabException,
 )
 from superset.utils.rls import apply_rls, get_predicates_for_table
 from tests.conftest import with_config
@@ -69,6 +71,58 @@ def test_execute_query(mocker: MockerFixture, app: None) -> None:
         query,
     )
     SupersetResultSet.assert_called_with([(42,)], cursor.description, db_engine_spec)
+
+
+def test_get_query_rolls_back_session_before_retrying(
+    mocker: MockerFixture, app: SupersetApp
+) -> None:
+    """
+    A broken transaction (e.g. `PendingRollbackError` following a failed flush)
+    leaves the session unusable until `session.rollback()` is called, so without
+    it every `backoff` retry would reuse the same poisoned session and fail
+    identically. `get_query` must roll back on failure so each retry gets a
+    clean session and has a real chance to succeed.
+    """
+    # avoid actually sleeping through the `backoff` decorator's retry interval
+    mocker.patch("backoff._sync.time.sleep")
+
+    expected_query = mocker.MagicMock()
+    mock_one = mocker.patch("superset.sql_lab.db.session.query")
+    mock_one.return_value.filter_by.return_value.one.side_effect = [
+        Exception("session is broken"),
+        expected_query,
+    ]
+    mock_rollback = mocker.patch("superset.sql_lab.db.session.rollback")
+
+    result = get_query(query_id=1)
+
+    assert result is expected_query
+    assert mock_one.return_value.filter_by.return_value.one.call_count == 2
+    mock_rollback.assert_called_once()
+
+
+def test_get_query_swallows_rollback_failure(
+    mocker: MockerFixture, app: SupersetApp
+) -> None:
+    """
+    If the session/connection is too broken for `rollback()` itself to succeed,
+    that failure must not replace the original lookup error: `get_query` still
+    needs to raise `SqlLabException` so the `backoff` decorator's retry contract
+    (which only matches on `SqlLabException`) isn't bypassed.
+    """
+    mocker.patch("backoff._sync.time.sleep")
+
+    mock_one = mocker.patch("superset.sql_lab.db.session.query")
+    mock_one.return_value.filter_by.return_value.one.side_effect = Exception(
+        "session is broken"
+    )
+    mocker.patch(
+        "superset.sql_lab.db.session.rollback",
+        side_effect=Exception("connection already closed"),
+    )
+
+    with pytest.raises(SqlLabException):
+        get_query(query_id=1)
 
 
 @with_config(

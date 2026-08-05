@@ -95,13 +95,8 @@ jobs:
           # Return to the original branch
           git checkout local_gha_temp
 
-      - name: Fetch/list all tags
-        run: |
-          git submodule update
-          cat .github/actions/chart-releaser-action/action.yml
-
       - name: Run chart-releaser
-        uses: ./.github/actions/chart-releaser-action
+        uses: helm/chart-releaser-action@cae68fefc6b5f367a0275617c9f83181ba54714f # v1.7.0
         with:
           version: v1.6.0
           charts_dir: helm
