@@ -162,6 +162,26 @@ jobs:
           docker run --rm $TAG bash -c \
           "npm i && npm run plugins:build && npm run type"
 
+  validate-frontend:
+    needs: frontend-build
+    if: needs.frontend-build.outputs.should-run == 'true'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
+    steps:
+      - name: Download Docker Image Artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: docker-image
+
+      - name: Load Docker Image
+        run: |
+          zstd -d < docker-image.tar.zst | docker load
+
+      - name: Validate dependency tree
+        run: |
+          docker run --rm $TAG bash -c \
+          "npm ls --all --package-lock-only --depth=0 --json > /dev/null"
+
   test-storybook:
     needs: frontend-build
     if: needs.frontend-build.outputs.should-run == 'true'
@@ -181,3 +201,14 @@ jobs:
         run: |
           docker run --rm $TAG bash -c \
           "npm run build-storybook && npx playwright install-deps && npx playwright install chromium && npm run test-storybook:ci"
+
+  actions-timeline:
+    needs: [report-coverage, lint-frontend, validate-frontend, test-storybook]
+    if: always()
+    runs-on: ubuntu-26.04
+    permissions:
+      actions: read
+    steps:
+      - uses: Kesin11/actions-timeline@7bf79990b7c09f5dfb570ac30b814ca597bd538e # v3.1.1
+        with:
+          expand-composite-actions: true
