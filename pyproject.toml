@@ -173,7 +173,7 @@ dremio = ["sqlalchemy-dremio>=1.2.1, <3.0.5"]
 # 1.1.10 already supports SQLAlchemy 2.0 (added `import_dbapi` in 1.1.7).
 drill = ["sqlalchemy-drill>=1.1.10, <3"]
 druid = ["pydruid>=0.6.5,<0.7"]
-duckdb = ["duckdb>=1.5.4,<2", "duckdb-engine>=0.17.0"]
+duckdb = ["duckdb>=1.5.5,<2", "duckdb-engine>=0.17.0"]
 dynamodb = ["pydynamodb>=0.8.2"]
 # Effectively unmaintained (only dependabot bumps since 2024); hard-pinned to
 # SQLAlchemy ~1.4.7 upstream, no SQLAlchemy 2.0 work. See
