@@ -1587,6 +1587,7 @@ export default function transformProps(
       label: xAxisLabel,
       type: xAxisType,
     },
+    resolvedTimeGrain,
     refs,
     coltypeMapping: dataTypes,
     onLegendScroll,

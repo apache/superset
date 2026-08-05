@@ -424,9 +424,7 @@ test('uses rendered categorical axis for query event handlers', () => {
     />,
   );
 
-  expect(getLatestEchartProps().queryEventHandlers?.[0].query).toBe(
-    'xAxis',
-  );
+  expect(getLatestEchartProps().queryEventHandlers?.[0].query).toBe('xAxis');
 
   cleanup();
   mockEchart.mockReset();
@@ -445,9 +443,7 @@ test('uses rendered categorical axis for query event handlers', () => {
     />,
   );
 
-  expect(getLatestEchartProps().queryEventHandlers?.[0].query).toBe(
-    'yAxis',
-  );
+  expect(getLatestEchartProps().queryEventHandlers?.[0].query).toBe('yAxis');
 });
 
 test('emits cross-filter from horizontal categorical axis label clicks', () => {
@@ -475,7 +471,7 @@ test('emits cross-filter from horizontal categorical axis label clicks', () => {
   labelClickHandler?.({
     targetType: 'axisLabel',
     value: 'Product A',
-  } as ECElementEvent);
+  } as unknown as ECElementEvent);
 
   expect(setDataMaskMock.mock.calls[0][0].extraFormData.filters).toEqual([
     {
@@ -520,6 +516,7 @@ test('emits TEMPORAL_RANGE cross-filter from time axis label click on day bucket
     emitCrossFilters: true,
     setDataMask: setDataMaskMock,
     groupby: [], // No dimensions
+    resolvedTimeGrain: TimeGranularity.DAY,
     formData: {
       ...defaultFormData,
       granularitySqla: 'ds',
@@ -540,7 +537,7 @@ test('emits TEMPORAL_RANGE cross-filter from time axis label click on day bucket
   labelClickHandler?.({
     targetType: 'axisLabel',
     value: '2021-01-01',
-  } as ECElementEvent);
+  } as unknown as ECElementEvent);
 
   expect(setDataMaskMock.mock.calls[0][0].extraFormData.filters).toEqual([
     {
@@ -560,6 +557,7 @@ test('emits TEMPORAL_RANGE cross-filter from time axis label click on month buck
       emitCrossFilters
       setDataMask={setDataMaskMock}
       groupby={[]}
+      resolvedTimeGrain={TimeGranularity.MONTH}
       formData={{
         ...defaultFormData,
         granularitySqla: 'ds',
@@ -579,7 +577,7 @@ test('emits TEMPORAL_RANGE cross-filter from time axis label click on month buck
   labelClickHandler?.({
     targetType: 'axisLabel',
     value: '2021-01-01',
-  } as ECElementEvent);
+  } as unknown as ECElementEvent);
 
   expect(setDataMaskMock.mock.calls[0][0].extraFormData.filters).toEqual([
     {
@@ -599,6 +597,7 @@ test('emits TEMPORAL_RANGE cross-filter from time axis label click on year bucke
       emitCrossFilters
       setDataMask={setDataMaskMock}
       groupby={[]}
+      resolvedTimeGrain={TimeGranularity.YEAR}
       formData={{
         ...defaultFormData,
         granularitySqla: 'ds',
@@ -618,7 +617,7 @@ test('emits TEMPORAL_RANGE cross-filter from time axis label click on year bucke
   labelClickHandler?.({
     targetType: 'axisLabel',
     value: '2021-01-01',
-  } as ECElementEvent);
+  } as unknown as ECElementEvent);
 
   expect(setDataMaskMock.mock.calls[0][0].extraFormData.filters).toEqual([
     {
@@ -638,10 +637,62 @@ test('emits upper-exclusive TEMPORAL_RANGE from time point click on month bucket
       emitCrossFilters
       setDataMask={setDataMaskMock}
       groupby={[]}
+      resolvedTimeGrain={TimeGranularity.MONTH}
       formData={{
         ...defaultFormData,
         granularitySqla: 'ds',
         timeGrainSqla: TimeGranularity.MONTH,
+      }}
+      xAxis={{
+        label: DTTM_ALIAS,
+        type: AxisType.Time,
+      }}
+    />,
+  );
+
+  const clickHandler = getLatestEchartProps().eventHandlers?.click;
+  expect(clickHandler).toBeDefined();
+  clickHandler?.({
+    componentType: 'series',
+    seriesName: 'Sales',
+    data: [Date.UTC(2021, 0, 1), 100],
+    name: '2021-01-01',
+    dataIndex: 0,
+  });
+
+  await waitFor(
+    () => {
+      expect(setDataMaskMock).toHaveBeenCalled();
+    },
+    { timeout: 500 },
+  );
+
+  expect(setDataMaskMock.mock.calls[0][0].extraFormData.filters).toEqual([
+    {
+      col: 'ds',
+      op: 'TEMPORAL_RANGE',
+      val: '2021-01-01T00:00:00 : 2021-02-01T00:00:00',
+    },
+  ]);
+});
+
+test('uses resolved time grain for temporal point-click cross-filter', async () => {
+  const setDataMaskMock = jest.fn();
+
+  render(
+    <EchartsTimeseries
+      {...defaultProps}
+      emitCrossFilters
+      setDataMask={setDataMaskMock}
+      groupby={[]}
+      resolvedTimeGrain={TimeGranularity.MONTH}
+      formData={{
+        ...defaultFormData,
+        granularitySqla: 'ds',
+        timeGrainSqla: TimeGranularity.DAY,
+        extraFormData: {
+          time_grain_sqla: TimeGranularity.MONTH,
+        },
       }}
       xAxis={{
         label: DTTM_ALIAS,
@@ -685,6 +736,7 @@ test('emits TEMPORAL_RANGE from horizontal time point click using timestamp, not
       emitCrossFilters
       setDataMask={setDataMaskMock}
       groupby={[]}
+      resolvedTimeGrain={TimeGranularity.MONTH}
       formData={{
         ...defaultFormData,
         orientation: OrientationType.Horizontal,
@@ -733,6 +785,7 @@ test('emits TEMPORAL_RANGE cross-filter from horizontal time axis label click', 
       emitCrossFilters
       setDataMask={setDataMaskMock}
       groupby={[]}
+      resolvedTimeGrain={TimeGranularity.MONTH}
       formData={{
         ...defaultFormData,
         orientation: OrientationType.Horizontal,
@@ -753,7 +806,7 @@ test('emits TEMPORAL_RANGE cross-filter from horizontal time axis label click', 
   labelClickHandler?.({
     targetType: 'axisLabel',
     value: '2021-01-01',
-  } as ECElementEvent);
+  } as unknown as ECElementEvent);
 
   expect(setDataMaskMock.mock.calls[0][0].extraFormData.filters).toEqual([
     {
@@ -793,7 +846,7 @@ test('warns and skips temporal axis label cross-filter when label value cannot b
   labelClickHandler?.({
     targetType: 'axisLabel',
     value: 'not-a-date',
-  } as ECElementEvent);
+  } as unknown as ECElementEvent);
 
   expect(setDataMaskMock).not.toHaveBeenCalled();
   expect(warn).toHaveBeenCalledWith(
@@ -814,7 +867,8 @@ test('clears temporal X-axis cross-filter when clicking selected bucket again', 
       emitCrossFilters
       setDataMask={setDataMaskMock}
       groupby={[]}
-      selectedValues={{ ds: selectedRange }}
+      selectedValues={{ 0: selectedRange }}
+      resolvedTimeGrain={TimeGranularity.MONTH}
       formData={{
         ...defaultFormData,
         granularitySqla: 'ds',
@@ -885,7 +939,7 @@ test('does not emit temporal X-axis label cross-filter when dimensions are set',
   labelClickHandler?.({
     targetType: 'axisLabel',
     value: '2021-01-01',
-  } as ECElementEvent);
+  } as unknown as ECElementEvent);
 
   expect(setDataMaskMock).not.toHaveBeenCalled();
 });
@@ -1000,6 +1054,55 @@ test('emits cross-filter on the category value for a horizontal categorical bar'
       },
     ]);
   }
+});
+
+test('context menu cross-filter is available for a temporal bar point', async () => {
+  const onContextMenuMock = jest.fn();
+
+  render(
+    <EchartsTimeseries
+      {...defaultProps}
+      emitCrossFilters
+      onContextMenu={onContextMenuMock}
+      groupby={[]}
+      resolvedTimeGrain={TimeGranularity.MONTH}
+      formData={{
+        ...defaultFormData,
+        granularitySqla: 'ds',
+        timeGrainSqla: TimeGranularity.DAY,
+        extraFormData: {
+          time_grain_sqla: TimeGranularity.MONTH,
+        },
+      }}
+      xAxis={{
+        label: DTTM_ALIAS,
+        type: AxisType.Time,
+      }}
+    />,
+  );
+
+  const contextMenuHandler = getLatestEchartProps().eventHandlers?.contextmenu;
+  expect(contextMenuHandler).toBeDefined();
+  await contextMenuHandler?.({
+    componentType: 'series',
+    seriesName: 'Sales',
+    data: [Date.UTC(2021, 0, 1), 100],
+    name: '2021-01-01',
+    event: { stop: jest.fn(), event: { clientX: 10, clientY: 20 } },
+  });
+
+  await waitFor(() => {
+    expect(onContextMenuMock).toHaveBeenCalled();
+  });
+
+  const { crossFilter } = onContextMenuMock.mock.calls[0][2];
+  expect(crossFilter.dataMask.extraFormData.filters).toEqual([
+    {
+      col: 'ds',
+      op: 'TEMPORAL_RANGE',
+      val: '2021-01-01T00:00:00 : 2021-02-01T00:00:00',
+    },
+  ]);
 });
 
 // Test for issue #41102: the context-menu ("Add cross-filter") path must also

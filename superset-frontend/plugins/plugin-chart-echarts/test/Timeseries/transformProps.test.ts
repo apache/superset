@@ -2362,6 +2362,7 @@ test('tooltip time grain wiring: dashboard-level extraFormData time grain overri
   });
 
   const transformedProps = transformProps(chartProps);
+  expect(transformedProps.resolvedTimeGrain).toBe(TimeGranularity.MONTH);
   const tooltipFormatter = (
     transformedProps.echartOptions as unknown as TooltipFormatterOptions
   ).tooltip.formatter;
@@ -2395,6 +2396,7 @@ test('tooltip time grain wiring: chart-level time grain drives the tooltip when 
   });
 
   const transformedProps = transformProps(chartProps);
+  expect(transformedProps.resolvedTimeGrain).toBe(TimeGranularity.YEAR);
   const tooltipFormatter = (
     transformedProps.echartOptions as unknown as TooltipFormatterOptions
   ).tooltip.formatter;
