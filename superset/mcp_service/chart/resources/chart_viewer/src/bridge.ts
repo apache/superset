@@ -28,7 +28,12 @@
  * context notifications, tools/call, ui/update-model-context, ui/open-link.
  * Outside a host (standalone dev), every call no-ops gracefully.
  */
-import type { ChartData, ChartMeta, ColorScheme } from './types';
+import type {
+  ChartData,
+  ChartMeta,
+  ColorScheme,
+  DashboardRender,
+} from './types';
 
 /** Display modes the widget can ask the host to switch between. */
 export type DisplayMode = 'inline' | 'fullscreen';
@@ -95,6 +100,8 @@ export interface HostDiagnostics {
 
 export interface BridgeInit {
   chartData: ChartData | null;
+  /** Composite payload when the tool was render_dashboard. */
+  dashboard?: DashboardRender | null;
   meta: ChartMeta;
   context: HostContext;
   capabilities: HostCapabilities;
@@ -120,6 +127,7 @@ export type ToolResultListener = (
   data: ChartData | null,
   meta: ChartMeta,
   error?: string,
+  dashboard?: DashboardRender | null,
 ) => void;
 
 interface PendingCall {
@@ -183,9 +191,12 @@ export class ChartBridge {
       this.diagnostics = buildDiagnostics(result, this.capabilities, true);
       this.notify('ui/notifications/initialized', {});
 
-      const { chartData, meta, error } = extractToolResult(result?.toolResult);
+      const { chartData, dashboard, meta, error } = extractToolResult(
+        result?.toolResult,
+      );
       return {
         chartData,
+        dashboard,
         meta,
         context: parseHostContext(result?.hostContext),
         capabilities: this.capabilities,
@@ -438,8 +449,10 @@ export class ChartBridge {
   private handleNotification(method: string, params: unknown): void {
     switch (method) {
       case 'ui/notifications/tool-result': {
-        const { chartData, meta, error } = extractToolResult(params);
-        this.resultListeners.forEach((fn) => fn(chartData, meta, error));
+        const { chartData, dashboard, meta, error } = extractToolResult(params);
+        this.resultListeners.forEach((fn) =>
+          fn(chartData, meta, error, dashboard),
+        );
         break;
       }
       case 'ui/notifications/host-context-changed': {
@@ -622,13 +635,23 @@ function readContainer(
 }
 
 /** Pull ChartData + _meta (and any error) out of a CallToolResult-shaped object. */
+/** A render_dashboard payload: a layout with cells, not columns and rows. */
+export function isDashboardRender(v: unknown): v is DashboardRender {
+  return (
+    !!v &&
+    typeof v === 'object' &&
+    Array.isArray((v as { cells?: unknown }).cells)
+  );
+}
+
 export function extractToolResult(toolResult: unknown): {
   chartData: ChartData | null;
+  dashboard: DashboardRender | null;
   meta: ChartMeta;
   error?: string;
 } {
   if (!toolResult || typeof toolResult !== 'object')
-    return { chartData: null, meta: {} };
+    return { chartData: null, dashboard: null, meta: {} };
   const tr = toolResult as {
     structuredContent?: unknown;
     content?: Array<{ type: string; text?: string }>;
@@ -643,6 +666,7 @@ export function extractToolResult(toolResult: unknown): {
     const block = tr.content?.find((c) => c.type === 'text' && c.text);
     return {
       chartData: null,
+      dashboard: null,
       meta,
       error: block?.text || 'The chart tool returned an error.',
     };
@@ -657,12 +681,14 @@ export function extractToolResult(toolResult: unknown): {
     const e = coerced as { error: string; error_type?: string };
     return {
       chartData: null,
+      dashboard: null,
       meta,
       error: e.error_type ? `${e.error} (${e.error_type})` : e.error,
     };
   }
   return {
     chartData: isChartData(coerced) ? (coerced as ChartData) : null,
+    dashboard: isDashboardRender(coerced) ? coerced : null,
     meta,
   };
 }

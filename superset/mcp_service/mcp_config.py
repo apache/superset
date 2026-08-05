@@ -171,6 +171,7 @@ MCP_GUEST_ALLOWED_TOOLS: set[str] = {
     # rendered interactively. render_chart_requery is the widget's drill/zoom.
     "render_chart",
     "render_chart_requery",
+    "render_dashboard",
 }
 
 # Hook to restrict which MCP tools a principal may call, independent of RBAC.
@@ -414,6 +415,7 @@ MCP_TOOL_SEARCH_CONFIG: dict[str, Any] = {
         # its ``_meta.ui.visibility = ["app"]`` keeps compliant hosts from
         # surfacing it to the model.
         "render_chart_requery",
+        "render_dashboard",
     ],
     "search_tool_name": "search_tools",  # Name of the search tool
     "call_tool_name": "call_tool",  # Name of the call proxy tool
@@ -442,6 +444,9 @@ MCP_STRUCTURED_CONTENT_KEEP_TOOLS: set[str] = {
     # The widget's drill-down/zoom re-query; its structured result is what the
     # widget renders after an interaction, so it must survive stripping too.
     "render_chart_requery",
+    # Composite dashboard render: a layout tree plus one chart payload per
+    # cell. Same reason — the widget renders the structured result.
+    "render_dashboard",
 }
 
 

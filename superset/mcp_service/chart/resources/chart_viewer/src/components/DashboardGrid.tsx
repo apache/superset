@@ -1,0 +1,147 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+/**
+ * A dashboard rendered as a composite visualization: a layout tree whose
+ * leaves are ordinary charts, drawn with the SAME renderers a single chart
+ * uses.
+ *
+ * Deliberately static. No native filters, no cross-filters, no shared
+ * selection — composition and the interaction graph are separate capabilities
+ * and only the first is prototyped here.
+ *
+ * Every cell renders something. A leaf with no data becomes a labelled
+ * placeholder rather than a gap: a partial composite that silently omits cells
+ * looks like a complete one, which is the failure mode most likely to make
+ * this read as broken.
+ */
+import { useMemo, useState, type JSX } from 'react';
+import type { DashboardCell, DashboardRender, ViewType } from '../types';
+import type { ThemeTokens } from '../theme';
+import {
+  chartDataToEChartsOption,
+  defaultViewForChartType,
+  isEChartsView,
+} from '../adapter';
+import { EChart } from './EChart';
+import { BigNumber } from './BigNumber';
+import { DataTable } from './DataTable';
+import { stripUntrustedMarkers } from '../format';
+
+function CellBody({
+  cell,
+  theme,
+}: {
+  cell: DashboardCell;
+  theme: ThemeTokens;
+}): JSX.Element {
+  const data = cell.data ?? null;
+
+  const view: ViewType | null = useMemo(
+    () => (data ? defaultViewForChartType(data.chart_type, data) : null),
+    [data],
+  );
+
+  if (!data || !view) {
+    return (
+      <div className="sv-cell-placeholder">
+        <span className="sv-cell-placeholder-icon" aria-hidden="true">
+          {cell.status === 'error' ? '!' : '—'}
+        </span>
+        <span>
+          {stripUntrustedMarkers(cell.message ?? 'No data for this chart.')}
+        </span>
+      </div>
+    );
+  }
+
+  // Same dispatch as the single-chart view (App.tsx), so a cell renders
+  // exactly as it would on its own.
+  if (view === 'big_number') return <BigNumber data={data} theme={theme} />;
+  if (view === 'table' || !isEChartsView(view)) {
+    return <DataTable data={data} />;
+  }
+  return (
+    <EChart
+      option={chartDataToEChartsOption(data, view, { theme })}
+      scheme={theme.scheme}
+    />
+  );
+}
+
+export function DashboardGrid({
+  render,
+  theme,
+}: {
+  render: DashboardRender;
+  theme: ThemeTokens;
+}): JSX.Element {
+  // Tabs are presentational here: cells carry their tab id, so switching tabs
+  // filters what is shown without re-querying anything.
+  const tabs = render.tabs ?? [];
+  const [activeTab, setActiveTab] = useState<string | null>(
+    tabs.length ? tabs[0].id : null,
+  );
+  const cells = activeTab
+    ? render.cells.filter((c) => c.tab_id === activeTab)
+    : render.cells;
+
+  return (
+    <div className="sv-dash">
+      {tabs.length > 1 && (
+        <div className="sv-dash-tabs" role="tablist">
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={t.id === activeTab}
+              className={`sv-chip${t.id === activeTab ? ' sv-chip--on' : ''}`}
+              onClick={() => setActiveTab(t.id)}
+            >
+              {stripUntrustedMarkers(t.name ?? 'Tab')}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="sv-dash-grid">
+        {cells.map((cell, i) => (
+          <div
+            className={`sv-dash-cell${
+              cell.status === 'ok' ? '' : ' sv-dash-cell--empty'
+            }`}
+            key={`${cell.chart_id ?? 'cell'}-${i}`}
+          >
+            <div className="sv-dash-cell-title">
+              {stripUntrustedMarkers(
+                cell.title ?? cell.data?.chart_name ?? 'Chart',
+              )}
+            </div>
+            <div className="sv-dash-cell-body">
+              <CellBody cell={cell} theme={theme} />
+            </div>
+          </div>
+        ))}
+        {cells.length === 0 && (
+          <div className="sv-cell-placeholder">No charts in this tab.</div>
+        )}
+      </div>
+    </div>
+  );
+}

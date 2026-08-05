@@ -91,3 +91,34 @@ export interface RequeryArgs {
 }
 
 export const REQUERY_TOOL_NAME = 'render_chart_requery';
+
+/**
+ * One leaf of a rendered dashboard layout.
+ *
+ * A cell always renders something: `status` distinguishes real data from a
+ * placeholder (a chart past the query cap) or a failure (its query errored).
+ * Nothing is dropped — a composite that silently omits cells reads as though
+ * it covered everything.
+ */
+export interface DashboardCell {
+  chart_id?: number | null;
+  title?: string | null;
+  tab_id?: string | null;
+  width?: number | null;
+  height?: number | null;
+  status: 'ok' | 'skipped' | 'error';
+  message?: string | null;
+  data?: ChartData | null;
+}
+
+/** A dashboard as a composite visualization: a layout plus its leaves. */
+export interface DashboardRender {
+  dashboard_id?: number | null;
+  dashboard_title?: string | null;
+  dashboard_url?: string | null;
+  tabs: Array<{ id: string; name?: string | null; parent_tab_id?: string | null }>;
+  cells: DashboardCell[];
+  chart_count: number;
+  rendered_count: number;
+  theme?: Record<string, unknown> | null;
+}

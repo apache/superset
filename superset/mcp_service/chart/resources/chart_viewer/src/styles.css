@@ -765,3 +765,88 @@ body {
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+/* ---- Dashboard (composite visualization) ---- */
+.sv-dash {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+  overflow: auto;
+}
+
+.sv-dash-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sv-dash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px;
+}
+
+.sv-dash-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 220px;
+  padding: 10px 12px;
+  background: var(--sv-panel);
+  border: 1px solid var(--sv-border);
+  border-radius: var(--sv-radius-sm);
+  /* Clip, for the same reason the sparkline slot does: a cell that mis-sizes
+     must not paint over its neighbours in a grid. */
+  overflow: hidden;
+}
+
+.sv-dash-cell--empty {
+  border-style: dashed;
+}
+
+.sv-dash-cell-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sv-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sv-dash-cell-body {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 180px;
+}
+
+/* Leaf charts fill their cell rather than claiming the 220px primary-view
+   floor, which would overflow the cell exactly as it did the sparkline. */
+.sv-dash-cell-body > .sv-echart {
+  min-height: 0;
+  height: 100%;
+}
+
+.sv-cell-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 100%;
+  min-height: 120px;
+  padding: 8px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--sv-text-muted);
+}
+
+.sv-cell-placeholder-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid var(--sv-border);
+  font-weight: 700;
+}

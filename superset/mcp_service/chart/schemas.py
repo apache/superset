@@ -3146,3 +3146,100 @@ class RenderChartRequeryRequest(QueryCacheControl):
     limit: int | None = Field(
         default=None, description="Maximum number of data rows to return."
     )
+
+
+class RenderDashboardRequest(QueryCacheControl):
+    """Request to render a whole dashboard as one composite visualization."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    identifier: str | int = Field(
+        ...,
+        description="Dashboard ID, UUID, or slug.",
+    )
+    tab_id: str | None = Field(
+        None,
+        description=(
+            "Render only the charts under this tab (from the layout's tab ids). "
+            "Omit to render every chart in the dashboard."
+        ),
+    )
+    max_charts: int = Field(
+        8,
+        ge=1,
+        le=24,
+        description=(
+            "Cap on how many charts are queried. Each chart is a separate "
+            "query and a separate live ECharts instance in the widget, so the "
+            "default is deliberately small. Cells beyond the cap are returned "
+            "as placeholders rather than dropped silently."
+        ),
+    )
+    limit: int | None = Field(
+        None,
+        description="Row limit applied to each chart's query.",
+    )
+
+
+class DashboardCell(BaseModel):
+    """One leaf of the dashboard layout, with its data or the reason it has none.
+
+    A cell always renders something. `status` tells the widget which: a real
+    chart, a placeholder for a viz type it has no renderer for, a placeholder
+    for a chart past `max_charts`, or an error for one whose query failed.
+    Partial renderers that silently drop cells are the failure mode most likely
+    to make a composite look broken, so nothing is ever omitted.
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    chart_id: int | None = Field(None, description="Chart (slice) ID")
+    title: str | None = Field(None, description="Chart name as laid out")
+    tab_id: str | None = Field(None, description="Containing tab id, if any")
+    width: int | None = Field(None, description="Grid column width from layout")
+    height: int | None = Field(None, description="Grid row height from layout")
+    status: str = Field(
+        "ok",
+        description=(
+            "One of: 'ok' (data present), 'skipped' (beyond max_charts), "
+            "'error' (query failed). The widget renders a labelled placeholder "
+            "for anything that is not 'ok'."
+        ),
+    )
+    message: str | None = Field(
+        None, description="Why this cell has no data, when status is not 'ok'."
+    )
+    data: ChartData | None = Field(
+        None, description="The chart's data, when status is 'ok'."
+    )
+
+
+class DashboardRender(BaseModel):
+    """A dashboard as a composite visualization: a layout plus its leaves.
+
+    This is the composite-visualization prototype: a dashboard modelled as a
+    layout tree whose leaves are ordinary chart payloads, rendered by the same
+    leaf renderers a single chart uses. Deliberately STATIC — no native
+    filters, no cross-filters, no tab state beyond which tab a cell sits in.
+    The interaction graph is a separate capability and is not smuggled in here.
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    dashboard_id: int | None = Field(None, description="Dashboard ID")
+    dashboard_title: str | None = Field(None, description="Dashboard title")
+    dashboard_url: str | None = Field(
+        None, description="Deep link to the dashboard in Superset"
+    )
+    tabs: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Tabs from the layout: {id, name, parent_tab_id}.",
+    )
+    cells: list[DashboardCell] = Field(
+        default_factory=list, description="Leaves of the layout, in layout order."
+    )
+    chart_count: int = Field(0, description="Charts present in the layout")
+    rendered_count: int = Field(0, description="Cells that carry real data")
+    theme: dict[str, Any] | None = Field(
+        None, description="Superset theme tokens for the widget."
+    )

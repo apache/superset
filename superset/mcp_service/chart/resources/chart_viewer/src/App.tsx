@@ -25,7 +25,13 @@ import {
   type JSX,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
-import type { ChartData, ChartMeta, ColorScheme, ViewType } from './types';
+import type {
+  ChartData,
+  ChartMeta,
+  ColorScheme,
+  DashboardRender,
+  ViewType,
+} from './types';
 import { REQUERY_TOOL_NAME } from './types';
 import {
   ChartBridge,
@@ -61,6 +67,7 @@ import type { EChartsType } from './echarts';
 import { BigNumber } from './components/BigNumber';
 import { CopyPanel } from './components/CopyPanel';
 import { DataTable } from './components/DataTable';
+import { DashboardGrid } from './components/DashboardGrid';
 import { Toolbar } from './components/Toolbar';
 import type { ExportAction } from './components/ExportMenu';
 import { EmptyState, ErrorState, LoadingSkeleton } from './components/States';
@@ -100,6 +107,9 @@ export function App(): JSX.Element {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<ChartData | null>(null);
+  // Composite payload from render_dashboard. Mutually exclusive with `data`:
+  // one tool result is either a chart or a dashboard, never both.
+  const [dashboard, setDashboard] = useState<DashboardRender | null>(null);
   const [meta, setMeta] = useState<ChartMeta>({});
   const [scheme, setScheme] = useState<ColorScheme>(detectPreferredScheme());
   const [caps, setCaps] = useState<HostCapabilities | null>(null);
@@ -163,7 +173,9 @@ export function App(): JSX.Element {
 
   // Superset tokens travel with the data, so the widget renders in the
   // deployment's own branding rather than hardcoded colors.
-  const supersetTheme = (data?.theme ?? null) as SupersetThemeTokens | null;
+  const supersetTheme = (data?.theme ??
+    dashboard?.theme ??
+    null) as SupersetThemeTokens | null;
   const theme = useMemo(
     () => getThemeTokens(scheme, supersetTheme),
     [scheme, supersetTheme],
@@ -177,8 +189,18 @@ export function App(): JSX.Element {
       next: ChartData | null,
       nextMeta: ChartMeta,
       err?: string,
+      nextDashboard?: DashboardRender | null,
     ): void {
       if (!alive) return;
+      if (nextDashboard) {
+        setDashboard(nextDashboard);
+        setError(null);
+        setLoading(false);
+        window.requestAnimationFrame(() => {
+          bridge.reportSize(Math.max(window.innerWidth, 320), 720);
+        });
+        return;
+      }
       if (err) {
         // A ChartError / isError result (not-found, RBAC, query, OAuth): show
         // the styled error state instead of spinning forever.
@@ -216,6 +238,8 @@ export function App(): JSX.Element {
         }
         if (init.error) {
           intake(null, {}, init.error);
+        } else if (init.dashboard) {
+          intake(null, init.meta, undefined, init.dashboard);
         } else if (init.chartData) {
           intake(init.chartData, init.meta);
         } else if (init.connected) {
@@ -240,7 +264,9 @@ export function App(): JSX.Element {
         }
       });
 
-    const offResult = bridge.onToolResult((d, m, e) => intake(d, m, e));
+    const offResult = bridge.onToolResult((d, m, e, dash) =>
+      intake(d, m, e, dash),
+    );
     const offCtx = bridge.onContextChange((ctx) => {
       if (ctx.scheme) setScheme(ctx.scheme);
       // The host can change display mode on its own (its own fullscreen
@@ -668,6 +694,19 @@ export function App(): JSX.Element {
   }, [displayMode, toggleMaximize]);
 
   // ---- Render ------------------------------------------------------------
+  if (dashboard)
+    return shell(
+      <DashboardGrid render={dashboard} theme={theme} />,
+      null,
+      null,
+      `${dashboard.rendered_count} of ${dashboard.chart_count} charts`,
+      null,
+      toast,
+      requestedHeight,
+      startResize,
+      toggleMaximize,
+      displayMode,
+    );
   if (error)
     return shell(
       <ErrorState message={error} />,

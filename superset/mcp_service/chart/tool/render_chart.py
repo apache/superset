@@ -42,6 +42,9 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset.extensions import event_logger
 from superset.mcp_service.chart.constants import CHART_VIEWER_URI
 from superset.mcp_service.chart.schemas import (
+    DashboardCell,
+    DashboardRender,
+    RenderDashboardRequest,
     ChartData,
     ChartError,
     GetChartDataRequest,
@@ -275,3 +278,146 @@ async def render_chart_requery(
     Runs through the same authorized data path as ``render_chart``.
     """
     return await _render_chart_requery_impl(request, ctx)
+
+
+async def _render_dashboard_impl(
+    request: RenderDashboardRequest, ctx: Context
+) -> DashboardRender | ChartError:
+    """Undecorated body of ``render_dashboard`` (see the tool for docs)."""
+    from superset.daos.dashboard import DashboardDAO
+    from superset.mcp_service.dashboard.schemas import (
+        DashboardError,
+        DashboardLayout,
+        dashboard_layout_serializer,
+    )
+    from superset.mcp_service.mcp_core import ModelGetInfoCore
+
+    await ctx.info("Rendering dashboard: identifier=%s" % (request.identifier,))
+
+    # Reuse get_dashboard_layout's core rather than re-parsing position_json:
+    # one parser, one set of tab/position semantics.
+    with event_logger.log_context(action="mcp.render_dashboard.layout"):
+        layout = ModelGetInfoCore(
+            dao_class=DashboardDAO,
+            output_schema=DashboardLayout,
+            error_schema=DashboardError,
+            serializer=dashboard_layout_serializer,
+            supports_slug=True,
+            logger=logger,
+        ).run_tool(request.identifier)
+
+    if not isinstance(layout, DashboardLayout):
+        return ChartError(error=layout.error, error_type=layout.error_type)
+
+    positions = [
+        p
+        for p in layout.charts
+        if request.tab_id is None or p.tab_id == request.tab_id
+    ]
+
+    cells: list[DashboardCell] = []
+    rendered = 0
+    for index, position in enumerate(positions):
+        cell = DashboardCell(
+            chart_id=position.chart_id,
+            title=position.slice_name,
+            tab_id=position.tab_id,
+            width=position.width,
+            height=position.height,
+        )
+        if index >= request.max_charts:
+            # Kept as a visible placeholder rather than dropped: a composite
+            # that silently renders a subset reads as "covered everything".
+            cell.status = "skipped"
+            cell.message = (
+                f"Not queried — beyond the {request.max_charts}-chart limit. "
+                "Raise max_charts or pick a tab to see this one."
+            )
+            cells.append(cell)
+            continue
+        if not position.chart_id:
+            cell.status = "error"
+            cell.message = "Layout entry has no chart id."
+            cells.append(cell)
+            continue
+
+        # Same authorized path as a single chart: per-chart RBAC/RLS still
+        # applies, so an inaccessible chart degrades to one placeholder cell
+        # instead of failing the whole dashboard.
+        result = await get_chart_data_core(
+            GetChartDataRequest(
+                identifier=position.chart_id,
+                limit=request.limit,
+                use_cache=request.use_cache,
+                force_refresh=request.force_refresh,
+                cache_timeout=request.cache_timeout,
+                format="json",
+            ),
+            ctx,
+        )
+        if isinstance(result, ChartData):
+            result.explore_url = _build_explore_url(result.chart_id)
+            cell.data = result
+            cell.status = "ok"
+            rendered += 1
+        else:
+            cell.status = "error"
+            cell.message = result.error
+        cells.append(cell)
+
+    base_url = ""
+    try:
+        base_url = get_superset_base_url().rstrip("/")
+    except Exception:  # pragma: no cover - best-effort deep link
+        base_url = ""
+
+    await ctx.info(
+        "Dashboard rendered: id=%s, cells=%s, with_data=%s"
+        % (layout.id, len(cells), rendered)
+    )
+    return DashboardRender(
+        dashboard_id=layout.id,
+        dashboard_title=layout.dashboard_title,
+        dashboard_url=(
+            f"{base_url}/superset/dashboard/{layout.id}/" if base_url and layout.id else None
+        ),
+        tabs=[
+            {"id": t.id, "name": t.name, "parent_tab_id": t.parent_tab_id}
+            for t in layout.tabs
+        ],
+        cells=cells,
+        chart_count=len(positions),
+        rendered_count=rendered,
+        theme=_instance_theme_tokens(),
+    )
+
+
+@tool(
+    tags=["data"],
+    class_permission_name="Dashboard",
+    annotations=ToolAnnotations(
+        title="Render dashboard",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+    meta=_RENDER_CHART_UI_META,
+)
+async def render_dashboard(
+    request: RenderDashboardRequest, ctx: Context
+) -> DashboardRender | ChartError:
+    """Render a whole dashboard as one composite visualization in the chat.
+
+    Returns the dashboard's layout (tabs and chart positions) together with the
+    data for each chart, so an MCP Apps host renders the dashboard inline as a
+    grid of real, interactive charts rather than describing it in prose.
+
+    This is **static composition**: charts render with the dashboard's layout,
+    but the dashboard's native filters and cross-filters are not applied and no
+    interaction is shared between cells. Use ``render_chart`` for a single chart
+    with drill-down and brush-to-zoom.
+
+    Pass a dashboard ``identifier`` (ID, UUID, or slug). Narrow to one tab with
+    ``tab_id`` (ids come from ``get_dashboard_layout``), and raise or lower
+    ``max_charts`` to trade completeness against query and render cost.
+    """
+    return await _render_dashboard_impl(request, ctx)

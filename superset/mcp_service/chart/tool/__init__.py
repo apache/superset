@@ -23,7 +23,7 @@ from .get_chart_preview import get_chart_preview
 from .get_chart_sql import get_chart_sql
 from .get_chart_type_schema import get_chart_type_schema
 from .list_charts import list_charts
-from .render_chart import render_chart, render_chart_requery
+from .render_chart import render_chart, render_chart_requery, render_dashboard
 from .restore_chart import restore_chart
 from .update_chart import update_chart
 from .update_chart_preview import update_chart_preview
@@ -36,6 +36,7 @@ __all__ = [
     "generate_chart",
     "render_chart",
     "render_chart_requery",
+    "render_dashboard",
     "restore_chart",
     "update_chart",
     "update_chart_preview",
