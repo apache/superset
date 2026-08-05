@@ -40,6 +40,12 @@ const FORCE_RENDER_BATCH_SIZE = 5;
 // whole-container timeout below: a slow chart in one batch shouldn't stall
 // every later batch, since the final check catches stragglers anyway.
 const BATCH_LOAD_TIMEOUT_MS = 10_000;
+// Overall budget for the whole force-load pass (every batch wait plus the
+// final whole-container check combined). Without this, a dashboard with
+// many permanently-stalled batches could burn its full per-batch timeout
+// on each one, plus another full timeout on the final check, keeping the
+// export blocked far longer than any single timeout value suggests.
+const OVERALL_LOAD_TIMEOUT_MS = 60_000;
 
 export type ForceLoadProgress = {
   loadedBatches: number;
@@ -129,6 +135,7 @@ export async function forceLoadAllCharts(
     FeatureFlag.DashboardVirtualization,
   );
   if (useVirtualization) {
+    const deadline = Date.now() + OVERALL_LOAD_TIMEOUT_MS;
     const rowElements = getRowElements(container);
     const rowBatches = rowElements.length
       ? chunk(rowElements, FORCE_RENDER_BATCH_SIZE)
@@ -153,8 +160,15 @@ export async function forceLoadAllCharts(
         window.dispatchEvent(
           new CustomEvent(FORCE_IN_VIEW_EVENT, { detail: { rowIds } }),
         );
+        // Never wait longer than what's left of the overall budget, so a
+        // string of stalled batches can't each burn a full per-batch
+        // timeout and blow past the deadline in aggregate.
+        const remainingMs = Math.max(0, deadline - Date.now());
         // eslint-disable-next-line no-await-in-loop -- see above
-        await waitForRowsToLoad(batch, BATCH_LOAD_TIMEOUT_MS);
+        await waitForRowsToLoad(
+          batch,
+          Math.min(BATCH_LOAD_TIMEOUT_MS, remainingMs),
+        );
         onProgress?.({
           loadedBatches: index + 1,
           totalBatches: rowBatches.length,
@@ -162,7 +176,10 @@ export async function forceLoadAllCharts(
       }
     }
 
-    const allLoaded = await waitForChartsToLoad(container);
+    const allLoaded = await waitForChartsToLoad(
+      container,
+      Math.max(0, deadline - Date.now()),
+    );
     if (!allLoaded) {
       addWarningToast(
         t('Some charts did not finish loading. The export may be incomplete.'),

@@ -220,6 +220,27 @@ test('forceLoadAllCharts moves on to the next batch even if the current one time
   expect(addWarningToast).not.toHaveBeenCalled();
 });
 
+test('forceLoadAllCharts caps the total wait across batches to the overall deadline', async () => {
+  jest.useFakeTimers();
+  mockIsFeatureEnabled.mockReturnValue(true);
+  const container = document.createElement('div');
+  // 8 batches of 5 rows, every row permanently `.loading`: with no overall
+  // deadline this would burn a full 10s per batch (80s) plus another 60s on
+  // the final whole-container check (140s total) before giving up.
+  const rowIds = Array.from({ length: 40 }, (_, i) => `row-${i}`);
+  rowIds.forEach(id => container.appendChild(makeRow(id, true)));
+
+  const promise = forceLoadAllCharts(container);
+
+  // Comfortably past the 60s overall budget, but far short of the 140s the
+  // unbounded, per-timeout-summed behavior would have required.
+  await jest.advanceTimersByTimeAsync(65_000);
+  const result = await promise;
+
+  expect(result).toBe(true);
+  expect(addWarningToast).toHaveBeenCalledTimes(1);
+});
+
 test('restoreVirtualization dispatches the restore event', () => {
   const dispatchSpy = jest.spyOn(window, 'dispatchEvent');
 
