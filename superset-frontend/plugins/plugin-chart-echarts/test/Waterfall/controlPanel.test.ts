@@ -16,53 +16,50 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import config from '../../src/Waterfall/controlPanel';
+import { SqlaFormData } from '@superset-ui/core';
 
-// Walk the control panel config to grab a control's config by name.
-const findControl = (name: string): any => {
-  for (const section of (config as any).controlPanelSections) {
-    for (const row of section?.controlSetRows ?? []) {
-      for (const item of row) {
-        if (item && typeof item === 'object' && item.name === name) {
-          return item.config;
-        }
-      }
-    }
-  }
-  throw new Error(`control ${name} not found`);
-};
+// Mock getStandardizedControls so we can assert the Waterfall control panel
+// actually consumes (shifts) the queued metric and column instead of
+// leaving them for the next viz-type switch to pick up again. Regression
+// test for https://github.com/apache/superset/issues/32835, where switching
+// away from and back to another chart type (e.g. Line) produced duplicate
+// metrics because Waterfall never drained the shared standardized-controls
+// queue.
+const mockShiftMetric = jest.fn(() => 'shiftedMetric');
+const mockShiftColumn = jest.fn(() => 'shiftedColumn');
 
-const datasource = {
-  columns: [{ column_name: 'stage' }, { column_name: 'sort_order' }],
-} as any;
-const state = {
-  datasource,
-  controls: { metric: { value: 'SUM(profit)' } },
-} as any;
-
-const sortConfig = findControl('x_axis_sort');
-
-test('x_axis_sort offers dataset columns plus the current metric', () => {
-  const { choices } = sortConfig.mapStateToProps(state, { value: null });
-  const values = choices.map((c: [string, string]) => c[0]);
-  expect(values).toEqual(
-    expect.arrayContaining(['stage', 'sort_order', 'SUM(profit)']),
-  );
+jest.mock('@superset-ui/chart-controls', () => {
+  const actual = jest.requireActual('@superset-ui/chart-controls');
+  return {
+    ...actual,
+    getStandardizedControls: jest.fn(() => ({
+      shiftMetric: mockShiftMetric,
+      shiftColumn: mockShiftColumn,
+    })),
+  };
 });
 
-test('x_axis_sort keeps a value that is still a valid column or metric', () => {
-  expect(
-    sortConfig.mapStateToProps(state, { value: 'sort_order' }).shouldReset,
-  ).toBe(false);
-  expect(
-    sortConfig.mapStateToProps(state, { value: 'SUM(profit)' }).shouldReset,
-  ).toBe(false);
-});
+// eslint-disable-next-line import/first
+import controlPanel from '../../src/Waterfall/controlPanel';
 
-test('x_axis_sort resets a stale value when the referenced metric changed', () => {
-  // 'SUM(old_metric)' is neither a current column nor the current metric, so
-  // it must be reset — otherwise it leaks into the query as an unknown column.
-  expect(
-    sortConfig.mapStateToProps(state, { value: 'SUM(old_metric)' }).shouldReset,
-  ).toBe(true);
+test('formDataOverrides consumes a single metric and a single column from getStandardizedControls', () => {
+  expect(controlPanel.formDataOverrides).toBeDefined();
+
+  const dummyFormData = { someProp: 'test' } as unknown as SqlaFormData;
+  const newFormData = controlPanel.formDataOverrides!(dummyFormData);
+
+  // original properties are preserved
+  expect(newFormData.someProp).toBe('test');
+
+  // only a single metric is taken (Waterfall only supports one metric),
+  // leaving any remaining queued metrics for the next viz-type switch
+  expect(newFormData.metric).toBe('shiftedMetric');
+  expect(mockShiftMetric).toHaveBeenCalled();
+
+  // only a single column is taken for the (single-value) groupby control,
+  // leaving any remaining queued columns for the next viz-type switch;
+  // popping the whole queue here would let buildQuery group by columns
+  // that transformProps (which only reads groupby[0]) never renders.
+  expect(newFormData.groupby).toEqual(['shiftedColumn']);
+  expect(mockShiftColumn).toHaveBeenCalled();
 });

@@ -16,9 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getMetricLabel, QueryFormMetric } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  getMetricLabel,
+  QueryFormMetric,
+} from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
-import { ensureIsArray } from '@superset-ui/core';
 import {
   columnChoices,
   ControlPanelConfig,
@@ -62,7 +65,8 @@ const config: ControlPanelConfig = {
               mapStateToProps: ({ datasource, controls }, controlState) => {
                 const columns = columnChoices(datasource);
                 const metric = controls?.metric?.value as
-                  QueryFormMetric | undefined;
+                  | QueryFormMetric
+                  | undefined;
                 const metricLabel = metric ? getMetricLabel(metric) : undefined;
                 const choices =
                   metricLabel &&
