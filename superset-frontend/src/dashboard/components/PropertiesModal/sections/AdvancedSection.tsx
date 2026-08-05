@@ -22,7 +22,6 @@ import type { editors } from '@apache-superset/core';
 import { EditorHost } from 'src/core/editors';
 import { ModalFormField } from 'src/components/Modal';
 import { ValidationObject } from 'src/components/Modal/useModalValidation';
-import LabelColorMapping from './LabelColorMapping';
 
 type EditorAnnotation = editors.EditorAnnotation;
 
@@ -62,10 +61,6 @@ const AdvancedSection = ({
   onJsonMetadataChange,
 }: AdvancedSectionProps) => (
   <>
-    <LabelColorMapping
-      jsonMetadata={jsonMetadata}
-      onJsonMetadataChange={onJsonMetadataChange}
-    />
     <ModalFormField
       label={t('JSON Metadata')}
       testId="dashboard-metadata-field"
