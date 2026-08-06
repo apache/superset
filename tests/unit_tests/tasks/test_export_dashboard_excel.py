@@ -189,6 +189,8 @@ def test_chart_without_query_context_is_skipped(mocks: dict[str, Any]) -> None:
         "null",  # parses to None
         "{}",  # object with no queries
         '{"queries": []}',  # object with an empty queries list
+        '{"queries": "oops"}',  # queries present but not a list
+        '{"queries": {"a": 1}}',  # queries present but not a list
         "not valid json",  # unparseable
     ],
 )
