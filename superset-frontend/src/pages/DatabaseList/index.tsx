@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core/translation';
+import { t, tn } from '@apache-superset/core/translation';
 import {
   getExtensionsRegistry,
   SupersetClient,
@@ -100,6 +100,16 @@ interface DatabaseDeleteObject extends DatabaseObject {
   charts: any;
   dashboards: any;
   sqllab_tab_count: number;
+}
+
+/** How many dependent semantic views the delete confirmation lists by name. */
+const MAX_DEPENDENT_VIEWS_LISTED = 10;
+
+interface SemanticLayerDeleteObject extends ConnectionItem {
+  /** Total dependent semantic views; null when the lookup failed. */
+  dependentViewCount: number | null;
+  /** First page of dependent view names; null when the lookup failed. */
+  dependentViewNames: string[] | null;
 }
 interface DatabaseListProps {
   addDangerToast: (msg: string) => void;
@@ -258,7 +268,7 @@ function DatabaseList({
     null,
   );
   const [slCurrentlyDeleting, setSlCurrentlyDeleting] =
-    useState<ConnectionItem | null>(null);
+    useState<SemanticLayerDeleteObject | null>(null);
 
   const [allowUploads, setAllowUploads] = useState<boolean>(false);
   const isAdmin = isUserAdmin(fullUser);
@@ -301,6 +311,42 @@ function DatabaseList({
             ),
           ),
         ),
+    [],
+  );
+
+  // Deleting a semantic layer cascade-deletes its semantic views, so the
+  // confirmation must say what else is about to be destroyed. If the lookup
+  // fails the modal still opens, with an uncounted warning: the count is an
+  // aid, not a gate on deleting.
+  const openSemanticLayerDeleteModal = useCallback(
+    (item: ConnectionItem) =>
+      SupersetClient.get({
+        endpoint: `/api/v1/datasource/?q=${rison.encode_uri({
+          filters: [
+            { col: 'semantic_layer_uuid', opr: 'eq', value: item.uuid },
+          ],
+          order_column: 'table_name',
+          order_direction: 'asc',
+          page: 0,
+          page_size: MAX_DEPENDENT_VIEWS_LISTED,
+        })}`,
+      })
+        .then(({ json = {} }) => {
+          setSlCurrentlyDeleting({
+            ...item,
+            dependentViewCount: json.count ?? 0,
+            dependentViewNames: (json.result ?? []).map(
+              (view: { table_name: string }) => view.table_name,
+            ),
+          });
+        })
+        .catch(() => {
+          setSlCurrentlyDeleting({
+            ...item,
+            dependentViewCount: null,
+            dependentViewNames: null,
+          });
+        }),
     [],
   );
 
@@ -685,7 +731,7 @@ function DatabaseList({
                     tooltip={t('Delete')}
                     placement="bottom"
                     icon={<Icons.DeleteOutlined iconSize="l" />}
-                    onClick={() => setSlCurrentlyDeleting(original)}
+                    onClick={() => openSemanticLayerDeleteModal(original)}
                   />
                 )}
                 {canEdit && (
@@ -781,6 +827,7 @@ function DatabaseList({
       handleDatabaseExport,
       handleDatabasePermSync,
       openDatabaseDeleteModal,
+      openSemanticLayerDeleteModal,
     ],
   );
 
@@ -935,10 +982,60 @@ function DatabaseList({
       {slCurrentlyDeleting && (
         <DeleteModal
           description={
-            <p>
-              {t('Are you sure you want to delete')}{' '}
-              <b>{slCurrentlyDeleting.database_name}</b>?
-            </p>
+            <>
+              <p>
+                {t('Are you sure you want to delete')}{' '}
+                <b>{slCurrentlyDeleting.database_name}</b>?
+              </p>
+              {slCurrentlyDeleting.dependentViewCount === null ? (
+                <p>
+                  {t(
+                    'Deleting this semantic layer also permanently deletes its semantic views, and charts built on those views will stop working. The affected views could not be listed.',
+                  )}
+                </p>
+              ) : (
+                slCurrentlyDeleting.dependentViewCount > 0 && (
+                  <>
+                    <p>
+                      {tn(
+                        'This will also permanently delete its %s semantic view. Charts built on that view will stop working.',
+                        'This will also permanently delete its %s semantic views. Charts built on those views will stop working.',
+                        slCurrentlyDeleting.dependentViewCount,
+                        slCurrentlyDeleting.dependentViewCount,
+                      )}
+                    </p>
+                    <h4>{t('Affected semantic views')}</h4>
+                    <List
+                      split={false}
+                      size="small"
+                      dataSource={slCurrentlyDeleting.dependentViewNames ?? []}
+                      renderItem={(name: string) => (
+                        <List.Item key={name} compact>
+                          <List.Item.Meta
+                            avatar={<span>•</span>}
+                            title={name}
+                          />
+                        </List.Item>
+                      )}
+                      footer={
+                        slCurrentlyDeleting.dependentViewCount >
+                          (slCurrentlyDeleting.dependentViewNames?.length ??
+                            0) && (
+                          <div>
+                            {t(
+                              '... and %s others',
+                              slCurrentlyDeleting.dependentViewCount -
+                                (slCurrentlyDeleting.dependentViewNames
+                                  ?.length ?? 0),
+                            )}
+                          </div>
+                        )
+                      }
+                    />
+                  </>
+                )
+              )}
+            </>
           }
           onConfirm={() => {
             if (slCurrentlyDeleting) {
