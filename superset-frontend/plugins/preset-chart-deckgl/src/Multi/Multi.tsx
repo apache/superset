@@ -386,7 +386,13 @@ const DeckMulti = (props: DeckMultiProps) => {
             jsonPayload: {
               ...queryContext,
               result_format: 'json',
-              result_type: 'full',
+              // 'full' takes the async-query handoff under
+              // GLOBAL_ASYNC_QUERIES, and this call never registers a
+              // listener to follow that job, so a cold cache means the
+              // layer just never renders. 'results' returns the same
+              // data/colnames/coltypes this reads, skips the async path
+              // entirely.
+              result_type: 'results',
             },
           }).then(({ json }) => {
             // A newer loadLayers call (deck_slices or the visibility filter
@@ -531,38 +537,47 @@ const DeckMulti = (props: DeckMultiProps) => {
   const prevDeckSlices = usePrevious(props.formData.deck_slices);
   const prevVisibleLayersRedux = usePrevious(visibleDeckLayersFromRedux);
 
-  const fetchSubslices = useCallback(
+  const toLayerFormData = useCallback(
+    (
+      sliceId: number,
+      result: JsonObject,
+    ): ({ slice_id: number } & JsonObject) | null => {
+      let params: JsonObject = {};
+      try {
+        params = JSON.parse(result.params || '{}');
+      } catch {
+        params = {};
+      }
+      // The saved params carry a `datasource` string, but it can be
+      // stale (e.g. example charts hardcode an id that differs from the
+      // imported dataset's real id). Prefer the chart's authoritative
+      // datasource_id/datasource_type so the layer queries the dataset
+      // it is actually bound to, the same one it uses standalone.
+      const datasource =
+        result.datasource_id != null && result.datasource_type
+          ? `${result.datasource_id}__${result.datasource_type}`
+          : params.datasource;
+      return {
+        slice_id: sliceId,
+        form_data: {
+          ...params,
+          datasource,
+          slice_id: sliceId,
+          viz_type: result.viz_type ?? params.viz_type,
+        },
+      };
+    },
+    [],
+  );
+
+  const fetchSubslicesPerChart = useCallback(
     (sliceIds: number[]) =>
       Promise.all<({ slice_id: number } & JsonObject) | null>(
         sliceIds.map(sliceId =>
           SupersetClient.get({ endpoint: `/api/v1/chart/${sliceId}` })
-            .then(({ json }) => {
-              const result = (json as JsonObject).result || {};
-              let params: JsonObject = {};
-              try {
-                params = JSON.parse(result.params || '{}');
-              } catch {
-                params = {};
-              }
-              // The saved params carry a `datasource` string, but it can be
-              // stale (e.g. example charts hardcode an id that differs from the
-              // imported dataset's real id). Prefer the chart's authoritative
-              // datasource_id/datasource_type so the layer queries the dataset
-              // it is actually bound to, the same one it uses standalone.
-              const datasource =
-                result.datasource_id != null && result.datasource_type
-                  ? `${result.datasource_id}__${result.datasource_type}`
-                  : params.datasource;
-              return {
-                slice_id: sliceId,
-                form_data: {
-                  ...params,
-                  datasource,
-                  slice_id: sliceId,
-                  viz_type: result.viz_type ?? params.viz_type,
-                },
-              };
-            })
+            .then(({ json }) =>
+              toLayerFormData(sliceId, (json as JsonObject).result || {}),
+            )
             .catch(() => null),
         ),
       ).then(slices =>
@@ -570,7 +585,51 @@ const DeckMulti = (props: DeckMultiProps) => {
           (slice): slice is { slice_id: number } & JsonObject => slice !== null,
         ),
       ),
-    [],
+    [toLayerFormData],
+  );
+
+  const fetchSubslices = useCallback(
+    (sliceIds: number[]) => {
+      const containerId = props.formData.slice_id;
+      if (!containerId) {
+        // Unsaved chart in Explore: there is no saved container to gate
+        // the bulk layer lookup on, so fall back to per-chart reads.
+        return fetchSubslicesPerChart(sliceIds);
+      }
+      // Layer charts sit on no dashboard of their own, so a per-chart
+      // GET /api/v1/chart/<id> can 404 for a principal (e.g. an embedded
+      // guest) who is only entitled to the container. Resolving the
+      // container's declared layers in one gated request reproduces the
+      // access the legacy explore_json pipeline granted server-side.
+      return SupersetClient.get({
+        endpoint: `/api/v1/chart/${containerId}/deck_layers/`,
+      })
+        .then(({ json }) => {
+          const layers = ((json as JsonObject).result || []) as JsonObject[];
+          const resolved = layers
+            .map(layer => toLayerFormData(layer.slice_id, layer))
+            .filter(
+              (slice): slice is { slice_id: number } & JsonObject =>
+                slice !== null && sliceIds.includes(slice.slice_id),
+            );
+          // The container's persisted deck_slices can lag the in-memory
+          // Explore selection (e.g. a layer just added but not yet saved),
+          // so it won't be in the bulk response above. Fall back to
+          // per-chart reads for whichever requested ids weren't resolved,
+          // so newly selected layers still preview before saving.
+          const resolvedIds = new Set(resolved.map(slice => slice.slice_id));
+          const missingIds = sliceIds.filter(id => !resolvedIds.has(id));
+          if (missingIds.length === 0) {
+            return resolved;
+          }
+          return fetchSubslicesPerChart(missingIds).then(extra => [
+            ...resolved,
+            ...extra,
+          ]);
+        })
+        .catch(() => fetchSubslicesPerChart(sliceIds));
+    },
+    [props.formData.slice_id, fetchSubslicesPerChart, toLayerFormData],
   );
 
   useEffect(() => {

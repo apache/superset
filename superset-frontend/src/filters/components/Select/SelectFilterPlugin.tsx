@@ -158,6 +158,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const [initialColtypeMap] = useState(coltypeMap);
   const [search, setSearch] = useState('');
   const prevDataRef = useRef(data);
+  const userClearedRef = useRef(false);
   const [dataMask, dispatchDataMask] = useImmerReducer(reducer, {
     extraFormData: {},
     filterState,
@@ -289,8 +290,10 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       const values = value === null ? [null] : ensureIsArray(value);
 
       if (values.length === 0) {
+        userClearedRef.current = true;
         updateDataMask(null);
       } else {
+        userClearedRef.current = false;
         updateDataMask(values);
       }
     },
@@ -354,14 +357,20 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         return 0; // Preserve the original order from the backend
       }
 
-      // Only apply alphabetical sorting when no sortMetric is specified
-      const labelComparator = propertyComparator('label');
+      // Only apply sorting when no sortMetric is specified. `label` is always
+      // a formatted string (see getDataRecordFormatter), so comparing by it
+      // never reaches propertyComparator's numeric branch; numeric columns
+      // sort by the raw `value` instead so "2, 10, 100" doesn't collapse
+      // into lexicographic "10, 100, 2".
+      const comparator = propertyComparator(
+        datatype === GenericDataType.Numeric ? 'value' : 'label',
+      );
       if (formData.sortAscending) {
-        return labelComparator(a, b);
+        return comparator(a, b);
       }
-      return labelComparator(b, a);
+      return comparator(b, a);
     },
-    [formData.sortAscending, formData.sortMetric],
+    [formData.sortAscending, formData.sortMetric, datatype],
   );
 
   // Use effect for initialisation for filter plugin
@@ -380,6 +389,12 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       return;
     }
 
+    // Reset userClearedRef when clearAllTrigger fires so auto-select
+    // can re-apply if the filter is re-initialised after a global clear
+    if (clearAllTrigger) {
+      userClearedRef.current = false;
+    }
+
     if (filterState.value !== undefined) {
       // Set the filter state value if it is defined
       updateDataMask(filterState.value);
@@ -390,7 +405,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     // Skip default values when clearAllTrigger is active to prevent
     // defaults from being applied during Clear All operation
     if (!clearAllTrigger) {
-      if (defaultToFirstItem) {
+      if (defaultToFirstItem && !userClearedRef.current) {
         // Set to first item if defaultToFirstItem is true
         const firstItem: SelectValue = data[0]
           ? (groupby.map(col => data[0][col]) as string[])
@@ -451,6 +466,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     if (
       !clearAllTrigger &&
       defaultToFirstItem &&
+      !userClearedRef.current &&
       Object.keys(formData?.extraFormData || {}).length &&
       filterState.value !== undefined &&
       firstItem !== null &&
