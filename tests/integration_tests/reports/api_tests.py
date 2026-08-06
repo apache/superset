@@ -377,6 +377,11 @@ class TestReportSchedulesApi(SupersetTestCase):
             "last_state",
             "name",
             "recipients",
+            "retry_max_attempts",
+            "retry_notify_owners",
+            "retry_notify_recipients",
+            "retry_on_failure",
+            "send_failed_reports",
             "timezone",
             "type",
         ]

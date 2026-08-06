@@ -71,7 +71,7 @@ def upgrade():
     instead of a dict during chart import migration.
     """
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for slc in paginated_update(
         session.query(Slice).filter(

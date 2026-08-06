@@ -56,7 +56,7 @@ def upgrade():
     """
 
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     # Visualization types which support time granularity (hence negate).
     viz_types = [

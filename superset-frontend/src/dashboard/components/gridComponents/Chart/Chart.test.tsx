@@ -566,3 +566,31 @@ test('should pass filterState from dataMask to ChartContainer', () => {
     mockFilterState,
   );
 });
+
+test('should pass chartStackTrace to ChartContainer so dashboard chart errors stay expandable', () => {
+  // Regression guard for #31858: the dashboard chart wrapper stopped forwarding
+  // the stack trace, so failed charts rendered a flat error with no "See more"
+  // affordance while the same error in Explore stayed expandable.
+  const stackTrace = 'Traceback (most recent call last): ValueError: boom';
+
+  setup(
+    {},
+    {
+      ...defaultState,
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          chartStatus: 'failed',
+          chartAlert: 'Something went wrong',
+          chartStackTrace: stackTrace,
+        },
+      },
+    },
+  );
+
+  expect(capturedChartContainerProps).toHaveProperty(
+    'chartStackTrace',
+    stackTrace,
+  );
+});

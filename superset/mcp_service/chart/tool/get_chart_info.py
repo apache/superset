@@ -116,7 +116,7 @@ async def _validate_chart_dataset_access(
     chart = ChartDAO.find_by_id(result.id)
     if not chart:
         return None
-    validation_result = validate_chart_dataset(chart, check_access=True)
+    validation_result = validate_chart_dataset(chart.datasource_id, check_access=True)
     if not validation_result.is_valid:
         await ctx.warning(
             "Chart found but dataset is not accessible: %s" % (validation_result.error,)

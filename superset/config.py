@@ -721,6 +721,11 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enables the tagging system for organizing assets
     # @lifecycle: development
     "TAGGING_SYSTEM": False,
+    # Enables the version history panel on Explore and Dashboard pages.
+    # History only accrues while ``ENABLE_VERSIONING_CAPTURE`` is also on;
+    # with capture off the panel renders but stays empty.
+    # @lifecycle: development
+    "VERSION_HISTORY": False,
     # =================================================================
     # IN TESTING
     # =================================================================
@@ -849,6 +854,15 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: testing
     # @category: security
     "ENABLE_VIEWERS": False,
+    # Share a newly created dashboard or chart read-only with every group its
+    # creator belongs to, unless the create payload names viewers explicitly.
+    # Requires ENABLE_VIEWERS. Narrows access: an asset with no viewers falls
+    # back to datasource permissions; one with viewers is limited to its editors
+    # and viewers, and dashboards must also be published before those viewers
+    # gain access.
+    # @lifecycle: testing
+    # @category: security
+    "ASSIGN_CREATOR_GROUPS_AS_VIEWERS": False,
     # Supports simultaneous data and dashboard virtualization for backend performance
     # @lifecycle: stable
     # @category: runtime_config
@@ -987,6 +1001,12 @@ USER_AGENT_FUNC: Callable[[Database, utils.QuerySource | None], str] | None = No
 
 # This is merely a default.
 FEATURE_FLAGS: dict[str, bool] = {}
+
+# Retention policy for soft-deleted dashboards, charts, and datasets. A value of
+# zero disables scheduled purging. Dry-run mode is enabled by default so operators
+# must explicitly opt in to irreversible deletion.
+SOFT_DELETE_RETENTION_DAYS: int = 30
+SOFT_DELETE_PURGE_DRY_RUN: bool = True
 
 # A function that receives a dict of all feature flags
 # (DEFAULT_FEATURE_FLAGS merged with FEATURE_FLAGS)
@@ -1278,8 +1298,7 @@ SUPERSET_CACHE_WARMUP_USER: str | None = None
 # Time before selenium times out after trying to locate an element on the page and wait
 # for that element to load for a screenshot.
 SCREENSHOT_LOCATE_WAIT = int(timedelta(seconds=10).total_seconds())
-# Time before selenium times out after waiting for all DOM class elements named
-# "loading" are gone.
+# Time before screenshot capture times out while waiting for chart readiness.
 SCREENSHOT_LOAD_WAIT = int(timedelta(minutes=1).total_seconds())
 # Maximum time (in seconds) selenium waits for an initial page navigation
 # (driver.get) to complete. Without it the navigation blocks indefinitely when
@@ -1341,6 +1360,19 @@ CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
 
 # Cache for datasource metadata and query results
 DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
+
+# Upper bound, in bytes, on the serialized size of a single value written to the
+# data cache (chart and SQL query results). When a result's pickled size exceeds
+# this threshold the value is NOT written to the cache: the chart still renders,
+# but the next load re-queries the datasource instead of getting a cache hit. This
+# protects the cache backend (e.g. Redis/Memcached) from being flooded by very
+# large result sets. Set to ``None`` to disable the check (the default). Example:
+# 10 * 1024 * 1024 for a 10 MB limit.
+DATA_CACHE_MAX_VALUE_SIZE: int | None = None
+
+# Include per-query lifecycle timing in /api/v1/chart/data JSON responses.
+# The default keeps the public response contract unchanged.
+CHART_DATA_INCLUDE_TIMING: bool = False
 
 # Cache for dashboard filter state. `CACHE_TYPE` defaults to `SupersetMetastoreCache`
 # that stores the values in the key-value table in the Superset metastore, as it's
@@ -1408,6 +1440,19 @@ EXTENSIONS_PERSISTENT_STORAGE: dict[str, Any] = {
 
 # store cache keys by datasource UID (via CacheKey) for custom processing/invalidation
 STORE_CACHE_KEYS_IN_METADATA_DB = False
+
+# Cache timeout (in seconds) specifically for native dashboard filter option queries.
+# Native filter queries use `DATA_CACHE_CONFIG` as their backend, but their TTL can be
+# configured independently here because they often require fresher data (e.g., for
+# datasets whose visible values change frequently, including RLS-constrained datasets).
+#
+# Valid values:
+#   None : Preserve the existing cache timeout resolution chain.
+#   -1   : Completely disable cache writes for native filter options.
+#   0    : Passed directly to the underlying cache backend. Backend-specific
+#          behavior may vary. Do not use 0 to disable caching; use -1 instead.
+#   >0   : Cache filter options for the specified number of seconds.
+NATIVE_FILTER_OPTIONS_CACHE_TIMEOUT: int | None = None
 
 # CORS Options
 # NOTE: enabling this requires installing the cors-related python dependencies
@@ -1637,6 +1682,49 @@ ENABLE_VERSIONING_CAPTURE: bool = utils.parse_boolean_string(
     os.environ.get("ENABLE_VERSIONING_CAPTURE", "false")
 )
 
+# Retention window (days) for entity version history. Version rows
+# whose owning ``version_transaction.issued_at`` is older than this
+# value are pruned by the ``version_history.prune_old_versions``
+# Celery beat task (registered below in ``CeleryConfig.beat_schedule``).
+# If any row anchored at a transaction is live
+# (``end_transaction_id IS NULL``), that entire transaction is preserved.
+# Baseline rows (``operation_type=0``) and closed historical rows otherwise
+# age out alongside the rest. Any non-positive value disables pruning.
+# Read from environment variable of the same name.
+_DEFAULT_VERSION_HISTORY_RETENTION_DAYS: int = 30
+# Keep cutoff arithmetic comfortably inside ``datetime``'s supported range
+# while allowing retention windows far beyond any practical deployment age.
+_MAX_VERSION_HISTORY_RETENTION_DAYS: int = 36_500
+
+
+def _parse_version_history_retention_days() -> int:
+    """Parse the retention window without making invalid input fatal."""
+    value: str | None = os.environ.get("SUPERSET_VERSION_HISTORY_RETENTION_DAYS")
+    if value is None:
+        return _DEFAULT_VERSION_HISTORY_RETENTION_DAYS
+    try:
+        retention_days = int(value)
+    except ValueError:
+        logger.warning(
+            "Invalid SUPERSET_VERSION_HISTORY_RETENTION_DAYS=%r; using %d",
+            value,
+            _DEFAULT_VERSION_HISTORY_RETENTION_DAYS,
+        )
+        return _DEFAULT_VERSION_HISTORY_RETENTION_DAYS
+    if retention_days > _MAX_VERSION_HISTORY_RETENTION_DAYS:
+        logger.warning(
+            "SUPERSET_VERSION_HISTORY_RETENTION_DAYS=%r exceeds the maximum "
+            "of %d; using %d",
+            value,
+            _MAX_VERSION_HISTORY_RETENTION_DAYS,
+            _DEFAULT_VERSION_HISTORY_RETENTION_DAYS,
+        )
+        return _DEFAULT_VERSION_HISTORY_RETENTION_DAYS
+    return retention_days
+
+
+SUPERSET_VERSION_HISTORY_RETENTION_DAYS: int = _parse_version_history_retention_days()
+
 # Adds a warning message on sqllab save query and schedule query modals.
 SQLLAB_SAVE_WARNING_MESSAGE = None
 SQLLAB_SCHEDULE_WARNING_MESSAGE = None
@@ -1685,11 +1773,13 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
     broker_url = "sqla+sqlite:///celerydb.sqlite"
     imports = (
         "superset.sql_lab",
+        "superset.tasks.deletion_retention",
         "superset.tasks.scheduler",
         "superset.tasks.thumbnails",
         "superset.tasks.cache",
         "superset.tasks.slack",
         "superset.tasks.export_dashboard_excel",
+        "superset.tasks.version_history_retention",
     )
     result_backend = "db+sqlite:///celery_results.sqlite"
     worker_prefetch_multiplier = 1
@@ -1707,6 +1797,17 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         },
         "reports.prune_log": {
             "task": "reports.prune_log",
+            "schedule": crontab(minute=0, hour=0),
+        },
+        # Entity version-history retention. Daily at 03:00; the task
+        # itself short-circuits when SUPERSET_VERSION_HISTORY_RETENTION_DAYS
+        # is non-positive (disabled).
+        "version_history.prune_old_versions": {
+            "task": "version_history.prune_old_versions",
+            "schedule": crontab(minute=0, hour=3),
+        },
+        "deletion_retention.purge_soft_deleted": {
+            "task": "deletion_retention.purge_soft_deleted",
             "schedule": crontab(minute=0, hour=0),
         },
         # Uncomment to enable pruning of the query table
@@ -2351,8 +2452,43 @@ ALERT_REPORTS_WORKING_TIME_OUT_LAG = int(timedelta(seconds=10).total_seconds())
 ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG = int(timedelta(seconds=1).total_seconds())
 # Default values that user using when creating alert
 ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT = 3600
+# End-to-end wall-clock budget for a scheduled report execution. A single
+# monotonic deadline derived from this value is shared by browser setup,
+# readiness, capture/PDF generation, and notification delivery. The effective
+# budget for a given schedule is min(this value, the schedule's
+# working_timeout), so the per-schedule field keeps its historical meaning as
+# a user-facing cap. The default matches the historical effective ceiling
+# (the working_timeout model default of one hour), so upgrading changes no
+# default behavior; deployments with tighter SLAs should lower it. Alerts
+# retain their per-schedule ``working_timeout`` + lag behavior because query
+# evaluation and grace handling have different runtime characteristics.
+ALERT_REPORTS_EXECUTION_BUDGET_SECONDS = int(timedelta(hours=1).total_seconds())
+# Capacity inside the execution budget reserved from chart-readiness polling
+# for image capture/PDF construction, notification delivery, and the terminal
+# execution-log transition, respectively. Their sum must be less than the total;
+# unused capacity flows to later phases.
+ALERT_REPORTS_EXECUTION_CAPTURE_RESERVE_SECONDS = int(
+    timedelta(minutes=1).total_seconds()
+)
+ALERT_REPORTS_EXECUTION_DELIVERY_RESERVE_SECONDS = int(
+    timedelta(minutes=2).total_seconds()
+)
+ALERT_REPORTS_EXECUTION_CLEANUP_RESERVE_SECONDS = int(
+    timedelta(seconds=30).total_seconds()
+)
+# Celery raises the soft timeout at the execution deadline when
+# ALERT_REPORTS_WORKING_TIME_OUT_KILL is enabled. The application deadline is
+# enforced independently. The hard timeout leaves this additional window for
+# the soft-timeout handler to persist ERROR.
+ALERT_REPORTS_EXECUTION_HARD_TIMEOUT_GRACE_SECONDS = int(
+    timedelta(seconds=30).total_seconds()
+)
 ALERT_REPORTS_DEFAULT_RETENTION = 90
 ALERT_REPORTS_DEFAULT_CRON_VALUE = "0 0 * * *"  # every day
+# Retry backoff: first retry waits base seconds, each subsequent retry doubles.
+ALERT_REPORTS_RETRY_BASE_DELAY_SECONDS = 60
+# Maximum delay between retries (cap for exponential backoff).
+ALERT_REPORTS_RETRY_MAX_DELAY_SECONDS = 3600
 # If set to true no notification is sent, the worker will just log a message.
 # Useful for debugging
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = False
