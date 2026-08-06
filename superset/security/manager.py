@@ -74,6 +74,8 @@ from superset.utils import json
 from superset.utils.core import (
     DatasourceName,
     DatasourceType,
+    get_column_name,
+    get_metric_name,
     get_user_id,
     get_username,
     RowLevelSecurityFilterType,
@@ -191,11 +193,653 @@ PermissionModelView.include_route_methods = {RouteMethod.LIST}
 ViewMenuModelView.include_route_methods = {RouteMethod.LIST}
 
 
+# Keys on an adhoc column/metric that a guest may legitimately change through a
+# supported native filter, and which therefore must not count as payload
+# tampering. The time grain of a temporal x-axis is baked into its `BASE_AXIS`
+# column by `normalizeTimeColumn` on the frontend (it copies
+# `extras.time_grain_sqla` onto the column), so a Time Grain filter alters the
+# column payload without changing which data is queried.
+GUEST_OVERRIDABLE_VALUE_KEYS = frozenset({"timeGrain"})
+
+
+def _strip_overridable_keys(value: Any) -> Any:
+    """
+    Recursively drop guest-overridable keys from a value.
+
+    Adhoc columns/metrics can be nested inside sequences (e.g. an ``orderby``
+    entry is a ``(column, bool)`` tuple), so the overridable keys must be
+    stripped at every level rather than only from a top-level dict.
+    """
+    if isinstance(value, dict):
+        return {
+            key: _strip_overridable_keys(val)
+            for key, val in value.items()
+            if key not in GUEST_OVERRIDABLE_VALUE_KEYS
+        }
+    if isinstance(value, (list, tuple)):
+        return [_strip_overridable_keys(item) for item in value]
+    return value
+
+
 def freeze_value(value: Any) -> str:
     """
     Used to compare column and metric sets.
+
+    Guest-overridable keys (e.g. the time grain baked into a temporal x-axis
+    column) are dropped so that legitimate native-filter changes don't read as
+    payload tampering.
     """
-    return json.dumps(value, sort_keys=True)
+    return json.dumps(_strip_overridable_keys(value), sort_keys=True)
+
+
+# Frontend-only markers that ``normalizeTimeColumn`` adds when it synthesizes a
+# chart's x-axis into a ``BASE_AXIS`` column. Like ``timeGrain`` they decorate
+# the column without changing which data is queried, so they must not count as
+# payload tampering.
+BASE_AXIS_SYNTHETIC_KEYS = frozenset({"columnType", "isColumnReference"})
+
+
+def _denormalize_base_axis_column(value: Any) -> Any:
+    """
+    Reduce a synthesized ``BASE_AXIS`` x-axis column back to the reference it
+    stands for.
+
+    Before a chart is queried, ``normalizeTimeColumn`` (superset-ui-core,
+    ``normalizeTimeColumn.ts``) replaces the chart's saved x-axis in the query
+    with an adhoc column tagged ``columnType: "BASE_AXIS"``:
+
+    * for a *physical* x-axis it emits a pure column reference
+      (``isColumnReference: true`` with ``sqlExpression`` == ``label`` == the
+      physical column name), and
+    * for an *adhoc* x-axis it copies the saved adhoc column and adds the
+      markers (plus the time grain, already dropped by ``freeze_value``).
+
+    Neither form selects data beyond the saved x-axis, yet neither appears
+    verbatim in the chart's stored ``params``/``query_context`` (the x-axis is
+    stored under its own ``x_axis`` control, and for charts whose saved
+    ``query_context`` is NULL there is nothing to compare against at all). So a
+    guest merely loading such a chart would otherwise be rejected as a tamperer.
+
+    This collapses the synthesized column to its underlying reference, so it
+    compares equal to the stored x-axis: a physical reference becomes its column
+    name, and an adhoc reference becomes the underlying adhoc column without the
+    synthesized markers. The collapsed value must still match a value stored on
+    the chart, so tagging an unrelated column or free-form SQL as ``BASE_AXIS``
+    grants no additional access. Non-``BASE_AXIS`` values are returned unchanged.
+
+    This has to reduce the value rather than merely drop keys the way
+    ``GUEST_OVERRIDABLE_VALUE_KEYS`` handles ``timeGrain``: a physical x-axis is
+    stored as a bare string (e.g. ``"order_date"``) but sent as a dict, so no
+    amount of key-stripping makes the two compare equal; the dict must collapse
+    back to the string.
+    """
+    if not isinstance(value, dict) or value.get("columnType") != "BASE_AXIS":
+        return value
+    if value.get("isColumnReference") and isinstance(value.get("sqlExpression"), str):
+        return value["sqlExpression"]
+    return {k: v for k, v in value.items() if k not in BASE_AXIS_SYNTHETIC_KEYS}
+
+
+def _payload_value_identity(value: Any, *, is_metric: bool) -> str:
+    """
+    Comparison identity for a column or metric in the guest anti-tamper check.
+
+    Metrics compare by exact frozen value. Columns additionally collapse a
+    synthesized ``BASE_AXIS`` x-axis to the column it references, so a guest is
+    not rejected for a column the frontend derived from the chart's own x-axis.
+    """
+    if is_metric:
+        return freeze_value(value)
+    return freeze_value(_denormalize_base_axis_column(value))
+
+
+def _native_filter_allowed_targets(
+    query_context: "QueryContext", form_data: dict[str, Any]
+) -> Optional[tuple[set[str], set[str]]]:
+    """
+    Return ``(allowed_columns, allowed_metrics)`` a native-filter data request
+    may read, or ``None`` when the request cannot be tied to a native filter on
+    the requesting dashboard (in which case the caller must fail closed).
+
+    ``allowed_columns`` are the target column(s) of the filter identified by
+    ``native_filter_id`` that point at the request's datasource. ``allowed_metrics``
+    are the saved-metric name(s) the filter is configured to sort its values by
+    (``controlValues.sortMetric``), which a legitimate value lookup sends.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset import db
+    from superset.models.dashboard import Dashboard
+
+    native_filter_id = form_data.get("native_filter_id")
+    dashboard_id = form_data.get("dashboardId")
+    if not native_filter_id or not dashboard_id:
+        return None
+
+    dashboard = (
+        db.session.query(Dashboard).filter(Dashboard.id == dashboard_id).one_or_none()
+    )
+    if dashboard is None or not dashboard.json_metadata:
+        return None
+    try:
+        metadata = json.loads(dashboard.json_metadata)
+    except (TypeError, ValueError):
+        return None
+
+    datasource = getattr(query_context, "datasource", None)
+    datasource_id = datasource.data.get("id") if datasource else None
+
+    allowed_columns: set[str] = set()
+    allowed_metrics: set[str] = set()
+    for fltr in metadata.get("native_filter_configuration", []):
+        if fltr.get("id") != native_filter_id:
+            continue
+        for target in fltr.get("targets", []):
+            column = target.get("column")
+            if (
+                target.get("datasetId") == datasource_id
+                and isinstance(column, dict)
+                and column.get("name")
+            ):
+                allowed_columns.add(column["name"])
+        # The filter may be configured to sort its values by a saved metric; a
+        # legitimate value lookup then sends that metric name.
+        sort_metric = (fltr.get("controlValues") or {}).get("sortMetric") or fltr.get(
+            "sortMetric"
+        )
+        if isinstance(sort_metric, str):
+            allowed_metrics.add(sort_metric)
+        # Filter ids are unique, so the matching filter is the only one.
+        break
+
+    return allowed_columns, allowed_metrics
+
+
+def _native_filter_term_allowed(
+    term: Any, allowed_columns: set[str], allowed_metrics: set[str]
+) -> bool:
+    """
+    Whether a value-returning term (metric or order-by expression) is allowed on
+    a native-filter request: a plain reference to a target column or the
+    configured sort metric, or a simple aggregate over a target column. Free-form
+    SQL terms and other saved metrics cannot be validated and are not allowed.
+    """
+    if isinstance(term, str):
+        return term in allowed_columns or term in allowed_metrics
+    if isinstance(term, dict) and term.get("expressionType") == "SIMPLE":
+        return (term.get("column") or {}).get("column_name") in allowed_columns
+    return False
+
+
+def _native_filter_query_modified(
+    query: Any, allowed_columns: set[str], allowed_metrics: set[str]
+) -> bool:
+    """Whether a single query in a native-filter request reads beyond its targets."""
+    # Columns and group-by may only reference target column(s); adhoc (free-form
+    # SQL) columns cannot be validated, so reject them.
+    for key in ("columns", "groupby"):
+        for col in getattr(query, key, None) or []:
+            if not isinstance(col, str) or col not in allowed_columns:
+                return True
+    for metric in getattr(query, "metrics", None) or []:
+        if not _native_filter_term_allowed(metric, allowed_columns, allowed_metrics):
+            return True
+    # order-by entries are ``(expression, asc)`` pairs.
+    for order in getattr(query, "orderby", None) or []:
+        expr = order[0] if isinstance(order, (list, tuple)) and order else order
+        if not _native_filter_term_allowed(expr, allowed_columns, allowed_metrics):
+            return True
+    return False
+
+
+def _native_filter_request_modified(query_context: "QueryContext") -> bool:
+    """
+    Validate a chartless data request that targets a native filter.
+
+    Only requests identified as native-filter lookups (by the ``NATIVE_FILTER``
+    type marker or a ``native_filter_id``) are constrained; other chartless
+    paths (drill-to-detail, drill-by, samples) carry neither and are validated by
+    the datasource-access checks in raise_for_access, so they are not treated as
+    modified here.
+
+    A native filter may only read the column(s) it targets on the dashboard it
+    belongs to. The request is treated as modified (and therefore rejected for
+    guest users) when it cannot be tied to a native filter on the requesting
+    dashboard, or when any value-returning term (column, group-by, metric, or
+    order-by) references something other than a target column, a simple
+    aggregate over a target column, or the filter's configured sort metric.
+    Free-form SQL terms and saved metrics other than the configured sort metric
+    are rejected. Row-restricting clauses (``filter``/``extras``) are not
+    constrained here: cross-filters legitimately reference other columns and
+    they do not return column values; that blind-inference surface is a separate
+    concern shared with the chart path.
+    """
+    form_data = query_context.form_data or {}
+    if not (
+        form_data.get("type") == "NATIVE_FILTER" or form_data.get("native_filter_id")
+    ):
+        return False
+    targets = _native_filter_allowed_targets(query_context, form_data)
+    # Fail closed when the request cannot be tied to a native filter.
+    if targets is None:
+        return True
+    # Empty allowed sets (filter resolved but no matching column/metric target)
+    # intentionally deny every value-returning term below.
+    allowed_columns, allowed_metrics = targets
+
+    return any(
+        _native_filter_query_modified(query, allowed_columns, allowed_metrics)
+        for query in query_context.queries
+    )
+
+
+def _get_form_data_item_label(item: Any, is_metric: bool) -> str | None:
+    """
+    Return the result-key label Superset uses for a column or metric definition.
+    """
+    label: Any
+    try:
+        label = get_metric_name(item) if is_metric else get_column_name(item)
+    except (AttributeError, KeyError, TypeError, ValueError):
+        return None
+    return label if isinstance(label, str) and label else None
+
+
+def _is_hidden_table_column(column_config: Any, name: str) -> bool:
+    """
+    Whether Table column_config marks a result column as hidden.
+    """
+    config = column_config.get(name) if isinstance(column_config, dict) else None
+    return isinstance(config, dict) and config.get("visible") is False
+
+
+def _stored_sort_target_identifiers(item: Any, is_metric: bool) -> set[str]:
+    """
+    Identifiers that can refer to a stored column/metric in orderby.
+
+    The exact frozen value preserves dict-shaped adhoc references. The label
+    matches result keys sent by Table server pagination and labels accepted by
+    SQL query building for adhoc columns/metrics.
+    """
+    identifiers = {freeze_value(item)}
+    if label := _get_form_data_item_label(item, is_metric=is_metric):
+        identifiers.add(freeze_value(label))
+    return identifiers
+
+
+def _requested_sort_target_identifiers(item: Any) -> set[str]:
+    """
+    Identifiers a requested orderby term may use.
+
+    String terms are result keys. Dict-shaped terms carry expression bodies, so
+    they authorize only by exact stored identity and never by a reused label.
+    """
+    if isinstance(item, (str, dict)):
+        return {freeze_value(item)}
+    return set()
+
+
+def _add_visible_sort_targets(
+    allowed: set[str],
+    values: Any,
+    column_config: Any,
+    *,
+    is_metric: bool,
+) -> None:
+    """
+    Add visible column/metric orderby identifiers from a stored control value.
+    """
+    if not isinstance(values, (list, tuple)):
+        return
+    for value in values:
+        label = _get_form_data_item_label(value, is_metric=is_metric)
+        if label is not None and _is_hidden_table_column(column_config, label):
+            continue
+        allowed.update(_stored_sort_target_identifiers(value, is_metric=is_metric))
+
+
+def _collect_sortable_identifiers(
+    stored_chart: "Slice",
+    stored_query_context: Optional[dict[str, Any]],
+) -> set[str]:
+    """
+    Identifiers a guest may use for a new sort target.
+
+    These are the visible columns/metrics the stored chart exposes. Exact
+    owner-defined orderby replay is handled separately because saved orderby may
+    intentionally reference a non-visible helper term, while guest-initiated
+    sorting should be limited to visible result columns.
+    """
+    allowed: set[str] = set()
+    params = stored_chart.params_dict
+    column_config = params.get("column_config")
+
+    for key in ("columns", "groupby", "all_columns"):
+        _add_visible_sort_targets(
+            allowed,
+            params.get(key),
+            column_config,
+            is_metric=False,
+        )
+    # The x-axis is a visible dimension held under its own control; a guest may
+    # legitimately sort an embedded chart by it (the request sends it as the
+    # synthesized BASE_AXIS column, reduced to its reference below).
+    if params.get("x_axis"):
+        _add_visible_sort_targets(
+            allowed,
+            [params["x_axis"]],
+            column_config,
+            is_metric=False,
+        )
+    _add_visible_sort_targets(
+        allowed,
+        params.get("metrics"),
+        column_config,
+        is_metric=True,
+    )
+    # Legacy charts store a single metric under the singular ``metric`` key.
+    if params.get("metric") is not None:
+        _add_visible_sort_targets(
+            allowed,
+            [params["metric"]],
+            column_config,
+            is_metric=True,
+        )
+
+    if stored_query_context:
+        for query in stored_query_context.get("queries") or []:
+            for key in ("columns", "groupby", "all_columns"):
+                _add_visible_sort_targets(
+                    allowed,
+                    query.get(key),
+                    column_config,
+                    is_metric=False,
+                )
+            _add_visible_sort_targets(
+                allowed,
+                query.get("metrics"),
+                column_config,
+                is_metric=True,
+            )
+
+    return allowed
+
+
+def _collect_stored_orderby_entries(
+    stored_chart: "Slice",
+    stored_query_context: Optional[dict[str, Any]],
+) -> set[str]:
+    """
+    Frozen saved orderby entries a guest may replay exactly.
+    """
+    allowed: set[str] = {
+        freeze_value(entry) for entry in stored_chart.params_dict.get("orderby") or []
+    }
+    if stored_query_context:
+        for query in stored_query_context.get("queries") or []:
+            allowed.update(freeze_value(entry) for entry in query.get("orderby") or [])
+    return allowed
+
+
+def _metric_control_values(value: Any) -> list[Any]:
+    """
+    Return non-empty values from a metric-valued control.
+    """
+    if value is None or value == "":
+        return []
+    if isinstance(value, (list, tuple)):
+        return [item for item in value if item is not None and item != ""]
+    return [value]
+
+
+def _add_frozen_metric_control_values(allowed: set[str], value: Any) -> None:
+    """
+    Add exact metric-control values to an authorization set.
+    """
+    allowed.update(freeze_value(metric) for metric in _metric_control_values(value))
+
+
+def _collect_stored_series_limit_metric_identifiers(
+    stored_chart: "Slice",
+    stored_query_context: Optional[dict[str, Any]],
+) -> set[str]:
+    """
+    Exact metric selectors a guest may use for series limiting.
+    """
+    allowed: set[str] = set()
+    params = stored_chart.params_dict
+
+    _add_frozen_metric_control_values(allowed, params.get("metrics"))
+    _add_frozen_metric_control_values(allowed, params.get("metric"))
+    for key in ("series_limit_metric", "timeseries_limit_metric"):
+        _add_frozen_metric_control_values(allowed, params.get(key))
+
+    if stored_query_context:
+        for query in stored_query_context.get("queries") or []:
+            _add_frozen_metric_control_values(allowed, query.get("metrics"))
+            for key in ("series_limit_metric", "timeseries_limit_metric"):
+                _add_frozen_metric_control_values(allowed, query.get(key))
+
+    return allowed
+
+
+def _series_limit_metric_value_modified(value: Any, allowed: set[str]) -> bool:
+    """
+    Whether a requested series-limit metric is absent from stored metric controls.
+    """
+    for metric in _metric_control_values(value):
+        if not isinstance(metric, (str, dict)) or not metric:
+            return True
+        if freeze_value(metric) not in allowed:
+            return True
+    return False
+
+
+def _series_limit_metric_modified(
+    query_context: "QueryContext",
+    form_data: dict[str, Any],
+    stored_chart: "Slice",
+    stored_query_context: Optional[dict[str, Any]],
+) -> bool:
+    """
+    Whether series-limit metric selectors introduce a metric not stored on chart.
+
+    Series limiting uses the selector to rank top-N groups, so guest requests may
+    only reuse stored metric controls. Dict-shaped selectors must match exactly;
+    labels are not an authorization key for expression objects.
+    """
+    allowed: set[str] = _collect_stored_series_limit_metric_identifiers(
+        stored_chart,
+        stored_query_context,
+    )
+    for key in ("series_limit_metric", "timeseries_limit_metric"):
+        if _series_limit_metric_value_modified(form_data.get(key), allowed):
+            return True
+
+    for query in query_context.queries:
+        for key in ("series_limit_metric", "timeseries_limit_metric"):
+            if _series_limit_metric_value_modified(getattr(query, key, None), allowed):
+                return True
+
+    return False
+
+
+def _is_valid_orderby_entry(entry: Any) -> bool:
+    """
+    Whether an orderby entry has the expected ``[term, ascending]`` shape.
+    """
+    return (
+        isinstance(entry, (list, tuple))
+        and len(entry) == 2
+        and isinstance(entry[0], (str, dict))
+        and bool(entry[0])
+        and isinstance(entry[1], bool)
+    )
+
+
+def _orderby_modified(
+    query_context: "QueryContext",
+    stored_chart: "Slice",
+    stored_query_context: Optional[dict[str, Any]],
+) -> bool:
+    """
+    Whether any order-by clause sorts by a term the stored chart does not already
+    reference.
+
+    A guest reordering an embedded chart by one of its existing columns or
+    metrics is legitimate and must not read as tampering; introducing a new
+    expression is not, and is rejected.
+    """
+    visible_targets = _collect_sortable_identifiers(stored_chart, stored_query_context)
+    stored_orderby_entries = _collect_stored_orderby_entries(
+        stored_chart, stored_query_context
+    )
+    form_data = query_context.form_data or {}
+    # Both ``form_data`` and each ``QueryObject`` can carry an order-by, and in
+    # the common frontend path they carry the same one. Either source could
+    # smuggle an unauthorized term, so validate the union of both rather than
+    # trusting one over the other; the duplication is harmless.
+    form_orderby = form_data.get("orderby")
+    if form_orderby is not None and not isinstance(form_orderby, list):
+        return True
+    requested: list[Any] = list(form_orderby or [])
+    for query in query_context.queries:
+        query_orderby = getattr(query, "orderby", None)
+        if query_orderby is not None and not isinstance(query_orderby, list):
+            return True
+        requested.extend(query_orderby or [])
+
+    for entry in requested:
+        # Order-by entries must be ``(column_or_metric, ascending)`` pairs. A
+        # malformed shape (e.g. a bare string or nested list) is not a valid
+        # sort the chart could have produced, so treat it as tampering rather
+        # than letting it crash query building when it is later unpacked.
+        if not _is_valid_orderby_entry(entry):
+            return True
+        if freeze_value(entry) in stored_orderby_entries:
+            continue
+        # Reduce a synthesized BASE_AXIS x-axis sort target back to the reference
+        # it stands for, so sorting by the chart's own temporal dimension is not
+        # read as a new expression. The reduced target must still be a visible
+        # sort target, so this grants nothing beyond the chart's own columns.
+        target = _denormalize_base_axis_column(entry[0])
+        if not _requested_sort_target_identifiers(target) & visible_targets:
+            return True
+    return False
+
+
+#: Chart params keys that hold the metrics a chart renders. Different chart
+#: types store their metrics under control-specific keys (``metric`` for
+#: big number, ``x``/``y``/``size`` for bubble, and so on); a guest requesting
+#: the exact stored value reads nothing beyond what the chart already shows.
+_STORED_METRIC_PARAMS = (
+    "metrics",
+    "metric",
+    "percent_metrics",
+    "secondary_metric",
+    "series_limit_metric",
+    "timeseries_limit_metric",
+    "x",
+    "y",
+    "size",
+)
+
+#: Chart params keys that hold the columns/group-bys a chart renders, across
+#: the control names chart types use for them (``entity``/``series`` for
+#: bubble and world map, ``granularity_sqla`` for the temporal axis, etc.).
+_STORED_COLUMN_PARAMS = (
+    "columns",
+    "groupby",
+    "all_columns",
+    "entity",
+    "series",
+    "series_columns",
+    "x_axis",
+    "granularity_sqla",
+)
+
+
+def _stored_param_values(params: dict[str, Any], keys: tuple[str, ...]) -> set[str]:
+    """
+    Frozen values stored under any of the given chart params keys.
+
+    Scalar-valued controls (``metric``, ``entity``, ...) contribute their single
+    value; list-valued controls contribute each element. Matching stays exact
+    (via ``freeze_value``) — no label or expression equivalence is applied.
+    """
+    values: set[str] = set()
+    for key in keys:
+        value = params.get(key)
+        if value is None or value == "":
+            continue
+        items = value if isinstance(value, (list, tuple)) else [value]
+        values.update(
+            freeze_value(item) for item in items if item is not None and item != ""
+        )
+    return values
+
+
+def _columns_metrics_modified(
+    query_context: "QueryContext",
+    form_data: dict[str, Any],
+    stored_chart: "Slice",
+    stored_query_context: Optional[dict[str, Any]],
+) -> bool:
+    """
+    Whether the requested columns/metrics/group-by read beyond what the stored
+    chart exposes. Each requested set must be a subset of the values stored on
+    the chart (params and, when present, the stored query context).
+
+    Column-valued keys compare by an identity that first collapses a
+    frontend-synthesized ``BASE_AXIS`` x-axis back to the column it references
+    (see ``_denormalize_base_axis_column``), and additionally allow the chart's
+    stored ``x_axis``: the x-axis is a saved dimension the query carries in
+    ``columns`` but that is not itself listed under ``columns``/``groupby``.
+    """
+    for key, stored_params_keys, equivalent in [
+        ("metrics", _STORED_METRIC_PARAMS, ["metrics"]),
+        ("columns", _STORED_COLUMN_PARAMS, ["columns", "groupby"]),
+        ("groupby", _STORED_COLUMN_PARAMS, ["columns", "groupby"]),
+    ]:
+        is_metric = key == "metrics"
+
+        # Requested column values additionally collapse a frontend-synthesized
+        # ``BASE_AXIS`` x-axis to the column it references (see
+        # ``_payload_value_identity``); metrics compare by exact frozen value.
+        requested_values = {
+            _payload_value_identity(value, is_metric=is_metric)
+            for value in form_data.get(key) or []
+        }
+        # Stored params are read across every control name that can hold a
+        # metric or column for some chart type: charts whose query is built
+        # from e.g. ``metric``/``entity``/``groupby`` never store a literal
+        # ``metrics``/``columns`` key, yet their generated payload uses those,
+        # and a guest replaying the chart's own values is not tampering. This
+        # set already includes the temporal ``x_axis``; stored raw params never
+        # carry the synthesized ``BASE_AXIS`` shape, so exact matching is right.
+        stored_values = _stored_param_values(
+            stored_chart.params_dict, stored_params_keys
+        )
+        if not requested_values.issubset(stored_values):
+            return True
+
+        # compare queries in query_context
+        queries_values = {
+            _payload_value_identity(value, is_metric=is_metric)
+            for query in query_context.queries
+            for value in getattr(query, key, []) or []
+        }
+        if stored_query_context:
+            for query in stored_query_context.get("queries") or []:
+                for equiv_key in equivalent:
+                    stored_values.update(
+                        _payload_value_identity(value, is_metric=is_metric)
+                        for value in query.get(equiv_key) or []
+                    )
+
+        if not queries_values.issubset(stored_values):
+            return True
+
+    return False
 
 
 def query_context_modified(query_context: "QueryContext") -> bool:
@@ -208,12 +852,24 @@ def query_context_modified(query_context: "QueryContext") -> bool:
     form_data = query_context.form_data
     stored_chart = query_context.slice_
 
-    # native filter requests
-    if form_data is None or stored_chart is None:
+    # Native-filter data requests have no associated chart (no slice_id). Rather
+    # than accepting any payload, constrain them to the column(s) the dashboard's
+    # native filter is allowed to target; other chartless paths keep prior
+    # behavior (see _native_filter_request_modified).
+    if stored_chart is None:
+        return _native_filter_request_modified(query_context)
+
+    if form_data is None:
         return False
 
-    # cannot request a different chart
     if form_data.get("slice_id") != stored_chart.id:
+        # Only the chart's own (server-side) id is logged; the guest-supplied
+        # slice_id is not echoed, to avoid logging request-controlled values.
+        logger.warning(
+            "Guest chart payload rejected for slice %s: requested slice_id does "
+            "not match the chart",
+            stored_chart.id,
+        )
         return True
 
     stored_query_context = (
@@ -222,35 +878,52 @@ def query_context_modified(query_context: "QueryContext") -> bool:
         else None
     )
 
-    # compare columns and metrics in form_data with stored values
-    for key, equivalent in [
-        ("metrics", ["metrics"]),
-        ("columns", ["columns", "groupby"]),
-        ("groupby", ["columns", "groupby"]),
-        ("orderby", ["orderby"]),
-    ]:
-        requested_values = {freeze_value(value) for value in form_data.get(key) or []}
-        stored_values = {
-            freeze_value(value) for value in stored_chart.params_dict.get(key) or []
-        }
-        if not requested_values.issubset(stored_values):
-            return True
+    # A rejected guest load is most often a chart whose saved query_context is
+    # NULL or stale rather than genuine tampering, and the generic 403 gives no
+    # way to tell which comparator objected. Log that here (server-side only, no
+    # payload values) so the failure is diagnosable; whether the stored
+    # query_context was present is the key signal for the missing/stale case.
+    # Use ``is not None`` so an empty-but-present stored context reads as present.
+    stored_context_state = "present" if stored_query_context is not None else "missing"
 
-        # compare queries in query_context
-        queries_values = {
-            freeze_value(value)
-            for query in query_context.queries
-            for value in getattr(query, key, []) or []
-        }
-        if stored_query_context:
-            for query in stored_query_context.get("queries") or []:
-                for key in equivalent:
-                    stored_values.update(
-                        {freeze_value(value) for value in query.get(key) or []}
-                    )
+    # compare columns and metrics in form_data with stored values. Order-by is
+    # handled separately: a strict subset check there would reject a guest
+    # legitimately sorting an embedded chart by one of its existing columns.
+    if _columns_metrics_modified(
+        query_context, form_data, stored_chart, stored_query_context
+    ):
+        logger.warning(
+            "Guest chart payload rejected for slice %s: columns/metrics/group-by "
+            "not a subset of the stored chart (stored query_context %s)",
+            stored_chart.id,
+            stored_context_state,
+        )
+        return True
 
-        if not queries_values.issubset(stored_values):
-            return True
+    if _series_limit_metric_modified(
+        query_context,
+        form_data,
+        stored_chart,
+        stored_query_context,
+    ):
+        logger.warning(
+            "Guest chart payload rejected for slice %s: series-limit metric not "
+            "on the stored chart (stored query_context %s)",
+            stored_chart.id,
+            stored_context_state,
+        )
+        return True
+
+    # Order-by may sort only by columns/metrics already present in the stored
+    # chart; new expressions (e.g. ``random()``) are still rejected.
+    if _orderby_modified(query_context, stored_chart, stored_query_context):
+        logger.warning(
+            "Guest chart payload rejected for slice %s: order-by references a "
+            "term not on the stored chart (stored query_context %s)",
+            stored_chart.id,
+            stored_context_state,
+        )
+        return True
 
     return False
 
@@ -715,7 +1388,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
             # Validate the child is in the parent's configuration
             return child_slice_id in deck_slices
-        except (json.JSONDecodeError, TypeError):
+        # ``JSONDecodeError`` subclasses ``ValueError``; catching the base class
+        # keeps this robust when the decoder raises an exception class that is
+        # not identical to the imported one (e.g. after a module reload, where
+        # simplejson's C scanner holds a reference to the pre-reload class).
+        except (ValueError, TypeError):
             return False
 
     def has_drill_access(
@@ -967,6 +1644,23 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .join(assoc_permissionview_role)
             .join(self.role_model)
         )
+
+        # Guest users (embedded dashboards) have is_anonymous=False but no
+        # database identity, so querying by user_id returns nothing. Instead,
+        # resolve permissions directly from the roles attached to the guest
+        # token (typically the Public role).
+        if self.is_guest_user():
+            role_ids = [
+                role.id for role in g.user.roles if role and role.id is not None
+            ]
+            if not role_ids:
+                return set()
+            view_menu_names = (
+                base_query.filter(self.role_model.id.in_(role_ids)).filter(
+                    self.permission_model.name == permission_name
+                )
+            ).all()
+            return {s.name for s in view_menu_names}
 
         if not g.user.is_anonymous:
             user_id = get_user_id()

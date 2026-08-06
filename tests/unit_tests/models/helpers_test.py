@@ -20,7 +20,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from typing import TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
@@ -30,7 +30,7 @@ from sqlalchemy.orm.session import Session
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.sql.elements import ColumnElement
 
-from superset.superset_typing import AdhocColumn
+from superset.superset_typing import AdhocColumn, AdhocMetric
 from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:
@@ -1748,6 +1748,255 @@ def test_orderby_adhoc_column(database: Database) -> None:
     # Verify the SQL contains the expression from the adhoc column
     sql = str(result.sqla_query)
     assert "ORDER BY" in sql.upper()
+
+
+def test_orderby_adhoc_column_label_takes_precedence_over_saved_metric(
+    database: Database,
+) -> None:
+    """
+    Test that orderby by an adhoc column label resolves to the selected column.
+    """
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+
+    table: SqlaTable = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a"),
+            TableColumn(column_name="b"),
+        ],
+        metrics=[
+            SqlMetric(metric_name="custom_col", expression="SUM(a)"),
+        ],
+    )
+
+    result = table.get_sqla_query(
+        columns=[
+            {"expressionType": "SQL", "label": "custom_col", "sqlExpression": "a + 1"},
+            "b",
+        ],
+        orderby=[("custom_col", False)],
+        metrics=[],
+        extras={},
+        filter=[],
+        granularity=None,
+        is_timeseries=False,
+    )
+
+    sql = str(result.sqla_query).upper()
+    assert "ORDER BY" in sql
+    assert "SUM(A)" not in sql
+
+
+@pytest.mark.parametrize("aggregate", [None, "MEDIAN", ["SUM"], {"op": "SUM"}])
+def test_adhoc_metric_to_sqla_invalid_simple_aggregate_raises_validation_error(
+    database: Database,
+    aggregate: Any,
+) -> None:
+    """
+    Test that malformed SIMPLE adhoc metrics fail with a validation error.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table: SqlaTable = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a"),
+        ],
+    )
+    metric: AdhocMetric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "a"},
+        "label": "Invalid metric",
+    }
+    if aggregate is not None:
+        metric["aggregate"] = aggregate
+
+    with pytest.raises(QueryObjectValidationError):
+        table.adhoc_metric_to_sqla(metric, {})
+
+
+@pytest.mark.parametrize("sql_expression", [None, "", "   "])
+def test_adhoc_metric_to_sqla_invalid_sql_expression_raises_validation_error(
+    database: Database,
+    sql_expression: str | None,
+) -> None:
+    """
+    Test that malformed SQL adhoc metrics fail with a validation error.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a"),
+        ],
+    )
+    metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "label": "Invalid metric",
+    }
+    if sql_expression is not None:
+        metric["sqlExpression"] = sql_expression
+
+    with pytest.raises(QueryObjectValidationError):
+        table.adhoc_metric_to_sqla(metric, {})
+
+
+@pytest.mark.parametrize(
+    ("aggregate", "expected"),
+    [
+        ("SUM", "sum(a)"),
+        ("COUNT", "count(a)"),
+        ("MIN", "min(a)"),
+    ],
+)
+def test_adhoc_metric_to_sqla_simple_valid_aggregate(
+    database: Database,
+    aggregate: str,
+    expected: str,
+) -> None:
+    """
+    Test that a SIMPLE adhoc metric with a supported aggregate compiles.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a"),
+        ],
+    )
+    metric: AdhocMetric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "a"},
+        "aggregate": aggregate,
+        "label": "Metric",
+    }
+
+    assert expected in str(table.adhoc_metric_to_sqla(metric, {})).lower()
+
+
+@pytest.fixture
+def explore_datasource(database: Database) -> Any:
+    """
+    Return a minimal ``ExploreMixin`` datasource backed by the test database.
+
+    ``ExploreMixin`` carries its own ``adhoc_metric_to_sqla`` used by datasources
+    that are not ``SqlaTable`` (e.g. SQL Lab queries), so it needs exercising
+    independently of the ``SqlaTable`` override.
+    """
+    from superset.models.helpers import ExploreMixin
+
+    class ExploreDatasource(ExploreMixin):  # pylint: disable=abstract-method
+        @property
+        def database(self) -> Database:
+            return database
+
+        @property
+        def db_engine_spec(self) -> Any:
+            return database.db_engine_spec
+
+    return ExploreDatasource()
+
+
+@pytest.mark.parametrize(
+    ("aggregate", "expected"),
+    [
+        ("SUM", "sum(a)"),
+        ("COUNT", "count(a)"),
+        ("MIN", "min(a)"),
+    ],
+)
+def test_explore_mixin_adhoc_metric_to_sqla_simple_valid_aggregate(
+    explore_datasource: Any,
+    aggregate: str,
+    expected: str,
+) -> None:
+    """
+    Test that a SIMPLE adhoc metric with a supported aggregate compiles.
+    """
+    metric: AdhocMetric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "a"},
+        "aggregate": aggregate,
+        "label": "Metric",
+    }
+
+    assert expected in str(explore_datasource.adhoc_metric_to_sqla(metric, {})).lower()
+
+
+@pytest.mark.parametrize("aggregate", [None, "MEDIAN", ["SUM"], {"op": "SUM"}])
+def test_explore_mixin_adhoc_metric_to_sqla_invalid_simple_aggregate(
+    explore_datasource: Any,
+    aggregate: Any,
+) -> None:
+    """
+    Test that malformed SIMPLE adhoc metrics fail with a validation error.
+
+    The aggregate is interpolated into SQL, so an unsupported or non-string one
+    must be rejected rather than reaching query building.
+    """
+    from superset.exceptions import QueryObjectValidationError
+
+    metric: AdhocMetric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "a"},
+        "label": "Invalid metric",
+    }
+    if aggregate is not None:
+        metric["aggregate"] = aggregate
+
+    with pytest.raises(QueryObjectValidationError):
+        explore_datasource.adhoc_metric_to_sqla(metric, {})
+
+
+@pytest.mark.parametrize("sql_expression", [None, "", "   "])
+def test_explore_mixin_adhoc_metric_to_sqla_invalid_sql_expression(
+    explore_datasource: Any,
+    sql_expression: str | None,
+) -> None:
+    """
+    Test that malformed SQL adhoc metrics fail with a validation error.
+    """
+    from superset.exceptions import QueryObjectValidationError
+
+    metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "label": "Invalid metric",
+    }
+    if sql_expression is not None:
+        metric["sqlExpression"] = sql_expression
+
+    with pytest.raises(QueryObjectValidationError):
+        explore_datasource.adhoc_metric_to_sqla(metric, {})
+
+
+def test_explore_mixin_adhoc_metric_to_sqla_sql_expression(
+    explore_datasource: Any,
+) -> None:
+    """
+    Test that a SQL adhoc metric keeps its expression.
+    """
+    metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": "COUNT(*) + 1",
+        "label": "Metric",
+    }
+
+    compiled = str(
+        explore_datasource.adhoc_metric_to_sqla(metric, {}, processed=True)
+    ).upper()
+    assert "COUNT(*) + 1" in compiled
 
 
 def test_extras_where_is_parenthesized(
