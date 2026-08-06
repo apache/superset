@@ -26,6 +26,8 @@ from celery import current_task
 from PIL import Image
 
 from superset.utils.report_execution import (
+    CHART_HOLDER_SEMANTIC_POLICY,
+    ChartHolderDiagnostics,
     ReportExecutionBudgetExceededError,
     ReportExecutionContext,
 )
@@ -365,6 +367,7 @@ def take_tiled_screenshot(  # noqa: C901
     readiness_timeout = False
     if screenshot_started_at is None:
         screenshot_started_at = time.monotonic()
+    observed_holder_states: dict[str, str] = {}
     task_budget = (
         None
         if report_execution_context
@@ -410,6 +413,35 @@ def take_tiled_screenshot(  # noqa: C901
             return remaining
         return min(float(requested_seconds), remaining)
 
+    def _record_visible_holder_states(
+        holder_states: object,
+        *,
+        tile_number: int,
+    ) -> None:
+        """Record each report holder's strongest visible terminal state."""
+
+        if not isinstance(holder_states, list):
+            return
+        state_priority = {"rendered": 1, "empty": 2, "error": 3}
+        for position, holder in enumerate(holder_states):
+            if not isinstance(holder, dict):
+                continue
+            state = holder.get("state")
+            if not isinstance(state, str) or state not in state_priority:
+                continue
+            chart_id = holder.get("chartId")
+            holder_key = (
+                f"chart:{chart_id}"
+                if chart_id is not None
+                else f"tile:{tile_number}:holder:{position}"
+            )
+            existing_state = observed_holder_states.get(holder_key)
+            if (
+                existing_state is None
+                or state_priority[state] > state_priority[existing_state]
+            ):
+                observed_holder_states[holder_key] = state
+
     try:
         # Get the target element
         element = page.locator(f".{element_name}")
@@ -438,16 +470,28 @@ def take_tiled_screenshot(  # noqa: C901
                 )
             except PlaywrightTimeout:
                 holder_states = page.evaluate(FIND_CHART_HOLDER_STATES_JS)
+                diagnostics = ChartHolderDiagnostics.from_holder_states(holder_states)
                 elapsed, remaining = _deadline_values()
                 logger.warning(
                     "report_readiness_terminal url=%s expected_holders=%s "
-                    "mounted_holders=%s ready_holders=0 elapsed_seconds=%.2f "
-                    "remaining_seconds=%s effective_wait_seconds=%.2f%s "
+                    "mounted_holders=%s ready_holders=%s rendered_holders=%s "
+                    "empty_holders=%s error_holders=%s virtualized_holders=%s "
+                    "unready_holders=%s semantic_success=%s semantic_policy=%s "
+                    "elapsed_seconds=%.2f remaining_seconds=%s "
+                    "effective_wait_seconds=%.2f%s "
                     "terminal_reason=zero_holders_timeout states=%s; "
                     "aborting before dimensions, capture, or delivery",
                     url,
                     report_execution_context.expected_chart_count,
-                    len(holder_states),
+                    diagnostics.mounted_holders,
+                    diagnostics.ready_holders,
+                    diagnostics.rendered_holders,
+                    diagnostics.empty_holders,
+                    diagnostics.error_holders,
+                    diagnostics.virtualized_holders,
+                    diagnostics.unready_holders,
+                    diagnostics.semantic_success,
+                    CHART_HOLDER_SEMANTIC_POLICY,
                     elapsed,
                     f"{remaining:.2f}" if remaining is not None else None,
                     mount_wait,
@@ -568,10 +612,7 @@ def take_tiled_screenshot(  # noqa: C901
                 tile_elapsed = time.monotonic() - tile_wait_start
                 unready_chart_holders = page.evaluate(FIND_UNREADY_CHART_HOLDERS_JS)
                 holder_states = page.evaluate(FIND_CHART_HOLDER_STATES_JS)
-                ready_states = {"rendered", "empty", "error", "virtualized"}
-                ready_holders = sum(
-                    holder.get("state") in ready_states for holder in holder_states
-                )
+                diagnostics = ChartHolderDiagnostics.from_holder_states(holder_states)
                 elapsed, remaining = _deadline_values()
                 # A chart failing to load in time is a customer chart-loading
                 # issue (slow query, error state, etc.), not a Superset system
@@ -580,20 +621,30 @@ def take_tiled_screenshot(  # noqa: C901
                 # made the same call for the other screenshot timeout paths.
                 logger.warning(
                     "report_readiness_terminal url=%s expected_holders=%s "
-                    "mounted_holders=%s ready_holders=%s tile=%s/%s "
-                    "tiles_captured=%s/%s "
+                    "mounted_holders=%s ready_holders=%s rendered_holders=%s "
+                    "empty_holders=%s error_holders=%s virtualized_holders=%s "
+                    "unready_holders=%s semantic_success=%s semantic_policy=%s "
+                    "tile=%s/%s tiles_captured=%s/%s "
                     "tile_elapsed_seconds=%.2f elapsed_seconds=%.2f "
                     "remaining_seconds=%s effective_wait_seconds=%.2f%s "
-                    "terminal_reason=readiness_timeout unready_holders=%s "
-                    "states=%s; aborting before capture or delivery",
+                    "terminal_reason=readiness_timeout "
+                    "unready_holder_states=%s states=%s; "
+                    "aborting before capture or delivery",
                     url,
                     (
                         report_execution_context.expected_chart_count
                         if report_execution_context
                         else None
                     ),
-                    len(holder_states),
-                    ready_holders,
+                    diagnostics.mounted_holders,
+                    diagnostics.ready_holders,
+                    diagnostics.rendered_holders,
+                    diagnostics.empty_holders,
+                    diagnostics.error_holders,
+                    diagnostics.virtualized_holders,
+                    diagnostics.unready_holders,
+                    diagnostics.semantic_success,
+                    CHART_HOLDER_SEMANTIC_POLICY,
                     i + 1,
                     num_tiles,
                     len(screenshot_tiles),
@@ -610,6 +661,60 @@ def take_tiled_screenshot(  # noqa: C901
                 raise
             else:
                 tile_elapsed = time.monotonic() - tile_wait_start
+                if report_execution_context:
+                    holder_states = page.evaluate(FIND_CHART_HOLDER_STATES_JS)
+                    diagnostics = ChartHolderDiagnostics.from_holder_states(
+                        holder_states
+                    )
+                    _record_visible_holder_states(
+                        holder_states,
+                        tile_number=i + 1,
+                    )
+                    elapsed, remaining = _deadline_values()
+                    logger.info(
+                        "report_readiness_tile url=%s expected_holders=%s "
+                        "mounted_holders=%s ready_holders=%s rendered_holders=%s "
+                        "empty_holders=%s error_holders=%s "
+                        "virtualized_holders=%s unready_holders=%s "
+                        "semantic_success=%s semantic_policy=%s tile=%s/%s "
+                        "tile_elapsed_seconds=%.2f elapsed_seconds=%.2f "
+                        "remaining_seconds=%s%s",
+                        url,
+                        report_execution_context.expected_chart_count,
+                        diagnostics.mounted_holders,
+                        diagnostics.ready_holders,
+                        diagnostics.rendered_holders,
+                        diagnostics.empty_holders,
+                        diagnostics.error_holders,
+                        diagnostics.virtualized_holders,
+                        diagnostics.unready_holders,
+                        diagnostics.semantic_success,
+                        CHART_HOLDER_SEMANTIC_POLICY,
+                        i + 1,
+                        num_tiles,
+                        tile_elapsed,
+                        elapsed,
+                        f"{remaining:.2f}" if remaining is not None else None,
+                        context_suffix,
+                    )
+                    if diagnostics.error_holders:
+                        logger.warning(
+                            "report_semantic_status url=%s expected_holders=%s "
+                            "rendered_holders=%s empty_holders=%s "
+                            "error_holders=%s semantic_success=false "
+                            "semantic_policy=%s tile=%s/%s%s; "
+                            "capture readiness is satisfied, but the tile "
+                            "contains terminal chart errors",
+                            url,
+                            report_execution_context.expected_chart_count,
+                            diagnostics.rendered_holders,
+                            diagnostics.empty_holders,
+                            diagnostics.error_holders,
+                            CHART_HOLDER_SEMANTIC_POLICY,
+                            i + 1,
+                            num_tiles,
+                            context_suffix,
+                        )
                 logger.debug(
                     "Tile %s/%s chart holders ready after %.2fs "
                     "(effective_wait=%.2fs)%s",
@@ -744,23 +849,57 @@ def take_tiled_screenshot(  # noqa: C901
                 exc_info=True,
             )
             holder_states = []
-        ready_states = {"rendered", "empty", "error", "virtualized"}
+        diagnostics = ChartHolderDiagnostics.from_holder_states(
+            (
+                [{"state": state} for state in observed_holder_states.values()]
+                if observed_holder_states
+                else holder_states
+            )
+        )
         elapsed, remaining = _deadline_values()
         logger.info(
             "report_readiness_ready url=%s expected_holders=%s mounted_holders=%s "
-            "ready_holders=%s elapsed_seconds=%.2f remaining_seconds=%s%s",
+            "ready_holders=%s rendered_holders=%s empty_holders=%s "
+            "error_holders=%s virtualized_holders=%s unready_holders=%s "
+            "semantic_success=%s semantic_policy=%s elapsed_seconds=%.2f "
+            "remaining_seconds=%s%s",
             url,
             (
                 report_execution_context.expected_chart_count
                 if report_execution_context
                 else None
             ),
-            len(holder_states),
-            sum(holder.get("state") in ready_states for holder in holder_states),
+            diagnostics.mounted_holders,
+            diagnostics.ready_holders,
+            diagnostics.rendered_holders,
+            diagnostics.empty_holders,
+            diagnostics.error_holders,
+            diagnostics.virtualized_holders,
+            diagnostics.unready_holders,
+            diagnostics.semantic_success,
+            CHART_HOLDER_SEMANTIC_POLICY,
             elapsed,
             f"{remaining:.2f}" if remaining is not None else None,
             context_suffix,
         )
+        if diagnostics.error_holders:
+            logger.warning(
+                "report_semantic_status url=%s expected_holders=%s "
+                "rendered_holders=%s empty_holders=%s error_holders=%s "
+                "semantic_success=false semantic_policy=%s%s; "
+                "capture completed, but the report contains terminal chart errors",
+                url,
+                (
+                    report_execution_context.expected_chart_count
+                    if report_execution_context
+                    else None
+                ),
+                diagnostics.rendered_holders,
+                diagnostics.empty_holders,
+                diagnostics.error_holders,
+                CHART_HOLDER_SEMANTIC_POLICY,
+                context_suffix,
+            )
         logger.info("Combining screenshot tiles...")
         combined_screenshot = combine_screenshot_tiles(
             screenshot_tiles,
