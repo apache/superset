@@ -24,6 +24,7 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import { ErrorBoundary } from 'src/components';
 import { provider, useDashboardRevision } from './store';
 import { resolveBuildingBlockView } from './resolveBuildingBlockView';
+import { blockLabel } from './blockLabel';
 
 function UnsupportedBlockPlaceholder({ nodeId }: { nodeId: string }) {
   const theme = useTheme();
@@ -93,14 +94,22 @@ const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
 
     const resolved = resolveBuildingBlockView(node.type, nodeId);
     const selected = provider.getSelection() === nodeId;
-    // The root holds the dashboard; removing it is refused by the provider,
-    // so offering the button would be offering a error.
-    const removable = nodeId !== provider.getRoot().id;
+    // The root is the dashboard itself rather than something on it: it has no
+    // name of its own to show, and removing it is refused by the provider, so
+    // a header there would be a label saying "Canvas" over a button that only
+    // ever raises an error.
+    const chrome = nodeId !== provider.getRoot().id;
+    const headerHeight = theme.controlHeightSM;
 
     return (
       <div
         ref={ref}
         {...rest}
+        // Where a node is on screen, for the panels that reach into the
+        // canvas from outside it — the Outline scrolls to the block it just
+        // selected by finding it here. Set after the spread so a parent
+        // renderer cannot displace a node's own identity.
+        data-node-id={nodeId}
         // Every block is a thing an author selects, so every block is a
         // control — announced as one, reachable by Tab, and answering the
         // keys a control answers. The outline offers the same selection in a
@@ -132,9 +141,10 @@ const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
         }}
         style={{
           ...rest.style,
-          // The remove control anchors to this element. react-grid-layout
-          // positions its children itself, so its own value is kept wherever
-          // it set one and `relative` only fills the gap when it did not.
+          // A block's contents are positioned against this element.
+          // react-grid-layout positions its children itself, so its own value
+          // is kept wherever it set one and `relative` only fills the gap
+          // when it did not.
           position: rest.style?.position ?? 'relative',
           // Drawn over the block rather than around it: an outline takes no
           // space, so nothing on screen shifts when a selection moves.
@@ -142,69 +152,90 @@ const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
           outlineOffset: selected ? -2 : undefined,
         }}
       >
-        {/* Removing a block, where the block is.
-            Nested inside a control, which is not ideal and is the price of
-            the wrapper itself being selectable — the alternative was a block
-            you can delete only from the panel. The keyboard path is not this
-            button: the Outline selects any block with proper tree semantics
-            and Properties carries the same Delete.
+        {/* What this block is, and how to be rid of it.
+            The name comes from `blockLabel`, the same call the Outline names
+            a row by, so a block is not "Sales by Territory" in one place and
+            "ECharts" in the other. A chart's name is authored in its ECharts
+            option and ChartBlock stops ECharts drawing it, so it appears here
+            once instead of twice.
 
-            `data-block-remove` is what keeps a press on it from starting a
-            react-grid-layout drag; see CanvasBlock's `draggableCancel`. The
-            propagation stops are the same idea for the two gestures this
-            element sits inside: a click here removes rather than selects,
-            and a pointer down here grabs nothing. */}
-        {removable && (
-          <button
-            type="button"
-            data-block-remove
-            data-test={`block-remove-${nodeId}`}
-            aria-label={t('Remove block')}
-            title={t('Remove block')}
-            onMouseDown={event => event.stopPropagation()}
-            onPointerDown={event => event.stopPropagation()}
-            onClick={event => {
-              event.stopPropagation();
-              provider.removeBuildingBlock(nodeId);
-            }}
+            `data-block-remove` is what keeps a press on the button from
+            starting a react-grid-layout drag; see CanvasBlock's
+            `draggableCancel`. The propagation stops are the same idea for the
+            two gestures it sits inside: a click here removes rather than
+            selects, and a pointer down here grabs nothing.
+
+            The button is nested inside a control, which is not ideal and is
+            the price of the wrapper itself being selectable — the alternative
+            was a block you can delete only from the panel. The keyboard path
+            is not this button: the Outline selects any block with proper tree
+            semantics and Properties carries the same Delete. */}
+        {chrome && (
+          <div
+            data-test={`block-header-${nodeId}`}
             style={{
-              position: 'absolute',
-              top: theme.sizeUnit,
-              right: theme.sizeUnit,
-              zIndex: 2,
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              width: theme.sizeUnit * 5,
-              height: theme.sizeUnit * 5,
-              padding: 0,
-              border: `1px solid ${theme.colorBorder}`,
-              borderRadius: theme.borderRadius,
-              background: theme.colorBgContainer,
-              color: theme.colorTextTertiary,
-              cursor: 'pointer',
-              // Shown once the block is in hand — hovered or selected — rather
-              // than permanently: a delete on every block at all times is a
-              // row of delete buttons where a dashboard should be.
-              opacity: selected ? 1 : 0,
-            }}
-            onFocus={event => {
-              event.currentTarget.style.opacity = '1';
-            }}
-            onBlur={event => {
-              event.currentTarget.style.opacity = selected ? '1' : '0';
-            }}
-            onMouseEnter={event => {
-              event.currentTarget.style.opacity = '1';
-            }}
-            onMouseLeave={event => {
-              event.currentTarget.style.opacity = selected ? '1' : '0';
+              gap: theme.sizeUnit,
+              height: headerHeight,
+              paddingLeft: theme.sizeUnit,
+              paddingRight: theme.sizeUnit,
             }}
           >
-            <Icons.CloseOutlined iconSize="s" />
-          </button>
+            <Typography.Text
+              ellipsis
+              data-test={`block-title-${nodeId}`}
+              style={{
+                flex: '1 1 auto',
+                fontSize: theme.fontSizeSM,
+                color: theme.colorTextSecondary,
+              }}
+            >
+              {blockLabel(node.type, node.props)}
+            </Typography.Text>
+            <button
+              type="button"
+              data-block-remove
+              data-test={`block-remove-${nodeId}`}
+              aria-label={t('Remove block')}
+              title={t('Remove block')}
+              onMouseDown={event => event.stopPropagation()}
+              onPointerDown={event => event.stopPropagation()}
+              onClick={event => {
+                event.stopPropagation();
+                provider.removeBuildingBlock(nodeId);
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flex: '0 0 auto',
+                width: headerHeight,
+                height: headerHeight,
+                padding: 0,
+                border: 'none',
+                background: 'none',
+                color: theme.colorTextTertiary,
+                cursor: 'pointer',
+              }}
+            >
+              <Icons.CloseOutlined iconSize="s" />
+            </button>
+          </div>
         )}
-        <div style={{ width: '100%', height: '100%' }}>
+        {/* The block's own box, which is the whole of this element's minus
+            the band above it. Subtracted in pixels off a percentage rather
+            than left to a flex column, because what a leaf block does with
+            the box is resolve `height: 100%` against it — a chart measures
+            the result to size its canvas — and that wants a height there is
+            no question about. */}
+        <div
+          data-test={`block-content-${nodeId}`}
+          style={{
+            width: '100%',
+            height: chrome ? `calc(100% - ${headerHeight}px)` : '100%',
+          }}
+        >
           <ErrorBoundary>
             {resolved ?? <UnsupportedBlockPlaceholder nodeId={nodeId} />}
           </ErrorBoundary>
