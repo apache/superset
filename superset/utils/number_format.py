@@ -44,11 +44,11 @@ from babel.numbers import format_currency, get_currency_symbol
 from flask import current_app
 from flask_babel import get_locale
 
-SMART_NUMBER = "SMART_NUMBER"
-SMART_NUMBER_SIGNED = "SMART_NUMBER_SIGNED"
-AUTO_CURRENCY = "AUTO"
+SMART_NUMBER: str = "SMART_NUMBER"
+SMART_NUMBER_SIGNED: str = "SMART_NUMBER_SIGNED"
+AUTO_CURRENCY: str = "AUTO"
 
-UNSUPPORTED_FRONTEND_PRESETS = frozenset(
+UNSUPPORTED_FRONTEND_PRESETS: frozenset[str] = frozenset(
     {
         "DURATION",
         "DURATION_SUB",
@@ -63,11 +63,11 @@ UNSUPPORTED_FRONTEND_PRESETS = frozenset(
     }
 )
 
-DEFAULT_LOCALE = "en"
-CURRENCY_SYMBOL_LOCALE = "en_US"
+DEFAULT_LOCALE: str = "en"
+CURRENCY_SYMBOL_LOCALE: str = "en_US"
 
 # SI prefixes keyed by their power-of-1000 exponent, mirroring d3-format.
-SI_PREFIXES = {
+SI_PREFIXES: dict[int, str] = {
     -8: "y",
     -7: "z",
     -6: "a",
@@ -89,7 +89,7 @@ SI_PREFIXES = {
 
 # d3-format specifier grammar:
 # [[fill]align][sign][symbol][0][width][,][.precision][~][type]
-D3_FORMAT_RE = re.compile(
+D3_FORMAT_RE: re.Pattern[str] = re.compile(
     r"^(?:(.)?([<>=^]))?([+\-( ])?([$#])?(0)?(\d+)?(,)?(?:\.(\d+))?(~)?([a-z%])?$",
     re.IGNORECASE,
 )
@@ -101,9 +101,11 @@ def resolve_auto_currency(
     """
     Resolve an ``AUTO`` currency to the code detected from the data.
 
-    Mirrors the frontend's ``resolveAutoCurrency``: without a detected currency
-    (mixed-currency data) the config stays ``AUTO``, which renders the bare
-    number.
+    Mirrors ``currency-format/utils.ts::resolveAutoCurrency``. Without a
+    detected query-wide currency (mixed-currency data), the returned config
+    stays ``AUTO`` and the caller renders the bare formatted number.
+
+    :return: a copied config containing the detected code, or the input config
     """
     if currency.get("symbol") == AUTO_CURRENCY and detected_currency:
         return {**currency, "symbol": detected_currency}
@@ -117,6 +119,10 @@ def format_number_with_config(
 ) -> Any:
     """
     Format ``value`` using a d3-format string and optional currency config.
+
+    This is the report-side entry point corresponding to
+    ``currency-format/CurrencyFormatter.ts::format`` and the formatter invoked
+    by the Table and Pivot Table plugins.
 
     :param d3_format: a d3-format specifier (e.g. ``",.2f"``) or ``SMART_NUMBER``
     :param currency: ``{"symbol": <ISO 4217>, "symbolPosition": "prefix"|"suffix"}``
@@ -157,9 +163,11 @@ def format_numeric(d3_format: str, value: float) -> str:
     """
     Format ``value`` according to a d3 number format.
 
-    Delegates to the smart-number formatter for the ``SMART_NUMBER`` and
-    ``SMART_NUMBER_SIGNED`` pseudo-formats, and to the d3 specifier parser for
-    every other format string.
+    Delegates to the port of ``createSmartNumberFormatter.ts`` for the two smart
+    pseudo-formats and to the port of ``d3-format/src/locale.js`` for d3
+    specifiers. Registered frontend-only factories are rejected explicitly.
+
+    :return: a formatted number string
     """
     if d3_format in UNSUPPORTED_FRONTEND_PRESETS:
         raise ValueError(f"Frontend preset {d3_format!r} is not available in reports")
@@ -172,12 +180,16 @@ def format_d3(d3_format: str, value: float) -> str:
     """
     Format ``value`` with a d3-format specifier.
 
-    Supports the subset of the specifier grammar the Table/Pivot plugins emit:
+    Mirrors ``d3-format/src/locale.js`` and ``formatTypes.js``. Supports the
+    subset of the specifier grammar the Table/Pivot plugins emit:
     the ``+ - ( space`` sign modes, the ``$`` currency prefix, the ``,`` group
     separator, ``.precision``, the ``~`` trim flag, and the ``s`` (SI), ``r``
     (significant), ``d`` (integer), ``f``/``e``/``g``/``%`` numeric types.
     Returns the formatted string and raises ``ValueError`` for an unparseable
-    specifier.
+    specifier. Padding flags are rejected because they cannot be represented by
+    the report table path.
+
+    :return: a d3-compatible formatted string
     """
     match = D3_FORMAT_RE.match(d3_format)
     if not match:
@@ -196,49 +208,66 @@ def format_d3(d3_format: str, value: float) -> str:
         comma = ","
         type_ = "g"
 
-    magnitude = abs(value)
+    formatted = format_d3_magnitude(
+        type_, abs(value), precision, trim, comma, d3_format
+    )
+
+    if currency_symbol:
+        formatted = f"${formatted}"
+    return apply_sign(formatted, value, sign_mode)
+
+
+def format_d3_magnitude(
+    type_: str,
+    magnitude: float,
+    precision: int | None,
+    trim: bool,
+    comma: str,
+    d3_format: str,
+) -> str:
+    """
+    Render the unsigned numeric portion of a parsed d3 specifier.
+
+    Mirrors the formatter dispatch in ``d3-format/src/locale.js`` and
+    ``formatTypes.js``. The result excludes sign and currency decoration.
+    """
     if type_ == "s":
-        formatted = format_si(
+        return format_si(
             magnitude, max(1, precision if precision is not None else 6), trim
         )
-    elif type_ == "r":
-        formatted = format_significant(
+    if type_ == "r":
+        return format_significant(
             magnitude,
             max(1, precision if precision is not None else 6),
             trim,
             comma,
         )
-    elif type_ == "":
-        formatted = format_general(
+    if type_ == "":
+        return format_general(
             magnitude, precision if precision is not None else 12, True, comma
         )
-    else:
-        if type_ == "d":
-            formatted = format(int(quantize_half_up(magnitude, 0)), f"{comma}d")
-        elif type_ in ("f", "%"):
-            precision = precision if precision is not None else 6
-            scaled = magnitude * 100 if type_ == "%" else magnitude
-            suffix = "%" if type_ == "%" else ""
-            if scaled >= 1e21:
-                formatted = normalize_exponent(repr(float(scaled))) + suffix
-            else:
-                rounded = quantize_half_up(scaled, precision)
-                formatted = format(rounded, f"{comma}.{precision}f") + suffix
-        elif type_ == "e":
-            formatted = format_exponential(
-                magnitude, precision if precision is not None else 6
-            )
-        elif type_ == "g":
-            formatted = format_general(
-                magnitude, precision if precision is not None else 6, trim, comma
-            )
+    if type_ == "d":
+        formatted = format(int(quantize_half_up(magnitude, 0)), f"{comma}d")
+    elif type_ in ("f", "%"):
+        precision = precision if precision is not None else 6
+        scaled = magnitude * 100 if type_ == "%" else magnitude
+        suffix = "%" if type_ == "%" else ""
+        if scaled >= 1e21:
+            formatted = normalize_exponent(repr(float(scaled))) + suffix
         else:
-            raise ValueError(d3_format)
-        formatted = trim_trailing_zeros(formatted) if trim else formatted
-
-    if currency_symbol:
-        formatted = f"${formatted}"
-    return apply_sign(formatted, value, sign_mode)
+            rounded = quantize_half_up(scaled, precision)
+            formatted = format(rounded, f"{comma}.{precision}f") + suffix
+    elif type_ == "e":
+        formatted = format_exponential(
+            magnitude, precision if precision is not None else 6
+        )
+    elif type_ == "g":
+        formatted = format_general(
+            magnitude, precision if precision is not None else 6, trim, comma
+        )
+    else:
+        raise ValueError(d3_format)
+    return trim_trailing_zeros(formatted) if trim else formatted
 
 
 def apply_sign(formatted: str, value: float, sign_mode: str) -> str:
@@ -247,7 +276,10 @@ def apply_sign(formatted: str, value: float, sign_mode: str) -> str:
 
     Negative values get a leading ``-`` (or wrapping parentheses for the ``(``
     accounting mode); positive values get a ``+`` or a leading space only for the
-    ``+`` and space modes respectively.
+    ``+`` and space modes respectively. Mirrors the sign decoration in
+    ``d3-format/src/locale.js``.
+
+    :return: the signed or accounting-decorated string
     """
     if value < 0:
         return f"({formatted})" if sign_mode == "(" else f"-{formatted}"
@@ -264,15 +296,21 @@ def format_default(value: float, comma: str) -> str:
 
     d3 aliases an omitted type to ``.12~g``. This preserves fixed notation from
     ``1e-6`` through twelve significant integer digits, then uses exponent
-    notation outside that range.
+    notation outside that range. Mirrors the omitted-type alias in
+    ``d3-format/src/formatSpecifier.js``.
+
+    :return: the ``.12~g`` representation
     """
     return format_general(value, 12, True, comma)
 
 
-def format_general(
-    value: float, precision: int, trim: bool, comma: str = ""
-) -> str:
-    """Format d3's ``g`` type with JavaScript ``toPrecision`` thresholds."""
+def format_general(value: float, precision: int, trim: bool, comma: str = "") -> str:
+    """
+    Format d3's ``g`` type with JavaScript ``toPrecision`` thresholds.
+
+    Mirrors ``d3-format/src/formatTypes.js`` and returns fixed or exponential
+    notation with the requested significant-digit precision.
+    """
     precision = max(1, precision)
     rounded = round_to_significant(value, precision)
     exponent = decimal_exponent(rounded)
@@ -284,7 +322,12 @@ def format_general(
 
 
 def format_exponential(value: float, precision: int) -> str:
-    """Format d3's ``e`` type using binary-float, half-up rounding."""
+    """
+    Format d3's ``e`` type using binary-float, half-up rounding.
+
+    Mirrors the ``e`` formatter in ``d3-format/src/formatTypes.js`` and returns
+    an exponent without redundant leading zeros.
+    """
     rounded = round_to_significant(value, precision + 1)
     exponent = decimal_exponent(rounded)
     mantissa = rounded / (10**exponent) if rounded else 0.0
@@ -299,6 +342,9 @@ def format_smart_number(value: float, signed: bool = False) -> str:
     for ``abs(value) >= 1000``, two decimals down to ``1``, four decimals down to
     ``0.001``, a micro (``µ``) suffix down to ``1e-6``, and SI prefixes again
     below that. When ``signed`` is set, positive values are prefixed with ``+``.
+    Mirrors ``number-format/factories/createSmartNumberFormatter.ts``.
+
+    :return: the adaptive frontend-compatible number string
     """
     if value == 0:
         body = "0"
@@ -328,7 +374,10 @@ def format_si(value: float, precision: int, trim: bool, billions: bool = False) 
     ``4725`` at ``4.73k`` (the inexact ``4.725`` mantissa would round to
     ``4.72k``), and lets a value that rounds up into the next bracket pick the
     right symbol (``999.5k`` -> ``1M``). With ``billions`` set, the ``G`` (giga)
-    symbol is rendered as ``B``.
+    symbol is rendered as ``B``. Mirrors d3's
+    ``formatPrefixAuto.js``/``formatRounded.js`` combination.
+
+    :return: a significant-digit mantissa followed by its SI prefix
     """
     if value == 0:
         return format_significant(0.0, precision, trim)
@@ -351,7 +400,10 @@ def format_significant(
     Format to `precision` significant digits in fixed-point notation.
 
     Serves both the d3 `r` type and SI mantissas, and avoids the scientific
-    notation Python's `g` would switch to.
+    notation Python's `g` would switch to. Mirrors the fixed representation
+    produced by ``d3-format/src/formatRounded.js``.
+
+    :return: a fixed-point significant-digit string
     """
     rounded = round_to_significant(value, precision)
     decimals = decimals_for_significant(rounded, precision)
@@ -365,7 +417,9 @@ def round_to_significant(value: float, precision: int) -> float:
 
     The number of decimal places to keep is derived from the value's order of
     magnitude (``precision - 1 - floor(log10(abs(value)))``) and the rounding is
-    half away from zero, matching d3-format.
+    half away from zero, matching d3-format's ``formatDecimalParts`` path.
+
+    :return: the rounded binary-float value
     """
     if value == 0:
         return 0.0
@@ -379,22 +433,39 @@ def quantize_half_up(value: float, decimals: int) -> Decimal:
     Quantizes the binary float value (not its decimal string) so the result
     matches d3, which rounds the IEEE-754 value: ``2.675`` is ``2.67`` because it
     is really ``2.67499...``, while an exact ``0.125`` rounds up to ``0.13``.
+    This supplies the rounding semantics of ``d3-format/src/formatTypes.js``.
+
+    :return: a ``Decimal`` rounded at the requested decimal place
     """
     return Decimal(value).quantize(Decimal(1).scaleb(-decimals), rounding=ROUND_HALF_UP)
 
 
 def decimals_for_significant(value: float, precision: int) -> int:
+    """
+    Return fixed-point decimal places needed for significant-digit formatting.
+
+    This is the report-side equivalent of the exponent adjustment in
+    ``d3-format/src/formatRounded.js``.
+    """
     integer_digits = 1 if value == 0 else decimal_exponent(value) + 1
     return max(0, precision - integer_digits)
 
 
 def decimal_exponent(value: float) -> int:
-    """Return the base-10 exponent without ``log10`` boundary drift."""
+    """
+    Return the base-10 exponent without ``log10`` boundary drift.
+
+    Used where d3-format derives an exponent through ``formatDecimalParts``.
+    """
     return Decimal(repr(value)).adjusted() if value else 0
 
 
 def normalize_exponent(formatted: str) -> str:
-    """Drop leading zeros in a scientific exponent (1e+07 -> 1e+7), as d3 does."""
+    """
+    Drop exponent leading zeros (``1e+07`` to ``1e+7``), as d3 does.
+
+    :return: the exponent string style emitted by ``d3-format``
+    """
     return re.sub(r"([eE][+-])0*(\d)", r"\1\2", formatted)
 
 
@@ -404,7 +475,10 @@ def get_currency_locale() -> str:
 
     Report tasks run with a Flask application context but without a request, so
     Flask-Babel can return ``None``. The config fallback keeps Celery-rendered
-    reports aligned with the locale supplied to the frontend at bootstrap.
+    reports aligned with the locale supplied to the frontend at bootstrap. The
+    result feeds the locale argument used by ``currency-format/symbolPosition.ts``.
+
+    :return: a Babel locale identifier, always with a safe default
     """
     try:
         if locale := get_locale():
@@ -421,8 +495,10 @@ def get_currency_locale() -> str:
 @lru_cache(maxsize=None)
 def resolve_symbol_position(code: str, locale: str) -> str:
     """
-    Derive the symbol position from the locale's convention for the currency,
-    mirroring the frontend's ``resolveSymbolPosition``.
+    Derive the symbol position from the locale's convention for the currency.
+
+    Mirrors ``currency-format/symbolPosition.ts::resolveSymbolPosition`` and
+    returns ``"prefix"`` on invalid locale/currency input.
     """
     try:
         sample = format_currency(1, code, locale=locale)
@@ -433,6 +509,14 @@ def resolve_symbol_position(code: str, locale: str) -> str:
 
 
 def apply_currency(formatted: str, currency: dict[str, Any]) -> str:
+    """
+    Add a localized currency symbol to an already formatted number.
+
+    Mirrors ``currency-format/CurrencyFormatter.ts::format``: percentage signs
+    are removed, explicit positions win, and an unset position is locale-driven.
+
+    :return: the number with a prefix or suffix currency symbol
+    """
     normalized = formatted.replace("%", "")
     code = currency["symbol"]
     symbol = get_currency_symbol(code, locale=CURRENCY_SYMBOL_LOCALE) or code
@@ -445,6 +529,12 @@ def apply_currency(formatted: str, currency: dict[str, Any]) -> str:
 
 
 def trim_trailing_zeros(formatted: str) -> str:
+    """
+    Remove insignificant fractional zeros while preserving suffixes.
+
+    Mirrors ``d3-format/src/formatTrim.js`` for decimal, exponent, and percent
+    strings and returns the compact representation.
+    """
     suffix = "%" if formatted.endswith("%") else ""
     body = formatted[: -len(suffix)] if suffix else formatted
     coefficient, separator, exponent = body.partition("e")
@@ -455,6 +545,12 @@ def trim_trailing_zeros(formatted: str) -> str:
 
 
 def raw_string(value: float) -> str:
+    """
+    Convert an unformatted number to the frontend-like neutral representation.
+
+    Integral floats lose their Python-only ``.0`` suffix. The result is the
+    safe fallback used by ``CurrencyFormatter.ts`` and invalid format handling.
+    """
     if isinstance(value, float) and value.is_integer():
         return str(int(value))
     return str(value)

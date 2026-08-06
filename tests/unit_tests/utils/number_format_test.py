@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from decimal import Decimal
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -46,7 +47,7 @@ from superset.utils.number_format import (
         ("not-a-real-format!!", 42, "42"),
     ],
 )
-def test_format_number(d3_format, value, expected):
+def test_format_number(d3_format: str | None, value: Any, expected: Any) -> None:
     assert format_number_with_config(d3_format, None, value) == expected
 
 
@@ -59,11 +60,13 @@ def test_format_number(d3_format, value, expected):
         ({"symbol": "ZZZ", "symbolPosition": None}, 1234.5, "ZZZ 1,234.50"),
     ],
 )
-def test_format_number_with_currency(currency, value, expected):
+def test_format_number_with_currency(
+    currency: dict[str, Any], value: float, expected: str
+) -> None:
     assert format_number_with_config(",.2f", currency, value) == expected
 
 
-def test_currency_defaults_to_smart_number_when_no_d3_format():
+def test_currency_defaults_to_smart_number_when_no_d3_format() -> None:
     assert (
         format_number_with_config(
             None, {"symbol": "USD", "symbolPosition": "prefix"}, 1234567
@@ -72,7 +75,7 @@ def test_currency_defaults_to_smart_number_when_no_d3_format():
     )
 
 
-def test_auto_currency_formats_without_symbol():
+def test_auto_currency_formats_without_symbol() -> None:
     assert (
         format_number_with_config(
             ",.2f", {"symbol": "AUTO", "symbolPosition": "prefix"}, 1234.5
@@ -81,7 +84,7 @@ def test_auto_currency_formats_without_symbol():
     )
 
 
-def test_resolve_auto_currency_uses_detected_single_currency():
+def test_resolve_auto_currency_uses_detected_single_currency() -> None:
     currency = {"symbol": "AUTO", "symbolPosition": "prefix"}
     assert resolve_auto_currency(currency, "USD") == {
         "symbol": "USD",
@@ -105,11 +108,13 @@ def test_resolve_auto_currency_uses_detected_single_currency():
         (1e21, "1e+21"),
     ],
 )
-def test_default_format_matches_d3_exponent_boundaries(value, expected):
+def test_default_format_matches_d3_exponent_boundaries(
+    value: float, expected: str
+) -> None:
     assert format_number_with_config(",", None, value) == expected
 
 
-def test_currency_position_uses_request_locale():
+def test_currency_position_uses_request_locale() -> None:
     with patch("superset.utils.number_format.get_locale", return_value="fr_FR"):
         assert (
             format_number_with_config(
@@ -119,7 +124,7 @@ def test_currency_position_uses_request_locale():
         )
 
 
-def test_currency_position_uses_configured_locale_without_request():
+def test_currency_position_uses_configured_locale_without_request() -> None:
     with (
         patch("superset.utils.number_format.get_locale", return_value=None),
         patch.dict(current_app.config, {"BABEL_DEFAULT_LOCALE": "fr_FR"}),
@@ -140,12 +145,12 @@ def test_currency_position_uses_configured_locale_without_request():
         ("ZZZ", "not_a_locale", "prefix"),
     ],
 )
-def test_resolve_symbol_position(code, locale, expected):
+def test_resolve_symbol_position(code: str, locale: str, expected: str) -> None:
     resolve_symbol_position.cache_clear()
     assert resolve_symbol_position(code, locale) == expected
 
 
-def test_get_currency_locale_handles_missing_babel_and_app_context():
+def test_get_currency_locale_handles_missing_babel_and_app_context() -> None:
     app = MagicMock()
     with (
         patch("superset.utils.number_format.get_locale", side_effect=RuntimeError),
@@ -158,12 +163,12 @@ def test_get_currency_locale_handles_missing_babel_and_app_context():
         assert get_currency_locale() == "en"
 
 
-def test_non_numeric_value_is_returned_as_is():
+def test_non_numeric_value_is_returned_as_is() -> None:
     assert format_number_with_config(",.2f", None, "abc") == "abc"
     assert format_number_with_config(",.2f", None, None) == ""
 
 
-def test_currency_error_keeps_formatted_number():
+def test_currency_error_keeps_formatted_number() -> None:
     assert (
         format_number_with_config(
             ",.2f", {"symbol": {"bad": 1}, "symbolPosition": "prefix"}, 1234.5
@@ -172,7 +177,7 @@ def test_currency_error_keeps_formatted_number():
     )
 
 
-def test_decimal_values_are_formatted():
+def test_decimal_values_are_formatted() -> None:
     assert format_number_with_config(",.2f", None, Decimal("1234.5")) == "1,234.50"
     assert (
         format_number_with_config(
@@ -192,7 +197,8 @@ def test_decimal_values_are_formatted():
 #     node -e 'const {format}=require("d3-format");
 #     const p=["~g",",d",".1s",".3s",",.1%",".2%",".3%",".4r",
 #              ",.1f",",.2f",",.3f","+,","$,.2f"];
-#     const v=[12345.432,0,4725,80679663,1234567890,-1234.5,0.0123,999.9];
+#     const v=[12345.432,0,4725.0,80679663,1234567890,-1234.5,
+#              0.0123,999.9,1000.0];
 #     const o={}; for(const f of p){o[f]={};
 #       for(const x of v) o[f][x]=format(f)(x);}
 #     console.log(JSON.stringify(o));'
@@ -200,9 +206,19 @@ def test_decimal_values_are_formatted():
 # One intentional deviation: d3 emits a Unicode minus (U+2212); the Python helper
 # emits an ASCII "-" for email/CSV safety, so the comparison normalizes it.
 
-VALUES = [12345.432, 0, 4725, 80679663, 1234567890, -1234.5, 0.0123, 999.9]
+VALUES: list[float] = [
+    12345.432,
+    0,
+    4725.0,
+    80679663,
+    1234567890,
+    -1234.5,
+    0.0123,
+    999.9,
+    1000.0,
+]
 
-EXPECTED = {
+EXPECTED: dict[str, list[str]] = {
     "~g": [
         "12345.4",
         "0",
@@ -212,6 +228,7 @@ EXPECTED = {
         "−1234.5",
         "0.0123",
         "999.9",
+        "1000",
     ],  # noqa: E501
     ",d": [
         "12,345",
@@ -222,9 +239,20 @@ EXPECTED = {
         "−1,235",
         "0",
         "1,000",
+        "1,000",
     ],  # noqa: E501
-    ".1s": ["10k", "0", "5k", "80M", "1G", "−1k", "10m", "1k"],
-    ".3s": ["12.3k", "0.00", "4.73k", "80.7M", "1.23G", "−1.23k", "12.3m", "1.00k"],
+    ".1s": ["10k", "0", "5k", "80M", "1G", "−1k", "10m", "1k", "1k"],
+    ".3s": [
+        "12.3k",
+        "0.00",
+        "4.73k",
+        "80.7M",
+        "1.23G",
+        "−1.23k",
+        "12.3m",
+        "1.00k",
+        "1.00k",
+    ],
     ",.1%": [
         "1,234,543.2%",
         "0.0%",
@@ -234,6 +262,7 @@ EXPECTED = {
         "−123,450.0%",
         "1.2%",
         "99,990.0%",
+        "100,000.0%",
     ],  # noqa: E501
     ".2%": [
         "1234543.20%",
@@ -244,6 +273,7 @@ EXPECTED = {
         "−123450.00%",
         "1.23%",
         "99990.00%",
+        "100000.00%",
     ],  # noqa: E501
     ".3%": [
         "1234543.200%",
@@ -254,6 +284,7 @@ EXPECTED = {
         "−123450.000%",
         "1.230%",
         "99990.000%",
+        "100000.000%",
     ],  # noqa: E501
     ".4r": [
         "12350",
@@ -264,6 +295,7 @@ EXPECTED = {
         "−1235",
         "0.01230",
         "999.9",
+        "1000",
     ],  # noqa: E501
     ",.1f": [
         "12,345.4",
@@ -274,6 +306,7 @@ EXPECTED = {
         "−1,234.5",
         "0.0",
         "999.9",
+        "1,000.0",
     ],  # noqa: E501
     ",.2f": [
         "12,345.43",
@@ -284,6 +317,7 @@ EXPECTED = {
         "−1,234.50",
         "0.01",
         "999.90",
+        "1,000.00",
     ],  # noqa: E501
     ",.3f": [
         "12,345.432",
@@ -294,6 +328,7 @@ EXPECTED = {
         "−1,234.500",
         "0.012",
         "999.900",
+        "1,000.000",
     ],  # noqa: E501
     "+,": [
         "+12,345.432",
@@ -304,6 +339,7 @@ EXPECTED = {
         "−1,234.5",
         "+0.0123",
         "+999.9",
+        "+1,000",
     ],  # noqa: E501
     "$,.2f": [
         "$12,345.43",
@@ -314,6 +350,7 @@ EXPECTED = {
         "−$1,234.50",
         "$0.01",
         "$999.90",
+        "$1,000.00",
     ],  # noqa: E501
     "(,.2f": [
         "12,345.43",
@@ -324,6 +361,7 @@ EXPECTED = {
         "(1,234.50)",
         "0.01",
         "999.90",
+        "1,000.00",
     ],  # noqa: E501
     "($,.2f": [
         "$12,345.43",
@@ -334,6 +372,7 @@ EXPECTED = {
         "($1,234.50)",
         "$0.01",
         "$999.90",
+        "$1,000.00",
     ],  # noqa: E501
     " ,.2f": [
         " 12,345.43",
@@ -344,12 +383,13 @@ EXPECTED = {
         "−1,234.50",
         " 0.01",
         " 999.90",
+        " 1,000.00",
     ],  # noqa: E501
 }
 
 
 @pytest.mark.parametrize("d3_format", list(EXPECTED))
-def test_matches_frontend_d3_format(d3_format):
+def test_matches_frontend_d3_format(d3_format: str) -> None:
     for value, expected in zip(VALUES, EXPECTED[d3_format], strict=True):
         result = format_number_with_config(d3_format, None, value)
         assert result == expected.replace(
@@ -371,7 +411,9 @@ def test_matches_frontend_d3_format(d3_format):
         ("+,", -1234.5, "-1,234.5"),
     ],
 )
-def test_default_format_matches_d3_for_floats(d3_format, value, expected):
+def test_default_format_matches_d3_for_floats(
+    d3_format: str, value: float, expected: str
+) -> None:
     assert format_number_with_config(d3_format, None, value) == expected
 
 
@@ -389,7 +431,9 @@ def test_default_format_matches_d3_for_floats(d3_format, value, expected):
         (".1f", 0.35, "0.3"),
     ],
 )
-def test_rounding_matches_d3_binary_half_up(d3_format, value, expected):
+def test_rounding_matches_d3_binary_half_up(
+    d3_format: str, value: float, expected: str
+) -> None:
     assert format_number_with_config(d3_format, None, value) == expected
 
 
@@ -405,7 +449,9 @@ def test_rounding_matches_d3_binary_half_up(d3_format, value, expected):
         (",.1%", 1e20, "1e+22%"),
     ],
 )
-def test_additional_d3_parity_cases(d3_format, value, expected):
+def test_additional_d3_parity_cases(
+    d3_format: str, value: float, expected: str
+) -> None:
     assert format_number_with_config(d3_format, None, value) == expected
 
 
@@ -421,11 +467,13 @@ def test_additional_d3_parity_cases(d3_format, value, expected):
         ("x", 12, "12"),
     ],
 )
-def test_number_format_branch_coverage(d3_format, value, expected):
+def test_number_format_branch_coverage(
+    d3_format: str, value: float, expected: str
+) -> None:
     assert format_number_with_config(d3_format, None, value) == expected
 
 
-def test_default_helper_and_whole_float_fallback():
+def test_default_helper_and_whole_float_fallback() -> None:
     assert format_default(1000, ",") == "1,000"
     assert format_number_with_config(None, None, 42.0) == "42"
 
@@ -442,14 +490,14 @@ def test_default_helper_and_whole_float_fallback():
         "MEMORY_TRANSFER_RATE_BINARY",
     ],
 )
-def test_unported_frontend_presets_are_explicitly_rejected(preset):
+def test_unported_frontend_presets_are_explicitly_rejected(preset: str) -> None:
     with pytest.raises(ValueError, match="not available"):
         format_numeric(preset, 66000)
     assert format_number_with_config(preset, None, 66000) == "66000"
 
 
 @pytest.mark.parametrize("d3_format", ["08,.2f", "*>12,.2f"])
-def test_unsupported_d3_padding_is_explicitly_rejected(d3_format):
+def test_unsupported_d3_padding_is_explicitly_rejected(d3_format: str) -> None:
     with pytest.raises(ValueError, match="padding"):
         format_d3(d3_format, 1234.5)
     assert format_number_with_config(d3_format, None, 1234.5) == "1234.5"

@@ -1856,7 +1856,7 @@ def test_table():
     )
 
 
-def test_table_applies_currency_format():
+def test_table_applies_currency_format() -> None:
     """
     Table reports honor a column's `currencyFormat`.
     """
@@ -1874,7 +1874,7 @@ def test_table_applies_currency_format():
     assert formatted["amount"].tolist() == ["$ 1,234.50"]
 
 
-def test_table_applies_si_number_format():
+def test_table_applies_si_number_format() -> None:
     """
     Table reports honor d3 formats that Python's str.format cannot express.
     """
@@ -1887,7 +1887,7 @@ def test_table_applies_si_number_format():
     assert formatted["amount"].tolist() == ["1.23k"]
 
 
-def test_table_applies_datasource_saved_metric_format_without_chart_override():
+def test_table_applies_datasource_saved_metric_format_without_chart_override() -> None:
     df = pd.DataFrame.from_dict({"amount": {0: 1234.5}})
     datasource = MagicMock()
     datasource.data = {
@@ -1900,7 +1900,7 @@ def test_table_applies_datasource_saved_metric_format_without_chart_override():
     assert formatted["amount"].tolist() == ["1,234.50"]
 
 
-def test_table_chart_format_overrides_datasource_saved_metric_format():
+def test_table_chart_format_overrides_datasource_saved_metric_format() -> None:
     df = pd.DataFrame.from_dict({"amount": {0: 1234.5}})
     datasource = MagicMock()
     datasource.data = {
@@ -1917,7 +1917,7 @@ def test_table_chart_format_overrides_datasource_saved_metric_format():
     assert formatted["amount"].tolist() == ["1,234.5"]
 
 
-def test_pivot_table_v2_applies_value_format():
+def test_pivot_table_v2_applies_value_format() -> None:
     """
     Pivot table reports honor `valueFormat` and per-metric `columnFormats`.
     """
@@ -1939,7 +1939,9 @@ def test_pivot_table_v2_applies_value_format():
     assert formatted[("qty",)].tolist() == ["10", "20"]
 
 
-def test_pivot_table_v2_applies_datasource_saved_metric_format_without_override():
+def test_pivot_table_v2_applies_datasource_saved_metric_format_without_override() -> (
+    None
+):
     df = pd.DataFrame({"region": ["A", "B"], "sales": [1234.5, 6789.0]})
     datasource = MagicMock()
     datasource.data = {
@@ -1960,7 +1962,7 @@ def test_pivot_table_v2_applies_datasource_saved_metric_format_without_override(
     assert formatted[("sales",)].tolist() == ["1,235", "6,789"]
 
 
-def test_pivot_table_v2_chart_format_overrides_datasource_saved_metric_format():
+def test_pivot_table_v2_chart_format_overrides_datasource_saved_metric_format() -> None:
     df = pd.DataFrame({"region": ["A"], "sales": [1234.5]})
     datasource = MagicMock()
     datasource.data = {
@@ -1982,7 +1984,7 @@ def test_pivot_table_v2_chart_format_overrides_datasource_saved_metric_format():
     assert formatted[("sales",)].tolist() == ["1,234.5"]
 
 
-def test_pivot_table_v2_applies_per_metric_format_when_metrics_combined():
+def test_pivot_table_v2_applies_per_metric_format_when_metrics_combined() -> None:
     """
     Per-metric formats apply when `combineMetric` moves the metric to the last
     column level.
@@ -2011,7 +2013,7 @@ def test_pivot_table_v2_applies_per_metric_format_when_metrics_combined():
     assert formatted[("x", "sales")].tolist() == ["100.00", "200.00"]
 
 
-def test_table_auto_currency_uses_detected_currency():
+def test_table_auto_currency_uses_detected_currency() -> None:
     """
     AUTO currency resolves to the payload's `detected_currency`, or falls back
     to the plain number when detection found mixed currencies.
@@ -2034,7 +2036,7 @@ def test_table_auto_currency_uses_detected_currency():
     assert formatted["amount"].tolist() == ["1,234.50"]
 
 
-def test_pivot_table_v2_auto_currency_uses_detected_currency():
+def test_pivot_table_v2_auto_currency_uses_detected_currency() -> None:
     """
     AUTO currency in pivot tables resolves to the payload's `detected_currency`.
     """
@@ -2052,7 +2054,7 @@ def test_pivot_table_v2_auto_currency_uses_detected_currency():
     assert formatted[("sales",)].tolist() == ["€ 1,234.50", "€ 6,789.00"]
 
 
-def test_apply_client_processing_passes_detected_currency():
+def test_apply_client_processing_passes_detected_currency() -> None:
     """
     The query payload's `detected_currency` reaches the number formatters.
     """
@@ -2078,7 +2080,7 @@ def test_apply_client_processing_passes_detected_currency():
     assert processed["queries"][0]["data"] == {"amount": {0: "$ 1,234.50"}}
 
 
-def test_pivot_table_v2_applies_per_metric_format_when_metrics_on_rows():
+def test_pivot_table_v2_applies_per_metric_format_when_metrics_on_rows() -> None:
     """
     Per-metric formats apply when `metricsLayout` is "ROWS" and the metric is
     on the index instead of the columns.
@@ -2106,7 +2108,9 @@ def test_pivot_table_v2_applies_per_metric_format_when_metrics_on_rows():
     assert formatted[("x",)].tolist() == ["$ 100.00", "$ 200.00", "1,111", "2,222"]
 
 
-def test_pivot_table_v2_applies_per_metric_format_when_metrics_on_rows_combined():
+def test_pivot_table_v2_applies_per_metric_format_when_metrics_on_rows_combined() -> (
+    None
+):
     """
     Per-metric formats apply when `metricsLayout` is "ROWS" and `combineMetric`
     moves the metric to the last index level.
@@ -2134,7 +2138,7 @@ def test_pivot_table_v2_applies_per_metric_format_when_metrics_on_rows_combined(
     assert formatted[("x",)].tolist() == ["100.00", "1,111", "200.00", "2,222"]
 
 
-def test_format_column_applies_d3_and_currency():
+def test_format_column_applies_d3_and_currency() -> None:
     df = pd.DataFrame({"amount": [1234.5, 6789.0]})
     format_column(df, "amount", ",.2f", {})
     assert df["amount"].tolist() == ["1,234.50", "6,789.00"]
@@ -2144,13 +2148,13 @@ def test_format_column_applies_d3_and_currency():
     assert df["amount"].tolist() == ["$ 1,234.50"]
 
 
-def test_format_column_is_noop_without_format():
+def test_format_column_is_noop_without_format() -> None:
     df = pd.DataFrame({"amount": [1234.5]})
     format_column(df, "amount", None, {})
     assert df["amount"].tolist() == [1234.5]
 
 
-def test_format_column_preserves_numeric_format_when_currency_is_invalid():
+def test_format_column_preserves_numeric_format_when_currency_is_invalid() -> None:
     df = pd.DataFrame({"amount": [1234.5]})
     format_column(
         df,
@@ -2161,13 +2165,13 @@ def test_format_column_preserves_numeric_format_when_currency_is_invalid():
     assert df["amount"].tolist() == ["1,234.50"]
 
 
-def test_format_column_preserves_raw_value_for_invalid_number_format():
+def test_format_column_preserves_raw_value_for_invalid_number_format() -> None:
     df = pd.DataFrame({"amount": [1234.5]})
     format_column(df, "amount", "not-a-format", {})
     assert df["amount"].tolist() == ["1234.5"]
 
 
-def test_apply_pivot_number_formats_resolves_metric_level():
+def test_apply_pivot_number_formats_resolves_metric_level() -> None:
     df = pd.DataFrame({("sales",): [1234.5], ("qty",): [10.0]})
     df.columns = pd.MultiIndex.from_tuples([("sales",), ("qty",)])
     apply_pivot_number_formats(
@@ -2177,7 +2181,7 @@ def test_apply_pivot_number_formats_resolves_metric_level():
     assert df[("qty",)].tolist() == ["10"]
 
 
-def test_apply_pivot_number_formats_metric_at_last_level_when_combined():
+def test_apply_pivot_number_formats_metric_at_last_level_when_combined() -> None:
     df = pd.DataFrame({("x", "sales"): [100.0], ("x", "qty"): [1111.0]})
     df.columns = pd.MultiIndex.from_tuples([("x", "sales"), ("x", "qty")])
     apply_pivot_number_formats(
@@ -2188,7 +2192,7 @@ def test_apply_pivot_number_formats_metric_at_last_level_when_combined():
     assert df[("x", "qty")].tolist() == ["1,111"]
 
 
-def test_apply_pivot_number_formats_falls_back_to_global_format():
+def test_apply_pivot_number_formats_falls_back_to_global_format() -> None:
     df = pd.DataFrame({("sales",): [1234.5]})
     df.columns = pd.MultiIndex.from_tuples([("sales",)])
     apply_pivot_number_formats(
@@ -2197,14 +2201,14 @@ def test_apply_pivot_number_formats_falls_back_to_global_format():
     assert df[("sales",)].tolist() == ["1,234.50"]
 
 
-def test_apply_pivot_number_formats_preserves_raw_value_on_format_error():
+def test_apply_pivot_number_formats_preserves_raw_value_on_format_error() -> None:
     df = pd.DataFrame({("sales",): [1234.5]})
     df.columns = pd.MultiIndex.from_tuples([("sales",)])
     apply_pivot_number_formats(df, {"valueFormat": "not-a-format"})
     assert df[("sales",)].tolist() == ["1234.5"]
 
 
-def test_apply_pivot_number_formats_auto_currency_without_detection():
+def test_apply_pivot_number_formats_auto_currency_without_detection() -> None:
     df = pd.DataFrame({("sales",): [1234.5]})
     df.columns = pd.MultiIndex.from_tuples([("sales",)])
     apply_pivot_number_formats(
