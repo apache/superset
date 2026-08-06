@@ -734,6 +734,14 @@ def _patch_bq_fetch_deps(
     app.__bool__ = mock.Mock(return_value=True)
     app.config = mock.MagicMock()
     app.config.get = mock.Mock(return_value=max_mb)
+    # ``fetch_data`` only records ``g.bq_memory_limited*`` when
+    # ``has_request_context()`` is true. Outside of a real Flask request
+    # (as in these unit tests) that's always false, so without patching it
+    # the assignments never happen and the mocked ``g`` attributes stay
+    # unset child mocks instead of the expected booleans/counts.
+    mocker.patch(
+        "superset.db_engine_specs.bigquery.has_request_context", return_value=True
+    )
     return flask_g, app
 
 
