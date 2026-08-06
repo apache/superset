@@ -711,6 +711,39 @@ def test_query_context_modified_base_axis_physical_no_stored_context(
     assert not query_context_modified(query_context)
 
 
+def test_query_context_modified_base_axis_with_groupby_dimension(
+    mocker: MockerFixture,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    Test a real timeseries chart, which stores its dimensions under `groupby`.
+
+    A chart with an x-axis stores its remaining dimensions under `groupby` and leaves
+    `columns` unset, while the query sends them in `columns` together with the
+    synthesized axis. Reproduced against the `Line` example chart.
+    """
+    requested_columns = [base_axis_column("order_date"), "product_line"]
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "x_axis": "order_date",
+        "columns": None,
+        "groupby": ["product_line"],
+        "metrics": stored_metrics,
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": stored_metrics,
+        "columns": requested_columns,
+    }
+    query_context.queries = [
+        QueryObject(metrics=stored_metrics, columns=requested_columns)  # type: ignore
+    ]
+    assert not query_context_modified(query_context)
+
+
 def test_query_context_modified_base_axis_adhoc_no_stored_context(
     mocker: MockerFixture,
     stored_metrics: list[AdhocMetric],
@@ -843,6 +876,37 @@ def test_query_context_modified_base_axis_forged_adhoc_expression(
     }
     query_context.queries = [
         QueryObject(metrics=stored_metrics, columns=forged_columns)  # type: ignore
+    ]
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_base_axis_extra_column(
+    mocker: MockerFixture,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    Test that an extra column is still rejected alongside a valid x-axis.
+
+    Reading `columns` and `groupby` as equivalent stored sources must not let a column
+    the chart does not reference through.
+    """
+    requested_columns = [base_axis_column("order_date"), "product_line", "status"]
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "x_axis": "order_date",
+        "groupby": ["product_line"],
+        "metrics": stored_metrics,
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": stored_metrics,
+        "columns": requested_columns,
+    }
+    query_context.queries = [
+        QueryObject(metrics=stored_metrics, columns=requested_columns)  # type: ignore
     ]
     assert query_context_modified(query_context)
 

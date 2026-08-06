@@ -259,8 +259,15 @@ def _payload_key_modified(  # pylint: disable=too-many-arguments
         )
 
     requested_values = {identity(value) for value in form_data.get(key) or []}
+    # ``columns`` and ``groupby`` are already treated as equivalent for the stored query
+    # context, because a chart's dimensions may be saved under either name. Apply the
+    # same equivalence to the stored params: a chart with an x-axis stores its remaining
+    # dimensions under ``groupby``, while the query sends them in ``columns`` together
+    # with the synthesized axis.
     stored_values = {
-        identity(value) for value in stored_chart.params_dict.get(key) or []
+        identity(value)
+        for params_key in equivalent
+        for value in stored_chart.params_dict.get(params_key) or []
     }
     # The x-axis is a saved dimension the query carries in ``columns``/``groupby`` but
     # that is not itself listed under those keys, so read it from its own control.
