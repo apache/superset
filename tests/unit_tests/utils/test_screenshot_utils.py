@@ -517,6 +517,139 @@ class TestTakeTiledScreenshot:
             assert "dashboard-component-chart-holder" in js
             assert call[1]["timeout"] == 30 * 1000
 
+    def test_tile_line_reports_mixed_holder_states(self, mock_page):
+        """The per-tile enriched line must map each state to its own field —
+        a swap between (say) rendered and error counts must fail this test."""
+        mixed = [
+            {"chartId": "1", "state": "rendered"},
+            {"chartId": "2", "state": "rendered"},
+            {"chartId": "3", "state": "empty"},
+            {"chartId": "4", "state": "error"},
+            {"chartId": "5", "state": "waiting_on_database"},
+        ]
+        mock_page.wait_for_function.side_effect = None
+        mock_page.wait_for_function.return_value = None
+        mock_page.evaluate.side_effect = [
+            {"height": 5000, "top": 100, "left": 50, "width": 800},  # dimensions
+            None,
+            mixed,  # tile 1: scroll, per-tile diagnostics
+            None,
+            mixed,  # tile 2
+            None,
+            mixed,  # tile 3
+            mixed,  # final diagnostics
+        ]
+
+        with patch("superset.utils.screenshot_utils.logger") as mock_logger:
+            with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+                take_tiled_screenshot(
+                    mock_page,
+                    "dashboard",
+                    tile_height=2000,
+                    load_wait=30,
+                    report_execution_context=_report_context(),
+                )
+
+        tile_calls = [
+            call
+            for call in mock_logger.info.call_args_list
+            if call.args and call.args[0].startswith("report_readiness_tile")
+        ]
+        assert len(tile_calls) == 3
+        message = tile_calls[0].args[0] % tile_calls[0].args[1:]
+        assert "mounted_holders=5" in message
+        assert "ready_holders=4" in message
+        assert "rendered_holders=2" in message
+        assert "empty_holders=1" in message
+        assert "error_holders=1" in message
+        assert "virtualized_holders=0" in message
+        assert "unready_holders=1" in message
+        assert "semantic_success=False" in message
+
+    def test_final_semantic_status_fires_exactly_once_for_error_holders(
+        self, mock_page
+    ):
+        """One error chart spanning every tile emits ONE report_semantic_status
+        WARNING for the capture (final block), not one per tile — the per-tile
+        INFO lines already carry error_holders."""
+        with_error = [
+            {"chartId": "1", "state": "rendered"},
+            {"chartId": "2", "state": "error"},
+        ]
+        mock_page.wait_for_function.side_effect = None
+        mock_page.wait_for_function.return_value = None
+        mock_page.evaluate.side_effect = [
+            {"height": 5000, "top": 100, "left": 50, "width": 800},
+            None,
+            with_error,
+            None,
+            with_error,
+            None,
+            with_error,
+            with_error,
+        ]
+
+        with patch("superset.utils.screenshot_utils.logger") as mock_logger:
+            with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+                take_tiled_screenshot(
+                    mock_page,
+                    "dashboard",
+                    tile_height=2000,
+                    load_wait=30,
+                    report_execution_context=_report_context(),
+                )
+
+        semantic_calls = [
+            call
+            for call in mock_logger.warning.call_args_list
+            if call.args and call.args[0].startswith("report_semantic_status")
+        ]
+        assert len(semantic_calls) == 1
+        message = semantic_calls[0].args[0] % semantic_calls[0].args[1:]
+        assert "error_holders=1" in message
+        assert "semantic_success=false" in message
+
+    def test_per_tile_diagnostics_failure_does_not_discard_capture(self, mock_page):
+        """Diagnostics must not discard valid tiles: a non-timeout evaluate
+        failure on the per-tile diagnostics path logs a warning and the
+        capture still succeeds."""
+        final_states = [{"chartId": "1", "state": "rendered"}]
+        mock_page.wait_for_function.side_effect = None
+        mock_page.wait_for_function.return_value = None
+        mock_page.evaluate.side_effect = [
+            {"height": 5000, "top": 100, "left": 50, "width": 800},
+            None,
+            RuntimeError("Execution context was destroyed"),
+            None,
+            RuntimeError("Execution context was destroyed"),
+            None,
+            RuntimeError("Execution context was destroyed"),
+            final_states,
+        ]
+
+        with patch("superset.utils.screenshot_utils.logger") as mock_logger:
+            with patch(
+                "superset.utils.screenshot_utils.combine_screenshot_tiles",
+                return_value=b"combined",
+            ):
+                result = take_tiled_screenshot(
+                    mock_page,
+                    "dashboard",
+                    tile_height=2000,
+                    load_wait=30,
+                    report_execution_context=_report_context(),
+                )
+
+        assert result == b"combined"
+        assert mock_page.screenshot.call_count == 3
+        assert any(
+            call.args
+            and call.args[0].startswith(
+                "Unable to collect per-tile chart-holder diagnostics"
+            )
+            for call in mock_logger.warning.call_args_list
+        )
+
     def test_per_tile_readiness_timeout_raises_and_skips_capture(self, mock_page):
         """A per-tile readiness timeout raises and does not capture that tile.
 
