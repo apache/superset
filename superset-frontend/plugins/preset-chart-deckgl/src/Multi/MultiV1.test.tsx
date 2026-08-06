@@ -160,6 +160,52 @@ test('fits the viewport to the fetched layer data when autozoom is on (v1 path)'
   });
 });
 
+test('resolves layers via the container-gated bulk endpoint when the chart is saved', async () => {
+  // A saved container (has a slice_id) can be viewed by a principal (e.g. an
+  // embedded guest) who is entitled to it but not to the layer charts
+  // individually, since those sit on no dashboard of their own. Fetching them
+  // one by one via GET /api/v1/chart/<id> would 404 for that principal; the
+  // bulk /deck_layers/ endpoint gates on the container instead.
+  (SupersetClient.get as jest.Mock).mockResolvedValue({
+    json: {
+      result: [
+        {
+          slice_id: 1,
+          viz_type: 'deck_scatter',
+          datasource_id: 42,
+          datasource_type: 'table',
+          params: JSON.stringify({
+            viz_type: 'deck_scatter',
+            datasource: '5__table',
+          }),
+        },
+      ],
+    },
+  });
+
+  render(
+    <Provider store={store}>
+      <ThemeProvider theme={supersetTheme}>
+        <DeckMulti
+          {...v1Props}
+          formData={{ ...v1Props.formData, slice_id: 7 }}
+        />
+      </ThemeProvider>
+    </Provider>,
+  );
+
+  await waitFor(() =>
+    expect(SupersetClient.get).toHaveBeenCalledWith(
+      expect.objectContaining({ endpoint: '/api/v1/chart/7/deck_layers/' }),
+    ),
+  );
+  await waitFor(() =>
+    expect(
+      screen.getByTestId('deckgl-container').getAttribute('data-layers-count'),
+    ).toBe('1'),
+  );
+});
+
 test('surfaces a warning in the chart when a layer fails to load', async () => {
   // e.g. a layer bound to a dataset missing its columns: the server rejects
   // the layer query and the failure should be visible, not console-only.

@@ -537,38 +537,47 @@ const DeckMulti = (props: DeckMultiProps) => {
   const prevDeckSlices = usePrevious(props.formData.deck_slices);
   const prevVisibleLayersRedux = usePrevious(visibleDeckLayersFromRedux);
 
-  const fetchSubslices = useCallback(
+  const toLayerFormData = useCallback(
+    (
+      sliceId: number,
+      result: JsonObject,
+    ): ({ slice_id: number } & JsonObject) | null => {
+      let params: JsonObject = {};
+      try {
+        params = JSON.parse(result.params || '{}');
+      } catch {
+        params = {};
+      }
+      // The saved params carry a `datasource` string, but it can be
+      // stale (e.g. example charts hardcode an id that differs from the
+      // imported dataset's real id). Prefer the chart's authoritative
+      // datasource_id/datasource_type so the layer queries the dataset
+      // it is actually bound to, the same one it uses standalone.
+      const datasource =
+        result.datasource_id != null && result.datasource_type
+          ? `${result.datasource_id}__${result.datasource_type}`
+          : params.datasource;
+      return {
+        slice_id: sliceId,
+        form_data: {
+          ...params,
+          datasource,
+          slice_id: sliceId,
+          viz_type: result.viz_type ?? params.viz_type,
+        },
+      };
+    },
+    [],
+  );
+
+  const fetchSubslicesPerChart = useCallback(
     (sliceIds: number[]) =>
       Promise.all<({ slice_id: number } & JsonObject) | null>(
         sliceIds.map(sliceId =>
           SupersetClient.get({ endpoint: `/api/v1/chart/${sliceId}` })
-            .then(({ json }) => {
-              const result = (json as JsonObject).result || {};
-              let params: JsonObject = {};
-              try {
-                params = JSON.parse(result.params || '{}');
-              } catch {
-                params = {};
-              }
-              // The saved params carry a `datasource` string, but it can be
-              // stale (e.g. example charts hardcode an id that differs from the
-              // imported dataset's real id). Prefer the chart's authoritative
-              // datasource_id/datasource_type so the layer queries the dataset
-              // it is actually bound to, the same one it uses standalone.
-              const datasource =
-                result.datasource_id != null && result.datasource_type
-                  ? `${result.datasource_id}__${result.datasource_type}`
-                  : params.datasource;
-              return {
-                slice_id: sliceId,
-                form_data: {
-                  ...params,
-                  datasource,
-                  slice_id: sliceId,
-                  viz_type: result.viz_type ?? params.viz_type,
-                },
-              };
-            })
+            .then(({ json }) =>
+              toLayerFormData(sliceId, (json as JsonObject).result || {}),
+            )
             .catch(() => null),
         ),
       ).then(slices =>
@@ -576,7 +585,37 @@ const DeckMulti = (props: DeckMultiProps) => {
           (slice): slice is { slice_id: number } & JsonObject => slice !== null,
         ),
       ),
-    [],
+    [toLayerFormData],
+  );
+
+  const fetchSubslices = useCallback(
+    (sliceIds: number[]) => {
+      const containerId = props.formData.slice_id;
+      if (!containerId) {
+        // Unsaved chart in Explore: there is no saved container to gate
+        // the bulk layer lookup on, so fall back to per-chart reads.
+        return fetchSubslicesPerChart(sliceIds);
+      }
+      // Layer charts sit on no dashboard of their own, so a per-chart
+      // GET /api/v1/chart/<id> can 404 for a principal (e.g. an embedded
+      // guest) who is only entitled to the container. Resolving the
+      // container's declared layers in one gated request reproduces the
+      // access the legacy explore_json pipeline granted server-side.
+      return SupersetClient.get({
+        endpoint: `/api/v1/chart/${containerId}/deck_layers/`,
+      })
+        .then(({ json }) => {
+          const layers = ((json as JsonObject).result || []) as JsonObject[];
+          return layers
+            .map(layer => toLayerFormData(layer.slice_id, layer))
+            .filter(
+              (slice): slice is { slice_id: number } & JsonObject =>
+                slice !== null && sliceIds.includes(slice.slice_id),
+            );
+        })
+        .catch(() => fetchSubslicesPerChart(sliceIds));
+    },
+    [props.formData.slice_id, fetchSubslicesPerChart, toLayerFormData],
   );
 
   useEffect(() => {
