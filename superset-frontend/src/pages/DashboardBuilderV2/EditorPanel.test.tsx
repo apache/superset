@@ -218,3 +218,45 @@ test('a palette row can actually be dragged, as its grip promises', () => {
     'markdown',
   );
 });
+
+test('the panel can be got out of the way, and brought back', async () => {
+  mount();
+
+  // The canvas is the work; this rail is how you act on it, and an author
+  // reading a dashboard at full width wants it gone without losing where
+  // they were in it.
+  await userEvent.click(screen.getByTestId('panel-collapse'));
+
+  expect(screen.queryByRole('tab', { name: 'Building blocks' })).toBeNull();
+  expect(screen.getByTestId('panel-expand')).toBeInTheDocument();
+
+  await userEvent.click(screen.getByTestId('panel-expand'));
+
+  expect(
+    screen.getByRole('tab', { name: 'Building blocks' }),
+  ).toBeInTheDocument();
+});
+
+test('a closed panel keeps the width it was opened at', async () => {
+  mount();
+  const grip = screen.getByTestId('panel-resize');
+  grip.focus();
+  fireEvent.keyDown(grip, { key: 'End' });
+
+  await userEvent.click(screen.getByTestId('panel-collapse'));
+  await userEvent.click(screen.getByTestId('panel-expand'));
+
+  // Closing is not resizing. A panel that reopened at the default would
+  // silently discard a width the author had already chosen.
+  expect(screen.getByTestId('editor-panel')).toHaveStyle('width: 800px');
+});
+
+test('a closed panel offers no edge to drag', async () => {
+  mount();
+
+  await userEvent.click(screen.getByTestId('panel-collapse'));
+
+  // There is nothing to size: the strip is exactly as wide as the one
+  // control on it, and dragging it wider would be a third state.
+  expect(screen.queryByTestId('panel-resize')).toBeNull();
+});

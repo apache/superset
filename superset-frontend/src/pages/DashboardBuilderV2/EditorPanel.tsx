@@ -20,7 +20,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent, PointerEvent, ReactElement } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { useTheme } from '@apache-superset/core/theme';
-import { Tabs } from '@superset-ui/core/components';
+import { Button, Tabs } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { provider, useDashboardRevision } from 'src/core/dashboard/store';
 import Inspector from './Inspector';
 import Outline from './Outline';
@@ -62,6 +63,8 @@ export default function EditorPanel({
   const theme = useTheme();
   const [tab, setTab] = useState<PanelTab>('blocks');
   const [width, setWidth] = useState(DEFAULT_WIDTH);
+  /** Whether the rail is out of the way. The width it had is kept either way. */
+  const [closed, setClosed] = useState(false);
   /** Whether the grip is showing itself — under the pointer, or focused. */
   const [gripped, setGripped] = useState(false);
   const panel = useRef<HTMLElement | null>(null);
@@ -147,6 +150,52 @@ export default function EditorPanel({
     }
   };
 
+  /**
+   * Out of the way, and back.
+   *
+   * The canvas is the work and this rail is how an author acts on it — but
+   * reading a dashboard, or showing one to someone, wants the whole width.
+   * Closing keeps `width` untouched rather than zeroing it, so reopening
+   * restores the width the author chose instead of silently discarding it.
+   *
+   * Closed, the panel is a strip carrying one control rather than nothing at
+   * all: a rail that vanished with no way back is a rail an author loses.
+   * The strip has no edge to drag, because it has no size to choose.
+   */
+  if (closed) {
+    return (
+      <aside
+        data-test="editor-panel"
+        aria-label={t('Editor panel')}
+        style={{
+          flexShrink: 0,
+          display: 'flex',
+          justifyContent: 'center',
+          padding: theme.sizeUnit,
+          borderRight: `1px solid ${theme.colorBorder}`,
+          background: theme.colorBgContainer,
+        }}
+      >
+        <Button
+          size="small"
+          buttonStyle="link"
+          data-test="panel-expand"
+          aria-label={t('Show the editor panel')}
+          aria-expanded={false}
+          tooltip={t('Show the editor panel')}
+          placement="right"
+          onClick={() => setClosed(false)}
+          style={{
+            height: theme.controlHeightSM,
+            paddingInline: theme.sizeUnit,
+          }}
+        >
+          <Icons.MenuUnfoldOutlined iconSize="m" />
+        </Button>
+      </aside>
+    );
+  }
+
   return (
     <aside
       ref={panel}
@@ -171,6 +220,29 @@ export default function EditorPanel({
         onChange={key => setTab(key as PanelTab)}
         size="small"
         style={{ flex: 1, minHeight: 0 }}
+        // Riding the tab bar rather than sitting above it: closing the panel
+        // is done to the panel, and a row of its own for one icon would cost
+        // the height of a row on every screen that never uses it.
+        tabBarExtraContent={{
+          right: (
+            <Button
+              size="small"
+              buttonStyle="link"
+              data-test="panel-collapse"
+              aria-label={t('Hide the editor panel')}
+              aria-expanded
+              tooltip={t('Hide the editor panel')}
+              placement="bottom"
+              onClick={() => setClosed(true)}
+              style={{
+                height: theme.controlHeightSM,
+                paddingInline: theme.sizeUnit,
+              }}
+            >
+              <Icons.MenuFoldOutlined iconSize="m" />
+            </Button>
+          ),
+        }}
         items={[
           {
             key: 'blocks',
