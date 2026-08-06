@@ -77,81 +77,19 @@ test('restores unambiguous plain numbers to native Excel numeric cells', () => {
   expect(sheet.D1).toMatchObject({ t: 's', v: '1,234' });
 });
 
-test('restores unambiguous ISO date/datetime strings to native Excel date cells', () => {
+test('leaves date-shaped strings as text rather than reinterpreting them as dates', () => {
   const sheet = exportRowAndGetSheet([
     '2024-01-01',
     '2024-01-01 13:45:30',
     'not-a-date',
   ]);
 
-  // ISO 8601 date/datetime strings are unambiguous under any locale, so
-  // they're restored to native Excel date cells rather than left as text.
-  // Assert via the UTC getters: the cell's Date is built from UTC
-  // components (see downloadAsPivotExcel.ts) so it serializes correctly
-  // through SheetJS regardless of the host's timezone - jest.config.js
-  // pins tests to America/New_York, where the local getters would report
-  // different values.
-  expect(sheet.A1.t).toBe('d');
-  expect((sheet.A1.v as Date).getUTCFullYear()).toBe(2024);
-  expect((sheet.A1.v as Date).getUTCMonth()).toBe(0);
-  expect((sheet.A1.v as Date).getUTCDate()).toBe(1);
-  expect(sheet.B1.t).toBe('d');
-  expect((sheet.B1.v as Date).getUTCHours()).toBe(13);
-  // Non-date text is left untouched.
+  // A rendered string can't be reliably classified as a genuine date rather
+  // than a coincidentally date-shaped formatted number (e.g. a custom
+  // D3_FORMAT grouping/thousands locale can render a plain metric like
+  // 20240101 as "2024-01-01"), so date-shaped cells are left exactly as
+  // rendered instead of being reinterpreted as native Excel dates.
+  expect(sheet.A1).toMatchObject({ t: 's', v: '2024-01-01' });
+  expect(sheet.B1).toMatchObject({ t: 's', v: '2024-01-01 13:45:30' });
   expect(sheet.C1).toMatchObject({ t: 's', v: 'not-a-date' });
-});
-
-test('builds the exported Date from UTC components so it is not shifted by the host timezone', () => {
-  // jest.config.js pins the test process to America/New_York (UTC-5 in
-  // January). Building the cell's Date from *local* date/time components
-  // (the original bug) rolls a late-evening local timestamp into the next
-  // UTC calendar day - exactly what SheetJS reads when it serializes the
-  // cell to an Excel date, so an exported "2024-01-01 23:30:00" would
-  // silently become "2024-01-02" in the workbook.
-  const sheet = exportRowAndGetSheet(['2024-01-01 23:30:00']);
-
-  const date = sheet.A1.v as Date;
-  expect(sheet.A1.t).toBe('d');
-  // The cell's Date must represent the exact same instant `Date.UTC` would
-  // produce for these wall-clock components, i.e. it was built via
-  // `Date.UTC(...)` rather than interpreted in the host's local timezone,
-  // so SheetJS - which serializes dates via their UTC epoch value - writes
-  // back the same calendar date/time that was rendered.
-  expect(date.getTime()).toBe(Date.UTC(2024, 0, 1, 23, 30, 0));
-});
-
-test('leaves ISO-shaped strings with out-of-range time components as text', () => {
-  const sheet = exportRowAndGetSheet([
-    '2024-01-01 13:60:30',
-    '2024-01-01 24:00:00',
-    '2024-01-01 12:30:61',
-  ]);
-
-  // The Date constructor rolls an out-of-range minute/hour/second over into
-  // the next unit (e.g. 13:60:30 becomes 14:00:30) instead of rejecting it.
-  // If only the date fields were round-tripped, these would be silently
-  // exported as native cells holding the wrong time, so they must stay as
-  // text - exactly as rendered - instead.
-  expect(sheet.A1).toMatchObject({ t: 's', v: '2024-01-01 13:60:30' });
-  expect(sheet.B1).toMatchObject({ t: 's', v: '2024-01-01 24:00:00' });
-  expect(sheet.C1).toMatchObject({ t: 's', v: '2024-01-01 12:30:61' });
-});
-
-test('leaves ISO-shaped strings with out-of-range date components as text', () => {
-  const sheet = exportRowAndGetSheet([
-    '2023-02-29', // 2023 is not a leap year, so February has 28 days.
-    '2024-02-30', // No February has 30 days, leap year or not.
-    '2024-13-01', // No 13th month.
-    '2024-01-32', // No 32nd day.
-  ]);
-
-  // Date.UTC rolls an out-of-range day/month over into the next unit (e.g.
-  // Feb 30 becomes Mar 1) instead of rejecting it. If the year/month/day
-  // fields weren't round-tripped, these would be silently exported as
-  // native cells holding the wrong date, so they must stay as text -
-  // exactly as rendered - instead.
-  expect(sheet.A1).toMatchObject({ t: 's', v: '2023-02-29' });
-  expect(sheet.B1).toMatchObject({ t: 's', v: '2024-02-30' });
-  expect(sheet.C1).toMatchObject({ t: 's', v: '2024-13-01' });
-  expect(sheet.D1).toMatchObject({ t: 's', v: '2024-01-32' });
 });
