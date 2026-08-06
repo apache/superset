@@ -365,7 +365,6 @@ WTF_CSRF_ENABLED = True
 WTF_CSRF_EXEMPT_LIST = [
     "superset.charts.data.api.data",
     "superset.dashboards.api.cache_dashboard_screenshot",
-    "superset.views.core.explore_json",
     "superset.views.core.log",
     "superset.views.datasource.views.samples",
     "flask_appbuilder.security.views.acs",
@@ -689,13 +688,14 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # can_copy_clipboard) instead of the single can_csv permission
     # @lifecycle: development
     "GRANULAR_EXPORT_CONTROLS": False,
-    # Temporary rollout / kill-switch gate for soft delete (default off = legacy
-    # hard delete). An emergency stop, not a clean rollback: flipping ON->OFF
-    # resurrects already-soft-deleted rows. Removed (along with its two gate
-    # points — BaseDAO.delete routing and the do_orm_execute visibility listener)
-    # once soft delete is stable.
+    # Temporary rollout / kill-switch gate for soft delete (off = legacy hard
+    # delete). An emergency stop, not a clean rollback: flipping ON->OFF
+    # resurrects already-soft-deleted rows. Retained through this release as
+    # the move-back lever; removed (along with its two gate points —
+    # BaseDAO.delete routing and the do_orm_execute visibility listener) once
+    # post-flip confidence is established.
     # @lifecycle: development
-    "SOFT_DELETE": False,
+    "SOFT_DELETE": True,
     # Enable semantic layers and show semantic views alongside datasets
     # @lifecycle: development
     "SEMANTIC_LAYERS": False,
@@ -1003,10 +1003,11 @@ USER_AGENT_FUNC: Callable[[Database, utils.QuerySource | None], str] | None = No
 FEATURE_FLAGS: dict[str, bool] = {}
 
 # Retention policy for soft-deleted dashboards, charts, and datasets. A value of
-# zero disables scheduled purging. Dry-run mode is enabled by default so operators
-# must explicitly opt in to irreversible deletion.
+# zero disables scheduled purging. Purging is live by default, so the retention
+# promise above is real on a stock deployment; set SOFT_DELETE_PURGE_DRY_RUN back
+# to True to have the task log ``would_purge`` counts without deleting anything.
 SOFT_DELETE_RETENTION_DAYS: int = 30
-SOFT_DELETE_PURGE_DRY_RUN: bool = True
+SOFT_DELETE_PURGE_DRY_RUN: bool = False
 
 # A function that receives a dict of all feature flags
 # (DEFAULT_FEATURE_FLAGS merged with FEATURE_FLAGS)
