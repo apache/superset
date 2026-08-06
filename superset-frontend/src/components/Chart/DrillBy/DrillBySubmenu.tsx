@@ -148,7 +148,8 @@ export const DrillBySubmenu = ({
   const showScopeSelector = seriesFilters.length > 0 && xAxisFilters.length > 0;
 
   const effectiveDrillByConfig = useMemo(():
-    ContextMenuFilters['drillBy'] | undefined => {
+    | ContextMenuFilters['drillBy']
+    | undefined => {
     if (!drillByConfig) {
       return undefined;
     }
