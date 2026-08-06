@@ -26,7 +26,10 @@ import { supersetTheme } from '@apache-superset/core/theme';
 import type { SeriesOption } from 'echarts';
 import type { ScatterSeriesOption } from 'echarts/charts';
 import { EchartsTimeseriesSeriesType } from '../../src';
-import { TIMESERIES_CONSTANTS } from '../../src/constants';
+import {
+  TIMESERIES_CONSTANTS,
+  StackControlsValue,
+} from '../../src/constants';
 import {
   LegendOrientation,
   EchartsTimeseriesChartProps,
@@ -85,6 +88,70 @@ describe('transformSeries', () => {
     expect((result as any).itemStyle.borderColor).toBe(
       (result as any).itemStyle.color,
     );
+  });
+
+  describe('stacked value labels', () => {
+    // Two series stacked on one category: A is 32, B is 0. The zero-height
+    // B segment must not render a label over A's label.
+    const buildFormatter = (thresholdValues: number[]) => {
+      const result = transformSeries(series, mockColorScale, 'test-key', {
+        showValue: true,
+        stack: StackControlsValue.Stack,
+        onlyTotal: false,
+        formatter: (v: any) => String(v),
+        totalStackedValues: [32],
+        thresholdValues,
+      });
+      return (result as any).label.formatter;
+    };
+
+    test('hides the label for a zero value when the threshold is 0', () => {
+      const formatter = buildFormatter([0]);
+      expect(
+        formatter({
+          value: [0, 0],
+          dataIndex: 0,
+          seriesIndex: 1,
+          seriesName: 'B',
+        }),
+      ).toBe('');
+    });
+
+    test('still shows the label for a non-zero value when the threshold is 0', () => {
+      const formatter = buildFormatter([0]);
+      expect(
+        formatter({
+          value: [0, 32],
+          dataIndex: 0,
+          seriesIndex: 0,
+          seriesName: 'A',
+        }),
+      ).toBe('32');
+    });
+
+    test('still shows the label for a negative value when the threshold is 0', () => {
+      const formatter = buildFormatter([0]);
+      expect(
+        formatter({
+          value: [0, -5],
+          dataIndex: 0,
+          seriesIndex: 0,
+          seriesName: 'A',
+        }),
+      ).toBe('-5');
+    });
+
+    test('keeps hiding values below a non-zero threshold', () => {
+      const formatter = buildFormatter([16]);
+      expect(
+        formatter({
+          value: [0, 4],
+          dataIndex: 0,
+          seriesIndex: 0,
+          seriesName: 'A',
+        }),
+      ).toBe('');
+    });
   });
 
   test('should not apply border styles for non-bar series', () => {
