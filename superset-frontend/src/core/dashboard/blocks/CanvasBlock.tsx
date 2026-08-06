@@ -304,7 +304,15 @@ export default function CanvasBlock({ nodeId }: { nodeId: string }) {
         compactType={free ? null : 'vertical'}
         allowOverlap={free}
         preventCollision={false}
-        resizeHandles={['se', 'sw', 'ne', 'nw']}
+        // Every corner but the top-right one, which a block spends on its
+        // remove control. react-grid-layout appends its handles after the
+        // block's own content, so a 20px handle sat over that button and took
+        // every click aimed at it — `elementFromPoint` at the button's centre
+        // returned the handle. A handle nobody can grab is worse than no
+        // handle: the corner looks resizable and answers a drag that starts
+        // one pixel away. Three corners still size a block, and the fourth
+        // does the one thing that corner is labelled for.
+        resizeHandles={['se', 'sw', 'nw']}
         // A nested canvas that declares its own `rowUnit` independently of
         // the outer `rowSpan` that placed it can end up needing more (or
         // less) height than that outer placement actually reserves — see

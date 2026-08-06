@@ -18,7 +18,7 @@
  */
 import { forwardRef, type HTMLAttributes } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { useTheme } from '@apache-superset/core/theme';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { Flex, Typography } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { ErrorBoundary } from 'src/components';
@@ -51,6 +51,47 @@ function UnsupportedBlockPlaceholder({ nodeId }: { nodeId: string }) {
     </Flex>
   );
 }
+
+/**
+ * The control that takes a block off the dashboard.
+ *
+ * Written as a styled component rather than inlined with the rest of the
+ * header because what it needs is a hover state, and an inline style cannot
+ * express one.
+ *
+ * It sits quiet until pointed at: a bin on every block, all of them lit,
+ * would make a canvas read as a row of things about to be deleted. Under the
+ * pointer the icon takes the colour the app gives a destructive action
+ * everywhere else, so what it does is answered before the click rather than
+ * after it. `:focus-visible` gets the same treatment, because someone
+ * arriving by Tab is owed the same warning as someone arriving by mouse.
+ *
+ * The icon and nothing else. The button is a 24px square only so there is
+ * enough of it to hit, and filling that square would light a shape the eye
+ * reads as a new control appearing in the header rather than as the one
+ * already there answering.
+ */
+const RemoveButton = styled.button`
+  ${({ theme }) => css`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: ${theme.controlHeightSM}px;
+    height: ${theme.controlHeightSM}px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: ${theme.colorTextTertiary};
+    cursor: pointer;
+    transition: color ${theme.motionDurationMid} ease-in-out;
+
+    &:hover,
+    &:focus-visible {
+      color: ${theme.colorError};
+    }
+  `}
+`;
 
 interface BuildingBlockViewProps extends HTMLAttributes<HTMLDivElement> {
   nodeId: string;
@@ -241,7 +282,7 @@ const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
             >
               {blockLabel(node.type, node.props)}
             </Typography.Text>
-            <button
+            <RemoveButton
               type="button"
               data-block-remove
               data-test={`block-remove-${nodeId}`}
@@ -253,22 +294,14 @@ const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
                 event.stopPropagation();
                 provider.removeBuildingBlock(nodeId);
               }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flex: '0 0 auto',
-                width: headerHeight,
-                height: headerHeight,
-                padding: 0,
-                border: 'none',
-                background: 'none',
-                color: theme.colorTextTertiary,
-                cursor: 'pointer',
-              }}
             >
-              <Icons.CloseOutlined iconSize="s" />
-            </button>
+              {/* A bin rather than a cross. A cross on a card is the gesture
+                  for dismissing the card — closing it, putting it away — and
+                  this does not put the block away, it takes it off the
+                  dashboard. The bin is what the rest of the app uses to say
+                  so, and it is the same act the panel offers as Delete. */}
+              <Icons.DeleteOutlined iconSize="s" />
+            </RemoveButton>
           </div>
         )}
         {/* The block's own box, which is the whole of this element's minus

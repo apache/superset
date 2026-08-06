@@ -59,6 +59,17 @@ test('the delete control does not have to be found first', () => {
   expect(screen.getByTestId(`block-remove-${id}`)).toBeVisible();
 });
 
+test('removing a block is offered as a bin, not as a cross', () => {
+  const { id } = withBlock();
+
+  // A cross on a card is the gesture for dismissing the card — closing it,
+  // putting it away, getting it off screen. This takes the block off the
+  // dashboard, and the bin is what says that everywhere else in the app.
+  expect(
+    screen.getByTestId(`block-remove-${id}`).querySelector('.anticon-delete'),
+  ).toBeInTheDocument();
+});
+
 test('the root carries no header of its own', () => {
   const rootId = provider.getRoot().id;
   render(<BuildingBlockView nodeId={rootId} />);

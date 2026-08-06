@@ -42,17 +42,20 @@ jest.mock('react-grid-layout/legacy', () => ({
     compactType,
     allowOverlap,
     draggableCancel,
+    resizeHandles,
   }: {
     children: React.ReactNode;
     compactType: string | null;
     allowOverlap?: boolean;
     draggableCancel?: string;
+    resizeHandles?: string[];
   }) => (
     <div
       data-test="rgl"
       data-compact-type={String(compactType)}
       data-allow-overlap={String(!!allowOverlap)}
       data-draggable-cancel={draggableCancel ?? ''}
+      data-resize-handles={(resizeHandles ?? []).join(',')}
     >
       {children}
     </div>
@@ -84,6 +87,20 @@ test('a grid compacts its children and does not let them overlap', () => {
   const grid = screen.getByTestId('rgl');
   expect(grid).toHaveAttribute('data-compact-type', 'vertical');
   expect(grid).toHaveAttribute('data-allow-overlap', 'false');
+});
+
+test('the corner a block removes itself from is not also a resize handle', () => {
+  withMode('grid');
+
+  // react-grid-layout appends its handles after a block's own content, so the
+  // north-east one landed on the remove control and took every click aimed at
+  // it -- `elementFromPoint` at that button's centre returned the handle. A
+  // handle nobody can grab is worse than no handle: the corner still looks
+  // resizable, and answers a drag that starts a pixel to either side.
+  expect(screen.getByTestId('rgl')).toHaveAttribute(
+    'data-resize-handles',
+    'se,sw,nw',
+  );
 });
 
 test('a container that named no mode is drawn as a grid', () => {
