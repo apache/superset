@@ -535,6 +535,11 @@ authorized_licenses = [
 # Seems ok, might need legal review
 # https://github.com/urschrei/pypolyline/blob/master/LICENSE.md
 polyline = "2"
+# NumPy 2.x reports a combined SPDX license expression covering vendored
+# code (BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0), all of which
+# are permissive OSI-approved licenses; the package itself remains
+# BSD-3-Clause. https://github.com/numpy/numpy/blob/main/LICENSE.txt
+numpy = "2"
 # --------------------------------------------------------------
 
 # TODO REMOVE THESE DEPS FROM CODEBASE
