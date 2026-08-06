@@ -68,3 +68,35 @@ test('the layout switcher is the one live control, and it edits the tree', async
 
   expect(provider.getNode(rootId)?.layout?.mode).toBe('flex');
 });
+
+test('the dashboard is nameable, and the name is stored on the dashboard', async () => {
+  render(<DashboardHeader />);
+
+  await userEvent.type(screen.getByTestId('header-title'), 'Vaccine rollout');
+  await userEvent.tab();
+
+  // On the root node rather than in this component's state: a name is
+  // something the dashboard has, so the assistant can read and rename it too.
+  expect(provider.getRoot().props?.title).toBe('Vaccine rollout');
+});
+
+test('the title shows a rename made anywhere else', () => {
+  provider.updateProps(provider.getRoot().id, { title: 'From the assistant' });
+
+  render(<DashboardHeader />);
+
+  expect(screen.getByTestId('header-title')).toHaveValue('From the assistant');
+});
+
+test('emptying the title is not a rename', async () => {
+  provider.updateProps(provider.getRoot().id, { title: 'Quarterly review' });
+  render(<DashboardHeader />);
+
+  await userEvent.clear(screen.getByTestId('header-title'));
+  await userEvent.tab();
+
+  // A stray select-all-and-delete must not silently leave the dashboard
+  // nameless; the field goes back to what the dashboard is still called.
+  expect(provider.getRoot().props?.title).toBe('Quarterly review');
+  expect(screen.getByTestId('header-title')).toHaveValue('Quarterly review');
+});

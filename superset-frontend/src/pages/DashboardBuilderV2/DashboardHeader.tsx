@@ -16,12 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useEffect, useState } from 'react';
 import type { ReactElement, ReactNode } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { useTheme } from '@apache-superset/core/theme';
 import {
   Button,
   type ButtonProps,
+  Input,
   PublishedLabel,
 } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -68,6 +70,54 @@ const Inert = ({
 );
 
 /**
+ * The dashboard's name, edited where it is read.
+ *
+ * It is stored on the root node rather than in this component, because a name
+ * is something the dashboard has and not something this screen remembers: put
+ * in page state it would be invisible to the assistant, unreachable by the
+ * client tools, and gone on the next navigation. The root canvas is the only
+ * node a dashboard-level fact can belong to, so that is where it lives.
+ *
+ * A title is also a `markdown` block an author can place at the top of the
+ * canvas, and that stays true — this is a different thing with a different
+ * job. That one is content, laid out and arranged like any other block; this
+ * one is what the dashboard is called.
+ *
+ * The draft commits on blur rather than on every keystroke: a name being
+ * typed is not a name, and one commit per character would be one revision
+ * tick per character for everything subscribed to the store.
+ */
+const Title = ({ nodeId, title }: { nodeId: string; title: string }) => {
+  const [draft, setDraft] = useState(title);
+  // What was accepted replaces the draft, because the draft was a view of it:
+  // a rename the assistant makes while this is on screen has to show.
+  useEffect(() => setDraft(title), [title]);
+
+  return (
+    <Input
+      size="small"
+      style={{ maxWidth: 260 }}
+      value={draft}
+      aria-label={t('Dashboard title')}
+      placeholder={t('Untitled dashboard')}
+      data-test="header-title"
+      onChange={event => setDraft(event.target.value)}
+      onBlur={() => {
+        const next = draft.trim();
+        // An empty name is not a rename. Restoring the draft rather than
+        // writing the blank is what keeps a stray select-all-and-delete from
+        // silently leaving the dashboard nameless.
+        if (next === '') {
+          setDraft(title);
+        } else if (next !== title) {
+          provider.updateProps(nodeId, { title: next });
+        }
+      }}
+    />
+  );
+};
+
+/**
  * The dashboard's header: what this dashboard is, and what can be done to it.
  *
  * Two kinds of thing share the bar. On the left is the dashboard as the
@@ -104,6 +154,10 @@ export default function DashboardHeader(): ReactElement {
       <Inert label={t('History')} test="header-history">
         {t('History')}
       </Inert>
+      <Title
+        nodeId={root.id}
+        title={typeof root.props?.title === 'string' ? root.props.title : ''}
+      />
       <Inert label={t('Favorite')} test="header-favorite" buttonStyle="link">
         <Icons.StarOutlined iconSize="l" />
       </Inert>

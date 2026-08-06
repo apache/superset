@@ -157,7 +157,16 @@ export interface DashboardNode {
    * repositioning a node on the canvas never changes this array.
    */
   children?: string[];
-  /** Leaf/building-block nodes only — functional/content config. */
+  /**
+   * Functional/content config. Leaf/building-block nodes carry whatever
+   * their renderer reads.
+   *
+   * The root `canvas` is the one container that also carries some: it is the
+   * only node a fact about the dashboard *itself* can belong to, so that is
+   * where its `title` lives. A title placed as a `markdown` block is a
+   * different thing — that one is content, arranged like any other block;
+   * this one is what the dashboard is called.
+   */
   props?: Record<string, unknown>;
   /** Leaf/building-block nodes only — visual customization. */
   style?: Record<string, unknown>;
