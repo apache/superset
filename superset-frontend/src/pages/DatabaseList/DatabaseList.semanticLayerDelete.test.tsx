@@ -91,12 +91,13 @@ const setupMocks = ({
     count: 1,
   });
   if (dependentsError) {
-    fetchMock.get(DATASOURCE_ROUTE, 500);
+    fetchMock.get(DATASOURCE_ROUTE, 500, { name: DATASOURCE_ROUTE });
   } else {
-    fetchMock.get(DATASOURCE_ROUTE, {
-      result: dependents,
-      count: dependents.length,
-    });
+    fetchMock.get(
+      DATASOURCE_ROUTE,
+      { result: dependents, count: dependents.length },
+      { name: DATASOURCE_ROUTE },
+    );
   }
   fetchMock.delete(DELETE_ROUTE, {});
 };
@@ -222,6 +223,79 @@ test('a failed dependent lookup still opens the modal with an uncounted warning'
       'Deleting this semantic layer also permanently deletes its semantic views, and charts built on those views will stop working. The affected views could not be listed.',
     ),
   ).toBeInTheDocument();
+});
+
+test('the overflow footer reports dependent views beyond the listed page', async () => {
+  // The lookup pages at 10 names; the count is the full total.
+  setupMocks({ dependents: [] });
+  fetchMock.removeRoutes({ names: [DATASOURCE_ROUTE] });
+  fetchMock.get(
+    DATASOURCE_ROUTE,
+    {
+      result: Array.from({ length: 10 }, (_, i) =>
+        dependentView(i + 1, `view_${i + 1}`),
+      ),
+      count: 12,
+    },
+    { name: DATASOURCE_ROUTE },
+  );
+  renderDatabaseList();
+
+  const dialog = await openDeleteModal();
+
+  expect(
+    within(dialog).getByText(
+      'This will also permanently delete its 12 semantic views. Charts built on those views will stop working.',
+    ),
+  ).toBeInTheDocument();
+  expect(within(dialog).getByText('view_10')).toBeInTheDocument();
+  expect(within(dialog).getByText('... and 2 others')).toBeInTheDocument();
+});
+
+test('a stale lookup cannot reopen a dismissed modal', async () => {
+  // Click Delete (slow lookup), dismiss nothing yet -- then click Delete
+  // again (fast path already consumed), cancel the modal, and let the slow
+  // first lookup resolve: the modal must stay closed.
+  setupMocks({ dependents: [dependentView(1, 'marketing')] });
+  fetchMock.removeRoutes({ names: [DATASOURCE_ROUTE] });
+  let callCount = 0;
+  let releaseFirst: () => void = () => {};
+  const firstGate = new Promise<void>(resolve => {
+    releaseFirst = resolve;
+  });
+  fetchMock.get(
+    DATASOURCE_ROUTE,
+    async () => {
+      callCount += 1;
+      if (callCount === 1) {
+        await firstGate;
+      }
+      return { result: [dependentView(1, 'marketing')], count: 1 };
+    },
+    { name: DATASOURCE_ROUTE },
+  );
+  renderDatabaseList();
+
+  // First click: lookup hangs on the gate; no modal yet.
+  const deleteButton = await screen.findByTestId('Delete');
+  await userEvent.click(deleteButton);
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+  // Second click: resolves immediately and opens the modal.
+  await userEvent.click(deleteButton);
+  const dialog = await screen.findByRole('dialog');
+
+  // Dismiss it, then release the first (stale) lookup.
+  await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+  await waitFor(() => {
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+  releaseFirst();
+  // Give the stale resolution a macrotask to (incorrectly) reopen the modal.
+  await new Promise(resolve => {
+    setTimeout(resolve, 50);
+  });
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });
 
 test('confirming the modal deletes the semantic layer', async () => {

@@ -24,7 +24,7 @@ import {
   FeatureFlag,
 } from '@superset-ui/core';
 import { css, useTheme } from '@apache-superset/core/theme';
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import type { CellProps } from 'react-table';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
@@ -317,38 +317,41 @@ function DatabaseList({
   // Deleting a semantic layer cascade-deletes its semantic views, so the
   // confirmation must say what else is about to be destroyed. If the lookup
   // fails the modal still opens, with an uncounted warning: the count is an
-  // aid, not a gate on deleting.
-  const openSemanticLayerDeleteModal = useCallback(
-    (item: ConnectionItem) =>
-      SupersetClient.get({
-        endpoint: `/api/v1/datasource/?q=${rison.encode_uri({
-          filters: [
-            { col: 'semantic_layer_uuid', opr: 'eq', value: item.uuid },
-          ],
-          order_column: 'table_name',
-          order_direction: 'asc',
-          page: 0,
-          page_size: MAX_DEPENDENT_VIEWS_LISTED,
-        })}`,
+  // aid, not a gate on deleting. The generation counter drops stale
+  // resolutions -- without it a slow lookup could reopen a modal the user
+  // already dismissed, or replace a newer row's modal with an older one.
+  const slDeleteLookupRef = useRef(0);
+  const openSemanticLayerDeleteModal = useCallback((item: ConnectionItem) => {
+    slDeleteLookupRef.current += 1;
+    const lookupId = slDeleteLookupRef.current;
+    return SupersetClient.get({
+      endpoint: `/api/v1/datasource/?q=${rison.encode_uri({
+        filters: [{ col: 'semantic_layer_uuid', opr: 'eq', value: item.uuid }],
+        order_column: 'table_name',
+        order_direction: 'asc',
+        page: 0,
+        page_size: MAX_DEPENDENT_VIEWS_LISTED,
+      })}`,
+    })
+      .then(({ json = {} }) => {
+        if (slDeleteLookupRef.current !== lookupId) return;
+        setSlCurrentlyDeleting({
+          ...item,
+          dependentViewCount: json.count ?? 0,
+          dependentViewNames: (json.result ?? []).map(
+            (view: { table_name: string }) => view.table_name,
+          ),
+        });
       })
-        .then(({ json = {} }) => {
-          setSlCurrentlyDeleting({
-            ...item,
-            dependentViewCount: json.count ?? 0,
-            dependentViewNames: (json.result ?? []).map(
-              (view: { table_name: string }) => view.table_name,
-            ),
-          });
-        })
-        .catch(() => {
-          setSlCurrentlyDeleting({
-            ...item,
-            dependentViewCount: null,
-            dependentViewNames: null,
-          });
-        }),
-    [],
-  );
+      .catch(() => {
+        if (slDeleteLookupRef.current !== lookupId) return;
+        setSlCurrentlyDeleting({
+          ...item,
+          dependentViewCount: null,
+          dependentViewNames: null,
+        });
+      });
+  }, []);
 
   function handleDatabaseDelete(database: DatabaseObject) {
     const { id, database_name: dbName } = database;
