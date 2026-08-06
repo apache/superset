@@ -97,7 +97,7 @@ class Dashboard(BaseSupersetView):
         db.session.commit()  # pylint: disable=consider-using-transaction
         if after_create := current_app.config.get("AFTER_ASSET_CREATE"):
             after_create(new_dashboard, "dashboard")
-            db.session.commit()
+            db.session.commit()  # pylint: disable=consider-using-transaction
         return redirect(
             url_for(
                 "Superset.dashboard", dashboard_id_or_slug=new_dashboard.id, edit="true"
