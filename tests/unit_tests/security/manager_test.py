@@ -19,6 +19,7 @@
 
 import json  # noqa: TID251
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 from flask_appbuilder.security.sqla.models import Role, User
@@ -653,6 +654,328 @@ def test_query_context_modified_tampered(
         "metrics": tampered_metrics,
     }
     query_context.queries = [QueryObject(metrics=tampered_metrics)]  # type: ignore
+    assert query_context_modified(query_context)
+
+
+def base_axis_column(x_axis: Any) -> dict[str, Any]:
+    """
+    Build the synthesized x-axis column the frontend sends for a chart.
+
+    Mirrors `normalizeTimeColumn` in superset-ui-core: a physical x-axis becomes a pure
+    column reference, an adhoc x-axis is copied with the markers added.
+    """
+    if isinstance(x_axis, dict):
+        return {
+            "timeGrain": "P1D",
+            "columnType": "BASE_AXIS",
+            **x_axis,
+        }
+    return {
+        "timeGrain": "P1D",
+        "columnType": "BASE_AXIS",
+        "sqlExpression": x_axis,
+        "label": x_axis,
+        "expressionType": "SQL",
+        "isColumnReference": True,
+    }
+
+
+def test_query_context_modified_base_axis_physical_no_stored_context(
+    mocker: MockerFixture,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    Test a guest loading a chart with a physical x-axis and no stored query context.
+
+    The chart stores the x-axis as a bare string under its own `x_axis` control, while
+    the request carries the synthesized `BASE_AXIS` column, so a naive comparison reads
+    a normal chart load as tampering.
+    """
+    requested_columns = [base_axis_column("order_date")]
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "x_axis": "order_date",
+        "metrics": stored_metrics,
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": stored_metrics,
+        "columns": requested_columns,
+    }
+    query_context.queries = [
+        QueryObject(metrics=stored_metrics, columns=requested_columns)  # type: ignore
+    ]
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_base_axis_with_groupby_dimension(
+    mocker: MockerFixture,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    Test a real timeseries chart, which stores its dimensions under `groupby`.
+
+    A chart with an x-axis stores its remaining dimensions under `groupby` and leaves
+    `columns` unset, while the query sends them in `columns` together with the
+    synthesized axis. Reproduced against the `Line` example chart.
+    """
+    requested_columns = [base_axis_column("order_date"), "product_line"]
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "x_axis": "order_date",
+        "columns": None,
+        "groupby": ["product_line"],
+        "metrics": stored_metrics,
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": stored_metrics,
+        "columns": requested_columns,
+    }
+    query_context.queries = [
+        QueryObject(metrics=stored_metrics, columns=requested_columns)  # type: ignore
+    ]
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_base_axis_adhoc_no_stored_context(
+    mocker: MockerFixture,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    Test a guest loading a chart whose x-axis is an adhoc column.
+    """
+    stored_x_axis = {
+        "label": "My axis",
+        "sqlExpression": "DATE(order_date)",
+        "expressionType": "SQL",
+    }
+    requested_columns = [base_axis_column(stored_x_axis)]
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "x_axis": stored_x_axis,
+        "metrics": stored_metrics,
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": stored_metrics,
+        "columns": requested_columns,
+    }
+    query_context.queries = [
+        QueryObject(metrics=stored_metrics, columns=requested_columns)  # type: ignore
+    ]
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_base_axis_with_stored_context(
+    mocker: MockerFixture,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    Test a chart whose stored query context already holds the normalized column.
+
+    The stored side is collapsed too, so a stored context that already contains the
+    synthesized `BASE_AXIS` shape still compares equal to the request.
+    """
+    requested_columns = [base_axis_column("order_date")]
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.params_dict = {
+        "x_axis": "order_date",
+        "metrics": stored_metrics,
+    }
+    query_context.slice_.query_context = json.dumps(
+        {
+            "queries": [
+                {
+                    "columns": requested_columns,
+                    "metrics": stored_metrics,
+                }
+            ]
+        }
+    )
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": stored_metrics,
+        "columns": requested_columns,
+    }
+    query_context.queries = [
+        QueryObject(metrics=stored_metrics, columns=requested_columns)  # type: ignore
+    ]
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_base_axis_forged_column_reference(
+    mocker: MockerFixture,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    Test that tagging an unrelated column as `BASE_AXIS` is still rejected.
+    """
+    forged_columns = [base_axis_column("ssn")]
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "x_axis": "order_date",
+        "metrics": stored_metrics,
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": stored_metrics,
+        "columns": forged_columns,
+    }
+    query_context.queries = [
+        QueryObject(metrics=stored_metrics, columns=forged_columns)  # type: ignore
+    ]
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_base_axis_forged_adhoc_expression(
+    mocker: MockerFixture,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    Test that free-form SQL tagged as `BASE_AXIS` is still rejected.
+    """
+    forged_columns = [
+        {
+            "columnType": "BASE_AXIS",
+            "label": "My axis",
+            "sqlExpression": "(SELECT ssn FROM users LIMIT 1)",
+            "expressionType": "SQL",
+        }
+    ]
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "x_axis": {
+            "label": "My axis",
+            "sqlExpression": "DATE(order_date)",
+            "expressionType": "SQL",
+        },
+        "metrics": stored_metrics,
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": stored_metrics,
+        "columns": forged_columns,
+    }
+    query_context.queries = [
+        QueryObject(metrics=stored_metrics, columns=forged_columns)  # type: ignore
+    ]
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_base_axis_extra_column(
+    mocker: MockerFixture,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    Test that an extra column is still rejected alongside a valid x-axis.
+
+    Reading `columns` and `groupby` as equivalent stored sources must not let a column
+    the chart does not reference through.
+    """
+    requested_columns = [base_axis_column("order_date"), "product_line", "status"]
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "x_axis": "order_date",
+        "groupby": ["product_line"],
+        "metrics": stored_metrics,
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": stored_metrics,
+        "columns": requested_columns,
+    }
+    query_context.queries = [
+        QueryObject(metrics=stored_metrics, columns=requested_columns)  # type: ignore
+    ]
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_base_axis_non_string_sql_expression(
+    mocker: MockerFixture,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    Test that a non-string `sqlExpression` does not collapse to a stored value.
+    """
+    forged_columns = [
+        {
+            "columnType": "BASE_AXIS",
+            "isColumnReference": True,
+            "sqlExpression": {"nested": "order_date"},
+        }
+    ]
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "x_axis": "order_date",
+        "metrics": stored_metrics,
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": stored_metrics,
+        "columns": forged_columns,
+    }
+    query_context.queries = [
+        QueryObject(metrics=stored_metrics, columns=forged_columns)  # type: ignore
+    ]
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_base_axis_smuggled_into_metrics(
+    mocker: MockerFixture,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    Test that a `BASE_AXIS` marker on a metric does not bypass the metric comparison.
+
+    Metrics compare exactly, so the marker must not collapse a foreign metric into a
+    stored value.
+    """
+    forged_metrics = [
+        {
+            "columnType": "BASE_AXIS",
+            "isColumnReference": True,
+            "sqlExpression": "COUNT(*) + 1",
+            "label": "COUNT(*) + 1",
+            "expressionType": "SQL",
+        }
+    ]
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "x_axis": "order_date",
+        "metrics": stored_metrics,
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": forged_metrics,
+    }
+    query_context.queries = [QueryObject(metrics=forged_metrics)]  # type: ignore
     assert query_context_modified(query_context)
 
 
