@@ -109,14 +109,19 @@ def current_entity_version_info(
         entity_uuid = db.session.scalar(
             sa.select(model_cls.uuid).where(model_cls.id == entity_id)
         )
+    if entity_uuid is None:
+        return EntityVersionInfo()
+    version, transaction_id = VersionDAO.current_version_info(
+        model_cls, entity_id, entity_uuid
+    )
     version_uuid = (
-        VersionDAO.current_live_version_uuid(model_cls, entity_id, entity_uuid)
-        if entity_uuid is not None
+        VersionDAO.derive_version_uuid(entity_uuid, transaction_id)
+        if transaction_id is not None
         else None
     )
     return EntityVersionInfo(
-        version=VersionDAO.current_version_number(model_cls, entity_id),
-        transaction_id=VersionDAO.current_live_transaction_id(model_cls, entity_id),
+        version=version,
+        transaction_id=transaction_id,
         version_uuid=str(version_uuid) if version_uuid else None,
     )
 

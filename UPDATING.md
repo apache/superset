@@ -24,6 +24,34 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Scheduled report execution now enforces one application deadline
+
+Scheduled report (not alert) executions are now governed by a single
+end-to-end deadline shared by browser readiness, capture/PDF generation,
+notification delivery, and terminal-state persistence, configured via
+`ALERT_REPORTS_EXECUTION_BUDGET_SECONDS` (with per-phase reserve settings).
+Behavior changes to be aware of:
+
+- The effective budget for a schedule is
+  `min(ALERT_REPORTS_EXECUTION_BUDGET_SECONDS, working_timeout)`. The default
+  budget (one hour) matches the historical `working_timeout` model default,
+  so default installations see no change in how long a report may run —
+  but reports now fail cleanly (with an error notification) at the deadline
+  instead of being killed silently by Celery.
+- For REPORT schedules, the Celery `soft_time_limit`/`time_limit` are now
+  derived from that same effective budget plus
+  `ALERT_REPORTS_EXECUTION_HARD_TIMEOUT_GRACE_SECONDS`, replacing the
+  previous `working_timeout + ALERT_REPORTS_WORKING_TIME_OUT_LAG` /
+  `+ ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG` derivation. Alert schedules
+  keep the previous behavior.
+- A `working_timeout` smaller than the summed phase reserves is floored at
+  the minimum viable budget (reserves + 30s) with a warning; such reports
+  fail fast at the first phase check rather than erroring at setup.
+- Dashboard reports whose charts have not mounted are no longer captured
+  blank: readiness is polled until the deadline, and the report fails loudly
+  if charts never mount. Thumbnails and non-report screenshots keep their
+  previous behavior.
+
 ### Principal listing APIs now honour related-field filters
 
 Two authorization-related listing behaviors changed for API clients. Neither
@@ -344,9 +372,23 @@ As a result the per-table **"Aggregation function"** control (which let you pick
 how totals were aggregated client-side, e.g. Sum/Average/Count) has been
 removed: totals now always reflect the metric's own definition evaluated at the
 total's granularity. For additive metrics (`SUM`/`COUNT`/`MIN`/`MAX`) the result
-is unchanged. Saved charts that set `aggregateFunction` will ignore it; no
-migration is required. If you previously relied on a plain sum-of-cells total
-for a non-additive metric, that specific behavior is no longer available.
+is unchanged. If you previously relied on a plain sum-of-cells total for a
+non-additive metric, that specific behavior is no longer available.
+
+The "Sum as Fraction of Total/Rows/Columns" display options are back as a
+new, standalone **"Show values as"** control (below "Combine metrics" in the
+Options panel), since those were mathematically correct even before this
+change and are unrelated to the totals-correctness fix. A DB migration
+derives the new field from any still-present `aggregateFunction` Sum-fraction
+value, so a chart that had one of those options configured picks the
+equivalent "Show values as" setting back up automatically. The "Count as
+Fraction of ..." variants are **not** migrated: they divided a record count,
+while the new control divides the metric's own value, so translating them
+automatically would silently change what the chart displays rather than
+restore it; those charts need to be manually reconfigured if the value-based
+percentage is what's wanted. Charts that used any other non-fraction
+`aggregateFunction` value (Sum, Average, Count, ...) are unaffected, since
+that specific behavior remains unavailable per the above.
 
 ### `thumbnail_url` removed from dashboard list API response
 
@@ -411,7 +453,7 @@ Entity version history (the `version_transaction` / `*_version` shadow tables th
 |---|---|---|
 | `SUPERSET_VERSION_HISTORY_RETENTION_DAYS` | `30` | Version rows whose owning `version_transaction.issued_at` is older than this many days are pruned. Each entity's live row (`end_transaction_id IS NULL`) is always preserved, as are the live rows of its children and associations; closed historical rows (including the baseline) age out. Set to `0` or a negative value to disable pruning. |
 
-The task ships in the default `CeleryConfig.beat_schedule`; a deployment that overrides `CELERY_CONFIG` without inheriting the default will log a startup warning that the prune task is absent (so it never silently stops running). Retention only prunes whatever history exists — capture itself is gated separately by `ENABLE_VERSIONING_CAPTURE` (ships off).
+The task ships in the default `CeleryConfig` (both the `superset.tasks.version_history_retention` import and the beat entry). A deployment that overrides `CELERY_CONFIG` without the beat entry logs a startup warning. When the override explicitly defines `imports`, a missing retention module is also reported; an absent `imports` setting is not diagnosed because Celery may register tasks through `include`, autodiscovery, or worker startup imports. Retention only prunes whatever history exists — capture itself is gated separately by `ENABLE_VERSIONING_CAPTURE` (ships off).
 
 ### Deletion retention (soft-deleted entities are eventually purged)
 
@@ -419,7 +461,7 @@ Soft-deleted dashboards, charts, and datasets are now permanently removed after 
 
 The introducing release **defaults to dry-run** (`SOFT_DELETE_PURGE_DRY_RUN=True`): the task logs `would_purge` counts but deletes nothing, so operators can validate against production before activating real purging by setting it to `False`. Note `would_purge` is an **upper bound** — it counts every entity past the retention window without evaluating deletion blockers, so a real run may purge fewer (entities referenced by report schedules or set as a user's welcome dashboard are blocked and reported separately). The task only acts while the temporary `SOFT_DELETE` rollout flag is on.
 
-Deployments that replace the default `CELERY_CONFIG` must add `superset.tasks.deletion_retention` to the Celery `imports` and schedule the `deletion_retention.purge_soft_deleted` task themselves. The shipped Docker development config includes both entries.
+Deployments that replace the default `CELERY_CONFIG` must ensure workers register `superset.tasks.deletion_retention` and schedule the `deletion_retention.purge_soft_deleted` task themselves. The shipped Docker development config uses `imports` and includes both entries. While `SOFT_DELETE` is statically enabled, a missing beat entry logs a startup warning; when the override explicitly defines `imports`, a missing purge module is also reported.
 
 Operators can immediately erase a specific entity for compliance (GDPR) via `superset deletion-retention force-purge --uuid <uuid>`; this applies legacy hard-delete semantics — a live chart referencing a force-purged dataset is left without a datasource until re-pointed (the chart is not modified), and it purges the named entity even when it was never soft-deleted. Every purge writes an immutable, content-free audit record to the new `purge_audit_log` table that survives the entity it names: the **scheduled** purge fails closed (an entity whose audit row cannot be written is skipped and retried next run), while **force-purge** proceeds even if the audit write fails — the operator is present and deletion outranks audit for a compliance erasure.
 
