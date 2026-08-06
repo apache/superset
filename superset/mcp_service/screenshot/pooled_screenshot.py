@@ -33,6 +33,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from superset.extensions import machine_auth_provider_factory
 from superset.mcp_service.screenshot.webdriver_pool import get_webdriver_pool
 from superset.mcp_service.utils.retry_utils import retry_screenshot_operation
+from superset.utils.report_execution import ReportExecutionContext
 from superset.utils.screenshots import BaseScreenshot, WindowSize
 
 logger = logging.getLogger(__name__)
@@ -50,7 +51,11 @@ class PooledBaseScreenshot(BaseScreenshot):
     """
 
     def get_screenshot(
-        self, user: User, window_size: WindowSize | None = None
+        self,
+        user: User,
+        window_size: WindowSize | None = None,
+        log_context: str | None = None,
+        report_execution_context: ReportExecutionContext | None = None,
     ) -> bytes | None:
         """
         Generate screenshot using pooled WebDriver with retry logic for reliability.
@@ -58,6 +63,10 @@ class PooledBaseScreenshot(BaseScreenshot):
         Args:
             user: User context for authentication
             window_size: Optional window size override
+            log_context: Accepted for signature compatibility with
+                BaseScreenshot; the pooled Selenium path does not emit the
+                per-tile readiness logs that use it.
+            report_execution_context: Accepted for BaseScreenshot compatibility.
 
         Returns:
             Screenshot as PNG bytes or None if failed

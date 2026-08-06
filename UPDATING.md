@@ -24,6 +24,156 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Scheduled report execution now enforces one application deadline
+
+Scheduled report (not alert) executions are now governed by a single
+end-to-end deadline shared by browser readiness, capture/PDF generation,
+notification delivery, and terminal-state persistence, configured via
+`ALERT_REPORTS_EXECUTION_BUDGET_SECONDS` (with per-phase reserve settings).
+Behavior changes to be aware of:
+
+- The effective budget for a schedule is
+  `min(ALERT_REPORTS_EXECUTION_BUDGET_SECONDS, working_timeout)`. The default
+  budget (one hour) matches the historical `working_timeout` model default,
+  so default installations see no change in how long a report may run —
+  but reports now fail cleanly (with an error notification) at the deadline
+  instead of being killed silently by Celery.
+- For REPORT schedules, the Celery `soft_time_limit`/`time_limit` are now
+  derived from that same effective budget plus
+  `ALERT_REPORTS_EXECUTION_HARD_TIMEOUT_GRACE_SECONDS`, replacing the
+  previous `working_timeout + ALERT_REPORTS_WORKING_TIME_OUT_LAG` /
+  `+ ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG` derivation. Alert schedules
+  keep the previous behavior.
+- A `working_timeout` smaller than the summed phase reserves is floored at
+  the minimum viable budget (reserves + 30s) with a warning; such reports
+  fail fast at the first phase check rather than erroring at setup.
+- Dashboard reports whose charts have not mounted are no longer captured
+  blank: readiness is polled until the deadline, and the report fails loudly
+  if charts never mount. Thumbnails and non-report screenshots keep their
+  previous behavior.
+
+### Principal listing APIs now honour related-field filters
+
+Two authorization-related listing behaviors changed for API clients. Neither
+affects the Superset UI — `include_ids` and `security/subject` have no frontend
+callers — but external clients will notice:
+
+- `GET /api/v1/<resource>/related/<column>?include_ids=...` now applies the
+  endpoint's `base_related_field_filters`. Previously the forced IDs were fetched
+  with no filtering, so a caller could resolve principals the related-field
+  filters deliberately hide; those IDs are now omitted from the response.
+- `GET /api/v1/security/subject/` now honours `EXCLUDE_USERS_FROM_LISTS` and
+  `EXTRA_RELATED_QUERY_FILTERS`, matching every other principal-listing endpoint.
+  List counts may drop, and fetching an excluded principal via
+  `GET /api/v1/security/subject/<id>` now returns `404`.
+
+### v1 chart import no longer re-adds the importer as editor on overwrite
+
+Re-importing over an existing chart (an overwrite or a soft-delete restore) no
+longer appends the importing user to the chart's `editors`, matching the
+dashboard importer's behavior. This changes anything only for a user who was not
+already an editor of that chart — typically an admin overwriting a chart they do
+not own, who was previously added as an editor as a side effect of the import.
+Newly-created charts are unaffected.
+### ClickHouse: system sampling queries retry with a bounded read
+
+System-generated sampling queries — filter-value dropdowns, the Samples
+tab/dataset preview, and datetime format detection — that ClickHouse rejects
+with a `max_rows_to_read` error (`TOO_MANY_ROWS`, code 158) are now retried
+once with `SETTINGS read_overflow_mode='break'` appended, so they return a
+partial result bounded by the operator's row cap instead of failing. The retry
+applies only to statements Superset generates for physical-table datasets;
+virtual datasets and user-authored SQL remain fully governed by configured
+read limits, and queries that already succeed are never altered. Operators who
+rely on `max_rows_to_read` as a hard failure gate for these system queries can
+restore the previous behavior per database with
+`"disable_sampling_read_limit_override": true` in the database's Extra JSON.
+Note that a retried query returns partial data with no truncation indicator
+(e.g. a filter dropdown may list only a subset of values on tables above the
+row cap).
+
+### Dashboard "Export Data to Excel" requires a Celery worker and S3 bucket
+
+A new dashboard action exports every chart's data to a single multi-sheet
+`.xlsx` asynchronously. It is disabled by default and turns on only when
+`EXCEL_EXPORT_S3_BUCKET` is set (the endpoint returns `501` otherwise). It also
+requires a running Celery worker and a configured SMTP transport, since the task
+emails the requesting user a pre-signed download link. New config keys:
+`EXCEL_EXPORT_S3_BUCKET`, `EXCEL_EXPORT_S3_KEY_PREFIX`,
+`EXCEL_EXPORT_LINK_TTL_SECONDS`, `EXCEL_EXPORT_S3_CLIENT_KWARGS`, and
+`EXCEL_EXPORT_TABLE_VIZ_TYPES`.
+
+The feature depends on `boto3`, which is **not** installed by default; install it
+with `pip install apache-superset[excel-export]`.
+
+A second mode, **Export Images to Excel**, embeds non-table charts as rendered
+images (which viz types stay tabular is controlled by
+`EXCEL_EXPORT_TABLE_VIZ_TYPES`). It renders through the headless webdriver, so the
+menu option only appears when the webdriver screenshot feature flags
+(`ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS`,
+`ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT`) are enabled.
+
+Deployments that override `CELERY_CONFIG` must add
+`"superset.tasks.export_dashboard_excel"` to their `imports` tuple, or the task
+will not register and exports will silently never run.
+
+### SQL_QUERY_MUTATOR now honors MUTATE_AFTER_SPLIT in SQL Lab
+
+SQL Lab now applies `SQL_QUERY_MUTATOR` according to `MUTATE_AFTER_SPLIT`, matching the documented semantics and the chart/query path. This only affects deployments that define `SQL_QUERY_MUTATOR` in `superset_config.py`:
+
+- With `MUTATE_AFTER_SPLIT = True`, the mutator previously never ran in SQL Lab; it now runs on each individual statement (including on engines like BigQuery and Kusto that execute multiple statements as one block, where each statement is mutated before the statements are joined).
+- With `MUTATE_AFTER_SPLIT = False` (the default), multi-statement SQL Lab queries previously applied the mutator to each statement separately; the mutator now runs once on the whole un-split query, as documented. Single-statement queries are unaffected.
+- With `MUTATE_AFTER_SPLIT = False` on engines that execute statements individually, the mutator's output is re-parsed to split it into statements. A mutator that emits SQL Superset's parser cannot parse will now fail with a clear parse error before execution, and one that strips a query down to nothing raises an invalid-SQL error instead of executing an empty query.
+
+### Python 3.10 support removed
+
+Python 3.10 is no longer supported. Superset now requires **Python 3.11 or higher**.
+Update your environment (virtualenv, Docker base image, CI configuration, etc.) to
+Python 3.11+ before upgrading. The `apache/superset-cache:3.10-slim-trixie` and
+`py310` Docker image variants are no longer published.
+
+### `from_dttm` and `to_dttm` Jinja template variables removed
+
+The `{{ from_dttm }}` and `{{ to_dttm }}` Jinja template variables, deprecated since
+v5.0, have been removed from the Jinja context and are no longer available in virtual
+dataset SQL or custom SQL expressions.
+
+Replace usages with the `get_time_filter()` function. For example:
+
+```sql
+-- Before
+SELECT * FROM tbl
+WHERE dttm_col > '{{ from_dttm }}' AND dttm_col < '{{ to_dttm }}'
+
+-- After
+{% set tf = get_time_filter("dttm_col") %}
+SELECT * FROM tbl
+WHERE dttm_col > {{ tf.from_expr }} AND dttm_col <= {{ tf.to_expr }}
+```
+
+Note that `from_expr` and `to_expr` are already fully-formatted SQL expressions (e.g.
+`TO_TIMESTAMP('2024-01-01', ...)`) — do not wrap them in single quotes.
+
+### Removed deck.gl JavaScript tooltip/data-mutator controls and ENABLE_JAVASCRIPT_CONTROLS
+
+The `ENABLE_JAVASCRIPT_CONTROLS` feature flag and the deck.gl chart controls it gated
+(`js_tooltip`, `js_onclick_href`, `js_data_mutator`, and the GeoJSON layer's label/icon
+JavaScript-mode generators) have been removed. These controls let users write arbitrary
+JavaScript, sandboxed via Node's `vm` module, to customize deck.gl tooltips, click
+behavior, and data transforms; the flag defaulted off and the feature saw negligible use.
+
+The deck.gl "Extra data for JS" control (`js_columns`) has also been removed. It only
+ever existed to feed extra columns into the JavaScript controls above; deck.gl's
+built-in field-based tooltips and cross-filtering already pull in any columns they need
+via `tooltip_contents`/`cross_filter_column`, so this control had no remaining purpose.
+Any chart layer whose "Advanced" control panel section only contained this control no
+longer has an "Advanced" section.
+
+Any saved charts with these fields set will simply ignore them going forward and fall back
+to deck.gl's built-in field-based tooltips (`tooltip_contents`/`tooltip_template`) and
+native click/cross-filter behavior. No migration is required; the fields are dropped
+silently on next save.
+
 ### Owners, dashboard roles, and RLS roles replaced by Subjects
 
 Superset now uses subject-based access assignments for dashboards, charts, datasets,
@@ -206,6 +356,36 @@ The pivot table chart's `First` and `Last` aggregations now return the first and
 
 The `error` and `response` parameters of the `retryDelay` and `retryOn` callbacks in `FetchRetryOptions` (exported from `@superset-ui/core`) are now typed `Error | null` and `Response | null` to match the actual call-site signature provided by `fetch-retry`. Because these parameter types are contravariant, consumers who typed their callbacks with the non-nullable `(attempt: number, error: Error, response: Response) => number` will get a TypeScript compile error. Widen your callback signatures to accept `Error | null` / `Response | null`.
 
+### Pivot Table totals are now computed by the database (per-metric "Aggregation function" control removed)
+
+Pivot Table subtotals and grand totals are now computed by the database at each
+rollup level instead of re-aggregating the already-aggregated cell values on the
+client. This fixes long-standing incorrect totals for non-additive metrics
+(ratios such as `SUM(a)/SUM(b)`, `COUNT_DISTINCT`, `AVG`, percentiles, etc.),
+which previously summed the displayed cell values.
+
+As a result the per-table **"Aggregation function"** control (which let you pick
+how totals were aggregated client-side, e.g. Sum/Average/Count) has been
+removed: totals now always reflect the metric's own definition evaluated at the
+total's granularity. For additive metrics (`SUM`/`COUNT`/`MIN`/`MAX`) the result
+is unchanged. If you previously relied on a plain sum-of-cells total for a
+non-additive metric, that specific behavior is no longer available.
+
+The "Sum as Fraction of Total/Rows/Columns" display options are back as a
+new, standalone **"Show values as"** control (below "Combine metrics" in the
+Options panel), since those were mathematically correct even before this
+change and are unrelated to the totals-correctness fix. A DB migration
+derives the new field from any still-present `aggregateFunction` Sum-fraction
+value, so a chart that had one of those options configured picks the
+equivalent "Show values as" setting back up automatically. The "Count as
+Fraction of ..." variants are **not** migrated: they divided a record count,
+while the new control divides the metric's own value, so translating them
+automatically would silently change what the chart displays rather than
+restore it; those charts need to be manually reconfigured if the value-based
+percentage is what's wanted. Charts that used any other non-fraction
+`aggregateFunction` value (Sum, Average, Count, ...) are unaffected, since
+that specific behavior remains unavailable per the above.
+
 ### `thumbnail_url` removed from dashboard list API response
 
 The `thumbnail_url` field has been removed from `GET /api/v1/dashboard/` list responses. External consumers relying on this field must now construct the thumbnail URL client-side using `id` and `changed_on_utc`:
@@ -215,6 +395,12 @@ The `thumbnail_url` field has been removed from `GET /api/v1/dashboard/` list re
 ```
 
 The thumbnail endpoint redirects to the current digest URL regardless of whether the supplied digest is exact. If the image is not yet cached, that digest URL may return `202` and trigger async generation. Using `changed_on_utc` as the digest is sufficient for cache-busting purposes.
+
+### Dashboard import can overwrite related charts, datasets, and databases
+
+Re-importing an existing dashboard previously overwrote only the dashboard itself; its related charts, datasets, and databases were never updated (the importer hardcoded `overwrite=False` for them). They can now be overwritten as part of the import.
+
+A new `overwrite_all` form field controls this, and defaults to `false` everywhere, so existing behavior is preserved: passing `overwrite=true` alone still overwrites only the dashboard, exactly as before. To also overwrite the related charts, datasets, and databases on the `/api/v1/dashboard/import/` endpoint, pass `overwrite_all=true` explicitly. The import modal in the UI exposes this as an "also overwrite all assets" checkbox, and the CLI `superset import-dashboards` and the `ImportDashboardsCommand` likewise default `overwrite_all` to `false`.
 
 ### Tagging fix for `create_all`-bootstrapped schemas
 
@@ -240,6 +426,52 @@ A few save- and import-path internals change **unconditionally** (independent of
 - `UpdateDashboardCommand` runs its body under `no_autoflush`.
 
 These are behavior changes that take effect on upgrade regardless of `ENABLE_VERSIONING_CAPTURE`; no operator action is required.
+
+### Cross-entity version activity stream
+
+A read-only companion to the version-history endpoints: each entity type gains a `GET /api/v1/{chart,dashboard,dataset}/<uuid>/activity/` endpoint returning a chronological, access-filtered stream of edits — the entity's own edits plus, for charts and dashboards, transitive edits to related entities during their association windows. Datasets have no related layer in V2, so `include=related` returns an empty stream for a dataset and `include=all` reduces to the dataset's own edits.
+
+| Param | Type | Default | Purpose |
+|---|---|---|---|
+| `since` / `until` | ISO 8601 | — | Bound `issued_at` |
+| `include` | `self` \| `related` \| `all` | `all` | Own edits, related edits, or both |
+| `q` | string | — | Case-insensitive search over the full history, applied before pagination (so `count` reflects matches) |
+| `page` / `page_size` | integer | `0` / `25` | Pagination (`page_size` clamped to 200) |
+
+Authorization reuses the resource's `can_read` permission and per-object `raise_for_access`; related-entity rows are visibility-filtered to what the caller may see. The stream is empty unless version capture is on (`ENABLE_VERSIONING_CAPTURE`).
+
+### Version-history retention (pruning)
+
+Entity version history (the `version_transaction` / `*_version` shadow tables that back version capture) is aged out by a nightly Celery beat task, `version_history.prune_old_versions` (`superset.tasks.version_history_retention`).
+
+| Key | Default | Purpose |
+|---|---|---|
+| `SUPERSET_VERSION_HISTORY_RETENTION_DAYS` | `30` | Version rows whose owning `version_transaction.issued_at` is older than this many days are pruned. Each entity's live row (`end_transaction_id IS NULL`) is always preserved, as are the live rows of its children and associations; closed historical rows (including the baseline) age out. Set to `0` or a negative value to disable pruning. |
+
+The task ships in the default `CeleryConfig` (both the `superset.tasks.version_history_retention` import and the beat entry). A deployment that overrides `CELERY_CONFIG` without the beat entry logs a startup warning. When the override explicitly defines `imports`, a missing retention module is also reported; an absent `imports` setting is not diagnosed because Celery may register tasks through `include`, autodiscovery, or worker startup imports. Retention only prunes whatever history exists — capture itself is gated separately by `ENABLE_VERSIONING_CAPTURE` (ships off).
+
+### Deletion retention (soft-deleted entities are eventually purged)
+
+Soft-deleted dashboards, charts, and datasets are now permanently removed after a retention window (default 30 days; `SOFT_DELETE_RETENTION_DAYS`, `0` disables; settable per workspace at runtime via the `deletion-retention set-window` CLI, which takes precedence). The `deletion_retention.purge_soft_deleted` Celery beat task runs daily and removes each aged-out entity together with its M:N join rows, owned children, datasource permission, and version-history shadow rows. After purge an entity is **unrecoverable** — its detail and `/restore` endpoints return 404 and its version history is gone.
+
+The introducing release **defaults to dry-run** (`SOFT_DELETE_PURGE_DRY_RUN=True`): the task logs `would_purge` counts but deletes nothing, so operators can validate against production before activating real purging by setting it to `False`. Note `would_purge` is an **upper bound** — it counts every entity past the retention window without evaluating deletion blockers, so a real run may purge fewer (entities referenced by report schedules or set as a user's welcome dashboard are blocked and reported separately). The task only acts while the temporary `SOFT_DELETE` rollout flag is on.
+
+Deployments that replace the default `CELERY_CONFIG` must ensure workers register `superset.tasks.deletion_retention` and schedule the `deletion_retention.purge_soft_deleted` task themselves. The shipped Docker development config uses `imports` and includes both entries. While `SOFT_DELETE` is statically enabled, a missing beat entry logs a startup warning; when the override explicitly defines `imports`, a missing purge module is also reported.
+
+Operators can immediately erase a specific entity for compliance (GDPR) via `superset deletion-retention force-purge --uuid <uuid>`; this applies legacy hard-delete semantics — a live chart referencing a force-purged dataset is left without a datasource until re-pointed (the chart is not modified), and it purges the named entity even when it was never soft-deleted. Every purge writes an immutable, content-free audit record to the new `purge_audit_log` table that survives the entity it names: the **scheduled** purge fails closed (an entity whose audit row cannot be written is skipped and retried next run), while **force-purge** proceeds even if the audit write fails — the operator is present and deletion outranks audit for a compliance erasure.
+
+### Recently Archived view and permanent delete (purge) endpoints
+
+Behind the same `SOFT_DELETE` flag, a **Recently Archived** page (Settings menu, `/archived/`) lists soft-deleted charts, dashboards, and datasets with their archive time and archiving user, and offers **Recover** and **Delete permanently** row actions. The page admits any viewer holding `can_read` on **any** of the three types and offers each viewer only the types they can read; a viewer with none of the three sees an explanatory empty state, and unauthenticated requests are redirected to login.
+
+**New endpoints** — `POST /api/v1/{chart,dashboard,dataset}/<uuid>/purge` permanently delete a single **soft-deleted** row, running the same cascade as the retention task. Irreversible. Requires `can_write` on the entity plus editorship of the row (or admin), mirroring `/restore`. The endpoints answer 404 while `SOFT_DELETE` is off (restore deliberately stays live so rows archived before a flag-off remain recoverable), 404 for rows that are not soft-deleted, and 422 with a reason when the purge is blocked (an alert/report references the entity, a user has the dashboard as their welcome page, or a restrictive foreign key intervenes). A purge that cannot write its audit record is refused with 422 rather than executed unrecorded — unlike the operator CLI, an end user's purge never outranks the audit.
+
+With the flag on, delete confirmations across the chart/dashboard/dataset list pages change shape: a recoverable archive is confirmed with a primary **Archive** button and no type-DELETE friction, and the copy states the retention window when one is configured. A bulk dataset selection that includes semantic views keeps the full danger treatment, because semantic views have no soft-delete — they are deleted permanently and the confirmation says so.
+
+This also resolves the limitation noted under *Soft delete and restore for datasets*: a database blocked by soft-deleted datasets can now be freed by purging those datasets (per-entity endpoint, retention task, or `force-purge` CLI) instead of hard-deleting `tables` rows out-of-band.
+
+The `purge_audit_log` table is **never pruned by design** — the audit must survive the entities it names; operators who need to age it out should prune manually.
+
 
 ### Webhook alerts/reports block private/internal hosts by default
 
@@ -493,6 +725,12 @@ The partial-index replacement is dialect-dependent: PostgreSQL uses a native `WH
 
 **Importer behavior:** importing a dashboard YAML whose UUID matches an existing **soft-deleted** dashboard is treated as an implicit restore-with-update — **and this happens even when `overwrite` is not set**. This is a deliberate asymmetry with active rows: an active dashboard imported without `overwrite=true` is returned unchanged (the import never mutates it), but a soft-deleted UUID match is restored *and* has the upload's contents applied regardless of the `overwrite` argument, on the reasoning that re-importing a deleted dashboard's exact UUID is an explicit request to bring it back. The restore preserves the original PK and all pre-deletion relationship rows (`dashboard_slices` junctions, editor/viewer subjects, tags). Callers whose imports must never mutate existing state should treat bundles that may contain previously deleted UUIDs accordingly. The operation is permission-gated: it requires `can_write` and editorship of the deleted row (or admin) — non-editors get `ImportFailedError`, and callers without `can_write` get `ImportFailedError` instead of silently receiving the soft-deleted row.
 
+### Engine spec capability flag: `supports_offset`
+
+A new `BaseEngineSpec.supports_offset` attribute (default `True`) indicates whether a database engine supports the SQL `OFFSET` clause. Engines that do not support `OFFSET` — such as Elasticsearch SQL and OpenDistro — opt out by setting it to `False`, and Superset uses each engine's cursor API to paginate drill-to-detail samples instead of emitting `OFFSET`. Downstream forks maintaining custom engine specs may set the flag to `False` (and implement `fetch_data_with_cursor`) to avoid crashes when paginated drill-to-detail queries are run against engines without `OFFSET` support.
+
+**Note on deep-pagination cost:** Cursor-based engines (including Elasticsearch and OpenDistro) are forward-only, so reaching page `N` of a drill-to-detail view issues `N` round trips to the cluster. Deep pagination is therefore linear in page number; users paginating into the hundreds or thousands will notice added latency compared to `OFFSET`-capable engines.
+
 ### Granular Export Controls
 
 A new feature flag `GRANULAR_EXPORT_CONTROLS` introduces three fine-grained permissions that replace the legacy `can_csv` permission:
@@ -523,11 +761,21 @@ Added a new combined datasource list endpoint at `GET /api/v1/datasource/` to se
 - Semantic views are included only when the `SEMANTIC_LAYERS` feature flag is enabled.
 - The endpoint enforces strict `order_column` validation and returns `400` for invalid sort columns.
 
+### Custom time range "Now"/"Today" anchors resolve in local time
+
+Custom time ranges that use the "Now" or "Today" anchor (for the Start, End, or the relative anchor itself) previously resolved that anchor in UTC before formatting it into a naive datetime string, which was then re-parsed elsewhere as local time. For users outside UTC, this made the resolved anchor drift by their browser's UTC offset. "Now"/"Today" now resolve directly in local time, matching the later local re-parse.
+
+Charts and dashboards using these anchors will compute a different (correct) timestamp after upgrading; if a chart's filters or drill-downs were tuned to compensate for the old offset, review them after upgrading.
+
 ## 6.1.0
 
 ### ClickHouse minimum driver version bump
 
 The minimum required version of `clickhouse-connect` has been raised to `>=0.13.0`. If you are using the ClickHouse connector, please upgrade your `clickhouse-connect` package. The `_mutate_label` workaround that appended hash suffixes to column aliases has also been removed, as it is no longer needed with modern versions of the driver.
+
+### Kenya Country Map: Updated Administrative Divisions
+
+The Kenya country map has been updated to reflect the 47 counties established under Kenya's 2010 constitution, replacing the outdated 8-province boundaries from the Natural Earth dataset. County keys now use ISO 3166-2:KE codes (`KE-01` through `KE-47`), replacing the former province codes (`KE-110`, `KE-200`, ..., `KE-800`). Dashboards that join on the old province codes will need to re-key their datasets to use the new county codes.
 
 ### MCP Tool Observability
 

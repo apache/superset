@@ -319,8 +319,11 @@ describe('EchartsTimeseries transformProps', () => {
     expect(formulaSeries).toBeDefined();
     expect(formulaSeries?.data).toBeDefined();
     expect(Array.isArray(formulaSeries?.data)).toBe(true);
-    expect((formulaSeries!.data as unknown[]).length).toBeGreaterThan(0);
-    const firstDataPoint = (formulaSeries!.data as [number, number][])[0];
+    const series = formulaSeries as SeriesOption;
+    const data = series.data as [number, number][];
+    expect(Array.isArray(data)).toBe(true);
+    expect(data.length).toBeGreaterThan(0);
+    const firstDataPoint = data[0];
     expect(firstDataPoint).toBeDefined();
     expect(firstDataPoint[1]).toBe(firstDataPoint[0] * 2);
   });
@@ -399,7 +402,9 @@ describe('EchartsTimeseries transformProps', () => {
       result.echartOptions.series as SeriesOption[] | undefined
     )?.find((s: SeriesOption) => s.name === 'My Formula');
     expect(formulaSeries).toBeDefined();
-    const firstDataPoint = (formulaSeries!.data as [number, number][])[0];
+    const series = formulaSeries as SeriesOption;
+    const data = series.data as [number, number][];
+    const firstDataPoint = data[0];
     expect(firstDataPoint).toBeDefined();
     expect(firstDataPoint[0]).toBe(firstDataPoint[1] * 2);
   });
@@ -1017,9 +1022,11 @@ test('should apply dashed line style to time comparison series with single metri
   const series = (transformed.echartOptions.series as SeriesOption[]) || [];
 
   const mainSeries = series.find(s => s.name === 'sum__num') as
-    (SeriesOption & { lineStyle?: { type?: number[] | string } }) | undefined;
+    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
+    | undefined;
   const comparisonSeries = series.find(s => s.name === '1 week ago') as
-    (SeriesOption & { lineStyle?: { type?: number[] | string } }) | undefined;
+    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
+    | undefined;
 
   expect(mainSeries).toBeDefined();
   expect(comparisonSeries).toBeDefined();
@@ -1060,11 +1067,13 @@ test('should apply dashed line style to time comparison series with metric__offs
   const series = (transformed.echartOptions.series as SeriesOption[]) || [];
 
   const mainSeries = series.find(s => s.name === 'sum__num') as
-    (SeriesOption & { lineStyle?: { type?: number[] | string } }) | undefined;
+    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
+    | undefined;
   const comparisonSeries = series.find(
     s => s.name === 'sum__num__1 week ago',
   ) as
-    (SeriesOption & { lineStyle?: { type?: number[] | string } }) | undefined;
+    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
+    | undefined;
 
   expect(mainSeries).toBeDefined();
   expect(comparisonSeries).toBeDefined();
@@ -1096,7 +1105,8 @@ test('should apply connectNulls to time comparison series', () => {
   const series = (transformed.echartOptions.series as SeriesOption[]) || [];
 
   const comparisonSeries = series.find(s => s.name === '1 week ago') as
-    (SeriesOption & { connectNulls?: boolean }) | undefined;
+    | (SeriesOption & { connectNulls?: boolean })
+    | undefined;
 
   expect(comparisonSeries).toBeDefined();
   expect(comparisonSeries?.connectNulls).toBe(true);
@@ -1517,6 +1527,45 @@ test('x-axis formatter deduplicates consecutive identical labels for coarse time
   expect(label4).toBe('');
 });
 
+test('x-axis dedup keeps the forced min label when the endpoints format identically', () => {
+  // A May→May range renders "May" at both boundaries. ECharts formats labels in
+  // repeated ascending passes; the dedup must reset per pass so the forced min
+  // label isn't blanked by the previous pass's (identical) max label.
+  const data = [
+    { __timestamp: Date.UTC(2003, 4, 1), sales: 100 },
+    { __timestamp: Date.UTC(2004, 0, 1), sales: 200 },
+    { __timestamp: Date.UTC(2005, 4, 1), sales: 300 },
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      granularity_sqla: 'ds',
+      timeGrainSqla: TimeGranularity.MONTH,
+      xAxisTimeFormat: '%b',
+    },
+    queriesData: [
+      createTestQueryData(data, {
+        colnames: ['__timestamp', 'sales'],
+        coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+      }),
+    ],
+  });
+
+  const { formatter } = (transformProps(chartProps).echartOptions.xAxis as any)
+    .axisLabel;
+  const min = Date.UTC(2003, 4, 1);
+  const mid = Date.UTC(2004, 0, 1);
+  const max = Date.UTC(2005, 4, 1);
+
+  // First pass fills the dedup state, ending on the max label ("May").
+  formatter(min);
+  formatter(mid);
+  formatter(max);
+
+  // Second pass restarts at the min; it must not be blanked by the prior "May".
+  expect(formatter(min)).toBe('May');
+});
+
 test('x-axis does not force showMaxLabel when no time grain is set', () => {
   const data = [
     { __timestamp: Date.UTC(2003, 0, 6), sales: 100 },
@@ -1539,6 +1588,36 @@ test('x-axis does not force showMaxLabel when no time grain is set', () => {
 
   const xAxisResult = transformProps(chartProps).echartOptions.xAxis as any;
   expect(xAxisResult.axisLabel.showMaxLabel).not.toBe(true);
+  expect(xAxisResult.axisLabel.showMinLabel).not.toBe(true);
+});
+
+test('x-axis forces showMinLabel for time grains so the beginning date stays visible', () => {
+  // When the first data point is not on a coarse boundary (e.g. a mid-year
+  // month), ECharts places its first label on the next "nice" tick and leaves
+  // the axis-min date unlabeled. showMinLabel forces the beginning date to
+  // render, symmetric to showMaxLabel on the trailing edge.
+  const monthData = [
+    { __timestamp: Date.UTC(2003, 4, 1), sales: 100 },
+    { __timestamp: Date.UTC(2003, 5, 1), sales: 200 },
+    { __timestamp: Date.UTC(2003, 6, 1), sales: 300 },
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      granularity_sqla: 'ds',
+      timeGrainSqla: TimeGranularity.MONTH,
+      xAxisTimeFormat: 'smart_date',
+    },
+    queriesData: [
+      createTestQueryData(monthData, {
+        colnames: ['__timestamp', 'sales'],
+        coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+      }),
+    ],
+  });
+
+  const xAxisResult = transformProps(chartProps).echartOptions.xAxis as any;
+  expect(xAxisResult.axisLabel.showMinLabel).toBe(true);
 });
 
 test('numeric x coltype routes through the number formatter (not the time formatter)', () => {

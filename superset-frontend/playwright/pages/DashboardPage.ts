@@ -19,7 +19,7 @@
 
 import { Page, Download, Locator } from '@playwright/test';
 import { Menu } from '../components/core';
-import { NativeFiltersConfigModal } from '../components/modals';
+import { DashboardFilterBar } from '../components/dashboard';
 import { gotoWithRetry } from '../helpers/navigation';
 import { TIMEOUT } from '../utils/constants';
 
@@ -28,19 +28,18 @@ import { TIMEOUT } from '../utils/constants';
  */
 export class DashboardPage {
   private readonly page: Page;
+  private readonly filterBar: DashboardFilterBar;
 
   private static readonly SELECTORS = {
     DASHBOARD_HEADER: '[data-test="dashboard-header-container"]',
     DASHBOARD_MENU_TRIGGER: '[data-test="actions-trigger"]',
     // The header-actions-menu is the data-test for the dropdown menu content
     HEADER_ACTIONS_MENU: '[data-test="header-actions-menu"]',
-    FILTER_BAR_SETTINGS: '[data-test="filterbar-orientation-icon"]',
-    APPLY_FILTERS_BUTTON:
-      '[data-test="filter-bar__apply-button"], [data-test="filterbar-action-buttons"] button[type="submit"]',
   } as const;
 
   constructor(page: Page) {
     this.page = page;
+    this.filterBar = new DashboardFilterBar(page);
   }
 
   /**
@@ -67,6 +66,15 @@ export class DashboardPage {
     await this.page.waitForSelector(DashboardPage.SELECTORS.DASHBOARD_HEADER, {
       timeout,
     });
+  }
+
+  /**
+   * Get a chart grid component by its chart ID.
+   */
+  getChart(chartId: number): Locator {
+    return this.page.locator(
+      `[data-test="chart-grid-component"][data-test-chart-id="${chartId}"]`,
+    );
   }
 
   /**
@@ -117,31 +125,11 @@ export class DashboardPage {
   }
 
   /**
-   * Opens the native filters and Display Controls configuration modal.
+   * Waits for and returns the dashboard native-filter bar component.
    */
-  async openNativeFiltersConfigModal(): Promise<NativeFiltersConfigModal> {
-    await this.page.click(DashboardPage.SELECTORS.FILTER_BAR_SETTINGS);
-    await this.page
-      .getByText('Add or edit filters and controls', { exact: true })
-      .click();
-
-    const modal = new NativeFiltersConfigModal(this.page);
-    await modal.waitForVisible();
-    return modal;
-  }
-
-  /**
-   * Applies pending native filter changes when the Apply button is enabled.
-   */
-  async applyFiltersIfEnabled(): Promise<void> {
-    const applyButton = this.page
-      .locator(DashboardPage.SELECTORS.APPLY_FILTERS_BUTTON)
-      .first();
-    if (!(await applyButton.isEnabled().catch(() => false))) {
-      return;
-    }
-
-    await applyButton.click();
+  async waitForFilterBar(): Promise<DashboardFilterBar> {
+    await this.filterBar.waitForReady();
+    return this.filterBar;
   }
 
   /**
@@ -159,6 +147,23 @@ export class DashboardPage {
   }
 
   /**
+   * The dashboard header actions dropdown menu. Call after
+   * {@link openHeaderActionsMenu}, which is what makes the menu visible.
+   */
+  private headerActionsMenu(): Menu {
+    return new Menu(this.page, DashboardPage.SELECTORS.HEADER_ACTIONS_MENU);
+  }
+
+  /**
+   * Trigger a dashboard-level force refresh via the header actions menu.
+   * Re-runs every chart's query with `force=true`, bypassing the cache.
+   */
+  async forceRefresh(): Promise<void> {
+    await this.openHeaderActionsMenu();
+    await this.headerActionsMenu().selectItem('Refresh dashboard');
+  }
+
+  /**
    * Selects an option from the Download submenu.
    * Opens the header actions menu, navigates to Download submenu,
    * and clicks the specified option.
@@ -168,10 +173,7 @@ export class DashboardPage {
   async selectDownloadOption(optionText: string): Promise<Download> {
     await this.openHeaderActionsMenu();
 
-    const menu = new Menu(
-      this.page,
-      DashboardPage.SELECTORS.HEADER_ACTIONS_MENU,
-    );
+    const menu = this.headerActionsMenu();
     const downloadPromise = this.page.waitForEvent('download');
     await menu.selectSubmenuItem('Download', optionText);
     return downloadPromise;

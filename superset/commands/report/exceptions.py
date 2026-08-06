@@ -133,6 +133,23 @@ class ReportScheduleFrequencyNotAllowed(ValidationError):  # noqa: N818
         )
 
 
+class ReportScheduleCrontabNotValidError(ValidationError):  # noqa: N818
+    """
+    Marshmallow validation error for a crontab that is syntactically valid
+    but never matches a real calendar date (e.g. February 30th)
+    """
+
+    def __init__(self, cron_schedule: str = "") -> None:
+        super().__init__(
+            _(
+                "Invalid crontab schedule: %(cron_schedule)s never matches"
+                " a valid date",
+                cron_schedule=cron_schedule,
+            ),
+            field_name="crontab",
+        )
+
+
 class ChartNotSavedValidationError(ValidationError):
     """
     Marshmallow validation error for charts that haven't been saved yet

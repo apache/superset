@@ -26,7 +26,6 @@ import {
 } from '@superset-ui/core';
 import { isPointInBonds } from '../../utilities/utils';
 import { commonLayerProps, getColorRange } from '../common';
-import sandboxedEval from '../../utils/sandbox';
 import { GetLayerType, createDeckGLComponent } from '../../factory';
 import TooltipRow from '../../TooltipRow';
 import { createTooltipContent } from '../../utilities/tooltipUtils';
@@ -110,15 +109,9 @@ export const getLayer: GetLayerType<HeatmapLayer> = ({
     intensity = 1,
     radius_pixels: radiusPixels = 30,
     aggregation = 'SUM',
-    js_data_mutator: jsFnMutator,
     linear_color_scheme: colorScheme,
   } = fd;
-  let data = payload.data.features;
-
-  if (jsFnMutator) {
-    const jsFnMutatorFunction = sandboxedEval(fd.js_data_mutator);
-    data = jsFnMutatorFunction(data);
-  }
+  const data = payload.data.features;
 
   const colorScale = getSequentialSchemeRegistry()
     ?.get(colorScheme)
@@ -173,15 +166,8 @@ export const getHighlightLayer: GetLayerType<HeatmapLayer> = ({
     intensity = 1,
     radius_pixels: radiusPixels = 30,
     aggregation = 'SUM',
-    js_data_mutator: jsFnMutator,
   } = fd;
-  let data = payload.data.features;
-
-  if (jsFnMutator) {
-    // Applying user defined data mutator if defined
-    const jsFnMutatorFunction = sandboxedEval(fd.js_data_mutator);
-    data = jsFnMutatorFunction(data);
-  }
+  const data = payload.data.features;
 
   const dataInside = data.filter((d: JsonObject) =>
     isPointInBonds(d.position, filterState?.value),

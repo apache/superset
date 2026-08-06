@@ -16,33 +16,38 @@
 # under the License.
 """Tests for superset.views.utils module"""
 
-from superset.views.utils import (
-    get_form_data,
-    JS_CONTROL_FORM_DATA_KEYS,
-    REJECTED_FORM_DATA_KEYS,
-)
+from flask import current_app
+
+from superset.views.utils import get_form_data
 
 
-def test_rejected_form_data_keys_cover_all_js_control_keys() -> None:
+def test_get_form_data_handles_non_json_body_with_json_content_type() -> None:
+    """get_form_data returns gracefully when Content-Type claims JSON but the
+    body isn't parseable JSON, instead of letting Werkzeug's BadRequest escape.
+
+    This is the shape of the request context an MCP tool call runs in when a
+    chart/dataset SQL template calls the ``filter_values()`` Jinja macro: the
+    Content-Type header says ``application/json`` but the body is not a JSON
+    chart-data payload.
     """
-    With ENABLE_JAVASCRIPT_CONTROLS disabled (the default), every form_data key
-    that is later executed as JavaScript by the deck.gl charts must be rejected.
+    with current_app.test_request_context(
+        data="not-json-at-all", content_type="application/json"
+    ):
+        form_data, slc = get_form_data()
 
-    This guards against a new ``sandboxedEval(fd.<key>)`` call site being added
-    without also adding its key to the strip list.
+    assert form_data == {}
+    assert slc is None
+
+
+def test_get_form_data_handles_non_dict_json_body() -> None:
+    """get_form_data coerces a well-formed but non-object JSON body to {}.
+
+    ``request.get_json()`` happily returns a scalar or list for valid JSON
+    that isn't a JSON object (e.g. ``null`` or ``42``). Downstream code treats
+    the parsed body as a mapping, so a non-dict result must not leak through.
     """
-    # The test app keeps ENABLE_JAVASCRIPT_CONTROLS at its default (off).
-    assert set(JS_CONTROL_FORM_DATA_KEYS) <= set(REJECTED_FORM_DATA_KEYS)
+    with current_app.test_request_context(data="42", content_type="application/json"):
+        form_data, slc = get_form_data()
 
-
-def test_get_form_data_strips_js_control_keys() -> None:
-    """get_form_data drops all JS-executed keys when the flag is disabled."""
-    initial_form_data = dict.fromkeys(JS_CONTROL_FORM_DATA_KEYS, "data => data")
-    initial_form_data["viz_type"] = "deck_geojson"
-
-    form_data, _ = get_form_data(initial_form_data=initial_form_data)
-
-    for key in JS_CONTROL_FORM_DATA_KEYS:
-        assert key not in form_data
-    # Non-JS keys are preserved.
-    assert form_data["viz_type"] == "deck_geojson"
+    assert form_data == {}
+    assert slc is None

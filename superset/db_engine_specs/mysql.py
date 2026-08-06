@@ -43,6 +43,7 @@ from sqlalchemy.engine.url import URL
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import (
+    AURORA_DATA_API_KNOWN_INCOMPATIBILITIES,
     BaseEngineSpec,
     BasicParametersMixin,
     DatabaseCategory,
@@ -183,6 +184,7 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
                     DatabaseCategory.CLOUD_AWS,
                     DatabaseCategory.HOSTED_OPEN_SOURCE,
                 ],
+                "known_incompatibilities": AURORA_DATA_API_KNOWN_INCOMPATIBILITIES,
             },
         ],
     }
@@ -238,13 +240,13 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
             LONGTEXT(),
             GenericDataType.STRING,
         ),
-        # wire-protocol FIELD_TYPE names emitted by `get_datatype`, seen on
-        # SQL Lab and virtual dataset columns instead of DDL type names
         (
             re.compile(r"^var_string", re.IGNORECASE),
-            types.String(),
+            types.VARCHAR(),
             GenericDataType.STRING,
         ),
+        # wire-protocol FIELD_TYPE names emitted by `get_datatype`, seen on
+        # SQL Lab and virtual dataset columns instead of DDL type names
         (
             re.compile(r"^newdecimal", re.IGNORECASE),
             DECIMAL(),
@@ -287,12 +289,9 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
 
     _time_grain_expressions = {
         None: "{col}",
-        TimeGrain.SECOND: "DATE_ADD(DATE({col}), "
-        "INTERVAL (HOUR({col})*60*60 + MINUTE({col})*60"
-        " + SECOND({col})) SECOND)",
-        TimeGrain.MINUTE: "DATE_ADD(DATE({col}), "
-        "INTERVAL (HOUR({col})*60 + MINUTE({col})) MINUTE)",
-        TimeGrain.HOUR: "DATE_ADD(DATE({col}), INTERVAL HOUR({col}) HOUR)",
+        TimeGrain.SECOND: "DATE_FORMAT({col}, '%Y-%m-%d %H:%i:%s')",
+        TimeGrain.MINUTE: "DATE_FORMAT({col}, '%Y-%m-%d %H:%i:00')",
+        TimeGrain.HOUR: "DATE_FORMAT({col}, '%Y-%m-%d %H:00:00')",
         TimeGrain.DAY: "DATE({col})",
         TimeGrain.WEEK: "DATE(DATE_SUB({col}, INTERVAL DAYOFWEEK({col}) - 1 DAY))",
         TimeGrain.MONTH: "DATE(DATE_SUB({col}, INTERVAL DAYOFMONTH({col}) - 1 DAY))",

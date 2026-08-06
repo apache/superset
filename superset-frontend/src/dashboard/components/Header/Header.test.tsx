@@ -522,9 +522,27 @@ test('should disable both buttons when no actions available', () => {
   expect(onRedo).not.toHaveBeenCalled();
 });
 
-test('should render the "Discard changes" button', () => {
+test('should render an enabled "Exit edit mode" button when there are no unsaved changes', () => {
   setup(editableState);
-  expect(screen.getByText('Discard')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /exit edit mode/i })).toBeEnabled();
+  expect(
+    screen.queryByRole('button', { name: /discard/i }),
+  ).not.toBeInTheDocument();
+});
+
+test('should render an enabled "Discard" button when there are unsaved changes', () => {
+  const unsavedState = {
+    ...editableState,
+    dashboardState: {
+      ...editableState.dashboardState,
+      hasUnsavedChanges: true,
+    },
+  };
+  setup(unsavedState);
+  expect(screen.getByRole('button', { name: /discard/i })).toBeEnabled();
+  expect(
+    screen.queryByRole('button', { name: /exit edit mode/i }),
+  ).not.toBeInTheDocument();
 });
 
 test('should render the "Save" button as disabled', () => {

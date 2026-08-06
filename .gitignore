@@ -57,6 +57,7 @@ local_config.py
 /superset_text.yml
 superset.egg-info/
 superset/bin/supersetc
+superset/extensions/.reload_trigger
 tmp
 rat-results.txt
 superset/app/
