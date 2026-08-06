@@ -35,7 +35,7 @@ import {
 import {
   fetchSemanticViewStructure,
   semanticViewDimensionsToColumns,
-} from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/utils';
+} from 'src/utils/semanticViewStructure';
 import { Resource, ResourceStatus } from './apiResources';
 
 /**
@@ -54,7 +54,7 @@ export const getDatasetId = (datasetId: string | number): number =>
  * unrecognized suffixes fall back to a regular dataset, preserving
  * legacy behaviour.
  */
-export const getDatasourceTypeFromId = (
+export const getDatasourceTypeFromDatasourceId = (
   datasetId: string | number,
 ): DatasourceType => {
   if (typeof datasetId !== 'string') {
@@ -115,7 +115,8 @@ export const useDatasetDrillInfo = (
         let result;
 
         if (
-          getDatasourceTypeFromId(datasetId) === DatasourceType.SemanticView
+          getDatasourceTypeFromDatasourceId(datasetId) ===
+          DatasourceType.SemanticView
         ) {
           // Semantic views short-circuit BEFORE the extension check: the
           // extension receives only the numeric id, which would resolve
@@ -125,17 +126,18 @@ export const useDatasetDrillInfo = (
           // accepted degradation. Columns are narrowed to metadata needs;
           // no drill flags are fabricated.
           const structure = await fetchSemanticViewStructure(numericDatasetId);
+          // A structurally valid Dataset, no cast: consumers read only
+          // columns/metrics (and derive verbose_map), so no id or
+          // datasource_type fields are fabricated, and verbose_name is
+          // omitted rather than null — consumers only falsy-check it.
           result = {
-            id: numericDatasetId,
             table_name: structure.name,
-            datasource_type: DatasourceType.SemanticView,
             columns: semanticViewDimensionsToColumns(structure.dimensions),
             metrics: structure.metrics.map(metric => ({
               metric_name: metric.name,
               expression: metric.definition,
-              verbose_name: null,
             })),
-          } as unknown as Dataset;
+          };
         } else if (loadDrillByOptionsExtension && formData) {
           const response = await loadDrillByOptionsExtension(
             numericDatasetId,
