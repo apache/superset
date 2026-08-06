@@ -303,7 +303,7 @@ export const getColorFunction = (
       return colorScheme;
     }
     // If useGradient is explicitly false, return solid color
-    if (useGradient === false) {
+    if (useGradient === false || useGradient === undefined) {
       if (alpha === false) {
         return rgbaToHex({ ...colorScheme, a: 1 });
       }

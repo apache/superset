@@ -202,7 +202,7 @@ export function getCellColor(
       for (const formatter of cellColorFormatter) {
         if (formatter.column === key) {
           const result = formatter.getColorFromValue(aggValue);
-          if (result && typeof result === 'string') {
+          if (result) {
             if (isTextColorFormatter(formatter)) {
               color = result;
             } else if (
