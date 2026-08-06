@@ -99,6 +99,7 @@ const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
     // a header there would be a label saying "Canvas" over a button that only
     // ever raises an error.
     const chrome = nodeId !== provider.getRoot().id;
+    const isRoot = !chrome;
     const headerHeight = theme.controlHeightSM;
 
     return (
@@ -146,6 +147,37 @@ const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
           // is kept wherever it set one and `relative` only fills the gap
           // when it did not.
           position: rest.style?.position ?? 'relative',
+          // The card, drawn around the whole of a block rather than around
+          // part of it.
+          //
+          // This used to be each leaf block's own — every one of them opened
+          // with the same background, border and radius — and a leaf begins
+          // below the header, so the card's top edge ran between a block's
+          // name and its contents. The name sat outside the box it names,
+          // reading as a caption dropped over a separate card. Drawn here it
+          // encloses both, which is also the only place it can be drawn from:
+          // whether a node has a header at all is this component's to know,
+          // not the leaf's.
+          //
+          // Opaque for the same reason it is one card: on a free canvas
+          // blocks overlap, and anything a block does not paint is a window
+          // onto whatever is behind it.
+          backgroundColor: isRoot ? undefined : theme.colorBgContainer,
+          border: `1px solid ${theme.colorBorderSecondary}`,
+          borderRadius: theme.borderRadiusLG,
+          // Nothing reaches past the corners this rounds — a block's content
+          // is square and would otherwise fill them back in.
+          overflow: isRoot ? undefined : 'hidden',
+          // The dashboard's own gutter, and what makes it clickable.
+          //
+          // The root is drawn by a grid that fills its box edge to edge
+          // (`containerPadding={[0, 0]}` in CanvasBlock), which left the
+          // dashboard with no pixels of its own. The inset is what an author
+          // aims at to select the dashboard rather than something on it — and
+          // it is the same inset a block's content sits at, so the two read as
+          // one scale rather than two. It carries no surface of its own: this
+          // is what everything else is arranged *on*, not a card among them.
+          padding: isRoot ? theme.padding : undefined,
           // Drawn over the block rather than around it: an outline takes no
           // space, so nothing on screen shifts when a selection moves.
           outline: selected ? `2px solid ${theme.colorPrimary}` : undefined,
@@ -178,8 +210,18 @@ const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
               alignItems: 'center',
               gap: theme.sizeUnit,
               height: headerHeight,
-              paddingLeft: theme.sizeUnit,
+              // Aligned with the inset every block's own content sits at, so
+              // a block's name reads as the head of the box beneath it rather
+              // than as something floating loose to its left. The right side
+              // stays tight: the remove button is a square target of its own
+              // and centres its icon, which is the inset it needs.
+              paddingLeft: theme.padding,
               paddingRight: theme.sizeUnit,
+              // No surface of its own, and no rule under it. The card behind
+              // this is opaque and unbroken, so a second background here
+              // would only draw a seam across it a hand's width below the
+              // top edge — the block would read as a strip and a box rather
+              // than as one card with a name on it.
             }}
           >
             <Typography.Text
@@ -187,8 +229,14 @@ const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
               data-test={`block-title-${nodeId}`}
               style={{
                 flex: '1 1 auto',
-                fontSize: theme.fontSizeSM,
-                color: theme.colorTextSecondary,
+                // The name of the thing below it, not a note about it. At the
+                // small size in the secondary colour it read as a caption
+                // hanging over the block — and this is the first thing anyone
+                // scanning a canvas uses to tell one block from the next, so
+                // it is drawn at the weight that job deserves.
+                fontSize: theme.fontSize,
+                fontWeight: theme.fontWeightStrong,
+                color: theme.colorText,
               }}
             >
               {blockLabel(node.type, node.props)}
