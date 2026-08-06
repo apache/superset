@@ -85,6 +85,28 @@ test('should pass through formData props for viz', () => {
   });
 });
 
+test('should pass through showValuesAs', () => {
+  const cp = new ChartProps<QueryFormData>({
+    formData: { ...formData, showValuesAs: 'percent_total' },
+    width: 800,
+    height: 600,
+    queriesData: [
+      {
+        data: [{ name: 'Hulk', sum__num: 1, __timestamp: 599616000000 }],
+        colnames: ['name', 'sum__num', '__timestamp'],
+        coltypes: [1, 0, 2],
+      },
+    ],
+    hooks: { setDataMask },
+    filterState: { selectedFilters: {} },
+    datasource: { verboseMap: {}, columnFormats: {} },
+    theme: supersetTheme,
+  });
+
+  const result = transformProps(cp) as ReturnType<typeof transformProps>;
+  expect(result.showValuesAs).toBe('percent_total');
+});
+
 test('non-additive: transformProps splits the GROUPING SETS result by level', () => {
   const gm = (col: string) => `${col}__superset_grouping`;
   const localFormData = {

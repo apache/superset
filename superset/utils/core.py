@@ -36,7 +36,7 @@ import traceback
 import uuid
 import warnings
 import zlib
-from collections.abc import Iterable, Iterator, Sequence
+from collections.abc import Collection, Iterable, Iterator, Sequence
 from contextlib import closing, contextmanager
 from dataclasses import dataclass
 from datetime import timedelta
@@ -702,12 +702,19 @@ def generic_find_fk_constraint_names(  # pylint: disable=invalid-name
 
 
 def generic_find_uq_constraint_name(
-    table: str, columns: set[str], insp: Inspector
+    table: str, columns: Collection[str], insp: Inspector
 ) -> str | None:
-    """Utility to find a unique constraint name in alembic migrations"""
+    """Utility to find a unique constraint name in alembic migrations.
 
+    ``columns`` is coerced to a set before comparison. Historically the
+    parameter was annotated ``set[str]`` but compared with ``==`` against a
+    set — a caller passing a list (as migration ``df3d7e2eb9a4`` did)
+    silently never matched, because ``list == set`` is always ``False``.
+    Coercing removes that foot-gun for future callers.
+    """
+    target = set(columns)
     for uq in insp.get_unique_constraints(table):
-        if columns == set(uq["column_names"]):
+        if target == set(uq["column_names"]):
             return uq["name"]
 
     return None
