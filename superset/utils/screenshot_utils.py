@@ -662,7 +662,17 @@ def take_tiled_screenshot(  # noqa: C901
             else:
                 tile_elapsed = time.monotonic() - tile_wait_start
                 if report_execution_context:
-                    holder_states = page.evaluate(FIND_CHART_HOLDER_STATES_JS)
+                    try:
+                        holder_states = page.evaluate(FIND_CHART_HOLDER_STATES_JS)
+                        if not isinstance(holder_states, list):
+                            holder_states = []
+                    except Exception:  # noqa: BLE001  # diagnostics must not discard valid tiles
+                        logger.warning(
+                            "Unable to collect per-tile chart-holder diagnostics%s",
+                            context_suffix,
+                            exc_info=True,
+                        )
+                        holder_states = []
                     diagnostics = ChartHolderDiagnostics.from_holder_states(
                         holder_states
                     )
@@ -697,24 +707,6 @@ def take_tiled_screenshot(  # noqa: C901
                         f"{remaining:.2f}" if remaining is not None else None,
                         context_suffix,
                     )
-                    if diagnostics.error_holders:
-                        logger.warning(
-                            "report_semantic_status url=%s expected_holders=%s "
-                            "rendered_holders=%s empty_holders=%s "
-                            "error_holders=%s semantic_success=false "
-                            "semantic_policy=%s tile=%s/%s%s; "
-                            "capture readiness is satisfied, but the tile "
-                            "contains terminal chart errors",
-                            url,
-                            report_execution_context.expected_chart_count,
-                            diagnostics.rendered_holders,
-                            diagnostics.empty_holders,
-                            diagnostics.error_holders,
-                            CHART_HOLDER_SEMANTIC_POLICY,
-                            i + 1,
-                            num_tiles,
-                            context_suffix,
-                        )
                 logger.debug(
                     "Tile %s/%s chart holders ready after %.2fs "
                     "(effective_wait=%.2fs)%s",
