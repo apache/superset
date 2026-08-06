@@ -36,6 +36,11 @@ from ._base import DeletionRetentionTestBase
 
 
 class TestPurgeAudit(DeletionRetentionTestBase):
+    def _get_audit_record(self, record_id: UUID) -> PurgeAuditLog:
+        record: PurgeAuditLog | None = db.session.get(PurgeAuditLog, record_id)
+        assert record is not None
+        return record
+
     def _write_retention_record(
         self,
         *,
@@ -51,7 +56,7 @@ class TestPurgeAudit(DeletionRetentionTestBase):
         )
         assert record_id is not None
         if created_on is not None:
-            record: PurgeAuditLog = db.session.get(PurgeAuditLog, record_id)
+            record: PurgeAuditLog = self._get_audit_record(record_id)
             record.created_on = created_on
             db.session.commit()
         return record_id
@@ -192,7 +197,7 @@ class TestPurgeAudit(DeletionRetentionTestBase):
             audit.finalize_retention_blocked(record_id)
         )
 
-        record: PurgeAuditLog = db.session.get(PurgeAuditLog, record_id)
+        record: PurgeAuditLog = self._get_audit_record(record_id)
         assert disposition == "retained"
         assert record.status == audit.STATUS_BLOCKED
 
@@ -206,7 +211,8 @@ class TestPurgeAudit(DeletionRetentionTestBase):
         )
 
         assert disposition == "suppressed"
-        assert db.session.get(PurgeAuditLog, first_id).status == audit.STATUS_BLOCKED
+        first: PurgeAuditLog = self._get_audit_record(first_id)
+        assert first.status == audit.STATUS_BLOCKED
         assert db.session.get(PurgeAuditLog, second_id) is None
 
     def test_equal_timestamp_is_ambiguous_and_retains_current(self) -> None:
@@ -224,7 +230,8 @@ class TestPurgeAudit(DeletionRetentionTestBase):
         )
 
         assert disposition == "retained"
-        assert db.session.get(PurgeAuditLog, second_id).status == audit.STATUS_BLOCKED
+        second: PurgeAuditLog = self._get_audit_record(second_id)
+        assert second.status == audit.STATUS_BLOCKED
 
     def test_newer_concurrent_row_does_not_become_a_predecessor(self) -> None:
         current_time: datetime = datetime.utcnow()
@@ -241,7 +248,8 @@ class TestPurgeAudit(DeletionRetentionTestBase):
         )
 
         assert disposition == "retained"
-        assert db.session.get(PurgeAuditLog, current_id).status == audit.STATUS_BLOCKED
+        current: PurgeAuditLog = self._get_audit_record(current_id)
+        assert current.status == audit.STATUS_BLOCKED
 
     def test_pending_predecessor_retains_current_block(self) -> None:
         timestamp: datetime = datetime.utcnow()
@@ -263,7 +271,7 @@ class TestPurgeAudit(DeletionRetentionTestBase):
             audit.finalize_retention_blocked(null_id)
         )
 
-        record: PurgeAuditLog = db.session.get(PurgeAuditLog, null_id)
+        record: PurgeAuditLog = self._get_audit_record(null_id)
         assert disposition == "retained"
         assert record.status == audit.STATUS_BLOCKED
         assert record.removed_dashboard_slices == 0
@@ -291,7 +299,7 @@ class TestPurgeAudit(DeletionRetentionTestBase):
             audit.finalize_retention_blocked(record_id)
         )
 
-        record: PurgeAuditLog = db.session.get(PurgeAuditLog, record_id)
+        record: PurgeAuditLog = self._get_audit_record(record_id)
         assert disposition == "retained"
         assert record.status == audit.STATUS_FAILED
 
@@ -306,7 +314,7 @@ class TestPurgeAudit(DeletionRetentionTestBase):
                 audit.finalize_retention_blocked(record_id)
             )
 
-        record: PurgeAuditLog = db.session.get(PurgeAuditLog, record_id)
+        record: PurgeAuditLog = self._get_audit_record(record_id)
         assert disposition == "fallback"
         assert record.status == audit.STATUS_BLOCKED
 
@@ -323,7 +331,7 @@ class TestPurgeAudit(DeletionRetentionTestBase):
                 audit.finalize_retention_blocked(current_id)
             )
 
-        record: PurgeAuditLog = db.session.get(PurgeAuditLog, current_id)
+        record: PurgeAuditLog = self._get_audit_record(current_id)
         assert disposition == "fallback"
         assert record.status == audit.STATUS_BLOCKED
 
@@ -346,7 +354,7 @@ class TestPurgeAudit(DeletionRetentionTestBase):
                 audit.finalize_retention_blocked(record_id)
             )
 
-        record: PurgeAuditLog = db.session.get(PurgeAuditLog, record_id)
+        record: PurgeAuditLog = self._get_audit_record(record_id)
         assert disposition == "fallback"
         assert record.status == audit.STATUS_BLOCKED
 
@@ -373,7 +381,7 @@ class TestPurgeAudit(DeletionRetentionTestBase):
                 audit.finalize_retention_blocked(current_id)
             )
 
-        record: PurgeAuditLog = db.session.get(PurgeAuditLog, current_id)
+        record: PurgeAuditLog = self._get_audit_record(current_id)
         assert disposition == "fallback"
         assert record.status == audit.STATUS_BLOCKED
 
@@ -401,7 +409,7 @@ class TestPurgeAudit(DeletionRetentionTestBase):
                 audit.finalize_retention_blocked(record_id)
             )
 
-        record: PurgeAuditLog = db.session.get(PurgeAuditLog, record_id)
+        record: PurgeAuditLog = self._get_audit_record(record_id)
         assert disposition == "fallback"
         assert record.status == audit.STATUS_PENDING
 
@@ -460,13 +468,16 @@ class TestPurgeAudit(DeletionRetentionTestBase):
         assert retained_count == 2
 
     def test_meaningful_outcome_transitions_start_new_blocked_periods(self) -> None:
-        for index, status in enumerate(
+        transition: tuple[int, str]
+        for transition in enumerate(
             (
                 audit.STATUS_FAILED,
                 audit.STATUS_CONFIRMED,
                 audit.STATUS_TARGET_ABSENT,
             )
         ):
+            index: int = transition[0]
+            status: str = transition[1]
             entity_uuid: str = f"transition-{index}"
             prior_id: UUID = self._write_retention_record(entity_uuid=entity_uuid)
             audit.finalize(prior_id, status)
@@ -476,6 +487,6 @@ class TestPurgeAudit(DeletionRetentionTestBase):
                 audit.finalize_retention_blocked(current_id)
             )
 
-            current: PurgeAuditLog = db.session.get(PurgeAuditLog, current_id)
+            current: PurgeAuditLog = self._get_audit_record(current_id)
             assert disposition == "retained"
             assert current.status == audit.STATUS_BLOCKED

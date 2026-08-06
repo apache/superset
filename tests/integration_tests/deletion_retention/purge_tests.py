@@ -292,6 +292,8 @@ class TestSoftDeletePurge(DeletionRetentionTestBase):
         chart_uuid: str = str(chart.uuid)
         self.soft_delete(chart, days_ago=90)
 
+        incr: MagicMock
+        gauge: MagicMock
         with (
             patch.object(
                 deletion_retention_task.stats_logger_manager.instance, "incr"
@@ -333,6 +335,7 @@ class TestSoftDeletePurge(DeletionRetentionTestBase):
         db.session.commit()
         self.soft_delete(chart, days_ago=90)
 
+        incr: MagicMock
         with (
             patch.object(
                 audit,

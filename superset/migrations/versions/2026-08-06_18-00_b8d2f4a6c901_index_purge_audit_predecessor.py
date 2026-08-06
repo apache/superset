@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""index purge audit predecessor lookup
+"""Index purge audit predecessor lookups.
 
 Revision ID: b8d2f4a6c901
 Revises: c4a1b8e2d739
