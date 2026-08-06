@@ -67,6 +67,7 @@ metadata:
     - b71548cd-6209-4713-99a8-569167cd8f42
     - 1a48df88-fbab-4a09-a439-c5741c4ba2ba
     - 11c9b341-7bb0-4340-be49-9d9889a7152a
+    - 959b269f-656d-4510-88a6-48e03a793c2b
     scope:
       excluded: []
       rootPath:
@@ -130,7 +131,8 @@ position:
       width: 4
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-SytNzNA4X
     type: CHART
   CHART-explore-160-1:
@@ -144,7 +146,8 @@ position:
       width: 4
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-jcftwdQAVlnpQ5SkYkA2K
     type: CHART
   CHART-rkgF4G4A4X:
@@ -158,7 +161,8 @@ position:
       width: 4
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-SytNzNA4X
     type: CHART
   CHART-misc-percent-change:
@@ -172,7 +176,8 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-migrated-1
     type: CHART
   CHART-misc-rose:
@@ -186,7 +191,8 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-migrated-1
     type: CHART
   CHART-misc-calendar:
@@ -200,7 +206,8 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-migrated-2
     type: CHART
   CHART-misc-time-pivot:
@@ -214,7 +221,8 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-migrated-2
     type: CHART
   CHART-misc-bullet:
@@ -228,7 +236,8 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-migrated-3
     type: CHART
   CHART-misc-partition:
@@ -242,7 +251,8 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-migrated-3
     type: CHART
   CHART-misc-paired-ttest:
@@ -256,7 +266,8 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-migrated-4
     type: CHART
   CHART-misc-time-table:
@@ -270,7 +281,8 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-migrated-4
     type: CHART
   CHART-misc-generic-ts:
@@ -284,7 +296,8 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-extra-1
     type: CHART
   CHART-misc-smooth:
@@ -298,7 +311,8 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-extra-2
     type: CHART
   CHART-misc-step:
@@ -312,7 +326,8 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-extra-2
     type: CHART
   CHART-misc-handlebars:
@@ -326,7 +341,8 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-extra-3
     type: CHART
   CHART-misc-deck-contour:
@@ -340,7 +356,8 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-extra-4
     type: CHART
   CHART-misc-deck-heatmap:
@@ -354,7 +371,8 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-extra-4
     type: CHART
   CHART-misc-point-cluster:
@@ -368,7 +386,8 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-extra-5
     type: CHART
   CHART-misc-chord2:
@@ -382,7 +401,8 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-thumbs-1
     type: CHART
   CHART-misc-bignum:
@@ -396,7 +416,8 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-thumbs-1
     type: CHART
   CHART-misc-funnel:
@@ -410,7 +431,8 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-thumbs-2
     type: CHART
   CHART-misc-gauge:
@@ -424,7 +446,8 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-thumbs-2
     type: CHART
   CHART-misc-heat2:
@@ -438,7 +461,8 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-thumbs-3
     type: CHART
   CHART-misc-histogram:
@@ -452,7 +476,8 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-thumbs-3
     type: CHART
   CHART-misc-mixed:
@@ -466,7 +491,8 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-thumbs-4
     type: CHART
   CHART-misc-donut:
@@ -480,7 +506,8 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-thumbs-4
     type: CHART
   CHART-misc-radar:
@@ -494,7 +521,8 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-thumbs-5
     type: CHART
   CHART-misc-sunburst:
@@ -508,7 +536,8 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-thumbs-5
     type: CHART
   CHART-misc-area2:
@@ -522,7 +551,8 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-thumbs-6
     type: CHART
   CHART-misc-bars:
@@ -536,7 +566,8 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-thumbs-6
     type: CHART
   CHART-misc-line2:
@@ -550,7 +581,8 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-thumbs-7
     type: CHART
   CHART-misc-smooth2:
@@ -564,7 +596,8 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-thumbs-7
     type: CHART
   CHART-misc-step2:
@@ -578,7 +611,8 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-thumbs-8
     type: CHART
   CHART-misc-treemap2:
@@ -592,7 +626,8 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-thumbs-8
     type: CHART
   CHART-misc-waterfall:
@@ -606,7 +641,8 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-thumbs-9
     type: CHART
   CHART-misc-table2:
@@ -620,7 +656,8 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-thumbs-9
     type: CHART
   CHART-misc-pivot2:
@@ -634,11 +671,49 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-thumbs-10
     type: CHART
   DASHBOARD_VERSION_KEY: v2
   GRID_ID:
+    children: []
+    id: GRID_ID
+    parents:
+    - ROOT_ID
+    type: GRID
+  HEADER_ID:
+    id: HEADER_ID
+    meta:
+      text: Misc Charts
+    type: HEADER
+  CHART-misc-handlebars-showcase:
+    children: []
+    id: CHART-misc-handlebars-showcase
+    meta:
+      chartId: 90041
+      height: 74
+      sliceName: Sales Handlebars Showcase
+      uuid: 959b269f-656d-4510-88a6-48e03a793c2b
+      width: 12
+    parents:
+    - ROOT_ID
+    - TABS-misc-root
+    - TAB-misc-handlebars
+    - ROW-misc-handlebars-1
+    type: CHART
+  ROW-misc-handlebars-1:
+    children:
+    - CHART-misc-handlebars-showcase
+    id: ROW-misc-handlebars-1
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - TABS-misc-root
+    - TAB-misc-handlebars
+    type: ROW
+  TAB-misc-charts:
     children:
     - ROW-SytNzNA4X
     - ROW-misc-migrated-1
@@ -661,18 +736,35 @@ position:
     - ROW-misc-thumbs-9
     - ROW-misc-thumbs-10
     - ROW-misc-thumbs-11
-    id: GRID_ID
+    id: TAB-misc-charts
+    meta:
+      text: 📊 Charts
     parents:
     - ROOT_ID
-    type: GRID
-  HEADER_ID:
-    id: HEADER_ID
+    - TABS-misc-root
+    type: TAB
+  TAB-misc-handlebars:
+    children:
+    - ROW-misc-handlebars-1
+    id: TAB-misc-handlebars
     meta:
-      text: Misc Charts
-    type: HEADER
+      text: 🎨 Handlebars Showcase
+    parents:
+    - ROOT_ID
+    - TABS-misc-root
+    type: TAB
+  TABS-misc-root:
+    children:
+    - TAB-misc-charts
+    - TAB-misc-handlebars
+    id: TABS-misc-root
+    meta: {}
+    parents:
+    - ROOT_ID
+    type: TABS
   ROOT_ID:
     children:
-    - GRID_ID
+    - TABS-misc-root
     id: ROOT_ID
     type: ROOT
   CHART-misc-tree:
@@ -686,7 +778,8 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-thumbs-11
     type: CHART
   CHART-misc-horizon:
@@ -700,7 +793,8 @@ position:
       width: 6
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     - ROW-misc-thumbs-11
     type: CHART
   ROW-SytNzNA4X:
@@ -713,7 +807,8 @@ position:
       background: BACKGROUND_TRANSPARENT
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     type: ROW
   ROW-misc-migrated-1:
     children:
@@ -724,7 +819,8 @@ position:
       background: BACKGROUND_TRANSPARENT
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     type: ROW
   ROW-misc-migrated-2:
     children:
@@ -735,7 +831,8 @@ position:
       background: BACKGROUND_TRANSPARENT
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     type: ROW
   ROW-misc-migrated-3:
     children:
@@ -746,7 +843,8 @@ position:
       background: BACKGROUND_TRANSPARENT
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     type: ROW
   ROW-misc-migrated-4:
     children:
@@ -757,7 +855,8 @@ position:
       background: BACKGROUND_TRANSPARENT
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     type: ROW
   ROW-misc-extra-1:
     children:
@@ -767,7 +866,8 @@ position:
       background: BACKGROUND_TRANSPARENT
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     type: ROW
   ROW-misc-extra-2:
     children:
@@ -778,7 +878,8 @@ position:
       background: BACKGROUND_TRANSPARENT
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     type: ROW
   ROW-misc-extra-3:
     children:
@@ -788,7 +889,8 @@ position:
       background: BACKGROUND_TRANSPARENT
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     type: ROW
   ROW-misc-extra-4:
     children:
@@ -799,7 +901,8 @@ position:
       background: BACKGROUND_TRANSPARENT
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     type: ROW
   ROW-misc-extra-5:
     children:
@@ -809,7 +912,8 @@ position:
       background: BACKGROUND_TRANSPARENT
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     type: ROW
   ROW-misc-thumbs-1:
     children:
@@ -820,7 +924,8 @@ position:
       background: BACKGROUND_TRANSPARENT
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     type: ROW
   ROW-misc-thumbs-2:
     children:
@@ -831,7 +936,8 @@ position:
       background: BACKGROUND_TRANSPARENT
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     type: ROW
   ROW-misc-thumbs-3:
     children:
@@ -842,7 +948,8 @@ position:
       background: BACKGROUND_TRANSPARENT
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     type: ROW
   ROW-misc-thumbs-4:
     children:
@@ -853,7 +960,8 @@ position:
       background: BACKGROUND_TRANSPARENT
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     type: ROW
   ROW-misc-thumbs-5:
     children:
@@ -864,7 +972,8 @@ position:
       background: BACKGROUND_TRANSPARENT
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     type: ROW
   ROW-misc-thumbs-6:
     children:
@@ -875,7 +984,8 @@ position:
       background: BACKGROUND_TRANSPARENT
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     type: ROW
   ROW-misc-thumbs-7:
     children:
@@ -886,7 +996,8 @@ position:
       background: BACKGROUND_TRANSPARENT
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     type: ROW
   ROW-misc-thumbs-8:
     children:
@@ -897,7 +1008,8 @@ position:
       background: BACKGROUND_TRANSPARENT
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     type: ROW
   ROW-misc-thumbs-9:
     children:
@@ -908,7 +1020,8 @@ position:
       background: BACKGROUND_TRANSPARENT
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     type: ROW
   ROW-misc-thumbs-10:
     children:
@@ -918,7 +1031,8 @@ position:
       background: BACKGROUND_TRANSPARENT
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     type: ROW
   ROW-misc-thumbs-11:
     children:
@@ -929,7 +1043,8 @@ position:
       background: BACKGROUND_TRANSPARENT
     parents:
     - ROOT_ID
-    - GRID_ID
+    - TABS-misc-root
+    - TAB-misc-charts
     type: ROW
 published: false
 slug: misc_charts
