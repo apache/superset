@@ -24,13 +24,12 @@ configuration has to be reproduced here to render the same values an end user
 sees in the browser.
 
 Only d3-format specifiers (and the ``SMART_NUMBER`` pseudo-formats) are ported.
-Non-d3 presets such as ``DURATION``, ``DURATION_SUB`` and the ``MEMORY_*``
-formatters are not supported: they do not parse as a d3 specifier and fall back
-to the raw value, so a column using one of those renders unformatted in reports.
-The fill/align/zero/width specifier flags (absent from every preset, reachable
-only by hand-typed formats) are parsed but not rendered: the numeric content
-(precision, grouping, sign) is still formatted correctly, only the padding is
-omitted.
+The duration, memory, and length formatters depend on separate frontend
+factories and are explicitly rejected, causing the public wrapper to preserve
+the raw value rather than silently misformat it. The fill/align/zero/width d3
+flags are likewise rejected because report text has no equivalent of the
+frontend's padding behavior. Accounting-parenthesis and space-sign modes are
+supported.
 """
 
 from __future__ import annotations
@@ -48,6 +47,21 @@ from flask_babel import get_locale
 SMART_NUMBER = "SMART_NUMBER"
 SMART_NUMBER_SIGNED = "SMART_NUMBER_SIGNED"
 AUTO_CURRENCY = "AUTO"
+
+UNSUPPORTED_FRONTEND_PRESETS = frozenset(
+    {
+        "DURATION",
+        "DURATION_SUB",
+        "DURATION_COL",
+        "MEMORY_DECIMAL",
+        "MEMORY_BINARY",
+        "MEMORY_TRANSFER_RATE_DECIMAL",
+        "MEMORY_TRANSFER_RATE_BINARY",
+        "LENGTH",
+        "LENGTH_CM_KM",
+        "LENGTH_CM_M",
+    }
+)
 
 DEFAULT_LOCALE = "en"
 CURRENCY_SYMBOL_LOCALE = "en_US"
@@ -147,6 +161,8 @@ def format_numeric(d3_format: str, value: float) -> str:
     ``SMART_NUMBER_SIGNED`` pseudo-formats, and to the d3 specifier parser for
     every other format string.
     """
+    if d3_format in UNSUPPORTED_FRONTEND_PRESETS:
+        raise ValueError(f"Frontend preset {d3_format!r} is not available in reports")
     if d3_format in (SMART_NUMBER, SMART_NUMBER_SIGNED):
         return format_smart_number(value, signed=d3_format == SMART_NUMBER_SIGNED)
     return format_d3(d3_format, value)
@@ -166,6 +182,8 @@ def format_d3(d3_format: str, value: float) -> str:
     match = D3_FORMAT_RE.match(d3_format)
     if not match:
         raise ValueError(d3_format)
+    if any(match.group(index) for index in (1, 2, 5, 6)):
+        raise ValueError(f"d3 padding is not supported in reports: {d3_format!r}")
 
     sign_mode = match.group(3) or "-"
     currency_symbol = match.group(4) == "$"

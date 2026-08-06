@@ -20,7 +20,11 @@ from unittest.mock import patch
 import pytest
 from flask import current_app
 
-from superset.utils.number_format import format_number_with_config
+from superset.utils.number_format import (
+    format_d3,
+    format_number_with_config,
+    format_numeric,
+)
 
 # --- Helper behaviour the d3 parity matrix below cannot cover ----------------
 
@@ -362,3 +366,28 @@ def test_rounding_matches_d3_binary_half_up(d3_format, value, expected):
 )
 def test_additional_d3_parity_cases(d3_format, value, expected):
     assert format_number_with_config(d3_format, None, value) == expected
+
+
+@pytest.mark.parametrize(
+    "preset",
+    [
+        "DURATION",
+        "DURATION_SUB",
+        "DURATION_COL",
+        "MEMORY_DECIMAL",
+        "MEMORY_BINARY",
+        "MEMORY_TRANSFER_RATE_DECIMAL",
+        "MEMORY_TRANSFER_RATE_BINARY",
+    ],
+)
+def test_unported_frontend_presets_are_explicitly_rejected(preset):
+    with pytest.raises(ValueError, match="not available"):
+        format_numeric(preset, 66000)
+    assert format_number_with_config(preset, None, 66000) == "66000"
+
+
+@pytest.mark.parametrize("d3_format", ["08,.2f", "*>12,.2f"])
+def test_unsupported_d3_padding_is_explicitly_rejected(d3_format):
+    with pytest.raises(ValueError, match="padding"):
+        format_d3(d3_format, 1234.5)
+    assert format_number_with_config(d3_format, None, 1234.5) == "1234.5"
