@@ -36,6 +36,7 @@ from superset.utils.core import (
     FilterOperator,
     generic_find_constraint_name,
     generic_find_fk_constraint_name,
+    generic_find_uq_constraint_name,
     get_datasource_full_name,
     get_query_source_from_request,
     get_stacktrace,
@@ -695,6 +696,71 @@ def test_generic_find_fk_constraint_none_exist():
 
     result = generic_find_fk_constraint_name(
         table_name, columns, referenced_table_name, insp_mock
+    )
+
+    assert result is None
+
+
+def test_generic_find_uq_constraint_accepts_list():
+    """Regression pin for the ``list == set`` foot-gun (sc-112173).
+
+    Migration ``df3d7e2eb9a4`` passed a list and silently never matched,
+    because the helper compared it with ``==`` against a set. The helper
+    coerces its ``columns`` argument, so a list argument MUST find the
+    constraint."""
+    insp_mock = MagicMock()
+    insp_mock.get_unique_constraints.return_value = [
+        {
+            "name": "_customer_location_uc",
+            "column_names": ["database_id", "schema", "table_name"],
+        },
+    ]
+
+    result = generic_find_uq_constraint_name(
+        "tables",
+        ["database_id", "schema", "table_name"],  # deliberately a list
+        insp_mock,
+    )
+
+    assert result == "_customer_location_uc"
+
+
+def test_generic_find_uq_constraint_with_set():
+    """The documented set-shaped argument keeps working unchanged."""
+    insp_mock = MagicMock()
+    insp_mock.get_unique_constraints.return_value = [
+        {
+            "name": "_customer_location_uc",
+            "column_names": ["database_id", "schema", "table_name"],
+        },
+    ]
+
+    result = generic_find_uq_constraint_name(
+        "tables",
+        {"database_id", "schema", "table_name"},
+        insp_mock,
+    )
+
+    assert result == "_customer_location_uc"
+
+
+def test_generic_find_uq_constraint_no_partial_match():
+    """A 3-column lookup MUST NOT match a 4-column constraint: the
+    take-2 drop migration relies on exact set equality so the model's
+    intended ``(database_id, catalog, schema, table_name)`` constraint is
+    never at risk."""
+    insp_mock = MagicMock()
+    insp_mock.get_unique_constraints.return_value = [
+        {
+            "name": "uq_tables_database_id",
+            "column_names": ["database_id", "catalog", "schema", "table_name"],
+        },
+    ]
+
+    result = generic_find_uq_constraint_name(
+        "tables",
+        {"database_id", "schema", "table_name"},
+        insp_mock,
     )
 
     assert result is None

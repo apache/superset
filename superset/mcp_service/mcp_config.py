@@ -66,6 +66,24 @@ MCP_BUG_REPORT_CONTACT: str | None = None
 # MCP Debug mode - shows suppressed initialization output in stdio mode
 MCP_DEBUG = False
 
+# Streamable-HTTP session mode used by run_server() (superset/mcp_service/server.py)
+# and the CLI entrypoint (superset/mcp_service/__main__.py).
+#
+# True (default): each HTTP request gets a fresh, ephemeral transport that is
+# torn down as soon as that single request/response completes, while the
+# tool call it started keeps running as a background task. If a client gives
+# up on a still-running call (its own timeout, a reconnect, etc.), the next
+# progress notification that tool sends hits the now-closed transport and
+# raises anyio.ClosedResourceError/BrokenResourceError -- crashing that
+# session and disconnecting other concurrent clients on the same worker.
+#
+# False: sessions are tracked by Mcp-Session-Id and the transport stays alive
+# for the session's lifetime, so a client disconnecting mid-call no longer
+# crashes the tool. This requires session-affinity routing on Mcp-Session-Id
+# at the mesh/ingress layer for multi-pod deployments -- a client's follow-up
+# requests must land on the pod that created its session.
+MCP_STATELESS_HTTP = True
+
 # MCP RBAC - when True, tools with class_permission_name are checked
 # against the FAB security_manager before execution.
 MCP_RBAC_ENABLED = True
@@ -82,6 +100,34 @@ MCP_RBAC_ENABLED = True
 # Extension-prefixed tools can also be disabled using their full name:
 #   MCP_DISABLED_TOOLS = {"extensions.myorg.myext.some_tool"}
 MCP_DISABLED_TOOLS: set[str] = set()
+
+# Pluggable error-capture hook, invoked for system-class MCP tool errors
+# (unexpected exceptions — database down, bugs — not user errors like bad
+# params or permission denials). Lets operators forward failures to an
+# external error tracker (e.g. Sentry) without the OSS repo depending on any
+# particular vendor SDK: FlaskIntegration does not see FastMCP tool
+# execution, since it runs on the asyncio/Starlette stack, not a Flask
+# request. See PRODUCTION.md "Error Tracking" for a Sentry wiring example.
+#
+# Signature: hook(error: Exception, context: dict[str, Any]) -> None
+# ``context`` always contains the keys "tool_name", "mcp_call_id",
+# "user_id", "error_type", "sanitized_message", and "duration_ms" — but
+# values may be unavailable depending on the capture path: "user_id" and
+# "duration_ms" are None on the last-resort path
+# (StructuredContentStripperMiddleware), "mcp_call_id" is None outside a
+# tool call, and "tool_name" falls back to "unknown" for non-tool
+# messages. Only "sanitized_message" is scrubbed — the ``error`` argument
+# is the RAW exception and may contain sensitive data (connection
+# strings, tokens); sanitize it before exporting, or report
+# "sanitized_message" instead.
+#
+# The hook runs SYNCHRONOUSLY on the asyncio event loop, so a blocking hook
+# stalls all in-flight tool handling. Do not perform network I/O inline;
+# hand the event to a background transport (the Sentry SDK's
+# capture_exception already queues to a worker thread). Exceptions raised
+# by the hook itself are caught and logged as a warning; they never affect
+# the MCP response.
+MCP_ERROR_HOOK: Callable[[Exception, dict[str, Any]], None] | None = None
 
 # =============================================================================
 # MCP Chart Plugin Filtering
@@ -688,6 +734,7 @@ def get_mcp_config(app_config: dict[str, Any] | None = None) -> dict[str, Any]:
         "WEBDRIVER_BASEURL": WEBDRIVER_BASEURL,
         "WEBDRIVER_BASEURL_USER_FRIENDLY": WEBDRIVER_BASEURL_USER_FRIENDLY,
         "MCP_DEBUG": MCP_DEBUG,
+        "MCP_STATELESS_HTTP": MCP_STATELESS_HTTP,
         "MCP_RBAC_ENABLED": MCP_RBAC_ENABLED,
         "MCP_DISABLED_TOOLS": set(MCP_DISABLED_TOOLS),
         "MCP_DISABLED_CHART_PLUGINS": MCP_DISABLED_CHART_PLUGINS,
