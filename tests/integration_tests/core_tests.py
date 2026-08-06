@@ -22,6 +22,7 @@ import html
 import logging
 import random
 import unittest
+from typing import Callable
 from unittest import mock
 from urllib.parse import parse_qs, quote, urlsplit
 
@@ -143,11 +144,18 @@ class TestCore(SupersetTestCase):
 
         assert cache_key_with_groupby == viz.cache_key(qobj)
 
-    def test_admin_only_menu_views(self):
-        def assert_admin_view_menus_in(role_name, assert_func):
+    def test_admin_only_menu_views(self) -> None:
+        def assert_admin_view_menus_in(
+            role_name: str, assert_func: Callable[[str, list[str]], None]
+        ) -> None:
             role = security_manager.find_role(role_name)
             view_menus = [p.view_menu.name for p in role.permissions]
-            assert_func("ResetPasswordView", view_menus)
+            if role_name == "Admin" and current_app.config.get(
+                "ENABLE_LEGACY_FAB_PASSWORD_VIEWS", False
+            ):
+                assert "ResetPasswordView" in view_menus
+            else:
+                assert "ResetPasswordView" not in view_menus
             assert_func("RoleRestAPI", view_menus)
             assert_func("Security", view_menus)
             assert_func("SQL Lab", view_menus)
@@ -155,6 +163,27 @@ class TestCore(SupersetTestCase):
         assert_admin_view_menus_in("Admin", self.assertIn)
         assert_admin_view_menus_in("Alpha", self.assertNotIn)
         assert_admin_view_menus_in("Gamma", self.assertNotIn)
+
+    def test_legacy_fab_password_views_are_not_registered(self) -> None:
+        endpoints: set[str] = {
+            rule.endpoint for rule in current_app.url_map.iter_rules()
+        }
+        legacy_password_views_enabled: bool = current_app.config.get(
+            "ENABLE_LEGACY_FAB_PASSWORD_VIEWS", False
+        )
+        force_password_change_enabled: bool = current_app.config.get(
+            "ENABLE_FORCE_PASSWORD_CHANGE", False
+        )
+
+        if legacy_password_views_enabled:
+            assert "ResetPasswordView.this_form_get" in endpoints
+        else:
+            assert "ResetPasswordView.this_form_get" not in endpoints
+
+        if legacy_password_views_enabled or force_password_change_enabled:
+            assert "ResetMyPasswordView.this_form_get" in endpoints
+        else:
+            assert "ResetMyPasswordView.this_form_get" not in endpoints
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_save_slice(self):
