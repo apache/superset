@@ -30,9 +30,10 @@ from fastmcp import Context
 from sqlalchemy.orm import subqueryload
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.dashboards.permalink.types import DashboardPermalinkValue
 from superset.extensions import event_logger
 from superset.mcp_service.dashboard.permalink import (
+    DashboardLookupResult,
+    get_matching_dashboard_permalink_state,
     lookup_dashboard_reference,
 )
 from superset.mcp_service.dashboard.schemas import (
@@ -41,10 +42,8 @@ from superset.mcp_service.dashboard.schemas import (
     DashboardInfo,
     DEFAULT_GET_DASHBOARD_INFO_COLUMNS,
     GetDashboardInfoRequest,
-    redact_filter_state_data_model_metadata,
 )
 from superset.mcp_service.mcp_core import ModelGetInfoCore
-from superset.mcp_service.privacy import user_can_view_data_model_metadata
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +66,10 @@ def _apply_permalink_state(
 def _lookup_dashboard(
     tool: ModelGetInfoCore,
     request: GetDashboardInfoRequest,
-) -> tuple[DashboardInfo | DashboardError, str | None, DashboardPermalinkValue | None]:
+) -> tuple[
+    DashboardInfo | DashboardError,
+    DashboardLookupResult[DashboardInfo | DashboardError],
+]:
     """Resolve an ordinary identifier or dashboard permalink, then run lookup."""
     lookup_result = lookup_dashboard_reference(
         identifier=request.identifier,
@@ -85,7 +87,7 @@ def _lookup_dashboard(
             "expired; ask for a fresh shared dashboard link.",
             error_type,
         )
-    return result, lookup_result.permalink_key, lookup_result.permalink_value
+    return result, lookup_result
 
 
 @tool(
@@ -167,7 +169,9 @@ async def get_dashboard_info(
                 query_options=eager_options,
             )
 
-            result, permalink_key, permalink_value = _lookup_dashboard(tool, request)
+            result, lookup_result = _lookup_dashboard(tool, request)
+            permalink_key = lookup_result.permalink_key
+            permalink_value = lookup_result.permalink_value
 
         if isinstance(result, DashboardInfo):
             # If permalink_key is provided, retrieve filter state
@@ -178,51 +182,29 @@ async def get_dashboard_info(
                 )
 
                 if permalink_value:
-                    # Verify the permalink belongs to the requested dashboard
-                    # dashboardId in permalink is stored as str, result.id is int
-                    permalink_dashboard_id = permalink_value.get("dashboardId")
-                    try:
-                        permalink_dashboard_id_int = (
-                            int(permalink_dashboard_id)
-                            if permalink_dashboard_id
-                            else None
-                        )
-                    except (ValueError, TypeError):
-                        permalink_dashboard_id_int = None
-
-                    if (
-                        permalink_dashboard_id_int is not None
-                        and permalink_dashboard_id_int != result.id
-                    ):
+                    permalink_state = get_matching_dashboard_permalink_state(
+                        lookup_result,
+                        result.id,
+                    )
+                    if permalink_state is None:
                         await ctx.warning(
-                            "permalink_key dashboardId (%s) does not match "
-                            "requested dashboard id (%s); ignoring permalink "
-                            "filter state." % (permalink_dashboard_id, result.id)
+                            "permalink_key belongs to a different dashboard; "
+                            "ignoring permalink filter state."
                         )
                     else:
-                        # Extract the state from permalink value
-                        # Handle None or non-dict state gracefully
-                        raw_state = permalink_value.get("state")
-                        permalink_state = (
-                            dict(raw_state) if isinstance(raw_state, dict) else {}
-                        )
-                        if not user_can_view_data_model_metadata():
-                            permalink_state = redact_filter_state_data_model_metadata(
-                                permalink_state
-                            )
                         result = _apply_permalink_state(
                             result,
-                            permalink_key,
-                            permalink_state,
+                            permalink_state.key,
+                            permalink_state.state,
                         )
 
                         await ctx.info(
                             "Filter state retrieved from permalink: "
                             "has_dataMask=%s, has_chartStates=%s, has_activeTabs=%s"
                             % (
-                                "dataMask" in permalink_state,
-                                "chartStates" in permalink_state,
-                                "activeTabs" in permalink_state,
+                                "dataMask" in permalink_state.state,
+                                "chartStates" in permalink_state.state,
+                                "activeTabs" in permalink_state.state,
                             )
                         )
                 else:
@@ -246,7 +228,7 @@ async def get_dashboard_info(
             # override select_columns, ensure filter_state is present so the
             # caller gets the data they came for.
             effective_select_columns = list(request.select_columns)
-            if permalink_key and effective_select_columns == list(
+            if result.is_permalink_state and effective_select_columns == list(
                 DEFAULT_GET_DASHBOARD_INFO_COLUMNS
             ):
                 effective_select_columns.append("filter_state")

@@ -25,9 +25,14 @@ from urllib.parse import urlparse
 from flask import g, has_request_context
 
 from superset.commands.dashboard.exceptions import DashboardAccessDeniedError
+from superset.commands.dashboard.permalink.get import GetDashboardPermalinkCommand
 from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
 from superset.dashboards.permalink.types import DashboardPermalinkValue
 from superset.mcp_service.auth import load_user_with_relationships
+from superset.mcp_service.dashboard.schemas import (
+    redact_filter_state_data_model_metadata,
+)
+from superset.mcp_service.privacy import user_can_view_data_model_metadata
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +47,14 @@ class DashboardLookupResult(Generic[LookupResultT]):
     permalink_key: str | None = None
     permalink_value: DashboardPermalinkValue | None = None
     permalink_error: bool = False
+
+
+@dataclass(frozen=True)
+class DashboardPermalinkState:
+    """Permalink state belonging to a resolved dashboard."""
+
+    key: str
+    state: dict[str, object]
 
 
 def extract_dashboard_permalink_key(value: str) -> str:
@@ -76,8 +89,6 @@ def get_dashboard_permalink(
     key_or_url: str,
 ) -> tuple[str, DashboardPermalinkValue] | None:
     """Resolve a dashboard permalink key or shared URL, returning its state."""
-    from superset.commands.dashboard.permalink.get import GetDashboardPermalinkCommand
-
     key = extract_dashboard_permalink_key(key_or_url)
     refresh_request_user_for_permalink_access()
     try:
@@ -138,3 +149,26 @@ def lookup_dashboard_reference(
         permalink_key=key,
         permalink_value=value,
     )
+
+
+def get_matching_dashboard_permalink_state(
+    lookup_result: DashboardLookupResult[LookupResultT],
+    dashboard_id: int | None,
+) -> DashboardPermalinkState | None:
+    """Return the permalink state when it belongs to ``dashboard_id``."""
+    value = lookup_result.permalink_value
+    key = lookup_result.permalink_key
+    if value is None or key is None:
+        return None
+    try:
+        permalink_dashboard_id = int(value["dashboardId"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    if permalink_dashboard_id != dashboard_id:
+        return None
+
+    raw_state = value.get("state")
+    state: dict[str, object] = dict(raw_state) if isinstance(raw_state, dict) else {}
+    if not user_can_view_data_model_metadata():
+        state = redact_filter_state_data_model_metadata(state)
+    return DashboardPermalinkState(key=key, state=state)
