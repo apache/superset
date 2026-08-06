@@ -17,74 +17,75 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
-import type { ReactElement, ReactNode } from 'react';
+import type { ReactElement } from 'react';
+import { useSelector } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
 import { useTheme } from '@apache-superset/core/theme';
-import {
-  Button,
-  type ButtonProps,
-  Input,
-  PublishedLabel,
-} from '@superset-ui/core/components';
+import { Input, PublishedLabel } from '@superset-ui/core/components';
+import MetadataBar, {
+  MetadataType,
+} from '@superset-ui/core/components/MetadataBar';
 import { Icons } from '@superset-ui/core/components/Icons';
+import type { BootstrapUser } from 'src/types/bootstrapTypes';
 import { provider, useDashboardRevision } from 'src/core/dashboard/store';
-import LayoutModeSwitcher from './LayoutModeSwitcher';
-
-const NOT_AVAILABLE = t('Not available yet');
+import Inert from './InertControl';
 
 /**
- * Header controls, sized down.
+ * Who is making this dashboard, and when it was last written down.
  *
- * The bar is chrome around the work rather than the work itself, and every
- * pixel it takes is one the canvas does not get. Driven from the theme's own
- * smallest control step rather than a literal, so it tracks the scale the
- * rest of the app is built on instead of drifting from it.
+ * The two facts a dashboard carries about itself rather than about its
+ * contents, drawn with the same `MetadataBar` the saved dashboard header
+ * uses — so a dashboard being built and one being read state them in the
+ * same shape, with the same icons, in the same place.
+ *
+ * Only one of them can be true here. A dashboard being created is being
+ * created by whoever is looking at it, so the creator is read from the
+ * session rather than invented. There is no row behind this page and nothing
+ * has ever been written, so there is no modified time to humanize — and
+ * "a day ago" beside a Save button that is disabled for having nothing to
+ * save would be the only thing on this bar stating a fact that is not one.
  */
-const compact = (theme: ReturnType<typeof useTheme>) => ({
-  height: theme.controlHeightXS,
-  paddingInline: theme.sizeUnit * 1.5,
-  fontSize: theme.fontSizeSM,
-  lineHeight: 1,
-});
-
 /**
- * An affordance that is present, named and honest about not working.
+ * The signed-in person's name.
  *
- * Most of this header is one. The builder keeps its tree in memory and has
- * no dashboard row behind it: nothing here can be saved, favourited,
- * published or refreshed, and there is no history to step through. Drawing
- * them disabled says which parts of the product this page is still missing;
- * drawing them live and inert would teach something false about all of them.
- *
- * `Button` renders a disabled control inside a span so its tooltip survives —
- * a bare disabled button swallows the pointer events a tooltip listens for,
- * and the explanation would never reach the one control that needs it.
+ * Assembled here rather than through `getUserName`, which reads the
+ * `first_name`/`last_name` an API hands back for an owner. The session user
+ * is the same person in a different shape — `firstName`/`lastName` off the
+ * bootstrap — and passing one to the other returns an empty string rather
+ * than failing, which is how this first went out reading "Not available"
+ * over a perfectly well-known name.
  */
-const Inert = ({
-  label,
-  test,
-  buttonStyle,
-  children,
-}: {
-  label: string;
-  test: string;
-  buttonStyle?: ButtonProps['buttonStyle'];
-  children: ReactNode;
-}): ReactElement => {
-  const theme = useTheme();
+const nameOf = (user: BootstrapUser): string =>
+  [user?.firstName, user?.lastName].filter(Boolean).join(' ') ||
+  user?.username ||
+  '';
+
+const Metadata = (): ReactElement => {
+  const user = useSelector<{ user?: BootstrapUser }, BootstrapUser>(
+    state => state.user,
+  );
+  const author = nameOf(user) || t('Not available');
+  const unsaved = t('Not saved yet');
+
   return (
-    <Button
-      size="small"
-      buttonStyle={buttonStyle}
-      disabled
-      aria-label={label}
-      data-test={test}
-      tooltip={`${label} — ${NOT_AVAILABLE}`}
-      placement="bottom"
-      style={compact(theme)}
-    >
-      {children}
-    </Button>
+    <span data-test="header-metadata">
+      <MetadataBar
+        tooltipPlacement="bottom"
+        items={[
+          {
+            type: MetadataType.Editor,
+            createdBy: author,
+            editors: t('None'),
+            createdOn: unsaved,
+          },
+          {
+            type: MetadataType.LastModified,
+            value: unsaved,
+            modifiedBy: author,
+          },
+        ]}
+      />
+    </span>
   );
 };
 
@@ -141,10 +142,17 @@ const Title = ({ nodeId, title }: { nodeId: string; title: string }) => {
  * The dashboard's header: what this dashboard is, and what can be done to it.
  *
  * Two kinds of thing share the bar. On the left is the dashboard as the
- * product would know it — where to start from, where it has been, whether it
- * is published. On the right is what an author does to the tree in front of
- * them, and the one live control among them is the layout: it is the only one
- * whose state is in the tree rather than in a row this page does not have.
+ * product would know it — where to start from, where it has been, what it is
+ * called, whether it is published, and whose it is. On the right is what an
+ * author does to the whole of it: step back through what they did, or write
+ * it down.
+ *
+ * How the canvas is arranged is not among them. It reads like chrome and is
+ * not: it is a property of the root node, sitting in the same `layout` the
+ * columns and the gap sit in, and asking for it here put one third of that
+ * one decision on the other side of the screen from the rest. It is asked in
+ * the root's own properties now, where a canvas is selected and arranged in
+ * one place.
  */
 export default function DashboardHeader(): ReactElement {
   useDashboardRevision();
@@ -164,15 +172,12 @@ export default function DashboardHeader(): ReactElement {
         background: theme.colorBgContainer,
       }}
     >
-      {/* Where this dashboard came from and where it has been: one offers a
-          starting point to build from, the other the record of what has
-          already happened to it. Both are asked before the work rather than
-          during it, which is why they lead the bar. */}
-      <Inert label={t('Templates')} test="header-templates">
+      {/* Where this dashboard came from: a starting point to build on, asked
+          before the work rather than during it, which is why it leads the
+          bar. History used to sit beside it on that reasoning and has gone to
+          the other end — it is read against saving, not against starting. */}
+      <Inert label={t('Templates')} test="header-templates" reads>
         {t('Templates')}
-      </Inert>
-      <Inert label={t('History')} test="header-history">
-        {t('History')}
       </Inert>
       <Title
         nodeId={root.id}
@@ -186,6 +191,10 @@ export default function DashboardHeader(): ReactElement {
       <span data-test="header-published">
         <PublishedLabel isPublished={false} />
       </span>
+      {/* Beside the status rather than opposite it: whether a dashboard is a
+          draft, whose it is, and when it was last written are one answer to
+          one question — what state is this in — and they are read together. */}
+      <Metadata />
 
       <span
         style={{
@@ -195,14 +204,6 @@ export default function DashboardHeader(): ReactElement {
           gap: theme.sizeUnit * 2,
         }}
       >
-        <LayoutModeSwitcher nodeId={root.id} />
-        <Inert
-          label={t('Refresh dashboard')}
-          test="header-refresh"
-          buttonStyle="link"
-        >
-          <Icons.ReloadOutlined iconSize="m" />
-        </Inert>
         {/* Icons, not words, because these two are reached by muscle memory
             far more often than they are read. The name stays on them for
             anyone not reading with their eyes. */}
@@ -212,7 +213,14 @@ export default function DashboardHeader(): ReactElement {
         <Inert label={t('Redo')} test="header-redo">
           <Icons.RedoOutlined iconSize="s" />
         </Inert>
-        <Inert label={t('Save')} test="header-save">
+        {/* Saving commits a version; History is the versions already
+            committed. One concern, read in one place — so the record sits
+            immediately before the button that produces what it lists, rather
+            than at the far side of the bar from it. */}
+        <Inert label={t('History')} test="header-history" reads>
+          {t('History')}
+        </Inert>
+        <Inert label={t('Save')} test="header-save" reads>
           {t('Save')}
         </Inert>
       </span>

@@ -27,6 +27,7 @@ import { placeBlock } from 'src/core/dashboard/placement';
 import { chat } from 'src/core/chat';
 import BuildingBlockView from 'src/core/dashboard/BuildingBlockView';
 import { dashboardClientTools } from './clientTools';
+import CanvasControls from './CanvasControls';
 import DashboardHeader from './DashboardHeader';
 import EditorPanel from './EditorPanel';
 
@@ -44,7 +45,13 @@ const Canvas = styled.div`
     flex: 1;
     min-height: 0;
     overflow: auto;
-    padding: ${theme.paddingLG}px;
+    /* What the canvas's own corner controls are positioned against. */
+    position: relative;
+    /* Two past the token, so the corner controls clear the frame the root
+       draws inside this padding rather than sitting hard against it. Written
+       as an offset from the token rather than as a literal, so it still moves
+       with the scale the rest of the app is built on. */
+    padding: ${theme.paddingLG + 2}px;
   `}
 `;
 
@@ -143,13 +150,38 @@ export default function DashboardBuilderV2() {
             }
           }}
         >
+          {/* The canvas's own corner: what acts on the whole of it rather
+              than on anything placed in it, and so belongs to it rather than
+              to the bar above. First in the tree, raised over the root by its
+              own z-index — see CanvasControls. */}
+          <CanvasControls />
           {isEmpty ? (
             <EmptyCanvasWrapper>
+              {/* The dashboard itself, standing in for a canvas that has
+                  nothing on it yet. It selects the root because that is the
+                  only thing there is to select here, and because how the
+                  canvas is arranged is asked in the root's properties — a
+                  blank dashboard is exactly when that is asked, since
+                  whatever is placed next lands in the mode already chosen.
+                  Without this the mode would be unreachable until something
+                  had already been placed and then rearranged. */}
               <CanvasPlaceholder
                 vertical
                 align="center"
                 justify="center"
                 gap="small"
+                // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
+                role="button"
+                tabIndex={0}
+                aria-label={t('Dashboard')}
+                data-test="empty-canvas"
+                onClick={() => provider.setSelection(root.id)}
+                onKeyDown={event => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    provider.setSelection(root.id);
+                  }
+                }}
               >
                 <Icons.AppstoreOutlined iconSize="xl" />
                 <Typography.Text type="secondary">

@@ -23,25 +23,33 @@ import DashboardHeader from './DashboardHeader';
 
 const provider = DashboardProvider.getInstance();
 
+const ADMIN = { userId: 1, firstName: 'Admin', lastName: 'User' };
+
+/** The header reads the session for who is authoring, so it needs the store. */
+const renderHeader = () =>
+  render(<DashboardHeader />, {
+    useRedux: true,
+    initialState: { user: ADMIN },
+  });
+
 beforeEach(() => {
   provider.reset();
 });
 
 test('the header carries the dashboard-level affordances', () => {
-  render(<DashboardHeader />);
+  renderHeader();
 
   expect(screen.getByTestId('header-templates')).toBeInTheDocument();
   expect(screen.getByTestId('header-history')).toBeInTheDocument();
   expect(screen.getByTestId('header-favorite')).toBeInTheDocument();
   expect(screen.getByTestId('header-published')).toHaveTextContent('Draft');
-  expect(screen.getByTestId('header-refresh')).toBeInTheDocument();
   expect(screen.getByTestId('header-undo')).toBeInTheDocument();
   expect(screen.getByTestId('header-redo')).toBeInTheDocument();
   expect(screen.getByTestId('header-save')).toBeInTheDocument();
 });
 
 test('everything the builder cannot actually do is disabled, not silently dead', () => {
-  render(<DashboardHeader />);
+  renderHeader();
 
   // The builder keeps its tree in memory with no dashboard row behind it:
   // nothing here can be saved, favourited, published or refreshed, and there
@@ -51,26 +59,69 @@ test('everything the builder cannot actually do is disabled, not silently dead',
     'header-templates',
     'header-history',
     'header-favorite',
-    'header-refresh',
     'header-undo',
     'header-redo',
     'header-save',
   ].forEach(test => expect(screen.getByTestId(test)).toBeDisabled());
 });
 
-test('the layout switcher is the one live control, and it edits the tree', async () => {
-  render(<DashboardHeader />);
-  const rootId = provider.getRoot().id;
+test('the record of what was written sits beside writing it', () => {
+  renderHeader();
 
-  // Live precisely because its state is in the tree rather than in a row
-  // this page does not have.
-  await userEvent.click(screen.getByTestId('layout-mode-flex'));
+  const order = [
+    ...screen.getByTestId('dashboard-header').querySelectorAll('[data-test]'),
+  ].map(el => el.getAttribute('data-test'));
 
-  expect(provider.getNode(rootId)?.layout?.mode).toBe('flex');
+  // Saving commits a version; History is the versions already committed.
+  // They are one concern read in one place, so History leaves the far left —
+  // where it sat beside Templates as a thing asked before the work — and
+  // comes to rest immediately before the button that produces what it lists.
+  expect(order.indexOf('header-history')).toBe(
+    order.indexOf('header-save') - 1,
+  );
+});
+
+test('how the dashboard is arranged is not asked in the header', () => {
+  renderHeader();
+
+  // Arranging the canvas is authoring, not chrome. It belongs with the rest
+  // of the root's properties, where the columns and the gap it works with
+  // already live — see Inspector's Arrangement section.
+  expect(screen.queryByTestId('layout-mode-switcher')).not.toBeInTheDocument();
+});
+
+test('what acts on the canvas is not offered from the bar above it', () => {
+  renderHeader();
+
+  // Arranging and refreshing both act on the canvas as a whole, and are both
+  // reached for while looking at it. They sit in its corner — see
+  // CanvasControls. What stays here is what the dashboard is, not what is
+  // being done to the blocks on it.
+  expect(screen.queryByTestId('canvas-arrange')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('header-arrange')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('header-refresh')).not.toBeInTheDocument();
+});
+
+test('the header says who is making the dashboard', () => {
+  renderHeader();
+
+  // The one piece of dashboard metadata this page can state truthfully: a
+  // dashboard being created is being created by whoever is looking at it.
+  expect(screen.getByTestId('header-metadata')).toHaveTextContent('Admin User');
+});
+
+test('the header does not claim a dashboard with no row behind it was saved', () => {
+  renderHeader();
+
+  // Every other unavailable affordance here says so. A humanized "a day ago"
+  // beside them would be the only thing on the bar inventing a fact.
+  expect(screen.getByTestId('header-metadata')).toHaveTextContent(
+    'Not saved yet',
+  );
 });
 
 test('the dashboard is nameable, and the name is stored on the dashboard', async () => {
-  render(<DashboardHeader />);
+  renderHeader();
 
   await userEvent.type(screen.getByTestId('header-title'), 'Vaccine rollout');
   await userEvent.tab();
@@ -83,14 +134,14 @@ test('the dashboard is nameable, and the name is stored on the dashboard', async
 test('the title shows a rename made anywhere else', () => {
   provider.updateProps(provider.getRoot().id, { title: 'From the assistant' });
 
-  render(<DashboardHeader />);
+  renderHeader();
 
   expect(screen.getByTestId('header-title')).toHaveValue('From the assistant');
 });
 
 test('emptying the title is not a rename', async () => {
   provider.updateProps(provider.getRoot().id, { title: 'Quarterly review' });
-  render(<DashboardHeader />);
+  renderHeader();
 
   await userEvent.clear(screen.getByTestId('header-title'));
   await userEvent.tab();

@@ -31,33 +31,70 @@ beforeEach(() => {
   provider.reset();
 });
 
-test('a blank dashboard still offers a layout to arrange it in', () => {
-  render(<DashboardBuilderV2 />);
+const renderPage = () => render(<DashboardBuilderV2 />, { useRedux: true });
 
-  // The page a `/dashboard/v2/new/` load lands on has nothing on it yet, and
-  // that is exactly when someone reaches for the layout control: whatever is
-  // placed next lands in the mode already chosen, rather than being placed
-  // and then rearranged.
-  expect(screen.getByTestId('layout-mode-switcher')).toBeInTheDocument();
+test('a blank dashboard can still be reached, and so can the layout it arranges in', async () => {
+  renderPage();
+
   // The canvas is no longer chat-only: a palette sits beside it, so the
   // empty state names both ways in.
   expect(
     screen.getByText('Add a building block, or ask the assistant to start'),
   ).toBeInTheDocument();
+
+  // A `/dashboard/v2/new/` load lands on nothing, and that is exactly when
+  // someone reaches for the layout control: whatever is placed next lands in
+  // the mode already chosen, rather than being placed and then rearranged.
+  // Arranging is asked in the root's own properties, so the blank canvas has
+  // to be selectable or the mode is unreachable until something is placed.
+  await userEvent.click(screen.getByTestId('empty-canvas'));
+
+  expect(provider.getSelection()).toBe(provider.getRoot().id);
+  expect(screen.getByTestId('layout-mode-switcher')).toBeInTheDocument();
 });
 
-test('the layout control survives the first block being added', () => {
+test('selecting the root offers the layout once blocks have been placed too', async () => {
   provider.addBuildingBlock(provider.getRoot().id, 0, { type: 'markdown' });
+  renderPage();
 
-  render(<DashboardBuilderV2 />);
+  provider.setSelection(provider.getRoot().id);
 
-  expect(screen.getAllByTestId('layout-mode-switcher').length).toBeGreaterThan(
-    0,
-  );
+  expect(await screen.findByTestId('layout-mode-switcher')).toBeInTheDocument();
+});
+
+test('the canvas carries the route to how it is arranged', async () => {
+  provider.addBuildingBlock(provider.getRoot().id, 0, { type: 'markdown' });
+  renderPage();
+
+  // On the thing it arranges rather than on the bar above it: choosing how
+  // blocks lay out is done while looking at the blocks, and the control it
+  // leads to is one selection away in the root's own properties.
+  await userEvent.click(screen.getByTestId('canvas-arrange'));
+
+  expect(provider.getSelection()).toBe(provider.getRoot().id);
+  expect(screen.getByTestId('layout-mode-switcher')).toBeInTheDocument();
+});
+
+test('the arrange shortcut is offered on a blank canvas too', () => {
+  renderPage();
+
+  // A blank dashboard is exactly when the mode is chosen — whatever is placed
+  // next lands in it.
+  expect(screen.getByTestId('canvas-arrange')).toBeInTheDocument();
+});
+
+test('refreshing sits with arranging, and is honest about not working', () => {
+  renderPage();
+
+  // Both act on the canvas as a whole rather than on anything placed in it,
+  // so they are reached for from the same corner. Refreshing is still the
+  // affordance this builder cannot honour: there is no dashboard row behind
+  // the page and nothing to re-read.
+  expect(screen.getByTestId('canvas-refresh')).toBeDisabled();
 });
 
 test('the page is a header, an editor panel and a canvas', () => {
-  render(<DashboardBuilderV2 />);
+  renderPage();
 
   expect(screen.getByTestId('dashboard-header')).toBeInTheDocument();
   expect(screen.getByTestId('editor-panel')).toBeInTheDocument();
@@ -65,7 +102,7 @@ test('the page is a header, an editor panel and a canvas', () => {
 });
 
 test('placing a block from the palette puts it on the dashboard and selects it', async () => {
-  render(<DashboardBuilderV2 />);
+  renderPage();
 
   await userEvent.click(screen.getByTestId('palette-markdown'));
 
@@ -77,7 +114,7 @@ test('placing a block from the palette puts it on the dashboard and selects it',
 });
 
 test('a block placed while a container is selected goes inside it', async () => {
-  render(<DashboardBuilderV2 />);
+  renderPage();
   await userEvent.click(screen.getByTestId('palette-canvas'));
   const sectionId = provider.getSelection()!;
 
@@ -92,7 +129,7 @@ test('a block placed while a container is selected goes inside it', async () => 
 });
 
 test('a block placed while a leaf is selected goes beside it, not inside it', async () => {
-  render(<DashboardBuilderV2 />);
+  renderPage();
   await userEvent.click(screen.getByTestId('palette-markdown'));
   const firstId = provider.getSelection()!;
 
@@ -105,7 +142,7 @@ test('a block placed while a leaf is selected goes beside it, not inside it', as
 });
 
 test('clicking the canvas itself clears the selection', async () => {
-  render(<DashboardBuilderV2 />);
+  renderPage();
   await userEvent.click(screen.getByTestId('palette-markdown'));
   expect(provider.getSelection()).toBeDefined();
 
