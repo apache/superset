@@ -124,7 +124,7 @@ export default function SemanticViewEditModal({
       setDescription(semanticView.description || '');
       setCacheTimeout(semanticView.cache_timeout ?? null);
     }
-  }, [semanticView]);
+  }, [show, semanticView?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!show || !semanticView) {
@@ -148,6 +148,7 @@ export default function SemanticViewEditModal({
       .catch(async error => {
         if (cancelled) return;
         const clientError = await getClientErrorObject(error);
+        if (cancelled) return;
         addDangerToast?.(
           clientError.error ||
             t('An error occurred while fetching the semantic view structure'),
@@ -160,7 +161,7 @@ export default function SemanticViewEditModal({
     return () => {
       cancelled = true;
     };
-  }, [show, semanticView]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [show, semanticView?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSave = async () => {
     if (!semanticView) return;
