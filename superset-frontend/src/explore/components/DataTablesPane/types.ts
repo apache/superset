@@ -76,6 +76,7 @@ export interface TableControlsProps extends DrillControlsProps {
   // {datasource.id}__{datasource.type}, eg: 1__table
   datasourceId?: string;
   onInputChange: (input: string) => void;
+  filterText?: string;
   columnNames: string[];
   columnTypes: GenericDataType[];
   isLoading: boolean;

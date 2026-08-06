@@ -689,13 +689,14 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # can_copy_clipboard) instead of the single can_csv permission
     # @lifecycle: development
     "GRANULAR_EXPORT_CONTROLS": False,
-    # Temporary rollout / kill-switch gate for soft delete (default off = legacy
-    # hard delete). An emergency stop, not a clean rollback: flipping ON->OFF
-    # resurrects already-soft-deleted rows. Removed (along with its two gate
-    # points — BaseDAO.delete routing and the do_orm_execute visibility listener)
-    # once soft delete is stable.
+    # Temporary rollout / kill-switch gate for soft delete (off = legacy hard
+    # delete). An emergency stop, not a clean rollback: flipping ON->OFF
+    # resurrects already-soft-deleted rows. Retained through this release as
+    # the move-back lever; removed (along with its two gate points —
+    # BaseDAO.delete routing and the do_orm_execute visibility listener) once
+    # post-flip confidence is established.
     # @lifecycle: development
-    "SOFT_DELETE": False,
+    "SOFT_DELETE": True,
     # Enable semantic layers and show semantic views alongside datasets
     # @lifecycle: development
     "SEMANTIC_LAYERS": False,
@@ -721,6 +722,11 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enables the tagging system for organizing assets
     # @lifecycle: development
     "TAGGING_SYSTEM": False,
+    # Enables the version history panel on Explore and Dashboard pages.
+    # History only accrues while ``ENABLE_VERSIONING_CAPTURE`` is also on;
+    # with capture off the panel renders but stays empty.
+    # @lifecycle: development
+    "VERSION_HISTORY": False,
     # =================================================================
     # IN TESTING
     # =================================================================
@@ -849,6 +855,15 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: testing
     # @category: security
     "ENABLE_VIEWERS": False,
+    # Share a newly created dashboard or chart read-only with every group its
+    # creator belongs to, unless the create payload names viewers explicitly.
+    # Requires ENABLE_VIEWERS. Narrows access: an asset with no viewers falls
+    # back to datasource permissions; one with viewers is limited to its editors
+    # and viewers, and dashboards must also be published before those viewers
+    # gain access.
+    # @lifecycle: testing
+    # @category: security
+    "ASSIGN_CREATOR_GROUPS_AS_VIEWERS": False,
     # Supports simultaneous data and dashboard virtualization for backend performance
     # @lifecycle: stable
     # @category: runtime_config
@@ -987,6 +1002,13 @@ USER_AGENT_FUNC: Callable[[Database, utils.QuerySource | None], str] | None = No
 
 # This is merely a default.
 FEATURE_FLAGS: dict[str, bool] = {}
+
+# Retention policy for soft-deleted dashboards, charts, and datasets. A value of
+# zero disables scheduled purging. Purging is live by default, so the retention
+# promise above is real on a stock deployment; set SOFT_DELETE_PURGE_DRY_RUN back
+# to True to have the task log ``would_purge`` counts without deleting anything.
+SOFT_DELETE_RETENTION_DAYS: int = 30
+SOFT_DELETE_PURGE_DRY_RUN: bool = False
 
 # A function that receives a dict of all feature flags
 # (DEFAULT_FEATURE_FLAGS merged with FEATURE_FLAGS)
@@ -1340,6 +1362,19 @@ CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
 
 # Cache for datasource metadata and query results
 DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
+
+# Upper bound, in bytes, on the serialized size of a single value written to the
+# data cache (chart and SQL query results). When a result's pickled size exceeds
+# this threshold the value is NOT written to the cache: the chart still renders,
+# but the next load re-queries the datasource instead of getting a cache hit. This
+# protects the cache backend (e.g. Redis/Memcached) from being flooded by very
+# large result sets. Set to ``None`` to disable the check (the default). Example:
+# 10 * 1024 * 1024 for a 10 MB limit.
+DATA_CACHE_MAX_VALUE_SIZE: int | None = None
+
+# Include per-query lifecycle timing in /api/v1/chart/data JSON responses.
+# The default keeps the public response contract unchanged.
+CHART_DATA_INCLUDE_TIMING: bool = False
 
 # Cache for dashboard filter state. `CACHE_TYPE` defaults to `SupersetMetastoreCache`
 # that stores the values in the key-value table in the Superset metastore, as it's
@@ -1740,6 +1775,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
     broker_url = "sqla+sqlite:///celerydb.sqlite"
     imports = (
         "superset.sql_lab",
+        "superset.tasks.deletion_retention",
         "superset.tasks.scheduler",
         "superset.tasks.thumbnails",
         "superset.tasks.cache",
@@ -1771,6 +1807,10 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         "version_history.prune_old_versions": {
             "task": "version_history.prune_old_versions",
             "schedule": crontab(minute=0, hour=3),
+        },
+        "deletion_retention.purge_soft_deleted": {
+            "task": "deletion_retention.purge_soft_deleted",
+            "schedule": crontab(minute=0, hour=0),
         },
         # Uncomment to enable pruning of the query table
         # "prune_query": {
@@ -2414,8 +2454,43 @@ ALERT_REPORTS_WORKING_TIME_OUT_LAG = int(timedelta(seconds=10).total_seconds())
 ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG = int(timedelta(seconds=1).total_seconds())
 # Default values that user using when creating alert
 ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT = 3600
+# End-to-end wall-clock budget for a scheduled report execution. A single
+# monotonic deadline derived from this value is shared by browser setup,
+# readiness, capture/PDF generation, and notification delivery. The effective
+# budget for a given schedule is min(this value, the schedule's
+# working_timeout), so the per-schedule field keeps its historical meaning as
+# a user-facing cap. The default matches the historical effective ceiling
+# (the working_timeout model default of one hour), so upgrading changes no
+# default behavior; deployments with tighter SLAs should lower it. Alerts
+# retain their per-schedule ``working_timeout`` + lag behavior because query
+# evaluation and grace handling have different runtime characteristics.
+ALERT_REPORTS_EXECUTION_BUDGET_SECONDS = int(timedelta(hours=1).total_seconds())
+# Capacity inside the execution budget reserved from chart-readiness polling
+# for image capture/PDF construction, notification delivery, and the terminal
+# execution-log transition, respectively. Their sum must be less than the total;
+# unused capacity flows to later phases.
+ALERT_REPORTS_EXECUTION_CAPTURE_RESERVE_SECONDS = int(
+    timedelta(minutes=1).total_seconds()
+)
+ALERT_REPORTS_EXECUTION_DELIVERY_RESERVE_SECONDS = int(
+    timedelta(minutes=2).total_seconds()
+)
+ALERT_REPORTS_EXECUTION_CLEANUP_RESERVE_SECONDS = int(
+    timedelta(seconds=30).total_seconds()
+)
+# Celery raises the soft timeout at the execution deadline when
+# ALERT_REPORTS_WORKING_TIME_OUT_KILL is enabled. The application deadline is
+# enforced independently. The hard timeout leaves this additional window for
+# the soft-timeout handler to persist ERROR.
+ALERT_REPORTS_EXECUTION_HARD_TIMEOUT_GRACE_SECONDS = int(
+    timedelta(seconds=30).total_seconds()
+)
 ALERT_REPORTS_DEFAULT_RETENTION = 90
 ALERT_REPORTS_DEFAULT_CRON_VALUE = "0 0 * * *"  # every day
+# Retry backoff: first retry waits base seconds, each subsequent retry doubles.
+ALERT_REPORTS_RETRY_BASE_DELAY_SECONDS = 60
+# Maximum delay between retries (cap for exponential backoff).
+ALERT_REPORTS_RETRY_MAX_DELAY_SECONDS = 3600
 # If set to true no notification is sent, the worker will just log a message.
 # Useful for debugging
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = False

@@ -30,7 +30,10 @@ from superset.subjects.models import Subject
 from superset.subjects.types import SubjectType
 from superset.subjects.utils import (
     get_current_user_subject_ids,
+    get_default_viewers_for_groups,
+    get_or_create_group_subject,
     get_or_create_role_subject,
+    get_user_group_subjects,
     get_user_subject_ids_subquery,
 )
 
@@ -141,6 +144,193 @@ def test_get_or_create_role_subject_missing_role_returns_none() -> None:
         assert get_or_create_role_subject(999) is None
 
     mock_sync.assert_not_called()
+
+
+# --------------------------------------------------------------------------
+# get_or_create_group_subject / get_user_group_subjects backfill
+# --------------------------------------------------------------------------
+
+
+@patch("superset.subjects.utils.get_group_subject")
+def test_get_or_create_group_subject_returns_existing(
+    mock_get_group_subject: MagicMock,
+) -> None:
+    """An already-synced group resolves to its Subject with no sync."""
+    existing = _make_subject(10, SubjectType.GROUP)
+    mock_get_group_subject.return_value = existing
+
+    assert get_or_create_group_subject(5) is existing
+    mock_get_group_subject.assert_called_once_with(5)
+
+
+def test_get_or_create_group_subject_syncs_unsynced_group() -> None:
+    """A group that exists but has no Subject row yet is synced on demand
+    rather than treated as nonexistent."""
+    created = _make_subject(11, SubjectType.GROUP)
+    group = MagicMock()
+    group.id = 5
+
+    with (
+        patch(
+            "superset.subjects.utils.get_group_subject",
+            side_effect=[None, created],
+        ) as mock_get_group_subject,
+        patch("superset.subjects.utils.db") as mock_db,
+        patch("superset.subjects.sync.sync_group_subject") as mock_sync,
+    ):
+        mock_db.session.get.return_value = group
+
+        assert get_or_create_group_subject(5) is created
+
+    mock_sync.assert_called_once_with(group)
+    # The insert is wrapped in a SAVEPOINT so a concurrent conflict can't
+    # poison the surrounding transaction.
+    mock_db.session.begin_nested.assert_called_once()
+    assert mock_get_group_subject.call_count == 2
+
+
+def test_get_or_create_group_subject_handles_concurrent_insert() -> None:
+    """A concurrent backfill (IntegrityError in the savepoint) is swallowed and
+    the row the other request wrote is reloaded, keeping the transaction usable."""
+    from sqlalchemy.exc import IntegrityError
+
+    winner = _make_subject(12, SubjectType.GROUP)
+    group = MagicMock()
+    group.id = 7
+
+    with (
+        patch(
+            "superset.subjects.utils.get_group_subject",
+            side_effect=[None, winner],
+        ) as mock_get_group_subject,
+        patch("superset.subjects.utils.db") as mock_db,
+        patch(
+            "superset.subjects.sync.sync_group_subject",
+            side_effect=IntegrityError("duplicate group_id", None, Exception()),
+        ) as mock_sync,
+    ):
+        mock_db.session.get.return_value = group
+        # The mocked savepoint must not suppress the error raised inside its body.
+        mock_db.session.begin_nested.return_value.__exit__.return_value = False
+
+        assert get_or_create_group_subject(7) is winner
+
+    # The insert (via ``sync``) ran and conflicted; the reload returns the winner.
+    mock_sync.assert_called_once_with(group)
+    assert mock_get_group_subject.call_count == 2
+
+
+def test_get_or_create_group_subject_reraises_unrelated_integrity_error() -> None:
+    """An IntegrityError that left no matching row isn't the expected unique-key
+    race, so it propagates instead of silently dropping the group."""
+    from sqlalchemy.exc import IntegrityError
+
+    group = MagicMock()
+    group.id = 7
+
+    with (
+        patch("superset.subjects.utils.get_group_subject", return_value=None),
+        patch("superset.subjects.utils.db") as mock_db,
+        patch(
+            "superset.subjects.sync.sync_group_subject",
+            side_effect=IntegrityError("unrelated failure", None, Exception()),
+        ) as mock_sync,
+    ):
+        mock_db.session.get.return_value = group
+        mock_db.session.begin_nested.return_value.__exit__.return_value = False
+
+        with pytest.raises(IntegrityError):
+            get_or_create_group_subject(7)
+
+    mock_sync.assert_called_once_with(group)
+
+
+def test_get_or_create_group_subject_missing_group_returns_none() -> None:
+    """A group ID with no matching group at all resolves to None."""
+    with (
+        patch("superset.subjects.utils.get_group_subject", return_value=None),
+        patch("superset.subjects.utils.db") as mock_db,
+        patch("superset.subjects.sync.sync_group_subject") as mock_sync,
+    ):
+        mock_db.session.get.return_value = None
+
+        assert get_or_create_group_subject(999) is None
+
+    mock_sync.assert_not_called()
+
+
+def test_get_user_group_subjects_backfills_missing_group(app_context) -> None:
+    """A group the user belongs to but which has no Subject row is backfilled,
+    not skipped: a partial viewer set would silently lock out its members."""
+    synced = _make_subject(10, SubjectType.GROUP)
+    synced.group_id = 1
+    backfilled = _make_subject(11, SubjectType.GROUP)
+    backfilled.group_id = 2
+
+    with (
+        patch("superset.subjects.utils.db") as mock_db,
+        patch(
+            "superset.subjects.utils.get_or_create_group_subject",
+            return_value=backfilled,
+        ) as mock_get_or_create,
+    ):
+        mock_db.session.query.return_value.filter.return_value.all.return_value = [
+            synced
+        ]
+        # The user belongs to groups 1 (synced) and 2 (missing a Subject row).
+        mock_db.session.execute.return_value = [(1,), (2,)]
+
+        result = get_user_group_subjects(5)
+
+    assert result == [synced, backfilled]
+    mock_get_or_create.assert_called_once_with(2)
+
+
+def test_get_default_viewers_for_groups_discards_partial_result(app_context) -> None:
+    """If any group lacks a Subject row, return [] so the datasource fallback
+    stays intact rather than a partial viewer set that locks its members out."""
+    g1 = MagicMock()
+    g1.id = 1
+    g2 = MagicMock()
+    g2.id = 2
+    subject_for_g1 = _make_subject(10, SubjectType.GROUP)
+    subject_for_g1.group_id = 1
+
+    with (
+        patch(
+            "superset.subjects.utils._assigns_creator_groups_as_viewers",
+            return_value=True,
+        ),
+        patch(
+            "superset.subjects.utils.subjects_from_groups",
+            return_value=[subject_for_g1],
+        ),
+    ):
+        assert get_default_viewers_for_groups([g1, g2]) == []
+
+
+def test_get_default_viewers_for_groups_applies_when_all_resolve(app_context) -> None:
+    """When every group resolves to a Subject, all are returned as viewers."""
+    g1 = MagicMock()
+    g1.id = 1
+    g2 = MagicMock()
+    g2.id = 2
+    s1 = _make_subject(10, SubjectType.GROUP)
+    s1.group_id = 1
+    s2 = _make_subject(11, SubjectType.GROUP)
+    s2.group_id = 2
+
+    with (
+        patch(
+            "superset.subjects.utils._assigns_creator_groups_as_viewers",
+            return_value=True,
+        ),
+        patch(
+            "superset.subjects.utils.subjects_from_groups",
+            return_value=[s1, s2],
+        ),
+    ):
+        assert get_default_viewers_for_groups([g1, g2]) == [s1, s2]
 
 
 # --------------------------------------------------------------------------

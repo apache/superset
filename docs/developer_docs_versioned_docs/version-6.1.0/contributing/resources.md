@@ -117,16 +117,19 @@ You can also [download the .svg](https://github.com/apache/superset/tree/master/
 ## Additional Resources
 
 ### Official Documentation
+
 - [Apache Superset Documentation](https://superset.apache.org/docs/intro)
 - [API Documentation](https://superset.apache.org/docs/api)
 - [Configuration Guide](https://superset.apache.org/admin-docs/configuration/configuring-superset)
 
 ### Community Resources
+
 - [Apache Superset Blog](https://preset.io/blog/)
 - [YouTube Channel](https://www.youtube.com/channel/UCMuwrvBsg_jjI2gLcm04R0g)
 - [Twitter/X](https://twitter.com/ApacheSuperset)
 
 ### Development Tools
+
 - [GitHub Repository](https://github.com/apache/superset)
 - [PyPI Package](https://pypi.org/project/apache-superset/)
 - [Docker Hub](https://hub.docker.com/r/apache/superset)

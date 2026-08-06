@@ -16,17 +16,18 @@
 # under the License.
 
 import logging
+import re
 import secrets
 import time
 from contextvars import ContextVar
 from typing import Any, Awaitable, Callable, Sequence
 
 import mcp.types as mt
-from fastmcp.exceptions import ToolError
+from fastmcp.exceptions import ToolError, ValidationError as FastMCPValidationError
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 from fastmcp.server.middleware.middleware import CallNext
 from fastmcp.tools.tool import Tool, ToolResult
-from flask import g, has_app_context
+from flask import g
 from pydantic import ValidationError
 from sqlalchemy.exc import OperationalError, TimeoutError
 from starlette.exceptions import HTTPException
@@ -37,7 +38,7 @@ from superset.commands.exceptions import (
     ObjectNotFoundError,
 )
 from superset.exceptions import SupersetException, SupersetSecurityException
-from superset.extensions import event_logger
+from superset.extensions import event_logger, stats_logger_manager
 from superset.mcp_service.auth import (
     _get_app_context_manager,
     get_user_from_request,
@@ -62,6 +63,11 @@ from superset.utils.core import get_user_id
 
 logger = logging.getLogger(__name__)
 _mcp_call_id_var: ContextVar[str | None] = ContextVar("mcp_call_id", default=None)
+
+# Conservative shape for a tool-name segment embedded in a StatsD metric key.
+# Matches registered tool names (snake_case, plus dots for extension-prefixed
+# tools) while rejecting StatsD metadata characters and unbounded lengths.
+_METRIC_TOOL_NAME_RE = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_.\-]{0,127}")
 
 
 def _sanitize_error_for_logging(error: Exception) -> str:
@@ -128,10 +134,33 @@ def _sanitize_error_for_logging(error: Exception) -> str:
         return "Database operation failed"
     elif isinstance(error, PermissionError):
         return "Access denied"
-    elif isinstance(error, ValidationError):
+    elif isinstance(error, (ValidationError, FastMCPValidationError)):
         return "Request validation failed"
 
     return error_str
+
+
+def _invoke_error_hook(error: Exception, hook_context: dict[str, Any]) -> None:
+    """Invoke the operator-configured ``MCP_ERROR_HOOK``, if any.
+
+    Kept vendor-neutral (no ``sentry_sdk`` import here) so the OSS repo has
+    no hard dependency on any particular error tracker — operators wire
+    their own hook (e.g. calling ``sentry_sdk.capture_exception``) via
+    ``MCP_ERROR_HOOK`` in ``superset_config.py``. Hook failures are logged
+    and swallowed; they must never affect the MCP response.
+    """
+    try:
+        from superset.mcp_service.flask_singleton import get_flask_app
+
+        hook = get_flask_app().config.get("MCP_ERROR_HOOK")
+    except Exception:  # noqa: BLE001
+        return
+    if hook is None:
+        return
+    try:
+        hook(error, hook_context)
+    except Exception as hook_error:  # noqa: BLE001
+        logger.warning("MCP_ERROR_HOOK raised an exception: %s", hook_error)
 
 
 # Errors caused by the LLM/user — expected in normal MCP operation.
@@ -140,6 +169,7 @@ def _sanitize_error_for_logging(error: Exception) -> str:
 _USER_ERROR_TYPES = (
     ToolError,
     ValidationError,
+    FastMCPValidationError,
     PermissionError,
     MCPPermissionDeniedError,
     ValueError,
@@ -227,13 +257,44 @@ class LoggingMiddleware(Middleware):
         """Check if a tool result contains an error schema response.
 
         MCP tools return error schemas (ChartError, DashboardError, etc.)
-        instead of raising exceptions. These serialize to JSON containing
-        an "error_type" field.
+        instead of raising exceptions. These serialize to JSON with a
+        populated "error_type" field. Success schemas also declare an
+        optional "error_type" field (defaulting to null) for a uniform
+        response shape, so its mere presence in the serialized JSON isn't
+        a reliable signal -- only a truthy value is.
         """
+        from superset.utils.json import loads as json_loads
+
         try:
-            return '"error_type"' in result.content[0].text
-        except (AttributeError, IndexError):
+            payload = json_loads(result.content[0].text)
+        except (AttributeError, IndexError, TypeError, ValueError):
             return False
+        return bool(isinstance(payload, dict) and payload.get("error_type"))
+
+    @staticmethod
+    def _extract_error_type_from_response(result: ToolResult) -> str | None:
+        """Extract the ``error_type`` field from a serialized error response.
+
+        Structured MCP error schemas (ChartError, DashboardError, etc.) embed
+        an ``error_type`` string. Parsing it here — instead of discarding it
+        after the substring sniff in ``_is_error_response`` — lets it flow
+        into the log line, curated payload, and metric tag.
+        """
+        from superset.utils.json import loads as json_loads
+
+        try:
+            text = result.content[0].text
+        except (AttributeError, IndexError):
+            return None
+        try:
+            payload = json_loads(text)
+        except (ValueError, TypeError):
+            return None
+        if isinstance(payload, dict):
+            error_type = payload.get("error_type")
+            if isinstance(error_type, str):
+                return error_type
+        return None
 
     def _extract_context_info(
         self, context: MiddlewareContext
@@ -246,7 +307,7 @@ class LoggingMiddleware(Middleware):
         dashboard_id = None
         slice_id = None
         dataset_id = None
-        params = getattr(context.message, "params", {}) or {}
+        params = getattr(context.message, "arguments", {}) or {}
         if hasattr(context, "metadata") and context.metadata:
             agent_id = context.metadata.get("agent_id")
         if not agent_id and hasattr(context, "session") and context.session:
@@ -409,16 +470,21 @@ class LoggingMiddleware(Middleware):
             mcp_tool=mcp_tool,
             error_type=error_type,
         )
-        if has_app_context():
-            event_logger.log(
-                user_id=user_id,
-                action="mcp_tool_call",
-                dashboard_id=dashboard_id,
-                duration_ms=duration_ms,
-                slice_id=slice_id,
-                referrer=None,
-                curated_payload=payload,
-            )
+        try:
+            with _get_app_context_manager():
+                event_logger.log(
+                    user_id=user_id,
+                    action="mcp_tool_call",
+                    dashboard_id=dashboard_id,
+                    duration_ms=duration_ms,
+                    slice_id=slice_id,
+                    referrer=None,
+                    curated_payload=payload,
+                )
+        except Exception as log_error:  # noqa: BLE001
+            # A failing event logger or app-context setup must not mask the
+            # tool result or prevent metrics and structured logs below.
+            logger.warning("Failed to log mcp_tool_call event: %s", log_error)
         extra_parts = []
         if mcp_tool is not None:
             extra_parts.append(f"mcp_tool={mcp_tool}")
@@ -442,6 +508,76 @@ class LoggingMiddleware(Middleware):
             extra,
         )
 
+    @staticmethod
+    async def _resolve_metric_tool_name(
+        context: MiddlewareContext,
+        tool_name: str | None,
+        mcp_tool: str | None,
+    ) -> str:
+        """Return a StatsD-safe tool segment for the per-tool metric keys.
+
+        Both ``mcp_tool`` (the ``call_tool`` proxy's ``name`` argument) and
+        ``tool_name`` (the raw message name) are client-controlled input.
+        Using them verbatim in a metric key would let any authenticated
+        client mint unbounded metric series or inject StatsD metadata
+        characters (``\\n``/``:``/``|``) into the wire format. Only names
+        that resolve in the FastMCP tool registry are used; anything else
+        falls back to a constant. The raw name still reaches the curated
+        payload and log line, which are not StatsD keys.
+        """
+        candidate = mcp_tool or tool_name
+        if not candidate:
+            return "unknown"
+        try:
+            registered = await context.fastmcp_context.fastmcp.get_tool(candidate)
+        except (AttributeError, TypeError):
+            # No registry reachable from this context (e.g. unit tests with
+            # mocked contexts) — accept only conservatively-shaped names.
+            if _METRIC_TOOL_NAME_RE.fullmatch(candidate):
+                return candidate
+            registered = None
+        except Exception:  # noqa: BLE001
+            # Registry reachable but the lookup failed (NotFoundError in
+            # FastMCP versions that raise instead of returning None) —
+            # treat as unregistered.
+            registered = None
+        if registered is not None:
+            return candidate
+        return "call_tool" if mcp_tool else "unknown"
+
+    async def _emit_call_metrics(
+        self,
+        context: MiddlewareContext,
+        tool_name: str | None,
+        mcp_tool: str | None,
+        *,
+        success: bool,
+        raised_is_user_error: bool | None,
+        duration_ms: int,
+    ) -> None:
+        """Emit the per-tool outcome counter and timing for one call.
+
+        Single emission point for the per-tool outcome counters —
+        GlobalErrorHandlerMiddleware (inner) re-raises every failure as
+        ToolError, so counting there as well would double-count raised
+        errors. Mirrors base_api.py's success/warning/error split: raised
+        user errors → warning, raised system errors → error. Structured
+        error responses (``raised_is_user_error`` is None) carry a
+        free-form error_type that cannot be reliably classified, so they
+        count as error (the parsed error_type is in the curated payload).
+        """
+        metric_tool = await self._resolve_metric_tool_name(context, tool_name, mcp_tool)
+        if success:
+            outcome = "success"
+        elif raised_is_user_error:
+            outcome = "warning"
+        else:
+            outcome = "error"
+        stats_logger_manager.instance.incr(f"mcp.tool.{metric_tool}.{outcome}")
+        stats_logger_manager.instance.timing(
+            f"mcp.tool.{metric_tool}.time", duration_ms
+        )
+
     async def on_call_tool(
         self,
         context: MiddlewareContext,
@@ -460,9 +596,12 @@ class LoggingMiddleware(Middleware):
         success = False
         error_type: str | None = None
         result: Any = None
+        raised_is_user_error: bool | None = None
         try:
             result = await call_next(context)
             success = not self._is_error_response(result)
+            if not success and isinstance(result, ToolResult):
+                error_type = self._extract_error_type_from_response(result)
             if isinstance(result, ToolResult):
                 existing_meta = result.meta or {}
                 result = ToolResult(
@@ -472,10 +611,21 @@ class LoggingMiddleware(Middleware):
                 )
             return result
         except Exception as exc:
-            error_type = type(exc).__name__
+            # GlobalErrorHandlerMiddleware (inner) wraps tool exceptions in
+            # ToolError with the original attached as __cause__; unwrap it so
+            # error_type and the user/system classification reflect the real
+            # failure rather than the ToolError wrapper.
+            original = (
+                exc.__cause__
+                if isinstance(exc, ToolError) and exc.__cause__ is not None
+                else exc
+            )
+            error_type = type(original).__name__
+            raised_is_user_error = _is_user_error(original)
             success = False
             raise
         finally:
+            duration_ms = int((time.time() - start_time) * 1000)
             self._log_call_tool_result(
                 context=context,
                 tool_name=tool_name,
@@ -492,6 +642,19 @@ class LoggingMiddleware(Middleware):
                 result=result,
                 start_time=start_time,
             )
+            try:
+                await self._emit_call_metrics(
+                    context,
+                    tool_name,
+                    mcp_tool,
+                    success=success,
+                    raised_is_user_error=raised_is_user_error,
+                    duration_ms=duration_ms,
+                )
+            except Exception as metrics_error:  # noqa: BLE001
+                # A failing stats backend must never mask the tool's real
+                # result or exception — metrics are a side effect only.
+                logger.warning("Failed to emit MCP tool metrics: %s", metrics_error)
 
     async def on_message(
         self,
@@ -502,24 +665,27 @@ class LoggingMiddleware(Middleware):
         agent_id, user_id, dashboard_id, slice_id, dataset_id, params = (
             self._extract_context_info(context)
         )
-        if has_app_context():
-            event_logger.log(
-                user_id=user_id,
-                action="mcp_message",
-                dashboard_id=dashboard_id,
-                duration_ms=None,
-                slice_id=slice_id,
-                referrer=None,
-                curated_payload={
-                    "tool": getattr(context.message, "name", None),
-                    "agent_id": agent_id,
-                    "params": _sanitize_params(params),
-                    "method": context.method,
-                    "dashboard_id": dashboard_id,
-                    "slice_id": slice_id,
-                    "dataset_id": dataset_id,
-                },
-            )
+        try:
+            with _get_app_context_manager():
+                event_logger.log(
+                    user_id=user_id,
+                    action="mcp_message",
+                    dashboard_id=dashboard_id,
+                    duration_ms=None,
+                    slice_id=slice_id,
+                    referrer=None,
+                    curated_payload={
+                        "tool": getattr(context.message, "name", None),
+                        "agent_id": agent_id,
+                        "params": _sanitize_params(params),
+                        "method": context.method,
+                        "dashboard_id": dashboard_id,
+                        "slice_id": slice_id,
+                        "dataset_id": dataset_id,
+                    },
+                )
+        except Exception as log_error:  # noqa: BLE001
+            logger.warning("Failed to log mcp_message event: %s", log_error)
         logger.info(
             "MCP message: tool=%s, agent_id=%s, user_id=%s, method=%s",
             getattr(context.message, "name", None),
@@ -586,8 +752,42 @@ class StructuredContentStripperMiddleware(Middleware):
             # GlobalErrorHandlerMiddleware, ValueError, TypeError, etc. —
             # will cause encoding failures on the wire.
             mcp_call_id = _mcp_call_id_var.get(None)
+            # This is the documented "must never propagate" point. The
+            # client-facing text must be SANITIZED — an exception that
+            # bypasses GlobalErrorHandlerMiddleware could otherwise leak
+            # raw internals (SQL fragments, connection strings, tokens) to
+            # the caller; every other client-facing error path already
+            # runs through _sanitize_error_for_logging. That call (and
+            # str(e) inside it) can itself raise on a pathological
+            # __str__, so guard it and fall back to the exception class
+            # name, which never propagates.
+            try:
+                sanitized_message = _sanitize_error_for_logging(e)
+            except Exception:  # noqa: BLE001
+                sanitized_message = type(e).__name__
+            error_text = f"Error: {sanitized_message}"
+            if not isinstance(e, ToolError):
+                # GlobalErrorHandlerMiddleware converts every exception it
+                # sees into ToolError (and already invokes MCP_ERROR_HOOK
+                # for system-class errors there). A non-ToolError reaching
+                # this final catch means it slipped past that handler
+                # entirely — invoke the hook here as the true last-resort
+                # capture point. All contract keys are populated so hooks
+                # can index them unconditionally; user_id and duration_ms
+                # are unknown at this layer and passed as None.
+                _invoke_error_hook(
+                    e,
+                    {
+                        "tool_name": getattr(context.message, "name", "unknown"),
+                        "mcp_call_id": mcp_call_id,
+                        "user_id": None,
+                        "error_type": type(e).__name__,
+                        "sanitized_message": sanitized_message,
+                        "duration_ms": None,
+                    },
+                )
             return ToolResult(
-                content=[mt.TextContent(type="text", text=f"Error: {e}")],
+                content=[mt.TextContent(type="text", text=error_text)],
                 meta={"mcp_call_id": mcp_call_id} if mcp_call_id else None,
             )
         if isinstance(result, ToolResult) and result.structured_content is not None:
@@ -712,7 +912,10 @@ class GlobalErrorHandlerMiddleware(Middleware):
             event_logger.log(
                 user_id=user_id,
                 action="mcp_tool_error",
+                dashboard_id=None,
                 duration_ms=duration_ms,
+                slice_id=None,
+                referrer=None,
                 curated_payload={
                     "tool": tool_name,
                     "error_type": type(error).__name__,
@@ -723,6 +926,28 @@ class GlobalErrorHandlerMiddleware(Middleware):
             )
         except Exception as log_error:
             logger.warning("Failed to log error event: %s", log_error)
+
+        # No stats emission here: this handler re-raises every failure as
+        # ToolError, which the outer LoggingMiddleware catches and counts
+        # (with the user/system classification recovered via __cause__).
+        # Emitting a counter here as well would double-count raised errors.
+
+        mcp_call_id = _mcp_call_id_var.get(None)
+        if not is_user:
+            # System-class errors only — user errors (bad params, permission
+            # denials) are expected MCP traffic and would otherwise flood an
+            # error tracker.
+            _invoke_error_hook(
+                error,
+                {
+                    "tool_name": tool_name,
+                    "mcp_call_id": mcp_call_id,
+                    "user_id": user_id,
+                    "error_type": type(error).__name__,
+                    "sanitized_message": sanitized_error,
+                    "duration_ms": duration_ms,
+                },
+            )
 
         # Handle specific error types with appropriate responses
         if isinstance(error, ToolError):
@@ -738,6 +963,11 @@ class GlobalErrorHandlerMiddleware(Middleware):
             raise ToolError(
                 f"Validation error in {tool_name}: {'; '.join(validation_details)}"
             ) from error
+        elif isinstance(error, FastMCPValidationError):
+            # FastMCP's own ValidationError (e.g. malformed/missing tool
+            # arguments) is not a pydantic ValidationError and has no
+            # .errors() API -- its message is already a plain description.
+            raise ToolError(f"Validation error in {tool_name}: {error}") from error
         elif isinstance(error, (OperationalError, TimeoutError)):
             # Database errors
             raise ToolError(
@@ -789,8 +1019,11 @@ class GlobalErrorHandlerMiddleware(Middleware):
                 f"Connection error in {tool_name}: {_sanitize_error_for_logging(error)}"
             ) from error
         else:
-            # Generic internal errors — truly unexpected
-            error_id = f"err_{int(time.time())}"
+            # Generic internal errors — truly unexpected. Reuse the per-call
+            # mcp_call_id (set by LoggingMiddleware.on_call_tool) instead of a
+            # second-granularity timestamp, which collides under concurrent
+            # failures.
+            error_id = mcp_call_id or f"err_{secrets.token_hex(8)}"
             logger.error("Unexpected error [%s] in %s: %s", error_id, tool_name, error)
 
             raise ToolError(
@@ -949,6 +1182,10 @@ class ResponseSizeGuardMiddleware(Middleware):
             event_logger.log(
                 user_id=user_id,
                 action="mcp_response_truncated",
+                dashboard_id=None,
+                duration_ms=None,
+                slice_id=None,
+                referrer=None,
                 curated_payload={
                     "tool": tool_name,
                     "original_tokens": estimated_tokens,
@@ -1021,6 +1258,10 @@ class ResponseSizeGuardMiddleware(Middleware):
             event_logger.log(
                 user_id=user_id,
                 action="mcp_response_truncated",
+                dashboard_id=None,
+                duration_ms=None,
+                slice_id=None,
+                referrer=None,
                 curated_payload={
                     "tool": tool_name,
                     "original_tokens": estimated_tokens,
@@ -1085,6 +1326,10 @@ class ResponseSizeGuardMiddleware(Middleware):
             event_logger.log(
                 user_id=user_id,
                 action="mcp_response_size_exceeded",
+                dashboard_id=None,
+                duration_ms=None,
+                slice_id=None,
+                referrer=None,
                 curated_payload={
                     "tool": tool_name,
                     "estimated_tokens": estimated_tokens,
@@ -1152,7 +1397,7 @@ class ResponseSizeGuardMiddleware(Middleware):
             )
 
         if estimated_tokens > self.token_limit:
-            params = getattr(context.message, "params", {}) or {}
+            params = getattr(context.message, "arguments", {}) or {}
             return self._handle_oversized_response(
                 tool_name, response, estimated_tokens, params
             )

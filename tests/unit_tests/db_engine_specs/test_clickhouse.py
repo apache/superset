@@ -303,3 +303,316 @@ def test_base_engine_spec_has_no_column_description_retry_by_default() -> None:
     from superset.db_engine_specs.base import BaseEngineSpec
 
     assert BaseEngineSpec.get_column_description_retry_sql("SELECT 1") is None
+
+
+def test_sampling_read_limit_override_base_spec_returns_none() -> None:
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    sql = "SELECT col FROM tbl LIMIT 100"
+    assert BaseEngineSpec.apply_sampling_read_limit_override(sql) is None
+
+
+@pytest.mark.parametrize(
+    "spec_name",
+    ["ClickHouseEngineSpec", "ClickHouseConnectEngineSpec"],
+)
+def test_sampling_read_limit_override_clickhouse_family(spec_name: str) -> None:
+    from superset.db_engine_specs import clickhouse
+
+    spec = getattr(clickhouse, spec_name)
+    sql = "SELECT col FROM tbl LIMIT 100"
+    assert spec.apply_sampling_read_limit_override(sql) == (
+        "SELECT col FROM tbl LIMIT 100\nSETTINGS read_overflow_mode='break'"
+    )
+
+
+def test_sampling_read_limit_override_strips_statement_terminator() -> None:
+    from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+
+    assert ClickHouseConnectEngineSpec.apply_sampling_read_limit_override(
+        "SELECT col FROM tbl LIMIT 100;\n"
+    ) == ("SELECT col FROM tbl LIMIT 100\nSETTINGS read_overflow_mode='break'")
+
+
+def test_sampling_read_limit_override_survives_trailing_comment() -> None:
+    """
+    The retry operates on the final mutated statement, which SQL mutators may
+    terminate with a single-line comment; the SETTINGS clause must land on its
+    own line so the comment cannot swallow it.
+    """
+    from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+
+    sql = "SELECT col FROM tbl LIMIT 100\n-- query hash: abc123"
+    result = ClickHouseConnectEngineSpec.apply_sampling_read_limit_override(sql)
+    assert result is not None
+    assert result.splitlines()[-1] == "SETTINGS read_overflow_mode='break'"
+
+
+def test_sampling_read_limit_override_already_applied_returns_none() -> None:
+    from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+
+    sql = "SELECT col FROM tbl LIMIT 100"
+    once = ClickHouseConnectEngineSpec.apply_sampling_read_limit_override(sql)
+    assert once is not None
+    assert ClickHouseConnectEngineSpec.apply_sampling_read_limit_override(once) is None
+
+
+def test_sampling_read_limit_override_existing_settings_returns_none() -> None:
+    """
+    ClickHouse permits one SETTINGS clause per statement; SQL that already
+    carries one (from any source) must not be retried with a second.
+    """
+    from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+
+    sql = "SELECT col FROM tbl LIMIT 100 SETTINGS max_threads=2"
+    assert ClickHouseConnectEngineSpec.apply_sampling_read_limit_override(sql) is None
+
+
+def test_sampling_read_limit_override_ignores_settings_text_in_literals() -> None:
+    """
+    SETTINGS-clause-shaped text inside string literals or comments (e.g. a
+    fetch_values_predicate value or a mutator comment) must not suppress the
+    retry -- only a genuine statement-level clause counts.
+    """
+    from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+
+    in_literal = (
+        "SELECT DISTINCT col AS column_values FROM tbl "
+        "WHERE note = 'try SETTINGS max_threads=4 for speed' LIMIT 100"
+    )
+    result = ClickHouseConnectEngineSpec.apply_sampling_read_limit_override(in_literal)
+    assert result is not None
+    assert result.endswith("SETTINGS read_overflow_mode='break'")
+
+    in_comment = (
+        "SELECT col FROM tbl LIMIT 100\n-- mutator note: SETTINGS max_threads=4"
+    )
+    result = ClickHouseConnectEngineSpec.apply_sampling_read_limit_override(in_comment)
+    assert result is not None
+
+    genuine = "SELECT col FROM tbl LIMIT 100 SETTINGS max_threads=4 -- note"
+    assert (
+        ClickHouseConnectEngineSpec.apply_sampling_read_limit_override(genuine) is None
+    )
+
+
+def test_sampling_read_limit_override_ignores_settings_named_column() -> None:
+    """
+    The existing-clause guard matches the ``SETTINGS <key> = ...`` clause
+    shape, not the bare token, so a column named ``settings`` must not
+    suppress the retry.
+    """
+    from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+
+    sql = "SELECT DISTINCT settings AS column_values FROM tbl LIMIT 100"
+    result = ClickHouseConnectEngineSpec.apply_sampling_read_limit_override(sql)
+    assert result is not None
+    assert result.endswith("SETTINGS read_overflow_mode='break'")
+
+    filtered = "SELECT DISTINCT settings FROM tbl WHERE settings = 'a' LIMIT 100"
+    result = ClickHouseConnectEngineSpec.apply_sampling_read_limit_override(filtered)
+    assert result is not None
+
+
+def _make_database(spec: Any, opt_out: bool = False) -> Any:
+    """A minimal Database stand-in with the real retry methods bound."""
+    from superset.models.core import Database
+
+    class FakeDatabase:
+        unique_name = "test_db"
+        db_engine_spec = spec
+        disable_sampling_read_limit_override = opt_out
+        sampling_read_limit_retry_sql = Database.sampling_read_limit_retry_sql
+        run_with_sampling_read_limit_retry = Database.run_with_sampling_read_limit_retry
+
+    return FakeDatabase()
+
+
+def test_database_sampling_read_limit_retry_sql_honors_opt_out() -> None:
+    from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+
+    sql = "SELECT col FROM tbl LIMIT 100"
+
+    database = _make_database(ClickHouseConnectEngineSpec)
+    retry_sql = database.sampling_read_limit_retry_sql(sql)
+    assert retry_sql is not None
+    assert retry_sql.endswith("SETTINGS read_overflow_mode='break'")
+
+    database = _make_database(ClickHouseConnectEngineSpec, opt_out=True)
+    assert database.sampling_read_limit_retry_sql(sql) is None
+
+
+def test_database_sampling_read_limit_retry_sql_none_without_engine_support() -> None:
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    database = _make_database(BaseEngineSpec)
+    assert database.sampling_read_limit_retry_sql("SELECT col FROM tbl") is None
+
+
+def test_is_read_limit_error_base_spec_recognizes_nothing() -> None:
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    assert not BaseEngineSpec.is_read_limit_error(Exception("TOO_MANY_ROWS"))
+
+
+READ_LIMIT_ERROR_MESSAGE = (
+    "Code: 158. DB::Exception: Limit for rows (controlled by "
+    "'max_rows_to_read' setting) exceeded. (TOO_MANY_ROWS)"
+)
+
+
+def test_is_read_limit_error_clickhouse_anchored_to_error_codes() -> None:
+    from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+
+    assert ClickHouseConnectEngineSpec.is_read_limit_error(
+        Exception(READ_LIMIT_ERROR_MESSAGE)
+    )
+    assert ClickHouseConnectEngineSpec.is_read_limit_error(Exception("(TOO_MANY_ROWS)"))
+    # A message merely mentioning the setting name is not a read-limit
+    # rejection.
+    assert not ClickHouseConnectEngineSpec.is_read_limit_error(
+        Exception("Cannot modify 'max_rows_to_read' setting in readonly mode")
+    )
+
+
+def test_run_with_sampling_read_limit_retry_success_never_alters_sql() -> None:
+    """
+    Deployments whose sampling queries succeed (including readonly=1
+    ClickHouse users) never see altered SQL.
+    """
+    from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+
+    database = _make_database(ClickHouseConnectEngineSpec)
+    executed: list[str] = []
+
+    def run(sql: str) -> str:
+        executed.append(sql)
+        return "ok"
+
+    result = database.run_with_sampling_read_limit_retry(
+        "SELECT col FROM tbl LIMIT 100", run
+    )
+    assert result == "ok"
+    assert executed == ["SELECT col FROM tbl LIMIT 100"]
+
+
+def test_run_with_sampling_read_limit_retry_retries_on_read_limit() -> None:
+    from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+
+    database = _make_database(ClickHouseConnectEngineSpec)
+    executed: list[str] = []
+
+    def run(sql: str) -> str:
+        executed.append(sql)
+        if "SETTINGS" not in sql:
+            raise Exception(READ_LIMIT_ERROR_MESSAGE)  # noqa: TRY002
+        return "partial"
+
+    result = database.run_with_sampling_read_limit_retry(
+        "SELECT col FROM tbl LIMIT 100", run
+    )
+    assert result == "partial"
+    assert len(executed) == 2
+    assert executed[1].endswith("SETTINGS read_overflow_mode='break'")
+
+
+def test_run_with_sampling_read_limit_retry_reraises_other_errors() -> None:
+    from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+
+    database = _make_database(ClickHouseConnectEngineSpec)
+
+    def run(sql: str) -> str:
+        raise ValueError("connection refused")
+
+    with pytest.raises(ValueError, match="connection refused"):
+        database.run_with_sampling_read_limit_retry("SELECT 1", run)
+
+
+def test_run_with_sampling_read_limit_retry_surfaces_original_error() -> None:
+    """
+    When the retry itself fails (e.g. a readonly connection rejecting the
+    in-query SETTINGS change), the original read-limit error is raised, so
+    such deployments see the same failure they saw before the retry existed.
+    """
+    from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+
+    database = _make_database(ClickHouseConnectEngineSpec)
+
+    def run(sql: str) -> str:
+        if "SETTINGS" in sql:
+            raise Exception(  # noqa: TRY002
+                "Cannot modify 'read_overflow_mode' setting in readonly mode. Code: 164"
+            )
+        raise Exception(READ_LIMIT_ERROR_MESSAGE)  # noqa: TRY002
+
+    with pytest.raises(Exception, match="TOO_MANY_ROWS"):
+        database.run_with_sampling_read_limit_retry("SELECT 1", run)
+
+
+def test_run_with_sampling_read_limit_retry_honors_opt_out() -> None:
+    from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+
+    database = _make_database(ClickHouseConnectEngineSpec, opt_out=True)
+    executed: list[str] = []
+
+    def run(sql: str) -> str:
+        executed.append(sql)
+        raise Exception(READ_LIMIT_ERROR_MESSAGE)  # noqa: TRY002
+
+    with pytest.raises(Exception, match="TOO_MANY_ROWS"):
+        database.run_with_sampling_read_limit_retry("SELECT 1", run)
+    assert executed == ["SELECT 1"]
+
+
+def test_handle_boolean_filter() -> None:
+    """
+    Test that ClickHouse uses equality operators for boolean filters instead of IS.
+
+    ClickHouse rejects the ``column IS true/false`` form, so boolean filters must
+    render as ``column = true/false``.
+    """
+    from sqlalchemy import Boolean, Column
+
+    from superset.db_engine_specs.clickhouse import ClickHouseBaseEngineSpec
+    from superset.utils.core import FilterOperator
+
+    bool_col = Column("test_col", Boolean)
+
+    result_true = ClickHouseBaseEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_TRUE, True
+    )
+    assert (
+        str(result_true.compile(compile_kwargs={"literal_binds": True}))
+        == "test_col = true"
+    )
+
+    result_false = ClickHouseBaseEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_FALSE, False
+    )
+    assert (
+        str(result_false.compile(compile_kwargs={"literal_binds": True}))
+        == "test_col = false"
+    )
+
+    # Regression: the original bug also affects computed boolean columns like
+    # `(is_cancelled = 1)`. Verify the equality operator also compiles
+    # correctly when the "column" is a computed expression.
+    from sqlalchemy import literal_column
+
+    computed_col = literal_column("(is_cancelled = 1)")
+    result_computed = ClickHouseBaseEngineSpec.handle_boolean_filter(
+        computed_col, FilterOperator.IS_TRUE, True
+    )
+    assert (
+        str(result_computed.compile(compile_kwargs={"literal_binds": True}))
+        == "(is_cancelled = 1) = true"
+    )
+
+
+def test_use_equality_for_boolean_filters_property() -> None:
+    """
+    Test that ClickHouse has the use_equality_for_boolean_filters property set.
+    """
+    from superset.db_engine_specs.clickhouse import ClickHouseBaseEngineSpec
+
+    assert ClickHouseBaseEngineSpec.use_equality_for_boolean_filters is True
