@@ -15,8 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 from decimal import Decimal
+from unittest.mock import patch
 
 import pytest
+from flask import current_app
 
 from superset.utils.number_format import format_number_with_config
 
@@ -69,6 +71,44 @@ def test_auto_currency_formats_without_symbol():
         )
         == "1,234.50"
     )
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        (5e-7, "5e-7"),
+        (9.999999e-7, "9.999999e-7"),
+        (1e-6, "0.000001"),
+        (1e20, "100,000,000,000,000,000,000"),
+        (999_999_999_999_999_900_000, "999,999,999,999,999,900,000"),
+        (1e21, "1e+21"),
+    ],
+)
+def test_default_format_matches_d3_exponent_boundaries(value, expected):
+    assert format_number_with_config(",", None, value) == expected
+
+
+def test_currency_position_uses_request_locale():
+    with patch("superset.utils.number_format.get_locale", return_value="fr_FR"):
+        assert (
+            format_number_with_config(
+                ",.2f", {"symbol": "EUR", "symbolPosition": None}, 1234.5
+            )
+            == "1,234.50 €"
+        )
+
+
+def test_currency_position_uses_configured_locale_without_request():
+    with (
+        patch("superset.utils.number_format.get_locale", return_value=None),
+        patch.dict(current_app.config, {"BABEL_DEFAULT_LOCALE": "fr_FR"}),
+    ):
+        assert (
+            format_number_with_config(
+                ",.2f", {"symbol": "EUR", "symbolPosition": None}, 1234.5
+            )
+            == "1,234.50 €"
+        )
 
 
 def test_non_numeric_value_is_returned_as_is():
@@ -265,9 +305,9 @@ EXPECTED = {
 def test_matches_frontend_d3_format(d3_format):
     for value, expected in zip(VALUES, EXPECTED[d3_format], strict=True):
         result = format_number_with_config(d3_format, None, value)
-        assert result == expected.replace("−", "-"), (
-            f"{d3_format!r} of {value}: got {result!r}, expected {expected!r}"
-        )
+        assert result == expected.replace(
+            "−", "-"
+        ), f"{d3_format!r} of {value}: got {result!r}, expected {expected!r}"
 
 
 @pytest.mark.parametrize(

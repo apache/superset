@@ -16,6 +16,7 @@
 # under the License.
 
 from io import BytesIO, StringIO
+from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
@@ -1886,6 +1887,36 @@ def test_table_applies_si_number_format():
     assert formatted["amount"].tolist() == ["1.23k"]
 
 
+def test_table_applies_datasource_saved_metric_format_without_chart_override():
+    df = pd.DataFrame.from_dict({"amount": {0: 1234.5}})
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {"amount": ",.2f"},
+        "verbose_map": {},
+    }
+
+    formatted = table(df, {"viz_type": "table"}, datasource)
+
+    assert formatted["amount"].tolist() == ["1,234.50"]
+
+
+def test_table_chart_format_overrides_datasource_saved_metric_format():
+    df = pd.DataFrame.from_dict({"amount": {0: 1234.5}})
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {"amount": ",.2f"},
+        "verbose_map": {},
+    }
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"amount": {"d3NumberFormat": ",.1f"}},
+    }
+
+    formatted = table(df, form_data, datasource)
+
+    assert formatted["amount"].tolist() == ["1,234.5"]
+
+
 def test_pivot_table_v2_applies_value_format():
     """
     Pivot table reports honor `valueFormat` and per-metric `columnFormats`.
@@ -1906,6 +1937,49 @@ def test_pivot_table_v2_applies_value_format():
     formatted = pivot_table_v2(df, form_data)
     assert formatted[("sales",)].tolist() == ["1,234.50", "6,789.00"]
     assert formatted[("qty",)].tolist() == ["10", "20"]
+
+
+def test_pivot_table_v2_applies_datasource_saved_metric_format_without_override():
+    df = pd.DataFrame({"region": ["A", "B"], "sales": [1234.5, 6789.0]})
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {"sales": ",d"},
+        "verbose_map": {},
+    }
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["region"],
+        "groupbyColumns": [],
+        "metrics": ["sales"],
+        "aggregateFunction": "Sum",
+        "valueFormat": ",.2f",
+    }
+
+    formatted = pivot_table_v2(df, form_data, datasource)
+
+    assert formatted[("sales",)].tolist() == ["1,235", "6,789"]
+
+
+def test_pivot_table_v2_chart_format_overrides_datasource_saved_metric_format():
+    df = pd.DataFrame({"region": ["A"], "sales": [1234.5]})
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {"sales": ",d"},
+        "verbose_map": {},
+    }
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["region"],
+        "groupbyColumns": [],
+        "metrics": ["sales"],
+        "aggregateFunction": "Sum",
+        "valueFormat": ",.2f",
+        "columnFormats": {"sales": ",.1f"},
+    }
+
+    formatted = pivot_table_v2(df, form_data, datasource)
+
+    assert formatted[("sales",)].tolist() == ["1,234.5"]
 
 
 def test_pivot_table_v2_applies_per_metric_format_when_metrics_combined():

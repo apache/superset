@@ -268,12 +268,54 @@ def format_column(
     currency: dict[str, Any],
     detected_currency: Optional[str] = None,
 ) -> None:
-    """Format a column in place when a number or currency format is configured."""
+    """
+    Format a column in place when a number or currency format is configured.
+
+    ``detected_currency`` represents the query-wide single currency. Per-cell
+    AUTO currency needs row context, while this helper receives one value
+    series and the pivot path does not retain each cell's contributing currency
+    rows. Mixed-currency results therefore use the formatted number without a
+    currency symbol.
+    """
     currency = resolve_auto_currency(currency, detected_currency)
     if d3_format or currency.get("symbol"):
         df[column] = df[column].apply(
             partial(format_number_with_config, d3_format, currency)
         )
+
+
+def get_datasource_column_formats(
+    datasource: Optional[Union["BaseDatasource", "Query"]],
+) -> tuple[dict[str, str | None], dict[str, str]]:
+    """Return saved metric formats and verbose labels from a datasource."""
+    if not datasource:
+        return {}, {}
+
+    datasource_data = datasource.data
+    return (
+        datasource_data.get("column_formats") or {},
+        datasource_data.get("verbose_map") or {},
+    )
+
+
+def merge_column_formats(
+    form_data: dict[str, Any],
+    datasource: Optional[Union["BaseDatasource", "Query"]],
+) -> dict[str, str | None]:
+    """Merge saved formats with truthy chart overrides using verbose labels."""
+    saved_formats, verbose_map = get_datasource_column_formats(datasource)
+    column_formats = {
+        verbose_map.get(metric, metric): d3_format
+        for metric, d3_format in saved_formats.items()
+    }
+    column_formats.update(
+        {
+            verbose_map.get(metric, metric): d3_format
+            for metric, d3_format in (form_data.get("columnFormats") or {}).items()
+            if d3_format
+        }
+    )
+    return column_formats
 
 
 def pivot_table_v2(
@@ -301,7 +343,9 @@ def pivot_table_v2(
         apply_metrics_on_rows=form_data.get("metricsLayout") == "ROWS",
     )
     if apply_number_format:
-        return apply_pivot_number_formats(pivoted, form_data, detected_currency)
+        return apply_pivot_number_formats(
+            pivoted, form_data, detected_currency, datasource
+        )
     return pivoted
 
 
@@ -309,6 +353,7 @@ def apply_pivot_number_formats(
     df: pd.DataFrame,
     form_data: dict[str, Any],
     detected_currency: Optional[str] = None,
+    datasource: Optional[Union["BaseDatasource", "Query"]] = None,
 ) -> pd.DataFrame:
     """
     Apply `valueFormat`/`columnFormats` and currency config to pivot values.
@@ -318,7 +363,7 @@ def apply_pivot_number_formats(
     Per-metric overrides fall back to the global value format.
     """
     value_format = form_data.get("valueFormat")
-    column_formats = form_data.get("columnFormats") or {}
+    column_formats = merge_column_formats(form_data, datasource)
     currency_format = form_data.get("currencyFormat") or {}
     currency_formats = form_data.get("currencyFormats") or {}
     metric_level = -1 if form_data.get("combineMetric") else 0
@@ -332,7 +377,7 @@ def apply_pivot_number_formats(
         format_column(
             df,
             column,
-            column_formats.get(metric, value_format),
+            column_formats.get(metric) or value_format,
             currency_formats.get(metric) or currency_format,
             detected_currency,
         )
@@ -343,9 +388,7 @@ def apply_pivot_number_formats(
 def table(
     df: pd.DataFrame,
     form_data: dict[str, Any],
-    datasource: Optional[  # pylint: disable=unused-argument
-        Union["BaseDatasource", "Query"]
-    ] = None,
+    datasource: Optional[Union["BaseDatasource", "Query"]] = None,
     apply_number_format: bool = True,
     detected_currency: Optional[str] = None,
 ) -> pd.DataFrame:
@@ -355,13 +398,21 @@ def table(
     if not apply_number_format:
         return df
 
-    column_config = form_data.get("column_config", {})
-    for column, config in column_config.items():
+    saved_formats, verbose_map = get_datasource_column_formats(datasource)
+    column_config = form_data.get("column_config") or {}
+    columns = dict.fromkeys([*saved_formats, *column_config])
+    for original_column in columns:
+        column = (
+            original_column
+            if original_column in df.columns
+            else verbose_map.get(original_column, original_column)
+        )
         if column in df.columns:
+            config = column_config.get(original_column) or {}
             format_column(
                 df,
                 column,
-                config.get("d3NumberFormat"),
+                config.get("d3NumberFormat") or saved_formats.get(original_column),
                 config.get("currencyFormat") or {},
                 detected_currency,
             )

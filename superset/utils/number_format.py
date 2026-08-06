@@ -42,12 +42,15 @@ from functools import lru_cache
 from typing import Any
 
 from babel.numbers import format_currency, get_currency_symbol
+from flask import current_app
+from flask_babel import get_locale
 
 SMART_NUMBER = "SMART_NUMBER"
 SMART_NUMBER_SIGNED = "SMART_NUMBER_SIGNED"
 AUTO_CURRENCY = "AUTO"
 
-LOCALE = "en_US"
+DEFAULT_LOCALE = "en"
+CURRENCY_SYMBOL_LOCALE = "en_US"
 
 # SI prefixes keyed by their power-of-1000 exponent, mirroring d3-format.
 SI_PREFIXES = {
@@ -223,10 +226,12 @@ def format_default(value: float, comma: str) -> str:
     Format ``value`` the way d3's default (no-type) specifier does.
 
     Mirrors JavaScript's ``Number.toString``: the shortest decimal representation
-    with optional grouping and no trailing zeros, so whole-valued floats render
-    without a spurious ``.0`` (``4725.0`` -> ``4,725``) and small values stay in
-    fixed-point notation (``0.00005`` rather than ``5e-5``).
+    with optional grouping and no trailing zeros. JavaScript switches to exponent
+    notation below ``1e-6`` and at or above ``1e21``; values at ``1e-6`` remain
+    fixed-point.
     """
+    if value and (value < 1e-6 or value >= 1e21):
+        return normalize_exponent(repr(value))
     formatted = format(Decimal(repr(value)), f"{comma}f")
     return trim_trailing_zeros(formatted)
 
@@ -335,14 +340,34 @@ def normalize_exponent(formatted: str) -> str:
     return re.sub(r"([eE][+-])0*(\d)", r"\1\2", formatted)
 
 
+def get_currency_locale() -> str:
+    """
+    Return the request locale, or the configured default outside a request.
+
+    Report tasks run with a Flask application context but without a request, so
+    Flask-Babel can return ``None``. The config fallback keeps Celery-rendered
+    reports aligned with the locale supplied to the frontend at bootstrap.
+    """
+    try:
+        if locale := get_locale():
+            return str(locale)
+    except RuntimeError:
+        pass
+
+    try:
+        return str(current_app.config.get("BABEL_DEFAULT_LOCALE") or DEFAULT_LOCALE)
+    except RuntimeError:
+        return DEFAULT_LOCALE
+
+
 @lru_cache(maxsize=None)
-def resolve_symbol_position(code: str) -> str:
+def resolve_symbol_position(code: str, locale: str) -> str:
     """
     Derive the symbol position from the locale's convention for the currency,
     mirroring the frontend's ``resolveSymbolPosition``.
     """
     try:
-        sample = format_currency(1, code, locale=LOCALE)
+        sample = format_currency(1, code, locale=locale)
         first_digit = next(i for i, char in enumerate(sample) if char.isdigit())
         return "prefix" if first_digit > 0 else "suffix"
     except Exception:  # pylint: disable=broad-except  # noqa: BLE001
@@ -352,10 +377,10 @@ def resolve_symbol_position(code: str) -> str:
 def apply_currency(formatted: str, currency: dict[str, Any]) -> str:
     normalized = formatted.replace("%", "")
     code = currency["symbol"]
-    symbol = get_currency_symbol(code, locale=LOCALE) or code
+    symbol = get_currency_symbol(code, locale=CURRENCY_SYMBOL_LOCALE) or code
     position = currency.get("symbolPosition")
     if position not in ("prefix", "suffix"):
-        position = resolve_symbol_position(code)
+        position = resolve_symbol_position(code, get_currency_locale())
     if position == "prefix":
         return f"{symbol} {normalized}"
     return f"{normalized} {symbol}"
