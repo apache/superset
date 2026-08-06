@@ -41,10 +41,6 @@ jest.mock('src/components/Chart/chartAction', () => ({
   getChartDataRequest: jest.fn(),
   handleChartDataResponse: jest.fn(),
 }));
-jest.mock('src/explore/exploreUtils', () => ({
-  ...jest.requireActual('src/explore/exploreUtils'),
-  getQuerySettings: () => [false],
-}));
 // SuperChart would need a registered viz plugin; the assertions here are
 // about what the effect resolves to, not how it renders.
 jest.mock('@superset-ui/core', () => ({
