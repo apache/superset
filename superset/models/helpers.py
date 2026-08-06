@@ -595,11 +595,18 @@ class ImportExportMixin(UUIDMixin):
                 # reachable only from a hand-crafted v0 file. There a colliding
                 # uuid owned by a soft-deleted dataset would be kept and fail on
                 # the unique constraint at flush rather than being dropped here.
-                uuid_owner = (
-                    db.session.query(cls).filter(cls.uuid == dict_rep["uuid"]).first()
-                )
-                if uuid_owner is not None and uuid_owner is not obj:
-                    del dict_rep["uuid"]
+                #
+                # Skip the lookup on the common idempotent re-import, where the
+                # name-matched ``obj`` already owns the incoming uuid: the guard
+                # would keep it anyway, so the query is pure waste on that path.
+                if obj is None or str(obj.uuid) != str(dict_rep["uuid"]):
+                    uuid_owner = (
+                        db.session.query(cls)
+                        .filter(cls.uuid == dict_rep["uuid"])
+                        .first()
+                    )
+                    if uuid_owner is not None and uuid_owner is not obj:
+                        del dict_rep["uuid"]
 
         if not obj:
             is_new_obj = True

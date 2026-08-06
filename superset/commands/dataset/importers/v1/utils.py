@@ -452,7 +452,7 @@ def import_dataset(  # noqa: C901
         # children not synced, the ``sync`` deletion never run). Raise instead
         # so the command's transaction wrapper rolls the whole thing back.
         raise ImportFailedError(
-            f"Dataset {config.get('table_name')!r} (uuid {config['uuid']}) "
+            f"Dataset {config['table_name']!r} (uuid {config['uuid']}) "
             "could not be imported because one of its metrics or columns "
             "matches two different existing ones — one by name and another by "
             "UUID. The import was aborted so it is not applied partially. "
