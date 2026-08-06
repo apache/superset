@@ -98,7 +98,7 @@ D3_FORMAT_RE: re.Pattern[str] = re.compile(
 def resolve_auto_currency(
     currency: dict[str, Any],
     detected_currency: str | None,
-    currency_context: Iterable[Any] | None = None,
+    currency_context: Iterable[Any] | float | None = None,
     fallback_to_detected: bool = True,
 ) -> dict[str, Any]:
     """
@@ -111,6 +111,10 @@ def resolve_auto_currency(
     number. Empty cell context can use the detected fallback when the plugin's
     behavior allows it.
 
+    :param currency_context: the currencies contributing to a cell. A dense
+        pivot cell provides an iterable of codes, but a sparse 2D pivot passes a
+        scalar ``NaN`` float for a missing cross-product cell (hence the ``float``
+        arm); a missing/NaN/non-iterable context is treated as empty.
     :return: a copied config containing the detected code, or the input config
     """
     if currency.get("symbol") != AUTO_CURRENCY:
@@ -118,14 +122,14 @@ def resolve_auto_currency(
 
     if currency_context is not None:
         # A dense pivot cell carries an iterable of currency codes, but a sparse
-        # 2D pivot leaves missing cross-product cells as a scalar ``NaN`` (pandas
-        # never runs the union aggregator for them). Coerce any non-iterable or
-        # NaN context to empty so AUTO resolution follows the empty-context path
-        # instead of raising and taking down the whole report.
-        try:
-            context_values = list(currency_context)
-        except TypeError:
-            context_values = []
+        # 2D pivot leaves missing cross-product cells as a scalar missing value
+        # (``np.nan``; pandas never runs the union aggregator for them). Test
+        # positively for an iterable so any non-iterable sentinel (``np.nan``,
+        # ``pd.NA``, ``pd.NaT``) falls to the empty-context path instead of
+        # raising and taking down the whole report.
+        context_values: list[Any] = (
+            list(currency_context) if isinstance(currency_context, Iterable) else []
+        )
         normalized_currencies = {
             normalized
             for value in context_values

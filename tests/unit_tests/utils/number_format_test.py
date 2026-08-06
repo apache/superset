@@ -18,6 +18,7 @@ from decimal import Decimal
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pandas as pd
 import pytest
 from flask import current_app
 
@@ -122,27 +123,31 @@ def test_resolve_auto_currency_prefers_cell_context_and_detects_mixed() -> None:
     )
 
 
-def test_resolve_auto_currency_coerces_non_iterable_context() -> None:
+@pytest.mark.parametrize("missing", [float("nan"), pd.NA, pd.NaT])
+def test_resolve_auto_currency_coerces_non_iterable_context(missing: Any) -> None:
     """
-    A sparse 2D pivot leaves missing cells as scalar ``NaN`` rather than an
-    empty tuple, so AUTO resolution must treat a non-iterable context as empty
-    instead of raising ``TypeError`` on ``list(context)``.
+    A sparse 2D pivot leaves missing cells as a scalar missing value rather than
+    an empty tuple. AUTO resolution must treat any non-iterable context (the
+    ``np.nan`` the live path produces, plus other pandas sentinels) as empty
+    instead of raising ``TypeError`` on ``list(context)``. ``missing`` is typed
+    ``Any`` on purpose: it pins the runtime guard without widening the narrow
+    ``Iterable[Any] | float | None`` contract to cover these sentinels.
     """
     currency = {"symbol": "AUTO", "symbolPosition": "prefix"}
 
-    # NaN context with fallback enabled behaves like an empty context and uses
-    # the query-wide detected currency.
-    assert resolve_auto_currency(currency, "GBP", currency_context=float("nan")) == {
+    # A missing context with fallback enabled behaves like an empty context and
+    # uses the query-wide detected currency.
+    assert resolve_auto_currency(currency, "GBP", currency_context=missing) == {
         "symbol": "GBP",
         "symbolPosition": "prefix",
     }
 
-    # NaN context without fallback keeps AUTO, matching the empty-context path.
+    # A missing context without fallback keeps AUTO, like the empty-context path.
     assert (
         resolve_auto_currency(
             currency,
             "GBP",
-            currency_context=float("nan"),
+            currency_context=missing,
             fallback_to_detected=False,
         )
         is currency
