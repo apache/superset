@@ -38,7 +38,7 @@ import math
 import re
 from decimal import Decimal, ROUND_HALF_UP
 from functools import lru_cache
-from typing import Any
+from typing import Any, Iterable
 
 from babel.numbers import format_currency, get_currency_symbol
 from flask import current_app
@@ -96,20 +96,59 @@ D3_FORMAT_RE: re.Pattern[str] = re.compile(
 
 
 def resolve_auto_currency(
-    currency: dict[str, Any], detected_currency: str | None
+    currency: dict[str, Any],
+    detected_currency: str | None,
+    currency_context: Iterable[Any] | None = None,
+    fallback_to_detected: bool = True,
 ) -> dict[str, Any]:
     """
     Resolve an ``AUTO`` currency to the code detected from the data.
 
-    Mirrors ``currency-format/utils.ts::resolveAutoCurrency``. Without a
-    detected query-wide currency (mixed-currency data), the returned config
-    stays ``AUTO`` and the caller renders the bare formatted number.
+    Mirrors ``currency-format/utils.ts::resolveAutoCurrency`` and the per-cell
+    handling in the Table and Pivot Table plugins. A single valid currency in
+    ``currency_context`` takes precedence over the query-wide detection. Mixed
+    cell currencies deliberately keep ``AUTO`` so the caller renders a neutral
+    number. Empty cell context can use the detected fallback when the plugin's
+    behavior allows it.
 
     :return: a copied config containing the detected code, or the input config
     """
-    if currency.get("symbol") == AUTO_CURRENCY and detected_currency:
+    if currency.get("symbol") != AUTO_CURRENCY:
+        return currency
+
+    if currency_context is not None:
+        context_values = list(currency_context)
+        normalized_currencies = {
+            normalized
+            for value in context_values
+            if (normalized := normalize_currency(value)) is not None
+        }
+        if len(normalized_currencies) > 1:
+            return currency
+        if context_values and (cell_currency := normalize_currency(context_values[0])):
+            return {**currency, "symbol": cell_currency}
+        if not fallback_to_detected:
+            return currency
+
+    if detected_currency := normalize_currency(detected_currency):
         return {**currency, "symbol": detected_currency}
     return currency
+
+
+def normalize_currency(value: Any) -> str | None:
+    """
+    Normalize a possible ISO-4217 code for AUTO currency resolution.
+
+    Mirrors ``currency-format/CurrencyFormatter.ts::normalizeCurrency``:
+    non-strings and values other than three ASCII letters are rejected, while
+    valid strings are stripped and upper-cased.
+
+    :return: the normalized three-letter code, or ``None``
+    """
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip().upper()
+    return normalized if re.fullmatch(r"[A-Z]{3}", normalized) else None
 
 
 def format_number_with_config(

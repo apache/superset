@@ -2036,6 +2036,64 @@ def test_table_auto_currency_uses_detected_currency() -> None:
     assert formatted["amount"].tolist() == ["1,234.50"]
 
 
+def test_table_auto_currency_uses_per_row_currency_context() -> None:
+    form_data = {
+        "viz_type": "table",
+        "column_config": {
+            "amount": {
+                "d3NumberFormat": ",.2f",
+                "currencyFormat": {"symbol": "AUTO", "symbolPosition": "prefix"},
+            }
+        },
+    }
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {},
+        "verbose_map": {},
+        "currency_code_column": "currency",
+    }
+    df = pd.DataFrame(
+        {
+            "amount": [100.0, 200.0, 300.0, 400.0],
+            "currency": ["USD", " eur ", None, "invalid"],
+        }
+    )
+
+    formatted = table(df, form_data, datasource, detected_currency="GBP")
+
+    assert formatted["amount"].tolist() == [
+        "$ 100.00",
+        "€ 200.00",
+        "300.00",
+        "400.00",
+    ]
+
+
+def test_table_saved_auto_currency_uses_per_row_currency_context() -> None:
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {"amount": ",.2f"},
+        "verbose_map": {},
+        "currency_code_column": "currency",
+        "metrics": [
+            {
+                "metric_name": "amount",
+                "currency": {"symbol": "AUTO", "symbolPosition": "prefix"},
+            }
+        ],
+    }
+    df = pd.DataFrame(
+        {
+            "amount": [100.0, 200.0],
+            "currency": ["USD", "EUR"],
+        }
+    )
+
+    formatted = table(df, {"viz_type": "table"}, datasource)
+
+    assert formatted["amount"].tolist() == ["$ 100.00", "€ 200.00"]
+
+
 def test_pivot_table_v2_auto_currency_uses_detected_currency() -> None:
     """
     AUTO currency in pivot tables resolves to the payload's `detected_currency`.
@@ -2052,6 +2110,210 @@ def test_pivot_table_v2_auto_currency_uses_detected_currency() -> None:
     }
     formatted = pivot_table_v2(df, form_data, detected_currency="EUR")
     assert formatted[("sales",)].tolist() == ["€ 1,234.50", "€ 6,789.00"]
+
+
+def test_pivot_table_v2_auto_currency_uses_per_cell_currency_context() -> None:
+    df = pd.DataFrame(
+        {
+            "region": ["USD cell", "USD cell", "EUR cell", "Mixed", "Mixed", "Empty"],
+            "sales": [100.0, 50.0, 200.0, 300.0, 400.0, 500.0],
+            "currency": ["USD", " usd ", "EUR", "USD", "EUR", None],
+        }
+    )
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {},
+        "verbose_map": {},
+        "currency_code_column": "currency",
+    }
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["region"],
+        "groupbyColumns": [],
+        "metrics": ["sales"],
+        "aggregateFunction": "Sum",
+        "valueFormat": ",.2f",
+        "currencyFormat": {"symbol": "AUTO", "symbolPosition": "prefix"},
+    }
+
+    formatted = pivot_table_v2(df, form_data, datasource, detected_currency="GBP")
+
+    assert formatted[("sales",)].to_dict() == {
+        ("EUR cell",): "€ 200.00",
+        ("Empty",): "£ 500.00",
+        ("Mixed",): "700.00",
+        ("USD cell",): "$ 150.00",
+    }
+
+
+def test_pivot_table_v2_auto_currency_reads_stored_form_data_key() -> None:
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {},
+        "verbose_map": {},
+        "currency_code_column": "currency",
+    }
+    df = pd.DataFrame(
+        {
+            "region": ["US", "EU"],
+            "sales": [100.0, 200.0],
+            "currency": ["USD", "EUR"],
+        }
+    )
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["region"],
+        "groupbyColumns": [],
+        "metrics": ["sales"],
+        "aggregateFunction": "Sum",
+        "valueFormat": ",.2f",
+        "currency_format": {"symbol": "AUTO", "symbolPosition": "prefix"},
+    }
+
+    formatted = pivot_table_v2(df, form_data, datasource)
+
+    assert formatted[("sales",)].to_dict() == {
+        ("EU",): "€ 200.00",
+        ("US",): "$ 100.00",
+    }
+
+
+def test_pivot_table_v2_saved_auto_currency_uses_per_cell_context() -> None:
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {"sales": ",.2f"},
+        "verbose_map": {},
+        "currency_code_column": "currency",
+        "metrics": [
+            {
+                "metric_name": "sales",
+                "currency": {"symbol": "AUTO", "symbolPosition": "prefix"},
+            }
+        ],
+    }
+    df = pd.DataFrame(
+        {
+            "region": ["US", "EU"],
+            "sales": [100.0, 200.0],
+            "currency": ["USD", "EUR"],
+        }
+    )
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["region"],
+        "groupbyColumns": [],
+        "metrics": ["sales"],
+        "aggregateFunction": "Sum",
+        "valueFormat": ",.1f",
+    }
+
+    formatted = pivot_table_v2(df, form_data, datasource)
+
+    assert formatted[("sales",)].to_dict() == {
+        ("EU",): "€ 200.00",
+        ("US",): "$ 100.00",
+    }
+
+
+def test_pivot_table_v2_count_auto_currency_uses_detected_fallback() -> None:
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {},
+        "verbose_map": {},
+        "currency_code_column": "currency",
+    }
+    df = pd.DataFrame(
+        {
+            "region": ["US", "EU"],
+            "sales": [100.0, 200.0],
+            "currency": ["USD", "EUR"],
+        }
+    )
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["region"],
+        "groupbyColumns": [],
+        "metrics": ["sales"],
+        "aggregateFunction": "Count",
+        "valueFormat": ",d",
+        "currencyFormat": {"symbol": "AUTO", "symbolPosition": "prefix"},
+    }
+
+    formatted = pivot_table_v2(df, form_data, datasource, detected_currency="GBP")
+
+    assert formatted[("sales",)].to_dict() == {
+        ("EU",): "£ 1",
+        ("US",): "£ 1",
+    }
+
+
+def test_pivot_table_v2_auto_currency_tracks_mixed_total_context() -> None:
+    df = pd.DataFrame(
+        {
+            "region": ["US", "EU"],
+            "sales": [100.0, 200.0],
+            "currency": ["USD", "EUR"],
+        }
+    )
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {},
+        "verbose_map": {},
+        "currency_code_column": "currency",
+    }
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["region"],
+        "groupbyColumns": [],
+        "metrics": ["sales"],
+        "aggregateFunction": "Sum",
+        "valueFormat": ",.2f",
+        "currencyFormat": {"symbol": "AUTO", "symbolPosition": "prefix"},
+        "colTotals": True,
+    }
+
+    formatted = pivot_table_v2(df, form_data, datasource)
+
+    assert formatted[("sales",)].to_dict() == {
+        ("EU",): "€ 200.00",
+        ("US",): "$ 100.00",
+        ("Total (Sum)",): "300.00",
+    }
+
+
+def test_pivot_table_v2_auto_currency_tracks_subtotal_context() -> None:
+    df = pd.DataFrame(
+        {
+            "region": ["Mixed", "Mixed", "USD", "USD"],
+            "quarter": ["Q1", "Q2", "Q1", "Q2"],
+            "sales": [100.0, 200.0, 300.0, 400.0],
+            "currency": ["USD", "EUR", "USD", "USD"],
+        }
+    )
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {},
+        "verbose_map": {},
+        "currency_code_column": "currency",
+    }
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["region"],
+        "groupbyColumns": ["quarter"],
+        "metrics": ["sales"],
+        "aggregateFunction": "Sum",
+        "valueFormat": ",.2f",
+        "currencyFormat": {"symbol": "AUTO", "symbolPosition": "prefix"},
+        "rowTotals": True,
+    }
+
+    formatted = pivot_table_v2(df, form_data, datasource)
+
+    assert formatted.loc[("Mixed",), ("sales", "Q1")] == "$ 100.00"
+    assert formatted.loc[("Mixed",), ("sales", "Q2")] == "€ 200.00"
+    assert formatted.loc[("Mixed",), ("sales", "Subtotal")] == "300.00"
+    assert formatted.loc[("USD",), ("sales", "Subtotal")] == "$ 700.00"
+    assert formatted.loc[("Mixed",), ("Total (Sum)", "")] == "300.00"
 
 
 def test_apply_client_processing_passes_detected_currency() -> None:

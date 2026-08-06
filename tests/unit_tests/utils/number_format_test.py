@@ -95,6 +95,33 @@ def test_resolve_auto_currency_uses_detected_single_currency() -> None:
     assert resolve_auto_currency(explicit, "USD") is explicit
 
 
+def test_resolve_auto_currency_prefers_cell_context_and_detects_mixed() -> None:
+    currency = {"symbol": "AUTO", "symbolPosition": "prefix"}
+
+    assert resolve_auto_currency(
+        currency, "GBP", currency_context=frozenset({" usd "})
+    ) == {"symbol": "USD", "symbolPosition": "prefix"}
+    assert (
+        resolve_auto_currency(
+            currency, "GBP", currency_context=frozenset({"USD", "EUR"})
+        )
+        is currency
+    )
+    assert resolve_auto_currency(currency, "GBP", currency_context=frozenset()) == {
+        "symbol": "GBP",
+        "symbolPosition": "prefix",
+    }
+    assert (
+        resolve_auto_currency(
+            currency,
+            "GBP",
+            currency_context=frozenset(),
+            fallback_to_detected=False,
+        )
+        is currency
+    )
+
+
 @pytest.mark.parametrize(
     "value,expected",
     [
@@ -392,9 +419,9 @@ EXPECTED: dict[str, list[str]] = {
 def test_matches_frontend_d3_format(d3_format: str) -> None:
     for value, expected in zip(VALUES, EXPECTED[d3_format], strict=True):
         result = format_number_with_config(d3_format, None, value)
-        assert result == expected.replace(
-            "−", "-"
-        ), f"{d3_format!r} of {value}: got {result!r}, expected {expected!r}"
+        assert result == expected.replace("−", "-"), (
+            f"{d3_format!r} of {value}: got {result!r}, expected {expected!r}"
+        )
 
 
 @pytest.mark.parametrize(
