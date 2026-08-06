@@ -31,17 +31,17 @@ from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
-from superset.mcp_service.dashboard.permalink import lookup_dashboard_reference
+from superset.mcp_service.dashboard.permalink import (
+    get_matching_dashboard_permalink_state,
+    lookup_dashboard_reference,
+)
 from superset.mcp_service.dashboard.schemas import (
     dashboard_layout_serializer,
     DashboardError,
     DashboardLayout,
     GetDashboardLayoutRequest,
-    redact_filter_state_data_model_metadata,
 )
 from superset.mcp_service.mcp_core import ModelGetInfoCore
-from superset.mcp_service.privacy import user_can_view_data_model_metadata
-from superset.mcp_service.utils import sanitize_for_llm_context
 
 logger = logging.getLogger(__name__)
 
@@ -113,29 +113,14 @@ async def get_dashboard_layout(
 
         if isinstance(result, DashboardLayout):
             if lookup_result.permalink_value:
-                permalink_key = lookup_result.permalink_key
-                permalink_value = lookup_result.permalink_value
-                try:
-                    permalink_dashboard_id = int(permalink_value["dashboardId"])
-                except (TypeError, ValueError):
-                    permalink_dashboard_id = None
-                if permalink_dashboard_id == result.id:
-                    raw_state = permalink_value.get("state")
-                    filter_state = (
-                        dict(raw_state) if isinstance(raw_state, dict) else {}
-                    )
-                    if not user_can_view_data_model_metadata():
-                        filter_state = redact_filter_state_data_model_metadata(
-                            filter_state
-                        )
+                permalink_state = get_matching_dashboard_permalink_state(
+                    lookup_result, result.id
+                )
+                if permalink_state:
                     payload = result.model_dump(mode="python")
                     payload.update(
-                        permalink_key=permalink_key,
-                        filter_state=sanitize_for_llm_context(
-                            filter_state,
-                            field_path=("filter_state",),
-                            excluded_field_names=frozenset(),
-                        ),
+                        permalink_key=permalink_state.key,
+                        filter_state=permalink_state.state,
                         is_permalink_state=True,
                     )
                     result = DashboardLayout.model_validate(payload)
