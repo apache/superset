@@ -47,6 +47,7 @@ from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.schemas import (
     ChartData,
     ChartError,
+    ChartQueryResult,
     DataColumn,
     GetChartDataRequest,
     PerformanceMetadata,
@@ -264,6 +265,12 @@ def _sanitize_chart_data_for_llm_context(chart_data: ChartData) -> ChartData:
         field_path=("data",),
         excluded_field_names=frozenset(),
     )
+    for query_index, query_result in enumerate(payload.get("query_results") or []):
+        query_result["data"] = sanitize_for_llm_context(
+            query_result.get("data", []),
+            field_path=("query_results", str(query_index), "data"),
+            excluded_field_names=frozenset(),
+        )
     payload["columns"] = [
         {
             **column,
@@ -277,6 +284,29 @@ def _sanitize_chart_data_for_llm_context(chart_data: ChartData) -> ChartData:
     ]
 
     return ChartData.model_validate(payload)
+
+
+def _build_query_results(
+    query_results: list[dict[str, Any]], limit: int | None
+) -> list[ChartQueryResult] | None:
+    """Preserve every result when a chart executes more than one query."""
+    if len(query_results) <= 1:
+        return None
+
+    return [
+        ChartQueryResult(
+            query_index=index,
+            columns=query_result.get("colnames", []),
+            data=(
+                query_result.get("data", [])[:limit]
+                if limit
+                else query_result.get("data", [])
+            ),
+            row_count=len(query_result.get("data", [])),
+            total_rows=query_result.get("rowcount"),
+        )
+        for index, query_result in enumerate(query_results)
+    ]
 
 
 @tool(
@@ -883,6 +913,9 @@ async def get_chart_data(  # noqa: C901
                     chart_type=chart.viz_type or "unknown",
                     columns=columns,
                     data=data[: request.limit] if request.limit else data,
+                    query_results=_build_query_results(
+                        result["queries"], request.limit
+                    ),
                     row_count=len(data),
                     total_rows=query_result.get("rowcount"),
                     summary=summary,
@@ -1078,6 +1111,7 @@ async def _query_from_form_data(
                 chart_type=viz_type,
                 columns=columns,
                 data=data[: request.limit] if request.limit else data,
+                query_results=_build_query_results(result["queries"], request.limit),
                 row_count=len(data),
                 total_rows=query_result.get("rowcount"),
                 summary=summary,

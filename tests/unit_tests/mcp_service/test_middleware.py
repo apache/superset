@@ -472,6 +472,36 @@ class TestResponseSizeGuardMiddleware:
         assert len(result["data"]) < 200
 
     @pytest.mark.asyncio
+    async def test_truncates_multi_query_chart_rows_across_whole_response(self) -> None:
+        """All query results share the response's token budget."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        context = MagicMock()
+        context.message.name = "get_chart_data"
+        context.message.arguments = {}
+        row = {f"col_{i}": f"value_{i}" for i in range(10)}
+        large_response = {
+            "chart_id": 1,
+            "data": [row] * 200,
+            "row_count": 200,
+            "query_results": [
+                {"query_index": 0, "data": [row] * 200, "row_count": 200},
+                {"query_index": 1, "data": [row] * 200, "row_count": 200},
+            ],
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert isinstance(result, dict)
+        assert result["_response_truncated"] is True
+        assert all(query["data"] for query in result["query_results"])
+        assert all(len(query["data"]) < 200 for query in result["query_results"])
+
+    @pytest.mark.asyncio
     async def test_data_query_truncation_updates_row_count(self) -> None:
         """row_count should reflect the truncated count, not the original."""
         middleware = ResponseSizeGuardMiddleware(token_limit=500)
