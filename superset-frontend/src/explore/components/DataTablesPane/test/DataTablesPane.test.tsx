@@ -24,6 +24,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'spec/helpers/testing-library';
 import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
@@ -137,11 +138,16 @@ describe('DataTablesPane', () => {
     expect(screen.getByRole('tab', { selected: true })).toHaveTextContent(
       'Results',
     );
-    // Panel stays expanded and the active tabpanel renders Results content
-    // rather than going blank (the orphaned-key bug mounted no pane at all).
+    // Panel stays expanded and the active tabpanel renders actual Results
+    // content — the row-count readout — rather than going blank (the
+    // orphaned-key bug mounted no pane at all).
     expect(screen.getByLabelText('Collapse data panel')).toBeVisible();
     const activePanel = screen.getByRole('tabpanel');
-    expect(activePanel).not.toBeEmptyDOMElement();
+    expect(
+      await within(activePanel).findByText('0 rows', undefined, {
+        timeout: 5000,
+      }),
+    ).toBeVisible();
   });
 
   test('Should copy data table content correctly', async () => {
