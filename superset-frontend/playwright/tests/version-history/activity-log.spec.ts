@@ -34,7 +34,7 @@
  * unsafe to run on parallel workers, and left version records behind that no
  * revert could remove — version history being append-only is the point.
  */
-import { APIRequestContext, Page } from '@playwright/test';
+import { Page } from '@playwright/test';
 import rison from 'rison';
 import { testWithAssets, expect } from '../../helpers/fixtures';
 import { apiGet } from '../../helpers/api/requests';
@@ -55,17 +55,15 @@ const OPAQUE_ID =
  * `can_overwrite` gate derived from them) live in the Subject id space, not
  * the user id space.
  */
-async function currentUserSubjectId(
-  request: APIRequestContext,
-): Promise<number> {
-  const meRes = await request.get('/api/v1/me/');
+async function currentUserSubjectId(page: Page): Promise<number> {
+  const meRes = await apiGet(page, 'api/v1/me/');
   expect(meRes.ok(), 'current user request').toBeTruthy();
   const userId = (await meRes.json()).result.id;
 
   const q = encodeURIComponent(
     `(filters:!((col:user_id,opr:eq,value:${userId})))`,
   );
-  const res = await request.get(`/api/v1/security/subject/?q=${q}`);
+  const res = await apiGet(page, `api/v1/security/subject/?q=${q}`);
   expect(res.ok(), 'subject lookup request').toBeTruthy();
   const subjects = (await res.json()).result;
   expect(
@@ -141,7 +139,7 @@ testWithAssets(
     // without editors.
     // Two renames: the first edit on an as-yet-untracked chart collapses into
     // "first tracked save"; the second is a normal descriptive save.
-    const adminSubjectId = await currentUserSubjectId(page.request);
+    const adminSubjectId = await currentUserSubjectId(page);
     await apiPutChart(page, chartId, {
       editors: [adminSubjectId],
       slice_name: `${baseName} ·vh1`,
