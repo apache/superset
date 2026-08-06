@@ -238,6 +238,7 @@ class DashboardJSONMetadataSchema(Schema):
         allow_none=True,
         validate=OneOf(["default", "force_on", "force_off"]),
     )
+    time_grain_allowlist = fields.List(fields.Str(), allow_none=True)
 
     @pre_load
     def remove_show_native_filters(  # pylint: disable=unused-argument
