@@ -273,15 +273,33 @@ def validate_stored_expression_at_query_time(
     check can be deferred past (Jinja templating, the create path, older data),
     so the query sink is the reliable place to enforce it.
 
-    Stored expressions can contain dialect-specific syntax sqlglot cannot parse
-    (e.g. ``DATE_ADD(ds, 1)`` on MySQL); such expressions pre-date this gate and
-    went straight to the query unparsed, so a parse failure falls back to the raw
-    expression rather than breaking the query. A genuine sub-query still parses
-    and is caught.
+    A parse failure is ambiguous: the expression may use dialect-specific syntax
+    sqlglot cannot handle (e.g. ``DATE_ADD(ds, 1)`` on MySQL), or it may be
+    unparseable precisely because a sub-query was appended to it. Before falling
+    back to the raw expression, the permissive dialect is used as a detector so a
+    sub-query hidden next to benign-but-unparseable syntax is still caught. Only
+    when even the permissive dialect cannot parse the expression is validation
+    skipped (and logged), matching the pre-gate behaviour for such expressions.
+
+    A disallowed sub-query is surfaced as ``QueryObjectValidationError`` (a
+    chart-level 400) to match the adhoc sinks, rather than a raw 403.
     """
     try:
         return validate_adhoc_subquery(expression, database, catalog, schema, engine)
+    except SupersetSecurityException as ex:
+        raise QueryObjectValidationError(ex.message) from ex
     except SupersetParseError:
+        # The engine dialect could not parse the expression. Re-check with the
+        # permissive dialect as a detector before giving up, so a sub-query next
+        # to benign dialect syntax is not smuggled through unvalidated.
+        try:
+            validate_adhoc_subquery(expression, database, catalog, schema, "base")
+        except SupersetSecurityException as ex:
+            raise QueryObjectValidationError(ex.message) from ex
+        except SupersetParseError:
+            logger.warning(
+                "Skipping query-time validation of unparseable stored expression"
+            )
         return expression
 
 
