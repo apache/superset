@@ -79,6 +79,7 @@ from tests.unit_tests.fixtures.common import dttm  # noqa: F401
         ("TINY", TINYINT, None, GenericDataType.NUMERIC, False),
         ("SHORT", types.SmallInteger, None, GenericDataType.NUMERIC, False),
         ("BLOB", types.String, None, GenericDataType.STRING, False),
+        ("TEXT", types.String, None, GenericDataType.STRING, False),
         ("YEAR", types.Integer, None, GenericDataType.NUMERIC, False),
         ("ENUM", types.String, None, GenericDataType.STRING, False),
         ("SET", types.String, None, GenericDataType.STRING, False),
@@ -104,7 +105,15 @@ def test_fetch_data_mutates_decimal_rows_in_tuple_results() -> None:
     cursor.description = [("amount", newdecimal), ("label", var_string)]
     cursor.fetchall.return_value = (("10.50", "Ships"), ("22.30", "Planes"))
 
-    data = spec.fetch_data(cursor)
+    # Stub the type_code_map so this test doesn't depend on MySQLdb or
+    # pymysql being importable in the test environment.
+    original_type_code_map = spec.type_code_map
+    spec.type_code_map = {newdecimal: "NEWDECIMAL", var_string: "VAR_STRING"}
+
+    try:
+        data = spec.fetch_data(cursor)
+    finally:
+        spec.type_code_map = original_type_code_map
 
     assert data == [(Decimal("10.50"), "Ships"), (Decimal("22.30"), "Planes")]
 
@@ -409,6 +418,6 @@ def test_compile_timegrain_expression_preserves_date_truncation() -> None:
     assert compiled == expected, f"DATE_FORMAT truncation was dropped. Got: {compiled}"
 
     proxied = str(select(select(expr.label("bucket")).subquery().c.bucket))
-    assert expected in proxied, (
-        f"DATE_FORMAT truncation was dropped in proxied expression. Got: {proxied}"
-    )
+    assert (
+        expected in proxied
+    ), f"DATE_FORMAT truncation was dropped in proxied expression. Got: {proxied}"
