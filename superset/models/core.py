@@ -504,7 +504,14 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             # do not over-write the password with the password mask
             self.password = conn.password
         conn = conn.set(password=PASSWORD_MASK if conn.password else None)
-        self.sqlalchemy_uri = str(conn)  # hides the password
+        # Store the literal PASSWORD_MASK sentinel (not the real secret -
+        # that already went to self.password above), so later code that
+        # compares conn.password against PASSWORD_MASK to detect an
+        # unchanged password keeps working. SQLAlchemy 2.0 changed
+        # str(URL) to substitute its own "***" for any password rather
+        # than rendering the value verbatim (str(conn) under 1.4), so
+        # render_as_string(hide_password=False) is required here.
+        self.sqlalchemy_uri = conn.render_as_string(hide_password=False)
 
     def get_effective_user(self, object_url: URL) -> str | None:
         """
@@ -707,7 +714,14 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         if cacheable and self.id is not None:
             cache_key = (
                 self.id,
-                str(sqlalchemy_url),
+                # SQLAlchemy 2.0 changed str(URL) to always substitute
+                # "***" for the password rather than rendering the real
+                # value (str(url) under 1.4). Using it here would make
+                # the cache key blind to password rotation - the module
+                # comment above depends on the key changing when the
+                # password does, so render_as_string(hide_password=False)
+                # is required to preserve that behavior.
+                sqlalchemy_url.render_as_string(hide_password=False),
                 repr(sorted(engine_kwargs.items())),
             )
             with _ENGINE_CACHE_LOCK:

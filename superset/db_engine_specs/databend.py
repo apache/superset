@@ -269,7 +269,11 @@ class DatabendEngineSpec(BasicParametersMixin, DatabendBaseEngineSpec):
         if not url_params.get("database"):
             url_params["database"] = "__default__"
         url_params.pop("encryption", None)
-        return str(URL(f"{cls.engine}", **url_params))
+        # SQLAlchemy 2.0 made URL.__str__() hide the password by default
+        # (it rendered in full under 1.4); render_as_string(hide_password=
+        # False) is required here since this URI is stored/used to actually
+        # connect, not just displayed.
+        return URL(f"{cls.engine}", **url_params).render_as_string(hide_password=False)
 
     @classmethod
     def get_parameters_from_uri(
