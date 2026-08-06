@@ -120,6 +120,15 @@ export default function LayoutModeSwitcher({
             <Radio.Button
               value={option.key}
               data-test={`layout-mode-${option.key}`}
+              // Sized with the rest of the header rather than left at antd's
+              // small step: a control that stands taller than everything
+              // beside it reads as a different kind of thing.
+              style={{
+                height: theme.controlHeightSM,
+                paddingInline: theme.sizeUnit * 2,
+                fontSize: theme.fontSizeSM,
+                lineHeight: `${theme.controlHeightSM - 2}px`,
+              }}
             >
               {option.icon} {option.label}
             </Radio.Button>

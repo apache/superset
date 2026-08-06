@@ -33,6 +33,21 @@ import LayoutModeSwitcher from './LayoutModeSwitcher';
 const NOT_AVAILABLE = t('Not available yet');
 
 /**
+ * Header controls, sized down.
+ *
+ * The bar is chrome around the work rather than the work itself, and every
+ * pixel it takes is one the canvas does not get. Driven from the theme's own
+ * smallest control step rather than a literal, so it tracks the scale the
+ * rest of the app is built on instead of drifting from it.
+ */
+const compact = (theme: ReturnType<typeof useTheme>) => ({
+  height: theme.controlHeightXS,
+  paddingInline: theme.sizeUnit * 1.5,
+  fontSize: theme.fontSizeSM,
+  lineHeight: 1,
+});
+
+/**
  * An affordance that is present, named and honest about not working.
  *
  * Most of this header is one. The builder keeps its tree in memory and has
@@ -55,19 +70,23 @@ const Inert = ({
   test: string;
   buttonStyle?: ButtonProps['buttonStyle'];
   children: ReactNode;
-}): ReactElement => (
-  <Button
-    size="small"
-    buttonStyle={buttonStyle}
-    disabled
-    aria-label={label}
-    data-test={test}
-    tooltip={`${label} — ${NOT_AVAILABLE}`}
-    placement="bottom"
-  >
-    {children}
-  </Button>
-);
+}): ReactElement => {
+  const theme = useTheme();
+  return (
+    <Button
+      size="small"
+      buttonStyle={buttonStyle}
+      disabled
+      aria-label={label}
+      data-test={test}
+      tooltip={`${label} — ${NOT_AVAILABLE}`}
+      placement="bottom"
+      style={compact(theme)}
+    >
+      {children}
+    </Button>
+  );
+};
 
 /**
  * The dashboard's name, edited where it is read.
@@ -88,6 +107,7 @@ const Inert = ({
  * tick per character for everything subscribed to the store.
  */
 const Title = ({ nodeId, title }: { nodeId: string; title: string }) => {
+  const theme = useTheme();
   const [draft, setDraft] = useState(title);
   // What was accepted replaces the draft, because the draft was a view of it:
   // a rename the assistant makes while this is on screen has to show.
@@ -96,7 +116,7 @@ const Title = ({ nodeId, title }: { nodeId: string; title: string }) => {
   return (
     <Input
       size="small"
-      style={{ maxWidth: 260 }}
+      style={{ maxWidth: 220, height: theme.controlHeightSM }}
       value={draft}
       aria-label={t('Dashboard title')}
       placeholder={t('Untitled dashboard')}
@@ -159,7 +179,7 @@ export default function DashboardHeader(): ReactElement {
         title={typeof root.props?.title === 'string' ? root.props.title : ''}
       />
       <Inert label={t('Favorite')} test="header-favorite" buttonStyle="link">
-        <Icons.StarOutlined iconSize="l" />
+        <Icons.StarOutlined iconSize="m" />
       </Inert>
       {/* Nothing here can publish, so the chip states the only status this
           page can honestly claim. */}
@@ -181,16 +201,16 @@ export default function DashboardHeader(): ReactElement {
           test="header-refresh"
           buttonStyle="link"
         >
-          <Icons.ReloadOutlined iconSize="l" />
+          <Icons.ReloadOutlined iconSize="m" />
         </Inert>
         {/* Icons, not words, because these two are reached by muscle memory
             far more often than they are read. The name stays on them for
             anyone not reading with their eyes. */}
         <Inert label={t('Undo')} test="header-undo">
-          <Icons.UndoOutlined iconSize="m" />
+          <Icons.UndoOutlined iconSize="s" />
         </Inert>
         <Inert label={t('Redo')} test="header-redo">
-          <Icons.RedoOutlined iconSize="m" />
+          <Icons.RedoOutlined iconSize="s" />
         </Inert>
         <Inert label={t('Save')} test="header-save">
           {t('Save')}
