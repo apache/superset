@@ -30,6 +30,7 @@ from superset.semantic_layers.cache_policy import ContainmentCapabilities, Reuse
 from superset.semantic_layers.cache_repository import (
     CachedEntry,
     MAX_SEMANTIC_CACHE_DESCRIPTORS_PER_BUCKET,
+    SemanticCacheBackendError,
     SemanticCacheCoordinationError,
     SemanticCacheLookupResult,
     SemanticCacheRepository,
@@ -216,6 +217,41 @@ def test_store_retains_only_newest_bounded_descriptors() -> None:
         value for value in backend.values.values() if isinstance(value, SemanticResult)
     ]
     assert len(result_values) == MAX_SEMANTIC_CACHE_DESCRIPTORS_PER_BUCKET
+
+
+def test_store_surfaces_backend_delete_failure_as_store_error() -> None:
+    # Eviction of a bounded-out descriptor deletes its value key; a backend
+    # failure there must surface as the store's typed error, not leak the
+    # backend exception class to callers.
+    class _DeleteFailingBackend(_Backend):
+        def delete(self, key: str) -> bool:
+            raise SemanticCacheBackendError("backend down")
+
+    backend: _Backend = _DeleteFailingBackend()
+    ticks: Iterator[float] = iter(
+        float(index) for index in range(MAX_SEMANTIC_CACHE_DESCRIPTORS_PER_BUCKET + 1)
+    )
+    repository: SemanticCacheRepository = SemanticCacheRepository(
+        backend,
+        _Coordinator(),
+        clock=lambda: next(ticks),
+    )
+    query: SemanticQuery = build_semantic_query()
+
+    for limit in range(MAX_SEMANTIC_CACHE_DESCRIPTORS_PER_BUCKET):
+        repository.store(
+            build_view_meta(),
+            replace(query, limit=limit),
+            build_semantic_result(),
+        )
+
+    with pytest.raises(SemanticCacheStoreError) as excinfo:
+        repository.store(
+            build_view_meta(),
+            replace(query, limit=MAX_SEMANTIC_CACHE_DESCRIPTORS_PER_BUCKET),
+            build_semantic_result(),
+        )
+    assert isinstance(excinfo.value.__cause__, SemanticCacheBackendError)
 
 
 def test_failed_coordination_removes_undiscoverable_value() -> None:
