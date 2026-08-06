@@ -58,6 +58,13 @@ const getCrossFilterDataMask =
       .map(value => labelMap[value])
       .filter(Boolean) as string[][];
 
+    // If any selected value has no labelMap entry (e.g. pie "Total" or "Other"
+    // pseudo-elements), do not emit a filter — returning undefined signals the
+    // caller to skip the cross-filter emission entirely.
+    if (groupbyValues.length !== values.length) {
+      return undefined;
+    }
+
     return {
       dataMask: {
         extraFormData: {
@@ -100,6 +107,10 @@ export const clickEventHandler =
   ) =>
   ({ name }: { name: string }) => {
     if (!emitCrossFilters) {
+      return;
+    }
+    // Ignore clicks on pseudo-elements that carry no name (e.g. empty labels).
+    if (!name) {
       return;
     }
     const dataMask = getCrossFilterDataMask(name)?.dataMask;

@@ -180,3 +180,60 @@ test('cross-filter does nothing when emitCrossFilters is false', () => {
 
   expect(setDataMask).not.toHaveBeenCalled();
 });
+
+test('cross-filter does not emit when pie Total pseudo-element is clicked (name not in labelMap)', () => {
+  const setDataMask = jest.fn();
+  const props = buildProps({
+    groupby: ['category'],
+    labelMap: {
+      Electronics: ['Electronics'],
+      Clothing: ['Clothing'],
+    },
+    selectedValues: {},
+    setDataMask,
+  });
+
+  const handlers = allEventHandlers(props);
+  // "Total" is a graphic text element rendered by showTotal; it is never a
+  // labelMap key, so clicking it must not emit any cross-filter.
+  handlers.click({ name: 'Total' });
+
+  expect(setDataMask).not.toHaveBeenCalled();
+});
+
+test('cross-filter does not emit when pie Other slice is clicked (name not in labelMap)', () => {
+  const setDataMask = jest.fn();
+  const props = buildProps({
+    groupby: ['category'],
+    labelMap: {
+      Electronics: ['Electronics'],
+      Clothing: ['Clothing'],
+    },
+    selectedValues: {},
+    setDataMask,
+  });
+
+  const handlers = allEventHandlers(props);
+  // "Other" is the aggregated slice rendered by thresholdForOther; it is never
+  // a labelMap key, so clicking it must not emit any cross-filter.
+  handlers.click({ name: 'Other' });
+
+  expect(setDataMask).not.toHaveBeenCalled();
+});
+
+test('cross-filter does not emit when click event name is empty string', () => {
+  const setDataMask = jest.fn();
+  const props = buildProps({
+    groupby: ['category'],
+    labelMap: { Electronics: ['Electronics'] },
+    selectedValues: {},
+    setDataMask,
+  });
+
+  const handlers = allEventHandlers(props);
+  // Some ECharts click events on non-data elements (e.g. legend, axis) arrive
+  // with an empty name string.
+  handlers.click({ name: '' });
+
+  expect(setDataMask).not.toHaveBeenCalled();
+});
