@@ -183,11 +183,13 @@ class ReportRecipientSchema(Schema):
 
     @validates_schema
     def validate_slack_recipients(self, data: dict[str, Any], **kwargs: Any) -> None:
-        """Slack recipients must be channel ids, because a name never delivers."""
-        if data.get("type") not in (
-            ReportRecipientType.SLACK.value,
-            ReportRecipientType.SLACKV2.value,
-        ):
+        """SlackV2 recipients must be channel ids, because a name never delivers."""
+        # SlackV2 only. The deprecated Slack v1 path still accepts channel names:
+        # it sends with files_upload/chat_postMessage, which resolve a name, and
+        # existing v1 recipients are auto-upgraded to SlackV2 on first send by
+        # update_report_schedule_slack_v2. Rejecting names here would break that
+        # upgrade path and the v1 contract.
+        if data.get("type") != ReportRecipientType.SLACKV2.value:
             return
 
         target = ((data.get("recipient_config_json") or {}).get("target") or "").strip()
