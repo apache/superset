@@ -79,8 +79,10 @@ def test_auto_currency_formats_without_symbol():
         (5e-7, "5e-7"),
         (9.999999e-7, "9.999999e-7"),
         (1e-6, "0.000001"),
-        (1e20, "100,000,000,000,000,000,000"),
-        (999_999_999_999_999_900_000, "999,999,999,999,999,900,000"),
+        (999_999_999_999, "999,999,999,999"),
+        (1e12, "1e+12"),
+        (1e20, "1e+20"),
+        (999_999_999_999_999_900_000, "1e+21"),
         (1e21, "1e+21"),
     ],
 )
@@ -320,6 +322,7 @@ def test_matches_frontend_d3_format(d3_format):
         (",", 0.00005, "0.00005"),
         (",", -1234.5, "-1,234.5"),
         ("+,", 4725.0, "+4,725"),
+        ("+,", 1000.0, "+1,000"),
         ("+,", -1234.5, "-1,234.5"),
     ],
 )
@@ -342,4 +345,20 @@ def test_default_format_matches_d3_for_floats(d3_format, value, expected):
     ],
 )
 def test_rounding_matches_d3_binary_half_up(d3_format, value, expected):
+    assert format_number_with_config(d3_format, None, value) == expected
+
+
+@pytest.mark.parametrize(
+    "d3_format,value,expected",
+    [
+        ("~g", 0.00005, "0.00005"),
+        ("~g", 0.000005, "0.000005"),
+        (".0s", 4725, "5k"),
+        (".0e", 2.5, "3e+0"),
+        (".2~e", 1000, "1e+3"),
+        (",.2f", 1e21, "1e+21"),
+        (",.1%", 1e20, "1e+22%"),
+    ],
+)
+def test_additional_d3_parity_cases(d3_format, value, expected):
     assert format_number_with_config(d3_format, None, value) == expected

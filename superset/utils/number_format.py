@@ -174,29 +174,48 @@ def format_d3(d3_format: str, value: float) -> str:
     trim = bool(match.group(9))
     type_ = (match.group(10) or "").lower()
 
+    if type_ == "n":
+        comma = ","
+        type_ = "g"
+
     magnitude = abs(value)
     if type_ == "s":
         formatted = format_si(
-            magnitude, precision if precision is not None else 6, trim
+            magnitude, max(1, precision if precision is not None else 6), trim
         )
     elif type_ == "r":
         formatted = format_significant(
-            magnitude, precision if precision is not None else 6, trim, comma
+            magnitude,
+            max(1, precision if precision is not None else 6),
+            trim,
+            comma,
         )
-    elif type_ == "" and precision is None:
-        formatted = format_default(magnitude, comma)
+    elif type_ == "":
+        formatted = format_general(
+            magnitude, precision if precision is not None else 12, True, comma
+        )
     else:
         if type_ == "d":
             formatted = format(int(quantize_half_up(magnitude, 0)), f"{comma}d")
-        elif type_ in ("f", "%") and precision is not None:
+        elif type_ in ("f", "%"):
+            precision = precision if precision is not None else 6
             scaled = magnitude * 100 if type_ == "%" else magnitude
             suffix = "%" if type_ == "%" else ""
-            rounded = quantize_half_up(scaled, precision)
-            formatted = format(rounded, f"{comma}.{precision}f") + suffix
+            if scaled >= 1e21:
+                formatted = normalize_exponent(repr(float(scaled))) + suffix
+            else:
+                rounded = quantize_half_up(scaled, precision)
+                formatted = format(rounded, f"{comma}.{precision}f") + suffix
+        elif type_ == "e":
+            formatted = format_exponential(
+                magnitude, precision if precision is not None else 6
+            )
+        elif type_ == "g":
+            formatted = format_general(
+                magnitude, precision if precision is not None else 6, trim, comma
+            )
         else:
-            decimals = f".{precision}" if precision is not None else ""
-            formatted = format(magnitude, f"{comma}{decimals}{type_}")
-            formatted = normalize_exponent(formatted)
+            raise ValueError(d3_format)
         formatted = trim_trailing_zeros(formatted) if trim else formatted
 
     if currency_symbol:
@@ -225,15 +244,33 @@ def format_default(value: float, comma: str) -> str:
     """
     Format ``value`` the way d3's default (no-type) specifier does.
 
-    Mirrors JavaScript's ``Number.toString``: the shortest decimal representation
-    with optional grouping and no trailing zeros. JavaScript switches to exponent
-    notation below ``1e-6`` and at or above ``1e21``; values at ``1e-6`` remain
-    fixed-point.
+    d3 aliases an omitted type to ``.12~g``. This preserves fixed notation from
+    ``1e-6`` through twelve significant integer digits, then uses exponent
+    notation outside that range.
     """
-    if value and (value < 1e-6 or value >= 1e21):
-        return normalize_exponent(repr(value))
-    formatted = format(Decimal(repr(value)), f"{comma}f")
-    return trim_trailing_zeros(formatted)
+    return format_general(value, 12, True, comma)
+
+
+def format_general(
+    value: float, precision: int, trim: bool, comma: str = ""
+) -> str:
+    """Format d3's ``g`` type with JavaScript ``toPrecision`` thresholds."""
+    precision = max(1, precision)
+    rounded = round_to_significant(value, precision)
+    exponent = decimal_exponent(rounded)
+    if value and (exponent < -6 or exponent >= precision):
+        formatted = format_exponential(value, precision - 1)
+    else:
+        formatted = format_significant(value, precision, False, comma)
+    return trim_trailing_zeros(formatted) if trim else formatted
+
+
+def format_exponential(value: float, precision: int) -> str:
+    """Format d3's ``e`` type using binary-float, half-up rounding."""
+    rounded = round_to_significant(value, precision + 1)
+    exponent = decimal_exponent(rounded)
+    mantissa = rounded / (10**exponent) if rounded else 0.0
+    return f"{mantissa:.{precision}f}e{exponent:+d}"
 
 
 def format_smart_number(value: float, signed: bool = False) -> str:
@@ -252,9 +289,9 @@ def format_smart_number(value: float, signed: bool = False) -> str:
         if absolute >= 1000:
             body = format_si(value, 3, trim=True, billions=True)
         elif absolute >= 1:
-            body = trim_trailing_zeros(format(value, ".2f"))
+            body = trim_trailing_zeros(format(quantize_half_up(value, 2), ".2f"))
         elif absolute >= 0.001:
-            body = trim_trailing_zeros(format(value, ".4f"))
+            body = trim_trailing_zeros(format(quantize_half_up(value, 4), ".4f"))
         elif absolute > 0.000001:
             body = format_si(value * 1000000, 3, trim=True) + "µ"
         else:
@@ -314,9 +351,7 @@ def round_to_significant(value: float, precision: int) -> float:
     """
     if value == 0:
         return 0.0
-    return float(
-        quantize_half_up(value, precision - 1 - math.floor(math.log10(abs(value))))
-    )
+    return float(quantize_half_up(value, precision - 1 - decimal_exponent(value)))
 
 
 def quantize_half_up(value: float, decimals: int) -> Decimal:
@@ -331,8 +366,13 @@ def quantize_half_up(value: float, decimals: int) -> Decimal:
 
 
 def decimals_for_significant(value: float, precision: int) -> int:
-    integer_digits = 1 if value == 0 else math.floor(math.log10(abs(value))) + 1
+    integer_digits = 1 if value == 0 else decimal_exponent(value) + 1
     return max(0, precision - integer_digits)
+
+
+def decimal_exponent(value: float) -> int:
+    """Return the base-10 exponent without ``log10`` boundary drift."""
+    return Decimal(repr(value)).adjusted() if value else 0
 
 
 def normalize_exponent(formatted: str) -> str:
@@ -389,9 +429,11 @@ def apply_currency(formatted: str, currency: dict[str, Any]) -> str:
 def trim_trailing_zeros(formatted: str) -> str:
     suffix = "%" if formatted.endswith("%") else ""
     body = formatted[: -len(suffix)] if suffix else formatted
-    if "." in body:
-        body = body.rstrip("0").rstrip(".")
-    return body + suffix
+    coefficient, separator, exponent = body.partition("e")
+    if "." in coefficient:
+        coefficient = coefficient.rstrip("0").rstrip(".")
+    exponent_suffix = f"{separator}{exponent}" if separator else ""
+    return coefficient + exponent_suffix + suffix
 
 
 def raw_string(value: float) -> str:
