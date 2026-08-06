@@ -211,6 +211,16 @@ describe('formatPieLabel', () => {
       }),
     ).toEqual(['&lt;NULL&gt;', '1.23k', '12.34%']);
   });
+
+  test('should use the supplied percent formatter', () => {
+    expect(
+      parseParams({
+        params: { name: 'My Label', value: 1234, percent: 12.34 },
+        numberFormatter: getNumberFormatter(),
+        percentFormatter: getNumberFormatter(',.1%'),
+      }),
+    ).toEqual(['My Label', '1.23k', '12.3%']);
+  });
 });
 
 describe('Pie label string template', () => {
@@ -319,6 +329,30 @@ describe('Pie label string template', () => {
         number_format: ',d',
       }),
     ).toEqual('Tablet:123456\n55.5');
+  });
+
+  test('should format percentages with a percentage number format', () => {
+    expect(
+      format({ label_type: 'key_percent', number_format: ',.1%' }),
+    ).toEqual('Tablet: 55.5%');
+  });
+
+  test('should leave percentages at the default for non-percentage formats', () => {
+    // A value format such as ',d' would render the underlying fraction as `1`,
+    // so percentages keep the default two-decimal formatter.
+    expect(format({ label_type: 'key_percent', number_format: ',d' })).toEqual(
+      'Tablet: 55.50%',
+    );
+  });
+
+  test('should apply the percentage format to template labels', () => {
+    expect(
+      format({
+        label_type: 'template',
+        label_template: '{name}:{value}\n{percent}',
+        number_format: ',.1%',
+      }),
+    ).toEqual('Tablet:12,345,600.0%\n55.5%');
   });
 });
 

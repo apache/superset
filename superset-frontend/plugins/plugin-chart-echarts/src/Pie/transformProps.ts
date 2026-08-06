@@ -55,15 +55,29 @@ import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
 import { getContributionLabel } from './utils';
 
-const percentFormatter = getNumberFormatter(NumberFormats.PERCENT_2_POINT);
+const defaultPercentFormatter = getNumberFormatter(
+  NumberFormats.PERCENT_2_POINT,
+);
+
+/**
+ * Percentage labels only make sense under a percentage D3 format. Any other
+ * format (SMART_NUMBER, currency, integer) would render the underlying
+ * fraction — 0.42 rather than 42% — so those keep the default formatter.
+ */
+const resolvePercentFormatter = (numberFormat?: string) =>
+  numberFormat?.includes('%')
+    ? getNumberFormatter(numberFormat)
+    : defaultPercentFormatter;
 
 export function parseParams({
   params,
   numberFormatter,
+  percentFormatter = defaultPercentFormatter,
   sanitizeName = false,
 }: {
   params: Pick<CallbackDataParams, 'name' | 'value' | 'percent'>;
   numberFormatter: ValueFormatter;
+  percentFormatter?: ValueFormatter;
   sanitizeName?: boolean;
 }): string[] {
   const { name: rawName = '', value, percent } = params;
@@ -296,6 +310,7 @@ export default function transformProps(
     currencyCodeColumn,
     detectedCurrency,
   );
+  const percentFormatter = resolvePercentFormatter(numberFormat);
 
   let data = rawData;
   const otherRows: DataRecord[] = [];
@@ -446,6 +461,7 @@ export default function transformProps(
     const [name, formattedValue, formattedPercent] = parseParams({
       params,
       numberFormatter,
+      percentFormatter,
     });
     switch (labelType) {
       case EchartsPieLabelType.Key:
@@ -566,6 +582,7 @@ export default function transformProps(
         const [name, formattedValue, formattedPercent] = parseParams({
           params,
           numberFormatter,
+          percentFormatter,
           sanitizeName: true,
         });
         if (params?.data?.isOther) {
