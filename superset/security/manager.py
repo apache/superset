@@ -198,6 +198,94 @@ def freeze_value(value: Any) -> str:
     return json.dumps(value, sort_keys=True)
 
 
+#: Keys that ``normalizeTimeColumn`` adds when it synthesizes a chart's x-axis into
+#: a ``BASE_AXIS`` column. They decorate the column without changing which data is
+#: queried, so they must not read as payload tampering.
+BASE_AXIS_SYNTHETIC_KEYS = frozenset({"columnType", "isColumnReference", "timeGrain"})
+
+
+def denormalize_base_axis_column(value: Any) -> Any:
+    """
+    Reduce a synthesized ``BASE_AXIS`` x-axis column to the reference it stands for.
+
+    Before a chart is queried, ``normalizeTimeColumn`` (superset-ui-core) replaces the
+    chart's saved x-axis in the query with an adhoc column tagged
+    ``columnType: "BASE_AXIS"``:
+
+    * for a *physical* x-axis it emits a pure column reference (``isColumnReference``
+      with ``sqlExpression`` == ``label`` == the physical column name), and
+    * for an *adhoc* x-axis it copies the saved adhoc column and adds the markers.
+
+    Neither form selects data beyond the saved x-axis, yet neither appears verbatim in
+    the chart's stored ``params`` (the x-axis is stored under its own ``x_axis``
+    control), so a guest merely loading such a chart would otherwise be rejected as a
+    tamperer.
+
+    This collapses the synthesized column back to its underlying reference so it
+    compares equal to the stored x-axis. The collapsed value must still match a value
+    stored on the chart, so tagging an unrelated column or free-form SQL as
+    ``BASE_AXIS`` grants no additional access. Other values are returned unchanged.
+    """
+    if not isinstance(value, dict) or value.get("columnType") != "BASE_AXIS":
+        return value
+    # A physical x-axis is stored as a bare string but sent as a dict, so the dict has
+    # to collapse to the string; dropping keys could never make the two compare equal.
+    if value.get("isColumnReference") and isinstance(value.get("sqlExpression"), str):
+        return value["sqlExpression"]
+    return {
+        key: val for key, val in value.items() if key not in BASE_AXIS_SYNTHETIC_KEYS
+    }
+
+
+def _payload_key_modified(  # pylint: disable=too-many-arguments
+    query_context: "QueryContext",
+    form_data: dict[str, Any],
+    stored_chart: "Slice",
+    stored_query_context: Optional[dict[str, Any]],
+    key: str,
+    equivalent: list[str],
+) -> bool:
+    """
+    Whether values requested under a single payload key read beyond the stored chart.
+    """
+    # Column-valued keys additionally collapse a frontend-synthesized ``BASE_AXIS``
+    # x-axis to the column it references. Metrics and order-by keep exact comparison, so
+    # a ``BASE_AXIS`` marker cannot be smuggled onto a metric or a sort expression.
+    is_column_key = key in {"columns", "groupby"}
+
+    def identity(value: Any) -> str:
+        return freeze_value(
+            denormalize_base_axis_column(value) if is_column_key else value
+        )
+
+    requested_values = {identity(value) for value in form_data.get(key) or []}
+    stored_values = {
+        identity(value) for value in stored_chart.params_dict.get(key) or []
+    }
+    # The x-axis is a saved dimension the query carries in ``columns``/``groupby`` but
+    # that is not itself listed under those keys, so read it from its own control.
+    # Charts whose stored query_context is NULL have nothing else to compare it against.
+    if is_column_key and (x_axis := stored_chart.params_dict.get("x_axis")):
+        stored_values.add(identity(x_axis))
+    if not requested_values.issubset(stored_values):
+        return True
+
+    # compare queries in query_context
+    queries_values = {
+        identity(value)
+        for query in query_context.queries
+        for value in getattr(query, key, []) or []
+    }
+    if stored_query_context:
+        for query in stored_query_context.get("queries") or []:
+            for equivalent_key in equivalent:
+                stored_values.update(
+                    {identity(value) for value in query.get(equivalent_key) or []}
+                )
+
+    return not queries_values.issubset(stored_values)
+
+
 def query_context_modified(query_context: "QueryContext") -> bool:
     """
     Check if a query context has been modified.
@@ -223,36 +311,22 @@ def query_context_modified(query_context: "QueryContext") -> bool:
     )
 
     # compare columns and metrics in form_data with stored values
-    for key, equivalent in [
-        ("metrics", ["metrics"]),
-        ("columns", ["columns", "groupby"]),
-        ("groupby", ["columns", "groupby"]),
-        ("orderby", ["orderby"]),
-    ]:
-        requested_values = {freeze_value(value) for value in form_data.get(key) or []}
-        stored_values = {
-            freeze_value(value) for value in stored_chart.params_dict.get(key) or []
-        }
-        if not requested_values.issubset(stored_values):
-            return True
-
-        # compare queries in query_context
-        queries_values = {
-            freeze_value(value)
-            for query in query_context.queries
-            for value in getattr(query, key, []) or []
-        }
-        if stored_query_context:
-            for query in stored_query_context.get("queries") or []:
-                for key in equivalent:
-                    stored_values.update(
-                        {freeze_value(value) for value in query.get(key) or []}
-                    )
-
-        if not queries_values.issubset(stored_values):
-            return True
-
-    return False
+    return any(
+        _payload_key_modified(
+            query_context,
+            form_data,
+            stored_chart,
+            stored_query_context,
+            key,
+            equivalent,
+        )
+        for key, equivalent in [
+            ("metrics", ["metrics"]),
+            ("columns", ["columns", "groupby"]),
+            ("groupby", ["columns", "groupby"]),
+            ("orderby", ["orderby"]),
+        ]
+    )
 
 
 class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
