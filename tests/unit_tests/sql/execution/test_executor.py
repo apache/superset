@@ -44,6 +44,7 @@ from superset_core.queries.types import (
 )
 
 from superset.models.core import Database
+from tests.unit_tests.conftest import with_feature_flags
 
 # Note: database, database_with_dml, mock_db_session fixtures and
 # mock_query_execution helper are imported from conftest.py
@@ -787,6 +788,42 @@ def test_execute_async_dml_without_permission_raises(
 
     with pytest.raises(SupersetSecurityException, match="DML queries are not allowed"):
         database.execute_async("INSERT INTO users (name) VALUES ('test')")
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+def test_execute_async_undefined_template_var_raises_superset_template_exception(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """A Jinja template referencing an undefined variable (not called as a
+    function) must not leak a raw ``jinja2.exceptions.UndefinedError`` out of
+    ``execute_async`` - it should surface as ``SupersetTemplateException``."""
+    from superset.exceptions import SupersetTemplateException
+
+    mocker.patch.dict(
+        current_app.config, {"SQL_QUERY_MUTATOR": None, "SQLLAB_TIMEOUT": 30}
+    )
+
+    options = QueryOptions(template_params={"foo": "bar"})
+
+    with pytest.raises(SupersetTemplateException):
+        database.execute_async("SELECT {{ missing_var[0] }}", options=options)
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+def test_execute_sync_undefined_template_var_returns_failed_result(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """The sync ``execute`` path's broad ``except Exception`` still catches the
+    template rendering failure and returns a FAILED ``QueryResult``, unchanged
+    by the ``_render_sql_template`` fix."""
+    mocker.patch.dict(
+        current_app.config, {"SQL_QUERY_MUTATOR": None, "SQLLAB_TIMEOUT": 30}
+    )
+
+    options = QueryOptions(template_params={"foo": "bar"})
+    result = database.execute("SELECT {{ missing_var[0] }}", options=options)
+
+    assert result.status == QueryStatus.FAILED
 
 
 def test_async_handle_get_status(
