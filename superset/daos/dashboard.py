@@ -56,6 +56,29 @@ DASHBOARD_CUSTOM_FIELDS = {
     "favorite": ["eq"],
 }
 
+# Keys ``DashboardDAO.set_dash_metadata`` recomputes or overrides itself,
+# rather than passing straight through from the incoming payload: either
+# because they're structurally transformed (positions, filter_scopes,
+# default_filters), reset to a default when absent (color_namespace, the
+# metadata_defaults fields), or always derived and never sent by the
+# frontend (shared_label_colors, map_label_colors, color_scheme_domain).
+# Excluded from the generic merge so that dedicated handling stays
+# authoritative for them.
+_SET_DASH_METADATA_SPECIAL_KEYS = {
+    "positions",
+    "filter_scopes",
+    "default_filters",
+    "color_namespace",
+    "expanded_slices",
+    "refresh_frequency",
+    "color_scheme",
+    "label_colors",
+    "cross_filters_enabled",
+    "shared_label_colors",
+    "map_label_colors",
+    "color_scheme_domain",
+}
+
 
 class DashboardDAO(BaseDAO[Dashboard]):
     base_filter = DashboardAccessFilter
@@ -305,6 +328,17 @@ class DashboardDAO(BaseDAO[Dashboard]):
         new_filter_scopes = {}
         md = dashboard.params_dict
 
+        # Merge every incoming metadata key that isn't given dedicated
+        # handling below straight through (e.g. show_chart_timestamps,
+        # stagger_refresh, timed_refresh_immune_slices). Without this, only
+        # the fixed subset of keys this function special-cases would ever
+        # reach ``dashboard.json_metadata`` -- any other field edited via
+        # the Advanced JSON editor would silently revert to its stored
+        # value on save (sadpandajoe, #42142).
+        md.update(
+            {k: v for k, v in data.items() if k not in _SET_DASH_METADATA_SPECIAL_KEYS}
+        )
+
         if (positions := data.get("positions")) is not None:
             # find slices in the position data
             slice_ids = [
@@ -396,14 +430,36 @@ class DashboardDAO(BaseDAO[Dashboard]):
         else:
             md["color_namespace"] = data.get("color_namespace")
 
-        md["expanded_slices"] = data.get("expanded_slices", {})
-        md["refresh_frequency"] = data.get("refresh_frequency", 0)
-        md["color_scheme"] = data.get("color_scheme", "")
-        md["label_colors"] = data.get("label_colors", {})
+        # Only overwrite these metadata fields when the caller explicitly sends
+        # them. Previously each used ``data.get(key, default)``, which reset a
+        # value to its default whenever it was absent from the payload -- e.g. a
+        # ``refresh_frequency`` set directly in the Advanced JSON editor got
+        # wiped on save. ``setdefault`` still seeds a default for brand-new
+        # dashboards that have never had the key, keeping the shape stable
+        # without clobbering existing values (#42116).
+        metadata_defaults: dict[str, Any] = {
+            "expanded_slices": {},
+            "refresh_frequency": 0,
+            "color_scheme": "",
+            "label_colors": {},
+            "cross_filters_enabled": True,
+        }
+        for key, default_value in metadata_defaults.items():
+            if key in data:
+                md[key] = data[key]
+            else:
+                md.setdefault(key, default_value)
+
+        # These are derived from ``color_scheme``/``label_colors`` on the
+        # frontend (see ``applyDashboardLabelsColorOnLoad``) and are always
+        # omitted from the Properties modal's payload, so they must keep
+        # resetting to their default when absent rather than being preserved
+        # -- otherwise a color scheme change made through that modal leaves
+        # stale label-to-color mappings in place instead of triggering
+        # recomputation on next load.
         md["shared_label_colors"] = data.get("shared_label_colors", [])
         md["map_label_colors"] = data.get("map_label_colors", {})
         md["color_scheme_domain"] = data.get("color_scheme_domain", [])
-        md["cross_filters_enabled"] = data.get("cross_filters_enabled", True)
         dashboard.json_metadata = json.dumps(md)
 
     @staticmethod
@@ -428,11 +484,22 @@ class DashboardDAO(BaseDAO[Dashboard]):
             raise DashboardForbiddenError()
 
         dash = Dashboard()
+        # The copied dashboard and every chart cloned below share one creator,
+        # so both lookups are resolved here rather than inside the loop, where
+        # they would cost two extra queries for each chart in the dashboard.
+        creator_editors: list[Any] = []
+        creator_viewers: list[Any] = []
         if g.user:
-            from superset.subjects.utils import get_user_subject
+            from superset.subjects.utils import (
+                get_default_viewers_for_new_asset,
+                get_user_subject,
+            )
 
             user_subject = get_user_subject(g.user.id)
-            dash.editors = [user_subject] if user_subject else []
+            creator_editors = [user_subject] if user_subject else []
+            creator_viewers = get_default_viewers_for_new_asset(g.user.id)
+        dash.editors = creator_editors
+        dash.viewers = creator_viewers
         dash.dashboard_title = data["dashboard_title"]
         dash.css = data.get("css")
 
@@ -442,11 +509,10 @@ class DashboardDAO(BaseDAO[Dashboard]):
             # Duplicating slices as well, mapping old ids to new ones
             for slc in original_dash.slices:
                 new_slice = slc.clone()
-                if g.user:
-                    from superset.subjects.utils import get_user_subject
-
-                    user_subject = get_user_subject(g.user.id)
-                    new_slice.editors = [user_subject] if user_subject else []
+                # ``Slice.clone()`` carries over no subjects, so both
+                # collections start empty on the new chart.
+                new_slice.editors = list(creator_editors)
+                new_slice.viewers = list(creator_viewers)
                 db.session.add(new_slice)
                 db.session.flush()
                 new_slice.dashboards.append(dash)

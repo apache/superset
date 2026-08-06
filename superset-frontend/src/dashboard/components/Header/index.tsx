@@ -60,6 +60,7 @@ import {
 } from 'src/features/reports/ReportModal/actions';
 import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWithActions';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
+import { selectIsDashboardVersionPreviewActive } from 'src/features/versionHistory/reducer';
 import DashboardEmbedModal from '../EmbeddedModal';
 import OverwriteConfirm from '../OverwriteConfirm';
 import {
@@ -542,10 +543,21 @@ const Header = (): JSX.Element => {
 
   const metadataBar = useDashboardMetadataBar(dashboardInfo);
 
+  const isVersionPreviewActive = useSelector(
+    selectIsDashboardVersionPreviewActive,
+  );
   const userCanEdit =
-    dashboardInfo.dash_edit_perm && !dashboardInfo.is_managed_externally;
-  const userCanShare = !!dashboardInfo.dash_share_perm;
-  const userCanSaveAs = !!dashboardInfo.dash_save_perm;
+    dashboardInfo.dash_edit_perm &&
+    !dashboardInfo.is_managed_externally &&
+    !isVersionPreviewActive;
+  const userCanShare =
+    !!dashboardInfo.dash_share_perm && !isVersionPreviewActive;
+  // Gated on preview like userCanEdit above: the Save/Discard toolbar acts on
+  // whatever is currently hydrated, and during a preview that is the
+  // snapshot's layout -- so leaving this ungated is a route to writing a
+  // historical version over the live dashboard.
+  const userCanSaveAs =
+    !!dashboardInfo.dash_save_perm && !isVersionPreviewActive;
   const userCanCurate =
     isFeatureEnabled(FeatureFlag.EmbeddedSuperset) &&
     findPermission('can_set_embedded', 'Dashboard', user.roles);
@@ -840,6 +852,7 @@ const Header = (): JSX.Element => {
         menuDropdownProps={{
           open: isDropdownVisible,
           onOpenChange: setIsDropdownVisible,
+          disabled: isVersionPreviewActive,
         }}
         additionalActionsMenu={menu}
         showFaveStar={Boolean(user?.userId && dashboardInfo?.id)}

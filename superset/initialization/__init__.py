@@ -20,6 +20,7 @@ import contextlib
 import logging
 import os
 import sys
+import warnings
 from typing import Any, Callable, TYPE_CHECKING
 
 import wtforms_json
@@ -74,6 +75,7 @@ from superset.superset_typing import FlaskResponse
 from superset.utils.core import is_test, pessimistic_connection_handling
 from superset.utils.decorators import transaction
 from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
+from superset.utils.report_execution import validate_report_execution_config
 
 if TYPE_CHECKING:
     from superset.app import SupersetApp
@@ -122,6 +124,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         """
         Called before all other init tasks are complete
         """
+        validate_report_execution_config(self.config)
         wtforms_json.init()
 
         os.makedirs(self.config["DATA_DIR"], exist_ok=True)
@@ -201,6 +204,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.all_entities import TaggedObjectsModelView
         from superset.views.annotations import AnnotationLayerView
         from superset.views.api import Api
+        from superset.views.archived_assets import ArchivedAssetsView
         from superset.views.chart.views import SliceModelView
         from superset.views.core import Superset
         from superset.views.css_templates import CssTemplateModelView
@@ -525,6 +529,16 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Manage",
             menu_cond=lambda: feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"),
         )
+        appbuilder.add_view(
+            ArchivedAssetsView,
+            "Recently Archived",
+            label=_("Recently Archived"),
+            icon="fa-archive",
+            category_icon="",
+            category="Manage",
+            category_label=_("Manage"),
+            menu_cond=lambda: feature_flag_manager.is_feature_enabled("SOFT_DELETE"),
+        )
         appbuilder.add_api(LogRestApi)
         appbuilder.add_api(UserRegistrationsRestAPI)
         appbuilder.add_view(
@@ -775,13 +789,24 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         does not load ``superset.config`` (some test factories, embedded
         use) stays inert by default rather than silently enabling capture.
         """
+        # Beat-schedule check first: the retention task is independent of
+        # save-path capture and remains useful for ageing-out rows already
+        # written by prior deploys. An operator hitting the kill-switch in
+        # anger may also be running a hand-rolled ``CeleryConfig`` that
+        # silently dropped the prune entry; surfacing both misconfigurations
+        # at the same restart is the cheap, observability-positive shape.
+        self._warn_if_retention_beat_missing()
+
         if not self.config.get("ENABLE_VERSIONING_CAPTURE", False):
             logger.warning(
                 "versioning: ENABLE_VERSIONING_CAPTURE is False; "
                 "skipping baseline + change-record listener registration "
                 "and detaching Continuum's write listeners. Save-path "
-                "capture is disabled; existing shadow tables and "
-                "/versions/ endpoints continue to work read-only."
+                "capture is disabled; existing shadow tables and the "
+                "read-side /versions/ endpoints continue to work "
+                "read-only, and the version-restore endpoints refuse "
+                "with 404 (a restore without capture would be a "
+                "destructive, untracked write)."
             )
             self._remove_continuum_write_listeners()
             return
@@ -861,10 +886,140 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         register_baseline_listener()
         register_change_record_listener()
 
-        # Retention pruning runs out-of-band as a scheduled Celery beat
-        # task, shipped as a separate stacked PR. The previous
-        # synchronous after_commit listener was retired so retention work
-        # doesn't add latency to user saves.
+        # Retention is time-based and runs out-of-band as a Celery beat
+        # task — see ``superset/tasks/version_history_retention.py``
+        # and the ``version_history.prune_old_versions`` entry in
+        # ``CeleryConfig.beat_schedule`` (``superset/config.py``). The
+        # previous synchronous after_commit listener was retired so
+        # retention work doesn't add latency to user saves.
+
+    _RETENTION_TASK_NAME: str = "version_history.prune_old_versions"
+    _PURGE_TASK_NAME: str = "deletion_retention.purge_soft_deleted"
+    #: Module each task lives in. A beat entry alone is not enough — a worker
+    #: that never imported the module answers ``NotRegistered`` when the task
+    #: fires, which is the same silent non-execution one layer down.
+    _RETENTION_TASK_MODULE: str = "superset.tasks.version_history_retention"
+    _PURGE_TASK_MODULE: str = "superset.tasks.deletion_retention"
+
+    def _warn_if_retention_beat_missing(self) -> None:
+        """WARN at startup when the resolved Celery beat schedule is
+        missing a time-based retention task:
+
+        * ``version_history.prune_old_versions`` — checked always, since
+          shadow rows written by prior deploys keep ageing even when
+          capture is off;
+        Each task needs an entry in ``beat_schedule``. When ``imports`` is
+        explicitly configured, its module is checked there as well. An absent
+        ``imports`` setting is not diagnosed because Celery may register tasks
+        through ``include``, autodiscovery, or worker startup imports.
+
+        * ``deletion_retention.purge_soft_deleted`` — checked only when
+          ``SOFT_DELETE`` is enabled, because the purge task itself
+          no-ops while the flag is off, so a missing entry is only
+          actionable once soft delete is statically configured. Dynamic
+          request-time feature resolvers are intentionally excluded from this
+          startup diagnostic.
+
+        Operators who redefine ``CeleryConfig`` in ``superset_config.py``
+        — instead of subclassing or merging the default — silently lose
+        these tasks. Capture continues writing rows; the prune
+        never runs; disk grows until paged. Archived objects likewise
+        accumulate forever instead of purging after the retention window.
+        The default config carries both entries; this check makes the
+        misconfiguration visible in the deploy log before disk pressure
+        makes it visible at 03:00.
+
+        Handles four shapes of ``CELERY_CONFIG``:
+        * ``None`` — Celery deliberately disabled, no retention either
+          way; return without warning.
+        * a class or module with a ``beat_schedule`` attribute — the
+          default ``CeleryConfig`` shape.
+        * a dict — Celery's documented "config as dict" shape, supported
+          by ``celery_app.config_from_object``.
+        * a dotted import string — also accepted by Celery, but deliberately
+          skipped here because resolving operator code solely for this warning
+          would duplicate Celery loader behavior and could add startup side
+          effects.
+        """
+        celery_config: Any = self.config.get("CELERY_CONFIG")
+        if celery_config is None:
+            return  # Celery disabled entirely; no retention task to warn about.
+        if isinstance(celery_config, str):
+            return  # Celery resolves dotted config references in its loader.
+        beat_schedule = (
+            celery_config.get("beat_schedule")
+            if isinstance(celery_config, dict)
+            else getattr(celery_config, "beat_schedule", None)
+        )
+        celery_imports: Any = (
+            celery_config.get("imports")
+            if isinstance(celery_config, dict)
+            else getattr(celery_config, "imports", None)
+        )
+        # A str is iterable, so guard it explicitly: ``imports = "superset.foo"``
+        # would otherwise be treated as a sequence of characters and every
+        # module would read as absent.
+        imported_modules: frozenset[str] = frozenset(
+            celery_imports
+            if isinstance(celery_imports, (list, tuple, set, frozenset))
+            else ()
+        )
+        imports_configured = celery_imports is not None
+        # Match on the ``task`` each entry runs, not the schedule entry key:
+        # an operator may register the retention task under any key (e.g.
+        # ``{"prune_versions": {"task": "version_history.prune_old_versions"}}``),
+        # which is still correctly scheduled and must not warn. The default
+        # config happens to use the task name as the key, but that's incidental.
+        registered_tasks: set[Any] = {
+            entry.get("task")
+            for entry in (beat_schedule or {}).values()
+            if isinstance(entry, dict)
+        }
+        registered_tasks.update(beat_schedule or {})  # tolerate key == task name
+        if not beat_schedule or self._RETENTION_TASK_NAME not in registered_tasks:
+            logger.warning(
+                "versioning: CELERY_CONFIG.beat_schedule is missing the "
+                "%r entry — the retention task will not fire and shadow "
+                "tables will grow unbounded. Either inherit from the "
+                "default CeleryConfig or add the entry to your override.",
+                self._RETENTION_TASK_NAME,
+            )
+        if imports_configured and self._RETENTION_TASK_MODULE not in imported_modules:
+            logger.warning(
+                "versioning: CELERY_CONFIG.imports is missing %r — workers "
+                "will not register the retention task, so a scheduled run "
+                "fails with NotRegistered. Either inherit from the default "
+                "CeleryConfig or add the module to your override.",
+                self._RETENTION_TASK_MODULE,
+            )
+        default_flags = self.config.get("DEFAULT_FEATURE_FLAGS", {})
+        configured_flags = self.config.get("FEATURE_FLAGS", {})
+        soft_delete_enabled = bool(
+            configured_flags.get("SOFT_DELETE", default_flags.get("SOFT_DELETE", False))
+        )
+        if soft_delete_enabled and (
+            not beat_schedule or self._PURGE_TASK_NAME not in registered_tasks
+        ):
+            logger.warning(
+                "soft-delete: CELERY_CONFIG.beat_schedule is missing the "
+                "%r entry — archived objects will never be purged and "
+                "will accumulate indefinitely. Either inherit from the "
+                "default CeleryConfig or add the entry to your override.",
+                self._PURGE_TASK_NAME,
+            )
+        if (
+            soft_delete_enabled
+            and imports_configured
+            and self._PURGE_TASK_MODULE not in imported_modules
+        ):
+            logger.warning(
+                "soft-delete: CELERY_CONFIG.imports is missing %r — workers "
+                "will not register the purge task, so a scheduled run fails "
+                "with NotRegistered and archived objects are never purged. "
+                "Either inherit from the default CeleryConfig or add the "
+                "module to your override.",
+                self._PURGE_TASK_MODULE,
+            )
 
     def init_app_in_ctx(self) -> None:
         """
@@ -1324,6 +1479,20 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             )
 
     def configure_logging(self) -> None:
+        # sqlalchemy-redshift's own __init__ still imports pkg_resources (see
+        # superset/db_engine_specs/redshift.py for the full rationale). This
+        # filter used to live in DefaultLoggingConfigurator.configure_logging(),
+        # but LOGGING_CONFIGURATOR is a deployment-replaceable hook -- any
+        # custom configurator skipped it entirely and still hit the warning.
+        # Registering it here, before LOGGING_CONFIGURATOR runs, guarantees
+        # it's installed regardless of which configurator is configured.
+        warnings.filterwarnings(
+            "ignore",
+            message=r"pkg_resources is deprecated as an API",
+            category=UserWarning,
+            module=r"sqlalchemy_redshift(?:\..*)?",
+        )
+
         self.config["LOGGING_CONFIGURATOR"].configure_logging(
             self.config, self.superset_app.debug
         )
