@@ -1694,6 +1694,39 @@ test('xAxisForceCategorical forces Category axis regardless of Numeric coltype',
   expect(xAxis.triggerEvent).toBe(true);
 });
 
+test('temporal x-axis enables trigger events when no dimensions are set', () => {
+  const ts1 = 1745784000000;
+  const ts2 = 1745870400000;
+  const chartProps = createTestChartProps({
+    formData: {
+      metrics: ['metric'],
+      granularity_sqla: 'ds',
+      x_axis: '__timestamp',
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          { __timestamp: ts1, metric: 10 },
+          { __timestamp: ts2, metric: 20 },
+        ],
+        {
+          colnames: ['__timestamp', 'metric'],
+          coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+        },
+      ),
+    ],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const xAxis = echartOptions.xAxis as {
+    triggerEvent?: boolean;
+    type: string;
+  };
+
+  expect(xAxis.type).toBe(AxisType.Time);
+  expect(xAxis.triggerEvent).toBe(true);
+});
+
 test('temporal x coltype forced categorical yields a Category axis with date labels', () => {
   // Issue #28204: with a temporal x-axis (e.g. weekly grain) the default Time
   // scale places ticks at "nice" intervals that don't line up with the buckets.
@@ -1941,6 +1974,7 @@ test('tooltip time grain wiring: dashboard-level extraFormData time grain overri
   });
 
   const transformedProps = transformProps(chartProps);
+  expect(transformedProps.resolvedTimeGrain).toBe(TimeGranularity.MONTH);
   const tooltipFormatter = (
     transformedProps.echartOptions as unknown as TooltipFormatterOptions
   ).tooltip.formatter;
@@ -1974,6 +2008,7 @@ test('tooltip time grain wiring: chart-level time grain drives the tooltip when 
   });
 
   const transformedProps = transformProps(chartProps);
+  expect(transformedProps.resolvedTimeGrain).toBe(TimeGranularity.YEAR);
   const tooltipFormatter = (
     transformedProps.echartOptions as unknown as TooltipFormatterOptions
   ).tooltip.formatter;

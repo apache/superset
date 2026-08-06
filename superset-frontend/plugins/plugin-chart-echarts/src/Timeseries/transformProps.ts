@@ -1086,7 +1086,7 @@ export default function transformProps(
     name: xAxisTitle,
     nameGap: convertInteger(xAxisTitleMargin),
     nameLocation: 'middle',
-    ...(xAxisType === AxisType.Category &&
+    ...((xAxisType === AxisType.Category || xAxisType === AxisType.Time) &&
       groupBy.length === 0 && {
         triggerEvent: true,
       }),
@@ -1428,6 +1428,7 @@ export default function transformProps(
       label: xAxisLabel,
       type: xAxisType,
     },
+    resolvedTimeGrain,
     refs,
     coltypeMapping: dataTypes,
     onLegendScroll,
