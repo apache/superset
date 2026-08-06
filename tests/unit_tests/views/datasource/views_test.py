@@ -521,20 +521,47 @@ def test_samples_returns_400_for_unsupported_datasource_type(
     mock_security_manager.is_guest_user.return_value = False
     mock_json_error_response.return_value = "error-response"
 
-    raw_samples = _get_view_func("samples")
-    app = Flask(__name__)
+    app: Flask = Flask(__name__)
     with app.test_request_context(
         "/datasource/samples?datasource_type=semantic_view&datasource_id=1",
         method="POST",
         json={},
     ):
-        result = raw_samples(_view_self())
+        result: str = _get_view_func("samples")(_view_self())
 
     assert result == "error-response"
     mock_json_error_response.assert_called_once()
     _, kwargs = mock_json_error_response.call_args
     assert kwargs.get("status") == 400
     # The bail-out must happen before any sample fetching is attempted.
+    mock_get_samples.assert_not_called()
+
+
+@patch("superset.views.datasource.views._", _identity_gettext)
+@patch("superset.views.datasource.views.get_samples")
+@patch("superset.views.datasource.views.json_error_response")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+def test_samples_checks_guest_access_before_datasource_capability(
+    mock_security_manager: MagicMock,
+    mock_json_error_response: MagicMock,
+    mock_get_samples: MagicMock,
+) -> None:
+    """An unauthorized guest gets 403 before semantic-view capability errors."""
+    from flask import Flask
+
+    mock_security_manager.is_guest_user.return_value = True
+    mock_json_error_response.return_value = "forbidden-response"
+
+    app: Flask = Flask(__name__)
+    with app.test_request_context(
+        "/datasource/samples?datasource_type=semantic_view&datasource_id=1",
+        method="POST",
+        json={},
+    ):
+        result: str = _get_view_func("samples")(_view_self())
+
+    assert result == "forbidden-response"
+    mock_json_error_response.assert_called_once_with("Forbidden", status=403)
     mock_get_samples.assert_not_called()
 
 

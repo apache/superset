@@ -372,7 +372,11 @@ export default function DrillDetailPane({
           type="error"
           showIcon
           message={t('Failed to load drill-to-detail rows')}
-          description={responseError}
+          description={
+            <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
+              {responseError}
+            </pre>
+          }
         />
       </div>
     );

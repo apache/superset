@@ -85,6 +85,27 @@ describe('useResultsPane query data reuse', () => {
     expect(mockedGetChartDataRequest).toHaveBeenCalledTimes(1);
   });
 
+  test('preserves multiline formatting in results errors', async () => {
+    mockedGetChartDataRequest.mockRejectedValue(
+      new Error('Query failed\nCheck the datasource'),
+    );
+    const props = createResultsPaneOnDashboardProps({ sliceId: 208 });
+
+    render(<ResultsPaneOnDashboard {...props} />, { useRedux: true });
+
+    expect(await screen.findByText('Failed to load results')).toBeVisible();
+    const errorDescription = screen.getByText(
+      (_, element) =>
+        element?.tagName === 'PRE' &&
+        element.textContent === 'Query failed\nCheck the datasource',
+    );
+    expect(errorDescription.tagName).toBe('PRE');
+    expect(errorDescription.textContent).toBe(
+      'Query failed\nCheck the datasource',
+    );
+    expect(errorDescription).toHaveStyle({ whiteSpace: 'pre-wrap' });
+  });
+
   test('falls back to the results API when queriesResponse has no colnames', async () => {
     mockedGetChartDataRequest.mockResolvedValue({
       json: {

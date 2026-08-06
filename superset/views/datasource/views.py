@@ -223,22 +223,6 @@ class Datasource(BaseSupersetView):
         except ValidationError as err:
             return json_error_response(err.messages, status=400)
 
-        # Refuse early for datasource types that don't model raw rows
-        # (e.g. semantic views, which only expose pre-defined metrics and
-        # dimensions). Without this gate the request would still go through
-        # the standard query pipeline and fail with an opaque 500.
-        # ``supports_samples`` defaults to True for any datasource class that
-        # doesn't explicitly opt out, so SqlaTable/Query/SavedQuery continue
-        # to work without needing the attribute declared on each class.
-        ds_class: type[DatasourceUnion] | None = DatasourceDAO.sources.get(
-            DatasourceType(params["datasource_type"]),
-        )
-        if ds_class is not None and not getattr(ds_class, "supports_samples", True):
-            return json_error_response(
-                _("Samples are not available for this datasource type."),
-                status=400,
-            )
-
         dashboard_id = None
         if security_manager.is_guest_user():
             if not params["dashboard_id"]:
@@ -277,6 +261,20 @@ class Datasource(BaseSupersetView):
                     return json_error_response(_("Forbidden"), status=403)
             else:
                 dataset = None
+
+        # Refuse datasource types that don't model raw rows only after access
+        # validation. Running this gate first would disclose datasource
+        # capabilities to guest requests that should receive a 403 or 404.
+        # ``supports_samples`` defaults to True for datasource classes that
+        # don't explicitly opt out.
+        ds_class: type[DatasourceUnion] | None = DatasourceDAO.sources.get(
+            DatasourceType(params["datasource_type"]),
+        )
+        if ds_class is not None and not getattr(ds_class, "supports_samples", True):
+            return json_error_response(
+                _("Samples are not available for this datasource type."),
+                status=400,
+            )
 
         rv = get_samples(
             datasource_type=params["datasource_type"],

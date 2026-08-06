@@ -175,7 +175,11 @@ export const SamplesPane = ({
             type="error"
             showIcon
             message={t('Failed to load samples')}
-            description={responseError}
+            description={
+              <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
+                {responseError}
+              </pre>
+            }
           />
         </ErrorAlertWrapper>
       </>

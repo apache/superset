@@ -113,7 +113,9 @@ describe('SamplesPane', () => {
     // headline message and the raw error text as the description.
     expect(await findByRole('alert')).toBeVisible();
     expect(await findByText('Failed to load samples')).toBeVisible();
-    expect(await findByText('Error: Bad request')).toBeVisible();
+    const errorDescription = await findByText('Error: Bad request');
+    expect(errorDescription.tagName).toBe('PRE');
+    expect(errorDescription).toHaveStyle({ whiteSpace: 'pre-wrap' });
   });
 
   test('force query, render', async () => {

@@ -214,7 +214,7 @@ test('should render the metadata bar', async () => {
 test('should render the error', async () => {
   jest
     .spyOn(SupersetClient, 'post')
-    .mockRejectedValue(new Error('Something went wrong'));
+    .mockRejectedValue(new Error('Something went wrong\nPlease retry'));
   await waitForRender();
   // The error is wrapped in an Alert component with a stable headline and the
   // raw error text in the description — no more bare ``<pre>`` elements.
@@ -222,7 +222,14 @@ test('should render the error', async () => {
   expect(
     await screen.findByText('Failed to load drill-to-detail rows'),
   ).toBeVisible();
-  expect(screen.getByText('Error: Something went wrong')).toBeInTheDocument();
+  const errorDescription = screen.getByText(
+    'Error: Something went wrong Please retry',
+  );
+  expect(errorDescription.tagName).toBe('PRE');
+  expect(errorDescription.textContent).toBe(
+    'Error: Something went wrong\nPlease retry',
+  );
+  expect(errorDescription).toHaveStyle({ whiteSpace: 'pre-wrap' });
 });
 
 describe('download actions', () => {
