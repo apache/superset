@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
@@ -35,6 +36,7 @@ from slack_sdk.errors import (
     SlackRequestError,
     SlackTokenRotationError,
 )
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.sql import func, text
 
 try:
@@ -52,12 +54,12 @@ from superset.commands.report.exceptions import (
     AlertQueryMultipleRowsError,
     ReportScheduleClientErrorsException,
     ReportScheduleCsvFailedError,
-    ReportScheduleCsvTimeout,
     ReportScheduleNotFoundError,
     ReportSchedulePreviousWorkingError,
     ReportScheduleScreenshotFailedError,
     ReportScheduleScreenshotTimeout,
     ReportScheduleSystemErrorsException,
+    ReportScheduleUnexpectedError,
     ReportScheduleWorkingTimeoutError,
 )
 from superset.commands.report.execute import (
@@ -86,6 +88,8 @@ from superset.reports.notifications.exceptions import (
 from superset.tasks.types import ExecutorType
 from superset.utils import json
 from superset.utils.database import get_example_database
+from superset.utils.report_execution import ReportExecutionContext
+from superset.utils.webdriver import PlaywrightTimeout
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
@@ -162,8 +166,8 @@ def assert_log(state: str, error_message: Optional[str] = None):
     logs = db.session.query(ReportExecutionLog).all()
 
     if state == ReportState.WORKING:
-        # A report that is already in the WORKING state logs an extra WORKING row
-        # for the refused re-computation, on top of the row seeded by the fixture.
+        # A refused invocation gets its own terminal ERROR audit row while the
+        # active owner's seeded row and schedule remain WORKING.
         assert len(logs) == 2
     elif state == ReportState.ERROR:
         # On error we also send a notification, which is recorded as a separate
@@ -186,6 +190,33 @@ def assert_log(state: str, error_message: Optional[str] = None):
         if log.state == ReportState.WORKING:
             assert log.value is None
             assert log.value_row_json is None
+
+
+def assert_refused_execution_history(report_schedule: ReportSchedule) -> None:
+    """Assert a refusal is terminal without adding another active WORKING row."""
+
+    logs = (
+        db.session.query(ReportExecutionLog)
+        .filter(ReportExecutionLog.report_schedule == report_schedule)
+        .all()
+    )
+    active_logs = [
+        log
+        for log in logs
+        if log.state == ReportState.WORKING and log.error_message is None
+    ]
+    refused_logs = [
+        log
+        for log in logs
+        if log.state == ReportState.ERROR
+        and log.error_message == str(ReportSchedulePreviousWorkingError())
+    ]
+    assert len(active_logs) == 1
+    assert len(refused_logs) == 1
+    refused_log = refused_logs[0]
+    assert refused_log.start_dttm is not None
+    assert refused_log.end_dttm is not None
+    assert refused_log.end_dttm >= refused_log.start_dttm
 
 
 @contextmanager
@@ -877,7 +908,9 @@ def test_email_chart_report_schedule_alpha_owner(
     username = ""
 
     def _screenshot_side_effect(
-        user: User, log_context: Optional[str] = None
+        user: User,
+        log_context: Optional[str] = None,
+        report_execution_context: ReportExecutionContext | None = None,
     ) -> Optional[bytes]:
         nonlocal username
         username = user.username
@@ -1926,7 +1959,91 @@ def test_report_schedule_working(create_report_slack_chart_working):
             ReportState.WORKING,
             error_message=ReportSchedulePreviousWorkingError.message,
         )
+        assert_refused_execution_history(create_report_slack_chart_working)
         assert create_report_slack_chart_working.last_state == ReportState.WORKING
+
+
+@pytest.mark.usefixtures("create_report_slack_chart_working")
+def test_report_schedule_same_execution_replay_stays_working(
+    create_report_slack_chart_working,
+):
+    """A fresh replay must not terminalize the active execution it duplicates."""
+
+    active_log = (
+        db.session.query(ReportExecutionLog)
+        .filter(
+            ReportExecutionLog.report_schedule == create_report_slack_chart_working,
+            ReportExecutionLog.state == ReportState.WORKING,
+            ReportExecutionLog.error_message.is_(None),
+        )
+        .one()
+    )
+
+    with freeze_time("2020-01-01T00:00:00Z"):
+        with pytest.raises(ReportSchedulePreviousWorkingError):
+            AsyncExecuteReportScheduleCommand(
+                str(active_log.uuid),
+                create_report_slack_chart_working.id,
+                datetime.utcnow(),
+            ).run()
+
+    db.session.refresh(active_log)
+    db.session.refresh(create_report_slack_chart_working)
+    assert active_log.state == ReportState.WORKING
+    assert active_log.error_message is None
+    assert_refused_execution_history(create_report_slack_chart_working)
+    assert create_report_slack_chart_working.last_state == ReportState.WORKING
+
+
+@pytest.mark.usefixtures("create_report_slack_chart_working")
+def test_same_execution_replay_write_failure_does_not_claim_active_row(
+    create_report_slack_chart_working,
+    monkeypatch,
+):
+    """A failed refusal write must not make a replay own the active row."""
+
+    active_log = (
+        db.session.query(ReportExecutionLog)
+        .filter(
+            ReportExecutionLog.report_schedule == create_report_slack_chart_working,
+            ReportExecutionLog.state == ReportState.WORKING,
+            ReportExecutionLog.error_message.is_(None),
+        )
+        .one()
+    )
+
+    def fail_refusal_write(
+        state: BaseReportState,
+        error_message: Optional[str] = None,
+        *,
+        log_state: ReportState | None = None,
+        reuse_working_log: bool = True,
+    ) -> None:
+        raise OperationalError(
+            "INSERT report_execution_log",
+            {},
+            RuntimeError("connection lost while refusing replay"),
+        )
+
+    monkeypatch.setattr(
+        BaseReportState,
+        "create_log",
+        fail_refusal_write,
+    )
+
+    with freeze_time("2020-01-01T00:00:00Z"):
+        with pytest.raises(ReportScheduleUnexpectedError):
+            AsyncExecuteReportScheduleCommand(
+                str(active_log.uuid),
+                create_report_slack_chart_working.id,
+                datetime.utcnow(),
+            ).run()
+
+    db.session.refresh(active_log)
+    db.session.refresh(create_report_slack_chart_working)
+    assert active_log.state == ReportState.WORKING
+    assert active_log.error_message is None
+    assert create_report_slack_chart_working.last_state == ReportState.WORKING
 
 
 @pytest.mark.usefixtures("create_report_slack_chart_working")
@@ -1951,6 +2068,8 @@ def test_report_schedule_working_timeout(create_report_slack_chart_working):
     assert ReportScheduleWorkingTimeoutError.message in [
         log.error_message for log in logs
     ]
+    assert sum(log.state == ReportState.WORKING for log in logs) == 1
+    assert sum(log.state == ReportState.ERROR for log in logs) == 1
     assert create_report_slack_chart_working.last_state == ReportState.ERROR
 
 
@@ -2324,19 +2443,18 @@ def test_soft_timeout_csv(
     mock_urlopen.return_value = response
     mock_urlopen.return_value.getcode.side_effect = SoftTimeLimitExceeded()
 
-    with pytest.raises(ReportScheduleCsvTimeout):
+    with pytest.raises(SoftTimeLimitExceeded):
         AsyncExecuteReportScheduleCommand(
             TEST_ID, create_report_email_chart_with_csv.id, datetime.utcnow()
         ).run()
 
-    get_target_from_report_schedule(create_report_email_chart_with_csv)  # noqa: F841
-    # Assert the email smtp address, asserts a notification was sent with the error
-    assert email_mock.call_args[0][0] == DEFAULT_OWNER_EMAIL
+    # Reports preserve the hard-limit grace for terminal persistence instead
+    # of attempting an error notification after Celery's soft deadline.
+    email_mock.assert_not_called()
 
-    assert_log(
-        ReportState.ERROR,
-        error_message="A timeout occurred while generating a csv.",
-    )
+    logs = get_error_logs_query(create_report_email_chart_with_csv).all()
+    assert len(logs) == 1
+    assert logs[0].error_message == "celery_soft_timeout"
 
 
 @pytest.mark.usefixtures(
@@ -2403,6 +2521,99 @@ def test_fail_screenshot(screenshot_mock, email_mock, create_report_email_chart)
     assert_log(
         ReportState.ERROR, error_message="Failed taking a screenshot Unexpected error"
     )
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_report_email_chart"
+)
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_readiness_timeout_retries_terminal_persistence_and_allows_next_schedule(
+    screenshot_mock,
+    email_mock,
+    create_report_email_chart,
+    caplog,
+    monkeypatch,
+):
+    """A failed first terminal write must not leave a timed-out report WORKING."""
+
+    original_update = BaseReportState.update_report_schedule_and_log
+    terminal_write_failed = False
+
+    def fail_first_terminal_write(
+        state: BaseReportState,
+        report_state: ReportState,
+        error_message: Optional[str] = None,
+    ) -> None:
+        nonlocal terminal_write_failed
+        if report_state == ReportState.ERROR and not terminal_write_failed:
+            terminal_write_failed = True
+            raise OperationalError(
+                "UPDATE report_execution_log",
+                {},
+                RuntimeError("connection lost before terminal commit"),
+            )
+        original_update(state, report_state, error_message)
+
+    monkeypatch.setattr(
+        BaseReportState,
+        "update_report_schedule_and_log",
+        fail_first_terminal_write,
+    )
+    caplog.set_level(logging.INFO, logger="superset.commands.report.execute")
+    screenshot_mock.side_effect = PlaywrightTimeout(
+        "readiness allocation expired with 12/52 holders ready"
+    )
+    create_report_email_chart.last_state = ReportState.SUCCESS
+    db.session.commit()
+
+    with pytest.raises(ReportScheduleScreenshotFailedError):
+        AsyncExecuteReportScheduleCommand(
+            TEST_ID,
+            create_report_email_chart.id,
+            datetime.utcnow(),
+        ).run()
+
+    assert terminal_write_failed
+    db.session.refresh(create_report_email_chart)
+    timed_out_log = (
+        db.session.query(ReportExecutionLog)
+        .filter(ReportExecutionLog.uuid == UUID(TEST_ID))
+        .one()
+    )
+    assert timed_out_log.state == ReportState.ERROR
+    assert "readiness allocation expired" in timed_out_log.error_message
+    assert timed_out_log.start_dttm is not None
+    assert timed_out_log.end_dttm is not None
+    # MySQL's metadata schema can store these values with one-second precision.
+    assert timed_out_log.end_dttm >= timed_out_log.start_dttm
+    assert create_report_email_chart.last_state == ReportState.ERROR
+    email_mock.assert_not_called()
+    assert any(
+        "report_execution_terminal" in record.message
+        and TEST_ID in record.message
+        and "terminal_reason=ReportScheduleScreenshotFailedError" in record.message
+        for record in caplog.records
+    )
+
+    next_execution_id = str(uuid4())
+    screenshot_mock.side_effect = None
+    screenshot_mock.return_value = SCREENSHOT_FILE
+
+    AsyncExecuteReportScheduleCommand(
+        next_execution_id,
+        create_report_email_chart.id,
+        datetime.utcnow(),
+    ).run()
+
+    db.session.refresh(create_report_email_chart)
+    next_log = (
+        db.session.query(ReportExecutionLog)
+        .filter(ReportExecutionLog.uuid == UUID(next_execution_id))
+        .one()
+    )
+    assert next_log.state == ReportState.SUCCESS
+    assert create_report_email_chart.last_state == ReportState.SUCCESS
 
 
 @pytest.mark.usefixtures(
