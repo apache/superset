@@ -105,11 +105,74 @@ interface DatabaseDeleteObject extends DatabaseObject {
 /** How many dependent semantic views the delete confirmation lists by name. */
 const MAX_DEPENDENT_VIEWS_LISTED = 10;
 
-interface SemanticLayerDeleteObject extends ConnectionItem {
-  /** Total dependent semantic views; null when the lookup failed. */
-  dependentViewCount: number | null;
-  /** First page of dependent view names; null when the lookup failed. */
-  dependentViewNames: string[] | null;
+type SemanticLayerDeletePreview =
+  | { status: 'loading'; item: ConnectionItem }
+  | {
+      status: 'loaded';
+      item: ConnectionItem;
+      dependentViewCount: number;
+      dependentViewNames: string[];
+    }
+  | { status: 'failed'; item: ConnectionItem };
+
+type ResolvedSemanticLayerDeletePreview = Exclude<
+  SemanticLayerDeletePreview,
+  { status: 'loading' }
+>;
+
+function SemanticLayerCascadeWarning({
+  preview,
+}: {
+  preview: ResolvedSemanticLayerDeletePreview;
+}) {
+  if (preview.status === 'failed' || preview.dependentViewCount === 0) {
+    return (
+      <p>
+        {t(
+          'Deleting this semantic layer also permanently deletes any semantic views it contains, and charts built on those views will stop working. The affected views could not be listed.',
+        )}
+      </p>
+    );
+  }
+
+  const listedViewCount = preview.dependentViewNames.length;
+  const overflowViewCount = preview.dependentViewCount - listedViewCount;
+
+  return (
+    <>
+      <p>
+        {tn(
+          'This will also permanently delete its %s semantic view. Charts built on that view will stop working.',
+          'This will also permanently delete its %s semantic views. Charts built on those views will stop working.',
+          preview.dependentViewCount,
+          preview.dependentViewCount,
+        )}
+      </p>
+      <h4>{t('Affected semantic views')}</h4>
+      <List
+        split={false}
+        size="small"
+        dataSource={preview.dependentViewNames}
+        renderItem={(name: string) => (
+          <List.Item key={name} compact>
+            <List.Item.Meta avatar={<span>•</span>} title={name} />
+          </List.Item>
+        )}
+        footer={
+          overflowViewCount > 0 && (
+            <div>
+              {tn(
+                '... and %s other',
+                '... and %s others',
+                overflowViewCount,
+                overflowViewCount,
+              )}
+            </div>
+          )
+        }
+      />
+    </>
+  );
 }
 interface DatabaseListProps {
   addDangerToast: (msg: string) => void;
@@ -267,8 +330,8 @@ function DatabaseList({
   const [slCurrentlyEditing, setSlCurrentlyEditing] = useState<string | null>(
     null,
   );
-  const [slCurrentlyDeleting, setSlCurrentlyDeleting] =
-    useState<SemanticLayerDeleteObject | null>(null);
+  const [slDeletePreview, setSlDeletePreview] =
+    useState<SemanticLayerDeletePreview | null>(null);
 
   const [allowUploads, setAllowUploads] = useState<boolean>(false);
   const isAdmin = isUserAdmin(fullUser);
@@ -324,6 +387,7 @@ function DatabaseList({
   const openSemanticLayerDeleteModal = useCallback((item: ConnectionItem) => {
     slDeleteLookupRef.current += 1;
     const lookupId = slDeleteLookupRef.current;
+    setSlDeletePreview({ status: 'loading', item });
     return SupersetClient.get({
       endpoint: `/api/v1/datasource/?q=${rison.encode_uri({
         filters: [{ col: 'semantic_layer_uuid', opr: 'eq', value: item.uuid }],
@@ -335,8 +399,9 @@ function DatabaseList({
     })
       .then(({ json = {} }) => {
         if (slDeleteLookupRef.current !== lookupId) return;
-        setSlCurrentlyDeleting({
-          ...item,
+        setSlDeletePreview({
+          status: 'loaded',
+          item,
           dependentViewCount: json.count ?? 0,
           dependentViewNames: (json.result ?? []).map(
             (view: { table_name: string }) => view.table_name,
@@ -345,11 +410,7 @@ function DatabaseList({
       })
       .catch(() => {
         if (slDeleteLookupRef.current !== lookupId) return;
-        setSlCurrentlyDeleting({
-          ...item,
-          dependentViewCount: null,
-          dependentViewNames: null,
-        });
+        setSlDeletePreview({ status: 'failed', item });
       });
   }, []);
 
@@ -615,7 +676,7 @@ function DatabaseList({
       () => {
         refreshData();
         addSuccessToast(t('Deleted: %s', item.database_name));
-        setSlCurrentlyDeleting(null);
+        setSlDeletePreview(null);
       },
       createErrorHandler(errMsg =>
         addDangerToast(
@@ -731,9 +792,25 @@ function DatabaseList({
                 {canDelete && (
                   <ActionButton
                     label={t('Delete')}
-                    tooltip={t('Delete')}
+                    tooltip={
+                      slDeletePreview?.status === 'loading' &&
+                      slDeletePreview.item.uuid === original.uuid
+                        ? t('Loading dependent semantic views')
+                        : t('Delete')
+                    }
                     placement="bottom"
-                    icon={<Icons.DeleteOutlined iconSize="l" />}
+                    icon={
+                      slDeletePreview?.status === 'loading' &&
+                      slDeletePreview.item.uuid === original.uuid ? (
+                        <Icons.LoadingOutlined iconSize="l" spin />
+                      ) : (
+                        <Icons.DeleteOutlined iconSize="l" />
+                      )
+                    }
+                    disabled={
+                      slDeletePreview?.status === 'loading' &&
+                      slDeletePreview.item.uuid === original.uuid
+                    }
                     onClick={() => openSemanticLayerDeleteModal(original)}
                   />
                 )}
@@ -831,6 +908,7 @@ function DatabaseList({
       handleDatabasePermSync,
       openDatabaseDeleteModal,
       openSemanticLayerDeleteModal,
+      slDeletePreview,
     ],
   );
 
@@ -982,70 +1060,21 @@ function DatabaseList({
         addSuccessToast={addSuccessToast}
         semanticLayerUuid={slCurrentlyEditing ?? undefined}
       />
-      {slCurrentlyDeleting && (
+      {slDeletePreview && slDeletePreview.status !== 'loading' && (
         <DeleteModal
           description={
             <>
               <p>
                 {t('Are you sure you want to delete')}{' '}
-                <b>{slCurrentlyDeleting.database_name}</b>?
+                <b>{slDeletePreview.item.database_name}</b>?
               </p>
-              {slCurrentlyDeleting.dependentViewCount === null ? (
-                <p>
-                  {t(
-                    'Deleting this semantic layer also permanently deletes its semantic views, and charts built on those views will stop working. The affected views could not be listed.',
-                  )}
-                </p>
-              ) : (
-                slCurrentlyDeleting.dependentViewCount > 0 && (
-                  <>
-                    <p>
-                      {tn(
-                        'This will also permanently delete its %s semantic view. Charts built on that view will stop working.',
-                        'This will also permanently delete its %s semantic views. Charts built on those views will stop working.',
-                        slCurrentlyDeleting.dependentViewCount,
-                        slCurrentlyDeleting.dependentViewCount,
-                      )}
-                    </p>
-                    <h4>{t('Affected semantic views')}</h4>
-                    <List
-                      split={false}
-                      size="small"
-                      dataSource={slCurrentlyDeleting.dependentViewNames ?? []}
-                      renderItem={(name: string) => (
-                        <List.Item key={name} compact>
-                          <List.Item.Meta
-                            avatar={<span>•</span>}
-                            title={name}
-                          />
-                        </List.Item>
-                      )}
-                      footer={
-                        slCurrentlyDeleting.dependentViewCount >
-                          (slCurrentlyDeleting.dependentViewNames?.length ??
-                            0) && (
-                          <div>
-                            {t(
-                              '... and %s others',
-                              slCurrentlyDeleting.dependentViewCount -
-                                (slCurrentlyDeleting.dependentViewNames
-                                  ?.length ?? 0),
-                            )}
-                          </div>
-                        )
-                      }
-                    />
-                  </>
-                )
-              )}
+              <SemanticLayerCascadeWarning preview={slDeletePreview} />
             </>
           }
           onConfirm={() => {
-            if (slCurrentlyDeleting) {
-              handleSemanticLayerDelete(slCurrentlyDeleting);
-            }
+            handleSemanticLayerDelete(slDeletePreview.item);
           }}
-          onHide={() => setSlCurrentlyDeleting(null)}
+          onHide={() => setSlDeletePreview(null)}
           open
           title={
             <ModalTitleWithIcon

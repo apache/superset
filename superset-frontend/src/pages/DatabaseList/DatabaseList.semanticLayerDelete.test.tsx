@@ -18,11 +18,7 @@
  */
 import fetchMock from 'fetch-mock';
 import rison from 'rison';
-import { Provider } from 'react-redux';
-import { MemoryRouter } from 'react-router-dom';
 import { configureStore } from '@reduxjs/toolkit';
-import { QueryParamProvider } from 'use-query-params';
-import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import DatabaseList from 'src/pages/DatabaseList';
@@ -122,15 +118,11 @@ const renderDatabaseList = () => {
       getDefaultMiddleware({ serializableCheck: false, immutableCheck: false }),
   });
 
-  return render(
-    <Provider store={store}>
-      <MemoryRouter>
-        <QueryParamProvider adapter={ReactRouter5Adapter}>
-          <DatabaseList user={mockUser} />
-        </QueryParamProvider>
-      </MemoryRouter>
-    </Provider>,
-  );
+  return render(<DatabaseList user={mockUser} />, {
+    store,
+    useQueryParams: true,
+    useRouter: true,
+  });
 };
 
 const openDeleteModal = async () => {
@@ -195,18 +187,17 @@ test('a single dependent view is announced in the singular', async () => {
   ).toBeInTheDocument();
 });
 
-test('no cascade warning appears when the layer has no dependent views', async () => {
+test('an access-filtered empty response still shows a generic cascade warning', async () => {
   setupMocks({ dependents: [] });
   renderDatabaseList();
 
   const dialog = await openDeleteModal();
 
   expect(
-    within(dialog).getByText(/Are you sure you want to delete/),
+    within(dialog).getByText(
+      'Deleting this semantic layer also permanently deletes any semantic views it contains, and charts built on those views will stop working. The affected views could not be listed.',
+    ),
   ).toBeInTheDocument();
-  expect(
-    within(dialog).queryByText(/will also permanently delete/),
-  ).not.toBeInTheDocument();
   expect(
     within(dialog).queryByText('Affected semantic views'),
   ).not.toBeInTheDocument();
@@ -220,7 +211,7 @@ test('a failed dependent lookup still opens the modal with an uncounted warning'
 
   expect(
     within(dialog).getByText(
-      'Deleting this semantic layer also permanently deletes its semantic views, and charts built on those views will stop working. The affected views could not be listed.',
+      'Deleting this semantic layer also permanently deletes any semantic views it contains, and charts built on those views will stop working. The affected views could not be listed.',
     ),
   ).toBeInTheDocument();
 });
@@ -252,50 +243,61 @@ test('the overflow footer reports dependent views beyond the listed page', async
   expect(within(dialog).getByText('... and 2 others')).toBeInTheDocument();
 });
 
-test('a stale lookup cannot reopen a dismissed modal', async () => {
-  // Click Delete (slow lookup), dismiss nothing yet -- then click Delete
-  // again (fast path already consumed), cancel the modal, and let the slow
-  // first lookup resolve: the modal must stay closed.
+test('the overflow footer uses the singular for one unlisted view', async () => {
+  setupMocks({ dependents: [] });
+  fetchMock.removeRoutes({ names: [DATASOURCE_ROUTE] });
+  fetchMock.get(
+    DATASOURCE_ROUTE,
+    {
+      result: Array.from({ length: 10 }, (_, i) =>
+        dependentView(i + 1, `view_${i + 1}`),
+      ),
+      count: 11,
+    },
+    { name: DATASOURCE_ROUTE },
+  );
+  renderDatabaseList();
+
+  const dialog = await openDeleteModal();
+
+  expect(within(dialog).getByText('... and 1 other')).toBeInTheDocument();
+});
+
+test('a pending lookup disables repeated delete requests and shows progress', async () => {
   setupMocks({ dependents: [dependentView(1, 'marketing')] });
   fetchMock.removeRoutes({ names: [DATASOURCE_ROUTE] });
-  let callCount = 0;
-  let releaseFirst: () => void = () => {};
-  const firstGate = new Promise<void>(resolve => {
-    releaseFirst = resolve;
+  let releaseLookup: () => void = () => {};
+  const lookupGate = new Promise<void>(resolve => {
+    releaseLookup = resolve;
   });
   fetchMock.get(
     DATASOURCE_ROUTE,
     async () => {
-      callCount += 1;
-      if (callCount === 1) {
-        await firstGate;
-      }
+      await lookupGate;
       return { result: [dependentView(1, 'marketing')], count: 1 };
     },
     { name: DATASOURCE_ROUTE },
   );
   renderDatabaseList();
 
-  // First click: lookup hangs on the gate; no modal yet.
   const deleteButton = await screen.findByTestId('Delete');
   await userEvent.click(deleteButton);
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-
-  // Second click: resolves immediately and opens the modal.
-  await userEvent.click(deleteButton);
-  const dialog = await screen.findByRole('dialog');
-
-  // Dismiss it, then release the first (stale) lookup.
-  await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
   await waitFor(() => {
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByTestId('Delete')).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
   });
-  releaseFirst();
-  // Give the stale resolution a macrotask to (incorrectly) reopen the modal.
-  await new Promise(resolve => {
-    setTimeout(resolve, 50);
-  });
-  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(screen.getByTestId('Delete')).toHaveAccessibleName(
+    'Loading dependent semantic views',
+  );
+
+  await userEvent.click(screen.getByTestId('Delete'));
+  expect(fetchMock.callHistory.calls(DATASOURCE_ROUTE)).toHaveLength(1);
+
+  releaseLookup();
+  expect(await screen.findByRole('dialog')).toBeInTheDocument();
 });
 
 test('confirming the modal deletes the semantic layer', async () => {
