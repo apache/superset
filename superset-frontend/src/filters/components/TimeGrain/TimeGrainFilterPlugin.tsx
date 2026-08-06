@@ -91,10 +91,6 @@ export default function PluginFilterTimegrain(
     [durationMap, setDataMask],
   );
 
-  useEffect(() => {
-    handleChange(filterState.value ?? []);
-  }, [JSON.stringify(filterState.value)]);
-
   const formItemData: FormItemProps = {};
   if (filterState.validateMessage) {
     formItemData.extra = (
@@ -124,8 +120,8 @@ export default function PluginFilterTimegrain(
     }
 
     const allowedSet = new Set(allowlist);
-    return allOptions.filter(option => allowedSet.has(option.value));
-  }, [data, dashboardTimeGrainAllowlist, formData.timeGrains]);
+    return allOptions.filter(option => allowedSet.has(option.value) || value.includes(option.value));
+  }, [data, dashboardTimeGrainAllowlist, formData.timeGrains, JSON.stringify(value)]);
 
   const validValue = useMemo(() => {
     if (options.length === 0) return [];
@@ -145,6 +141,7 @@ export default function PluginFilterTimegrain(
 
     hasInitRef.current = true;
 
+    if (value.length > 0) return;
     if (target.length > 0) {
       handleChange(target);
     }
