@@ -130,6 +130,27 @@ class TestComputeAndCache:
         cache_payload: ScreenshotCachePayloadType = screenshot_obj.cache.get("key")
         assert cache_payload["status"] == "Updated"
 
+    def test_passes_cache_key_log_context_to_capture(
+        self, mocker: MockerFixture, screenshot_obj
+    ):
+        """compute_and_cache must thread its cache_key into the capture layer
+        as log_context, so every webdriver/screenshot log line produced by a
+        thumbnail or direct-download run can be traced back to the exact
+        cached entry it was computing (reports already do this with their
+        execution_id)."""
+        mocks = self._setup_compute_and_cache(mocker, screenshot_obj)
+        cache_key = screenshot_obj.get_cache_key()
+        screenshot_obj.compute_and_cache(force=False)
+
+        get_screenshot: MagicMock = mocks.get("get_screenshot")
+        get_screenshot.assert_called_once()
+        assert (
+            get_screenshot.call_args.kwargs["log_context"] == f"cache_key={cache_key}"
+        )
+        resize_image: MagicMock = mocks.get("resize_image")
+        resize_image.assert_called_once()
+        assert resize_image.call_args.kwargs["log_context"] == f"cache_key={cache_key}"
+
     def test_screenshot_error(self, mocker: MockerFixture, screenshot_obj):
         mocks = self._setup_compute_and_cache(mocker, screenshot_obj)
         get_screenshot: MagicMock = mocks.get("get_screenshot")
