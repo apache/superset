@@ -122,6 +122,33 @@ def test_resolve_auto_currency_prefers_cell_context_and_detects_mixed() -> None:
     )
 
 
+def test_resolve_auto_currency_coerces_non_iterable_context() -> None:
+    """
+    A sparse 2D pivot leaves missing cells as scalar ``NaN`` rather than an
+    empty tuple, so AUTO resolution must treat a non-iterable context as empty
+    instead of raising ``TypeError`` on ``list(context)``.
+    """
+    currency = {"symbol": "AUTO", "symbolPosition": "prefix"}
+
+    # NaN context with fallback enabled behaves like an empty context and uses
+    # the query-wide detected currency.
+    assert resolve_auto_currency(currency, "GBP", currency_context=float("nan")) == {
+        "symbol": "GBP",
+        "symbolPosition": "prefix",
+    }
+
+    # NaN context without fallback keeps AUTO, matching the empty-context path.
+    assert (
+        resolve_auto_currency(
+            currency,
+            "GBP",
+            currency_context=float("nan"),
+            fallback_to_detected=False,
+        )
+        is currency
+    )
+
+
 @pytest.mark.parametrize(
     "value,expected",
     [

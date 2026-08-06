@@ -117,7 +117,15 @@ def resolve_auto_currency(
         return currency
 
     if currency_context is not None:
-        context_values = list(currency_context)
+        # A dense pivot cell carries an iterable of currency codes, but a sparse
+        # 2D pivot leaves missing cross-product cells as a scalar ``NaN`` (pandas
+        # never runs the union aggregator for them). Coerce any non-iterable or
+        # NaN context to empty so AUTO resolution follows the empty-context path
+        # instead of raising and taking down the whole report.
+        try:
+            context_values = list(currency_context)
+        except TypeError:
+            context_values = []
         normalized_currencies = {
             normalized
             for value in context_values
