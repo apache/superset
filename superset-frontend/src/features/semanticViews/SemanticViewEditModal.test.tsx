@@ -17,7 +17,7 @@
  * under the License.
  */
 import userEvent from '@testing-library/user-event';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import { act, render, screen, waitFor } from 'spec/helpers/testing-library';
 import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
 
 import SemanticViewEditModal from './SemanticViewEditModal';
@@ -199,7 +199,29 @@ test('hydrates Details from the server, not the stale caller prop', async () => 
   });
 });
 
-test('hydrates a description cleared on the server back to empty', async () => {
+test('preserves unsaved edits when the parent recreates its props', async () => {
+  const props = createProps();
+  const { rerender } = render(<SemanticViewEditModal {...props} />);
+
+  const description = await screen.findByDisplayValue('old description');
+  await userEvent.clear(description);
+  await userEvent.type(description, 'unsaved edit');
+
+  rerender(
+    <SemanticViewEditModal
+      {...props}
+      semanticView={{
+        ...props.semanticView,
+        description: 'changed parent value',
+        cache_timeout: 120,
+      }}
+    />,
+  );
+
+  expect(screen.getByDisplayValue('unsaved edit')).toBeInTheDocument();
+});
+
+test('hydrates null description and cache timeout from the server', async () => {
   mockedGet.mockResolvedValue({
     json: {
       result: {
@@ -213,13 +235,20 @@ test('hydrates a description cleared on the server back to empty', async () => {
 
   render(<SemanticViewEditModal {...props} />);
 
+  mockedPut.mockResolvedValue({});
   await waitFor(() => {
-    expect(mockedGet).toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: /save/i })).toBeEnabled();
   });
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+
   await waitFor(() => {
-    expect(
-      screen.queryByDisplayValue('old description'),
-    ).not.toBeInTheDocument();
+    expect(mockedPut).toHaveBeenCalledWith({
+      endpoint: '/api/v1/semantic_view/7',
+      jsonPayload: {
+        description: null,
+        cache_timeout: null,
+      },
+    });
   });
 });
 
@@ -314,6 +343,29 @@ test('handles structure fetch error', async () => {
       'Failed to load structure',
     );
   });
+});
+
+test('does not toast if the fetch is cancelled while formatting its error', async () => {
+  let resolveClientError: (value: { error: string }) => void = () => {};
+  mockedGet.mockRejectedValue(new Error('fetch failed'));
+  mockedGetClientErrorObject.mockImplementation(
+    () =>
+      new Promise(resolve => {
+        resolveClientError = resolve;
+      }),
+  );
+  const props = createProps();
+  const { rerender } = render(<SemanticViewEditModal {...props} />);
+
+  await waitFor(() => {
+    expect(mockedGetClientErrorObject).toHaveBeenCalled();
+  });
+  rerender(<SemanticViewEditModal {...props} show={false} />);
+  await act(async () => {
+    resolveClientError({ error: 'Failed to load structure' });
+  });
+
+  expect(props.addDangerToast).not.toHaveBeenCalled();
 });
 
 test('details tab save still works after viewing structure tabs', async () => {
